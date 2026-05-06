@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in unreserve_psock
 TYPE: WARNING
+PANICKED: Y
 
 [  162.195589] ------------[ cut here ]------------
 [  162.201255] ODEBUG: free active (active state 0) object type: work_struct hint: strp_work+0x0/0xf0

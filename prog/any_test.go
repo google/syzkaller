@@ -5,8 +5,9 @@ package prog
 
 import (
 	"fmt"
+	"maps"
 	"math/rand"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -21,11 +22,7 @@ func TestIsComplexPtr(t *testing.T) {
 				allComplex[ptr.Elem.String()] = true
 			}
 		})
-		var arr []string
-		for id := range allComplex {
-			arr = append(arr, id)
-		}
-		sort.Strings(arr)
+		arr := slices.Sorted(maps.Keys(allComplex))
 		// Log all complex types for manual inspection.
 		t.Log("complex types:\n" + strings.Join(arr, "\n"))
 		if testing.Short() || testutil.RaceEnabled {
@@ -42,7 +39,7 @@ func TestIsComplexPtr(t *testing.T) {
 			if meta.Attrs.Disabled || meta.Attrs.NoGenerate {
 				continue
 			}
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				s := newState(target, ct, nil)
 				calls := r.generateParticularCall(s, meta)
 				p := &Prog{Target: target, Calls: calls}

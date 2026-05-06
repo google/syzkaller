@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -159,7 +160,7 @@ func (v *Value) ForEachValue(cb func(*Value)) {
 }
 
 func (v *Value) Clone() Expression {
-	return &Value{v.Value, append([]string{}, v.Path...)}
+	return &Value{v.Value, slices.Clone(v.Path)}
 }
 
 type BinaryFormat int
@@ -222,15 +223,19 @@ func (ti Ref) DefaultArg(dir Dir) Arg                                { panic("pr
 func (ti Ref) Clone() Type                                           { panic("prog.Ref method called") }
 func (ti Ref) isDefaultArg(arg Arg) bool                             { panic("prog.Ref method called") }
 func (ti Ref) generate(r *randGen, s *state, dir Dir) (Arg, []*Call) { panic("prog.Ref method called") }
+
 func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial, ignoreLengths bool) (float64, bool) {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) ref() Ref       { panic("prog.Ref method called") }
 func (ti Ref) setRef(ref Ref) { panic("prog.Ref method called") }
 
@@ -257,11 +262,8 @@ func (t *TypeCommon) Name() string {
 }
 
 func (t *TypeCommon) TemplateName() string {
-	name := t.TypeName
-	if pos := strings.IndexByte(name, '['); pos != -1 {
-		name = name[:pos]
-	}
-	return name
+	before, _, _ := strings.Cut(t.TypeName, "[")
+	return before
 }
 
 func (t *TypeCommon) Optional() bool {
@@ -522,7 +524,7 @@ func (t *FlagsType) calcUselessHints() []uint64 {
 	// Combinations of up to 3 flag values + 0.
 	res := []uint64{0}
 	vals := t.Vals
-	for i0 := 0; i0 < len(vals); i0++ {
+	for i0 := range len(vals) {
 		v0 := vals[i0]
 		res = append(res, v0)
 		if len(vals) <= 10 {

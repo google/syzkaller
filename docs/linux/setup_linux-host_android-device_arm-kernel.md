@@ -57,7 +57,8 @@ Create a manager config `android.cfg`:
 	"type": "adb",
 	"vm": {
 		"devices": [$DEVICES],
-		"battery_check": true
+		"battery_check": true,
+		"boot_service": "systemui"
 	}
 }
 ```
@@ -69,6 +70,8 @@ For `arm64` use `"target": "linux/arm64"`.
 If your kernel doesn't support coverage collection (e.g. `arm32` without KCOV patches) set `"cover": false`.
 
 Turn off `battery_check` if your device doesn't have battery service, see the comment [here](/vm/adb/adb.go) for details.
+
+The `boot_service` parameter specifies which service to wait for during boot completion. The default value is `"systemui"`, which waits for the `com.android.systemui` process. For AOSP builds without SystemUI (e.g., when testing QEMU Android), you can use `"servicemanager"` or other services instead.
 
 ## Running syzkaller
 

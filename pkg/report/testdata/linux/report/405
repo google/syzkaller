@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in cdev_get
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [ 1191.409330][ T6711] ------------[ cut here ]------------
 [ 1191.414962][ T6711] refcount_t: increment on 0; use-after-free.

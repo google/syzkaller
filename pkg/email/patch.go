@@ -6,8 +6,14 @@ package email
 import (
 	"bufio"
 	"bytes"
+	"fmt"
+	"net/mail"
 	"regexp"
+	"slices"
 	"strings"
+	"text/template"
+
+	"github.com/google/syzkaller/pkg/aflow/ai"
 )
 
 func ParsePatch(message []byte) (diff string) {
@@ -48,6 +54,62 @@ func ParsePatch(message []byte) (diff string) {
 		panic("error while scanning from memory: " + err.Error())
 	}
 	return
+}
+
+func FormatPatchDescription(description string, tools, authors []string, recipients []ai.Recipient) string {
+	buf := new(bytes.Buffer)
+	var to, cc []mail.Address
+	for _, recipient := range recipients {
+		addr := mail.Address{Name: recipient.Name, Address: recipient.Email}
+		if recipient.To {
+			to = append(to, addr)
+		} else {
+			cc = append(cc, addr)
+		}
+	}
+	err := patchTemplate.Execute(buf, map[string]any{
+		"description": strings.TrimSpace(description),
+		"assistedBy":  formatAssistedBy(tools),
+		"authors":     authors,
+		"to":          to,
+		"cc":          cc,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return buf.String()
+}
+
+func FormatPatch(description, diff, baseCommit string, tools, authors []string,
+	recipients []ai.Recipient) string {
+	return FormatPatchDescription(description, tools, authors, recipients) +
+		fmt.Sprintf("%v\nbase-commit: %v\n", diff, baseCommit)
+}
+
+// Note: the patches we generate should comply to:
+// https://docs.kernel.org/process/coding-assistants.html
+var patchTemplate = template.Must(template.New("").Parse(`{{.description}}
+{{if .assistedBy}}
+Assisted-by: {{.assistedBy}}{{end}}
+{{- range $addr := .authors}}
+Signed-off-by: {{$addr}}{{end}}
+{{- range $addr := .to}}
+To: {{$addr.String}}{{end}}
+{{- range $addr := .cc}}
+Cc: {{$addr.String}}{{end}}
+
+`))
+
+// formatAssistedBy formats models according to the kernel standard.
+func formatAssistedBy(tools []string) string {
+	slices.Sort(tools)
+	slices.Reverse(tools)
+	for i, tool := range tools {
+		if strings.HasPrefix(tool, "gemini") {
+			tools[i] = "Gemini:" + tool
+		}
+	}
+	return strings.Join(tools, " ")
 }
 
 var diffRegexps = []*regexp.Regexp{

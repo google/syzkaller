@@ -1,5 +1,6 @@
 TITLE: WARNING in xfrm_state_fini
 TYPE: WARNING
+PANICKED: Y
 
 [  602.265237][T27130] FAULT_INJECTION: forcing a failure.
 [  602.265237][T27130] name failslab, interval 1, probability 0, space 0, times 0

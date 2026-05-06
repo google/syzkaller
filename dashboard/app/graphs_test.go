@@ -71,9 +71,9 @@ func TestManagersGraphs(t *testing.T) {
 		Cover:  400,
 	}))
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		c.advanceTime(7 * 25 * time.Hour)
-		for j := 0; j <= i; j++ {
+		for j := range i + 1 {
 			crash := testCrash(build1, i*i+j)
 			c.client2.ReportCrash(crash)
 		}

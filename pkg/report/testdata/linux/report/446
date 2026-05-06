@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in tls_sw_free_resources_tx
 ALT: hang in tls_sw_free_resources_tx
 TYPE: HANG
+PANICKED: Y
 
 [  412.216359] TCP: request_sock_TCPv6: Possible SYN flooding on port 20002. Sending cookies.  Check SNMP counters.
 [  567.074029] INFO: task syz-executor925:7871 blocked for more than 140 seconds.

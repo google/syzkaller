@@ -1,5 +1,6 @@
 TITLE: WARNING in __ieee80211_beacon_get
 TYPE: WARNING
+PANICKED: Y
 EXECUTOR: proc=9, id=803
 
 [  456.487620][    C1] ------------[ cut here ]------------

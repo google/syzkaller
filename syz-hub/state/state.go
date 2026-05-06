@@ -4,10 +4,11 @@
 package state
 
 import (
+	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -375,8 +376,8 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		capRecords = 100000
 	)
 	if len(records) > maxRecords {
-		sort.Slice(records, func(i, j int) bool {
-			return records[i].Seq < records[j].Seq
+		slices.SortFunc(records, func(a, b Record) int {
+			return cmp.Compare(a.Seq, b.Seq)
 		})
 		if len(records) > capRecords {
 			records = records[len(records)-capRecords:]

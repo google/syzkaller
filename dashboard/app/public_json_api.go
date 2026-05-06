@@ -67,8 +67,9 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 					Title:              crash.Title,
 					SyzReproducerLink:  crash.ReproSyzLink,
 					CReproducerLink:    crash.ReproCLink,
+					ReproOpts:          crash.ReproOpts,
 					KernelConfigLink:   crash.KernelConfigLink,
-					KernelSourceGit:    crash.KernelCommitLink,
+					KernelSourceGit:    crash.KernelRepo,
 					KernelSourceCommit: crash.KernelCommit,
 					SyzkallerGit:       crash.SyzkallerCommitLink,
 					SyzkallerCommit:    crash.SyzkallerCommit,
@@ -86,11 +87,13 @@ func getBugFixCommits(bug *uiBug) []api.Commit {
 	var res []api.Commit
 	for _, commit := range bug.Commits {
 		apiCommit := api.Commit{
-			Title:  commit.Title,
-			Link:   commit.Link,
-			Hash:   commit.Hash,
-			Repo:   commit.Repo,
-			Branch: commit.Branch,
+			Title:      commit.Title,
+			Link:       commit.Link,
+			Hash:       commit.Hash,
+			Repo:       commit.Repo,
+			Branch:     commit.Branch,
+			Author:     commit.Author,
+			AuthorName: commit.AuthorName,
 		}
 		if !commit.Date.IsZero() {
 			apiCommit.Date = &commit.Date
@@ -196,6 +199,8 @@ func GetJSONDescrFor(page any) ([]byte, error) {
 		res = getExtAPIDescrForBugGroups(i.Groups)
 	case *uiBackportsPage:
 		res = getExtAPIDescrForBackports(i.Groups)
+	case *uiDungeonPage, *uiDungeonPlayer, *uiDungeonKingdom, *uiAIJobsPage, *uiAIJobDetails:
+		res = i
 	default:
 		return nil, ErrClientNotFound
 	}

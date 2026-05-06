@@ -1,5 +1,6 @@
 TITLE: WARNING in kvm_put_kvm
 TYPE: WARNING
+PANICKED: Y
 
 [  554.863972][T11919] ------------[ cut here ]------------
 [  554.869480][T11919] WARNING: CPU: 0 PID: 11919 at kernel/rcu/srcutree.c:653 cleanup_srcu_struct+0x37c/0x520

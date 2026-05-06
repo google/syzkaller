@@ -1,0 +1,468 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fs.h>
+include <uapi/linux/fsmap.h>
+include <fs/xfs/xfs_platform.h>
+include <fs/xfs/libxfs/xfs_fs.h>
+
+ioctl$XFS_IOC_DIOINFO(fd fd, cmd const[XFS_IOC_DIOINFO], arg ptr[out, dioattr])
+ioctl$XFS_IOC_FSBULKSTAT_SINGLE(fd fd, cmd const[XFS_IOC_FSBULKSTAT_SINGLE], arg ptr[inout, xfs_fsop_bulkreq])
+ioctl$XFS_IOC_FSBULKSTAT(fd fd, cmd const[XFS_IOC_FSBULKSTAT], arg ptr[inout, xfs_fsop_bulkreq])
+ioctl$XFS_IOC_FSINUMBERS(fd fd, cmd const[XFS_IOC_FSINUMBERS], arg ptr[inout, xfs_fsop_bulkreq])
+ioctl$XFS_IOC_BULKSTAT(fd fd, cmd const[XFS_IOC_BULKSTAT], arg ptr[inout, xfs_bulkstat_req])
+ioctl$XFS_IOC_INUMBERS(fd fd, cmd const[XFS_IOC_INUMBERS], arg ptr[inout, xfs_inumbers_req])
+ioctl$XFS_IOC_FSGEOMETRY_V1(fd fd, cmd const[XFS_IOC_FSGEOMETRY_V1], arg ptr[out, xfs_fsop_geom_v1])
+ioctl$XFS_IOC_FSGEOMETRY_V4(fd fd, cmd const[XFS_IOC_FSGEOMETRY_V4], arg ptr[out, xfs_fsop_geom_v4])
+ioctl$XFS_IOC_FSGEOMETRY(fd fd, cmd const[XFS_IOC_FSGEOMETRY], arg ptr[out, xfs_fsop_geom])
+ioctl$XFS_IOC_AG_GEOMETRY(fd fd, cmd const[XFS_IOC_AG_GEOMETRY], arg ptr[inout, xfs_ag_geometry])
+ioctl$XFS_IOC_RTGROUP_GEOMETRY(fd fd, cmd const[XFS_IOC_RTGROUP_GEOMETRY], arg ptr[inout, xfs_rtgroup_geometry])
+ioctl$XFS_IOC_GETVERSION(fd fd, cmd const[XFS_IOC_GETVERSION], arg ptr[out, int32])
+ioctl$XFS_IOC_FSGETXATTRA(fd fd, cmd const[XFS_IOC_FSGETXATTRA], arg ptr[out, fsxattr])
+ioctl$XFS_IOC_GETPARENTS(fd fd, cmd const[XFS_IOC_GETPARENTS], arg ptr[inout, xfs_getparents])
+ioctl$XFS_IOC_GETPARENTS_BY_HANDLE(fd fd, cmd const[XFS_IOC_GETPARENTS_BY_HANDLE], arg ptr[inout, xfs_getparents_by_handle])
+ioctl$XFS_IOC_GETBMAP(fd fd, cmd const[XFS_IOC_GETBMAP], arg ptr[inout, getbmap])
+ioctl$XFS_IOC_GETBMAPA(fd fd, cmd const[XFS_IOC_GETBMAPA], arg ptr[inout, getbmap])
+ioctl$XFS_IOC_GETBMAPX(fd fd, cmd const[XFS_IOC_GETBMAPX], arg ptr[inout, getbmapx])
+ioctl$XFS_IOC_SCRUBV_METADATA(fd fd, cmd const[XFS_IOC_SCRUBV_METADATA], arg ptr[inout, xfs_scrub_vec_head])
+ioctl$XFS_IOC_SCRUB_METADATA(fd fd, cmd const[XFS_IOC_SCRUB_METADATA], arg ptr[inout, xfs_scrub_metadata])
+ioctl$XFS_IOC_FD_TO_HANDLE(fd fd, cmd const[XFS_IOC_FD_TO_HANDLE], arg ptr[inout, xfs_fsop_handlereq])
+ioctl$XFS_IOC_PATH_TO_HANDLE(fd fd, cmd const[XFS_IOC_PATH_TO_HANDLE], arg ptr[inout, xfs_fsop_handlereq])
+ioctl$XFS_IOC_PATH_TO_FSHANDLE(fd fd, cmd const[XFS_IOC_PATH_TO_FSHANDLE], arg ptr[inout, xfs_fsop_handlereq])
+ioctl$XFS_IOC_OPEN_BY_HANDLE(fd fd, cmd const[XFS_IOC_OPEN_BY_HANDLE], arg ptr[in, xfs_fsop_handlereq])
+ioctl$XFS_IOC_READLINK_BY_HANDLE(fd fd, cmd const[XFS_IOC_READLINK_BY_HANDLE], arg ptr[in, xfs_fsop_handlereq])
+ioctl$XFS_IOC_ATTRLIST_BY_HANDLE(fd fd, cmd const[XFS_IOC_ATTRLIST_BY_HANDLE], arg ptr[inout, xfs_fsop_attrlist_handlereq])
+ioctl$XFS_IOC_ATTRMULTI_BY_HANDLE(fd fd, cmd const[XFS_IOC_ATTRMULTI_BY_HANDLE], arg ptr[inout, xfs_fsop_attrmulti_handlereq])
+ioctl$XFS_IOC_SWAPEXT(fd fd, cmd const[XFS_IOC_SWAPEXT], arg ptr[in, xfs_swapext])
+ioctl$XFS_IOC_FSCOUNTS(fd fd, cmd const[XFS_IOC_FSCOUNTS], arg ptr[out, xfs_fsop_counts])
+ioctl$XFS_IOC_SET_RESBLKS(fd fd, cmd const[XFS_IOC_SET_RESBLKS], arg ptr[inout, xfs_fsop_resblks])
+ioctl$XFS_IOC_GET_RESBLKS(fd fd, cmd const[XFS_IOC_GET_RESBLKS], arg ptr[out, xfs_fsop_resblks])
+ioctl$XFS_IOC_FSGROWFSDATA(fd fd, cmd const[XFS_IOC_FSGROWFSDATA], arg ptr[in, xfs_growfs_data])
+ioctl$XFS_IOC_FSGROWFSLOG(fd fd, cmd const[XFS_IOC_FSGROWFSLOG], arg ptr[in, xfs_growfs_log])
+ioctl$XFS_IOC_FSGROWFSRT(fd fd, cmd const[XFS_IOC_FSGROWFSRT], arg ptr[in, xfs_growfs_rt])
+ioctl$XFS_IOC_GOINGDOWN(fd fd, cmd const[XFS_IOC_GOINGDOWN], arg ptr[in, int32])
+ioctl$XFS_IOC_ERROR_INJECTION(fd fd, cmd const[XFS_IOC_ERROR_INJECTION], arg ptr[in, xfs_error_injection])
+ioctl$XFS_IOC_ERROR_CLEARALL(fd fd, cmd const[XFS_IOC_ERROR_CLEARALL])
+ioctl$XFS_IOC_FREE_EOFBLOCKS(fd fd, cmd const[XFS_IOC_FREE_EOFBLOCKS], arg ptr[in, xfs_fs_eofblocks])
+ioctl$XFS_IOC_EXCHANGE_RANGE(fd fd, cmd const[XFS_IOC_EXCHANGE_RANGE], arg ptr[in, xfs_exchange_range])
+ioctl$XFS_IOC_START_COMMIT(fd fd, cmd const[XFS_IOC_START_COMMIT], arg ptr[out, xfs_commit_range])
+ioctl$XFS_IOC_COMMIT_RANGE(fd fd, cmd const[XFS_IOC_COMMIT_RANGE], arg ptr[in, xfs_commit_range])
+
+xfs_getparents_iflags = XFS_GETPARENTS_IFLAGS_ALL
+xfs_getparents_oflags = XFS_GETPARENTS_OFLAG_ROOT, XFS_GETPARENTS_OFLAG_DONE
+bmap_iflags = BMV_IF_ATTRFORK, BMV_IF_NO_DMAPI_READ, BMV_IF_PREALLOC, BMV_IF_DELALLOC, BMV_IF_NO_HOLES, BMV_IF_COWFORK, BMV_IF_VALID
+bmap_oflags = BMV_OF_PREALLOC, BMV_OF_DELALLOC, BMV_OF_LAST, BMV_OF_SHARED
+xfs_scrub_vec_head_flags = XFS_SCRUB_VEC_FLAGS_ALL
+xfs_scrub_type = XFS_SCRUB_TYPE_PROBE, XFS_SCRUB_TYPE_SB, XFS_SCRUB_TYPE_AGF, XFS_SCRUB_TYPE_AGFL, XFS_SCRUB_TYPE_AGI, XFS_SCRUB_TYPE_BNOBT, XFS_SCRUB_TYPE_CNTBT, XFS_SCRUB_TYPE_INOBT, XFS_SCRUB_TYPE_FINOBT, XFS_SCRUB_TYPE_RMAPBT, XFS_SCRUB_TYPE_REFCNTBT, XFS_SCRUB_TYPE_INODE, XFS_SCRUB_TYPE_BMBTD, XFS_SCRUB_TYPE_BMBTA, XFS_SCRUB_TYPE_BMBTC, XFS_SCRUB_TYPE_DIR, XFS_SCRUB_TYPE_XATTR, XFS_SCRUB_TYPE_SYMLINK, XFS_SCRUB_TYPE_PARENT, XFS_SCRUB_TYPE_RTBITMAP, XFS_SCRUB_TYPE_RTSUM, XFS_SCRUB_TYPE_UQUOTA, XFS_SCRUB_TYPE_GQUOTA, XFS_SCRUB_TYPE_PQUOTA, XFS_SCRUB_TYPE_FSCOUNTERS, XFS_SCRUB_TYPE_QUOTACHECK, XFS_SCRUB_TYPE_NLINKS, XFS_SCRUB_TYPE_HEALTHY, XFS_SCRUB_TYPE_DIRTREE, XFS_SCRUB_TYPE_NR, XFS_SCRUB_TYPE_BARRIER
+xfs_scrub_flags = XFS_SCRUB_FLAGS_ALL, XFS_SCRUB_FLAGS_IN, XFS_SCRUB_FLAGS_OUT
+attr_op_flags = ATTR_OP_GET, ATTR_OP_SET, ATTR_OP_REMOVE
+xfs_ioc_attr_flags = XFS_IOC_ATTR_CREATE, XFS_IOC_ATTR_REPLACE, XFS_IOC_ATTR_ROOT, XFS_IOC_ATTR_SECURE
+xfs_exchange_range_flags = XFS_EXCHANGE_RANGE_TO_EOF, XFS_EXCHANGE_RANGE_DSYNC, XFS_EXCHANGE_RANGE_DRY_RUN, XFS_EXCHANGE_RANGE_FILE1_WRITTEN, XFS_EXCHANGE_RANGE_ALL_FLAGS
+xfs_scrub_metadata_flags = XFS_SCRUB_IFLAG_REPAIR, XFS_SCRUB_OFLAG_CORRUPT, XFS_SCRUB_OFLAG_PREEN, XFS_SCRUB_OFLAG_XFAIL, XFS_SCRUB_OFLAG_XCORRUPT, XFS_SCRUB_OFLAG_INCOMPLETE, XFS_SCRUB_OFLAG_WARNING, XFS_SCRUB_OFLAG_NO_REPAIR_NEEDED, XFS_SCRUB_IFLAG_FORCE_REBUILD
+xfs_bulk_ireq_flags = XFS_BULK_IREQ_AGNO, XFS_BULK_IREQ_SPECIAL, XFS_BULK_IREQ_NREXT64
+xfs_geom_flags = XFS_FSOP_GEOM_FLAGS_ATTR, XFS_FSOP_GEOM_FLAGS_NLINK, XFS_FSOP_GEOM_FLAGS_QUOTA, XFS_FSOP_GEOM_FLAGS_IALIGN, XFS_FSOP_GEOM_FLAGS_DALIGN, XFS_FSOP_GEOM_FLAGS_SHARED, XFS_FSOP_GEOM_FLAGS_EXTFLG, XFS_FSOP_GEOM_FLAGS_DIRV2, XFS_FSOP_GEOM_FLAGS_LOGV2, XFS_FSOP_GEOM_FLAGS_SECTOR, XFS_FSOP_GEOM_FLAGS_ATTR2, XFS_FSOP_GEOM_FLAGS_PROJID32, XFS_FSOP_GEOM_FLAGS_DIRV2CI, XFS_FSOP_GEOM_FLAGS_LAZYSB, XFS_FSOP_GEOM_FLAGS_V5SB, XFS_FSOP_GEOM_FLAGS_FTYPE, XFS_FSOP_GEOM_FLAGS_FINOBT, XFS_FSOP_GEOM_FLAGS_SPINODES, XFS_FSOP_GEOM_FLAGS_RMAPBT, XFS_FSOP_GEOM_FLAGS_REFLINK, XFS_FSOP_GEOM_FLAGS_BIGTIME, XFS_FSOP_GEOM_FLAGS_INOBTCNT, XFS_FSOP_GEOM_FLAGS_NREXT64, XFS_FSOP_GEOM_FLAGS_EXCHANGE_RANGE, XFS_FSOP_GEOM_FLAGS_PARENT, XFS_FSOP_GEOM_FLAGS_METADIR, XFS_FSOP_GEOM_FLAGS_ZONED
+
+dioattr {
+	d_mem		int32
+	d_miniosz	int32
+	d_maxiosz	int32
+}
+
+xfs_fsop_bulkreq {
+	lastip	ptr[inout, int64]
+	icount	int32
+	ubuffer	ptr[out, array[xfs_bulkstat]]
+	ocount	ptr[out, int32]
+}
+
+xfs_bulkstat_req {
+	hdr		xfs_bulk_ireq
+	bulkstat	ptr[out, array[xfs_bulkstat]]
+}
+
+xfs_bulk_ireq {
+	ino		int64
+	flags		flags[xfs_bulk_ireq_flags, int32]
+	icount		int32
+	ocount		int32
+	agno		int32
+	reserved	array[const[0, int64], 5]
+}
+
+xfs_bulkstat {
+	bs_ino			int64
+	bs_size			int64
+	bs_blocks		int64
+	bs_xflags		int64
+	bs_atime		int64
+	bs_mtime		int64
+	bs_ctime		int64
+	bs_btime		int64
+	bs_gen			int32
+	bs_uid			int32
+	bs_gid			int32
+	bs_projectid		int32
+	bs_atime_nsec		int32
+	bs_mtime_nsec		int32
+	bs_ctime_nsec		int32
+	bs_btime_nsec		int32
+	bs_blksize		int32
+	bs_rdev			int32
+	bs_cowextsize_blks	int32
+	bs_extsize_blks		int32
+	bs_nlink		int32
+	bs_extents		int32
+	bs_aextents		int32
+	bs_version		int16
+	bs_forkoff		int16
+	bs_sick			int16
+	bs_checked		int16
+	bs_mode			int16
+	bs_pad2			const[0, int16]
+	bs_extents64		int64
+	bs_pad			array[const[0, int64], 6]
+}
+
+xfs_inumbers_req {
+	hdr		xfs_bulk_ireq
+	inumbers	array[xfs_inumbers]
+}
+
+xfs_inumbers {
+	xi_startino	int64
+	xi_allocmask	int64
+	xi_alloccount	int8
+	xi_version	int8
+	xi_padding	array[const[0, int8], 6]
+}
+
+xfs_fsop_geom_v1 {
+	blocksize	int32
+	rtextsize	int32
+	agblocks	int32
+	agcount		int32
+	logblocks	int32
+	sectsize	int32
+	inodesize	int32
+	imaxpct		int32
+	datablocks	int64
+	rtblocks	int64
+	rtextents	int64
+	logstart	int64
+	uuid		array[int8, 16]
+	sunit		int32
+	swidth		int32
+	version		int32
+	flags		int32
+	logsectsize	int32
+	rtsectsize	int32
+	dirblocksize	int32
+}
+
+xfs_fsop_geom_v4 {
+	blocksize	int32
+	rtextsize	int32
+	agblocks	int32
+	agcount		int32
+	logblocks	int32
+	sectsize	int32
+	inodesize	int32
+	imaxpct		int32
+	datablocks	int64
+	rtblocks	int64
+	rtextents	int64
+	logstart	int64
+	uuid		array[int8, 16]
+	sunit		int32
+	swidth		int32
+	version		int32
+	flags		int32
+	logsectsize	int32
+	rtsectsize	int32
+	dirblocksize	int32
+	logsunit	int32
+}
+
+xfs_fsop_geom {
+	blocksize	int32
+	rtextsize	int32
+	agblocks	int32
+	agcount		int32
+	logblocks	int32
+	sectsize	int32
+	inodesize	int32
+	imaxpct		int32
+	datablocks	int64
+	rtblocks	int64
+	rtextents	int64
+	logstart	int64
+	uuid		array[int8, 16]
+	sunit		int32
+	swidth		int32
+	version		int32
+	flags		flags[xfs_geom_flags, int32]
+	logsectsize	int32
+	rtsectsize	int32
+	dirblocksize	int32
+	logsunit	int32
+	sick		int32
+	checked		int32
+	rgextents	int32
+	rgcount		int32
+	rtstart		int64
+	rtreserved	int64
+	reserved	array[const[0, int64], 14]
+}
+
+xfs_ag_geometry {
+	ag_number	int32
+	ag_length	int32
+	ag_freeblks	int32
+	ag_icount	int32
+	ag_ifree	int32
+	ag_sick		int32
+	ag_checked	int32
+	ag_flags	int32
+	ag_reserved	array[const[0, int64], 12]
+}
+
+xfs_rtgroup_geometry {
+	rg_number	int32
+	rg_length	int32
+	rg_sick		int32
+	rg_checked	int32
+	rg_flags	int32
+	rg_reserved	array[const[0, int32], 27]
+}
+
+xfs_attrlist_cursor {
+	opaque	array[int32, 4]
+}
+
+xfs_fsid {
+	val	array[int32, 2]
+}
+
+xfs_fid {
+	fid_len	int16
+	fid_pad	int16
+	fid_gen	int32
+	fid_ino	int64
+}
+
+xfs_handle {
+	ha_u	xfs_handle_union
+	ha_fid	xfs_fid
+}
+
+xfs_handle_union [
+	align		int64
+	_ha_fsid	xfs_fsid
+]
+
+xfs_getparents_rec {
+	gpr_parent	xfs_handle
+	gpr_reclen	int32
+	gpr_reserved	const[0, int32]
+	gpr_name	string
+}
+
+xfs_getparents {
+	gp_cursor	xfs_attrlist_cursor
+	gp_iflags	flags[xfs_getparents_iflags, int16]
+	gp_oflags	flags[xfs_getparents_oflags, int16]
+	gp_bufsize	int32
+	gp_reserved	const[0, int64]
+	gp_buffer	ptr[inout, array[xfs_getparents_rec]]
+}
+
+xfs_getparents_by_handle {
+	gph_handle	xfs_handle
+	gph_request	xfs_getparents
+}
+
+getbmap {
+	bmv_offset	int64
+	bmv_block	int64
+	bmv_length	int64
+	bmv_count	int32
+	bmv_entries	int32
+}
+
+getbmapx {
+	bmv_offset	int64
+	bmv_block	int64
+	bmv_length	int64
+	bmv_count	int32
+	bmv_entries	int32
+	bmv_iflags	flags[bmap_iflags, int32]
+	bmv_oflags	flags[bmap_oflags, int32]
+	bmv_unused1	const[0, int32]
+	bmv_unused2	const[0, int32]
+}
+
+xfs_scrub_vec_head {
+	svh_ino		int64
+	svh_gen		int32
+	svh_agno	int32
+	svh_flags	flags[xfs_scrub_vec_head_flags, int32]
+	svh_rest_us	int16
+	svh_nr		len[svh_vectors, int16]
+	svh_reserved	const[0, int64]
+	svh_vectors	ptr[inout, array[xfs_scrub_vec]]
+}
+
+xfs_scrub_metadata {
+	sm_type		flags[xfs_scrub_type, int32]
+	sm_flags	flags[xfs_scrub_metadata_flags, int32]
+	sm_ino		int64
+	sm_gen		int32
+	sm_agno		int32
+	sm_reserved	array[const[0, int64], 5]
+}
+
+xfs_scrub_vec {
+	sv_type		flags[xfs_scrub_type, int32]
+	sv_flags	flags[xfs_scrub_flags, int32]
+	sv_ret		int32
+	sv_reserved	const[0, int32]
+}
+
+xfs_fsop_handlereq {
+	fd		fd
+	path		ptr[in, string]
+	oflags		flags[open_flags, int32]
+	ihandle		ptr[in, xfs_handle]
+	ihandlen	int32
+	ohandle		ptr[out, xfs_handle]
+	ohandlen	ptr[inout, int32]
+}
+
+xfs_fsop_attrlist_handlereq {
+	hreq	xfs_fsop_handlereq
+	pos	xfs_attrlist_cursor
+	flags	int32
+	buflen	len[buffer, int32]
+	buffer	ptr[out, array[int8]]
+}
+
+xfs_attr_multiop {
+	am_opcode	flags[attr_op_flags, int32]
+	am_error	int32
+	am_attrname	ptr[in, string]
+	am_attrvalue	ptr[inout, array[int8]]
+	am_length	len[am_attrvalue, int32]
+	am_flags	flags[xfs_ioc_attr_flags, int32]
+}
+
+xfs_fsop_attrmulti_handlereq {
+	hreq	xfs_fsop_handlereq
+	opcount	len[ops, int32]
+	ops	ptr[inout, array[xfs_attr_multiop]]
+}
+
+xfs_swapext {
+	sx_version	const[0, int64]
+	sx_fdtarget	fd
+	sx_fdtmp	fd
+	sx_offset	int64
+	sx_length	int64
+	sx_pad		array[const[0, int8], 16]
+	sx_stat		xfs_bstat
+}
+
+xfs_bstat {
+	bs_ino		int64
+	bs_mode		int16
+	bs_nlink	int16
+	bs_uid		int32
+	bs_gid		int32
+	bs_rdev		int32
+	bs_blksize	int32
+	bs_size		int64
+	bs_atime	xfs_bstime
+	bs_mtime	xfs_bstime
+	bs_ctime	xfs_bstime
+	bs_blocks	int64
+	bs_xflags	int32
+	bs_extsize	int32
+	bs_extents	int32
+	bs_gen		int32
+	bs_projid_lo	int16
+	bs_forkoff	int16
+	bs_projid_hi	int16
+	bs_sick		int16
+	bs_checked	int16
+	bs_pad		array[const[0, int8], 2]
+	bs_cowextsize	int32
+	bs_dmevmask	int32
+	bs_dmstate	int16
+	bs_aextents	int16
+}
+
+xfs_bstime {
+	tv_sec	intptr
+	tv_nsec	int32
+}
+
+xfs_fsop_counts {
+	freedata	int64
+	freertx		int64
+	freeino		int64
+	allocino	int64
+}
+
+xfs_fsop_resblks {
+	resblks		int64
+	resblks_avail	int64
+}
+
+xfs_growfs_data {
+	newblocks	int64
+	imaxpct		int32
+}
+
+xfs_growfs_log {
+	newblocks	int32
+	isint		int32
+}
+
+xfs_growfs_rt {
+	newblocks	int64
+	extsize		int32
+}
+
+xfs_error_injection {
+	fd	fd
+	errtag	int32
+}
+
+xfs_fs_eofblocks {
+	eof_version		int32
+	eof_flags		int32
+	eof_uid			int32
+	eof_gid			int32
+	eof_prid		int32
+	pad32			const[0, int32]
+	eof_min_file_size	int64
+	pad64			array[const[0, int64], 12]
+}
+
+xfs_exchange_range {
+	file1_fd	fd
+	pad		const[0, int32]
+	file1_offset	int64
+	file2_offset	int64
+	length		int64
+	flags		flags[xfs_exchange_range_flags, int64]
+}
+
+xfs_commit_range {
+	file1_fd	fd
+	pad		const[0, int32]
+	file1_offset	int64
+	file2_offset	int64
+	length		int64
+	flags		flags[xfs_exchange_range_flags, int64]
+	file2_freshness	array[int64, 6]
+}

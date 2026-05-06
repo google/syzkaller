@@ -1,0 +1,27 @@
+Subject: [PATCH v3] Fix another bug
+
+This is v3 of the patch with fixed z.
+
+---
+v3:
+- Fixed ABCD.
+- Improved documentation.
+
+v2:
+- Fixed EFG.
+- Adjusted formatting.
+https://lore.kernel.org/all/message-id-2/T/
+
+v1:
+https://lore.kernel.org/all/message-id-1/T/
+---
+diff --git a/file2 b/file2
+--- a/file2
++++ b/file2
+@@ -1 +1 @@
+-old2
++new2
+
+base-commit: 123456abcdef
+-- 
+See http://docs.link for more information.

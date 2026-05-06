@@ -9,20 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			cmd, _ := extractCommand(test.body)
-			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.cmd, cmd)
 			cmd, _ = extractCommand(strings.ReplaceAll(test.body, "\n", "\r\n"))
-			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.cmd, cmd)
 		})
 	}
 }
@@ -124,9 +121,7 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if diff := cmp.Diff(&test.res, email); diff != "" {
-				t.Error(diff)
-			}
+			assert.Equal(t, &test.res, email)
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
 
@@ -406,14 +401,20 @@ baz
 			Args:    "abcd",
 		},
 	},
+	{
+		body: `#syz reject`,
+		cmd: &SingleCommand{
+			Command: CmdReject,
+			Str:     "reject",
+			Args:    "",
+		},
+	},
 }
 
 type ParseTest struct {
 	email string
 	res   Email
 }
-
-var parseTestZone = time.FixedZone("", -7*60*60)
 
 // nolint: lll
 var parseTests = []ParseTest{
@@ -437,7 +438,7 @@ For more options, visit https://groups.google.com/d/optout.`,
 		Email{
 			BugIDs:    []string{"4564456"},
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Link:      "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
 			Subject:   "test subject",
 			Author:    "bob@example.com",
@@ -478,7 +479,7 @@ To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/6
 		Email{
 			BugIDs:    []string{"4564456"},
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Link:      "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
 			Subject:   "new footer",
 			Author:    "bob@example.com",
@@ -505,7 +506,7 @@ last line`,
 		Email{
 			BugIDs:    []string{"4564456"},
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "test subject",
 			Author:    "foo@bar.com",
 			OwnEmail:  true,
@@ -528,7 +529,7 @@ second line
 last line`,
 		Email{
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "test subject",
 			Author:    "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
@@ -560,7 +561,7 @@ last line
 #syz command`,
 		Email{
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "test subject",
 			Author:    "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
@@ -606,7 +607,7 @@ IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 --001a114ce0b01684a6054f0d8b81--`,
 		Email{
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "test subject",
 			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
@@ -694,7 +695,7 @@ or)</div></div></div>
 --f403043eee70018593054f0d9f1f--`,
 		Email{
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "test subject",
 			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
@@ -748,6 +749,7 @@ index 3d85747bd86e..a257b872a53d 100644
 			},
 		}},
 
+	// nolint: dupl
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
  sock_poll
@@ -777,7 +779,7 @@ On 2018/06/10 4:57, syzbot wrote:
 d
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2018, time.June, 10, 10, 38, 20, 0, time.FixedZone("", 9*60*60)),
+		Date:      time.Date(2018, time.June, 10, 1, 38, 20, 0, time.UTC),
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
@@ -856,7 +858,7 @@ nothing to see here`,
 		Email{
 			BugIDs:    []string{"4564456"},
 			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
 			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com"},
@@ -880,7 +882,7 @@ To: syzbot <list@googlegroups.com>
 nothing to see here`,
 		Email{
 			MessageID:   "<123>",
-			Date:        time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "user@mail.com",
 			MailingList: "list@googlegroups.com",
@@ -898,7 +900,7 @@ To: <user2@mail.com>
 nothing to see here`,
 		Email{
 			MessageID:   "<123>",
-			Date:        time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "user@mail.com",
 			MailingList: "list@googlegroups.com",
@@ -916,7 +918,7 @@ To: <user2@mail.com>
 nothing to see here`,
 		Email{
 			MessageID:   "<123>",
-			Date:        time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "list@googlegroups.com",
 			MailingList: "list@googlegroups.com",
@@ -924,6 +926,7 @@ nothing to see here`,
 			RawCc:       []string{"list@googlegroups.com", "user2@mail.com"},
 			Body:        `nothing to see here`,
 		}},
+	// nolint: dupl
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
  sock_poll
@@ -941,7 +944,7 @@ test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82=
 f950fddb9ea6bdb5e39
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
@@ -972,7 +975,7 @@ Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `, Email{
 		BugIDs:    []string{"223c7461c58c58a4cb10"},
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "[PATCH] Some patch",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
@@ -994,7 +997,7 @@ Link: https://bar.com/bug?extid=223c7461c58c58a4cb10@bar.com
 `, Email{
 		BugIDs:    []string{"223c7461c58c58a4cb10"},
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "[PATCH] Some patch",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
@@ -1019,7 +1022,7 @@ Reported-by: syzbot <foo+9909090909090909@bar.com>
 `, Email{
 		BugIDs:    []string{"223c7461c58c58a4cb10", "9909090909090909"},
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "[PATCH] Some patch",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
@@ -1044,7 +1047,7 @@ Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 		// First come BugIDs from header, then from the body.
 		BugIDs:    []string{"9909090909090909", "223c7461c58c58a4cb10"},
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "[PATCH] Some patch",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
@@ -1073,7 +1076,7 @@ Some text
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
 		// The first one should be picked up.
 		InReplyTo: "<000000000000f1a9d205f909f327@google.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "Some discussion",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
@@ -1096,7 +1099,7 @@ Content-Transfer-Encoding: quoted-printable
 #syz test: ccc ddd
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
@@ -1130,7 +1133,7 @@ Content-Transfer-Encoding: 8bit
 Body
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 		Subject:   "[PATCH] Add a new test 'migrate.cow_after_fork' that verifies correct RMAP handling of Copy-On-Write pages after fork(). Before a write, parent and child share the same PFN;",
 		Author:    "foo@foobar.com",
 		Cc:        []string{"bar@foo.com", "foo@foobar.com"},
@@ -1150,7 +1153,7 @@ base-commit-broken-tag-correct-hash: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 		Email{
 			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "[PATCH] Some patch",
 			Author:    "foo@foobar.com",
 			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
@@ -1171,7 +1174,7 @@ base-commit: f8f97927brokenhash
 `,
 		Email{
 			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "[PATCH] Some patch",
 			Author:    "foo@foobar.com",
 			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
@@ -1192,7 +1195,7 @@ base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 		Email{
 			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "[PATCH] Some patch",
 			Author:    "foo@foobar.com",
 			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
@@ -1215,7 +1218,7 @@ Oops, no hash.
 `,
 		Email{
 			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "[PATCH] Some patch",
 			Author:    "foo@foobar.com",
 			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
@@ -1238,7 +1241,7 @@ base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are b
 `,
 		Email{
 			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:   "[PATCH] Some patch",
 			Author:    "foo@foobar.com",
 			Cc:        []string{"bar@foo.com", "foo@foobar.com"},

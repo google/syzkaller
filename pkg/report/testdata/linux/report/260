@@ -1,6 +1,7 @@
 TITLE: general protection fault in p9_conn_cancel
 ALT: bad-access in p9_conn_cancel
 TYPE: DoS
+PANICKED: Y
 
 [  242.871006] kasan: CONFIG_KASAN_INLINE enabled
 [  242.875630] kasan: GPF could be caused by NULL-ptr deref or user memory access

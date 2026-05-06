@@ -1,5 +1,6 @@
 TITLE: WARNING in smk_write_syslog
 TYPE: WARNING
+PANICKED: Y
 
 [  192.620756][T13366] ------------[ cut here ]------------
 [  192.647232][T13366] WARNING: CPU: 1 PID: 13366 at mm/page_alloc.c:4976 __alloc_pages_nodemask+0x4e5/0x5a0

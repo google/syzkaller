@@ -4,13 +4,15 @@
 package linux
 
 import (
+	"cmp"
 	"fmt"
 	"io/fs"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/subsystem"
+	"golang.org/x/exp/maps"
 )
 
 func ListFromRepo(repo string) ([]*subsystem.Subsystem, *subsystem.DebugInfo, error) {
@@ -51,15 +53,16 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem,
 	}
 
 	// Sort subsystems by name to keep output consistent.
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	slices.SortFunc(list, func(a, b *subsystem.Subsystem) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	// Sort path rules to keep output consistent.
 	for _, entity := range list {
-		sort.Slice(entity.PathRules, func(i, j int) bool {
-			a, b := entity.PathRules[i], entity.PathRules[j]
+		slices.SortFunc(entity.PathRules, func(a, b subsystem.PathRule) int {
 			if a.IncludeRegexp != b.IncludeRegexp {
-				return a.IncludeRegexp < b.IncludeRegexp
+				return cmp.Compare(a.IncludeRegexp, b.IncludeRegexp)
 			}
-			return a.ExcludeRegexp < b.ExcludeRegexp
+			return cmp.Compare(a.ExcludeRegexp, b.ExcludeRegexp)
 		})
 	}
 	return list, &subsystem.DebugInfo{
@@ -230,11 +233,8 @@ func unique(list []string) []string {
 	for _, s := range list {
 		m[s] = struct{}{}
 	}
-	ret := []string{}
-	for s := range m {
-		ret = append(ret, s)
-	}
-	sort.Strings(ret)
+	ret := maps.Keys(m)
+	slices.Sort(ret)
 	return ret
 }
 
@@ -253,7 +253,7 @@ func maintainersFromRecords(records []*maintainersRecord) []string {
 		if len(record.trees) == 0 {
 			continue
 		}
-		sort.Strings(record.trees)
+		slices.Sort(record.trees)
 		key := fmt.Sprintf("%v", record.trees)
 		perTrees[key] = append(perTrees[key], record.maintainers)
 	}

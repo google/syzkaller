@@ -1,5 +1,6 @@
 TITLE: kernel panic: Attempted to kill init!
 TYPE: DoS
+PANICKED: Y
 
 [ 2713.133889] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000013
 [ 2713.133889] 

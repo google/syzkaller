@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "executor_common.h"
+
 static int test_copyin()
 {
 	static uint16 buf[3];
@@ -365,6 +367,49 @@ static int test_glob()
 	return 0;
 }
 
+static int test_get_last_opt()
+{
+	struct {
+		const char* cmdline;
+		const char* key;
+		const char* want;
+	} tests[] = {
+	    {"key=val", "key", "val"},
+	    {"key=val ", "key", "val"},
+	    {" key=val", "key", "val"},
+	    {" key=val ", "key", "val"},
+	    {"key=val1 key=val2", "key", "val2"},
+	    {"key=val1 key=val2 ", "key", "val2"},
+	    {"key=val1 key=val2 key=val3", "key", "val3"},
+	    {"other=val key=val", "key", "val"},
+	    {"key=val other=val", "key", "val"},
+	    {"foo=bar", "key", ""},
+	    {"nokey=val", "key", ""},
+	    {"key", "key", ""},
+	    {"full match", "full", ""}, // "full" != "full="
+	};
+
+	char buf[128];
+	for (size_t i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+		memset(buf, 0, sizeof(buf));
+		get_last_opt(tests[i].cmdline, tests[i].key, buf, sizeof(buf));
+		if (strcmp(buf, tests[i].want) != 0) {
+			printf("test_get_last_opt failed: cmdline='%s' key='%s' want='%s' got='%s'\n",
+			       tests[i].cmdline, tests[i].key, tests[i].want, buf);
+			return 1;
+		}
+	}
+
+	char small_buf[4];
+	get_last_opt("key=value", "key", small_buf, sizeof(small_buf));
+	if (strcmp(small_buf, "val") != 0) {
+		printf("test_get_last_opt truncation failed: want='val' got='%s'\n", small_buf);
+		return 1;
+	}
+
+	return 0;
+}
+
 static struct {
 	const char* name;
 	int (*f)();
@@ -380,6 +425,7 @@ static struct {
 #endif
     {"test_cover_filter", test_cover_filter},
     {"test_glob", test_glob},
+    {"test_get_last_opt", test_get_last_opt},
 };
 
 static int run_tests(const char* test)

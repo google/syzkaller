@@ -1,6 +1,7 @@
 TITLE: PANIC: double fault in corrupted
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [ 1009.603175] PANIC: double fault, error_code: 0x0
 [ 1009.607950] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.20.0+ #136

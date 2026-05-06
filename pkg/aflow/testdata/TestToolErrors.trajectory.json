@@ -1,0 +1,120 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "faulty",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"CallError": true
+		}
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "faulty",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Error": "you are wrong",
+		"Args": {
+			"CallError": true
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "faulty",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"CallError": false
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "faulty",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Error": "hard error",
+		"Args": {
+			"CallError": false
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:11Z",
+		"Error": "tool faulty failed: error: hard error\nargs: map[CallError:false]",
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:12Z",
+		"Error": "tool faulty failed: error: hard error\nargs: map[CallError:false]"
+	}
+]

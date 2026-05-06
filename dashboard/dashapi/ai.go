@@ -4,11 +4,18 @@
 package dashapi
 
 import (
+	"errors"
+
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 )
 
+type AIJobSource string
+
+const AIJobSourceLore AIJobSource = "lore"
+
 type AIJobPollReq struct {
+	AgentName    string
 	CodeRevision string // git commit of the syz-agent server
 	Workflows    []AIWorkflow
 }
@@ -31,8 +38,9 @@ type AIJobDoneReq struct {
 }
 
 type AITrajectoryReq struct {
-	JobID string
-	Span  *trajectory.Span
+	AgentName string
+	JobID     string
+	Span      *trajectory.Span
 }
 
 func (dash *Dashboard) AIJobPoll(req *AIJobPollReq) (*AIJobPollResp, error) {
@@ -49,4 +57,107 @@ func (dash *Dashboard) AIJobDone(req *AIJobDoneReq) error {
 
 func (dash *Dashboard) AITrajectoryLog(req *AITrajectoryReq) error {
 	return dash.Query("ai_trajectory_log", req, nil)
+}
+
+// SendExternalCommandReq represents a request to report a patch action externally (upstream or reject).
+type SendExternalCommandReq struct {
+	Source       AIJobSource
+	RootExtID    string
+	MessageExtID string
+	Author       string
+	OwnEmail     bool
+	// Only one must be set.
+	Upstream *UpstreamCommand `json:",omitempty"`
+	Reject   *RejectCommand   `json:",omitempty"`
+	Comment  *CommentCommand  `json:",omitempty"`
+}
+
+type UpstreamCommand struct {
+}
+
+type RejectCommand struct {
+	Reason string
+}
+
+type CommentCommand struct {
+	Body string
+}
+
+type SendExternalCommandResp struct {
+	Error string
+}
+
+// PollExternalReportReq represents a request to poll for pending reports to be sent externally.
+type PollExternalReportReq struct {
+	Source AIJobSource
+}
+
+type PollExternalReportResp struct {
+	Result *ReportPollResult
+}
+
+type ReportPollResult struct {
+	ID          string // JobReporting ID
+	CanUpstream bool
+	To          []string
+	Cc          []string
+	Patch       *NewReportResult `json:",omitempty"`
+	Replies     []*ReplyResult   `json:",omitempty"`
+}
+
+type NewReportResult struct {
+	Subject    string
+	Body       string
+	Version    int
+	GitDiff    string
+	Changelog  []ChangelogEntry
+	To         []string
+	Cc         []string
+	Tools      []string
+	BaseCommit string
+	BaseTree   string
+}
+
+type ChangelogEntry struct {
+	Version int
+	Link    string
+	Text    string
+}
+
+type ReplyResult struct {
+	Quote       string
+	Body        string
+	ReplyExtID  string
+	ReplyAuthor string
+}
+
+// ConfirmPublishedReq represents a request to confirm that a report has been published externally.
+type ConfirmPublishedReq struct {
+	ReportID       string
+	PublishedExtID string
+}
+
+var ErrReportNotFound = errors.New("report not found")
+
+func (dash *Dashboard) AIReportCommand(req *SendExternalCommandReq) (*SendExternalCommandResp, error) {
+	resp := new(SendExternalCommandResp)
+	if err := dash.Query("ai_report_command", req, resp); err != nil {
+		return nil, err
+	}
+	if resp.Error == ErrReportNotFound.Error() {
+		return nil, ErrReportNotFound
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) AIPollReport(req *PollExternalReportReq) (*PollExternalReportResp, error) {
+	resp := new(PollExternalReportResp)
+	if err := dash.Query("ai_poll_report", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) AIConfirmReport(req *ConfirmPublishedReq) error {
+	return dash.Query("ai_confirm_report", req, nil)
 }

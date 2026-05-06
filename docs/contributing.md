@@ -74,14 +74,14 @@ in the same commit.
 
 - Rebase your working branch onto the master branch before sending a pull request to avoid merge conflicts.
 - Run `make presubmit` and ensure that it passes before sending a PR.
-  It may require some additional packages to be installed (try `sudo make install_prerequisites`).
+  This may require some additional packages to be installed (try `sudo make install_prerequisites`).
 - Provide a brief high-level description in the pull request title.
   The pull request text is mostly irrelevant, all the details should be in the commit messages.
 - If you're asked to add some fixes to your pull request, please squash the fixes into the old commits.
 
 ### How to create a pull request on Github
 
-- First, you need an own git fork of syzkaller repository. Navigate to
+- First, you need your own git fork of syzkaller repository. Navigate to
 [github.com/google/syzkaller](https://github.com/google/syzkaller) and press `Fork` button in the top-right corner of
 the page. This will create `https://github.com/YOUR_GITHUB_USERNAME/syzkaller` repository.
 
@@ -110,7 +110,7 @@ This adds git origin `my-origin` with your repository and checks out new branch 
 ### Using syz-env
 
 Developing syzkaller requires a number of tools installed (Go toolchain, C/C++ cross-compilers, golangci-lint, etc).
-Installing all of them may be cumbersome, e.g. due broken/missing packages.
+Installing all of them may be cumbersome, e.g. due to broken/missing packages.
 [syz-env](/tools/syz-env) provides a working hermetic development environment based on a Docker container.
 If you don't yet have Docker installed, see [documentation](https://docs.docker.com/engine/install),
 in particular regarding enabling [sudo-less](https://docs.docker.com/engine/install/linux-postinstall)

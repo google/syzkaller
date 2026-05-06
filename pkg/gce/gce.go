@@ -41,6 +41,7 @@ type Context struct {
 	Subnetwork string
 
 	computeService *compute.Service
+	metadataServer string
 
 	// apiCallTicker ticks regularly, preventing us from accidentally making
 	// GCE API calls too quickly. Our quota is 20 QPS, but we limit ourselves
@@ -53,9 +54,25 @@ type CreateArgs struct {
 	DisplayDevice bool
 }
 
-func NewContext(customZoneID string) (*Context, error) {
+type InstanceConfig struct {
+	Name                 string
+	MachineType          string
+	Image                string
+	SSHKey               string
+	Tags                 []string
+	Preemptible          bool
+	DisplayDevice        bool
+	NestedVirtualization bool
+	NicType              string
+	VMRunningTime        time.Duration
+}
+
+var metadataURL = "http://metadata.google.internal/computeMetadata/v1/"
+
+func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	ctx := &Context{
-		apiRateGate: time.NewTicker(time.Second).C,
+		apiRateGate:    time.NewTicker(time.Second).C,
+		metadataServer: metadataURL,
 	}
 	background := context.Background()
 	tokenSource, err := google.DefaultTokenSource(background, compute.CloudPlatformScope)
@@ -68,21 +85,23 @@ func NewContext(customZoneID string) (*Context, error) {
 		return nil, fmt.Errorf("failed to create compute service: %w", err)
 	}
 	// Obtain project name, zone and current instance IP address.
-	ctx.ProjectID, err = ctx.getMeta("project/project-id")
+	instanceProject, err := ctx.getMeta("project/project-id")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query gce project-id: %w", err)
 	}
-	myZoneID, err := ctx.getMeta("instance/zone")
-	if err != nil {
-		return nil, fmt.Errorf("failed to query gce zone: %w", err)
+	if customProjectID != "" {
+		ctx.ProjectID = customProjectID
+	} else {
+		ctx.ProjectID = instanceProject
 	}
-	if i := strings.LastIndexByte(myZoneID, '/'); i != -1 {
-		myZoneID = myZoneID[i+1:] // the query returns some nonsense prefix
+	instanceZone, err := ctx.localZone()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get local zone: %w", err)
 	}
 	if customZoneID != "" {
 		ctx.ZoneID = customZoneID
 	} else {
-		ctx.ZoneID = myZoneID
+		ctx.ZoneID = instanceZone
 	}
 	if !validateZone(ctx.ZoneID) {
 		return nil, fmt.Errorf("%q is not a valid zone name", ctx.ZoneID)
@@ -95,7 +114,7 @@ func NewContext(customZoneID string) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query gce instance name: %w", err)
 	}
-	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, myZoneID, ctx.Instance).Do()
+	inst, err := ctx.computeService.Instances.Get(instanceProject, instanceZone, ctx.Instance).Do()
 	if err != nil {
 		return nil, fmt.Errorf("error getting instance info: %w", err)
 	}
@@ -117,25 +136,24 @@ func NewContext(customZoneID string) (*Context, error) {
 	return ctx, nil
 }
 
-func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
-	tags []string, preemptible, displayDevice bool) (string, error) {
+func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
-	sshkeyAttr := "syzkaller:" + sshkey
+	sshkeyAttr := "syzkaller:" + cfg.SSHKey
 	oneAttr := "1"
 	falseAttr := false
 	instance := &compute.Instance{
-		Name:        name,
+		Name:        cfg.Name,
 		Description: "syzkaller worker",
-		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + machineType,
+		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + cfg.MachineType,
 		Disks: []*compute.AttachedDisk{
 			{
 				AutoDelete: true,
 				Boot:       true,
 				Type:       "PERSISTENT",
-				DiskSizeGb: int64(diskSizeGB(machineType)),
+				DiskSizeGb: int64(diskSizeGB(cfg.MachineType)),
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					DiskName:    name,
-					SourceImage: prefix + "/global/images/" + image,
+					DiskName:    cfg.Name,
+					SourceImage: prefix + "/global/images/" + cfg.Image,
 				},
 			},
 		},
@@ -155,20 +173,33 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 			{
 				Network:    ctx.Network,
 				Subnetwork: ctx.Subnetwork,
+				NicType:    cfg.NicType,
 			},
 		},
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  &falseAttr,
-			Preemptible:       preemptible,
+			Preemptible:       cfg.Preemptible,
 			OnHostMaintenance: "TERMINATE",
 		},
 		DisplayDevice: &compute.DisplayDevice{
-			EnableDisplay: displayDevice,
+			EnableDisplay: cfg.DisplayDevice,
 		},
-		Tags: &compute.Tags{Items: tags},
+		AdvancedMachineFeatures: &compute.AdvancedMachineFeatures{
+			EnableNestedVirtualization: cfg.NestedVirtualization,
+		},
+	}
+	if cfg.VMRunningTime != 0 {
+		instance.Scheduling.MaxRunDuration = &compute.Duration{
+			// Give the manager an extra hour to ensure it has time to do its own cleanup.
+			Seconds: int64((cfg.VMRunningTime + time.Hour) / time.Second),
+		}
+		instance.Scheduling.InstanceTerminationAction = "DELETE"
+	}
+	if instance.Scheduling.Preemptible {
+		instance.Scheduling.ProvisioningModel = "SPOT"
 	}
 retry:
-	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {
+	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
 		// onHostMaintenance=TERMINATE unless they are preemptible".
 		instance.Scheduling.OnHostMaintenance = "MIGRATE"
@@ -181,10 +212,11 @@ retry:
 	if err != nil {
 		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
-	if err := ctx.waitForCompletion("zone", "create instance", op.Name, false); err != nil {
+	if err := ctx.waitForZonalCompletion("create instance", op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
+			instance.Scheduling.ProvisioningModel = "STANDARD"
 			goto retry
 		}
 		return "", err
@@ -192,11 +224,11 @@ retry:
 
 	var inst *compute.Instance
 	err = ctx.apiCall(func() (err error) {
-		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, name).Do()
+		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, cfg.Name).Do()
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("error getting instance %s details after creation: %w", name, err)
+		return "", fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
 	}
 
 	// Finds its internal IP.
@@ -237,7 +269,7 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
-		if err := ctx.waitForCompletion("zone", "delete image", op.Name, true); err != nil {
+		if err := ctx.waitForZonalCompletion("delete instance", op.Name, true); err != nil {
 			return err
 		}
 	}
@@ -291,7 +323,7 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 	}
-	if err := ctx.waitForCompletion("global", "create image", op.Name, false); err != nil {
+	if err := ctx.waitForGlobalCompletion("create image", op.Name, false); err != nil {
 		return err
 	}
 	return nil
@@ -310,7 +342,7 @@ func (ctx *Context) DeleteImage(imageName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete image: %w", err)
 	}
-	if err := ctx.waitForCompletion("global", "delete image", op.Name, true); err != nil {
+	if err := ctx.waitForGlobalCompletion("delete image", op.Name, true); err != nil {
 		return err
 	}
 	return nil
@@ -322,17 +354,24 @@ func (err resourcePoolExhaustedError) Error() string {
 	return string(err)
 }
 
+func (ctx *Context) waitForZonalCompletion(desc, opName string, ignoreNotFound bool) error {
+	return ctx.waitForCompletion("zone", desc, opName, ignoreNotFound)
+}
+
+func (ctx *Context) waitForGlobalCompletion(desc, opName string, ignoreNotFound bool) error {
+	return ctx.waitForCompletion("global", desc, opName, ignoreNotFound)
+}
+
 func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
-	time.Sleep(3 * time.Second)
 	for {
 		time.Sleep(3 * time.Second)
 		var op *compute.Operation
 		err := ctx.apiCall(func() (err error) {
 			switch typ {
 			case "global":
-				op, err = ctx.computeService.GlobalOperations.Get(ctx.ProjectID, opName).Do()
+				op, err = ctx.computeService.GlobalOperations.Wait(ctx.ProjectID, opName).Do()
 			case "zone":
-				op, err = ctx.computeService.ZoneOperations.Get(ctx.ProjectID, ctx.ZoneID, opName).Do()
+				op, err = ctx.computeService.ZoneOperations.Wait(ctx.ProjectID, ctx.ZoneID, opName).Do()
 			default:
 				panic("unknown operation type: " + typ)
 			}
@@ -367,7 +406,7 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 }
 
 func (ctx *Context) getMeta(path string) (string, error) {
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/"+path, nil)
+	req, err := http.NewRequest("GET", ctx.metadataServer+path, nil)
 	if err != nil {
 		return "", err
 	}
@@ -382,6 +421,20 @@ func (ctx *Context) getMeta(path string) (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// localZone returns the local zone of the machine. The GCE metadata API
+// returns a fully qualified resource name, like "projects/1234/zones/us-central1-c",
+// so we drop the prefix to return just the zone ID.
+func (ctx *Context) localZone() (string, error) {
+	zone, err := ctx.getMeta("instance/zone")
+	if err != nil {
+		return "", err
+	}
+	if i := strings.LastIndexByte(zone, '/'); i != -1 {
+		zone = zone[i+1:]
+	}
+	return zone, nil
 }
 
 func (ctx *Context) apiCall(fn func() error) error {

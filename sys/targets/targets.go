@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -667,7 +668,7 @@ func init() {
 		target.CCompiler = host.CCompiler
 		target.CxxCompiler = host.CxxCompiler
 		target.CPP = host.CPP
-		target.CFlags = append(append([]string{}, host.CFlags...), target.CFlags...)
+		target.CFlags = append(slices.Clone(host.CFlags), target.CFlags...)
 		target.CFlags = processMergedFlags(target.CFlags)
 		// At least FreeBSD/386 requires a non-default DataOffset value.
 		target.DataOffset = host.DataOffset
@@ -944,7 +945,7 @@ func (target *Target) lazyInit() {
 		}
 	}
 
-	flagsToCheck := append([]string{}, target.CFlags...)
+	flagsToCheck := slices.Clone(target.CFlags)
 	for _, value := range fallbackCFlags {
 		flagsToCheck = append(flagsToCheck, value)
 	}

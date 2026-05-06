@@ -366,6 +366,50 @@ static const char* setup_kcov_reset_ioctl()
 	return error;
 }
 
+static const char* setup_kdump()
+{
+	if (access("/boot/bzImageKexec", F_OK) != 0)
+		return "/boot/bzImageKexec is missing";
+	if (access("/usr/sbin/makedumpfile", F_OK) != 0)
+		return "/usr/sbin/makedumpfile is missing";
+	char cmdline[4096];
+	int fd = open("/proc/cmdline", O_RDONLY);
+	if (fd < 0)
+		return "failed to open /proc/cmdline";
+	ssize_t n = read(fd, cmdline, sizeof(cmdline) - 1);
+	close(fd);
+	if (n <= 0)
+		return "failed to read /proc/cmdline";
+	cmdline[n] = 0;
+	if (strstr(cmdline, "crashkernel=") == NULL)
+		return "crashkernel= is not present in /proc/cmdline";
+
+	// Current default values
+	char root[128] = "/dev/sda1";
+	char console[128] = "ttyS0";
+	get_last_opt(cmdline, "root", root, sizeof(root));
+	get_last_opt(cmdline, "console", console, sizeof(console));
+
+	char cmd[1024];
+	snprintf(cmd, sizeof(cmd),
+		 "kexec -p /boot/bzImageKexec --append=\"earlyprintk=serial net.ifnames=0 ima_policy=tcb no_hash_pointers root=%s console=%s vsyscall=native watchdog_thresh=55 irqpoll nr_cpus=1 reset_devices\"",
+		 root, console);
+
+	if (system(cmd) != 0)
+		return "kexec failed";
+	int s_fd = open("/sys/kernel/kexec_crash_loaded", O_RDONLY);
+	if (s_fd >= 0) {
+		char loaded_status[1];
+		ssize_t sn = read(s_fd, loaded_status, sizeof(loaded_status));
+		close(s_fd);
+		if (sn != 1)
+			return "failed to read /sys/kernel/kexec_crash_loaded";
+		if (loaded_status[0] != '1')
+			return "/sys/kernel/kexec_crash_loaded is not 1";
+	}
+	return NULL;
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {rpc::Feature::DelayKcovMmap, setup_delay_kcov},
@@ -379,4 +423,5 @@ static feature_t features[] = {
     {rpc::Feature::Swap, setup_swap},
     {rpc::Feature::NicVF, setup_nicvf},
     {rpc::Feature::DevlinkPCI, setup_devlink_pci},
+    {rpc::Feature::MemoryDump, setup_kdump},
 };

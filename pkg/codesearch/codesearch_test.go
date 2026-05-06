@@ -12,15 +12,15 @@ import (
 
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 func TestClangTool(t *testing.T) {
-	tooltest.TestClangTool[Database](t)
+	tooltest.TestClangTool[Database](t, clangtoolimpl.Tool)
 }
 
 func TestCommands(t *testing.T) {
-	db := tooltest.LoadOutput[Database](t)
-	index := &Index{db, []string{"testdata"}}
+	index := NewTestIndex(t, "testdata")
 	files, err := filepath.Glob(filepath.Join(osutil.Abs("testdata"), "query*"))
 	if err != nil {
 		t.Fatal(err)
@@ -54,8 +54,8 @@ func testCommand(t *testing.T, index *Index, covered map[string]bool, file strin
 	cmd := fields[0]
 	var args []string
 	for _, arg := range fields[1:] {
-		if arg == `""` {
-			arg = ""
+		if len(arg) >= 2 && arg[0] == '"' && arg[len(arg)-1] == '"' {
+			arg = arg[1 : len(arg)-1]
 		}
 		args = append(args, arg)
 	}

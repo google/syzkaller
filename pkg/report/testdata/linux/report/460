@@ -1,5 +1,6 @@
 TITLE: WARNING in input_register_device
 TYPE: WARNING
+PANICKED: Y
 
 [   24.131202][   T22] ------------[ cut here ]------------
 [   24.137091][   T22] add_uevent_var: buffer size too small

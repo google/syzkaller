@@ -469,9 +469,10 @@ func (p *parser) parseArgImpl(typ Type, dir Dir) (Arg, error) {
 		p.eatExcessive(true, "non-nil argument for nil type")
 		return nil, nil
 	}
-	switch p.Char() {
-	case '0':
+	if ch := p.Char(); ch >= '0' && ch <= '9' {
 		return p.parseArgInt(typ, dir)
+	}
+	switch p.Char() {
 	case 'r':
 		return p.parseArgRes(typ, dir)
 	case '&':
@@ -1165,6 +1166,8 @@ func (p *parser) fixupAutos(prog *Prog) {
 			case *PtrType:
 				a := arg.(*PointerArg)
 				a.Address = s.ma.alloc(nil, a.Res.Size(), a.Res.Type().Alignment())
+			case *CsumType:
+				// Checksums are computed at runtime, no need to fixup.
 			default:
 				panic(fmt.Sprintf("unsupported auto type %T", typ))
 			}
@@ -1187,13 +1190,17 @@ func (p *parser) Scan() bool {
 		return false
 	}
 	nextLine := bytes.IndexByte(p.data, '\n')
+	var line []byte
 	if nextLine != -1 {
-		p.s = string(p.data[:nextLine])
+		line = p.data[:nextLine]
 		p.data = p.data[nextLine+1:]
 	} else {
-		p.s = string(p.data)
+		line = p.data
 		p.data = nil
 	}
+	line = bytes.TrimLeft(line, " \t")
+	line = bytes.TrimRight(line, " \t\r")
+	p.s = string(line)
 	p.i = 0
 	p.l++
 	return true
@@ -1225,7 +1232,7 @@ func (p *parser) HasNext(str string) bool {
 	if len(p.s) < p.i+len(str) {
 		return false
 	}
-	for i := 0; i < len(str); i++ {
+	for i := range len(str) {
 		if p.s[p.i+i] != str[i] {
 			return false
 		}

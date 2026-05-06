@@ -28,10 +28,10 @@ func TestFixBasic(t *testing.T) {
 	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, true)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix the crash"},
@@ -48,19 +48,19 @@ func TestFixBasic(t *testing.T) {
 	c.expectEQ(builderPollResp.PendingCommits[0], "foo: fix the crash")
 
 	// Patches must not be reset on other actions.
-	c.client.updateBug(rep.ID, dashapi.BugStatusOpen, "")
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusOpen, "")
 
 	// Upstream commands must fail if patches are already present.
 	// Right course of action is unclear in this situation,
 	// so this test merely documents the current behavior.
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusUpstream,
 	})
 	c.expectEQ(reply.OK, false)
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Upload another build with the commit present.
 	build2 := testBuild(2)
@@ -74,13 +74,13 @@ func TestFixBasic(t *testing.T) {
 
 	// Ensure that a new crash creates a new bug (the old one must be marked as fixed).
 	c.client.ReportCrash(crash1)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
 
 	// Regression test: previously upstreamming failed because the new bug had fixing commits.
 	c.client.ReportCrash(crash1)
-	c.client.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
-	c.client.pollBug()
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.pollBug()
 }
 
 // Test bug that is fixed by 2 commits.
@@ -97,10 +97,10 @@ func TestFixedByTwoCommits(t *testing.T) {
 	builderPollResp, _ := c.client.BuilderPoll(build1.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"bar: prepare for fixing", "\"foo: fix the crash\""},
@@ -126,7 +126,7 @@ func TestFixedByTwoCommits(t *testing.T) {
 	c.expectEQ(builderPollResp.PendingCommits[1], "foo: fix the crash")
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now upload build with both commits.
 	build3 := testBuild(3)
@@ -140,7 +140,7 @@ func TestFixedByTwoCommits(t *testing.T) {
 
 	// Ensure that a new crash creates a new bug (the old one must be marked as fixed).
 	c.client.ReportCrash(crash1)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
 }
 
@@ -159,7 +159,7 @@ func TestReFixed(t *testing.T) {
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
 	c.advanceTime(time.Hour)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	bug, _, _ := c.loadBug(rep.ID)
 	c.expectEQ(bug.LastActivity, c.mockedTime)
@@ -167,7 +167,7 @@ func TestReFixed(t *testing.T) {
 
 	// Specify fixing commit for the bug.
 	c.advanceTime(time.Hour)
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"a wrong one"},
@@ -179,7 +179,7 @@ func TestReFixed(t *testing.T) {
 	c.expectEQ(bug.FixTime, c.mockedTime)
 
 	c.advanceTime(time.Hour)
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"the right one"},
@@ -193,7 +193,7 @@ func TestReFixed(t *testing.T) {
 	// No updates, just check that LastActivity time is updated, FixTime preserved.
 	fixTime := c.mockedTime
 	c.advanceTime(time.Hour)
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -204,7 +204,7 @@ func TestReFixed(t *testing.T) {
 
 	// Send the same fixing commit, check that LastActivity time is updated, FixTime preserved.
 	c.advanceTime(time.Hour)
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"the right one"},
@@ -230,7 +230,7 @@ func TestReFixed(t *testing.T) {
 	c.expectEQ(builderPollResp.PendingCommits[0], "the right one")
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now upload build with the right commit.
 	build3 := testBuild(3)
@@ -257,10 +257,10 @@ func TestFixTwoManagers(t *testing.T) {
 	builderPollResp, _ := c.client.BuilderPoll(build1.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix the crash"},
@@ -297,7 +297,7 @@ func TestFixTwoManagers(t *testing.T) {
 
 	// Check that the bug is still open.
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now the second manager picks up the commit.
 	build4 := testBuild(4)
@@ -310,7 +310,7 @@ func TestFixTwoManagers(t *testing.T) {
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
 	c.client.ReportCrash(crash1)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
 }
 
@@ -327,10 +327,10 @@ func TestReFixedTwoManagers(t *testing.T) {
 	builderPollResp, _ := c.client.BuilderPoll(build1.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix the crash"},
@@ -351,7 +351,7 @@ func TestReFixedTwoManagers(t *testing.T) {
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
 	// Now we change the fixing commit.
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"the right one"},
@@ -375,10 +375,10 @@ func TestReFixedTwoManagers(t *testing.T) {
 
 	// The bug must be still open.
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Specify fixing commit again, but it's the same one as before, so nothing changed.
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"the right one"},
@@ -396,7 +396,7 @@ func TestReFixedTwoManagers(t *testing.T) {
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
 	c.client.ReportCrash(crash1)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
 }
 
@@ -414,7 +414,7 @@ func TestFixedWithCommitTags(t *testing.T) {
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Upload build with 2 fixing commits for this bug.
 	build1.FixCommits = []dashapi.Commit{
@@ -436,7 +436,7 @@ func TestFixedWithCommitTags(t *testing.T) {
 
 	// The bug is still not fixed.
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now the second manager reports the same commits.
 	// This must close the bug.
@@ -449,7 +449,7 @@ func TestFixedWithCommitTags(t *testing.T) {
 
 	// Ensure that a new crash creates a new bug.
 	c.client.ReportCrash(crash1)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
 }
 
@@ -464,14 +464,14 @@ func TestFixedDup(t *testing.T) {
 
 	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 
 	// rep2 is a dup of rep1.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Upload build that fixes rep2.
 	build.FixCommits = []dashapi.Commit{
@@ -481,7 +481,7 @@ func TestFixedDup(t *testing.T) {
 
 	// This must fix rep1.
 	c.client.ReportCrash(crash1)
-	rep3 := c.client.pollBug()
+	rep3 := c.globalClient.pollBug()
 	c.expectEQ(rep3.Title, rep1.Title+" (2)")
 }
 
@@ -499,14 +499,14 @@ func TestFixedDup2(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	crash2 := testCrash(build1, 2)
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 
 	// rep2 is a dup of rep1.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Upload build that fixes rep2.
 	build1.FixCommits = []dashapi.Commit{
@@ -515,20 +515,20 @@ func TestFixedDup2(t *testing.T) {
 	c.client.UploadBuild(build1)
 
 	// Now undup the bugs. They are still unfixed as only 1 manager uploaded the commit.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
 
 	// Now the second manager reports the same commits. This must close both bugs.
 	build2.FixCommits = build1.FixCommits
 	c.client.UploadBuild(build2)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	c.advanceTime(24 * time.Hour)
 	c.client.ReportCrash(crash1)
-	rep3 := c.client.pollBug()
+	rep3 := c.globalClient.pollBug()
 	c.expectEQ(rep3.Title, rep1.Title+" (2)")
 
 	c.client.ReportCrash(crash2)
-	rep4 := c.client.pollBug()
+	rep4 := c.globalClient.pollBug()
 	c.expectEQ(rep4.Title, rep2.Title+" (2)")
 }
 
@@ -545,14 +545,14 @@ func TestFixedDup3(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	crash2 := testCrash(build1, 2)
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 
 	// rep2 is a dup of rep1.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Upload builds that fix rep1 and rep2 with different commits.
 	// This must fix rep1 eventually and we must not livelock in such scenario.
@@ -567,6 +567,6 @@ func TestFixedDup3(t *testing.T) {
 	c.client.UploadBuild(build2)
 
 	c.client.ReportCrash(crash1)
-	rep3 := c.client.pollBug()
+	rep3 := c.globalClient.pollBug()
 	c.expectEQ(rep3.Title, rep1.Title+" (2)")
 }

@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in iptunnel_xmit
 ALT: bad-access in iptunnel_xmit
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [ 2494.421785][T17591] BUG: unable to handle page fault for address: ffffde202758ca0b
 [ 2494.429575][T17591] #PF: supervisor read access in kernel mode

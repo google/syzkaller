@@ -1,5 +1,6 @@
 TITLE: WARNING in default_device_exit_batch
 TYPE: WARNING
+PANICKED: Y
 
 [  794.553848] WARNING: CPU: 0 PID: 21 at net/core/dev.c:8022 rollback_registered_many+0xeca/0x1250
 [  794.562851] Kernel panic - not syncing: panic_on_warn set ...

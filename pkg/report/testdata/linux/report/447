@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in p9_fd_close
 ALT: hang in p9_fd_close
 TYPE: HANG
+PANICKED: Y
 
 [  553.841261] INFO: task syz-executor4:6761 blocked for more than 140 seconds.
 [  553.848760]       Not tainted 4.19.0-rc2+ #220

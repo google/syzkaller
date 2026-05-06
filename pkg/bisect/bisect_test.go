@@ -6,6 +6,7 @@ package bisect
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -54,12 +55,13 @@ func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, b
 	return "", details, nil
 }
 
-func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]instance.EnvTestResult, error) {
+func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) (
+	[]instance.EnvTestResult, error) {
 	commit := env.headCommit()
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
 		env.config == "baseline-skip" {
 		var ret []instance.EnvTestResult
-		for i := 0; i < numVMs; i++ {
+		for range numVMs {
 			ret = append(ret, instance.EnvTestResult{
 				Error: &instance.TestError{
 					Boot:  true,
@@ -71,7 +73,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 	}
 	if commit >= env.test.infraErrStart && commit <= env.test.infraErrEnd {
 		var ret []instance.EnvTestResult
-		for i := 0; i < numVMs; i++ {
+		for i := range numVMs {
 			var err error
 			// More than 50% failures.
 			if i*2 <= numVMs {
@@ -127,7 +129,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 			},
 		}
 	} else if env.test.injectLostConnection {
-		for i := 0; i < numVMs/3; i++ {
+		for i := range numVMs / 3 {
 			ret[i] = instance.EnvTestResult{
 				Error: &instance.CrashError{
 					Report: &report.Report{
@@ -153,14 +155,13 @@ func (env *testEnv) headCommit() int {
 	return int(commit)
 }
 
-func createTestRepo(t *testing.T) string {
-	baseDir := t.TempDir()
+func createTestRepo(t *testing.T, baseDir string) string {
 	repo := vcs.CreateTestRepo(t, baseDir, "")
 	if !repo.SupportsBisection() {
 		t.Skip("bisection is unsupported by git (probably too old version)")
 	}
 	for rv := 4; rv < 10; rv++ {
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			if rv == 7 && i == 0 {
 				// Create a slightly special commit graph here (for #1527):
 				// Commit 650 is part of 700 release, but it does not have
@@ -739,7 +740,7 @@ func TestBisectionResults(t *testing.T) {
 				select {
 				case repoDir = <-repoCache:
 				default:
-					repoDir = createTestRepo(tt)
+					repoDir = createTestRepo(t, tt.TempDir())
 				}
 				defer func() {
 					repoCache <- repoDir
@@ -773,7 +774,7 @@ func checkTest(t *testing.T, test BisectionTest) {
 
 func crashErrors(crashing, nonCrashing int, title string, typ crash.Type) []instance.EnvTestResult {
 	var ret []instance.EnvTestResult
-	for i := 0; i < crashing; i++ {
+	for range crashing {
 		ret = append(ret, instance.EnvTestResult{
 			Error: &instance.CrashError{
 				Report: &report.Report{
@@ -783,7 +784,7 @@ func crashErrors(crashing, nonCrashing int, title string, typ crash.Type) []inst
 			},
 		})
 	}
-	for i := 0; i < nonCrashing; i++ {
+	for range nonCrashing {
 		ret = append(ret, instance.EnvTestResult{})
 	}
 	return ret
@@ -1064,7 +1065,7 @@ func TestPickReleaseTags(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ret := pickReleaseTags(append([]string{}, test.tags...))
+			ret := pickReleaseTags(slices.Clone(test.tags))
 			assert.Equal(t, test.ret, ret)
 		})
 	}

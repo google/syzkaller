@@ -155,8 +155,8 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("runsc", rpipe)
-	merger.Add("runsc-goruntime", panicLogReadFD)
+	merger.Add("runsc", vmimpl.OutputConsole, rpipe)
+	merger.Add("runsc-goruntime", vmimpl.OutputConsole, panicLogReadFD)
 
 	inst := &instance{
 		cfg:      pool.cfg,
@@ -198,10 +198,12 @@ func (inst *instance) waitBoot() error {
 	timeout := time.NewTimer(time.Minute)
 	defer timeout.Stop()
 	var output []byte
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		select {
 		case out := <-inst.merger.Output:
-			output = append(output, out...)
+			output = append(output, out.Data...)
 			if pos := bytes.Index(output, errorMsg); pos != -1 {
 				end := bytes.IndexByte(output[pos:], '\n')
 				if end == -1 {
@@ -217,7 +219,7 @@ func (inst *instance) waitBoot() error {
 			if bytes.Contains(output, bootedMsg) {
 				return nil
 			}
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(ctx):
 			return vmimpl.BootError{
 				Title:  fmt.Sprintf("runsc failed: %v", err),
 				Output: output,
@@ -296,7 +298,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	args := []string{"exec", "-user=0:0"}
 	for _, c := range sandboxCaps {
 		args = append(args, "-cap", c)
@@ -310,9 +312,18 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		return nil, nil, err
 	}
 	defer wpipe.Close()
-	inst.merger.Add("cmd", rpipe)
+	inst.merger.Add("cmd", vmimpl.OutputStdout, rpipe)
+
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		return nil, nil, err
+	}
+	defer wpipeErr.Close()
+	inst.merger.Add("cmd-err", vmimpl.OutputStderr, rpipeErr)
+
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 
 	guestSock, err := inst.guestProxy()
 	if err != nil {
@@ -335,10 +346,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(errCtx):
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.

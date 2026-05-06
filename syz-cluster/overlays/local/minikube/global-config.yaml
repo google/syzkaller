@@ -1,0 +1,37 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+URL: http://localhost
+parallelWorkflows: 1
+# Whatever, it's just for debugging.
+loreArchives:
+  - linux-wireless
+emailReporting:
+  name: test-name
+  docs: http://docs/
+  sender: smtp
+  supportEmail: name@email.com
+  archiveList: archive@list.com
+  moderationList: moderation@list.com
+  smtpConfig:
+    from: sender@email.com
+
+trees:
+  - name: torvalds
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
+    branch: master
+
+fuzz_targets:
+  - email_lists:
+      - netdev@vger.kernel.org
+      - netfilter-devel@vger.kernel.org
+      - linux-wireless@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: net
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
+  - campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db

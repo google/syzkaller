@@ -1,5 +1,6 @@
 TITLE: WARNING in ion_ioctl
 TYPE: WARNING
+PANICKED: Y
 
 [  173.566032] WARNING: CPU: 0 PID: 24071 at drivers/staging/android/ion/ion-ioctl.c:73 ion_ioctl+0x2db/0x380
 [  173.575866] Kernel panic - not syncing: panic_on_warn set ...

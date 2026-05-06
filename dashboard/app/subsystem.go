@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -131,8 +131,8 @@ func logSubsystemChange(ctx context.Context, bug *Bug, new []*subsystem.Subsyste
 	for _, item := range new {
 		newNames = append(newNames, item.Name)
 	}
-	sort.Strings(oldNames)
-	sort.Strings(newNames)
+	slices.Sort(oldNames)
+	slices.Sort(newNames)
 	if !reflect.DeepEqual(oldNames, newNames) {
 		log.Infof(ctx, "bug %s: subsystems set from %v to %v",
 			bug.keyHash(ctx), oldNames, newNames)

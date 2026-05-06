@@ -4,6 +4,7 @@
 package vmimpl
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ type SSHOptions struct {
 	Key  string
 }
 
-func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan error, systemSSHCfg, debug bool) error {
+func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop <-chan error, systemSSHCfg, debug bool) error {
 	pwd := "pwd"
 	if OS == targets.Windows {
 		pwd = "dir"
@@ -59,7 +60,7 @@ func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan err
 		if time.Since(startTime) > timeout {
 			return &osutil.VerboseError{
 				Err:    ErrCantSSH,
-				Output: []byte(err.Error()),
+				Output: []byte(osutil.VerboseMessage(err)),
 			}
 		}
 	}
@@ -75,8 +76,8 @@ func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHC
 	return sshArgs(debug, sshKey, "-p", port, forwardPort, systemSSHCfg)
 }
 
-func SCPArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
-	return sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg)
+func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
+	return append(sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg), "-O") // Default to legacy scp protocol.
 }
 
 func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
@@ -103,4 +104,40 @@ func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSS
 		args = append(args, "-v")
 	}
 	return args
+}
+
+type SCPOptions struct {
+	Debug         bool
+	Key           string
+	Port          int
+	SystemSSHCfg  bool
+	User          string
+	Addr          string
+	Timeout       time.Duration
+	Dir           string
+	VerboseOutput bool
+}
+
+func SCP(hostSrc, vmDst string, opts SCPOptions) error {
+	args := append(scpArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg),
+		hostSrc, opts.User+"@"+opts.Addr+":"+vmDst)
+	if opts.Debug {
+		log.Logf(0, "running command: scp %#v", args)
+	}
+	timeout := opts.Timeout
+	if timeout == 0 {
+		timeout = 10 * time.Minute
+	}
+	output, err := osutil.RunCmd(timeout, opts.Dir, "scp", args...)
+	if err != nil {
+		var verr *osutil.VerboseError
+		if errors.As(err, &verr) {
+			log.Logf(0, "scp failed: %v\n%s", err, string(verr.Output))
+		}
+		return fmt.Errorf("scp failed: %w", err)
+	}
+	if opts.Debug {
+		log.Logf(0, "result: %s", output)
+	}
+	return nil
 }

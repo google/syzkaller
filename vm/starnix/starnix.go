@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -251,7 +250,7 @@ func (inst *instance) startFuchsiaLogs() error {
 		"--exclude-tags", "netlink")
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
-	inst.merger.Add("fuchsia", inst.rpipe)
+	inst.merger.Add("fuchsia", vmimpl.OutputConsole, inst.rpipe)
 	if inst.debug {
 		log.Logf(1, "instance %s: starting ffx log", inst.name)
 	}
@@ -423,18 +422,6 @@ func (inst *instance) copyFfxConfigValuesToIsolate(keys ...string) error {
 	return nil
 }
 
-// Runs a command inside the fuchsia directory.
-func (inst *instance) runCommand(cmd string, args ...string) error {
-	if inst.debug {
-		log.Logf(1, "instance %s: running command: %s %q", inst.name, cmd, args)
-	}
-	output, err := osutil.RunCmd(5*time.Minute, inst.fuchsiaDir, cmd, args...)
-	if inst.debug {
-		log.Logf(1, "instance %s: %s", inst.name, output)
-	}
-	return err
-}
-
 func (inst *instance) Forward(port int) (string, error) {
 	if port == 0 {
 		return "", fmt.Errorf("vm/starnix: forward port is zero")
@@ -452,15 +439,15 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.debug {
 		log.Logf(1, "instance %s: attempting to push binary %s to instance over scp", inst.name, base)
 	}
-	err := inst.runCommand(
-		"scp",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-i", inst.sshPrivKey,
-		"-P", strconv.Itoa(inst.port),
-		hostSrc,
-		fmt.Sprintf("root@localhost:%s", vmDst),
-	)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:   inst.debug,
+		Key:     inst.sshPrivKey,
+		Port:    inst.port,
+		User:    "root",
+		Addr:    "localhost",
+		Dir:     inst.fuchsiaDir,
+		Timeout: 5 * time.Minute,
+	})
 	if err == nil {
 		return vmDst, err
 	}
@@ -468,12 +455,19 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	// Run `command` on the instance over ssh.
 	const useSystemSSHCfg = false
@@ -488,12 +482,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	cmd := osutil.Command(sshCmd[0], sshCmd[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,

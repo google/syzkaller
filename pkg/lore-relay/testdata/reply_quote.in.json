@@ -1,0 +1,14 @@
+{
+  "Replies": [
+    {
+      "Quote": "What is the cause of this crash?",
+      "Body": "This crash is caused by a null pointer dereference in foo().",
+      "ReplyExtID": "reply123"
+    },
+    {
+      "Quote": "How to fix it?",
+      "Body": "We need to add a null check.",
+      "ReplyExtID": "reply124"
+    }
+  ]
+}

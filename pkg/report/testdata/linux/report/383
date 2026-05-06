@@ -1,5 +1,6 @@
 TITLE: WARNING: locking bug in inet_autobind
 TYPE: LOCKDEP
+PANICKED: Y
 
 [ 2979.659060][ T4073] WARNING: CPU: 0 PID: 4073 at kernel/locking/lockdep.c:734 register_lock_class+0xe10/0x1860
 [ 2979.669279][ T4073] Kernel panic - not syncing: panic_on_warn set ...

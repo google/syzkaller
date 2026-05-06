@@ -1,0 +1,26 @@
+Subject: [PATCH RFC] Fix a bug in subsystem
+
+This patch fixes a bug by doing X and Y.
+
+Assisted-by: Gemini:gemini-1.5-pro Gemini:gemini-1.5-flash
+To: <maintainer@email.com>
+To: <maintainer2@email.com>
+Cc: <reviewer@email.com>
+Cc: <reviewer2@email.com>
+
+---
+diff --git a/file b/file
+index 123..456 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+
+base-commit: abcdef123456
+-- 
+This is an AI-generated patch subject to moderation.
+Reply with '#syz upstream' to send it to the mailing list.
+Reply with '#syz reject' to reject it.
+
+See http://docs.link for more information.

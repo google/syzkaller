@@ -1,0 +1,78 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: triage-action-template
+spec:
+  templates:
+    - name: triage-action
+      retryStrategy:
+        limit: "3"
+        backoff:
+          duration: "5m"
+      securityContext:
+        runAsUser: 10000
+        fsGroup: 10000
+      initContainers:
+        - name: setup-repo
+          image: ${IMAGE_PREFIX}triage-action:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              git clone --reference /kernel-repo -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo /workdir
+              git -C /workdir commit-graph write --reachable
+          env:
+            - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+              value: "1"
+          volumeMounts:
+            - name: base-kernel-repo
+              mountPath: /kernel-repo
+              readOnly: true
+            - name: workdir
+              mountPath: /workdir
+      container:
+          image: ${IMAGE_PREFIX}triage-action:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/triage-action"]
+          args: [
+            "--session", "{{workflow.parameters.session-id}}",
+            "--repository", "/workdir",
+            "--verdict", "/output/result.json"
+            ]
+          resources:
+            requests:
+              cpu: 1
+              memory: 8G
+            limits:
+              cpu: 4
+              memory: 16G
+          env:
+            - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+              value: "1"
+            - name: HOME # Otherwise it's failing with "warning: unable to access '/root/.config/git/attributes': Permission denied.".
+              value: "/home/syzkaller"
+          volumeMounts:
+            - name: base-kernel-repo
+              mountPath: /kernel-repo
+              readOnly: true
+            - name: workdir
+              mountPath: /workdir
+            - name: output
+              mountPath: /output
+      volumes:
+        - name: base-kernel-repo
+          persistentVolumeClaim:
+            claimName: base-kernel-repo-pv-claim
+        - name: workdir
+          emptyDir: {}
+        - name: output
+          emptyDir: {}
+      outputs:
+        parameters:
+          - name: result
+            valueFrom:
+              path: /output/result.json

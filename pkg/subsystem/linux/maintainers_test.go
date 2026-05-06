@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecordToPathRule(t *testing.T) {
@@ -211,10 +211,7 @@ func TestLinuxMaintainers(t *testing.T) {
 			trees:           []string{"git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"},
 		},
 	}
-	if diff := cmp.Diff(targetResult, result,
-		cmp.AllowUnexported(maintainersRecord{})); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, targetResult, result)
 }
 
 const maintainersSample = `

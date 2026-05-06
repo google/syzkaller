@@ -1,0 +1,6 @@
+DROP INDEX JobReportingByExtID;
+DROP INDEX JobReportingByJobStage;
+DROP TABLE JobReporting;
+ALTER TABLE Jobs DROP CONSTRAINT FK_Jobs_ParentJob;
+ALTER TABLE Jobs DROP COLUMN Version;
+ALTER TABLE Jobs DROP COLUMN ParentJobID;

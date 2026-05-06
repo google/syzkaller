@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -84,7 +85,7 @@ func (checkout *Checkout) GetRunningResults() []RunResult {
 func (checkout *Checkout) GetCompletedResults() []RunResult {
 	checkout.mu.Lock()
 	defer checkout.mu.Unlock()
-	return append([]RunResult{}, checkout.Completed...)
+	return slices.Clone(checkout.Completed)
 }
 
 func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig json.RawMessage) (*Checkout, error) {

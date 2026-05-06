@@ -11,6 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 func main() {
@@ -25,11 +26,11 @@ func main() {
 	}
 	cmd, args := flag.Args()[0], flag.Args()[1:]
 	if cmd == "index" {
-		if len(args) != 1 {
+		if len(args) != 0 {
 			printUsageAndExit()
 		}
 		cfg := &clangtool.Config{
-			ToolBin:    args[0],
+			Tool:       clangtoolimpl.Tool,
 			KernelSrc:  *flagKernelSrc,
 			KernelObj:  *flagKernelObj,
 			CacheFile:  *flagDatabase,

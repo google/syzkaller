@@ -1,0 +1,652 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher description",
+							"name": "researcher",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Question": {
+										"description": "Question you have.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Question"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Answer": {
+										"description": "Answer to your question.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher-tool description",
+							"name": "researcher-tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Something": {
+										"description": "something",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Something"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "What do you think?"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "What do you think?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Something": "subtool input 1"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher description",
+							"name": "researcher",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Question": {
+										"description": "Question you have.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Question"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Answer": {
+										"description": "Answer to your question.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"Question": "What do you think?"
+							},
+							"name": "researcher"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"name": "researcher",
+							"response": {
+								"Answer": "Nothing."
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher-tool description",
+							"name": "researcher-tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Something": {
+										"description": "something",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Something"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Something": "subtool input 2"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Something": "subtool input 2"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Something": "subtool input 3"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher-tool description",
+							"name": "researcher-tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Something": {
+										"description": "something",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Something"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"toolConfig": {
+				"functionCallingConfig": {
+					"mode": "NONE"
+				}
+			},
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Something": "subtool input 2"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Something": "subtool input 3"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without calling any more tools!\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher description",
+							"name": "researcher",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Question": {
+										"description": "Question you have.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Question"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Answer": {
+										"description": "Answer to your question.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"Question": "What do you think?"
+							},
+							"name": "researcher"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"name": "researcher",
+							"response": {
+								"Answer": "Nothing."
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"Question": "But really?"
+							},
+							"name": "researcher"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "researcher",
+							"response": {
+								"Answer": "Still nothing."
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

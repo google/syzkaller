@@ -1,5 +1,6 @@
 TITLE: WARNING in ret_from_exception
 TYPE: WARNING
+PANICKED: Y
 
 [   75.189488][ T4090] ------------[ cut here ]------------
 [   75.190329][ T4090] virt_to_phys used for non-linear address: 0000000022abe3fe (0xffffffd01514e038)

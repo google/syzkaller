@@ -72,6 +72,20 @@ func TestNew(t *testing.T) {
 			},
 			expectedServCheck: func(srv Server) {
 				s := srv.(*server)
+				assert.Equal(t, s.cfg.Config.Features,
+					flatrpc.AllFeatures&(^flatrpc.FeatureExtraCoverage)&(^flatrpc.FeatureMemoryDump))
+				assert.Nil(t, s.serv)
+			},
+		},
+		{
+			name: "memory dump enabled",
+			modifyCfg: func() *mgrconfig.Config {
+				cfg := defaultCfg
+				cfg.MemoryDump = true
+				return &cfg
+			},
+			expectedServCheck: func(srv Server) {
+				s := srv.(*server)
 				assert.Equal(t, s.cfg.Config.Features, flatrpc.AllFeatures&(^flatrpc.FeatureExtraCoverage))
 				assert.Nil(t, s.serv)
 			},
@@ -158,7 +172,7 @@ func TestCheckRevisions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := checkRevisions(tt.req, tt.target)
+			err := checkRevisions(tt.req, tt.target, &net.TCPAddr{})
 			if tt.noError {
 				assert.NoError(t, err)
 			} else {

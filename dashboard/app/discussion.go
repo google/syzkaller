@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/lore"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -198,7 +198,7 @@ func (d *Discussion) messageIDs() map[string]struct{} {
 func (d *Discussion) link() string {
 	switch dashapi.DiscussionSource(d.Source) {
 	case dashapi.DiscussionLore:
-		return fmt.Sprintf("https://lore.kernel.org/all/%s/T/", strings.Trim(d.ID, "<>"))
+		return lore.LinkToThread(d.ID)
 	}
 	return ""
 }

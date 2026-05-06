@@ -27,18 +27,23 @@ import (
 // preserved across process restarts for caching purposes.
 func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map[string]any,
 	cache *Cache, onEvent onEvent) (map[string]any, error) {
-	if err := flow.checkInputs(inputs); err != nil {
+	convertedInputs, err := flow.checkInputs(inputs)
+	if err != nil {
 		return nil, fmt.Errorf("flow inputs are missing: %w", err)
 	}
+	inputs = convertedInputs
+	inputs = maps.Clone(inputs)
+	maps.Insert(inputs, maps.All(flow.Consts))
 	c := &Context{
 		Context:  ctx,
 		Workdir:  osutil.Abs(workdir),
 		llmModel: model,
 		cache:    cache,
-		state:    maps.Clone(inputs),
+		state:    inputs,
 		onEvent:  onEvent,
 	}
-	defer c.close()
+
+	defer c.Close()
 	if s := ctx.Value(stubContextKey); s != nil {
 		c.stubContext = *s.(*stubContext)
 	}
@@ -88,6 +93,10 @@ type flowError struct {
 	error
 }
 
+func (e *flowError) Unwrap() error {
+	return e.error
+}
+
 func IsModelQuotaError(err error) string {
 	var quotaErr *modelQuotaError
 	if errors.As(err, &quotaErr) {
@@ -102,6 +111,24 @@ type modelQuotaError struct {
 
 func (err *modelQuotaError) Error() string {
 	return fmt.Sprintf("model %q is over daily quota", err.model)
+}
+
+func isInputTokenOverflowError(err error) bool {
+	var overflowErr *inputTokenOverflowError
+	return errors.As(err, &overflowErr)
+}
+
+type inputTokenOverflowError struct {
+	error
+}
+
+func isOutputTokenOverflowError(err error) bool {
+	var overflowErr *outputTokenOverflowError
+	return errors.As(err, &overflowErr)
+}
+
+type outputTokenOverflowError struct {
+	error
 }
 
 // QuotaResetTime returns the time when RPD quota will be reset
@@ -143,55 +170,78 @@ var (
 	createClientOnce sync.Once
 	createClientErr  error
 	client           *genai.Client
-	modelList        = make(map[string]bool)
+	modelList        map[string]*modelInfo
 	stubContextKey   = contextKeyType(1)
 )
 
+type modelInfo struct {
+	Thinking         bool
+	MaxTemperature   float32
+	InputTokenLimit  int
+	OutputTokenLimit int
+}
+
 func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateContentConfig,
 	req []*genai.Content) (*genai.GenerateContentResponse, error) {
-	const modelPrefix = "models/"
 	createClientOnce.Do(func() {
-		if os.Getenv("GOOGLE_API_KEY") == "" {
-			createClientErr = fmt.Errorf("set GOOGLE_API_KEY env var to use with Gemini" +
-				" (see https://ai.google.dev/gemini-api/docs/api-key)")
-			return
-		}
-		client, createClientErr = genai.NewClient(ctx.Context, nil)
-		if createClientErr != nil {
-			return
-		}
-		for m, err := range client.Models.All(ctx.Context) {
-			if err != nil {
-				createClientErr = err
-				return
-			}
-			modelList[strings.TrimPrefix(m.Name, modelPrefix)] = m.Thinking
-		}
+		client, modelList, createClientErr = loadModelList(ctx.Context)
 	})
 	if createClientErr != nil {
 		return nil, createClientErr
 	}
-	thinking, ok := modelList[model]
-	if !ok {
+	info := modelList[model]
+	if info == nil {
 		models := slices.Collect(maps.Keys(modelList))
 		slices.Sort(models)
 		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
 	}
-	if thinking {
-		// Don't alter the original object (that may affect request caching).
-		cfgCopy := *cfg
-		cfg = &cfgCopy
-		cfg.ThinkingConfig = &genai.ThinkingConfig{
-			// We capture them in the trajectory for analysis.
-			IncludeThoughts: true,
-			// Enable "dynamic thinking" ("the model will adjust the budget based on the complexity of the request").
-			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
-			// However, thoughts output also consumes total output token budget.
-			// We may consider adjusting ThinkingLevel parameter.
-			ThinkingBudget: genai.Ptr[int32](-1),
+	// Don't alter the original object (that may affect request caching).
+	cfg = osutil.JSONDeepCopy(cfg)
+	*cfg.Temperature = min(*cfg.Temperature, info.MaxTemperature)
+	if !info.Thinking {
+		cfg.ThinkingConfig = nil
+	}
+	// Sometimes LLM requests just hang dead for tens of minutes,
+	// abort them after 10 minutes and retry. We don't stream reply tokens,
+	// so some large requests can take several minutes.
+	timedCtx, cancel := context.WithTimeout(ctx.Context, 10*time.Minute)
+	defer cancel()
+	resp, err := client.Models.GenerateContent(timedCtx, modelPrefix+model, req, cfg)
+	if err != nil && timedCtx.Err() == context.DeadlineExceeded {
+		return nil, &retryError{time.Second, err}
+	}
+	return resp, err
+}
+
+const modelPrefix = "models/"
+
+func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, error) {
+	if os.Getenv("GOOGLE_API_KEY") == "" {
+		return nil, nil, fmt.Errorf("set GOOGLE_API_KEY env var to use with Gemini" +
+			" (see https://ai.google.dev/gemini-api/docs/api-key)")
+	}
+	client, err := genai.NewClient(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	models := make(map[string]*modelInfo)
+	for m, err := range client.Models.All(ctx) {
+		if err != nil {
+			return nil, nil, err
+		}
+		if !slices.Contains(m.SupportedActions, "generateContent") ||
+			strings.Contains(m.Name, "-image") ||
+			strings.Contains(m.Name, "-audio") {
+			continue
+		}
+		models[strings.TrimPrefix(m.Name, modelPrefix)] = &modelInfo{
+			Thinking:         m.Thinking,
+			MaxTemperature:   m.MaxTemperature,
+			InputTokenLimit:  int(m.InputTokenLimit),
+			OutputTokenLimit: int(m.OutputTokenLimit),
 		}
 	}
-	return client.Models.GenerateContent(ctx.Context, modelPrefix+model, req, cfg)
+	return client, models, nil
 }
 
 type Context struct {
@@ -239,6 +289,10 @@ func CacheObject[T any](ctx *Context, typ, desc string, populate func() (T, erro
 	return obj, nil
 }
 
+func CacheReadObject[T any](ctx *Context, typ, id, filename string) (T, error) {
+	return cacheReadObject[T](ctx.cache, typ, id, filename)
+}
+
 // TempDir creates a new temp dir that will be automatically removed
 // when the flow finished, or on the next restart.
 func (ctx *Context) TempDir() (string, error) {
@@ -250,7 +304,7 @@ func (ctx *Context) TempDir() (string, error) {
 	return dir, nil
 }
 
-func (ctx *Context) close() {
+func (ctx *Context) Close() {
 	for _, dir := range ctx.cachedDirs {
 		ctx.cache.Release(dir)
 	}

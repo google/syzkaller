@@ -1,5 +1,6 @@
 TITLE: WARNING in rds_rdma_extra_size
 TYPE: WARNING
+PANICKED: Y
 
 [  284.876768][T15540] ------------[ cut here ]------------
 [  284.902257][T15540] WARNING: CPU: 1 PID: 15540 at mm/page_alloc.c:4977 __alloc_pages_nodemask+0x4e5/0x5a0

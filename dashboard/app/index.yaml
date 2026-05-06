@@ -268,3 +268,17 @@ indexes:
   - name: Namespace
   - name: Manager
   - name: AttemptsLeft
+
+- kind: ReproTask
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Created
+    direction: desc
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: AIJobCheck
+  - name: AIPendingWorkflows

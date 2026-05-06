@@ -1,6 +1,7 @@
 TITLE: general protection fault in run_timer_softirq
 ALT: bad-access in run_timer_softirq
 TYPE: DoS
+PANICKED: Y
 
 [  159.840224] kasan: CONFIG_KASAN_INLINE enabled
 [  159.844860] kasan: GPF could be caused by NULL-ptr deref or user memory access

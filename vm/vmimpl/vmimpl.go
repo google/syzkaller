@@ -49,7 +49,7 @@ type Instance interface {
 	// outc receives combined cmd and kernel console output.
 	// errc receives either command Wait return error or vmimpl.ErrTimeout.
 	// Command terminates with context. Use context.WithTimeout to terminate it earlier.
-	Run(ctx context.Context, command string) (outc <-chan []byte, errc <-chan error, err error)
+	Run(ctx context.Context, command string) (outc <-chan Chunk, errc <-chan error, err error)
 
 	// Diagnose retrieves additional debugging info from the VM
 	// (e.g. by sending some sys-rq's or SIGABORT'ing a Go program).
@@ -178,7 +178,7 @@ type MultiplexConfig struct {
 }
 
 func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config MultiplexConfig) (
-	<-chan []byte, <-chan error, error) {
+	<-chan Chunk, <-chan error, error) {
 	if config.Scale <= 0 {
 		panic("slowdown must be set")
 	}
@@ -190,6 +190,8 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 		}
 	}
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(ErrTimeout)
@@ -198,9 +200,9 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
-			cmd.Process.Kill()
-			if cmdErr := cmd.Wait(); cmdErr == nil {
+		case err := <-merger.Errors(errCtx):
+			// EOF is not always in perfect sync with exit, so we should wait a bit.
+			if cmdErr := waitAndKill(ctx, cmd); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
@@ -228,6 +230,34 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 		cmd.Wait()
 	}()
 	return merger.Output, errc, nil
+}
+
+func waitAndKill(ctx context.Context, cmd *exec.Cmd) error {
+	err := make(chan error)
+	go func() {
+		err <- cmd.Wait()
+	}()
+	// The processes sometimes first close their output streams and only then exit,
+	// with some time in between.
+	// This can be e.g. observed when running ssh (the common case for the package).
+	// There might be smarter ways to enforce the ordering/atomicity, but for now
+	// let's just use a timeout.
+	const waitTimeout = 5 * time.Second
+	ctxDone := false
+	select {
+	case <-ctx.Done():
+		ctxDone = true
+	case <-time.After(waitTimeout):
+	case err := <-err:
+		return err
+	}
+	cmd.Process.Kill()
+	if ctxDone {
+		// Wait till process exits, but return another error.
+		<-err
+		return ctx.Err()
+	}
+	return <-err
 }
 
 func RandomPort() int {
@@ -266,6 +296,7 @@ func UnusedTCPPort() int {
 // Reference: https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
 func EscapeDoubleQuotes(inp string) string {
 	var ret strings.Builder
+	//nolint:syz-linter // pos is modified inside the loop
 	for pos := 0; pos < len(inp); pos++ {
 		// If inp[pos] is not a double quote or a backslash, just use
 		// as is.

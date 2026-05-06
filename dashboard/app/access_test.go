@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -45,8 +47,14 @@ func TestAccessConfig(t *testing.T) {
 // TestAccess checks that all UIs respect access levels.
 // nolint: funlen, gocyclo
 func TestAccess(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
+
+	c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: prog.GitRevision,
+		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
+	})
 
 	// entity describes pages/bugs/texts/etc.
 	type entity struct {
@@ -63,6 +71,10 @@ func TestAccess(t *testing.T) {
 		{
 			level: AccessPublic,
 			url:   "/access-public",
+		},
+		{
+			level: AccessPublic,
+			url:   "/access-public/ai",
 		},
 		{
 			level: AccessPublic,
@@ -94,6 +106,10 @@ func TestAccess(t *testing.T) {
 		},
 		{
 			level: AccessUser,
+			url:   "/access-user/ai",
+		},
+		{
+			level: AccessUser,
 			url:   "/access-user/fixed",
 		},
 		{
@@ -119,6 +135,10 @@ func TestAccess(t *testing.T) {
 		{
 			level: AccessAdmin,
 			url:   "/access-admin",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/ai",
 		},
 		{
 			level: AccessAdmin,
@@ -289,7 +309,7 @@ func TestAccess(t *testing.T) {
 	for _, ns := range []string{"access-admin", "access-user", "access-public"} {
 		clientName, clientKey := "", ""
 		for k, v := range c.config().Namespaces[ns].Clients {
-			clientName, clientKey = k, v
+			clientName, clientKey = k, v.Key
 		}
 		nsLevel := c.config().Namespaces[ns].AccessLevel
 		namespaceAccessPrefix := accessLevelPrefix(nsLevel)
@@ -299,18 +319,18 @@ func TestAccess(t *testing.T) {
 		client.UploadBuild(build)
 		noteBuildAccessLevel(ns, build.ID)
 
-		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
+		for reportingIdx := range 2 {
 			accessLevel := c.config().Namespaces[ns].Reporting[reportingIdx].AccessLevel
 			accessPrefix := accessLevelPrefix(accessLevel)
 
 			crashInvalid := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashInvalid)
-			repInvalid := client.pollBug()
+			repInvalid := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repInvalid.ID, dashapi.BugStatusUpstream, "")
-				repInvalid = client.pollBug()
+				c.globalClient.updateBug(repInvalid.ID, dashapi.BugStatusUpstream, "")
+				repInvalid = c.globalClient.pollBug()
 			}
-			client.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
+			c.globalClient.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
 			// Invalid bugs become visible up to the last reporting.
 			finalLevel := c.config().Namespaces[ns].
 				Reporting[len(c.config().Namespaces[ns].Reporting)-1].AccessLevel
@@ -318,12 +338,12 @@ func TestAccess(t *testing.T) {
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashFixed)
-			repFixed := client.pollBug()
+			repFixed := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repFixed.ID, dashapi.BugStatusUpstream, "")
-				repFixed = client.pollBug()
+				c.globalClient.updateBug(repFixed.ID, dashapi.BugStatusUpstream, "")
+				repFixed = c.globalClient.pollBug()
 			}
-			reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+			reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 				ID:         repFixed.ID,
 				Status:     dashapi.BugStatusOpen,
 				FixCommits: []string{ns + "-patch0"},
@@ -354,21 +374,28 @@ func TestAccess(t *testing.T) {
 				},
 			}
 			client.ReportCrash(crashOpen)
-			repOpen := client.pollBug()
+			repOpen := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repOpen.ID, dashapi.BugStatusUpstream, "")
-				repOpen = client.pollBug()
+				c.globalClient.updateBug(repOpen.ID, dashapi.BugStatusUpstream, "")
+				repOpen = c.globalClient.pollBug()
 			}
 			noteBugAccessLevel(repOpen.ID, accessLevel, nsLevel)
 
+			jobID := c.createAIJob(repOpen.ID, "patching", "")
+			entities = append(entities, entity{
+				level: accessLevel,
+				ref:   jobID,
+				url:   fmt.Sprintf("/ai_job?id=%v", jobID),
+			})
+
 			crashPatched := testCrashWithRepro(build, reportingIdx*10+1)
 			client.ReportCrash(crashPatched)
-			repPatched := client.pollBug()
+			repPatched := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repPatched.ID, dashapi.BugStatusUpstream, "")
-				repPatched = client.pollBug()
+				c.globalClient.updateBug(repPatched.ID, dashapi.BugStatusUpstream, "")
+				repPatched = c.globalClient.pollBug()
 			}
-			reply, _ = client.ReportingUpdate(&dashapi.BugUpdate{
+			reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 				ID:         repPatched.ID,
 				Status:     dashapi.BugStatusOpen,
 				FixCommits: []string{ns + "-patch0"},
@@ -381,12 +408,12 @@ func TestAccess(t *testing.T) {
 
 			crashDup := testCrashWithRepro(build, reportingIdx*10+2)
 			client.ReportCrash(crashDup)
-			repDup := client.pollBug()
+			repDup := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repDup.ID, dashapi.BugStatusUpstream, "")
-				repDup = client.pollBug()
+				c.globalClient.updateBug(repDup.ID, dashapi.BugStatusUpstream, "")
+				repDup = c.globalClient.pollBug()
 			}
-			client.updateBug(repDup.ID, dashapi.BugStatusDup, repOpen.ID)
+			c.globalClient.updateBug(repDup.ID, dashapi.BugStatusDup, repOpen.ID)
 			noteBugAccessLevel(repDup.ID, accessLevel, nsLevel)
 		}
 	}
@@ -415,7 +442,7 @@ func TestAccess(t *testing.T) {
 			if err1 != nil {
 				t.Fatal(err1)
 			}
-			assert.NotNil(t, err)
+			require.NotNil(t, err)
 			var httpErr *HTTPError
 			assert.True(t, errors.As(err, &httpErr))
 			assert.Equal(t, httpErr.Code, http.StatusTemporaryRedirect)

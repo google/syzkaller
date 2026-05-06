@@ -2,6 +2,7 @@ TITLE: BUG: unable to handle kernel paging request in vgic_mmio_write_invlpi
 ALT: bad-access in vgic_mmio_write_invlpi
 TYPE: MEMORY_SAFETY_BUG
 FRAME: vgic_mmio_write_invlpi
+PANICKED: Y
 EXECUTOR: proc=2, id=929
 
 [ 8455.020911][ T6560] Unable to handle kernel paging request at virtual address efff800000000137

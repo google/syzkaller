@@ -1,0 +1,454 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "func-action",
+		"Started": "0001-01-01T00:00:02Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "func-action",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:03Z",
+		"Results": {
+			"OutBar": 142,
+			"TmpFuncOutput": "func-output"
+		}
+	},
+	{
+		"Seq": 2,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:04Z",
+		"Instruction": "You are smarty. baz\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz func-output"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:05Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Thoughts": "I am thinking I need to call some tools\nSome non-thoughts reply along with tool calls"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool1",
+		"Started": "0001-01-01T00:00:07Z",
+		"Args": {
+			"ArgBar": 100,
+			"ArgFoo": "arg-foo"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool1",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z",
+		"Args": {
+			"ArgBar": 100,
+			"ArgFoo": "arg-foo"
+		},
+		"Results": {
+			"ResFoo": 200,
+			"ResString": "res-string"
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"ArgBaz": 101
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Args": {
+			"ArgBaz": 101
+		},
+		"Results": {
+			"ResBaz": 300
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z",
+		"Thoughts": "Completly blank.Whatever."
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"AgentBar": "agent-bar",
+			"AgentFoo": 42
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"AgentBar": "agent-bar",
+			"AgentFoo": 42
+		},
+		"Results": {
+			"AgentBar": "agent-bar",
+			"AgentFoo": 42
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:04Z",
+		"Finished": "0001-01-01T00:00:17Z",
+		"Results": {
+			"AgentBar": "agent-bar",
+			"AgentFoo": 42
+		},
+		"Instruction": "You are smarty. baz\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz func-output",
+		"Reply": "hello, world!"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "another-action",
+		"Started": "0001-01-01T00:00:18Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "another-action",
+		"Started": "0001-01-01T00:00:18Z",
+		"Finished": "0001-01-01T00:00:19Z",
+		"Results": {
+			"OutBaz": "baz"
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 1,
+		"Type": "agent-candidates",
+		"Name": "swarm",
+		"Started": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:21Z",
+		"Instruction": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:22Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:22Z",
+		"Finished": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:24Z",
+		"Args": {
+			"SwarmInt": 1,
+			"SwarmStr": "swarm1"
+		}
+	},
+	{
+		"Seq": 13,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:24Z",
+		"Finished": "0001-01-01T00:00:25Z",
+		"Args": {
+			"SwarmInt": 1,
+			"SwarmStr": "swarm1"
+		},
+		"Results": {
+			"SwarmInt": 1,
+			"SwarmStr": "swarm1"
+		}
+	},
+	{
+		"Seq": 14,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:26Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:26Z",
+		"Finished": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:28Z",
+		"Results": {
+			"SwarmInt": 1,
+			"SwarmStr": "swarm1"
+		},
+		"Instruction": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz",
+		"Reply": "swarm candidate 1"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:29Z",
+		"Instruction": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:30Z"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:30Z",
+		"Finished": "0001-01-01T00:00:31Z"
+	},
+	{
+		"Seq": 17,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:32Z",
+		"Args": {
+			"SwarmInt": 2,
+			"SwarmStr": "swarm2"
+		}
+	},
+	{
+		"Seq": 17,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:32Z",
+		"Finished": "0001-01-01T00:00:33Z",
+		"Args": {
+			"SwarmInt": 2,
+			"SwarmStr": "swarm2"
+		},
+		"Results": {
+			"SwarmInt": 2,
+			"SwarmStr": "swarm2"
+		}
+	},
+	{
+		"Seq": 18,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:34Z"
+	},
+	{
+		"Seq": 18,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:34Z",
+		"Finished": "0001-01-01T00:00:35Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "swarm",
+		"Model": "model2",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:36Z",
+		"Results": {
+			"SwarmInt": 2,
+			"SwarmStr": "swarm2"
+		},
+		"Instruction": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt: baz",
+		"Reply": "swarm candidate 2"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 1,
+		"Type": "agent-candidates",
+		"Name": "swarm",
+		"Started": "0001-01-01T00:00:20Z",
+		"Finished": "0001-01-01T00:00:37Z"
+	},
+	{
+		"Seq": 19,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "aggregator",
+		"Model": "model3",
+		"Started": "0001-01-01T00:00:38Z",
+		"Instruction": "Aggregate!",
+		"Prompt": "Prompt: baz\n#0: swarm candidate 1\n#1: swarm candidate 2\n\n#0: 1\n#1: 2\n\n#0: swarm1\n#1: swarm2\n\n"
+	},
+	{
+		"Seq": 20,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "aggregator",
+		"Model": "model3",
+		"Started": "0001-01-01T00:00:39Z"
+	},
+	{
+		"Seq": 20,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "aggregator",
+		"Model": "model3",
+		"Started": "0001-01-01T00:00:39Z",
+		"Finished": "0001-01-01T00:00:40Z"
+	},
+	{
+		"Seq": 19,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "aggregator",
+		"Model": "model3",
+		"Started": "0001-01-01T00:00:38Z",
+		"Finished": "0001-01-01T00:00:41Z",
+		"Instruction": "Aggregate!",
+		"Prompt": "Prompt: baz\n#0: swarm candidate 1\n#1: swarm candidate 2\n\n#0: 1\n#1: 2\n\n#0: swarm1\n#1: swarm2\n\n",
+		"Reply": "aggregated"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:42Z",
+		"Results": {
+			"AgentFoo": 42,
+			"OutAggregator": "aggregated",
+			"OutBar": 142,
+			"OutBaz": "baz",
+			"OutFoo": "hello, world!",
+			"OutSwarm": [
+				"swarm candidate 1",
+				"swarm candidate 2"
+			],
+			"SwarmInt": [
+				1,
+				2
+			]
+		}
+	}
+]

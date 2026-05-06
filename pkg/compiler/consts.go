@@ -4,8 +4,9 @@
 package compiler
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -228,8 +229,8 @@ func convertConstInfo(ctx *constContext, metas map[string]Meta) map[string]*Cons
 		for _, val := range info.consts {
 			allConsts = append(allConsts, val)
 		}
-		sort.Slice(allConsts, func(i, j int) bool {
-			return allConsts[i].Name < allConsts[j].Name
+		slices.SortFunc(allConsts, func(a, b *Const) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
 		res[file] = &ConstInfo{
 			Consts:   allConsts,

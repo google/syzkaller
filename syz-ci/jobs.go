@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -235,11 +236,12 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 	results := make([]dashapi.Commit, 0, len(commits))
 	for _, com := range commits {
 		results = append(results, dashapi.Commit{
-			Hash:   com.Hash,
-			Title:  com.Title,
-			Author: com.Author,
-			BugIDs: com.Tags,
-			Date:   com.Date,
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.Author,
+			AuthorName: com.AuthorName,
+			BugIDs:     com.Tags,
+			Date:       com.Date,
 		})
 	}
 	return mgr.dash.UploadCommits(results)
@@ -358,7 +360,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	mgrcfg := new(mgrconfig.Config)
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
-	mgrcfg.KernelSrc = filepath.Join(dir, "kernel", mgr.mgrcfg.KernelSrcSuffix)
+	repoDir := filepath.Join(dir, "kernel")
+	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
 	defer os.RemoveAll(mgrcfg.Workdir)
@@ -375,6 +378,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		},
 	}
 	job.resp = resp
+	if err := jp.initJobRepo(mgr, repoDir); err != nil {
+		jp.Errorf("failed to init job repo: %v", err)
+		job.resp.Error = []byte(err.Error())
+		return job.resp
+	}
 	resp.Build.KernelRepo = req.KernelRepo
 	resp.Build.KernelBranch = req.KernelBranch
 	resp.Build.KernelConfig = req.KernelConfig
@@ -658,7 +666,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 	jp.Logf(0, "job: testing...")
-	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
+	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC, false)
 	if err != nil {
 		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)
 	}
@@ -673,6 +681,27 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		resp.CrashReport = rep.Report
 	}
 	resp.CrashLog = ret.rawOutput
+	return nil
+}
+
+func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
+	if err := os.RemoveAll(repoDir); err != nil {
+		return fmt.Errorf("failed to remove job repo dir: %w", err)
+	}
+	if osutil.IsExist(mgr.kernelBuildDir) {
+		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
+		cmd := exec.Command("git", "clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return fmt.Errorf("failed to sandbox clone: %w", err)
+		}
+		output, err := osutil.Run(time.Hour, cmd)
+		if err == nil {
+			return nil
+		}
+		jp.Logf(0, "failed to clone with reference from %v: %v\n%s", mgr.kernelBuildDir, err, output)
+		os.RemoveAll(repoDir)
+	}
+	jp.Logf(0, "job repo will be fetched from scratch")
 	return nil
 }
 
@@ -756,46 +785,30 @@ type patchTestResult struct {
 
 func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, error) {
 	// We can have transient errors and other errors of different types.
-	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
-	// If any of the instances crash during testing, we report this with the highest priority.
-	// Then if any of the runs succeed, we report that (to avoid transient errors).
-	// If all instances failed to boot, then we report one of these errors.
-	var anyErr, testErr error
-	var resReport, resSuccess *patchTestResult
-	anyErr = fmt.Errorf("no env test runs")
-	for _, res := range results {
-		if res.Error == nil {
-			resSuccess = &patchTestResult{rawOutput: res.RawOutput}
-			continue
+	// We report crashes with the highest priority.
+	res, err := instance.AggregateTestResults(results)
+	if err != nil {
+		return nil, err
+	} else if res.Error == nil {
+		return &patchTestResult{rawOutput: res.RawOutput}, nil
+	}
+
+	var testError *instance.TestError
+	var crashError *instance.CrashError
+
+	switch {
+	case errors.As(res.Error, &testError):
+		// We should not put rep into resp.CrashTitle/CrashReport,
+		// because that will be treated as patch not fixing the bug.
+		if rep := testError.Report; rep != nil {
+			return nil, fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
 		}
-		anyErr = res.Error
-		var testError *instance.TestError
-		var crashError *instance.CrashError
-		switch {
-		case errors.As(res.Error, &testError):
-			// We should not put rep into resp.CrashTitle/CrashReport,
-			// because that will be treated as patch not fixing the bug.
-			if rep := testError.Report; rep != nil {
-				testErr = fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
-			} else {
-				testErr = fmt.Errorf("%v\n\n%s", testError.Title, testError.Output)
-			}
-		case errors.As(res.Error, &crashError):
-			if resReport == nil || (len(resReport.report.Report) == 0 && len(crashError.Report.Report) != 0) {
-				resReport = &patchTestResult{report: crashError.Report, rawOutput: res.RawOutput}
-			}
-		}
+		return nil, fmt.Errorf("%v\n\n%s", testError.Title, testError.Output)
+	case errors.As(res.Error, &crashError):
+		return &patchTestResult{report: crashError.Report, rawOutput: res.RawOutput}, nil
+	default:
+		return nil, res.Error
 	}
-	if resReport != nil {
-		return resReport, nil
-	}
-	if resSuccess != nil {
-		return resSuccess, nil
-	}
-	if testErr != nil {
-		return nil, testErr
-	}
-	return nil, anyErr
 }
 
 func (jp *JobProcessor) Logf(level int, msg string, args ...any) {

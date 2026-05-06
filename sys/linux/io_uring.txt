@@ -3,23 +3,21 @@
 
 # See http://kernel.dk/io_uring.pdf
 
-include <uapi/linux/io_uring.h>
+include <io_uring/io_uring.h>
+include <uapi/linux/ublk_cmd.h>
 # For EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
 include <uapi/linux/eventpoll.h>
 
 resource fd_io_uring[fd]
 resource ring_ptr[int64]
 resource sqes_ptr[int64]
+resource ring_params_ptr[intptr]
 resource ioring_personality_id[int16]
-
-# fs/io_uring.c
-define IORING_MAX_ENTRIES	32768
-define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
 
 # First does the setup calling io_uring_setup, than calls mmap to map the ring and
 # the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
 # with fuzzer-provided mmap length. This wrapper ensures correct length computation.
-syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
 
 io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
@@ -103,28 +101,31 @@ _ = __NR_mmap2
 # is organized in code. The offsets can be marked as resources in syzkaller descriptions but
 # this makes it difficult to generate correct programs by the fuzzer. Thus, the offsets are
 # hard-coded here (and in the executor).
-define SQ_HEAD_OFFSET	0
-define SQ_TAIL_OFFSET	64
-define SQ_RING_MASK_OFFSET	256
-define SQ_RING_ENTRIES_OFFSET	264
-define SQ_FLAGS_OFFSET	276
-define SQ_DROPPED_OFFSET	272
-define CQ_HEAD_OFFSET	128
-define CQ_TAIL_OFFSET	192
-define CQ_RING_MASK_OFFSET	260
-define CQ_RING_ENTRIES_OFFSET	268
-define CQ_RING_OVERFLOW_OFFSET	284
-define CQ_FLAGS_OFFSET	280
+define SQ_HEAD_OFFSET	offsetof(struct io_uring_params, sq_off.head)
+define SQ_TAIL_OFFSET	offsetof(struct io_uring_params, sq_off.tail)
+define SQ_RING_MASK_OFFSET	offsetof(struct io_uring_params, sq_off.ring_mask)
+define SQ_RING_ENTRIES_OFFSET	offsetof(struct io_uring_params, sq_off.ring_entries)
+define SQ_FLAGS_OFFSET	offsetof(struct io_uring_params, sq_off.flags)
+define SQ_DROPPED_OFFSET	offsetof(struct io_uring_params, sq_off.dropped)
+define SQ_ARRAY_OFFSET	offsetof(struct io_uring_params, sq_off.array)
+define SQ_RESV_OFFSET	offsetof(struct io_uring_params, sq_off.resv1)
+
+define CQ_HEAD_OFFSET	offsetof(struct io_uring_params, cq_off.head)
+define CQ_TAIL_OFFSET	offsetof(struct io_uring_params, cq_off.tail)
+define CQ_RING_MASK_OFFSET	offsetof(struct io_uring_params, cq_off.ring_mask)
+define CQ_RING_ENTRIES_OFFSET	offsetof(struct io_uring_params, cq_off.ring_entries)
+define CQ_RING_OVERFLOW_OFFSET	offsetof(struct io_uring_params, cq_off.overflow)
+define CQ_CQES_OFFSET	offsetof(struct io_uring_params, cq_off.cqes)
+define CQ_FLAGS_OFFSET	offsetof(struct io_uring_params, cq_off.flags)
+define CQ_RESV1_OFFSET	offsetof(struct io_uring_params, cq_off.resv1)
 
 # Notice all offsets are pointing to uint32 values. This is assumed for the
-io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, io_uring_flags_offsets
-
-# Also, all values are int32, thus, set nbytes to 4.
-syz_memcpy_off$IO_URING_METADATA_GENERIC(ring_ptr ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])
+io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_DROPPED_OFFSET, SQ_ARRAY_OFFSET, SQ_RESV_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, CQ_CQES_OFFSET, CQ_FLAGS_OFFSET, CQ_RESV1_OFFSET, io_uring_flags_offsets
+syz_io_uring_modify_offsets$generic(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, off flags[io_uring_offsets], value int32)
 
 # The flags available are: IORING_SQ_NEED_WAKEUP (1) for sq, IORING_CQ_EVENTFD_DISABLED (1) for cq. Use int32[0:1] to represent possible values.
 io_uring_flags_offsets = SQ_FLAGS_OFFSET, CQ_FLAGS_OFFSET
-syz_memcpy_off$IO_URING_METADATA_FLAGS(ring_ptr ring_ptr, flag_off flags[io_uring_flags_offsets], src ptr[in, int32[0:1]], src_off const[0], nbytes const[4])
+syz_io_uring_modify_offsets$flags(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, off flags[io_uring_flags_offsets], value int32[0:1])
 
 io_uring_probe {
 	last_op	const[0, int8]
@@ -204,6 +205,30 @@ io_uring_buf_reg {
 	resv		array[const[0, int64], 3]
 }
 
+io_sqring_offsets {
+	head		int32
+	tail		int32
+	ring_mask	int32
+	ring_entries	int32
+	flags		int32
+	dropped		int32
+	array		int32
+	resv1		int32
+	user_addr	int64
+}
+
+io_cqring_offsets {
+	head		int32
+	tail		int32
+	ring_mask	int32
+	ring_entries	int32
+	overflow	int32
+	cqes		int32
+	flags		int32
+	resv1		int32
+	user_addr	int64
+}
+
 io_uring_params {
 	sq_entries	int32	(out)
 	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]	(inout)
@@ -213,10 +238,8 @@ io_uring_params {
 	features	int32	(out)
 	wq_fd		fd_io_uring[opt]	(in)
 	resv		array[const[0, int32], 3]
-# We don't really use them (they are hard-coded). Thus, just pass some memory region of their size.
-# TODO: Now that per-field directions is supported, can we avoid using hard-coded values for offsets?
-	sq_off		array[int32, 10]	(out)
-	cq_off		array[int32, 10]	(out)
+	sq_off		io_sqring_offsets	(out)
+	cq_off		io_cqring_offsets	(out)
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -227,10 +250,10 @@ io_uring_params {
 # resource contained within a cqe is by the completion of openat or openat2 calls,
 # which produce fd. If that is the case, returns the return value of those. Otherwise,
 # for other operations, returns an invalid fd (-1).
-syz_io_uring_complete(ring_ptr ring_ptr) fd
+syz_io_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr) fd
 
 # Submit sqe into the sq_ring
-syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u])
+syz_io_uring_submit(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u])
 
 io_uring_sqe_u [
 	IORING_OP_NOP			io_uring_sqe$nop
@@ -274,13 +297,13 @@ io_uring_sqe_u [
 	IORING_OP_SYMLINKAT		io_uring_sqe$symlinkat
 	IORING_OP_LINKAT		io_uring_sqe$linkat
 	IORING_OP_MSG_RING		io_uring_sqe$msg_ring
+	IORING_OP_URING_CMD		io_uring_sqe_uring_u
 # 	TODO undocumented 6.0
 #	IORING_OP_FSETXATTR		io_uring_sqe$fsetxatt
 #	IORING_OP_SETXATTR		io_uring_sqe$setxatt
 #	IORING_OP_FGETXATTR		io_uring_sqe$fgetxatt
 #	IORING_OP_GETXATTR		io_uring_sqe$etxatt
 #	IORING_OP_SOCKET		io_uring_sqe$socket
-#	IORING_OP_URING_CMD		io_uring_sqe$uring_cmd
 #	IORING_OP_SEND_ZC		io_uring_sqe$send_zc
 ]
 
@@ -309,6 +332,32 @@ type io_uring_sqe[OP, IOPRIO, FD, OFF, ADDR, LEN, MISC_FLAGS, USER_DATA, MISC] {
 } [size[SIZEOF_IO_URING_SQE]]
 
 define SIZEOF_IO_URING_SQE	64
+
+uring_cmd_flags = 0, IORING_URING_CMD_FIXED
+
+type io_uring_sqe_uring[FD, CMD_OP, CMD, USER_DATA] {
+	opcode			const[IORING_OP_URING_CMD, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio			const[0, int16]
+	fd			FD
+	cmd_op			CMD_OP
+	pad1			const[0, int32]
+	addr			const[0, int64]
+	len			const[0, int32]
+	uring_flags		flags[uring_cmd_flags, int32]
+	user_data		USER_DATA
+	buf_index_unused	const[0, int16]
+	ioring_personality_id	ioring_personality_id[opt]
+	pad_unused		array[const[0, int8], 4]
+
+	cmd			CMD
+} [size[SIZEOF_IO_URING_SQE_LARGE]]
+
+define SIZEOF_IO_URING_SQE_LARGE	128
+
+io_uring_sqe_uring_u [
+	ublk_cmd_sqes	ublk_cmd_sqe_u
+]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

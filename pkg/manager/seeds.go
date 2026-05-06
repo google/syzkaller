@@ -125,7 +125,7 @@ func readInputs(cfg *mgrconfig.Config, db *db.DB, output chan *input) error {
 
 	defer wg.Wait()
 	defer close(inputs)
-	for p := 0; p < procs; p++ {
+	for range procs {
 		go func() {
 			defer wg.Done()
 			for inp := range inputs {

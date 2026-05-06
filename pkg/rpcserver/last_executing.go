@@ -5,8 +5,9 @@ package rpcserver
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/report"
@@ -72,8 +73,8 @@ func (last *LastExecuting) Collect() []ExecRecord {
 	procs := append(last.procs, last.hanged...)
 	last.procs = nil // The type must not be used after this.
 	last.hanged = nil
-	sort.Slice(procs, func(i, j int) bool {
-		return procs[i].Time < procs[j].Time
+	slices.SortFunc(procs, func(a, b ExecRecord) int {
+		return cmp.Compare(a.Time, b.Time)
 	})
 	max := procs[len(procs)-1].Time
 	for i := len(procs) - 1; i >= 0; i-- {

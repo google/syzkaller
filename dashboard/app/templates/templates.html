@@ -53,6 +53,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
 					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
 					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
+					{{if eq $.Namespace "upstream"}}
+						| <a href='/upstream/syz-dungeon' title="Syzkaller Dungeon">🏰</a>
+					{{end}}
 				</td>
 			</tr>
 		</table>
@@ -130,11 +133,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</header>
 	<br>
 	{{if .Message}}
-		<script>
-			document.addEventListener("DOMContentLoaded", function() {
-				alert("{{.Message}}");
-			});
-		</script>
+		<div class="flash-message">{{.Message}}</div>
 	{{end}}
 {{end}}
 
@@ -697,14 +696,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tr>
 		<td class="tag">{{link $job.Link $job.ID}}</td>
 		<td>{{$job.Workflow}}</td>
-		<td>
+		<td class="ai_result">
 			{{range $res := $job.Results}}
 				{{if $res.IsBool}}
-					{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}&nbsp;
+					<span>{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}</span>
 				{{end}}
 			{{end}}
 		</td>
-		<td class="ai_correct">{{$job.Correct}}</td>
+		<td class="ai_correct" title="{{$job.CorrectTitle}}">{{$job.Correct}}</td>
 		<td class="title">{{link $job.DescriptionLink $job.Description}}</td>
 		<td>{{formatTime $job.Created}}</td>
 		<td>{{formatTime $job.Started}}</td>

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/stat"
@@ -82,7 +83,7 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 		p0 = resetCallProps(p0, callIndex0, pred)
 
 		// Try to minimize individual calls.
-		for i := 0; i < len(p0.Calls); i++ {
+		for i := range len(p0.Calls) {
 			if p0.Calls[i].Meta.Attrs.NoMinimize {
 				continue
 			}
@@ -507,7 +508,7 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 		if !typ.Varlen() {
 			return false
 		}
-		data0 := append([]byte{}, a.Data()...)
+		data0 := slices.Clone(a.Data())
 		a.data = bytes.TrimRight(a.Data(), specialFileLenPad+"\x00")
 		if !typ.NoZ {
 			a.data = append(a.data, 0)

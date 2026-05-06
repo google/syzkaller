@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -122,7 +123,7 @@ nextErr:
 			fmt.Fprintf(buf, "%v: %v\n", err.pos, err.msgs[0])
 			continue
 		}
-		sort.Strings(err.msgs)
+		slices.Sort(err.msgs)
 		fmt.Fprintf(buf, "%v:\n\t%v\n", err.pos, strings.Join(err.msgs, "\n\t"))
 	}
 	em.t.Errorf("\n%s", buf.Bytes())

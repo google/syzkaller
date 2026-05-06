@@ -15,11 +15,12 @@ h1, h2, h3, h4 {
 	font-weight: bold;
 }
 
-.navigation_tab {
+.navigation .navigation_tab {
 	border: 1px solid black;
 	padding: 4px;
 	margin: 4px;
-	display: inline-block;
+	display: flex;
+	align-items: center;
 }
 
 .navigation_tab a:hover {background-color: #ddd;}
@@ -36,7 +37,6 @@ h1, h2, h3, h4 {
 	padding-top: 15px;
 	padding-bottom: 6px;
 	display: flex;
-	align-items: center;
 	flex-wrap: wrap;
 }
 
@@ -132,8 +132,8 @@ table td, table th {
 }
 
 .list_table .title {
-	width: 350pt;
-	max-width: 350pt;
+	min-width: 350pt;
+	width: max-content;
 }
 
 .list_table .commit_list {
@@ -244,6 +244,15 @@ table td, table th {
 	font-size: 75%;
 }
 
+.list_table .ai_result {
+	max-width: 400pt;
+	white-space: normal;
+}
+
+.list_table .ai_result span {
+	white-space: nowrap;
+}
+
 .list_table .ai_correct {
 	text-align: center;
 }
@@ -302,6 +311,7 @@ table td, table th {
 
 textarea {
 	width:100%;
+	box-sizing: border-box;
 	font-family: monospace;
 }
 
@@ -480,6 +490,17 @@ aside {
 	display: none;
 }
 
+.ai-jobs-form {
+	padding: 15px;
+	box-sizing: border-box;
+	max-width: 800px;
+}
+
+.ai-jobs-form input[type="text"] {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
 .emergency-stop {
 	background-color: yellow;
 	padding: 5pt;
@@ -500,6 +521,8 @@ aside {
 	border: none;
 	font-family: inherit;
 	font-size: inherit;
+	padding: 0;
+	margin: 0;
 }
 
 /* The container <div> - needed to position the dropdown content */
@@ -517,6 +540,9 @@ aside {
 	position: absolute;
 	background-color: #f1f1f1;
 	z-index: 1;
+	top: 100%;
+	left: 0;
+	margin-top: 1px;
 }
 
 /* Links inside the dropdown */
@@ -549,4 +575,13 @@ aside {
 }
 .rank:hover .tooltiptext {
 	visibility: visible;
+}
+
+.flash-message {
+	background-color: #e2f0fd;
+	color: #0c5460;
+	padding: 10px;
+	border: 1px solid #bee5eb;
+	border-radius: 4px;
+	margin: 10px 5px;
 }

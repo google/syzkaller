@@ -22,7 +22,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/image"
@@ -209,7 +210,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := min(len(data), maxDataLength)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
@@ -374,13 +375,7 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64, image bool) []uint6
 	if replacers == nil {
 		return nil
 	}
-	res := make([]uint64, 0, len(replacers))
-	for v := range replacers {
-		res = append(res, v)
-	}
-	sort.Slice(res, func(i, j int) bool {
-		return res[i] < res[j]
-	})
+	res := slices.Sorted(maps.Keys(replacers))
 	return res
 }
 

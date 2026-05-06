@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in xt_free_table_info
 TYPE: WARNING
+PANICKED: Y
 
 [  527.510025] ------------[ cut here ]------------
 [  527.511247] device bridge0 entered promiscuous mode

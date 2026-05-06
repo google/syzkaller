@@ -44,12 +44,12 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	if err != nil || head == nil {
 		return SelectResult{}, err
 	}
-	cs.tracer.Log("current HEAD: %q (commit date: %v)", head.Hash, head.CommitDate)
+	cs.tracer.Logf("current HEAD: %q (commit date: %v)", head.Hash, head.CommitDate)
 	// If the series is already too old, it may be incompatible even if it applies cleanly.
 	const seriesLagsBehind = time.Hour * 24 * 7
 	if diff := head.CommitDate.Sub(series.PublishedAt); series.PublishedAt.Before(head.CommitDate) &&
 		diff > seriesLagsBehind {
-		cs.tracer.Log("the series is too old: %v before the HEAD", diff)
+		cs.tracer.Logf("the series is too old: %v before the HEAD", diff)
 		return SelectResult{Reason: reasonSeriesTooOld}, nil
 	}
 
@@ -63,19 +63,19 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	if lastBuild != nil {
 		// Check if the commit is still good enough.
 		if diff := head.CommitDate.Sub(lastBuild.CommitDate); diff > seriesLagsBehind {
-			cs.tracer.Log("the last successful build is already too old: %v, skipping", diff)
+			cs.tracer.Logf("the last successful build is already too old: %v, skipping", diff)
 		} else {
 			hashes = append(hashes, lastBuild.CommitHash)
 		}
 	}
 	for _, hash := range append(hashes, head.Hash) {
-		cs.tracer.Log("considering %q", hash)
+		cs.tracer.Logf("considering %q", hash)
 		err := cs.ops.ApplySeries(hash, series.PatchBodies())
 		if err == nil {
-			cs.tracer.Log("series can be applied to %q", hash)
+			cs.tracer.Logf("series can be applied to %q", hash)
 			return SelectResult{Commit: hash}, nil
 		} else {
-			cs.tracer.Log("failed to apply to %q: %v", hash, err)
+			cs.tracer.Logf("failed to apply to %q: %v", hash, err)
 		}
 	}
 	return SelectResult{Reason: reasonNotApplies}, nil

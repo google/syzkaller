@@ -68,7 +68,7 @@ func (p *parser) skipSpaces() {
 
 func (p *parser) identLevel() int {
 	level := 0
-	for i := 0; i < p.col; i++ {
+	for i := range p.col {
 		level++
 		if p.current[i] == '\t' {
 			level = (level + 7) & ^7

@@ -14,7 +14,7 @@ import (
 func TestLocalStorage(t *testing.T) {
 	storage := NewLocalStorage(t.TempDir())
 	var uris []string
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		content := fmt.Sprintf("object #%d", i)
 		uri, err := storage.Write(bytes.NewReader([]byte(content)), fmt.Sprint(i))
 		assert.NoError(t, err)

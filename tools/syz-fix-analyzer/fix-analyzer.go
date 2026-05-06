@@ -109,7 +109,7 @@ func run(cli *api.Client, ns, sourceDir string) (int, map[BugType]TypeStats, err
 func runJobs(bugs []api.BugSummary, repo vcs.Repo) []*Job {
 	procs := runtime.GOMAXPROCS(0)
 	jobC := make(chan *Job, procs)
-	for p := 0; p < procs; p++ {
+	for range procs {
 		go func() {
 			for job := range jobC {
 				typ, fixable, err := isFixable(job.bug, job.repo)

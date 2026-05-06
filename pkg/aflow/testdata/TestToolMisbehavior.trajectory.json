@@ -1,0 +1,309 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool1",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Tool1Arg": "string"
+		}
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool1",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Args": {
+			"Tool1Arg": "string"
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:07Z",
+		"Args": {
+			"Tool2Arg": "string-instead-of-int"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z",
+		"Error": "argument \"Tool2Arg\" has wrong type: got string, want int",
+		"Args": {
+			"Tool2Arg": "string-instead-of-int"
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:09Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Error": "missing argument \"Tool2Arg\""
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:11Z",
+		"Args": {
+			"Tool2Arg": 0,
+			"Tool2Arg2": 100
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool2",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z",
+		"Args": {
+			"Tool2Arg": 0,
+			"Tool2Arg2": 100
+		},
+		"Results": {
+			"Result": 42
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool3",
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Arg": 0
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tool3",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Error": "tool \"tool3\" does not exist, please correct the name",
+		"Args": {
+			"Arg": 0
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:15Z",
+		"Args": {
+			"WrongArg": 0
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:16Z",
+		"Error": "missing argument \"AdditionalOutput\"",
+		"Args": {
+			"WrongArg": 0
+		}
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:17Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:17Z",
+		"Finished": "0001-01-01T00:00:18Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:19Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:19Z",
+		"Finished": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:21Z",
+		"Args": {
+			"AdditionalOutput": 1
+		}
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Args": {
+			"AdditionalOutput": 1
+		},
+		"Results": {
+			"AdditionalOutput": 1
+		}
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:23Z",
+		"Args": {
+			"AdditionalOutput": 2
+		}
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z",
+		"Args": {
+			"AdditionalOutput": 2
+		},
+		"Results": {
+			"AdditionalOutput": 2
+		}
+	},
+	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:25Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:29Z",
+		"Results": {
+			"AdditionalOutput": 2
+		},
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt",
+		"Reply": "Finally done"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:30Z",
+		"Results": {
+			"AdditionalOutput": 2,
+			"Reply": "Finally done"
+		}
+	}
+]

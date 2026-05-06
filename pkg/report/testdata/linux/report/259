@@ -1,5 +1,6 @@
 TITLE: WARNING: kmalloc bug in vfs_getxattr_alloc
 TYPE: WARNING
+PANICKED: Y
 
 [   47.228351] WARNING: CPU: 0 PID: 4406 at mm/slab_common.c:1031 kmalloc_slab+0x56/0x70
 [   47.236374] Kernel panic - not syncing: panic_on_warn set ...

@@ -5,14 +5,18 @@ package prog
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
+	"maps"
 	"math"
 	"math/rand"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
+	"github.com/google/syzkaller/pkg/image"
 )
 
 const (
@@ -25,6 +29,10 @@ const (
 	// of internal kernel functions rather than system behavior, and for this reason
 	// it is more sensible to generate a smaller number of calls instead of long chains.
 	RecommendedCallsKFuzzTest = 5
+
+	// Limits for recursion pruning during program generation.
+	arrayRecursionLimit   = 2
+	pointerRecursionLimit = 3
 )
 
 type randGen struct {
@@ -33,14 +41,15 @@ type randGen struct {
 	inGenerateResource    bool
 	patchConditionalDepth int
 	genKFuzzTest          bool
-	recDepth              map[string]int
+	recDepth              map[Type]int
+	genDefaultResource    bool
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
 	return &randGen{
 		Rand:     rand.New(rs),
 		target:   target,
-		recDepth: make(map[string]int),
+		recDepth: make(map[Type]int),
 	}
 }
 
@@ -86,9 +95,7 @@ var (
 )
 
 func init() {
-	sort.Slice(specialInts, func(i, j int) bool {
-		return specialInts[i] < specialInts[j]
-	})
+	slices.Sort(specialInts)
 	for i := range specialIntIndex {
 		bitSize := uint64(8 * i)
 		specialIntIndex[i] = sort.Search(len(specialInts), func(i int) bool {
@@ -332,11 +339,7 @@ func (r *randGen) randFilenameLength() int {
 }
 
 func (r *randGen) randFromMap(m map[string]bool) string {
-	files := make([]string, 0, len(m))
-	for f := range m {
-		files = append(files, f)
-	}
-	sort.Strings(files)
+	files := slices.Sorted(maps.Keys(m))
 	return files[r.Intn(len(files))]
 }
 
@@ -376,15 +379,37 @@ func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *Pointe
 	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
 }
 
-func (r *randGen) pruneRecursion(name string) (bool, func()) {
-	if r.recDepth[name] >= 2 {
+func (r *randGen) pruneRecursion(typ Type, limit int) (bool, func()) {
+	lt := leafType(typ)
+	if lt == nil {
+		return true, func() {}
+	}
+	if r.recDepth[lt] >= limit {
 		return false, nil
 	}
-	r.recDepth[name]++
+	r.recDepth[lt]++
 	return true, func() {
-		r.recDepth[name]--
-		if r.recDepth[name] == 0 {
-			delete(r.recDepth, name)
+		r.recDepth[lt]--
+		if r.recDepth[lt] == 0 {
+			delete(r.recDepth, lt)
+		}
+	}
+}
+
+// leafType unwraps pointers and arrays to find the underlying named struct or union.
+// By tracking the leaf type, we share limits among identical cyclic structures (like
+// linked lists with multiple pointer fields) and prevent exponential tree explosions.
+func leafType(typ Type) Type {
+	for {
+		switch t := typ.(type) {
+		case *PtrType:
+			typ = t.Elem
+		case *ArrayType:
+			typ = t.Elem
+		case *StructType, *UnionType:
+			return t
+		default:
+			return nil
 		}
 	}
 }
@@ -409,7 +434,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 			panic(fmt.Sprintf("got no spoof resources for %v in %v/%v",
 				kind, r.target.OS, r.target.Arch))
 		}
-		sort.Strings(all)
+		slices.Sort(all)
 		kind1 := all[r.Intn(len(all))]
 		ctors1 := r.enabledCtors(s, kind1)
 		if len(ctors1) != 0 {
@@ -622,6 +647,10 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 	if meta.Attrs.NoGenerate {
 		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
+	return r.generateParticularCallUnsafe(s, meta)
+}
+
+func (r *randGen) generateParticularCallUnsafe(s *state, meta *Syscall) (calls []*Call) {
 	c := MakeCall(meta, nil)
 	// KFuzzTest calls restrict mutation and generation. Since calls to
 	// generateParticularCall can be recursive, we save the previous value, and
@@ -647,7 +676,7 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	r := newRand(target, rs)
 	s := newState(target, target.DefaultChoiceTable(), nil)
 	for _, meta := range target.PseudoSyscalls() {
-		calls := r.generateParticularCall(s, meta)
+		calls := r.generateParticularCallUnsafe(s, meta)
 		for _, c := range calls {
 			s.analyze(c)
 			p.Calls = append(p.Calls, c)
@@ -666,8 +695,7 @@ func (target *Target) PseudoSyscalls() []*Syscall {
 	for _, meta := range target.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") ||
 			handled[meta.CallName] ||
-			meta.Attrs.Disabled ||
-			meta.Attrs.NoGenerate {
+			meta.Attrs.Disabled {
 			continue
 		}
 		ret = append(ret, meta)
@@ -679,11 +707,13 @@ func (target *Target) PseudoSyscalls() []*Syscall {
 // GenSampleProg generates a single sample program for the call.
 func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source, ct *ChoiceTable) *Prog {
 	r := newRand(target, rs)
+	// Make sure no additional calls are created to provide the resources used by meta.
+	r.genDefaultResource = true
 	s := newState(target, ct, nil)
 	p := &Prog{
 		Target: target,
 	}
-	for _, c := range r.generateParticularCall(s, meta) {
+	for _, c := range r.generateParticularCallUnsafe(s, meta) {
 		s.analyze(c)
 		p.Calls = append(p.Calls, c)
 	}
@@ -766,14 +796,14 @@ func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls [
 		defer func() { r.inGenerateResource = false }()
 		canRecurse = true
 	}
-	if canRecurse && r.nOutOf(8, 10) ||
-		!canRecurse && r.nOutOf(19, 20) {
+	if (canRecurse && r.nOutOf(8, 10) ||
+		!canRecurse && r.nOutOf(19, 20)) && !r.genDefaultResource {
 		arg = r.existingResource(s, a, dir)
 		if arg != nil {
 			return
 		}
 	}
-	if canRecurse {
+	if canRecurse && !r.genDefaultResource {
 		if r.oneOf(4) {
 			arg, calls = r.resourceCentric(s, a, dir)
 			if arg != nil {
@@ -837,7 +867,18 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 		}
 		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
 	case BufferCompressed:
-		panic(fmt.Sprintf("can't generate compressed type %v", a))
+		// Not super useful data, but we need something for pkg/csource tests.
+		// During fuzzing, such syscalls are marked as no_generate and we only take
+		// the compressed data from the seeds or corpus.
+		sz := r.randBufLen()
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, sz), nil
+		}
+		data := make([]byte, sz)
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		return MakeDataArg(a, dir, image.Compress(data)), nil
 	default:
 		panic("unknown buffer kind")
 	}
@@ -874,15 +915,11 @@ func (a *ProcType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Ca
 }
 
 func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	// Allow infinite recursion for arrays.
-	switch a.Elem.(type) {
-	case *StructType, *ArrayType, *UnionType:
-		ok, release := r.pruneRecursion(a.Elem.Name())
-		if !ok {
-			return MakeGroupArg(a, dir, nil), nil
-		}
-		defer release()
+	ok, release := r.pruneRecursion(a.Elem, arrayRecursionLimit)
+	if !ok {
+		return MakeGroupArg(a, dir, nil), nil
 	}
+	defer release()
 	var count uint64
 	switch a.Kind {
 	case ArrayRandLen:
@@ -922,16 +959,13 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	// Allow infinite recursion for optional pointers.
+	// Restrict infinite recursion even for optional pointers.
 	if a.Optional() {
-		switch a.Elem.(type) {
-		case *StructType, *ArrayType, *UnionType:
-			ok, release := r.pruneRecursion(a.Elem.Name())
-			if !ok {
-				return MakeSpecialPointerArg(a, dir, 0), nil
-			}
-			defer release()
+		ok, release := r.pruneRecursion(a.Elem, pointerRecursionLimit)
+		if !ok {
+			return MakeSpecialPointerArg(a, dir, 0), nil
 		}
+		defer release()
 	}
 	// The resource we are trying to generate may be in the pointer,
 	// so don't try to create an empty special pointer during resource generation.
@@ -959,8 +993,8 @@ func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 	for _, res1 := range s.resources {
 		alltypes = append(alltypes, res1)
 	}
-	sort.Slice(alltypes, func(i, j int) bool {
-		return alltypes[i][0].Type().Name() < alltypes[j][0].Type().Name()
+	slices.SortFunc(alltypes, func(a, b []*ResultArg) int {
+		return cmp.Compare(a[0].Type().Name(), b[0].Type().Name())
 	})
 	var allres []*ResultArg
 	for _, res1 := range alltypes {

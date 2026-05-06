@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -444,10 +445,8 @@ func (pd *parentDesc) String() string {
 
 // templateBase return the part before '[' for full template names.
 func templateBase(name string) string {
-	if pos := strings.IndexByte(name, '['); pos != -1 {
-		return name[:pos]
-	}
-	return name
+	before, _, _ := strings.Cut(name, "[")
+	return before
 }
 
 func parentTargetName(s *ast.Struct) string {
@@ -476,7 +475,7 @@ func (comp *compiler) checkFieldPathsRec(t0, t *ast.Type, parents []parentDesc,
 			fields = nil
 		}
 		parentName := parentTargetName(s)
-		parents = append([]parentDesc{}, parents...)
+		parents = slices.Clone(parents)
 		parents = append(parents, parentDesc{name: parentName, fields: fields})
 		for _, fld := range s.Fields {
 			comp.checkFieldPathsRec(fld.Type, fld.Type, parents, checked, warned, false)
@@ -955,7 +954,7 @@ func (comp *compiler) checkRecursion() {
 func (comp *compiler) checkResourceRecursion(n *ast.Resource) {
 	var seen []string
 	for n != nil {
-		if arrayContains(seen, n.Name.Name) {
+		if slices.Contains(seen, n.Name.Name) {
 			chain := ""
 			for _, r := range seen {
 				chain += r + "->"
@@ -1349,7 +1348,7 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 				unexpected, argDesc.Name, t.Ident, desc.Names)
 			return
 		}
-		if !arrayContains(desc.Names, arg.Ident) {
+		if !slices.Contains(desc.Names, arg.Ident) {
 			comp.error(arg.Pos, "unexpected value %v for %v argument of %v type, expect %+v",
 				arg.Ident, argDesc.Name, t.Ident, desc.Names)
 			return

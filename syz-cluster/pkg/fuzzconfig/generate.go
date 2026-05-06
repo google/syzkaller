@@ -169,7 +169,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 	},
 	api.FocusIoUring: func(mgrCfg *mgrconfig.Config) error {
 		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
-			"io_uring_*", "syz_io_uring_*", "syz_memcpy_off", "mmap", "madvise",
+			"io_uring_*", "syz_io_uring_*", "mmap", "madvise",
 			"mprotect", "eventfd", "socket", "setsockopt", "accept", "open", "close",
 			"clock_gettime", "ioctl$sock_SIOCGIFINDEX", "ioctl$IOCTL_GET_NCIDEV_IDX",
 			"openat", "epoll_create",

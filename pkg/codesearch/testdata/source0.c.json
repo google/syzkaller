@@ -1,16 +1,6 @@
 {
 	"definitions": [
 		{
-			"name": "some_enum",
-			"kind": "enum",
-			"body": {
-				"file": "source0.h",
-				"start_line": 45,
-				"end_line": 48
-			},
-			"comment": {}
-		},
-		{
 			"name": "close",
 			"type": "int ()",
 			"kind": "function",
@@ -20,6 +10,73 @@
 				"end_line": 22
 			},
 			"comment": {}
+		},
+		{
+			"name": "field_refs",
+			"type": "int (struct some_struct *, union some_union *)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 39,
+				"end_line": 46
+			},
+			"comment": {},
+			"refs": [
+				{
+					"name": "some_struct",
+					"kind": "uses",
+					"entity_kind": "struct",
+					"line": 39
+				},
+				{
+					"name": "some_union",
+					"kind": "uses",
+					"entity_kind": "union",
+					"line": 39
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 41
+				},
+				{
+					"name": "some_struct::y",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 41
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "takes-address-of",
+					"entity_kind": "field",
+					"line": 42
+				},
+				{
+					"name": "some_union::p",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 43
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 44
+				},
+				{
+					"name": "some_union::s",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 44
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 45
+				}
+			]
 		},
 		{
 			"name": "func_accepting_a_struct",
@@ -39,6 +96,12 @@
 					"line": 29
 				},
 				{
+					"name": "some_struct::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 31
+				},
+				{
 					"name": "some_struct_t",
 					"kind": "uses",
 					"entity_kind": "typedef",
@@ -49,6 +112,12 @@
 					"kind": "uses",
 					"entity_kind": "struct",
 					"line": 31
+				},
+				{
+					"name": "some_union::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 32
 				},
 				{
 					"name": "some_union",
@@ -90,6 +159,17 @@
 			]
 		},
 		{
+			"name": "function_with_quotes_in_type",
+			"type": "void (void  __attribute__((btf_type_tag(\"user\")))*)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 35,
+				"end_line": 37
+			},
+			"comment": {}
+		},
+		{
 			"name": "open",
 			"type": "int ()",
 			"kind": "function",
@@ -105,6 +185,25 @@
 			}
 		},
 		{
+			"name": "reference_to_header_static",
+			"type": "void ()",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 48,
+				"end_line": 51
+			},
+			"comment": {},
+			"refs": [
+				{
+					"name": "func_in_header",
+					"kind": "calls",
+					"entity_kind": "function",
+					"line": 50
+				}
+			]
+		},
+		{
 			"name": "another_struct",
 			"kind": "struct",
 			"body": {
@@ -112,7 +211,14 @@
 				"start_line": 36,
 				"end_line": 38
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				}
+			]
 		},
 		{
 			"name": "some_struct",
@@ -122,7 +228,19 @@
 				"start_line": 17,
 				"end_line": 20
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "y",
+					"offset": 32,
+					"size": 32
+				}
+			]
 		},
 		{
 			"name": "some_struct_with_a_comment",
@@ -136,7 +254,19 @@
 				"file": "source0.h",
 				"start_line": 24,
 				"end_line": 26
-			}
+			},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "other_struct",
+					"offset": 64,
+					"size": 64
+				}
+			]
 		},
 		{
 			"name": "struct_in_c_file",
@@ -145,6 +275,55 @@
 				"file": "source0.c",
 				"start_line": 6,
 				"end_line": 9
+			},
+			"comment": {},
+			"fields": [
+				{
+					"name": "X",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "by_value",
+					"offset": 32,
+					"size": 64
+				}
+			]
+		},
+		{
+			"name": "some_union",
+			"kind": "union",
+			"body": {
+				"file": "source0.h",
+				"start_line": 40,
+				"end_line": 44
+			},
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "p",
+					"offset": 0,
+					"size": 64
+				},
+				{
+					"name": "s",
+					"offset": 0,
+					"size": 64
+				}
+			]
+		},
+		{
+			"name": "some_enum",
+			"kind": "enum",
+			"body": {
+				"file": "source0.h",
+				"start_line": 46,
+				"end_line": 49
 			},
 			"comment": {}
 		},
@@ -163,8 +342,8 @@
 			"kind": "typedef",
 			"body": {
 				"file": "source0.h",
-				"start_line": 50,
-				"end_line": 50
+				"start_line": 51,
+				"end_line": 51
 			},
 			"comment": {}
 		},
@@ -185,16 +364,6 @@
 				"file": "source0.h",
 				"start_line": 32,
 				"end_line": 34
-			},
-			"comment": {}
-		},
-		{
-			"name": "some_union",
-			"kind": "union",
-			"body": {
-				"file": "source0.h",
-				"start_line": 40,
-				"end_line": 43
 			},
 			"comment": {}
 		}

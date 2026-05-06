@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/image"
@@ -409,7 +410,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	}
 	switch t.Kind {
 	case BufferBlobRand, BufferBlobRange:
-		data := append([]byte{}, a.Data()...)
+		data := slices.Clone(a.Data())
 		a.data = mutateData(r, data, minLen, maxLen)
 	case BufferString:
 		if len(t.Values) != 0 {
@@ -418,7 +419,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 			if t.TypeSize != 0 {
 				minLen, maxLen = t.TypeSize, t.TypeSize
 			}
-			data := append([]byte{}, a.Data()...)
+			data := slices.Clone(a.Data())
 			a.data = mutateData(r, data, minLen, maxLen)
 		}
 	case BufferFilename:
@@ -430,7 +431,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 			a.data = []byte(r.filename(s, t))
 		}
 	case BufferText:
-		data := append([]byte{}, a.Data()...)
+		data := slices.Clone(a.Data())
 		a.data = r.mutateText(t.Text, data)
 	case BufferCompressed:
 		a.data, retry = r.mutateImage(a.Data())
@@ -806,11 +807,11 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		n := min(r.Intn(16)+1, int(maxLen)-len(data))
 		pos := r.Intn(len(data))
-		for i := 0; i < n; i++ {
+		for range n {
 			data = append(data, 0)
 		}
 		copy(data[pos+n:], data[pos:])
-		for i := 0; i < n; i++ {
+		for i := range n {
 			data[pos+i] = byte(r.Int31())
 		}
 		if uint64(len(data)) > maxLen || r.bin() {
@@ -831,7 +832,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		copy(data[pos:], data[pos+n:])
 		data = data[:len(data)-n]
 		if uint64(len(data)) < minLen || r.bin() {
-			for i := 0; i < n; i++ {
+			for range n {
 				data = append(data, 0) // preserve original length
 			}
 		}
@@ -844,7 +845,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		const max = 256
 		n := min(max-r.biasedRand(max, 10), int(maxLen)-len(data))
-		for i := 0; i < n; i++ {
+		for range n {
 			data = append(data, byte(r.rand(256)))
 		}
 		return data, true

@@ -36,6 +36,7 @@ spec:
         url: "http://controller-service:8080/trees"
         method: "GET"
     - name: process-tree
+      serviceAccountName: kernel-fetcher-ksa
       inputs:
         parameters:
           - name: tree

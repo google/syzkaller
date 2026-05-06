@@ -35,7 +35,7 @@ func (repo *TestRepo) Git(args ...string) {
 	cmd.Env = filterEnv()
 
 	if _, err := osutil.Run(time.Minute, cmd); err != nil {
-		repo.t.Fatal(err)
+		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 }
 
@@ -78,24 +78,37 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 }
 
 func (repo *TestRepo) CommitChange(description string) *Commit {
-	return repo.commitChangeset(description)
+	return repo.CommitChangeset(description)
 }
 
-type writeFile struct {
+func (repo *TestRepo) CommitChangeAt(description string, date time.Time) {
+	dateStr := date.Format(time.RFC3339)
+	cmd := osutil.Command("git", "commit", "--allow-empty", "-m", description)
+	cmd.Dir = repo.Dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_DATE="+dateStr,
+		"GIT_COMMITTER_DATE="+dateStr,
+	)
+	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+		repo.t.Fatal(err)
+	}
+}
+
+type FileContent struct {
 	File    string
 	Content string
 }
 
-func (wf *writeFile) Apply(repo *TestRepo) error {
-	err := os.WriteFile(filepath.Join(repo.Dir, wf.File), []byte(wf.Content), 0644)
+func (fc *FileContent) Apply(repo *TestRepo) error {
+	err := os.WriteFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content), 0644)
 	if err != nil {
 		return err
 	}
-	repo.Git("add", wf.File)
+	repo.Git("add", fc.File)
 	return nil
 }
 
-func (repo *TestRepo) commitChangeset(description string, actions ...writeFile) *Commit {
+func (repo *TestRepo) CommitChangeset(description string, actions ...FileContent) *Commit {
 	for i, action := range actions {
 		if err := action.Apply(repo); err != nil {
 			repo.t.Fatalf("failed to apply action %d: %v", i, err)

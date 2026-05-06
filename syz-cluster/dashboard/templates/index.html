@@ -1,35 +1,48 @@
 {{define "content"}}
     <div class="mx-3">
       <form action="{{.FilterFormURL}}">
-        <div class="row align-items-center">
-          <div class="col-auto col-sm-3">
-            <label for="inputCc">Cc'd</label>
-            <input type="text" name="cc" class="form-control mb-3" value="{{.Filter.Cc}}" id="inputCc">
-          </div>
-          <div class="col-auto col-sm-3">
+        <div class="row align-items-center mb-2">
+          <div class="col-auto col-sm-4">
             <label for="inputName">Patch/Series Name</label>
-            <input type="text" name="name" class="form-control mb-3" value="{{.Filter.Name}}" id="inputName">
+            <input type="text" name="name" class="form-control" value="{{.Filter.Name}}" id="inputName">
           </div>
           <div class="col-auto col-sm-3">
             <label for="inputStatus">Status</label>
-            <select id="inputStatus" class="form-control mb-3" name="status">
+            <select id="inputStatus" class="form-control" name="status">
               {{$filter := .Filter}}
               {{range .Statuses}}
                 <option value="{{.Key}}" {{if eq .Key $filter.Status}} selected{{end}}>{{.Value}}</option>
               {{end}}
             </select>
           </div>
-          <div class="form-check col-auto">
-            <input class="form-check-input" type="checkbox" name="with_findings" value="true"
-                   id="onlyWithFindings"{{if .Filter.WithFindings}} checked=""{{end}}>
-            <label class="form-check-label" for="onlyWithFindings">
-              Only with findings
-            </label>
-          </div>
-          <div class="col-auto">
+          <div class="col-auto mt-4">
             <button type="submit" class="btn btn-primary">Filter</button>
           </div>
         </div>
+
+        <details class="mb-3" {{if or .Filter.Cc .Filter.WithFindings .Filter.PreventedBugs}}open{{end}}>
+          <summary class="text-muted" style="cursor: pointer; user-select: none;">Advanced Filters</summary>
+          <div class="row align-items-center mt-2 border-start border-2 ms-1 ps-3">
+            <div class="col-auto col-sm-4">
+              <label for="inputCc">Cc'd</label>
+              <input type="text" name="cc" class="form-control" value="{{.Filter.Cc}}" id="inputCc">
+            </div>
+            <div class="form-check col-auto mt-4 ms-3">
+              <input class="form-check-input" type="checkbox" name="with_findings" value="true"
+                     id="onlyWithFindings"{{if .Filter.WithFindings}} checked{{end}}>
+              <label class="form-check-label" for="onlyWithFindings">
+                Only with findings
+              </label>
+            </div>
+            <div class="form-check col-auto mt-4 ms-3">
+              <input class="form-check-input" type="checkbox" name="prevented_bugs" value="true"
+                     id="onlyPreventedBugs"{{if .Filter.PreventedBugs}} checked{{end}}>
+              <label class="form-check-label" for="onlyPreventedBugs">
+                Prevented bugs &gt; 0
+              </label>
+            </div>
+          </div>
+        </details>
       </form>
     </div>
 

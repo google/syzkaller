@@ -6,10 +6,11 @@
 
 // This file provides guest code running inside the ARM64 KVM.
 
-#include "common_kvm_syzos.h"
-#include "kvm.h"
 #include <linux/kvm.h>
 #include <stdbool.h>
+
+#include "common_kvm_syzos.h"
+#include "kvm.h"
 
 // Compilers will eagerly try to transform the switch statement in guest_main()
 // into a jump table, unless the cases are sparse enough.
@@ -31,29 +32,9 @@ typedef enum {
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
-struct api_call_header {
-	uint64 call;
-	uint64 size;
-};
-
 struct api_call_uexit {
 	struct api_call_header header;
 	uint64 exit_code;
-};
-
-struct api_call_1 {
-	struct api_call_header header;
-	uint64 arg;
-};
-
-struct api_call_2 {
-	struct api_call_header header;
-	uint64 args[2];
-};
-
-struct api_call_3 {
-	struct api_call_header header;
-	uint64 args[3];
 };
 
 struct api_call_code {
@@ -1219,7 +1200,7 @@ GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
 }
 
 // This function is carefully written in a way that prevents jump table emission.
-// SyzOS cannot reference global constants, and compilers are very eager to generate a jump table
+// SYZOS cannot reference global constants, and compilers are very eager to generate a jump table
 // for a switch over GITS commands.
 // To work around that, we replace the switch statement with a series of if statements.
 // In addition, cmd->type is stored in a volatile variable, so that it is read on each if statement,

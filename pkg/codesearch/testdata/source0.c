@@ -31,3 +31,28 @@ int func_accepting_a_struct(struct some_struct* p)
 	return ((some_struct_t*)p)->x +
 	       ((union some_union*)p)->x;
 }
+
+void function_with_quotes_in_type(void __attribute__((btf_type_tag("user"))) *)
+{
+}
+
+int field_refs(struct some_struct* p, union some_union* u)
+{
+	p->x = p->y;
+	*(&p->x) = 1;
+	u->p = 0;
+	u->s.x = 2;
+	return p->x;
+}
+
+void reference_to_header_static()
+{
+	func_in_header();
+}
+
+// compile_commands.json we create for tests defines KBUILD_BASENAME.
+// If it's not defined, compile_commands.json is not properly loaded.
+// This is supposed to fail builds, if that happens.
+#ifndef KBUILD_BASENAME
+#error "compile_commands.json is not loaded"
+#endif

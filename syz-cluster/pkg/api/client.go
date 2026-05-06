@@ -26,8 +26,16 @@ func (client Client) GetSessionSeries(ctx context.Context, sessionID string) (*S
 	return getJSON[Series](ctx, client.baseURL+"/sessions/"+sessionID+"/series")
 }
 
+func (client Client) GetSessionInfo(ctx context.Context, sessionID string) (*SessionInfo, error) {
+	return getJSON[SessionInfo](ctx, client.baseURL+"/sessions/"+sessionID)
+}
+
 func (client Client) GetSeries(ctx context.Context, seriesID string) (*Series, error) {
 	return getJSON[Series](ctx, client.baseURL+"/series/"+seriesID)
+}
+
+func (client Client) GetJob(ctx context.Context, jobID string) (*Job, error) {
+	return getJSON[Job](ctx, client.baseURL+"/jobs/"+jobID)
 }
 
 type UploadTriageResultReq struct {
@@ -77,8 +85,8 @@ func (client Client) UploadBuild(ctx context.Context, req *UploadBuildReq) (*Upl
 	return postJSON[UploadBuildReq, UploadBuildResp](ctx, client.baseURL+"/builds/upload", req)
 }
 
-func (client Client) UploadTestResult(ctx context.Context, req *TestResult) error {
-	_, err := postJSON[TestResult, any](ctx, client.baseURL+"/tests/upload", req)
+func (client Client) UploadSessionTest(ctx context.Context, req *SessionTest) error {
+	_, err := postJSON[SessionTest, any](ctx, client.baseURL+"/tests/upload", req)
 	return err
 }
 
@@ -92,8 +100,8 @@ func (client Client) UploadTestArtifacts(ctx context.Context, sessionID, testNam
 	return err
 }
 
-func (client Client) UploadFinding(ctx context.Context, req *NewFinding) error {
-	_, err := postJSON[NewFinding, any](ctx, client.baseURL+"/findings/upload", req)
+func (client Client) UploadFinding(ctx context.Context, req *RawFinding) error {
+	_, err := postJSON[RawFinding, any](ctx, client.baseURL+"/findings/upload", req)
 	return err
 }
 
@@ -132,6 +140,29 @@ func (client Client) BaseFindingStatus(ctx context.Context, req *BaseFindingInfo
 	return postJSON[BaseFindingInfo, BaseFindingStatus](ctx, client.baseURL+"/base_findings/status", req)
 }
 
+type ListPreviousFindingsReq struct {
+	SeriesID string `json:"series_id"`
+	Arch     string `json:"arch"`
+	Config   string `json:"config"`
+}
+
+func (client Client) ListPreviousFindings(ctx context.Context, req *ListPreviousFindingsReq) ([]string, error) {
+	res, err := postJSON[ListPreviousFindingsReq, []string](ctx, client.baseURL+"/findings/previous", req)
+	if err != nil {
+		return nil, err
+	}
+	return *res, nil
+}
+
+func (client Client) GetFinding(ctx context.Context, id string) (*RawFinding, error) {
+	return getJSON[RawFinding](ctx, client.baseURL+"/findings/"+id)
+}
+
+func (client Client) UploadTestStep(ctx context.Context, sessionID string, step *SessionTestStep) error {
+	_, err := postJSON[SessionTestStep, any](ctx, client.baseURL+"/sessions/"+sessionID+"/upload_test_step", step)
+	return err
+}
+
 const requestTimeout = time.Minute
 
 func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {
@@ -163,4 +194,8 @@ func ensure200(resp *http.Response) error {
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, bodyBytes)
 	}
 	return nil
+}
+
+func (client Client) SubmitJob(ctx context.Context, req *SubmitJobRequest) (*SubmitJobResponse, error) {
+	return postJSON[SubmitJobRequest, SubmitJobResponse](ctx, client.baseURL+"/jobs/submit", req)
 }

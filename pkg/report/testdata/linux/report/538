@@ -1,6 +1,7 @@
 TITLE: BUG: soft lockup in ieee80211_tasklet_handler
 ALT: stall in ieee80211_tasklet_handler
 TYPE: HANG
+PANICKED: Y
 
 [  516.671899][    C1] watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor.3:16401]
 [  516.680923][    C1] Modules linked in:

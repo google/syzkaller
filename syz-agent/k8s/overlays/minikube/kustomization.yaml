@@ -1,0 +1,42 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: syz-agent
+namePrefix: local-
+
+resources:
+  - ../../common
+  - namespace.yaml
+  - serviceaccount.yaml
+
+images:
+  - name: gcr.io/syzkaller/syz-agent
+    newName: ${IMAGE_NAME}
+    newTag: ${IMAGE_TAG}
+
+
+configMapGenerator:
+  - name: syz-agent-config
+    files:
+      - config.json=agent-config.json
+
+patches:
+  - target:
+      kind: StatefulSet
+      name: syz-agent
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: "GOOGLE_API_KEY", value: "${GOOGLE_API_KEY}"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: "DASHBOARD_KEY", value: "${DASHBOARD_KEY}"}
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/executor"
@@ -84,7 +84,7 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 	for _, c := range mmapProg.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
-	sort.Strings(defines)
+	slices.Sort(defines)
 	return
 }
 

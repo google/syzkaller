@@ -1,5 +1,9 @@
+.git
 .gitignore
 bin/
 dashboard/
 !dashboard/dashapi/
-docs/
+syz-cluster/bin/
+# These are very big, but unnecessary for our Docker containers.
+pkg/ifuzz/riscv64/gen/inst/
+pkg/report/testdata.git

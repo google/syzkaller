@@ -86,3 +86,10 @@ func TestTreeFromBranch(t *testing.T) {
 	treeIdx, _ = FindTree(trees, "c/some_branch")
 	assert.Equal(t, -1, treeIdx)
 }
+
+func TestFindTreeByName(t *testing.T) {
+	trees := []*api.Tree{{Name: "a"}, {Name: "b"}}
+	assert.Equal(t, "a", FindTreeByName(trees, "a").Name)
+	assert.Equal(t, "b", FindTreeByName(trees, "b").Name)
+	assert.Nil(t, FindTreeByName(trees, "c"))
+}

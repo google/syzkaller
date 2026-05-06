@@ -5,4 +5,5 @@ union some_union is defined in source0.h:
   40:	union some_union {
   41:		int x;
   42:		void* p;
-  43:	};
+  43:		struct some_struct s;
+  44:	};

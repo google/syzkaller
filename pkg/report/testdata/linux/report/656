@@ -1,5 +1,6 @@
 TITLE: kernel BUG in close_ctree
 TYPE: BUG
+PANICKED: Y
 
 [  399.850178][T14930] BTRFS info (device loop1): has skinny extents
 [  399.860119][ T3629] kernel BUG at fs/btrfs/ctree.h:3615!

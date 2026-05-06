@@ -1007,3 +1007,16 @@ test$snapshot_only(a0 intptr) (snapshot)
 test$automatic(a0 intptr) (automatic)
 test$automatic_helper(a0 intptr) (automatic_helper)
 test$manual(a0 intptr)
+
+# Pointer recursion test.
+type test_list_entry[T] {
+	next	ptr[out, T, opt]
+	prev	ptr[out, ptr[out, T], opt]
+}
+
+test_recur_struct {
+	l1	test_list_entry[test_recur_struct]
+	l2	test_list_entry[test_recur_struct]
+}
+
+test$recur_ptr(a0 ptr[in, test_recur_struct])

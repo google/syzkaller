@@ -3,14 +3,12 @@
 package kfuzztest
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"runtime"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
@@ -58,11 +56,7 @@ func runTest(t *testing.T, target *targets.Target, tc testData) {
 	desc, err := ExtractDescription(binaryPath)
 	require.NoError(t, err)
 
-	if diffDesc := cmp.Diff(tc.desc, desc); diffDesc != "" {
-		fmt.Print(diffDesc)
-		t.Fail()
-		return
-	}
+	require.Equal(t, tc.desc, desc)
 }
 
 func flags(testDir string) []string {

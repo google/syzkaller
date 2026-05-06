@@ -91,6 +91,10 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 func CommandContext(ctx context.Context, bin string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	setPdeathsig(cmd, true)
+	cmd.Cancel = func() error {
+		killPgroup(cmd)
+		return nil
+	}
 	return cmd
 }
 
@@ -123,6 +127,14 @@ func (err *VerboseError) Error() string {
 
 func (err *VerboseError) Unwrap() error {
 	return err.Err
+}
+
+func VerboseMessage(err error) string {
+	msg := err.Error()
+	if verr := new(VerboseError); errors.As(err, &verr) {
+		msg += "\n" + string(verr.Output)
+	}
+	return msg
 }
 
 func IsDir(name string) bool {
@@ -288,6 +300,18 @@ func ParseJSON[T any](data []byte) (T, error) {
 	return v, nil
 }
 
+func JSONDeepCopy[T any](obj T) T {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+	var copy T
+	if err := json.Unmarshal(data, &copy); err != nil {
+		panic(err)
+	}
+	return copy
+}
+
 func WriteGzipStream(filename string, reader io.Reader) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -308,7 +332,13 @@ func WriteExecFile(filename string, data []byte) error {
 // TempFile creates a unique temp filename.
 // Note: the file already exists when the function returns.
 func TempFile(prefix string) (string, error) {
-	f, err := os.CreateTemp("", prefix)
+	return TempFileIn("", prefix)
+}
+
+// An extended version of TempFileIn that allows to configure
+// the folder in which the file will be created.
+func TempFileIn(dir, prefix string) (string, error) {
+	f, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}

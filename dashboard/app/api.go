@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"crypto/subtle"
@@ -12,13 +13,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net/http"
 	"net/mail"
 	"net/url"
 	"reflect"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -46,23 +48,26 @@ func initAPIHandlers() {
 }
 
 var apiHandlers = map[string]APIHandler{
-	"log_error":             typedHandler(apiLogError),
-	"job_poll":              typedHandler(apiJobPoll),
-	"job_reset":             typedHandler(apiJobReset),
-	"job_done":              typedHandler(apiJobDone),
-	"reporting_poll_bugs":   typedHandler(apiReportingPollBugs),
-	"reporting_poll_notifs": typedHandler(apiReportingPollNotifications),
-	"reporting_poll_closed": typedHandler(apiReportingPollClosed),
-	"reporting_update":      typedHandler(apiReportingUpdate),
-	"new_test_job":          typedHandler(apiNewTestJob),
-	"needed_assets":         typedHandler(apiNeededAssetsList),
-	"load_full_bug":         typedHandler(apiLoadFullBug),
-	"save_discussion":       typedHandler(apiSaveDiscussion),
-	"create_upload_url":     typedHandler(apiCreateUploadURL),
-	"send_email":            typedHandler(apiSendEmail),
-	"ai_job_poll":           typedHandler(apiAIJobPoll),
-	"ai_job_done":           typedHandler(apiAIJobDone),
-	"ai_trajectory_log":     typedHandler(apiAITrajectoryLog),
+	"log_error":             anyHandler(apiLogError),
+	"job_poll":              globalHandler(apiJobPoll),
+	"job_reset":             globalHandler(apiJobReset),
+	"job_done":              globalHandler(apiJobDone),
+	"reporting_poll_bugs":   globalHandler(apiReportingPollBugs),
+	"reporting_poll_notifs": globalHandler(apiReportingPollNotifications),
+	"reporting_poll_closed": globalHandler(apiReportingPollClosed),
+	"reporting_update":      globalHandler(apiReportingUpdate),
+	"new_test_job":          globalHandler(apiNewTestJob),
+	"needed_assets":         globalHandler(apiNeededAssetsList),
+	"load_full_bug":         globalHandler(apiLoadFullBug),
+	"save_discussion":       globalHandler(apiSaveDiscussion),
+	"create_upload_url":     globalHandler(apiCreateUploadURL),
+	"send_email":            globalHandler(apiSendEmail),
+	"ai_report_command":     globalHandler(apiAIReportCommand),
+	"ai_poll_report":        globalHandler(apiAIPollReport),
+	"ai_confirm_report":     globalHandler(apiAIConfirmReport),
+	"ai_job_poll":           globalHandler(apiAIJobPoll),
+	"ai_job_done":           globalHandler(apiAIJobDone),
+	"ai_trajectory_log":     globalHandler(apiAITrajectoryLog),
 	"save_coverage":         gcsPayloadHandler(apiSaveCoverage),
 	"upload_build":          nsHandler(apiUploadBuild),
 	"builder_poll":          nsHandler(apiBuilderPoll),
@@ -78,6 +83,7 @@ var apiHandlers = map[string]APIHandler{
 	"update_report":         nsHandler(apiUpdateReport),
 	"add_build_assets":      nsHandler(apiAddBuildAssets),
 	"log_to_repro":          nsHandler(apiLogToReproduce),
+	"repro_task_done":       nsHandler(apiReproTaskDone),
 }
 
 type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
@@ -143,10 +149,15 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 		return nil, fmt.Errorf("failed to auth.DetermineAuthSubj(): %w", err)
 	}
 	password := r.PostFormValue("key")
-	ns, err := checkClient(getConfig(ctx), client, password, subj)
+	apiClient, ns, err := checkClient(ctx, client, password, subj, method)
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
+	apiContext := &APIContext{
+		client: apiClient,
+		ns:     ns,
+	}
+	ctx = context.WithValue(ctx, &apiContextKey, apiContext)
 	var payloadReader io.Reader
 	if str := r.PostFormValue("payload"); str != "" {
 		gr, err := gzip.NewReader(strings.NewReader(str))
@@ -161,21 +172,26 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	if !exists {
 		return nil, fmt.Errorf("unknown api method %q", method)
 	}
-	reply, err := handler(contextWithNamespace(ctx, ns), payloadReader)
+	reply, err := handler(ctx, payloadReader)
+	if err == nil && !apiContext.nsChecked {
+		err = fmt.Errorf("API handler did not check namespace")
+	}
 	if err != nil {
-		err = fmt.Errorf("method '%s' ns '%s' err: %w", method, ns, err)
+		err = fmt.Errorf("method %q ns %q err: %w", method, ns, err)
 	}
 	return reply, err
 }
 
-var contextKeyNamespace = "context namespace available for any APIHandler"
+var apiContextKey = "context available for any APIHandler"
 
-func contextWithNamespace(ctx context.Context, ns string) context.Context {
-	return context.WithValue(ctx, &contextKeyNamespace, ns)
+type APIContext struct {
+	client    APIClient
+	ns        string
+	nsChecked bool
 }
 
-func contextNamespace(ctx context.Context) string {
-	return ctx.Value(&contextKeyNamespace).(string)
+func apiContext(ctx context.Context) *APIContext {
+	return ctx.Value(&apiContextKey).(*APIContext)
 }
 
 // gcsPayloadHandler json.Decode the gcsURL from payload and stream pointed content.
@@ -210,11 +226,31 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 
 func nsHandler[Req any](handler func(context.Context, string, *Req) (any, error)) APIHandler {
 	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
-		ns := contextNamespace(ctx)
+		ns := apiContext(ctx).ns
 		if ns == "" {
 			return nil, fmt.Errorf("must be called within a namespace")
 		}
+		apiContext(ctx).nsChecked = true
 		return handler(ctx, ns, req)
+	})
+}
+
+func globalHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHandler {
+	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
+		ns := apiContext(ctx).ns
+		if ns != "" {
+			return nil, fmt.Errorf("must not be called within a namespace")
+		}
+		apiContext(ctx).nsChecked = true
+		return handler(ctx, req)
+	})
+}
+
+// anyHandler can be used by both global and namespace-specific clients.
+func anyHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHandler {
+	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
+		apiContext(ctx).nsChecked = true
+		return handler(ctx, req)
 	})
 }
 
@@ -226,7 +262,11 @@ func typedHandler[Req any](handler func(context.Context, *Req) (any, error)) API
 				return nil, fmt.Errorf("failed to unmarshal request %T: %w", req, err)
 			}
 		}
-		return handler(ctx, req)
+		res, err := handler(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("%w\nrequest: %+v", err, *req)
+		}
+		return res, nil
 	}
 }
 
@@ -259,11 +299,7 @@ loop:
 			m[com] = true
 		}
 	}
-	commits := make([]string, 0, len(m))
-	for com := range m {
-		commits = append(commits, com)
-	}
-	sort.Strings(commits)
+	commits := slices.Sorted(maps.Keys(m))
 	resp := &dashapi.BuilderPollResp{
 		PendingCommits: commits,
 		ReportEmail:    reportEmail(ctx, ns),
@@ -428,11 +464,13 @@ func addCommitInfoToBugImpl(ctx context.Context, bug *Bug, com dashapi.Commit) (
 	hash0 := bug.CommitInfo[ci].Hash
 	date0 := bug.CommitInfo[ci].Date
 	author0 := bug.CommitInfo[ci].Author
+	authorName0 := bug.CommitInfo[ci].AuthorName
 	needCommitInfo0 := bug.NeedCommitInfo
 
 	bug.CommitInfo[ci].Hash = com.Hash
 	bug.CommitInfo[ci].Date = com.Date
 	bug.CommitInfo[ci].Author = com.Author
+	bug.CommitInfo[ci].AuthorName = com.AuthorName
 	bug.NeedCommitInfo = false
 	for i := range bug.CommitInfo {
 		if bug.CommitInfo[i].Hash == "" {
@@ -443,6 +481,7 @@ func addCommitInfoToBugImpl(ctx context.Context, bug *Bug, com dashapi.Commit) (
 	changed := hash0 != bug.CommitInfo[ci].Hash ||
 		date0 != bug.CommitInfo[ci].Date ||
 		author0 != bug.CommitInfo[ci].Author ||
+		authorName0 != bug.CommitInfo[ci].AuthorName ||
 		needCommitInfo0 != bug.NeedCommitInfo
 	return changed, nil
 }
@@ -632,7 +671,7 @@ func addCommitsToBugsInStatus(ctx context.Context, status int, ns, manager strin
 		for i := range bug.Reporting {
 			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
 		}
-		sort.Strings(fixCommits)
+		slices.Sort(fixCommits)
 		if err := addCommitsToBug(ctx, bug, manager, managers, fixCommits, presentCommits); err != nil {
 			return err
 		}
@@ -1011,8 +1050,8 @@ func purgeOldCrashes(ctx context.Context, bug *Bug, bugKey *db.Key) {
 		keyMap[crash] = keys[i]
 	}
 	// Newest first.
-	sort.Slice(crashes, func(i, j int) bool {
-		return crashes[i].Time.After(crashes[j].Time)
+	slices.SortFunc(crashes, func(a, b *Crash) int {
+		return b.Time.Compare(a.Time)
 	})
 	var toDelete []*db.Key
 	latestOnManager := make(map[string]bool)
@@ -1343,8 +1382,8 @@ func findExistingBugForCrash(ctx context.Context, ns string, titles []string) (*
 	// We can find bugs with different bug.Title and uncomparable bug.Seq's.
 	// But there should be only one active bug for each crash title,
 	// so if we sort by Seq, the first active bug is our target bug.
-	sort.Slice(bugs, func(i, j int) bool {
-		return bugs[i].Seq > bugs[j].Seq
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		return cmp.Compare(b.Seq, a.Seq)
 	})
 	for _, bug := range bugs {
 		if active, err := isActiveBug(ctx, bug); err != nil {
@@ -1409,11 +1448,11 @@ func findBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, err
 		bugs = append(bugs, bugs1...)
 	}
 	// Sort to get determinism and skip inactive bugs.
-	sort.Slice(bugs, func(i, j int) bool {
-		if bugs[i].Title != bugs[j].Title {
-			return bugs[i].Title < bugs[j].Title
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		if a.Title != b.Title {
+			return cmp.Compare(a.Title, b.Title)
 		}
-		return bugs[i].Seq > bugs[j].Seq
+		return cmp.Compare(b.Seq, a.Seq)
 	})
 	var best *Bug
 	bestPrio := 0
@@ -1664,36 +1703,50 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 			emails = append(emails, user.Address.Address)
 		}
 	}
-	sort.Strings(emails)
+	slices.Sort(emails)
 	return emails
 }
 
 // Verifies that the given credentials are acceptable and returns the
 // corresponding namespace.
-func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
-	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(a, auth.OauthMagic) &&
-			subtle.ConstantTimeCompare([]byte(a), []byte(oauthSubject)) == 1 {
-			return ns, nil
+func checkClient(ctx context.Context, name0, secretPassword, oauthSubject, method string) (
+	APIClient, string, error) {
+	checkAuth := func(client APIClient) bool {
+		if strings.HasPrefix(client.Key, auth.OauthMagic) &&
+			subtle.ConstantTimeCompare([]byte(client.Key), []byte(oauthSubject)) == 1 {
+			return true
 		}
-		if subtle.ConstantTimeCompare([]byte(a), []byte(secretPassword)) == 0 {
-			return ns, ErrAccess
+		if subtle.ConstantTimeCompare([]byte(client.Key), []byte(secretPassword)) == 1 {
+			return true
 		}
-		return ns, nil
+		return false
 	}
-	for name, authenticator := range conf.Clients {
+	checkClient := func(client APIClient, ns string) (APIClient, string, error) {
+		if !checkAuth(client) {
+			log.Warningf(ctx, "client %q key is wrong", name0)
+			return APIClient{}, "", ErrAccess
+		}
+		if len(client.Methods) != 0 && !client.Methods[method] {
+			log.Warningf(ctx, "client %q is not authorized to execute method %q", name0, method)
+			return APIClient{}, "", ErrAccess
+		}
+		return client, ns, nil
+	}
+	conf := getConfig(ctx)
+	for name, client := range conf.Clients {
 		if name == name0 {
-			return checkAuth("", authenticator)
+			return checkClient(client, "")
 		}
 	}
 	for ns, cfg := range conf.Namespaces {
-		for name, authenticator := range cfg.Clients {
+		for name, client := range cfg.Clients {
 			if name == name0 {
-				return checkAuth(ns, authenticator)
+				return checkClient(client, ns)
 			}
 		}
 	}
-	return "", ErrAccess
+	log.Warningf(ctx, "unknown client %q", name0)
+	return APIClient{}, "", ErrAccess
 }
 
 func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
@@ -1746,18 +1799,47 @@ func recordEmergencyStop(ctx context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
+func apiReproTaskDone(ctx context.Context, ns string, req *dashapi.ReproTaskDoneReq) (any, error) {
+	taskKey := db.NewKey(ctx, "ReproTask", "", req.ReqID, nil)
+	task := new(ReproTask)
+	if err := db.Get(ctx, taskKey, task); err != nil {
+		return nil, fmt.Errorf("failed to get repro task: %w", err)
+	}
+	if task.Namespace != ns {
+		return nil, fmt.Errorf("task namespace mismatch")
+	}
+
+	if len(req.Log) > 0 {
+		var err error
+		task.ResultLog, err = putText(ctx, ns, textReproLog, req.Log)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save result log: %w", err)
+		}
+	}
+	if req.Success {
+		task.AttemptsLeft = 0 // Mark as completed.
+	} else {
+		task.AttemptsLeft--
+	}
+	if _, err := db.Put(ctx, taskKey, task); err != nil {
+		return nil, fmt.Errorf("failed to save task: %w", err)
+	}
+	return nil, nil
+}
+
 func apiLogToReproduce(ctx context.Context, ns string, req *dashapi.LogToReproReq) (any, error) {
 	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
 	// First check if there have been any manual requests.
-	log, err := takeReproTask(ctx, ns, build.Manager)
+	taskID, log, err := takeReproTask(ctx, ns, build.Manager)
 	if err != nil {
 		return nil, err
 	}
-	if log != nil {
+	if taskID != 0 {
 		return &dashapi.LogToReproResp{
+			ReqID:    taskID,
 			CrashLog: log,
 			Type:     dashapi.ManualLog,
 		}, nil
@@ -1830,19 +1912,34 @@ func saveReproTask(ctx context.Context, ns, manager string, repro []byte) error 
 		return err
 	}
 	// We don't control the status of each attempt, so let's just try twice.
-	const attempts = 2
+	const attempts = 3
 	obj := &ReproTask{
 		Namespace:    ns,
 		Manager:      manager,
 		Log:          log,
 		AttemptsLeft: attempts,
+		Created:      timeNow(ctx),
 	}
 	key := db.NewIncompleteKey(ctx, "ReproTask", nil)
 	_, err = db.Put(ctx, key, obj)
 	return err
 }
 
-func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {
+func loadReproTasks(ctx context.Context, ns, manager string, limit int) ([]*ReproTask, error) {
+	var tasks []*ReproTask
+	_, err := db.NewQuery("ReproTask").
+		Filter("Namespace=", ns).
+		Filter("Manager=", manager).
+		Order("-Created").
+		Limit(limit).
+		GetAll(ctx, &tasks)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func takeReproTask(ctx context.Context, ns, manager string) (int64, []byte, error) {
 	var tasks []*ReproTask
 	keys, err := db.NewQuery("ReproTask").
 		Filter("Namespace=", ns).
@@ -1850,20 +1947,26 @@ func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {
 		Filter("AttemptsLeft>", 0).
 		GetAll(ctx, &tasks)
 	if err != nil || len(keys) == 0 {
-		return nil, err
+		return 0, nil, err
 	}
 
 	// Yes, it's possible that the entity will be modified simultaneously, and we
-	// ideall need a transaction, but let's just ignore this possibility  -- in the
+	// ideally need a transaction, but let's just ignore this possibility  -- in the
 	// worst case we'd just try to reproduce it once more.
-	key, task := keys[0], tasks[0]
-	task.AttemptsLeft--
-	task.LastAttempt = timeNow(ctx)
-	if _, err := db.Put(ctx, key, task); err != nil {
-		return nil, err
+	for i, task := range tasks {
+		// Add a 24 hour cooldown between attempts.
+		if timeSince(ctx, task.LastAttempt) < 24*time.Hour {
+			continue
+		}
+		key := keys[i]
+		task.LastAttempt = timeNow(ctx)
+		if _, err := db.Put(ctx, key, task); err != nil {
+			return 0, nil, err
+		}
+		log, _, err := getText(ctx, textCrashLog, task.Log)
+		return key.IntID(), log, err
 	}
-	log, _, err := getText(ctx, textCrashLog, task.Log)
-	return log, err
+	return 0, nil, nil
 }
 
 func apiCreateUploadURL(ctx context.Context, req *any) (any, error) {

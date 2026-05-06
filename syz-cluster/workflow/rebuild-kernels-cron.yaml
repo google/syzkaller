@@ -93,8 +93,8 @@ spec:
                   value: "{{inputs.parameters.request-json}}"
         - - name: run-build
             templateRef:
-              name: build-step-template
-              template: build-step
+              name: build-action-template
+              template: build-action
             arguments:
               parameters:
                 - name: smoke-build

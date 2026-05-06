@@ -1,0 +1,17 @@
+{{.Patch.Body}}
+
+---
+{{if .Patch.Changelog}}{{range $i, $c := .Patch.Changelog}}{{if $i}}
+{{end}}v{{$c.Version}}:
+{{if $c.Text}}{{$c.Text}}
+{{end}}{{if $c.Link}}{{$c.Link}}
+{{end}}{{end}}---
+{{end}}{{.Patch.GitDiff}}
+
+base-commit: {{.Patch.BaseCommit}}
+-- 
+{{ if .CanUpstream }}This is an AI-generated patch subject to moderation.
+Reply with '#syz upstream' to send it to the mailing list.
+Reply with '#syz reject' to reject it.
+
+{{ end }}See {{.DocsLink}} for more information.

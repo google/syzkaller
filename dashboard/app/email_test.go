@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -473,7 +474,7 @@ func TestEmailDup(t *testing.T) {
 }
 
 func TestEmailDup2(t *testing.T) {
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			c := NewCtx(t)
 			defer c.Close()
@@ -576,7 +577,7 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		bugSender := c.pollEmailBug().Sender
 		cc := EmailOptCC([]string{"default@maintainers.com", "test@syzkaller.com",
 			"bugs@syzkaller.com", "default2@maintainers.com", "bugs2@syzkaller.com"})
-		for j := 0; j < test.bug; j++ {
+		for range test.bug {
 			c.incomingEmail(bugSender, "#syz upstream", cc)
 			bugSender = c.pollEmailBug().Sender
 		}
@@ -585,7 +586,7 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		crash2.Title = fmt.Sprintf("dup_%v", i)
 		c.client2.ReportCrash(crash2)
 		dupSender := c.pollEmailBug().Sender
-		for j := 0; j < test.dup; j++ {
+		for range test.dup {
 			c.incomingEmail(dupSender, "#syz upstream", cc)
 			dupSender = c.pollEmailBug().Sender
 		}
@@ -739,6 +740,36 @@ func TestEmailUnfix(t *testing.T) {
 	// The bug should be still unfixed, since we unmarked it.
 	c.client2.ReportCrash(crash)
 	c.expectNoEmail()
+}
+
+// Test for unfix command on a bug that is already marked as fixed.
+func TestEmailUnfixFixedBug(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+
+	msg := c.pollEmailBug()
+
+	c.incomingEmail(msg.Sender, "#syz fix: some commit")
+	c.expectNoEmail()
+
+	build2 := testBuild(2)
+	build2.Manager = build.Manager
+	build2.Commits = []string{"some commit"}
+	c.client2.UploadBuild(build2)
+
+	// Now the bug should be fixed.
+	// Try to unfix it. It should reply with an error.
+	c.incomingEmail(msg.Sender, "#syz unfix")
+	reply := c.pollEmailBug()
+	if !strings.Contains(reply.Body, "This bug is already marked as fixed.") {
+		t.Fatalf("expected reply about bug being already fixed, got %q", reply.Body)
+	}
 }
 
 func TestEmailManagerCC(t *testing.T) {
@@ -950,7 +981,7 @@ func TestSubjectTitleParser(t *testing.T) {
 		} else if title != test.outTitle {
 			t.Fatalf("subj: %q, expected title=%q, got %q", test.inSubject, test.outTitle, title)
 		} else if seq != test.outSeq {
-			t.Fatalf("subj: %q, expected seq=%q, got %q", test.inSubject, test.outSeq, seq)
+			t.Fatalf("subj: %q, expected seq=%v, got %v", test.inSubject, test.outSeq, seq)
 		}
 	}
 }
@@ -1141,7 +1172,7 @@ func TestEmailPatchTestingAccess(t *testing.T) {
 	c.expectNoEmail()
 
 	// The patch test job should also not be created.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -1171,7 +1202,8 @@ The specified label value is incorrect.
 Please use one of the supported label values.
 
 The following labels are suported:
-missing-backport, no-reminders, prio: {low, normal, high}, subsystems: {.. see below ..}
+actionable, missing-backport, no-reminders, prio: {low, normal, high}, subsystems: {..
+see below ..}
 The list of subsystems: https://testapp.appspot.com/access-public-email/subsystems?all=true
 
 `)
@@ -1281,7 +1313,8 @@ The specified label "label" is unknown.
 Please use one of the supported labels.
 
 The following labels are suported:
-missing-backport, no-reminders, prio: {low, normal, high}, subsystems: {.. see below ..}
+actionable, missing-backport, no-reminders, prio: {low, normal, high}, subsystems: {..
+see below ..}
 The list of subsystems: https://testapp.appspot.com/access-public-email/subsystems?all=true
 
 `)
@@ -1449,7 +1482,20 @@ Author: someone@mail.com
 			// Ensure that we don't react to replies.
 			c.incomingEmail("syzbot@testapp.appspotmail.com", msg.Body,
 				EmailOptFrom("syzbot@testapp.appspotmail.com"),
-				EmailOptCC(append(append([]string{}, msg.Cc...), msg.To...)))
+				EmailOptCC(append(slices.Clone(msg.Cc), msg.To...)))
+			c.expectNoEmail()
+		})
+
+		t.Run("duplicate-from-mailing-list", func(t *testing.T) {
+			mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+			// Ensure we don't forward the same email when we receive it again via a mailing list.
+			c.incomingEmail(from,
+				"#syz invalid",
+				EmailOptSubject("test subject"),
+				EmailOptMessageID(1),
+				EmailOptFrom("someone@mail.com"),
+				EmailOptCC([]string{"some@list.com"}), // same as original
+				EmailOptSender(mailingList))           // this makes msg.MailingList set
 			c.expectNoEmail()
 		})
 	})

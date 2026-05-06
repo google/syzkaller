@@ -1,5 +1,6 @@
 TITLE: WARNING in hci_conn_del
 TYPE: WARNING
+PANICKED: Y
 
 [ 1175.642042][T23686] ------------[ cut here ]------------
 [ 1175.648374][T23686] ida_free called for id=8192 which is not allocated.

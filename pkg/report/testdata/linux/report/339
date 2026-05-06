@@ -1,6 +1,7 @@
 TITLE: general protection fault in sysrq_handle_crash
 ALT: bad-access in sysrq_handle_crash
 TYPE: DoS
+PANICKED: Y
 
 [   39.546482][ T5855] sysrq: SysRq : Trigger a crash
 [   39.547393][ T5855] kasan: CONFIG_KASAN_INLINE enabled

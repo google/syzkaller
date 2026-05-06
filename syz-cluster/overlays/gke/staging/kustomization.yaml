@@ -3,4 +3,8 @@
 
 resources:
   - ../common
-  - global-config.yaml
+
+configMapGenerator:
+  - name: global-config
+    files:
+      - config.yaml=global-config.yaml

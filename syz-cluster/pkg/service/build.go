@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -39,6 +40,9 @@ func (s *BuildService) Upload(ctx context.Context, req *api.UploadBuildReq) (*ap
 	}
 	if req.SeriesID != "" {
 		build.SetSeriesID(req.SeriesID)
+	}
+	if req.JobID != "" {
+		build.SetJobID(req.JobID)
 	}
 	if req.BuildSuccess {
 		build.Status = db.BuildSuccess
@@ -90,6 +94,9 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 	}
 	if !build.SeriesID.IsNull() {
 		resp.SeriesID = build.SeriesID.String()
+	}
+	if !build.JobID.IsNull() {
+		resp.JobID = build.JobID.String()
 	}
 	return resp, nil
 }

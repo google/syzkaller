@@ -64,15 +64,15 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 		assert.Equal(t, []*MergedFuzzConfig{
 			{
 				KernelConfig: "kasan_config",
+				Track:        "KASAN",
 				FuzzConfig: &api.FuzzConfig{
-					Track: "KASAN",
 					Focus: []string{"net"},
 				},
 			},
 			{
 				KernelConfig: "kmsan_config",
+				Track:        "KMSAN",
 				FuzzConfig: &api.FuzzConfig{
-					Track: "KMSAN",
 					Focus: []string{"net"},
 				},
 			},
@@ -93,8 +93,8 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 		assert.Equal(t, []*MergedFuzzConfig{
 			{
 				KernelConfig: "kasan_config",
+				Track:        "KASAN",
 				FuzzConfig: &api.FuzzConfig{
-					Track: "KASAN",
 					Focus: []string{"bpf", "net"},
 				},
 			},

@@ -5,12 +5,14 @@ package prog
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRotationResourceless(t *testing.T) {
@@ -19,9 +21,7 @@ func TestRotationResourceless(t *testing.T) {
 		target.SyscallMap["test$int"]: true,
 	}
 	got := MakeRotator(target, calls, rand.New(rs)).Select()
-	if diff := cmp.Diff(calls, got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, calls, got)
 }
 
 func TestRotationRandom(t *testing.T) {
@@ -42,8 +42,8 @@ func TestRotationRandom(t *testing.T) {
 			for call := range calls {
 				array = append(array, call)
 			}
-			sort.Slice(array, func(i, j int) bool {
-				return array[i].Name < array[j].Name
+			slices.SortFunc(array, func(a, b *Syscall) int {
+				return cmp.Compare(a.Name, b.Name)
 			})
 			for _, call := range array {
 				fmt.Fprintf(buf, "%v\n", call.Name)
@@ -66,7 +66,7 @@ func TestRotationCoverage(t *testing.T) {
 	}
 	rotator := MakeRotator(target, calls, rand.New(rs))
 nextIter:
-	for iter := 0; iter < 1e4; iter++ {
+	for range 10000 {
 		for call := range rotator.Select() {
 			counters[call.Name]++
 		}
@@ -126,8 +126,8 @@ retry:
 			for call := range calls {
 				array = append(array, call)
 			}
-			sort.Slice(array, func(i, j int) bool {
-				return array[i].ID < array[j].ID
+			slices.SortFunc(array, func(a, b *Syscall) int {
+				return cmp.Compare(a.ID, b.ID)
 			})
 			rnd.Shuffle(len(calls), func(i, j int) {
 				array[i], array[j] = array[j], array[i]
@@ -154,7 +154,5 @@ func TestRotationDeterminism(t *testing.T) {
 	calls0 := MakeRotator(target, calls, rnd0).Select()
 	rnd1 := rand.New(rand.NewSource(seed))
 	calls1 := MakeRotator(target, calls, rnd1).Select()
-	if diff := cmp.Diff(calls0, calls1); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, calls0, calls1)
 }

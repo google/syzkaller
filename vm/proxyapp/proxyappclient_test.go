@@ -103,7 +103,7 @@ func TestCtor_FailedPipes(t *testing.T) {
 		On("StderrPipe").
 		Return(io.NopCloser(strings.NewReader("")), nil)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		p, err := ctor(params, testEnv)
 		assert.NotNil(t, err)
 		assert.Nil(t, p)
@@ -458,7 +458,7 @@ func TestInstance_RunReadProgress_OnErrorReceived(t *testing.T) {
 		Once()
 
 	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
-	output := string(<-outc)
+	output := string((<-outc).Data)
 
 	assert.Equal(t, "mock error\nSYZFAIL: proxy app plugin error\n", output)
 }
@@ -498,7 +498,7 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 		Once()
 
 	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
-	output := string(<-outc)
+	output := string((<-outc).Data)
 
 	assert.Equal(t,
 		"error reading progress from instance_id_0:test_run_id: runreadprogresserror\nSYZFAIL: proxy app plugin error\n",
@@ -507,10 +507,10 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 }
 
 // TODO: test for periodical proxyapp subprocess crashes handling.
-//  [option] check pool size was changed
-
+//
+//	[option] check pool size was changed
+//
 // TODO: test pool.Close() calls plugin API and return error.
-
 func contextWithTimeout(t *testing.T, timeout time.Duration) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)

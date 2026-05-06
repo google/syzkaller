@@ -1,5 +1,6 @@
 TITLE: kernel panic: Fatal exception
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [  616.344091] Kernel panic - not syncing: Fatal exception in interrupt

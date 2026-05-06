@@ -11,7 +11,7 @@ import (
 func TestAssignSizeRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		data0 := p.Serialize()
 		for _, call := range p.Calls {

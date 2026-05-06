@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/tool"
@@ -46,7 +48,6 @@ func checkCommentSpace() {
 }
 
 //No space.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
-
 func funcArgsGood(a, b int) (int, int) {
 	return 0, 0
 }
@@ -174,3 +175,153 @@ func TestContextArgsBad1(t *testing.T, c context.Context) { // want "Context var
 
 func TestContextArgsBad2(t *testing.T, a int, ctx context.Context) { // want "Context must be the second argument"
 }
+
+func sliceClones() {
+	var x []int
+	i := 0
+	_ = append([]int{}, i)
+	_ = append([]int{}, x...)  // want "Use slices.Clone instead of append"
+}
+
+func sortUsage() {
+	var strs []string
+	sort.Strings(strs) // want "Use slices.Sort instead of sort.Strings"
+
+	var ints []int
+	sort.Slice(ints, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return ints[i] < ints[j]
+	})
+
+	type Item struct {
+		Name string
+	}
+	var items []Item
+	sort.Slice(items, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return items[i].Name < items[j].Name
+	})
+
+	sort.Slice(items, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return items[j].Name < items[i].Name
+	})
+
+	sort.Slice(ints, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return ints[i] > ints[j]
+	})
+}
+
+func rangeOverIntegers() {
+	for i := 0; i < 10; i++ { // want "Use range over integer instead of traditional for loop"
+	}
+
+	count := 10
+	for i := 0; i < count; i++ { // want "Use range over integer instead of traditional for loop"
+	}
+
+	// Negative cases.
+	for i := 1; i < 10; i++ {
+	}
+	for i := 0; i <= 10; i++ {
+	}
+	for i := 0; i < 10; i += 2 {
+	}
+	for i := 10; i > 0; i-- {
+	}
+}
+
+func whileStyleLoops() {
+	i := 0
+	for i < 10 { // want "Consider using for i := 0; i < ...; { to scope the loop variable"
+		i++
+	}
+
+	count := 10
+	j := 0
+	for j < count { // want "Consider using for j := 0; j < ...; { to scope the loop variable"
+		j++
+	}
+
+	// Negative cases.
+	k := 1
+	for k < 10 {
+		k++
+	}
+
+	l := 0
+	for l <= 10 {
+		l++
+	}
+}
+
+func mapKeysExtraction() {
+	m := make(map[string]int)
+	var keys []string
+	for k := range m { // want "Use maps.Keys and slices.Sort instead of a manual loop"
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // want "Use slices.Sort instead of sort.Strings"
+}
+
+func mapKeysExtractionNoSort() {
+	m := make(map[string]int)
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+}
+
+func stringsCut() {
+	s := "foo/bar"
+	if pos := strings.Index(s, "/"); pos != -1 { // want "Use strings.Cut instead of strings.Index/IndexByte and manual slicing"
+		_ = s[:pos]
+	}
+	if pos := strings.IndexByte(s, '/'); pos != -1 { // want "Use strings.Cut instead of strings.Index/IndexByte and manual slicing"
+		_ = s[:pos]
+	}
+	if pos := strings.Index(s, "/"); pos != -1 {
+		// Just use pos, not for slicing.
+		_ = pos
+	}
+}
+
+// Missing empty lines between declarations.
+func missingEmptyLine1() {
+}
+func missingEmptyLine2() { // want "Keep one empty line between top-level declarations"
+}
+type MissingEmptyLineStruct struct { // want "Keep one empty line between top-level declarations"
+}
+
+// Comment for func 3
+func missingEmptyLine3() {
+}
+
+// Single-line functions can be grouped.
+func grouped1() {}
+func grouped2() {}
+func grouped3() {}
+
+func multiLineGrouped() {
+}
+func grouped4() {} // want "Keep one empty line between top-level declarations"
+
+func grouped5() {}
+func multiLineGrouped2() { // want "Keep one empty line between top-level declarations"
+}
+
+func twoEmptyLines1() {}
+
+
+func twoEmptyLines2() {} // want "Keep one empty line between top-level declarations"
+
+type groupedType1 struct {
+}
+
+// Stand-alone comment that is not groupedType2 Doc.
+
+type groupedType2 struct {
+}
+
+// Declarations of different types shouldn't be grouped.
+func groupedFunc() {}
+type groupedType struct{} // want "Keep one empty line between top-level declarations"
+const groupedConst = 1 // want "Keep one empty line between top-level declarations"

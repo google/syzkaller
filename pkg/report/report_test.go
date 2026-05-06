@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -41,6 +41,7 @@ type ParseTest struct {
 	EndLine    string
 	Corrupted  bool
 	Suppressed bool
+	Panicked   bool
 	HasReport  bool
 	Report     []byte
 	Executor   string
@@ -52,6 +53,7 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 	if test.Title != other.Title ||
 		test.Corrupted != other.Corrupted ||
 		test.Suppressed != other.Suppressed ||
+		test.Panicked != other.Panicked ||
 		test.Type != other.Type {
 		return false
 	}
@@ -86,6 +88,9 @@ func (test *ParseTest) Headers() []byte {
 	}
 	if test.Suppressed {
 		fmt.Fprintf(buf, "SUPPRESSED: Y\n")
+	}
+	if test.Panicked {
+		fmt.Fprintf(buf, "PANICKED: Y\n")
 	}
 	if test.Executor != "" {
 		fmt.Fprintf(buf, "EXECUTOR: %s\n", test.Executor)
@@ -145,7 +150,7 @@ func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 	if len(test.Log) == 0 {
 		t.Fatalf("can't find log in input file")
 	}
-	sort.Strings(test.AltTitles)
+	slices.Sort(test.AltTitles)
 	return test
 }
 
@@ -159,6 +164,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		endPrefix        = "END: "
 		corruptedPrefix  = "CORRUPTED: "
 		suppressedPrefix = "SUPPRESSED: "
+		panickedPrefix   = "PANICKED: "
 		executorPrefix   = "EXECUTOR: "
 	)
 	switch {
@@ -193,6 +199,15 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		default:
 			t.Fatalf("unknown SUPPRESSED value %q", v)
 		}
+	case strings.HasPrefix(ln, panickedPrefix):
+		switch v := ln[len(panickedPrefix):]; v {
+		case "Y":
+			test.Panicked = true
+		case "N":
+			test.Panicked = false
+		default:
+			t.Fatalf("unknown PANICKED value %q", v)
+		}
 	case strings.HasPrefix(ln, executorPrefix):
 		test.Executor = ln[len(executorPrefix):]
 	default:
@@ -210,6 +225,7 @@ func testFromReport(rep *Report) *ParseTest {
 		Corrupted:       rep.Corrupted,
 		corruptedReason: rep.CorruptedReason,
 		Suppressed:      rep.Suppressed,
+		Panicked:        rep.Panicked,
 		Type:            crash.TitleToType(rep.Title),
 		Frame:           rep.Frame,
 		Report:          rep.Report,
@@ -217,7 +233,7 @@ func testFromReport(rep *Report) *ParseTest {
 	if rep.Executor != nil {
 		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
 	}
-	sort.Strings(ret.AltTitles)
+	slices.Sort(ret.AltTitles)
 	return ret
 }
 

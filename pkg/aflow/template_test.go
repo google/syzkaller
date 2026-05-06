@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"bytes"
 	"fmt"
 	"maps"
 	"reflect"
@@ -64,6 +65,28 @@ func TestTemplate(t *testing.T) {
 			},
 			err: "input foo is not provided",
 		},
+		{
+			template: `{{if and .foo .bar}} yes {{end}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeFor[bool](),
+				"bar": reflect.TypeFor[int](),
+			},
+			used: []string{"foo", "bar"},
+		},
+		{
+			template: `{{.foo.Bar}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeOf(struct{ Bar string }{}),
+			},
+			used: []string{"foo"},
+		},
+		{
+			template: `{{(.foo).Bar}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeOf(struct{ Bar string }{}),
+			},
+			used: []string{"foo"},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -76,4 +99,23 @@ func TestTemplate(t *testing.T) {
 			assert.ElementsMatch(t, slices.Collect(maps.Keys(used)), test.used)
 		})
 	}
+}
+
+func TestTemplateRender(t *testing.T) {
+	data := map[string]any{
+		"Title": "WARNING: something is wrong",
+	}
+	const text = `
+{{if titleIsUAF .Title}}It is UAF.{{end}}
+{{if titleIsWarning .Title}}It is WARNING.{{end}}
+`
+	const want = `
+
+It is WARNING.
+`
+	templ, err := parseTemplate(text)
+	require.NoError(t, err)
+	buf := new(bytes.Buffer)
+	require.NoError(t, templ.Execute(buf, data))
+	require.Equal(t, want, buf.String())
 }

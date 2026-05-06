@@ -1,5 +1,6 @@
 TITLE: WARNING in free_netdev
 TYPE: WARNING
+PANICKED: Y
 
 [  582.890557][  T981] ------------[ cut here ]------------
 [  582.907452][  T981] WARNING: CPU: 1 PID: 981 at lib/ref_tracker.c:38 ref_tracker_dir_exit.cold+0x137/0x1e3

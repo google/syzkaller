@@ -1,6 +1,7 @@
 TITLE: KASAN: out-of-bounds Write in nsim_dev_trap_report_work
 ALT: bad-access in nsim_dev_trap_report_work
 TYPE: KASAN-WRITE
+PANICKED: Y
 
 [  771.741335][T15335] ==================================================================
 [  771.746713][T15335] BUG: KASAN: out-of-bounds in stack_trace_consume_entry+0x141/0x160

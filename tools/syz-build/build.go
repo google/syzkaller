@@ -75,6 +75,6 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	params.Tracer.Log("signature: %v", details.Signature)
-	params.Tracer.Log("compiler: %v", details.CompilerID)
+	params.Tracer.Logf("signature: %v", details.Signature)
+	params.Tracer.Logf("compiler: %v", details.CompilerID)
 }

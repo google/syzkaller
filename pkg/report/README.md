@@ -11,7 +11,7 @@ prioritize the triaging queue.
 KASAN detected bugs are typically more dangerous than KMSAN detected bugs. And KMSAN detected bugs are typically more
 dangerous than KCSAN detected bugs.
 
-### Use-after-free write > invalid-free(double-free) > use-after-free read.
+### Invalid-free (double-free) >= use-after-free write > use-after-free read.
 
 ### KASAN write > KASAN read
 KASAN write indicates an out-of-bounds or use-after-free write operation. Any uncontrolled write to kernel memory is

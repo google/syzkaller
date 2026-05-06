@@ -1,0 +1,133 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "",
+		"Started": "0001-01-01T00:00:02Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:04Z",
+		"Finished": "0001-01-01T00:00:05Z",
+		"Results": {
+			"Error": "failed"
+		}
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:06Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:08Z",
+		"Finished": "0001-01-01T00:00:09Z",
+		"Results": {
+			"Error": "failed"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:10Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "2",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "nop",
+		"Started": "0001-01-01T00:00:12Z",
+		"Finished": "0001-01-01T00:00:13Z",
+		"Results": {
+			"Error": "failed"
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "2",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:14Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:15Z",
+		"Error": "DoWhile loop is going in cycles for 3 iterations"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:16Z",
+		"Error": "DoWhile loop is going in cycles for 3 iterations"
+	}
+]

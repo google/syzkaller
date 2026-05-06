@@ -44,7 +44,7 @@ const bootErrorChanCap = 16
 
 func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *Pool[T] {
 	instances := make([]*poolInstance[T], count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		inst := &poolInstance[T]{
 			job: def,
 			idx: i,
@@ -130,6 +130,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 		p.reportBootError(ctx, err)
 		return
 	}
+	log.Logf(2, "pool: instance %d created", inst.idx)
 	defer obj.Close()
 
 	p.BootTime.Save(time.Since(start))
@@ -158,6 +159,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 func (p *Pool[T]) reportBootError(ctx context.Context, err error) {
 	select {
 	case p.BootErrors <- err:
+		log.Logf(0, "boot error: %s", err)
 		return
 	default:
 		// Print some log message to make it visible.
@@ -191,13 +193,13 @@ func (p *Pool[T]) ReserveForRun(count int) {
 	}
 
 	needReserve := count - len(reserved)
-	for i := 0; i < needReserve; i++ {
+	for i := range needReserve {
 		log.Logf(2, "pool: reserving instance %d", free[i].idx)
 		free[i].reserve(p.jobs)
 	}
 
 	needFree := len(reserved) - count
-	for i := 0; i < needFree; i++ {
+	for i := range needFree {
 		log.Logf(2, "pool: releasing instance %d", reserved[i].idx)
 		reserved[i].free(p.defaultJob)
 	}

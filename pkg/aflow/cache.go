@@ -137,6 +137,23 @@ func cacheCreateObject[T any](c *Cache, typ, desc string, populate func() (T, er
 	return dir, res, err
 }
 
+func cacheReadObject[T any](c *Cache, typ, id, filename string) (T, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	dir := filepath.Join(c.dir, typ, id)
+	entry := c.entries[dir]
+	if entry == nil {
+		var res T
+		return res, fmt.Errorf("cache entry not found")
+	}
+	now := c.timeNow()
+	metaFile := filepath.Join(dir, cacheMetaFile)
+	// If we can't update time, just proceed with reading.
+	_ = os.Chtimes(metaFile, now, now)
+	entry.lastUsed = now
+	return osutil.ReadJSON[T](filepath.Join(dir, filename))
+}
+
 // Release must be called for every directory returned by Create method when the directory is not used anymore.
 func (c *Cache) Release(dir string) {
 	c.mu.Lock()

@@ -2,6 +2,7 @@ TITLE: general protection fault in corrupted
 ALT: bad-access in corrupted
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [   32.536478] binder: BINDER_SET_CONTEXT_MGR already set
 [   32.549080] binder: 6304:6306 ioctl 40046207 0 returned -16

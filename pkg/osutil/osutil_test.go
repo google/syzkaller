@@ -5,6 +5,7 @@ package osutil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsExist(t *testing.T) {
@@ -148,9 +150,7 @@ func TestReadWriteJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(test, test2); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, test, test2)
 }
 
 func TestDiskUsage(t *testing.T) {
@@ -197,4 +197,14 @@ func TestDiskUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectUsage(1, 1<<10)
+}
+
+func TestVerboseMessage(t *testing.T) {
+	assert.Equal(t, "error message", VerboseMessage(errors.New("error message")))
+	verr := &VerboseError{
+		Err:    errors.New("verbose error"),
+		Output: []byte("verbose text"),
+	}
+	assert.Equal(t, "verbose error\nverbose text", VerboseMessage(verr))
+	assert.Equal(t, "wrapped: verbose error\nverbose text", VerboseMessage(fmt.Errorf("wrapped: %w", verr)))
 }

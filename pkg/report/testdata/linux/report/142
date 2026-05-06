@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [   95.884027] WARNING: CPU: 1 PID: 18244 at ./arch/x86/include/asm/fpu/internal.h:340 __switch_to+0x10bd/0x13c0
 [   95.884034] Kernel panic - not syncing: panic_on_warn set ...

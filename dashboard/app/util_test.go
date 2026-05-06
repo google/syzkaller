@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,7 +30,6 @@ import (
 
 	"cloud.google.com/go/spanner/admin/database/apiv1"
 	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -38,6 +38,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	spannertest "github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
@@ -52,6 +53,8 @@ type Ctx struct {
 	mockedTime       time.Time
 	emailSink        chan *aemail.Message
 	transformContext func(context.Context) context.Context
+	globalClient     *apiClient
+	agentClient      *apiClient
 	client           *apiClient
 	client2          *apiClient
 	publicClient     *apiClient
@@ -97,6 +100,8 @@ func newCtx(t *testing.T, appID string) *Ctx {
 		transformContext: func(ctx context.Context) context.Context { return ctx },
 		checkAI:          appID != "",
 	}
+	ctx.globalClient = ctx.makeClient(reportingClient, reportingKey, true)
+	ctx.agentClient = ctx.makeClient(agentClient, agentKey, true)
 	ctx.client = ctx.makeClient(client1, password1, true)
 	ctx.client2 = ctx.makeClient(client2, password2, true)
 	ctx.publicClient = ctx.makeClient(clientPublicEmail, keyPublicEmail, true)
@@ -142,14 +147,14 @@ func executeSpannerDDL(ctx context.Context, statements []string) error {
 }
 
 func loadUpDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.up.sql", 1)
+	return loadDDLStatements("*.up.sql", true)
 }
 
 func loadDownDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.down.sql", -1)
+	return loadDDLStatements("*.down.sql", false)
 }
 
-func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
+func loadDDLStatements(wildcard string, forward bool) ([]string, error) {
 	files, err := filepath.Glob(filepath.Join("aidb", "migrations", wildcard))
 	if err != nil {
 		return nil, err
@@ -157,12 +162,12 @@ func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("loadDDLStatements: wildcard did not match any files: %q", wildcard)
 	}
-	// We prefix DDL file names with sequence numbers.
-	slices.SortFunc(files, func(a, b string) int {
-		return strings.Compare(a, b) * sortOrder
-	})
+	sortedFiles, err := sortMigrationFiles(files, forward)
+	if err != nil {
+		return nil, err
+	}
 	var all []string
-	for _, file := range files {
+	for _, file := range sortedFiles {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			return nil, err
@@ -173,6 +178,46 @@ func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
 		all = append(all, statements...)
 	}
 	return all, nil
+}
+
+// sortMigrationFiles parses the leading number from migration filenames and sorts them.
+// If forward is true, it sorts in ascending order (e.g., for 'up' migrations).
+// If forward is false, it sorts in descending order (e.g., for 'down' migrations).
+func sortMigrationFiles(files []string, forward bool) ([]string, error) {
+	type migrationFile struct {
+		num  int
+		file string
+	}
+	var mFiles []migrationFile
+	seen := map[int]string{}
+	for _, file := range files {
+		basename := filepath.Base(file)
+		parts := strings.Split(basename, "_")
+		if len(parts) == 0 {
+			return nil, fmt.Errorf("invalid migration filename: %v", basename)
+		}
+		num, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, fmt.Errorf("migration file %v must start with a number: %w", file, err)
+		}
+		if old, ok := seen[num]; ok {
+			return nil, fmt.Errorf("duplicate migration number %v: %v and %v", num, old, file)
+		}
+		seen[num] = file
+		mFiles = append(mFiles, migrationFile{num: num, file: file})
+	}
+	slices.SortFunc(mFiles, func(a, b migrationFile) int {
+		res := a.num - b.num
+		if !forward {
+			res = -res
+		}
+		return res
+	})
+	var result []string
+	for _, f := range mFiles {
+		result = append(result, f.file)
+	}
+	return result, nil
 }
 
 func (ctx *Ctx) config() *GlobalConfig {
@@ -212,10 +257,8 @@ func (ctx *Ctx) expectBadReqest(err error) {
 }
 
 func (ctx *Ctx) expectEQ(got, want any) {
-	if diff := cmp.Diff(got, want); diff != "" {
-		ctx.t.Helper()
-		ctx.t.Fatal(diff)
-	}
+	ctx.t.Helper()
+	require.Equal(ctx.t, want, got)
 }
 
 func (ctx *Ctx) expectNE(got, want any) {
@@ -256,7 +299,8 @@ func caller(skip int) string {
 
 func (ctx *Ctx) Close() {
 	defer ctx.inst.Close()
-	if !ctx.t.Failed() {
+	// transformContext may substitute config.
+	if ctx.transformContext == nil && !ctx.t.Failed() {
 		// To avoid per-day reporting limits for left-over emails.
 		ctx.advanceTime(25 * time.Hour)
 		// Ensure that we can render main page and all bugs in the final test state.
@@ -286,14 +330,14 @@ func (ctx *Ctx) Close() {
 			ctx.t.Errorf("ERROR: leftover email: %v", (<-ctx.emailSink).Body)
 		}
 		// No pending external reports (tests need to consume them).
-		resp, _ := ctx.client.ReportingPollBugs("test")
+		resp, _ := ctx.globalClient.ReportingPollBugs("test")
 		for _, rep := range resp.Reports {
 			ctx.t.Errorf("ERROR: leftover external report:\n%#v", rep)
 		}
 		if ctx.checkAI {
 			_, err = ctx.GET("/ains/ai/")
 			ctx.expectOK(err)
-			jobs, err := aidb.LoadNamespaceJobs(ctx.ctx, "ains")
+			jobs, err := aidb.LoadNamespaceJobs(ctx.ctx, "ains", nil)
 			ctx.expectOK(err)
 			for _, job := range jobs {
 				_, err = ctx.GET(fmt.Sprintf("/ai_job?id=%v", job.ID))
@@ -301,6 +345,7 @@ func (ctx *Ctx) Close() {
 			}
 		}
 	}
+	aidb.CloseClient(ctx.ctx)
 	unregisterContext(ctx)
 	validateGlobalConfig()
 }
@@ -766,6 +811,17 @@ Content-Type: text/plain
 	ctx.expectOK(err)
 }
 
+func (ctx *Ctx) createAIJob(bugExitID, workflow, baseCommit string) string {
+	bug, _, _ := ctx.loadBug(bugExitID)
+	args := map[string]any{}
+	if baseCommit != "" {
+		args["BaseCommit"] = baseCommit
+	}
+	id, err := aiBugJobCreate(ctx.ctx, workflow, bug, args)
+	require.NoError(ctx.t, err)
+	return id
+}
+
 func initMocks() {
 	// Mock time as some functionality relies on real time.
 	timeNow = func(ctx context.Context) time.Time {
@@ -884,4 +940,19 @@ func replaceReporting(ctx context.Context, ns, name string, f func(Reporting) Re
 		ret.Reporting = newReporting
 		return &ret
 	})
+}
+
+// SetAIConfig patches the config for all namespaces to use the given AIConfig.
+func (ctx *Ctx) SetAIConfig(aiCfg *AIConfig) {
+	ctx.transformContext = func(ctx context.Context) context.Context {
+		cfg := getConfig(ctx)
+		newCfg := *cfg
+		newCfg.Namespaces = make(map[string]*Config)
+		for k, v := range cfg.Namespaces {
+			nc := *v
+			nc.AI = aiCfg
+			newCfg.Namespaces[k] = &nc
+		}
+		return contextWithConfig(ctx, &newCfg)
+	}
 }

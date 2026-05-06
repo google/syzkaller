@@ -285,27 +285,15 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	baseName := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.cfg.TargetDir, baseName)
 	inst.ssh("pkill -9 '" + baseName + "'; rm -f '" + vmDst + "'")
-	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, inst.cfg.SystemSSHCfg),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	cmd := osutil.Command("scp", args...)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
-	}
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(3 * time.Minute):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	err := cmd.Wait()
-	close(done)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:        inst.debug,
+		Key:          inst.Key,
+		Port:         inst.Port,
+		SystemSSHCfg: inst.cfg.SystemSSHCfg,
+		User:         inst.User,
+		Addr:         inst.Addr,
+		Timeout:      3 * time.Minute,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -313,7 +301,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	args := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, inst.cfg.SystemSSHCfg),
 		inst.User+"@"+inst.Addr)
 	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
@@ -324,6 +312,13 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		dmesg.Close()
+		return nil, nil, err
+	}
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		dmesg.Close()
+		rpipe.Close()
+		wpipe.Close()
 		return nil, nil, err
 	}
 
@@ -338,22 +333,26 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		dmesg.Close()
 		rpipe.Close()
 		wpipe.Close()
+		rpipeErr.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 
 	var tee io.Writer
 	if inst.debug {
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("dmesg", dmesg)
-	merger.Add("ssh", rpipe)
+	merger.Add("dmesg", vmimpl.OutputConsole, dmesg)
+	merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,
@@ -399,18 +398,19 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 }
 
 func splitTargetPort(addr string) (string, int, error) {
-	target := addr
-	port := 22
-	if colonPos := strings.Index(addr, ":"); colonPos != -1 {
-		p, err := strconv.ParseUint(addr[colonPos+1:], 10, 16)
-		if err != nil {
-			return "", 0, err
+	target, portStr, ok := strings.Cut(addr, ":")
+	if !ok {
+		if addr == "" {
+			return "", 0, fmt.Errorf("target is empty")
 		}
-		target = addr[:colonPos]
-		port = int(p)
+		return addr, 22, nil
+	}
+	p, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return "", 0, err
 	}
 	if target == "" {
 		return "", 0, fmt.Errorf("target is empty")
 	}
-	return target, port, nil
+	return target, int(p), nil
 }

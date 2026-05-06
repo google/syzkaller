@@ -3,7 +3,10 @@
 
 package vcs
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // BackportCommit describes a fix commit that must be cherry-picked to an older
 // kernel revision in order to enable kernel build / boot.
@@ -23,7 +26,7 @@ type BackportCommit struct {
 func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
 	return applyFixBackports(repo,
 		append(
-			append([]BackportCommit{}, pickLinuxCommits...),
+			slices.Clone(pickLinuxCommits),
 			extraCommits...,
 		),
 	)

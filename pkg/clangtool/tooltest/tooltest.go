@@ -10,24 +10,23 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	FlagBin    = flag.String("bin", "", "path to the clang tool binary to use")
-	FlagUpdate = flag.Bool("update", false, "update golden files")
-)
+var FlagUpdate = flag.Bool("update", false, "update golden files")
 
-func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T) {
-	if *FlagBin == "" {
-		t.Skipf("clang tool path is not specified, run with -bin=clangtool flag")
+func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T, tool string) {
+	if runtime.GOOS != targets.Linux {
+		t.Skip("clang tools can only be tested on linux")
 	}
-	ForEachTestFile(t, func(t *testing.T, cfg *clangtool.Config, file string) {
+	ForEachTestFile(t, tool, func(t *testing.T, cfg *clangtool.Config, file string) {
 		out, err := clangtool.Run[Output, OutputPtr](cfg)
 		if err != nil {
 			t.Fatal(err)
@@ -40,10 +39,10 @@ func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *tes
 	})
 }
 
-func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T) OutputPtr {
+func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T, dir string) OutputPtr {
 	out := OutputPtr(new(Output))
-	v := clangtool.NewVerifier("testdata")
-	forEachTestFile(t, func(t *testing.T, file string) {
+	v := clangtool.NewVerifier(dir)
+	forEachTestFile(t, dir, func(t *testing.T, file string) {
 		tmp, err := osutil.ReadJSON[OutputPtr](file + ".json")
 		if err != nil {
 			t.Fatal(err)
@@ -57,8 +56,8 @@ func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testin
 	return out
 }
 
-func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, file string)) {
-	forEachTestFile(t, func(t *testing.T, file string) {
+func ForEachTestFile(t *testing.T, tool string, fn func(t *testing.T, cfg *clangtool.Config, file string)) {
+	forEachTestFile(t, "testdata", func(t *testing.T, file string) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			t.Parallel()
 			buildDir := t.TempDir()
@@ -73,7 +72,7 @@ func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, 
 				t.Fatal(err)
 			}
 			cfg := &clangtool.Config{
-				ToolBin:    *FlagBin,
+				Tool:       tool,
 				KernelSrc:  osutil.Abs("testdata"),
 				KernelObj:  buildDir,
 				CacheFile:  filepath.Join(buildDir, filepath.Base(file)+".json"),
@@ -84,9 +83,9 @@ func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, 
 	})
 }
 
-func forEachTestFile(t *testing.T, fn func(t *testing.T, file string)) {
+func forEachTestFile(t *testing.T, dir string, fn func(t *testing.T, file string)) {
 	var files []string
-	err := filepath.WalkDir(osutil.Abs("testdata"), func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(osutil.Abs(dir), func(path string, d fs.DirEntry, err error) error {
 		if d.Name()[0] != '.' && filepath.Ext(d.Name()) == ".c" {
 			files = append(files, path)
 		}
@@ -121,7 +120,5 @@ func CompareGoldenData(t *testing.T, goldenFile string, got []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, want, got)
 }

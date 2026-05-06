@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -227,6 +228,12 @@ var archConfigs = map[string]*archConfig{
 		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
 	},
+	"openbsd/amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -cpu host,migratable=off",
+		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-pci",
+	},
 	"darwin/amd64": {
 		Qemu: "qemu-system-x86_64",
 		QemuArgs: strings.Join([]string{
@@ -354,17 +361,17 @@ func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl
 			// It is most likely a boot crash, just return the error as is.
 			return nil, err
 		}
-		// Older qemu prints "could", newer -- "Could".
-		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
-			continue
+		if i < 1000 {
+			// Older qemu prints "could", newer -- "Could".
+			if strings.Contains(err.Error(), "ould not set up host forwarding rule") ||
+				strings.Contains(err.Error(), "Device or resource busy") ||
+				strings.Contains(err.Error(), "Address already in use") {
+				if i > 0 && i%100 == 0 {
+					log.Logf(2, "VM-%d: got a transient error, retrying (%v)", index, err)
+				}
+				continue
+			}
 		}
-		if i < 1000 && strings.Contains(err.Error(), "Device or resource busy") {
-			continue
-		}
-		if i < 1000 && strings.Contains(err.Error(), "Address already in use") {
-			continue
-		}
-
 		return nil, err
 	}
 }
@@ -468,7 +475,7 @@ func (inst *instance) boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("qemu", inst.rpipe)
+	inst.merger.Add("qemu", vmimpl.OutputConsole, inst.rpipe)
 	inst.rpipe = nil
 
 	var bootOutput []byte
@@ -477,7 +484,7 @@ func (inst *instance) boot() error {
 		for {
 			select {
 			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
+				bootOutput = append(bootOutput, out.Data...)
 			case <-bootOutputStop:
 				close(bootOutputStop)
 				return
@@ -491,8 +498,10 @@ func (inst *instance) boot() error {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if err := vmimpl.WaitForSSH(10*time.Minute*inst.timeouts.Scale, inst.SSHOptions,
-		inst.os, inst.merger.Err, false, inst.debug); err != nil {
+		inst.os, inst.merger.Errors(ctx), false, inst.debug); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -553,7 +562,7 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 		)
 	}
 	if inst.cfg.Kernel != "" {
-		cmdline := append([]string{}, inst.archConfig.CmdLine...)
+		cmdline := slices.Clone(inst.archConfig.CmdLine)
 		if inst.image == "9p" {
 			cmdline = append(cmdline,
 				"root=/dev/root",
@@ -666,12 +675,16 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		inst.files[vmDst] = hostSrc
 	}
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@localhost:"+vmDst)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-	_, err := osutil.RunCmd(10*time.Minute*inst.timeouts.Scale, "", "scp", args...)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:         inst.debug,
+		Key:           inst.Key,
+		Port:          inst.Port,
+		SystemSSHCfg:  false,
+		User:          inst.User,
+		Addr:          "localhost",
+		Timeout:       10 * time.Minute * inst.timeouts.Scale,
+		VerboseOutput: true,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -679,12 +692,19 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
@@ -712,12 +732,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	cmd := osutil.Command(args[0], args[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,
@@ -741,7 +763,7 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	}
 
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
-	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+	for cpu := range inst.cfg.CPU {
 		regs, err := inst.hmp("info registers", cpu)
 		if err == nil {
 			ret = append(ret, []byte(fmt.Sprintf("info registers vcpu %v\n", cpu))...)
@@ -786,7 +808,7 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.User, inst.Port, false), inst.User+"@localhost")
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false), inst.User+"@localhost")
 	return append(sshArgs, args...)
 }
 

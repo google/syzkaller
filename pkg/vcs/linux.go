@@ -5,11 +5,13 @@ package vcs
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"net/mail"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -99,8 +101,8 @@ func gitParseReleaseTags(output []byte, includeRC bool) []string {
 			tags = append(tags, string(tag))
 		}
 	}
-	sort.Slice(tags, func(i, j int) bool {
-		return gitReleaseTagToInt(tags[i], includeRC) > gitReleaseTagToInt(tags[j], includeRC)
+	slices.SortFunc(tags, func(a, b string) int {
+		return cmp.Compare(gitReleaseTagToInt(b, includeRC), gitReleaseTagToInt(a, includeRC))
 	})
 	return tags
 }
@@ -289,7 +291,7 @@ const configBisectTag = "# Minimized by syzkaller"
 func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, types []crash.Type,
 	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
-		dt.Log("# configuration already minimized\n")
+		dt.Logf("# configuration already minimized")
 		return original, nil
 	}
 	kconf, err := kconfig.Parse(target, filepath.Join(ctx.gitRepo.Dir, "Kconfig"))
@@ -372,7 +374,7 @@ func (ctx *minimizeLinuxCtx) minimizeAgainst(base *kconfig.ConfigFile) error {
 }
 
 func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
-	ctx.Log("check whether we can drop unnecessary instrumentation")
+	ctx.Logf("check whether we can drop unnecessary instrumentation")
 	oldTransform := ctx.transform
 	transform := func(c *kconfig.ConfigFile) {
 		oldTransform(c)
@@ -381,7 +383,7 @@ func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
 	newConfig := ctx.config.Clone()
 	transform(newConfig)
 	if bytes.Equal(ctx.config.Serialize(), newConfig.Serialize()) {
-		ctx.Log("there was nothing we could disable; skip")
+		ctx.Logf("there was nothing we could disable; skip")
 		return nil
 	}
 	ctx.SaveFile("no-instrumentation.config", newConfig.Serialize())
@@ -390,7 +392,7 @@ func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
 		return err
 	}
 	if ok {
-		ctx.Log("the bug reproduces without the instrumentation")
+		ctx.Logf("the bug reproduces without the instrumentation")
 		ctx.transform = transform
 		ctx.config = newConfig
 	}

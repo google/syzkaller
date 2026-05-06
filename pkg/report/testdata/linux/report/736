@@ -2,6 +2,7 @@ TITLE: BUG: unable to handle kernel paging request in process_srcu
 ALT: bad-access in process_srcu
 TYPE: MEMORY_SAFETY_BUG
 FRAME: process_srcu
+PANICKED: Y
 
 
 [  626.611274][   T51] BUG: unable to handle page fault for address: ffffffff9175c704

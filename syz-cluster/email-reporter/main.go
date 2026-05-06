@@ -7,9 +7,11 @@ package main
 
 import (
 	"context"
-	"log"
+	"errors"
+	"os"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -43,34 +45,29 @@ func main() {
 	}
 	reporterClient := app.DefaultReporterClient()
 	handler := &Handler{
-		reporter:    api.LKMLReporter,
-		apiClient:   reporterClient,
-		emailConfig: cfg.EmailReporting,
-		sender:      sender,
+		reporter:       api.LKMLReporter,
+		reporterClient: reporterClient,
+		apiClient:      app.DefaultClient(),
+		emailConfig:    cfg.EmailReporting,
+		sender:         sender,
 	}
-	msgCh := make(chan *lore.Email, 16)
+	msgCh := make(chan *lore.PolledEmail, 16)
 	eg, loopCtx := errgroup.WithContext(ctx)
 	if cfg.EmailReporting.LoreArchiveURL != "" {
-		fetcher := NewLKMLEmailStream("/lore-repo/checkout", reporterClient, cfg.EmailReporting, msgCh)
-		eg.Go(func() error { return fetcher.Loop(loopCtx, fetcherPollPeriod) })
-	}
-	eg.Go(func() error {
-		for {
-			var newEmail *lore.Email
-			select {
-			case newEmail = <-msgCh:
-			case <-loopCtx.Done():
+		poller, err := MakeLorePoller("/lore-repo/checkout", cfg.EmailReporting, msgCh)
+		if err != nil {
+			app.Fatalf("failed to create poller: %v", err)
+		}
+		eg.Go(func() error {
+			err := poller.Loop(loopCtx, fetcherPollPeriod, msgCh)
+			if err == context.Canceled {
 				return nil
 			}
-			log.Printf("received email %q", newEmail.MessageID)
-			err := handler.IncomingEmail(loopCtx, newEmail.Email)
-			if err != nil {
-				// Note that we just print an error and go on instead of retrying.
-				// Some retrying may be reasonable, but it also comes with a risk of flooding
-				// the mailing lists.
-				app.Errorf("email %q: failed to process: %v", newEmail.MessageID, err)
-			}
-		}
+			return err
+		})
+	}
+	eg.Go(func() error {
+		return runConsumerLoop(loopCtx, msgCh, handler)
 	})
 	eg.Go(func() error {
 		handler.PollReportsLoop(loopCtx, senderPollPeriod)
@@ -79,4 +76,48 @@ func main() {
 	if err = eg.Wait(); err != nil {
 		app.Errorf("failed: %s", err)
 	}
+}
+
+func runConsumerLoop(ctx context.Context, msgCh <-chan *lore.PolledEmail, handler *Handler) error {
+	for {
+		select {
+		case polled := <-msgCh:
+			delays := []time.Duration{30 * time.Second, time.Minute, 5 * time.Minute}
+			for attempt, delay := range delays {
+				err := handler.ProcessPolledEmail(ctx, polled)
+				if err == nil || errors.Is(err, ErrOwnEmail) || errors.Is(err, ErrUnknownReport) {
+					break
+				}
+				if attempt < len(delays) {
+					app.Errorf("failed to process email (attempt %d), retrying in %v: %v", attempt+1, delay, err)
+					select {
+					case <-ctx.Done():
+						return nil
+					case <-time.After(delay):
+					}
+				} else {
+					app.Errorf("failed to process email, giving up after %d attempts: %v", attempt+1, err)
+				}
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func MakeLorePoller(repoDir string, emailCfg *app.EmailConfig, msgCh chan *lore.PolledEmail) (*lore.Poller, error) {
+	var ownEmails []string
+	if emailCfg.Dashapi != nil {
+		ownEmails = append(ownEmails, emailCfg.Dashapi.From)
+	}
+	if emailCfg.SMTP != nil {
+		ownEmails = append(ownEmails, emailCfg.SMTP.From)
+	}
+	return lore.NewPoller(lore.PollerConfig{
+		RepoDir:        repoDir,
+		URL:            emailCfg.LoreArchiveURL,
+		OwnEmails:      ownEmails,
+		LookbackPeriod: 48 * time.Hour,
+		Tracer:         &debugtracer.GenericTracer{TraceWriter: os.Stdout, WithTime: true},
+	})
 }

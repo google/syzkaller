@@ -2,10 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-aflow tool can be used to invoke any agentic workflow registered with pkg/aflow.
-// For example, to run the patching workflow use:
-//
-//	go run ./tools/syz-aflow -input=input.json -download-bug=d8fd35fa6177afa8c92b
-//	go run ./tools/syz-aflow -input=input.json -workflow=patching -workdir=workdir
+// See tools/syz-aflow/README.md for instructions.
 package main
 
 import (
@@ -22,9 +19,9 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
-
 	"golang.org/x/oauth2/google"
 )
 
@@ -35,10 +32,11 @@ func main() {
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
-		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
+		flagDownloadBug = flag.String("download-bug", "", "extid or id of a bug to download from the dashboard"+
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
+		flagHTML = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -68,17 +66,33 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	if err := run(context.Background(), *flagModel, *flagFlow, *flagInput, *flagWorkdir, cacheSize); err != nil {
-		tool.Fail(err)
+	if err := run(context.Background(), RunArgs{
+		Model:     *flagModel,
+		FlowName:  *flagFlow,
+		InputFile: *flagInput,
+		Workdir:   *flagWorkdir,
+		HTMLFile:  *flagHTML,
+		CacheSize: cacheSize,
+	}); err != nil {
+		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
 }
 
-func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheSize uint64) error {
-	flow := aflow.Flows[flowName]
+type RunArgs struct {
+	Model     string
+	FlowName  string
+	InputFile string
+	Workdir   string
+	HTMLFile  string
+	CacheSize uint64
+}
+
+func run(ctx context.Context, args RunArgs) error {
+	flow := aflow.Flows[args.FlowName]
 	if flow == nil {
-		return fmt.Errorf("workflow %q is not found", flowName)
+		return fmt.Errorf("workflow %q is not found", args.FlowName)
 	}
-	inputData, err := os.ReadFile(inputFile)
+	inputData, err := os.ReadFile(args.InputFile)
 	if err != nil {
 		return fmt.Errorf("failed to open -input file: %w", err)
 	}
@@ -86,44 +100,89 @@ func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheS
 	if err := json.Unmarshal(inputData, &inputs); err != nil {
 		return err
 	}
-	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cacheSize)
+	cache, err := aflow.NewCache(filepath.Join(args.Workdir, "cache"), args.CacheSize)
 	if err != nil {
 		return err
 	}
-	_, err = flow.Execute(ctx, model, workdir, inputs, cache, onEvent)
+
+	var spans []*trajectory.Span
+	spansMap := make(map[int]*trajectory.Span)
+	onEventFunc := func(span *trajectory.Span) error {
+		if _, ok := spansMap[span.Seq]; !ok {
+			spans = append(spans, span)
+		}
+		spansMap[span.Seq] = span
+		if args.HTMLFile != "" {
+			f, err := os.Create(args.HTMLFile)
+			if err != nil {
+				log.Printf("failed to create HTML file: %v", err)
+			} else {
+				if err := aflowhtml.RenderReport(f, spans); err != nil {
+					log.Printf("failed to render trajectory: %v", err)
+				}
+				f.Close()
+			}
+		}
+		if span.Error != "" {
+			return nil
+		}
+		log.Printf("%v", span)
+		return nil
+	}
+
+	_, err = flow.Execute(ctx, args.Model, args.Workdir, inputs, cache, onEventFunc)
 	return err
 }
 
-func onEvent(span *trajectory.Span) error {
-	log.Printf("%v", span)
-	return nil
-}
-
-func downloadBug(extID, inputFile, token string) error {
+func downloadBug(id, inputFile, token string) error {
 	if inputFile == "" {
 		return fmt.Errorf("-download-bug requires -input flag")
 	}
-	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", extID), token)
+	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", id), token)
 	if err != nil {
-		return err
+		// Retry with "id=" if we failed with "extid="
+		resp, err = get(fmt.Sprintf("/bug?id=%v&json=1", id), token)
+		if err != nil {
+			return err
+		}
 	}
 	var info map[string]any
 	if err := json.Unmarshal([]byte(resp), &info); err != nil {
-		return err
+		return fmt.Errorf(
+			"response for bug ID %v was not valid JSON: %w",
+			id, err,
+		)
 	}
 	crash := info["crashes"].([]any)[0].(map[string]any)
+
 	inputs := map[string]any{
-		"SyzkallerCommit": crash["syzkaller-commit"],
+		"KernelRepo":   crash["kernel-source-git"],
+		"KernelCommit": crash["kernel-source-commit"],
+		"BugTitle":     crash["title"],
 	}
-	inputs["ReproSyz"], err = get(crash["syz-reproducer"].(string), token)
+
+	fetchText := func(key string) (string, error) {
+		path, ok := crash[key].(string)
+		if !ok || path == "" {
+			return "", nil
+		}
+		return get(path, token)
+	}
+
+	inputs["ReproSyz"], err = fetchText("syz-reproducer")
 	if err != nil {
 		return err
 	}
-	inputs["ReproC"], err = get(crash["c-reproducer"].(string), token)
+	inputs["ReproOpts"] = crash["repro-opts"]
+	inputs["ReproC"], err = fetchText("c-reproducer")
 	if err != nil {
 		return err
 	}
-	inputs["KernelConfig"], err = get(crash["kernel-config"].(string), token)
+	inputs["KernelConfig"], err = fetchText("kernel-config")
+	if err != nil {
+		return err
+	}
+	inputs["CrashReport"], err = fetchText("crash-report-link")
 	if err != nil {
 		return err
 	}

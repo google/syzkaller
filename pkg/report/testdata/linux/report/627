@@ -1,6 +1,7 @@
 TITLE: KASAN: slab-out-of-bounds Read in ext4_group_desc_csum
 ALT: bad-access in ext4_group_desc_csum
 TYPE: KASAN-READ
+PANICKED: Y
 
 [ 2255.673591][T32756] ==================================================================
 [ 2255.682349][T32756] BUG: KASAN: slab-out-of-bounds in crc16+0xcb/0xe0

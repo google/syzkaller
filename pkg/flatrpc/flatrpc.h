@@ -159,12 +159,13 @@ enum class Feature : uint64_t {
   LRWPANEmulation = 524288ULL,
   BinFmtMisc = 1048576ULL,
   Swap = 2097152ULL,
+  MemoryDump = 4194304ULL,
   NONE = 0,
-  ANY = 4194303ULL
+  ANY = 8388607ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(Feature, uint64_t)
 
-inline const Feature (&EnumValuesFeature())[22] {
+inline const Feature (&EnumValuesFeature())[23] {
   static const Feature values[] = {
     Feature::Coverage,
     Feature::Comparisons,
@@ -187,7 +188,8 @@ inline const Feature (&EnumValuesFeature())[22] {
     Feature::WifiEmulation,
     Feature::LRWPANEmulation,
     Feature::BinFmtMisc,
-    Feature::Swap
+    Feature::Swap,
+    Feature::MemoryDump
   };
   return values;
 }
@@ -216,6 +218,7 @@ inline const char *EnumNameFeature(Feature e) {
     case Feature::LRWPANEmulation: return "LRWPANEmulation";
     case Feature::BinFmtMisc: return "BinFmtMisc";
     case Feature::Swap: return "Swap";
+    case Feature::MemoryDump: return "MemoryDump";
     default: return "";
   }
 }

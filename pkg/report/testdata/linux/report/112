@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in process_one_work
 ALT: bad-access in process_one_work
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [  190.154802] BUG: unable to handle kernel NULL pointer dereference at 0000000000000286
 [  190.154802] IP: 0x286

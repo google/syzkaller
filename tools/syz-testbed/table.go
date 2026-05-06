@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/stat/sample"
+	"golang.org/x/exp/maps"
 )
 
 type Cell = any
@@ -123,11 +124,8 @@ func (t *Table) AddRow(row string, cells ...Cell) {
 }
 
 func (t *Table) SortedRows() []string {
-	rows := []string{}
-	for key := range t.Cells {
-		rows = append(rows, key)
-	}
-	sort.Strings(rows)
+	rows := maps.Keys(t.Cells)
+	slices.Sort(rows)
 	return rows
 }
 

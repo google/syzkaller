@@ -1,6 +1,7 @@
 TITLE: general protection fault in tipc_nametbl_unsubscribe
 ALT: bad-access in tipc_nametbl_unsubscribe
 TYPE: DoS
+PANICKED: Y
 
 [   24.236490] kasan: CONFIG_KASAN_INLINE enabled
 [   24.241061] kasan: GPF could be caused by NULL-ptr deref or user memory access

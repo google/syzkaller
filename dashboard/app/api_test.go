@@ -7,69 +7,131 @@ import (
 	"context"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientSecretOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "secr1t",
-		},
-	}, "user", "secr1t", "")
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "secr1t"},
+		}}),
+		"user", "secr1t", "", "method")
 	if err != nil || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientOauthOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "OauthSubject:public",
-		},
-	}, "user", "", "OauthSubject:public")
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "OauthSubject:public"},
+		}}),
+		"user", "", "OauthSubject:public", "method")
 	if err != nil || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientSecretFail(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "secr1t",
-		},
-	}, "user", "wrong", "")
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "secr1t"},
+		}}),
+		"user", "wrong", "", "method")
 	if err != ErrAccess || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientSecretMissing(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{},
-	}, "user", "ignored", "")
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{},
+	}),
+		"user", "ignored", "", "method")
 	if err != ErrAccess || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientNamespaceOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
 		Namespaces: map[string]*Config{
 			"ns1": {
-				Clients: map[string]string{
-					"user": "secr1t",
+				Clients: map[string]APIClient{
+					"user": {Key: "secr1t"},
 				},
 			},
-		},
-	}, "user", "secr1t", "")
+		}}),
+		"user", "secr1t", "", "method")
 	if err != nil || got != "ns1" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
+}
+
+func TestClientMethodOK(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {
+				Key:     "secr1t",
+				Methods: map[string]bool{"method": true, "other": true},
+			},
+		}}),
+		"user", "secr1t", "", "method")
+	if err != nil || got != "" {
+		t.Errorf("unexpected error %v %v", got, err)
+	}
+}
+
+func TestClientMethodNotOK(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {
+				Key:     "secr1t",
+				Methods: map[string]bool{"method": true, "other": true},
+			},
+		}}),
+		"user", "secr1t", "", "yetanother")
+	if err != ErrAccess || got != "" {
+		t.Errorf("unexpected error %v %v", got, err)
+	}
+}
+
+func TestClientNamespaceAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// A global client must not be able to call per-namespace APIs.
+	globalClient := c.makeClient(reportingClient, reportingKey, false)
+	err := globalClient.UploadBuild(testBuild(1))
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "must be called within a namespace"))
+
+	// A namespace client must not be able to call global APIs.
+	nsClient := c.makeClient(client1, password1, false)
+	_, err = nsClient.ReportingPollBugs("test")
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "must not be called within a namespace"))
 }
 
 func TestEmergentlyStoppedEmail(t *testing.T) {
@@ -135,7 +197,7 @@ func TestEmergentlyStoppedExternalReport(t *testing.T) {
 
 	// There should be no email.
 	c.advanceTime(time.Hour)
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestEmergentlyStoppedEmailJob(t *testing.T) {
@@ -162,7 +224,7 @@ func TestEmergentlyStoppedEmailJob(t *testing.T) {
 	c.expectNoEmail()
 
 	// Emulate a finished job.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 
 	c.advanceTime(time.Hour)
@@ -173,7 +235,7 @@ func TestEmergentlyStoppedEmailJob(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 
 	// Now we emergently stop syzbot.
 	c.advanceTime(time.Hour)
@@ -313,7 +375,7 @@ func TestCreateUploadURL(t *testing.T) {
 		return contextWithConfig(c, &newConfig)
 	}
 
-	url, err := c.client.CreateUploadURL()
+	url, err := c.globalClient.CreateUploadURL()
 	assert.NoError(t, err)
 	assert.Regexp(t, "blobstorage/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.upload", url)
 }

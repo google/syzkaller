@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -63,8 +64,9 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		vmlinux: vmlinux,
 		symbols: symbols,
 	}
-	// nolint: lll
-	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
+	ctx.consoleOutputRe = regexp.MustCompile(
+		`^(?:\*\* [0-9]+ printk messages dropped \*\* )?` +
+			`(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.questionableFrame = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? `)
@@ -154,8 +156,150 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 
 const contextConsole = "console"
 
+var linuxPanickedRe = regexp.MustCompile(`Kernel panic - not syncing`)
+var linuxFaultInjectionRe = []byte("FAULT_INJECTION: forcing a failure")
+
 func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
+}
+
+func (ctx *linux) extractFaultInjectionInfo(reporter *Reporter, output []byte) (string, error) {
+	if !bytes.Contains(output, linuxFaultInjectionRe) {
+		return "", nil
+	}
+	const maxReports = 5
+	var blocks []string
+	seen := map[string]struct{}{}
+	for pos := 0; pos < len(output) && len(blocks) < maxReports; {
+		startPos, context, ok := ctx.findLineWithPattern(output, pos, linuxFaultInjectionRe)
+		if !ok {
+			break
+		}
+		pos = nextLinePos(output, startPos)
+		rep := ctx.extractFaultInjectionReport(output, startPos, context)
+		if rep == nil {
+			continue
+		}
+		if err := reporter.Symbolize(rep); err != nil {
+			return "", err
+		}
+		key := string(rep.Report)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		blocks = append(blocks, string(rep.Report))
+	}
+	return strings.Join(blocks, "\n\n"), nil
+}
+
+func (ctx *linux) findLineWithPattern(output []byte, startPos int, pattern []byte) (int, string, bool) {
+	for pos := startPos; pos < len(output); pos = nextLinePos(output, pos) {
+		next := nextLinePos(output, pos)
+		line := bytes.TrimRight(output[pos:next], "\n")
+		if bytes.Contains(line, pattern) {
+			return pos, ctx.extractContext(line), true
+		}
+	}
+	return 0, "", false
+}
+
+func (ctx *linux) extractFaultInjectionReport(output []byte, startPos int, context string) *Report {
+	var report []byte
+	cpuTraceback := false
+	endPos := startPos
+	for pos := startPos; pos < len(output); pos = nextLinePos(output, pos) {
+		next := nextLinePos(output, pos)
+		line := bytes.TrimRight(output[pos:next], "\n")
+		context1 := ctx.extractContext(line)
+		stripped, questionable := ctx.stripLinePrefix(line, context1, false)
+		isStartLine := pos == startPos
+		if !isStartLine {
+			if questionable {
+				continue
+			}
+			if context != "" && context1 != context &&
+				(!cpuTraceback || !ctx.cpuContext.MatchString(context1)) {
+				continue
+			}
+			if ctx.isFaultInjectionBoundary(line) {
+				endPos = pos
+				break
+			}
+		}
+		if bytes.Contains(line, []byte("Sending NMI from CPU")) {
+			cpuTraceback = true
+		}
+		report = append(report, stripped...)
+		report = append(report, '\n')
+		endPos = next
+	}
+	report = compactFaultInjectionReport(report)
+	if len(report) == 0 {
+		return nil
+	}
+	return &Report{
+		Output:   output,
+		StartPos: startPos,
+		EndPos:   endPos,
+		Report:   report,
+	}
+}
+
+func (ctx *linux) isFaultInjectionBoundary(line []byte) bool {
+	for _, oops := range linuxOopses {
+		if matchOops(line, oops, ctx.ignores) && !matchesAny(line, ctx.reportStartIgnores) {
+			return true
+		}
+	}
+	for _, pattern := range ctx.infoMessagesWithStack {
+		if bytes.Contains(line, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func compactFaultInjectionReport(report []byte) []byte {
+	var compact []byte
+	hasTrace := false
+	for _, line := range bytes.Split(report, []byte{'\n'}) {
+		line = bytes.TrimRight(line, " \t")
+		trimmed := bytes.TrimSpace(line)
+		if len(trimmed) == 0 {
+			continue
+		}
+		switch {
+		case bytes.Contains(trimmed, linuxFaultInjectionRe):
+			line = trimmed
+		case bytes.HasPrefix(trimmed, []byte("name ")):
+			line = trimmed
+		case bytes.Equal(trimmed, []byte("Call Trace:")):
+			line = trimmed
+		default:
+			if _, ok := parseLinuxBacktraceLine(line); !ok {
+				continue
+			}
+			hasTrace = true
+		}
+		compact = append(compact, line...)
+		compact = append(compact, '\n')
+	}
+	if !hasTrace {
+		return nil
+	}
+	return bytes.TrimSuffix(compact, []byte{'\n'})
+}
+
+func nextLinePos(output []byte, pos int) int {
+	if pos >= len(output) {
+		return len(output)
+	}
+	next := bytes.IndexByte(output[pos:], '\n')
+	if next == -1 {
+		return len(output)
+	}
+	return pos + next + 1
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
@@ -195,6 +339,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = isCorrupted(title, report, format)
 		}
+		rep.Panicked = linuxPanickedRe.Match(output)
 		if rep.CorruptedReason == corruptedNoFrames && context != contextConsole && !questionable {
 			// We used to look at questionable frame with the following incentive:
 			// """
@@ -277,7 +422,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		stripped, questionable := ctx.stripLinePrefix(line, context1, useQuestionable)
 		if pos < startPos {
 			if context1 == context && len(stripped) != 0 && !questionable {
-				prefix = append(prefix, append([]byte{}, stripped...))
+				prefix = append(prefix, slices.Clone(stripped))
 				if len(prefix) > maxPrefix {
 					prefix = prefix[1:]
 				}
@@ -501,7 +646,7 @@ func parseLinuxBacktraceLine(line []byte) (info linuxBacktraceLine, ok bool) {
 // Note that Assemble() ignores changes to Offset and Size (no reason as these are not updated anywhere).
 func (line linuxBacktraceLine) Assemble() []byte {
 	match := line.indices
-	modified := append([]byte{}, line.raw...)
+	modified := slices.Clone(line.raw)
 	if line.BuildID != "" {
 		modified = replace(modified, match[8], match[9], []byte(" ["+line.ModName+"]"))
 	}
@@ -944,7 +1089,7 @@ func isCorrupted(title string, report []byte, format oopsFormat) (bool, string) 
 				break
 			}
 		}
-		if corrupted {
+		if key != riscvSpecialStackStart && corrupted {
 			return true, "no frames in a stack trace"
 		}
 	}
@@ -1140,6 +1285,11 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
 }
 
+// In riscv, if show_regs() is called from kernel space, the stack is dumped without a proper indicator. However a
+// missing stack trace does not necessarily mean the log is corrupted. Match the last line printed by show_regs(),
+// before the stack dump.
+var riscvSpecialStackStart = regexp.MustCompile(`status: [0-9a-f]{16} badaddr: [0-9a-f]{16} cause: [0-9a-f]{16}`)
+
 var linuxStackParams = &stackParams{
 	stackStartRes: []*regexp.Regexp{
 		regexp.MustCompile(`Call (?:T|t)race`),
@@ -1152,6 +1302,8 @@ var linuxStackParams = &stackParams{
 		regexp.MustCompile(`[^k] backtrace(?: \(crc [[:xdigit:]]*\))?:`),
 		regexp.MustCompile(`Backtrace:`),
 		regexp.MustCompile(`Uninit was stored to memory at`),
+		// A special stack trace for RISC-V is handled separately.
+		riscvSpecialStackStart,
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
@@ -1400,6 +1552,7 @@ var linuxStackParams = &stackParams{
 		"__mod_timer",
 		"fast_dput",
 		"dput",
+		"mark_buffer_dirty",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -1889,6 +2042,11 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title: compile("WARNING: {{SRC}} at {{FUNC}}"),
+				fmt:   "WARNING in %[3]v",
+				stack: warningStackFmt(),
+			},
+			{
+				title: compile(`WARNING: \[.*\] {{SRC}} at {{FUNC}}.*`),
 				fmt:   "WARNING in %[3]v",
 				stack: warningStackFmt(),
 			},

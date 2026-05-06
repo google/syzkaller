@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in audit_data_to_entry
 ALT: bad-access in audit_data_to_entry
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [   17.577241][ T1878] BUG: unable to handle page fault for address: ffffebde00002008
 [   17.586014][ T1878] #PF: supervisor read access in kernel mode

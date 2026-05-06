@@ -18,6 +18,11 @@ import (
 // outputs the source directory with the checkout.
 var Checkout = aflow.NewFuncAction("kernel-checkouter", checkout)
 
+// Checkout action checks out the Linux kernel on the given commit
+// in a private temp dir that lives only for the duration of the workflow.
+// It's supposed to be used for code edits.
+var CheckoutScratch = aflow.NewFuncAction("kernel-scratch-checkouter", checkoutScratch)
+
 type checkoutArgs struct {
 	KernelRepo   string
 	KernelCommit string
@@ -26,6 +31,15 @@ type checkoutArgs struct {
 type checkoutResult struct {
 	// Directory with the checked out sources.
 	KernelSrc string
+}
+
+type checkoutScratchArgs struct {
+	KernelSrc string
+}
+
+type checkoutScratchResult struct {
+	// Temp dir with the checked out sources.
+	KernelScratchSrc string
 }
 
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
@@ -58,22 +72,37 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					}
 				}
 			}
-			if _, err := osutil.RunCmd(time.Hour, dir, "git", "init"); err != nil {
-				return err
-			}
-			if _, err := osutil.RunCmd(time.Hour, dir, "git", "remote", "add", "origin", kernelRepoDir); err != nil {
-				return err
-			}
-			if _, err := osutil.RunCmd(time.Hour, dir, "git", "pull", "origin", "HEAD", "--depth=1",
-				"--allow-unrelated-histories"); err != nil {
-				return err
-			}
-			return nil
+			return shallowGitClone(dir, kernelRepoDir)
 		})
 		res.KernelSrc = dir
 		return err
 	})
 	return res, err
+}
+
+func checkoutScratch(ctx *aflow.Context, args checkoutScratchArgs) (checkoutScratchResult, error) {
+	dir, err := ctx.TempDir()
+	if err != nil {
+		return checkoutScratchResult{}, err
+	}
+	if err := shallowGitClone(dir, args.KernelSrc); err != nil {
+		return checkoutScratchResult{}, err
+	}
+	return checkoutScratchResult{dir}, nil
+}
+
+func shallowGitClone(dir, remoteDir string) error {
+	if _, err := osutil.RunCmd(time.Hour, dir, "git", "init"); err != nil {
+		return err
+	}
+	if _, err := osutil.RunCmd(time.Hour, dir, "git", "remote", "add", "origin", remoteDir); err != nil {
+		return err
+	}
+	if _, err := osutil.RunCmd(time.Hour, dir, "git", "pull", "origin", "HEAD", "--depth=1",
+		"--allow-unrelated-histories"); err != nil {
+		return err
+	}
+	return nil
 }
 
 var repoMu sync.Mutex

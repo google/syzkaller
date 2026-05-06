@@ -27,8 +27,8 @@ For other OS kernels check:
 [OpenBSD](docs/openbsd/setup.md),
 [Starnix](docs/starnix/README.md),
 [Windows](docs/windows/README.md),
-[gVisor](docs/gvisor/README.md).
-[Akaros](docs/akaros/README.md),
+[gVisor](docs/gvisor/README.md),
+[Akaros](docs/akaros/README.md).
 
 - [How to install syzkaller](docs/setup.md)
 - [How to use syzkaller](docs/usage.md)

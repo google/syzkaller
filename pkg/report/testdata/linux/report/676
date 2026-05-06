@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in gsmld_receive_buf
 ALT: bad-access in gsmld_receive_buf
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [  794.144064][ T8604] 8<--- cut here ---
 [  794.144523][ T8604] Unable to handle kernel NULL pointer dereference at virtual address 00000000

@@ -171,6 +171,7 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 			return w1.arch < w2.arch
 		})
 		buf := new(bytes.Buffer)
+		//nolint:syz-linter // i is modified inside the loop
 		for i := 0; i < len(warns); i++ {
 			warn := warns[i]
 			arch := warn.arch

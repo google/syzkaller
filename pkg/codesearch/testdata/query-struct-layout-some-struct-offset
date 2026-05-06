@@ -1,0 +1,4 @@
+struct-layout testdata/source0.h some_struct 0
+
+struct some_struct has 1 fields:
+[0 - 32] x

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -47,7 +48,7 @@ func TestPeriodicSubsystemRefresh(t *testing.T) {
 	crash.Title = "WARNING: abcd"
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
@@ -90,7 +91,7 @@ func TestOpenBugRevRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
@@ -126,11 +127,11 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// "Fix" the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix the crash"},
@@ -140,7 +141,7 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	build2.Manager = build.Manager
 	build2.Commits = []string{"foo: fix the crash"}
 	client.UploadBuild(build2)
-	client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 	bug, _, _ := c.loadBug(rep.ID)
 	c.expectEQ(bug.Status, BugStatusFixed)
 
@@ -175,11 +176,11 @@ func TestInvalidBugSubsystemRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Invalidate the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusInvalid,
 	})
@@ -302,7 +303,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	aFirst.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(aFirst)
 	bugToExtID[aFirst.Title] = client.pollEmailExtID()
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		client.ReportCrash(aFirst)
 		c.advanceTime(time.Hour)
 	}
@@ -329,7 +330,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	bSecond.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(bSecond)
 	bugToExtID[bSecond.Title] = client.pollEmailExtID()
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		client.ReportCrash(bSecond)
 		c.advanceTime(time.Hour)
 	}
@@ -347,7 +348,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	crash.Title = `WARNING: a third, keep in moderation` // see the config in app_test.go
 	crash.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 	c.advanceTime(time.Hour)
 
 	_, err := c.GET("/cron/subsystem_reports")
@@ -527,6 +528,79 @@ You may send multiple commands in a single email message.
 `, bugToExtID["WARNING: a first"], bugToExtID["WARNING: a second"]))
 }
 
+func TestSubsystemRemindersSkipModeration(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	ns := "subsystem-reminders"
+
+	// Enable WorthReporting callback.
+	c.transformContext = func(ctx context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			r := *ret.Subsystems.Reminder
+			r.SkipModeration = isWorthMonthlyReport
+			ret.Subsystems.Reminder = &r
+			return &ret
+		})
+		return contextWithConfig(ctx, newConfig)
+	}
+
+	// Report two INFO bugs.
+	aFirst := testCrash(build, 1)
+	aFirst.Title = `INFO: a first`
+	aFirst.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(aFirst)
+	client.pollEmailExtID()
+	c.advanceTime(time.Hour)
+
+	aSecond := testCrash(build, 1)
+	aSecond.Title = `INFO: a second`
+	aSecond.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(aSecond)
+	client.pollEmailExtID()
+	c.advanceTime(time.Hour)
+
+	// Report them again to pretend they're still valid.
+	c.advanceTime(time.Hour * 24 * 14)
+	client.ReportCrash(aFirst)
+	client.ReportCrash(aSecond)
+
+	// Trigger report generation.
+	_, err := c.GET("/cron/subsystem_reports")
+	c.expectOK(err)
+
+	// Expect a report to moderation because all bugs are INFO.
+	reply := client.pollEmailBug()
+	c.expectTrue(strings.Contains(reply.Subject, "[moderation] Monthly subsystemA report"))
+
+	// Now report a non-INFO bug.
+	aThird := testCrash(build, 1)
+	aThird.Title = `WARNING: a third`
+	aThird.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(aThird)
+	client.pollEmailExtID()
+	c.advanceTime(time.Hour)
+
+	// Report all bugs again to keep them active.
+	c.advanceTime(time.Hour * 24 * 31)
+	client.ReportCrash(aFirst)
+	client.ReportCrash(aSecond)
+	client.ReportCrash(aThird)
+
+	// Trigger report generation again.
+	_, err = c.GET("/cron/subsystem_reports")
+	c.expectOK(err)
+
+	// Expect the reminder to go straight to public because we have a WARNING bug.
+	reply = client.pollEmailBug()
+	c.expectEQ(reply.Subject, "[syzbot] Monthly subsystemA report (Feb 2000)")
+}
+
 func TestSubsystemReportGeneration(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -551,7 +625,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	client.ReportCrash(aFixed)
 	bugToExtID[aFixed.Title] = client.pollEmailExtID()
 	c.advanceTime(time.Hour)
-	updReply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	updReply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         bugToExtID[aFixed.Title],
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1"},
@@ -762,7 +836,7 @@ func TestNoRemindersWithDiscussions(t *testing.T) {
 	client.ReportCrash(aThird)
 
 	// Add a recent discussion to the second bug.
-	c.expectOK(client.SaveDiscussion(&dashapi.SaveDiscussionReq{
+	c.expectOK(c.globalClient.SaveDiscussion(&dashapi.SaveDiscussionReq{
 		Discussion: &dashapi.Discussion{
 			ID:      "123",
 			Source:  dashapi.DiscussionLore,

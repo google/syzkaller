@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -174,14 +173,10 @@ func testGenerationImpl(t *testing.T, test testData, target *prog.Target) (strin
 
 	areEqual := true
 	for i := range actualSyscalls {
-		if diffSyscalls := cmp.Diff(actualSyscalls[i], test.calls[i].syscall); diffSyscalls != "" {
-			fmt.Print(diffSyscalls)
-			t.Fail()
+		if !assert.Equal(t, test.calls[i].syscall, actualSyscalls[i]) {
 			areEqual = false
 		}
-		if diffComments := cmp.Diff(actualComments[i], test.calls[i].comment); diffComments != "" {
-			fmt.Print(diffComments)
-			t.Fail()
+		if !assert.Equal(t, test.calls[i].comment, actualComments[i]) {
 			areEqual = false
 		}
 	}

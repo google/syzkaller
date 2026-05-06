@@ -1,0 +1,13 @@
+{
+  "id": "patch-test-report-id",
+  "type": "patch-test",
+  "moderation": false,
+  "series": {
+    "title": "Add some cool feature",
+    "version": 2,
+    "link": "https://lore.kernel.org/all/msg-id"
+  },
+  "link": "https://dashboard/report/patch-test-report-id",
+  "patch_link": "https://dashboard/jobs/patch-test-job-id/patch",
+  "error": "Testing failed due to an infrastructure error."
+}

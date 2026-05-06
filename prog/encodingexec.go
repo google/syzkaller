@@ -22,10 +22,11 @@
 package prog
 
 import (
+	"cmp"
 	"encoding/binary"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 )
 
 const (
@@ -265,8 +266,8 @@ func (w *execContext) writeChecksums() {
 	for arg := range w.csumMap {
 		csumArgs = append(csumArgs, arg)
 	}
-	sort.Slice(csumArgs, func(i, j int) bool {
-		return w.args[csumArgs[i]].Addr < w.args[csumArgs[j]].Addr
+	slices.SortFunc(csumArgs, func(a, b Arg) int {
+		return cmp.Compare(w.args[a].Addr, w.args[b].Addr)
 	})
 	for i := len(csumArgs) - 1; i >= 0; i-- {
 		arg := csumArgs[i]

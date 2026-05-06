@@ -152,7 +152,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("unable to forward port on host: %w", err)
 	}
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		devicePort := vmimpl.RandomPort()
 		cmd := fmt.Sprintf("adb reverse tcp:%d tcp:%d", devicePort, port)
 		err = inst.runOnHost(10*time.Second, cmd)
@@ -169,7 +169,7 @@ func (inst *instance) Close() error {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	return inst.gceInst.Run(ctx, fmt.Sprintf("adb shell 'cd %s; %s'", deviceRoot, command))
 }
 

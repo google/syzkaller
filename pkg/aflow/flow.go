@@ -24,8 +24,9 @@ import (
 // Actions are nodes of the graph, and they consume/produce some named values
 // (input/output fields, and intermediate values consumed by other actions).
 type Flow struct {
-	Name string // Empty for the main workflow for the workflow type.
-	Root Action
+	Name   string         // Empty for the main workflow for the workflow type.
+	Consts map[string]any // Additional fixed inputs for the workflow.
+	Root   Action
 
 	Models []string // LLM models used in this workflow.
 	*FlowType
@@ -34,7 +35,7 @@ type Flow struct {
 type FlowType struct {
 	Type           ai.WorkflowType
 	Description    string
-	checkInputs    func(map[string]any) error
+	checkInputs    func(map[string]any) (map[string]any, error)
 	extractOutputs func(map[string]any) map[string]any
 }
 
@@ -53,21 +54,20 @@ func Register[Inputs, Outputs any](typ ai.WorkflowType, description string, flow
 
 func register[Inputs, Outputs any](typ ai.WorkflowType, description string,
 	all map[string]*Flow, flows []*Flow) error {
+	if typ == "" {
+		return fmt.Errorf("empty flow type")
+	}
 	t := &FlowType{
 		Type:        typ,
 		Description: description,
-		checkInputs: func(inputs map[string]any) error {
-			_, err := convertFromMap[Inputs](inputs, false, false)
-			return err
-		},
-		extractOutputs: func(state map[string]any) map[string]any {
-			// Ensure that we actually have all outputs.
-			tmp, err := convertFromMap[Outputs](state, false, false)
+		checkInputs: func(inputs map[string]any) (map[string]any, error) {
+			val, err := convertFromMap[Inputs](inputs, false, false)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			return convertToMap(tmp)
+			return convertToMap(val), nil
 		},
+		extractOutputs: extractOutputs[Outputs],
 	}
 	for _, flow := range flows {
 		if flow.Name == "" {
@@ -87,11 +87,8 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 	if all[flow.Name] != nil {
 		return fmt.Errorf("flow %v is already registered", flow.Name)
 	}
-	ctx := &verifyContext{
-		actions: make(map[string]bool),
-		state:   make(map[string]*varState),
-		models:  make(map[string]bool),
-	}
+	ctx := newVerifyContext()
+	provideOutputsMap(ctx, "flow consts", flow.Consts)
 	provideOutputs[Inputs](ctx, "flow inputs")
 	flow.Root.verify(ctx)
 	requireInputs[Outputs](ctx, "flow outputs")

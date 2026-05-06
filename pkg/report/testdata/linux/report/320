@@ -1,5 +1,6 @@
 TITLE: kernel panic: stack is corrupted in udp4_lib_lookup2
 TYPE: DoS
+PANICKED: Y
 
 [  678.752880] Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: udp4_lib_lookup2+0x7ea/0x7f0
 [  678.763686] CPU: 1 PID: 23879 Comm: syz-executor5 Not tainted 4.20.0+ #176

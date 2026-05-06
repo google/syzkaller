@@ -403,15 +403,6 @@ func (comp *compiler) parseIntType(name string) (size uint64, bigEndian bool) {
 	return size, be
 }
 
-func arrayContains(a []string, v string) bool {
-	for _, s := range a {
-		if s == v {
-			return true
-		}
-	}
-	return false
-}
-
 func (comp *compiler) flattenFlags() {
 	comp.flattenIntFlags()
 	comp.flattenStrFlags()

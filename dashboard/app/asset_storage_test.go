@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -118,9 +118,9 @@ If you want to undo deduplication, reply with:
 	c.checkURLContents(kernelConfigLink, build.KernelConfig)
 
 	// We query the needed assets. We need all 3.
-	needed, err := c.client2.NeededAssetsList()
+	needed, err := c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	allDownloadURLs := []string{
 		"http://google.com/bootable_disk",
 		"http://google.com/coverage.html",
@@ -129,14 +129,14 @@ If you want to undo deduplication, reply with:
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Invalidate the bug.
-	c.client.updateBug(extBugID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(extBugID, dashapi.BugStatusInvalid, "")
 	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Query the needed assets once more, so far there should be no change.
-	needed, err = c.client2.NeededAssetsList()
+	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Skip one month and deprecate assets.
@@ -145,7 +145,7 @@ If you want to undo deduplication, reply with:
 	c.expectOK(err)
 
 	// Only the html asset should have persisted.
-	needed, err = c.client2.NeededAssetsList()
+	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
 	c.expectEQ(needed.DownloadURLs, []string{"http://google.com/coverage.html"})
 }
@@ -209,10 +209,10 @@ func TestCoverReportDeprecation(t *testing.T) {
 	ensureNeeded := func(needed []string) {
 		_, err := c.GET("/cron/deprecate_assets")
 		c.expectOK(err)
-		neededResp, err := c.client.NeededAssetsList()
+		neededResp, err := c.globalClient.NeededAssetsList()
 		c.expectOK(err)
-		sort.Strings(neededResp.DownloadURLs)
-		sort.Strings(needed)
+		slices.Sort(neededResp.DownloadURLs)
+		slices.Sort(needed)
 		c.expectEQ(neededResp.DownloadURLs, needed)
 	}
 
@@ -285,10 +285,10 @@ func TestFreshBuildAssets(t *testing.T) {
 	ensureNeeded := func(needed []string) {
 		_, err := c.GET("/cron/deprecate_assets")
 		c.expectOK(err)
-		neededResp, err := c.client.NeededAssetsList()
+		neededResp, err := c.globalClient.NeededAssetsList()
 		c.expectOK(err)
-		sort.Strings(neededResp.DownloadURLs)
-		sort.Strings(needed)
+		slices.Sort(neededResp.DownloadURLs)
+		slices.Sort(needed)
 		c.expectEQ(neededResp.DownloadURLs, needed)
 	}
 
@@ -427,9 +427,9 @@ If you want to undo deduplication, reply with:
 	c.checkURLContents(kernelConfigLink, build.KernelConfig)
 
 	// We query the needed assets. We need all 3.
-	needed, err := c.client2.NeededAssetsList()
+	needed, err := c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	allDownloadURLs := []string{
 		"http://google.com/disk_image",
 		"http://google.com/disk_image2",
@@ -438,14 +438,14 @@ If you want to undo deduplication, reply with:
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Invalidate the bug.
-	c.client.updateBug(extBugID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(extBugID, dashapi.BugStatusInvalid, "")
 	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Query the needed assets once more, so far there should be no change.
-	needed, err = c.client2.NeededAssetsList()
+	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Skip one month and deprecate assets.
@@ -454,7 +454,7 @@ If you want to undo deduplication, reply with:
 	c.expectOK(err)
 
 	// Nothing should have been persisted.
-	needed, err = c.client2.NeededAssetsList()
+	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
 	c.expectEQ(needed.DownloadURLs, []string{})
 }

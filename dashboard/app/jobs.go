@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -982,7 +983,7 @@ func handleRetestedRepro(ctx context.Context, now time.Time, job *Job, jobKey *d
 }
 
 func gatherCrashTitles(req *dashapi.JobDoneReq) []string {
-	ret := append([]string{}, req.CrashAltTitles...)
+	ret := slices.Clone(req.CrashAltTitles)
 	if req.CrashTitle != "" {
 		ret = append(ret, req.CrashTitle)
 	}
@@ -1447,10 +1448,12 @@ type jobSorter struct {
 }
 
 func (sorter *jobSorter) Len() int { return len(sorter.jobs) }
+
 func (sorter *jobSorter) Less(i, j int) bool {
 	// Give priority to user-initiated jobs to reduce the perceived processing time.
 	return sorter.jobs[i].User != "" && sorter.jobs[j].User == ""
 }
+
 func (sorter *jobSorter) Swap(i, j int) {
 	sorter.jobs[i], sorter.jobs[j] = sorter.jobs[j], sorter.jobs[i]
 	sorter.keys[i], sorter.keys[j] = sorter.keys[j], sorter.keys[i]

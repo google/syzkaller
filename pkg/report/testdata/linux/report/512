@@ -1,6 +1,7 @@
 TITLE: general protection fault in dup_mm
 ALT: bad-access in dup_mm
 TYPE: DoS
+PANICKED: Y
 
 [ 1959.698473][ T6611] general protection fault, probably for non-canonical address 0xdffffc0002c3fefa: 0000 [#1] PREEMPT SMP KASAN
 [ 1959.710215][ T6611] KASAN: probably user-memory-access in range [0x00000000161ff7d0-0x00000000161ff7d7]

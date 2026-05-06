@@ -6,6 +6,7 @@ package cover
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	_ "embed"
 	"encoding/csv"
 	"encoding/json"
@@ -16,6 +17,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -353,7 +355,7 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(params.Progs, params.Filter)
 	var pcs []uint64
 	if len(progs) == 1 && rg.rawCoverEnabled {
-		pcs = append([]uint64{}, progs[0].PCs...)
+		pcs = slices.Clone(progs[0].PCs)
 	} else {
 		uniquePCs := make(map[uint64]bool)
 		for _, prog := range progs {
@@ -365,9 +367,7 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 				pcs = append(pcs, pc)
 			}
 		}
-		sort.Slice(pcs, func(i, j int) bool {
-			return pcs[i] < pcs[j]
-		})
+		slices.Sort(pcs)
 	}
 
 	buf := bufio.NewWriter(w)
@@ -393,9 +393,7 @@ func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params HandlerParams) error 
 			}
 		}
 	}
-	sort.Slice(pcs, func(i, j int) bool {
-		return pcs[i] < pcs[j]
-	})
+	slices.Sort(pcs)
 
 	buf := bufio.NewWriter(w)
 	for _, pc := range pcs {
@@ -909,8 +907,8 @@ func processDir(dir *templateDir) {
 			dir.Dirs = child.Dirs
 		}
 	}
-	sort.Slice(dir.Files, func(i, j int) bool {
-		return dir.Files[i].Name < dir.Files[j].Name
+	slices.SortFunc(dir.Files, func(a, b *templateFile) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	for _, f := range dir.Files {
 		dir.Total += f.Total

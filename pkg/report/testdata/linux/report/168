@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in pppol2tp_release
 TYPE: WARNING
+PANICKED: Y
 
 [   34.186906] ------------[ cut here ]------------
 [   34.192768] ODEBUG: activate active (active state 1) object type: rcu_head hint:           (null)

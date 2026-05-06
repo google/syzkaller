@@ -1,6 +1,7 @@
 TITLE: kernel panic: Attempted to kill init!
 TYPE: DoS
 SUPPRESSED: Y
+PANICKED: Y
 
 INIT: PANIC: segmentation violation! sleeping for 30 seconds.
 [   19.171696] Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b

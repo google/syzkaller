@@ -37,7 +37,7 @@ config:
   - PCCARD: [n, weak]
   - PREEMPT_VOLUNTARY: n
   - RFKILL: n
-  - SOUND: n
+  - SOUND: [n, weak]
   - TCG_TPM: n
   - WIRELESS: n
   - WIRELESS_EXT: [n, weak]

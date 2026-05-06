@@ -53,10 +53,10 @@ func (client ReporterClient) InvalidateReport(ctx context.Context, id string) er
 type RecordReplyReq struct {
 	MessageID string `json:"message_id"`
 	ReportID  string `json:"report_id"`
-	// If ReportID is not set, InReplyTo will help identify the original report.
-	InReplyTo string    `json:"in_reply_to"`
-	Reporter  string    `json:"reporter"`
-	Time      time.Time `json:"time"`
+	// If ReportID is not set, RootMessageID will help identify the original report.
+	RootMessageID string    `json:"root_message_id"`
+	Reporter      string    `json:"reporter"`
+	Time          time.Time `json:"time"`
 }
 
 type RecordReplyResp struct {
@@ -66,15 +66,4 @@ type RecordReplyResp struct {
 
 func (client ReporterClient) RecordReply(ctx context.Context, req *RecordReplyReq) (*RecordReplyResp, error) {
 	return postJSON[RecordReplyReq, RecordReplyResp](ctx, client.baseURL+"/reports/record_reply", req)
-}
-
-type LastReplyResp struct {
-	Time time.Time `json:"time"`
-}
-
-// Returns nil if no reply has ever been recorded.
-func (client ReporterClient) LastReply(ctx context.Context, reporter string) (*LastReplyResp, error) {
-	v := url.Values{}
-	v.Add("reporter", reporter)
-	return postJSON[any, LastReplyResp](ctx, client.baseURL+"/reports/last_reply?"+v.Encode(), nil)
 }

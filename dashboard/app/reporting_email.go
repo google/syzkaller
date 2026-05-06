@@ -15,7 +15,6 @@ import (
 	"net/mail"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -218,7 +217,7 @@ func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePerio
 	if err != nil {
 		return "", fmt.Errorf("coveragedb.FilesCoverageWithDetails: %w", err)
 	}
-	templData := cover.FilesCoverageToTemplateData(covAndDates)
+	templData := cover.FilesCoverageToTemplateData(covAndDates, ns)
 	cover.FormatResult(templData, cover.Format{
 		OrderByCoveredLinesDrop:   true,
 		FilterMinCoveredLinesDrop: minDrop,
@@ -572,6 +571,7 @@ func sendMailTemplate(ctx context.Context, params *mailSendParams) error {
 	log.Infof(ctx, "sending email %q to %q", params.title, to)
 	return sendMailText(ctx, params.cfg.getSubject(params.title), from, to, params.replyTo, body.String())
 }
+
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
 	for i := len(rep.Subsystems) - 1; i >= 0; i-- {
@@ -659,6 +659,10 @@ func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxCon
 		// Also, we don't care about the emails that don't include any BugIDs.
 		return nil
 	}
+	if msg.MailingList != "" {
+		log.Infof(ctx, "duplicate email from mailing list, ignoring")
+		return nil
+	}
 	needForwardTo := map[string]bool{}
 	for _, cc := range inbox.ForwardTo {
 		needForwardTo[cc] = true
@@ -667,7 +671,7 @@ func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxCon
 		delete(needForwardTo, email)
 	}
 	missing := slices.Collect(maps.Keys(needForwardTo))
-	sort.Strings(missing)
+	slices.Sort(missing)
 	if len(missing) == 0 {
 		// Everything's OK.
 		log.Infof(ctx, "email %q has all necessary lists in Cc", msg.MessageID)
@@ -827,6 +831,10 @@ func handleBugCommand(ctx context.Context, bugInfo *bugInfoResult, msg *email.Em
 			}
 			cmd.FixCommits = []string{command.Args}
 		case email.CmdUnFix:
+			if bugInfo.bug.Status == BugStatusFixed {
+				return "This bug is already marked as fixed. Syzbot does not support unfixing bugs " +
+					"that are already closed (i.e. the fixing commit has reached all tested trees)."
+			}
 			cmd.ResetFixCommits = true
 		case email.CmdDup:
 			if command.Args == "" {
@@ -1429,7 +1437,7 @@ func missingMailingLists(ctx context.Context, msg *email.Email, emailConfig *Ema
 			missing = append(missing, list)
 		}
 	}
-	sort.Strings(missing)
+	slices.Sort(missing)
 	msg.Cc = append(msg.Cc, missing...)
 	return missing
 }

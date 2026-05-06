@@ -1,6 +1,7 @@
 TITLE: general protection fault in reiserfs_readdir_inode
 ALT: bad-access in reiserfs_readdir_inode
 TYPE: DoS
+PANICKED: Y
 
 [  464.245994][T13181] general protection fault, probably for non-canonical address 0xe0017c0000000006: 0000 [#1] PREEMPT SMP KASAN
 [  464.257848][T13181] KASAN: maybe wild-memory-access in range [0x000c000000000030-0x000c000000000037]

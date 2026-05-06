@@ -55,6 +55,10 @@ type Config struct {
 	TargetReboot  bool   `json:"target_reboot"`
 	RepairScript  string `json:"repair_script"`  // script to execute before each startup
 	StartupScript string `json:"startup_script"` // script to execute after each startup
+	// BootService specifies the service name to wait for during boot completion.
+	// The default value is "systemui", which waits for the com.android.systemui process.
+	// For AOSP builds without SystemUI, you can use "servicemanager" or other services.
+	BootService string `json:"boot_service"`
 }
 
 type Pool struct {
@@ -98,6 +102,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Adb:          "adb",
 		BatteryCheck: true,
 		TargetReboot: true,
+		BootService:  "systemui",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse adb vm config: %w", err)
@@ -315,7 +320,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 
 func (inst *instance) Forward(port int) (string, error) {
 	var err error
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		devicePort := vmimpl.RandomPort()
 		_, err = inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port))
 		if err == nil {
@@ -346,10 +351,11 @@ func (inst *instance) waitForBootCompletion() {
 	// This enables syzkaller to create a race condition which in certain cases doesn't
 	// allow the phone to finalize initialization.
 	// To determine whether a system has booted and started all system processes and
-	// services we wait for a process named 'com.android.systemui' to start. It's possible
-	// that in the future a new devices which doesn't have 'systemui' process will be fuzzed
-	// with adb, in this case this code should be modified with a new process name to search for.
+	// services we wait for a process specified in the BootService config to start.
+	// By default, this is 'systemui' (com.android.systemui). For AOSP builds without
+	// SystemUI, users can configure alternative services like 'servicemanager'.
 	log.Logf(2, "waiting for boot completion")
+	bootService := inst.cfg.BootService
 
 	sleepTime := 5
 	sleepDuration := time.Duration(sleepTime) * time.Second
@@ -359,19 +365,30 @@ func (inst *instance) waitForBootCompletion() {
 	for ; i < maxRetries; i++ {
 		time.Sleep(sleepDuration)
 
-		if out, err := inst.adb("shell", "pgrep systemui | wc -l"); err == nil {
+		if out, err := inst.adb("shell", fmt.Sprintf("pgrep %s | wc -l", bootService)); err == nil {
 			count := parseAdbOutToInt(out)
 			if count != 0 {
 				log.Logf(0, "boot completed")
 				break
 			}
 		} else {
-			log.Logf(0, "failed to execute command 'pgrep systemui | wc -l', %v", err)
+			log.Logf(0, "failed to execute command 'pgrep %s | wc -l', %v", bootService, err)
 			break
 		}
 	}
 	if i == maxRetries {
-		log.Logf(0, "failed to determine boot completion, can't find 'com.android.systemui' process")
+		log.Logf(0, "failed to determine boot completion, can't find '%s' process", bootService)
+	}
+}
+
+func (inst *instance) markBootSuccessful() {
+	// Mark the current boot as successful in the bootloader.
+	// This is important for Android A/B devices where the bootloader tracks
+	// successful boots and may switch to a different slot after multiple
+	// failed boot attempts.
+	// On non-A/B devices, the command does not return an error.
+	if _, err := inst.adb("shell", "bootctl mark-boot-successful"); err != nil {
+		log.Logf(0, "failed to mark boot as successful: %v", err)
 	}
 }
 
@@ -413,6 +430,9 @@ func (inst *instance) repair() error {
 	inst.adb("root")
 	inst.waitForSSH()
 	inst.waitForBootCompletion()
+
+	// Mark boot as successful to prevent slot switching on A/B devices.
+	inst.markBootSuccessful()
 
 	// Mount debugfs.
 	if _, err := inst.adb("shell", "ls /sys/kernel/debug"); err != nil {
@@ -532,7 +552,7 @@ func isRemoteCuttlefish(dev string) (bool, string) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	var tty io.ReadCloser
 	var err error
 
@@ -554,27 +574,38 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		tty.Close()
 		return nil, nil, err
 	}
+	adbRpipeErr, adbWpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		tty.Close()
+		adbRpipe.Close()
+		adbWpipe.Close()
+		return nil, nil, err
+	}
 	if inst.debug {
 		log.Logf(0, "starting: adb shell %v", command)
 	}
 	adb := osutil.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
-	adb.Stderr = adbWpipe
+	adb.Stderr = adbWpipeErr
 	if err := adb.Start(); err != nil {
 		tty.Close()
 		adbRpipe.Close()
 		adbWpipe.Close()
+		adbRpipeErr.Close()
+		adbWpipeErr.Close()
 		return nil, nil, fmt.Errorf("failed to start adb: %w", err)
 	}
 	adbWpipe.Close()
+	adbWpipeErr.Close()
 
 	var tee io.Writer
 	if inst.debug {
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", tty)
-	merger.Add("adb", adbRpipe)
+	merger.Add("console", vmimpl.OutputConsole, tty)
+	merger.Add("adb", vmimpl.OutputStdout, adbRpipe)
+	merger.Add("adb-err", vmimpl.OutputStderr, adbRpipeErr)
 
 	return vmimpl.Multiplex(ctx, adb, merger, vmimpl.MultiplexConfig{
 		Console: tty,

@@ -3,6 +3,7 @@ ALT: BUG: soft lockup in __x64_sys_rmdir
 ALT: stall in __x64_sys_rmdir
 ALT: stall in sys_rmdir
 TYPE: HANG
+PANICKED: Y
 
 [  281.646907] watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor4:4588]
 [  281.654759] Modules linked in:

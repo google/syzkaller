@@ -49,6 +49,7 @@ const (
 	Warning                 = Type("WARNING")
 	// keep-sorted end
 	LostConnection   = Type("LOST_CONNECTION")
+	NoOutput         = Type("NO_OUTPUT")
 	SyzFailure       = Type("SYZ_FAILURE")
 	UnexpectedReboot = Type("REBOOT")
 )

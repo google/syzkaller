@@ -4,10 +4,11 @@
 package backend
 
 import (
+	"cmp"
 	"debug/macho"
 	"fmt"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -46,8 +47,8 @@ func machoReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol,
 	// We don't get symbol lengths or symbol ends in Mach-O symbols. So we
 	// guesstimate them by taking the next symbols beginning -1. That only
 	// works after we have sorted them.
-	sort.Slice(file.Symtab.Syms, func(i, j int) bool {
-		return file.Symtab.Syms[i].Value < file.Symtab.Syms[j].Value
+	slices.SortFunc(file.Symtab.Syms, func(a, b macho.Symbol) int {
+		return cmp.Compare(a.Value, b.Value)
 	})
 
 	var symbols []*Symbol

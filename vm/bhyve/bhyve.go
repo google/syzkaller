@@ -222,7 +222,7 @@ func (inst *instance) Boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("console", outr)
+	inst.merger.Add("console", vmimpl.OutputConsole, outr)
 	outr = nil
 
 	var bootOutput []byte
@@ -233,7 +233,7 @@ func (inst *instance) Boot() error {
 		for {
 			select {
 			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
+				bootOutput = append(bootOutput, out.Data...)
 			case <-bootOutputStop:
 				close(bootOutputStop)
 				return
@@ -248,6 +248,8 @@ func (inst *instance) Boot() error {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	select {
 	case ip := <-ipch:
 		if inst.tapdev != "" {
@@ -255,7 +257,7 @@ func (inst *instance) Boot() error {
 		} else {
 			inst.Addr = "localhost"
 		}
-	case <-inst.merger.Err:
+	case <-inst.merger.Errors(ctx):
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.BootError{Title: "bhyve exited", Output: bootOutput}
@@ -313,12 +315,15 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-	_, err := osutil.RunCmd(10*time.Minute, "", "scp", args...)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:        inst.debug,
+		Key:          inst.Key,
+		Port:         inst.Port,
+		SystemSSHCfg: false,
+		User:         inst.User,
+		Addr:         inst.Addr,
+		Timeout:      10 * time.Minute,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -326,12 +331,19 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	var sshargs []string
 	if inst.forwardPort != 0 {
@@ -345,12 +357,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	errc := make(chan error, 1)
 	signal := func(err error) {
 		select {
@@ -360,10 +374,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(errCtx):
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.

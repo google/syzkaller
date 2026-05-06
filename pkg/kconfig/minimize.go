@@ -5,10 +5,11 @@ package kconfig
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"golang.org/x/exp/maps"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.
@@ -20,7 +21,7 @@ import (
 func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (bool, error),
 	maxSteps int, dt debugtracer.DebugTracer) (*ConfigFile, error) {
 	diff, other := kconf.missingLeafConfigs(base, full)
-	dt.Log("kconfig minimization: base=%v full=%v leaves diff=%v", len(base.Configs), len(full.Configs), len(diff))
+	dt.Logf("kconfig minimization: base=%v full=%v leaves diff=%v", len(base.Configs), len(full.Configs), len(diff))
 
 	diffToConfig := func(part []string) (*ConfigFile, []string) {
 		if len(part) == 0 {
@@ -49,7 +50,7 @@ func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (b
 		minimize.Config[string]{
 			Pred:     minimizePred,
 			MaxSteps: maxSteps,
-			Logf:     dt.Log,
+			Logf:     dt.Logf,
 		},
 		diff,
 	)
@@ -58,7 +59,7 @@ func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (b
 	}
 	config, suspects := diffToConfig(result)
 	if suspects != nil {
-		dt.Log("minimized to %d configs; suspects: %v", len(result), suspects)
+		dt.Logf("minimized to %d configs; suspects: %v", len(result), suspects)
 		kconf.writeSuspects(dt, suspects)
 	}
 	return config, nil
@@ -72,7 +73,7 @@ func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string,
 			other = append(other, cfg)
 		}
 	}
-	sort.Strings(tristate)
+	slices.Sort(tristate)
 	return
 }
 
@@ -108,11 +109,8 @@ func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) 
 			}
 		}
 	}
-	var sorted []string
-	for cfg := range closure {
-		sorted = append(sorted, cfg)
-	}
-	sort.Strings(sorted)
+	sorted := maps.Keys(closure)
+	slices.Sort(sorted)
 	return sorted
 }
 

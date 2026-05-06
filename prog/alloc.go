@@ -18,6 +18,7 @@ type memAlloc struct {
 	size uint64
 	mem  [memAllocL1Size]*[memAllocL0Size]uint64
 	buf  [memAllocL0Size]uint64
+	last map[uint64]uint64
 }
 
 const (
@@ -38,6 +39,7 @@ func newMemAlloc(totalMemSize uint64) *memAlloc {
 	}
 	ma := &memAlloc{
 		size: totalMemSize / memAllocGranule,
+		last: make(map[uint64]uint64),
 	}
 	ma.mem[0] = &ma.buf
 	return ma
@@ -62,7 +64,9 @@ func (ma *memAlloc) alloc(r *randGen, size0, alignment0 uint64) uint64 {
 	size := (size0 + memAllocGranule - 1) / memAllocGranule
 	alignment := (alignment0 + memAllocGranule - 1) / memAllocGranule
 	end := ma.size - size
-	for start := uint64(0); start <= end; start += alignment {
+
+	start0 := ma.last[alignment]
+	for start := start0; start <= end; start += alignment {
 		empty := true
 		for i := uint64(0); i < size; i++ {
 			if ma.get(start + i) {
@@ -73,6 +77,7 @@ func (ma *memAlloc) alloc(r *randGen, size0, alignment0 uint64) uint64 {
 		if empty {
 			start0 := start * memAllocGranule
 			ma.noteAlloc(start0, size0)
+			ma.last[alignment] = start + (size+alignment-1)/alignment*alignment
 			return start0
 		}
 	}
@@ -89,6 +94,7 @@ func (ma *memAlloc) bankruptcy() {
 			ma.mem[i1][i0] = 0
 		}
 	}
+	ma.last = make(map[uint64]uint64)
 }
 
 func (ma *memAlloc) pos(idx uint64) (i1, i0, bit uint64) {

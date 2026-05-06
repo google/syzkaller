@@ -34,21 +34,21 @@ spec:
       steps:
         - - name: run-triage
             templateRef:
-              name: triage-step-template
-              template: triage-step
+              name: triage-action-template
+              template: triage-action
         - - name: abort-on-skip-outcome
             template: exit-workflow
             when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip_reason') != ''}}"
-        - - name: run-process-fuzz
-            template: process-fuzz
+        - - name: run-process-target
+            template: process-target
             arguments:
               parameters:
                 - name: element
                   value: "{{item}}"
-            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
+            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.targets')}}"
             continueOn:
               failed: true
-    - name: process-fuzz
+    - name: process-target
       inputs:
         parameters:
           - name: element
@@ -61,8 +61,9 @@ spec:
                   value: "{{=jsonpath(inputs.parameters.element, '$.base')}}"
         - - name: base-build
             templateRef:
-              name: build-step-template
-              template: build-step
+              name: build-action-template
+              template: build-action
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != ''}}"
             arguments:
               parameters:
                 - name: test-name
@@ -74,7 +75,7 @@ spec:
                   from: "{{steps.save-base-req.outputs.artifacts.artifact}}"
         - - name: abort-if-base-build-failed
             template: exit-workflow
-            when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != '' && jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: save-patched-req
             template: convert-artifact
             arguments:
@@ -83,26 +84,25 @@ spec:
                   value: "{{=jsonpath(inputs.parameters.element, '$.patched')}}"
         - - name: boot-test-base
             templateRef:
-              name: boot-step-template
-              template: boot-step
+              name: boot-action-template
+              template: boot-action
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != ''}}"
             arguments:
               artifacts:
                 - name: kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
               parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
                   value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Boot test: Base"
         - - name: abort-if-base-boot-failed
             template: exit-workflow
-            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != '' && jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
         - - name: patched-build
             templateRef:
-              name: build-step-template
-              template: build-step
+              name: build-action-template
+              template: build-action
             arguments:
               parameters:
                 - name: test-name
@@ -119,15 +119,13 @@ spec:
             when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: boot-test-patched
             templateRef:
-              name: boot-step-template
-              template: boot-step
+              name: boot-action-template
+              template: boot-action
             arguments:
               artifacts:
                 - name: kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
               parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: report-findings
@@ -137,29 +135,119 @@ spec:
         - - name: abort-if-patched-boot-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
-        - - name: save-fuzz-config
-            template: convert-artifact
+        - - name: run-fuzz
+            template: fuzz-campaign
+            when: "{{=jsonpath(inputs.parameters.element, '$.fuzz') != nil}}"
             arguments:
               parameters:
-                - name: data
-                  value: "{{=jsonpath(inputs.parameters.element, '$')}}"
-        - - name: fuzz
-            templateRef:
-              name: fuzz-step-template
-              template: fuzz-step
-            arguments:
-              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.fuzz')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: track
+                  value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
               artifacts:
                 - name: base-kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
                 - name: patched-kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+          - name: run-retest
+            template: retest-campaign
+            when: "{{=jsonpath(inputs.parameters.element, '$.retest') != nil}}"
+            arguments:
+              parameters:
+                - name: retest-data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.retest')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: base-build-id
+                  value: "{{=steps['base-build'].outputs.parameters.result ? jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id') : ''}}"
+                - name: track
+                  value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
+              artifacts:
+                - name: base-kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                  optional: true
+                - name: patched-kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+
+    - name: fuzz-campaign
+      inputs:
+        parameters:
+          - name: config
+          - name: track
+          - name: base-build-id
+          - name: patched-build-id
+        artifacts:
+          - name: base-kernel
+          - name: patched-kernel
+      steps:
+        - - name: save-fuzz-config
+            template: convert-artifact
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{inputs.parameters.config}}"
+        - - name: fuzz
+            templateRef:
+              name: fuzz-action-template
+              template: fuzz-action
+            arguments:
+              parameters:
+                - name: patched-build-id
+                  value: "{{inputs.parameters.patched-build-id}}"
+                - name: base-build-id
+                  value: "{{inputs.parameters.base-build-id}}"
+                - name: test-name
+                  value: "[{{inputs.parameters.track}}] Fuzz"
+              artifacts:
+                - name: base-kernel
+                  from: "{{inputs.artifacts.base-kernel}}"
+                - name: patched-kernel
+                  from: "{{inputs.artifacts.patched-kernel}}"
                 - name: config
                   from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
+
+    - name: retest-campaign
+      inputs:
+        parameters:
+          - name: retest-data
+          - name: base-build-id
+          - name: patched-build-id
+          - name: track
+        artifacts:
+          - name: base-kernel
+            optional: true
+          - name: patched-kernel
+      steps:
+        - - name: save-retest-task
+            template: convert-artifact
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{inputs.parameters.retest-data}}"
+        - - name: retest
+            templateRef:
+              name: retest-action-template
+              template: retest-action
+            arguments:
+              parameters:
+                - name: patched-build-id
+                  value: "{{inputs.parameters.patched-build-id}}"
+                - name: base-build-id
+                  value: "{{inputs.parameters.base-build-id}}"
+                - name: test-name
+                  value: "[{{inputs.parameters.track}}] Previous reproducers"
+              artifacts:
+                - name: base-kernel
+                  from: "{{inputs.artifacts.base-kernel}}"
+                  optional: true
+                - name: patched-kernel
+                  from: "{{inputs.artifacts.patched-kernel}}"
+                - name: retest-task
+                  from: "{{steps.save-retest-task.outputs.artifacts.artifact}}"
     - name: convert-artifact
       inputs:
         parameters:

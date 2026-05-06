@@ -10,14 +10,21 @@ type TriageResult struct {
 	// If set, ignore the patch series completely.
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
-	Fuzz []*FuzzTask `json:"fuzz"`
+	Targets []*TestTarget `json:"targets"`
 }
 
-// The data layout faclitates the simplicity of the workflow definition.
-type FuzzTask struct {
+// TestTarget groups the testing tasks that share the same base/patched builds.
+type TestTarget struct {
 	Base    BuildRequest `json:"base"`
 	Patched BuildRequest `json:"patched"`
-	FuzzConfig
+	Track   string       `json:"track"` // E.g. KASAN.
+	Fuzz    *FuzzConfig  `json:"fuzz"`
+	Retest  *RetestTask  `json:"retest"`
+}
+
+// RetestTask re(runs) the reproducers of the specified findings.
+type RetestTask struct {
+	Findings []string `json:"findings"`
 }
 
 const (
@@ -31,39 +38,38 @@ const (
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
-	Track      string   `json:"track"` // E.g. KASAN.
-	Focus      []string `json:"focus"`
-	CorpusURLs []string `json:"corpus_urls"`
+	Focus      []string `json:"focus" yaml:"focus"`
+	CorpusURLs []string `json:"corpus_urls" yaml:"corpus_urls"`
 	// Don't expect kernel coverage for the patched area.
-	SkipCoverCheck bool `json:"skip_cover_check"`
+	SkipCoverCheck bool `json:"skip_cover_check" yaml:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
-	BugTitleRe string `json:"bug_title_re"`
+	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
 // The triage step of the workflow will request these from controller.
 type Tree struct {
-	Name       string   `json:"name"` // Primary key.
-	URL        string   `json:"URL"`
-	Branch     string   `json:"branch"`
-	EmailLists []string `json:"email_lists"`
+	Name       string   `json:"name" yaml:"name"` // Primary key.
+	URL        string   `json:"URL" yaml:"URL"`
+	Branch     string   `json:"branch" yaml:"branch"`
+	EmailLists []string `json:"email_lists" yaml:"email_lists"`
 }
 
 // KernelFuzzConfig is a specific fuzzing assignment.
 // Based on it, the triage step will construct FuzzTasks.
 type KernelFuzzConfig struct {
-	EmailLists     []string `json:"email_lists"`
-	Track          string   `json:"track"` // E.g. KASAN.
-	KernelConfig   string   `json:"kernel_config"`
-	Focus          string   `json:"focus"`
-	CorpusURL      string   `json:"corpus_url"`
-	SkipCoverCheck bool     `json:"skip_cover_check"`
-	BugTitleRe     string   `json:"bug_title_re"`
+	EmailLists     []string `json:"email_lists" yaml:"email_lists"`
+	Track          string   `json:"track" yaml:"track"` // E.g. KASAN.
+	KernelConfig   string   `json:"kernel_config" yaml:"kernel_config"`
+	Focus          string   `json:"focus" yaml:"focus"`
+	CorpusURL      string   `json:"corpus_url" yaml:"corpus_url"`
+	SkipCoverCheck bool     `json:"skip_cover_check" yaml:"skip_cover_check"`
+	BugTitleRe     string   `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
 type FuzzTriageTarget struct {
-	EmailLists []string            `json:"email_lists"`
-	Campaigns  []*KernelFuzzConfig `json:"campaigns"`
+	EmailLists []string            `json:"email_lists" yaml:"email_lists"`
+	Campaigns  []*KernelFuzzConfig `json:"campaigns" yaml:"campaigns"`
 }
 
 type BuildRequest struct {
@@ -73,6 +79,7 @@ type BuildRequest struct {
 	CommitHash string `json:"commit_hash"`
 	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
 	SeriesID   string `json:"series_id"`
+	JobID      string `json:"job_id,omitempty"`
 }
 
 // BuildResult is returned from the build workflow step.
@@ -89,6 +96,7 @@ type Build struct {
 	CommitDate   time.Time `json:"commit_date"`
 	ConfigName   string    `json:"config_name"`
 	SeriesID     string    `json:"series_id"`
+	JobID        string    `json:"job_id,omitempty"`
 	Compiler     string    `json:"compiler"`
 	BuildSuccess bool      `json:"build_success"`
 }
@@ -101,7 +109,7 @@ const (
 	TestError   string = "error"
 )
 
-type TestResult struct {
+type SessionTest struct {
 	SessionID      string `json:"session_id"`
 	BaseBuildID    string `json:"base_build_id"`
 	PatchedBuildID string `json:"patched_build_id"`
@@ -110,12 +118,33 @@ type TestResult struct {
 	Log            []byte `json:"log"`
 }
 
+type SessionTestStep struct {
+	TestName  string `json:"test_name"`
+	Title     string `json:"title"`
+	Log       []byte `json:"log"`
+	FindingID string `json:"finding_id"`
+	Target    string `json:"target"`
+	Result    string `json:"result"`
+}
+
+const (
+	StepTargetPatched = "patched"
+	StepTargetBase    = "base"
+)
+
+const (
+	StepResultPassed = "passed"
+	StepResultFailed = "failed"
+	StepResultError  = "error"
+)
+
 type BootResult struct {
 	Success bool `json:"success"`
 }
 
-// NewFinding is a kernel crash, boot error, etc. found during a test.
-type NewFinding struct {
+// RawFinding is a kernel crash, boot error, etc. found during a test.
+// It's reported as RawFinding, but for the report purposes it's converted to Finding.
+type RawFinding struct {
 	SessionID    string `json:"session_id"`
 	TestName     string `json:"test_name"`
 	Title        string `json:"title"`
@@ -127,16 +156,17 @@ type NewFinding struct {
 }
 
 type Series struct {
-	ID          string        `json:"id"` // Only included in the reply.
-	ExtID       string        `json:"ext_id"`
-	Title       string        `json:"title"`
-	AuthorEmail string        `json:"author_email"`
-	Cc          []string      `json:"cc"`
-	Version     int           `json:"version"`
-	Link        string        `json:"link"`
-	SubjectTags []string      `json:"subject_tags"`
-	PublishedAt time.Time     `json:"published_at"`
-	Patches     []SeriesPatch `json:"patches"`
+	ID             string        `json:"id"` // Only included in the reply.
+	ExtID          string        `json:"ext_id"`
+	Title          string        `json:"title"`
+	AuthorEmail    string        `json:"author_email"`
+	Cc             []string      `json:"cc"`
+	Version        int           `json:"version"`
+	Link           string        `json:"link"`
+	SubjectTags    []string      `json:"subject_tags"`
+	PublishedAt    time.Time     `json:"published_at"`
+	Patches        []SeriesPatch `json:"patches"`
+	BaseCommitHint string        `json:"base_commit_hint"`
 }
 
 func (s *Series) PatchBodies() [][]byte {
@@ -159,12 +189,36 @@ type NewSession struct {
 	Tags  []string `json:"tags"`
 }
 
+type ReportType string
+
+const (
+	ReportTypeBug       ReportType = "bug"
+	ReportTypePatchTest ReportType = "patch-test"
+)
+
+type ReportTestStep struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type ReportTest struct {
+	Name   string           `json:"name"`
+	Status string           `json:"status"`
+	Steps  []ReportTestStep `json:"steps"`
+}
+
 type SessionReport struct {
-	ID         string     `json:"id"`
-	Moderation bool       `json:"moderation"`
-	Series     *Series    `json:"series"`
-	Findings   []*Finding `json:"findings"`
-	Link       string     `json:"link"` // URL to the web dashboard.
+	ID         string       `json:"id"`
+	Type       ReportType   `json:"type"`
+	Moderation bool         `json:"moderation"`
+	Series     *Series      `json:"series"`
+	Findings   []*Finding   `json:"findings"`
+	Link       string       `json:"link"` // URL to the web dashboard.
+	Cc         []string     `json:"cc,omitempty"`
+	Tests      []ReportTest `json:"tests,omitempty"`
+	PatchLink  string       `json:"patch_link,omitempty"`
+	InReplyTo  string       `json:"in_reply_to,omitempty"`
+	Error      string       `json:"error,omitempty"`
 }
 
 type Finding struct {
@@ -186,178 +240,40 @@ type BuildInfo struct {
 	ConfigLink string `json:"config_link"`
 }
 
-// Let them stay here until we find a better place.
-// The list is ordered by decreasing importance.
-var DefaultTrees = []*Tree{
-	{
-		Name:       `bpf-next`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git`,
-		Branch:     `master`,
-		EmailLists: []string{`bpf@vger.kernel.org`},
-	},
-	{
-		Name:       `bpf`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf.git`,
-		Branch:     `master`,
-		EmailLists: []string{`bpf@vger.kernel.org`},
-	},
-	{
-		Name:       `nf-next`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf-next.git`,
-		Branch:     `main`,
-		EmailLists: []string{`netfilter-devel@vger.kernel.org`},
-	},
-	{
-		Name:       `nf`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf.git`,
-		Branch:     `main`,
-		EmailLists: []string{`netfilter-devel@vger.kernel.org`},
-	},
-	{
-		Name:       `net-next`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net-next.git`,
-		Branch:     `main`,
-		EmailLists: []string{`netdev@vger.kernel.org`},
-	},
-	{
-		Name:       `net`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
-		Branch:     `main`,
-		EmailLists: []string{`netdev@vger.kernel.org`},
-	},
-	{
-		Name:       `kvm-next`,
-		URL:        `https://kernel.googlesource.com/pub/scm/virt/kvm/kvm/`,
-		Branch:     `next`,
-		EmailLists: []string{`kvm@vger.kernel.org`},
-	},
-	{
-		Name:       `drm-next`,
-		URL:        `https://gitlab.freedesktop.org/drm/kernel.git`,
-		Branch:     `drm-next`,
-		EmailLists: []string{`dri-devel@lists.freedesktop.org`},
-	},
-	{
-		Name:       `mm-new`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/akpm/mm.git`,
-		Branch:     `mm-new`,
-		EmailLists: []string{`linux-mm@kvack.org`},
-	},
-	{
-		Name:       `media`,
-		URL:        `https://git.linuxtv.org/media.git`,
-		Branch:     `next`,
-		EmailLists: []string{`linux-media@vger.kernel.org`},
-	},
-	{
-		Name:       `torvalds`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
-		Branch:     `master`,
-		EmailLists: nil, // First fallback tree.
-	},
-	{
-		Name:       `linux-next`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next`,
-		Branch:     `master`,
-		EmailLists: nil, // Second fallback tree. It's less stable, but more series can be applied.
-	},
-}
+type JobType string
 
 const (
-	netCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
-	bpfCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
-	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
-	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
+	JobPatchTest JobType = "patch_test"
 )
 
-const kasanTrack = "KASAN"
+type SubmitJobRequest struct {
+	Type      JobType  `json:"type"`
+	ReportID  string   `json:"report_id"`
+	Reporter  string   `json:"reporter"`
+	User      string   `json:"user"`
+	ExtID     string   `json:"ext_id"`
+	Cc        []string `json:"cc"`
+	PatchData []byte   `json:"patch_data"`
+}
 
-// The list is ordered by decreasing importance.
-var FuzzTargets = []*FuzzTriageTarget{
-	{
-		EmailLists: []string{`kvm@vger.kernel.org`},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				Track:        kasanTrack,
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Focus:        FocusKVM,
-				CorpusURL:    allCorpusURL,
-			},
-		},
-	},
-	{
-		EmailLists: []string{`io-uring@vger.kernel.org`},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				Track:        kasanTrack,
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Focus:        FocusIoUring,
-				CorpusURL:    allCorpusURL,
-			},
-		},
-	},
-	{
-		EmailLists: []string{`bpf@vger.kernel.org`},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				Track:        kasanTrack,
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Focus:        FocusBPF,
-				CorpusURL:    bpfCorpusURL,
-			},
-		},
-	},
-	{
-		EmailLists: []string{
-			`netdev@vger.kernel.org`,
-			`netfilter-devel@vger.kernel.org`,
-			`linux-wireless@vger.kernel.org`,
-		},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				Track:        kasanTrack,
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Focus:        FocusNet,
-				CorpusURL:    netCorpusURL,
-			},
-		},
-	},
-	{
-		EmailLists: []string{
-			`linux-fsdevel@vger.kernel.org`,
-			`linux-block@vger.kernel.org`,
-			`linux-unionfs@vger.kernel.org`,
-			`linux-ext4@vger.kernel.org`,
-		},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Track:        kasanTrack,
-				Focus:        FocusFS,
-				CorpusURL:    fsCorpusURL,
-			},
-		},
-	},
-	{
-		EmailLists: []string{`linux-mm@kvack.org`},
-		Campaigns: []*KernelFuzzConfig{
-			{
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Track:        kasanTrack,
-				CorpusURL:    allCorpusURL,
-				// Not all mm/ code is instrumented with KCOV.
-				SkipCoverCheck: true,
-			},
-		},
-	},
-	{
-		EmailLists: nil, // A fallback option.
-		Campaigns: []*KernelFuzzConfig{
-			{
-				KernelConfig: `upstream-apparmor-kasan.config`,
-				Track:        kasanTrack,
-				CorpusURL:    allCorpusURL,
-			},
-		},
-	},
+type SubmitJobResponse struct {
+	JobID     string `json:"job_id"`
+	SessionID string `json:"session_id"`
+}
+
+type FindingGroup struct {
+	Build      Build    `json:"build"`
+	FindingIDs []string `json:"finding_ids"`
+}
+
+type Job struct {
+	ID            string         `json:"id"`
+	Patch         []byte         `json:"patch"`
+	ReportID      string         `json:"report_id"`
+	FindingGroups []FindingGroup `json:"finding_groups,omitempty"`
+}
+
+type SessionInfo struct {
+	Series *Series `json:"series"`
+	Job    *Job    `json:"job,omitempty"`
 }

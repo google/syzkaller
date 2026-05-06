@@ -1,5 +1,6 @@
 TITLE: kernel BUG in do_journal_end
 TYPE: BUG
+PANICKED: Y
 
 [  805.123956][ T8558] ------------[ cut here ]------------
 [  805.129637][ T8558] kernel BUG at fs/reiserfs/prints.c:390!

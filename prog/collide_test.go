@@ -70,7 +70,7 @@ r4 = dup(r3)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for i := 0; i < iters; i++ {
+		for range iters {
 			collided := AssignRandomAsync(p, r)
 			if !test.check(collided) {
 				t.Fatalf("bad async assignment:\n%s", collided.Serialize())
@@ -129,7 +129,7 @@ dup(r3)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for i := 0; i < iters; i++ {
+		for range iters {
 			collided, err := DoubleExecCollide(p, r)
 			if test.shouldFail && err == nil {
 				t.Fatalf("expected to fail, but it hasn't")
@@ -195,7 +195,7 @@ dup(r2)
 			t.Fatal(err)
 		}
 		detected := map[string]struct{}{}
-		for i := 0; i < iters; i++ {
+		for range iters {
 			collided, err := DupCallCollide(p, r)
 			assert.NoError(t, err)
 			detected[string(collided.Serialize())] = struct{}{}

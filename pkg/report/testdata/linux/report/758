@@ -1,0 +1,68 @@
+TITLE: WARNING in bfs_get_block
+TYPE: WARNING
+EXECUTOR: proc=0, id=52
+
+[  140.728135][ T6181] ------------[ cut here ]------------
+[  140.728151][ T6181] !buffer_uptodate(bh)
+[  140.728169][ T6181] WARNING: fs/buffer.c:1183 at mark_buffer_dirty+0x299/0x3f0, CPU#1: syz.0.52/6181
+[  140.728225][ T6181] Modules linked in:
+[  140.728266][ T6181] CPU: 1 UID: 0 PID: 6181 Comm: syz.0.52 Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+[  140.728289][ T6181] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/24/2026
+[  140.728306][ T6181] RIP: 0010:mark_buffer_dirty+0x299/0x3f0
+[  140.728335][ T6181] Code: 4c 89 f7 e8 79 c9 df ff 49 8b 3e be 40 00 00 00 5b 41 5c 41 5e 41 5f 5d e9 d4 7e fb ff e8 8f 61 7b ff eb 8c e8 88 61 7b ff 90 <0f> 0b 90 e9 a5 fd ff ff e8 7a 61 7b ff 90 0f 0b 90 e9 cf fd ff ff
+[  140.728353][ T6181] RSP: 0018:ffffc90004aa7488 EFLAGS: 00010293
+[  140.728371][ T6181] RAX: ffffffff8247d2e8 RBX: ffff888053b464a0 RCX: ffff888034eb0000
+[  140.728388][ T6181] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  140.728400][ T6181] RBP: ffff888010dfe001 R08: 0000000000000000 R09: 0000000000000000
+[  140.728414][ T6181] R10: dffffc0000000000 R11: ffffed100a768c95 R12: ffff8880479a5000
+[  140.728430][ T6181] R13: ffff888053aa4940 R14: ffff888053b464a0 R15: 000000000000000f
+[  140.728445][ T6181] FS:  00007f8f2542e6c0(0000) GS:ffff8881266c9000(0000) knlGS:0000000000000000
+[  140.728467][ T6181] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  140.728481][ T6181] CR2: 0000200000001000 CR3: 0000000027954000 CR4: 00000000003526f0
+[  140.728499][ T6181] Call Trace:
+[  140.728508][ T6181]  <TASK>
+[  140.728526][ T6181]  bfs_get_block+0x5da/0xae0
+[  140.728575][ T6181]  __block_write_begin_int+0x6c6/0x1910
+[  140.728621][ T6181]  ? __pfx_bfs_get_block+0x10/0x10
+[  140.728644][ T6181]  ? __pfx___block_write_begin_int+0x10/0x10
+[  140.728682][ T6181]  ? __pfx_bfs_get_block+0x10/0x10
+[  140.728700][ T6181]  block_write_begin+0x8d/0x120
+[  140.728728][ T6181]  ? bfs_write_begin+0x1e/0xd0
+[  140.728750][ T6181]  bfs_write_begin+0x35/0xd0
+[  140.728772][ T6181]  generic_perform_write+0x2af/0x8b0
+[  140.728807][ T6181]  ? __pfx_generic_perform_write+0x10/0x10
+[  140.728830][ T6181]  ? file_update_time_flags+0x2d1/0x4e0
+[  140.728859][ T6181]  ? __generic_file_write_iter+0xfc/0x240
+[  140.728877][ T6181]  ? generic_file_write_iter+0x137/0x690
+[  140.728901][ T6181]  generic_file_write_iter+0x14b/0x690
+[  140.728925][ T6181]  ? __pfx_generic_file_write_iter+0x10/0x10
+[  140.728947][ T6181]  ? futex_unqueue+0x22/0x240
+[  140.728970][ T6181]  ? futex_unqueue+0x22/0x240
+[  140.728997][ T6181]  ? futex_unqueue+0x22/0x240
+[  140.729018][ T6181]  ? futex_unqueue+0x22/0x240
+[  140.729038][ T6181]  ? futex_unqueue+0x22/0x240
+[  140.729062][ T6181]  ? __lock_acquire+0x6b5/0x2cf0
+[  140.729090][ T6181]  ? __pfx___futex_wait+0x10/0x10
+[  140.729123][ T6181]  do_iter_readv_writev+0x62b/0x8d0
+[  140.729150][ T6181]  ? __pfx_do_iter_readv_writev+0x10/0x10
+[  140.729186][ T6181]  vfs_writev+0x345/0x9a0
+[  140.729210][ T6181]  ? __pfx_vfs_writev+0x10/0x10
+[  140.729237][ T6181]  ? __fget_files+0x2a/0x420
+[  140.729257][ T6181]  ? __fget_files+0x3a6/0x420
+[  140.729271][ T6181]  ? __fget_files+0x2a/0x420
+[  140.729296][ T6181]  __se_sys_pwritev2+0x187/0x2b0
+[  140.729324][ T6181]  ? __pfx___se_sys_pwritev2+0x10/0x10
+[  140.729354][ T6181]  ? __x64_sys_pwritev2+0x20/0xc0
+[  140.729381][ T6181]  do_syscall_64+0xe2/0xf80
+[  140.729406][ T6181]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  140.729424][ T6181]  ? clear_bhb_loop+0x60/0xb0
+[  140.729445][ T6181]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  140.729462][ T6181] RIP: 0033:0x7f8f25dcaeb9
+[  140.729490][ T6181] Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+[  140.729504][ T6181] RSP: 002b:00007f8f2542e028 EFLAGS: 00000246 ORIG_RAX: 0000000000000148
+[  140.729522][ T6181] RAX: ffffffffffffffda RBX: 00007f8f26045fa0 RCX: 00007f8f25dcaeb9
+[  140.729542][ T6181] RDX: 0000000000000001 RSI: 00002000000001c0 RDI: 0000000000000005
+[  140.729553][ T6181] RBP: 00007f8f25e38c1f R08: 0000000000000000 R09: 0000000000000000
+[  140.729564][ T6181] R10: 0000000000000e7b R11: 0000000000000246 R12: 0000000000000000
+[  140.729574][ T6181] R13: 00007f8f26046038 R14: 00007f8f26045fa0 R15: 00007ffe4b0cce08
+[  140.729600][ T6181]  </TASK>

@@ -247,7 +247,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 func (ctx *TestbedContext) Loop(stop chan struct{}) {
 	stopAll := make(chan struct{})
 	errors := make(chan error)
-	for i := 0; i < ctx.Config.MaxInstances; i++ {
+	for i := range ctx.Config.MaxInstances {
 		go ctx.Slot(i, stopAll, errors)
 	}
 

@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -80,6 +81,9 @@ func initHTTPHandlers() {
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
+		http.Handle("/"+ns+"/syz-dungeon", handlerWrapper(handleDungeon))
+		http.Handle("/"+ns+"/syz-dungeon/hero/{id}", handlerWrapper(handleHeroProfile))
+		http.Handle("/"+ns+"/syz-dungeon/kingdom/{id}", handlerWrapper(handleKingdomProfile))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
@@ -87,6 +91,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/ai", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
+	http.HandleFunc("/cron/dungeon_preheat", handleDungeonPreheat)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
@@ -237,6 +242,14 @@ type uiManagerPage struct {
 	Message       string
 	ShowReproForm bool
 	Builds        []*uiBuild
+	ReproTasks    []*uiReproTask
+}
+
+type uiReproTask struct {
+	Time    time.Time
+	Status  string
+	Text    string
+	LogLink string
 }
 
 type uiManager struct {
@@ -297,7 +310,7 @@ type uiBugPage struct {
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
 	Bug             *uiBugDetails
-	AIWorkflows     []string
+	AIWorkflows     []*uiWorkflow
 	AIJobs          []*uiAIJob
 }
 
@@ -372,14 +385,15 @@ type uiJobList struct {
 }
 
 type uiCommit struct {
-	Hash   string
-	Repo   string
-	Branch string
-	Title  string
-	Link   string
-	Author string
-	CC     []string
-	Date   time.Time
+	Hash       string
+	Repo       string
+	Branch     string
+	Title      string
+	Link       string
+	Author     string
+	AuthorName string
+	CC         []string
+	Date       time.Time
 }
 
 type uiBug struct {
@@ -426,6 +440,7 @@ type uiCrash struct {
 	ReportLink      string
 	ReproSyzLink    string
 	ReproCLink      string
+	ReproOpts       string
 	ReproIsRevoked  bool
 	ReproLogLink    string
 	MachineInfoLink string
@@ -621,8 +636,8 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	var manager *uiManager
-	if pos := strings.Index(r.URL.Path, "/manager/"); pos != -1 {
-		manager = findManager(managers, r.URL.Path[pos+len("/manager/"):])
+	if _, managerName, ok := strings.Cut(r.URL.Path, "/manager/"); ok {
+		manager = findManager(managers, managerName)
 	}
 	if manager == nil {
 		return fmt.Errorf("%w: manager is unknown", ErrClientBadRequest)
@@ -642,12 +657,46 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 			}
 			managerPage.Message = "Repro request was saved!"
 		}
+		tasks, err := loadReproTasks(ctx, hdr.Namespace, manager.Name, 5)
+		if err != nil {
+			return fmt.Errorf("failed to load repro tasks: %w", err)
+		}
+		for _, task := range tasks {
+			uiTask, err := makeUIReproTask(ctx, task)
+			if err != nil {
+				return fmt.Errorf("failed to make UI repro task: %w", err)
+			}
+			managerPage.ReproTasks = append(managerPage.ReproTasks, uiTask)
+		}
 	}
 
 	for _, build := range builds {
 		managerPage.Builds = append(managerPage.Builds, makeUIBuild(ctx, build, false))
 	}
 	return serveTemplate(w, "manager.html", managerPage)
+}
+
+func makeUIReproTask(ctx context.Context, task *ReproTask) (*uiReproTask, error) {
+	text, _, err := getText(ctx, textCrashLog, task.Log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read text: %w", err)
+	}
+	status := "Pending"
+	if task.AttemptsLeft > 0 && !task.LastAttempt.IsZero() {
+		status = fmt.Sprintf("In Progress (%d attempts left)", task.AttemptsLeft)
+	} else if task.AttemptsLeft == 0 {
+		status = "Completed"
+	}
+	var logLink string
+	if task.ResultLog != 0 {
+		logLink = fmt.Sprintf("/text?tag=%s&id=%d", textReproLog, task.ResultLog)
+	}
+	return &uiReproTask{
+		Time:    task.Created,
+		Status:  status,
+		Text:    string(text),
+		LogLink: logLink,
+	}, nil
 }
 
 func findManager(managers []*uiManager, name string) *uiManager {
@@ -669,10 +718,9 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}
 	var subsystem *subsystem.Subsystem
-	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
-		name := r.URL.Path[pos+3:]
+	if prefix, name, ok := strings.Cut(r.URL.Path, "/s/"); ok {
 		if newName := getNsConfig(ctx, hdr.Namespace).Subsystems.Redirect[name]; newName != "" {
-			http.Redirect(w, r, r.URL.Path[:pos+3]+newName, http.StatusMovedPermanently)
+			http.Redirect(w, r, prefix+"/s/"+newName, http.StatusMovedPermanently)
 			return nil
 		}
 		subsystem = service.ByName(name)
@@ -711,7 +759,9 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 	for _, item := range subsystem.Parents {
 		parents = append(parents, createUISubsystem(hdr.Namespace, item, cached))
 	}
-	sort.Slice(children, func(i, j int) bool { return children[i].Name < children[j].Name })
+	slices.SortFunc(children, func(a, b *uiSubsystem) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	return serveTemplate(w, "subsystem_page.html", &uiSubsystemPage{
 		Header:   hdr,
 		Info:     createUISubsystem(hdr.Namespace, subsystem, cached),
@@ -791,12 +841,11 @@ func handleBackports(ctx context.Context, w http.ResponseWriter, r *http.Request
 			}
 		}
 		nsList = unique(nsList)
-		sort.Strings(nsList)
+		slices.Sort(nsList)
 		group.Namespaces = nsList
 	}
-	sort.Slice(groups, func(i, j int) bool {
-		return groups[i].From.String()+groups[i].To.String() <
-			groups[j].From.String()+groups[j].To.String()
+	slices.SortFunc(groups, func(a, b *uiBackportGroup) int {
+		return cmp.Compare(a.From.String()+a.To.String(), b.From.String()+b.To.String())
 	})
 	page := &uiBackportsPage{
 		Header: hdr,
@@ -844,11 +893,14 @@ func loadAllBackports(ctx context.Context, loadCrashes bool) ([]*rawBackport, er
 		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
 		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
 		commit := &uiCommit{
-			Hash:   jobCommit.Hash,
-			Title:  jobCommit.Title,
-			Link:   vcs.CommitLink(from.URL, jobCommit.Hash),
-			Repo:   from.URL,
-			Branch: from.Branch,
+			Hash:       jobCommit.Hash,
+			Title:      jobCommit.Title,
+			Link:       vcs.CommitLink(from.URL, jobCommit.Hash),
+			Repo:       from.URL,
+			Branch:     from.Branch,
+			Author:     jobCommit.Author,
+			AuthorName: jobCommit.AuthorName,
+			Date:       jobCommit.Date,
 		}
 
 		hash := from.String() + to.String() + commit.Hash
@@ -979,6 +1031,8 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		return restartFailedBisections(ctx, w, r)
 	case "setMissingBugFields":
 		return setMissingBugFields(ctx, w, r)
+	case "force_commit_info_update":
+		return forceCommitInfoUpdate(ctx, w, r)
 	case "emergency_stop":
 		if err := recordEmergencyStop(ctx); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
@@ -1108,17 +1162,20 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	var aiWorkflows []string
+	var aiWorkflows []*uiWorkflow
 	var aiJobs []*uiAIJob
 	if hdr.AI {
-		aiWorkflows, err = aiBugWorkflows(ctx, bug)
-		if err != nil {
-			return err
+		if hdr.AIActions {
+			aiWorkflows, err = aiBugWorkflows(ctx, bug)
+			if err != nil {
+				return err
+			}
 		}
 		jobs, err := aidb.LoadBugJobs(ctx, bug.keyHash(ctx))
 		if err != nil {
 			return err
 		}
+		jobs = compactAIJobs(jobs)
 		for _, job := range jobs {
 			aiJobs = append(aiJobs, makeUIAIJob(job))
 		}
@@ -1137,13 +1194,18 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
 	if workflow := r.FormValue("ai-job-create"); workflow != "" {
-		if !hdr.AI {
+		if !hdr.AIActions {
 			return ErrAccess
 		}
-		if err := aiBugJobCreate(ctx, workflow, bug); err != nil {
-			return err
+		args, err := parseAIJobArgs(r, workflow, aiWorkflows)
+		if err != nil {
+			hdr.Message = err.Error()
+		} else {
+			if _, err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
+				return err
+			}
+			hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 		}
-		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
@@ -1151,6 +1213,24 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow) (map[string]any, error) {
+	args := map[string]any{}
+	var selected *uiWorkflow
+	for _, w := range aiWorkflows {
+		if w.Name == workflow {
+			selected = w
+			break
+		}
+	}
+	if selected != nil && selected.CustomBaseCommit && r.FormValue("base_commit_type") == "custom" {
+		if r.FormValue("base_commit") == "" {
+			return nil, fmt.Errorf("custom base commit is empty")
+		}
+		args["BaseCommit"] = r.FormValue("base_commit")
+	}
+	return args, nil
 }
 
 func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel,
@@ -1449,8 +1529,11 @@ func getBugDiscussionsUI(ctx context.Context, bug *Bug) ([]*uiBugDiscussion, err
 			Last:     d.Summary.LastMessage,
 		})
 	}
-	sort.SliceStable(list, func(i, j int) bool {
-		return list[i].Last.After(list[j].Last)
+	slices.SortFunc(list, func(a, b *uiBugDiscussion) int {
+		if !a.Last.Equal(b.Last) {
+			return b.Last.Compare(a.Last)
+		}
+		return cmp.Compare(a.Link, b.Link)
 	})
 	return list, nil
 }
@@ -1533,7 +1616,9 @@ func handleSubsystemsList(ctx context.Context, w http.ResponseWriter, r *http.Re
 			Link:  urlutil.SetParam("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	slices.SortFunc(list, func(a, b *uiSubsystem) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
 		Header:       hdr,
 		List:         list,
@@ -1737,14 +1822,14 @@ func prepareBugGroups(ctx context.Context, bugs []*Bug, managers []string,
 	cfg := getNsConfig(ctx, ns)
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
-		sort.Slice(bugs, func(i, j int) bool {
-			if bugs[i].Namespace != bugs[j].Namespace {
-				return bugs[i].Namespace < bugs[j].Namespace
+		slices.SortFunc(bugs, func(a, b *uiBug) int {
+			if a.Namespace != b.Namespace {
+				return cmp.Compare(a.Namespace, b.Namespace)
 			}
-			if bugs[i].ClosedTime != bugs[j].ClosedTime {
-				return bugs[i].ClosedTime.After(bugs[j].ClosedTime)
+			if !a.ClosedTime.Equal(b.ClosedTime) {
+				return b.ClosedTime.Compare(a.ClosedTime)
 			}
-			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
+			return b.ReportedTime.Compare(a.ReportedTime)
 		})
 		caption, fragment := "", ""
 		switch index {
@@ -1765,8 +1850,8 @@ func prepareBugGroups(ctx context.Context, bugs []*Bug, managers []string,
 			Bugs:      bugs,
 		})
 	}
-	sort.Slice(uiGroups, func(i, j int) bool {
-		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
+	slices.SortFunc(uiGroups, func(a, b *uiBugGroup) int {
+		return cmp.Compare(b.ShowIndex, a.ShowIndex)
 	})
 	return uiGroups, nil
 }
@@ -1833,14 +1918,16 @@ func fetchTerminalBugs(ctx context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, nil, err
 	}
-	sort.Slice(bugs, func(i, j int) bool {
-		iFixed := bugs[i].Status == BugStatusFixed
-		jFixed := bugs[j].Status == BugStatusFixed
-		if iFixed != jFixed {
-			// Not-yet-fully-patched bugs come first.
-			return jFixed
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		aFixed := a.Status == BugStatusFixed
+		bFixed := b.Status == BugStatusFixed
+		if aFixed != bFixed {
+			if bFixed {
+				return -1
+			}
+			return 1
 		}
-		return bugs[i].Closed.After(bugs[j].Closed)
+		return b.Closed.Compare(a.Closed)
 	})
 	stats := &uiBugStats{}
 	res := &uiBugGroup{
@@ -2033,11 +2120,14 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 			mainNsRepo, mainNsBranch := getNsConfig(ctx, bug.Namespace).mainRepoBranch()
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &uiCommit{
-				Hash:   info.Hash,
-				Title:  com,
-				Link:   vcs.CommitLink(mainNsRepo, info.Hash),
-				Repo:   mainNsRepo,
-				Branch: mainNsBranch,
+				Hash:       info.Hash,
+				Title:      com,
+				Link:       vcs.CommitLink(mainNsRepo, info.Hash),
+				Repo:       mainNsRepo,
+				Branch:     mainNsBranch,
+				Author:     info.Author,
+				AuthorName: info.AuthorName,
+				Date:       info.Date,
 			})
 		}
 		for _, mgr := range managers {
@@ -2054,8 +2144,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 				uiBug.MissingOn = append(uiBug.MissingOn, mgr)
 			}
 		}
-		sort.Strings(uiBug.PatchedOn)
-		sort.Strings(uiBug.MissingOn)
+		slices.Sort(uiBug.PatchedOn)
+		slices.Sort(uiBug.MissingOn)
 	}
 	return uiBug
 }
@@ -2150,6 +2240,7 @@ func makeUICrash(ctx context.Context, crash *Crash, build *Build) *uiCrash {
 		ReportLink:      textLink(textCrashReport, crash.Report),
 		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
 		ReproCLink:      textLink(textReproC, crash.ReproC),
+		ReproOpts:       string(crash.ReproOpts),
 		ReproLogLink:    textLink(textReproLog, crash.ReproLog),
 		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
@@ -2212,11 +2303,11 @@ func loadRepos(ctx context.Context, ns string) ([]*uiRepo, error) {
 		dedupRepos[hash] = true
 		ret = append(ret, repo)
 	}
-	sort.Slice(ret, func(i, j int) bool {
-		if ret[i].URL != ret[j].URL {
-			return ret[i].URL < ret[j].URL
+	slices.SortFunc(ret, func(a, b *uiRepo) int {
+		if a.URL != b.URL {
+			return cmp.Compare(a.URL, b.URL)
 		}
-		return ret[i].Branch < ret[j].Branch
+		return cmp.Compare(a.Branch, b.Branch)
 	})
 	return ret, nil
 }
@@ -2314,11 +2405,11 @@ func loadManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 		}
 		results = append(results, ui)
 	}
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].Namespace != results[j].Namespace {
-			return results[i].Namespace < results[j].Namespace
+	slices.SortFunc(results, func(a, b *uiManager) int {
+		if a.Namespace != b.Namespace {
+			return cmp.Compare(a.Namespace, b.Namespace)
 		}
-		return results[i].Name < results[j].Name
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return results, nil
 }

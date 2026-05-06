@@ -292,6 +292,7 @@ func main() {
 		SyzkallerBranch:       cfg.SyzkallerBranch,
 		SyzkallerDescriptions: cfg.SyzkallerDescriptions,
 		Targets:               updateTargets,
+		MakeTargets:           []string{"manager", "ci"},
 	})
 	if err != nil {
 		log.Fatal(err)

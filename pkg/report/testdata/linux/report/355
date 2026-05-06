@@ -1,5 +1,6 @@
 TITLE: trusty: panic: failed(-NUM) to start app NUM
 TYPE: DoS
+PANICKED: Y
 
 [ 1108.135767] trusty: pte_t *arm64_mmu_get_page_table(vaddr_t, uint, pte_t *)[ 1108.143812] trusty: :274: failed to allocate page table
 [ 1108.144338] trusty: pte_t *arm64_mmu_get_page_table(vaddr_t, uint, pte_t *):274: failed to allocate page table

@@ -657,7 +657,7 @@ func main() {
 		}
 		close(requests)
 	}()
-	for p := 0; p < procs; p++ {
+	for range procs {
 		go func() {
 			for img := range requests {
 				select {

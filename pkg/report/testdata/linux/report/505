@@ -3,6 +3,7 @@ ALT: BUG: soft lockup in smp_call_function_single
 ALT: stall in smp_call_function
 ALT: stall in smp_call_function_single
 TYPE: HANG
+PANICKED: Y
 
 [ 1472.340932][    C1] watchdog: BUG: soft lockup - CPU#1 stuck for 123s! [syz-executor.0:8399]
 [ 1472.349674][    C1] Modules linked in:

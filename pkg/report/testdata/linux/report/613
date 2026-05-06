@@ -1,5 +1,6 @@
 TITLE: WARNING in netlbl_cipsov4_add
 TYPE: WARNING
+PANICKED: Y
 
 [ 1038.119423][T31656] ------------[ cut here ]------------
 [ 1038.721494][T31656] WARNING: CPU: 0 PID: 31656 at mm/page_alloc.c:5214 __alloc_pages+0x45d/0x500

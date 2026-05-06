@@ -106,7 +106,7 @@ func Image(params Params) (details ImageDetails, err error) {
 		} // Try to preserve the build error otherwise.
 	}
 	if err != nil {
-		err = extractRootCause(err, params.TargetOS, params.KernelDir)
+		err = ExtractRootCause(err, params.TargetOS, params.KernelDir)
 		return
 	}
 	if key := filepath.Join(params.OutputDir, "key"); osutil.IsExist(key) {
@@ -220,7 +220,7 @@ func compilerIdentity(compiler string) (string, error) {
 	return "", fmt.Errorf("no output from compiler --version")
 }
 
-func extractRootCause(err error, OS, kernelSrc string) error {
+func ExtractRootCause(err error, OS, kernelSrc string) error {
 	if err == nil {
 		return nil
 	}
@@ -310,6 +310,10 @@ func extractCauseRaw(s []byte) [][]byte {
 			if !pattern.pattern.Match(line) {
 				continue
 			}
+			if !weak && pattern.weak {
+				// Skip weak patterns if we already have a strong one.
+				continue
+			}
 			if weak && !pattern.weak {
 				cause = nil
 				dedup = make(map[string]bool)
@@ -350,6 +354,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
 	{weak: true, pattern: regexp.MustCompile(`(ERROR|FAILED): Build did NOT complete`)},
+	{weak: true, pattern: regexp.MustCompile(`^error: `)},
 }
 
 var fileRes = []*regexp.Regexp{

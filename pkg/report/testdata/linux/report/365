@@ -2,6 +2,7 @@ TITLE: INFO: task hung in corrupted
 ALT: hang in corrupted
 TYPE: HANG
 CORRUPTED: Y
+PANICKED: Y
 
 [ 1528.243421][ T1040] INFO: task syz-executor.1:16255 blocked for more than 143 seconds.
 [ 1528.251530][ T1040]       Not tainted 5.1.0-rc2+ #145

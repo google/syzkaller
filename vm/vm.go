@@ -321,6 +321,11 @@ func (inst *Instance) Run(ctx context.Context, reporter *report.Reporter, comman
 	return mon.output, reps, nil
 }
 
+func (inst *Instance) RunStream(ctx context.Context,
+	command string) (<-chan vmimpl.Chunk, <-chan error, error) {
+	return inst.impl.Run(ctx, command)
+}
+
 func (inst *Instance) Info() ([]byte, error) {
 	if ii, ok := inst.impl.(vmimpl.Infoer); ok {
 		return ii.Info()
@@ -357,7 +362,7 @@ func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
 type monitor struct {
 	*RunOptions
 	inst     *Instance
-	outc     <-chan []byte
+	outc     <-chan vmimpl.Chunk
 	errc     <-chan error
 	reporter *report.Reporter
 	// output is at most mon.beforeContext + len(report) + afterContext bytes.
@@ -403,13 +408,13 @@ func (mon *monitor) monitorExecution() []*report.Report {
 				}
 				return mon.extractErrors(crash)
 			}
-		case out, ok := <-mon.outc:
+		case chunk, ok := <-mon.outc:
 			if !ok {
 				mon.outc = nil
 				continue
 			}
-			mon.inst.pool.statOutputReceived.Add(len(out))
-			if rep, done := mon.appendOutput(out); done {
+			mon.inst.pool.statOutputReceived.Add(len(chunk.Data))
+			if rep, done := mon.appendOutput(chunk.Data); done {
 				return rep
 			}
 		case <-mon.injectExecuting:
@@ -446,7 +451,7 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool) {
 	// the case when a particular pattern is ignored as crash, but a suffix
 	// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
 	mon.curPos = len(mon.output) - maxErrorLength
-	for i := 0; i < maxErrorLength; i++ {
+	for range maxErrorLength {
 		if mon.curPos <= 0 || mon.output[mon.curPos-1] == '\n' {
 			break
 		}
@@ -534,11 +539,11 @@ func (mon *monitor) waitForOutput() {
 	defer timer.Stop()
 	for {
 		select {
-		case out, ok := <-mon.outc:
+		case chunk, ok := <-mon.outc:
 			if !ok {
 				return
 			}
-			mon.output = append(mon.output, out...)
+			mon.output = append(mon.output, chunk.Data...)
 		case <-timer.C:
 			return
 		case <-Shutdown:

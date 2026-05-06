@@ -16,8 +16,18 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+type DiffBugStatus string
+
+const (
+	DiffBugStatusPending   DiffBugStatus = "pending"
+	DiffBugStatusVerifying DiffBugStatus = "verifying"
+	DiffBugStatusCompleted DiffBugStatus = "completed"
+	DiffBugStatusIgnored   DiffBugStatus = "ignored"
+)
+
 type DiffBug struct {
 	Title   string
+	Status  DiffBugStatus
 	Base    DiffBugInfo
 	Patched DiffBugInfo
 }
@@ -49,8 +59,15 @@ type DiffFuzzerStore struct {
 	bugs map[string]*DiffBug
 }
 
+func (s *DiffFuzzerStore) UpdateStatus(title string, status DiffBugStatus) {
+	s.patch(title, func(obj *DiffBug) {
+		obj.Status = status
+	})
+}
+
 func (s *DiffFuzzerStore) BaseCrashed(title string, report []byte) {
 	s.patch(title, func(obj *DiffBug) {
+		obj.Status = DiffBugStatusCompleted
 		obj.Base.Crashes++
 		if len(report) > 0 {
 			obj.Base.Report = s.saveFile(title, "base_report", report)
@@ -67,6 +84,7 @@ func (s *DiffFuzzerStore) EverCrashedBase(title string) bool {
 
 func (s *DiffFuzzerStore) BaseNotCrashed(title string) {
 	s.patch(title, func(obj *DiffBug) {
+		obj.Status = DiffBugStatusCompleted
 		if obj.Base.Crashes == 0 {
 			obj.Base.NotCrashed = true
 		}
@@ -131,7 +149,7 @@ func (s *DiffFuzzerStore) PlainTextDump() []byte {
 	})
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "Title\tOn-Base\tOn-Patched")
+	fmt.Fprintln(w, "Title\tOn-Base\tOn-Patched\tStatus")
 
 	printInfo := func(info *DiffBugInfo) {
 		if info.Crashes > 0 {
@@ -147,7 +165,7 @@ func (s *DiffFuzzerStore) PlainTextDump() []byte {
 		printInfo(&item.Base)
 		fmt.Fprintf(w, "\t")
 		printInfo(&item.Patched)
-		fmt.Fprintf(w, "\n")
+		fmt.Fprintf(w, "\t%s\n", item.Status)
 	}
 	w.Flush()
 	return buf.Bytes()

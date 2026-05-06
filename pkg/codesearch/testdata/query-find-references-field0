@@ -1,0 +1,34 @@
+find-references source0.c some_struct::x "" 1 10
+
+some_struct::x has 5 references:
+
+function field_refs writes it at source0.c:41
+  40:	{
+  41:		p->x = p->y;
+  42:		*(&p->x) = 1;
+
+
+function field_refs takes-address-of it at source0.c:42
+  41:		p->x = p->y;
+  42:		*(&p->x) = 1;
+  43:		u->p = 0;
+
+
+function field_refs writes it at source0.c:44
+  43:		u->p = 0;
+  44:		u->s.x = 2;
+  45:		return p->x;
+
+
+function field_refs reads it at source0.c:45
+  44:		u->s.x = 2;
+  45:		return p->x;
+  46:	}
+
+
+function func_accepting_a_struct reads it at source0.c:31
+  30:	{
+  31:		return ((some_struct_t*)p)->x +
+  32:		       ((union some_union*)p)->x;
+
+

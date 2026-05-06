@@ -23,7 +23,7 @@ func TestReportReplyRepository(t *testing.T) {
 
 	replyRepo := NewReportReplyRepository(client)
 	baseTime := time.Now()
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		err = replyRepo.Insert(ctx, &ReportReply{
 			MessageID: fmt.Sprintf("message-id-%d", i),
 			ReportID:  report.ID,
@@ -39,18 +39,6 @@ func TestReportReplyRepository(t *testing.T) {
 			Time:      time.Now(),
 		})
 		assert.Error(t, ErrReportReplyExists, err)
-	})
-
-	t.Run("last-report", func(t *testing.T) {
-		reply, err := replyRepo.LastForReporter(ctx, dummyReporter)
-		assert.NoError(t, err)
-		assert.Equal(t, "message-id-1", reply.MessageID)
-	})
-
-	t.Run("last-report-unknown", func(t *testing.T) {
-		reply, err := replyRepo.LastForReporter(ctx, "unknown-reporter")
-		assert.NoError(t, err)
-		assert.Nil(t, reply)
 	})
 
 	t.Run("find-by-parent", func(t *testing.T) {

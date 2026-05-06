@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -705,7 +706,7 @@ func managersToRepos(ctx context.Context, ns string, managers []string) []string
 		dedup[repo] = true
 		repos = append(repos, repo)
 	}
-	sort.Strings(repos)
+	slices.Sort(repos)
 	return repos
 }
 
@@ -1015,12 +1016,12 @@ func incomingCommandUpdate(ctx context.Context, now time.Time, cmd *dashapi.BugU
 	}
 	if (len(cmd.FixCommits) != 0 || cmd.ResetFixCommits) &&
 		(bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
-		sort.Strings(cmd.FixCommits)
+		slices.Sort(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
 			bug.updateCommits(cmd.FixCommits, now)
 		}
 	}
-	toReport := append([]int64{}, cmd.ReportCrashIDs...)
+	toReport := slices.Clone(cmd.ReportCrashIDs)
 	if cmd.CrashID != 0 {
 		bugReporting.CrashID = cmd.CrashID
 		toReport = append(toReport, cmd.CrashID)
@@ -1512,8 +1513,8 @@ func representativeCrashes(ctx context.Context, bugKey *db.Key) ([]*crashWithKey
 		dedup[item.key.IntID()] = true
 	}
 	// Sort by Time in desc order.
-	sort.Slice(crashes, func(i, j int) bool {
-		return crashes[i].crash.Time.After(crashes[j].crash.Time)
+	slices.SortFunc(crashes, func(a, b *crashWithKey) int {
+		return b.crash.Time.Compare(a.crash.Time)
 	})
 	return crashes, nil
 }
@@ -1524,6 +1525,7 @@ type bugReportSorter []*Bug
 
 func (a bugReportSorter) Len() int      { return len(a) }
 func (a bugReportSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a bugReportSorter) Less(i, j int) bool {
 	if a[i].ReproLevel != a[j].ReproLevel {
 		return a[i].ReproLevel > a[j].ReproLevel

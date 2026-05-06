@@ -15,14 +15,15 @@ import (
 	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/tools/clang/declextract"
 )
 
 func TestClangTool(t *testing.T) {
-	tooltest.TestClangTool[declextract.Output](t)
+	tooltest.TestClangTool[declextract.Output](t, clangtoolimpl.Tool)
 }
 
 func TestDeclextract(t *testing.T) {
-	tooltest.ForEachTestFile(t, func(t *testing.T, cfg *clangtool.Config, file string) {
+	tooltest.ForEachTestFile(t, clangtoolimpl.Tool, func(t *testing.T, cfg *clangtool.Config, file string) {
 		// Created cache file to avoid running the clang tool.
 		goldenFile := file + ".json"
 		cacheFile := filepath.Join(cfg.KernelObj, filepath.Base(goldenFile))
@@ -33,7 +34,7 @@ func TestDeclextract(t *testing.T) {
 			filepath.Join(cfg.KernelObj, "manual.txt")); err != nil {
 			t.Fatal(err)
 		}
-		cfg.ToolBin = "this-is-not-supposed-to-run"
+		cfg.Tool = "this-is-not-supposed-to-run"
 		probeInfo := new(ifaceprobe.Info)
 		probeFile := filepath.Join(cfg.KernelSrc, filepath.Base(file)+".probe")
 		if osutil.IsExist(probeFile) {

@@ -1,6 +1,7 @@
 TITLE: PANIC: double fault in __udp6_lib_lookup
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [ 1017.993148] PANIC: double fault, error_code: 0x0
 [ 1017.997929] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.20.0+ #137

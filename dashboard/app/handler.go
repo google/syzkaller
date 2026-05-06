@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"encoding/base64"
@@ -13,7 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -215,6 +216,7 @@ func serveTemplate(w http.ResponseWriter, name string, data any) error {
 type uiHeader struct {
 	Admin               bool
 	AI                  bool // Enable UI elements related to AI
+	AIActions           bool // Allow actions related to AI (create/assess jobs)
 	URLPath             string
 	LoginLink           string
 	AnalyticsTrackingID string
@@ -258,9 +260,7 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 		if ns != "" && ns[0] == '/' {
 			ns = ns[1:]
 		}
-		if pos := strings.IndexByte(ns, '/'); pos != -1 {
-			ns = ns[:pos]
-		}
+		ns, _, _ = strings.Cut(ns, "/")
 	}
 	h := commonHeaderRaw(ctx, r)
 	const adminPage = "admin"
@@ -284,8 +284,8 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 			Caption: cfg.DisplayTitle,
 		})
 	}
-	sort.Slice(h.Namespaces, func(i, j int) bool {
-		return h.Namespaces[i].Caption < h.Namespaces[j].Caption
+	slices.SortFunc(h.Namespaces, func(a, b uiNamespace) int {
+		return cmp.Compare(a.Caption, b.Caption)
 	})
 	cookie := decodeCookie(r)
 	if !found {
@@ -303,7 +303,8 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 	if ns != adminPage {
 		cfg := getNsConfig(ctx, ns)
 		h.Namespace = ns
-		h.AI = cfg.AI && accessLevel >= AIAccessLevel
+		h.AI = cfg.AI != nil
+		h.AIActions = cfg.AI != nil && accessLevel >= AccessUser
 		h.ShowSubsystems = cfg.Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)

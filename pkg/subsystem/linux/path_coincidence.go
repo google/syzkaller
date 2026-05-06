@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -46,7 +46,7 @@ func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,
 	close(chPaths)
 	<-ready
 	for _, list := range debug.files {
-		sort.Strings(list)
+		slices.Sort(list)
 	}
 	return cm, debug, err
 }
@@ -68,7 +68,7 @@ func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan ex
 	procs := runtime.NumCPU()
 	paths, output := make(chan string, procs), make(chan extracted, procs)
 	var wg sync.WaitGroup
-	for i := 0; i < procs; i++ {
+	for range procs {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

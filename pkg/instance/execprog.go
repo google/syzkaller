@@ -4,12 +4,18 @@
 package instance
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -40,6 +46,11 @@ type RunResult struct {
 	Output   []byte
 	Report   *report.Report
 	Duration time.Duration
+	Coverage [][]uint64
+	// Path to a local file with the memory dump extracted from the VM.
+	// It's populated after a crash if MemoryDump was enabled in RunOptions.
+	// Empty if no dump was extracted.
+	MemoryDump string
 }
 
 const (
@@ -103,8 +114,7 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	return ret, nil
 }
 
-func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
-	exitCondition vm.ExitCondition) (*RunResult, error) {
+func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunResult, error) {
 	start := time.Now()
 
 	var prefixOutput []byte
@@ -124,10 +134,10 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 	if inst.BeforeContextLen != 0 {
 		optionalBeforeContext = vm.WithBeforeContext(inst.BeforeContextLen)
 	}
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), duration)
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), opts.Duration)
 	defer cancel()
 	output, reps, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command,
-		vm.WithExitCondition(exitCondition),
+		vm.WithExitCondition(opts.ExitConditions),
 		optionalBeforeContext,
 	)
 	var rep *report.Report
@@ -145,73 +155,142 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 		}
 		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
-	return &RunResult{
+	res := &RunResult{
 		Output:   append(prefixOutput, output...),
 		Report:   rep,
 		Duration: time.Since(start),
-	}, nil
+	}
+	if opts.MemoryDump {
+		res.MemoryDump, err = inst.extractDump(rep, opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
-func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) extractDump(rep *report.Report,
+	opts RunOptions) (string, error) {
+	if rep == nil || !rep.Panicked {
+		return "", nil
+	}
+	dumpPath, err := osutil.TempFileIn(opts.MemoryDumpDir, "syz-dump-*")
+	if err != nil {
+		return "", err
+	}
+	if err := ExtractMemoryDump(inst.VMInstance, inst.mgrCfg.SysTarget, dumpPath); err != nil {
+		log.Errorf("failed to extract memory dump: %v", err)
+		os.Remove(dumpPath)
+		return "", nil
+	}
+
+	return dumpPath, nil
+}
+
+func (inst *ExecProgInstance) runBinary(bin string, opts RunOptions) (*RunResult, error) {
 	bin, err := inst.VMInstance.Copy(bin)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy binary to VM: %v", err)}
 	}
-	return inst.runCommand(bin, duration, binExitConditions)
+	opts.ExitConditions = binExitConditions
+	return inst.runCommand(bin, opts)
 }
 
-type ExecParams struct {
-	// Only one of these will be used, depending on the function.
-	CProg   *prog.Prog
-	SyzProg []byte
-
-	Opts     csource.Options
-	Duration time.Duration
+type RunOptions struct {
+	Opts            csource.Options
+	Duration        time.Duration
+	CollectCoverage bool
 	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
 	// RunCProg() always runs with binExitConditions.
 	ExitConditions vm.ExitCondition
+	// If MemoryDump is set, the package will attempt to extract a memory dump from the VM.
+	MemoryDump bool
+	// If not empty, the memory dump file will be created in the given location.
+	// If empty, the system default temporary directory will be used.
+	MemoryDumpDir string
 }
 
-func (inst *ExecProgInstance) RunCProg(params ExecParams) (*RunResult, error) {
-	src, err := csource.Write(params.CProg, params.Opts)
+func (inst *ExecProgInstance) RunCProg(p *prog.Prog, opts RunOptions) (*RunResult, error) {
+	src, err := csource.Write(p, opts.Opts)
 	if err != nil {
 		return nil, err
 	}
 	inst.Logf(2, "testing compiled C program (duration=%v, %+v): %s",
-		params.Duration, params.Opts, params.CProg)
-	return inst.RunCProgRaw(src, params.CProg.Target, params.Duration)
+		opts.Duration, opts.Opts, p)
+	return inst.RunCProgRaw(src, p.Target, opts)
 }
 
-func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
-	duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target, opts RunOptions) (*RunResult, error) {
 	bin, err := csource.BuildNoWarn(target, src)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(bin)
-	return inst.runBinary(bin, duration)
+	return inst.runBinary(bin, opts)
 }
 
-func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Duration,
-	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
+func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (*RunResult, error) {
+	coverFile := ""
+	if opts.CollectCoverage {
+		coverDir, err := os.MkdirTemp("", "syz-cover")
+		if err != nil {
+			return nil, err
+		}
+		defer osutil.RemoveAll(coverDir)
+		coverFile = filepath.Join(coverDir, "cover")
+	}
 	vmProgFile, err := inst.VMInstance.Copy(progFile)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
 	}
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, inst.mgrCfg.TargetOS, inst.mgrCfg.TargetArch,
-		inst.mgrCfg.Type, opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration, exitCondition)
+		inst.mgrCfg.Type, opts.Opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, coverFile, vmProgFile)
+	res, err := inst.runCommand(command, opts)
+	if err != nil {
+		return nil, err
+	}
+	if coverFile != "" {
+		files, err := filepath.Glob(coverFile + "*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to glob cover files: %w", err)
+		}
+		slices.Sort(files)
+		for _, f := range files {
+			cover, err := parseCoverageFile(f)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse cover file: %w", err)
+			}
+			res.Coverage = append(res.Coverage, cover)
+		}
+	}
+	return res, nil
 }
 
-func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) {
-	progFile, err := osutil.WriteTempFile(params.SyzProg)
+func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, opts RunOptions) (*RunResult, error) {
+	progFile, err := osutil.WriteTempFile(syzProg)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(progFile)
 
-	if params.ExitConditions == 0 {
-		params.ExitConditions = SyzExitConditions
+	if opts.ExitConditions == 0 {
+		opts.ExitConditions = SyzExitConditions
 	}
-	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts, params.ExitConditions)
+	return inst.RunSyzProgFile(progFile, opts)
+}
+
+func parseCoverageFile(filename string) ([]uint64, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var res []uint64
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		v, err := strconv.ParseUint(s.Text(), 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, v)
+	}
+	return res, nil
 }

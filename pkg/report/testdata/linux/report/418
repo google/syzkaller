@@ -1,6 +1,7 @@
 TITLE: general protection fault in hdm_disconnect
 ALT: bad-access in hdm_disconnect
 TYPE: DoS
+PANICKED: Y
 
 [   43.976394][   T12] kasan: CONFIG_KASAN_INLINE enabled
 [   43.981766][   T12] kasan: GPF could be caused by NULL-ptr deref or user memory access

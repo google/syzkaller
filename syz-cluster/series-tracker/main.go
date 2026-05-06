@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -154,13 +152,14 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		date = time.Now()
 	}
 	apiSeries := &api.Series{
-		ExtID:       series.MessageID,
-		AuthorEmail: first.Author,
-		Title:       series.Subject,
-		Version:     series.Version,
-		SubjectTags: series.Tags,
-		Link:        loreLink(series.MessageID),
-		PublishedAt: date,
+		ExtID:          series.MessageID,
+		AuthorEmail:    first.Author,
+		Title:          series.Subject,
+		Version:        series.Version,
+		SubjectTags:    series.Tags,
+		Link:           lore.LinkToMessage(series.MessageID),
+		PublishedAt:    date,
+		BaseCommitHint: series.BaseCommitHint,
 	}
 	sp := seriesProcessor{}
 	for i, patch := range series.Patches {
@@ -199,10 +198,6 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 	return nil
 }
 
-func loreLink(messageID string) string {
-	return "https://lore.kernel.org/all/" + strings.Trim(messageID, "<>")
-}
-
 type seriesProcessor map[string]struct{}
 
 var errFailedToParse = errors.New("failed to parse the email")
@@ -220,7 +215,7 @@ func (sp seriesProcessor) Process(raw []byte) ([]byte, error) {
 
 func (sp seriesProcessor) Emails() []string {
 	list := slices.Collect(maps.Keys(sp))
-	sort.Strings(list)
+	slices.Sort(list)
 	return list
 }
 

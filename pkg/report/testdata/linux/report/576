@@ -1,5 +1,6 @@
 TITLE: kernel BUG in rmap_walk_file
 TYPE: BUG
+PANICKED: Y
 
 [ 1802.485653][T28126] ------------[ cut here ]------------
 [ 1802.506583][T28126] kernel BUG at mm/internal.h:400!

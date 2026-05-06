@@ -62,7 +62,7 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
 	if newBug {
-		c.client.pollBug()
+		c.globalClient.pollBug()
 	}
 }
 
@@ -86,7 +86,7 @@ func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, false)
 	if newBug {
-		c.client.pollBug()
+		c.globalClient.pollBug()
 	}
 }
 
@@ -101,7 +101,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	defer c.Close()
 
 	crash1 := crashCtor(c)
-	for i := 0; i < maxReproPerBug; i++ {
+	for range maxReproPerBug {
 		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
 		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
@@ -109,7 +109,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 		c.client.ReportFailedRepro(testCrashID(crash1))
 	}
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		// No more repros today.
 		c.advanceTime(time.Hour)
 		resp, _ := c.client.ReportCrash(crash1)
@@ -119,7 +119,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 
 		// Then another repro after a day.
 		c.advanceTime(25 * time.Hour)
-		for j := 0; j < 2; j++ {
+		for range 2 {
 			resp, _ := c.client.ReportCrash(crash1)
 			c.expectEQ(resp.NeedRepro, true)
 			needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
@@ -139,7 +139,7 @@ func normalCrash(c *Ctx) *dashapi.Crash {
 	c.client.UploadBuild(build)
 	crash := testCrash(build, 1)
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 	return crash
 }
 
@@ -149,8 +149,8 @@ func dupCrash(c *Ctx) *dashapi.Crash {
 	c.client.ReportCrash(testCrash(build, 1))
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
-	reports := c.client.pollBugs(2)
-	c.client.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
+	reports := c.globalClient.pollBugs(2)
+	c.globalClient.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
 	return crash2
 }
 
@@ -173,12 +173,12 @@ func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	resp, _ := c.client.ReportCrash(crash)
 	c.expectEQ(resp.NeedRepro, !withRepro)
 
-	rep := c.client.pollBug()
-	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	rep := c.globalClient.pollBug()
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	crash.ReproC = nil
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 	return crash
 }
 
@@ -359,10 +359,10 @@ func TestFailedReproLogs(t *testing.T) {
 	}
 	c.client.ReportCrash(crash1)
 
-	resp, _ := c.client.ReportingPollBugs("test")
+	resp, _ := c.globalClient.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep := resp.Reports[0]
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
+	c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -372,7 +372,7 @@ func TestFailedReproLogs(t *testing.T) {
 		BuildID: crash1.BuildID,
 		Title:   crash1.Title,
 	}
-	for i := 0; i < maxReproLogs; i++ {
+	for i := range maxReproLogs {
 		c.advanceTime(time.Minute)
 		cid.ReproLog = []byte(fmt.Sprintf("report log %#v", i))
 		err := c.client.ReportFailedRepro(cid)
@@ -414,12 +414,12 @@ func TestLogToReproduce(t *testing.T) {
 	build2 := testBuild(2)
 	client.UploadBuild(build2)
 	client.ReportCrash(testCrash(build2, 3))
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Bug with a reproducer.
 	crash1 := testCrashWithRepro(build, 1)
 	client.ReportCrash(crash1)
-	client.pollBug()
+	c.globalClient.pollBug()
 	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
 	c.expectOK(err)
 	c.expectEQ(resp.CrashLog, []byte(nil))
@@ -432,7 +432,7 @@ func TestLogToReproduce(t *testing.T) {
 		Report:  []byte("report2"),
 	}
 	client.ReportCrash(crash2)
-	client.pollBug()
+	c.globalClient.pollBug()
 	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
 	c.expectOK(err)
 	c.expectEQ(resp.Title, "title2")
@@ -472,7 +472,7 @@ func TestReproForDifferentCrash(t *testing.T) {
 		Report:  []byte("report1"),
 	}
 	client.ReportCrash(crash)
-	oldBug := client.pollBug()
+	oldBug := c.globalClient.pollBug()
 
 	// Now we have "found" a reproducer with a different title.
 	crash.Title = "new title"
@@ -481,7 +481,7 @@ func TestReproForDifferentCrash(t *testing.T) {
 	crash.ReproLog = []byte("repro log")
 	crash.OriginalTitle = "title1"
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Ensure that we have saved the reproduction log in this case.
 	dbBug, _, _ := c.loadBug(oldBug.ID)
@@ -489,30 +489,90 @@ func TestReproForDifferentCrash(t *testing.T) {
 }
 
 func TestReproTask(t *testing.T) {
-	c := NewCtx(t)
-	defer c.Close()
-	client := c.client
+	sendReproReq := func(c *Ctx, manager string) *dashapi.Build {
+		build := testBuild(1)
+		build.Manager = manager
+		c.client.UploadBuild(build)
 
-	build := testBuild(1)
-	build.Manager = "test-manager"
-	client.UploadBuild(build)
+		form := url.Values{}
+		form.Add("send-repro", "Some repro text")
+		c.POSTForm("/test1/manager/"+manager, form)
+		return build
+	}
 
-	form := url.Values{}
-	const reproValue = "Some repro text"
-	form.Add("send-repro", reproValue)
+	t.Run("success", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
 
-	c.POSTForm("/test1/manager/test-manager", form)
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
 
-	// We run the reproducer request 2 times.
-	for i := 0; i < 2; i++ {
 		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
 		c.expectOK(err)
 		c.expectEQ(string(resp.CrashLog), reproValue)
-		c.expectEQ(resp.Type, dashapi.ManualLog)
-	}
 
-	// But no more.
-	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
-	c.expectOK(err)
-	c.expectEQ(resp.CrashLog, []byte(nil))
+		err = client.ReproTaskDone(&dashapi.ReproTaskDoneReq{
+			ReqID:   resp.ReqID,
+			Log:     []byte("log"),
+			Success: true,
+		})
+		c.expectOK(err)
+
+		// Once succeeded, should not be returned again.
+		c.advanceTime(25 * time.Hour)
+		resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(resp.CrashLog, []byte(nil))
+	})
+
+	t.Run("retry", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
+
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
+
+		// Fail all 3 attempts.
+		for range 3 {
+			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+			c.expectOK(err)
+			c.expectEQ(string(resp.CrashLog), reproValue)
+
+			err = client.ReproTaskDone(&dashapi.ReproTaskDoneReq{
+				ReqID:   resp.ReqID,
+				Success: false,
+			})
+			c.expectOK(err)
+
+			c.advanceTime(25 * time.Hour)
+		}
+
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(resp.CrashLog, []byte(nil))
+	})
+
+	t.Run("ignored", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
+
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
+
+		for range 5 {
+			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+			c.expectOK(err)
+			c.expectEQ(string(resp.CrashLog), reproValue)
+
+			c.advanceTime(25 * time.Hour)
+		}
+
+		// Since there were no repro task done requests, it should still be available.
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(string(resp.CrashLog), reproValue)
+	})
 }

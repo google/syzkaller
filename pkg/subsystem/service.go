@@ -5,6 +5,7 @@ package subsystem
 
 import (
 	"fmt"
+	"slices"
 )
 
 type Service struct {
@@ -59,5 +60,5 @@ func (s *Service) List() []*Subsystem {
 }
 
 func (s *Service) Children(parent *Subsystem) []*Subsystem {
-	return append([]*Subsystem{}, s.perParent[parent]...)
+	return slices.Clone(s.perParent[parent])
 }

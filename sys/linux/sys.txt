@@ -791,6 +791,7 @@ type iovec[DIR, T] {
 }
 type iovec_in iovec[in, array[int8]]
 type iovec_out iovec[out, array[int8]]
+type iovec_inout iovec[inout, array[int8]]
 
 stat {
 	st_dev		intptr

@@ -165,6 +165,6 @@ func setLinuxSanitizerConfigs(cf *kconfig.ConfigFile, types []crash.Type, dt deb
 		disabled = append(disabled, categoryName)
 	}
 	if len(disabled) > 0 {
-		dt.Log("disabling configs for %v, they are not needed", disabled)
+		dt.Logf("disabling configs for %v, they are not needed", disabled)
 	}
 }

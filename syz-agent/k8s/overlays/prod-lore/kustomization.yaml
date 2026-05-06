@@ -1,0 +1,21 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: syz-agent
+namePrefix: prod-
+
+resources:
+  - ../../common/lore-relay
+
+images:
+  - name: gcr.io/syzkaller/lore-relay
+    newName: ${LORE_RELAY_IMAGE_NAME}
+    newTag: ${LORE_RELAY_IMAGE_TAG}
+
+configMapGenerator:
+  - name: lore-relay-config
+    files:
+      - lore-relay-config.yaml=lore-relay-config.yaml

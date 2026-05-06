@@ -26,12 +26,14 @@ const (
 type ReportGenerator struct {
 	sessionRepo *db.SessionRepository
 	reportRepo  *db.ReportRepository
+	jobRepo     *db.JobRepository
 }
 
 func NewGenerator(env *app.AppEnvironment) *ReportGenerator {
 	return &ReportGenerator{
 		sessionRepo: db.NewSessionRepository(env.Spanner),
 		reportRepo:  db.NewReportRepository(env.Spanner),
+		jobRepo:     db.NewJobRepository(env.Spanner),
 	}
 }
 
@@ -60,6 +62,14 @@ func (rg *ReportGenerator) Process(ctx context.Context, limit int) error {
 			SessionID:  session.ID,
 			Moderation: true,
 			Reporter:   api.LKMLReporter,
+		}
+		if session.JobID.Valid {
+			job, err := rg.jobRepo.GetByID(ctx, session.JobID.StringVal)
+			if err != nil {
+				return fmt.Errorf("failed to query job: %w", err)
+			}
+			report.Moderation = false
+			report.Reporter = job.Reporter
 		}
 		err := rg.reportRepo.Insert(ctx, report)
 		if err != nil {

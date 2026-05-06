@@ -1,0 +1,108 @@
+logitech-djreceiver 0003:046D:C539.000F: unknown main item tag 0x0
+logitech-djreceiver 0003:046D:C539.000F: unknown main item tag 0x0
+logitech-djreceiver 0003:046D:C539.000F: unknown main item tag 0x0
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000109: 0000 [#1] SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x0000000000000848-0x000000000000084f]
+CPU: 1 UID: 0 PID: 5955 Comm: kworker/1:8 Not tainted 7.0.0-rc7-next-20260410 #3 PREEMPT(full) 
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.17.0-debian-1.17.0-1 04/01/2014
+Workqueue: usb_hub_wq hub_event
+RIP: 0010:logi_dj_probe+0x19a/0xe30 drivers/hid/hid-logitech-dj.c:1910
+Code: 80 3c 02 00 0f 85 a1 0c 00 00 49 8b 9c 24 80 09 00 00 48 b8 00 00 00 00 00 fc ff df 48 8d bb 48 08 00 00 48 89 fa 48 c1 ea 03 <0f> b6 04 02 84 c0 74 08 3c 03 0f 8e a1 0b 00 00 48 8d 7b 40 8b ab
+RSP: 0018:ffa00000060feb88 EFLAGS: 00010216
+RAX: dffffc0000000000 RBX: 0000000000000000 RCX: ffa0000022edb000
+RDX: 0000000000000109 RSI: ffffffff88dc63f7 RDI: 0000000000000848
+RBP: 0000000000000000 R08: ffffffff88dc63ea R09: 0000000000000003
+R10: 0000000000000004 R11: 0000000000000000 R12: ff1100004b6b8000
+R13: ff1100007271d000 R14: ffffffff88dc62a0 R15: ff1100004b6b9930
+FS:  0000000000000000(0000) GS:ff110000e910c000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000001b33f0cff8 CR3: 0000000048c9a000 CR4: 0000000000f51ef0
+PKRU: 55555554
+Call Trace:
+ <TASK>
+ __hid_device_probe drivers/hid/hid-core.c:2780 [inline]
+ hid_device_probe+0x505/0x850 drivers/hid/hid-core.c:2817
+ call_driver_probe drivers/base/dd.c:631 [inline]
+ really_probe+0x241/0xa60 drivers/base/dd.c:709
+ __driver_probe_device+0x1db/0x420 drivers/base/dd.c:851
+ driver_probe_device+0x4e/0x1b0 drivers/base/dd.c:881
+ __device_attach_driver+0x1d8/0x320 drivers/base/dd.c:1009
+ bus_for_each_drv+0x152/0x1d0 drivers/base/bus.c:500
+ __device_attach+0x1e1/0x4d0 drivers/base/dd.c:1081
+ device_initial_probe+0xaf/0xd0 drivers/base/dd.c:1136
+ bus_probe_device+0x62/0x160 drivers/base/bus.c:613
+ device_add+0x11cc/0x1910 drivers/base/core.c:3692
+ hid_add_device+0x2c2/0x460 drivers/hid/hid-core.c:2961
+ usbhid_probe+0xc38/0x1260 drivers/hid/usbhid/hid-core.c:1448
+ usb_probe_interface+0x301/0x8f0 drivers/usb/core/driver.c:396
+ call_driver_probe drivers/base/dd.c:631 [inline]
+ really_probe+0x241/0xa60 drivers/base/dd.c:709
+ __driver_probe_device+0x1db/0x420 drivers/base/dd.c:851
+ driver_probe_device+0x4e/0x1b0 drivers/base/dd.c:881
+ __device_attach_driver+0x1d8/0x320 drivers/base/dd.c:1009
+ bus_for_each_drv+0x152/0x1d0 drivers/base/bus.c:500
+ __device_attach+0x1e1/0x4d0 drivers/base/dd.c:1081
+ device_initial_probe+0xaf/0xd0 drivers/base/dd.c:1136
+ bus_probe_device+0x62/0x160 drivers/base/bus.c:613
+ device_add+0x11cc/0x1910 drivers/base/core.c:3692
+ usb_set_configuration+0xd93/0x1c60 drivers/usb/core/message.c:2268
+ usb_generic_driver_probe+0xa1/0xe0 drivers/usb/core/generic.c:250
+ usb_probe_device+0xf8/0x410 drivers/usb/core/driver.c:291
+ call_driver_probe drivers/base/dd.c:631 [inline]
+ really_probe+0x241/0xa60 drivers/base/dd.c:709
+ __driver_probe_device+0x1db/0x420 drivers/base/dd.c:851
+ driver_probe_device+0x4e/0x1b0 drivers/base/dd.c:881
+ __device_attach_driver+0x1d8/0x320 drivers/base/dd.c:1009
+ bus_for_each_drv+0x152/0x1d0 drivers/base/bus.c:500
+ __device_attach+0x1e1/0x4d0 drivers/base/dd.c:1081
+ device_initial_probe+0xaf/0xd0 drivers/base/dd.c:1136
+ bus_probe_device+0x62/0x160 drivers/base/bus.c:613
+ device_add+0x11cc/0x1910 drivers/base/core.c:3692
+ usb_new_device.cold+0x683/0x116b drivers/usb/core/hub.c:2695
+ hub_port_connect drivers/usb/core/hub.c:5567 [inline]
+ hub_port_connect_change drivers/usb/core/hub.c:5707 [inline]
+ port_event drivers/usb/core/hub.c:5871 [inline]
+ hub_event+0x3074/0x4ad0 drivers/usb/core/hub.c:5953
+ process_one_work+0xa59/0x19a0 kernel/workqueue.c:3302
+ process_scheduled_works kernel/workqueue.c:3385 [inline]
+ worker_thread+0x5eb/0xe50 kernel/workqueue.c:3466
+ kthread+0x370/0x450 kernel/kthread.c:436
+ ret_from_fork+0x72b/0xd30 arch/x86/kernel/process.c:158
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:245
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:logi_dj_probe+0x19a/0xe30 drivers/hid/hid-logitech-dj.c:1910
+Code: 80 3c 02 00 0f 85 a1 0c 00 00 49 8b 9c 24 80 09 00 00 48 b8 00 00 00 00 00 fc ff df 48 8d bb 48 08 00 00 48 89 fa 48 c1 ea 03 <0f> b6 04 02 84 c0 74 08 3c 03 0f 8e a1 0b 00 00 48 8d 7b 40 8b ab
+RSP: 0018:ffa00000060feb88 EFLAGS: 00010216
+RAX: dffffc0000000000 RBX: 0000000000000000 RCX: ffa0000022edb000
+RDX: 0000000000000109 RSI: ffffffff88dc63f7 RDI: 0000000000000848
+RBP: 0000000000000000 R08: ffffffff88dc63ea R09: 0000000000000003
+R10: 0000000000000004 R11: 0000000000000000 R12: ff1100004b6b8000
+R13: ff1100007271d000 R14: ffffffff88dc62a0 R15: ff1100004b6b9930
+FS:  0000000000000000(0000) GS:ff110000e910c000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f81a7dcc000 CR3: 0000000047419000 CR4: 0000000000f51ef0
+PKRU: 55555554
+----------------
+Code disassembly (best guess):
+   0:	80 3c 02 00          	cmpb   $0x0,(%rdx,%rax,1)
+   4:	0f 85 a1 0c 00 00    	jne    0xcab
+   a:	49 8b 9c 24 80 09 00 	mov    0x980(%r12),%rbx
+  11:	00
+  12:	48 b8 00 00 00 00 00 	movabs $0xdffffc0000000000,%rax
+  19:	fc ff df
+  1c:	48 8d bb 48 08 00 00 	lea    0x848(%rbx),%rdi
+  23:	48 89 fa             	mov    %rdi,%rdx
+  26:	48 c1 ea 03          	shr    $0x3,%rdx
+* 2a:	0f b6 04 02          	movzbl (%rdx,%rax,1),%eax <-- trapping instruction
+  2e:	84 c0                	test   %al,%al
+  30:	74 08                	je     0x3a
+  32:	3c 03                	cmp    $0x3,%al
+  34:	0f 8e a1 0b 00 00    	jle    0xbdb
+  3a:	48 8d 7b 40          	lea    0x40(%rbx),%rdi
+  3e:	8b                   	.byte 0x8b
+  3f:	ab                   	stos   %eax,(%rdi)
+
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+

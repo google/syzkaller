@@ -48,19 +48,22 @@ func (repo *SessionRepository) Start(ctx context.Context, sessionID string) erro
 			if err != nil {
 				return err
 			}
-			series, err := readEntity[Series](ctx, txn, spanner.Statement{
-				SQL:    "SELECT * from `Series` WHERE `ID`=@id",
-				Params: map[string]any{"id": session.SeriesID},
-			})
-			if err != nil {
-				return err
+			if session.JobID.IsNull() {
+				series, err := readEntity[Series](ctx, txn, spanner.Statement{
+					SQL:    "SELECT * from `Series` WHERE `ID`=@id",
+					Params: map[string]any{"id": session.SeriesID},
+				})
+				if err != nil {
+					return err
+				}
+				series.SetLatestSession(session)
+				updateSeries, err := spanner.UpdateStruct("Series", series)
+				if err != nil {
+					return err
+				}
+				return txn.BufferWrite([]*spanner.Mutation{updateSeries, updateSession})
 			}
-			series.SetLatestSession(session)
-			updateSeries, err := spanner.UpdateStruct("Series", series)
-			if err != nil {
-				return err
-			}
-			return txn.BufferWrite([]*spanner.Mutation{updateSeries, updateSession})
+			return txn.BufferWrite([]*spanner.Mutation{updateSession})
 		})
 	return err
 }
@@ -78,35 +81,17 @@ func (repo *SessionRepository) ListRunning(ctx context.Context) ([]*Session, err
 	})
 }
 
-type NextSession struct {
-	id        string
-	createdAt time.Time
-}
-
-func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSession,
-	limit int) ([]*Session, *NextSession, error) {
+func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*Session, error) {
+	// We give priority to the job-related sessions to improve user experience.
+	// Otherwise, follow the FIFO order.
 	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL",
+		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL " +
+			"ORDER BY CASE WHEN `JobID` IS NOT NULL THEN 0 ELSE 1 END, `CreatedAt`",
+
 		Params: map[string]any{},
 	}
-	if from != nil {
-		stmt.SQL += " AND ((`CreatedAt` > @from) OR (`CreatedAt` = @from AND `ID` > @id))"
-		stmt.Params["from"] = from.createdAt
-		stmt.Params["id"] = from.id
-	}
-	stmt.SQL += " ORDER BY `CreatedAt`, `ID`"
 	addLimit(&stmt, limit)
-	list, err := repo.readEntities(ctx, stmt)
-
-	var next *NextSession
-	if err == nil && len(list) > 0 {
-		last := list[len(list)-1]
-		next = &NextSession{
-			id:        last.ID,
-			createdAt: last.CreatedAt,
-		}
-	}
-	return list, next, err
+	return repo.readEntities(ctx, stmt)
 }
 
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.
@@ -126,8 +111,8 @@ func (repo *SessionRepository) MissingReportList(ctx context.Context, from time.
 		SQL: "SELECT * FROM Sessions WHERE FinishedAt IS NOT NULL " +
 			" AND NOT EXISTS (" +
 			"SELECT 1 FROM SessionReports WHERE SessionReports.SessionID = Sessions.ID" +
-			") AND EXISTS (" +
-			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID)",
+			") AND (JobID IS NOT NULL OR EXISTS (" +
+			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID))",
 		Params: map[string]any{},
 	}
 	if !from.IsZero() {

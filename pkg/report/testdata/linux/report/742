@@ -1,5 +1,6 @@
 TITLE: kernel BUG in netfs_perform_write
 TYPE: BUG
+PANICKED: Y
 EXECUTOR: proc=0, id=886
 
 [  222.544519][ T8817] ------------[ cut here ]------------

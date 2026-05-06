@@ -215,7 +215,7 @@
             {{ if $child.IsDir }}
               {{ $cov }}%
             {{ else }}
-              <a href="javascript:onShowFileContent('/upstream{{ index $child.FileCoverageLink $i }}');">{{ $cov }}%</a>
+              <a href="javascript:onShowFileContent('{{ index $child.FileCoverageLink $i }}');">{{ $cov }}%</a>
             {{ end }}
             <pre class="tooltiptext">{{ index $child.Tooltips $i }}</pre>
           </div>

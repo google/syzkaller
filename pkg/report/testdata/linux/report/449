@@ -1,5 +1,6 @@
 TITLE: KCSAN: data-race in netlink_recvmsg / netlink_recvmsg
 TYPE: KCSAN-DATARACE
+PANICKED: Y
 
 [  472.478762][T19789] ==================================================================
 [  472.486894][T19789] BUG: KCSAN: data-race in netlink_recvmsg / netlink_recvmsg

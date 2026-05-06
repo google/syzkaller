@@ -97,10 +97,10 @@ func gvisorSymbolize(bin, srcDir string) ([]*Frame, error) {
 func gvisorParseLine(s *bufio.Scanner) (*Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %x, but no line info", pc)
 	}
 	if !s.Scan() {
-		return nil, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %x, but no line info", pc)
 	}
 	match := gvisorLineRe.FindStringSubmatch(s.Text())
 	if match == nil {

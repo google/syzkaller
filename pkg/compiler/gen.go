@@ -5,9 +5,10 @@ package compiler
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/serializer"
@@ -24,8 +25,8 @@ func (comp *compiler) genResources() []*prog.ResourceDesc {
 		}
 		resources = append(resources, comp.genResource(n))
 	}
-	sort.Slice(resources, func(i, j int) bool {
-		return resources[i].Name < resources[j].Name
+	slices.SortFunc(resources, func(a, b *prog.ResourceDesc) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return resources
 }
@@ -122,8 +123,8 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 			ptr.SquashableElem = isSquashableElem(ptr.Elem, ptr.ElemDir)
 		}
 	})
-	sort.Slice(calls, func(i, j int) bool {
-		return calls[i].Name < calls[j].Name
+	slices.SortFunc(calls, func(a, b *prog.Syscall) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return calls
 }
@@ -144,7 +145,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		case flagAttr:
 			fld.SetBool(val != 0)
 		default:
-			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+			panic(fmt.Sprintf("unexpected attrDesc type: %v", desc.Type))
 		}
 	}
 	for desc, val := range stringAttrs {
@@ -153,7 +154,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		case stringAttr:
 			fld.SetString(val)
 		default:
-			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+			panic(fmt.Sprintf("unexpected attrDesc type: %v", desc.Type))
 		}
 	}
 	fields, _ := comp.genFieldArray(n.Args, argSizes)
@@ -211,8 +212,8 @@ func (comp *compiler) generateTypes(syscalls []*prog.Syscall) []prog.Type {
 	for _, proxy := range proxies {
 		array = append(array, proxy)
 	}
-	sort.Slice(array, func(i, j int) bool {
-		return array[i].id < array[j].id
+	slices.SortFunc(array, func(a, b *typeProxy) int {
+		return cmp.Compare(a.id, b.id)
 	})
 	types := make([]prog.Type, len(array))
 	for i, proxy := range array {

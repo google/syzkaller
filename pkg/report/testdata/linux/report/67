@@ -1,6 +1,7 @@
 TITLE: BUG: soft lockup in snd_pcm_oss_write
 ALT: stall in snd_pcm_oss_write
 TYPE: HANG
+PANICKED: Y
 
 [  562.725743] watchdog: BUG: soft lockup - CPU#0 stuck for 135s! [syzkaller670324:3527]
 [  562.733767] Modules linked in:

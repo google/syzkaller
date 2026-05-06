@@ -21,7 +21,7 @@ func TestReportRepository(t *testing.T) {
 	reportRepo := NewReportRepository(client)
 
 	var keys []string
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		series := &Series{ExtID: fmt.Sprintf("series%d", i)}
 		err := seriesRepo.Insert(ctx, series, nil)
 		assert.NoError(t, err)
@@ -66,7 +66,7 @@ func TestSessionsWithoutReports(t *testing.T) {
 
 	// Set up 3 sessions, 2 of which would have a finding.
 	var sessions []*Session
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		session := &Session{SeriesID: series.ID}
 		sessions = append(sessions, session)
 		err = sessionRepo.Insert(ctx, session)

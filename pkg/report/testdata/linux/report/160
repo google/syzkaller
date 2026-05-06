@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in __run_timers
 ALT: bad-access in __run_timers
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [  190.751093] BUG: unable to handle kernel paging request at ffffffffffffffff
 [  190.757101] IP: 0xffffffffffffffff

@@ -2,6 +2,7 @@ TITLE: KASAN: stack-out-of-bounds Read in __udp6_lib_err
 ALT: bad-access in __udp6_lib_err
 TYPE: KASAN-READ
 CORRUPTED: Y
+PANICKED: Y
 
 [  183.310893] ==================================================================
 [  183.318584] BUG: KASAN: stack-out-of-bounds in debug_lockdep_rcu_enabled.part.0+0x50/0x60

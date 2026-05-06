@@ -17,7 +17,7 @@ function sortTable(item, colName, conv, desc = false) {
 		desc = !isSorted(values.slice().reverse())
 	else
 		desc = isSorted(values);
-	values.sort(function(a, b) {
+	values.sort(function (a, b) {
 		if (a[0] == b[0]) return 0;
 		if (desc && a[0] > b[0] || !desc && a[0] < b[0]) return -1;
 		return 1;
@@ -69,7 +69,7 @@ function timeSort(v) {
 
 
 
-function findAncestorByClass (el, cls) {
+function findAncestorByClass(el, cls) {
 	while ((el = el.parentElement) && !el.classList.contains(cls));
 	return el;
 }
@@ -105,8 +105,8 @@ function addInputGroup(node) {
 	return false
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-	document.addEventListener('click', function(event) {
+document.addEventListener("DOMContentLoaded", function () {
+	document.addEventListener('click', function (event) {
 		const collapsible = event.target.closest('.collapsible')
 		if (!collapsible) {
 			return
@@ -118,3 +118,54 @@ document.addEventListener("DOMContentLoaded", function() {
 		}
 	})
 })
+
+function displayAICreateJobArgs(select) {
+	if (!select) select = document.querySelector('select[name="ai-job-create"]');
+	var args = document.getElementById('ai-set-base-commit');
+	if (!select || !args) return;
+
+	args.style.display = select.options[select.selectedIndex].getAttribute('data-custom-base-commit') ? 'inline' : 'none';
+
+	var custom = document.getElementById('base_commit_custom');
+	var input = document.getElementById('base_commit_input');
+	if (custom && input)
+		input.style.display = custom.checked ? 'inline' : 'none';
+}
+
+window.addEventListener('load', function () {
+	displayAICreateJobArgs();
+	showManualWorkflowFields();
+});
+
+function showManualWorkflowFields(select) {
+	var workflowName = "";
+	if (select && select.value) {
+		workflowName = select.value;
+	} else {
+		var el = document.getElementById("ai-job-create");
+		if (el) workflowName = el.value;
+	}
+	if (!workflowName) return;
+
+	// Hide all, disable inputs.
+	var groups = document.getElementsByClassName("manual-workflow-fields");
+	if (groups.length === 0) return;
+
+	for (var i = 0; i < groups.length; i++) {
+		groups[i].style.display = "none";
+		var inputs = groups[i].querySelectorAll("input, textarea");
+		for (var j = 0; j < inputs.length; j++) {
+			inputs[j].disabled = true;
+		}
+	}
+
+	// Show selected, enable inputs.
+	var selected = document.getElementById("workflow-fields-" + workflowName);
+	if (selected) {
+		selected.style.display = "block";
+		var selectedInputs = selected.querySelectorAll("input, textarea");
+		for (var k = 0; k < selectedInputs.length; k++) {
+			selectedInputs[k].disabled = false;
+		}
+	}
+}

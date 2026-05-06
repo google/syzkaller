@@ -1,0 +1,133 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/nilfs2_ondisk.h>
+include <uapi/linux/nilfs2_api.h>
+
+define NILFS_VDESC_SIZE	sizeof(struct nilfs_vdesc)
+define NILFS_PERIOD_SIZE	sizeof(struct nilfs_period)
+define NILFS_BDESC_SIZE	sizeof(struct nilfs_bdesc)
+define NILFS_CPINFO_SIZE	sizeof(struct nilfs_cpinfo)
+define NILFS_SUINFO_SIZE	sizeof(struct nilfs_suinfo)
+define NILFS_SUINFO_UPDATE_SIZE	sizeof(struct nilfs_suinfo_update)
+define NILFS_VINFO_SIZE	sizeof(struct nilfs_vinfo)
+
+ioctl$NILFS_IOCTL_CHANGE_CPMODE(fd fd, cmd const[NILFS_IOCTL_CHANGE_CPMODE], arg ptr[in, nilfs_cpmode])
+ioctl$NILFS_IOCTL_DELETE_CHECKPOINT(fd fd, cmd const[NILFS_IOCTL_DELETE_CHECKPOINT], arg ptr[in, int64])
+ioctl$NILFS_IOCTL_GET_CPINFO(fd fd, cmd const[NILFS_IOCTL_GET_CPINFO], arg ptr[inout, nilfs_argv_cpinfo])
+ioctl$NILFS_IOCTL_GET_CPSTAT(fd fd, cmd const[NILFS_IOCTL_GET_CPSTAT], arg ptr[out, nilfs_cpstat])
+ioctl$NILFS_IOCTL_GET_SUINFO(fd fd, cmd const[NILFS_IOCTL_GET_SUINFO], arg ptr[inout, nilfs_argv_typed[nilfs_suinfo, inout, NILFS_SUINFO_SIZE]])
+ioctl$NILFS_IOCTL_SET_SUINFO(fd fd, cmd const[NILFS_IOCTL_SET_SUINFO], arg ptr[in, nilfs_argv_typed[nilfs_suinfo_update, in, NILFS_SUINFO_UPDATE_SIZE]])
+ioctl$NILFS_IOCTL_GET_SUSTAT(fd fd, cmd const[NILFS_IOCTL_GET_SUSTAT], arg ptr[out, nilfs_sustat])
+ioctl$NILFS_IOCTL_GET_VINFO(fd fd, cmd const[NILFS_IOCTL_GET_VINFO], arg ptr[inout, nilfs_argv_typed[nilfs_vinfo, inout, NILFS_VINFO_SIZE]])
+ioctl$NILFS_IOCTL_GET_BDESCS(fd fd, cmd const[NILFS_IOCTL_GET_BDESCS], arg ptr[inout, nilfs_argv_typed[nilfs_bdesc, inout, NILFS_BDESC_SIZE]])
+ioctl$NILFS_IOCTL_CLEAN_SEGMENTS(fd fd, cmd const[NILFS_IOCTL_CLEAN_SEGMENTS], arg ptr[in, nilfs_ioctl_clean_segments_args])
+ioctl$NILFS_IOCTL_SYNC(fd fd, cmd const[NILFS_IOCTL_SYNC], arg ptr[out, int64, opt])
+ioctl$NILFS_IOCTL_RESIZE(fd fd, cmd const[NILFS_IOCTL_RESIZE], arg ptr[in, int64])
+ioctl$NILFS_IOCTL_SET_ALLOC_RANGE(fd fd, cmd const[NILFS_IOCTL_SET_ALLOC_RANGE], arg ptr[in, array[int64, 2]])
+
+nilfs_checkpoint_mode = NILFS_CHECKPOINT, NILFS_SNAPSHOT
+nilfs_suinfo_flags = NILFS_SUINFO_ACTIVE, NILFS_SUINFO_DIRTY, NILFS_SUINFO_ERROR
+nilfs_suinfo_update_flags = NILFS_SUINFO_UPDATE_LASTMOD, NILFS_SUINFO_UPDATE_NBLOCKS, NILFS_SUINFO_UPDATE_FLAGS
+nilfs_cpinfo_flags = NILFS_CPINFO_SNAPSHOT, NILFS_CPINFO_INVALID, NILFS_CPINFO_SKETCH, NILFS_CPINFO_MINOR
+
+nilfs_cpmode {
+	cm_cno	int64
+	cm_mode	flags[nilfs_checkpoint_mode, int32]
+	cm_pad	const[0, int32]
+}
+
+nilfs_argv_cpinfo {
+	v_base		ptr[inout, array[nilfs_cpinfo]]
+	v_nmembs	len[v_base, int32]
+	v_size		const[NILFS_CPINFO_SIZE, int16]
+	v_flags		flags[nilfs_checkpoint_mode, int16]
+	v_index		int64
+}
+
+nilfs_cpstat {
+	cs_cno	int64
+	cs_ncps	int64
+	cs_nsss	int64
+}
+
+nilfs_suinfo {
+	sui_lastmod	int64
+	sui_nblocks	int32
+	sui_flags	flags[nilfs_suinfo_flags, int32]
+}
+
+nilfs_suinfo_update {
+	sup_segnum	int64
+	sup_flags	flags[nilfs_suinfo_update_flags, int32]
+	sup_reserved	const[0, int32]
+	sup_sui		nilfs_suinfo
+}
+
+nilfs_sustat {
+	ss_nsegs	int64
+	ss_ncleansegs	int64
+	ss_ndirtysegs	int64
+	ss_ctime	int64
+	ss_nongc_ctime	int64
+	ss_prot_seq	int64
+}
+
+nilfs_vinfo {
+	vi_vblocknr	int64
+	vi_start	int64
+	vi_end		int64
+	vi_blocknr	int64
+}
+
+nilfs_bdesc {
+	bd_ino		int64
+	bd_oblocknr	int64
+	bd_blocknr	int64
+	bd_offset	int64
+	bd_level	int32
+	bd_pad		const[0, int32]
+}
+
+nilfs_ioctl_clean_segments_args {
+	argv0	nilfs_argv_typed[nilfs_vdesc, in, NILFS_VDESC_SIZE]
+	argv1	nilfs_argv_typed[nilfs_period, in, NILFS_PERIOD_SIZE]
+	argv2	nilfs_argv_typed[int64, in, 8]
+	argv3	nilfs_argv_typed[nilfs_bdesc, in, NILFS_BDESC_SIZE]
+	argv4	nilfs_argv_typed[int64, in, 8]
+}
+
+nilfs_vdesc {
+	vd_ino		int64
+	vd_cno		int64
+	vd_vblocknr	int64
+	vd_period	nilfs_period
+	vd_blocknr	int64
+	vd_offset	int64
+	vd_flags	int32
+	vd_pad		const[0, int32]
+}
+
+nilfs_period {
+	p_start	int64
+	p_end	int64
+}
+
+nilfs_cpinfo {
+	ci_flags	flags[nilfs_cpinfo_flags, int32]
+	ci_pad		const[0, int32]
+	ci_cno		int64
+	ci_create	int64
+	ci_nblk_inc	int64
+	ci_inodes_count	int64
+	ci_blocks_count	int64
+	ci_next		int64
+}
+
+type nilfs_argv_typed[T, DIR, SIZE] {
+	v_base		ptr[DIR, array[T]]
+	v_nmembs	len[v_base, int32]
+	v_size		const[SIZE, int16]
+	v_flags		int16
+	v_index		int64
+}

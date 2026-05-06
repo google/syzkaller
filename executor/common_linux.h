@@ -4,6 +4,7 @@
 // This file is shared between executor and csource package.
 
 #include <stdlib.h>
+#include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -639,6 +640,7 @@ static struct nlmsg nlmsg;
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include <linux/if_ether.h>
 #include <linux/if_tun.h>
@@ -665,12 +667,36 @@ static int tun_frags_enabled;
 #endif
 #endif
 
+// Sometimes, executors like to delete or replace /dev/net/tun and this causes
+// all further executors to fail. Let's make sure it's the right char device.
+static void correct_dev_net_tun(void)
+{
+	struct stat st;
+	if (stat("/dev/net/tun", &st) == 0) {
+		if (S_ISCHR(st.st_mode) && major(st.st_rdev) == 10 && minor(st.st_rdev) == 200)
+			return;
+		if (unlink("/dev/net/tun")) {
+			debug("tun: unlink(/dev/net/tun) failed: %d\n", errno);
+		}
+	}
+	if (mkdir("/dev/net", 0755) && errno != EEXIST) {
+		debug("tun: mkdir(/dev/net) failed: %d\n", errno);
+	}
+	if (mknod("/dev/net/tun", S_IFCHR | 0666, makedev(10, 200))) {
+		debug("tun: mknod(/dev/net/tun) failed: %d\n", errno);
+	}
+	if (chmod("/dev/net/tun", 0666)) {
+		debug("tun: chmod(/dev/net/tun) failed: %d\n", errno);
+	}
+}
+
 static void initialize_tun(void)
 {
 #if SYZ_EXECUTOR
 	if (!flag_net_injection)
 		return;
 #endif
+	correct_dev_net_tun();
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
@@ -1824,81 +1850,13 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
 
-// Once a io_uring is set up by calling io_uring_setup, the offsets to the member fields
-// to be used on the mmap'ed area are set in structs io_sqring_offsets and io_cqring_offsets.
-// Except io_sqring_offsets.array, the offsets are static while all depend on how struct io_rings
-// is organized in code. The offsets can be marked as resources in syzkaller descriptions but
-// this makes it difficult to generate correct programs by the fuzzer. Thus, the offsets are
-// hard-coded here (and in the descriptions), and array offset is later computed once the number
-// of entries is available. Another way to obtain the offsets is to setup another io_uring here
-// and use what it returns. It is slower but might be more maintainable.
-#define SQ_HEAD_OFFSET 0
-#define SQ_TAIL_OFFSET 64
-#define SQ_RING_MASK_OFFSET 256
-#define SQ_RING_ENTRIES_OFFSET 264
-#define SQ_FLAGS_OFFSET 276
-#define SQ_DROPPED_OFFSET 272
-#define CQ_HEAD_OFFSET 128
-#define CQ_TAIL_OFFSET 192
-#define CQ_RING_MASK_OFFSET 260
-#define CQ_RING_ENTRIES_OFFSET 268
-#define CQ_RING_OVERFLOW_OFFSET 284
-#define CQ_FLAGS_OFFSET 280
-#define CQ_CQES_OFFSET 320
-
-#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
-
-// From linux/io_uring.h
-struct io_uring_cqe {
-	uint64 user_data;
-	uint32 res;
-	uint32 flags;
-};
-
-static long syz_io_uring_complete(volatile long a0)
-{
-	// syzlang: syz_io_uring_complete(ring_ptr ring_ptr)
-	// C:       syz_io_uring_complete(char* ring_ptr)
-
-	// It is not checked if the ring is empty
-
-	// Cast to original
-	char* ring_ptr = (char*)a0;
-
-	// Compute the head index and the next head value
-	uint32 cq_ring_mask = *(uint32*)(ring_ptr + CQ_RING_MASK_OFFSET);
-	uint32* cq_head_ptr = (uint32*)(ring_ptr + CQ_HEAD_OFFSET);
-	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
-	uint32 cq_head_next = *cq_head_ptr + 1;
-
-	// Compute the ptr to the src cq entry on the ring
-	char* cqe_src = ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
-
-	// Get the cq entry from the ring
-	struct io_uring_cqe cqe;
-	memcpy(&cqe, cqe_src, sizeof(cqe));
-
-	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
-	// Ensure that the kernel will never see a head update without the preceeding CQE
-	// stores being done.
-	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
-
-	// In the descriptions (sys/linux/io_uring.txt), openat and openat2 are passed
-	// with a unique range of sqe.user_data (0x12345 and 0x23456) to identify the operations
-	// which produces an fd instance. Check cqe.user_data, which should be the same
-	// as sqe.user_data for that operation. If it falls in that unique range, return
-	// cqe.res as fd. Otherwise, just return an invalid fd.
-	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
-}
-
-#endif
-
-#if SYZ_EXECUTOR || __NR_syz_io_uring_setup
+#define IORING_SETUP_SQE128 (1U << 10)
+#define IORING_SETUP_CQE32 (1U << 11)
 
 struct io_sqring_offsets {
 	uint32 head;
@@ -1909,7 +1867,7 @@ struct io_sqring_offsets {
 	uint32 dropped;
 	uint32 array;
 	uint32 resv1;
-	uint64 resv2;
+	uint64 user_addr;
 };
 
 struct io_cqring_offsets {
@@ -1919,7 +1877,9 @@ struct io_cqring_offsets {
 	uint32 ring_entries;
 	uint32 overflow;
 	uint32 cqes;
-	uint64 resv[2];
+	uint32 flags;
+	uint32 resv1;
+	uint64 user_addr;
 };
 
 struct io_uring_params {
@@ -1934,33 +1894,100 @@ struct io_uring_params {
 	struct io_cqring_offsets cq_off;
 };
 
-#define IORING_OFF_SQ_RING 0
-#define IORING_OFF_SQES 0x10000000ULL
-#define IORING_SETUP_SQE128 (1U << 10)
-#define IORING_SETUP_CQE32 (1U << 11)
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_submit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+static long io_uring_sqe_size(struct io_uring_params* params)
+{
+	return SIZEOF_IO_URING_SQE << !!(params->flags & IORING_SETUP_SQE128);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_complete || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+static long io_uring_cqe_size(struct io_uring_params* params)
+{
+	return SIZEOF_IO_URING_CQE << !!(params->flags & IORING_SETUP_CQE32);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete || __NR_syz_ublk_process_io
+
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
+
+static int __io_uring_complete(struct io_uring_params* params, char* ring_ptr, struct io_uring_cqe* cqe_out)
+{
+	// It is not checked if the ring is empty
+
+	// Compute the head index and the next head value
+	uint32 cq_ring_mask = *(uint32*)(ring_ptr + params->cq_off.ring_mask);
+	uint32* cq_head_ptr = (uint32*)(ring_ptr + params->cq_off.head);
+	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
+	uint32 cq_head_next = *cq_head_ptr + 1;
+
+	// Compute the ptr to the src cq entry on the ring
+	uint32 cqe_off = params->cq_off.cqes + cq_head * io_uring_cqe_size(params);
+	*cqe_out = *(struct io_uring_cqe*)(ring_ptr + cqe_off);
+
+	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
+	// Ensure that the kernel will never see a head update without the preceeding CQE
+	// stores being done.
+	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
+	return 0;
+}
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+
+static long syz_io_uring_complete(volatile long a0, volatile long a1)
+{
+	// syzlang: syz_io_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr)
+	// C:       syz_io_uring_complete(struct io_uring_params* params, char* ring_ptr)
+
+	// Cast to original
+	struct io_uring_params* params = (struct io_uring_params*)a0;
+	char* ring_ptr = (char*)a1;
+
+	struct io_uring_cqe cqe;
+	memset(&cqe, 0, sizeof(cqe));
+	int ret = __io_uring_complete(params, ring_ptr, &cqe);
+	if (ret < 0)
+		return (long)ret;
+
+	return (long)cqe.res;
+}
+
+#endif
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues
 
 #include <sys/mman.h>
 #include <unistd.h>
 
+#define IORING_OFF_SQ_RING 0ULL
+#define IORING_OFF_SQES 0x10000000ULL
+
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
-static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
-	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
-	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* params, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
+	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* setup_params, void** ring_params_ptr_out, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
 
 	// Cast to original
 	uint32 entries = (uint32)a0;
 	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
-	void** ring_ptr_out = (void**)a2;
-	void** sqes_ptr_out = (void**)a3;
-	// Temporarily disable IORING_SETUP_CQE32 and IORING_SETUP_SQE128 that may change SIZEOF_IO_URING_CQE and SIZEOF_IO_URING_SQE.
-	// Tracking bug: https://github.com/google/syzkaller/issues/4531.
-	setup_params->flags &= ~(IORING_SETUP_CQE32 | IORING_SETUP_SQE128);
+	void** ring_params_ptr_out = (void**)a2;
+	void** ring_ptr_out = (void**)a3;
+	void** sqes_ptr_out = (void**)a4;
+
 	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
+	*ring_params_ptr_out = (void*)setup_params;
 
 	// Compute the ring sizes
 	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
-	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * SIZEOF_IO_URING_CQE;
+	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * io_uring_cqe_size(setup_params);
 
 	// Asssumed IORING_FEAT_SINGLE_MMAP, which is always the case with the current implementation
 	// The implication is that the sq_ring_ptr and the cq_ring_ptr are the same but the
@@ -1968,11 +1995,11 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	uint32 ring_sz = sq_ring_sz > cq_ring_sz ? sq_ring_sz : cq_ring_sz;
 	*ring_ptr_out = mmap(0, ring_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQ_RING);
 
-	uint32 sqes_sz = setup_params->sq_entries * SIZEOF_IO_URING_SQE;
+	uint32 sqes_sz = setup_params->sq_entries * io_uring_sqe_size(setup_params);
 	*sqes_ptr_out = mmap(0, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQES);
 
 	uint32* array = (uint32*)((uintptr_t)*ring_ptr_out + setup_params->sq_off.array);
-	for (uint32 index = 0; index < entries; index++)
+	for (uint32 index = 0; index < setup_params->sq_entries; index++)
 		array[index] = index;
 
 	return fd_io_uring;
@@ -1980,30 +2007,32 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
-static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2)
+static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	// syzlang: syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe])
-	// C:       syz_io_uring_submit(char* ring_ptr,       io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe)
+	// syzlang: syz_io_uring_submit(ring_params_ptr ring_params_ptr, 		ring_ptr ring_ptr, 	sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe])
+	// C:       syz_io_uring_submit(struct io_uring_params* params, char* ring_ptr,		io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe)
 
 	// It is not checked if the ring is full
 
 	// Cast to original
-	char* ring_ptr = (char*)a0; // This will be exposed to offsets in bytes
-	char* sqes_ptr = (char*)a1;
+	struct io_uring_params* params = (struct io_uring_params*)a0;
+	char* ring_ptr = (char*)a1; // This will be exposed to offsets in bytes
+	char* sqes_ptr = (char*)a2;
 
-	char* sqe = (char*)a2;
+	char* sqe = (char*)a3;
 
-	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
-	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_ring_mask = *(uint32*)(ring_ptr + params->sq_off.ring_mask);
+	uint32* sq_tail_ptr = (uint32*)(ring_ptr + params->sq_off.tail);
 	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
 
 	// Get the ptr to the destination for the sqe
-	char* sqe_dest = sqes_ptr + sq_tail * SIZEOF_IO_URING_SQE;
+	uint32 sqe_size = io_uring_sqe_size(params);
+	char* sqe_dest = sqes_ptr + sq_tail * sqe_size;
 
 	// Write the sqe entry to its destination in sqes
-	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
+	memcpy(sqe_dest, sqe, sqe_size);
 
 	// Write the index to the sqe array
 	uint32 sq_tail_next = *sq_tail_ptr + 1;
@@ -2015,6 +2044,391 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 	// Now the application is free to call io_uring_enter() to submit the sqe
 	return 0;
+}
+
+#endif
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_modify_offsets
+
+static long syz_io_uring_modify_offsets(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	char* params = (char*)a0;
+	char* ring_ptr = (char*)a1;
+	uint32 params_off = (uint32)a2;
+	uint32 value = (uint32)a3;
+
+	uint32 ring_off = *(uint32*)(params + params_off);
+	*(uint32*)(ring_ptr + ring_off) = value;
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues
+
+static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	// syzlang: syz_ublk_setup_io_uring(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd
+	// C:       syz_ublk_setup_io_uring(uint32 entries, struct io_uring_params* setup_params, void** ring_params_ptr_out, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd
+
+	// Modify io uring params with necessary flags for communicating with UBLK driver.
+	struct io_uring_params* params = (struct io_uring_params*)a1;
+	params->flags |= IORING_SETUP_SQE128 | IORING_SETUP_CQE32;
+	return syz_io_uring_setup(a0, (long)params, a2, a3, a4);
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+
+#include <linux/fs.h>
+#include <linux/types.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+
+#define UBLK_F_USER_COPY (1UL << 7)
+
+#define UBLK_IO_RES_OK 0
+#define UBLK_IO_RES_NEED_GET_DATA 1
+
+#define UBLK_IO_COMMIT_AND_FETCH_REQ 0x21
+#define UBLK_IO_NEED_GET_DATA 0x22
+
+#define UBLK_U_IO_COMMIT_AND_FETCH_REQ \
+	_IOWR('u', UBLK_IO_COMMIT_AND_FETCH_REQ, struct ublksrv_io_cmd)
+#define UBLK_U_IO_NEED_GET_DATA \
+	_IOWR('u', UBLK_IO_NEED_GET_DATA, struct ublksrv_io_cmd)
+
+struct ublksrv_ctrl_cmd {
+	__u32 dev_id;
+	__u16 queue_id;
+	__u16 len;
+	__u64 addr;
+	__u64 data[1];
+	__u16 dev_path_len;
+	__u16 pad;
+	__u32 reserved;
+};
+
+struct ublksrv_ctrl_dev_info {
+	__u16 nr_hw_queues;
+	__u16 queue_depth;
+	__u16 state;
+	__u16 pad0;
+
+	__u32 max_io_buf_bytes;
+	__u32 dev_id;
+
+	__s32 ublksrv_pid;
+	__u32 pad1;
+
+	__u64 flags;
+
+	__u64 ublksrv_flags;
+
+	__u32 owner_uid;
+	__u32 owner_gid;
+	__u64 reserved1;
+	__u64 reserved2;
+};
+
+struct ublksrv_io_desc {
+	__u32 op_flags;
+	union {
+		__u32 nr_sectors;
+		__u32 nr_zones;
+	};
+	__u64 start_sector;
+	__u64 addr;
+};
+
+struct ublksrv_io_cmd {
+	__u16 q_id;
+	__u16 tag;
+	__s32 result;
+	union {
+		__u64 addr;
+		__u64 zone_append_lba;
+	};
+};
+
+struct io_uring_sqe {
+	__u8 opcode;
+	__u8 flags;
+	__u16 ioprio;
+	__s32 fd;
+	union {
+		__u64 off;
+		__u64 addr2;
+		struct {
+			__u32 cmd_op;
+			__u32 __pad1;
+		};
+	};
+	union {
+		__u64 addr;
+		__u64 splice_off_in;
+		struct {
+			__u32 level;
+			__u32 optname;
+		};
+	};
+	__u32 len;
+	union {
+		__kernel_rwf_t rw_flags;
+		__u32 fsync_flags;
+		__u16 poll_events;
+		__u32 poll32_events;
+		__u32 sync_range_flags;
+		__u32 msg_flags;
+		__u32 timeout_flags;
+		__u32 accept_flags;
+		__u32 cancel_flags;
+		__u32 open_flags;
+		__u32 statx_flags;
+		__u32 fadvise_advice;
+		__u32 splice_flags;
+		__u32 rename_flags;
+		__u32 unlink_flags;
+		__u32 hardlink_flags;
+		__u32 xattr_flags;
+		__u32 msg_ring_flags;
+		__u32 uring_cmd_flags;
+		__u32 waitid_flags;
+		__u32 futex_flags;
+		__u32 install_fd_flags;
+		__u32 nop_flags;
+		__u32 pipe_flags;
+	};
+	__u64 user_data;
+	union {
+		__u16 buf_index;
+		__u16 buf_group;
+	} __attribute__((packed));
+	__u16 personality;
+	union {
+		__s32 splice_fd_in;
+		__u32 file_index;
+		__u32 zcrx_ifq_idx;
+		__u32 optlen;
+		struct {
+			__u16 addr_len;
+			__u16 __pad3[1];
+		};
+	};
+	union {
+		struct {
+			__u64 addr3;
+			__u64 __pad2[1];
+		};
+		struct {
+			__u64 attr_ptr;
+			__u64 attr_type_mask;
+		};
+		__u64 optval;
+		__u8 cmd[0];
+	};
+};
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_add_dev
+
+static long syz_ublk_add_dev(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
+{
+	// syzlang: syz_ublk_add_dev(fd_io_uring fd_io_uring, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[inout, io_uring_sqe_large$ublk_add_dev], dev_info_ptr ptr[out, dev_info_ptr]) ublk_dev_id
+	// C:       syz_ublk_add_dev(__u32 ring_fd,           struct io_uring_params* params,  char* ring_ptr,    char* sqes_ptr,    struct io_uring_sqe* sqe,						  void** dev_info_ptr_out) // returns ublk_dev_id
+
+	__u32 ring_fd = (__u32)a0;
+	struct io_uring_params* params = (struct io_uring_params*)a1;
+	char* ring_ptr = (char*)a2;
+	char* sqes_ptr = (char*)a3;
+	struct io_uring_sqe* sqe = (struct io_uring_sqe*)a4;
+	void** dev_info_ptr_out = (void**)a5;
+
+	struct ublksrv_ctrl_cmd* cmd = (struct ublksrv_ctrl_cmd*)(sqe->cmd);
+
+	// UBLK_F_USER_COPY doesn't rely on preallocated I/O buffers.
+	// By enabling it always, we don't have to provide I/O cmd buffers while setting up queues or processing I/O.
+	// TODO: Increase syzkaller capability to also fuzz the scenarios with UBLK_F_USER_COPY disabled.
+	struct ublksrv_ctrl_dev_info* dev_info = (struct ublksrv_ctrl_dev_info*)(unsigned long)(cmd->addr);
+	dev_info->flags |= UBLK_F_USER_COPY;
+	int ret = syz_io_uring_submit((long)params, (long)ring_ptr, (long)sqes_ptr, (long)sqe);
+	if (ret < 0)
+		return (long)ret;
+
+	syscall(__NR_io_uring_enter, ring_fd, 1, 1, 1, NULL, _NSIG / 8);
+	*dev_info_ptr_out = (void*)dev_info;
+	return dev_info->dev_id;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+
+struct ublk_queue {
+	__u16 q_id;
+	__u32 char_dev_fd;
+	struct io_uring_params params;
+	__u32 ring_fd;
+	char* ring_ptr;
+	char* sqes_ptr;
+	char* io_cmd_buf;
+};
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_setup_queues
+
+#include <sys/mman.h>
+
+#define UBLK_MAX_QUEUE_DEPTH 4096
+#define UBLK_QUEUES_OFFSET 0
+
+#define round_up(x, y) (((x) + (y) - 1) / (y) * (y))
+
+static long syz_ublk_setup_queues(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6)
+{
+	// syzlang: syz_ublk_setup_queues(fd_ublk_ch fd_ublk_ch, dev_info_ptr dev_info_ptr,		params ptr[in, io_uring_params], queues ptr[out, array[ublk_queue, UBLK_MAX_HW_QUEUES]], nr_queues const[UBLK_MAX_HW_QUEUES], sqe ptr[inout, io_uring_sqe_large$ublk_io_fetch], ublk_queues_ptr ptr[out, ublk_queues_ptr])
+	// C:       syz_ublk_setup_queues(int char_dev_fd, struct ublksrv_ctrl_dev_info* dev_info, struct io_uring_params* params,  struct ublk_queue* queues,							int queues_len,		struct io_uring_sqe* sqe, 	void** queues_ptr_out)
+	int char_dev_fd = (int)a0;
+	struct ublksrv_ctrl_dev_info* dev_info = (struct ublksrv_ctrl_dev_info*)a1;
+	struct io_uring_params* params = (struct io_uring_params*)a2;
+	struct ublk_queue* queues = (struct ublk_queue*)a3;
+	int queues_len = (int)a4;
+	struct io_uring_sqe* sqe = (struct io_uring_sqe*)a5;
+	void** queues_ptr_out = (void**)a6;
+
+	if (char_dev_fd < 0 || !dev_info)
+		return -1;
+
+	memset(queues, 0, sizeof(struct ublk_queue) * queues_len);
+	int queue_depth = dev_info->queue_depth;
+	for (int q_id = 0; q_id < dev_info->nr_hw_queues; q_id++) {
+		struct ublk_queue* queue = &queues[q_id];
+		queue->q_id = q_id;
+		queue->char_dev_fd = char_dev_fd;
+		queue->params = *params;
+
+		struct io_uring_params* temp = NULL;
+		queue->ring_fd = syz_ublk_setup_io_uring((long)queue_depth, (long)&queue->params, (long)&temp, (long)&queue->ring_ptr, (long)&queue->sqes_ptr);
+		if (queue->ring_fd < 0) {
+			debug("Failed to setup io_uring for queue: %d dev_id: %d\n", q_id, dev_info->dev_id);
+			return queue->ring_fd;
+		}
+
+		unsigned long cmd_buf_size = round_up(queue_depth * sizeof(struct ublksrv_io_desc), getpagesize());
+		unsigned long off = UBLK_QUEUES_OFFSET + q_id * round_up(UBLK_MAX_QUEUE_DEPTH * sizeof(struct ublksrv_io_desc), getpagesize());
+
+		queue->io_cmd_buf = (char*)mmap(0, cmd_buf_size, PROT_READ, MAP_SHARED | MAP_POPULATE, char_dev_fd, off);
+		if (queue->io_cmd_buf == MAP_FAILED) {
+			debug("Failed to mmap io_cmd_buf for queue: %d dev_id: %d\n", q_id, dev_info->dev_id);
+			return -1;
+		}
+
+		for (int j = 0; j < queue_depth; j++) {
+			struct ublksrv_io_cmd* cmd = (struct ublksrv_io_cmd*)(&sqe->cmd);
+			cmd->q_id = q_id;
+			cmd->tag = j;
+			cmd->addr = 0;
+			sqe->user_data = j | (sqe->cmd_op << 16);
+
+			if (syz_io_uring_submit((long)&queue->params, (long)queue->ring_ptr, (long)queue->sqes_ptr, (long)sqe) < 0) {
+				debug("Failed to submit UBLK_U_IO_FETCH_REQ for queue: %d dev_id: %d\n", q_id, dev_info->dev_id);
+				return -1;
+			}
+
+			syscall(__NR_io_uring_enter, queue->ring_fd, 1, 0, 0, NULL, _NSIG / 8);
+		}
+	}
+	*queues_ptr_out = (void*)queues;
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_process_io
+
+#include <linux/time_types.h>
+#include <stdbool.h>
+
+#define IORING_ENTER_GETEVENTS (1U << 0)
+#define IORING_ENTER_EXT_ARG (1U << 3)
+
+struct io_uring_getevents_arg {
+	__u64 sigmask;
+	__u32 sigmask_sz;
+	__u32 min_wait_usec;
+	__u64 ts;
+};
+
+static long syz_ublk_process_io(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	// syzlang: syz_ublk_process_io(ublk_queues_ptr ublk_queues_ptr, q_id int16[0:UBLK_MAX_HW_QUEUES], wait_secs int32[0:10], sqe ptr[inout, ublk_io_cmd_sqe_u], use_generated_sqe int32[0:1])
+	// C:       syz_ublk_process_io(struct ublk_queue* queues,       int q_id,                         long wait_secs,        struct io_uring_sqe* sqe,        bool use_generated_sqe)
+
+	struct ublk_queue* queues = (struct ublk_queue*)a0;
+	int q_id = (int)a1;
+	long wait_secs = (long)a2;
+	struct io_uring_sqe* sqe = (struct io_uring_sqe*)a3;
+	bool use_generated_sqe = (bool)a4;
+
+	struct ublk_queue* queue = &queues[q_id];
+	if (!queue->ring_ptr)
+		return -1;
+
+	// Wait for one CQE to be available with the given timeout.
+	struct __kernel_timespec ts = {.tv_sec = wait_secs, .tv_nsec = 0};
+	struct io_uring_getevents_arg ext_arg = {
+	    .sigmask = 0ULL,
+	    .sigmask_sz = _NSIG / 8,
+	    .min_wait_usec = 0,
+	    .ts = (__u64)(uintptr_t)&ts,
+	};
+	int ret = syscall(__NR_io_uring_enter, queue->ring_fd, 0, 1,
+			  IORING_ENTER_GETEVENTS | IORING_ENTER_EXT_ARG, &ext_arg,
+			  sizeof(ext_arg));
+	if (ret < 0)
+		return (long)ret;
+
+	// Read the CQE and advance the head.
+	struct io_uring_cqe cqe;
+	memset(&cqe, 0, sizeof(cqe));
+	ret = __io_uring_complete(&queue->params, queue->ring_ptr, &cqe);
+	if (ret < 0)
+		return (long)ret;
+
+	if (!use_generated_sqe) {
+		// Process the CQE and submit the SQE for the next command based on CQE result instead of fuzzer generated SQE.
+		int cmd_op = 0;
+		if (cqe.res == UBLK_IO_RES_NEED_GET_DATA) {
+			cmd_op = UBLK_U_IO_NEED_GET_DATA;
+		} else if (cqe.res == UBLK_IO_RES_OK) {
+			cmd_op = UBLK_U_IO_COMMIT_AND_FETCH_REQ;
+		} else {
+			return (long)0;
+		}
+
+		sqe->cmd_op = cmd_op;
+		__u16 tag = cqe.user_data & 0xffff;
+		struct ublksrv_io_desc* io_desc = (struct ublksrv_io_desc*)&(
+		    queue->io_cmd_buf[tag * sizeof(struct ublksrv_io_desc)]);
+
+		struct ublksrv_io_cmd* cmd = (struct ublksrv_io_cmd*)(&sqe->addr3);
+		cmd->q_id = q_id;
+		cmd->tag = tag;
+		cmd->addr = 0;
+		cmd->result = io_desc->nr_sectors << 9;
+		sqe->user_data = tag | (sqe->cmd_op << 16);
+	}
+
+	ret = syz_io_uring_submit((long)&queue->params,
+				  (long)queue->ring_ptr,
+				  (long)queue->sqes_ptr, (long)sqe);
+
+	syscall(__NR_io_uring_enter, queue->ring_fd, 1, 0, 0, NULL, _NSIG / 8);
+
+	return ret;
 }
 
 #endif
@@ -2270,6 +2684,7 @@ static long syz_btf_id_by_name(volatile long a0)
 
 // Same as memcpy except that it accepts offset to dest and src.
 #if SYZ_EXECUTOR || __NR_syz_memcpy_off
+#if GOARCH_386 || GOARCH_amd64 || GOARCH_arm64 || GOARCH_mips64le || GOARCH_ppc64le || GOARCH_s390x || GOARCH_riscv64
 static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
 	// C:       syz_memcpy_off(void* dest, uint32 dest_off, void* src, uint32 src_off, size_t n)
@@ -2283,6 +2698,7 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 
 	return (long)memcpy(dest + dest_off, src + src_off, n);
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_create_resource

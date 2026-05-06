@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,7 +35,7 @@ type Env interface {
 	BuildSyzkaller(string, string) (string, error)
 	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
-	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
+	Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) ([]EnvTestResult, error)
 }
 
 type env struct {
@@ -109,7 +110,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 		"GOPATH=" + cfg.Syzkaller[:srcIndex],
 		"GO111MODULE=auto",
 	}
-	cmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
+	cmd.Env = append(slices.Clone(os.Environ()), goEnvOptions...)
 	cmd.Env = append(cmd.Env,
 		"TARGETOS="+cfg.TargetOS,
 		"TARGETVMARCH="+cfg.TargetVMArch,
@@ -125,7 +126,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	// only figure out later whether we actually need it (e.g. if the patch testing fails).
 	goEnvCmd := osutil.Command("go", "env")
 	goEnvCmd.Dir = cfg.Syzkaller
-	goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
+	goEnvCmd.Env = append(slices.Clone(os.Environ()), goEnvOptions...)
 	goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
 	gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
 	// Compile syzkaller.
@@ -258,7 +259,7 @@ func (err *CrashError) Error() string {
 // Test boots numVMs VMs, tests basic kernel operation, and optionally tests the provided reproducer.
 // *TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
 // *CrashError is returned if the reproducer crashes kernel.
-func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error) {
+func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) ([]EnvTestResult, error) {
 	if env.testSem != nil {
 		env.testSem.Wait()
 		defer env.testSem.Signal()
@@ -277,41 +278,44 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	defer vmPool.Close()
 	numVMs = min(numVMs, vmPool.Count())
 	res := make(chan EnvTestResult, numVMs)
-	for i := 0; i < numVMs; i++ {
+	for i := range numVMs {
 		inst := &inst{
-			cfg:           env.cfg,
-			optionalFlags: env.optionalFlags,
-			reporter:      reporter,
-			vmPool:        vmPool,
-			vmIndex:       i,
-			reproSyz:      reproSyz,
-			reproOpts:     reproOpts,
-			reproC:        reproC,
+			cfg:             env.cfg,
+			optionalFlags:   env.optionalFlags,
+			reporter:        reporter,
+			vmPool:          vmPool,
+			vmIndex:         i,
+			reproSyz:        reproSyz,
+			reproOpts:       reproOpts,
+			reproC:          reproC,
+			collectCoverage: collectCoverage,
 		}
 		go func() { res <- inst.test() }()
 	}
 	var ret []EnvTestResult
-	for i := 0; i < numVMs; i++ {
+	for range numVMs {
 		ret = append(ret, <-res)
 	}
 	return ret, nil
 }
 
 type inst struct {
-	cfg           *mgrconfig.Config
-	optionalFlags bool
-	reporter      *report.Reporter
-	vmPool        *vm.Pool
-	vm            *vm.Instance
-	vmIndex       int
-	reproSyz      []byte
-	reproOpts     []byte
-	reproC        []byte
+	cfg             *mgrconfig.Config
+	optionalFlags   bool
+	reporter        *report.Reporter
+	vmPool          *vm.Pool
+	vm              *vm.Instance
+	vmIndex         int
+	reproSyz        []byte
+	reproOpts       []byte
+	reproC          []byte
+	collectCoverage bool
 }
 
 type EnvTestResult struct {
 	Error     error
 	RawOutput []byte
+	Coverage  [][]uint64
 }
 
 func (inst *inst) test() EnvTestResult {
@@ -362,7 +366,7 @@ func (inst *inst) test() EnvTestResult {
 		return ret
 	}
 	if len(inst.reproSyz) != 0 || len(inst.reproC) != 0 {
-		ret.RawOutput, ret.Error = inst.testRepro()
+		ret.RawOutput, ret.Coverage, ret.Error = inst.testRepro()
 	}
 	return ret
 }
@@ -388,8 +392,7 @@ func (inst *inst) testInstance() error {
 		return err
 	}
 	opts.Repeat = false
-	out, err := execProg.RunSyzProg(ExecParams{
-		SyzProg:        testProg,
+	out, err := execProg.RunSyzProg(testProg, RunOptions{
 		Duration:       inst.cfg.Timeouts.NoOutputRunningTime,
 		Opts:           opts,
 		ExitConditions: vm.ExitNormal,
@@ -403,44 +406,45 @@ func (inst *inst) testInstance() error {
 	return nil
 }
 
-func (inst *inst) testRepro() ([]byte, error) {
+func (inst *inst) testRepro() ([]byte, [][]uint64, error) {
 	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
 		OldFlagsCompatMode: !inst.optionalFlags,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	transformError := func(res *RunResult, err error) ([]byte, error) {
+	transformError := func(res *RunResult, err error) ([]byte, [][]uint64, error) {
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		if res != nil && res.Report != nil {
-			return res.Output, &CrashError{Report: res.Report}
+		if res.Report != nil {
+			err = &CrashError{Report: res.Report}
 		}
-		return res.Output, nil
+		return res.Output, res.Coverage, err
 	}
-	out := []byte{}
+	out, coverage := []byte{}, [][]uint64{}
 	if len(inst.reproSyz) > 0 {
 		opts, err := inst.csourceOptions()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		out, err = transformError(execProg.RunSyzProg(ExecParams{
-			SyzProg:  inst.reproSyz,
-			Duration: inst.cfg.Timeouts.NoOutputRunningTime,
-			Opts:     opts,
+		out, coverage, err = transformError(execProg.RunSyzProg(inst.reproSyz, RunOptions{
+			Opts:            opts,
+			Duration:        inst.cfg.Timeouts.NoOutputRunningTime,
+			CollectCoverage: inst.collectCoverage,
 		}))
 		if err != nil {
-			return out, err
+			return out, coverage, err
 		}
 	}
 	if len(inst.reproC) > 0 {
 		// We should test for more than full "no output" timeout, but the problem is that C reproducers
 		// don't print anything, so we will get a false "no output" crash.
-		out, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
-			inst.cfg.Timeouts.NoOutput/2))
+		out, _, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target, RunOptions{
+			Duration: inst.cfg.Timeouts.NoOutput / 2,
+		}))
 	}
-	return out, err
+	return out, coverage, err
 }
 
 func (inst *inst) csourceOptions() (csource.Options, error) {
@@ -462,7 +466,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 
 // nolint:revive
 func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
-	optionalFlags bool, slowdown int, progFile string) string {
+	optionalFlags bool, slowdown int, coverFile, progFile string) string {
 	repeatCount := 1
 	if opts.Repeat {
 		repeatCount = 0
@@ -488,11 +492,15 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
+	coverArg := ""
+	if coverFile != "" {
+		coverArg = " -cover=%v -coverfile=" + coverFile
+	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
-		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
+		" -procs=%v -repeat=%v -threaded=%v -collide=%v%v%v %v",
 		execprog, executor, arch, osArg, sandbox,
 		opts.Procs, repeatCount, opts.Threaded, opts.Collide,
-		optionalArg, progFile)
+		coverArg, optionalArg, progFile)
 }
 
 var MakeBin = func() string {
@@ -522,7 +530,7 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 	}
 	timeout := 30 * time.Minute * cfg.Timeouts.Scale
 	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
-	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
+	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test", "-vv=2")
 	if retErr == nil {
 		return nil, nil
 	}

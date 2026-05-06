@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in input_unregister_device
 ALT: bad-access in input_unregister_device
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [  346.619398][  T102] BUG: unable to handle page fault for address: ffff8801d386d964
 [  346.627264][  T102] #PF: supervisor read access in kernel mode

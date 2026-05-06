@@ -37,4 +37,4 @@ syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e20002)
 # guest_main should finish with guest_uexit(-1).
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffffffffffff)

@@ -112,6 +112,8 @@ struct kvm_sync_regs {};
 		"-e", "SECURITY_SMACK",
 		// include/net/nl802154.h does not define some consts without this.
 		"-e", "IEEE802154", "-e", "IEEE802154_NL802154_EXPERIMENTAL",
+		// Needed for socket_vnet.txt includes.
+		"-e", "VSOCKETS",
 	)
 	if err != nil {
 		return err
@@ -136,12 +138,15 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-fshort-wchar",
 		// Avoid implicit declaration errors.
 		"-Wno-implicit-function-declaration",
+		// Otherwise it does not recognize anonymous struct members.
+		"-fms-extensions",
 		// This makes the build completely hermetic, only kernel headers are used.
 		"-nostdinc",
 		"-w", "-fmessage-length=0",
 		"-O3", // required to get expected values for some __builtin_constant_p
 		"-I.",
 		"-D__KERNEL__",
+		"-D__DVB_CORE__",
 		"-DKBUILD_MODNAME=\"-\"",
 		"-DKBUILD_MODFILE=\"-\"",
 		"-D__LINUX_ARM_ARCH__=7", // arm does not build w/o this
@@ -157,6 +162,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,
 		"-I" + sourceDir + "/include/linux",
+		"-I" + sourceDir + "/fs/xfs/libxfs",
 		"-I" + buildDir + "/syzkaller",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}

@@ -1,6 +1,7 @@
 TITLE: general protection fault in dma_direct_max_mapping_size
 ALT: bad-access in dma_direct_max_mapping_size
 TYPE: DoS
+PANICKED: Y
 
 [    3.598126][  T259] kworker/u4:1 (259) used greatest stack depth: 27248 bytes left
 [    3.853329][  T895] kworker/u4:0 (895) used greatest stack depth: 27168 bytes left

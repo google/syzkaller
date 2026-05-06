@@ -6,29 +6,21 @@ package prog
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math/rand"
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setToArray(s map[string]struct{}) []string {
-	a := make([]string, 0, len(s))
-	for c := range s {
-		a = append(a, c)
-	}
-	sort.Strings(a)
-	return a
-}
-
 func TestSerializeData(t *testing.T) {
 	t.Parallel()
 	r := rand.New(rand.NewSource(0))
 	for _, readable := range []bool{false, true} {
-		for i := 0; i < 1e3; i++ {
+		for range 1000 {
 			data := make([]byte, r.Intn(4))
 			for i := range data {
 				data[i] = byte(r.Intn(256))
@@ -103,8 +95,11 @@ func TestCallSet(t *testing.T) {
 			if err == nil && !test.ok {
 				t.Fatalf("parsing did not fail")
 			}
-			callArray := setToArray(calls)
-			sort.Strings(test.calls)
+			callArray := slices.Sorted(maps.Keys(calls))
+			if callArray == nil {
+				callArray = []string{}
+			}
+			slices.Sort(test.calls)
 			if !reflect.DeepEqual(callArray, test.calls) {
 				t.Fatalf("got call set %+v, expect %+v", callArray, test.calls)
 			}
@@ -118,7 +113,7 @@ func TestCallSet(t *testing.T) {
 func TestCallSetRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		const ncalls = 10
 		p := target.Generate(rs, ncalls, ct)
 		calls0 := make(map[string]struct{})
@@ -129,8 +124,8 @@ func TestCallSetRandom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CallSet failed: %v", err)
 		}
-		callArray0 := setToArray(calls0)
-		callArray1 := setToArray(calls1)
+		callArray0 := slices.Sorted(maps.Keys(calls0))
+		callArray1 := slices.Sorted(maps.Keys(calls1))
 		if !reflect.DeepEqual(callArray0, callArray1) {
 			t.Fatalf("got call set:\n%+v\nexpect:\n%+v", callArray1, callArray0)
 		}
@@ -245,6 +240,14 @@ func TestDeserialize(t *testing.T) {
 			In: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 		{
+			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 300000)`,
+			Out: `serialize1(&(0x7f0000000000)=""/8, 0x493e0)`,
+		},
+		{
+			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 010)`,
+			Out: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
+		},
+		{
 			In: `test$excessive_fields1(0xfffffffffffffffe)`,
 		},
 		{
@@ -262,6 +265,10 @@ func TestDeserialize(t *testing.T) {
 		{
 			In:  `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
 			Err: `wrong type *prog.IntType for AUTO`,
+		},
+		{
+			In:  `test$csum_ipv4(&(0x7f0000000000)={AUTO, 0x0, 0x0})`,
+			Out: `test$csum_ipv4(&(0x7f0000000000)={0x0, 0x0, 0x0})`,
 		},
 		{
 			In:  `test$auto1(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
@@ -361,6 +368,22 @@ func TestDeserialize(t *testing.T) {
 			In:  `mutate9(&(0x7f0000000000)='/escaping/filename\x00')`,
 			Err: `escaping filename`,
 		},
+		{
+			In:  "test$opt2(0x0)\r",
+			Out: "test$opt2(0x0)",
+		},
+		{
+			In:  "test$opt2(0x0)\r\n",
+			Out: "test$opt2(0x0)",
+		},
+		{
+			In:  "test$opt2(0x0) \t\r\n",
+			Out: "test$opt2(0x0)",
+		},
+		{
+			In:  "  test$opt2(0x0)",
+			Out: "test$opt2(0x0)",
+		},
 	})
 }
 
@@ -404,8 +427,11 @@ func TestDeserializeDataMmapProg(t *testing.T) {
 func TestSerializeDeserializeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
-		for i := 0; i < iters; i++ {
+		for range iters {
 			p0 := target.Generate(rs, 10, ct)
+			if p0.countArgs() > maxArgCutoff {
+				continue
+			}
 			if _, _, ok := testSerializeDeserialize(t, p0); ok {
 				continue
 			}

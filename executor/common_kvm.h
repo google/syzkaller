@@ -11,11 +11,11 @@
 #include "common_kvm_syzos.h"
 #include "kvm.h"
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit || __NR_syz_kvm_assert_syzos_kvm_exit
 extern char* __start_guest;
 
 // executor_fn_guest_addr() is compiled into both the host and the guest code.
-static inline uintptr_t executor_fn_guest_addr(void* fn)
+static always_inline uintptr_t executor_fn_guest_addr(void* fn)
 {
 	// Prevent the compiler from creating a .rodata constant for
 	// &__start_guest + SYZOS_ADDR_EXECUTOR_CODE.
@@ -28,7 +28,7 @@ static inline uintptr_t executor_fn_guest_addr(void* fn)
 // In Clang-based C++ builds, use template magic to ensure that only guest functions can be passed
 // to executor_fn_guest_addr().
 template <typename R, typename... A>
-uintptr_t static inline executor_fn_guest_addr(__addrspace_guest R (*fn)(A...))
+uintptr_t static always_inline executor_fn_guest_addr(__addrspace_guest R (*fn)(A...))
 {
 	return executor_fn_guest_addr((void*)fn);
 }
@@ -44,11 +44,20 @@ static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 	uint64 expect = a1;
 
 	if (!run) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] Assertion Triggered: run is NULL\n");
+#endif
 		errno = EINVAL;
 		return -1;
 	}
 
 	if (run->exit_reason != expect) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] KVM Exit Reason Mismatch\n");
+		fprintf(stderr, "   is_write: %d\n", run->mmio.is_write);
+		fprintf(stderr, "   Expected: 0x%lx\n", (unsigned long)expect);
+		fprintf(stderr, "   Actual:   0x%lx\n", (unsigned long)run->exit_reason);
+#endif
 		errno = EDOM;
 		return -1;
 	}

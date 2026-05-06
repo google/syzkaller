@@ -51,8 +51,8 @@ config:
  - CFI_CLANG: n
  - CFI: n
  - STACKPROTECTOR: n
- - AUTOFDO_CLANG: n
- - PROPELLER_CLANG: n
+ - AUTOFDO_CLANG: [n, override]
+ - PROPELLER_CLANG: [n, override]
  - CPU_MITIGATIONS: n
  - LOCKDEP: n
  - PROVE_LOCKING: n

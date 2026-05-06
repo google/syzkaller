@@ -13,10 +13,12 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
+
+	"golang.org/x/exp/maps"
 )
 
 type Email struct {
@@ -58,6 +60,7 @@ const (
 	CmdSet
 	CmdUnset
 	CmdRegenerate
+	CmdReject
 
 	cmdTest5
 )
@@ -141,20 +144,17 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	subject := decodeSubject(msg.Header.Get("Subject"))
 	var cmds []*SingleCommand
 	var patch string
-	if !fromMe {
-		for _, a := range attachments {
-			patch = ParsePatch(a)
-			if patch != "" {
-				break
-			}
+	for _, a := range attachments {
+		patch = ParsePatch(a)
+		if patch != "" {
+			break
 		}
-		if patch == "" {
-			patch = ParsePatch(body)
-		}
-		cmds = extractCommands(subject + "\n" + bodyStr)
 	}
+	if patch == "" {
+		patch = ParsePatch(body)
+	}
+	cmds = extractCommands(subject + "\n" + bodyStr)
 	bugIDs = append(bugIDs, extractBodyBugIDs(bodyStr, ownAddrs, domains)...)
-
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
 		link = bodyStr[match[2]:match[3]]
@@ -179,10 +179,11 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		mailingList = CanonicalEmail(sender)
 	}
 	date, _ := mail.ParseDate(msg.Header.Get("Date"))
+	date = date.UTC()
 	email := &Email{
 		BugIDs:         unique(bugIDs),
 		MessageID:      msg.Header.Get("Message-ID"),
-		InReplyTo:      extractInReplyTo(msg.Header),
+		InReplyTo:      ExtractInReplyTo(msg.Header),
 		Date:           date,
 		Link:           link,
 		Author:         author,
@@ -243,18 +244,26 @@ func RemoveAddrContext(email string) (string, string, error) {
 }
 
 func CanonicalEmail(email string) string {
-	addr, err := mail.ParseAddress(email)
+	user, domain, err := Split(email)
 	if err != nil {
 		return email
 	}
-	at := strings.IndexByte(addr.Address, '@')
-	if at == -1 {
-		return email
+	return strings.ToLower(user + domain)
+}
+
+// Split splits email into user (without context) and domain (with @ prefix).
+func Split(email string) (string, string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", err
 	}
-	if plus := strings.IndexByte(addr.Address[:at], '+'); plus != -1 {
-		addr.Address = addr.Address[:plus] + addr.Address[at:]
+	user, domain, ok := strings.Cut(addr.Address, "@")
+	if !ok {
+		return "", "", fmt.Errorf("no @ in email address")
 	}
-	return strings.ToLower(addr.Address)
+	domain = "@" + domain
+	user, _, _ = strings.Cut(user, "+")
+	return user, domain, nil
 }
 
 func extractCommands(body string) []*SingleCommand {
@@ -358,6 +367,8 @@ func strToCmd(str string) Command {
 		return CmdUnset
 	case "regenerate":
 		return CmdRegenerate
+	case "reject":
+		return CmdReject
 	case "test_5_arg_cmd":
 		return cmdTest5
 	}
@@ -459,7 +470,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 
 var extractMessageIDs = regexp.MustCompile(`<.+?>`)
 
-func extractInReplyTo(header mail.Header) string {
+func ExtractInReplyTo(header mail.Header) string {
 	value := header.Get("In-Reply-To")
 	// Normally there should be just one message, to which we reply.
 	// However, there have been some cases when multiple addresses were mentioned.
@@ -534,11 +545,8 @@ func MergeEmailLists(lists ...[]string) []string {
 			merged[addr.Address] = true
 		}
 	}
-	var result []string
-	for e := range merged {
-		result = append(result, e)
-	}
-	sort.Strings(result)
+	result := maps.Keys(merged)
+	slices.Sort(result)
 	if len(result) > maxEmails {
 		result = result[:maxEmails]
 	}
@@ -553,7 +561,7 @@ func mergeRawAddresses(lists ...[]*mail.Address) []string {
 		}
 	}
 	emails = unique(emails)
-	sort.Strings(emails)
+	slices.Sort(emails)
 	return emails
 }
 
@@ -562,6 +570,21 @@ func RemoveFromEmailList(list []string, toRemove string) []string {
 	toRemove = CanonicalEmail(toRemove)
 	for _, email := range list {
 		if CanonicalEmail(email) != toRemove {
+			result = append(result, email)
+		}
+	}
+	return result
+}
+
+// SubtractEmailLists subtracts all emails in 'toRemove' from 'list'.
+func SubtractEmailLists(list, toRemove []string) []string {
+	removeMap := make(map[string]bool)
+	for _, email := range toRemove {
+		removeMap[CanonicalEmail(email)] = true
+	}
+	var result []string
+	for _, email := range list {
+		if !removeMap[CanonicalEmail(email)] {
 			result = append(result, email)
 		}
 	}

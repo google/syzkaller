@@ -3,7 +3,10 @@
 
 package main
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // CoveringArray returns an array of representative parameter value combinations.
 // The method considers parameters from the first to the last and first tries to
@@ -69,7 +72,7 @@ func CoveringArray(params [][]string, n int) [][]string {
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		rowA, rowB := ret[i], ret[j]
-		for k := 0; k < len(rowA); k++ {
+		for k := range len(rowA) {
 			if rowA[k] != rowB[k] {
 				return rowA[k] < rowB[k]
 			}
@@ -164,5 +167,5 @@ func rowToPairCombos(row []int, triples bool, newID, newVal int) []pairCombo {
 }
 
 func extendRow(row []int, newVal int) []int {
-	return append(append([]int{}, row...), newVal)
+	return append(slices.Clone(row), newVal)
 }

@@ -12,6 +12,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"flag"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -123,8 +124,8 @@ func collectCrashes(workdir string) ([]*UICrashType, error) {
 			crashTypes = append(crashTypes, crash)
 		}
 	}
-	sort.Slice(crashTypes, func(i, j int) bool {
-		return strings.ToLower(crashTypes[i].Description) < strings.ToLower(crashTypes[j].Description)
+	slices.SortFunc(crashTypes, func(a, b *UICrashType) int {
+		return cmp.Compare(strings.ToLower(a.Description), strings.ToLower(b.Description))
 	})
 	return crashTypes, nil
 }

@@ -32,7 +32,6 @@ options 	KASAN
 options 	TCPHPTS
 options 	RATELIMIT
 
-options 	DEBUG_VFS_LOCKS
 options 	DIAGNOSTIC
 `)
 	}

@@ -5,11 +5,11 @@ package cover
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMergeDiff(t *testing.T) {
@@ -50,16 +50,10 @@ func TestMergeDiff(t *testing.T) {
 			var cov Cover
 			cov.Merge(test.init)
 			diff := cov.MergeDiff(test.merge)
-			if res := cmp.Diff(test.diff, diff); res != "" {
-				t.Fatalf("result is wrong: %v", res)
-			}
+			require.Equal(t, test.diff, diff, "result is wrong")
 			result := cov.Serialize()
-			sort.Slice(result, func(i, j int) bool {
-				return result[i] < result[j]
-			})
-			if res := cmp.Diff(test.result, result); res != "" {
-				t.Fatalf("resulting coverage is wrong: %v", res)
-			}
+			slices.Sort(result)
+			require.Equal(t, test.result, result, "resulting coverage is wrong")
 		})
 	}
 }
@@ -114,7 +108,5 @@ func TestPerLineCoverage(t *testing.T) {
 		42: {{10, false, false}, {20, true, false}, {30, true, false}, {End, false, false}},
 	}
 	got := perLineCoverage(covered, uncovered)
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, want, got)
 }

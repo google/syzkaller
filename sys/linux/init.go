@@ -4,6 +4,8 @@
 package linux
 
 import (
+	"slices"
+
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -64,6 +66,10 @@ func InitTarget(target *prog.Target) {
 		"usb_device_descriptor":         arch.generateUsbDeviceDescriptor,
 		"usb_device_descriptor_printer": arch.generateUsbPrinterDeviceDescriptor,
 		"usb_device_descriptor_hid":     arch.generateUsbHidDeviceDescriptor,
+		"usb_device_descriptor_uac1":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_uac2":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_uac3":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_midi":    arch.generateAudioDeviceDescriptor,
 	}
 
 	target.AuxResources = map[string]bool{
@@ -247,7 +253,7 @@ func neutralizeSchedAttr(a prog.Arg) {
 				return
 			}
 			// Clear the first 16 bytes to prevent overcoming the limitation by squashing the struct.
-			data := append([]byte{}, dataArg.Data()...)
+			data := slices.Clone(dataArg.Data())
 			for i := 0; i < 16 && i < len(data); i++ {
 				data[i] = 0
 			}

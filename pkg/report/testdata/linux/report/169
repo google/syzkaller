@@ -1,5 +1,6 @@
 TITLE: WARNING: bad usercopy in put_cmsg
 TYPE: WARNING
+PANICKED: Y
 
 [   54.568476] ------------[ cut here ]------------
 [   54.573431] Bad or missing usercopy whitelist? Kernel memory exposure attempt detected from SLAB object 'skbuff_head_cache' (offset 64, size 16)!

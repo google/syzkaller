@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in netdev_freemem
 TYPE: WARNING
+PANICKED: Y
 
 [ 3008.116296][T24159] ------------[ cut here ]------------
 [ 3008.121093][ T1807] 8021q: adding VLAN 0 to HW filter on device batadv0

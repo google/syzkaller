@@ -1,0 +1,354 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Question": "What do you think?"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "What do you think?"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Something": "subtool input 1"
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Something": "subtool input 1"
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Finished": "0001-01-01T00:00:13Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "What do you think?",
+		"Reply": "Nothing."
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"Question": "What do you think?"
+		},
+		"Results": {
+			"Answer": "Nothing."
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:17Z",
+		"Args": {
+			"Question": "But really?"
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:18Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "But really?"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:19Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:19Z",
+		"Finished": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:21Z",
+		"Args": {
+			"Something": "subtool input 2"
+		}
+	},
+	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Args": {
+			"Something": "subtool input 2"
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Args": {
+			"Something": "subtool input 3"
+		}
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"Args": {
+			"Something": "subtool input 3"
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z",
+		"Error": "Error 400, Message: The input token count exceeds the maximum number of tokens allowed 1048576., Status: , Details: []"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:29Z"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:30Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:18Z",
+		"Finished": "0001-01-01T00:00:31Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "But really?",
+		"Reply": "Still nothing."
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:17Z",
+		"Finished": "0001-01-01T00:00:32Z",
+		"Args": {
+			"Question": "But really?"
+		},
+		"Results": {
+			"Answer": "Still nothing."
+		}
+	},
+	{
+		"Seq": 17,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:33Z"
+	},
+	{
+		"Seq": 17,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:33Z",
+		"Finished": "0001-01-01T00:00:34Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:35Z",
+		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt",
+		"Reply": "YES"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:36Z",
+		"Results": {
+			"Reply": "YES"
+		}
+	}
+]

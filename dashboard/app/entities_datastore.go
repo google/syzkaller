@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -131,7 +132,10 @@ type Bug struct {
 	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
 	FixCandidateJob string
 	ReproAttempts   []BugReproAttempt
-	AIJobCheck      int64
+	// AIJobCheck holds the date (YYYYMMDD) when AI jobs were last checked for this bug.
+	AIJobCheck int64
+	// AIPendingWorkflows holds the list of AI workflow types that are pending for this bug.
+	AIPendingWorkflows []string
 }
 
 type BugTreeTestInfo struct {
@@ -211,7 +215,9 @@ func updateSingleBug(ctx context.Context, bugKey *db.Key, transform func(*Bug) e
 		}
 		return nil
 	}
-	return runInTransaction(ctx, tx, nil)
+	return runInTransaction(ctx, tx, &db.TransactionOptions{
+		XG: true, // We need the same XG as in the consequent transactions.
+	})
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
@@ -222,7 +228,6 @@ func (bug *Bug) hasUserSubsystems() bool {
 // it turned out that we'd better store all labels together.
 // Let's keep this conversion code until "Tags" are removed from all bugs.
 // Then it can be removed.
-
 type Bug202304 struct {
 	Tags BugTags202304
 }
@@ -672,6 +677,7 @@ const (
 	textError        = "Error"
 	textReproLog     = "ReproLog"
 	textFsckLog      = "FsckLog"
+	textJobComment   = "JobComment"
 )
 
 const (
@@ -733,8 +739,10 @@ type ReproTask struct {
 	Namespace    string
 	Manager      string
 	Log          int64 // Reference to CrashLog text entity.
+	ResultLog    int64 // Reference to ResultLog text entity.
 	AttemptsLeft int64
 	LastAttempt  time.Time
+	Created      time.Time
 }
 
 func mgrKey(ctx context.Context, ns, name string) *db.Key {
@@ -1194,5 +1202,21 @@ func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOption
 	if opts.Attempts == 0 {
 		opts.Attempts = 10
 	}
-	return db.RunInTransaction(ctx, tx, opts)
+	const maxDevAppServerRetries = 100
+	var err error
+	for range maxDevAppServerRetries {
+		err = db.RunInTransaction(ctx, tx, opts)
+		if err != nil && testing.Testing() {
+			errStr := err.Error()
+			// This is a hack to work around the fact that the dev app server
+			// returns the emulator specific error under pressure:
+			// "API error 1 (datastore_v3: BAD_REQUEST): Transaction(<handle: XXX, app: "dev~testapp-12", >) not found"
+			if strings.Contains(errStr, "Transaction") && strings.Contains(errStr, "not found") {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+		}
+		return err
+	}
+	return fmt.Errorf("failed after %v dev server retries: %w", maxDevAppServerRetries, err)
 }

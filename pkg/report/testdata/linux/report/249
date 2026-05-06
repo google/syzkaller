@@ -1,5 +1,6 @@
 TITLE: WARNING in rfkill_fop_read
 TYPE: WARNING
+PANICKED: Y
 
 [   30.952857] WARNING: CPU: 1 PID: 8321 at /linux/kernel/sched/core.c:7301 __might_sleep+0x77/0x80()
 [   30.956045] do not call blocking ops when !TASK_RUNNING; state=1 set at [<ffffffff81094815>] prepare_to_wait_event+0x75/0xf0

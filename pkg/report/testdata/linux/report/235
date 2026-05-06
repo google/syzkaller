@@ -2,6 +2,7 @@ TITLE: INFO: task hung in corrupted
 ALT: hang in corrupted
 TYPE: HANG
 CORRUPTED: Y
+PANICKED: Y
 
 [  246.707981] FAULT_INJECTION: forcing a failure.
 [  246.707981] name failslab, interval 1, probability 0, space 0, times 0

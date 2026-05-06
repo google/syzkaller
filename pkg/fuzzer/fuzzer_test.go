@@ -242,7 +242,7 @@ func checkGoroutineLeaks() {
 	// Inspired by src/net/http/main_test.go.
 	buf := make([]byte, 2<<20)
 	err := ""
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		buf = buf[:runtime.Stack(buf, true)]
 		err = ""
 		for _, g := range strings.Split(string(buf), "\n\n") {

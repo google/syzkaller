@@ -4,8 +4,11 @@
 package aflow
 
 import (
-	"errors"
+	"fmt"
+	"reflect"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
 )
 
@@ -18,18 +21,20 @@ import (
 // (they are not exposed to the LLM agent).
 func NewFuncTool[State, Args, Results any](name string, fn func(*Context, State, Args) (Results, error),
 	description string) Tool {
-	return &funcTool[State, Args, Results]{
+	t := &funcTool[State, Args, Results]{
 		Name:        name,
 		Description: description,
 		Func:        fn,
 	}
+	registerMCPTool(t)
+	return t
 }
 
 // BadCallError creates an error that means that LLM made a bad tool call,
 // the provided message will be returned to the LLM as an error,
 // instead of failing the whole workflow.
-func BadCallError(message string) error {
-	return &badCallError{errors.New(message)}
+func BadCallError(message string, args ...any) error {
+	return &badCallError{fmt.Errorf(message, args...)}
 }
 
 type badCallError struct {
@@ -52,7 +57,7 @@ func (t *funcTool[State, Args, Results]) declaration() *genai.FunctionDeclaratio
 }
 
 func (t *funcTool[State, Args, Results]) execute(ctx *Context, args map[string]any) (map[string]any, error) {
-	state, err := convertFromMap[State](ctx.state, false, false)
+	state, err := convertFromMap[State](ctx.state, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -76,4 +81,31 @@ func (t *funcTool[State, Args, Results]) verify(ctx *verifyContext) {
 	requireSchema[Args](ctx, t.Name, "Args")
 	requireSchema[Results](ctx, t.Name, "Results")
 	requireInputs[State](ctx, t.Name)
+}
+
+func (tool *funcTool[State, Args, Results]) testVerify(t *testing.T, ctx *verifyContext, state, args, results any) (
+	map[string]any, map[string]any, func(map[string]any)) {
+	require.Equal(t, reflect.TypeFor[State](), reflect.TypeOf(state))
+	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))
+	resultChecker := func(got map[string]any) {
+		require.Equal(t, reflect.TypeFor[Results](), reflect.TypeOf(results))
+		require.Equal(t, convertToMap(results.(Results)), got)
+	}
+	if fn, ok := results.(func(Results)); ok {
+		resultChecker = func(got map[string]any) {
+			res, err := convertFromMap[Results](got, true, true)
+			require.NoError(t, err)
+			fn(res)
+		}
+	}
+	provideOutputs[State](ctx, "state")
+	tool.verify(ctx)
+	return convertToMap(state.(State)), convertToMap(args.(Args)), resultChecker
+}
+
+func (*funcTool[State, Args, Results]) checkFuzzTypes(t *testing.T, state, args any) (
+	map[string]any, map[string]any) {
+	require.Equal(t, reflect.TypeFor[State](), reflect.TypeOf(state))
+	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))
+	return convertToMap(state.(State)), convertToMap(args.(Args))
 }

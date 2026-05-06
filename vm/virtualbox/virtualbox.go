@@ -178,7 +178,7 @@ func (inst *instance) boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("virtualbox", inst.rpipe)
+	inst.merger.Add("virtualbox", vmimpl.OutputConsole, inst.rpipe)
 	inst.rpipe = nil
 
 	// Connect to the serial console and add it to the merger.
@@ -190,7 +190,7 @@ func (inst *instance) boot() error {
 		}
 		return err
 	}
-	inst.merger.Add("dmesg", inst.uartConn)
+	inst.merger.Add("dmesg", vmimpl.OutputConsole, inst.uartConn)
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
@@ -198,15 +198,17 @@ func (inst *instance) boot() error {
 		for {
 			select {
 			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
+				bootOutput = append(bootOutput, out.Data...)
 			case <-bootOutputStop:
 				close(bootOutputStop)
 				return
 			}
 		}
 	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if err := vmimpl.WaitForSSH(10*time.Minute*inst.timeouts.Scale, inst.SSHOptions,
-		inst.os, inst.merger.Err, false, inst.debug); err != nil {
+		inst.os, inst.merger.Errors(ctx), false, inst.debug); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -243,28 +245,34 @@ func (inst *instance) Close() error {
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
 	}
+	if inst.uartConn != nil {
+		inst.uartConn.Close()
+	}
+	if inst.merger != nil {
+		inst.merger.Wait()
+	}
 	return nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDest := "/" + base
-
-	args := vmimpl.SCPArgs(inst.debug, inst.SSHOptions.Key, inst.SSHOptions.Port, false)
-	args = append(args, hostSrc, fmt.Sprintf("%v@127.0.0.1:%v", inst.SSHOptions.User, vmDest))
-
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-
-	if _, err := osutil.RunCmd(3*time.Minute, "", "scp", args...); err != nil {
+	err := vmimpl.SCP(hostSrc, vmDest, vmimpl.SCPOptions{
+		Debug:   inst.debug,
+		Key:     inst.SSHOptions.Key,
+		Port:    inst.SSHOptions.Port,
+		User:    inst.SSHOptions.User,
+		Addr:    "127.0.0.1",
+		Timeout: 3 * time.Minute,
+	})
+	if err != nil {
 		return "", err
 	}
 	return vmDest, nil
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	if inst.uartConn == nil {
 		if inst.debug {
 			log.Logf(0, "serial console not available; returning an error")
@@ -287,30 +295,36 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		if inst.debug {
 			log.Logf(0, "LongPipe failed: %v", err)
 		}
-		if inst.uartConn != nil {
-			inst.uartConn.Close()
+		return nil, nil, err
+	}
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		if inst.debug {
+			log.Logf(0, "LongPipe failed: %v", err)
 		}
+		rpipe.Close()
+		wpipe.Close()
 		return nil, nil, err
 	}
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
 		rpipe.Close()
-		if inst.uartConn != nil {
-			inst.uartConn.Close()
-		}
+		wpipeErr.Close()
+		rpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 
-	inst.merger.Add("ssh", rpipe)
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
-		Console: inst.uartConn,
-		Close:   inst.closed,
-		Debug:   inst.debug,
-		Scale:   inst.timeouts.Scale,
+		Close: inst.closed,
+		Debug: inst.debug,
+		Scale: inst.timeouts.Scale,
 	})
 }
 

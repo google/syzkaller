@@ -6,7 +6,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/report/crash"
@@ -20,6 +21,7 @@ const (
 	OriginLabel          BugLabelType = "origin"
 	MissingBackportLabel BugLabelType = "missing-backport"
 	RaceLabel            BugLabelType = "race"
+	ActionableLabel      BugLabelType = "actionable"
 )
 
 type BugPrio string
@@ -48,6 +50,7 @@ func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 		}),
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
+		ActionableLabel:      trueFalse{},
 	}
 	typ := crash.TitleToType(bug.Title)
 	if typ == crash.KCSANDataRace {
@@ -123,13 +126,7 @@ func (s *labelSet) ValidateValues(label BugLabelType, values []BugLabel) string 
 }
 
 func (s *labelSet) Help() string {
-	var sortedKeys []BugLabelType
-	for key := range s.labels {
-		sortedKeys = append(sortedKeys, key)
-	}
-	sort.Slice(sortedKeys, func(i, j int) bool {
-		return string(sortedKeys[i]) < string(sortedKeys[j])
-	})
+	sortedKeys := slices.Sorted(maps.Keys(s.labels))
 
 	var help strings.Builder
 	for _, key := range sortedKeys {

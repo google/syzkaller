@@ -4,6 +4,7 @@ directory /mm/.. subdirs:
  - mm
 
 directory /mm/.. files:
+ - global_vars.c
  - refs.c
  - source0.c
  - source0.h

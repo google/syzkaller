@@ -33,6 +33,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
+	"google.golang.org/api/googleapi"
 )
 
 func init() {
@@ -44,13 +45,16 @@ func init() {
 }
 
 type Config struct {
-	Count         int    `json:"count"`          // number of VMs to use
-	ZoneID        string `json:"zone_id"`        // GCE zone (if it's different from that of syz-manager)
-	MachineType   string `json:"machine_type"`   // GCE machine type (e.g. "n1-highcpu-2")
-	GCSPath       string `json:"gcs_path"`       // GCS path to upload image
-	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
-	Preemptible   bool   `json:"preemptible"`    // use preemptible VMs if available (defaults to true)
-	DisplayDevice bool   `json:"display_device"` // enable a virtual display device
+	Count                int    `json:"count"`                 // number of VMs to use
+	ZoneID               string `json:"zone_id"`               // GCE zone (if it's different from that of syz-manager)
+	ProjectID            string `json:"project_id"`            // GCE project (if it's different from that of syz-manager)
+	MachineType          string `json:"machine_type"`          // GCE machine type (e.g. "n1-highcpu-2")
+	GCSPath              string `json:"gcs_path"`              // GCS path to upload image
+	GCEImage             string `json:"gce_image"`             // pre-created GCE image to use
+	Preemptible          bool   `json:"preemptible"`           // use preemptible VMs if available (defaults to true)
+	DisplayDevice        bool   `json:"display_device"`        // enable a virtual display device
+	NicType              string `json:"nic_type"`              // type of vNIC to be used (e.g. GVNIC).
+	NestedVirtualization bool   `json:"nested_virtualization"` // Whether to enable nested virtualization or not.
 	// Username to connect to ssh-serialport.googleapis.com.
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise take the user from `gcloud compute connect-to-serial-port --dry-run`.
@@ -117,7 +121,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
-	GCE, err := initGCE(cfg.ZoneID)
+	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +153,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 	return pool, nil
 }
 
-func initGCE(zoneID string) (*gce.Context, error) {
+func initGCE(zoneID, projectID string) (*gce.Context, error) {
 	// There happen some transient GCE init errors on and off.
 	// Let's try it several times before aborting.
 	const (
@@ -164,7 +168,7 @@ func initGCE(zoneID string) (*gce.Context, error) {
 		if i > 1 {
 			time.Sleep(gceInitBackoff)
 		}
-		GCE, err = gce.NewContext(zoneID)
+		GCE, err = gce.NewContext(zoneID, projectID)
 		if err == nil {
 			return GCE, nil
 		}
@@ -190,13 +194,27 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	log.Logf(0, "deleting instance: %v", name)
-	if err := pool.GCE.DeleteInstance(name, true); err != nil {
-		return nil, err
-	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
-		string(gceKeyPub), pool.cfg.Tags, pool.cfg.Preemptible, pool.cfg.DisplayDevice)
+	instCfg := &gce.InstanceConfig{
+		Name:                 name,
+		MachineType:          pool.cfg.MachineType,
+		Image:                pool.cfg.GCEImage,
+		SSHKey:               string(gceKeyPub),
+		Tags:                 pool.cfg.Tags,
+		Preemptible:          pool.cfg.Preemptible,
+		DisplayDevice:        pool.cfg.DisplayDevice,
+		NestedVirtualization: pool.cfg.NestedVirtualization,
+		NicType:              pool.cfg.NicType,
+		VMRunningTime:        pool.env.Timeouts.VMRunningTime,
+	}
+	ip, err := pool.GCE.CreateInstance(instCfg)
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == 409 {
+		log.Logf(0, "deleting existing instance due to conflict: %v", name)
+		if err = pool.GCE.DeleteInstance(name, true); err == nil {
+			ip, err = pool.GCE.CreateInstance(instCfg)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +266,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 
 func (inst *instance) Close() error {
 	close(inst.closed)
-	err := inst.GCE.DeleteInstance(inst.name, false)
+	err := inst.GCE.DeleteInstance(inst.name, true)
 	if inst.consolew != nil {
 		err2 := inst.consolew.Close()
 		if err == nil {
@@ -263,17 +281,29 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(true, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	if err := runCmd(inst.debug, "scp", args...); err != nil {
+	vmDstDir := filepath.Join("./", inst.env.Name)
+	if _, err := inst.ssh("mkdir", "-p", vmDstDir); err != nil {
+		return "", err
+	}
+	vmDst := filepath.Join(vmDstDir, filepath.Base(hostSrc))
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:         inst.debug,
+		Key:           inst.Key,
+		Port:          inst.Port,
+		SystemSSHCfg:  false,
+		User:          inst.User,
+		Addr:          inst.Addr,
+		Timeout:       time.Minute,
+		VerboseOutput: true,
+	})
+	if err != nil {
 		return "", err
 	}
 	return vmDst, nil
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
@@ -315,7 +345,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if inst.env.OS == targets.Windows {
 		decoder = kd.Decode
 	}
-	merger.AddDecoder("console", conRpipe, decoder)
+	merger.AddDecoder("console", vmimpl.OutputConsole, conRpipe, decoder)
 	if err := waitForConsoleConnect(merger); err != nil {
 		con.Process.Kill()
 		merger.Wait()
@@ -325,21 +355,32 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if err != nil {
 		con.Process.Kill()
 		merger.Wait()
+		return nil, nil, err
+	}
+	sshRpipeErr, sshWpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		con.Process.Kill()
+		merger.Wait()
 		sshRpipe.Close()
+		sshWpipe.Close()
 		return nil, nil, err
 	}
 	ssh := osutil.Command("ssh", inst.sshArgs(command)...)
 	ssh.Stdout = sshWpipe
-	ssh.Stderr = sshWpipe
+	ssh.Stderr = sshWpipeErr
 	if err := ssh.Start(); err != nil {
 		con.Process.Kill()
 		merger.Wait()
 		sshRpipe.Close()
 		sshWpipe.Close()
+		sshRpipeErr.Close()
+		sshWpipeErr.Close()
 		return nil, nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
 	sshWpipe.Close()
-	merger.Add("ssh", sshRpipe)
+	sshWpipeErr.Close()
+	merger.Add("ssh", vmimpl.OutputStdout, sshRpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, sshRpipeErr)
 
 	return vmimpl.Multiplex(ctx, ssh, merger, vmimpl.MultiplexConfig{
 		Console: vmimpl.CmdCloser{Cmd: con},
@@ -383,7 +424,7 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 	for {
 		select {
 		case out := <-merger.Output:
-			output = append(output, out...)
+			output = append(output, out.Data...)
 			if bytes.Contains(output, connectedMsg) {
 				// Just to make sure (otherwise we still see trimmed reports).
 				time.Sleep(5 * time.Second)
@@ -542,15 +583,4 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
-}
-
-func runCmd(debug bool, bin string, args ...string) error {
-	if debug {
-		log.Logf(0, "running command: %v %#v", bin, args)
-	}
-	output, err := osutil.RunCmd(time.Minute, "", bin, args...)
-	if debug {
-		log.Logf(0, "result: %v\n%s", err, output)
-	}
-	return err
 }

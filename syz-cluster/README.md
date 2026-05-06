@@ -15,10 +15,10 @@ The system is to be deployed on a K8S cluster. The main services are:
 The actual patch processing is orchestrated by Argo Workflows: see [the
 template](./pkg/workflow/template.yaml). It relies on the following processing
 steps:
-* `workflow/triage-step`
-* `workflow/build-step`
-* `workflow/boot-step`
-* `workflow/fuzz-step`
+* `workflow/triage`
+* `workflow/build`
+* `workflow/boot`
+* `workflow/fuzz`
 
 Triage and build steps need the actual kernel checkouts. The base kernel repo is
 hosted on a shared network disk and is regularly updated by the scripts in
@@ -27,7 +27,7 @@ hosted on a shared network disk and is regularly updated by the scripts in
 The system can be deployed in multiple environments, which is achieved with the
 help of Kustomize. Depending on the actual deployment target, different pieces of
 configuration are applied:
-* `overlays/minikube`: the local dev environment.
+* `overlays/local/minikube`: the local dev environment.
 * `overlays/gke/staging`: the staging prod environment.
 * `overlays/gke/prod`: https://ci.syzbot.org.
 
@@ -45,23 +45,21 @@ $ minikube start --cni=cilium
 `--cni=cilium` enables the use of a more advanced Network plugin that supports
 the emulation of network policies.
 
-2. Add a Spanner Add-on: https://minikube.sigs.k8s.io/docs/handbook/addons/cloud-spanner/
-```
-$ minikube addons enable cloud-spanner
-```
-3. Build all docker containers (might take a while):
+2. Build all docker containers (might take a while):
 ```
 $ eval $(minikube docker-env)
-$ make build-all
+$ make all-containers
 ```
-4. Deploy the cluster:
+3. Deploy local infrastructure (Argo, Spanner, Service Accounts):
 ```
-$ make restart-spanner
 $ kubectl create namespace argo
-$ make k8s-config-argo | kubectl apply -f -
-$ make k8s-config-argo-wait
+$ make k8s-config-local-infra
+$ make migrate-local
+```
+
+4. Deploy the rest of the cluster:
+```
 $ make k8s-config-dev | kubectl apply -f -
-$ make migrate-job.yaml | kubectl create -f -
 ```
 5. Pre-fetch the kernel git repository:
 ```

@@ -32,6 +32,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/image"
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
@@ -44,6 +45,7 @@ import (
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -219,6 +221,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	if cfg.SysTarget.BrokenCompiler != "" {
+		log.Errorf("target compiler is broken: %v", cfg.SysTarget.BrokenCompiler)
+	}
 	if cfg.DashboardAddr != "" {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
@@ -290,6 +295,10 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		crashes:            make(chan *manager.Crash, 10),
 		saturatedCalls:     make(map[string]bool),
 		reportGenerator:    manager.ReportGeneratorCache(cfg),
+	}
+	mgr.crashStore.Reporter = reporter
+	if subsystem.HasList(cfg.TargetOS) {
+		mgr.crashStore.Extractor = subsystem.MakeExtractor(subsystem.GetList(cfg.TargetOS))
 	}
 	if *flagDebug {
 		mgr.cfg.Procs = 1
@@ -558,10 +567,27 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 				res.Crash.FullTitle())
 		} else {
 			log.Logf(1, "report repro failure of '%v'", res.Crash.Title)
-			mgr.saveFailedRepro(res.Crash.Report, res.Stats)
+			mgr.saveFailedRepro(res.Crash.Report, res.Stats, res.Err)
 		}
 	} else {
 		mgr.saveRepro(res)
+	}
+
+	if res.Crash.ExtReqID != 0 {
+		var reproLog []byte
+		if res.Stats != nil {
+			reproLog = truncateReproLog(res.Stats.FullLog())
+		} else if res.Err != nil {
+			reproLog = []byte(fmt.Sprintf("reproduction failed: %v", res.Err))
+		}
+		req := &dashapi.ReproTaskDoneReq{
+			ReqID:   res.Crash.ExtReqID,
+			Success: res.Repro != nil,
+			Log:     reproLog,
+		}
+		if err := mgr.dash.ReproTaskDone(req); err != nil {
+			log.Logf(0, "failed to report repro task done: %v", err)
+		}
 	}
 }
 
@@ -624,6 +650,10 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	if rep != nil && rep.Executor != nil {
 		extraExecs = []report.ExecutorInfo{*rep.Executor}
 	}
+	var memoryDump string
+	if mgr.cfg.MemoryDump && rep != nil {
+		memoryDump = mgr.extractMemoryDump(inst, rep)
+	}
 	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil, extraExecs...)
 	if rep != nil {
 		rpcserver.PrependExecuting(rep, lastExec)
@@ -637,6 +667,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 			InstanceIndex: inst.Index(),
 			Report:        rep,
 			TailReports:   reps[1:],
+			MemoryDump:    memoryDump,
 		}
 	}
 	if err != nil {
@@ -703,6 +734,9 @@ func (mgr *Manager) emailCrash(crash *manager.Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
+	if crash.MemoryDump != "" {
+		defer os.Remove(crash.MemoryDump)
+	}
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Errorf("failed to symbolize report: %v", err)
 	}
@@ -777,7 +811,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	}
 	first, err := mgr.crashStore.SaveCrash(crash)
 	if err != nil {
-		log.Logf(0, "failed to save the cash: %v", err)
+		log.Logf(0, "failed to save the crash: %v", err)
 		return false
 	}
 	if first {
@@ -836,8 +870,11 @@ func truncateReproLog(log []byte) []byte {
 	return report.Truncate(log, 512000, 512000)
 }
 
-func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
+func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats, reproErr error) {
 	reproLog := stats.FullLog()
+	if reproLog == nil && reproErr != nil {
+		reproLog = []byte(fmt.Sprintf("reproduction failed: %v", reproErr))
+	}
 	if mgr.dash != nil {
 		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
@@ -976,6 +1013,31 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 		ret = append(ret, asset)
 	})
 	return ret
+}
+
+func (mgr *Manager) extractMemoryDump(inst *vm.Instance, rep *report.Report) string {
+	if !rep.Panicked {
+		// We can only collect a memory dump from a kernel that panicked.
+		return ""
+	}
+	if mgr.crashStore.HasMemoryDump(rep.Title) {
+		// Keep only one memory dump to save disk space.
+		// For now let it be the first one.
+		return ""
+	}
+	tmpPath, err := osutil.TempFile("vmcore-*")
+	if err != nil {
+		log.Errorf("failed to create temp file for memory dump: %v", err)
+		return ""
+	}
+	if err := instance.ExtractMemoryDump(inst, mgr.sysTarget, tmpPath); err != nil {
+		log.Logf(0, "VM %v: failed to extract memory dump: %v", inst.Index(), err)
+		os.Remove(tmpPath)
+		return ""
+	}
+
+	log.Logf(0, "VM %v: extracted memory dump to %v", inst.Index(), tmpPath)
+	return tmpPath
 }
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
@@ -1470,6 +1532,7 @@ func (mgr *Manager) dashboardReproTasks() {
 			mgr.externalReproQueue <- &manager.Crash{
 				FromDashboard: true,
 				Manual:        resp.Type == dashapi.ManualLog,
+				ExtReqID:      resp.ReqID,
 				Report: &report.Report{
 					Title:  resp.Title,
 					Output: resp.CrashLog,
@@ -1507,7 +1570,7 @@ func publicWebAddr(addr string) string {
 		if host, err := os.Hostname(); err == nil {
 			addr = net.JoinHostPort(host, port)
 		}
-		if GCE, err := gce.NewContext(""); err == nil {
+		if GCE, err := gce.NewContext("", ""); err == nil {
 			addr = net.JoinHostPort(GCE.ExternalIP, port)
 		}
 	}

@@ -5,7 +5,9 @@ package db
 
 import (
 	"testing"
+	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,4 +39,44 @@ func TestBaseFindingRepository(t *testing.T) {
 	exists, err = repo.Exists(ctx, finding)
 	require.NoError(t, err)
 	assert.True(t, exists)
+
+	// Verify date-based lookup.
+	now := time.Now()
+	finding.CommitHash = "hash2"
+	finding.CommitDate = spanner.NullTime{Time: now, Valid: true}
+	err = repo.Save(ctx, finding)
+	require.NoError(t, err)
+
+	// Same title, different commit, but close date (in the past).
+	exists, err = repo.Exists(ctx, &BaseFinding{
+		CommitHash: "other",
+		Config:     "config",
+		Arch:       "arch",
+		Title:      "title",
+		CommitDate: spanner.NullTime{Time: now.Add(2 * 24 * time.Hour), Valid: true},
+	})
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	// Same title, different commit, future date (should not match).
+	exists, err = repo.Exists(ctx, &BaseFinding{
+		CommitHash: "other",
+		Config:     "config",
+		Arch:       "arch",
+		Title:      "title",
+		CommitDate: spanner.NullTime{Time: now.Add(-2 * 24 * time.Hour), Valid: true},
+	})
+	require.NoError(t, err)
+	assert.False(t, exists)
+
+	// Same title, different commit, far past date.
+	exists, err = repo.Exists(ctx, &BaseFinding{
+		CommitHash: "other",
+		Config:     "config",
+		Arch:       "arch",
+		Title:      "title",
+		CommitDate: spanner.NullTime{Time: now.Add(8 * 24 * time.Hour), Valid: true},
+	})
+	require.NoError(t, err)
+	assert.False(t, exists)
 }

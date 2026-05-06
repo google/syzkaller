@@ -1,5 +1,6 @@
 TITLE: kernel BUG in sctp_packet_transmit
 TYPE: BUG
+PANICKED: Y
 
 [  486.883962] skbuff: skb_over_panic: text:ffffffff847fe683 len:213316 put:213008 head:ffff8801c2fd3340 data:ffff8801c2fd33f8 tail:0x341fc end:0x7ec0 dev:<NULL>
 [  486.904303] ------------[ cut here ]------------

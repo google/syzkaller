@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -454,7 +455,7 @@ func (mgr *Manager) restartManager() {
 	// build attempt, so let's always reset it to the commit the current kernel was built at.
 	_, err = mgr.repo.CheckoutCommit(mgr.mgrcfg.Repo, info.KernelCommit)
 	if err != nil {
-		mgr.Errorf("failed to check out the last kernel commit %q: %v", info.KernelCommit, err)
+		mgr.Errorf("failed to check out the last kernel commit %q:\n%s", info.KernelCommit, osutil.VerboseMessage(err))
 		return
 	}
 	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)
@@ -748,7 +749,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 
 func (mgr *Manager) backportCommits() []vcs.BackportCommit {
 	return append(
-		append([]vcs.BackportCommit{}, mgr.cfg.BisectBackports...),
+		slices.Clone(mgr.cfg.BisectBackports),
 		mgr.mgrcfg.BisectBackports...,
 	)
 }

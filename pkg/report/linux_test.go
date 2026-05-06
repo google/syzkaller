@@ -81,6 +81,57 @@ func TestLinuxIgnores(t *testing.T) {
 	}
 }
 
+func TestExtractFaultInjectionInfo(t *testing.T) {
+	reporter, _ := prepareLinuxReporter(t, targets.AMD64)
+	log := `
+[  602.265237][T27130] FAULT_INJECTION: forcing a failure.
+[  602.265237][T27130] name failslab, interval 1, probability 0, space 0, times 0
+[  602.267142][T27130] CPU: 1 PID: 27130 Comm: syz-executor2 Not tainted
+[  602.269685][T27130] Call Trace:
+[  602.270155][T27130]  dump_stack+0x1db/0x2d0
+[  602.272981][T27130]  should_fail.cold+0xa/0x14
+[  602.277933][T27130]  __should_failslab+0x121/0x190
+[  560.713151][T27130] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+`
+	want := `FAULT_INJECTION: forcing a failure.
+name failslab, interval 1, probability 0, space 0, times 0
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ should_fail.cold+0xa/0x14
+ __should_failslab+0x121/0x190`
+	got, err := reporter.ExtractFaultInjectionInfo([]byte(log))
+	assert.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestExtractFaultInjectionInfoDeduplicates(t *testing.T) {
+	reporter, _ := prepareLinuxReporter(t, targets.AMD64)
+	log := `
+[  602.265237][T1] FAULT_INJECTION: forcing a failure.
+[  602.265237][T1] name failslab, interval 1, probability 0, space 0, times 0
+[  602.267142][T2] some unrelated line
+[  602.269685][T1] Call Trace:
+[  602.270155][T1]  dump_stack+0x1db/0x2d0
+[  602.272981][T1]  should_fail.cold+0xa/0x14
+[  560.713151][T1] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+[  603.265237][T2] FAULT_INJECTION: forcing a failure.
+[  603.265237][T2] name failslab, interval 1, probability 0, space 0, times 0
+[  603.267142][T2] CPU: 1 PID: 40000 Comm: syz-executor0 Not tainted
+[  603.269685][T2] Call Trace:
+[  603.270155][T2]  dump_stack+0x1db/0x2d0
+[  603.272981][T2]  should_fail.cold+0xa/0x14
+[  561.713151][T2] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+`
+	want := `FAULT_INJECTION: forcing a failure.
+name failslab, interval 1, probability 0, space 0, times 0
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ should_fail.cold+0xa/0x14`
+	got, err := reporter.ExtractFaultInjectionInfo([]byte(log))
+	assert.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
 func TestLinuxSymbolizeLine(t *testing.T) {
 	tests := []struct {
 		line   string

@@ -15,18 +15,26 @@ import (
 )
 
 type ReportService struct {
-	reportRepo     *db.ReportRepository
-	seriesService  *SeriesService
-	findingService *FindingService
-	urls           *api.URLGenerator
+	reportRepo      *db.ReportRepository
+	sessionRepo     *db.SessionRepository
+	jobRepo         *db.JobRepository
+	sessionTestRepo *db.SessionTestRepository
+	testStepRepo    *db.SessionTestStepRepository
+	seriesService   *SeriesService
+	findingService  *FindingService
+	urls            *api.URLGenerator
 }
 
 func NewReportService(env *app.AppEnvironment) *ReportService {
 	return &ReportService{
-		urls:           env.URLs,
-		reportRepo:     db.NewReportRepository(env.Spanner),
-		seriesService:  NewSeriesService(env),
-		findingService: NewFindingService(env),
+		urls:            env.URLs,
+		reportRepo:      db.NewReportRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
+		jobRepo:         db.NewJobRepository(env.Spanner),
+		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
+		testStepRepo:    db.NewSessionTestStepRepository(env.Spanner),
+		seriesService:   NewSeriesService(env),
+		findingService:  NewFindingService(env),
 	}
 }
 
@@ -95,15 +103,88 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to query findings: %w", err)
 	}
+	reportObj := &api.SessionReport{
+		ID:         report.ID,
+		Moderation: report.Moderation,
+		Series:     series,
+		Link:       rs.urls.Series(series.ID),
+		Findings:   findings,
+	}
+
+	session, err := rs.sessionRepo.GetByID(ctx, report.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query session: %w", err)
+	}
+
+	if session.JobID.Valid {
+		reportObj.Type = api.ReportTypePatchTest
+		if err := rs.populatePatchTestReport(ctx, reportObj, session); err != nil {
+			return nil, err
+		}
+		reportObj.Link = rs.urls.Session(session.ID)
+	} else {
+		reportObj.Type = api.ReportTypeBug
+		reportObj.InReplyTo = series.ExtID
+		reportObj.Cc = series.Cc
+	}
+
 	return &api.NextReportResp{
-		Report: &api.SessionReport{
-			ID:         report.ID,
-			Moderation: report.Moderation,
-			Series:     series,
-			Link:       rs.urls.Series(series.ID),
-			Findings:   findings,
-		},
+		Report: reportObj,
 	}, nil
+}
+
+func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj *api.SessionReport,
+	session *db.Session) error {
+	job, err := rs.jobRepo.GetByID(ctx, session.JobID.StringVal)
+	if err != nil {
+		return fmt.Errorf("failed to query job: %w", err)
+	}
+	reportObj.InReplyTo = job.ExtID
+	if reportObj.InReplyTo == "" {
+		reportObj.InReplyTo = reportObj.Series.ExtID
+	}
+	reportObj.PatchLink = rs.urls.JobPatch(job.ID)
+	// Route patch testing replies to the Cc list extracted from the job request email.
+	reportObj.Cc = job.Cc
+
+	tests, err := rs.sessionTestRepo.BySessionRaw(ctx, session.ID)
+	if err != nil {
+		return fmt.Errorf("failed to query session tests: %w", err)
+	}
+	if session.Status() == db.SessionStatusSkipped {
+		reportObj.Error = session.SkipReason.StringVal
+	}
+	var apiTests []api.ReportTest
+	for _, t := range tests {
+		rt := api.ReportTest{
+			Name:   t.TestName,
+			Status: t.Result,
+		}
+		if t.Result == api.TestError && reportObj.Error == "" {
+			reportObj.Error = "Testing failed due to an infrastructure error."
+		}
+		steps, err := rs.testStepRepo.ListForSession(ctx, session.ID, t.TestName)
+		if err != nil {
+			return fmt.Errorf("failed to query test steps: %w", err)
+		}
+		for _, step := range steps {
+			name := step.Title
+			if step.Target != "" {
+				name += fmt.Sprintf(" (%s)", step.Target)
+			}
+			rt.Steps = append(rt.Steps, api.ReportTestStep{
+				Name:   name,
+				Status: step.Result,
+			})
+			if step.Result == api.StepResultError && reportObj.Error == "" {
+				reportObj.Error = "Testing failed due to an infrastructure error."
+			}
+		}
+		apiTests = append(apiTests, rt)
+	}
+
+	reportObj.Tests = apiTests
+	return nil
 }
 
 func (rs *ReportService) query(ctx context.Context, id string) (*db.SessionReport, error) {

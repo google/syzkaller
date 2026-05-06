@@ -253,7 +253,7 @@ func (ctx *context) mapFileToFops(funcs map[*Function]bool, funcToFops map[*Func
 	// Note that if we generate specialized descriptions for read/write/mmap in future,
 	// then these won't be considered excessive as well.
 	excessive := make(map[*FileOps]bool)
-	for i := 0; i < len(best); i++ {
+	for i := range len(best) {
 		for j := i + 1; j < len(best); j++ {
 			a, b := best[i], best[j]
 			if (a.Ioctl == b.Ioctl) &&

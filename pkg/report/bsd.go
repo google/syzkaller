@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -109,7 +110,7 @@ func (ctx *bsd) symbolizeLine(symbFunc func(string, ...uint64) ([]symbolizer.Fra
 		file = strings.TrimPrefix(file, ctx.kernelDirs.BuildSrc)
 		file = strings.TrimPrefix(file, "/")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
-		modified := append([]byte{}, line...)
+		modified := slices.Clone(line)
 		modified = replace(modified, match[5], match[5], []byte(info))
 		if frame.Inline {
 			// If frames are marked inline then show that in the report also.

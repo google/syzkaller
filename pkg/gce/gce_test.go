@@ -4,6 +4,9 @@
 package gce
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,4 +26,19 @@ func TestZoneToRegion(t *testing.T) {
 func TestDiskSizeGB(t *testing.T) {
 	assert.Equal(t, 10, diskSizeGB("c4a-standard-2"))
 	assert.Equal(t, 0, diskSizeGB("e2-standard-2"))
+}
+
+func TestLocalZone(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/instance/zone", r.URL.Path)
+		fmt.Fprint(w, "projects/12341234/zones/us-central1-c")
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		metadataServer: ts.URL + "/",
+	}
+	zone, err := ctx.localZone()
+	assert.NoError(t, err)
+	assert.Equal(t, "us-central1-c", zone)
 }

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseFlags(t *testing.T) {
@@ -53,9 +53,7 @@ func TestParseFlags(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing failed: %v", err)
 			}
-			if diff := cmp.Diff(test.vals, vals); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.vals, vals)
 			if flags.NArg() != 2 || flags.Arg(0) != "arg0" || flags.Arg(1) != "arg1" {
 				t.Fatalf("bad args: %q", flags.Args())
 			}
@@ -75,9 +73,7 @@ func TestCfgsFlagSet(t *testing.T) {
 	if err := cfgs.Set("a, b, c"); err != nil {
 		t.Fatalf("cfgs.Set got: %v, want: nil", err)
 	}
-	if diff := cmp.Diff(*cfgs, CfgsFlag{"a", "b", "c"}); diff != "" {
-		t.Errorf("*cfgs mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, CfgsFlag{"a", "b", "c"}, *cfgs, "*cfgs mismatch")
 }
 
 func TestCfgsFlagAlreadySet(t *testing.T) {
@@ -120,6 +116,74 @@ func TestParseArchList(t *testing.T) {
 			got, err := ParseArchList(test.OS, test.In)
 			assert.Equal(t, err, test.Err)
 			assert.Equal(t, got, test.Out)
+		})
+	}
+}
+
+func TestFlagEscapeUnescape(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      string
+		escaped string
+		err     bool
+	}{
+		{
+			name:    "no_escape",
+			in:      "abcdefg12345",
+			escaped: "abcdefg12345",
+			err:     false,
+		},
+		{
+			name:    "escape_space",
+			in:      "abc def",
+			escaped: "abc\\x20def",
+			err:     false,
+		},
+		{
+			name:    "escape_special",
+			in:      "a:b=c\\d",
+			escaped: "a\\x3ab\\x3dc\\x5cd",
+			err:     false,
+		},
+		{
+			name:    "escape_control",
+			in:      "abc\ndef",
+			escaped: "abc\\x0adef",
+			err:     false,
+		},
+		{
+			name:    "empty",
+			in:      "",
+			escaped: "",
+			err:     false,
+		},
+		{
+			name:    "truncated_escape",
+			in:      "abc\\x",
+			escaped: "",
+			err:     true,
+		},
+		{
+			name:    "invalid_hex",
+			in:      "abc\\xGG",
+			escaped: "",
+			err:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !tt.err {
+				gotEscaped := flagEscape(tt.in)
+				require.Equal(t, tt.escaped, gotEscaped, "flagEscape failed")
+
+				gotUnescaped, err := flagUnescape(gotEscaped)
+				require.NoError(t, err, "flagUnescape failed")
+				require.Equal(t, tt.in, gotUnescaped, "roundtrip failed")
+			} else {
+				_, err := flagUnescape(tt.in)
+				require.Error(t, err, "expected flagUnescape to fail on %q", tt.in)
+			}
 		})
 	}
 }

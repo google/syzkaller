@@ -1,5 +1,6 @@
 TITLE: BUG: scheduling while atomic in simple_recursive_removal
 TYPE: ATOMIC_SLEEP
+PANICKED: Y
 
 [ 3151.929899][    C1] BUG: scheduling while atomic: syz-executor.0/5582/0x00000101
 [ 3151.931982][    C1] Modules linked in:

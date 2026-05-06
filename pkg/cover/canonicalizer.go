@@ -5,7 +5,7 @@ package cover
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -137,18 +137,16 @@ func setModuleKeys(moduleKeys []uint64, modules []*vminfo.KernelModule) {
 	}
 
 	// Sort modules by address.
-	sort.Slice(moduleKeys, func(i, j int) bool { return moduleKeys[i] < moduleKeys[j] })
+	slices.Sort(moduleKeys)
 }
 
 func findModule(pc uint64, moduleKeys []uint64) (moduleIdx int) {
-	moduleIdx, _ = sort.Find(len(moduleKeys), func(moduleIdx int) int {
-		if pc < moduleKeys[moduleIdx] {
-			return -1
-		}
-		return +1
-	})
-	// Sort.Find returns the index above the correct module.
-	return moduleIdx - 1
+	idx, found := slices.BinarySearch(moduleKeys, pc)
+	if found {
+		return idx
+	}
+	// BinarySearch returns the index above the correct module if not found.
+	return idx - 1
 }
 
 func (convert *Convert) convertPCs(pcs []uint64) []uint64 {

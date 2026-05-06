@@ -4,7 +4,8 @@
 package triage
 
 import (
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -36,6 +37,7 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 
 type MergedFuzzConfig struct {
 	KernelConfig string
+	Track        string
 	FuzzConfig   *api.FuzzConfig
 }
 
@@ -61,6 +63,7 @@ func MergeKernelFuzzConfigs(configs []*api.KernelFuzzConfig) []*MergedFuzzConfig
 		// TODO: is there way to auto-generate a prefix?
 		ret = append(ret, &MergedFuzzConfig{
 			KernelConfig: key.config,
+			Track:        key.track,
 			FuzzConfig:   mergeFuzzConfigs(groups[key]),
 		})
 	}
@@ -79,7 +82,6 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 		ret.SkipCoverCheck = ret.SkipCoverCheck || config.SkipCoverCheck
 		// Must be the same.
 		ret.BugTitleRe = config.BugTitleRe
-		ret.Track = config.Track
 	}
 	ret.Focus = unique(ret.Focus)
 	ret.CorpusURLs = unique(ret.CorpusURLs)
@@ -91,10 +93,6 @@ func unique(list []string) []string {
 	for _, s := range list {
 		seen[s] = struct{}{}
 	}
-	var unique []string
-	for s := range seen {
-		unique = append(unique, s)
-	}
-	sort.Strings(unique)
+	unique := slices.Sorted(maps.Keys(seen))
 	return unique
 }

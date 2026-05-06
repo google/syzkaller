@@ -53,7 +53,7 @@ func (ctx *gvisor) shortenReport(report []byte) []byte {
 	// So we always take 5 lines from report and then cut it at the next empty line.
 	// The intention is to capture panic header and traceback of the first goroutine.
 	pos := 0
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		pos1 := bytes.IndexByte(report[pos:], '\n')
 		if pos1 == -1 {
 			return report

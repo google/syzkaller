@@ -1,4 +1,5 @@
 TITLE: INFO: trying to register non-static key in vkms_atomic_crtc_destroy_state
+PANICKED: Y
 
 [  309.975408][T12234] INFO: trying to register non-static key.
 [  309.981253][T12234] the code is fine but needs lockdep annotation.

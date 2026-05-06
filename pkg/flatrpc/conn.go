@@ -107,6 +107,10 @@ func (c *Conn) Close() error {
 	return c.conn.Close()
 }
 
+func (c *Conn) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
 type sendMsg interface {
 	Pack(*flatbuffers.Builder) flatbuffers.UOffsetT
 }
@@ -268,12 +272,12 @@ func verifyExecResult(res *ExecResultRaw, rawSize int) error {
 	}
 	size := 0
 	var call CallInfoRaw
-	for i := 0; i < info.CallsLength(); i++ {
+	for i := range info.CallsLength() {
 		if info.Calls(&call, i) {
 			size += callSize(&call)
 		}
 	}
-	for i := 0; i < info.ExtraRawLength(); i++ {
+	for i := range info.ExtraRawLength() {
 		if info.ExtraRaw(&call, i) {
 			size += callSize(&call)
 		}

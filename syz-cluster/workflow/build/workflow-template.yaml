@@ -1,0 +1,101 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: build-action-template
+spec:
+  templates:
+    - name: build-action
+      retryStrategy:
+        limit: "3"
+        backoff:
+          duration: "5m"
+      securityContext:
+        runAsUser: 10000
+        fsGroup: 10000
+      inputs:
+        parameters:
+          - name: findings
+            value: "false"
+          - name: test-name
+            value: ""
+          - name: smoke-build
+            value: "false"
+          # For some reason, "{{=workflow.parameters.session-id ?? ''}}" didn't work here.
+          - name: session-id
+            value: ""
+        artifacts:
+          - name: request
+            path: /tmp/request.json
+      initContainers:
+      - name: setup-repo
+        image: ${IMAGE_PREFIX}build-action:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command:
+          - sh
+          - -c
+          - |
+            git clone --reference /kernel-repo -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo ./workdir
+        env:
+        - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+          value: "1"
+        - name: HOME # Otherwise it's failing with "warning: unable to access '/root/.config/git/attributes': Permission denied.".
+          value: "/home/syzkaller"
+        volumeMounts:
+        - name: base-kernel-repo
+          mountPath: /kernel-repo
+          readOnly: true
+        - name: workdir
+          mountPath: /workdir
+      container:
+        image: ${IMAGE_PREFIX}build-action:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/build-action"]
+        args: [
+          "--request", "/tmp/request.json",
+          "--repository", "/workdir",
+          "--output", "/output",
+          "--session", "{{inputs.parameters.session-id}}",
+          "--test_name", "{{inputs.parameters.test-name}}",
+          "-findings={{inputs.parameters.findings}}",
+          "-smoke_build={{inputs.parameters.smoke-build}}"
+          ]
+        resources:
+          requests:
+            cpu: 8
+            memory: 32G
+          limits:
+            cpu: 32
+            memory: 96G
+        volumeMounts:
+        - name: base-kernel-repo
+          mountPath: /kernel-repo
+          readOnly: true
+        - name: workdir
+          mountPath: /workdir
+        - name: output
+          mountPath: /output
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"] # We need to mount a loop device during the kernel build.
+      volumes:
+        - name: base-kernel-repo
+          persistentVolumeClaim:
+            claimName: base-kernel-repo-pv-claim
+        - name: workdir
+          emptyDir: {}
+        - name: output
+          emptyDir: {}
+      outputs:
+        parameters:
+          - name: result
+            valueFrom:
+              path: /output/result.json
+              default: ""
+        artifacts:
+          - name: kernel
+            path: /output
+            optional: true

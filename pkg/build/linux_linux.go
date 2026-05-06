@@ -146,7 +146,7 @@ func linuxSetupLoop(imageFile string) (int, string, error) {
 	info := &unix.LoopInfo64{
 		Flags: unix.LO_FLAGS_PARTSCAN,
 	}
-	for i := 0; i < len(imageFile); i++ {
+	for i := range len(imageFile) {
 		info.File_name[i] = imageFile[i]
 	}
 	if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(loop), unix.LOOP_SET_STATUS64,

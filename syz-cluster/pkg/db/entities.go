@@ -10,13 +10,14 @@ import (
 )
 
 type Series struct {
-	ID          string `spanner:"ID"`
-	ExtID       string `spanner:"ExtID"`
-	AuthorName  string `spanner:"AuthorName"`
-	AuthorEmail string `spanner:"AuthorEmail"`
-	Title       string `spanner:"Title"`
-	Link        string `spanner:"Link"`
-	Version     int64  `spanner:"Version"`
+	ID             string             `spanner:"ID"`
+	ExtID          string             `spanner:"ExtID"`
+	AuthorName     string             `spanner:"AuthorName"`
+	AuthorEmail    string             `spanner:"AuthorEmail"`
+	Title          string             `spanner:"Title"`
+	Link           string             `spanner:"Link"`
+	Version        int64              `spanner:"Version"`
+	BaseCommitHint spanner.NullString `spanner:"BaseCommitHint"`
 	// In LKML patches, there are often hints at the target tree for the patch.
 	SubjectTags []string  `spanner:"SubjectTags"`
 	PublishedAt time.Time `spanner:"PublishedAt"`
@@ -45,6 +46,7 @@ type Build struct {
 	CommitHash string             `spanner:"CommitHash"`
 	CommitDate time.Time          `spanner:"CommitDate"`
 	SeriesID   spanner.NullString `spanner:"SeriesID"`
+	JobID      spanner.NullString `spanner:"JobID"`
 	Arch       string             `spanner:"Arch"`
 	ConfigName string             `spanner:"ConfigName"`
 	ConfigURI  string             `spanner:"ConfigURI"`
@@ -53,8 +55,12 @@ type Build struct {
 	Compiler   string             `spanner:"Compiler"`
 }
 
-func (b *Build) SetSeriesID(val string) {
-	b.SeriesID = spanner.NullString{StringVal: val, Valid: true}
+func (b *Build) SetSeriesID(id string) {
+	b.SeriesID = spanner.NullString{StringVal: id, Valid: true}
+}
+
+func (b *Build) SetJobID(id string) {
+	b.JobID = spanner.NullString{StringVal: id, Valid: true}
 }
 
 const (
@@ -74,6 +80,7 @@ type Session struct {
 	LogURI       string             `spanner:"LogURI"`
 	TriageLogURI string             `spanner:"TriageLogURI"`
 	Tags         []string           `spanner:"Tags"`
+	JobID        spanner.NullString `spanner:"JobID"`
 	// TODO: to accept more specific fuzzing assignment,
 	// add Triager, BaseRepo, BaseCommit, Config fields.
 }
@@ -86,7 +93,8 @@ const (
 	SessionStatusFinished   SessionStatus = "finished"
 	SessionStatusSkipped    SessionStatus = "skipped"
 	// To be used in filters.
-	SessionStatusAny SessionStatus = ""
+	SessionStatusAny         SessionStatus = ""
+	SessionStatusStepsFailed SessionStatus = "steps_failed"
 )
 
 // It could have been a calculated field in Spanner, but the Go library for Spanner currently
@@ -100,6 +108,10 @@ func (s *Session) Status() SessionStatus {
 		return SessionStatusSkipped
 	}
 	return SessionStatusFinished
+}
+
+func (s *Session) SetJobID(id string) {
+	s.JobID = spanner.NullString{StringVal: id, Valid: true}
 }
 
 func (s *Session) Duration() time.Duration {
@@ -132,6 +144,28 @@ type SessionTest struct {
 	ArtifactsArchiveURI string             `spanner:"ArtifactsArchiveURI"`
 }
 
+func (t *SessionTest) AnyBuildID() string {
+	if !t.PatchedBuildID.IsNull() {
+		return t.PatchedBuildID.StringVal
+	}
+	if !t.BaseBuildID.IsNull() {
+		return t.BaseBuildID.StringVal
+	}
+	return ""
+}
+
+type SessionTestStep struct {
+	ID        string             `spanner:"ID"`
+	SessionID string             `spanner:"SessionID"`
+	TestName  string             `spanner:"TestName"`
+	Title     string             `spanner:"Title"`
+	LogURI    string             `spanner:"LogURI"`
+	FindingID spanner.NullString `spanner:"FindingID"`
+	Target    string             `spanner:"Target"`
+	Result    string             `spanner:"Result"`
+	CreatedAt time.Time          `spanner:"CreatedAt"`
+}
+
 type Finding struct {
 	ID              string           `spanner:"ID"`
 	SessionID       string           `spanner:"SessionID"`
@@ -143,6 +177,7 @@ type Finding struct {
 	SyzReproOptsURI string           `spanner:"SyzReproOptsURI"`
 	CReproURI       string           `spanner:"CReproURI"`
 	InvalidatedAt   spanner.NullTime `spanner:"InvalidatedAt"`
+	CreatedAt       spanner.NullTime `spanner:"CreatedAt"`
 }
 
 func (f *Finding) SetInvalidatedAt(t time.Time) {
@@ -170,8 +205,33 @@ type ReportReply struct {
 // BaseFinding collects all crashes observed on the base kernel tree.
 // It will be used to avoid unnecessary bug reproduction attempts.
 type BaseFinding struct {
-	CommitHash string `spanner:"CommitHash"`
-	Config     string `spanner:"Config"`
-	Arch       string `spanner:"Arch"`
-	Title      string `spanner:"Title"`
+	CommitHash string           `spanner:"CommitHash"`
+	CommitDate spanner.NullTime `spanner:"CommitDate"`
+	Config     string           `spanner:"Config"`
+	Arch       string           `spanner:"Arch"`
+	Title      string           `spanner:"Title"`
+}
+
+// SeriesStats stores statistics about a patch series.
+type SeriesStats struct {
+	ID            string    `spanner:"ID"`
+	StatsVersion  string    `spanner:"StatsVersion"`
+	PreventedBugs int64     `spanner:"PreventedBugs"`
+	UpdatedAt     time.Time `spanner:"UpdatedAt"`
+}
+
+const (
+	JobPatchTest = "patch_test"
+)
+
+type Job struct {
+	ID        string    `spanner:"ID"`
+	Type      string    `spanner:"Type"`
+	CreatedAt time.Time `spanner:"CreatedAt"`
+	Reporter  string    `spanner:"Reporter"`
+	User      string    `spanner:"User"`
+	ExtID     string    `spanner:"ExtID"`
+	PatchURI  string    `spanner:"PatchURI"`
+	ReportID  string    `spanner:"ReportID"`
+	Cc        []string  `spanner:"Cc"`
 }

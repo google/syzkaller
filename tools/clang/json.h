@@ -1,10 +1,11 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#ifndef SYZ_DECLEXTRACT_JSON_H
-#define SYZ_DECLEXTRACT_JSON_H
+#ifndef SYZ_CLANGTOOL_JSON_H
+#define SYZ_CLANGTOOL_JSON_H
 
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -52,11 +53,48 @@ private:
   Scope Top;
 };
 
+inline void print(JSONPrinter& Printer, const char* V) {
+  printf("\"");
+  if (V) {
+    for (; *V; ++V) {
+      switch (*V) {
+      case '"':
+        printf("\\\"");
+        break;
+      case '\\':
+        printf("\\\\");
+        break;
+      case '\b':
+        printf("\\b");
+        break;
+      case '\f':
+        printf("\\f");
+        break;
+      case '\n':
+        printf("\\n");
+        break;
+      case '\r':
+        printf("\\r");
+        break;
+      case '\t':
+        printf("\\t");
+        break;
+      default:
+        if ((unsigned char)*V < 0x20)
+          printf("\\u%04x", (unsigned char)*V);
+        else
+          printf("%c", *V);
+      }
+    }
+  }
+  printf("\"");
+}
+
 inline void print(JSONPrinter& Printer, int V) { printf("%d", V); }
 inline void print(JSONPrinter& Printer, unsigned V) { printf("%u", V); }
 inline void print(JSONPrinter& Printer, int64_t V) { printf("%ld", V); }
+inline void print(JSONPrinter& Printer, uint64_t V) { printf("%lu", V); }
 inline void print(JSONPrinter& Printer, bool V) { printf("%s", V ? "true" : "false"); }
-inline void print(JSONPrinter& Printer, const char* V) { printf("\"%s\"", V ? V : ""); }
 inline void print(JSONPrinter& Printer, const std::string& V) { print(Printer, V.c_str()); }
 
 template <typename E> void print(JSONPrinter& Printer, const std::unique_ptr<E>& V) {

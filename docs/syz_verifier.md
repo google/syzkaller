@@ -1,6 +1,3 @@
-**`syz-verifier` is currently broken and cannot be compiled/used, see
-[the backlog issue](https://github.com/google/syzkaller/issues/5976).**
-
 # syz-verifier
 
 Many bugs are easy to detect: they might cause assertions failures, crash our
@@ -20,14 +17,14 @@ test suites are meant to detect regressions, but creating and maintaining test
 cases, as well as covering new features requires significant amounts of
 engineering effort.
 
-*Differential fuzzing* is a way to automate detection of semantic bugs by
-providing the same input to different implementations of the same systems and
-then cross-comparing the resulting behaviour to determine whether it is
-identical. In case the systems disagree, at least one of them is assumed to be
-wrong.
+One way to automate detection of semantic bugs is to provide the same input to
+different implementations, or different versions of the same system, and then
+cross-compare the resulting behaviour. In case the systems disagree, at least
+one of them is assumed to be wrong.
 
-`syz-verifier` is a differential fuzzing tool that cross-compares the execution
-of programs on different versions of the Linux kernel to detect semantic bugs.
+The current `syz-verifier` is not fuzzing new inputs. Instead, it loads a
+corpus of existing syzkaller programs and cross-compares their execution on
+different versions of the Linux kernel to detect semantic bugs.
 
 The architecture of `syz-verifier` is shown in the following diagram.
 
@@ -37,9 +34,10 @@ The `syz-verifier` process starts and manages VM instances with the kernels to
 be cross-compared. It also starts the `syz-runner` process on the VMs.
 Communication between the host and the guest is done via RPCs.
 
-`syz-verifier` generates and sends a continuous stream of programs to
-`syz-runner` via RPCs while `syz-runner` is responsible for starting
-`syz-executor` processes and turning the program into input for those.
+At startup, `syz-verifier` loads programs from a syzkaller corpus database
+(`corpus.db`). It then sends each corpus program to `syz-runner` on every VM
+via RPCs while `syz-runner` is responsible for starting `syz-executor`
+processes and turning the program into input for those.
 `syz-executor` processes the input, which triggers a sequence of syscalls in
 the kernel. Then, `syz-runner` collects the results and sends them back to the
 host.
@@ -47,10 +45,7 @@ host.
 At the moment, the results contain the errnos returned by each system call.
 When `syz-verifier` has received results from all the kernels for a specific
 program, it verifies them to ensure they are identical. If a mismatch is found,
-the program is rerun on all the kernels to ensure the mismatch is not flaky
-(i.e. it didn't occur because of some background activity or external state).
-If the mismatch occurs in all reruns, `syz-verifier` creates a report for the
-program and write it to persistent storage.
+`syz-verifier` creates a report for the founded mismatch including the program mismatch details.
 
 # How to use `syz-verifier`
 
@@ -66,18 +61,22 @@ each kernel you want to include in the verification. An example of Linux
 configs can be found [here](/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md#syzkaller). The configuration files
 are identical to those used by `syz-manager`.
 
-If you want to generate programs from a specific set of system calls, these can
-be listed in the kernel config files using the `enable_syscalls` option. If you
-want to disable some system calls, use the `disable_syscalls` option.
+All compared kernels must use the same `workdir`. `syz-verifier` loads the
+corpus from `corpus.db` in that shared `workdir`, so the first config must
+point at the workdir whose corpus you want to verify.
+
+If you want to constrain verification to programs that use a specific set of
+system calls, list them in the kernel config files using the
+`enable_syscalls` option. If you want to disable some system calls, use the
+`disable_syscalls` option.
 
 Start `syz-verifier` as:
 ```
 ./bin/syz-verifier -configs=kernel0.cfg,kernel1.cfg
 ```
 
-`syz-verifier` will also gather statistics throughout execution. They will be
-printed to `stdout` by default, but an alternative file can be specified using
-the `stat` flag.
+`syz-verifier` logs its progress throughout execution, including corpus loading
+and per-program comparison progress.
 
 # How to interpret the results
 
@@ -93,20 +92,33 @@ An extract of such a report is shown below:
 ```
 ERRNO mismatches found for program:
 
-[=] io_uring_register$IORING_REGISTER_PERSONALITY(0xffffffffffffffff, 0x9, 0x0, 0x0)
-        ↳ Pool: 0, Flags: 3, Errno: 9 (bad file descriptor)
-        ↳ Pool: 1, Flags: 3, Errno: 9 (bad file descriptor)
+========== ERRNO MISMATCH DETECTED ==========
+Between: Kernel 0 (kernel-6.17) and Kernel 1 (kernel-6.2)
 
-[=] syz_genetlink_get_family_id$devlink(&(0x7f0000000000), 0xffffffffffffffff)
-        ↳ Pool: 0, Flags: 3, Errno: 2 (no such file or directory)
-        ↳ Pool: 1, Flags: 3, Errno: 2 (no such file or directory)
+Complete Program Sequence:
+-------------------------------------------
+    [0] capset(&(0x7f0000000380)={0x19980330}, &(0x7f00000003c0))
+        Result: errno=0, flags=0x3
 
-[!] r1 = io_uring_setup(0x238e, &(0x7f0000000240)={0x0, 0xf39a, 0x20, 0x0, 0x146})
-        ↳ Pool: 0, Flags: 3, Errno: 6 (no such device or address)
-        ↳ Pool: 1, Flags: 3, Errno: 9 (bad file descriptor)
+>>> [1] r0 = socket$inet6_tcp(0xa, 0x1, 0x0)
+>>>     ┌─ : errno=0, flags=0x3
+>>>     └─ : errno=2, flags=0x3
+
+>>> [2] setsockopt$inet6_tcp_TCP_CONGESTION(r0, 0x6, 0xd, &(0x7f0000000000)='cubic', 0x3)
+>>>     ┌─ : errno=2, flags=0x3
+>>>     └─ : errno=9, flags=0x3
+
+-------------------------------------------
+Kernel Outputs:
+  : ""
+  : ""
+=============================================
 ...
 ```
 
-The order of the results is given by the order in which configuration files
-were passed so `Pool: 0 ` reports results for the kernel created using
-`kernel0.cfg` and so on.
+In this report, lines prefixed with `>>>` highlight the calls whose returned
+errnos differed between kernels. The two indented result lines under such a
+call show the values returned by each compared kernel for that exact syscall.
+The `Kernel Outputs` section records the raw runner output for each kernel,
+which is useful when a mismatch is caused by a crash, timeout, or some other
+execution problem rather than a pure semantic difference.

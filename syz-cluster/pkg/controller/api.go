@@ -6,6 +6,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,22 +17,28 @@ import (
 )
 
 type APIServer struct {
-	seriesService      *service.SeriesService
-	sessionService     *service.SessionService
-	buildService       *service.BuildService
-	testService        *service.SessionTestService
-	findingService     *service.FindingService
-	baseFindingService *service.BaseFindingService
+	seriesService          *service.SeriesService
+	sessionService         *service.SessionService
+	buildService           *service.BuildService
+	testService            *service.SessionTestService
+	findingService         *service.FindingService
+	baseFindingService     *service.BaseFindingService
+	sessionTestStepService *service.SessionTestStepService
+	jobService             *service.JobService
+	config                 *app.AppConfig
 }
 
 func NewAPIServer(env *app.AppEnvironment) *APIServer {
 	return &APIServer{
-		seriesService:      service.NewSeriesService(env),
-		sessionService:     service.NewSessionService(env),
-		buildService:       service.NewBuildService(env),
-		testService:        service.NewSessionTestService(env),
-		findingService:     service.NewFindingService(env),
-		baseFindingService: service.NewBaseFindingService(env),
+		seriesService:          service.NewSeriesService(env),
+		sessionService:         service.NewSessionService(env),
+		buildService:           service.NewBuildService(env),
+		testService:            service.NewSessionTestService(env),
+		findingService:         service.NewFindingService(env),
+		baseFindingService:     service.NewBaseFindingService(env),
+		sessionTestStepService: service.NewSessionTestStepService(env),
+		jobService:             service.NewJobService(env),
+		config:                 env.Config,
 	}
 }
 
@@ -40,21 +47,39 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
+	mux.HandleFunc("/findings/previous", c.getPreviousFindings)
+	mux.HandleFunc("/findings/{finding_id}", c.getFinding)
 	mux.HandleFunc("/series/upload", c.uploadSeries)
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/sessions/upload", c.uploadSession)
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/triage_result", c.triageResult)
+	mux.HandleFunc("/sessions/{session_id}", c.getSessionInfo)
 	mux.HandleFunc("/tests/upload_artifacts", c.uploadTestArtifact)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/trees", c.getTrees)
 	mux.HandleFunc("/base_findings/upload", c.uploadBaseFinding)
 	mux.HandleFunc("/base_findings/status", c.baseFindingStatus)
+	mux.HandleFunc("/sessions/{session_id}/upload_test_step", c.uploadTestStep)
+	mux.HandleFunc("/jobs/submit", c.submitJob)
+	mux.HandleFunc("/jobs/{job_id}", c.getJob)
 	return mux
 }
 
 func (c APIServer) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSessionSeries(r.Context(), r.PathValue("session_id"))
+	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
+		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, resp)
+}
+
+func (c APIServer) getSessionInfo(w http.ResponseWriter, r *http.Request) {
+	resp, err := c.sessionService.GetSessionInfo(r.Context(), r.PathValue("session_id"))
 	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
@@ -93,6 +118,15 @@ func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON(w, resp)
 }
 
+func (c APIServer) getJob(w http.ResponseWriter, r *http.Request) {
+	resp, err := c.jobService.GetJob(r.Context(), r.PathValue("job_id"))
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, resp)
+}
+
 func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.UploadBuildReq](w, r)
 	if req == nil {
@@ -108,7 +142,7 @@ func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.TestResult](w, r)
+	req := api.ParseJSON[api.SessionTest](w, r)
 	if req == nil {
 		return
 	}
@@ -152,7 +186,7 @@ func (c APIServer) uploadTestArtifact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.NewFinding](w, r)
+	req := api.ParseJSON[api.RawFinding](w, r)
 	if req == nil {
 		return
 	}
@@ -163,6 +197,31 @@ func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[any](w, nil)
+}
+
+func (c APIServer) getPreviousFindings(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.ListPreviousFindingsReq](w, r)
+	if req == nil {
+		return
+	}
+	findings, err := c.findingService.ListPreviousFindings(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, findings)
+}
+
+func (c APIServer) getFinding(w http.ResponseWriter, r *http.Request) {
+	finding, err := c.findingService.Get(r.Context(), r.PathValue("finding_id"))
+	if errors.Is(err, service.ErrFindingNotFound) {
+		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, finding)
 }
 
 func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
@@ -206,8 +265,8 @@ func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
 
 func (c APIServer) getTrees(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON(w, &api.TreesResp{
-		Trees:       api.DefaultTrees,
-		FuzzTargets: api.FuzzTargets,
+		Trees:       c.config.Trees,
+		FuzzTargets: c.config.FuzzTargets,
 	})
 }
 
@@ -238,4 +297,35 @@ func (c APIServer) baseFindingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[*api.BaseFindingStatus](w, resp)
+}
+
+func (c APIServer) uploadTestStep(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("session_id")
+	req := &api.SessionTestStep{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := c.sessionTestStepService.Save(r.Context(), sessionID, req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON[any](w, nil)
+}
+
+func (c APIServer) submitJob(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.SubmitJobRequest](w, r)
+	if req == nil {
+		return
+	}
+	resp, err := c.jobService.SubmitJob(r.Context(), req)
+	if err != nil {
+		if errors.Is(err, service.ErrPatchTooLarge) {
+			http.Error(w, fmt.Sprint(err), http.StatusBadRequest)
+		} else {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		}
+		return
+	}
+	api.ReplyJSON(w, resp)
 }

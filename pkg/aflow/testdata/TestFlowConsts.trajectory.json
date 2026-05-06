@@ -1,0 +1,34 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "input-consumer",
+		"Started": "0001-01-01T00:00:02Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "input-consumer",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:03Z",
+		"Results": {}
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:04Z",
+		"Results": {}
+	}
+]

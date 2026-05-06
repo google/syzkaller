@@ -1,5 +1,6 @@
 TITLE: kernel panic: stack is corrupted in br_dev_xmit
 TYPE: DoS
+PANICKED: Y
 
 [  254.788396] bridge0: received packet on gretap0 with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
 [  254.800034] Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: br_dev_xmit+0x12ec/0x1550

@@ -5,11 +5,10 @@ package lore
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/stretchr/testify/assert"
@@ -110,7 +109,7 @@ Content-Type: text/plain
 Bug report`,
 	}
 
-	zone := time.FixedZone("", -7*60*60)
+	zone := time.UTC
 	expected := map[string]*Thread{
 		"<A-Base>": {
 			Subject:   "Thread A",
@@ -121,7 +120,7 @@ Bug report`,
 					Email: &email.Email{
 						MessageID: "<A-Base>",
 						Subject:   "Thread A",
-						Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, zone),
 						Author:    "a@user.com",
 						Cc:        []string{"a@user.com"},
 					},
@@ -130,7 +129,7 @@ Bug report`,
 					Email: &email.Email{
 						MessageID: "<A-Child-1>",
 						Subject:   "Re: Thread A",
-						Date:      time.Date(2017, time.May, 7, 19, 55, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 55, 0, 0, zone),
 						Author:    "b@user.com",
 						Cc:        []string{"a@user.com", "b@user.com"},
 						InReplyTo: "<A-Base>",
@@ -140,7 +139,7 @@ Bug report`,
 					Email: &email.Email{
 						MessageID: "<A-Child-1-1>",
 						Subject:   "Re: Re: Thread A",
-						Date:      time.Date(2017, time.May, 7, 19, 56, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 56, 0, 0, zone),
 						Author:    "c@user.com",
 						Cc:        []string{"a@user.com", "b@user.com", "c@user.com"},
 						InReplyTo: "<A-Child-1>",
@@ -159,9 +158,10 @@ Bug report`,
 						MessageID: "<Bug>",
 						BugIDs:    []string{"4564456"},
 						Subject:   "[syzbot] Some bug",
-						Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 57, 0, 0, zone),
 						Author:    "syzbot@bar.com",
 						OwnEmail:  true,
+						Cc:        []string{},
 					},
 				},
 				{
@@ -169,7 +169,7 @@ Bug report`,
 						MessageID: "<Bug-Reply1>",
 						BugIDs:    []string{"4564456"},
 						Subject:   "Re: [syzbot] Some bug",
-						Date:      time.Date(2017, time.May, 7, 19, 58, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 58, 0, 0, zone),
 						Author:    "c@user.com",
 						Cc:        []string{"c@user.com"},
 						InReplyTo: "<Bug>",
@@ -180,7 +180,7 @@ Bug report`,
 						MessageID: "<Bug-Reply2>",
 						BugIDs:    []string{"4564456"},
 						Subject:   "Re: [syzbot] Some bug",
-						Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 58, 1, 0, zone),
 						Author:    "d@user.com",
 						Cc:        []string{"d@user.com"},
 						InReplyTo: "<Bug>",
@@ -199,7 +199,7 @@ Bug report`,
 						MessageID: "<Patch>",
 						BugIDs:    []string{"12345"},
 						Subject:   "[PATCH] Some bug fixed",
-						Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 58, 1, 0, zone),
 						Author:    "e@user.com",
 						Cc:        []string{"e@user.com"},
 					},
@@ -216,7 +216,7 @@ Bug report`,
 					Email: &email.Email{
 						MessageID: "<Sub-Discussion>",
 						InReplyTo: "<Unknown>",
-						Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
+						Date:      time.Date(2017, time.May, 8, 2, 57, 0, 0, zone),
 						BugIDs:    []string{"4564456"},
 						Cc:        []string{"person@email.com"},
 						Subject:   "Another bug discussion",
@@ -235,6 +235,8 @@ Bug report`,
 			t.Fatal(err)
 		}
 		msg.RawCc = nil
+		msg.Body = ""
+		msg.Patch = ""
 		emails = append(emails, msg)
 	}
 
@@ -242,16 +244,14 @@ Bug report`,
 	got := map[string]*Thread{}
 
 	for _, d := range threads {
-		sort.Slice(d.Messages, func(i, j int) bool {
-			return d.Messages[i].Date.Before(d.Messages[j].Date)
+		slices.SortFunc(d.Messages, func(a, b *Email) int {
+			return a.Date.Compare(b.Date)
 		})
 		got[d.MessageID] = d
 	}
 
 	for key, val := range expected {
-		if diff := cmp.Diff(val, got[key]); diff != "" {
-			t.Fatalf("%s: %s", key, diff)
-		}
+		require.Equal(t, val, got[key], key)
 	}
 
 	if len(threads) > len(expected) {
@@ -520,6 +520,41 @@ No patch, just text`,
 				got := s.Patches[i]
 				assert.Equal(t, expectPatch.Seq, got.Seq, "seq differs")
 			}
+		})
+	}
+}
+
+func TestLink(t *testing.T) {
+	tests := []struct {
+		id     string
+		thread bool
+		want   string
+	}{
+		{
+			id:     "<id@domain>",
+			thread: true,
+			want:   "https://lore.kernel.org/all/id@domain/T/",
+		},
+		{
+			id:     "<id@domain>",
+			thread: false,
+			want:   "https://lore.kernel.org/all/id@domain",
+		},
+		{
+			id:     "id@domain",
+			thread: true,
+			want:   "https://lore.kernel.org/all/id@domain/T/",
+		},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%v", test.id, test.thread), func(t *testing.T) {
+			var got string
+			if test.thread {
+				got = LinkToThread(test.id)
+			} else {
+				got = LinkToMessage(test.id)
+			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

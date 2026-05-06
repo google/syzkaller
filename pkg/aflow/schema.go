@@ -22,15 +22,19 @@ func schemaFor[T any]() (*jsonschema.Schema, error) {
 	if err := checkSchemaType(typ); err != nil {
 		return nil, err
 	}
+	return uncheckedSchemaFor[T](), nil
+}
+
+func uncheckedSchemaFor[T any]() *jsonschema.Schema {
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	resolved, err := schema.Resolve(nil)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return resolved.Schema(), nil
+	return resolved.Schema()
 }
 
 func checkSchemaType(typ reflect.Type) error {
@@ -77,60 +81,156 @@ func convertToMap[T any](val T) map[string]any {
 // If tool is set, return errors in the form suitable to return back to LLM
 // during tool arguments conversion.
 func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
-	m = maps.Clone(m)
 	var val T
-	for name, field := range foreachField(&val) {
+	err := convertFromMapReflect(reflect.ValueOf(&val).Elem(), m, strict, tool)
+	return val, err
+}
+
+func convertFromMapReflect(v reflect.Value, m map[string]any, strict, tool bool) error {
+	m = maps.Clone(m)
+	t := v.Type()
+	for _, fieldType := range reflect.VisibleFields(t) {
+		if !fieldType.IsExported() {
+			continue
+		}
+		name := fieldType.Name
+		field := v.FieldByIndex(fieldType.Index)
 		f, ok := m[name]
-		if !ok {
-			fieldType, _ := reflect.TypeFor[T]().FieldByName(name)
+		if !ok || f == nil {
 			if strings.Contains(fieldType.Tag.Get("json"), ",omitempty") {
 				continue
 			}
 			if tool {
-				return val, BadCallError(fmt.Sprintf("missing argument %q", name))
+				return BadCallError("missing argument %q", name)
 			} else {
-				return val, fmt.Errorf("field %q is not present when converting map to %T", name, val)
+				return fmt.Errorf("%v: field %q is not present when converting map", t, name)
 			}
 		}
 		delete(m, name)
-		fType, fValue := reflect.TypeOf(f), reflect.ValueOf(f)
-		if mm, ok := f.(map[string]any); ok && field.Type() == reflect.TypeFor[json.RawMessage]() {
-			raw, err := json.Marshal(mm)
-			if err != nil {
-				return val, err
-			}
-			field.Set(reflect.ValueOf(json.RawMessage(raw)))
-		} else if fType.Kind() == reflect.Float64 &&
-			(field.CanInt() || field.CanUint()) {
-			// Genai will send us integers as float64 after json conversion,
-			// so convert them back to ints.
-			iv := fValue.Convert(field.Type())
-			if fv := iv.Convert(fType); !fValue.Equal(fv) {
-				if tool {
-					return val, BadCallError(fmt.Sprintf("argument %v: float value truncated from %v to %v",
-						name, f, iv.Interface()))
-				} else {
-					return val, fmt.Errorf("field %v: float value truncated from %v to %v",
-						name, f, iv.Interface())
-				}
-			}
-			field.Set(iv)
-		} else if field.Type() == fType {
-			field.Set(fValue)
-		} else {
-			if tool {
-				return val, BadCallError(fmt.Sprintf("argument %q has wrong type: got %T, want %v",
-					name, f, field.Type().Name()))
-			} else {
-				return val, fmt.Errorf("field %q has wrong type: got %T, want %v",
-					name, f, field.Type().Name())
-			}
+		if err := setField(field, v.Interface(), f, name, tool); err != nil {
+			return err
 		}
 	}
 	if strict && len(m) != 0 {
-		return val, fmt.Errorf("unused fields when converting map to %T: %v", val, m)
+		return fmt.Errorf("unused fields when converting map to %v: %v", t, m)
 	}
-	return val, nil
+	return nil
+}
+
+func setField(field reflect.Value, val, f any, name string, tool bool) error {
+	fType, fValue := reflect.TypeOf(f), reflect.ValueOf(f)
+	targetType := field.Type()
+	if targetType.Kind() == reflect.Ptr {
+		targetType = targetType.Elem()
+	}
+	if mm, ok := f.(map[string]any); ok && field.Type() == reflect.TypeFor[json.RawMessage]() {
+		raw, err := json.Marshal(mm)
+		if err != nil {
+			return err
+		}
+		field.Set(reflect.ValueOf(json.RawMessage(raw)))
+		return nil
+	}
+	if fType.Kind() == reflect.Float64 &&
+		(reflect.Zero(targetType).CanInt() || reflect.Zero(targetType).CanUint()) {
+		// Genai will send us integers as float64 after json conversion,
+		// so convert them back to ints.
+		iv := fValue.Convert(targetType)
+		if fv := iv.Convert(fType); !fValue.Equal(fv) {
+			if tool {
+				return BadCallError("argument %v: float value truncated from %v to %v",
+					name, f, iv.Interface())
+			}
+			return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+				val, name, f, iv.Interface())
+		}
+		if field.Kind() == reflect.Ptr {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(iv)
+			field.Set(ptr)
+		} else {
+			field.Set(iv)
+		}
+		return nil
+	}
+	if field.Type() == fType {
+		field.Set(fValue)
+		return nil
+	}
+
+	unmarshalerType := reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+	if targetType.Implements(unmarshalerType) || reflect.PointerTo(targetType).Implements(unmarshalerType) {
+		if raw, err := json.Marshal(f); err == nil {
+			ptr := reflect.New(targetType)
+			if err := json.Unmarshal(raw, ptr.Interface()); err == nil {
+				if field.Type().Kind() == reflect.Ptr {
+					field.Set(ptr)
+				} else {
+					field.Set(ptr.Elem())
+				}
+				return nil
+			}
+		}
+	}
+
+	if targetType.Kind() == reflect.Struct {
+		mm, ok := f.(map[string]any)
+		if !ok {
+			return fmt.Errorf("field %q must be a map, got %T", name, f)
+		}
+		var structVal reflect.Value
+		if field.Type().Kind() == reflect.Ptr {
+			if field.IsNil() {
+				field.Set(reflect.New(targetType))
+			}
+			structVal = field.Elem()
+		} else {
+			structVal = field
+		}
+		return convertFromMapReflect(structVal, mm, false, tool)
+	}
+
+	if targetType.Kind() == reflect.Slice && targetType.Elem().Kind() == reflect.Struct {
+		return setSliceField(field, name, f, targetType, tool)
+	}
+
+	if tool {
+		return BadCallError("argument %q has wrong type: got %T, want %v",
+			name, f, field.Type().Name())
+	}
+	return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+		val, name, f, field.Type().Name())
+}
+
+func setSliceField(field reflect.Value, name string, f any, targetType reflect.Type, tool bool) error {
+	slice, ok := f.([]any)
+	if !ok {
+		return fmt.Errorf("field %q must be a slice, got %T", name, f)
+	}
+	elemType := targetType.Elem()
+	res := reflect.MakeSlice(targetType, 0, len(slice))
+	for i, item := range slice {
+		mm, ok := item.(map[string]any)
+		if !ok {
+			return fmt.Errorf("item %d in field %q must be a map, got %T", i, name, item)
+		}
+		elem := reflect.New(elemType).Elem()
+		if err := convertFromMapReflect(elem, mm, false, tool); err != nil {
+			return fmt.Errorf("item %d in field %q: %w", i, name, err)
+		}
+		res = reflect.Append(res, elem)
+	}
+	field.Set(res)
+	return nil
+}
+
+func extractOutputs[T any](state map[string]any) map[string]any {
+	// Ensure that we actually have all outputs.
+	tmp, err := convertFromMap[T](state, false, false)
+	if err != nil {
+		panic(err)
+	}
+	return convertToMap(tmp)
 }
 
 // foreachField iterates over all public fields of the struct provided in data.

@@ -1,5 +1,6 @@
 TITLE: trusty: ASSERT FAILED: !list_in_list(&chan->node)
 TYPE: DoS
+PANICKED: Y
 
 [ 1117.120317] trusty: app-mgmt-test-srv2: 146: Channel wait failed: 0(4)
 [ 1117.129650] trusty: panic (caller [ 1117.140866] trusty: 0xffffffffe000fbb8): ASSERT FAILED at (trusty/kernel/lib/trusty/ipc.c:472): !list_in_list(&chan->node)

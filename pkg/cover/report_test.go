@@ -329,7 +329,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 	// test object in parallel. Without copying we have a datarace here.
 	progs := []Prog{}
 	for _, p := range test.Progs {
-		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
+		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: slices.Clone(p.PCs)})
 	}
 
 	rg, err := MakeReportGenerator(cfg, modules)
@@ -367,7 +367,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 				t.Fatalf("got %v main symbols", nmain)
 			}
 			main := text["main"][0]
-			for off := 0; off < main.Size; off++ {
+			for off := range main.Size {
 				pcs = append(pcs, main.Addr+uint64(off))
 			}
 			t.Logf("using inexact coverage range 0x%x-0x%x", main.Addr, main.Addr+uint64(main.Size))

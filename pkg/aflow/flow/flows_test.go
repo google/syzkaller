@@ -3,4 +3,20 @@
 
 package flow
 
-// An empty test that runs registration and verification of all registered workflows via init functions.
+import (
+	"strings"
+	"testing"
+
+	"github.com/google/syzkaller/pkg/aflow"
+)
+
+// Note: this test also runs registration and verification of all registered workflows via init functions.
+
+func TestMCPTools(t *testing.T) {
+	for tool := range aflow.MCPTools {
+		if strings.Contains(tool.Name, "-") {
+			t.Errorf("MCP tool %q contains '-'", tool.Name)
+		}
+		t.Log(tool.Name)
+	}
+}

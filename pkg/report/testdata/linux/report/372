@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in au0828_usb_disconnect
 ALT: bad-access in au0828_usb_disconnect
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [ 1087.420767] BUG: unable to handle kernel paging request at fffffffc45040758
 [ 1087.427881] #PF error: [normal kernel read fault]

@@ -1,6 +1,7 @@
 TITLE: WARNING: kmalloc bug in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  167.468733] WARNING: CPU: 1 PID: 27333 at mm/slab_common.c:1012 kmalloc_slab+0x5d/0x70
 [  167.476944] Kernel panic - not syncing: panic_on_warn set ...

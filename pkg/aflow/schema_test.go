@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +83,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int `json:"I0"`
 	}{},
 		`missing argument "I0"`,
-		`field "I0" is not present when converting map to struct { I0 int "json:\"I0\"" }`)
+		`struct { I0 int "json:\"I0\"" }: field "I0" is not present when converting map`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": "foo",
@@ -90,7 +91,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int
 	}{},
 		`argument "I0" has wrong type: got string, want int`,
-		`field "I0" has wrong type: got string, want int`)
+		`struct { I0 int }: field "I0" has wrong type: got string, want int`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": 1.1,
@@ -98,7 +99,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int
 	}{},
 		`argument I0: float value truncated from 1.1 to 1`,
-		`field I0: float value truncated from 1.1 to 1`)
+		`struct { I0 int }: field I0: float value truncated from 1.1 to 1`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": -1,
@@ -116,6 +117,79 @@ func TestConvertFromMap(t *testing.T) {
 	}{},
 		``,
 		``)
+
+	testConvertFromMap(t, false, map[string]any{
+		"Arr": []any{
+			map[string]any{"A": 1, "B": "foo"},
+			map[string]any{"A": 2, "B": "bar"},
+		},
+	}, struct {
+		Arr []struct {
+			A int
+			B string
+		}
+	}{
+		Arr: []struct {
+			A int
+			B string
+		}{
+			{A: 1, B: "foo"},
+			{A: 2, B: "bar"},
+		},
+	}, "", "")
+
+	testConvertFromMap(t, false, map[string]any{
+		"Nested": map[string]any{"A": 1, "B": "foo"},
+	}, struct {
+		Nested struct {
+			A int
+			B string
+		}
+	}{
+		Nested: struct {
+			A int
+			B string
+		}{A: 1, B: "foo"},
+	}, "", "")
+
+	val5 := uint(5)
+	testConvertFromMap(t, false, map[string]any{
+		"P": 5.0,
+	}, struct {
+		P *uint
+	}{
+		P: &val5,
+	}, "", "")
+
+	testConvertFromMap(t, true, map[string]any{
+		"P": 5.1,
+	}, struct {
+		P *uint
+	}{},
+		`argument P: float value truncated from 5.1 to 5`,
+		`struct { P *uint }: field P: float value truncated from 5.1 to 5`)
+
+	testConvertFromMap(t, false, map[string]any{
+		"Arr": []any{
+			map[string]any{"A": 1},
+		},
+	}, struct {
+		Arr []struct {
+			A int
+			B string
+		}
+	}{},
+		`item 0 in field "Arr": missing argument "B"`,
+		`item 0 in field "Arr": struct { A int; B string }: field "B" is not present when converting map`)
+
+	t1, _ := time.Parse(time.RFC3339, "2026-04-16T14:26:33Z")
+	testConvertFromMap(t, true, map[string]any{
+		"T": "2026-04-16T14:26:33Z",
+	}, struct {
+		T time.Time
+	}{
+		T: t1,
+	}, "", "")
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {

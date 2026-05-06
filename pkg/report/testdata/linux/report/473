@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in htc_connect_service
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [  347.999844][ T4270] ------------[ cut here ]------------
 [  348.000384][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0

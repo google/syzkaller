@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in rtnl_lock
 ALT: hang in rtnl_lock
 TYPE: HANG
+PANICKED: Y
 
 [  768.680053][ T1064] INFO: task kworker/1:0:17 blocked for more than 143 seconds.
 [  768.687843][ T1064]       Not tainted 5.4.0-rc1+ #0

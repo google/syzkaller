@@ -22,14 +22,14 @@ func TestCachedBugGroups(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.Title = "user-visible bug"
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Bug at the second (AccessPublic) stage.
 	crash2 := testCrash(build, 2)
 	crash2.Title = "public-visible bug"
 	client.ReportCrash(crash2)
-	client.updateBug(client.pollBug().ID, dashapi.BugStatusUpstream, "")
-	client.pollBug()
+	c.globalClient.updateBug(c.globalClient.pollBug().ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.pollBug()
 
 	// Add a build in a separate namespace (to check it's not mixed in).
 	client2 := c.makeClient(clientPublicEmail2, keyPublicEmail2, true)

@@ -1,5 +1,6 @@
 TITLE: WARNING in shark_write_val/usb_submit_urb
 TYPE: WARNING
+PANICKED: Y
 
 [   45.725205][ T1535] ------------[ cut here ]------------
 [   45.730853][ T1535] usb 1-1: BOGUS urb xfer, pipe 1 != type 3

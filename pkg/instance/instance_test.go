@@ -50,7 +50,7 @@ func TestExecprogCmd(t *testing.T) {
 				FaultCall: 2,
 				FaultNth:  3,
 			},
-		}, true, 10, "myprog")
+		}, true, 10, "", "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := tool.ParseFlags(flags, args); err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestExecprogCmd(t *testing.T) {
 		t.Errorf("bad sandbox: %q, want: %q", *flagSandbox, "namespace")
 	}
 	if *flagSandboxArg != 3 {
-		t.Errorf("bad sandbox_arg: %q, want: %q", *flagSandboxArg, 3)
+		t.Errorf("bad sandbox_arg: %v, want: %v", *flagSandboxArg, 3)
 	}
 	if *flagSignal {
 		t.Errorf("bad signal: %v, want: %v", *flagSignal, false)

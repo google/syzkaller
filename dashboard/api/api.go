@@ -41,6 +41,7 @@ type Crash struct {
 	Title               string `json:"title"`
 	SyzReproducerLink   string `json:"syz-reproducer,omitempty"`
 	CReproducerLink     string `json:"c-reproducer,omitempty"`
+	ReproOpts           string `json:"repro-opts,omitempty"`
 	KernelConfigLink    string `json:"kernel-config,omitempty"`
 	KernelSourceGit     string `json:"kernel-source-git,omitempty"`
 	KernelSourceCommit  string `json:"kernel-source-commit,omitempty"`
@@ -52,10 +53,12 @@ type Crash struct {
 }
 
 type Commit struct {
-	Title  string     `json:"title"`
-	Link   string     `json:"link,omitempty"`
-	Hash   string     `json:"hash,omitempty"`
-	Repo   string     `json:"repo,omitempty"`
-	Branch string     `json:"branch,omitempty"`
-	Date   *time.Time `json:"date,omitempty"`
+	Title      string     `json:"title"`
+	Link       string     `json:"link,omitempty"`
+	Hash       string     `json:"hash,omitempty"`
+	Repo       string     `json:"repo,omitempty"`
+	Branch     string     `json:"branch,omitempty"`
+	Author     string     `json:"author,omitempty"`
+	AuthorName string     `json:"author-name,omitempty"`
+	Date       *time.Time `json:"date,omitempty"`
 }

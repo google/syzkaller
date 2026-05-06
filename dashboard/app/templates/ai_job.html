@@ -10,25 +10,128 @@ Detailed info on a single AI job execution.
 <head>
 	{{template "head" .Header}}
 	<title>syzbot</title>
+
 </head>
 <body>
 	{{template "header" .Header}}
 	{{template "ai_job_list" .Jobs}}
 
-	{{if and (ne .Job.Correct "⏳") (ne .Job.Correct "💥")}}
-		<form method="POST">
-			<fieldset>
-				<legend>Result correct:</legend>
-				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅"}}checked{{end}}>
-				<label for="✅">✅</label>
-				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌"}}checked{{end}}>
-				<label for="❌">❌</label>
-				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓"}}checked{{end}}>
-				<label for="❓">❓</label>
-				<button type="submit">Set</button>
-			</fieldset>
-		</form>
-		<br>
+	{{if .Job.AgentName}}
+	<b>Agent:</b> {{.Job.AgentName}}<br><br>
+	{{end}}
+
+	{{if .Args}}
+	<b>Inputs:</b><br>
+	<table class="list_table">
+		<tbody>
+			{{range .Args}}
+			<tr>
+				<td class="title" style="vertical-align: top;">{{.Key}}</td>
+				<td class="title">
+					{{if .Large}}
+						<details>
+							<summary>Show ({{len .Value}} bytes)</summary>
+							<pre style="white-space: pre-wrap; word-wrap: break-word;">{{.Value}}</pre>
+						</details>
+					{{else}}
+						{{.Value}}
+					{{end}}
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
+	{{end}}
+	{{if .CurrentStage}}
+	<b>Current Stage:</b> {{.CurrentStage}}<br>
+	<b>Next Stage:</b> {{.NextStage}}<br><br>
+	{{end}}
+
+	{{if .Header.AIActions}}
+		{{if and (ne .Job.Correct "⏳") (ne .Job.Correct "💥")}}
+			<form method="POST">
+				<fieldset>
+					<legend>Result correct:</legend>
+					<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅" }}checked{{end}} title="Correct">
+					<label for="✅" title="Correct">✅</label>
+					<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌" }}checked{{end}} title="Incorrect">
+					<label for="❌" title="Incorrect">❌</label>
+					<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓" }}checked{{end}} title="Not yet reviewed">
+					<label for="❓" title="Not yet reviewed">❓</label>
+					<button type="submit">Set</button>
+				</fieldset>
+			</form>
+			<br>
+		{{end}}
+	{{end}}
+
+	{{if .Reportings}}
+	<table class="list_table">
+		<caption>Reporting Stages and Comments:</caption>
+		<thead>
+			<tr>
+				<th>Stage</th>
+				<th>Source</th>
+				<th>Reported At</th>
+				<th>Ext ID</th>
+				<th>Comments</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .Reportings}}
+			<tr>
+				<td>{{.Reporting.Stage}}</td>
+				<td>{{.Reporting.Source}}</td>
+				<td>{{if .Reporting.ReportedAt.Valid}}{{formatTime .Reporting.ReportedAt.Time}}{{else}}-{{end}}</td>
+				<td>{{if .Link}}<a href="{{.Link}}">{{.Reporting.ExtID.StringVal}}</a>{{else if .Reporting.ExtID.Valid}}{{.Reporting.ExtID.StringVal}}{{else}}-{{end}}</td>
+				<td>
+					{{if .Comments}}
+						<details>
+							<summary>{{len .Comments}} Comments</summary>
+							<ul>
+								{{range .Comments}}
+									<li>
+										<b>{{.Author}}</b> ({{formatTime .Date}}):
+										<pre>{{.BodyURI}}</pre>
+									</li>
+								{{end}}
+							</ul>
+						</details>
+					{{else}}
+						No comments
+					{{end}}
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
+	{{end}}
+
+	{{if .History}}
+	<table class="list_table">
+		<caption>Decision History:</caption>
+		<thead>
+			<tr>
+				<th>Time</th>
+				<th>User</th>
+				<th>Decision</th>
+				<th>Source</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .History}}
+			<tr>
+				<td>{{formatTime .Date}}</td>
+				<td>{{.User}}</td>
+				<td>{{.Correct}}</td>
+				<td>{{.Source}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
 	{{end}}
 
 	{{range $res := .Job.Results}}
@@ -46,54 +149,7 @@ Detailed info on a single AI job execution.
 	<div id="crash_div"><pre>{{.CrashReport}}</pre></div><br>
 	{{end}}
 
-	<table class="list_table">
-		<caption>Trajectory:</caption>
-		<thead><tr>
-			<th>Seq</th>
-			<th>Timestamp</th>
-			<th>Type</th>
-			<th>Name</th>
-			<th>Duration</th>
-		</tr></thead>
-		<tbody>
-		{{range $span := $.Trajectory}}
-		<tr>
-			<td>{{$span.Seq}}/{{$span.Nesting}}</td>
-			<td>{{formatTime $span.Started}}</td>
-			<td>{{$span.Type}}</td>
-			<td>{{$span.Name}}</td>
-			<td>
-				<details>
-					<summary>{{formatDuration $span.Duration}}</summary>
-					{{if $span.Model}}
-						<b>Model:</b> <div id="ai_details_div"><pre>{{$span.Model}}</pre></div><br>
-					{{end}}
-					{{if $span.Error}}
-						<b>Error:</b> <div id="ai_details_div"><pre>{{$span.Error}}</pre></div><br>
-					{{end}}
-					{{if $span.Args}}
-						<b>Args:</b> <div id="ai_details_div"><pre>{{$span.Args}}</pre></div><br>
-					{{end}}
-					{{if $span.Results}}
-						<b>Results:</b> <div id="ai_details_div"><pre>{{$span.Results}}</pre></div><br>
-					{{end}}
-					{{if $span.Instruction}}
-						<b>Instruction:</b> <div id="ai_details_div"><pre>{{$span.Instruction}}</pre></div><br>
-					{{end}}
-					{{if $span.Prompt}}
-						<b>Prompt:</b> <div id="ai_details_div"><pre>{{$span.Prompt}}</pre></div><br>
-					{{end}}
-					{{if $span.Reply}}
-						<b>Reply:</b> <div id="ai_details_div"><pre>{{$span.Reply}}</pre></div><br>
-					{{end}}
-					{{if $span.Thoughts}}
-						<b>Thoughts:</b> <div id="ai_details_div"><pre>{{$span.Thoughts}}</pre></div><br>
-					{{end}}
-				</details>
-			</td>
-		</tr>
-		{{end}}
-		</tbody>
-	</table>
+	{{.TrajectoryHTML}}
+
 </body>
 </html>

@@ -3,6 +3,7 @@ ALT: INFO: task hung in synchronize_rcu_expedited
 ALT: hang in synchronize_rcu
 ALT: hang in synchronize_rcu_expedited
 TYPE: HANG
+PANICKED: Y
 
 [  741.089420][ T1057] INFO: task syz-executor.2:28539 blocked for more than 143 seconds.
 [  741.097513][ T1057]       Not tainted 5.3.0-rc8+ #0

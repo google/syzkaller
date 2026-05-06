@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in qlist_free_all
 ALT: bad-access in qlist_free_all
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [ 2766.561238][T26603] BUG: unable to handle kernel paging request at ffffe8ffffe00000
 [ 2766.569067][T26603] #PF error: [normal kernel read fault]

@@ -1,6 +1,7 @@
 TITLE: KASAN: slab-out-of-bounds Read in ea_get
 ALT: bad-access in ea_get
 TYPE: KASAN-READ
+PANICKED: Y
 
 [   54.502667][ T3608] BUG: KASAN: slab-out-of-bounds in hex_dump_to_buffer+0xdc1/0xdf0
 [   54.510560][ T3608] Read of size 1 at addr ffff88806c856a40 by task syz-executor371/3608

@@ -1,0 +1,102 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions: use the provided tool swiss-knife for something.\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "swiss-knife",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Optional": {
+										"description": "An optional arg.",
+										"type": [
+											"null",
+											"integer"
+										]
+									}
+								},
+								"required": [
+									"Optional"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"args": {
+								"Optional": null
+							},
+							"name": "swiss-knife"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"name": "swiss-knife",
+							"response": {
+								"error": "missing argument \"Optional\""
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

@@ -1,5 +1,6 @@
 TITLE: BUG: stack guard page was hit in rtnl_newlink
 ALT: stack-overflow in rtnl_newlink
+PANICKED: Y
 
 [  733.821133][    C1] BUG: stack guard page was hit at ffffc900190cfff8 (stack is ffffc900190d0000..ffffc900190d7fff)
 [  733.821152][    C1] kernel stack overflow (double-fault): 0000 [#1] PREEMPT SMP KASAN

@@ -1,0 +1,61 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+<!doctype html>
+<html>
+<head>
+	<title>AI Trajectory</title>
+	<style>
+		table {
+			border: 1px solid #ccc;
+			margin: 20px 5px;
+			border-collapse: collapse;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			overflow: hidden;
+		}
+
+		table caption {
+			font-weight: bold;
+		}
+
+		table td, table th {
+			vertical-align: top;
+			padding: 2px 8px;
+			text-overflow: ellipsis;
+			overflow: hidden;
+		}
+
+		.list_table td, .list_table th {
+			border-left: 1px solid #ccc;
+		}
+
+		.list_table th {
+			background: #F4F4F4;
+		}
+
+		.list_table tr:nth-child(2n) {
+			background: #F4F4F4;
+		}
+
+		.list_table tr:hover {
+			background: #ffff99;
+		}
+
+		#ai_details_div pre {
+			margin: 1px;
+			max-width: 120ch;
+			white-space: pre-wrap;
+			overflow-wrap: break-word;
+		}
+	</style>
+</head>
+<body>
+	<h1>AI Trajectory</h1>
+	<br>
+
+	{{template "ai_trajectory" .}}
+
+</body>
+</html>

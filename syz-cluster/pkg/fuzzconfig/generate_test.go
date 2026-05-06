@@ -20,15 +20,8 @@ import (
 var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
 
 func TestSingularFocus(t *testing.T) {
-	focusMap := map[string]struct{}{}
-	for _, target := range api.FuzzTargets {
-		for _, campaign := range target.Campaigns {
-			if campaign.Focus != "" {
-				focusMap[campaign.Focus] = struct{}{}
-			}
-		}
-	}
-	for focus := range focusMap {
+	focusList := []string{api.FocusKVM, api.FocusIoUring, api.FocusBPF, api.FocusNet, api.FocusFS}
+	for _, focus := range focusList {
 		t.Run(focus, func(t *testing.T) {
 			cfg := &api.FuzzConfig{Focus: []string{focus}}
 			runTest(t, cfg, filepath.Join("testdata", "singular", focus))

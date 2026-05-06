@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in nci_send_cmd
 ALT: bad-access in nci_send_cmd
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [ 9171.691128][T26146] 8<--- cut here ---
 [ 9171.691541][T26146] Unable to handle kernel NULL pointer dereference at virtual address 00000000

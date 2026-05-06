@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in ld_usb_write
 ALT: hang in ld_usb_write
 TYPE: HANG
+PANICKED: Y
 
 [  534.703301][   T23] INFO: task syz-executor865:1721 blocked for more than 143 seconds.
 [  534.711469][   T23]       Not tainted 5.3.0-rc5+ #27

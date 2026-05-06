@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSerializer(t *testing.T) {
@@ -59,9 +59,7 @@ S("foo"),
 },nil}`
 	buf := new(bytes.Buffer)
 	Write(buf, x)
-	if diff := cmp.Diff(want, buf.String()); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, want, buf.String())
 }
 
 type X struct {

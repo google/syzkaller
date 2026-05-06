@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -150,7 +151,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 			HasAny:  old.HasAny,
 			Signal:  newSignal,
 			Cover:   newCover.Serialize(),
-			Updates: append([]ItemUpdate{}, old.Updates...),
+			Updates: slices.Clone(old.Updates),
 			areas:   maps.Clone(old.areas),
 		}
 		const maxUpdates = 32

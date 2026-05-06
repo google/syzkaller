@@ -21,12 +21,16 @@ import (
 type DiscussionService struct {
 	reportRepo      *db.ReportRepository
 	reportReplyRepo *db.ReportReplyRepository
+	sessionRepo     *db.SessionRepository
+	jobRepo         *db.JobRepository
 }
 
 func NewDiscussionService(env *app.AppEnvironment) *DiscussionService {
 	return &DiscussionService{
 		reportRepo:      db.NewReportRepository(env.Spanner),
 		reportReplyRepo: db.NewReportReplyRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
+		jobRepo:         db.NewJobRepository(env.Spanner),
 	}
 }
 
@@ -56,17 +60,6 @@ func (d *DiscussionService) RecordReply(ctx context.Context, req *api.RecordRepl
 	}, nil
 }
 
-func (d *DiscussionService) LastReply(ctx context.Context, reporter string) (*api.LastReplyResp, error) {
-	reply, err := d.reportReplyRepo.LastForReporter(ctx, reporter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query the last report: %w", err)
-	}
-	if reply != nil {
-		return &api.LastReplyResp{Time: reply.Time}, nil
-	}
-	return &api.LastReplyResp{}, nil
-}
-
 func (d *DiscussionService) identifyReport(ctx context.Context, req *api.RecordReplyReq) (string, error) {
 	// If the report ID was passed explicitly, just verify it.
 	if req.ReportID != "" {
@@ -78,8 +71,8 @@ func (d *DiscussionService) identifyReport(ctx context.Context, req *api.RecordR
 		}
 		return "", nil
 	}
-	// Now try to find a matching reply.
-	reportID, err := d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.InReplyTo)
+	// Now try to find a matching reply using RootMessageID.
+	reportID, err := d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.RootMessageID)
 	if err != nil {
 		return "", fmt.Errorf("search among the replies failed: %w", err)
 	}

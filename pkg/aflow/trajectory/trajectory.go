@@ -17,25 +17,33 @@ type Span struct {
 	Seq int
 	// Nesting represents hierarchical relation between spans.
 	// For example, SpanTool spans within SpanAgent have +1 nesting level.
-	Nesting  int
-	Type     SpanType
-	Name     string // flow/action/tool name
-	Model    string // LLM model name for agent/LLM spans
+	Nesting int
+	Type    SpanType
+	Name    string // flow/action/tool name
+	// LLM model name for agent/LLM spans.
+	Model    string `json:",omitzero"`
 	Started  time.Time
-	Finished time.Time
-	Error    string // relevant if Finished is set
+	Finished time.Time `json:",omitzero"`
+	// Relevant if Finished is set.
+	Error string `json:",omitzero"`
 
 	// Args/results for actions/tools.
-	Args    map[string]any
-	Results map[string]any
+	Args    map[string]any `json:",omitzero"`
+	Results map[string]any `json:",omitzero"`
 
 	// Agent invocation.
-	Instruction string
-	Prompt      string
-	Reply       string
+	Instruction string `json:",omitzero"`
+	Prompt      string `json:",omitzero"`
+	Reply       string `json:",omitzero"`
 
 	// LLM invocation.
-	Thoughts string
+	Thoughts string `json:",omitzero"`
+
+	// For details see:
+	// https://pkg.go.dev/google.golang.org/genai#GenerateContentResponseUsageMetadata
+	InputTokens          int `json:",omitzero"`
+	OutputTokens         int `json:",omitzero"`
+	OutputThoughtsTokens int `json:",omitzero"`
 }
 
 type SpanType string
@@ -50,6 +58,8 @@ const (
 	SpanTool   = SpanType("tool")
 	// Logical grouping of several invocations of the same agent.
 	SpanAgentCandidates = SpanType("agent-candidates")
+	SpanLoop            = SpanType("loop")
+	SpanLoopIteration   = SpanType("iteration")
 )
 
 func (span *Span) String() string {
@@ -66,6 +76,8 @@ func (span *Span) String() string {
 		case SpanLLM:
 		case SpanTool:
 			printMap(sb, span.Args, "args")
+		case SpanLoop:
+		case SpanLoopIteration:
 		default:
 			panic(fmt.Sprintf("unhandled span type %v", span.Type))
 		}
@@ -83,11 +95,15 @@ func (span *Span) String() string {
 			}
 			fmt.Fprintf(sb, "reply:\n%v\n", span.Reply)
 		case SpanLLM:
+			fmt.Fprintf(sb, "tokens: input=%v output=%v thoughts=%v\n",
+				span.InputTokens, span.OutputTokens, span.OutputThoughtsTokens)
 			if span.Thoughts != "" {
 				fmt.Fprintf(sb, "thoughts:\n%v\n", span.Thoughts)
 			}
 		case SpanTool:
 			printMap(sb, span.Results, "results")
+		case SpanLoop:
+		case SpanLoopIteration:
 		default:
 			panic(fmt.Sprintf("unhandled span type %v", span.Type))
 		}

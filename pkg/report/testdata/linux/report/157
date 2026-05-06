@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in sctp_wfree
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [   44.461565] refcount_t: underflow; use-after-free.
 [   44.466577] ------------[ cut here ]------------

@@ -179,12 +179,15 @@ func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
 		}).
 		Return(nil).
 		On("PoolLogs", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			<-t.Context().Done()
+		}).
 		Return(nil)
 
 	p, _ := ctor(makeTestParams(), testTCPEnv(port))
 	<-onConnect
 	closeServerConnections()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-onConnect
 		p.(*pool).mu.Lock()
 		assert.Nil(t, p.(*pool).proxy) // still can't initialize
@@ -211,11 +214,11 @@ func makeMockProxyAppServerWithListener(t *testing.T, l net.Listener) (*mockProx
 			if err != nil {
 				panic("failed to accept connection")
 			}
-			go server.ServeCodec(jsonrpc.NewServerCodec(conn))
-
 			connsMu.Lock()
 			conns = append(conns, conn)
 			connsMu.Unlock()
+
+			go server.ServeCodec(jsonrpc.NewServerCodec(conn))
 		}
 	}()
 

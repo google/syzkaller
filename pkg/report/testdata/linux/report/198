@@ -1,6 +1,7 @@
 TITLE: general protection fault in ip6t_do_table
 ALT: bad-access in ip6t_do_table
 TYPE: DoS
+PANICKED: Y
 
 [  159.247590] syz-executor6: vmalloc: allocation failure: 8589934588 bytes, mode:0x14080c0(GFP_KERNEL|__GFP_ZERO), nodemask=(null)
 [  159.259380] syz-executor6 cpuset=/ mems_allowed=0

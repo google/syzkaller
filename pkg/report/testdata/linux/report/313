@@ -1,5 +1,6 @@
 TITLE: PANIC: double fault in kvm_async_pf_task_wait
 TYPE: DoS
+PANICKED: Y
 
 [ 4031.436692] PANIC: double fault, error_code: 0x0
 [ 4031.439937] CPU: 1 PID: 1227 Comm: kworker/1:1 Not tainted 4.16.0-rc1+ #12

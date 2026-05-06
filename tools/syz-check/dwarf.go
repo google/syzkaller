@@ -49,12 +49,12 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	go extractCompilationUnits(debugInfo, unitc, errc)
 
 	uniterrc := make(chan error, numProcs)
-	for p := 0; p < numProcs; p++ {
+	for range numProcs {
 		go extractOffsets(debugInfo, unitc, offsetc, uniterrc)
 	}
 	go func() {
 		var err error
-		for p := 0; p < numProcs; p++ {
+		for range numProcs {
 			if err1 := <-uniterrc; err1 != nil {
 				err = err1
 			}
@@ -64,7 +64,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	}()
 
 	structerrc := make(chan error, numTypes)
-	for p := 0; p < numTypes; p++ {
+	for p := range numTypes {
 		// Only parallel extraction of types races with each other,
 		// so we can reuse debugInfo for one of the goroutines.
 		debugInfo1 := debugInfo
@@ -75,7 +75,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	}
 	go func() {
 		var err error
-		for p := 0; p < numTypes; p++ {
+		for range numTypes {
 			if err1 := <-structerrc; err1 != nil {
 				err = err1
 			}
@@ -94,7 +94,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 		errc <- nil
 	}()
 
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		if err := <-errc; err != nil {
 			return nil, err
 		}

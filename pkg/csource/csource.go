@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"math/bits"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,6 +50,17 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		calls:     make(map[string]uint64),
 	}
 	return ctx.generateSource()
+}
+
+// WriteLLM generates a minimal, single-threaded C reproducer for LLMs.
+func WriteLLM(p *prog.Prog) ([]byte, error) {
+	opts := Options{
+		Sandbox:      "",
+		CallComments: true,
+		Procs:        1,
+		Slowdown:     1,
+	}
+	return Write(p, opts)
 }
 
 type context struct {
@@ -222,7 +233,7 @@ func (ctx *context) generateSyscallDefines() string {
 		}
 		calls = append(calls, name)
 	}
-	sort.Strings(calls)
+	slices.Sort(calls)
 	buf := new(bytes.Buffer)
 	prefix := ctx.sysTarget.SyscallPrefix
 	for _, name := range calls {
@@ -241,6 +252,7 @@ func (ctx *context) generateSyscallDefines() string {
 }
 
 const indent string = "  " // Two spaces.
+
 // clang-format produces nicer comments with '//' prefixing versus '/* ... */' style comments.
 const commentPrefix string = "//"
 
@@ -419,7 +431,7 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
 	}
-	for i := 0; i < call.Meta.MissingArgs; i++ {
+	for range call.Meta.MissingArgs {
 		argsStrs = append(argsStrs, "0")
 	}
 	return fmt.Sprintf("%v(%v)", funcName, strings.Join(argsStrs, ", "))
@@ -718,10 +730,10 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 			sorted = append(sorted, include)
 		}
 	}
-	sort.Strings(sortedTop)
-	sort.Strings(sorted)
-	sort.Strings(sortedBottom)
-	newResult := append([]byte{}, result[:includesStart]...)
+	slices.Sort(sortedTop)
+	slices.Sort(sorted)
+	slices.Sort(sortedBottom)
+	newResult := slices.Clone(result[:includesStart])
 	newResult = append(newResult, strings.Join(sortedTop, "")...)
 	newResult = append(newResult, '\n')
 	newResult = append(newResult, strings.Join(sorted, "")...)

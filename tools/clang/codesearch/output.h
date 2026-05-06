@@ -13,15 +13,18 @@
 constexpr char EntityKindFunction[] = "function";
 constexpr char EntityKindStruct[] = "struct";
 constexpr char EntityKindUnion[] = "union";
-constexpr char EntityKindVariable[] = "variable";
+constexpr char EntityKindGlobalVariable[] = "global_variable";
 constexpr char EntityKindMacro[] = "macro";
 constexpr char EntityKindEnum[] = "enum";
 constexpr char EntityKindTypedef[] = "typedef";
+constexpr char EntityKindField[] = "field";
 
 // The uses reference is very generic, ideally we refine it in the future
 // (e.g. "used as an argument type", "cast to this type", "includes field of this type", etc).
 constexpr char RefKindUses[] = "uses";
 constexpr char RefKindCall[] = "calls";
+constexpr char RefKindRead[] = "reads";
+constexpr char RefKindWrite[] = "writes";
 constexpr char RefKindTakesAddr[] = "takes-address-of";
 
 struct LineRange {
@@ -37,6 +40,12 @@ struct Reference {
   int Line;
 };
 
+struct FieldInfo {
+  std::string Name;
+  uint64_t OffsetBits;
+  uint64_t SizeBits;
+};
+
 struct Definition {
   const char* Kind; // one of Kind* consts
   std::string Name;
@@ -48,6 +57,7 @@ struct Definition {
   // Location of the kernel-doc comment.
   LineRange Comment;
   std::vector<Reference> Refs;
+  std::vector<FieldInfo> Fields;
 };
 
 inline void print(JSONPrinter& Printer, const LineRange& V) {
@@ -65,6 +75,13 @@ inline void print(JSONPrinter& Printer, const Reference& V) {
   Printer.Field("line", V.Line, true);
 }
 
+inline void print(JSONPrinter& Printer, const FieldInfo& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name);
+  Printer.Field("offset", V.OffsetBits);
+  Printer.Field("size", V.SizeBits, true);
+}
+
 inline void print(JSONPrinter& Printer, const Definition& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("kind", V.Kind);
@@ -73,7 +90,8 @@ inline void print(JSONPrinter& Printer, const Definition& V) {
   Printer.Field("is_static", V.IsStatic);
   Printer.Field("body", V.Body);
   Printer.Field("comment", V.Comment);
-  Printer.Field("refs", V.Refs, true);
+  Printer.Field("refs", V.Refs);
+  Printer.Field("fields", V.Fields, true);
 }
 
 class Output {

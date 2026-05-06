@@ -75,10 +75,12 @@ type maintainersLexer struct {
 }
 
 type recordTitle string
+
 type recordProperty struct {
 	key   string
 	value string
 }
+
 type endOfFile struct{}
 
 var propertyRe = regexp.MustCompile(`^([[:alpha:]]):\s+(.*).*$`)

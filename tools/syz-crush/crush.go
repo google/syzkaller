@@ -92,7 +92,7 @@ func main() {
 	runDone := make(chan *instance.RunResult)
 	var shutdown, stoppedWorkers uint32
 
-	for i := 0; i < vmPool.Count(); i++ {
+	for i := range vmPool.Count() {
 		go func(index int) {
 			for {
 				runDone <- runInstance(cfg, reporter, vmPool, index, *flagRestartTime, runType)
@@ -158,6 +158,11 @@ func storeCrash(cfg *mgrconfig.Config, res *instance.RunResult) {
 	if err := osutil.CopyFile(flag.Args()[0], filepath.Join(dir, fmt.Sprintf("reproducer%v", index))); err != nil {
 		log.Printf("failed to write crash reproducer: %v", err)
 	}
+	if res.MemoryDump != "" {
+		if err := osutil.Rename(res.MemoryDump, filepath.Join(dir, fmt.Sprintf("memory_dump%v", index))); err != nil {
+			log.Printf("failed to move memory dump: %v", err)
+		}
+	}
 }
 
 func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
@@ -179,22 +184,33 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	if runType == LogFile {
 		opts := csource.DefaultOpts(cfg)
 		opts.Repeat, opts.Threaded = true, true
-		res, err = inst.RunSyzProgFile(file, timeout, opts, instance.SyzExitConditions)
+		res, err = inst.RunSyzProgFile(file, instance.RunOptions{
+			Duration:       timeout,
+			Opts:           opts,
+			MemoryDump:     cfg.MemoryDump,
+			ExitConditions: instance.SyzExitConditions,
+		})
 	} else {
 		var src []byte
 		src, err = os.ReadFile(file)
 		if err != nil {
 			log.Fatalf("error reading source file from '%s'", file)
 		}
-		res, err = inst.RunCProgRaw(src, cfg.Target, timeout)
+		res, err = inst.RunCProgRaw(src, cfg.Target, instance.RunOptions{
+			Duration:   timeout,
+			MemoryDump: cfg.MemoryDump,
+		})
+	}
+	if err == nil && res != nil && res.Report != nil {
+		log.Printf("vm-%v: crash: %v", index, res.Report.Title)
+		return res
+	}
+	if res != nil && res.MemoryDump != "" {
+		os.Remove(res.MemoryDump)
 	}
 	if err != nil {
 		log.Printf("failed to execute program: %v", err)
 		return nil
-	}
-	if res.Report != nil {
-		log.Printf("vm-%v: crash: %v", index, res.Report.Title)
-		return res
 	}
 	log.Printf("vm-%v: running long enough, stopping", index)
 	return nil

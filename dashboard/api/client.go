@@ -21,6 +21,7 @@ type Client struct {
 	throttle bool
 	ctor     requestCtor
 	doer     requestDoer
+	access   string
 }
 
 // accessToken is OAuth access token obtained with "gcloud auth print-access-token"
@@ -34,7 +35,12 @@ func NewClient(dashboardURL, accessToken string) *Client {
 		throttle: true,
 		ctor:     http.NewRequest,
 		doer:     http.DefaultClient.Do,
+		access:   "public",
 	}
+}
+
+func (c *Client) SetAccess(access string) {
+	c.access = access
 }
 
 type (
@@ -44,9 +50,10 @@ type (
 
 func NewTestClient(ctor requestCtor, doer requestDoer) *Client {
 	return &Client{
-		url:  "http://localhost",
-		ctor: ctor,
-		doer: doer,
+		url:    "http://localhost",
+		ctor:   ctor,
+		doer:   doer,
+		access: "public",
 	}
 }
 
@@ -136,6 +143,7 @@ func (c *Client) queryURL(query string) (string, error) {
 	vals := u.Query()
 	// json=1 is ignored for text end points, so we don't bother not adding it.
 	vals.Set("json", "1")
+	vals.Set("access", c.access)
 	u.RawQuery = vals.Encode()
 	return u.String(), nil
 }

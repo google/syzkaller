@@ -1,6 +1,7 @@
 TITLE: WARNING: locking bug in corrupted
 TYPE: LOCKDEP
 CORRUPTED: Y
+PANICKED: Y
 
 [  336.564505] FAULT_INJECTION: forcing a failure.
 [  336.564505] name failslab, interval 1, probability 0, space 0, times 0

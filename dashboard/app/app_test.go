@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -36,6 +36,17 @@ func init() {
 	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
 	initMocks()
+	// Insert namespaces from localUIConfig into testConfig.
+	// This is required b/c main.go registers HTTP handlers for all namespaces
+	// in the main installed config only, so if we don't do that the localUIConfig
+	// namespaces won't have handlers. // It's not important if there are duplicates
+	// b/c registration code mostly looks at namespace names.
+	for ns, cfg := range localUIConfig.Namespaces {
+		if testConfig.Namespaces[ns] == nil {
+			testConfig.Namespaces[ns] = cfg
+		}
+	}
+	checkConfig(localUIConfig)
 	installConfig(testConfig)
 }
 
@@ -52,8 +63,21 @@ var testConfig = &GlobalConfig{
 			Access: AccessPublic,
 		},
 	},
-	Clients: map[string]string{
-		"reporting": "reportingkeyreportingkeyreportingkey",
+	Clients: map[string]APIClient{
+		reportingClient: {Key: reportingKey},
+		agentClient: {
+			Key:     agentKey,
+			Methods: AIMethods,
+		},
+		agentRestrictedClient: {
+			Key:              agentRestrictedKey,
+			Methods:          AIMethods,
+			AIWorkflowSuffix: "-foobar",
+		},
+		"unrestricted-ai": {
+			Key:     "unrestrictedkey1234",
+			Methods: AIMethods,
+		},
 	},
 	EmailBlocklist: []string{
 		"\"Bar\" <Blocked@Domain.com>",
@@ -69,15 +93,16 @@ var testConfig = &GlobalConfig{
 		{"lore@email.com", dashapi.DiscussionLore},
 	},
 	DefaultNamespace: "test1",
+	DungeonNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
 			AccessLevel:           AccessAdmin,
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
 			SimilarityDomain:      testDomain,
-			Clients: map[string]string{
-				client1: password1,
-				"oauth": auth.OauthMagic + "111111122222222",
+			Clients: map[string]APIClient{
+				client1: {Key: password1},
+				"oauth": {Key: auth.OauthMagic + "111111122222222"},
 			},
 			Repos: []KernelRepo{
 				{
@@ -135,8 +160,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "test2keytest2keytest2key",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				client2: password2,
+			Clients: map[string]APIClient{
+				client2: {Key: password2},
 			},
 			Repos: []KernelRepo{
 				{
@@ -205,9 +230,10 @@ var testConfig = &GlobalConfig{
 		// Namespaces for access level testing.
 		"access-admin": {
 			AccessLevel: AccessAdmin,
+			AI:          &AIConfig{},
 			Key:         "adminkeyadminkeyadminkey",
-			Clients: map[string]string{
-				clientAdmin: keyAdmin,
+			Clients: map[string]APIClient{
+				clientAdmin: {Key: keyAdmin},
 			},
 			Repos: []KernelRepo{
 				{
@@ -231,9 +257,10 @@ var testConfig = &GlobalConfig{
 		},
 		"access-user": {
 			AccessLevel: AccessUser,
+			AI:          &AIConfig{},
 			Key:         "userkeyuserkeyuserkey",
-			Clients: map[string]string{
-				clientUser: keyUser,
+			Clients: map[string]APIClient{
+				clientUser: {Key: keyUser},
 			},
 			Repos: []KernelRepo{
 				{
@@ -258,9 +285,10 @@ var testConfig = &GlobalConfig{
 		},
 		"access-public": {
 			AccessLevel: AccessPublic,
+			AI:          &AIConfig{},
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublic: keyPublic,
+			Clients: map[string]APIClient{
+				clientPublic: {Key: keyPublic},
 			},
 			Repos: []KernelRepo{
 				{
@@ -290,8 +318,8 @@ var testConfig = &GlobalConfig{
 		"access-public-email": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicEmail: keyPublicEmail,
+			Clients: map[string]APIClient{
+				clientPublicEmail: {Key: keyPublicEmail},
 			},
 			Managers: map[string]ConfigManager{
 				restrictedManager: {
@@ -336,8 +364,8 @@ var testConfig = &GlobalConfig{
 		"access-public-email-2": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicEmail2: keyPublicEmail2,
+			Clients: map[string]APIClient{
+				clientPublicEmail2: {Key: keyPublicEmail2},
 			},
 			Repos: []KernelRepo{
 				{
@@ -361,8 +389,8 @@ var testConfig = &GlobalConfig{
 		"fs-bugs-reporting": {
 			AccessLevel: AccessPublic,
 			Key:         "fspublickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicFs: keyPublicFs,
+			Clients: map[string]APIClient{
+				clientPublicFs: {Key: keyPublicFs},
 			},
 			Repos: []KernelRepo{
 				{
@@ -405,8 +433,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "testdecommissiontestdecommission",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				clientTestDecomm: keyTestDecomm,
+			Clients: map[string]APIClient{
+				clientTestDecomm: {Key: keyTestDecomm},
 			},
 			Repos: []KernelRepo{
 				{
@@ -438,8 +466,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "testmgrdecommissiontestmgrdecommission",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				clientMgrDecommission: keyMgrDecommission,
+			Clients: map[string]APIClient{
+				clientMgrDecommission: {Key: keyMgrDecommission},
 			},
 			Managers: map[string]ConfigManager{
 				notYetDecommManger: {},
@@ -479,8 +507,8 @@ var testConfig = &GlobalConfig{
 		"subsystem-reminders": {
 			AccessLevel: AccessPublic,
 			Key:         "subsystemreminderssubsystemreminders",
-			Clients: map[string]string{
-				clientSubsystemRemind: keySubsystemRemind,
+			Clients: map[string]APIClient{
+				clientSubsystemRemind: {Key: keySubsystemRemind},
 			},
 			Repos: []KernelRepo{
 				{
@@ -537,8 +565,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:           AccessPublic,
 			FixBisectionAutoClose: true,
 			Key:                   "treeteststreeteststreeteststreeteststreeteststreetests",
-			Clients: map[string]string{
-				clientTreeTests: keyTreeTests,
+			Clients: map[string]APIClient{
+				clientTreeTests: {Key: keyTreeTests},
 			},
 			Repos: []KernelRepo{
 				{
@@ -605,11 +633,15 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"ains": {
-			AI:          true,
+			AI: &AIConfig{
+				BaseRepository: "git://ai/base.git",
+				BaseBranch:     "ai-base",
+				BaseCommit:     "RC",
+			},
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientAI: keyAI,
+			Clients: map[string]APIClient{
+				clientAI: {Key: keyAI},
 			},
 			Repos: []KernelRepo{
 				{
@@ -634,8 +666,8 @@ var testConfig = &GlobalConfig{
 		"skip-stage": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientSkipStage: keySkipStage,
+			Clients: map[string]APIClient{
+				clientSkipStage: {Key: keySkipStage},
 			},
 			Repos: []KernelRepo{
 				{
@@ -725,10 +757,18 @@ const (
 	keySubsystemRemind    = "keySubsystemRemindkeySubsystemRemind"
 	clientTreeTests       = "clientTreeTestsclientTreeTests"
 	keyTreeTests          = "keyTreeTestskeyTreeTestskeyTreeTests"
+	clientGlobalAI        = "ai-ns-global-client"
+	keyGlobalAI           = "ai-ns-global-clientai-ns-global-client"
 	clientAI              = "client-ai"
 	keyAI                 = "clientaikeyclientaikeyclientaikey"
 	clientSkipStage       = "client-skip-stage"
 	keySkipStage          = "skipstagekeyskipstagekeyskipstagekey"
+	reportingClient       = "reporting"
+	reportingKey          = "reportingkeyreportingkeyreportingkey"
+	agentClient           = "agent"
+	agentKey              = "agentagentagentagentagentagentagentagentagentagent"
+	agentRestrictedClient = "agent-foobar"
+	agentRestrictedKey    = "agentrestrictedagentrestrictedagentrestrictedagentrestricted"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
@@ -837,18 +877,18 @@ func TestApp(t *testing.T) {
 
 	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Test that namespace isolation works.
 	c.expectFail("unknown build", apiClient2.Query("report_crash", crash1, nil))
 
 	crash2 := testCrashWithRepro(build, 2)
 	c.client.ReportCrash(crash2)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Provoke purgeOldCrashes.
 	const purgeTestIters = 30
-	for i := 0; i < purgeTestIters; i++ {
+	for i := range purgeTestIters {
 		// Also test how daily counts work.
 		if i == purgeTestIters/2 {
 			c.advanceTime(48 * time.Hour)
@@ -858,7 +898,7 @@ func TestApp(t *testing.T) {
 		crash.Report = []byte(fmt.Sprintf("report%v", i))
 		c.client.ReportCrash(crash)
 	}
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	bug, _, _ := c.loadBug(rep.ID)
 	c.expectNE(bug, nil)
 	c.expectEQ(bug.DailyStats, []BugDailyStats{
@@ -872,13 +912,15 @@ func TestApp(t *testing.T) {
 	}
 	c.client.ReportFailedRepro(cid)
 
-	c.client.ReportingPollBugs("test")
+	c.globalClient.ReportingPollBugs("test")
 
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
-		ID:         "id",
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
-		ReproLevel: dashapi.ReproLevelC,
+		ReproLevel: dashapi.ReproLevelNone,
 	})
+	c.expectEQ(reply.Error, false)
+	c.expectEQ(reply.OK, true)
 }
 
 func TestRedirects(t *testing.T) {
@@ -980,21 +1022,21 @@ func TestPurgeOldCrashes(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.ReproOpts = []byte("no repro")
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	crash.ReproSyz = []byte("getpid()")
 	crash.ReproOpts = []byte("syz repro")
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	crash.ReproC = []byte("int main() {}")
 	crash.ReproOpts = []byte("C repro")
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Now report lots of bugs with/without repros. Some of the older ones should be purged.
 	var totalReported = 3 * maxCrashes()
-	for i := 0; i < totalReported; i++ {
+	for i := range totalReported {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
 		crash.ReproC = nil
@@ -1061,7 +1103,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 
 	// Unreport the first crash.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:               rep.ID,
 		Status:           dashapi.BugStatusUpdate,
 		ReproLevel:       dashapi.ReproLevelC,
@@ -1071,7 +1113,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 
 	// Trigger more purge events.
 	var moreIterations = maxCrashes()
-	for i := 0; i < moreIterations; i++ {
+	for i := range moreIterations {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
 		crash.ReproC = nil
@@ -1210,7 +1252,5 @@ kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/i
 [&lt;81751700&gt;] (show_stack) from [&lt;8176d3e0&gt;] (dump_stack_lvl+0x48/0x54 <a href='https://github.com/google/syzkaller/blob/111222/lib/dump_stack.c#L106'>lib/dump_stack.c:106</a>)
 `
 	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
-	if diff := cmp.Diff(output, string(got)); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, output, string(got))
 }

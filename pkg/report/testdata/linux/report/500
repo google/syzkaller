@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted/usb_submit_urb
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 Warning: Permanently added '10.128.0.242' (ECDSA) to the list of known hosts.
 syzkaller login: [   30.021137][   T81] usb 1-1: new high-speed USB device number 2 using dummy_hcd

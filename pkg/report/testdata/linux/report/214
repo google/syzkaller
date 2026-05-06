@@ -1,6 +1,7 @@
 TITLE: KASAN: wild-memory-access in sg_read
 TYPE: KASAN-READ
 CORRUPTED: Y
+PANICKED: Y
 
 [   56.874510] ==================================================================
 [   56.881919] BUG: KASAN: wild-memory-access in sg_read+0x1296/0x1440

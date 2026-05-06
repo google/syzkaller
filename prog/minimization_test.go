@@ -356,7 +356,7 @@ func TestMinimizeRandom(t *testing.T) {
 	iters /= 10 // Long test.
 	ct := target.DefaultChoiceTable()
 	r := rand.New(rs)
-	for i := 0; i < iters; i++ {
+	for range iters {
 		for _, mode := range []MinimizeMode{MinimizeCorpus, MinimizeCrash} {
 			p := target.Generate(rs, 5, ct)
 			copyP := p.Clone()
@@ -388,7 +388,7 @@ func TestMinimizeCallIndex(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
 	r := rand.New(rs)
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 5, ct)
 		ci := r.Intn(len(p.Calls))
 		mode := MinimizeCorpus

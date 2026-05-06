@@ -3,6 +3,7 @@ ALT: kernel panic: corrupted stack end in __arm64_sys_socket
 ALT: stack-overflow in __arm64_sys_socket
 ALT: stack-overflow in sys_socket
 TYPE: DoS
+PANICKED: Y
 
 [ 2231.649459] Kernel panic - not syncing: corrupted stack end detected inside scheduler
 [ 2231.657307] CPU: 185 PID: 11718 Comm: dbus-daemon Kdump: loaded Tainted: G        W         4.20.0-rc2+ #4

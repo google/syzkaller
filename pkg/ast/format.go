@@ -274,7 +274,7 @@ func fmtExpressionRec(sb *strings.Builder, t *Type, parentPrio int) {
 	case OperatorOr:
 		sb.WriteString("||")
 	default:
-		panic(fmt.Sprintf("unknown operator %q", be.Operator))
+		panic(fmt.Sprintf("unknown operator %v", be.Operator))
 	}
 	sb.WriteByte(' ')
 	fmtExpressionRec(sb, be.Right, myPrio)
@@ -289,7 +289,7 @@ func operatorPrio(op Operator) int {
 			return info.prio
 		}
 	}
-	panic(fmt.Sprintf("unknown operator %q", op))
+	panic(fmt.Sprintf("unknown operator %v", op))
 }
 
 func comma(i int, or string) string {

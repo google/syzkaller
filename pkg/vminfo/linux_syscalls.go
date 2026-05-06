@@ -94,6 +94,11 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_io_uring_setup":            alwaysSupported,
 	"syz_io_uring_submit":           alwaysSupported,
 	"syz_io_uring_complete":         alwaysSupported,
+	"syz_ublk_setup_io_uring":       alwaysSupported,
+	"syz_ublk_add_dev":              alwaysSupported,
+	"syz_ublk_setup_queues":         alwaysSupported,
+	"syz_ublk_process_io":           alwaysSupported,
+	"syz_io_uring_modify_offsets":   alwaysSupported,
 	"syz_memcpy_off":                alwaysSupported,
 	"syz_btf_id_by_name":            linuxBtfVmlinuxSupported,
 	"syz_fuse_handle_req":           alwaysSupported,
@@ -131,8 +136,8 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 	if _, ok := call.Args[1].Type.(*prog.ProcType); ok {
 		ids = []int{0}
 	} else {
-		for i := 0; i < 5; i++ {
-			for j := 0; j < 5; j++ {
+		for i := range 5 {
+			for j := range 5 {
 				if j == 0 || hashCount > 1 {
 					ids = append(ids, i+j*10)
 				}
@@ -158,6 +163,11 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 				}
 			}
 		}
+		if strings.HasPrefix(fname, "/dev/ublk") {
+			if linuxCheckUblkSupported(ctx, call) == "" {
+				reason = ""
+			}
+		}
 	}
 	return reason
 }
@@ -172,6 +182,10 @@ func linuxSyzOpenProcfsSupported(ctx *checkContext, call *prog.Syscall) string {
 
 func linuxCheckUSBEmulation(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.rootCanOpen("/dev/raw-gadget")
+}
+
+func linuxCheckUblkSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.rootCanOpen("/dev/ublk-control")
 }
 
 const unsupportedArch = "unsupported arch"
@@ -193,7 +207,9 @@ func linuxSyzKvmSupported(ctx *checkContext, call *prog.Syscall) string {
 		if ctx.target.Arch == targets.ARM64 {
 			return ""
 		}
-	case "syz_kvm_setup_cpu$riscv64", "syz_kvm_assert_reg$riscv64":
+	case "syz_kvm_setup_cpu$riscv64", "syz_kvm_assert_reg$riscv64", "syz_kvm_setup_syzos_vm$riscv64",
+		"syz_kvm_add_vcpu$riscv64", "syz_kvm_assert_syzos_kvm_exit$riscv64",
+		"syz_kvm_assert_syzos_uexit$riscv64":
 		if ctx.target.Arch == targets.RiscV64 {
 			return ""
 		}

@@ -6,6 +6,7 @@ ALT: general protection fault in __se_sys_mremap
 ALT: general protection fault in sys_mremap
 TYPE: DoS
 FRAME: mremap
+PANICKED: Y
 
 [   89.184911][ T5827] Oops: general protection fault, probably for non-canonical address 0xdffffc0000000004: 0000 [#1] SMP KASAN PTI
 [   89.196849][ T5827] KASAN: null-ptr-deref in range [0x0000000000000020-0x0000000000000027]

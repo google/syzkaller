@@ -1,6 +1,7 @@
 TITLE: BUG: soft lockup in snd_rawmidi_write
 ALT: stall in snd_rawmidi_write
 TYPE: HANG
+PANICKED: Y
 
 [  352.504666] watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor2:10431]
 [  352.512610] Modules linked in:

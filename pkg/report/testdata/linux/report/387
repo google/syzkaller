@@ -1,5 +1,6 @@
 TITLE: WARNING in aiptek_open/usb_submit_urb
 TYPE: WARNING
+PANICKED: Y
 
 [  383.247320][ T5643] ------------[ cut here ]------------
 [  383.253280][ T5643] usb 2-1: BOGUS urb xfer, pipe 1 != type 3

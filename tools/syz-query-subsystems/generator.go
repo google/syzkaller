@@ -9,7 +9,6 @@ import (
 	"go/format"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 	"text/template"
 	"unicode"
@@ -63,7 +62,7 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commit *vc
 		}
 		// Some of the records are mostly empty.
 		if len(entry.Maintainers) > 0 {
-			sort.Strings(entry.Maintainers)
+			slices.Sort(entry.Maintainers)
 			subsystem.Maintainers = serializer.WriteString(entry.Maintainers)
 		}
 		if len(entry.Syscalls) > 0 {

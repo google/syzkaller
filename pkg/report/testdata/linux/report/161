@@ -1,5 +1,6 @@
 TITLE: WARNING: locking bug in destroy_unused_super
 TYPE: LOCKDEP
+PANICKED: Y
 
 [  151.124617] ------------[ cut here ]------------
 [  151.124619] DEBUG_LOCKS_WARN_ON(depth <= 0)

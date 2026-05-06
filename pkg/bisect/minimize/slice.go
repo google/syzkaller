@@ -50,7 +50,7 @@ func Slice[T any](config Config[T], slice []T) ([]T, error) {
 // must always remain (the "fixed" ones).
 func SliceWithFixed[T any](config Config[T], slice []T, fixed func(T) bool) ([]T, error) {
 	var freeIdx, fixedIdx []int
-	for i := 0; i < len(slice); i++ {
+	for i := range len(slice) {
 		if fixed(slice[i]) {
 			fixedIdx = append(fixedIdx, i)
 		} else {

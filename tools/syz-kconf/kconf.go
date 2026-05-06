@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -103,7 +103,7 @@ func main() {
 			}()
 		}
 		failed := false
-		for i := 0; i < batch; i++ {
+		for range batch {
 			if err := <-results; err != nil {
 				fmt.Printf("%v\n", err)
 				failed = true
@@ -213,7 +213,7 @@ func (ctx *Context) generate() error {
 		}
 	}
 	// Without sorting we can get random changes in the config after olddefconfig.
-	sort.Strings(missing)
+	slices.Sort(missing)
 	for _, name := range missing {
 		cf.Set(name, kconfig.No)
 	}

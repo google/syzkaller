@@ -291,7 +291,7 @@ func ThrottleRequest(ctx context.Context, requesterID string) (bool, error) {
 	}
 	key := fmt.Sprintf("requester-%s", hash.String([]byte(requesterID)))
 	const attempts = 5
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		var obj RequesterInfo
 		item, err := memcache.Gob.Get(ctx, key, &obj)
 		if err == memcache.ErrCacheMiss {

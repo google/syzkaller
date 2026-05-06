@@ -4,7 +4,7 @@
 package main
 
 import (
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -19,11 +19,11 @@ func TestCommitPoll(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	crash2 := testCrash(build1, 2)
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 
 	// No commits in commit poll.
 	commitPollResp, err := c.client.CommitPoll()
@@ -36,7 +36,7 @@ func TestCommitPoll(t *testing.T) {
 	c.expectEQ(len(commitPollResp.Commits), 0)
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep1.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1", "foo: fix2"},
@@ -44,11 +44,11 @@ func TestCommitPoll(t *testing.T) {
 	c.expectEQ(reply.OK, true)
 
 	// The commit should appear in commit poll.
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		commitPollResp, err = c.client.CommitPoll()
 		c.expectOK(err)
 		c.expectEQ(len(commitPollResp.Commits), 2)
-		sort.Strings(commitPollResp.Commits)
+		slices.Sort(commitPollResp.Commits)
 		c.expectEQ(commitPollResp.Commits[0], "foo: fix1")
 		c.expectEQ(commitPollResp.Commits[1], "foo: fix2")
 	}
@@ -64,7 +64,7 @@ func TestCommitPoll(t *testing.T) {
 	commitPollResp, err = c.client.CommitPoll()
 	c.expectOK(err)
 	c.expectEQ(len(commitPollResp.Commits), 2)
-	sort.Strings(commitPollResp.Commits)
+	slices.Sort(commitPollResp.Commits)
 	c.expectEQ(commitPollResp.Commits[0], "foo: fix1")
 	c.expectEQ(commitPollResp.Commits[1], "foo: fix2")
 

@@ -1,0 +1,31 @@
+TITLE: WARNING in io_ring_exit_work
+TYPE: WARNING
+FRAME: io_ring_exit_work
+
+[ 9877.699641][    C0] ------------[ cut here ]------------
+[ 9877.700279][    C0] WARNING: [time_after(jiffies, timeout)] io_uring/io_uring.c:3026 at io_ring_exit_work+0x44c/0xbc0, CPU#0: kworker/u8:0/10040
+[ 9877.701489][    C0] Modules linked in:
+[ 9877.703712][    C0] CPU: 0 UID: 0 PID: 10040 Comm: kworker/u8:0 Tainted: G             L      syzkaller #0 PREEMPT 
+[ 9877.704796][    C0] Tainted: [L]=SOFTLOCKUP
+[ 9877.705021][    C0] Hardware name: riscv-virtio,qemu (DT)
+[ 9877.705688][    C0] Workqueue: iou_exit io_ring_exit_work
+[ 9877.706821][    C0] epc : io_ring_exit_work+0x44c/0xbc0
+[ 9877.707647][    C0]  ra : io_ring_exit_work+0x44c/0xbc0
+[ 9877.708376][    C0] epc : ffffffff80014264 ra : ffffffff80014264 sp : ffff8f8000fd7860
+[ 9877.708801][    C0]  gp : ffffffff89f9adc0 tp : ffffaf8014334f80 t0 : ffff8f8000fd7650
+[ 9877.709198][    C0]  t1 : fffff1ef001faee4 t2 : ffffffff913696a0 s0 : ffff8f8000fd7a50
+[ 9877.709625][    C0]  s1 : ffffaf8037c146d0 a0 : 0000000000000007 a1 : 0000000000000000
+[ 9877.710010][    C0]  a2 : 0000000000000002 a3 : ffffffff80014264 a4 : 0000000000000000
+[ 9877.710365][    C0]  a5 : ffffaf8014335f80 a6 : 0000000000000003 a7 : ffff8f8000fd7727
+[ 9877.710772][    C0]  s2 : ffffaf8037c14000 s3 : ffff8f8000fd79e0 s4 : dfffffff00000000
+[ 9877.711138][    C0]  s5 : ffffffff88414240 s6 : fffffffffffffff5 s7 : ffffaf8037c14310
+[ 9877.711514][    C0]  s8 : 00000001000e5bae s9 : 0000000000000000 s10: 1ffff5f006f82800
+[ 9877.711901][    C0]  s11: ffffaf8037c14480 t3 : 0000000000000001 t4 : fffff1ef001faee4
+[ 9877.712276][    C0]  t5 : fffff1ef001faee5 t6 : 0000000000000002 ssp : 0000000000000000
+[ 9877.712641][    C0] status: 0000000200000120 badaddr: ffffffff80014264 cause: 0000000000000003
+[ 9877.713144][    C0] [<ffffffff80014264>] io_ring_exit_work+0x44c/0xbc0
+[ 9877.714119][    C0] [<ffffffff801c2668>] process_one_work+0x930/0x1e14
+[ 9877.714770][    C0] [<ffffffff801c408c>] worker_thread+0x540/0xcbc
+[ 9877.715386][    C0] [<ffffffff801e3054>] kthread+0x37c/0x778
+[ 9877.715927][    C0] [<ffffffff80069946>] ret_from_fork_kernel+0x2a/0xbbc
+[ 9877.716465][    C0] [<ffffffff863b21b2>] ret_from_fork_kernel_asm+0x16/0x18

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmailNotifUpstreamEmbargo(t *testing.T) {
@@ -137,10 +137,7 @@ The full list of 5 trees can be found at
 https://testapp.appspot.com/access-public-email/repos
 `, extBugID)
 
-	if diff := cmp.Diff(expectReply, notif.Body); diff != "" {
-		t.Errorf("wrong notification text: %s", diff)
-		fmt.Printf("received notification:\n%s\n", notif.Body)
-	}
+	assert.Equal(t, expectReply, notif.Body, "wrong notification text")
 	// No notifications for another 14 days, then another one.
 	c.advanceTime(13 * 24 * time.Hour)
 	c.expectNoEmail()
@@ -366,17 +363,17 @@ func TestExtNotifUpstreamEmbargo(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 	})
 	c.expectEQ(reply.OK, true)
-	c.client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 	c.advanceTime(20 * 24 * time.Hour)
-	notif := c.client.pollNotifs(1)[0]
+	notif := c.globalClient.pollNotifs(1)[0]
 	c.expectEQ(notif.ID, rep.ID)
 	c.expectEQ(notif.Type, dashapi.BugNotifUpstream)
 }
@@ -390,15 +387,15 @@ func TestExtNotifUpstreamOnHold(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 		OnHold: true,
 	})
 	c.expectEQ(reply.OK, true)
 	c.advanceTime(20 * 24 * time.Hour)
-	c.client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 }

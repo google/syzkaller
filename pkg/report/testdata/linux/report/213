@@ -1,6 +1,7 @@
 TITLE: KASAN: slab-out-of-bounds in rds_cong_queue_updates
 TYPE: KASAN-READ
 CORRUPTED: Y
+PANICKED: Y
 
 [  357.015823] ==================================================================
 [  357.023478] BUG: KASAN: slab-out-of-bounds in rds_cong_queue_updates+0x4d3/0x4f0

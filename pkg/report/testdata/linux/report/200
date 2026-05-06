@@ -2,6 +2,7 @@ TITLE: general protection fault in __alloc_skb
 ALT: bad-access in __alloc_skb
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [   73.452724] FAULT_INJECTION: forcing a failure.
 [   73.452724] name failslab, interval 1, probability 0, space 0, times 0

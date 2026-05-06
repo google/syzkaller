@@ -13,10 +13,14 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
+// maxArgCutoff is the threshold of arguments above which we skip the program in tests
+// to prevent quadratic-time slowdowns during validation or minimization.
+const maxArgCutoff = 10000
+
 func TestGeneration(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		target.Generate(rs, 20, ct)
 	}
 }
@@ -60,7 +64,7 @@ func TestDefaultCallArgs(t *testing.T) {
 func testSerialize(t *testing.T, verbose bool) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		var data []byte
 		mode := NonStrict
@@ -106,7 +110,7 @@ func TestVmaType(t *testing.T) {
 	meta := target.SyscallMap["test$vma0"]
 	r := newRand(target, rs)
 	pageSize := target.PageSize
-	for i := 0; i < iters; i++ {
+	for range iters {
 		s := newState(target, ct, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
@@ -201,7 +205,9 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 	if testing.Short() {
 		iters /= 10
 	}
-	for i := 0; i < iters; i++ {
+	// The test is de facto O(N^2) for the number of arguments in the program.
+	// Let's filter out particularly large programs to avoid timeouts.
+	for i := 0; i < iters; {
 		p := target.Generate(rs, 20, ct)
 		testCrossArchProg(t, p, crossTargets)
 		p, err := target.Deserialize(p.Serialize(), NonStrict)
@@ -211,6 +217,10 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 		testCrossArchProg(t, p, crossTargets)
 		p.Mutate(rs, 20, ct, nil, nil)
 		testCrossArchProg(t, p, crossTargets)
+		if p.countArgs() > maxArgCutoff {
+			continue
+		}
+		i++
 		p, _ = Minimize(p, -1, MinimizeCorpus, func(*Prog, int) bool {
 			return rs.Int63()%2 == 0
 		})
@@ -254,9 +264,9 @@ func TestSpecialStructs(t *testing.T) {
 					t.Fatal("can't find struct description")
 				}
 				g := &Gen{newRand(target, rs), newState(target, ct, nil)}
-				for i := 0; i < iters/len(target.SpecialTypes); i++ {
+				for range iters / len(target.SpecialTypes) {
 					var arg Arg
-					for i := 0; i < 2; i++ {
+					for range 2 {
 						arg, _ = gen(g, typ, DirInOut, arg)
 						if arg.Dir() != DirInOut {
 							t.Fatalf("got wrong arg dir %v", arg.Dir())
@@ -479,7 +489,7 @@ fallback$0()
 func TestSanitizeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
-		for i := 0; i < iters; i++ {
+		for range iters {
 			p := target.Generate(rs, 10, ct)
 			s0 := string(p.Serialize())
 			p.sanitizeFix()
@@ -489,4 +499,17 @@ func TestSanitizeRandom(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestPtrRecursion(t *testing.T) {
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	call := target.SyscallMap["test$recur_ptr"]
+	if call == nil {
+		t.Fatal("call test$recur_ptr not found")
+	}
+	enabled := map[*Syscall]bool{call: true}
+	ct := target.BuildChoiceTable(nil, enabled)
+	for range 100 {
+		target.Generate(rs, 1, ct)
+	}
 }

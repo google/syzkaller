@@ -75,7 +75,7 @@ func TestExtractRootCause(t *testing.T) {
 			}
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			got := extractRootCause(err, targetOs, test.src)
+			got := ExtractRootCause(err, targetOs, test.src)
 			if got != nil {
 				assert.Equal(t, expected, got)
 			}
@@ -157,8 +157,7 @@ INFO: 0 processes.
 FAILED: Build did NOT complete successfully (189 packages loaded)
 `,
 		`ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
-ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed
-FAILED: Build did NOT complete successfully (189 packages loaded)`,
+ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed`,
 		"",
 		"",
 	},
@@ -608,6 +607,15 @@ make[1]: *** [/syzkaller/managers/ci-upstream-rust-kasan-gce/kernel/Makefile:130
 make: *** [Makefile:248: __sub-make] Error 2
 `,
 		"error[E0599]: no method named `data` found for struct `core::pin::Pin<kbox::Box<T, Kmalloc>>` in the current scope",
+		"",
+		"",
+	},
+	{`
+  CC      kernel/trace/bpf_trace.o
+error: unknown warning option '-Wno-suggest-attribute=format'; did you mean '-Wno-property-attribute-mismatch'? [-Werror,-Wunknown-warning-option]
+make[4]: *** [scripts/Makefile.build:287: kernel/trace/bpf_trace.o] Error 1
+`,
+		`error: unknown warning option '-Wno-suggest-attribute=format'; did you mean '-Wno-property-attribute-mismatch'? [-Werror,-Wunknown-warning-option]`,
 		"",
 		"",
 	},

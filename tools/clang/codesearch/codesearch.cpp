@@ -1,6 +1,11 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Clang-based tool that indexes kernel source code to power
+// pkg/aflow/tool/codesearcher/codesearcher.go agentic tool.
+
+//go:build linux
+
 #include "json.h"
 #include "output.h"
 
@@ -8,8 +13,11 @@
 #include "clang/AST/Comment.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclarationName.h"
+#include "clang/AST/ParentMapContext.h"
+#include "clang/AST/RecordLayout.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/Version.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
@@ -82,6 +90,7 @@ public:
   bool VisitDeclRefExpr(const DeclRefExpr*);
   bool VisitTagType(const TagType*);
   bool VisitTypedefType(const TypedefType*);
+  bool VisitMemberExpr(const MemberExpr*);
 
 private:
   ASTContext& Context;
@@ -92,7 +101,9 @@ private:
   // If set, record references to struct types as uses.
   SourceLocation TypeRefingLocation;
 
+  const Stmt* GetParent(const Stmt* S) const;
   void EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind);
+  void EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind);
 
   struct NamedDeclEmitter {
     NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type, bool IsStatic);
@@ -152,6 +163,21 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
+
+  // Clang's SourceRange begin and end locations can resolve to different files
+  // when a declaration is produced by nested macro expansions (e.g. Linux kernel
+  // DEFINE_MUTEX, DEFINE_PER_CPU). This happens because getExpansionLoc()
+  // resolves each token independently to its outermost call site, and with
+  // multi-level macros the opening and closing tokens of the range may originate
+  // from different headers. EndLine < StartLine can occur when the end location
+  // is invalid or synthetic (e.g. compiler-generated declarations). In both
+  // cases, clamp to a single line so the database always records a valid,
+  // same-file range anchored at the macro invocation site.
+  if (EndLine < StartLine ||
+      SM.getFileID(SM.getExpansionLoc(Range.getBegin())) != SM.getFileID(SM.getExpansionLoc(Range.getEnd()))) {
+    EndLine = StartLine;
+  }
+
   Def = Definition{
       .Kind = Kind,
       .Name = Decl->getNameAsString(),
@@ -199,13 +225,22 @@ bool Indexer::TraverseCallExpr(CallExpr* CE) {
 }
 
 bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
-  if (const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl()))
+  if (const auto* Func = dyn_cast_if_present<FunctionDecl>(DeclRef->getDecl()))
     EmitReference(DeclRef->getBeginLoc(), DeclRef->getDecl(), EntityKindFunction,
                   InCallee ? RefKindCall : RefKindTakesAddr);
   return true;
 }
 
 bool Indexer::TraverseVarDecl(VarDecl* Decl) {
+  if (Decl->isFileVarDecl() && Decl->isThisDeclarationADefinition() == VarDecl::Definition) {
+    // Preserves whether this variable can be referenced from other translation
+    // units. A static global (internal linkage) is only referenceable within
+    // its own file, while a non-static global (external linkage) can be
+    // referenced from anywhere in the kernel.
+    const bool IsInternalLinkage = Decl->getStorageClass() == SC_Static;
+    NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(), IsInternalLinkage);
+  }
+
   ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
   return Base::TraverseVarDecl(Decl);
 }
@@ -242,16 +277,51 @@ bool Indexer::VisitTypedefType(const TypedefType* T) {
     return true;
   EmitReference(TypeRefingLocation, T->getDecl(), EntityKindTypedef, RefKindUses);
   // If it's a struct typedef, also note the struct use.
-  if (const auto* Tag = dyn_cast<TagType>(T->getCanonicalTypeInternal().getTypePtr()))
+  if (const auto* Tag = dyn_cast_if_present<TagType>(T->getCanonicalTypeInternal().getTypePtr()))
     VisitTagType(Tag);
   return true;
 }
 
+bool Indexer::VisitMemberExpr(const MemberExpr* E) {
+  auto* Record = E->getBase()->getType()->getAsRecordDecl();
+  if (auto* Ptr = dyn_cast_if_present<PointerType>(E->getBase()->getType()))
+    Record = Ptr->getPointeeType()->getAsRecordDecl();
+  if (!Record)
+    return true;
+  const std::string Field = Record->getNameAsString() + "::" + E->getMemberDecl()->getNameAsString();
+  const char* RefKind = RefKindRead;
+  const Stmt* P = GetParent(E);
+  if (auto* BO = dyn_cast_if_present<BinaryOperator>(P)) {
+    if (E == BO->getLHS() && (BO->isAssignmentOp() || BO->isCompoundAssignmentOp() || BO->isShiftAssignOp()))
+      RefKind = RefKindWrite;
+  }
+  if (auto* UO = dyn_cast_if_present<UnaryOperator>(P))
+    RefKind = RefKindTakesAddr;
+  EmitReference(E->getMemberLoc(), Field, EntityKindField, RefKind);
+  return true;
+}
+
+const Stmt* Indexer::GetParent(const Stmt* S) const {
+  for (;;) {
+    const auto& Parents = Context.getParents(*S);
+    if (!Parents.empty())
+      S = Parents[0].get<Stmt>();
+    else
+      S = nullptr;
+    // Presumably ParentExpr is never interesting.
+    if (S && isa<ParenExpr>(S))
+      continue;
+    return S;
+  }
+}
+
 void Indexer::EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind) {
-  if (!Current || !Named || Named->getNameAsString().empty())
-    return;
-  const std::string& Name = Named->getNameAsString();
-  if (Name.empty())
+  if (Named)
+    EmitReference(Loc, Named->getNameAsString(), EntityKind, RefKind);
+}
+
+void Indexer::EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind) {
+  if (!Current || Name.empty())
     return;
   Current->Refs.push_back(Reference{
       .Kind = RefKind,
@@ -265,6 +335,28 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
   if (!Decl->isThisDeclarationADefinition())
     return Base::TraverseRecordDecl(Decl);
   NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", false);
+  if (Decl->isCompleteDefinition()) {
+    const auto& Layout = Context.getASTRecordLayout(Decl);
+    for (const auto* Field : Decl->fields()) {
+      uint64_t OffsetInBits = Layout.getFieldOffset(Field->getFieldIndex());
+      uint64_t SizeInBits;
+      if (Field->isBitField()) {
+        SizeInBits = Field->getBitWidthValue(
+#if CLANG_VERSION_MAJOR == 19
+            Context
+#endif
+        );
+      } else {
+        TypeInfo Info = Context.getTypeInfo(Field->getType());
+        SizeInBits = Info.Width;
+      }
+      Emitter.Def.Fields.push_back(FieldInfo{
+          .Name = Field->getNameAsString(),
+          .OffsetBits = OffsetInBits,
+          .SizeBits = SizeInBits,
+      });
+    }
+  }
   return Base::TraverseRecordDecl(Decl);
 }
 
@@ -280,8 +372,8 @@ bool Indexer::TraverseTypedefDecl(TypedefDecl* Decl) {
   return Base::TraverseTypedefDecl(Decl);
 }
 
-int main(int argc, const char** argv) {
-  llvm::cl::OptionCategory Options("syz-indexer options");
+static int Main(int argc, const char** argv) {
+  llvm::cl::OptionCategory Options("codesearch options");
   auto OptionsParser = tooling::CommonOptionsParser::create(argc, argv, Options);
   if (!OptionsParser) {
     llvm::errs() << OptionsParser.takeError();
@@ -293,5 +385,12 @@ int main(int argc, const char** argv) {
   if (Tool.run(tooling::newFrontendActionFactory(&Instance, &Instance).get()))
     return 1;
   Output.print();
+  fflush(stdout);
   return 0;
+}
+
+__attribute__((constructor(1000))) static void ctor(int argc, const char** argv) {
+  const char* run = getenv("SYZ_RUN_CLANGTOOL");
+  if (run && !strcmp(run, "codesearch"))
+    exit(Main(argc, argv));
 }

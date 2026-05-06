@@ -1,6 +1,7 @@
 TITLE: general protection fault in ipv6_rcv
 ALT: bad-access in ipv6_rcv
 TYPE: DoS
+PANICKED: Y
 
 [  639.214515] kasan: CONFIG_KASAN_INLINE enabled
 [  639.219296] kasan: GPF could be caused by NULL-ptr deref or user memory access

@@ -158,3 +158,36 @@ func TestCacheObject(t *testing.T) {
 	require.Equal(t, x, X{42, "foo"})
 	c.Release(dir)
 }
+
+func TestCacheReadObject(t *testing.T) {
+	var mockedTime time.Time
+	timeNow := func() time.Time {
+		return mockedTime
+	}
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, timeNow)
+	require.NoError(t, err)
+
+	type X struct {
+		I int
+		S string
+	}
+
+	dir, x, err := cacheCreateObject(c, "foo", "1", func() (X, error) {
+		return X{42, "foo"}, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, x, X{42, "foo"})
+	c.Release(dir)
+
+	id := filepath.Base(dir)
+
+	mockedTime = mockedTime.Add(time.Minute)
+	x2, err := cacheReadObject[X](c, "foo", id, "object")
+	require.NoError(t, err)
+	require.Equal(t, x2, X{42, "foo"})
+
+	entry := c.entries[dir]
+	require.NotNil(t, entry)
+	require.Equal(t, entry.lastUsed, mockedTime)
+}

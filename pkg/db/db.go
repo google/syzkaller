@@ -15,8 +15,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"maps"
 	"os"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -169,6 +170,12 @@ const (
 	recMagic   = uint32(0xfee1bad)
 	curVersion = uint32(2)
 	seqDeleted = ^uint64(0)
+	// maxKeyLen guards against OOM when parsing a crafted corpus DB file.
+	// Real keys are SHA-256 hex strings (64 bytes); 64 KiB is a generous cap.
+	maxKeyLen = 64 << 10 // 65536
+	// maxValLen guards against decompression-bomb OOM in deserializeRecord.
+	// Corpus values are syscall-sequence programs; 16 MiB is a generous cap.
+	maxValLen = 16 << 20 // 16 MiB
 )
 
 func serializeHeader(w *bytes.Buffer, version uint64) {
@@ -280,6 +287,10 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	if err = binary.Read(r, binary.LittleEndian, &keyLen); err != nil {
 		return
 	}
+	if keyLen > maxKeyLen {
+		err = fmt.Errorf("record key length %d exceeds maximum %d", keyLen, maxKeyLen)
+		return
+	}
 	keyBuf := make([]byte, keyLen)
 	if _, err = io.ReadFull(r, keyBuf); err != nil {
 		return
@@ -297,10 +308,17 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	}
 	if valLen != 0 {
 		fr := flate.NewReader(&io.LimitedReader{R: r, N: int64(valLen)})
-		if val, err = io.ReadAll(fr); err != nil {
+		// +1 so len(val) > maxValLen detects output that exactly equals the limit.
+		lr := &io.LimitedReader{R: fr, N: int64(maxValLen) + 1}
+		val, err = io.ReadAll(lr)
+		fr.Close()
+		if err != nil {
 			return
 		}
-		fr.Close()
+		if len(val) > maxValLen {
+			err = fmt.Errorf("decompressed record value exceeds maximum %d bytes", maxValLen)
+			return
+		}
 	}
 	return
 }
@@ -332,11 +350,7 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database file: %w", err)
 	}
-	recordKeys := make([]string, 0, len(db.Records))
-	for key := range db.Records {
-		recordKeys = append(recordKeys, key)
-	}
-	sort.Strings(recordKeys)
+	recordKeys := slices.Sorted(maps.Keys(db.Records))
 	for _, key := range recordKeys {
 		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
 		if err != nil {

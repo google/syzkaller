@@ -32,13 +32,7 @@ $(warning $(RED)run command via tools/syz-env for best compatibility, see:$(RESE
 $(warning $(RED)https://github.com/google/syzkaller/blob/master/docs/contributing.md#using-syz-env$(RESET))
 endif
 
-GITREV=$(shell git rev-parse HEAD)
-ifeq ("$(shell git diff --shortstat)", "")
-	REV=$(GITREV)
-else
-	REV=$(GITREV)+
-endif
-GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
+include tools/version.mk
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
@@ -55,6 +49,7 @@ GOFLAGS := -ldflags="$(GLFLAGS) -X github.com/google/syzkaller/prog.GitRevision=
 ifneq ("$(GOTAGS)", "")
 	GOFLAGS += " -tags=$(GOTAGS)"
 endif
+
 
 GOHOSTFLAGS ?= $(GOFLAGS)
 GOTARGETFLAGS ?= $(GOFLAGS)
@@ -114,7 +109,7 @@ endif
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
-	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old codesearch
+	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
 
 all: host target
 host: manager repro mutate prog2c db upgrade
@@ -173,7 +168,11 @@ hub: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 agent: descriptions
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent
+	# syz-agent uses codesearch clang tool which requires cgo.
+	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent/agent
+
+lore-relay: descriptions
+	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-lore-relay github.com/google/syzkaller/syz-agent/lore-relay
 
 repro: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
@@ -229,8 +228,7 @@ kfuzztest:
 endif
 
 verifier: descriptions
-	# TODO: switch syz-verifier to use syz-executor.
-	# GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
 
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.
@@ -239,15 +237,6 @@ extract: bin/syz-extract
 
 bin/syz-extract:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-extract
-
-codesearch: bin/syz-codesearch
-
-bin/syz-codesearch: tools/clang/codesearch/* tools/clang/*
-	$(CXX) -Itools/clang $(shell llvm-config --cxxflags) -O2 -o $@ $< \
-		-lclangTooling -lclangFrontend -lclangSerialization -lclangDriver \
-		-lclangToolingCore -lclangParse -lclangSema -lclangAPINotes -lclangAnalysis \
-		-lclangASTMatchers -lclangRewrite -lclangEdit -lclangAST -lclangLex -lclangBasic -lclangSupport \
-		$(shell llvm-config --ldflags --libs --system-libs)
 
 # `generate` does *not* depend on any kernel sources, and generates everything
 # in one pass, for all arches. It can be run on a bare syzkaller checkout.
@@ -282,7 +271,7 @@ format_keep_sorted:
 
 format_cpp:
 	# Exclude auto-generated and canned files.
-	git ls-files *.h *.c *.cc *.cpp | grep -Ev \
+	git ls-files '*.h' '*.c' '*.cc' '*.cpp' | grep -Ev \
 "executor/_include/flatbuffers/\
 |pkg/flatrpc/flatrpc.h\
 |pkg/covermerger/testdata/integration/\
@@ -308,7 +297,7 @@ tidy: descriptions
 		executor/*.cc
 
 lint:
-	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
+	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
 
@@ -406,7 +395,8 @@ presubmit_gvisor: host target
 	./tools/gvisor-smoke-test.sh
 
 test: descriptions
-	$(GO) test -short -coverprofile=.coverage.txt ./...
+	# Clang tools require cgo.
+	CGO_ENABLED=1 $(GO) test -short -coverprofile=.coverage.txt ./...
 
 clean:
 	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h sys/gen sys/register.go

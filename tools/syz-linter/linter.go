@@ -72,24 +72,86 @@ func run(p *analysis.Pass) (any, error) {
 			case *ast.CallExpr:
 				pass.checkFlagDefinition(n)
 				pass.checkLogErrorFormat(n)
+				pass.checkSliceClone(n)
+				pass.checkSortUsage(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
 				pass.checkIfStmt(n)
+				pass.checkStringsCut(n)
 			case *ast.AssignStmt:
 				pass.checkAssignStmt(n)
 			case *ast.InterfaceType:
 				pass.checkInterfaceType(n)
+			case *ast.BlockStmt:
+				pass.checkWhileStyleForLoop(n)
+				pass.checkMapKeysExtractionAndSort(n)
+			case *ast.ForStmt:
+				pass.checkRangeOverIntegers(n)
 			}
 			return true
 		})
+		commentLines := make(map[int]bool)
 		for _, group := range file.Comments {
 			for _, comment := range group.List {
+				commentLines[pass.Fset.Position(comment.Pos()).Line] = true
 				pass.checkComment(comment, stmts, len(group.List) == 1)
 			}
 		}
+		pass.checkTopLevelDecls(file, commentLines)
 	}
 	return nil, nil
+}
+
+func (pass *Pass) checkTopLevelDecls(file *ast.File, commentLines map[int]bool) {
+	isRelevantDecl := func(d ast.Decl) token.Token {
+		switch x := d.(type) {
+		case *ast.FuncDecl:
+			return token.FUNC
+		case *ast.GenDecl:
+			return x.Tok
+		}
+		return token.ILLEGAL
+	}
+
+topLoop:
+	for i := range len(file.Decls) - 1 {
+		d1, d2 := file.Decls[i], file.Decls[i+1]
+		t1, t2 := isRelevantDecl(d1), isRelevantDecl(d2)
+		if t1 == token.ILLEGAL || t2 == token.ILLEGAL {
+			continue
+		}
+
+		d1Start := pass.Fset.Position(d1.Pos()).Line
+		d1End := pass.Fset.Position(d1.End()).Line
+
+		startPos := d2.Pos()
+		switch v := d2.(type) {
+		case *ast.FuncDecl:
+			if v.Doc != nil {
+				startPos = v.Doc.Pos()
+			}
+		case *ast.GenDecl:
+			if v.Doc != nil {
+				startPos = v.Doc.Pos()
+			}
+		}
+		d2Start := pass.Fset.Position(startPos).Line
+		d2End := pass.Fset.Position(d2.End()).Line
+
+		exactlyOne := d2Start-d1End == 2
+		canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1 && t1 == t2
+		if exactlyOne || canBeGrouped {
+			continue
+		}
+		// Ensure the lines in between are not stand-alone comments.
+		for line := d1End + 1; line < d2Start; line++ {
+			if commentLines[line] {
+				continue topLoop
+			}
+		}
+		pass.report(d2, "Keep one empty line between top-level declarations")
+	}
 }
 
 type Pass analysis.Pass
@@ -295,6 +357,20 @@ func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
 	}
 }
 
+// checkSliceClone warns about manual slice cloning using append([]T{}, slice...)
+// and suggests using slices.Clone instead.
+func (pass *Pass) checkSliceClone(n *ast.CallExpr) {
+	fn, ok := n.Fun.(*ast.Ident)
+	if !ok || fn.Name != "append" || len(n.Args) != 2 || n.Ellipsis == token.NoPos {
+		return
+	}
+	arg0, ok := n.Args[0].(*ast.CompositeLit)
+	if !ok || len(arg0.Elts) != 0 {
+		return
+	}
+	pass.report(n, "Use slices.Clone instead of append")
+}
+
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	arg, newLine, sure := pass.logFormatArg(n)
@@ -451,4 +527,278 @@ func (pass *Pass) checkInterfaceType(n *ast.InterfaceType) {
 	if len(n.Methods.List) == 0 {
 		pass.report(n, "Use any instead of interface{}")
 	}
+}
+
+// checkSortUsage flags usages of sort.Strings and sort.Slice that can be replaced with slices package.
+func (pass *Pass) checkSortUsage(n *ast.CallExpr) {
+	// Check if the function call is a selector expression (e.g., package.Function).
+	sel, ok := n.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return
+	}
+	// Check if the package name is "sort".
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name != "sort" {
+		return
+	}
+	switch sel.Sel.Name {
+	case "Strings":
+		// Suggest slices.Sort for sort.Strings.
+		pass.report(n, "Use slices.Sort instead of sort.Strings")
+	case "Slice":
+		// For sort.Slice, we expect at least 2 arguments: the slice and the less function.
+		if len(n.Args) < 2 {
+			return
+		}
+		// Check if the second argument is a function literal (anonymous function).
+		fn, ok := n.Args[1].(*ast.FuncLit)
+		if !ok {
+			return
+		}
+		// We only look for simple one-line functions.
+		if len(fn.Body.List) != 1 {
+			return
+		}
+		// Check if the single statement is a return statement.
+		ret, ok := fn.Body.List[0].(*ast.ReturnStmt)
+		if !ok || len(ret.Results) != 1 {
+			return
+		}
+		// Check if the return value is a binary expression (e.g., a < b or a > b).
+		bin, ok := ret.Results[0].(*ast.BinaryExpr)
+		if !ok || (bin.Op != token.LSS && bin.Op != token.GTR) {
+			return // We only look for '<' or '>' operators for simplicity.
+		}
+
+		// Suggest alternatives for any simple one-line predicate using '<'.
+		pass.report(n, "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate")
+	}
+}
+
+// checkRangeOverIntegers warns about traditional for loops that can be replaced with range over integers.
+func (pass *Pass) checkRangeOverIntegers(n *ast.ForStmt) {
+	if n.Init == nil || n.Cond == nil || n.Post == nil {
+		return
+	}
+
+	// Check Init: i := 0 or i = 0
+	assign, ok := n.Init.(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return
+	}
+	ident, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return
+	}
+	if !pass.isIntZeroLiteral(assign.Rhs[0]) {
+		return
+	}
+
+	// Check Cond: i < N
+	bin, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || bin.Op != token.LSS {
+		return
+	}
+	condIdent, ok := bin.X.(*ast.Ident)
+	if !ok || condIdent.Name != ident.Name {
+		return
+	}
+
+	// Check Post: i++
+	inc, ok := n.Post.(*ast.IncDecStmt)
+	if !ok || inc.Tok != token.INC {
+		return
+	}
+	postIdent, ok := inc.X.(*ast.Ident)
+	if !ok || postIdent.Name != ident.Name {
+		return
+	}
+
+	pass.report(n, "Use range over integer instead of traditional for loop")
+}
+
+// checkWhileStyleForLoop warns about while-style loops with external counter initialization
+// that can be replaced with a traditional for loop header to limit scope.
+func (pass *Pass) checkWhileStyleForLoop(n *ast.BlockStmt) {
+	for i := range len(n.List) - 1 {
+		assign, ok := n.List[i].(*ast.AssignStmt)
+		if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+			continue
+		}
+		ident, ok := assign.Lhs[0].(*ast.Ident)
+		if !ok || !pass.isIntZeroLiteral(assign.Rhs[0]) {
+			continue
+		}
+		forStmt, ok := n.List[i+1].(*ast.ForStmt)
+		if !ok || forStmt.Init != nil || forStmt.Post != nil || forStmt.Cond == nil {
+			continue
+		}
+		bin, ok := forStmt.Cond.(*ast.BinaryExpr)
+		if !ok || bin.Op != token.LSS {
+			continue
+		}
+		condIdent, ok := bin.X.(*ast.Ident)
+		if !ok || condIdent.Name != ident.Name {
+			continue
+		}
+		pass.report(forStmt, "Consider using for %v := 0; %v < ...; { to scope the loop variable", ident.Name, ident.Name)
+	}
+}
+
+// checkMapKeysExtractionAndSort warns about manual loops extracting map keys followed by sort.
+func (pass *Pass) checkMapKeysExtractionAndSort(n *ast.BlockStmt) {
+	for i := range len(n.List) - 1 {
+		rangeStmt, ok := n.List[i].(*ast.RangeStmt)
+		if !ok {
+			continue
+		}
+		sliceIdent, ok := pass.isMapKeysExtraction(rangeStmt)
+		if !ok {
+			continue
+		}
+		nextStmt := n.List[i+1]
+		if pass.isSortCall(nextStmt, sliceIdent) {
+			pass.report(rangeStmt, "Use maps.Keys and slices.Sort instead of a manual loop")
+		}
+	}
+}
+
+func (pass *Pass) isMapKeysExtraction(n *ast.RangeStmt) (*ast.Ident, bool) {
+	if n.Value != nil || len(n.Body.List) != 1 {
+		return nil, false
+	}
+	assign, ok := n.Body.List[0].(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return nil, false
+	}
+	call, ok := assign.Rhs[0].(*ast.CallExpr)
+	if !ok || len(call.Args) != 2 {
+		return nil, false
+	}
+	fn, ok := call.Fun.(*ast.Ident)
+	if !ok || fn.Name != "append" {
+		return nil, false
+	}
+	keyIdent, ok := n.Key.(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	argIdent, ok := call.Args[1].(*ast.Ident)
+	if !ok || argIdent.Name != keyIdent.Name {
+		return nil, false
+	}
+	lhsIdent, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	appendArgIdent, ok := call.Args[0].(*ast.Ident)
+	if !ok || appendArgIdent.Name != lhsIdent.Name {
+		return nil, false
+	}
+	if typ := pass.TypesInfo.Types[n.X].Type; typ != nil {
+		if _, isMap := typ.Underlying().(*types.Map); !isMap {
+			return nil, false
+		}
+	}
+	return lhsIdent, true
+}
+
+func (pass *Pass) isSortCall(n ast.Stmt, sliceIdent *ast.Ident) bool {
+	exprStmt, ok := n.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	argIdent, ok := call.Args[0].(*ast.Ident)
+	if !ok || argIdent.Name != sliceIdent.Name {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	xIdent, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if xIdent.Name == "slices" && sel.Sel.Name == "Sort" {
+		return true
+	}
+	if xIdent.Name == "sort" && sel.Sel.Name == "Strings" {
+		return true
+	}
+	return false
+}
+
+// checkStringsCut warns about strings.Index usage that can be replaced with strings.Cut.
+func (pass *Pass) checkStringsCut(n *ast.IfStmt) {
+	if n.Init == nil {
+		return
+	}
+	assign, ok := n.Init.(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return
+	}
+	if !isStringsIndexCall(assign.Rhs[0]) {
+		return
+	}
+
+	cond, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || cond.Op != token.NEQ {
+		return
+	}
+
+	vIdent, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	isVar := func(e ast.Expr) bool {
+		id, ok := e.(*ast.Ident)
+		return ok && id.Name == vIdent.Name
+	}
+
+	match := (isMinusOne(cond.X) && isVar(cond.Y)) || (isMinusOne(cond.Y) && isVar(cond.X))
+	if !match {
+		return
+	}
+
+	// Simple heuristic: just check if the body contains any slice expression.
+	usesSlicing := false
+	ast.Inspect(n.Body, func(node ast.Node) bool {
+		if _, ok := node.(*ast.SliceExpr); ok {
+			usesSlicing = true
+			return false
+		}
+		return true
+	})
+
+	if usesSlicing {
+		pass.report(n, "Use strings.Cut instead of strings.Index/IndexByte and manual slicing")
+	}
+}
+
+func isStringsIndexCall(n ast.Expr) bool {
+	call, ok := n.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	return ok && ident.Name == "strings" && (sel.Sel.Name == "Index" || sel.Sel.Name == "IndexByte")
+}
+
+func isMinusOne(e ast.Expr) bool {
+	unary, ok := e.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.SUB {
+		return false
+	}
+	lit, ok := unary.X.(*ast.BasicLit)
+	return ok && lit.Kind == token.INT && lit.Value == "1"
 }

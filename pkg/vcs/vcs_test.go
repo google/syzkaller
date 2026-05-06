@@ -4,11 +4,52 @@
 package vcs
 
 import (
+	"fmt"
 	"net/mail"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
+
+func TestPatch(t *testing.T) {
+	for _, repo := range []bool{false, true} {
+		t.Run(fmt.Sprintf("repo=%v", repo), func(t *testing.T) {
+			dir := t.TempDir()
+			if repo {
+				MakeTestRepo(t, dir)
+			}
+			file := filepath.Join(dir, "file.txt")
+			err := os.WriteFile(file, []byte("line1\nline2\n"), 0644)
+			require.NoError(t, err)
+
+			patch := []byte("--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,3 @@\n line1\n+injected\n line2\n")
+			err = Patch(dir, patch)
+			require.NoError(t, err)
+
+			content, err := os.ReadFile(file)
+			require.NoError(t, err)
+			require.Equal(t, "line1\ninjected\nline2\n", string(content))
+
+			err = Patch(dir, patch)
+			require.ErrorContains(t, err, "patch is already applied")
+		})
+	}
+}
+
+func TestPatchForbidden(t *testing.T) {
+	dir := t.TempDir()
+	MakeTestRepo(t, dir)
+
+	// Modification of .git/ directory must be blocked.
+	patch1 := []byte("--- /dev/null\n+++ b/.git/file.txt\n@@ -0,0 +1 @@\n+injected\n")
+	require.Error(t, Patch(dir, patch1))
+
+	// Path traversal must be blocked.
+	patch2 := []byte("--- a/../file.txt\n+++ b/../file.txt\n@@ -0,0 +1 @@\n+injected\n")
+	require.Error(t, Patch(dir, patch2))
+}
 
 func TestCanonicalizeCommit(t *testing.T) {
 	tests := map[string]string{
@@ -264,13 +305,7 @@ func TestParse(t *testing.T) {
 		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
 		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}}
 
-	if diff := cmp.Diff(ParseMaintainersLinux(test1), maintainers1); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(ParseMaintainersLinux(test2), maintainers2); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(ParseMaintainersLinux([]byte("")), Recipients(nil)); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, maintainers1, ParseMaintainersLinux(test1))
+	require.Equal(t, maintainers2, ParseMaintainersLinux(test2))
+	require.Equal(t, Recipients(nil), ParseMaintainersLinux([]byte("")))
 }

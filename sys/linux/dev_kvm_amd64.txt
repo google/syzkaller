@@ -102,6 +102,13 @@ syzos_api_nested_load_code {
 	insns	text[x86_64]
 } [packed]
 
+syzos_api_nested_load_syzos {
+	vm_id		syzos_api_vm_id
+	unused_pages	int64
+# Can't limit the array size, because it leads to a recursive definition that cannot be compiled.
+	program		array[syzos_api_call$x86]
+} [packed]
+
 # VMCS Component Encoding is a 32-bit value, but only bits 0:15 are used.
 # Certain bit combinations are invalid, because the number encodes additional
 # parameters like access type and width.
@@ -184,6 +191,7 @@ syzos_api_call$x86 [
 	nested_load_code		syzos_api$x86[302, syzos_api_nested_load_code]
 	nested_vmlaunch			syzos_api$x86[303, syzos_api_vm_id]
 	nested_vmresume			syzos_api$x86[304, syzos_api_vm_id]
+	nested_load_syzos		syzos_api$x86[310, syzos_api_nested_load_syzos]
 	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
@@ -530,7 +538,7 @@ kvm_tdx_capabilities {
 }
 
 # From arch/x86/include/asm/shared/tdx.h.
-tdx_attrs = 0, TDX_ATTR_DEBUG, TDX_ATTR_HGS_PLUS_PROF, TDX_ATTR_PERF_PROF, TDX_ATTR_PMT_PROF, TDX_ATTR_ICSSD, TDX_ATTR_LASS, TDX_ATTR_SEPT_VE_DISABLE, TDX_ATTR_MIGRTABLE, TDX_ATTR_PKS, TDX_ATTR_KL, TDX_ATTR_TPA, TDX_ATTR_PERFMON
+tdx_attrs = 0, TDX_TD_ATTR_DEBUG, TDX_TD_ATTR_HGS_PLUS_PROF, TDX_TD_ATTR_PERF_PROF, TDX_TD_ATTR_PMT_PROF, TDX_TD_ATTR_ICSSD, TDX_TD_ATTR_LASS, TDX_TD_ATTR_SEPT_VE_DISABLE, TDX_TD_ATTR_MIGRATABLE, TDX_TD_ATTR_PKS, TDX_TD_ATTR_KL, TDX_TD_ATTR_TPA, TDX_TD_ATTR_PERFMON
 
 # From Intel Trust Domain Extensions Module Base Architecture Specification,
 # Table 11.9: Extended Features Enumeration and Execution Control.

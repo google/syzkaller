@@ -6,6 +6,8 @@ package gcpsecret
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"cloud.google.com/go/compute/metadata"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -58,4 +60,27 @@ func ProjectName(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return projectID, nil
+}
+
+// Resolve returns the resolved value of the string, handling "env:" and "gcp-secret:" prefixes.
+func Resolve(ctx context.Context, val string) (string, error) {
+	const gcpSecretPrefix = "gcp-secret:"
+	const envPrefix = "env:"
+
+	if strings.HasPrefix(val, envPrefix) {
+		return os.Getenv(val[len(envPrefix):]), nil
+	}
+	if strings.HasPrefix(val, gcpSecretPrefix) {
+		secretName := val[len(gcpSecretPrefix):]
+		proj, err := ProjectName(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to get GCP project: %w", err)
+		}
+		data, err := LatestGcpSecret(ctx, proj, secretName)
+		if err != nil {
+			return "", fmt.Errorf("failed to get GCP secret %s: %w", secretName, err)
+		}
+		return string(data), nil
+	}
+	return val, nil
 }

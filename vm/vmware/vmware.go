@@ -159,15 +159,15 @@ func (inst *instance) Close() error {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join("/", base)
-
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22, false),
-		hostSrc, fmt.Sprintf("%v@%v:%v", inst.sshuser, inst.ipAddr, vmDst))
-
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-
-	_, err := osutil.RunCmd(3*time.Minute, "", "scp", args...)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:        inst.debug,
+		Key:          inst.sshkey,
+		Port:         22,
+		SystemSSHCfg: false,
+		User:         inst.sshuser,
+		Addr:         inst.ipAddr,
+		Timeout:      3 * time.Minute,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -175,7 +175,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	vmxDir := filepath.Dir(inst.vmx)
 	serial := filepath.Join(vmxDir, "serial")
 	dmesg, err := net.Dial("unix", serial)
@@ -186,6 +186,13 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		dmesg.Close()
+		return nil, nil, err
+	}
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		dmesg.Close()
+		rpipe.Close()
+		wpipe.Close()
 		return nil, nil, err
 	}
 
@@ -201,22 +208,26 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		dmesg.Close()
 		rpipe.Close()
 		wpipe.Close()
+		rpipeErr.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 
 	var tee io.Writer
 	if inst.debug {
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("dmesg", dmesg)
-	merger.Add("ssh", rpipe)
+	merger.Add("dmesg", vmimpl.OutputConsole, dmesg)
+	merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,

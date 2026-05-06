@@ -2,6 +2,7 @@ TITLE: BUG: unable to handle kernel paging request in corrupted
 ALT: bad-access in corrupted
 TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
+PANICKED: Y
 
 Unable to handle kernel paging request at virtual address 80b0f484
 pgd = e78b78b5

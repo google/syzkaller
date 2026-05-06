@@ -4,11 +4,12 @@
 package bisect
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
 	"os"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -683,7 +684,7 @@ func (env *env) test() (*testResult, error) {
 
 	testStart := time.Now()
 
-	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
+	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C, false)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		problem := fmt.Sprintf("repro testing failure: %v", err)
@@ -975,8 +976,8 @@ func mostFrequentReports(reports []*report.Report) (*report.Report, []crash.Type
 		}
 		perTypeMap[rep.Type].count++
 	}
-	sort.Slice(perType, func(i, j int) bool {
-		return perType[i].count > perType[j].count
+	slices.SortFunc(perType, func(a, b *info) int {
+		return cmp.Compare(b.count, a.count)
 	})
 	// Then pick those that are representative enough.
 	var bestTypes []crash.Type
@@ -1061,7 +1062,7 @@ func (env *env) logf(msg string, args ...any) {
 	if false {
 		_ = fmt.Sprintf(msg, args...) // enable printf checker
 	}
-	env.cfg.Trace.Log(msg, args...)
+	env.cfg.Trace.Logf(msg, args...)
 }
 
 // pickReleaseTags() picks a subset of revisions to test.
@@ -1091,7 +1092,7 @@ func pickReleaseTags(all []string) []string {
 	if len(subReleases) > 5 {
 		ret = append(ret, subReleases[len(subReleases)/2])
 	}
-	for i := 0; i < len(releases); i++ {
+	for i := range len(releases) {
 		// Gradually increase step.
 		step := 1
 		if i >= 3 {

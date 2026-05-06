@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -180,9 +180,7 @@ func generateFlagsType(comp *compiler, base prog.IntTypeCommon, name string) pro
 			Val:           0,
 		}
 	}
-	sort.Slice(values, func(i, j int) bool {
-		return values[i] < values[j]
-	})
+	slices.Sort(values)
 	return &prog.FlagsType{
 		IntTypeCommon: base,
 		Vals:          values,
