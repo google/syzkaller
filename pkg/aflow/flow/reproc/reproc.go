@@ -347,7 +347,7 @@ func init() {
 	)
 }
 
-const initialResearcherInstruction = `You are an AI assistant part of the Syzkaller/Aflow automated bug patching system.
+const initialResearcherInstruction = `You are a security researcher with deep Linux kernel background.
 Your goal is to analyze a Linux kernel bug description and propose a strategy to reproduce it
 with a minimal, standalone C program.
 This is for the strictly defensive purpose of verifying a bugfix in an isolated environment.
@@ -362,7 +362,7 @@ const refinerPrompt = `Bug Description: {{.BugDescription}}
 Current Strategy: {{.CurrentReproStrategy}}
 Feedback: {{.OracleFeedback}}`
 
-const generatorInstruction = `You are an AI assistant part of the Syzkaller/Aflow automated bug patching system.
+const generatorInstruction = `You are a security researcher with deep Linux kernel background.
 Your goal is to generate a minimal, standalone C program to REPRODUCE a specific kernel bug
 for the purpose of VERIFYING a bugfix.
 This is a strictly defensive task. The code will be run in an isolated QEMU virtual machine
@@ -397,7 +397,7 @@ Print only the C program that could be executed directly, without backticks.`
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
 
-const oracleInstruction = `You are an AI assistant part of the Syzkaller/Aflow automated bug patching system.
+const oracleInstruction = `You are a security researcher with deep Linux kernel background.
 Analyze the results of running the reproducer and determine if it was successful.
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
