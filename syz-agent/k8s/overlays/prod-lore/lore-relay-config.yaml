@@ -4,7 +4,7 @@
 dashboard_addr: "https://syzkaller.appspot.com"
 dashboard_client: "lore-relay"
 dashboard_key: "gcp-secret:lore-relay-dashboard-key"
-lore_url: "https://lore.kernel.org/all/"
+lore_url: "https://lore.kernel.org/syzbot/0"
 own_emails:
   - "syzbot@syzkaller.appspotmail.com"
   - "syzbot@kernel.org"
