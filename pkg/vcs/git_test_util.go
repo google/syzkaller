@@ -63,7 +63,7 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
 	file := filepath.Join(repo.Dir, "file")
 	if err := osutil.WriteFile(file, []byte(id)); err != nil {
-		repo.t.Fatal(err)
+		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 	repo.Git("add", file)
 	repo.Git("commit", "-m", id)
@@ -72,7 +72,7 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 	}
 	com, err := repo.repo.Commit(HEAD)
 	if err != nil {
-		repo.t.Fatal(err)
+		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 	repo.Commits[branch][change] = com
 }
@@ -117,7 +117,7 @@ func (repo *TestRepo) CommitChangeset(description string, actions ...FileContent
 	repo.Git("commit", "--allow-empty", "-m", description)
 	com, err := repo.repo.Commit(HEAD)
 	if err != nil {
-		repo.t.Fatal(err)
+		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 	repo.t.Logf("%q's hash is %s", description, com.Hash)
 	return com
