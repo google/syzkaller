@@ -10,7 +10,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-RUN make lore-relay
+RUN CGO_ENABLED=0 make lore-relay
 
 FROM alpine:latest
 
