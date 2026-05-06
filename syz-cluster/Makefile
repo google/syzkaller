@@ -12,6 +12,8 @@ include ../tools/version.mk
 
 IMAGES := controller web-dashboard reporter-server series-tracker email-reporter triage-action build-action boot-action fuzz-action retest-action db-mgmt send-test-email
 
+KUSTOMIZE ?= kubectl kustomize
+
 .PHONY: all
 all: $(addprefix bin/, $(IMAGES))
 
@@ -76,14 +78,14 @@ restart-spanner: build-db-mgmt-image
 # - k8s-config-argo installs Argo workflows.
 # - k8s-config-argo-wait awaits untill all CRDs are ready.
 k8s-config-argo:
-	@kubectl kustomize ./overlays/common/argo/
+	@$(KUSTOMIZE) ./overlays/common/argo/
 
 k8s-config-argo-wait:
 	@kubectl wait --for condition=established --timeout=60s crd/cronworkflows.argoproj.io
 	@kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
 
 k8s-config-local-infra:
-	@kubectl kustomize ./overlays/local/common/ | sed $(SED_EXPRESSIONS) | kubectl apply -f -
+	@$(KUSTOMIZE) ./overlays/local/common/ | sed $(SED_EXPRESSIONS) | kubectl apply -f -
 	@$(MAKE) k8s-config-argo-wait
 	@$(MAKE) spanner-emulator-wait
 
@@ -106,16 +108,16 @@ SED_EXPRESSIONS := \
     -e "s~\$${BLOB_STORAGE_GCS_BUCKET}~$(call escape_sed_replacement,${BLOB_STORAGE_GCS_BUCKET})~g" \
 
 k8s-config-dev:
-	@kubectl kustomize ./overlays/local/minikube/ | sed $(SED_EXPRESSIONS)
+	@$(KUSTOMIZE) ./overlays/local/minikube/ | sed $(SED_EXPRESSIONS)
 
 k8s-config-test:
-	@kubectl kustomize ./overlays/local/test/ | sed $(SED_EXPRESSIONS)
+	@$(KUSTOMIZE) ./overlays/local/test/ | sed $(SED_EXPRESSIONS)
 
 k8s-config-gke-prod: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
-	@kubectl kustomize ./overlays/gke/prod/ | sed $(SED_EXPRESSIONS)
+	@$(KUSTOMIZE) ./overlays/gke/prod/ | sed $(SED_EXPRESSIONS)
 
 k8s-config-gke-staging: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
-	@kubectl kustomize ./overlays/gke/staging/ | sed $(SED_EXPRESSIONS)
+	@$(KUSTOMIZE) ./overlays/gke/staging/ | sed $(SED_EXPRESSIONS)
 
 migrate-job.yaml:
 	@cat tools/db-mgmt/migrate-job.yaml | sed $(SED_EXPRESSIONS)
