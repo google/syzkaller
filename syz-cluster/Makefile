@@ -5,6 +5,7 @@ IMAGE_TAG ?= latest
 IMAGE_PREFIX ?= local/
 SMOKE_TEST ?= 0
 SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
 GO_FLAGS ?= $(shell make -s -C .. go-flags 2>/dev/null)
 
 include ../tools/version.mk
