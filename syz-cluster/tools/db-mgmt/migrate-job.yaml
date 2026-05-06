@@ -5,6 +5,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   generateName: db-migrate-job-
+  annotations:
+    ignore-check.kube-linter.io/non-existent-service-account: "Service account is defined in Terraform"
 spec:
   ttlSecondsAfterFinished: 86400
   backoffLimit: 0

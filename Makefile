@@ -316,7 +316,7 @@ presubmit:
 
 presubmit_aux:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_html check_shebang tidy
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_html check_shebang check_k8s tidy
 	$(GO) mod tidy
 
 presubmit_build: descriptions
@@ -455,6 +455,9 @@ check_diff:
 
 check_shebang:
 	./tools/check-shebang.sh
+
+check_k8s:
+	./tools/check-k8s.sh
 
 act:
 	curl https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
