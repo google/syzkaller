@@ -1,6 +1,9 @@
 # Copyright 2026 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
 include ../tools/version.mk
 
 IMAGE_NAME ?= local/syz-agent
