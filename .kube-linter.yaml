@@ -1,0 +1,19 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# kube-linter configuration for syzkaller.
+# We exclude some security checks that are not applicable to fuzzer infrastructure
+# or are intentionally ignored for development/testing environments.
+
+checks:
+  doNotAutoAddDefaults: false
+  exclude:
+    - "latest-tag"                 # We use :latest for many local/dev images
+    - "no-read-only-root-fs"       # Some components need writable root fs
+    - "run-as-non-root"            # syz-agent and others often run as root
+    - "unset-cpu-requirements"     # Resource limits are not strictly enforced in all envs
+    - "unset-memory-requirements"  # Same for memory
+    - "privilege-escalation-container" # syz-agent needs this for nested VMs
+    - "privileged-container"       # Same as above
+    - "no-anti-affinity"           # Not strictly required for all syzkaller pods
+    - "dangling-service"           # Some services might be defined without deployments in some overlays
