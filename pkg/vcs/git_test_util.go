@@ -56,6 +56,10 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 	repo.Git("init")
 	repo.Git("config", "--add", "user.email", userEmail)
 	repo.Git("config", "--add", "user.name", userName)
+	repo.Git("config", "--add", "gc.auto", "0")
+	repo.Git("config", "--add", "gc.autoDetach", "false")
+	repo.Git("config", "--add", "maintenance.auto", "false")
+	repo.Git("config", "--add", "maintenance.autoDetach", "false")
 	return repo
 }
 
