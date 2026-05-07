@@ -163,8 +163,7 @@ func (r *Relay) PollDashboardOnce(ctx context.Context) error {
 		InReplyTo: inReplyTo,
 		Body:      []byte(body),
 	}
-	r.cfg.Tracer.Logf("sending email: %s", subject)
-	msgID, err := r.emailSender.Send(ctx, email)
+	msgID, err := r.sendEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -241,6 +240,22 @@ func (r *Relay) replyError(ctx context.Context, polled *lore.PolledEmail, errorM
 		InReplyTo: polled.Email.MessageID,
 		Body:      []byte(email.FormReply(polled.Email.Email, fmt.Sprintf("Command failed:\n\n%s\n", errorMsg))),
 	}
-	_, err := r.emailSender.Send(ctx, email)
+	_, err := r.sendEmail(ctx, email)
 	return err
+}
+
+func (r *Relay) sendEmail(ctx context.Context, msg *sender.Email) (string, error) {
+	msgID, err := r.emailSender.Send(ctx, msg)
+	format := func(list []string) any {
+		if len(list) <= 2 {
+			return list
+		}
+		return fmt.Sprintf("[%v, %v, (+%d more)]", list[0], list[1], len(list)-2)
+	}
+	r.cfg.Tracer.Logf("sent email: Subject: %q, To: %v, Cc: %v, In-Reply-To: %q, Message-ID: %q, err: %v",
+		msg.Subject, format(msg.To), format(msg.Cc), msg.InReplyTo, msgID, err)
+	if err != nil {
+		return "", fmt.Errorf("failed to send email: %w", err)
+	}
+	return msgID, nil
 }
