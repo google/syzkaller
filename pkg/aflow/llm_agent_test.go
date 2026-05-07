@@ -206,6 +206,93 @@ func TestSummaryWindow(t *testing.T) {
 	)
 }
 
+func TestSummaryWindowMutualExclusion(t *testing.T) {
+	ctx := &Context{}
+	agent := &LLMAgent{
+		Name:           "mutually_exclusive",
+		SummaryWindow:  3,
+		CompressTokens: 100,
+	}
+	err := agent.execute(ctx)
+	assert.ErrorContains(t, err, "SummaryWindow and CompressTokens are mutually exclusive")
+}
+
+func TestTokenCompression(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	type toolResults struct {
+		ResFoo int `jsonschema:"foo"`
+	}
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Name:           "token_compression_agent",
+			Model:          "model",
+			Reply:          "Reply",
+			CompressTokens: 100,
+			TaskType:       FormalReasoningTask,
+			Instruction:    "Instructions",
+			Prompt:         "Initial Prompt",
+			Tools: []Tool{
+				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+					return toolResults{123}, nil
+				}, "logic ticker"),
+			},
+		},
+		[]any{
+			// 1. Initial request. Return a tool call and claim we exceeded the token threshold (150 > 100).
+			&genai.GenerateContentResponse{
+				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+					PromptTokenCount:     150,
+					CandidatesTokenCount: 10,
+				},
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{
+							{FunctionCall: &genai.FunctionCall{ID: "id1", Name: "tick"}},
+						},
+						Role: genai.RoleModel,
+					}}}},
+			// 2. The loop detects threshold exceeded and invokes compressContext (Flash model).
+			// We return the compressed summary.
+			&genai.GenerateContentResponse{
+				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+					PromptTokenCount:     150,
+					CandidatesTokenCount: 10,
+				},
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
+						Role:  genai.RoleModel,
+					}}}},
+			// 3. The main agent resumes with the truncated history. We finish the workflow.
+			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (*genai.GenerateContentResponse, error) {
+				// Assert that the history was correctly truncated!
+				assert.Equal(t, 2, len(req), "History should be truncated to just Anchor and Summary")
+
+				// Assert Anchor Message remains untouched.
+				assert.Equal(t, "Initial Prompt", req[0].Parts[0].Text)
+
+				// Assert Summary is correctly formatted.
+				assert.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
+					req[1].Parts[0].Text)
+				return &genai.GenerateContentResponse{
+					UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+						PromptTokenCount:     20, // tokens dropped after compression
+						CandidatesTokenCount: 10,
+					},
+					Candidates: []*genai.Candidate{{
+						Content: &genai.Content{
+							Parts: []*genai.Part{genai.NewPartFromText("Done")},
+							Role:  genai.RoleModel,
+						}}}}, nil
+			},
+		},
+		nil,
+	)
+}
+
 func TestSetResultsToolIsNotLast(t *testing.T) {
 	type flowOutputs struct {
 		Reply  string
