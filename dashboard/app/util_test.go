@@ -468,6 +468,16 @@ func (ctx *Ctx) POSTForm(url string, form url.Values) ([]byte, error) {
 	return w.Body.Bytes(), nil
 }
 
+// AuthPOSTForm sends HTTP POST form to the app with the specified authorization.
+func (ctx *Ctx) AuthPOSTForm(access AccessLevel, url string, form url.Values) ([]byte, error) {
+	w, err := ctx.httpRequest("POST", url, form.Encode(),
+		"application/x-www-form-urlencoded", access)
+	if err != nil {
+		return nil, err
+	}
+	return w.Body.Bytes(), nil
+}
+
 // ContentType returns the response Content-Type header value.
 func (ctx *Ctx) ContentType(url string) (string, error) {
 	w, err := ctx.httpRequest("HEAD", url, "", "", AccessAdmin)

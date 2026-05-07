@@ -133,14 +133,15 @@ type uiAIJobPage struct {
 	Header *uiHeader
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
-	Jobs           []*uiAIJob
-	Args           []*uiAIJobArg
-	CrashReport    template.HTML
-	TrajectoryHTML template.HTML
-	History        []*uiJobReviewHistory
-	CurrentStage   string
-	NextStage      string
-	Reportings     []*uiJobReporting
+	Jobs               []*uiAIJob
+	Args               []*uiAIJobArg
+	CrashReport        template.HTML
+	TrajectoryHTML     template.HTML
+	History            []*uiJobReviewHistory
+	CurrentStage       string
+	NextStage          string
+	CanPushToReporting bool
+	Reportings         []*uiJobReporting
 }
 
 type uiAIJobDetails struct {
@@ -352,22 +353,80 @@ func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *A
 }
 
 func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hdr *uiHeader) error {
+	if r.Method != http.MethodPost {
+		return nil
+	}
+
 	correct := r.FormValue("correct")
-	if correct == "" {
+	pushToReporting := r.FormValue("push_to_reporting") == "1"
+
+	if correct == "" && !pushToReporting {
 		return nil
 	}
 	if !hdr.AIActions {
 		return ErrAccess
 	}
 	if !job.Finished.Valid || job.Error != "" {
-		return fmt.Errorf("job is in wrong state to set correct status")
+		return fmt.Errorf("job is in wrong state to be modified")
 	}
 	user := currentUser(ctx)
 	if user == nil {
 		return ErrAccess
 	}
-	userEmail := user.Email
 
+	if pushToReporting {
+		return handleAIJobPagePushToReporting(ctx, job, user.Email)
+	}
+	return handleAIJobPageCorrectness(ctx, job, correct, user.Email)
+}
+
+func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmail string) error {
+	if err := checkJobUpstreamable(job); err != nil {
+		return err
+	}
+
+	reportings, err := aidb.LoadJobReportings(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	if len(reportings) > 0 {
+		return fmt.Errorf("job already has reportings")
+	}
+
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
+		return fmt.Errorf("no AI stages configured")
+	}
+
+	stageCfg, err := determineNextStage(ctx, nsCfg.AI, job, "")
+	if err != nil {
+		return err
+	}
+	if stageCfg == nil {
+		return fmt.Errorf("no valid next stage found")
+	}
+
+	args := aidb.UpstreamReportArgs{
+		Job: job,
+		Reporting: &aidb.JobReporting{
+			Stage:        stageCfg.Name,
+			Source:       stageCfg.ServingIntegration,
+			Version:      spanner.NullInt64{Int64: 1, Valid: true},
+			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+		},
+		NoParallel:    stageCfg.NoParallelReports,
+		CommandSource: SourceWebUI,
+		CommandExtID:  "",
+		User:          userEmail,
+		Reason:        "Manual push to reporting",
+	}
+	if err := aidb.UpstreamReportCommand(ctx, args); err != nil {
+		return fmt.Errorf("failed to upstream job: %w", err)
+	}
+	return nil
+}
+
+func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, userEmail string) error {
 	switch correct {
 	case aiCorrectnessCorrect:
 		currentReporting, _, err := getJobStageInfo(ctx, job)
@@ -466,17 +525,29 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+
+	canPushToReporting := false
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if len(uiReportings) == 0 && nsCfg.AI != nil && len(nsCfg.AI.Stages) > 0 {
+		if job.Type == ai.WorkflowPatching && job.Finished.Valid && job.Error == "" {
+			if checkJobUpstreamable(job) == nil {
+				canPushToReporting = true
+			}
+		}
+	}
+
 	page := &uiAIJobPage{
-		Header:         hdr,
-		Job:            uiJob,
-		Jobs:           []*uiAIJob{uiJob},
-		Args:           uiArgs,
-		CrashReport:    crashReport,
-		History:        uiHistory,
-		TrajectoryHTML: trajectoryHTML,
-		CurrentStage:   currentStageStr,
-		NextStage:      nextStageStr,
-		Reportings:     uiReportings,
+		Header:             hdr,
+		Job:                uiJob,
+		Jobs:               []*uiAIJob{uiJob},
+		Args:               uiArgs,
+		CrashReport:        crashReport,
+		History:            uiHistory,
+		TrajectoryHTML:     trajectoryHTML,
+		CurrentStage:       currentStageStr,
+		NextStage:          nextStageStr,
+		CanPushToReporting: canPushToReporting,
+		Reportings:         uiReportings,
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")

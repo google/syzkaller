@@ -63,14 +63,8 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
-	// Prevent upstreaming if the job didn't actually produce a patch (e.g. reply-only iteration).
-	if job.Results.Valid {
-		if res, ok := job.Results.Value.(map[string]any); ok {
-			diff, _ := res["PatchDiff"].(string)
-			if diff == "" && (job.Type == ai.WorkflowPatching || job.Type == ai.WorkflowPatchIteration) {
-				return &aidb.ErrCannotUpstream{Reason: "Cannot upstream a job that did not produce a patch."}
-			}
-		}
+	if err := checkJobUpstreamable(job); err != nil {
+		return err
 	}
 
 	nsCfg := getNsConfig(ctx, job.Namespace)
@@ -108,6 +102,19 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 		User:          req.Author,
 		Reason:        "",
 	})
+}
+
+func checkJobUpstreamable(job *aidb.Job) error {
+	// Prevent upstreaming if the job didn't actually produce a patch (e.g. reply-only iteration).
+	if job.Results.Valid {
+		if res, ok := job.Results.Value.(map[string]any); ok {
+			diff, _ := res["PatchDiff"].(string)
+			if diff == "" && (job.Type == ai.WorkflowPatching || job.Type == ai.WorkflowPatchIteration) {
+				return &aidb.ErrCannotUpstream{Reason: "Cannot upstream a job that did not produce a patch."}
+			}
+		}
+	}
+	return nil
 }
 
 func determineNextStage(ctx context.Context, cfg *AIConfig, job *aidb.Job,

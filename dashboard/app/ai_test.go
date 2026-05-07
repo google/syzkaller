@@ -368,12 +368,14 @@ func TestAIJobActions(t *testing.T) {
 		Results: map[string]any{"PatchDiff": "diff", "PatchDescription": "description"},
 	}))
 
-	jobAssessURL := fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect)
-	_, err = c.AuthGET(AccessPublic, jobAssessURL)
+	jobAssessURL := fmt.Sprintf("/ai_job?id=%v", resp.ID)
+	values := url.Values{}
+	values.Set("correct", aiCorrectnessCorrect)
+	_, err = c.AuthPOSTForm(AccessPublic, jobAssessURL, values)
 	require.Error(t, err)
 	// Redirect to login page.
 	require.Contains(t, err.Error(), fmt.Sprint(http.StatusTemporaryRedirect))
-	_, err = c.AuthGET(AccessUser, jobAssessURL)
+	_, err = c.AuthPOSTForm(AccessUser, jobAssessURL, values)
 	require.NoError(t, err)
 
 	// Test crash w/o C repro.
@@ -444,7 +446,9 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	require.Contains(t, string(respJSON), `"Trajectory"`)
 
 	// Since the job is not completed, setting correctness must fail.
-	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
+	values := url.Values{}
+	values.Set("correct", aiCorrectnessCorrect)
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", resp.ID), values)
 	require.Error(t, err)
 
 	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
@@ -457,7 +461,7 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	}))
 
 	// Now setting correctness must not fail.
-	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", resp.ID), values)
 	require.NoError(t, err)
 
 	// Verify history via UI helper to also test parsing logic.
@@ -475,7 +479,9 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	c.advanceTime(time.Second)
 
 	// Re-mark the result as incorrect, this should remove the label.
-	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessIncorrect))
+	valuesIncorrect := url.Values{}
+	valuesIncorrect.Set("correct", aiCorrectnessIncorrect)
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", resp.ID), valuesIncorrect)
 	require.NoError(t, err)
 
 	uiHistory, err = LoadUIJobReviewHistory(c.ctx, resp.ID)
