@@ -391,6 +391,7 @@ aside {
 	height: 400px;
 	margin: 0 0;
 	overflow: scroll;
+	resize: vertical;
 	border: 1px solid #777;
 	padding: 0px;
 	background: transparent;
