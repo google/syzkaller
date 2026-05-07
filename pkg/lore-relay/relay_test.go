@@ -309,10 +309,12 @@ This is just a normal comment.
 	require.Len(t, mockSnd.sent, 0)
 }
 
-func testCommandReplyError(t *testing.T, incomingBody, expectedReply string) {
+func testCommandSilent(t *testing.T, incomingBody string, mockDash *mockDashboard) {
 	loreArchive := lore.NewTestLoreArchive(t, t.TempDir())
 	cfg := &Config{LorePollInterval: time.Hour}
-	mockDash := &mockDashboard{}
+	if mockDash == nil {
+		mockDash = &mockDashboard{}
+	}
 	mockSnd := &mockSender{}
 	lorePoller, err := lore.NewPoller(lore.PollerConfig{
 		RepoDir: t.TempDir(),
@@ -327,9 +329,7 @@ func testCommandReplyError(t *testing.T, incomingBody, expectedReply string) {
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, mockSnd.sent, 1)
-	assert.Equal(t, []string{"user@email"}, mockSnd.sent[0].To)
-	assert.Equal(t, expectedReply, string(mockSnd.sent[0].Body))
+	require.Len(t, mockSnd.sent, 0)
 }
 
 func TestMultipleCommandsReply(t *testing.T) {
@@ -340,9 +340,7 @@ Message-ID: <msg1>
 #syz upstream
 #syz reject
 `
-	expected := "> #syz upstream\n> #syz reject\n\n" +
-		"Command failed:\n\nmultiple commands in a single message are not supported\n\n"
-	testCommandReplyError(t, incoming, expected)
+	testCommandSilent(t, incoming, nil)
 }
 
 func TestUnsupportedCommandReply(t *testing.T) {
@@ -352,9 +350,19 @@ Message-ID: <msg1>
 
 #syz fix
 `
-	expected := "> #syz fix\n\n" +
-		"Command failed:\n\nunsupported command: fix\n\n"
-	testCommandReplyError(t, incoming, expected)
+	testCommandSilent(t, incoming, nil)
+}
+
+func TestUnsupportedCommandUntracked(t *testing.T) {
+	incoming := `From: user@email
+Subject: [PATCH] Fix bug
+Message-ID: <msg1>
+
+#syz fix
+`
+	testCommandSilent(t, incoming, &mockDashboard{
+		cmdErr: dashapi.ErrReportNotFound,
+	})
 }
 
 func TestBackoff(t *testing.T) {
