@@ -930,16 +930,16 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 }
 
 func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient) (*aidb.Job, error) {
-	job, err := aidb.StartJob(ctx, req, client.AIJobNamespaces)
+	job, err := aidb.NextStaleJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
-		return nil, fmt.Errorf("failed StartJob: %w", err)
+		log.Errorf(ctx, "NextStaleJob failed: %v", err)
 	}
 	if job != nil {
 		return job, nil
 	}
-	job, err = aidb.NextStaleJob(ctx, req, client.AIJobNamespaces)
+	job, err = aidb.StartJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
-		log.Errorf(ctx, "NextStaleJob failed: %v", err)
+		return nil, fmt.Errorf("failed StartJob: %w", err)
 	}
 	if job != nil {
 		return job, nil
