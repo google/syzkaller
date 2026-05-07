@@ -387,10 +387,14 @@ major step in the reproduction sequence.
     }
     printf("[+] do_something successful.\n");
 6. For the very first attempt at generating a reproducer (when no previous feedback is provided),
-prioritize generating a simple 'probe' program. This program should only check if the necessary
-devices, syscalls, or files needed for the reproduction are available and accessible in the
-environment. Print clear messages indicating success or failure of these probes, and exit with
-0 if all probes succeed. Do not attempt complex race conditions or heavy logic in this first version.
+prioritize generating a simple 'probe' program. This program's sole purpose is to verify that the
+test environment has the necessary kernel capabilities. It should focus on probing the specific
+kernel subsystems, device files, or syscalls required for the reproduction (for example: opening
+/dev/vhci to check if the virtual Bluetooth controller is accessible, loading a minimal dummy BPF
+program to check if BPF_SYSCALL is enabled and permitted, or making a specific socket/ioctl call
+to verify subsystem availability). Print clear messages indicating success or failure of these
+specific kernel/subsystem probes, and exit with 0 only if all relevant subsystem checks pass.
+Do not attempt complex race conditions or heavy logic in this first version.
 
 Print only the C program that could be executed directly, without backticks.`
 
