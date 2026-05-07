@@ -282,7 +282,7 @@ func init() {
 					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 				},
 				&aflow.DoWhile{
-					MaxIterations: 5,
+					MaxIterations: 10,
 					While:         "ContinueSignal",
 					Do: aflow.Pipeline(
 						&aflow.If{
