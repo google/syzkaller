@@ -961,7 +961,12 @@ func TestAIJobNamespaces(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pollResp3, err := unrestrictedClient.AIJobPoll(pollReq)
+	pollReq3 := &dashapi.AIJobPollReq{
+		AgentName:    "unrestricted-agent-3",
+		CodeRevision: "unknown",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowRepro, Name: "repro"}},
+	}
+	pollResp3, err := unrestrictedClient.AIJobPoll(pollReq3)
 	require.NoError(t, err)
 	require.Equal(t, jobIDAins2, pollResp3.ID)
 
