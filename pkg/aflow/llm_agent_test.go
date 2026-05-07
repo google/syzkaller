@@ -290,6 +290,31 @@ func TestNilToolArg(t *testing.T) {
 	)
 }
 
+func TestToolInPrompt(t *testing.T) {
+	type flowResults struct {
+		Ignored string
+	}
+	testFlow[struct{}, flowResults](t, nil, map[string]any{"Ignored": "Ignored"},
+		&LLMAgent{
+			Name:        "prompt-tester",
+			Model:       "model",
+			Reply:       "Ignored",
+			TaskType:    FormalReasoningTask,
+			Instruction: "Use {{.toolSwissKnife}}",
+			Prompt:      "Please call {{.toolSwissKnife}} now.",
+			Tools: []Tool{
+				NewFuncTool("swiss-knife", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+					return struct{}{}, nil
+				}, "description"),
+			},
+		},
+		[]any{
+			genai.NewPartFromText("Ignored"),
+		},
+		nil,
+	)
+}
+
 func TestAgentRegistrationErrors(t *testing.T) {
 	testRegistrationError[struct{}, struct{}](t,
 		`flow test: action smarty: Instruction: template: :1: function "NonExistentFoo" not defined`,
