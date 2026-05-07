@@ -870,13 +870,13 @@ func mergeLine(chunks []lineCoverChunk, start, end int, covered bool) []lineCove
 func addFunctionCoverage(file *file, data *templateData) {
 	var buf bytes.Buffer
 	var coveredTotal int
-	var TotalInCoveredFunc int
+	var totalInFunc int
 	for _, function := range file.functions {
 		percentage := ""
 		coveredTotal += function.covered
+		totalInFunc += function.pcs
 		if function.covered > 0 {
 			percentage = fmt.Sprintf("%v%%", Percent(function.covered, function.pcs))
-			TotalInCoveredFunc += function.pcs
 		} else {
 			percentage = "---"
 		}
@@ -888,13 +888,13 @@ func addFunctionCoverage(file *file, data *templateData) {
 	buf.WriteString("-----------<br>\n")
 	buf.WriteString("<span class='hover'>SUMMARY")
 	percentInCoveredFunc := ""
-	if TotalInCoveredFunc > 0 {
-		percentInCoveredFunc = fmt.Sprintf("%v%%", Percent(coveredTotal, TotalInCoveredFunc))
+	if totalInFunc > 0 {
+		percentInCoveredFunc = fmt.Sprintf("%v%%", Percent(coveredTotal, totalInFunc))
 	} else {
 		percentInCoveredFunc = "---"
 	}
 	buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentInCoveredFunc))
-	buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(TotalInCoveredFunc)))
+	buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(totalInFunc)))
 	buf.WriteString("</span></span></span><br>\n")
 	data.Functions = append(data.Functions, template.HTML(buf.String()))
 }

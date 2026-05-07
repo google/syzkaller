@@ -110,3 +110,19 @@ func TestPerLineCoverage(t *testing.T) {
 	got := perLineCoverage(covered, uncovered)
 	require.Equal(t, want, got)
 }
+
+func TestAddFunctionCoverageSummary(t *testing.T) {
+	data := &templateData{}
+	addFunctionCoverage(&file{
+		functions: []*function{
+			{name: "covered", pcs: 2, covered: 1},
+			{name: "uncovered", pcs: 2},
+		},
+	}, data)
+
+	require.Len(t, data.Functions, 1)
+	got := string(data.Functions[0])
+	require.Contains(t, got, "<span class='hover'>covered<span class='cover hover'>50%<span class='cover-right'>of 2")
+	require.Contains(t, got, "<span class='hover'>uncovered<span class='cover hover'>---<span class='cover-right'>of 2")
+	require.Contains(t, got, "<span class='hover'>SUMMARY<span class='cover hover'>25%<span class='cover-right'>of 4")
+}
