@@ -240,13 +240,13 @@ func (a *LLMAgent) executeMany(ctx *Context) error {
 }
 
 func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]any, error) {
-	cfg, instruction, tools := a.config(ctx)
+	cfg, instruction, prompt, tools := a.config(ctx)
 
 	span := &trajectory.Span{
 		Type:        trajectory.SpanAgent,
 		Name:        a.Name,
 		Instruction: instruction,
-		Prompt:      formatTemplate(a.Prompt, ctx.state),
+		Prompt:      prompt,
 		Model:       ctx.modelName(a.Model),
 	}
 	if err := ctx.startSpan(span); err != nil {
@@ -394,7 +394,7 @@ func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai
 	return req, addNewSummary
 }
 
-func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, map[string]Tool) {
+func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, string, map[string]Tool) {
 	toolList := a.Tools
 	if a.Outputs != nil {
 		toolList = append(toolList, a.Outputs.tool)
@@ -418,6 +418,7 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 	if a.Outputs != nil {
 		instruction += llmOutputsInstruction
 	}
+	prompt := formatTemplate(a.Prompt, state)
 	return &genai.GenerateContentConfig{
 		ResponseModalities: []string{"TEXT"},
 		Temperature:        genai.Ptr(taskParameters[a.TaskType]),
@@ -438,7 +439,7 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 			// we use ThinkingLevel.
 			ThinkingLevel: genai.ThinkingLevelHigh,
 		},
-	}, instruction, toolMap
+	}, instruction, prompt, toolMap
 }
 
 func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai.FunctionCall) (
