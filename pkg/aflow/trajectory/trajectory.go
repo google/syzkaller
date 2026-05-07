@@ -100,6 +100,9 @@ func (span *Span) String() string {
 			if span.Thoughts != "" {
 				fmt.Fprintf(sb, "thoughts:\n%v\n", span.Thoughts)
 			}
+			if span.Reply != "" {
+				fmt.Fprintf(sb, "reply:\n%v\n", span.Reply)
+			}
 		case SpanTool:
 			printMap(sb, span.Results, "results")
 		case SpanLoop:

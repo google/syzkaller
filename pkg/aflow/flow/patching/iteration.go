@@ -41,7 +41,7 @@ type PatchIterationInputs struct {
 	BaseCommit     string
 }
 
-func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {
+func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
@@ -62,11 +62,12 @@ func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {
 					NeedNewVersion bool   `jsonschema:"True if any comment suggests or requires a code change to the patch, or if a rebase is requested. False otherwise."`
 					VerdictReason  string `jsonschema:"Brief explanation of why a new version is or is not needed."`
 				}](),
-				TaskType:      aflow.FormalReasoningTask,
-				Instruction:   verdictInstruction,
-				Prompt:        verdictPrompt,
-				Tools:         aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools),
-				SummaryWindow: summaryWindow,
+				TaskType:       aflow.FormalReasoningTask,
+				Instruction:    verdictInstruction,
+				Prompt:         verdictPrompt,
+				Tools:          aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools),
+				SummaryWindow:  summaryWindow,
+				CompressTokens: compressTokens,
 			},
 
 			// If the verdict agent decides a new patch is needed, generate it by applying the previous
@@ -76,7 +77,7 @@ func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {
 				Do: aflow.Pipeline(
 					extractLatestPatchInfo,
 					kernel.CheckoutScratch,
-					PatchGenerationLoop(summaryWindow, applyGitPatch, patchIterationInstruction, patchIterationPrompt),
+					PatchGenerationLoop(summaryWindow, compressTokens, applyGitPatch, patchIterationInstruction, patchIterationPrompt),
 					getRecentCommits,
 					&aflow.LLMAgent{
 						Name:  "changelog-generator",
@@ -86,10 +87,11 @@ func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {
 							PatchDescriptionRaw string `jsonschema:"The updated full commit message for the new patch."`
 							NewChangeLog        string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
 						}](),
-						TaskType:      aflow.FormalReasoningTask,
-						Instruction:   changelogInstruction,
-						Prompt:        changelogPrompt,
-						SummaryWindow: summaryWindow,
+						TaskType:       aflow.FormalReasoningTask,
+						Instruction:    changelogInstruction,
+						Prompt:         changelogPrompt,
+						SummaryWindow:  summaryWindow,
+						CompressTokens: compressTokens,
 					},
 					formatPatchDescription,
 					getMaintainers,
@@ -185,7 +187,8 @@ func init() {
 	aflow.Register[PatchIterationInputs, ai.PatchIterationOutputs](
 		ai.WorkflowPatchIteration,
 		"address iterative feedback on generated patches",
-		createPatchIterationFlow("", 0),
+		createPatchIterationFlow("", 0, 0),
+		createPatchIterationFlow("compressed", 0, 200_000),
 	)
 }
 

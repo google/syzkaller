@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -51,7 +52,13 @@ type LLMAgent struct {
 	Tools []Tool
 	// Number of historical message (sliding window) to keep. If zero, we don't enable the sliding
 	// window summary feature (don't toss old messages).
+	// Mutually exclusive with CompressTokens.
 	SummaryWindow int
+	// Token limit for historical messages. If > 0, when the total input tokens exceed this limit,
+	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
+	// all intermediate messages, leaving only the anchor prompt and the new summary.
+	// Mutually exclusive with SummaryWindow.
+	CompressTokens int
 
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
@@ -201,6 +208,9 @@ type llmOutputs struct {
 }
 
 func (a *LLMAgent) execute(ctx *Context) error {
+	if a.SummaryWindow > 0 && a.CompressTokens > 0 {
+		return errors.New("SummaryWindow and CompressTokens are mutually exclusive")
+	}
 	if a.Candidates <= 1 {
 		reply, outputs, err := a.executeOne(ctx, 0)
 		if err != nil {
@@ -260,6 +270,19 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
+func (a *LLMAgent) handleOverflowError(cfg *genai.GenerateContentConfig, req []*genai.Content, answerNow bool) bool {
+	if a.Reply == llmToolReply && len(req) >= 3 && !answerNow {
+		cfg.ToolConfig = &genai.ToolConfig{
+			FunctionCallingConfig: &genai.FunctionCallingConfig{
+				Mode: genai.FunctionCallingConfigModeNone,
+			},
+		}
+		req[len(req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
+		return true
+	}
+	return false
+}
+
 func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
 	prompt string, candidate int) (string, map[string]any, error) {
 	var outputs map[string]any
@@ -269,7 +292,19 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	// We need it to check if the message-to-be-popped is a summary - if so, we need to add
 	// a new summary.
 	var summaryMessage *genai.Content
+	var lastInputTokens int
 	for {
+		var err error
+		var newSummaryMessage *genai.Content
+		req, newSummaryMessage, lastInputTokens, err = a.maybeCompressContext(ctx, req, lastInputTokens)
+		if err != nil {
+			return "", nil, err
+		}
+		if newSummaryMessage != nil || a.CompressTokens > 0 {
+			// If compression happened, reset the existing summaryMessage to nil (or the new one)
+			summaryMessage = newSummaryMessage
+		}
+
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
 			Name:  a.Name,
@@ -281,6 +316,11 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		addNewSummary := false
 		req, addNewSummary = a.slide(req, summaryMessage)
 		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
+
+		if resp != nil && resp.UsageMetadata != nil {
+			lastInputTokens = int(resp.UsageMetadata.PromptTokenCount)
+		}
+
 		if respErr != nil {
 			span.Error = respErr.Error()
 			if err := ctx.finishSpan(span, nil); err != nil {
@@ -289,18 +329,11 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			// Input overflows maximum number of tokens.
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
-			if isInputTokenOverflowError(respErr) &&
-				a.Reply == llmToolReply &&
-				len(req) >= 3 &&
-				!answerNow {
-				answerNow = true
-				cfg.ToolConfig = &genai.ToolConfig{
-					FunctionCallingConfig: &genai.FunctionCallingConfig{
-						Mode: genai.FunctionCallingConfigModeNone,
-					},
+			if isInputTokenOverflowError(respErr) {
+				if a.handleOverflowError(cfg, req, answerNow) {
+					answerNow = true
+					continue
 				}
-				req[len(req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
-				continue
 			}
 			return "", nil, respErr
 		}
@@ -350,6 +383,101 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		req = append(req, responses)
 	}
+}
+
+const tokenCompressionInstruction = `
+You are an expert technical assistant acting as a memory compressor.
+Review the following execution history of an AI agent.
+The first message contains the original system instructions and the main goal.
+It will be preserved in the history, so DO NOT duplicate its contents in your summary.
+Write a comprehensive and substantial summary of the current state of the workspace
+and the investigation based on the SUBSEQUENT messages. Do NOT write a very short summary.
+Include:
+1. A detailed list of what approaches have been tried so far and their results (including dead-ends).
+2. The current hypotheses, theories, or active lines of investigation.
+3. Any specific file paths, code snippets, or configuration values that are critical to remember.
+4. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.
+
+You MUST provide the summary in your final response text. Do not use tools.
+`
+
+// We use a very low temperature for the compressor to ensure it acts as a strict,
+// deterministic summarizer of facts without hallucinating or adding creative leaps.
+const tokenCompressionTemperature = 0.1
+
+func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.Content, error) {
+	// Lightweight config targeting the Flash model.
+	cfg := &genai.GenerateContentConfig{
+		Temperature:       genai.Ptr[float32](tokenCompressionTemperature),
+		SystemInstruction: genai.NewContentFromText(tokenCompressionInstruction, genai.RoleUser),
+		ThinkingConfig: &genai.ThinkingConfig{
+			IncludeThoughts: true,
+		},
+	}
+
+	span := &trajectory.Span{
+		Type:  trajectory.SpanLLM,
+		Name:  a.Name + "-compressor",
+		Model: ctx.modelName(GoodBalancedModel),
+	}
+	if err := ctx.startSpan(span); err != nil {
+		return nil, err
+	}
+
+	// We append a final prompt to ensure the model knows it must summarize now,
+	// rather than trying to continue the original conversation.
+	compressReq := append(slices.Clone(req), genai.NewContentFromText(
+		"Task: Provide the comprehensive summary of the above execution history now.\n"+
+			"Important: You must output the actual summary text in your final response. "+
+			"Do NOT use any tools.",
+		genai.RoleUser,
+	))
+
+	resp, err := a.generateContentCached(ctx, cfg, compressReq, 0, 0)
+	if err != nil {
+		return nil, ctx.finishSpan(span, err)
+	}
+
+	reply, _, respErr := a.parseResponse(resp, span)
+
+	// We want the model to "think" for better reasoning during compression,
+	// but we don't want to clutter the trajectory UI with those thoughts.
+	span.Thoughts = ""
+
+	if respErr != nil {
+		return nil, ctx.finishSpan(span, respErr)
+	}
+
+	reply = strings.TrimSpace(reply)
+	if reply == "" {
+		reply = "(The summarizer agent returned an empty summary)"
+	}
+
+	span.Reply = reply
+
+	newSummary := genai.NewContentFromText(
+		"Here is the summary of the previous execution history:\n\n"+reply,
+		genai.RoleUser,
+	)
+
+	return newSummary, ctx.finishSpan(span, nil)
+}
+
+func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, lastInputTokens int) (
+	[]*genai.Content, *genai.Content, int, error) {
+	if a.CompressTokens == 0 || lastInputTokens <= a.CompressTokens {
+		// Return existing state unchanged.
+		return req, nil, lastInputTokens, nil
+	}
+
+	newSummary, err := a.compressContext(ctx, req)
+	if err != nil {
+		return req, nil, lastInputTokens, fmt.Errorf("context compression failed: %w", err)
+	}
+
+	// Truncate history to Anchor + Summary.
+	req = []*genai.Content{req[0], newSummary}
+	return req, nil, 0, nil
 }
 
 func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {

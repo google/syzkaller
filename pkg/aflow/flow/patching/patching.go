@@ -44,8 +44,8 @@ type Inputs struct {
 	BaseCommit     string
 }
 
-func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
+func createPatchingFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
@@ -57,39 +57,42 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 			crash.Reproduce,
 			codesearcher.PrepareIndex,
 			&aflow.LLMAgent{
-				Name:          "debugger",
-				Model:         aflow.BestExpensiveModel,
-				Reply:         "BugExplanation",
-				TaskType:      aflow.FormalReasoningTask,
-				Instruction:   debuggingInstruction,
-				Prompt:        debuggingPrompt,
-				Tools:         commonTools,
-				SummaryWindow: summaryWindow,
+				Name:           "debugger",
+				Model:          aflow.BestExpensiveModel,
+				Reply:          "BugExplanation",
+				TaskType:       aflow.FormalReasoningTask,
+				Instruction:    debuggingInstruction,
+				Prompt:         debuggingPrompt,
+				Tools:          commonTools,
+				SummaryWindow:  summaryWindow,
+				CompressTokens: compressTokens,
 			},
 			kernel.CheckoutScratch,
-			PatchGenerationLoop(summaryWindow, nil, patchInstruction, patchPrompt),
+			PatchGenerationLoop(summaryWindow, compressTokens, nil, patchInstruction, patchPrompt),
 			&aflow.LLMAgent{
-				Name:          "fixes-finder",
-				Model:         aflow.BestExpensiveModel,
-				Outputs:       aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
-				TaskType:      aflow.FormalReasoningTask,
-				Instruction:   fixesInstruction,
-				Prompt:        fixesPrompt,
-				Tools:         commonTools,
-				SummaryWindow: summaryWindow,
+				Name:           "fixes-finder",
+				Model:          aflow.BestExpensiveModel,
+				Outputs:        aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+				TaskType:       aflow.FormalReasoningTask,
+				Instruction:    fixesInstruction,
+				Prompt:         fixesPrompt,
+				Tools:          commonTools,
+				SummaryWindow:  summaryWindow,
+				CompressTokens: compressTokens,
 			},
 			formatFixes,
 			getMaintainers,
 			getRecentCommits,
 			&aflow.LLMAgent{
-				Name:          "description-generator",
-				Model:         aflow.BestExpensiveModel,
-				Reply:         "PatchDescriptionRaw",
-				TaskType:      aflow.FormalReasoningTask,
-				Instruction:   descriptionInstruction,
-				Prompt:        descriptionPrompt,
-				Tools:         commonTools,
-				SummaryWindow: summaryWindow,
+				Name:           "description-generator",
+				Model:          aflow.BestExpensiveModel,
+				Reply:          "PatchDescriptionRaw",
+				TaskType:       aflow.FormalReasoningTask,
+				Instruction:    descriptionInstruction,
+				Prompt:         descriptionPrompt,
+				Tools:          commonTools,
+				SummaryWindow:  summaryWindow,
+				CompressTokens: compressTokens,
 			},
 			formatPatchDescription,
 		),
@@ -100,8 +103,9 @@ func init() {
 	aflow.Register[Inputs, ai.PatchingOutputs](
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
-		createPatchingFlow("", 0),
-		createPatchingFlow("summary", 10),
+		createPatchingFlow("", 0, 0),
+		createPatchingFlow("summary", 10, 0),
+		createPatchingFlow("compressed", 0, 200_000),
 	)
 }
 
@@ -254,8 +258,9 @@ should be used instead if necessary.
 {{end}}
 `
 
-func PatchGenerationLoop(summaryWindow int, beforeEach aflow.Action, instruction, prompt string) aflow.Action {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
+func PatchGenerationLoop(summaryWindow, compressTokens int,
+	beforeEach aflow.Action, instruction, prompt string) aflow.Action {
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 
 	doPipeline := []aflow.Action{}
 	if beforeEach != nil {
@@ -264,14 +269,15 @@ func PatchGenerationLoop(summaryWindow int, beforeEach aflow.Action, instruction
 
 	doPipeline = append(doPipeline,
 		&aflow.LLMAgent{
-			Name:          "patch-generator",
-			Model:         aflow.BestExpensiveModel,
-			Reply:         "PatchExplanation",
-			TaskType:      aflow.FormalReasoningTask,
-			Instruction:   instruction,
-			Prompt:        prompt,
-			Tools:         aflow.Tools(commonTools, codeeditor.Tool),
-			SummaryWindow: summaryWindow,
+			Name:           "patch-generator",
+			Model:          aflow.BestExpensiveModel,
+			Reply:          "PatchExplanation",
+			TaskType:       aflow.FormalReasoningTask,
+			Instruction:    instruction,
+			Prompt:         prompt,
+			Tools:          aflow.Tools(commonTools, codeeditor.Tool),
+			SummaryWindow:  summaryWindow,
+			CompressTokens: compressTokens,
 		},
 		crash.TestPatch, // -> PatchDiff or TestError
 	)

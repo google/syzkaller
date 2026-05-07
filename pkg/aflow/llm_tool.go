@@ -21,9 +21,10 @@ type LLMTool struct {
 	Model    string
 	TaskType TaskType
 	// Description of the tool exposed to the parent LLM.
-	Description string
-	Instruction string
-	Tools       []Tool
+	Description    string
+	Instruction    string
+	Tools          []Tool
+	CompressTokens int
 
 	agent *LLMAgent
 }
@@ -72,13 +73,14 @@ const (
 
 func (t *LLMTool) verify(ctx *verifyContext) {
 	t.agent = &LLMAgent{
-		Name:        t.Name,
-		Model:       t.Model,
-		Reply:       llmToolReply,
-		TaskType:    t.TaskType,
-		Instruction: t.Instruction,
-		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
-		Tools:       t.Tools,
+		Name:           t.Name,
+		Model:          t.Model,
+		Reply:          llmToolReply,
+		TaskType:       t.TaskType,
+		Instruction:    t.Instruction,
+		Prompt:         fmt.Sprintf("{{.%v}}", llmToolPrompt),
+		Tools:          t.Tools,
+		CompressTokens: t.CompressTokens,
 	}
 	t.agent.verify(ctx)
 }
