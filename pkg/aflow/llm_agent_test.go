@@ -140,14 +140,18 @@ func TestParseLLMError(t *testing.T) {
 }
 
 func TestParseLLMErrorBackoff(t *testing.T) {
+	var totalBackoff time.Duration
 	err0 := genai.APIError{Code: http.StatusServiceUnavailable}
 	for try := range maxLLMRetryIters {
-		wantDelay := min(maxLLMBackoff, time.Duration(try+1)*time.Second)
+		wantBackoff := llmBackoffDuration(try)
+		t.Logf("iter %v: %v", try, wantBackoff)
 		err := parseLLMError(nil, err0, "model", try)
-		require.Equal(t, err, &retryError{wantDelay, err0})
+		require.Equal(t, err, &retryError{wantBackoff, err0})
+		totalBackoff += wantBackoff
 	}
 	err := parseLLMError(nil, err0, "model", maxLLMRetryIters)
 	require.Equal(t, err, err0)
+	t.Logf("total backoff: %v", totalBackoff)
 }
 
 func TestSummaryWindow(t *testing.T) {

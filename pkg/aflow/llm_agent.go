@@ -600,13 +600,13 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 	if !errors.As(err, &apiErr) {
 		return err
 	}
-	if try < maxLLMRetryIters && (apiErr.Code == http.StatusServiceUnavailable ||
+	if apiErr.Code == http.StatusServiceUnavailable ||
 		apiErr.Code == http.StatusBadGateway ||
 		apiErr.Code == http.StatusGatewayTimeout ||
 		// 499 has server-dependent meaning, but for genapi we observed these
 		// when a request was cancelled on some internal error.
-		apiErr.Code == 499) {
-		return &retryError{min(time.Duration(try+1)*time.Second, maxLLMBackoff), err}
+		apiErr.Code == 499 {
+		return &retryError{llmBackoffDuration(try), err}
 	}
 	if apiErr.Code == http.StatusTooManyRequests &&
 		strings.Contains(apiErr.Message, "Quota exceeded for metric") {
@@ -633,6 +633,18 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 		return &retryError{time.Second, err}
 	}
 	return err
+}
+
+func llmBackoffDuration(try int) time.Duration {
+	backoff := time.Second
+	// Use loop instead of math.Pow to properly handle overflow.
+	for range try {
+		backoff *= 2
+		if backoff >= maxLLMBackoff {
+			return maxLLMBackoff
+		}
+	}
+	return backoff
 }
 
 func parseLLMResp(resp *genai.GenerateContentResponse) error {
@@ -672,7 +684,7 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 
 const (
 	maxLLMRetryIters = 100
-	maxLLMBackoff    = 10 * time.Second
+	maxLLMBackoff    = 5 * time.Minute
 )
 
 var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
