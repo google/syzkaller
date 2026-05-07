@@ -1374,3 +1374,52 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	require.NotEmpty(t, resp2.ID)
 	require.NotEqual(t, resp.ID, resp2.ID) // Must be a new job.
 }
+
+func TestAIManualPushToReporting(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// 1. Finish a job with no AI stages configured (no reporting generated).
+	c.SetAIConfig(&AIConfig{})
+
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName: "test", CodeRevision: "test-rev", Workflows: []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, "patching", "")
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID, Results: map[string]any{
+			"PatchDiff":        "diff",
+			"PatchDescription": "Subject\n\nBody",
+			"KernelCommit":     "abcd",
+			"KernelRepo":       "git://repo",
+		},
+	})
+	require.NoError(t, err)
+
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Empty(t, reportings)
+
+	// 2. Add an AI stage to the config and push the job.
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{{Name: "public", ServingIntegration: "lore"}},
+	})
+
+	values := url.Values{}
+	values.Set("push_to_reporting", "1")
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
+	require.NoError(t, err)
+
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+	// Make sure the poll returns our manually pushed job.
+	require.Equal(t, "Subject", pollResp.Result.Patch.Subject)
+}

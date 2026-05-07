@@ -64,6 +64,13 @@ Detailed info on a single AI job execution.
 			</form>
 			<br>
 		{{end}}
+		{{if .CanPushToReporting}}
+			<form method="POST">
+				<input type="hidden" name="push_to_reporting" value="1">
+				<button type="submit">Push to {{.NextStage}}</button>
+			</form>
+			<br>
+		{{end}}
 	{{end}}
 
 	{{if .Reportings}}
