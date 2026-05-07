@@ -195,14 +195,17 @@ func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmai
 	r.cfg.Tracer.Logf("handling incoming email from %s", polled.Email.Author)
 	reqs, err := extractCommands(polled)
 	if err != nil {
-		// TODO: include instructions with the list of supported commands.
-		return r.replyError(ctx, polled, err.Error())
+		// TODO: for tracked threads we may want to reply with an error (#7199).
+		r.cfg.Tracer.Logf("ignoring email %s: %v", polled.Email.MessageID, err)
+		return nil
 	}
 	if len(reqs) == 0 {
 		return nil
 	}
 	if len(reqs) > 1 {
-		return r.replyError(ctx, polled, "multiple commands in a single message are not supported")
+		// TODO: for tracked threads we may want to reply with an error (#7199).
+		r.cfg.Tracer.Logf("ignoring email %s: multiple commands in a single message", polled.Email.MessageID)
+		return nil
 	}
 	var resp *dashapi.SendExternalCommandResp
 	backoffs := r.backoffs
