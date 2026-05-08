@@ -261,6 +261,12 @@ type Experimental struct {
 
 	// Enable dynamic discovery and fuzzing of KFuzzTest targets.
 	EnableKFuzzTest bool `json:"enable_kfuzztest"`
+
+	// List of syscalls exempt from per-syscall corpus saturation checks.
+	// Use for syscalls with high internal complexity (e.g. io_uring) that
+	// legitimately produce many distinct corpus entries without triggering
+	// a corpus explosion.
+	UncappedSyscalls []string `json:"uncapped_syscalls,omitempty"`
 }
 
 type FocusArea struct {

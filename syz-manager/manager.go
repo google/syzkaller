@@ -1114,7 +1114,14 @@ func (mgr *Manager) minimizeCorpusLocked() {
 	// generic bugs, per-OS bugs, problems with fallback coverage, kcov bugs, etc.
 	// This has bad effect on the instance and especially on instances
 	// connected via hub. Do some per-syscall sanity checking to prevent this.
+	uncapped := make(map[string]bool, len(mgr.cfg.Experimental.UncappedSyscalls))
+	for _, s := range mgr.cfg.Experimental.UncappedSyscalls {
+		uncapped[s] = true
+	}
 	for call, info := range mgr.corpus.CallCover() {
+		if uncapped[call] {
+			continue
+		}
 		if mgr.cfg.Cover {
 			// If we have less than 1K inputs per this call,
 			// accept all new inputs unconditionally.
