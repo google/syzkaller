@@ -27,7 +27,7 @@ void foo() {
 
 	// Test git-show.
 	aflow.TestTool(t, ToolShow,
-		state{KernelSrc: repo.Dir},
+		state{},
 		showArgs{Commit: c1.Hash},
 		func(res showResult) {
 			expected := fmt.Sprintf(`(?s)^commit %s
@@ -43,14 +43,14 @@ diff --git a/foo\.c b/foo\.c
 \+}`, c1.Hash)
 			assert.Regexp(t, expected, res.Output)
 		},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-show with non-existing commit.
 	aflow.TestTool(t, ToolShow,
-		state{KernelSrc: repo.Dir},
+		state{},
 		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567"},
 		showResult{},
-		"git show failed: fatal: bad object 0123456789abcdef0123456789abcdef01234567")
+		"git show failed: fatal: bad object 0123456789abcdef0123456789abcdef01234567", aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitBlame(t *testing.T) {
@@ -77,7 +77,7 @@ void foo() {
 
 	// Test git-blame.
 	aflow.TestTool(t, ToolBlame,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		blameArgs{File: "foo.c", Start: 3, End: 4},
 		func(res blameResult) {
 			expected := fmt.Sprintf(`(?m)^\^%s.* 3\) 	// BUG HERE
@@ -85,7 +85,7 @@ void foo() {
 $`, c1.Hash[:12], c2.Hash[:12])
 			assert.Regexp(t, expected, res.Output)
 		},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitLog(t *testing.T) {
@@ -120,73 +120,74 @@ void foo() {
 
 	// Test git-log message search.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{MessageRegexps: []string{"commit"}},
 		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
 			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log multiple message regexps.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{MessageRegexps: []string{"third", "commit"}},
 		logResult{Output: fmt.Sprintf("%s third commit\n", c3.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log message search case-insensitive.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{MessageRegexps: []string{"COMMIT"}},
 		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
 			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log code search (-G).
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{CodeRegexp: "fixed"},
 		logResult{Output: fmt.Sprintf("%s third commit\n", c3.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log symbol search (-L).
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{SymbolName: "foo", SourcePath: "foo.c"},
 		logResult{Output: fmt.Sprintf("%s third commit\n%s initial commit\n", c3.Hash[:12], c1.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log path prefix.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{PathPrefix: "foo.c"},
 		logResult{Output: fmt.Sprintf("%s third commit\n%s initial commit\n", c3.Hash[:12], c1.Hash[:12])},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log no matches.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{MessageRegexps: []string{"non-existing"}},
 		logResult{},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log code search (-G) no matches.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{CodeRegexp: "non-existing"},
 		logResult{},
-		"")
+		"", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log error: missing SourcePath for symbol search.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{SymbolName: "foo"},
 		logResult{},
-		"SourcePath is required when SymbolName is set")
+		"SourcePath is required when SymbolName is set", aflow.TestWorkdir(tmpDir))
 
 	// Test git-log error: no filters provided.
 	aflow.TestTool(t, ToolLog,
-		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		state{KernelCommit: "HEAD"},
 		logArgs{},
 		logResult{},
-		"at least one of CodeRegexp, SymbolName, MessageRegexps, or PathPrefix must be set")
+		"at least one of CodeRegexp, SymbolName, MessageRegexps, or PathPrefix must be set",
+		aflow.TestWorkdir(tmpDir))
 }

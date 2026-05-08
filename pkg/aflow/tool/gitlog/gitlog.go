@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var (
@@ -44,7 +46,6 @@ It helps to identify which commit last modified specific lines of code.
 const maxOutputLines = 1000
 
 type state struct {
-	KernelSrc    string
 	KernelCommit string
 }
 
@@ -102,7 +103,17 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 		gitArgs = append(gitArgs, "--", args.PathPrefix)
 	}
 
-	output, err := osutil.RunCmd(5*time.Minute, state.KernelSrc, "git", gitArgs...)
+	var output []byte
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
+		var err error
+		cmd := osutil.Command("git", gitArgs...)
+		cmd.Dir = kernelRepoDir
+		if err := osutil.Sandbox(cmd, true, true); err != nil {
+			return err
+		}
+		output, err = osutil.Run(5*time.Minute, cmd)
+		return err
+	})
 	if err != nil {
 		return logResult{}, gitBadCallError(err, "git log")
 	}
@@ -121,7 +132,17 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 	if args.Commit == "" {
 		return showResult{}, aflow.BadCallError("commit hash is required")
 	}
-	output, err := osutil.RunCmd(time.Minute, state.KernelSrc, "git", "show", "--no-color", args.Commit)
+	var output []byte
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
+		var err error
+		cmd := osutil.Command("git", "show", "--no-color", args.Commit)
+		cmd.Dir = kernelRepoDir
+		if err := osutil.Sandbox(cmd, true, true); err != nil {
+			return err
+		}
+		output, err = osutil.Run(time.Minute, cmd)
+		return err
+	})
 	if err != nil {
 		return showResult{}, gitBadCallError(err, "git show")
 	}
@@ -143,8 +164,17 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	args.End = max(args.End, args.Start)
 	args.End = min(args.End, args.Start+maxOutputLines)
 	lineRange := fmt.Sprintf("%d,%d", args.Start, args.End)
-	output, err := osutil.RunCmd(time.Minute, state.KernelSrc, "git",
-		"blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
+	var output []byte
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
+		var err error
+		cmd := osutil.Command("git", "blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
+		cmd.Dir = kernelRepoDir
+		if err := osutil.Sandbox(cmd, true, true); err != nil {
+			return err
+		}
+		output, err = osutil.Run(time.Minute, cmd)
+		return err
+	})
 	if err != nil {
 		return blameResult{}, gitBadCallError(err, "git blame")
 	}
