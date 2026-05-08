@@ -190,19 +190,19 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		return convertFromMapReflect(structVal, mm, false, tool)
 	}
 
-	if targetType.Kind() == reflect.Slice && targetType.Elem().Kind() == reflect.Struct {
-		return setSliceField(field, name, f, targetType, tool)
+	if targetType.Kind() == reflect.Slice {
+		return setSliceField(val, field, name, f, targetType, tool)
 	}
 
 	if tool {
 		return BadCallError("argument %q has wrong type: got %T, want %v",
-			name, f, field.Type().Name())
+			name, f, field.Type().String())
 	}
 	return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
-		val, name, f, field.Type().Name())
+		val, name, f, field.Type().String())
 }
 
-func setSliceField(field reflect.Value, name string, f any, targetType reflect.Type, tool bool) error {
+func setSliceField(val any, field reflect.Value, name string, f any, targetType reflect.Type, tool bool) error {
 	slice, ok := f.([]any)
 	if !ok {
 		return fmt.Errorf("field %q must be a slice, got %T", name, f)
@@ -210,12 +210,8 @@ func setSliceField(field reflect.Value, name string, f any, targetType reflect.T
 	elemType := targetType.Elem()
 	res := reflect.MakeSlice(targetType, 0, len(slice))
 	for i, item := range slice {
-		mm, ok := item.(map[string]any)
-		if !ok {
-			return fmt.Errorf("item %d in field %q must be a map, got %T", i, name, item)
-		}
 		elem := reflect.New(elemType).Elem()
-		if err := convertFromMapReflect(elem, mm, false, tool); err != nil {
+		if err := setField(elem, val, item, fmt.Sprintf("%s[%d]", name, i), tool); err != nil {
 			return fmt.Errorf("item %d in field %q: %w", i, name, err)
 		}
 		res = reflect.Append(res, elem)
