@@ -35,6 +35,8 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
+var ErrTimeout = errors.New("timedout")
+
 // Run runs cmd with the specified timeout.
 // Returns combined output. If the command fails, err includes output.
 func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
@@ -68,7 +70,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	if err != nil {
 		retErr := fmt.Errorf("failed to run %q: %w", cmd.Args, err)
 		if <-timedout {
-			retErr = fmt.Errorf("timedout after %v %q", timeout, cmd.Args)
+			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmd.Args)
 		}
 		exitCode := cmd.ProcessState.ExitCode()
 		var exitErr *exec.ExitError

@@ -111,11 +111,12 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 		if err := osutil.Sandbox(cmd, true, true); err != nil {
 			return err
 		}
-		output, err = osutil.Run(5*time.Minute, cmd)
+		output, err = osutil.Run(10*time.Minute, cmd)
 		return err
 	})
 	if err != nil {
-		return logResult{}, gitBadCallError(err, "git log")
+		return logResult{}, gitBadCallError(err, "git log",
+			"Please specify a tighter search scope (e.g. by providing a PathPrefix).")
 	}
 	return logResult{Output: string(output)}, nil
 }
@@ -140,11 +141,11 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 		if err := osutil.Sandbox(cmd, true, true); err != nil {
 			return err
 		}
-		output, err = osutil.Run(time.Minute, cmd)
+		output, err = osutil.Run(5*time.Minute, cmd)
 		return err
 	})
 	if err != nil {
-		return showResult{}, gitBadCallError(err, "git show")
+		return showResult{}, gitBadCallError(err, "git show", "Consider specifying a different commit.")
 	}
 	return showResult{Output: truncate(output, maxOutputLines)}, nil
 }
@@ -172,19 +173,22 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 		if err := osutil.Sandbox(cmd, true, true); err != nil {
 			return err
 		}
-		output, err = osutil.Run(time.Minute, cmd)
+		output, err = osutil.Run(5*time.Minute, cmd)
 		return err
 	})
 	if err != nil {
-		return blameResult{}, gitBadCallError(err, "git blame")
+		return blameResult{}, gitBadCallError(err, "git blame", "Consider specifying a smaller line range.")
 	}
 	return blameResult{Output: truncate(output, maxOutputLines)}, nil
 }
 
-func gitBadCallError(err error, name string) error {
+func gitBadCallError(err error, name, advice string) error {
 	var verr *osutil.VerboseError
 	if !errors.As(err, &verr) {
 		return err
+	}
+	if errors.Is(err, osutil.ErrTimeout) {
+		return aflow.BadCallError("%s timed out. %s", name, advice)
 	}
 	if verr.ExitCode == 128 && (bytes.Contains(verr.Output, []byte("bad object")) ||
 		bytes.Contains(verr.Output, []byte("bad revision")) ||
