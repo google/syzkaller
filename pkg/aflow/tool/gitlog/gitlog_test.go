@@ -183,6 +183,13 @@ void foo() {
 		logResult{},
 		"SourcePath is required when SymbolName is set", aflow.TestWorkdir(tmpDir))
 
+	// Test git-log error: SymbolName and PathPrefix conflict.
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{SymbolName: "foo", SourcePath: "foo.c", PathPrefix: "foo.c"},
+		logResult{},
+		"SymbolName and PathPrefix cannot be used together", aflow.TestWorkdir(tmpDir))
+
 	// Test git-log error: no filters provided.
 	aflow.TestTool(t, ToolLog,
 		state{KernelCommit: "HEAD"},
