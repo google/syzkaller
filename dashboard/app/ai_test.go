@@ -295,8 +295,7 @@ func TestAIJob(t *testing.T) {
 		ID: resp.ID,
 		Results: map[string]any{
 			"Explanation": "foo",
-			"Number":      1,
-			"Bool":        true,
+			"Benign":      false,
 		},
 	}))
 }
@@ -619,6 +618,10 @@ func TestAIJobAutoCreate(t *testing.T) {
 	// This finishes successfully, and must never be recreated again.
 	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: pollResp5.ID,
+		Results: map[string]any{
+			"Explanation": "foo",
+			"Benign":      false,
+		},
 	})
 
 	c.advanceTime(10 * 24 * time.Hour)
