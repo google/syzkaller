@@ -116,6 +116,7 @@ type NewReportResult struct {
 	Tools      []string
 	BaseCommit string
 	BaseTree   string
+	Fixes      ai.FixesTag
 }
 
 type ChangelogEntry struct {

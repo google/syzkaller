@@ -1719,8 +1719,11 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	// or priority label (don't cc stable on low prio bugs).
 	res.Recipients = append(res.Recipients, ai.Recipient{Email: "stable@vger.kernel.org"})
 	// TODO: add a human who reviewed the patch to authors.
-	description := email.FormatPatchDescription(res.PatchDescription, slices.Collect(maps.Keys(models)),
-		nil, res.Recipients)
+	description := email.FormatPatchDescription(res.PatchDescription, email.PatchTemplateData{
+		Fixes:      res.Fixes,
+		Tools:      slices.Collect(maps.Keys(models)),
+		Recipients: res.Recipients,
+	})
 	changeID, link, err := gerrit.CreateChange(ctx, res.KernelRepo, res.KernelBranch,
 		res.KernelCommit, description, res.PatchDiff)
 	if err != nil {

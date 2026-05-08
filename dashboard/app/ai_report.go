@@ -298,6 +298,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		To:         to,
 		Cc:         cc,
 		Tools:      slices.Collect(maps.Keys(models)),
+		Fixes:      res.Fixes,
 	}, nil
 }
 
