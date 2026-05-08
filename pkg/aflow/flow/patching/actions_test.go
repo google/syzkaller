@@ -24,6 +24,7 @@ func TestRecentCommits(t *testing.T) {
 	require.NoError(t, os.Symlink(osutil.Abs(filepath.FromSlash("../../../..")),
 		filepath.Join(dir, "repo", "linux")))
 	aflow.TestAction(t, getRecentCommits, dir, recentCommitsArgs{
+		KernelSrc:    filepath.Join(dir, "repo", "linux"),
 		KernelCommit: "e01a0ca6c12c9851ea7090f13879255ef82291e7",
 		PatchDiff: `
 diff --git a/dashboard/app/ai.go b/dashboard/app/ai.go

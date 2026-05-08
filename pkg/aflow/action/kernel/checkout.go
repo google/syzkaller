@@ -72,7 +72,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					}
 				}
 			}
-			return shallowGitClone(dir, kernelRepoDir)
+			return localGitClone(dir, kernelRepoDir)
 		})
 		res.KernelSrc = dir
 		return err
@@ -85,20 +85,20 @@ func checkoutScratch(ctx *aflow.Context, args checkoutScratchArgs) (checkoutScra
 	if err != nil {
 		return checkoutScratchResult{}, err
 	}
-	if err := shallowGitClone(dir, args.KernelSrc); err != nil {
+	if err := localGitClone(dir, args.KernelSrc); err != nil {
 		return checkoutScratchResult{}, err
 	}
 	return checkoutScratchResult{dir}, nil
 }
 
-func shallowGitClone(dir, remoteDir string) error {
+func localGitClone(dir, remoteDir string) error {
 	if _, err := osutil.RunCmd(time.Hour, dir, "git", "init"); err != nil {
 		return err
 	}
 	if _, err := osutil.RunCmd(time.Hour, dir, "git", "remote", "add", "origin", remoteDir); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(time.Hour, dir, "git", "pull", "origin", "HEAD", "--depth=1",
+	if _, err := osutil.RunCmd(time.Hour, dir, "git", "pull", "origin", "HEAD",
 		"--allow-unrelated-histories"); err != nil {
 		return err
 	}

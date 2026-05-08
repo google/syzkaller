@@ -335,47 +335,49 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	if args.FixesHash == "" {
 		return args, nil
 	}
-	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		commit, err := repo.Commit(args.FixesHash)
-		if err != nil {
-			return aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
-		}
-		// LLM can provide a commit from a different branch.
-		// We want to ensure it is actually reachable from the current commit.
-		if _, err := repo.SwitchCommit(state.KernelCommit); err != nil {
-			return err
-		}
-		reachable, err := repo.Contains(commit.Hash)
-		if err != nil || !reachable {
-			return aflow.BadCallError("commit %q is not reachable from the current commit",
-				args.FixesHash)
-		}
-		args.FixesHash = commit.Hash
-		return nil
-	})
-	return args, err
+	git := &vcs.Git{
+		Dir: state.KernelSrc,
+	}
+	commit, err := git.Commit(args.FixesHash)
+	if err != nil {
+		return args, aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
+	}
+	// LLM can provide a commit from a different branch.
+	// We want to ensure it is actually reachable from the current commit.
+	reachable, err := git.ContainedIn(state.KernelCommit, commit.Hash)
+	if err != nil || !reachable {
+		return args, aflow.BadCallError("commit %q is not reachable from the current commit",
+			args.FixesHash)
+	}
+	args.FixesHash = commit.Hash
+	return args, nil
 }
 
 type formatFixesResult struct {
 	Fixes ai.FixesTag
 }
 
+type formatFixesArgs struct {
+	KernelSrc string
+	FixesHash string
+}
+
 var formatFixes = aflow.NewFuncAction("format-fixes",
-	func(ctx *aflow.Context, args fixesFinderArgs) (formatFixesResult, error) {
+	func(ctx *aflow.Context, args formatFixesArgs) (formatFixesResult, error) {
 		var fix ai.FixesTag
 		if args.FixesHash == "" {
 			return formatFixesResult{}, nil
 		}
-		err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-			commit, err := repo.Commit(args.FixesHash)
-			if err != nil {
-				return fmt.Errorf("failed to get commit %q: %w", args.FixesHash, err)
-			}
-			fix = ai.FixesTag{
-				Hash:  commit.Hash,
-				Title: commit.Title,
-			}
-			return nil
-		})
-		return formatFixesResult{Fixes: fix}, err
+		git := &vcs.Git{
+			Dir: args.KernelSrc,
+		}
+		commit, err := git.Commit(args.FixesHash)
+		if err != nil {
+			return formatFixesResult{}, fmt.Errorf("failed to get commit %q: %w", args.FixesHash, err)
+		}
+		fix = ai.FixesTag{
+			Hash:  commit.Hash,
+			Title: commit.Title,
+		}
+		return formatFixesResult{Fixes: fix}, nil
 	})
