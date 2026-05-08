@@ -1423,3 +1423,65 @@ func TestAIManualPushToReporting(t *testing.T) {
 	// Make sure the poll returns our manually pushed job.
 	require.Equal(t, "Subject", pollResp.Result.Patch.Subject)
 }
+
+func TestAIAssessmentNoReport(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+		SecurityPrio: func(*Bug, ai.AssessmentSecurityOutputs) BugPrio { return "" },
+	})
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "WARNING: any type of bug"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+	// Register the workflow first.
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
+		},
+	})
+	require.NoError(t, err)
+
+	// Manually create the job since it's not automatically created for generic bugs.
+	jobID := c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
+
+	// Poll again to pick up the job and assign it to the agent.
+	pollResp2, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, jobID, pollResp2.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"Explanation": "Test",
+			"Exploitable": false,
+		},
+	})
+	require.NoError(t, err)
+
+	values := url.Values{}
+	values.Set("correct", aiCorrectnessCorrect)
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
+	require.NoError(t, err)
+
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.Nil(t, pollResp.Result)
+}

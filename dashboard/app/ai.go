@@ -433,12 +433,21 @@ func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, use
 		if err != nil {
 			return err
 		}
-		err = processUpstreamSubcommand(ctx, job, currentReporting, &dashapi.SendExternalCommandReq{
-			Source: SourceWebUI,
-			Author: userEmail,
-		})
-		if err != nil {
-			return err
+		var cmdErr error
+		if err := checkJobUpstreamable(job); err == nil {
+			cmdErr = processUpstreamSubcommand(ctx, job, currentReporting, &dashapi.SendExternalCommandReq{
+				Source: SourceWebUI,
+				Author: userEmail,
+			})
+		} else {
+			cmdErr = aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
+				Job:           job,
+				CommandSource: SourceWebUI,
+				User:          userEmail,
+			})
+		}
+		if cmdErr != nil {
+			return cmdErr
 		}
 	case aiCorrectnessIncorrect:
 		err := aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
