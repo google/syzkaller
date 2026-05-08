@@ -9,12 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type TestToolOption func(*Context)
+
 // TestTool runs the given tool on provided initState/initArgs and compares results/error
 // with the provided wantResults/wantError.
 // wantResults can be either the tool return struct, or a function that accepts the tool
 // return struct. In the latter case, the function is executed with the actual results,
 // and is supposed to do assertions on the value.
-func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wantError string) {
+func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wantError string, opts ...TestToolOption) {
 	type tester interface {
 		testVerify(t *testing.T, ctx *verifyContext, state, args, results any) (
 			map[string]any, map[string]any, func(map[string]any))
@@ -28,6 +30,9 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	ctx := &Context{
 		state: state,
 	}
+	for _, opt := range opts {
+		opt(ctx)
+	}
 	defer ctx.Close()
 	gotResults, err := tool.execute(ctx, args)
 	gotError := ""
@@ -36,6 +41,12 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	}
 	require.Equal(t, wantError, gotError)
 	resultChecker(gotResults)
+}
+
+func TestWorkdir(dir string) TestToolOption {
+	return func(ctx *Context) {
+		ctx.Workdir = dir
+	}
 }
 
 func FuzzTool(t *testing.T, tool Tool, initState, initArgs any) (map[string]any, error) {

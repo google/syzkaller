@@ -323,7 +323,6 @@ Search for the commit(s) that introduced this bug.
 `
 
 type fixesFinderState struct {
-	KernelSrc    string
 	KernelCommit string
 }
 
@@ -342,10 +341,7 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 		}
 		// LLM can provide a commit from a different branch.
 		// We want to ensure it is actually reachable from the current commit.
-		if _, err := repo.SwitchCommit(state.KernelCommit); err != nil {
-			return err
-		}
-		reachable, err := repo.Contains(commit.Hash)
+		reachable, err := vcs.Git{Dir: kernelRepoDir}.ContainedIn(state.KernelCommit, commit.Hash)
 		if err != nil || !reachable {
 			return aflow.BadCallError("commit %q is not reachable from the current commit",
 				args.FixesHash)
