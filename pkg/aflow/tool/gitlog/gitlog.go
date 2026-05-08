@@ -70,6 +70,9 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 		return logResult{}, aflow.BadCallError("at least one of CodeRegexp, SymbolName, " +
 			"MessageRegexps, or PathPrefix must be set")
 	}
+	if args.SymbolName != "" && args.PathPrefix != "" {
+		return logResult{}, aflow.BadCallError("SymbolName and PathPrefix cannot be used together")
+	}
 	if args.Count <= 0 {
 		args.Count = 10
 	}
