@@ -1669,6 +1669,11 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
 	}
+	// A reproducer increases chances of a correct assessment, so wait for it for a day.
+	if manual || bug.ReproLevel > dashapi.ReproLevelNone ||
+		timeSince(ctx, bug.FirstTime) > 24*time.Hour {
+		workflows[ai.WorkflowAssessmentSecurity] = true
+	}
 	if manual {
 		// Types we don't create automatically yet, but can be created manually.
 		if typ.IsUAF() {
@@ -1678,7 +1683,6 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			workflows[ai.WorkflowPatching] = true
 		}
 		workflows[ai.WorkflowRepro] = true
-		workflows[ai.WorkflowAssessmentSecurity] = true
 	}
 	return workflows
 }
