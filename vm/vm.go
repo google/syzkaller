@@ -552,6 +552,11 @@ func (mon *monitor) waitForOutput() {
 	}
 }
 
+// IsPreempted reports whether the VM output indicates the instance was preempted.
+func IsPreempted(output []byte) bool {
+	return bytes.Contains(output, []byte(executorPreemptedStr))
+}
+
 const (
 	maxErrorLength = 256
 

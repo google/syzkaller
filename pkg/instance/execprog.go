@@ -51,6 +51,9 @@ type RunResult struct {
 	// It's populated after a crash if MemoryDump was enabled in RunOptions.
 	// Empty if no dump was extracted.
 	MemoryDump string
+	// Preempted is true when the VM was preempted during execution.
+	// The result should be treated as inconclusive and the run retried.
+	Preempted bool
 }
 
 const (
@@ -156,9 +159,10 @@ func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunR
 		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
 	res := &RunResult{
-		Output:   append(prefixOutput, output...),
-		Report:   rep,
-		Duration: time.Since(start),
+		Output:    append(prefixOutput, output...),
+		Report:    rep,
+		Duration:  time.Since(start),
+		Preempted: vm.IsPreempted(output),
 	}
 	if opts.MemoryDump {
 		res.MemoryDump, err = inst.extractDump(rep, opts)

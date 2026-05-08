@@ -689,13 +689,18 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 		// and not. So let's just retry runs for all errors.
 		// If the problem is transient, it will likely go away.
 		// If the problem is permanent, it will just be the same.
+		// Also retry when the VM was preempted -- a preempted run is inconclusive
+		// and must not be treated as "did not crash", which would corrupt bisection.
 		result, err = callback()
-		if err == nil {
+		if err == nil && !result.Preempted {
 			break
 		}
 	}
 	if err != nil {
 		return verdict{}, err
+	}
+	if result.Preempted {
+		return verdict{}, fmt.Errorf("VM preempted during all %d reproduction attempts", attempts)
 	}
 	rep := result.Report
 	if rep == nil {
