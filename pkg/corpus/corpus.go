@@ -69,10 +69,14 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
 	for _, area := range areas {
 		obj := &ProgramsList{}
-		if len(areas) > 1 && area.Name != "" {
+		if len(areas) > 1 {
 			// Only show extra statistics if there's more than one area.
-			stat.New("corpus ["+area.Name+"]",
-				fmt.Sprintf("Corpus programs of the focus area %q", area.Name),
+			name := area.Name
+			if name == "" {
+				name = "all"
+			}
+			stat.New("corpus ["+name+"]",
+				fmt.Sprintf("Corpus programs of the focus area %q", name),
 				stat.Console, stat.Graph("corpus"),
 				stat.LenOf(&obj.progs, &corpus.mu))
 		}
@@ -204,8 +208,8 @@ func (corpus *Corpus) applyFocusAreas(item *Item, coverDelta []uint64) {
 		area.saveProgram(item.Prog, item.Signal)
 		if item.areas == nil {
 			item.areas = make(map[*focusAreaState]struct{})
-			item.areas[area] = struct{}{}
 		}
+		item.areas[area] = struct{}{}
 	}
 }
 
