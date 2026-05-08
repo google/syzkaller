@@ -168,10 +168,7 @@ func applyGitPatchFunc(ctx *aflow.Context, args applyGitPatchArgs) (struct{}, er
 	}
 
 	// Apply the diff.
-	cmd := exec.Command("git", "apply")
-	cmd.Dir = args.KernelScratchSrc
-	cmd.Stdin = strings.NewReader(latest.Diff)
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+	if err := vcs.Patch(args.KernelScratchSrc, []byte(latest.Diff)); err != nil {
 		return struct{}{}, aflow.FlowError(fmt.Errorf("failed to apply previous patch: %w", err))
 	}
 
