@@ -414,7 +414,6 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		ID: jobID1,
 		Results: map[string]any{
 			"Benign":      false,
-			"Confident":   true,
 			"Explanation": "ISO C says data races result in undefined program behavior.",
 		},
 	})

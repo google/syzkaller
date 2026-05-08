@@ -34,7 +34,6 @@ func init() {
 					Model: aflow.GoodBalancedModel,
 					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
-						Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
 						Actionable bool `jsonschema:"If the report is actionable or not."`
 					}](),
 					TaskType:    aflow.FormalReasoningTask,

@@ -33,8 +33,7 @@ func init() {
 					Model: aflow.GoodBalancedModel,
 					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
-						Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
-						Benign    bool `jsonschema:"If the data race is benign or not."`
+						Benign bool `jsonschema:"If the data race is benign or not."`
 					}](),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: kcsanInstruction,

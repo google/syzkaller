@@ -1118,9 +1118,6 @@ func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType,
 			err0 = err
 			return
 		}
-		if !res.Confident {
-			return
-		}
 		if res.Benign {
 			return RaceLabel, BenignRace, true, nil
 		}
@@ -1150,9 +1147,6 @@ func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType,
 		res, err := castJobResults[ai.ModerationOutputs](job)
 		if err != nil {
 			err0 = err
-			return
-		}
-		if !res.Confident {
 			return
 		}
 		return ActionableLabel, "", res.Actionable, nil
