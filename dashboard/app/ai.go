@@ -1114,12 +1114,7 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {
 	switch job.Type {
 	case ai.WorkflowAssessmentKCSAN:
-		// For now we require a manual correctness check,
-		// later we may apply some labels w/o the manual check.
-		if !job.Correct.Valid {
-			return
-		}
-		if !job.Correct.Bool {
+		if job.Correct.Valid && !job.Correct.Bool {
 			return RaceLabel, "", false, nil
 		}
 		res, err := castJobResults[ai.AssessmentKCSANOutputs](job)
@@ -1132,9 +1127,6 @@ func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType,
 		}
 		return RaceLabel, HarmfulRace, true, nil
 	case ai.WorkflowAssessmentSecurity:
-		if !job.Correct.Valid {
-			return
-		}
 		res, err := castJobResults[ai.AssessmentSecurityOutputs](job)
 		if err != nil {
 			err0 = err
@@ -1146,11 +1138,7 @@ func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType,
 		}
 		return PriorityLabel, string(prio), true, nil
 	case ai.WorkflowModeration:
-		// For now we require a manual correctness check.
-		if !job.Correct.Valid {
-			return
-		}
-		if !job.Correct.Bool {
+		if job.Correct.Valid && !job.Correct.Bool {
 			return ActionableLabel, "", false, nil
 		}
 		res, err := castJobResults[ai.ModerationOutputs](job)
