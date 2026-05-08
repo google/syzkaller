@@ -165,7 +165,11 @@ AI trajectory rendering, invoked with context containing .Trajectory and .Trajec
 			filteredSteps.forEach(s => {
 				// Convert Go duration (nanoseconds) to seconds
 				const dur = s.Duration / 1000000000;
-				data.addRow([`${s.Seq}`, dur, s.Name]);
+				let tooltip = s.Name;
+				if (s.Type === "llm" && s.ToolCalls && s.ToolCalls.length > 0) {
+					tooltip += `\nTools: ${s.ToolCalls.join(', ')}`;
+				}
+				data.addRow([`${s.Seq}`, dur, tooltip]);
 			});
 
 			const options = {
@@ -208,7 +212,10 @@ AI trajectory rendering, invoked with context containing .Trajectory and .Trajec
 				const label = `${s.Name}-${agentLLMCounts[s.Name]}`;
 				const totalTokens = s.InputTokens + s.OutputTokens + s.OutputThoughtsTokens;
 				const style = `color: ${agentColors[s.Name]}`;
-				const tooltip = `Total Tokens: ${totalTokens}\n(In: ${s.InputTokens}, Out: ${s.OutputTokens}, Thoughts: ${s.OutputThoughtsTokens})`;
+				let tooltip = `Total Tokens: ${totalTokens}\n(In: ${s.InputTokens}, Out: ${s.OutputTokens}, Thoughts: ${s.OutputThoughtsTokens})`;
+				if (s.ToolCalls && s.ToolCalls.length > 0) {
+					tooltip += `\nTools: ${s.ToolCalls.join(', ')}`;
+				}
 
 				data.addRow([label, totalTokens, style, tooltip]);
 			});
