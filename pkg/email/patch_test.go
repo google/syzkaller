@@ -527,6 +527,7 @@ func TestFormatPatch(t *testing.T) {
 		description string
 		diff        string
 		baseCommit  string
+		fixes       ai.FixesTag
 		tools       []string
 		authors     []string
 		recipients  []ai.Recipient
@@ -540,16 +541,38 @@ Something was broken. This fixes it.
 
 `,
 			diff: `diff --git a/mm/slub.c b/mm/slub.c
-index f77b7407c51b..9320daf2018f 100644
---- a/mm/slub.c
-+++ b/mm/slub.c
-@@ -250,7 +250,7 @@ struct partial_context {
- 
- static inline bool kmem_cache_debug(struct kmem_cache *s)
- {
--       return kmem_cache_debug_flags(s, SLAB_DEBUG_FLAGS);
-+       return kmem_cache_debug_flags(s, 0);
- }
+`,
+			baseCommit: "f5e343a447510a663fbf6215584a9bf8e03bfd5c",
+			fixes: ai.FixesTag{
+				Hash:  "9320daf2018f",
+				Title: "some old bug",
+			},
+			authors: []string{"syzbot@kernel.org"},
+			recipients: []ai.Recipient{
+				{Name: "Foo Bar", Email: "foobar@test.com", To: true},
+				{Email: "linux-kernel@vger.kernel.org"},
+			},
+			want: `mm: fix something
+
+Something was broken. This fixes it.
+
+Fixes: 9320daf2018f ("some old bug")
+Signed-off-by: syzbot@kernel.org
+To: "Foo Bar" <foobar@test.com>
+Cc: <linux-kernel@vger.kernel.org>
+
+diff --git a/mm/slub.c b/mm/slub.c
+
+base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
+`,
+		},
+		{
+			description: `mm: fix something
+
+Something was broken. This fixes it.
+
+`,
+			diff: `diff --git a/mm/slub.c b/mm/slub.c
 `,
 			baseCommit: "f5e343a447510a663fbf6215584a9bf8e03bfd5c",
 			authors:    []string{"syzbot@kernel.org"},
@@ -566,16 +589,6 @@ To: "Foo Bar" <foobar@test.com>
 Cc: <linux-kernel@vger.kernel.org>
 
 diff --git a/mm/slub.c b/mm/slub.c
-index f77b7407c51b..9320daf2018f 100644
---- a/mm/slub.c
-+++ b/mm/slub.c
-@@ -250,7 +250,7 @@ struct partial_context {
- 
- static inline bool kmem_cache_debug(struct kmem_cache *s)
- {
--       return kmem_cache_debug_flags(s, SLAB_DEBUG_FLAGS);
-+       return kmem_cache_debug_flags(s, 0);
- }
 
 base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
 `,
@@ -612,8 +625,13 @@ base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			got := FormatPatch(test.description, test.diff, test.baseCommit,
-				test.tools, test.authors, test.recipients)
+			got := FormatPatch(test.description, test.diff, PatchTemplateData{
+				BaseCommit: test.baseCommit,
+				Fixes:      test.fixes,
+				Tools:      test.tools,
+				Authors:    test.authors,
+				Recipients: test.recipients,
+			})
 			assert.Equal(t, test.want, got)
 		})
 	}

@@ -80,6 +80,10 @@ func TestAILoreIntegration(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "123456789012",
+				"Title": "original bug",
+			},
 			"Recipients": []map[string]any{
 				{"Name": "Maintainer", "Email": "maintainer@email.com", "To": true},
 				{"Name": "Reviewer", "Email": "reviewer@email.com", "To": false},
@@ -98,6 +102,7 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[0].Cc)
 
 	body := string(mockSnd.sent[0].Body)
+	assert.Contains(t, body, "Fixes: 123456789012 (\"original bug\")")
 	assert.Contains(t, body, "Assisted-by: Gemini:gemini-3.1-pro-preview")
 	assert.Contains(t, body, "To: <maintainer@email.com>")
 	assert.Contains(t, body, "Cc: <reviewer@email.com>")
