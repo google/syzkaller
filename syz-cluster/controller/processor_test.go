@@ -61,6 +61,7 @@ func TestProcessor(t *testing.T) {
 	ctx3, cancel := context.WithCancel(ctx)
 	wg.Add(1)
 	defer wg.Wait()
+	defer cancel()
 	go func() {
 		processor.Loop(ctx3)
 		wg.Done()
