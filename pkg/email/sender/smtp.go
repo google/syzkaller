@@ -6,6 +6,7 @@ package sender
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/mail"
 	"net/smtp"
@@ -41,10 +42,53 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 	recipients := slices.Concat(item.To, item.Cc)
 	slices.Sort(recipients)
 	recipients = slices.Compact(recipients)
-	err := smtp.SendMail(smtpAddr, auth, s.cfg.From.Address, recipients, msg)
-	if err != nil {
-		return "", err
+
+	if s.cfg.Port == 465 {
+		// Implicit TLS.
+		tlsconfig := &tls.Config{
+			ServerName: s.cfg.Host,
+		}
+		dialer := &tls.Dialer{Config: tlsconfig}
+		conn, err := dialer.DialContext(ctx, "tcp", smtpAddr)
+		if err != nil {
+			return "", fmt.Errorf("tls.Dial failed: %w", err)
+		}
+		client, err := smtp.NewClient(conn, s.cfg.Host)
+		if err != nil {
+			return "", fmt.Errorf("smtp.NewClient failed: %w", err)
+		}
+		defer client.Close()
+		if err = client.Auth(auth); err != nil {
+			return "", fmt.Errorf("client.Auth failed: %w", err)
+		}
+		if err = client.Mail(s.cfg.From.Address); err != nil {
+			return "", fmt.Errorf("client.Mail failed: %w", err)
+		}
+		for _, addr := range recipients {
+			if err = client.Rcpt(addr); err != nil {
+				return "", fmt.Errorf("client.Rcpt failed for %v: %w", addr, err)
+			}
+		}
+		w, err := client.Data()
+		if err != nil {
+			return "", fmt.Errorf("client.Data failed: %w", err)
+		}
+		_, writeErr := w.Write(msg)
+		closeErr := w.Close()
+		if writeErr != nil {
+			return "", fmt.Errorf("failed to write message body: %w", writeErr)
+		}
+		if closeErr != nil {
+			return "", fmt.Errorf("failed to close data writer: %w", closeErr)
+		}
+		client.Quit()
+	} else {
+		err := smtp.SendMail(smtpAddr, auth, s.cfg.From.Address, recipients, msg)
+		if err != nil {
+			return "", err
+		}
 	}
+
 	return msgID, nil
 }
 
