@@ -71,7 +71,7 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkContextArgs(n)
 			case *ast.CallExpr:
 				pass.checkFlagDefinition(n)
-				pass.checkLogErrorFormat(n)
+				pass.checkFormatString(n)
 				pass.checkSliceClone(n)
 				pass.checkSortUsage(n)
 			case *ast.GenDecl:
@@ -371,9 +371,9 @@ func (pass *Pass) checkSliceClone(n *ast.CallExpr) {
 	pass.report(n, "Use slices.Clone instead of append")
 }
 
-// checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
-func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
-	arg, newLine, sure := pass.logFormatArg(n)
+// checkFormatString warns about log/error messages starting with capital letter or ending with a period.
+func (pass *Pass) checkFormatString(n *ast.CallExpr) {
+	arg, log, newLine, sure := pass.logFormatArg(n)
 	if arg == -1 || len(n.Args) <= arg {
 		return
 	}
@@ -381,6 +381,19 @@ func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	if !ok {
 		return
 	}
+	if log {
+		pass.checkLogErrorFormat(n, val, newLine, sure)
+	}
+	for _, f := range []string{"%d", "%t", "%g", "%f", "%p"} {
+		if strings.Contains(val, f) {
+			pass.report(n.Args[arg], "Don't use %v format, use %%v instead", f)
+			break
+		}
+	}
+}
+
+// checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
+func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr, val string, newLine, sure bool) {
 	ln := len(val)
 	if ln == 0 {
 		pass.report(n, "Don't use empty log/error messages")
@@ -406,32 +419,33 @@ func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	}
 }
 
-func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
+func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, log, newLine, sure bool) {
 	fun, ok := n.Fun.(*ast.SelectorExpr)
 	if !ok {
-		return -1, false, false
+		return -1, false, false, false
 	}
 	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
 	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf", "jp.Logf":
-		return 0, false, true
+		return 0, true, false, true
 	case "log.Logf":
-		return 1, false, true
+		return 1, true, false, true
 	case "fmt.Print", "fmt.Printf":
-		return 0, true, false
+		return 0, true, true, false
 	case "fmt.Fprint", "fmt.Fprintf":
-		if w, ok := n.Args[0].(*ast.SelectorExpr); !ok || fmt.Sprintf("%v.%v", w.X, w.Sel) != "os.Stderr" {
-			break
-		}
-		return 1, true, true
+		w, ok := n.Args[0].(*ast.SelectorExpr)
+		log := ok && fmt.Sprintf("%v.%v", w.X, w.Sel) == "os.Stderr"
+		return 1, log, true, true
+	case "fmt.Sprintf":
+		return 0, false, false, false
 	case "t.Errorf", "t.Fatalf":
-		return 0, false, true
+		return 0, true, false, true
 	case "tool.Failf":
-		return 0, false, true
+		return 0, true, false, true
 	}
 	if fun.Sel.String() == "Logf" {
-		return 0, false, true
+		return 0, true, false, true
 	}
-	return -1, false, false
+	return -1, false, false, false
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+?((\.|[A-Z])[[:alnum:]]+)+ `)
