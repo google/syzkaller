@@ -81,7 +81,6 @@ type Recipient struct {
 }
 
 type AssessmentKCSANOutputs struct {
-	Confident   bool
 	Benign      bool
 	Explanation string
 }
@@ -104,7 +103,6 @@ type AssessmentSecurityOutputs struct {
 }
 
 type ModerationOutputs struct {
-	Confident   bool
 	Actionable  bool
 	Explanation string
 }

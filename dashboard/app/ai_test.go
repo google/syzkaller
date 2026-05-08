@@ -454,7 +454,6 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
-			"Confident":   true,
 			"Benign":      true,
 			"Explanation": "I don't care about races.",
 		},
