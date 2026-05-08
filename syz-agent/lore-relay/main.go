@@ -21,7 +21,8 @@ import (
 
 func main() {
 	var (
-		flagConfig = flag.String("config", "", "config file")
+		flagConfig    = flag.String("config", "", "config file")
+		flagTestEmail = flag.String("test-email", "", "send a test email to this address and exit")
 	)
 	defer tool.Init()()
 	flag.Parse()
@@ -64,6 +65,20 @@ func main() {
 		Password: cfg.SMTP.Password,
 		From:     fromAddr,
 	})
+
+	if *flagTestEmail != "" {
+		log.Printf("sending test email to %q", *flagTestEmail)
+		msgID, err := emailSender.Send(context.Background(), &sender.Email{
+			To:      []string{*flagTestEmail},
+			Subject: "syz-lore-relay test email",
+			Body:    []byte("This is a test email from syz-lore-relay.\n"),
+		})
+		if err != nil {
+			log.Fatalf("failed to send test email: %v", err)
+		}
+		log.Printf("test email sent successfully, message ID: %s", msgID)
+		return
+	}
 
 	relayCfg := &lorerelay.Config{
 		DashboardPollInterval: cfg.DashboardPollInterval,
