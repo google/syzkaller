@@ -99,7 +99,7 @@ ifeq ("$(TARGETOS)", "trusty")
 endif
 
 .PHONY: all clean host target \
-	manager executor kfuzztest ci hub agent \
+	manager executor kfuzztest ci hub agent lore-relay \
 	execprog mutate prog2c trace2syz repro upgrade db \
 	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
@@ -171,7 +171,7 @@ agent: descriptions
 	# syz-agent uses codesearch clang tool which requires cgo.
 	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent/agent
 
-lore-relay: descriptions
+lore-relay:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-lore-relay github.com/google/syzkaller/syz-agent/lore-relay
 
 repro: descriptions
