@@ -139,6 +139,14 @@ func TestConvertFromMap(t *testing.T) {
 	}, "", "")
 
 	testConvertFromMap(t, false, map[string]any{
+		"Strs": []any{"foo", "bar"},
+	}, struct {
+		Strs []string
+	}{
+		Strs: []string{"foo", "bar"},
+	}, "", "")
+
+	testConvertFromMap(t, false, map[string]any{
 		"Nested": map[string]any{"A": 1, "B": "foo"},
 	}, struct {
 		Nested struct {
