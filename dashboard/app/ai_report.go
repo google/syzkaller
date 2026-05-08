@@ -105,11 +105,14 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 }
 
 func checkJobUpstreamable(job *aidb.Job) error {
+	if job.Type != ai.WorkflowPatching && job.Type != ai.WorkflowPatchIteration {
+		return &aidb.ErrCannotUpstream{Reason: fmt.Sprintf("cannot upstream job of type %v", job.Type)}
+	}
 	// Prevent upstreaming if the job didn't actually produce a patch (e.g. reply-only iteration).
 	if job.Results.Valid {
 		if res, ok := job.Results.Value.(map[string]any); ok {
 			diff, _ := res["PatchDiff"].(string)
-			if diff == "" && (job.Type == ai.WorkflowPatching || job.Type == ai.WorkflowPatchIteration) {
+			if diff == "" {
 				return &aidb.ErrCannotUpstream{Reason: "Cannot upstream a job that did not produce a patch."}
 			}
 		}
