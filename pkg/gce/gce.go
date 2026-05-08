@@ -212,7 +212,7 @@ retry:
 	if err != nil {
 		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
-	if err := ctx.waitForZonalCompletion("create instance", op.Name, false); err != nil {
+	if err := ctx.waitForZonalCompletion("create instance", ctx.ZoneID, op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
@@ -269,7 +269,7 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
-		if err := ctx.waitForZonalCompletion("delete instance", op.Name, true); err != nil {
+		if err := ctx.waitForZonalCompletion("delete instance", ctx.ZoneID, op.Name, true); err != nil {
 			return err
 		}
 	}
@@ -354,15 +354,15 @@ func (err resourcePoolExhaustedError) Error() string {
 	return string(err)
 }
 
-func (ctx *Context) waitForZonalCompletion(desc, opName string, ignoreNotFound bool) error {
-	return ctx.waitForCompletion("zone", desc, opName, ignoreNotFound)
+func (ctx *Context) waitForZonalCompletion(desc, zone, opName string, ignoreNotFound bool) error {
+	return ctx.waitForCompletion("zone", desc, zone, opName, ignoreNotFound)
 }
 
 func (ctx *Context) waitForGlobalCompletion(desc, opName string, ignoreNotFound bool) error {
-	return ctx.waitForCompletion("global", desc, opName, ignoreNotFound)
+	return ctx.waitForCompletion("global", desc, "", opName, ignoreNotFound)
 }
 
-func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
+func (ctx *Context) waitForCompletion(typ, desc, zone, opName string, ignoreNotFound bool) error {
 	for {
 		time.Sleep(3 * time.Second)
 		var op *compute.Operation
@@ -371,7 +371,7 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 			case "global":
 				op, err = ctx.computeService.GlobalOperations.Wait(ctx.ProjectID, opName).Do()
 			case "zone":
-				op, err = ctx.computeService.ZoneOperations.Wait(ctx.ProjectID, ctx.ZoneID, opName).Do()
+				op, err = ctx.computeService.ZoneOperations.Wait(ctx.ProjectID, zone, opName).Do()
 			default:
 				panic("unknown operation type: " + typ)
 			}
