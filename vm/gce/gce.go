@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -71,7 +72,8 @@ type Pool struct {
 	env            *vmimpl.Env
 	cfg            *Config
 	GCE            *gce.Context
-	consoleReadCmd string // optional: command to read non-standard kernel console
+	consoleReadCmd string   // optional: command to read non-standard kernel console
+	alreadyCreated sync.Map // Tracks the first creation per instance.
 }
 
 type instance struct {
@@ -80,6 +82,7 @@ type instance struct {
 	GCE   *gce.Context
 	debug bool
 	name  string
+	zone  string
 	vmimpl.SSHOptions
 	gceKey         string // per-instance private ssh key associated with the instance
 	closed         chan bool
@@ -207,12 +210,20 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		NicType:              pool.cfg.NicType,
 		VMRunningTime:        pool.env.Timeouts.VMRunningTime,
 	}
-	ip, err := pool.GCE.CreateInstance(instCfg)
+	// In case the manager crashed, we might attempt creation in a different zone than the original VM, and the creation
+	// will not fail. The VM should eventually be deleted anyway, unless it's configured to run forever.
+	// If that's the case, attempt deletion first.
+	if instCfg.VMRunningTime == 0 {
+		if _, loaded := pool.alreadyCreated.LoadOrStore(index, true); !loaded {
+			pool.GCE.DeleteInstanceAcrossZones(name, true)
+		}
+	}
+	ip, zone, err := pool.GCE.CreateInstance(instCfg)
 	var apiErr *googleapi.Error
 	if errors.As(err, &apiErr) && apiErr.Code == 409 {
-		log.Logf(0, "deleting existing instance due to conflict: %v", name)
-		if err = pool.GCE.DeleteInstance(name, true); err == nil {
-			ip, err = pool.GCE.CreateInstance(instCfg)
+		log.Logf(0, "deleting existing instance %v at zone %v due to conflict: %v", name, zone, err)
+		if err = pool.GCE.DeleteInstance(name, zone, true); err == nil {
+			ip, zone, err = pool.GCE.CreateInstance(instCfg)
 		}
 	}
 	if err != nil {
@@ -222,7 +233,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	ok := false
 	defer func() {
 		if !ok {
-			pool.GCE.DeleteInstance(name, true)
+			pool.GCE.DeleteInstance(name, zone, true)
 		}
 	}()
 	sshKey := pool.env.SSHKey
@@ -239,6 +250,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		debug: pool.env.Debug,
 		GCE:   pool.GCE,
 		name:  name,
+		zone:  zone,
 		SSHOptions: vmimpl.SSHOptions{
 			Addr: ip,
 			Port: 22,
@@ -266,7 +278,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 
 func (inst *instance) Close() error {
 	close(inst.closed)
-	err := inst.GCE.DeleteInstance(inst.name, true)
+	err := inst.GCE.DeleteInstance(inst.name, inst.zone, true)
 	if inst.consolew != nil {
 		err2 := inst.consolew.Close()
 		if err == nil {
@@ -398,7 +410,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 				// Check if the instance was terminated due to preemption or host maintenance.
 				// vmimpl.Multiplex() already adds a delay, so we've already waited enough
 				// to let GCE VM status updates propagate.
-				if !inst.GCE.IsInstanceRunning(inst.name) {
+				if !inst.GCE.IsInstanceRunning(inst.name, inst.zone) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
 					return true
 				}
@@ -482,7 +494,7 @@ func (inst *instance) serialPortArgs(replay bool) []string {
 		replayArg = ".replay-lines=10000"
 	}
 	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@%v-ssh-serialport.googleapis.com",
-		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg, inst.GCE.RegionID)
+		inst.GCE.ProjectID, inst.zone, inst.name, user, replayArg, inst.GCE.RegionID)
 	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600, false), conAddr)
 	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
 	// host key algorithm: ssh-rsa.
