@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -40,6 +41,12 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 		gotError = err.Error()
 	}
 	require.Equal(t, wantError, gotError)
+	if wantError != "" {
+		var badCallErr *badCallError
+		if !errors.As(err, &badCallErr) {
+			t.Errorf("expected BadCallError, got %T: %v", err, err)
+		}
+	}
 	resultChecker(gotResults)
 }
 
