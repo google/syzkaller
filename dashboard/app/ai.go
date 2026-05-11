@@ -1719,10 +1719,16 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	// or priority label (don't cc stable on low prio bugs).
 	res.Recipients = append(res.Recipients, ai.Recipient{Email: "stable@vger.kernel.org"})
 	// TODO: add a human who reviewed the patch to authors.
+	var links []string
+	if job.BugID.Valid {
+		links = append(links, jobBugLink(ctx, job.BugID))
+	}
+	links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
 	description := email.FormatPatchDescription(res.PatchDescription, email.PatchTemplateData{
 		Fixes:      res.Fixes,
 		Tools:      slices.Collect(maps.Keys(models)),
 		Recipients: res.Recipients,
+		Links:      links,
 	})
 	changeID, link, err := gerrit.CreateChange(ctx, res.KernelRepo, res.KernelBranch,
 		res.KernelCommit, description, res.PatchDiff)
@@ -1794,4 +1800,16 @@ func compactAIJobs(jobs []*aidb.Job) []*aidb.Job {
 	})
 
 	return filtered
+}
+
+func jobBugLink(ctx context.Context, bugID spanner.NullString) string {
+	if !bugID.Valid {
+		return ""
+	}
+	bugKey := db.NewKey(ctx, "Bug", bugID.StringVal, 0, nil)
+	bug := new(Bug)
+	if err := db.Get(ctx, bugKey, bug); err == nil {
+		return appURL(ctx) + bugExtLink(ctx, bug)
+	}
+	return appURL(ctx) + bugLink(bugID.StringVal)
 }

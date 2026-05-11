@@ -233,6 +233,15 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			}
 		}
 
+		if patchResult != nil {
+			var links []string
+			if job.BugID.Valid {
+				links = append(links, jobBugLink(ctx, job.BugID))
+			}
+			links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
+			patchResult.Links = links
+		}
+
 		to := []string{stageCfg.MailingList}
 		var cc []string
 		if stageCfg.MergePatchCc && patchResult != nil {

@@ -117,6 +117,10 @@ func TestAIExternalReporting(t *testing.T) {
 		GitDiff:    "diff",
 		BaseCommit: "commit",
 		BaseTree:   "repo",
+		Links: []string{
+			appURL(c.ctx) + "/bug?extid=" + extID,
+			appURL(c.ctx) + "/ai_job?id=" + jobID,
+		},
 	}, pollResp.Result.Patch)
 	require.Equal(t, []string{"public@test.com"}, pollResp.Result.To)
 
@@ -773,8 +777,10 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 			},
 			BaseCommit: "repo_commit",
 			BaseTree:   "repo_url",
-			To:         nil,
-			Cc:         nil,
+			Links: []string{
+				appURL(c.ctx) + "/bug?extid=" + extID,
+				appURL(c.ctx) + "/ai_job?id=" + resp.ID,
+			},
 		},
 	}
 	require.Equal(t, wantResult, gotResult)
