@@ -1234,5 +1234,8 @@ func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
 		if commit, ok := m["KernelCommit"].(string); ok && commit != "" {
 			argsMap["BaseCommit"] = commit
 		}
+		if fixes, ok := m["Fixes"].(map[string]any); ok && fixes != nil {
+			argsMap["BaseFixes"] = fixes
+		}
 	}
 }

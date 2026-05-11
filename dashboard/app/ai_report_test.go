@@ -55,6 +55,10 @@ func TestAIExternalReporting(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "123456789012",
+				"Title": "original bug",
+			},
 		},
 	})
 	require.NoError(t, err)
@@ -66,6 +70,8 @@ func TestAIExternalReporting(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pollResp.Result)
 	require.True(t, pollResp.Result.CanUpstream)
+	require.Equal(t, "123456789012", pollResp.Result.Patch.Fixes.Hash)
+	require.Equal(t, "original bug", pollResp.Result.Patch.Fixes.Title)
 
 	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
 		ReportID:       pollResp.Result.ID,
@@ -120,6 +126,10 @@ func TestAIExternalReporting(t *testing.T) {
 		Links: []string{
 			appURL(c.ctx) + "/bug?extid=" + extID,
 			appURL(c.ctx) + "/ai_job?id=" + jobID,
+		},
+		Fixes: ai.FixesTag{
+			Hash:  "123456789012",
+			Title: "original bug",
 		},
 	}, pollResp.Result.Patch)
 	require.Equal(t, []string{"public@test.com"}, pollResp.Result.To)

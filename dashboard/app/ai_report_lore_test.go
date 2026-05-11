@@ -335,6 +335,10 @@ func TestAILoreIntegrationComment(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "123456789012",
+				"Title": "original bug",
+			},
 		},
 	})
 	require.NoError(t, err)
@@ -398,7 +402,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	// Should be automatically processed to avoid loops.
 	assert.True(t, botComment.Processed)
 
-	// 5. Complete the iteration job to verify CC behavior on replies.
+	// 5. Complete the iteration job to verify CC behavior on replies and Fixes passing.
 	// Advance time to pass the debounce logic so the iteration job gets created.
 	c.advanceTime(31 * time.Minute)
 
@@ -412,6 +416,10 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	resp, err := c.agentClient.AIJobPoll(pollReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.ID)
+
+	// Verify that the original fixes hash was passed down.
+	baseFixesMap := resp.Args["BaseFixes"].(map[string]any)
+	require.Equal(t, "123456789012", baseFixesMap["Hash"])
 
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
@@ -443,4 +451,138 @@ type integrationMockSender struct {
 func (m *integrationMockSender) Send(ctx context.Context, email *sender.Email) (string, error) {
 	m.sent = append(m.sent, email)
 	return fmt.Sprintf("<mock@msgid-%d>", len(m.sent)), nil
+}
+
+func TestAILoreIteration(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+		},
+	})
+
+	repoDir := t.TempDir()
+	loreArchive := lore.NewTestLoreArchive(t, repoDir)
+
+	now := time.Now()
+
+	pollerCfg := lore.PollerConfig{
+		RepoDir:   t.TempDir(),
+		URL:       loreArchive.Repo.Dir,
+		Tracer:    &debugtracer.TestTracer{T: t},
+		OwnEmails: []string{"syzbot@testapp.appspotmail.com"},
+	}
+	poller, err := lore.NewPoller(pollerCfg)
+	require.NoError(t, err)
+
+	mockSnd := &integrationMockSender{}
+
+	relay := lorerelay.NewRelay(&lorerelay.Config{
+		DocsLink:    "http://docs.link",
+		LoreArchive: "archive@lore.com",
+	}, c.globalClient, poller, mockSnd)
+
+	// 1. Create a bug and AI job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Description",
+			"PatchDiff":        "diff",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "123456789012",
+				"Title": "original bug",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// 2. Poll Dashboard - should report to moderation.
+	err = relay.PollDashboardOnce(t.Context())
+	require.NoError(t, err)
+	require.Len(t, mockSnd.sent, 1)
+
+	// 3. Send a plain comment.
+	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
+		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Message-ID: <comment1>\n"+
+		"In-Reply-To: <mock@msgid-1>\n\n"+
+		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	// 4. Send a reply from the bot itself.
+	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
+		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Message-ID: <bot-reply>\n"+
+		"In-Reply-To: <comment1>\n\n"+
+		"This is a generated bot reply.\n", now.Add(time.Minute*2))
+	err = relay.PollLoreOnce(context.Background())
+	require.NoError(t, err)
+
+	// 5. Complete the iteration job to verify CC behavior on replies and Fixes passing.
+	// Advance time to pass the debounce logic so the iteration job gets created.
+	c.advanceTime(31 * time.Minute)
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	// Verify that the original fixes hash was passed down.
+	baseFixesMap := resp.Args["BaseFixes"].(map[string]any)
+	require.Equal(t, "123456789012", baseFixesMap["Hash"])
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"PatchDescription": "Test Description",
+			"PatchDiff":        "diff v2",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "abcdefabcdef",
+				"Title": "introduce a bug",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// 6. Poll Dashboard again - lore-relay should send patch v2.
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, mockSnd.sent, 2)
+	assert.Equal(t, "[PATCH v2] Test Description", mockSnd.sent[1].Subject)
+	body := string(mockSnd.sent[1].Body)
+	assert.Contains(t, body, "Fixes: abcdefabcdef (\"introduce a bug\")")
+
+	// 7. But nothing else.
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+	require.Len(t, mockSnd.sent, 2)
 }
