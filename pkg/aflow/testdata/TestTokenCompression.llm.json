@@ -70,7 +70,8 @@
 			},
 			"temperature": 0.1,
 			"thinkingConfig": {
-				"includeThoughts": true
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
 			}
 		},
 		"Request": [
