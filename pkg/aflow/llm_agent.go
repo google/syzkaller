@@ -262,7 +262,7 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	reply, outputs, err := a.chat(ctx, cfg, tools, span.Prompt, candidate)
+	reply, outputs, err := a.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
 		span.Results = outputs
@@ -284,7 +284,7 @@ func (a *LLMAgent) handleOverflowError(cfg *genai.GenerateContentConfig, req []*
 }
 
 func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
-	prompt string, candidate int) (string, map[string]any, error) {
+	instruction, prompt string, candidate int) (string, map[string]any, error) {
 	var outputs map[string]any
 	answerNow := false
 	req := []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
@@ -296,7 +296,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	for {
 		var err error
 		var newSummaryMessage *genai.Content
-		req, newSummaryMessage, lastInputTokens, err = a.maybeCompressContext(ctx, req, lastInputTokens)
+		req, newSummaryMessage, lastInputTokens, err = a.maybeCompressContext(ctx, req, instruction, lastInputTokens)
 		if err != nil {
 			return "", nil, err
 		}
@@ -388,8 +388,12 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 const tokenCompressionInstruction = `
 You are an expert technical assistant acting as a memory compressor.
 Review the following execution history of an AI agent.
-The first message contains the original system instructions and the main goal.
-It will be preserved in the history, so DO NOT duplicate its contents in your summary.
+
+The first message begins with the original system instructions enclosed in
+<system_instructions> tags, and then continues with the initial prompt.
+These are provided for your information and will be preserved in the history
+anyway, so DO NOT duplicate their contents in your summary.
+
 Write a comprehensive and substantial summary of the current state of the workspace
 and the investigation based on the SUBSEQUENT messages. Do NOT write a very short summary.
 Include:
@@ -405,7 +409,7 @@ You MUST provide the summary in your final response text. Do not use tools.
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
 
-func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.Content, error) {
+func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instruction string) (*genai.Content, error) {
 	// Lightweight config targeting the Flash model.
 	cfg := &genai.GenerateContentConfig{
 		Temperature:       genai.Ptr[float32](tokenCompressionTemperature),
@@ -425,9 +429,19 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.C
 		return nil, err
 	}
 
+	compressReq := slices.Clone(req)
+	if instruction != "" && len(compressReq) > 0 {
+		compressReq[0] = osutil.JSONDeepCopy(compressReq[0])
+		if len(compressReq[0].Parts) > 0 {
+			compressReq[0].Parts[0] = &genai.Part{
+				Text: "<system_instructions>\n" + instruction + "\n</system_instructions>\n\n" + compressReq[0].Parts[0].Text,
+			}
+		}
+	}
+
 	// We append a final prompt to ensure the model knows it must summarize now,
 	// rather than trying to continue the original conversation.
-	compressReq := append(slices.Clone(req), genai.NewContentFromText(
+	compressReq = append(compressReq, genai.NewContentFromText(
 		"Task: Provide the comprehensive summary of the above execution history now.\n"+
 			"Important: You must output the actual summary text in your final response. "+
 			"Do NOT use any tools.",
@@ -464,14 +478,14 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.C
 	return newSummary, ctx.finishSpan(span, nil)
 }
 
-func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, lastInputTokens int) (
+func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, instruction string, lastInputTokens int) (
 	[]*genai.Content, *genai.Content, int, error) {
 	if a.CompressTokens == 0 || lastInputTokens <= a.CompressTokens {
 		// Return existing state unchanged.
 		return req, nil, lastInputTokens, nil
 	}
 
-	newSummary, err := a.compressContext(ctx, req)
+	newSummary, err := a.compressContext(ctx, req, instruction)
 	if err != nil {
 		return req, nil, lastInputTokens, fmt.Errorf("context compression failed: %w", err)
 	}
