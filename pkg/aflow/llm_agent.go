@@ -433,7 +433,7 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.C
 		genai.RoleUser,
 	))
 
-	resp, err := a.generateContentCached(ctx, cfg, compressReq, 0, 0)
+	resp, err := a.generateContent(ctx, cfg, compressReq, 0)
 	if err != nil {
 		return nil, ctx.finishSpan(span, err)
 	}
