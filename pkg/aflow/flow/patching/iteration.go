@@ -36,7 +36,7 @@ type PatchIterationInputs struct {
 	PatchHistory []ai.PatchHistoryEntry
 
 	// Base fixes tag from previous version.
-	BaseFixes ai.FixesTag
+	BaseFixes ai.FixesTag `json:",omitempty"`
 
 	// See patching workflow.
 	BaseRepository string
