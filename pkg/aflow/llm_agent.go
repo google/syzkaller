@@ -356,14 +356,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			summaryMessage = req[len(req)-1]
 		}
 		if len(calls) == 0 {
-			if a.Outputs != nil && outputs == nil {
-				// LLM did not call set-results.
-				req = append(req, genai.NewContentFromText(llmMissingOutputs, genai.RoleUser))
-				continue
-			}
-			if reply == "" {
-				// LLM did not provide any final reply.
-				req = append(req, genai.NewContentFromText(llmMissingReply, genai.RoleUser))
+			if missing := a.checkFinalReply(reply, outputs); missing != nil {
+				req = append(req, missing)
 				continue
 			}
 			// This is the final reply.
@@ -387,6 +381,18 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
 		defaultMaxIterations)
+}
+
+func (a *LLMAgent) checkFinalReply(reply string, outputs map[string]any) *genai.Content {
+	if a.Outputs != nil && outputs == nil {
+		// LLM did not call set-results.
+		return genai.NewContentFromText(llmMissingOutputs, genai.RoleUser)
+	}
+	if reply == "" {
+		// LLM did not provide any final reply.
+		return genai.NewContentFromText(llmMissingReply, genai.RoleUser)
+	}
+	return nil
 }
 
 const tokenCompressionInstruction = `
