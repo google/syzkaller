@@ -78,6 +78,8 @@ const (
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
+	// We abort execution after this many iterations to prevent infinite loops.
+	defaultMaxIterations = 250
 )
 
 type TaskType int
@@ -293,7 +295,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	// a new summary.
 	var summaryMessage *genai.Content
 	var lastInputTokens int
-	for {
+	for range defaultMaxIterations {
 		var err error
 		var newSummaryMessage *genai.Content
 		req, newSummaryMessage, lastInputTokens, err = a.maybeCompressContext(ctx, req, instruction, lastInputTokens)
@@ -383,6 +385,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		req = append(req, responses)
 	}
+	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
+		defaultMaxIterations)
 }
 
 const tokenCompressionInstruction = `
