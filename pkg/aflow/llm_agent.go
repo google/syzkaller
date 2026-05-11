@@ -412,6 +412,7 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content) (*genai.C
 		SystemInstruction: genai.NewContentFromText(tokenCompressionInstruction, genai.RoleUser),
 		ThinkingConfig: &genai.ThinkingConfig{
 			IncludeThoughts: true,
+			ThinkingLevel:   genai.ThinkingLevelHigh,
 		},
 	}
 
