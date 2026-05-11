@@ -19,7 +19,9 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -41,6 +43,8 @@ type Context struct {
 	Network    string
 	Subnetwork string
 
+	zoneList zoneList
+
 	computeService *compute.Service
 	metadataServer string
 
@@ -48,6 +52,11 @@ type Context struct {
 	// GCE API calls too quickly. Our quota is 20 QPS, but we limit ourselves
 	// to less than that because several independent programs can do API calls.
 	apiRateGate <-chan time.Time
+}
+
+type zoneList struct {
+	sync.RWMutex
+	list []string
 }
 
 type CreateArgs struct {
@@ -134,7 +143,26 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	if ctx.InternalIP == "" {
 		return nil, fmt.Errorf("failed to get current instance internal IP")
 	}
+	ctx.queryZones()
 	return ctx, nil
+}
+
+func (ctx *Context) queryZones() {
+	ctx.zoneList.list = []string{ctx.ZoneID}
+	var zoneList *compute.ZoneList
+	err := ctx.apiCall(func() (err error) {
+		zoneList, err = ctx.computeService.RegionZones.List(ctx.ProjectID, ctx.RegionID).Do()
+		return
+	})
+	if err != nil {
+		log.Errorf("failed to query region %v zones. Project will only use %v", ctx.RegionID, ctx.ZoneID)
+	} else {
+		for _, zone := range zoneList.Items {
+			if zone.Status == "UP" && zone.Name != ctx.ZoneID {
+				ctx.zoneList.list = append(ctx.zoneList.list, zone.Name)
+			}
+		}
+	}
 }
 
 func (ctx *Context) CreateInstance(cfg *InstanceConfig) (ip, zone string, err error) {
@@ -145,7 +173,6 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (ip, zone string, err er
 	instance := &compute.Instance{
 		Name:        cfg.Name,
 		Description: "syzkaller worker",
-		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + cfg.MachineType,
 		Disks: []*compute.AttachedDisk{
 			{
 				AutoDelete: true,
@@ -205,31 +232,44 @@ retry:
 		// onHostMaintenance=TERMINATE unless they are preemptible".
 		instance.Scheduling.OnHostMaintenance = "MIGRATE"
 	}
-	var op *compute.Operation
-	err = ctx.apiCall(func() (err error) {
-		op, err = ctx.computeService.Instances.Insert(ctx.ProjectID, ctx.ZoneID, instance).Do()
-		return
-	})
-	if err != nil {
-		return "", ctx.ZoneID, fmt.Errorf("failed to create instance: %w", err)
-	}
-	if err = ctx.waitForZonalCompletion("create instance", ctx.ZoneID, op.Name, false); err != nil {
-		var resourcePoolExhaustedError resourcePoolExhaustedError
-		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
-			instance.Scheduling.Preemptible = false
-			instance.Scheduling.ProvisioningModel = "STANDARD"
-			goto retry
+	zones := ctx.zoneList.get()
+	for i, currentZone := range zones {
+		instance.MachineType = prefix + "/zones/" + currentZone + "/machineTypes/" + cfg.MachineType
+		var op *compute.Operation
+		err = ctx.apiCall(func() (err error) {
+			op, err = ctx.computeService.Instances.Insert(ctx.ProjectID, currentZone, instance).Do()
+			return
+		})
+		if err != nil {
+			return "", currentZone, fmt.Errorf("failed to create instance: %w", err)
 		}
-		return "", ctx.ZoneID, err
+		if err = ctx.waitForZonalCompletion("create instance", currentZone, op.Name, false); err != nil {
+			var resourcePoolExhaustedError resourcePoolExhaustedError
+			if errors.As(err, &resourcePoolExhaustedError) {
+				if i < len(zones)-1 {
+					continue
+				}
+				if instance.Scheduling.Preemptible {
+					instance.Scheduling.Preemptible = false
+					instance.Scheduling.ProvisioningModel = "STANDARD"
+					goto retry
+				}
+			}
+			return "", currentZone, err
+		}
+		zone = currentZone
+		// We found VMs in zone, move that zone to be the first in line so we avoid trying bad zones in the future.
+		ctx.zoneList.prioritize(zone)
+		break
 	}
 
 	var inst *compute.Instance
 	err = ctx.apiCall(func() (err error) {
-		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, cfg.Name).Do()
+		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, zone, cfg.Name).Do()
 		return
 	})
 	if err != nil {
-		return "", ctx.ZoneID, fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
+		return "", zone, fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
 	}
 
 	// Finds its internal IP.
@@ -242,7 +282,7 @@ retry:
 	if ip == "" {
 		err = fmt.Errorf("didn't find instance internal IP address")
 	}
-	return ip, ctx.ZoneID, err
+	return ip, zone, err
 }
 
 func diskSizeGB(machineType string) int {
@@ -498,4 +538,21 @@ var regionNameRe = regexp.MustCompile("^[a-zA-Z0-9]*-[a-zA-Z0-9]*")
 
 func zoneToRegion(zone string) string {
 	return regionNameRe.FindString(zone)
+}
+
+func (zoneList *zoneList) prioritize(zone string) {
+	zoneList.Lock()
+	for j, z := range zoneList.list {
+		if zone == z {
+			zoneList.list[0], zoneList.list[j] = zoneList.list[j], zoneList.list[0]
+			break
+		}
+	}
+	zoneList.Unlock()
+}
+
+func (zoneList *zoneList) get() []string {
+	zoneList.RLock()
+	defer zoneList.RUnlock()
+	return slices.Clone(zoneList.list)
 }
