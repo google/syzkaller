@@ -348,6 +348,9 @@ of the most important changes (e.g., '- Fixed memory leak in error path', '- Ren
 CRITICAL: Do NOT rewrite or rephrase the existing patch description. You may only modify it
 if the previous description is now fundamentally incorrect due to the new changes. Otherwise,
 keep it exactly as it was, and document all new changes exclusively in the change log.
+
+IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
+automatically, so keep paragraphs as single lines without newlines.
 `
 
 const changelogPrompt = `

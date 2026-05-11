@@ -226,6 +226,8 @@ and then include description of the bug being fixed, and how it's fixed by the p
 
 Your final reply should contain only the text of the commit description.
 Phrase the one-line summary so that it is not longer than 72 characters.
+IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
+automatically, so keep paragraphs as single lines without newlines.
 `
 
 const descriptionPrompt = `
