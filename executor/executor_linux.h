@@ -368,10 +368,8 @@ static const char* setup_kcov_reset_ioctl()
 
 static const char* setup_kdump()
 {
-	if (access("/boot/bzImageKexec", F_OK) != 0)
-		return "/boot/bzImageKexec is missing";
-	if (access("/usr/sbin/makedumpfile", F_OK) != 0)
-		return "/usr/sbin/makedumpfile is missing";
+	if (access("/usr/sbin/makedumpfile", X_OK) != 0 && access("/usr/bin/makedumpfile", X_OK) != 0)
+		return "makedumpfile is missing";
 	char cmdline[4096];
 	int fd = open("/proc/cmdline", O_RDONLY);
 	if (fd < 0)
@@ -383,6 +381,19 @@ static const char* setup_kdump()
 	cmdline[n] = 0;
 	if (strstr(cmdline, "crashkernel=") == NULL)
 		return "crashkernel= is not present in /proc/cmdline";
+
+	// kdump-tools may have already loaded a crash kernel for full-disk images.
+	int s_fd = open("/sys/kernel/kexec_crash_loaded", O_RDONLY);
+	if (s_fd >= 0) {
+		char loaded_status[1];
+		ssize_t sn = read(s_fd, loaded_status, sizeof(loaded_status));
+		close(s_fd);
+		if (sn == 1 && loaded_status[0] == '1')
+			return NULL;
+	}
+
+	if (access("/boot/bzImageKexec", F_OK) != 0)
+		return "/boot/bzImageKexec is missing";
 
 	// Current default values
 	char root[128] = "/dev/sda1";
@@ -397,7 +408,7 @@ static const char* setup_kdump()
 
 	if (system(cmd) != 0)
 		return "kexec failed";
-	int s_fd = open("/sys/kernel/kexec_crash_loaded", O_RDONLY);
+	s_fd = open("/sys/kernel/kexec_crash_loaded", O_RDONLY);
 	if (s_fd >= 0) {
 		char loaded_status[1];
 		ssize_t sn = read(s_fd, loaded_status, sizeof(loaded_status));
