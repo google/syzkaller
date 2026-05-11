@@ -26,7 +26,7 @@ func ExtractMemoryDump(inst *vm.Instance, target *targets.Target, path string) e
 		maxRetries = 100
 		retrySleep = 3 * time.Second
 		// Using more restrictive masks somhow causes the crash utility to fail.
-		cmd = "/usr/sbin/makedumpfile -F -c -d 0 /proc/vmcore"
+		cmd = "makedumpfile -F -c -d 0 /proc/vmcore"
 	)
 	if target.OS != targets.Linux {
 		return fmt.Errorf("memory dump collection is only supported on linux")
