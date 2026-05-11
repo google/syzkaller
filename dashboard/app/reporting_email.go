@@ -1205,35 +1205,7 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 		bugID = msg.BugIDs[0]
 	}
 	if bugID == "" {
-		var matchingErr error
-		// Give it one more try -- maybe we can determine the bug from the subject + mailing list.
-		if msg.MailingList != "" {
-			var ret *bugInfoResult
-			ret, matchingErr = matchBugFromList(ctx, msg.MailingList, msg.Subject)
-			if matchingErr == nil {
-				return ret
-			}
-			log.Infof(ctx, "mailing list matching failed: %s", matchingErr)
-		}
-		if len(msg.Commands) == 0 {
-			// This happens when people CC syzbot on unrelated emails.
-			log.Infof(ctx, "no bug ID (%q)", msg.Subject)
-		} else {
-			log.Errorf(ctx, "no bug ID (%q)", msg.Subject)
-			from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
-			if err != nil {
-				log.Errorf(ctx, "failed to format sender email address: %v", err)
-				from = "ERROR"
-			}
-			message := fmt.Sprintf(replyNoBugID, from)
-			if matchingErr == errAmbiguousTitle {
-				message = fmt.Sprintf(replyAmbiguousBugID, from)
-			}
-			if err := replyTo(ctx, msg, "", message); err != nil {
-				log.Errorf(ctx, "failed to send reply: %v", err)
-			}
-		}
-		return nil
+		return bugInfoWithoutBugID(ctx, msg)
 	}
 	bug, bugKey, err := findBugByReportingID(ctx, bugID)
 	if err != nil {
@@ -1268,6 +1240,38 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 		return nil
 	}
 	return &bugInfoResult{bug, bugKey, bugReporting, reporting}
+}
+
+func bugInfoWithoutBugID(ctx context.Context, msg *email.Email) *bugInfoResult {
+	var matchingErr error
+	// Give it one more try -- maybe we can determine the bug from the subject + mailing list.
+	if msg.MailingList != "" {
+		var ret *bugInfoResult
+		ret, matchingErr = matchBugFromList(ctx, msg.MailingList, msg.Subject)
+		if matchingErr == nil {
+			return ret
+		}
+		log.Infof(ctx, "mailing list matching failed: %s", matchingErr)
+	}
+	if len(msg.Commands) == 0 {
+		// This happens when people CC syzbot on unrelated emails.
+		log.Infof(ctx, "no bug ID (%q)", msg.Subject)
+	} else {
+		log.Errorf(ctx, "no bug ID (%q)", msg.Subject)
+		from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
+		if err != nil {
+			log.Errorf(ctx, "failed to format sender email address: %v", err)
+			from = "ERROR"
+		}
+		message := fmt.Sprintf(replyNoBugID, from)
+		if matchingErr == errAmbiguousTitle {
+			message = fmt.Sprintf(replyAmbiguousBugID, from)
+		}
+		if err := replyTo(ctx, msg, "", message); err != nil {
+			log.Errorf(ctx, "failed to send reply: %v", err)
+		}
+	}
+	return nil
 }
 
 func ownMailingLists(ctx context.Context) []string {
