@@ -236,7 +236,11 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		if patchResult != nil {
 			var links []string
 			if job.BugID.Valid {
-				links = append(links, jobBugLink(ctx, job.BugID))
+				link, reporter := jobBugInfo(ctx, job.BugID)
+				links = append(links, link)
+				if reporter != "" {
+					patchResult.ReportedBy = []string{reporter}
+				}
 			}
 			links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
 			patchResult.Links = links
@@ -297,6 +301,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 			cc = append(cc, rec.Email)
 		}
 	}
+
 	return &dashapi.NewReportResult{
 		Subject:    subject,
 		Body:       res.PatchDescription,
