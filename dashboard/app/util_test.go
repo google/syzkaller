@@ -777,6 +777,7 @@ type (
 	EmailOptOrigFrom  string
 	EmailOptCC        []string
 	EmailOptSender    string
+	EmailOptTo        string
 )
 
 func (ctx *Ctx) incomingEmail(to, body string, opts ...any) {
@@ -786,6 +787,7 @@ func (ctx *Ctx) incomingEmail(to, body string, opts ...any) {
 	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com", "bugs2@syzkaller.com"}
 	sender := ""
 	origFrom := ""
+	toHeader := to
 	for _, o := range opts {
 		switch opt := o.(type) {
 		case EmailOptMessageID:
@@ -800,6 +802,8 @@ func (ctx *Ctx) incomingEmail(to, body string, opts ...any) {
 			cc = []string(opt)
 		case EmailOptOrigFrom:
 			origFrom = fmt.Sprintf("\nX-Original-From: %v", string(opt))
+		case EmailOptTo:
+			toHeader = string(opt)
 		}
 	}
 	if sender == "" {
@@ -815,7 +819,7 @@ To: %v%v
 Content-Type: text/plain
 
 %v
-`, sender, id, subject, from, strings.Join(cc, ","), to, origFrom, body)
+`, sender, id, subject, from, strings.Join(cc, ","), toHeader, origFrom, body)
 	log.Infof(ctx.ctx, "sending %s", email)
 	_, err := ctx.POST("/_ah/mail/"+to, email)
 	ctx.expectOK(err)

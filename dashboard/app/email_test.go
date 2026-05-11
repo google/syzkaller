@@ -624,6 +624,18 @@ that is the sender of the bug report (also present in the Reported-by tag).
 
 `)
 
+	// If the command was seen on a mailing list, but syzbot was not addressed, do NOT reply.
+	// Since we receive the email, it hits our endpoint, but the To header is the mailing list.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid",
+		EmailOptTo("test@syzkaller.com"), EmailOptSender("test@syzkaller.com"))
+	c.expectNoEmail()
+
+	// If the command was seen on a mailing list AND syzbot was explicitly addressed (without hash), we DO reply.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid",
+		EmailOptSender("test@syzkaller.com"), EmailOptCC([]string{"test@syzkaller.com"}))
+	reply = c.pollEmailBug()
+	assert.Contains(t, reply.Body, "I see the command but can't find the corresponding bug")
+
 	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "#syz invalid")
 	reply = c.pollEmailBug()
 	c.expectEQ(reply.Body, `> #syz invalid
@@ -1027,9 +1039,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom(mailingList), EmailOptSubject(subject),
 	)
-	syzbotReply := c.pollEmailBug()
-	c.expectNE(syzbotReply.Sender, origSender)
-	c.expectEQ(strings.Contains(syzbotReply.Body, "can't find the corresponding bug"), true)
+	c.expectNoEmail()
 
 	// Now try to test the exiting bug, but with the wrong mailing list.
 	subject = "Re: " + crashTitle
@@ -1047,7 +1057,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
-	syzbotReply = c.pollEmailBug()
+	syzbotReply := c.pollEmailBug()
 	c.expectEQ(syzbotReply.Sender, origSender)
 	c.expectEQ(strings.Contains(syzbotReply.Body, "This crash does not have a reproducer"), true)
 

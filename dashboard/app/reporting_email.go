@@ -1256,6 +1256,11 @@ func bugInfoWithoutBugID(ctx context.Context, msg *email.Email) *bugInfoResult {
 	if len(msg.Commands) == 0 {
 		// This happens when people CC syzbot on unrelated emails.
 		log.Infof(ctx, "no bug ID (%q)", msg.Subject)
+	} else if msg.MailingList != "" && len(msg.BugIDs) == 0 && matchingErr != errAmbiguousTitle {
+		// If we received a command via a mailing list but syzbot was not explicitly CC'd,
+		// and we couldn't identify the bug (and it's not a case of an ambiguous title),
+		// don't reply with an error. It might be meant for another syzbot instance.
+		log.Infof(ctx, "no bug ID for command (%q), ignoring", msg.Subject)
 	} else {
 		log.Errorf(ctx, "no bug ID (%q)", msg.Subject)
 		from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
