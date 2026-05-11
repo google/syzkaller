@@ -21,7 +21,7 @@ with new provided lines. If new code is empty, current lines will be deleted.
 Provide full lines of code including new line characters.
 The tool should be called mutiple times to do all required changes one-by-one,
 but avoid changing the same lines multiple times.
-Note: You will not see your edits via the codesearch tool.
+IMPORTANT: You will not see your edits via {{.toolGrepper}}, {{.toolReadFile}}, or any codesearch tools.
 Note: The current code snippet should reflect the previous changes.
 `)
 

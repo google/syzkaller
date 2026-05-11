@@ -23,6 +23,9 @@ Tool provides list of source files and subdirectories in the given directory in 
 Tool provides full contents of a single source file as is. Avoid using this tool if there are better
 and more specialized tools for the job, because source files may be large and contain lots
 of unrelated information.
+
+IMPORTANT: This tool reads from the original, unmodified source tree.
+It will NOT show any changes you have made using codeeditor.
 `)
 	ToolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
@@ -48,6 +51,9 @@ Tool provides full source code for an entity with the given name.
 Entity can be function, struct, or global variable.
 Use it to understand implementation details of an entity.
 For example, how a function works, what precondition error checks it has, etc.
+
+IMPORTANT: This tool reads from the original, unmodified source tree.
+It will NOT show any changes you have made using codeeditor.
 `)
 
 	ToolFindReferences = aflow.NewFuncTool("codesearch-find-references", findReferences, `
