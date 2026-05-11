@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -136,7 +137,7 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	return ctx, nil
 }
 
-func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
+func (ctx *Context) CreateInstance(cfg *InstanceConfig) (ip, zone string, err error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
 	sshkeyAttr := "syzkaller:" + cfg.SSHKey
 	oneAttr := "1"
@@ -205,21 +206,21 @@ retry:
 		instance.Scheduling.OnHostMaintenance = "MIGRATE"
 	}
 	var op *compute.Operation
-	err := ctx.apiCall(func() (err error) {
+	err = ctx.apiCall(func() (err error) {
 		op, err = ctx.computeService.Instances.Insert(ctx.ProjectID, ctx.ZoneID, instance).Do()
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create instance: %w", err)
+		return "", ctx.ZoneID, fmt.Errorf("failed to create instance: %w", err)
 	}
-	if err := ctx.waitForZonalCompletion("create instance", ctx.ZoneID, op.Name, false); err != nil {
+	if err = ctx.waitForZonalCompletion("create instance", ctx.ZoneID, op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
 			instance.Scheduling.ProvisioningModel = "STANDARD"
 			goto retry
 		}
-		return "", err
+		return "", ctx.ZoneID, err
 	}
 
 	var inst *compute.Instance
@@ -228,11 +229,10 @@ retry:
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
+		return "", ctx.ZoneID, fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
 	}
 
 	// Finds its internal IP.
-	ip := ""
 	for _, iface := range inst.NetworkInterfaces {
 		if strings.HasPrefix(iface.NetworkIP, "10.") {
 			ip = iface.NetworkIP
@@ -240,9 +240,9 @@ retry:
 		}
 	}
 	if ip == "" {
-		return "", fmt.Errorf("didn't find instance internal IP address")
+		err = fmt.Errorf("didn't find instance internal IP address")
 	}
-	return ip, nil
+	return ip, ctx.ZoneID, err
 }
 
 func diskSizeGB(machineType string) int {
@@ -255,31 +255,62 @@ func diskSizeGB(machineType string) int {
 	return 0
 }
 
-func (ctx *Context) DeleteInstance(name string, wait bool) error {
+func (ctx *Context) DeleteInstance(name, zone string, wait bool) error {
 	var op *compute.Operation
 	err := ctx.apiCall(func() (err error) {
-		op, err = ctx.computeService.Instances.Delete(ctx.ProjectID, ctx.ZoneID, name).Do()
+		op, err = ctx.computeService.Instances.Delete(ctx.ProjectID, zone, name).Do()
 		return
 	})
 	var apiErr *googleapi.Error
 	if errors.As(err, &apiErr) && apiErr.Code == 404 {
+		// Instance doesn't exist.
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
-		if err := ctx.waitForZonalCompletion("delete instance", ctx.ZoneID, op.Name, true); err != nil {
+		if err := ctx.waitForZonalCompletion("delete instance", zone, op.Name, true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ctx *Context) IsInstanceRunning(name string) bool {
+// Handles manager crashes: if instance i was running in zone z1, and we later recreate i in zone z2, ensure the
+// original i is deleted.
+func (ctx *Context) DeleteInstanceAcrossZones(name string, wait bool) error {
+	var zoneList []string
+	err := ctx.apiCall(func() error {
+		req := ctx.computeService.Instances.AggregatedList(ctx.ProjectID).
+			Filter(fmt.Sprintf("name = %v", name))
+		return req.Pages(context.Background(), func(page *compute.InstanceAggregatedList) error {
+			for _, list := range page.Items {
+				for _, inst := range list.Instances {
+					// inst.Zone is a URL like "https://www.googleapis.com/compute/v1/projects/project/zones/zone"
+					parts := strings.Split(inst.Zone, "/")
+					zone := parts[len(parts)-1]
+					zoneList = append(zoneList, zone)
+				}
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get zones for instance %v, aborting delete: %w", name, err)
+	}
+	for _, zone := range zoneList {
+		if err := ctx.DeleteInstance(name, zone, wait); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ctx *Context) IsInstanceRunning(name, zone string) bool {
 	var inst *compute.Instance
 	err := ctx.apiCall(func() (err error) {
-		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, name).Do()
+		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, zone, name).Do()
 		return
 	})
 	if err != nil {
