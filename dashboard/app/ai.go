@@ -1711,7 +1711,6 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 			models[span.Model] = true
 		}
 	}
-	// TODO: add Reported-by tag for the syzbot bug, or a link to lore report.
 	// Add Fixes tag if we have cause bisection, but we need to verify it with LLMs
 	// somehow since lots of them are wrong.
 	// Probably shouldn't cc stable for all patches (e.g. removing a WARNING)?
@@ -1720,8 +1719,13 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	res.Recipients = append(res.Recipients, ai.Recipient{Email: "stable@vger.kernel.org"})
 	// TODO: add a human who reviewed the patch to authors.
 	var links []string
+	var reportedBy []string
 	if job.BugID.Valid {
-		links = append(links, jobBugLink(ctx, job.BugID))
+		link, reporter := jobBugInfo(ctx, job.BugID)
+		links = append(links, link)
+		if reporter != "" {
+			reportedBy = append(reportedBy, reporter)
+		}
 	}
 	links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
 	description := email.FormatPatchDescription(res.PatchDescription, email.PatchTemplateData{
@@ -1729,6 +1733,7 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 		Tools:      slices.Collect(maps.Keys(models)),
 		Recipients: res.Recipients,
 		Links:      links,
+		ReportedBy: reportedBy,
 	})
 	changeID, link, err := gerrit.CreateChange(ctx, res.KernelRepo, res.KernelBranch,
 		res.KernelCommit, description, res.PatchDiff)
@@ -1802,14 +1807,21 @@ func compactAIJobs(jobs []*aidb.Job) []*aidb.Job {
 	return filtered
 }
 
-func jobBugLink(ctx context.Context, bugID spanner.NullString) string {
+func jobBugInfo(ctx context.Context, bugID spanner.NullString) (string, string) {
 	if !bugID.Valid {
-		return ""
+		return "", ""
 	}
 	bugKey := db.NewKey(ctx, "Bug", bugID.StringVal, 0, nil)
 	bug := new(Bug)
 	if err := db.Get(ctx, bugKey, bug); err == nil {
-		return appURL(ctx) + bugExtLink(ctx, bug)
+		_, bugReporting, _, _, _ := currentReporting(ctx, bug)
+		reportedBy := ""
+		if bugReporting != nil && bugReporting.ID != "" {
+			if creditEmail, err := email.AddAddrContext(ownEmail(ctx), bugReporting.ID); err == nil {
+				reportedBy = creditEmail
+			}
+		}
+		return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 	}
-	return appURL(ctx) + bugLink(bugID.StringVal)
+	return appURL(ctx) + bugLink(bugID.StringVal), ""
 }

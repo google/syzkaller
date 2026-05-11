@@ -118,6 +118,7 @@ type NewReportResult struct {
 	BaseTree   string
 	Fixes      ai.FixesTag
 	Links      []string
+	ReportedBy []string
 }
 
 type ChangelogEntry struct {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"google.golang.org/appengine/v2"
 
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -131,6 +132,7 @@ func TestAIExternalReporting(t *testing.T) {
 			Hash:  "123456789012",
 			Title: "original bug",
 		},
+		ReportedBy: []string{"syzbot+" + extID + "@" + appengine.AppID(c.ctx) + ".appspotmail.com"},
 	}, pollResp.Result.Patch)
 	require.Equal(t, []string{"public@test.com"}, pollResp.Result.To)
 
@@ -771,10 +773,11 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		CanUpstream: true,
 		To:          []string{"moderation@test.com"},
 		Patch: &dashapi.NewReportResult{
-			Subject: "New Description",
-			Body:    "New Description",
-			Version: 2,
-			GitDiff: "new diff",
+			Subject:    "New Description",
+			Body:       "New Description",
+			Version:    2,
+			GitDiff:    "new diff",
+			ReportedBy: []string{"syzbot+" + extID + "@" + appengine.AppID(c.ctx) + ".appspotmail.com"},
 			Changelog: []dashapi.ChangelogEntry{
 				{
 					Version: 2,

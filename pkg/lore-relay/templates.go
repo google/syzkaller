@@ -63,6 +63,7 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 				Tools:      res.Patch.Tools,
 				Recipients: recipients,
 				Links:      res.Patch.Links,
+				ReportedBy: res.Patch.ReportedBy,
 			}))
 		data.Patch = res.Patch
 		tmpl, err := templatesFS.ReadFile("templates/new_patch.txt")
