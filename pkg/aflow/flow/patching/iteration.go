@@ -35,6 +35,9 @@ type PatchIterationInputs struct {
 	// Discussion history grouped by patch version.
 	PatchHistory []ai.PatchHistoryEntry
 
+	// Base fixes tag from previous version.
+	BaseFixes ai.FixesTag
+
 	// See patching workflow.
 	BaseRepository string
 	BaseBranch     string
@@ -42,6 +45,7 @@ type PatchIterationInputs struct {
 }
 
 func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
@@ -59,8 +63,10 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 				Model: aflow.GoodBalancedModel,
 				// nolint: lll
 				Outputs: aflow.LLMOutputs[struct {
-					NeedNewVersion bool   `jsonschema:"True if any comment suggests or requires a code change to the patch, or if a rebase is requested. False otherwise."`
-					VerdictReason  string `jsonschema:"Brief explanation of why a new version is or is not needed."`
+					NeedNewVersion    bool   `jsonschema:"True if any comment suggests or requires a code change to the patch, if a rebase is requested, or if the Fixes tag needs to be updated. False otherwise."`
+					UpdateFixes       bool   `jsonschema:"True if any comment suggests that the Fixes tag is incorrect or needs to be updated. False otherwise."`
+					UpdateFixesReason string `jsonschema:"Explanation of why the Fixes tag needs to be updated, and any hints provided by reviewers."`
+					VerdictReason     string `jsonschema:"Brief explanation of why a new version is or is not needed."`
 				}](),
 				TaskType:       aflow.FormalReasoningTask,
 				Instruction:    verdictInstruction,
@@ -78,6 +84,22 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 					extractLatestPatchInfo,
 					kernel.CheckoutScratch,
 					PatchGenerationLoop(summaryWindow, compressTokens, applyGitPatch, patchIterationInstruction, patchIterationPrompt),
+					&aflow.If{
+						Condition: "UpdateFixes",
+						Do: aflow.Pipeline(
+							&aflow.LLMAgent{
+								Name:          "fixes-finder",
+								Model:         aflow.BestExpensiveModel,
+								Outputs:       aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+								TaskType:      aflow.FormalReasoningTask,
+								Instruction:   fixesIterationInstruction,
+								Prompt:        fixesIterationPrompt,
+								Tools:         commonTools,
+								SummaryWindow: summaryWindow,
+							},
+						),
+					},
+					resolveFixes,
 					getRecentCommits,
 					&aflow.LLMAgent{
 						Name:  "changelog-generator",
@@ -164,6 +186,21 @@ var extractLatestPatchInfo = aflow.NewFuncAction("extract-latest-patch-info", fu
 	}, nil
 })
 
+var resolveFixes = aflow.NewFuncAction("resolve-fixes", func(ctx *aflow.Context, args struct {
+	BaseFixes   ai.FixesTag
+	FixesHash   string
+	UpdateFixes bool
+}) (formatFixesResult, error) {
+	if !args.UpdateFixes {
+		return formatFixesResult{Fixes: args.BaseFixes}, nil
+	}
+	if args.FixesHash == "" {
+		return formatFixesResult{}, nil
+	}
+	fix, err := queryFixesTag(ctx, args.FixesHash)
+	return formatFixesResult{Fixes: fix}, err
+})
+
 var appendCommentReply = aflow.NewFuncAction("append-comment-reply", func(ctx *aflow.Context, args struct {
 	Action         string
 	Reason         string
@@ -191,6 +228,31 @@ func init() {
 		createPatchIterationFlow("compressed", 0, 200_000),
 	)
 }
+
+const fixesIterationInstruction = fixesInstruction + `
+Additionally, you are provided with a previous guess for the Fixes tag and the reason reviewers asked to update it.
+Do NOT guess the same commit if it was rejected. Use the provided reason to guide your new search.
+If the reviewers explicitly provided the exact commit hash that introduced the bug, and it looks
+reasonable, trust their input and use it.
+`
+
+const fixesIterationPrompt = `
+The crash is:
+
+{{.ReproducedCrashReport}}
+
+The patch that fixes the bug is:
+
+{{.PatchDiff}}
+
+Search for the commit(s) that introduced this bug.
+
+{{if .BaseFixes.Hash}}
+Reviewers rejected our previous guess for the Fixes tag: {{.BaseFixes.Hash}} ("{{.BaseFixes.Title}}")
+The reason they asked to update it:
+{{.UpdateFixesReason}}
+{{end}}
+`
 
 const patchIterationInstruction = `
 You are an experienced Linux kernel developer tasked with updating a kernel patch

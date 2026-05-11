@@ -328,6 +328,7 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 			PatchDescription: res.PatchDescription,
 			PatchDiff:        res.PatchDiff,
 			Recipients:       res.Recipients,
+			Fixes:            res.Fixes,
 		}, version)
 		if err != nil {
 			return nil, nil, err

@@ -31,6 +31,7 @@ type PatchIterationOutputs struct {
 	PatchDescription string
 	PatchDiff        string
 	Recipients       []Recipient
+	Fixes            FixesTag
 
 	NewChangeLog string
 	Replies      []CommentReply
