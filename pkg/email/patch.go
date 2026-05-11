@@ -63,6 +63,7 @@ type PatchTemplateData struct {
 	Authors    []string
 	Recipients []ai.Recipient
 	Links      []string
+	ReportedBy []string
 }
 
 func FormatPatchDescription(description string, data PatchTemplateData) string {
@@ -88,6 +89,7 @@ func FormatPatchDescription(description string, data PatchTemplateData) string {
 		"to":          to,
 		"cc":          cc,
 		"links":       data.Links,
+		"reportedBy":  data.ReportedBy,
 	})
 	if err != nil {
 		panic(err)
@@ -106,6 +108,8 @@ var patchTemplate = template.Must(template.New("").Parse(`{{.description}}
 {{if .fixes}}
 Fixes: {{.fixes}}{{end}}{{if .assistedBy}}
 Assisted-by: {{.assistedBy}}{{end}}
+{{- range $addr := .reportedBy}}
+Reported-by: {{$addr}}{{end}}
 {{- range $link := .links}}
 Link: {{$link}}{{end}}
 {{- range $addr := .authors}}
