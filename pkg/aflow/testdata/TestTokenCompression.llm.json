@@ -63,7 +63,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "\nYou are an expert technical assistant acting as a memory compressor.\nReview the following execution history of an AI agent.\nThe first message contains the original system instructions and the main goal.\nIt will be preserved in the history, so DO NOT duplicate its contents in your summary.\nWrite a comprehensive and substantial summary of the current state of the workspace\nand the investigation based on the SUBSEQUENT messages. Do NOT write a very short summary.\nInclude:\n1. A detailed list of what approaches have been tried so far and their results (including dead-ends).\n2. The current hypotheses, theories, or active lines of investigation.\n3. Any specific file paths, code snippets, or configuration values that are critical to remember.\n4. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.\n\nYou MUST provide the summary in your final response text. Do not use tools.\n"
+						"text": "\nYou are an expert technical assistant acting as a memory compressor.\nReview the following execution history of an AI agent.\n\nThe first message begins with the original system instructions enclosed in\n\u003csystem_instructions\u003e tags, and then continues with the initial prompt.\nThese are provided for your information and will be preserved in the history\nanyway, so DO NOT duplicate their contents in your summary.\n\nWrite a comprehensive and substantial summary of the current state of the workspace\nand the investigation based on the SUBSEQUENT messages. Do NOT write a very short summary.\nInclude:\n1. A detailed list of what approaches have been tried so far and their results (including dead-ends).\n2. The current hypotheses, theories, or active lines of investigation.\n3. Any specific file paths, code snippets, or configuration values that are critical to remember.\n4. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.\n\nYou MUST provide the summary in your final response text. Do not use tools.\n"
 					}
 				],
 				"role": "user"
@@ -78,7 +78,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "\u003csystem_instructions\u003e\nInstructions\nPrefer calling several tools at the same time to save round-trips.\n\n\u003c/system_instructions\u003e\n\nInitial Prompt"
 					}
 				],
 				"role": "user"
