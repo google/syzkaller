@@ -531,6 +531,7 @@ func TestFormatPatch(t *testing.T) {
 		tools       []string
 		authors     []string
 		recipients  []ai.Recipient
+		links       []string
 		want        string
 	}
 	tests := []Test{
@@ -552,11 +553,17 @@ Something was broken. This fixes it.
 				{Name: "Foo Bar", Email: "foobar@test.com", To: true},
 				{Email: "linux-kernel@vger.kernel.org"},
 			},
+			links: []string{
+				"https://syzkaller.appspot.com/bug?id=123",
+				"https://syzkaller.appspot.com/syzbot/ai?job_id=456",
+			},
 			want: `mm: fix something
 
 Something was broken. This fixes it.
 
 Fixes: 9320daf2018f ("some old bug")
+Link: https://syzkaller.appspot.com/bug?id=123
+Link: https://syzkaller.appspot.com/syzbot/ai?job_id=456
 Signed-off-by: syzbot@kernel.org
 To: "Foo Bar" <foobar@test.com>
 Cc: <linux-kernel@vger.kernel.org>
@@ -631,6 +638,7 @@ base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
 				Tools:      test.tools,
 				Authors:    test.authors,
 				Recipients: test.recipients,
+				Links:      test.links,
 			})
 			assert.Equal(t, test.want, got)
 		})
