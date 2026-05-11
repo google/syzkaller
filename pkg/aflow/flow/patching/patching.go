@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
+	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -154,6 +155,7 @@ kernel expert.
 
 Use the {{.toolCodeeditor}} tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
+Use the {{.toolPatchDiff}} tool to review the modifications you applied.
 
 Your final reply should contain explanation of what you did in the patch and why
 (details not present in the initial explanation of the bug).
@@ -277,7 +279,7 @@ func PatchGenerationLoop(summaryWindow, compressTokens int,
 			TaskType:       aflow.FormalReasoningTask,
 			Instruction:    instruction,
 			Prompt:         prompt,
-			Tools:          aflow.Tools(commonTools, codeeditor.Tool),
+			Tools:          aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool),
 			SummaryWindow:  summaryWindow,
 			CompressTokens: compressTokens,
 		},
