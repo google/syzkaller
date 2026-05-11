@@ -86,6 +86,14 @@ $`, c1.Hash[:12], c2.Hash[:12])
 			assert.Regexp(t, expected, res.Output)
 		},
 		"", aflow.TestWorkdir(tmpDir))
+
+	// Test git-blame with non-existent file.
+	aflow.TestTool(t, ToolBlame,
+		state{KernelCommit: "HEAD"},
+		blameArgs{File: "non_existing.c", Start: 1, End: 1},
+		blameResult{},
+		"git blame failed: fatal: no such path non_existing.c in HEAD",
+		aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitLog(t *testing.T) {
@@ -196,5 +204,13 @@ void foo() {
 		logArgs{},
 		logResult{},
 		"at least one of CodeRegexp, SymbolName, MessageRegexps, or PathPrefix must be set",
+		aflow.TestWorkdir(tmpDir))
+
+	// Test git-log error: symbol not found.
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{SymbolName: "non_existing_symbol", SourcePath: "foo.c"},
+		logResult{},
+		"git log failed: fatal: -L parameter 'non_existing_symbol' starting at line 1: no match",
 		aflow.TestWorkdir(tmpDir))
 }
