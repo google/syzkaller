@@ -29,6 +29,7 @@ const (
 )
 
 var ErrNotFound = errors.New("entity not found")
+var ErrDuplicateComment = errors.New("duplicate job comment")
 
 type ErrCannotUpstream struct {
 	Reason string
@@ -658,7 +659,11 @@ func LoadJobReportings(ctx context.Context, jobID string) ([]*JobReporting, erro
 
 func SaveJobComment(ctx context.Context, entry *JobComment) error {
 	entry.ID = uuid.NewString()
-	return saveEntity(ctx, "JobComments", entry)
+	err := saveEntity(ctx, "JobComments", entry)
+	if err != nil && spanner.ErrCode(err) == codes.AlreadyExists {
+		return ErrDuplicateComment
+	}
+	return err
 }
 
 func LoadJobComments(ctx context.Context, jobID string) ([]*JobComment, error) {
