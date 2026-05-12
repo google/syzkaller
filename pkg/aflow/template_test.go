@@ -87,6 +87,13 @@ func TestTemplate(t *testing.T) {
 			},
 			used: []string{"foo"},
 		},
+		{
+			template: `{{range .foo}}{{if eq . "bar"}}{{end}}{{if eq . 1}}{{end}}{{if eq . true}}{{end}}{{end}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeFor[[]string](),
+			},
+			used: []string{"foo"},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
