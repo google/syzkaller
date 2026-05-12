@@ -153,7 +153,8 @@ You will be given a crash report, and an initial explanation of the root cause d
 kernel expert.
 
 Use the {{.toolCodeeditor}} tool to do code edits.
-Note: you will not see your changes when looking at the code using codesearch tools.
+IMPORTANT: You will not see your changes when looking at the code using
+{{.toolGrepper}}, {{.toolReadFile}}, or any codesearch tools.
 
 Your final reply should contain explanation of what you did in the patch and why
 (details not present in the initial explanation of the bug).

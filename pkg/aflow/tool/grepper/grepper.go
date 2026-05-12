@@ -20,6 +20,9 @@ The tool executes git grep on the kernel sources and returns the output.
 The codesearch set of tools provide more precise results,
 use them instead of this tool if they can answer your question.
 
+IMPORTANT: This tool reads from the original, unmodified source tree.
+It will NOT show any changes you have made using codeeditor.
+
 The following git grep flags are used:
 --extended-regexp: you need to provide expression in extended regexp syntax
 --line-number: line numbers are shown in the output
