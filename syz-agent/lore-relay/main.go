@@ -85,6 +85,7 @@ func main() {
 		LorePollInterval:      cfg.LorePollInterval,
 		DocsLink:              cfg.DocsLink,
 		LoreArchive:           cfg.LoreArchive,
+		VerifyDKIM:            cfg.VerifyDKIM,
 		Tracer:                &debugtracer.GenericTracer{TraceWriter: os.Stderr, WithTime: true},
 	}
 	relay := lorerelay.NewRelay(relayCfg, dash, poller, emailSender)

@@ -88,7 +88,7 @@ func TestMapCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := extractCommands(tc.polled)
+			got, err := extractCommands(tc.polled, false)
 			if tc.wantErr != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.wantErr)

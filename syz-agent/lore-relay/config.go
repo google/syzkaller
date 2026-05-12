@@ -24,6 +24,7 @@ type Config struct {
 	LorePollInterval      time.Duration `yaml:"lore_poll_interval"`
 	DocsLink              string        `yaml:"docs_link"`
 	LoreArchive           string        `yaml:"lore_archive"`
+	VerifyDKIM            bool          `yaml:"verify_dkim"`
 	SMTP                  SMTPConfig    `yaml:"smtp"`
 }
 

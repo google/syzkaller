@@ -4,6 +4,7 @@
 package lorerelay
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/emersion/go-msgauth/dkim"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
@@ -39,6 +41,8 @@ type Config struct {
 	Tracer debugtracer.DebugTracer `yaml:"-"`
 	// LoreArchive is an optional mailing list that will be added to Cc on all sent emails.
 	LoreArchive string `yaml:"lore_archive"`
+	// VerifyDKIM optionally enables checking of incoming emails against their DKIM signatures.
+	VerifyDKIM bool `yaml:"verify_dkim"`
 }
 
 // Relay orchestrates the flow between Lore and Dashboard.
@@ -72,6 +76,29 @@ func NewRelay(cfg *Config, dash DashboardClient, poller *lore.Poller,
 		emailChan:   emailChan,
 		backoffs:    []time.Duration{5 * time.Second, 30 * time.Second, 60 * time.Second},
 	}
+}
+
+func (r *Relay) checkDKIM(raw []byte, author string) error {
+	// Extract domain from author email.
+	parts := strings.Split(author, "@")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid author email: %s", author)
+	}
+	authorDomain := strings.ToLower(parts[1])
+
+	verifications, err := dkim.Verify(bytes.NewReader(raw))
+	if err != nil {
+		return fmt.Errorf("dkim check failed to parse: %w", err)
+	}
+	if len(verifications) == 0 {
+		return errors.New("no DKIM signatures found")
+	}
+	for _, v := range verifications {
+		if v.Err == nil && strings.ToLower(v.Domain) == authorDomain {
+			return nil
+		}
+	}
+	return errors.New("all DKIM signatures failed or mismatched domain")
 }
 
 // Run starts the relay loop.
@@ -192,7 +219,15 @@ func (r *Relay) PollLoreOnce(ctx context.Context) error {
 
 func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmail) error {
 	r.cfg.Tracer.Logf("handling incoming email from %s", polled.Email.Author)
-	reqs, err := extractCommands(polled)
+	dkimOk := false
+	if r.cfg.VerifyDKIM {
+		if err := r.checkDKIM(polled.Raw, polled.Email.Author); err != nil {
+			r.cfg.Tracer.Logf("DKIM check failed: %v", err)
+		} else {
+			dkimOk = true
+		}
+	}
+	reqs, err := extractCommands(polled, dkimOk)
 	if err != nil {
 		// TODO: for tracked threads we may want to reply with an error (#7199).
 		r.cfg.Tracer.Logf("ignoring email %s: %v", polled.Email.MessageID, err)

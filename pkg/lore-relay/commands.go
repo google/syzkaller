@@ -12,7 +12,7 @@ import (
 )
 
 // extractCommands converts parsed email commands into Dashboard API requests.
-func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandReq, error) {
+func extractCommands(polled *lore.PolledEmail, dkimOk bool) ([]*dashapi.SendExternalCommandReq, error) {
 	var reqs []*dashapi.SendExternalCommandReq
 
 	for _, cmd := range polled.Email.Commands {
@@ -23,6 +23,7 @@ func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandRe
 			Author:       polled.Email.Author,
 			AuthorName:   polled.Email.AuthorName,
 			OwnEmail:     polled.Email.OwnEmail,
+			DKIM:         dkimOk,
 		}
 
 		switch cmd.Command {
@@ -47,6 +48,7 @@ func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandRe
 			Author:       polled.Email.Author,
 			AuthorName:   polled.Email.AuthorName,
 			OwnEmail:     polled.Email.OwnEmail,
+			DKIM:         dkimOk,
 			Comment: &dashapi.CommentCommand{
 				Subject: polled.Email.Subject,
 				Body:    polled.Email.Body,
