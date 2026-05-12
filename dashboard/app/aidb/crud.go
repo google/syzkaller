@@ -1008,12 +1008,13 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		}
 
 		reporting := &JobReporting{
-			ID:        uuid.NewString(),
-			JobID:     jobID,
-			Stage:     parentRep.Stage,
-			Source:    parentRep.Source,
-			Version:   spanner.NullInt64{Int64: int64(nextVersion), Valid: true},
-			CreatedAt: TimeNow(ctx),
+			ID:           uuid.NewString(),
+			JobID:        jobID,
+			Stage:        parentRep.Stage,
+			Source:       parentRep.Source,
+			Version:      spanner.NullInt64{Int64: int64(nextVersion), Valid: true},
+			UpstreamedBy: parentRep.UpstreamedBy,
+			CreatedAt:    TimeNow(ctx),
 		}
 
 		mut, err := spanner.InsertStruct("JobReporting", reporting)

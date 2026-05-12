@@ -107,6 +107,7 @@ type JobReporting struct {
 	Source       string
 	ReportedAt   spanner.NullTime
 	UpstreamedAt spanner.NullTime
+	UpstreamedBy spanner.NullString
 	ExtID        spanner.NullString
 	Version      spanner.NullInt64
 	CreatedAt    time.Time

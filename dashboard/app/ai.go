@@ -376,18 +376,19 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 	}
 
 	if pushToReporting {
-		return handleAIJobPagePushToReporting(ctx, job, user.Email)
+		return handleAIJobPagePushToReporting(ctx, job, "", user.Email)
 	}
-	return handleAIJobPageCorrectness(ctx, job, correct, user.Email)
+	return handleAIJobPageCorrectness(ctx, job, correct, "", user.Email)
 }
 
-func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmail string) error {
+func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userName, userEmail string) error {
 	if !aiJobUsesReportingStages(ctx, job) {
 		return fmt.Errorf("job is not configured to use AI reporting stages")
 	}
 	if job.Type != ai.WorkflowPatching {
 		return fmt.Errorf("only patching jobs can be manually pushed to reporting")
 	}
+
 	if err := checkJobUpstreamable(job); err != nil {
 		return err
 	}
@@ -409,6 +410,7 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmai
 		return fmt.Errorf("no valid next stage found")
 	}
 
+	upstreamedBy := formatUpstreamedBy(userName, userEmail)
 	args := aidb.UpstreamReportArgs{
 		Job: job,
 		Reporting: &aidb.JobReporting{
@@ -416,6 +418,7 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmai
 			Source:       stageCfg.ServingIntegration,
 			Version:      spanner.NullInt64{Int64: 1, Valid: true},
 			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
 		},
 		NoParallel:    stageCfg.NoParallelReports,
 		CommandSource: SourceWebUI,
@@ -429,7 +432,7 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmai
 	return nil
 }
 
-func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, userEmail string) error {
+func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, userName, userEmail string) error {
 	if aiJobUsesReportingStages(ctx, job) {
 		return fmt.Errorf("correctness cannot be set manually for jobs reported via stages")
 	}
@@ -443,8 +446,9 @@ func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, use
 		var cmdErr error
 		if err := checkJobUpstreamable(job); err == nil {
 			cmdErr = processUpstreamSubcommand(ctx, job, currentReporting, &dashapi.SendExternalCommandReq{
-				Source: SourceWebUI,
-				Author: userEmail,
+				Source:     SourceWebUI,
+				Author:     userEmail,
+				AuthorName: userName,
 			})
 		} else {
 			cmdErr = aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{

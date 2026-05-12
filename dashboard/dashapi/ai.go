@@ -65,6 +65,7 @@ type SendExternalCommandReq struct {
 	RootExtID    string
 	MessageExtID string
 	Author       string
+	AuthorName   string
 	OwnEmail     bool
 	// Only one must be set.
 	Upstream *UpstreamCommand `json:",omitempty"`
@@ -116,6 +117,7 @@ type NewReportResult struct {
 	To         []string
 	Cc         []string
 	Tools      []string
+	Authors    []string
 	BaseCommit string
 	BaseTree   string
 	Fixes      ai.FixesTag

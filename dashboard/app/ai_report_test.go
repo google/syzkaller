@@ -124,6 +124,7 @@ func TestAIExternalReporting(t *testing.T) {
 		GitDiff:    "diff",
 		BaseCommit: "commit",
 		BaseTree:   "repo",
+		Authors:    []string{"test-user"},
 		Links: []string{
 			appURL(c.ctx) + "/bug?extid=" + extID,
 			appURL(c.ctx) + "/ai_job?id=" + jobID,
