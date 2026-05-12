@@ -98,6 +98,10 @@ func walkTemplate(n parse.Node, used map[string]bool, errp *error) {
 		walkTemplate(n.Node, used, errp)
 	case *parse.TextNode:
 	case *parse.IdentifierNode:
+	case *parse.NumberNode:
+	case *parse.StringNode:
+	case *parse.BoolNode:
+	case *parse.DotNode:
 	default:
 		noteError(errp, "unhandled node type %T", n)
 	}
