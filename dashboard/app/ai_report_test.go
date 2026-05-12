@@ -52,7 +52,7 @@ func TestAIExternalReporting(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -118,8 +118,8 @@ func TestAIExternalReporting(t *testing.T) {
 	require.NotNil(t, pollResp.Result)
 	require.False(t, pollResp.Result.CanUpstream)
 	require.Equal(t, &dashapi.NewReportResult{
-		Subject:    "Test Description",
-		Body:       "Test Description",
+		Subject:    "Test Subject",
+		Body:       "Test Body",
 		Version:    1,
 		GitDiff:    "diff",
 		BaseCommit: "commit",
@@ -279,7 +279,7 @@ func TestAINoParallelReports(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID1,
 		Results: map[string]any{
-			"PatchDescription": "Job 1 Description",
+			"PatchDescription": "Job 1 Subject\n\nJob 1 Body",
 			"PatchDiff":        "diff1",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit1",
@@ -290,7 +290,7 @@ func TestAINoParallelReports(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID2,
 		Results: map[string]any{
-			"PatchDescription": "Job 2 Description",
+			"PatchDescription": "Job 2 Subject\n\nJob 2 Body",
 			"PatchDiff":        "diff2",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit2",
@@ -395,7 +395,7 @@ func TestAIUpstreamTwice(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 		},
 	})
@@ -470,7 +470,7 @@ func TestAINoStages(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -533,7 +533,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID1,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -588,7 +588,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
-			"PatchDescription": "New Description",
+			"PatchDescription": "New Subject\n\nNew Body",
 			"PatchDiff":        "new diff",
 		},
 	})
@@ -655,7 +655,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "exact-repo",
 			"KernelBranch":     "exact-branch",
@@ -736,7 +736,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		{
 			Version:     1,
 			Diff:        "diff",
-			Description: "Test Description",
+			Description: "Test Subject\n\nTest Body",
 			Comments: []ai.ExternalComment{
 				{
 					ExtID:  "<comment-id-1>",
@@ -753,7 +753,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
-			"PatchDescription": "New Description",
+			"PatchDescription": "New Subject\n\nNew Body",
 			"PatchDiff":        "new diff",
 			"NewChangeLog":     "- Fixed ABCD.",
 			"KernelRepo":       "repo_url",
@@ -773,8 +773,8 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		CanUpstream: true,
 		To:          []string{"moderation@test.com"},
 		Patch: &dashapi.NewReportResult{
-			Subject:    "New Description",
-			Body:       "New Description",
+			Subject:    "New Subject",
+			Body:       "New Body",
 			Version:    2,
 			GitDiff:    "new diff",
 			ReportedBy: []string{"syzbot+" + extID + "@" + appengine.AppID(c.ctx) + ".appspotmail.com"},
@@ -860,7 +860,7 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 		{
 			Version:     2,
 			Diff:        "new diff",
-			Description: "New Description",
+			Description: "New Subject\n\nNew Body",
 			Comments: []ai.ExternalComment{
 				{
 					ExtID:  "<comment-id-2>",
@@ -877,7 +877,7 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
-			"PatchDescription": "Description V3",
+			"PatchDescription": "Subject V3\n\nBody V3",
 			"PatchDiff":        "diff V3",
 			"NewChangeLog":     "- Reverted to standard formatting.",
 		},
@@ -978,7 +978,7 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Desc",
+			"PatchDescription": "Desc Subject\n\nDesc Body",
 			"PatchDiff":        "diff",
 			"KernelCommit":     "exact-commit-hash",
 			"KernelRepo":       "exact-repo",
@@ -1102,7 +1102,7 @@ func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
 
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      jobID,
-		Results: map[string]any{"PatchDescription": "Desc1", "PatchDiff": "diff1"},
+		Results: map[string]any{"PatchDescription": "Desc1 Subject\n\nDesc1 Body", "PatchDiff": "diff1"},
 	})
 	require.NoError(t, err)
 
@@ -1182,7 +1182,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	// Complete V1 job.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      jobID1,
-		Results: map[string]any{"PatchDescription": "Desc1", "PatchDiff": "diff1"},
+		Results: map[string]any{"PatchDescription": "Desc1 Subject\n\nDesc1 Body", "PatchDiff": "diff1"},
 	})
 	require.NoError(t, err)
 
@@ -1222,7 +1222,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	// Complete V2 job.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      jobID2,
-		Results: map[string]any{"PatchDescription": "Desc2", "PatchDiff": "diff2"},
+		Results: map[string]any{"PatchDescription": "Desc2 Subject\n\nDesc2 Body", "PatchDiff": "diff2"},
 	})
 	require.NoError(t, err)
 
@@ -1282,7 +1282,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -1542,7 +1542,7 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",

@@ -277,8 +277,12 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
-	lines := strings.Split(res.PatchDescription, "\n")
-	if lines[0] == "" {
+
+	subject, body, _ := strings.Cut(res.PatchDescription, "\n")
+	subject = strings.TrimSpace(subject)
+	body = strings.Trim(body, "\n\r")
+
+	if subject == "" {
 		return nil, fmt.Errorf("title line can't be empty")
 	}
 
@@ -292,7 +296,6 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 			models[span.Model] = true
 		}
 	}
-	subject := lines[0]
 	var to, cc []string
 	for _, rec := range res.Recipients {
 		if rec.To {
@@ -304,7 +307,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 
 	return &dashapi.NewReportResult{
 		Subject:    subject,
-		Body:       res.PatchDescription,
+		Body:       body,
 		GitDiff:    res.PatchDiff,
 		BaseCommit: res.KernelCommit,
 		BaseTree:   res.KernelRepo,
