@@ -114,6 +114,7 @@ type ReproOutputs struct {
 	SyzkallerCommit       string
 	Reproduced            bool
 	ReproducedCrashReport string
+	OtherCrashReports     []string
 }
 
 type ReproCOutputs struct {
@@ -121,4 +122,5 @@ type ReproCOutputs struct {
 	Reproduced            bool
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
+	OtherCrashReports     []string
 }

@@ -421,6 +421,13 @@ Bug title: {{jsonMarshal .ReproducedBugTitle}}
 Crash report:
 {{.ReproducedCrashReport}}
 
+{{if .OtherCrashReports}}
+Other crashes triggered:
+{{range .OtherCrashReports}}
+{{.}}
+{{end}}
+{{end}}
+
 {{if .ReproducedFaultInjection}}
 Fault injection report(s):
 {{.ReproducedFaultInjection}}

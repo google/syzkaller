@@ -4,6 +4,7 @@
 package crash
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -48,12 +49,15 @@ type ReproduceArgs struct {
 type reproduceResult struct {
 	ReproducedBugTitle       string
 	ReproducedCrashReport    string
+	OtherCrashReports        []string
 	ReproducedFaultInjection string
 }
 
 type RunTestResult struct {
 	// Returned if the program caused a kernel crash.
 	Report *report.Report
+	// Other crash reports triggered during reproduction, excluding the main Report.
+	OtherReports []*report.Report
 	// Returned if the kernel failed to boot or function properly
 	// (Report is not returned in this case).
 	BootError string
@@ -108,42 +112,112 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	if err != nil {
 		return res, err
 	}
-	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
-	results, err := env.Test(1, []byte(args.ReproSyz), []byte(args.ReproOpts), []byte(args.ReproC), collectCoverage)
-	if err != nil {
-		return res, err
-	}
-	if len(results) == 0 {
-		return res, fmt.Errorf("env.Test returned no results")
-	}
-	res.ConsoleOutput = string(results[0].RawOutput)
 	crashReporter, err := report.NewReporter(cfg)
 	if err != nil {
 		return res, fmt.Errorf("failed to create crash reporter: %w", err)
 	}
-	res.FaultInjection, err = crashReporter.ExtractFaultInjectionInfo(results[0].RawOutput)
-	if err != nil {
-		return res, fmt.Errorf("failed to extract fault injection info: %w", err)
+
+	runner := &reproRunner{
+		env:             env,
+		args:            args,
+		collectCoverage: collectCoverage,
 	}
-	if err := results[0].Error; err != nil {
-		if crashErr := new(instance.CrashError); errors.As(err, &crashErr) {
-			res.Report = crashErr.Report
-		} else if testErr := new(instance.TestError); errors.As(err, &testErr) {
-			if testErr.Infra {
-				// No point in showing this to LLM and asking to fix.
-				return res, fmt.Errorf("%v\n%v\n%s",
-					testErr.Error(), testErr.Title, testErr.Output)
+
+	validResults, err := instance.CollectRuns(runner.Test, instance.CollectRunsOpts{
+		WantValid: 3,
+		MaxTotal:  6,
+		MaxVMs:    3,
+	})
+	if err != nil {
+		return res, err
+	}
+
+	return aggregateTestResults(validResults, crashReporter, args.KernelObj)
+}
+
+type reproRunner struct {
+	env             instance.Env
+	args            ReproduceArgs
+	collectCoverage bool
+}
+
+func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
+	results, err := r.env.Test(numVMs, []byte(r.args.ReproSyz), []byte(r.args.ReproOpts),
+		[]byte(r.args.ReproC), r.collectCoverage)
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("env.Test returned no results")
+	}
+	return results, nil
+}
+
+func aggregateTestResults(validResults []instance.EnvTestResult,
+	crashReporter *report.Reporter, kernelObj string) (RunTestResult, error) {
+	var res RunTestResult
+	if len(validResults) > 0 {
+		res.ConsoleOutput = string(validResults[0].RawOutput)
+	}
+
+	type crashStat struct {
+		report *report.Report
+		count  int
+	}
+	crashes := make(map[string]*crashStat)
+	var firstCoverage [][]uint64
+
+	for _, result := range validResults {
+		if result.Error == nil {
+			if len(result.Coverage) > 0 && firstCoverage == nil {
+				firstCoverage = result.Coverage
 			}
+			continue
+		}
+
+		var crashErr *instance.CrashError
+		if errors.As(result.Error, &crashErr) {
+			title := crashErr.Report.Title
+			if stat, ok := crashes[title]; ok {
+				stat.count++
+			} else {
+				crashes[title] = &crashStat{report: crashErr.Report, count: 1}
+				if res.FaultInjection == "" {
+					fi, _ := crashReporter.ExtractFaultInjectionInfo(result.RawOutput)
+					res.FaultInjection = fi
+				}
+			}
+			continue
+		}
+
+		var testErr *instance.TestError
+		if errors.As(result.Error, &testErr) && res.BootError == "" {
 			res.BootError = parseTestError(testErr)
-		} else {
-			res.BootError = err.Error()
 		}
 	}
-	coverage, err := symbolize(args.KernelObj, results[0].Coverage)
-	if err != nil {
-		return res, fmt.Errorf("failed to symbolize coverage: %w", err)
+
+	if len(crashes) > 0 {
+		stats := slices.Collect(maps.Values(crashes))
+		slices.SortFunc(stats, func(a, b *crashStat) int {
+			if a.count != b.count {
+				return b.count - a.count
+			}
+			return cmp.Compare(a.report.Title, b.report.Title)
+		})
+		res.Report = stats[0].report
+		for i := 1; i < len(stats); i++ {
+			res.OtherReports = append(res.OtherReports, stats[i].report)
+		}
 	}
-	res.Coverage = coverage
+
+	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
+		coverage, err := symbolize(kernelObj, firstCoverage)
+		if err != nil {
+			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
+		}
+		res.Coverage = coverage
+	}
+
 	return res, nil
 }
 
@@ -174,6 +248,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 	type Cached struct {
 		BugTitle       string
 		Report         string
+		OtherReports   []string
 		FaultInjection string
 		Error          string
 		CoverageID     string
@@ -188,6 +263,9 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		if testRes.Report != nil {
 			res.BugTitle = testRes.Report.Title
 			res.Report = string(testRes.Report.Report)
+		}
+		for _, rep := range testRes.OtherReports {
+			res.OtherReports = append(res.OtherReports, string(rep.Report))
 		}
 		res.FaultInjection = testRes.FaultInjection
 		res.Error = testRes.BootError
@@ -210,12 +288,13 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 	}
 	if cached.Error != "" {
 		return reproduceResult{}, "", errors.New(cached.Error)
-	} else if cached.Report == "" {
+	} else if cached.Report == "" && len(cached.OtherReports) == 0 {
 		return reproduceResult{}, cached.CoverageID, aflow.FlowError(ErrDidNotCrash)
 	}
 	return reproduceResult{
 		ReproducedBugTitle:       cached.BugTitle,
 		ReproducedCrashReport:    cached.Report,
+		OtherCrashReports:        cached.OtherReports,
 		ReproducedFaultInjection: cached.FaultInjection,
 	}, cached.CoverageID, nil
 }

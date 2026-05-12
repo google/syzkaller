@@ -27,6 +27,7 @@ type RunCReproResult struct {
 	ConsoleOutput        string
 	CandidateBugTitle    string
 	CandidateCrashReport string
+	OtherCrashReports    []string
 	TestError            string
 }
 
@@ -70,6 +71,11 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		result.CandidateReproduced = true
 		result.CandidateBugTitle = res.Report.Title
 		result.CandidateCrashReport = string(res.Report.Report)
+	}
+	if len(res.OtherReports) > 0 {
+		for _, rep := range res.OtherReports {
+			result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
+		}
 	}
 
 	return result, nil
