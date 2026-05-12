@@ -533,6 +533,9 @@ func TestFormatPatch(t *testing.T) {
 		recipients  []ai.Recipient
 		links       []string
 		reportedBy  []string
+		reviewedBy  []string
+		ackedBy     []string
+		testedBy    []string
 		want        string
 	}
 	tests := []Test{
@@ -559,11 +562,18 @@ Something was broken. This fixes it.
 				"https://syzkaller.appspot.com/syzbot/ai?job_id=456",
 			},
 			reportedBy: []string{"syzbot+12345@testapp.appspotmail.com"},
+			reviewedBy: []string{"Alice <alice@test.com>", "Bob <bob@test.com>"},
+			ackedBy:    []string{"Charlie <charley@test.com>"},
+			testedBy:   []string{"Dave <dave@test.com>"},
 			want: `mm: fix something
 
 Something was broken. This fixes it.
 
 Fixes: 9320daf2018f ("some old bug")
+Reviewed-by: Alice <alice@test.com>
+Reviewed-by: Bob <bob@test.com>
+Acked-by: Charlie <charley@test.com>
+Tested-by: Dave <dave@test.com>
 Reported-by: syzbot+12345@testapp.appspotmail.com
 Link: https://syzkaller.appspot.com/bug?id=123
 Link: https://syzkaller.appspot.com/syzbot/ai?job_id=456
@@ -643,6 +653,9 @@ base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
 				Recipients: test.recipients,
 				Links:      test.links,
 				ReportedBy: test.reportedBy,
+				ReviewedBy: test.reviewedBy,
+				AckedBy:    test.ackedBy,
+				TestedBy:   test.testedBy,
 			})
 			assert.Equal(t, test.want, got)
 		})

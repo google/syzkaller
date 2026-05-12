@@ -33,8 +33,18 @@ type PatchIterationOutputs struct {
 	Recipients       []Recipient
 	Fixes            FixesTag
 
+	ReviewedBy []string
+	AckedBy    []string
+	TestedBy   []string
+	ReportedBy []string
+
 	NewChangeLog string
 	Replies      []CommentReply
+}
+
+type EmailTag struct {
+	Tag   string `jsonschema:"The name of the tag, e.g., 'Reviewed-by', 'Acked-by' (without the trailing colon)."`
+	Value string `jsonschema:"The value associated with the tag, e.g., 'Name <email>'."`
 }
 
 type CommentReply struct {
@@ -69,6 +79,11 @@ type PatchingOutputs struct {
 	PatchDiff        string
 	Recipients       []Recipient
 	Fixes            FixesTag
+
+	ReviewedBy []string
+	AckedBy    []string
+	TestedBy   []string
+	ReportedBy []string
 }
 
 type FixesTag struct {

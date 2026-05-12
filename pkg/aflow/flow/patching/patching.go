@@ -97,6 +97,7 @@ func createPatchingFlow(name string, summaryWindow, compressTokens int) *aflow.F
 				CompressTokens: compressTokens,
 			},
 			formatPatchDescription,
+			emptyTagsAction,
 		),
 	}
 }

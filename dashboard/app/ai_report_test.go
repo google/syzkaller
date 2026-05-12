@@ -830,6 +830,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 			"NewChangeLog":     "- Fixed ABCD.",
 			"KernelRepo":       "repo_url",
 			"KernelCommit":     "repo_commit",
+			"ReviewedBy":       []string{"Test Reviewer <test@reviewer.com>"},
 		},
 	})
 	require.NoError(t, err)
@@ -862,6 +863,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 			},
 			BaseCommit: "repo_commit",
 			BaseTree:   "repo_url",
+			ReviewedBy: []string{"Test Reviewer <test@reviewer.com>"},
 			Links: []string{
 				appURL(c.ctx) + "/bug?extid=" + extID,
 				appURL(c.ctx) + "/ai_job?id=" + resp.ID,
