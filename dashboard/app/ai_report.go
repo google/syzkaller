@@ -411,7 +411,7 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 		OwnEmail:    req.OwnEmail,
 		Processed:   req.OwnEmail,
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, aidb.ErrDuplicateComment) {
 		return nil, err
 	}
 

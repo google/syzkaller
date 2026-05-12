@@ -361,6 +361,16 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	// Verify that NO error reply was sent, meaning sent length is still exactly 1!
 	require.Len(t, mockSnd.sent, 1)
 
+	// 3.5. Duplicate comment (e.g. from another list) should be ignored without 500 error.
+	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
+		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Message-ID: <comment1>\n"+
+		"In-Reply-To: <mock@msgid-1>\n\n"+
+		"This is just a normal review comment with some context.\n", now.Add(time.Minute*2))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
 	// 4. Send a reply from the bot itself.
 	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
 		"Subject: Re: [PATCH RFC] Test Description\n"+
