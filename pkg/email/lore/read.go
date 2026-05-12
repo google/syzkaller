@@ -41,15 +41,7 @@ type Email struct {
 	HasPatch bool
 }
 
-func (er *EmailReader) Parse(emails, domains []string) (*Email, error) {
-	body, err := er.Read()
-	if err != nil {
-		return nil, err
-	}
-	return emailFromRaw(body, emails, domains)
-}
-
-func emailFromRaw(body []byte, emails, domains []string) (*Email, error) {
+func Parse(body []byte, emails, domains []string) (*Email, error) {
 	msg, err := email.Parse(bytes.NewReader(body), emails, nil, domains)
 	if err != nil {
 		return nil, err

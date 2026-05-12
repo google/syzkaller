@@ -33,6 +33,7 @@ type PollerConfig struct {
 type PolledEmail struct {
 	Email         *Email
 	RootMessageID string
+	Raw           []byte
 }
 
 type Poller struct {
@@ -87,7 +88,11 @@ func (p *Poller) Poll(ctx context.Context, out chan<- *PolledEmail) error {
 		return fmt.Errorf("failed to read archive: %w", err)
 	}
 	for _, er := range slices.Backward(messages) {
-		parsed, err := er.Parse(p.cfg.OwnEmails, nil)
+		raw, err := er.Read()
+		if err != nil {
+			return fmt.Errorf("failed to read email %s: %w", er.Hash, err)
+		}
+		parsed, err := Parse(raw, p.cfg.OwnEmails, nil)
 		if err != nil {
 			p.cfg.Tracer.Logf("failed to parse email %s: %v", er.Hash, err)
 			continue
@@ -102,7 +107,7 @@ func (p *Poller) Poll(ctx context.Context, out chan<- *PolledEmail) error {
 			continue
 		}
 		p.ancestors[parsed.MessageID] = parsed.InReplyTo
-		if err := p.push(ctx, parsed, parsed.MessageID, out); err != nil {
+		if err := p.push(ctx, parsed, raw, parsed.MessageID, out); err != nil {
 			return err
 		}
 		p.lastCommit = er.Hash
@@ -141,7 +146,7 @@ func (p *Poller) initialize(ctx context.Context) error {
 	return nil
 }
 
-func (p *Poller) push(ctx context.Context, email *Email, msgID string, out chan<- *PolledEmail) error {
+func (p *Poller) push(ctx context.Context, email *Email, raw []byte, msgID string, out chan<- *PolledEmail) error {
 	root := p.resolveRoot(msgID)
 	if root == "" {
 		return nil // Skip loops.
@@ -150,6 +155,7 @@ func (p *Poller) push(ctx context.Context, email *Email, msgID string, out chan<
 	case out <- &PolledEmail{
 		Email:         email,
 		RootMessageID: root,
+		Raw:           raw,
 	}:
 		return nil
 	case <-ctx.Done():
