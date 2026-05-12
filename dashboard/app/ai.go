@@ -982,11 +982,14 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 		}
 	}
 
-	res, _ := job.Results.Value.(map[string]any)
-	diff, _ := res["PatchDiff"].(string)
-	hasPatch := diff != ""
+	res, err := castJobResults[ai.PatchIterationOutputs](job)
+	if err != nil {
+		return fmt.Errorf("failed to cast job results: %w", err)
+	}
+	hasPatch := res.PatchDiff != ""
+	hasReplies := len(res.Replies) > 0
 
-	err := aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal, hasPatch)
+	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal, hasPatch, hasReplies)
 	if err != nil {
 		log.Errorf(ctx, "failed to finalize iteration job %v: %v", job.ID, err)
 	}

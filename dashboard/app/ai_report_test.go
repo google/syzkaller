@@ -1504,3 +1504,106 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, pollResp.Result)
 }
+
+func TestAIPatchIterationEmptyResult(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+		},
+	})
+
+	// 1. Setup bug and job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	jobID := c.createAIJob(extID, "patching", "")
+
+	// Poll to mark the job as started.
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Description",
+			"PatchDiff":        "diff",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+		},
+	})
+	require.NoError(t, err)
+
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+	reporting := reportings[0]
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       reporting.ID,
+		PublishedExtID: "<message-id-1>",
+	})
+	require.NoError(t, err)
+
+	// 2. Simulate comment arrival.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-1>",
+		MessageExtID: "<comment-id-1>",
+		Author:       "reviewer@email.com",
+		Comment:      &dashapi.CommentCommand{Body: "This is a comment"},
+	})
+	require.NoError(t, err)
+
+	// 3. Advance time to pass debounce (30 mins).
+	c.advanceTime(31 * time.Minute)
+
+	// 4. Poll should return the job.
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	// 5. Complete the job with no output (empty diff, no replies).
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"PatchDiff": "",
+			"Replies":   []any{},
+		},
+	})
+	require.NoError(t, err)
+
+	// 6. Verify AIPollReport returns nothing because the job had no output.
+	pollRepResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
+	require.NoError(t, err)
+	require.Nil(t, pollRepResp.Result)
+
+	// 7. Advance time again to ensure the comment doesn't re-trigger a job (it should be marked as processed).
+	c.advanceTime(31 * time.Minute)
+	resp2, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Empty(t, resp2.ID)
+}

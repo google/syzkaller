@@ -940,7 +940,7 @@ func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) er
 }
 
 func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
-	parentReportingID string, hasPatch bool) error {
+	parentReportingID string, hasPatch, hasReplies bool) error {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return err
@@ -995,6 +995,11 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 
 		if err := markCommentsProcessedTx(tx, commentIDs); err != nil {
 			return err
+		}
+
+		// If the job didn't generate a patch or replies, we don't need to report it externally.
+		if !hasPatch && !hasReplies {
+			return nil
 		}
 
 		reporting := &JobReporting{
