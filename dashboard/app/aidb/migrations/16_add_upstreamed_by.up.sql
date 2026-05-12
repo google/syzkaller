@@ -1,0 +1,1 @@
+ALTER TABLE JobReporting ADD COLUMN UpstreamedBy STRING(255);

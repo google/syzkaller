@@ -104,12 +104,13 @@ func TestAILoreIntegration(t *testing.T) {
 	body := string(mockSnd.sent[0].Body)
 	assert.Contains(t, body, "Fixes: 123456789012 (\"original bug\")")
 	assert.Contains(t, body, "Assisted-by: Gemini:gemini-3.1-pro-preview")
+	assert.NotContains(t, body, "Signed-off-by")
 	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/bug?extid="+extID)
 	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/ai_job?id="+jobID)
 	assert.Contains(t, body, "To: <maintainer@email.com>")
 	assert.Contains(t, body, "Cc: <reviewer@email.com>")
 	// 3. Approval (#syz upstream).
-	loreArchive.SaveMessageAt(t, `From: user@email
+	loreArchive.SaveMessageAt(t, `From: "User Name" <user@email>
 Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply1>
 In-Reply-To: <mock@msgid-1>
@@ -131,9 +132,11 @@ In-Reply-To: <mock@msgid-1>
 
 	bodyPublic := string(mockSnd.sent[1].Body)
 	assert.NotContains(t, bodyPublic, "Final To:")
+	assert.Contains(t, bodyPublic, "Signed-off-by: User Name <user@email>")
 
 	// 5. Duplicate Approval (#syz upstream) - should fail because already upstreamed.
-	loreArchive.SaveMessageAt(t, `From: user@email
+
+	loreArchive.SaveMessageAt(t, `From: "User Name" <user@email>
 Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply2>
 In-Reply-To: <mock@msgid-2>
@@ -470,6 +473,7 @@ func TestAILoreIteration(t *testing.T) {
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", AddressComments: true},
 		},
 	})
 
@@ -587,7 +591,7 @@ func TestAILoreIteration(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 2)
-	assert.Equal(t, "[PATCH v2] Test Subject", mockSnd.sent[1].Subject)
+	assert.Equal(t, "[PATCH RFC v2] Test Subject", mockSnd.sent[1].Subject)
 	body := string(mockSnd.sent[1].Body)
 	assert.NotContains(t, body, "Test Subject")
 	assert.Contains(t, body, "Fixes: abcdefabcdef (\"introduce a bug\")")
@@ -596,4 +600,68 @@ func TestAILoreIteration(t *testing.T) {
 	err = relay.PollDashboardOnce(context.Background())
 	require.NoError(t, err)
 	require.Len(t, mockSnd.sent, 2)
+
+	// 8. Upstream the V2 patch.
+	loreArchive.SaveMessageAt(t, `From: "User Name" <user@email>
+Subject: Re: [PATCH RFC v2] Test Description
+Message-ID: <upstream1>
+In-Reply-To: <mock@msgid-2>
+
+#syz upstream
+`, now.Add(time.Minute*32))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	// 9. Poll Dashboard - should send public patch v1 (version resets per stage).
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+	require.Len(t, mockSnd.sent, 3)
+	assert.Equal(t, "[PATCH] Test Subject", mockSnd.sent[2].Subject)
+	assert.Contains(t, string(mockSnd.sent[2].Body), "Signed-off-by: User Name <user@email>")
+
+	// 10. Comment on public V1 patch to trigger iteration.
+	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
+		"Subject: Re: [PATCH] Test Description\n"+
+		"Message-ID: <comment2>\n"+
+		"In-Reply-To: <mock@msgid-3>\n\n"+
+		"Please change something else.\n", now.Add(time.Minute*33))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	c.advanceTime(31 * time.Minute)
+
+	pollReq = &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err = c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"PatchDescription": "Test Subject\n\nTest Body",
+			"PatchDiff":        "diff v3",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+			"Fixes": map[string]any{
+				"Hash":  "abcdefabcdef",
+				"Title": "introduce a bug",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// 11. Poll Dashboard - should send public patch v2 with inherited Signed-off-by.
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+	require.Len(t, mockSnd.sent, 4)
+	assert.Equal(t, "[PATCH v2] Test Subject", mockSnd.sent[3].Subject)
+	assert.Contains(t, string(mockSnd.sent[3].Body), "Signed-off-by: User Name <user@email>")
 }

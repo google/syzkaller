@@ -61,11 +61,20 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 	return &dashapi.SendExternalCommandResp{}, nil
 }
 
+func formatUpstreamedBy(name, email string) string {
+	if name != "" {
+		return fmt.Sprintf("%s <%s>", name, email)
+	}
+	return email
+}
+
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
 	if err := checkJobUpstreamable(job); err != nil {
 		return err
 	}
+
+	upstreamedBy := formatUpstreamedBy(req.AuthorName, req.Author)
 
 	nsCfg := getNsConfig(ctx, job.Namespace)
 	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
@@ -94,6 +103,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			Stage:        nextStage,
 			Source:       nextStageCfg.ServingIntegration,
 			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
 			Version:      spanner.NullInt64{Int64: 1, Valid: true},
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
@@ -225,18 +235,23 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			ID: r.ID,
 		}
 
+		var authors []string
+		if r.UpstreamedBy.Valid && r.UpstreamedBy.StringVal != "" {
+			authors = append(authors, r.UpstreamedBy.StringVal)
+		}
+
 		switch job.Type {
 		case ai.WorkflowPatching:
 			res, err := castJobResults[ai.PatchingOutputs](job)
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast job results: %w", err)
 			}
-			result.Patch, err = makeNewReportResult(ctx, job, &res, version)
+			result.Patch, err = makeNewReportResult(ctx, job, &res, version, authors)
 			if err != nil {
 				return nil, err
 			}
 		case ai.WorkflowPatchIteration:
-			err = populateIterationReportResult(ctx, job, version, r.Stage, result)
+			err = populateIterationReportResult(ctx, job, version, r.Stage, result, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -279,7 +294,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 }
 
 func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
-	version int) (*dashapi.NewReportResult, error) {
+	version int, authors []string) (*dashapi.NewReportResult, error) {
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
@@ -321,12 +336,13 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		To:         to,
 		Cc:         cc,
 		Tools:      slices.Collect(maps.Keys(models)),
+		Authors:    authors,
 		Fixes:      res.Fixes,
 	}, nil
 }
 
 func populateIterationReportResult(ctx context.Context, job *aidb.Job, version int,
-	currentStage string, result *dashapi.ReportPollResult) error {
+	currentStage string, result *dashapi.ReportPollResult, authors []string) error {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
 	if err != nil {
 		return fmt.Errorf("failed to cast job results: %w", err)
@@ -341,7 +357,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 			PatchDiff:        res.PatchDiff,
 			Recipients:       res.Recipients,
 			Fixes:            res.Fixes,
-		}, version)
+		}, version, authors)
 		if err != nil {
 			return err
 		}
