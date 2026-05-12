@@ -420,4 +420,10 @@ const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
 Console Output: {{.TruncatedConsoleOutput}}
 Crash Report: {{.TruncatedCrashReport}}
+{{if .OtherCrashReports}}
+Other crashes triggered:
+{{range .OtherCrashReports}}
+{{.}}
+{{end}}
+{{end}}
 {{if .TestError}}Boot/Compilation Error: {{.TestError}}{{end}}`

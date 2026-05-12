@@ -237,6 +237,13 @@ The crash that corresponds to the bug is:
 
 {{.ReproducedCrashReport}}
 
+{{if .OtherCrashReports}}
+Other crashes triggered:
+{{range .OtherCrashReports}}
+{{.}}
+{{end}}
+{{end}}
+
 The explanation of the root cause of the bug is:
 
 {{.BugExplanation}}
