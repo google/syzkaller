@@ -67,6 +67,7 @@ type SendExternalCommandReq struct {
 	Author       string
 	AuthorName   string
 	OwnEmail     bool
+	DKIM         bool
 	// Only one must be set.
 	Upstream *UpstreamCommand `json:",omitempty"`
 	Reject   *RejectCommand   `json:",omitempty"`

@@ -445,14 +445,15 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 	}
 
 	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
-		ReportingID: reporting.ID,
-		ExtID:       req.MessageExtID,
-		Subject:     spanner.NullString{StringVal: req.Comment.Subject, Valid: req.Comment.Subject != ""},
-		Author:      req.Author,
-		BodyURI:     fmt.Sprintf("text://%v", textID),
-		Date:        aidb.TimeNow(ctx),
-		OwnEmail:    req.OwnEmail,
-		Processed:   req.OwnEmail,
+		ReportingID:  reporting.ID,
+		ExtID:        req.MessageExtID,
+		Subject:      spanner.NullString{StringVal: req.Comment.Subject, Valid: req.Comment.Subject != ""},
+		Author:       req.Author,
+		BodyURI:      fmt.Sprintf("text://%v", textID),
+		Date:         aidb.TimeNow(ctx),
+		OwnEmail:     req.OwnEmail,
+		Processed:    req.OwnEmail,
+		VerifiedDKIM: req.DKIM,
 	})
 	if err != nil && !errors.Is(err, aidb.ErrDuplicateComment) {
 		return nil, err
