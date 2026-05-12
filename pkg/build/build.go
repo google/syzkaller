@@ -82,7 +82,7 @@ func sanitize(params *Params) {
 func Image(params Params) (details ImageDetails, err error) {
 	sanitize(&params)
 	var builder builder
-	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
+	builder, err = getBuilder(params)
 	if err != nil {
 		return
 	}
@@ -119,7 +119,7 @@ func Image(params Params) (details ImageDetails, err error) {
 
 func Clean(params Params) error {
 	sanitize(&params)
-	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
+	builder, err := getBuilder(params)
 	if err != nil {
 		return err
 	}
@@ -154,9 +154,13 @@ type builder interface {
 	clean(params Params) error
 }
 
-func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
-	if targetOS == targets.Linux {
-		switch vmType {
+func getBuilder(params Params) (builder, error) {
+	const shellPrefix = "SHELL:"
+	if strings.HasPrefix(params.Make, shellPrefix) {
+		return shell{script: params.Make[len(shellPrefix):]}, nil
+	}
+	if params.TargetOS == targets.Linux {
+		switch params.VMType {
 		case targets.GVisor:
 			return gvisor{}, nil
 		case "cuttlefish":
@@ -176,10 +180,10 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		targets.Darwin:  darwin{},
 		targets.TestOS:  test{},
 	}
-	if builder, ok := builders[targetOS]; ok {
+	if builder, ok := builders[params.TargetOS]; ok {
 		return builder, nil
 	}
-	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
+	return nil, fmt.Errorf("unsupported image type %v/%v/%v", params.TargetOS, params.TargetArch, params.VMType)
 }
 
 func compilerIdentity(compiler string) (string, error) {
