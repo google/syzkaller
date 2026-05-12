@@ -80,6 +80,8 @@ func TestAILoreIntegration(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
+			"TestedBy":         []string{"Tester One <test1@test.com>"},
 			"Fixes": map[string]any{
 				"Hash":  "123456789012",
 				"Title": "original bug",
@@ -338,6 +340,8 @@ func TestAILoreIntegrationComment(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
+			"TestedBy":         []string{"Tester One <test1@test.com>"},
 			"Fixes": map[string]any{
 				"Hash":  "123456789012",
 				"Title": "original bug",
@@ -350,6 +354,11 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 	require.Len(t, mockSnd.sent, 1)
+
+	// Verify tags are in the first email.
+	body := string(mockSnd.sent[0].Body)
+	assert.Contains(t, body, "Reviewed-by: Reviewer One <rev1@test.com>")
+	assert.Contains(t, body, "Tested-by: Tester One <test1@test.com>")
 
 	// 3. Send a plain comment.
 	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
@@ -520,6 +529,8 @@ func TestAILoreIteration(t *testing.T) {
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
+			"TestedBy":         []string{"Tester One <test1@test.com>"},
 			"Fixes": map[string]any{
 				"Hash":  "123456789012",
 				"Title": "original bug",
@@ -532,6 +543,11 @@ func TestAILoreIteration(t *testing.T) {
 	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 	require.Len(t, mockSnd.sent, 1)
+
+	// Verify tags are in the first email.
+	body := string(mockSnd.sent[0].Body)
+	assert.Contains(t, body, "Reviewed-by: Reviewer One <rev1@test.com>")
+	assert.Contains(t, body, "Tested-by: Tester One <test1@test.com>")
 
 	// 3. Send a plain comment.
 	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
@@ -578,6 +594,8 @@ func TestAILoreIteration(t *testing.T) {
 			"PatchDiff":        "diff v2",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
+			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
+			"TestedBy":         []string{"Tester One <test1@test.com>"},
 			"Fixes": map[string]any{
 				"Hash":  "abcdefabcdef",
 				"Title": "introduce a bug",
@@ -592,7 +610,7 @@ func TestAILoreIteration(t *testing.T) {
 
 	require.Len(t, mockSnd.sent, 2)
 	assert.Equal(t, "[PATCH RFC v2] Test Subject", mockSnd.sent[1].Subject)
-	body := string(mockSnd.sent[1].Body)
+	body = string(mockSnd.sent[1].Body)
 	assert.NotContains(t, body, "Test Subject")
 	assert.Contains(t, body, "Fixes: abcdefabcdef (\"introduce a bug\")")
 

@@ -272,8 +272,8 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
 				links = append(links, link)
-				if reporter != "" {
-					result.Patch.ReportedBy = []string{reporter}
+				if reporter != "" && !slices.Contains(result.Patch.ReportedBy, reporter) {
+					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
 				}
 			}
 			links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
@@ -348,6 +348,10 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		Tools:      slices.Collect(maps.Keys(models)),
 		Authors:    authors,
 		Fixes:      res.Fixes,
+		ReviewedBy: res.ReviewedBy,
+		AckedBy:    res.AckedBy,
+		TestedBy:   res.TestedBy,
+		ReportedBy: res.ReportedBy,
 	}, nil
 }
 
@@ -367,6 +371,10 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 			PatchDiff:        res.PatchDiff,
 			Recipients:       res.Recipients,
 			Fixes:            res.Fixes,
+			ReviewedBy:       res.ReviewedBy,
+			AckedBy:          res.AckedBy,
+			TestedBy:         res.TestedBy,
+			ReportedBy:       res.ReportedBy,
 		}, version, authors)
 		if err != nil {
 			return err

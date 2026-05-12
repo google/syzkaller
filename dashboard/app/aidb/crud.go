@@ -1299,5 +1299,17 @@ func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
 		if fixes, ok := m["Fixes"].(map[string]any); ok && fixes != nil {
 			argsMap["BaseFixes"] = fixes
 		}
+		if tags, ok := m["ReviewedBy"].([]any); ok && tags != nil {
+			argsMap["BaseReviewedBy"] = tags
+		}
+		if tags, ok := m["AckedBy"].([]any); ok && tags != nil {
+			argsMap["BaseAckedBy"] = tags
+		}
+		if tags, ok := m["TestedBy"].([]any); ok && tags != nil {
+			argsMap["BaseTestedBy"] = tags
+		}
+		if tags, ok := m["ReportedBy"].([]any); ok && tags != nil {
+			argsMap["BaseReportedBy"] = tags
+		}
 	}
 }

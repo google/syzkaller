@@ -124,6 +124,10 @@ type NewReportResult struct {
 	Fixes      ai.FixesTag
 	Links      []string
 	ReportedBy []string
+
+	ReviewedBy []string
+	AckedBy    []string
+	TestedBy   []string
 }
 
 type ChangelogEntry struct {
