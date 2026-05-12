@@ -364,7 +364,7 @@ func TestAIJobActions(t *testing.T) {
 	})
 	require.NoError(t, c.globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      resp.ID,
-		Results: map[string]any{"PatchDiff": "diff", "PatchDescription": "description"},
+		Results: map[string]any{"PatchDiff": "diff", "PatchDescription": "description subject\n\ndescription body"},
 	}))
 
 	jobAssessURL := fmt.Sprintf("/ai_job?id=%v", resp.ID)

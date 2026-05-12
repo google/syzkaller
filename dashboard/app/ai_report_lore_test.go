@@ -76,7 +76,7 @@ func TestAILoreIntegration(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -98,7 +98,7 @@ func TestAILoreIntegration(t *testing.T) {
 
 	require.Len(t, mockSnd.sent, 1)
 	assert.Equal(t, []string{"moderation@test.com"}, mockSnd.sent[0].To)
-	assert.Equal(t, "[PATCH RFC] Test Description", mockSnd.sent[0].Subject)
+	assert.Equal(t, "[PATCH RFC] Test Subject", mockSnd.sent[0].Subject)
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[0].Cc)
 
 	body := string(mockSnd.sent[0].Body)
@@ -110,7 +110,7 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.Contains(t, body, "Cc: <reviewer@email.com>")
 	// 3. Approval (#syz upstream).
 	loreArchive.SaveMessageAt(t, `From: user@email
-Subject: Re: [PATCH RFC] Test Description
+Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply1>
 In-Reply-To: <mock@msgid-1>
 
@@ -126,7 +126,7 @@ In-Reply-To: <mock@msgid-1>
 
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
 	assert.Equal(t, []string{"public@test.com", "maintainer@email.com"}, mockSnd.sent[1].To)
-	assert.Equal(t, "[PATCH] Test Description", mockSnd.sent[1].Subject)
+	assert.Equal(t, "[PATCH] Test Subject", mockSnd.sent[1].Subject)
 	assert.Equal(t, []string{"archive@lore.com", "reviewer@email.com"}, mockSnd.sent[1].Cc)
 
 	bodyPublic := string(mockSnd.sent[1].Body)
@@ -134,7 +134,7 @@ In-Reply-To: <mock@msgid-1>
 
 	// 5. Duplicate Approval (#syz upstream) - should fail because already upstreamed.
 	loreArchive.SaveMessageAt(t, `From: user@email
-Subject: Re: [PATCH RFC] Test Description
+Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply2>
 In-Reply-To: <mock@msgid-2>
 
@@ -210,7 +210,7 @@ func TestAILoreIntegrationReject(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -224,12 +224,12 @@ func TestAILoreIntegrationReject(t *testing.T) {
 
 	require.Len(t, mockSnd.sent, 1)
 	assert.Equal(t, []string{"moderation@test.com"}, mockSnd.sent[0].To)
-	assert.Equal(t, "[PATCH RFC] Test Description", mockSnd.sent[0].Subject)
+	assert.Equal(t, "[PATCH RFC] Test Subject", mockSnd.sent[0].Subject)
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[0].Cc)
 
 	// 3. Reject (#syz reject).
 	loreArchive.SaveMessageAt(t, `From: user@email
-Subject: Re: [PATCH RFC] Test Description
+Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply1>
 In-Reply-To: <mock@msgid-1>
 
@@ -269,7 +269,7 @@ func TestAILoreUnknownMessageID(t *testing.T) {
 
 	now := time.Now()
 	loreArchive.SaveMessageAt(t, `From: user@email
-Subject: Re: [PATCH RFC] Test Description
+Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply_err>
 In-Reply-To: <non-existent-msg-id>
 
@@ -331,7 +331,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -350,7 +350,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 
 	// 3. Send a plain comment.
 	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Subject: Re: [PATCH RFC] Test Subject\n"+
 		"Message-ID: <comment1>\n"+
 		"In-Reply-To: <mock@msgid-1>\n\n"+
 		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
@@ -363,7 +363,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 
 	// 3.5. Duplicate comment (e.g. from another list) should be ignored without 500 error.
 	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Subject: Re: [PATCH RFC] Test Subject\n"+
 		"Message-ID: <comment1>\n"+
 		"In-Reply-To: <mock@msgid-1>\n\n"+
 		"This is just a normal review comment with some context.\n", now.Add(time.Minute*2))
@@ -373,7 +373,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 
 	// 4. Send a reply from the bot itself.
 	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
-		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Subject: Re: [PATCH RFC] Test Subject\n"+
 		"Message-ID: <bot-reply>\n"+
 		"In-Reply-To: <comment1>\n\n"+
 		"This is a generated bot reply.\n", now.Add(time.Minute*2))
@@ -512,7 +512,7 @@ func TestAILoreIteration(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -531,7 +531,7 @@ func TestAILoreIteration(t *testing.T) {
 
 	// 3. Send a plain comment.
 	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Subject: Re: [PATCH RFC] Test Subject\n"+
 		"Message-ID: <comment1>\n"+
 		"In-Reply-To: <mock@msgid-1>\n\n"+
 		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
@@ -541,7 +541,7 @@ func TestAILoreIteration(t *testing.T) {
 
 	// 4. Send a reply from the bot itself.
 	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
-		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Subject: Re: [PATCH RFC] Test Subject\n"+
 		"Message-ID: <bot-reply>\n"+
 		"In-Reply-To: <comment1>\n\n"+
 		"This is a generated bot reply.\n", now.Add(time.Minute*2))
@@ -570,7 +570,7 @@ func TestAILoreIteration(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
-			"PatchDescription": "Test Description",
+			"PatchDescription": "Test Subject\n\nTest Body",
 			"PatchDiff":        "diff v2",
 			"KernelRepo":       "repo",
 			"KernelCommit":     "commit",
@@ -587,8 +587,9 @@ func TestAILoreIteration(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 2)
-	assert.Equal(t, "[PATCH v2] Test Description", mockSnd.sent[1].Subject)
+	assert.Equal(t, "[PATCH v2] Test Subject", mockSnd.sent[1].Subject)
 	body := string(mockSnd.sent[1].Body)
+	assert.NotContains(t, body, "Test Subject")
 	assert.Contains(t, body, "Fixes: abcdefabcdef (\"introduce a bug\")")
 
 	// 7. But nothing else.

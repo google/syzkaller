@@ -430,7 +430,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 	globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID2,
 		Results: map[string]any{
-			"PatchDescription": "Test Patch Description",
+			"PatchDescription": "Test Patch Subject\n\nTest Patch Body",
 			"PatchDiff":        "diff --git a/test b/test",
 		},
 	})
@@ -472,7 +472,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 	globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: iterResp.ID,
 		Results: map[string]any{
-			"PatchDescription": "Test Patch V2",
+			"PatchDescription": "Test Patch V2 Subject\n\nTest Patch V2 Body",
 			"PatchDiff":        "diff --git a/test b/test\n+v2 changes",
 			"NewChangeLog":     "Fixed reviewer comment",
 		},
