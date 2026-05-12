@@ -14,6 +14,7 @@ require (
 	cloud.google.com/go/storage v1.60.0
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.7.14
+	github.com/emersion/go-msgauth v0.7.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/flatbuffers v25.12.19+incompatible
 	github.com/google/jsonschema-go v0.4.2

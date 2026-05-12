@@ -9,6 +9,7 @@ own_emails:
   - "syzbot@syzkaller.appspotmail.com"
   - "syzbot@kernel.org"
 lore_archive: "syzbot@lists.linux.dev"
+verify_dkim: true
 smtp:
   host: "gcp-secret:lore-relay-smtp-host"
   port: "gcp-secret:lore-relay-smtp-port"
