@@ -124,13 +124,14 @@ func (r *JobReporting) ExternalLink() string {
 }
 
 type JobComment struct {
-	ID          string
-	ReportingID string
-	ExtID       string
-	Subject     spanner.NullString
-	Author      string
-	BodyURI     string
-	Date        time.Time
-	OwnEmail    bool
-	Processed   bool
+	ID           string
+	ReportingID  string
+	ExtID        string
+	Subject      spanner.NullString
+	Author       string
+	BodyURI      string
+	Date         time.Time
+	OwnEmail     bool
+	Processed    bool
+	VerifiedDKIM bool
 }

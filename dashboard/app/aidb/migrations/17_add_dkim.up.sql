@@ -1,0 +1,1 @@
+ALTER TABLE JobComments ADD COLUMN VerifiedDKIM BOOL NOT NULL DEFAULT (false);
