@@ -30,6 +30,7 @@ type Email struct {
 	Subject        string
 	MailingList    string
 	Author         string
+	AuthorName     string
 	OwnEmail       bool
 	Cc             []string
 	RawCc          []string // unstripped emails
@@ -164,6 +165,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	}
 
 	author := CanonicalEmail(from[0].Address)
+	authorName := from[0].Name
 	mailingList := ""
 
 	goodListsMap := prepareEmails(goodLists)
@@ -187,6 +189,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		Date:           date,
 		Link:           link,
 		Author:         author,
+		AuthorName:     authorName,
 		OwnEmail:       fromMe,
 		MailingList:    mailingList,
 		Subject:        subject,

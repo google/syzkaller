@@ -436,14 +436,15 @@ To post to this group, send email to syzkaller@googlegroups.com.
 To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
 For more options, visit https://groups.google.com/d/optout.`,
 		Email{
-			BugIDs:    []string{"4564456"},
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Link:      "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
-			Subject:   "test subject",
-			Author:    "bob@example.com",
-			Cc:        []string{"bob@example.com"},
-			RawCc:     []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:     []string{"4564456"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Link:       "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
+			Subject:    "test subject",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"bob@example.com"},
+			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `text body
 second line
 #syz fix: 	 arg1 arg2 arg3 	
@@ -477,14 +478,15 @@ You received this message because you are subscribed to the Google Groups "syzka
 To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
 To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
 		Email{
-			BugIDs:    []string{"4564456"},
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Link:      "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
-			Subject:   "new footer",
-			Author:    "bob@example.com",
-			Cc:        []string{"bob@example.com"},
-			RawCc:     []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:     []string{"4564456"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Link:       "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
+			Subject:    "new footer",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"bob@example.com"},
+			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `some title
 
 -- 
@@ -504,14 +506,15 @@ Content-Type: text/plain; charset="UTF-8"
 text body
 last line`,
 		Email{
-			BugIDs:    []string{"4564456"},
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "test subject",
-			Author:    "foo@bar.com",
-			OwnEmail:  true,
-			Cc:        []string{"bob@example.com"},
-			RawCc:     []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:     []string{"4564456"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "test subject",
+			Author:     "foo@bar.com",
+			AuthorName: "syzbot",
+			OwnEmail:   true,
+			Cc:         []string{"bob@example.com"},
+			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `text body
 last line`,
 			Patch: "",
@@ -528,12 +531,13 @@ text body
 second line
 last line`,
 		Email{
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "test subject",
-			Author:    "bob@example.com",
-			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
-			RawCc:     []string{"alice@example.com", "bob@example.com", "bot@example.com"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "test subject",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"alice@example.com", "bob@example.com", "bot@example.com"},
+			RawCc:      []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `#syz  invalid   	 
 text body
 second line
@@ -560,12 +564,13 @@ second line
 last line
 #syz command`,
 		Email{
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "test subject",
-			Author:    "bob@example.com",
-			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
-			RawCc:     []string{"alice@example.com", "bob@example.com", "bot@example.com"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "test subject",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"alice@example.com", "bob@example.com", "bot@example.com"},
+			RawCc:      []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `text body
 second line
 last line
@@ -606,12 +611,13 @@ ZXR1cm47Ci0Jc3Bpbl9sb2NrKCZrY292LT5sb2NrKTsKIAlpZiAoV0FSTl9PTihrY292LT50ICE9
 IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 --001a114ce0b01684a6054f0d8b81--`,
 		Email{
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "test subject",
-			Author:    "bob@example.com",
-			Cc:        []string{"bob@example.com", "bot@example.com"},
-			RawCc:     []string{"bob@example.com", "bot@example.com"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "test subject",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"bob@example.com", "bot@example.com"},
+			RawCc:      []string{"bob@example.com", "bot@example.com"},
 			Body: `body text
 >#syz test
 `,
@@ -694,12 +700,13 @@ or)</div></div></div>
 
 --f403043eee70018593054f0d9f1f--`,
 		Email{
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "test subject",
-			Author:    "bob@example.com",
-			Cc:        []string{"bob@example.com", "bot@example.com"},
-			RawCc:     []string{"bob@example.com", "bot@example.com"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "test subject",
+			Author:     "bob@example.com",
+			AuthorName: "Bob",
+			Cc:         []string{"bob@example.com", "bot@example.com"},
+			RawCc:      []string{"bob@example.com", "bot@example.com"},
 			Body: `On Mon, May 8, 2017 at 6:47 PM, Bob wrote:
 > body text
 
@@ -778,12 +785,13 @@ On 2018/06/10 4:57, syzbot wrote:
 #syz dup: BUG: unable to handle kernel NULL pointer dereference in corrupte=
 d
 `, Email{
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2018, time.June, 10, 1, 38, 20, 0, time.UTC),
-		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
-		RawCc:     []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2018, time.June, 10, 1, 38, 20, 0, time.UTC),
+		Subject:    "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		RawCc:      []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
 		Body: `On 2018/06/10 4:57, syzbot wrote:
 > Hello,
 > 
@@ -812,9 +820,10 @@ From: bar@foo.com
 #syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `, Email{
-		Author: "bar@foo.com",
-		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
-		RawCc:  []string{"bar@foo.com", "syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com"},
+		Author:     "bar@foo.com",
+		AuthorName: "",
+		Cc:         []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		RawCc:      []string{"bar@foo.com", "syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com"},
 		Body: `#syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
@@ -834,9 +843,10 @@ From: bar@foo.com
 #syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `, Email{
-		Author: "bar@foo.com",
-		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
-		RawCc:  []string{"bar@foo.com", "syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com"},
+		Author:     "bar@foo.com",
+		AuthorName: "",
+		Cc:         []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		RawCc:      []string{"bar@foo.com", "syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com"},
 		Body: `#syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `,
@@ -856,14 +866,15 @@ To: syzbot <foo+4564456@bar.com>
 
 nothing to see here`,
 		Email{
-			BugIDs:    []string{"4564456"},
-			MessageID: "<123>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
-			Author:    "bob@example.com",
-			Cc:        []string{"bob@example.com"},
-			RawCc:     []string{"bob@example.com", "foo+4564456@bar.com"},
-			Body:      `nothing to see here`,
+			BugIDs:     []string{"4564456"},
+			MessageID:  "<123>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+			Author:     "bob@example.com",
+			AuthorName: "",
+			Cc:         []string{"bob@example.com"},
+			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
+			Body:       `nothing to see here`,
 			Commands: []*SingleCommand{
 				{
 					Command: CmdTest,
@@ -885,6 +896,7 @@ nothing to see here`,
 			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "user@mail.com",
+			AuthorName:  "",
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user@mail.com"},
 			RawCc:       []string{"list@googlegroups.com", "user@mail.com"},
@@ -903,6 +915,7 @@ nothing to see here`,
 			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "user@mail.com",
+			AuthorName:  "",
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user2@mail.com", "user@mail.com"},
 			RawCc:       []string{"list@googlegroups.com", "user2@mail.com", "user@mail.com"},
@@ -921,6 +934,7 @@ nothing to see here`,
 			Date:        time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
 			Subject:     "Subject",
 			Author:      "list@googlegroups.com",
+			AuthorName:  "",
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user2@mail.com"},
 			RawCc:       []string{"list@googlegroups.com", "user2@mail.com"},
@@ -943,12 +957,13 @@ Content-Transfer-Encoding: quoted-printable
 test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82=
 f950fddb9ea6bdb5e39
 `, Email{
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
-		RawCc:     []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		RawCc:      []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
 		Body: `#syz 
 test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39
 `,
@@ -973,13 +988,14 @@ Content-Transfer-Encoding: quoted-printable
 
 Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `, Email{
-		BugIDs:    []string{"223c7461c58c58a4cb10"},
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "[PATCH] Some patch",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:     []string{"bar@foo.com", "someone@foo.com"},
+		BugIDs:     []string{"223c7461c58c58a4cb10"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "[PATCH] Some patch",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:      []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
 	}},
@@ -995,13 +1011,14 @@ Content-Language: en-US
 
 Link: https://bar.com/bug?extid=223c7461c58c58a4cb10@bar.com
 `, Email{
-		BugIDs:    []string{"223c7461c58c58a4cb10"},
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "[PATCH] Some patch",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:     []string{"bar@foo.com", "someone@foo.com"},
+		BugIDs:     []string{"223c7461c58c58a4cb10"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "[PATCH] Some patch",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:      []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Link: https://bar.com/bug?extid=223c7461c58c58a4cb10@bar.com
 `,
 	}},
@@ -1020,13 +1037,14 @@ Content-Transfer-Encoding: quoted-printable
 Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 Reported-by: syzbot <foo+9909090909090909@bar.com>
 `, Email{
-		BugIDs:    []string{"223c7461c58c58a4cb10", "9909090909090909"},
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "[PATCH] Some patch",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:     []string{"bar@foo.com", "someone@foo.com"},
+		BugIDs:     []string{"223c7461c58c58a4cb10", "9909090909090909"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "[PATCH] Some patch",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:      []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 Reported-by: syzbot <foo+9909090909090909@bar.com>
 `,
@@ -1045,13 +1063,14 @@ Content-Transfer-Encoding: quoted-printable
 Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `, Email{
 		// First come BugIDs from header, then from the body.
-		BugIDs:    []string{"9909090909090909", "223c7461c58c58a4cb10"},
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "[PATCH] Some patch",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:     []string{"bar@foo.com", "foo+9909090909090909@bar.com", "someone@foo.com"},
+		BugIDs:     []string{"9909090909090909", "223c7461c58c58a4cb10"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "[PATCH] Some patch",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:      []string{"bar@foo.com", "foo+9909090909090909@bar.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
 	}},
@@ -1075,13 +1094,14 @@ Some text
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
 		// The first one should be picked up.
-		InReplyTo: "<000000000000f1a9d205f909f327@google.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "Some discussion",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:     []string{"bar@foo.com", "someone@foo.com"},
-		Body:      "Some text\n",
+		InReplyTo:  "<000000000000f1a9d205f909f327@google.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "Some discussion",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:      []string{"bar@foo.com", "someone@foo.com"},
+		Body:       "Some text\n",
 	}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
@@ -1098,12 +1118,13 @@ Content-Transfer-Encoding: quoted-printable
 #syz test: aaa bbb
 #syz test: ccc ddd
 `, Email{
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
-		Author:    "bar@foo.com",
-		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
-		RawCc:     []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:     "bar@foo.com",
+		AuthorName: "bar",
+		Cc:         []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		RawCc:      []string{"bar@foo.com", "syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com"},
 		Body: `#syz test: aaa bbb
 #syz test: ccc ddd
 `,
@@ -1132,12 +1153,13 @@ Content-Transfer-Encoding: 8bit
 
 Body
 `, Email{
-		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:   "[PATCH] Add a new test 'migrate.cow_after_fork' that verifies correct RMAP handling of Copy-On-Write pages after fork(). Before a write, parent and child share the same PFN;",
-		Author:    "foo@foobar.com",
-		Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-		RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:    "[PATCH] Add a new test 'migrate.cow_after_fork' that verifies correct RMAP handling of Copy-On-Write pages after fork(). Before a write, parent and child share the same PFN;",
+		Author:     "foo@foobar.com",
+		AuthorName: "",
+		Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+		RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 		Body: `Body
 `,
 	}},
@@ -1152,12 +1174,13 @@ Date: Sun, 7 May 2017 19:54:00 -0700
 base-commit-broken-tag-correct-hash: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 		Email{
-			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "[PATCH] Some patch",
-			Author:    "foo@foobar.com",
-			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "[PATCH] Some patch",
+			Author:     "foo@foobar.com",
+			AuthorName: "",
+			Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 			Body: `base-commit-broken-tag-correct-hash: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 			BaseCommitHint: "",
@@ -1173,12 +1196,13 @@ Date: Sun, 7 May 2017 19:54:00 -0700
 base-commit: f8f97927brokenhash
 `,
 		Email{
-			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "[PATCH] Some patch",
-			Author:    "foo@foobar.com",
-			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "[PATCH] Some patch",
+			Author:     "foo@foobar.com",
+			AuthorName: "",
+			Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 			Body: `base-commit: f8f97927brokenhash
 `,
 			BaseCommitHint: "",
@@ -1194,12 +1218,13 @@ Date: Sun, 7 May 2017 19:54:00 -0700
 base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 		Email{
-			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "[PATCH] Some patch",
-			Author:    "foo@foobar.com",
-			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "[PATCH] Some patch",
+			Author:     "foo@foobar.com",
+			AuthorName: "",
+			Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 			Body: `base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77
 `,
 			BaseCommitHint: "f8f97927abf7c12382dddc93a144fc9df7919b77",
@@ -1217,12 +1242,13 @@ base-commit:
 Oops, no hash.
 `,
 		Email{
-			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "[PATCH] Some patch",
-			Author:    "foo@foobar.com",
-			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "[PATCH] Some patch",
+			Author:     "foo@foobar.com",
+			AuthorName: "",
+			Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 			Body: `base-commit: 
 
 Oops, no hash.
@@ -1240,12 +1266,13 @@ Date: Sun, 7 May 2017 19:54:00 -0700
 base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are bad
 `,
 		Email{
-			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-			Date:      time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:   "[PATCH] Some patch",
-			Author:    "foo@foobar.com",
-			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
-			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:    "[PATCH] Some patch",
+			Author:     "foo@foobar.com",
+			AuthorName: "",
+			Cc:         []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:      []string{"bar@foo.com", "foo@foobar.com"},
 			Body: `base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are bad
 `,
 			BaseCommitHint: "",
