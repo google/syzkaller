@@ -113,7 +113,11 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 	idToReader := map[string]lore.EmailReader{}
 	for _, item := range list {
 		// TODO: this could be done in several threads.
-		email, err := item.Parse(nil, nil)
+		rawBody, err := item.Read()
+		if err != nil {
+			return fmt.Errorf("failed to read email %s: %w", item.Hash, err)
+		}
+		email, err := lore.Parse(rawBody, nil, nil)
 		if err != nil {
 			log.Printf("failed to parse email: %v", err)
 			continue

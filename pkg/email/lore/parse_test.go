@@ -243,7 +243,7 @@ Bug report`,
 
 	var emails []*Email
 	for _, m := range messages {
-		msg, err := emailFromRaw([]byte(m), []string{"syzbot@bar.com"}, []string{"bar.com"})
+		msg, err := Parse([]byte(m), []string{"syzbot@bar.com"}, []string{"bar.com"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -464,7 +464,7 @@ No patch, just text`,
 
 	var emails []*Email
 	for _, m := range messages {
-		msg, err := emailFromRaw([]byte(m), nil, nil)
+		msg, err := Parse([]byte(m), nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

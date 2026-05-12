@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 	"runtime"
@@ -125,7 +126,11 @@ func processArchives(paths, emails, domains []string) []*lore.Thread {
 	for range threads {
 		g.Go(func() error {
 			for rawMsg := range messages {
-				msg, err := rawMsg.Parse(emails, domains)
+				rawBody, err := rawMsg.Read()
+				if err != nil {
+					return fmt.Errorf("failed to read email %s: %w", rawMsg.Hash, err)
+				}
+				msg, err := lore.Parse(rawBody, emails, domains)
 				if err != nil {
 					// There are many broken messages in LKML,
 					// no sense to print them all each time.
