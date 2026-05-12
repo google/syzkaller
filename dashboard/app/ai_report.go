@@ -104,6 +104,14 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	})
 }
 
+func aiJobUsesReportingStages(ctx context.Context, job *aidb.Job) bool {
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
+		return false
+	}
+	return job.Type == ai.WorkflowPatching || job.Type == ai.WorkflowPatchIteration
+}
+
 func checkJobUpstreamable(job *aidb.Job) error {
 	if job.Type != ai.WorkflowPatching && job.Type != ai.WorkflowPatchIteration {
 		return &aidb.ErrCannotUpstream{Reason: fmt.Sprintf("cannot upstream job of type %v", job.Type)}

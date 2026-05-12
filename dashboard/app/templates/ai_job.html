@@ -49,7 +49,7 @@ Detailed info on a single AI job execution.
 	{{end}}
 
 	{{if .Header.AIActions}}
-		{{if and (ne .Job.Correct "⏳") (ne .Job.Correct "💥") (ne .Job.Correct "🏃")}}
+		{{if and .CanSetCorrectness (ne .Job.Correct "⏳") (ne .Job.Correct "💥") (ne .Job.Correct "🏃")}}
 			<form method="POST">
 				<fieldset>
 					<legend>Result correct:</legend>

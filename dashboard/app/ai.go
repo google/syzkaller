@@ -141,6 +141,7 @@ type uiAIJobPage struct {
 	CurrentStage       string
 	NextStage          string
 	CanPushToReporting bool
+	CanSetCorrectness  bool
 	Reportings         []*uiJobReporting
 }
 
@@ -381,6 +382,12 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 }
 
 func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmail string) error {
+	if !aiJobUsesReportingStages(ctx, job) {
+		return fmt.Errorf("job is not configured to use AI reporting stages")
+	}
+	if job.Type != ai.WorkflowPatching {
+		return fmt.Errorf("only patching jobs can be manually pushed to reporting")
+	}
 	if err := checkJobUpstreamable(job); err != nil {
 		return err
 	}
@@ -394,10 +401,6 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmai
 	}
 
 	nsCfg := getNsConfig(ctx, job.Namespace)
-	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
-		return fmt.Errorf("no AI stages configured")
-	}
-
 	stageCfg, err := determineNextStage(ctx, nsCfg.AI, job, "")
 	if err != nil {
 		return err
@@ -427,6 +430,10 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userEmai
 }
 
 func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, userEmail string) error {
+	if aiJobUsesReportingStages(ctx, job) {
+		return fmt.Errorf("correctness cannot be set manually for jobs reported via stages")
+	}
+
 	switch correct {
 	case aiCorrectnessCorrect:
 		currentReporting, _, err := getJobStageInfo(ctx, job)
@@ -535,15 +542,17 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 
+	usesReportingStages := aiJobUsesReportingStages(ctx, job)
+
 	canPushToReporting := false
-	nsCfg := getNsConfig(ctx, job.Namespace)
-	if len(uiReportings) == 0 && nsCfg.AI != nil && len(nsCfg.AI.Stages) > 0 {
-		if job.Type == ai.WorkflowPatching && job.Finished.Valid && job.Error == "" {
-			if checkJobUpstreamable(job) == nil {
-				canPushToReporting = true
-			}
+	if len(uiReportings) == 0 && job.Type == ai.WorkflowPatching && job.Finished.Valid && job.Error == "" {
+		if usesReportingStages && checkJobUpstreamable(job) == nil {
+			canPushToReporting = true
 		}
 	}
+
+	// Disable manual correctness for stage-reported jobs to avoid duplicating moderation functionality.
+	canSetCorrectness := !usesReportingStages
 
 	page := &uiAIJobPage{
 		Header:             hdr,
@@ -556,6 +565,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		CurrentStage:       currentStageStr,
 		NextStage:          nextStageStr,
 		CanPushToReporting: canPushToReporting,
+		CanSetCorrectness:  canSetCorrectness,
 		Reportings:         uiReportings,
 	}
 	if r.FormValue("json") == "1" {
