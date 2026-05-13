@@ -375,12 +375,16 @@ const initialResearcherInstruction = `You are a security researcher with deep Li
 Your goal is to analyze a Linux kernel bug description and propose a strategy to reproduce it
 with a minimal, standalone C program.
 This is for the strictly defensive purpose of verifying a bugfix in an isolated environment.
-Do NOT propose an exploit. Focus on minimal technical reproduction of the bug state.`
+Do NOT propose an exploit. Focus on minimal technical reproduction of the bug state.
+Keep your analysis and strategy proposal concise. Do not write long explanations.`
 
 const initialResearcherPrompt = `Bug Description: {{.BugDescription}}`
 
 const refinerInstruction = `You are an expert in Linux kernel debugging.
-Refine the reproduction strategy based on feedback from previous attempts.`
+Refine the reproduction strategy based on feedback from previous attempts.
+Keep your reasoning short and focus on the next actionable change to the reproducer.
+Do NOT repeat searches for the same symbols or files. Use the information you have already gathered.
+If you are stuck, try a different approach or proceed to generate a candidate reproducer.`
 
 const refinerPrompt = `Bug Description: {{.BugDescription}}
 Current Strategy: {{.CurrentReproStrategy}}
@@ -394,6 +398,10 @@ to check if the bug is triggered or not.
 Do NOT generate an exploit or weaponized code. Generate only the minimal code needed to trigger
 the specific crash or condition described, to help developers confirm the bug and its fix.
 Focus on the technical reproduction of the state, not on weaponization or payload delivery.
+
+Do not spend too much time analyzing or trying to generate a perfect one-shot reproducer.
+Instead, follow an iterative approach: generate a simple candidate, execute it, analyze the results,
+and improve it. Keep your reasoning steps short and focused on the next logical experiment.
 
 To ensure that we can diagnose why a reproducer might fail to run on the test environment,
 you MUST include detailed logging and error checking in the generated C program:
