@@ -94,6 +94,14 @@ $`, c1.Hash[:12], c2.Hash[:12])
 		blameResult{},
 		"git blame failed: fatal: no such path non_existing.c in HEAD",
 		aflow.TestWorkdir(tmpDir))
+
+	// Test git-blame out of bounds line range.
+	aflow.TestTool(t, ToolBlame,
+		state{KernelCommit: "HEAD"},
+		blameArgs{File: "foo.c", Start: 1000, End: 1001},
+		blameResult{},
+		"git blame failed: fatal: file foo.c has only 5 lines",
+		aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitLog(t *testing.T) {
