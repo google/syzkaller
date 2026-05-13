@@ -1307,7 +1307,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 		RootExtID:    "<message-id-1>",
 		MessageExtID: "<comment-id-1>",
 		Author:       "reviewer@email.com",
-		Comment:      &dashapi.CommentCommand{Body: "This is a comment"},
+		Comment:      &dashapi.CommentCommand{Subject: "Re: [PATCH RFC] Test Subject", Body: "This is a comment"},
 	})
 	require.NoError(t, err)
 
@@ -1333,7 +1333,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 		RootExtID:    "<message-id-1>",
 		MessageExtID: "<comment-id-2>",
 		Author:       "reviewer@email.com",
-		Comment:      &dashapi.CommentCommand{Body: "This is a concurrent comment"},
+		Comment:      &dashapi.CommentCommand{Subject: "Re: [PATCH RFC] Test Subject", Body: "This is a concurrent comment"},
 	})
 	require.NoError(t, err)
 
@@ -1360,7 +1360,9 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 		To:          []string{"moderation@test.com"},
 		Replies: []*dashapi.ReplyResult{
 			{Body: "I will fix it.", ReplyExtID: "<comment-id-1>", ReplyAuthor: "reviewer@email.com"},
-		}}
+		},
+		ThreadSubject: "Re: [PATCH RFC] Test Subject",
+	}
 	require.Equal(t, wantResult, gotResult)
 
 	// Confirm the reply-only report so it has a PublishedExtID in the database.
