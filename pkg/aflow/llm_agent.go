@@ -777,6 +777,12 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 		// (see the test for exact error message). But presumably this is some per-minute quota.
 		return &retryError{time.Minute, err}
 	}
+	if apiErr.Code == http.StatusTooManyRequests &&
+		(strings.Contains(apiErr.Message, "Resource exhausted. Please try again later.") ||
+			strings.Contains(apiErr.Message, "Resource has been exhausted")) {
+		// Vertex AI specific rate limit error (e.g. RPM/TPM exhausted).
+		return &retryError{time.Minute, err}
+	}
 	if apiErr.Code == http.StatusBadRequest &&
 		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
 		return &inputTokenOverflowError{err}

@@ -31,6 +31,15 @@ func TestParseLLMError(t *testing.T) {
 		// nolint:lll
 		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit.`,
 	}
+	vertexError1 := genai.APIError{
+		Code: 429,
+		// nolint:lll
+		Message: `Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.`,
+	}
+	vertexError2 := genai.APIError{
+		Code:    429,
+		Message: `Resource has been exhausted (e.g. check quota).`,
+	}
 	rpdError := genai.APIError{
 		Code: 429,
 		// nolint:lll
@@ -84,6 +93,16 @@ func TestParseLLMError(t *testing.T) {
 			resp:      nil,
 			inputErr:  tpmError2,
 			outputErr: &retryError{time.Minute, tpmError2},
+		},
+		{
+			resp:      nil,
+			inputErr:  vertexError1,
+			outputErr: &retryError{time.Minute, vertexError1},
+		},
+		{
+			resp:      nil,
+			inputErr:  vertexError2,
+			outputErr: &retryError{time.Minute, vertexError2},
 		},
 		{
 			resp:      nil,
