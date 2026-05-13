@@ -20,11 +20,13 @@ type RunCReproArgs struct {
 	KernelCommit    string
 	KernelConfig    string
 	FormattedReproC string
+	StraceBin       string
 }
 
 type RunCReproResult struct {
 	CandidateReproduced  bool
 	ConsoleOutput        string
+	StraceOutput         string
 	CandidateBugTitle    string
 	CandidateCrashReport string
 	OtherCrashReports    []string
@@ -53,27 +55,47 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		KernelCommit: args.KernelCommit,
 		KernelConfig: args.KernelConfig,
 		ReproC:       args.FormattedReproC,
+		StraceBin:    args.StraceBin,
 	}
 
-	res, err := RunTest(reproduceArgs, workdir, false)
-	if err != nil {
-		// RunTest returns an error if something went wrong during infrastructure setup or similar.
-		// We want to return this error so the workflow can handle it.
-		return RunCReproResult{}, err
+	// Run 1: without strace.
+	reproduceArgs.StraceBin = ""
+	res1, err1 := RunTest(reproduceArgs, workdir, false)
+	if err1 != nil {
+		return RunCReproResult{}, err1
 	}
 
 	result := RunCReproResult{
-		ConsoleOutput: res.ConsoleOutput,
-		TestError:     res.BootError,
+		ConsoleOutput: res1.ConsoleOutput,
+		TestError:     res1.BootError,
+	}
+	if res1.Report != nil {
+		result.CandidateReproduced = true
+		result.CandidateBugTitle = res1.Report.Title
+		result.CandidateCrashReport = string(res1.Report.Report)
+	}
+	for _, rep := range res1.OtherReports {
+		result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
 	}
 
-	if res.Report != nil {
-		result.CandidateReproduced = true
-		result.CandidateBugTitle = res.Report.Title
-		result.CandidateCrashReport = string(res.Report.Report)
-	}
-	if len(res.OtherReports) > 0 {
-		for _, rep := range res.OtherReports {
+	// Run 2: with strace (only if first run didn't crash and didn't have boot error)
+	if !result.CandidateReproduced && result.TestError == "" && args.StraceBin != "" {
+		reproduceArgs.StraceBin = args.StraceBin
+		res2, err2 := RunTest(reproduceArgs, workdir, false)
+		if err2 != nil {
+			return result, err2 // Return what we had from Run 1, plus the error.
+		}
+
+		result.StraceOutput = res2.ConsoleOutput
+		if res2.BootError != "" {
+			result.TestError = res2.BootError
+		}
+		if res2.Report != nil {
+			result.CandidateReproduced = true
+			result.CandidateBugTitle = res2.Report.Title
+			result.CandidateCrashReport = string(res2.Report.Report)
+		}
+		for _, rep := range res2.OtherReports {
 			result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
 		}
 	}

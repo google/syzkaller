@@ -43,6 +43,7 @@ type Inputs struct {
 	BaseRepository string
 	BaseBranch     string
 	BaseCommit     string
+	StraceBin      string
 }
 
 func createPatchingFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
