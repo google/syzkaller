@@ -28,6 +28,7 @@ type ReproInputs struct {
 	Type         string
 	VM           json.RawMessage
 	Syzkaller    string
+	StraceBin    string
 }
 
 func init() {

@@ -44,6 +44,7 @@ type ReproduceArgs struct {
 	KernelObj    string
 	KernelCommit string
 	KernelConfig string
+	StraceBin    string
 }
 
 type reproduceResult struct {
@@ -99,6 +100,10 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	cfg.Image = args.Image
 	cfg.Type = args.Type
 	cfg.VM = vmCfg
+	if args.StraceBin != "" {
+		cfg.StraceBin = args.StraceBin
+		cfg.StraceBinOnTarget = false
+	}
 	if err := mgrconfig.SetTargets(cfg); err != nil {
 		return res, err
 	}

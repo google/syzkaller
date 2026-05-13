@@ -43,6 +43,7 @@ type PatchIterationInputs struct {
 	BaseRepository string
 	BaseBranch     string
 	BaseCommit     string
+	StraceBin      string
 }
 
 func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {

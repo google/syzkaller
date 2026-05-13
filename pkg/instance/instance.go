@@ -390,6 +390,7 @@ func (inst *inst) test() EnvTestResult {
 func (inst *inst) testInstance() error {
 	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
 		OldFlagsCompatMode: !inst.optionalFlags,
+		StraceBin:          "", // Do not use strace for instance testing.
 	})
 	if err != nil {
 		return err
@@ -423,6 +424,7 @@ func (inst *inst) testInstance() error {
 func (inst *inst) testRepro() ([]byte, [][]uint64, error) {
 	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
 		OldFlagsCompatMode: !inst.optionalFlags,
+		StraceBin:          inst.cfg.StraceBin,
 	})
 	if err != nil {
 		return nil, nil, err

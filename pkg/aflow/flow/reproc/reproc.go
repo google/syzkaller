@@ -33,6 +33,7 @@ type ReproCInputs struct {
 	Type      string
 	VM        json.RawMessage
 	Syzkaller string
+	StraceBin string
 }
 
 type FormatCArgs struct {
@@ -134,21 +135,33 @@ var MergeReproC = aflow.NewFuncAction("merge-repro-c", MergeReproCFunc)
 
 type TruncateLogArgs struct {
 	ConsoleOutput        string
+	StraceOutput         string
 	CandidateCrashReport string
 }
 
 type TruncateLogResult struct {
 	TruncatedConsoleOutput string
+	TruncatedStraceOutput  string
 	TruncatedCrashReport   string
 }
 
 func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResult, error) {
-	lines := strings.Split(args.ConsoleOutput, "\n")
-	if len(lines) > 200 {
-		lines = lines[len(lines)-200:]
+	truncate := func(log string, limit int) string {
+		lines := strings.Split(log, "\n")
+		if len(lines) > limit {
+			lines = lines[len(lines)-limit:]
+		}
+		return strings.Join(lines, "\n")
 	}
+
+	const (
+		defaultLogLimit = 200
+		straceLogLimit  = 2000
+	)
+
 	return TruncateLogResult{
-		TruncatedConsoleOutput: strings.Join(lines, "\n"),
+		TruncatedConsoleOutput: truncate(args.ConsoleOutput, defaultLogLimit),
+		TruncatedStraceOutput:  truncate(args.StraceOutput, straceLogLimit),
 		TruncatedCrashReport:   args.CandidateCrashReport,
 	}, nil
 }
@@ -158,6 +171,10 @@ var TruncateLog = aflow.NewFuncAction("truncate-log", TruncateLogFunc)
 type OracleResult struct {
 	Feedback     string `jsonschema:"Detailed feedback on the reproduction attempt"`
 	TitleMatches bool   `jsonschema:"Whether the candidate crash title matches the expected bug"`
+}
+
+type GeneratorResult struct {
+	RawCandidateReproC string `jsonschema:"The C reproducer code"`
 }
 
 type LoopControllerArgs struct {
@@ -301,7 +318,7 @@ func init() {
 						&aflow.LLMAgent{
 							Name:        "repro-generator",
 							Model:       aflow.BestExpensiveModel,
-							Reply:       "RawCandidateReproC",
+							Outputs:     aflow.LLMOutputs[GeneratorResult](),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: generatorInstruction,
 							Prompt:      generatorPrompt,
@@ -394,9 +411,7 @@ kernel subsystems, device files, or syscalls required for the reproduction (for 
 program to check if BPF_SYSCALL is enabled and permitted, or making a specific socket/ioctl call
 to verify subsystem availability). Print clear messages indicating success or failure of these
 specific kernel/subsystem probes, and exit with 0 only if all relevant subsystem checks pass.
-Do not attempt complex race conditions or heavy logic in this first version.
-
-Print only the C program that could be executed directly, without backticks.`
+Do not attempt complex race conditions or heavy logic in this first version.`
 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
@@ -406,6 +421,9 @@ Analyze the results of running the reproducer and determine if it was successful
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
 to provide detailed feedback on why it failed and how to fix it.
+
+The Strace Output will contain the syscall trace if the run was successful and strace was supported.
+Use this trace to identify which syscall failed or behaved unexpectedly.
 
 If the output indicates that this was a successful probe execution (all probes passed),
 set Reproduced to false but provide feedback indicating that the environment is ready
@@ -419,6 +437,7 @@ to the C code.`
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
 Console Output: {{.TruncatedConsoleOutput}}
+Strace Output: {{.TruncatedStraceOutput}}
 Crash Report: {{.TruncatedCrashReport}}
 {{if .OtherCrashReports}}
 Other crashes triggered:
