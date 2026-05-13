@@ -365,6 +365,7 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 				}
 			}
 			replies = append(replies, &dashapi.ReplyResult{
+				Quote:       r.Quote,
 				Body:        r.Text,
 				ReplyExtID:  r.ReplyTo,
 				ReplyAuthor: author,

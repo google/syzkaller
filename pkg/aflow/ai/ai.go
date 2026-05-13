@@ -39,6 +39,7 @@ type PatchIterationOutputs struct {
 
 type CommentReply struct {
 	ReplyTo string // ExtID of the original comment.
+	Quote   string
 	Text    string
 }
 
