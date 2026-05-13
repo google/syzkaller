@@ -5,6 +5,7 @@ package actionsyzlang
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/csource"
@@ -23,11 +24,13 @@ type createCReproResult struct {
 	SimplifiedCRepro string
 }
 
+var stringLiteralSeq = regexp.MustCompile(`"(?:[^"\\]|\\.)*"(?:\s*"(?:[^"\\]|\\.)*")*`)
+
 func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult, error) {
 	if args.ReproSyz == "" {
 		// Patching workflow may run only with C repro, if created manually (not from a syzbot bug).
 		// For these cases return the provided C repro.
-		return createCReproResult{args.ReproC}, nil
+		return createCReproResult{truncateLargeData(args.ReproC)}, nil
 	}
 	pt, err := prog.GetTarget("linux", "amd64")
 	if err != nil {
@@ -41,5 +44,16 @@ func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult
 	if err != nil {
 		return createCReproResult{}, fmt.Errorf("failed to generate simplified C repro: %w", err)
 	}
-	return createCReproResult{SimplifiedCRepro: string(cData)}, nil
+	return createCReproResult{SimplifiedCRepro: truncateLargeData(string(cData))}, nil
+}
+
+const maxStringLiteralSeqLen = 128
+
+func truncateLargeData(cRepro string) string {
+	return stringLiteralSeq.ReplaceAllStringFunc(cRepro, func(match string) string {
+		if len(match) > maxStringLiteralSeqLen {
+			return `"... [truncated large byte array] ..."`
+		}
+		return match
+	})
 }
