@@ -30,6 +30,7 @@ type Config struct {
 	Model           string          `json:"model"`
 	Workflows       []string        `json:"workflows"`
 	GeminiAPIKey    string          `json:"gemini_api_key"`
+	CloudProject    string          `json:"cloud_project"`
 
 	kernelConfigData string
 }
@@ -40,6 +41,7 @@ func loadConfig(configFile string) (*Config, error) {
 		SyzkallerBranch: "master",
 		CacheSize:       1 << 40, // 1TB
 		GeminiAPIKey:    "env:GOOGLE_API_KEY",
+		CloudProject:    "env:GOOGLE_CLOUD_PROJECT",
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
@@ -65,6 +67,15 @@ func loadConfig(configFile string) (*Config, error) {
 		os.Setenv("GOOGLE_API_KEY", resolvedGeminiKey)
 	}
 	cfg.GeminiAPIKey = resolvedGeminiKey
+
+	resolvedCloudProject, err := gcpsecret.Resolve(context.Background(), cfg.CloudProject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve CloudProject: %w", err)
+	}
+	if resolvedCloudProject != "" {
+		os.Setenv("GOOGLE_CLOUD_PROJECT", resolvedCloudProject)
+	}
+	cfg.CloudProject = resolvedCloudProject
 
 	return cfg, nil
 }
