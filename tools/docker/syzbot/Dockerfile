@@ -3,6 +3,18 @@
 
 # See /tools/docker/README.md for details.
 
+# Build the latest strace.
+FROM debian:trixie AS strace-builder
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+    make gcc libc6-dev git ca-certificates autoconf automake libtool
+RUN git clone https://github.com/strace/strace.git /tmp/strace && \
+    cd /tmp/strace && \
+    git checkout v7.0 && \
+    ./bootstrap && \
+    ./configure --enable-mpers=no LDFLAGS='-static -pthread' && \
+    make -j$(nproc) && \
+    mkdir -p /opt/bin && cp src/strace /opt/bin/strace
+
 FROM debian:trixie
 
 RUN apt-get update
@@ -103,6 +115,9 @@ RUN apt-get install -y -q ca-certificates \
     && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
 RUN apt-get update && apt-get install -y google-cloud-cli
 RUN git config --system credential.'https://*.*.sourcemanager.dev'.helper gcloud.sh
+
+# Copy the custom strace build.
+COPY --from=strace-builder /opt/bin/strace /opt/bin/strace
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
