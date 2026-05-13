@@ -198,6 +198,7 @@ func gitBadCallError(err error, name, advice string) error {
 		bytes.Contains(verr.Output, []byte("unknown revision")) ||
 		bytes.Contains(verr.Output, []byte("ambiguous argument")) ||
 		bytes.Contains(verr.Output, []byte("no match")) ||
+		bytes.Contains(verr.Output, []byte("has only")) ||
 		bytes.Contains(verr.Output, []byte("no such path"))) {
 		return aflow.BadCallError("%s failed: %s", name, bytes.TrimSpace(verr.Output))
 	}
