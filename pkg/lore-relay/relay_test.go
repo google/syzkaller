@@ -439,7 +439,8 @@ func mockMainScenarioCommands() []*dashapi.SendExternalCommandReq {
 			MessageExtID: "<reply1>",
 			Author:       "user@email",
 			Comment: &dashapi.CommentCommand{
-				Body: "This looks interesting.\n",
+				Subject: "Re: [PATCH] Fix bug",
+				Body:    "This looks interesting.\n",
 			},
 		},
 		{

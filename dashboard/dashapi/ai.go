@@ -80,7 +80,8 @@ type RejectCommand struct {
 }
 
 type CommentCommand struct {
-	Body string
+	Subject string
+	Body    string
 }
 
 type SendExternalCommandResp struct {
@@ -97,12 +98,13 @@ type PollExternalReportResp struct {
 }
 
 type ReportPollResult struct {
-	ID          string // JobReporting ID
-	CanUpstream bool
-	To          []string
-	Cc          []string
-	Patch       *NewReportResult `json:",omitempty"`
-	Replies     []*ReplyResult   `json:",omitempty"`
+	ID            string // JobReporting ID
+	CanUpstream   bool
+	To            []string
+	Cc            []string
+	Patch         *NewReportResult `json:",omitempty"`
+	Replies       []*ReplyResult   `json:",omitempty"`
+	ThreadSubject string           `json:",omitempty"` // Used as the email subject when replying without a new patch.
 }
 
 type NewReportResult struct {

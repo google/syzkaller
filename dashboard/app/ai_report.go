@@ -422,6 +422,7 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
 		ReportingID: reporting.ID,
 		ExtID:       req.MessageExtID,
+		Subject:     req.Comment.Subject,
 		Author:      req.Author,
 		BodyURI:     fmt.Sprintf("text://%v", textID),
 		Date:        aidb.TimeNow(ctx),

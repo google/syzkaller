@@ -126,6 +126,7 @@ type JobComment struct {
 	ID          string
 	ReportingID string
 	ExtID       string
+	Subject     string
 	Author      string
 	BodyURI     string
 	Date        time.Time
