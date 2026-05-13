@@ -171,6 +171,7 @@ var (
 	createClientErr  error
 	client           *genai.Client
 	modelList        map[string]*modelInfo
+	modelPathPrefix  string
 	stubContextKey   = contextKeyType(1)
 )
 
@@ -184,7 +185,7 @@ type modelInfo struct {
 func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateContentConfig,
 	req []*genai.Content) (*genai.GenerateContentResponse, error) {
 	createClientOnce.Do(func() {
-		client, modelList, createClientErr = loadModelList(ctx.Context)
+		client, modelList, modelPathPrefix, createClientErr = loadModelList(ctx.Context)
 	})
 	if createClientErr != nil {
 		return nil, createClientErr
@@ -206,42 +207,101 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 	// so some large requests can take several minutes.
 	timedCtx, cancel := context.WithTimeout(ctx.Context, 10*time.Minute)
 	defer cancel()
-	resp, err := client.Models.GenerateContent(timedCtx, modelPrefix+model, req, cfg)
+	resp, err := client.Models.GenerateContent(timedCtx, modelPathPrefix+model, req, cfg)
 	if err != nil && timedCtx.Err() == context.DeadlineExceeded {
 		return nil, &retryError{time.Second, err}
 	}
 	return resp, err
 }
 
-const modelPrefix = "models/"
+func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, string, error) {
+	var client *genai.Client
+	var err error
+	var models map[string]*modelInfo
+	var prefix string
 
-func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, error) {
-	if os.Getenv("GOOGLE_API_KEY") == "" {
-		return nil, nil, fmt.Errorf("set GOOGLE_API_KEY env var to use with Gemini" +
-			" (see https://ai.google.dev/gemini-api/docs/api-key)")
+	apiKey := os.Getenv("GOOGLE_API_KEY")
+	cloudAPIKey := os.Getenv("GOOGLE_VERTEX_API_KEY")
+	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
+
+	if (apiKey != "" && project != "") || (apiKey != "" && cloudAPIKey != "") ||
+		(cloudAPIKey != "" && project != "") {
+		return nil, nil, "", fmt.Errorf("only one of GOOGLE_API_KEY, GOOGLE_VERTEX_API_KEY, " +
+			"or GOOGLE_CLOUD_PROJECT can be set")
 	}
-	client, err := genai.NewClient(ctx, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	models := make(map[string]*modelInfo)
-	for m, err := range client.Models.All(ctx) {
+
+	isVertex := cloudAPIKey != "" || project != ""
+	if isVertex {
+		cfg := &genai.ClientConfig{Backend: genai.BackendVertexAI}
+		if cloudAPIKey != "" {
+			cfg.APIKey = cloudAPIKey
+		} else {
+			cfg.Project = project
+			location := os.Getenv("GOOGLE_CLOUD_REGION")
+			if location == "" {
+				location = "global"
+			}
+			cfg.Location = location
+		}
+		client, err = genai.NewClient(ctx, cfg)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
-		if !slices.Contains(m.SupportedActions, "generateContent") ||
-			strings.Contains(m.Name, "-image") ||
-			strings.Contains(m.Name, "-audio") {
-			continue
+		// Vertex AI backend expects the bare model name, not prefixed with "models/".
+		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
+		prefix = ""
+		// Vertex AI's Models.All() endpoint often does not return the same detailed
+		// metadata (like InputTokenLimit or SupportedActions) as the Gemini Developer API,
+		// or requires special IAM permissions to list the catalog. Therefore, we hardcode
+		// the known capabilities for the models we actively use.
+		models = map[string]*modelInfo{
+			"gemini-3-flash-preview": {
+				Thinking:         true,
+				MaxTemperature:   2.0,
+				InputTokenLimit:  1048576,
+				OutputTokenLimit: 65536,
+			},
+			"gemini-3.1-pro-preview": {
+				Thinking:         true,
+				MaxTemperature:   2.0,
+				InputTokenLimit:  1048576,
+				OutputTokenLimit: 65536,
+			},
 		}
-		models[strings.TrimPrefix(m.Name, modelPrefix)] = &modelInfo{
-			Thinking:         m.Thinking,
-			MaxTemperature:   m.MaxTemperature,
-			InputTokenLimit:  int(m.InputTokenLimit),
-			OutputTokenLimit: int(m.OutputTokenLimit),
+	} else if apiKey != "" {
+		client, err = genai.NewClient(ctx, nil)
+		if err != nil {
+			return nil, nil, "", err
 		}
+		// Gemini Developer API expects model names to be prefixed with "models/".
+		// E.g. "models/gemini-1.5-pro".
+		prefix = "models/"
+		models = make(map[string]*modelInfo)
+		for m, err := range client.Models.All(ctx) {
+			if err != nil {
+				return nil, nil, "", err
+			}
+			if !slices.Contains(m.SupportedActions, "generateContent") ||
+				strings.Contains(m.Name, "-image") ||
+				strings.Contains(m.Name, "-audio") {
+				continue
+			}
+			models[strings.TrimPrefix(m.Name, "models/")] = &modelInfo{
+				Thinking:         m.Thinking,
+				MaxTemperature:   m.MaxTemperature,
+				InputTokenLimit:  int(m.InputTokenLimit),
+				OutputTokenLimit: int(m.OutputTokenLimit),
+			}
+		}
+	} else {
+		return nil, nil, "", fmt.Errorf("set GOOGLE_API_KEY (Gemini API) " +
+			"or GOOGLE_CLOUD_PROJECT/GOOGLE_VERTEX_API_KEY (Vertex AI)")
 	}
-	return client, models, nil
+
+	if err != nil {
+		return nil, nil, "", err
+	}
+	return client, models, prefix, nil
 }
 
 type Context struct {
