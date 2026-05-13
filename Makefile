@@ -105,7 +105,7 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_rpc generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race \
+	tidy test test_race test_qemu_e2e \
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
@@ -397,6 +397,9 @@ presubmit_gvisor: host target
 test: descriptions
 	# Clang tools require cgo.
 	CGO_ENABLED=1 $(GO) test -short -coverprofile=.coverage.txt ./...
+
+test_qemu_e2e: target
+	$(GO) test ./vm/qemu -run TestSnapshotE2E -v -count=1 -coverprofile=.coverage.txt
 
 clean:
 	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h sys/gen sys/register.go
