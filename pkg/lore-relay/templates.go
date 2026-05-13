@@ -86,6 +86,12 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 // GenerateSubject generates the email subject based on the poll result.
 func GenerateSubject(res *dashapi.ReportPollResult) string {
 	if res.Patch == nil {
+		if res.ThreadSubject != "" {
+			if strings.HasPrefix(strings.ToLower(res.ThreadSubject), "re:") {
+				return res.ThreadSubject
+			}
+			return "Re: " + res.ThreadSubject
+		}
 		return ""
 	}
 	prefix := "PATCH"

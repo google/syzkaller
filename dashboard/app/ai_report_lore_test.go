@@ -450,7 +450,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	assert.Equal(t, []string{"moderation@test.com", "reviewer@email.com"}, mockSnd.sent[1].To)
 	// And they should be completely subtracted from the CC list.
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[1].Cc)
-	assert.Equal(t, "Aggregated Comment Reply", mockSnd.sent[1].Subject)
+	assert.Equal(t, "Re: [PATCH RFC] Test Subject", mockSnd.sent[1].Subject)
 	assert.Equal(t, "<comment1>", mockSnd.sent[1].InReplyTo)
 }
 

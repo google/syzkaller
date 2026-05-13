@@ -216,12 +216,13 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			return nil, fmt.Errorf("unsupported job type: %s", job.Type)
 		}
 
-		var patchResult *dashapi.NewReportResult
-		var replies []*dashapi.ReplyResult
-
 		version := 1
 		if r.Version.Valid {
 			version = int(r.Version.Int64)
+		}
+
+		result := &dashapi.ReportPollResult{
+			ID: r.ID,
 		}
 
 		switch job.Type {
@@ -230,51 +231,48 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast job results: %w", err)
 			}
-			patchResult, err = makeNewReportResult(ctx, job, &res, version)
+			result.Patch, err = makeNewReportResult(ctx, job, &res, version)
 			if err != nil {
 				return nil, err
 			}
 		case ai.WorkflowPatchIteration:
-			patchResult, replies, err = makeIterationReportResult(ctx, job, version, r.Stage)
+			err = populateIterationReportResult(ctx, job, version, r.Stage, result)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		if patchResult != nil {
+		if result.Patch != nil {
 			var links []string
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
 				links = append(links, link)
 				if reporter != "" {
-					patchResult.ReportedBy = []string{reporter}
+					result.Patch.ReportedBy = []string{reporter}
 				}
 			}
 			links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
-			patchResult.Links = links
+			result.Patch.Links = links
 		}
 
 		to := []string{stageCfg.MailingList}
 		var cc []string
-		if stageCfg.MergePatchCc && patchResult != nil {
-			to = append(to, patchResult.To...)
-			cc = append(cc, patchResult.Cc...)
+		if stageCfg.MergePatchCc && result.Patch != nil {
+			to = append(to, result.Patch.To...)
+			cc = append(cc, result.Patch.Cc...)
 		}
 
 		canUpstream := idx < len(nsCfg.AI.Stages)-1
-		if patchResult == nil {
+		if result.Patch == nil {
 			canUpstream = false
 		}
 
+		result.CanUpstream = canUpstream
+		result.To = to
+		result.Cc = cc
+
 		return &dashapi.PollExternalReportResp{
-			Result: &dashapi.ReportPollResult{
-				ID:          r.ID,
-				CanUpstream: canUpstream,
-				To:          to,
-				Cc:          cc,
-				Patch:       patchResult,
-				Replies:     replies,
-			},
+			Result: result,
 		}, nil
 	}
 	return &dashapi.PollExternalReportResp{}, nil
@@ -327,17 +325,15 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}, nil
 }
 
-func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
-	currentStage string) (*dashapi.NewReportResult, []*dashapi.ReplyResult, error) {
+func populateIterationReportResult(ctx context.Context, job *aidb.Job, version int,
+	currentStage string, result *dashapi.ReportPollResult) error {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to cast job results: %w", err)
+		return fmt.Errorf("failed to cast job results: %w", err)
 	}
-	var patchResult *dashapi.NewReportResult
-	var replies []*dashapi.ReplyResult
 
 	if res.PatchDiff != "" {
-		patchResult, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
+		result.Patch, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
 			KernelRepo:       res.KernelRepo,
 			KernelBranch:     res.KernelBranch,
 			KernelCommit:     res.KernelCommit,
@@ -347,9 +343,9 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 			Fixes:            res.Fixes,
 		}, version)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
-		patchResult.Changelog = collectChangelog(ctx, job.ID, currentStage)
+		result.Patch.Changelog = collectChangelog(ctx, job.ID, currentStage)
 	} else if len(res.Replies) > 0 {
 		var comments []*aidb.JobComment
 		if job.ParentReportingID.Valid {
@@ -361,10 +357,13 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 			for _, c := range comments {
 				if c.ExtID == r.ReplyTo {
 					author = c.Author
+					if result.ThreadSubject == "" && c.Subject != "" {
+						result.ThreadSubject = c.Subject
+					}
 					break
 				}
 			}
-			replies = append(replies, &dashapi.ReplyResult{
+			result.Replies = append(result.Replies, &dashapi.ReplyResult{
 				Quote:       r.Quote,
 				Body:        r.Text,
 				ReplyExtID:  r.ReplyTo,
@@ -372,7 +371,7 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 			})
 		}
 	}
-	return patchResult, replies, nil
+	return nil
 }
 
 func apiAIConfirmReport(ctx context.Context, req *dashapi.ConfirmPublishedReq) (any, error) {
