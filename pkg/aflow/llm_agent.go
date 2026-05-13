@@ -295,12 +295,23 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	// a new summary.
 	var summaryMessage *genai.Content
 	var lastInputTokens int
+	var anchorTokens int
 	for range defaultMaxIterations {
 		var err error
 		var newSummaryMessage *genai.Content
-		req, newSummaryMessage, lastInputTokens, err = a.maybeCompressContext(ctx, req, instruction, lastInputTokens)
+		var compressed bool
+		tokensToCompress := max(0, lastInputTokens-anchorTokens)
+		req, newSummaryMessage, compressed, err = a.maybeCompressContext(
+			ctx, req, instruction, tokensToCompress)
 		if err != nil {
 			return "", nil, err
+		}
+		if compressed {
+			// Reset tokens to 0 so that if the main API call fails (e.g., token overflow)
+			// and the loop retries via `continue`, it doesn't immediately try to
+			// compress the already-compressed context again. The real token count
+			// will be fetched from the next successful API response.
+			lastInputTokens = 0
 		}
 		if newSummaryMessage != nil || a.CompressTokens > 0 {
 			// If compression happened, reset the existing summaryMessage to nil (or the new one)
@@ -321,6 +332,9 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 
 		if resp != nil && resp.UsageMetadata != nil {
 			lastInputTokens = int(resp.UsageMetadata.PromptTokenCount)
+			if anchorTokens == 0 {
+				anchorTokens = lastInputTokens
+			}
 		}
 
 		if respErr != nil {
@@ -488,21 +502,21 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instructi
 	return newSummary, ctx.finishSpan(span, nil)
 }
 
-func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, instruction string, lastInputTokens int) (
-	[]*genai.Content, *genai.Content, int, error) {
-	if a.CompressTokens == 0 || lastInputTokens <= a.CompressTokens {
+func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, instruction string, tokensToCompress int) (
+	[]*genai.Content, *genai.Content, bool, error) {
+	if a.CompressTokens == 0 || tokensToCompress <= a.CompressTokens {
 		// Return existing state unchanged.
-		return req, nil, lastInputTokens, nil
+		return req, nil, false, nil
 	}
 
 	newSummary, err := a.compressContext(ctx, req, instruction)
 	if err != nil {
-		return req, nil, lastInputTokens, fmt.Errorf("context compression failed: %w", err)
+		return req, nil, false, fmt.Errorf("context compression failed: %w", err)
 	}
 
 	// Truncate history to Anchor + Summary.
 	req = []*genai.Content{req[0], newSummary}
-	return req, nil, 0, nil
+	return req, nil, true, nil
 }
 
 func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {

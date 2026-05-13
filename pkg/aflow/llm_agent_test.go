@@ -260,24 +260,16 @@ func TestTokenCompression(t *testing.T) {
 			},
 		},
 		[]any{
-			// 1. Initial request. Return a tool call and claim we exceeded the token threshold (150 > 100).
-			&genai.GenerateContentResponse{
-				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-					PromptTokenCount:     150,
-					CandidatesTokenCount: 10,
-				},
-				Candidates: []*genai.Candidate{{
-					Content: &genai.Content{
-						Parts: []*genai.Part{
-							{FunctionCall: &genai.FunctionCall{ID: "id1", Name: "tick"}},
-						},
-						Role: genai.RoleModel,
-					}}}},
-			// 2. The loop detects threshold exceeded and invokes compressContext (Flash model).
+			// 1. Initial request. Return a tool call and establish the anchor token count.
+			createToolCallResponse(150, "id1", "tick"),
+			// 2. Second request. Return another tool call and report total tokens 260.
+			// This means delta = 260 - 150 = 110. Since 110 > CompressTokens (100), compression triggers!
+			createToolCallResponse(260, "id2", "tick"),
+			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model).
 			// We return the compressed summary.
 			&genai.GenerateContentResponse{
 				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-					PromptTokenCount:     150,
+					PromptTokenCount:     260,
 					CandidatesTokenCount: 10,
 				},
 				Candidates: []*genai.Candidate{{
@@ -285,7 +277,7 @@ func TestTokenCompression(t *testing.T) {
 						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
 						Role:  genai.RoleModel,
 					}}}},
-			// 3. The main agent resumes with the truncated history. We finish the workflow.
+			// 4. The main agent resumes with the truncated history. We finish the workflow.
 			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (*genai.GenerateContentResponse, error) {
 				// Assert that the history was correctly truncated!
 				assert.Equal(t, 2, len(req), "History should be truncated to just Anchor and Summary")
@@ -310,6 +302,22 @@ func TestTokenCompression(t *testing.T) {
 		},
 		nil,
 	)
+}
+
+func createToolCallResponse(tokens int32, id, name string) *genai.GenerateContentResponse {
+	return &genai.GenerateContentResponse{
+		UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+			PromptTokenCount:     tokens,
+			CandidatesTokenCount: 10,
+		},
+		Candidates: []*genai.Candidate{{
+			Content: &genai.Content{
+				Parts: []*genai.Part{
+					{FunctionCall: &genai.FunctionCall{ID: id, Name: name}},
+				},
+				Role: genai.RoleModel,
+			}}},
+	}
 }
 
 func TestSetResultsToolIsNotLast(t *testing.T) {
