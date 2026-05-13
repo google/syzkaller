@@ -59,6 +59,44 @@
 	},
 	{
 		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
 		"Config": {
 			"systemInstruction": {
 				"parts": [
@@ -99,6 +137,31 @@
 					{
 						"functionResponse": {
 							"id": "id1",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
 							"name": "tick",
 							"response": {
 								"ResFoo": 123

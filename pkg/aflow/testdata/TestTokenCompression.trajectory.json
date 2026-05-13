@@ -57,38 +57,75 @@
 		"Seq": 4,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "token_compression_agent-compressor",
-		"Model": "gemini-3-flash-preview",
+		"Name": "token_compression_agent",
+		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z"
 	},
 	{
 		"Seq": 4,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "token_compression_agent-compressor",
-		"Model": "gemini-3-flash-preview",
+		"Name": "token_compression_agent",
+		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z",
 		"Finished": "0001-01-01T00:00:08Z",
-		"Reply": "compressed summary",
-		"InputTokens": 150,
+		"InputTokens": 260,
 		"OutputTokens": 10
 	},
 	{
 		"Seq": 5,
 		"Nesting": 2,
-		"Type": "llm",
-		"Name": "token_compression_agent",
-		"Model": "model",
+		"Type": "tool",
+		"Name": "tick",
 		"Started": "0001-01-01T00:00:09Z"
 	},
 	{
 		"Seq": 5,
 		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "token_compression_agent-compressor",
+		"Model": "gemini-3-flash-preview",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "token_compression_agent-compressor",
+		"Model": "gemini-3-flash-preview",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z",
+		"Reply": "compressed summary",
+		"InputTokens": 260,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
 		"Type": "llm",
 		"Name": "token_compression_agent",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:09Z",
-		"Finished": "0001-01-01T00:00:10Z",
+		"Started": "0001-01-01T00:00:13Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "token_compression_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
 		"InputTokens": 20,
 		"OutputTokens": 10
 	},
@@ -99,7 +136,7 @@
 		"Name": "token_compression_agent",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:15Z",
 		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Initial Prompt",
 		"Reply": "Done"
@@ -110,7 +147,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:12Z",
+		"Finished": "0001-01-01T00:00:16Z",
 		"Results": {
 			"Reply": "Done"
 		}
