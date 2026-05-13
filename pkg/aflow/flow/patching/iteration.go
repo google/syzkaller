@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
+	"github.com/google/syzkaller/pkg/email"
 )
 
 type PatchIterationInputs struct {
@@ -214,7 +215,7 @@ var appendCommentReply = aflow.NewFuncAction("append-comment-reply", func(ctx *a
 	if args.Action == "reply" && args.ReplyText != "" {
 		res = append(res, ai.CommentReply{
 			ReplyTo: args.CurrentComment.ExtID,
-			Text:    args.ReplyText,
+			Text:    email.WordWrap(args.ReplyText, 72),
 		})
 	}
 	return struct{ Replies []ai.CommentReply }{res}, nil
