@@ -2,7 +2,7 @@ def-source source0.c function_with_comment_in_header
 
 function function_with_comment_in_header is defined in source0.c:
 
-  24:	void function_with_comment_in_header()
-  25:	{
-  26:		same_name_in_several_files();
-  27:	}
+  25:	void function_with_comment_in_header()
+  26:	{
+  27:		same_name_in_several_files();
+  28:	}

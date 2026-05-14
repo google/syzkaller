@@ -40,6 +40,9 @@ func TestStructLayoutNonExistent(t *testing.T) {
 
 func createIndex(t *testing.T) prepareResult {
 	return prepareResult{
-		Index: index{codesearch.NewTestIndex(t, filepath.FromSlash("../../../codesearch/testdata"))},
+		Index: Index{
+			Index: codesearch.NewTestIndex(t, filepath.FromSlash("../../../codesearch/testdata")),
+			args:  prepareArgs{},
+		},
 	}
 }

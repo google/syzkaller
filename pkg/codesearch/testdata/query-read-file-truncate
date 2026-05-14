@@ -1,6 +1,7 @@
 read-file source0.c 55 50
 
-  55:	// This is supposed to fail builds, if that happens.
-  56:	#ifndef KBUILD_BASENAME
-  57:	#error "compile_commands.json is not loaded"
-  58:	#endif
+  55:	// If it's not defined, compile_commands.json is not properly loaded.
+  56:	// This is supposed to fail builds, if that happens.
+  57:	#ifndef KBUILD_BASENAME
+  58:	#error "compile_commands.json is not loaded"
+  59:	#endif

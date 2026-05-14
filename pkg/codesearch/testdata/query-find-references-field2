@@ -2,9 +2,9 @@ find-references source0.c some_union::p "" 1 10
 
 some_union::p has 1 references:
 
-function field_refs writes it at source0.c:43
-  42:		*(&p->x) = 1;
-  43:		u->p = 0;
-  44:		u->s.x = 2;
+function field_refs writes it at source0.c:44
+  43:		*(&p->x) = 1;
+  44:		u->p = 0;
+  45:		u->s.x = 2;
 
 

@@ -54,13 +54,22 @@ private:
 // PPCallbacksTracker records all macro definitions (name/value/source location).
 class PPCallbacksTracker : public PPCallbacks {
 public:
-  PPCallbacksTracker(Preprocessor& PP, MacroMap& Macros) : SM(PP.getSourceManager()), Macros(Macros) {}
+  PPCallbacksTracker(Preprocessor& PP, MacroMap& Macros, Output& Out)
+      : SM(PP.getSourceManager()), Macros(Macros), Out(Out) {}
 
 private:
   SourceManager& SM;
   MacroMap& Macros;
+  Output& Out;
 
   void MacroDefined(const Token& MacroName, const MacroDirective* MD) override { (void)Macros; }
+
+  void InclusionDirective(SourceLocation HashLoc, const Token& IncludeTok, StringRef FileName, bool IsAngled,
+                          CharSourceRange FilenameRange, OptionalFileEntryRef File, StringRef SearchPath,
+                          StringRef RelativePath, const Module* SuggestedModule, bool ModuleImported,
+                          SrcMgr::CharacteristicKind FileType) override {
+    Out.emitInclude(std::filesystem::relative(File->getName().str()).string());
+  }
 };
 
 class IndexerAstConsumer : public ASTConsumer {
@@ -129,7 +138,7 @@ template <typename T> struct ScopedState {
 
 bool Instance::handleBeginSource(CompilerInstance& CI) {
   Preprocessor& PP = CI.getPreprocessor();
-  PP.addPPCallbacks(std::make_unique<PPCallbacksTracker>(PP, Macros));
+  PP.addPPCallbacks(std::make_unique<PPCallbacksTracker>(PP, Macros, Out));
   return true;
 }
 

@@ -86,7 +86,7 @@ type prepareArgs struct {
 }
 
 type prepareResult struct {
-	Index index
+	Index Index
 }
 
 // nolint: lll
@@ -148,15 +148,54 @@ type defSourceResult struct {
 // index prevents full JSON marshalling of the index contexts,
 // so that they do not appear in logs/journal, and also ensures
 // that the index does not pass JSON marshalling round-trip.
-type index struct {
+type Index struct {
 	*codesearch.Index
+	args         prepareArgs
+	ScratchDir   string
+	scratchFiles map[string]bool
 }
 
-func (index) MarshalJSON() ([]byte, error) {
+func (index *Index) UpdateScratch(scratchDir, sourceFile string) error {
+	index.ScratchDir = scratchDir
+	if index.scratchFiles == nil {
+		index.scratchFiles = make(map[string]bool)
+	}
+	index.scratchFiles[sourceFile] = true
+	return nil
+}
+
+func (index *Index) ResetScratch() {
+	index.ScratchDir = ""
+	index.scratchFiles = nil
+	index.ResetScratch()
+}
+
+func (index *Index) refreshScratch() error {
+	if index.scratchFiles == nil {
+		return nil
+	}
+	recompile := index.Index.PrepareScratch(index.scratchFiles)
+	cfg := &clangtool.Config{
+		Tool:      clangtoolimpl.Tool,
+		KernelSrc: index.args.KernelSrc,
+		KernelObj: index.args.KernelObj,
+		// TODO: pass recompile as the subset of files
+		// recompile,
+	}
+	db, err := clangtool.Run[codesearch.Database](cfg)
+	if err != nil {
+		return fmt.Errorf("codesearch tool failed: %w", err)
+	}
+	index.Index.UpdateScratch(index.ScratchDir, recompile, db)
+	index.scratchFiles = nil
+	return nil
+}
+
+func (index *Index) MarshalJSON() ([]byte, error) {
 	return []byte(`"codesearch-index"`), nil
 }
 
-func (index) UnmarshalJSON([]byte) error {
+func (index *Index) UnmarshalJSON([]byte) error {
 	return fmt.Errorf("codesearch-index cannot be unmarshalled")
 }
 
@@ -178,7 +217,7 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 	}
 	srcDirs := []string{args.KernelSrc, args.KernelObj}
 	csIndex, err := codesearch.NewIndex(filepath.Join(dir, "index.json"), srcDirs)
-	return prepareResult{index{csIndex}}, err
+	return prepareResult{Index{Index: csIndex, args: args}}, err
 }
 
 func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIndexResult, error) {
@@ -190,6 +229,9 @@ func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIn
 }
 
 func readFile(ctx *aflow.Context, state prepareResult, args readFileArgs) (readFileResult, error) {
+	if err := state.Index.refreshScratch(); err != nil {
+		return readFileResult{}, err
+	}
 	contents, err := state.Index.ReadFile(args.File, args.FirstLine, args.LineCount)
 	return readFileResult{
 		Contents: contents,
@@ -210,6 +252,9 @@ func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fil
 
 // nolint:dupl
 func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentArgs) (defCommentResult, error) {
+	if err := state.Index.refreshScratch(); err != nil {
+		return defCommentResult{}, err
+	}
 	info, err := state.Index.DefinitionComment(args.ContextFile, args.Name)
 	if err != nil {
 		return defCommentResult{}, err
@@ -222,6 +267,9 @@ func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentA
 
 // nolint:dupl
 func definitionSource(ctx *aflow.Context, state prepareResult, args defSourceArgs) (defSourceResult, error) {
+	if err := state.Index.refreshScratch(); err != nil {
+		return defSourceResult{}, err
+	}
 	info, err := state.Index.DefinitionSource(args.ContextFile, args.Name)
 	if err != nil {
 		return defSourceResult{}, err
@@ -247,6 +295,9 @@ type findReferencesResult struct {
 }
 
 func findReferences(ctx *aflow.Context, state prepareResult, args findReferencesArgs) (findReferencesResult, error) {
+	if err := state.Index.refreshScratch(); err != nil {
+		return findReferencesResult{}, err
+	}
 	// TODO: consider limiting output based on the total number of lines in code snippets.
 	// In the end we care about total number of consumed tokens.
 	outputLimit := 20
@@ -285,6 +336,9 @@ type structLayoutField struct {
 }
 
 func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs) (structLayoutResult, error) {
+	if err := state.Index.refreshScratch(); err != nil {
+		return structLayoutResult{}, err
+	}
 	fields, err := state.Index.GetStructLayout(args.ContextFile, args.Name, args.FieldOffset)
 	if err != nil {
 		return structLayoutResult{}, err

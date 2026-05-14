@@ -1,4 +1,12 @@
 {
+	"includes": {
+		"include/common.h": [
+			"source0.c"
+		],
+		"source0.h": [
+			"source0.c"
+		]
+	},
 	"definitions": [
 		{
 			"name": "close",
@@ -6,8 +14,8 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 19,
-				"end_line": 22
+				"start_line": 20,
+				"end_line": 23
 			}
 		},
 		{
@@ -16,65 +24,76 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 39,
-				"end_line": 46
+				"start_line": 40,
+				"end_line": 47
 			},
 			"refs": [
 				{
 					"name": "some_struct",
 					"kind": "uses",
 					"entity_kind": "struct",
-					"line": 39
+					"line": 40
 				},
 				{
 					"name": "some_union",
 					"kind": "uses",
 					"entity_kind": "union",
-					"line": 39
+					"line": 40
 				},
 				{
 					"name": "some_struct::x",
 					"kind": "writes",
 					"entity_kind": "field",
-					"line": 41
+					"line": 42
 				},
 				{
 					"name": "some_struct::y",
 					"kind": "reads",
 					"entity_kind": "field",
-					"line": 41
+					"line": 42
 				},
 				{
 					"name": "some_struct::x",
 					"kind": "takes-address-of",
 					"entity_kind": "field",
-					"line": 42
+					"line": 43
 				},
 				{
 					"name": "some_union::p",
 					"kind": "writes",
 					"entity_kind": "field",
-					"line": 43
+					"line": 44
 				},
 				{
 					"name": "some_struct::x",
 					"kind": "writes",
 					"entity_kind": "field",
-					"line": 44
+					"line": 45
 				},
 				{
 					"name": "some_union::s",
 					"kind": "reads",
 					"entity_kind": "field",
-					"line": 44
+					"line": 45
 				},
 				{
 					"name": "some_struct::x",
 					"kind": "reads",
 					"entity_kind": "field",
-					"line": 45
+					"line": 46
 				}
 			]
+		},
+		{
+			"name": "foo",
+			"type": "void ()",
+			"kind": "function",
+			"is_static": true,
+			"body": {
+				"file": "include/common.h",
+				"start_line": 7,
+				"end_line": 7
+			}
 		},
 		{
 			"name": "func_accepting_a_struct",
@@ -82,45 +101,45 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 29,
-				"end_line": 33
+				"start_line": 30,
+				"end_line": 34
 			},
 			"refs": [
 				{
 					"name": "some_struct",
 					"kind": "uses",
 					"entity_kind": "struct",
-					"line": 29
+					"line": 30
 				},
 				{
 					"name": "some_struct::x",
 					"kind": "reads",
 					"entity_kind": "field",
-					"line": 31
+					"line": 32
 				},
 				{
 					"name": "some_struct_t",
 					"kind": "uses",
 					"entity_kind": "typedef",
-					"line": 31
+					"line": 32
 				},
 				{
 					"name": "some_struct",
 					"kind": "uses",
 					"entity_kind": "struct",
-					"line": 31
+					"line": 32
 				},
 				{
 					"name": "some_union::x",
 					"kind": "reads",
 					"entity_kind": "field",
-					"line": 32
+					"line": 33
 				},
 				{
 					"name": "some_union",
 					"kind": "uses",
 					"entity_kind": "union",
-					"line": 32
+					"line": 33
 				}
 			]
 		},
@@ -141,15 +160,15 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 24,
-				"end_line": 27
+				"start_line": 25,
+				"end_line": 28
 			},
 			"refs": [
 				{
 					"name": "same_name_in_several_files",
 					"kind": "calls",
 					"entity_kind": "function",
-					"line": 26
+					"line": 27
 				}
 			]
 		},
@@ -159,8 +178,8 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 35,
-				"end_line": 37
+				"start_line": 36,
+				"end_line": 38
 			}
 		},
 		{
@@ -169,13 +188,13 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 11,
-				"end_line": 17
+				"start_line": 12,
+				"end_line": 18
 			},
 			"comment": {
 				"file": "source0.c",
-				"start_line": 11,
-				"end_line": 13
+				"start_line": 12,
+				"end_line": 14
 			}
 		},
 		{
@@ -184,15 +203,15 @@
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
-				"start_line": 48,
-				"end_line": 51
+				"start_line": 49,
+				"end_line": 52
 			},
 			"refs": [
 				{
 					"name": "func_in_header",
 					"kind": "calls",
 					"entity_kind": "function",
-					"line": 50
+					"line": 51
 				}
 			]
 		},
@@ -264,8 +283,8 @@
 			"kind": "struct",
 			"body": {
 				"file": "source0.c",
-				"start_line": 6,
-				"end_line": 9
+				"start_line": 7,
+				"end_line": 10
 			},
 			"fields": [
 				{

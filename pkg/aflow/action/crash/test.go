@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
+	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
@@ -41,6 +42,7 @@ type testArgs struct {
 	KernelScratchSrc string
 	KernelCommit     string
 	KernelConfig     string
+	Index            codesearcher.Index
 }
 
 type testResult struct {
@@ -50,7 +52,7 @@ type testResult struct {
 
 func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 	res := testResult{}
-	defer undoChanges(args.KernelScratchSrc)
+	defer undoChanges(args)
 
 	diff, err := currentDiff(args.KernelScratchSrc)
 	if err != nil {
@@ -158,19 +160,23 @@ func currentDiff(repo string) (string, error) {
 	return string(diff), nil
 }
 
-func undoChanges(repo string) error {
+func undoChanges(args testArgs) error {
 	// Unset the "intent to add", otherwise git clean doesn't remove these files.
-	_, err := osutil.RunCmd(time.Minute, repo, "git", "reset")
+	_, err := osutil.RunCmd(time.Minute, args.KernelScratchSrc, "git", "reset")
 	if err != nil {
 		return err
 	}
-	_, err = osutil.RunCmd(time.Minute, repo, "git", "checkout", "--", ".")
+	_, err = osutil.RunCmd(time.Minute, args.KernelScratchSrc, "git", "checkout", "--", ".")
 	if err != nil {
 		return err
 	}
 	// We do not use -fdx to keep object files around and make the next tool call faster.
-	_, err = osutil.RunCmd(time.Minute, repo, "git", "clean", "-fd")
-	return err
+	_, err = osutil.RunCmd(time.Minute, args.KernelScratchSrc, "git", "clean", "-fd")
+	if err != nil {
+		return err
+	}
+	args.Index.ResetScratch()
+	return nil
 }
 
 func findClangFormatDiff() (string, error) {

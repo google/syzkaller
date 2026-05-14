@@ -2,9 +2,9 @@ find-references source0.c some_struct::y "" 1 10
 
 some_struct::y has 1 references:
 
-function field_refs reads it at source0.c:41
-  40:	{
-  41:		p->x = p->y;
-  42:		*(&p->x) = 1;
+function field_refs reads it at source0.c:42
+  41:	{
+  42:		p->x = p->y;
+  43:		*(&p->x) = 1;
 
 
