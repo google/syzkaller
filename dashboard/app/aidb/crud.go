@@ -1100,6 +1100,23 @@ func AddJournalEntry(ctx context.Context, entry *Journal) error {
 	return err
 }
 
+func IsCommandProcessed(ctx context.Context, source, sourceExtID string) (bool, error) {
+	if source == "" || sourceExtID == "" {
+		return false, nil
+	}
+	res, err := selectAll[Journal](ctx, spanner.Statement{
+		SQL: selectJournal() + `WHERE Source = @source AND SourceExtID = @sourceExtID LIMIT 1`,
+		Params: map[string]any{
+			"source":      source,
+			"sourceExtID": sourceExtID,
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	return len(res) > 0, nil
+}
+
 func LoadJobJournal(ctx context.Context, jobID string) ([]*Journal, error) {
 	return selectAll[Journal](ctx, spanner.Statement{
 		SQL: selectJournal() + `WHERE JobID = @jobID ORDER BY Date DESC`,

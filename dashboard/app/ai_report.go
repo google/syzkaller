@@ -21,6 +21,16 @@ import (
 const SourceWebUI = "web ui"
 
 func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq) (any, error) {
+	if req.Source != "" && req.MessageExtID != "" {
+		processed, err := aidb.IsCommandProcessed(ctx, string(req.Source), req.MessageExtID)
+		if err != nil {
+			return nil, err
+		}
+		if processed {
+			return &dashapi.SendExternalCommandResp{}, nil // Idempotent no-op.
+		}
+	}
+
 	var resp *dashapi.SendExternalCommandResp
 	var err error
 	if req.Upstream != nil {

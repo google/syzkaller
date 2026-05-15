@@ -448,6 +448,77 @@ func TestAIUpstreamTwice(t *testing.T) {
 	require.Contains(t, resp.Error, "a later stage public was already reported")
 }
 
+func TestAIUpstreamIdempotency(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
+		},
+	})
+
+	// Report a crash to create a bug.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Register workflow and create a job.
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+
+	// Mark job as done.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Subject\n\nTest Body",
+			"PatchDiff":        "diff",
+		},
+	})
+	require.NoError(t, err)
+
+	// Poll and confirm report for "moderation" stage.
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollResp.Result.ID,
+		PublishedExtID: "msg-id-moderation",
+	})
+	require.NoError(t, err)
+
+	// Upstream the result.
+	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID:    "msg-id-moderation",
+		MessageExtID: "command-msg-id",
+		Source:       "lore",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+
+	// Upstream the result again with the same MessageExtID. Should be an idempotent success.
+	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID:    "msg-id-moderation",
+		MessageExtID: "command-msg-id",
+		Source:       "lore",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+}
+
 func TestAINoStages(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
