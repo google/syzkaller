@@ -162,15 +162,16 @@ func TestDiskUsage(t *testing.T) {
 	dir := t.TempDir()
 	var currentUsage uint64
 	expectUsage := func(minIncrease, maxIncrease uint64) {
+		t.Helper()
 		usage, err := DiskUsage(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
 		expectMin := currentUsage + minIncrease
 		expectMax := currentUsage + maxIncrease
-		t.Logf("got usage %v when expected (%v, %v)", usage, expectMin, expectMax)
-		if usage <= expectMin || usage >= expectMax {
-			t.Fatalf("bad usage %v, expect (%v, %v)", usage, expectMin, expectMax)
+		t.Logf("got usage %v when expected [%v, %v]", usage, expectMin, expectMax)
+		if usage < expectMin || usage > expectMax {
+			t.Fatalf("bad usage %v, expect [%v, %v]", usage, expectMin, expectMax)
 		}
 		currentUsage = usage
 	}
@@ -191,12 +192,12 @@ func TestDiskUsage(t *testing.T) {
 	if err := os.Symlink(filepath.Join(dir, "nested"), filepath.Join(dir, "dirlink")); err != nil {
 		t.Fatal(err)
 	}
-	expectUsage(1, 1<<10)
+	expectUsage(0, 1<<10)
 
 	if err := os.Symlink(filepath.Join(dir, "nested", "bar"), filepath.Join(dir, "filelink")); err != nil {
 		t.Fatal(err)
 	}
-	expectUsage(1, 1<<10)
+	expectUsage(0, 1<<10)
 }
 
 func TestVerboseMessage(t *testing.T) {

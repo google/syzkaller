@@ -165,5 +165,14 @@ func prolongPipe(r, w *os.File) {
 
 func sysDiskUsage(info fs.FileInfo) uint64 {
 	stat := info.Sys().(*syscall.Stat_t)
-	return uint64(max(0, stat.Size, stat.Blocks*512))
+	blocks := uint64(max(0, stat.Blocks))
+	if blocks == 0 && stat.Size > 0 && (info.Mode().IsRegular() || info.IsDir()) {
+		// This is what du does in this case: small files stored inline, still take some blocks.
+		blksize := uint64(stat.Blksize)
+		if blksize == 0 {
+			blksize = 4096
+		}
+		return (uint64(stat.Size) + blksize - 1) / blksize * blksize
+	}
+	return blocks * 512
 }
