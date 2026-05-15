@@ -399,7 +399,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		Close:   inst.closed,
 		Debug:   inst.debug,
 		Scale:   inst.timeouts.Scale,
-		IgnoreError: func(err error) bool {
+		PreemptionError: func(err error) bool {
 			var mergeError *vmimpl.MergerError
 			if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
@@ -408,9 +408,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 				return true
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
-				// vmimpl.Multiplex() already adds a delay, so we've already waited enough
-				// to let GCE VM status updates propagate.
-				if !inst.GCE.IsInstanceRunning(inst.name, inst.zone) {
+				if inst.hasBeenPreempted(ctx) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
 					return true
 				}
@@ -453,6 +451,16 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 			return nil
 		}
 	}
+}
+
+func (inst *instance) hasBeenPreempted(ctx context.Context) bool {
+	wait := 10 * time.Second
+	select {
+	case <-time.After(wait):
+	case <-ctx.Done():
+		return false
+	}
+	return inst.GCE.IsInstanceRunning(inst.name, inst.zone)
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

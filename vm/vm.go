@@ -317,8 +317,8 @@ func (inst *Instance) Run(ctx context.Context, reporter *report.Reporter, comman
 		reporter:        reporter,
 		lastExecuteTime: time.Now(),
 	}
-	reps := mon.monitorExecution()
-	return mon.output, reps, nil
+	reps, err := mon.monitorExecution()
+	return mon.output, reps, err
 }
 
 func (inst *Instance) RunStream(ctx context.Context,
@@ -374,7 +374,7 @@ type monitor struct {
 	extractCalled bool
 }
 
-func (mon *monitor) monitorExecution() []*report.Report {
+func (mon *monitor) monitorExecution() ([]*report.Report, error) {
 	ticker := time.NewTicker(mon.tickerPeriod * mon.inst.pool.timeouts.Scale)
 	defer ticker.Stop()
 	defer func() {
@@ -398,7 +398,9 @@ func (mon *monitor) monitorExecution() []*report.Report {
 				if mon.exitCondition&ExitTimeout == 0 {
 					return mon.extractErrors(timeoutCrash)
 				}
-				return nil
+				return nil, nil
+			case vmimpl.ErrPreempted:
+				return nil, err
 			default:
 				// Note: connection lost can race with a kernel oops message.
 				// In such case we want to return the kernel oops.
@@ -414,8 +416,8 @@ func (mon *monitor) monitorExecution() []*report.Report {
 				continue
 			}
 			mon.inst.pool.statOutputReceived.Add(len(chunk.Data))
-			if rep, done := mon.appendOutput(chunk.Data); done {
-				return rep
+			if rep, done, appendErr := mon.appendOutput(chunk.Data); done {
+				return rep, appendErr
 			}
 		case <-mon.injectExecuting:
 			mon.lastExecuteTime = time.Now()
@@ -426,19 +428,20 @@ func (mon *monitor) monitorExecution() []*report.Report {
 				return mon.extractErrors(noOutputCrash)
 			}
 		case <-Shutdown:
-			return nil
+			return nil, nil
 		}
 	}
 }
 
-func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool) {
+func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool, error) {
 	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
 	if bytes.Contains(mon.output[lastPos:], []byte(executedProgramsStart)) {
 		mon.lastExecuteTime = time.Now()
 	}
 	if mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
-		return mon.extractErrors("unknown error"), true
+		reps, err := mon.extractErrors("unknown error")
+		return reps, true, err
 	}
 	if len(mon.output) > 2*mon.beforeContext {
 		copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
@@ -458,10 +461,10 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool) {
 		mon.curPos--
 	}
 	mon.curPos = max(mon.curPos, 0)
-	return nil, false
+	return nil, false, nil
 }
 
-func (mon *monitor) extractErrors(defaultError string) []*report.Report {
+func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error) {
 	if mon.extractCalled {
 		panic("extractError called twice")
 	}
@@ -482,7 +485,7 @@ func (mon *monitor) extractErrors(defaultError string) []*report.Report {
 	// Check the executorPreemptedStr only for preemptible instances since executor can print
 	// the string spuriously in some cases (gets SIGTERM from test program somehow).
 	if mon.inst.pool.typ.Preemptible && bytes.Contains(mon.output, []byte(executorPreemptedStr)) {
-		return nil
+		return nil, vmimpl.ErrPreempted
 	}
 	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
 		// We did not call Diagnose above because we thought there is no error, so call it now.
@@ -493,13 +496,13 @@ func (mon *monitor) extractErrors(defaultError string) []*report.Report {
 	}
 	reps := mon.createReports(defaultError)
 	if len(reps) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(diagOutput) > 0 {
 		reps[0].Output = append(reps[0].Output, vmDiagnosisStart...)
 		reps[0].Output = append(reps[0].Output, diagOutput...)
 	}
-	return reps
+	return reps, nil
 }
 
 func (mon *monitor) createReports(defaultError string) []*report.Report {
