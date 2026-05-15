@@ -23,6 +23,7 @@ import (
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
@@ -117,6 +118,7 @@ type uiMainPage struct {
 type uiBugFilter struct {
 	Filter  *userBugFilter
 	DropURL func(string, string) string
+	SetURL  func(string, string) string
 }
 
 func makeUIBugFilter(ctx context.Context, filter *userBugFilter) *uiBugFilter {
@@ -125,6 +127,9 @@ func makeUIBugFilter(ctx context.Context, filter *userBugFilter) *uiBugFilter {
 		Filter: filter,
 		DropURL: func(name, value string) string {
 			return urlutil.DropParam(url, name, value)
+		},
+		SetURL: func(name, value string) string {
+			return urlutil.SetParam(url, name, value)
 		},
 	}
 }
@@ -497,6 +502,33 @@ type userBugFilter struct {
 	OnlyManager string // show bugs that happened ONLY on the manager
 	Labels      []string
 	NoSubsystem bool
+	WithRepro   bool
+	WithAIPatch bool
+
+	HasAI                    bool
+	BugsWithPendingAIPatches map[string]bool
+}
+
+func (filter *userBugFilter) InitializeAI(ctx context.Context, ns string) error {
+	if filter == nil {
+		return nil
+	}
+	filter.HasAI = getNsConfig(ctx, ns).AI != nil
+	if !filter.WithAIPatch {
+		return nil
+	}
+	bugIDs, err := aidb.LoadBugIDsWithPendingPatch(ctx, ns, []ai.WorkflowType{
+		ai.WorkflowPatching,
+		ai.WorkflowPatchIteration,
+	})
+	if err != nil {
+		return err
+	}
+	filter.BugsWithPendingAIPatches = make(map[string]bool)
+	for _, id := range bugIDs {
+		filter.BugsWithPendingAIPatches[id] = true
+	}
+	return nil
 }
 
 func MakeBugFilter(r *http.Request) (*userBugFilter, error) {
@@ -508,6 +540,8 @@ func MakeBugFilter(r *http.Request) (*userBugFilter, error) {
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
 		Labels:      r.Form["label"],
+		WithRepro:   r.FormValue("with_repro") != "",
+		WithAIPatch: r.FormValue("with_ai_patch") != "",
 	}, nil
 }
 
@@ -526,9 +560,15 @@ func (filter *userBugFilter) ManagerName() string {
 	return ""
 }
 
-func (filter *userBugFilter) MatchBug(bug *Bug) bool {
+func (filter *userBugFilter) MatchBug(ctx context.Context, bug *Bug) bool {
 	if filter == nil {
 		return true
+	}
+	if filter.WithRepro && bug.ReproLevel == dashapi.ReproLevelNone {
+		return false
+	}
+	if filter.WithAIPatch && !filter.BugsWithPendingAIPatches[bug.keyHash(ctx)] {
+		return false
 	}
 	if filter.OnlyManager != "" && (len(bug.HappenedOn) != 1 || bug.HappenedOn[0] != filter.OnlyManager) {
 		return false
@@ -561,7 +601,9 @@ func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return len(filter.Labels) > 0 || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
+	return len(filter.Labels) > 0 || filter.OnlyManager != "" ||
+		filter.Manager != "" || filter.NoSubsystem ||
+		filter.WithRepro || filter.WithAIPatch
 }
 
 // handleMain serves main page.
@@ -574,6 +616,9 @@ func handleMain(ctx context.Context, w http.ResponseWriter, r *http.Request) err
 	filter, err := MakeBugFilter(r)
 	if err != nil {
 		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+	}
+	if err := filter.InitializeAI(ctx, hdr.Namespace); err != nil {
+		return err
 	}
 	managers, err := CachedUIManagers(ctx, accessLevel, hdr.Namespace, filter)
 	if err != nil {
@@ -1899,7 +1944,7 @@ func loadVisibleBugs(ctx context.Context, ns string, bugFilter *userBugFilter) (
 	}
 	var filteredBugs []*Bug
 	for _, bug := range bugs {
-		if bugFilter.MatchBug(bug) {
+		if bugFilter.MatchBug(ctx, bug) {
 			filteredBugs = append(filteredBugs, bug)
 		}
 	}
@@ -1948,7 +1993,7 @@ func fetchTerminalBugs(ctx context.Context, accessLevel AccessLevel,
 		if accessLevel < bug.sanitizeAccess(ctx, accessLevel) {
 			continue
 		}
-		if !typ.Filter.MatchBug(bug) {
+		if !typ.Filter.MatchBug(ctx, bug) {
 			continue
 		}
 		uiBug := createUIBug(ctx, bug, state, managers)

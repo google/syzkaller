@@ -150,9 +150,25 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .Filter.NoSubsystem}}
 		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem" "") "drop"}})
 	{{end}}
+	{{if .Filter.WithRepro}}
+		WithRepro ({{link (call .DropURL "with_repro" "") "drop"}})
+	{{end}}
+	{{if .Filter.WithAIPatch}}
+		WithAIPatch ({{link (call .DropURL "with_ai_patch" "") "drop"}})
+	{{end}}
 	{{$drop := .DropURL}}
 	{{range .Filter.Labels}}
 		Label={{.}} ({{link (call $drop "label" .) "drop"}})
+	{{end}}
+	<br>
+{{end}}
+{{if or (not .Filter.WithRepro) (and .Filter.HasAI (not .Filter.WithAIPatch))}}
+	<b>Extra filters: </b>
+	{{if not .Filter.WithRepro}}
+		[{{link (call .SetURL "with_repro" "true") "With Repro"}}]
+	{{end}}
+	{{if and .Filter.HasAI (not .Filter.WithAIPatch)}}
+		[{{link (call .SetURL "with_ai_patch" "true") "With AI Patch Pending Review"}}]
 	{{end}}
 	<br>
 {{end}}

@@ -164,7 +164,7 @@ func TestSubsystemFilterTerminal(t *testing.T) {
 }
 
 func TestMainBugFilters(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	client := c.client
@@ -192,6 +192,16 @@ func TestMainBugFilters(t *testing.T) {
 	reply, err = c.AuthGET(AccessAdmin, "/test1?no_subsystem=true")
 	c.expectOK(err)
 	assert.Contains(t, string(reply), crash1.Title) // the bug has no subsystems
+
+	reply, err = c.AuthGET(AccessAdmin, "/test1?with_repro=true")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash1.Title) // the bug has no repro
+	assert.Contains(t, string(reply), "Applied filters")
+
+	reply, err = c.AuthGET(AccessAdmin, "/test1?with_ai_patch=true")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash1.Title) // the bug has no pending AI patch
+	assert.Contains(t, string(reply), "Applied filters")
 }
 
 func TestSubsystemsList(t *testing.T) {

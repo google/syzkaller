@@ -324,6 +324,40 @@ func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
 	})
 }
 
+func LoadBugIDsWithPendingPatch(ctx context.Context, ns string, workflows []ai.WorkflowType) ([]string, error) {
+	if len(workflows) == 0 {
+		return nil, nil
+	}
+	var types []string
+	for _, w := range workflows {
+		types = append(types, string(w))
+	}
+	type result struct {
+		BugID string
+	}
+	items, err := selectAll[result](ctx, spanner.Statement{
+		SQL: `SELECT DISTINCT BugID FROM Jobs
+	WHERE Namespace = @ns
+	AND Type IN UNNEST(@types)
+	AND Correct IS NULL AND BugID IS NOT NULL
+	AND Finished IS NOT NULL
+	AND Error = ''
+	AND JSON_VALUE(Results, '$.PatchDiff') > ''`,
+		Params: map[string]any{
+			"ns":    ns,
+			"types": types,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var ret []string
+	for _, item := range items {
+		ret = append(ret, item.BugID)
+	}
+	return ret, nil
+}
+
 func LoadBugJobReportings(ctx context.Context, bugID string) ([]*JobReporting, error) {
 	return selectAll[JobReporting](ctx, spanner.Statement{
 		SQL: selectJobReporting() + ` WHERE JobID IN (SELECT ID FROM Jobs WHERE BugID = @bugID) ORDER BY CreatedAt DESC`,
