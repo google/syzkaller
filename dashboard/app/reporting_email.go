@@ -656,7 +656,7 @@ func matchInbox(ctx context.Context, msg *email.Email) *PerInboxConfig {
 func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxConfig) error {
 	if len(msg.Commands) == 0 || len(msg.BugIDs) == 0 || msg.OwnEmail {
 		// Do not forward emails with no commands.
-		// Also, we don't care about the emails that don't include any BugIDs.
+		// Also, we don't care about the emails that are not addressed to syzbot.
 		return nil
 	}
 	if msg.MailingList != "" {
@@ -709,9 +709,9 @@ func processIncomingEmail(ctx context.Context, msg *email.Email) error {
 	fromMailingList := msg.MailingList != ""
 	missingLists := missingMailingLists(ctx, msg, emailConfig)
 	log.Infof(ctx, "from/cc mailing list: %v (missing: %v)", fromMailingList, missingLists)
-	if fromMailingList && len(msg.BugIDs) > 0 && len(msg.Commands) > 0 {
+	if fromMailingList && msg.OwnEmailsCcd && len(msg.Commands) > 0 {
 		// Note that if syzbot was not directly mentioned in To or Cc, this is not really
-		// a duplicate message, so it must be processed. We detect it by looking at BugID.
+		// a duplicate message, so it must be processed.
 
 		// There's also a chance that the user mentioned syzbot directly, but without BugID.
 		// We don't need to worry about this case, as we won't recognize the bug anyway.
@@ -1256,7 +1256,7 @@ func bugInfoWithoutBugID(ctx context.Context, msg *email.Email) *bugInfoResult {
 	if len(msg.Commands) == 0 {
 		// This happens when people CC syzbot on unrelated emails.
 		log.Infof(ctx, "no bug ID (%q)", msg.Subject)
-	} else if msg.MailingList != "" && len(msg.BugIDs) == 0 && matchingErr != errAmbiguousTitle {
+	} else if msg.MailingList != "" && !msg.OwnEmailsCcd && matchingErr != errAmbiguousTitle {
 		// If we received a command via a mailing list but syzbot was not explicitly CC'd,
 		// and we couldn't identify the bug (and it's not a case of an ambiguous title),
 		// don't reply with an error. It might be meant for another syzbot instance.

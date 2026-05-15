@@ -23,6 +23,7 @@ import (
 
 type Email struct {
 	BugIDs         []string
+	OwnEmailsCcd   bool
 	MessageID      string
 	InReplyTo      string
 	Date           time.Time
@@ -116,6 +117,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	}
 
 	bugIDs := []string{}
+	ownEmailsCcd := false
 	rawCcList := append(append(append(cc, to...), from...), originalFroms...)
 	for _, addr := range rawCcList {
 		cleaned, context, _ := RemoveAddrContext(addr.Address)
@@ -123,7 +125,10 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 			cleaned = addr.Address
 		}
 		if ownAddrs[cleaned] {
-			bugIDs = append(bugIDs, context)
+			ownEmailsCcd = true
+			if context != "" {
+				bugIDs = append(bugIDs, context)
+			}
 		} else {
 			ccList = append(ccList, CanonicalEmail(cleaned))
 		}
@@ -191,6 +196,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		Author:         author,
 		AuthorName:     authorName,
 		OwnEmail:       fromMe,
+		OwnEmailsCcd:   ownEmailsCcd,
 		MailingList:    mailingList,
 		Subject:        subject,
 		Cc:             ccList,
