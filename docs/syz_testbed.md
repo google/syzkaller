@@ -82,7 +82,7 @@ The directory structure looks as follows:
 ```
 4. After 24 hours (as `run_hours` is 24), stop those 5 instances.
 5. Create and run 2 instances of `first` and 3 instances of `second`.
-6. <Repeat those steps over and over>
+6. *Repeat those steps over and over*
 
 The tool stops after receiving a SIGINT (e.g. after Ctrl+C) or a SIGTERM
 signal. Also, if one of the instances has exited due to some error, this also
