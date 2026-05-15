@@ -1681,3 +1681,99 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, resp2.ID)
 }
+
+func TestAIPatchFilter(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+	})
+
+	// 1. Setup bug and job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.Title = "test crash title"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	reply, err := c.AuthGET(AccessAdmin, "/ains")
+	c.expectOK(err)
+	require.Contains(t, string(reply), crash.Title)
+
+	// Initially, the bug shouldn't be visible in the with_ai_patch filter.
+	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")
+	c.expectOK(err)
+	require.NotContains(t, string(reply), crash.Title)
+
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	jobID := c.createAIJob(extID, "patching", "")
+
+	// Poll to mark the job as started.
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Subject\n\nTest Body",
+			"PatchDiff":        "diff",
+			"KernelRepo":       "exact-repo",
+			"KernelBranch":     "exact-branch",
+			"KernelCommit":     "exact-commit",
+		},
+	})
+	require.NoError(t, err)
+
+	job, err := aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	bugIDs, err := aidb.LoadBugIDsWithPendingPatch(c.ctx, job.Namespace, []ai.WorkflowType{ai.WorkflowPatching})
+	require.NoError(t, err)
+	require.Len(t, bugIDs, 1)
+
+	// Now it should be visible!
+	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")
+	c.expectOK(err)
+	require.Contains(t, string(reply), crash.Title)
+
+	// Poll and confirm report for "moderation" stage.
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollResp.Result.ID,
+		PublishedExtID: "msg-id-moderation",
+	})
+	require.NoError(t, err)
+
+	// Issue an upstream command.
+	respCmd, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID: "msg-id-moderation",
+		Upstream:  &dashapi.UpstreamCommand{},
+		Source:    "lore",
+	})
+	require.NoError(t, err)
+	require.Empty(t, respCmd.Error)
+
+	// Now it should no longer be visible!
+	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")
+	c.expectOK(err)
+	require.NotContains(t, string(reply), crash.Title)
+}
