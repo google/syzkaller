@@ -2729,7 +2729,7 @@ func getPatchVersions(ctx context.Context, bug *Bug) ([]*uiPatchVersion, error) 
 			Reported: r.CreatedAt,
 			Link:     r.ExternalLink(),
 			JobID:    r.JobID,
-			JobLink:  fmt.Sprintf("/%s/ai?job_id=%s", bug.Namespace, r.JobID),
+			JobLink:  fmt.Sprintf("/ai_job?id=%s", r.JobID),
 		})
 	}
 	return patchVersions, nil
