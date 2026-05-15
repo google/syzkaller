@@ -205,7 +205,14 @@ func (h *Handler) ProcessPolledEmail(ctx context.Context, polled *lore.PolledEma
 		return fmt.Errorf("failed to record reply: %w", err)
 	}
 	if res.ReportID == "" {
-		if len(parsed.BugIDs) == 0 {
+		hasValidBugID := false
+		for _, id := range parsed.BugIDs {
+			if id != "" {
+				hasValidBugID = true
+				break
+			}
+		}
+		if !hasValidBugID {
 			return ErrUnknownReport
 		}
 	} else if !res.New {

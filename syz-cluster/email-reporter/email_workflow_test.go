@@ -155,5 +155,28 @@ Content-Type: text/plain
 		polled := <-writeTo
 		err = handler.ProcessPolledEmail(ctx, polled)
 		assert.ErrorIs(t, err, ErrUnknownReport)
+
+		assert.Nil(t, emailServer.email())
+	})
+
+	t.Run("empty-bug-id", func(t *testing.T) {
+		loreArchive.SaveMessage(t, `Date: Sun, 7 May 2017 19:57:00 -0700
+Subject: Reply to nothing
+Message-ID: <empty-bug-id>
+From: Someone Else <b@syzkaller.com>
+To: Bot <bot@syzbot.com>
+Content-Type: text/plain
+
+#syz upstream
+`)
+		err = poller.Poll(ctx, writeTo)
+		assert.NoError(t, err)
+
+		polled := <-writeTo
+		err = handler.ProcessPolledEmail(ctx, polled)
+		assert.ErrorIs(t, err, ErrUnknownReport)
+
+		// Verify no email was sent in reply (it should be ignored).
+		assert.Nil(t, emailServer.email())
 	})
 }
