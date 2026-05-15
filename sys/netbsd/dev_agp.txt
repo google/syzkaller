@@ -1,0 +1,50 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <sys/agpio.h>
+
+resource fd_agp[fd]
+
+openat$agp(fd const[AT_FDCWD], file ptr[in, string["/dev/agp0"]], flags flags[open_flags], mode const[0]) fd_agp
+
+ioctl$AGPIOC_INFO(fd fd_agp, cmd const[AGPIOC_INFO], arg ptr[out, agp_info])
+ioctl$AGPIOC_ACQUIRE(fd fd_agp, cmd const[AGPIOC_ACQUIRE])
+ioctl$AGPIOC_RELEASE(fd fd_agp, cmd const[AGPIOC_RELEASE])
+ioctl$AGPIOC_SETUP(fd fd_agp, cmd const[AGPIOC_SETUP], arg ptr[in, agp_setup])
+ioctl$AGPIOC_ALLOCATE(fd fd_agp, cmd const[AGPIOC_ALLOCATE], arg ptr[inout, agp_allocate])
+ioctl$AGPIOC_DEALLOCATE(fd fd_agp, cmd const[AGPIOC_DEALLOCATE], arg ptr[in, int32])
+ioctl$AGPIOC_BIND(fd fd_agp, cmd const[AGPIOC_BIND], arg ptr[in, agp_bind])
+ioctl$AGPIOC_UNBIND(fd fd_agp, cmd const[AGPIOC_UNBIND], arg ptr[in, agp_unbind])
+mmap$agp(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_agp, offset fileoff)
+
+agp_bind {
+	key		int32
+	pg_start	intptr
+}
+
+agp_allocate {
+	key		int32
+	pg_count	intptr
+	type		int32
+	physical	int32
+}
+
+agp_setup {
+	agp_mode	int32
+}
+
+agp_info {
+	ai_mode			int32
+	ai_aperture_base	intptr
+	ai_aperture_size	intptr
+	ai_memory_allowed	intptr
+	ai_memory_used		intptr
+	ai_devid		int32
+}
+
+agp_unbind {
+	key		int32
+	priority	int32
+}

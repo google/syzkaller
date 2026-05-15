@@ -1,0 +1,11 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+
+resource fd_acpi[fd]
+
+openat$acpi(fd const[AT_FDCWD], file ptr[in, string["/dev/acpi"]], flags flags[open_flags], mode const[0]) fd_acpi
+
+read$acpi(fd fd_acpi, buf ptr[out, array[int8]], count len[buf])

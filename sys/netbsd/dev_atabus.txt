@@ -1,0 +1,18 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <sys/ataio.h>
+
+resource fd_atabus[fd]
+
+openat$atabus(fd const[AT_FDCWD], file ptr[in, string["/dev/atabus0"]], flags flags[open_flags], mode const[0]) fd_atabus
+
+ioctl$ATABUSIORESET(fd fd_atabus, cmd const[ATABUSIORESET])
+ioctl$ATABUSIOSCAN(fd fd_atabus, cmd const[ATABUSIOSCAN])
+ioctl$ATABUSIODETACH(fd fd_atabus, cmd const[ATABUSIODETACH], arg ptr[in, atabusiodetach_args])
+
+atabusiodetach_args {
+	at_dev	int32
+}
