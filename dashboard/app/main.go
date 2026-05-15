@@ -497,18 +497,35 @@ type userBugFilter struct {
 	OnlyManager string // show bugs that happened ONLY on the manager
 	Labels      []string
 	NoSubsystem bool
+	DateFrom    time.Time
+	DateTo      time.Time
 }
 
 func MakeBugFilter(r *http.Request) (*userBugFilter, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, err
 	}
-	return &userBugFilter{
+	filter := &userBugFilter{
 		NoSubsystem: r.FormValue("no_subsystem") != "",
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
 		Labels:      r.Form["label"],
-	}, nil
+	}
+	if s := r.FormValue("date_from"); s != "" {
+		t, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			return nil, fmt.Errorf("invalid date_from: %w", err)
+		}
+		filter.DateFrom = t
+	}
+	if s := r.FormValue("date_to"); s != "" {
+		t, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			return nil, fmt.Errorf("invalid date_to: %w", err)
+		}
+		filter.DateTo = t.Add(24*time.Hour - time.Nanosecond)
+	}
+	return filter, nil
 }
 
 func (filter *userBugFilter) MatchManagerName(name string) bool {
@@ -545,7 +562,34 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 			return false
 		}
 	}
+	if !filter.DateFrom.IsZero() || !filter.DateTo.IsZero() {
+		t := bug.FirstTime
+		if !bug.Closed.IsZero() {
+			t = bug.Closed
+		}
+		if !filter.DateFrom.IsZero() && t.Before(filter.DateFrom) {
+			return false
+		}
+		if !filter.DateTo.IsZero() && t.After(filter.DateTo) {
+			return false
+		}
+	}
 	return true
+}
+
+func (filter *userBugFilter) DateFromStr() string {
+	if filter.DateFrom.IsZero() {
+		return ""
+	}
+	return filter.DateFrom.Format("2006-01-02")
+}
+
+func (filter *userBugFilter) DateToStr() string {
+	if filter.DateTo.IsZero() {
+		return ""
+	}
+	// DateTo is stored as end-of-day; truncate back to the date.
+	return filter.DateTo.Truncate(24 * time.Hour).Format("2006-01-02")
 }
 
 func (filter *userBugFilter) Hash() string {
@@ -561,7 +605,8 @@ func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return len(filter.Labels) > 0 || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
+	return len(filter.Labels) > 0 || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem ||
+		!filter.DateFrom.IsZero() || !filter.DateTo.IsZero()
 }
 
 // handleMain serves main page.

@@ -150,6 +150,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .Filter.NoSubsystem}}
 		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem" "") "drop"}})
 	{{end}}
+	{{if .Filter.DateFromStr}}
+		date_from={{.Filter.DateFromStr}} ({{link (call .DropURL "date_from" "") "drop"}})
+	{{end}}
+	{{if .Filter.DateToStr}}
+		date_to={{.Filter.DateToStr}} ({{link (call .DropURL "date_to" "") "drop"}})
+	{{end}}
 	{{$drop := .DropURL}}
 	{{range .Filter.Labels}}
 		Label={{.}} ({{link (call $drop "label" .) "drop"}})
