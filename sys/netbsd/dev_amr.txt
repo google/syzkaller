@@ -1,0 +1,23 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <dev/pci/amrio.h>
+
+resource fd_amr[fd]
+
+openat$amr(fd const[AT_FDCWD], file ptr[in, string["/dev/amr0"]], flags flags[open_flags], mode const[0]) fd_amr
+
+ioctl$AMR_IO_VERSION(fd fd_amr, cmd const[AMR_IO_VERSION], arg ptr[out, int32])
+ioctl$AMR_IO_COMMAND(fd fd_amr, cmd const[AMR_IO_COMMAND], arg ptr[inout, amr_user_ioctl])
+
+amr_io_direction = AMR_IO_NODATA, AMR_IO_READ, AMR_IO_WRITE
+
+amr_user_ioctl {
+	au_cmd		array[int8, 32]
+	au_buffer	ptr[inout, array[int8]]
+	au_length	len[au_buffer, intptr]
+	au_direction	flags[amr_io_direction, int32]
+	au_status	int32	(out)
+}

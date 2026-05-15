@@ -1,0 +1,183 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <sys/audioio.h>
+
+resource fd_audio[fd]
+
+openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$mixer0(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer0"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$audio0(fd const[AT_FDCWD], file ptr[in, string["/dev/audio0"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$sound(fd const[AT_FDCWD], file ptr[in, string["/dev/sound"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$sound0(fd const[AT_FDCWD], file ptr[in, string["/dev/sound0"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$audioctl(fd const[AT_FDCWD], file ptr[in, string["/dev/audioctl"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$audioctl0(fd const[AT_FDCWD], file ptr[in, string["/dev/audioctl0"]], flags flags[open_flags], mode const[0]) fd_audio
+
+ioctl$AUDIO_MIXER_DEVINFO(fd fd_audio, cmd const[AUDIO_MIXER_DEVINFO], arg ptr[inout, mixer_devinfo])
+ioctl$AUDIO_MIXER_READ(fd fd_audio, cmd const[AUDIO_MIXER_READ], arg ptr[inout, mixer_ctrl])
+ioctl$AUDIO_MIXER_WRITE(fd fd_audio, cmd const[AUDIO_MIXER_WRITE], arg ptr[inout, mixer_ctrl])
+ioctl$AUDIO_FLUSH(fd fd_audio, cmd const[AUDIO_FLUSH])
+ioctl$AUDIO_PERROR(fd fd_audio, cmd const[AUDIO_PERROR], arg ptr[inout, int32])
+ioctl$AUDIO_RERROR(fd fd_audio, cmd const[AUDIO_RERROR], arg ptr[inout, int32])
+ioctl$AUDIO_GETIOFFS(fd fd_audio, cmd const[AUDIO_GETIOFFS], arg ptr[out, audio_offset])
+ioctl$AUDIO_GETOOFFS(fd fd_audio, cmd const[AUDIO_GETOOFFS], arg ptr[out, audio_offset])
+ioctl$AUDIO_WSEEK(fd fd_audio, cmd const[AUDIO_WSEEK], arg ptr[out, int32])
+ioctl$AUDIO_SETINFO(fd fd_audio, cmd const[AUDIO_SETINFO], arg ptr[inout, audio_info])
+ioctl$AUDIO_GETINFO(fd fd_audio, cmd const[AUDIO_GETINFO], arg ptr[out, audio_info])
+ioctl$AUDIO_GETBUFINFO(fd fd_audio, cmd const[AUDIO_GETBUFINFO], arg ptr[out, audio_info])
+ioctl$AUDIO_DRAIN(fd fd_audio, cmd const[AUDIO_DRAIN])
+ioctl$AUDIO_GETDEV(fd fd_audio, cmd const[AUDIO_GETDEV], arg ptr[out, audio_device])
+ioctl$AUDIO_GETENC(fd fd_audio, cmd const[AUDIO_GETENC], arg ptr[inout, audio_encoding])
+ioctl$AUDIO_GETFD(fd fd_audio, cmd const[AUDIO_GETFD], arg ptr[out, int32])
+ioctl$AUDIO_GETPROPS(fd fd_audio, cmd const[AUDIO_GETPROPS], arg ptr[out, flags[audio_props, int32]])
+ioctl$AUDIO_QUERYFORMAT(fd fd_audio, cmd const[AUDIO_QUERYFORMAT], arg ptr[inout, audio_format_query])
+ioctl$AUDIO_GETFORMAT(fd fd_audio, cmd const[AUDIO_GETFORMAT], arg ptr[out, audio_info])
+ioctl$AUDIO_SETFORMAT(fd fd_audio, cmd const[AUDIO_SETFORMAT], arg ptr[in, audio_info])
+ioctl$AUDIO_SETFD(fd fd_audio, cmd const[AUDIO_SETFD], arg ptr[in, int32])
+ioctl$AUDIO_SETCHAN(fd fd_audio, cmd const[AUDIO_SETCHAN], arg ptr[in, int32])
+ioctl$AUDIO_GETCHAN(fd fd_audio, cmd const[AUDIO_GETCHAN], arg ptr[out, int32])
+
+audio_props = AUDIO_PROP_FULLDUPLEX, AUDIO_PROP_MMAP, AUDIO_PROP_INDEPENDENT, AUDIO_PROP_PLAYBACK, AUDIO_PROP_CAPTURE
+audio_mixer_classes = AUDIO_MIXER_CLASS, AUDIO_MIXER_ENUM, AUDIO_MIXER_SET, AUDIO_MIXER_VALUE
+audio_mixer_types = AUDIO_MIXER_VALUE, AUDIO_MIXER_ENUM, AUDIO_MIXER_SET
+audio_modes = AUMODE_PLAY, AUMODE_RECORD, AUMODE_PLAY_ALL
+audio_encodings = AUDIO_ENCODING_NONE, AUDIO_ENCODING_ULAW, AUDIO_ENCODING_ALAW, AUDIO_ENCODING_PCM16, AUDIO_ENCODING_PCM8, AUDIO_ENCODING_ADPCM, AUDIO_ENCODING_SLINEAR_LE, AUDIO_ENCODING_SLINEAR_BE, AUDIO_ENCODING_ULINEAR_LE, AUDIO_ENCODING_ULINEAR_BE, AUDIO_ENCODING_SLINEAR, AUDIO_ENCODING_ULINEAR, AUDIO_ENCODING_MPEG_L1_STREAM, AUDIO_ENCODING_MPEG_L1_PACKETS, AUDIO_ENCODING_MPEG_L1_SYSTEM, AUDIO_ENCODING_MPEG_L2_STREAM, AUDIO_ENCODING_MPEG_L2_PACKETS, AUDIO_ENCODING_MPEG_L2_SYSTEM, AUDIO_ENCODING_AC3
+audio_format_channel_masks = AUFMT_UNKNOWN_POSITION, AUFMT_FRONT_LEFT, AUFMT_FRONT_RIGHT, AUFMT_FRONT_CENTER, AUFMT_LOW_FREQUENCY, AUFMT_BACK_LEFT, AUFMT_BACK_RIGHT, AUFMT_FRONT_LEFT_OF_CENTER, AUFMT_FRONT_RIGHT_OF_CENTER, AUFMT_BACK_CENTER, AUFMT_SIDE_LEFT, AUFMT_SIDE_RIGHT, AUFMT_TOP_CENTER, AUFMT_TOP_FRONT_LEFT, AUFMT_TOP_FRONT_CENTER, AUFMT_TOP_FRONT_RIGHT, AUFMT_TOP_BACK_LEFT, AUFMT_TOP_BACK_CENTER, AUFMT_TOP_BACK_RIGHT, AUFMT_MONAURAL, AUFMT_STEREO, AUFMT_SURROUND4, AUFMT_DOLBY_5_1
+
+mixer_devinfo {
+	index		int32
+	label		audio_mixer_name
+	type		int32
+	mixer_class	flags[audio_mixer_classes, int32]
+	next		int32
+	prev		int32
+	un		mixer_devinfo_un
+}
+
+audio_mixer_name {
+	name	array[int8, MAX_AUDIO_DEV_LEN]
+	msg_id	int32
+}
+
+mixer_devinfo_un [
+	e	audio_mixer_enum
+	s	audio_mixer_set
+	v	audio_mixer_value
+]
+
+audio_mixer_enum {
+	num_mem	int32
+	member	array[audio_mixer_enum_member, 32]
+}
+
+audio_mixer_enum_member {
+	label	audio_mixer_name
+	ord	int32
+}
+
+audio_mixer_set {
+	num_mem	int32
+	member	array[audio_mixer_set_member, 32]
+}
+
+audio_mixer_set_member {
+	label	audio_mixer_name
+	mask	int32
+}
+
+audio_mixer_value {
+	units		audio_mixer_name
+	num_channels	int32
+	delta		int32
+}
+
+mixer_ctrl {
+	dev	int32
+	type	flags[audio_mixer_types, int32]
+	un	mixer_ctrl_un
+}
+
+mixer_ctrl_un [
+	ord	int32
+	mask	int32
+	value	mixer_level
+]
+
+mixer_level {
+	nchannels	int32
+	level		array[int8, 8]
+}
+
+audio_offset {
+	samples	int32
+	deltas	int32
+	offset	int32
+}
+
+audio_info {
+	play		audio_prinfo
+	record		audio_prinfo
+	monitor_gain	int32
+	blocksize	int32
+	hiwat		int32
+	lowat		int32
+	_ispare1	int32
+	mode		flags[audio_modes, int32]
+}
+
+audio_prinfo {
+	sample_rate	int32
+	channels	int32
+	precision	int32
+	encoding	flags[audio_encodings, int32]
+	gain		int32
+	port		int32
+	seek		int32
+	avail_ports	int32
+	buffer_size	int32
+	_ispare		array[int32, 1]
+	samples		int32
+	eof		int32
+	pause		int8
+	error		int8
+	waiting		int8
+	balance		int8
+	cspare		array[int8, 2]
+	open		int8
+	active		int8
+}
+
+audio_device {
+	name	array[int8, MAX_AUDIO_DEV_LEN]
+	version	array[int8, MAX_AUDIO_DEV_LEN]
+	config	array[int8, MAX_AUDIO_DEV_LEN]
+}
+
+audio_encoding {
+	index		int32[0:15]
+	name		array[int8, 16]	(out)
+	encoding	int32	(out)
+	precision	int32	(out)
+	flags		int32	(out)
+}
+
+audio_format_query {
+	index	int32
+	fmt	audio_format
+}
+
+audio_format {
+	driver_data	int32
+	mode		flags[audio_modes, int32]
+	encoding	flags[audio_encodings, int32]
+	validbits	int32
+	precision	int32
+	channels	int32
+	channel_mask	flags[audio_format_channel_masks, int32]
+	frequency_type	int32
+	frequency	array[int32, AUFMT_MAX_FREQUENCIES]
+	priority	int32
+}
