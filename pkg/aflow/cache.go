@@ -4,7 +4,6 @@
 package aflow
 
 import (
-	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -90,6 +89,7 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 			return "", err
 		}
 		meta := cacheMeta{
+			Version:     currentCacheVersion,
 			Description: desc,
 			DiskUsage:   size,
 		}
@@ -194,16 +194,15 @@ func (c *Cache) init() error {
 			}
 			return err
 		}
-		var meta cacheMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			// Assume the old format that contained just the description.
-			// This code can be removed after 2027-06-01,
-			// and the code above can use osutil.ReadJSON.
+		meta, err := osutil.ParseJSON[cacheMeta](data)
+		if err != nil || meta.Version != currentCacheVersion {
+			// An older metadata format, update it to the current version.
 			size, err := osutil.DiskUsage(dir)
 			if err != nil {
 				return err
 			}
-			meta.Description = string(data)
+			// Assume meta.Description is present.
+			meta.Version = currentCacheVersion
 			meta.DiskUsage = size
 			if err := osutil.WriteJSON(metaFile, meta); err != nil {
 				return err
@@ -263,8 +262,12 @@ func (c *Cache) logf(msg string, args ...any) {
 }
 
 type cacheMeta struct {
+	Version     int
 	Description string
 	DiskUsage   uint64
 }
 
-const cacheMetaFile = "aflow-meta"
+const (
+	cacheMetaFile       = "aflow-meta"
+	currentCacheVersion = 1
+)
