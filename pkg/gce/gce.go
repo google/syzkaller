@@ -12,6 +12,7 @@
 package gce
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -43,7 +44,8 @@ type Context struct {
 	Network    string
 	Subnetwork string
 
-	zoneList zoneList
+	preemptibleZoneList zoneList
+	zoneList            zoneList
 
 	computeService *compute.Service
 	metadataServer string
@@ -56,7 +58,9 @@ type Context struct {
 
 type zoneList struct {
 	sync.RWMutex
-	list []string
+	preferredZone string
+	list          []string
+	score         map[string]float64
 }
 
 type CreateArgs struct {
@@ -143,26 +147,38 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	if ctx.InternalIP == "" {
 		return nil, fmt.Errorf("failed to get current instance internal IP")
 	}
-	ctx.queryZones()
+	upZones := ctx.queryZones()
+	ctx.zoneList = ctx.newZoneList(upZones)
+	ctx.preemptibleZoneList = ctx.newZoneList(upZones)
 	return ctx, nil
 }
 
-func (ctx *Context) queryZones() {
-	ctx.zoneList.list = []string{ctx.ZoneID}
-	var zoneList *compute.ZoneList
+func (ctx *Context) queryZones() (zoneList *compute.ZoneList) {
 	err := ctx.apiCall(func() (err error) {
 		zoneList, err = ctx.computeService.RegionZones.List(ctx.ProjectID, ctx.RegionID).Do()
 		return
 	})
 	if err != nil {
 		log.Errorf("failed to query region %v zones. Project will only use %v", ctx.RegionID, ctx.ZoneID)
-	} else {
-		for _, zone := range zoneList.Items {
+	}
+	return
+}
+
+func (ctx *Context) newZoneList(computeZoneList *compute.ZoneList) (zl zoneList) {
+	zl.preferredZone = ctx.ZoneID
+	zl.list = []string{ctx.ZoneID}
+	zl.score = map[string]float64{
+		ctx.ZoneID: 1.0,
+	}
+	if computeZoneList != nil {
+		for _, zone := range computeZoneList.Items {
 			if zone.Status == "UP" && zone.Name != ctx.ZoneID {
-				ctx.zoneList.list = append(ctx.zoneList.list, zone.Name)
+				zl.list = append(zl.list, zone.Name)
+				zl.score[zone.Name] = 1.0
 			}
 		}
 	}
+	return
 }
 
 func (ctx *Context) CreateInstance(cfg *InstanceConfig) (ip, zone string, err error) {
@@ -226,13 +242,14 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (ip, zone string, err er
 	if instance.Scheduling.Preemptible {
 		instance.Scheduling.ProvisioningModel = "SPOT"
 	}
+	zoneList := &ctx.preemptibleZoneList
 retry:
+	zones := zoneList.get()
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
 		// onHostMaintenance=TERMINATE unless they are preemptible".
 		instance.Scheduling.OnHostMaintenance = "MIGRATE"
 	}
-	zones := ctx.zoneList.get()
 	for i, currentZone := range zones {
 		instance.MachineType = prefix + "/zones/" + currentZone + "/machineTypes/" + cfg.MachineType
 		var op *compute.Operation
@@ -241,15 +258,18 @@ retry:
 			return
 		})
 		if err != nil {
+			zoneList.recordInsertionFailure(currentZone)
 			return "", currentZone, fmt.Errorf("failed to create instance: %w", err)
 		}
 		if err = ctx.waitForZonalCompletion("create instance", currentZone, op.Name, false); err != nil {
+			zoneList.recordInsertionFailure(currentZone)
 			var resourcePoolExhaustedError resourcePoolExhaustedError
 			if errors.As(err, &resourcePoolExhaustedError) {
 				if i < len(zones)-1 {
 					continue
 				}
 				if instance.Scheduling.Preemptible {
+					zoneList = &ctx.zoneList
 					instance.Scheduling.Preemptible = false
 					instance.Scheduling.ProvisioningModel = "STANDARD"
 					goto retry
@@ -258,8 +278,7 @@ retry:
 			return "", currentZone, err
 		}
 		zone = currentZone
-		// We found VMs in zone, move that zone to be the first in line so we avoid trying bad zones in the future.
-		ctx.zoneList.prioritize(zone)
+		zoneList.recordInsertionSuccess(zone)
 		break
 	}
 
@@ -540,19 +559,59 @@ func zoneToRegion(zone string) string {
 	return regionNameRe.FindString(zone)
 }
 
-func (zoneList *zoneList) prioritize(zone string) {
-	zoneList.Lock()
-	for j, z := range zoneList.list {
-		if zone == z {
-			zoneList.list[0], zoneList.list[j] = zoneList.list[j], zoneList.list[0]
-			break
-		}
+// promotes item to index 0 in list, while keeping the rest of the list as is.
+func promote(list []string, item string) []string {
+	if prefIdx := slices.Index(list, item); prefIdx > 0 {
+		pref := list[prefIdx]
+		copy(list[1:prefIdx+1], list[0:prefIdx])
+		list[0] = pref
 	}
-	zoneList.Unlock()
+	return list
 }
 
-func (zoneList *zoneList) get() []string {
-	zoneList.RLock()
-	defer zoneList.RUnlock()
-	return slices.Clone(zoneList.list)
+func (z *zoneList) sort() {
+	promote(z.list, z.preferredZone) // Ensure that in case of equal scores, we favor preferredZone.
+	slices.SortStableFunc(z.list, func(a, b string) int {
+		return cmp.Compare(z.score[b], z.score[a])
+	})
+}
+
+func (z *zoneList) recordInsertion(zone string, success bool) {
+	z.Lock()
+	defer z.Unlock()
+	if score, ok := z.score[zone]; ok {
+		score *= 0.9
+		if success {
+			score += 0.1
+		}
+		z.score[zone] = score
+		z.sort()
+	}
+}
+
+func (z *zoneList) recordInsertionFailure(zone string) {
+	z.recordInsertion(zone, false)
+}
+
+func (z *zoneList) recordInsertionSuccess(zone string) {
+	z.recordInsertion(zone, true)
+}
+
+func (z *zoneList) recordPreemption(zone string) {
+	// Technically not an insertion failure, but for our purposes it's the same.
+	z.recordInsertionFailure(zone)
+}
+
+func (ctx *Context) ReportPreemption(zone string) {
+	ctx.preemptibleZoneList.recordPreemption(zone)
+}
+
+func (z *zoneList) get() []string {
+	z.RLock()
+	defer z.RUnlock()
+	list := slices.Clone(z.list)
+	if rand.Intn(100) < 5 { // Occasionally make preferredZone our first choice. It's cheaper and faster.
+		promote(list, z.preferredZone)
+	}
+	return list
 }

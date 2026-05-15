@@ -401,17 +401,22 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		Scale:   inst.timeouts.Scale,
 		PreemptionError: func(err error) bool {
 			var mergeError *vmimpl.MergerError
+			isPreempted := false
 			if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
 				log.Logf(0, "%v: gce console connection failed with %v", inst.name, mergeError.Err)
-				return true
+				isPreempted = true
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				if inst.hasBeenPreempted(ctx) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
-					return true
+					isPreempted = true
 				}
+			}
+			if isPreempted {
+				inst.GCE.ReportPreemption(inst.zone)
+				return true
 			}
 			return false
 		},
