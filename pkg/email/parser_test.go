@@ -436,15 +436,16 @@ To post to this group, send email to syzkaller@googlegroups.com.
 To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
 For more options, visit https://groups.google.com/d/optout.`,
 		Email{
-			BugIDs:     []string{"4564456"},
-			MessageID:  "<123>",
-			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Link:       "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
-			Subject:    "test subject",
-			Author:     "bob@example.com",
-			AuthorName: "Bob",
-			Cc:         []string{"bob@example.com"},
-			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:       []string{"4564456"},
+			OwnEmailsCcd: true,
+			MessageID:    "<123>",
+			Date:         time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Link:         "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
+			Subject:      "test subject",
+			Author:       "bob@example.com",
+			AuthorName:   "Bob",
+			Cc:           []string{"bob@example.com"},
+			RawCc:        []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `text body
 second line
 #syz fix: 	 arg1 arg2 arg3 	
@@ -478,15 +479,16 @@ You received this message because you are subscribed to the Google Groups "syzka
 To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
 To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
 		Email{
-			BugIDs:     []string{"4564456"},
-			MessageID:  "<123>",
-			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Link:       "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
-			Subject:    "new footer",
-			Author:     "bob@example.com",
-			AuthorName: "Bob",
-			Cc:         []string{"bob@example.com"},
-			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:       []string{"4564456"},
+			OwnEmailsCcd: true,
+			MessageID:    "<123>",
+			Date:         time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Link:         "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
+			Subject:      "new footer",
+			Author:       "bob@example.com",
+			AuthorName:   "Bob",
+			Cc:           []string{"bob@example.com"},
+			RawCc:        []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `some title
 
 -- 
@@ -506,15 +508,16 @@ Content-Type: text/plain; charset="UTF-8"
 text body
 last line`,
 		Email{
-			BugIDs:     []string{"4564456"},
-			MessageID:  "<123>",
-			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:    "test subject",
-			Author:     "foo@bar.com",
-			AuthorName: "syzbot",
-			OwnEmail:   true,
-			Cc:         []string{"bob@example.com"},
-			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
+			BugIDs:       []string{"4564456"},
+			OwnEmailsCcd: true,
+			MessageID:    "<123>",
+			Date:         time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:      "test subject",
+			Author:       "foo@bar.com",
+			AuthorName:   "syzbot",
+			OwnEmail:     true,
+			Cc:           []string{"bob@example.com"},
+			RawCc:        []string{"bob@example.com", "foo+4564456@bar.com"},
 			Body: `text body
 last line`,
 			Patch: "",
@@ -866,15 +869,16 @@ To: syzbot <foo+4564456@bar.com>
 
 nothing to see here`,
 		Email{
-			BugIDs:     []string{"4564456"},
-			MessageID:  "<123>",
-			Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-			Subject:    "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
-			Author:     "bob@example.com",
-			AuthorName: "",
-			Cc:         []string{"bob@example.com"},
-			RawCc:      []string{"bob@example.com", "foo+4564456@bar.com"},
-			Body:       `nothing to see here`,
+			BugIDs:       []string{"4564456"},
+			OwnEmailsCcd: true,
+			MessageID:    "<123>",
+			Date:         time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+			Subject:      "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+			Author:       "bob@example.com",
+			AuthorName:   "",
+			Cc:           []string{"bob@example.com"},
+			RawCc:        []string{"bob@example.com", "foo+4564456@bar.com"},
+			Body:         `nothing to see here`,
 			Commands: []*SingleCommand{
 				{
 					Command: CmdTest,
@@ -1063,14 +1067,15 @@ Content-Transfer-Encoding: quoted-printable
 Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `, Email{
 		// First come BugIDs from header, then from the body.
-		BugIDs:     []string{"9909090909090909", "223c7461c58c58a4cb10"},
-		MessageID:  "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
-		Date:       time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
-		Subject:    "[PATCH] Some patch",
-		Author:     "bar@foo.com",
-		AuthorName: "bar",
-		Cc:         []string{"bar@foo.com", "someone@foo.com"},
-		RawCc:      []string{"bar@foo.com", "foo+9909090909090909@bar.com", "someone@foo.com"},
+		BugIDs:       []string{"9909090909090909", "223c7461c58c58a4cb10"},
+		OwnEmailsCcd: true,
+		MessageID:    "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:         time.Date(2017, time.May, 8, 2, 54, 0, 0, time.UTC),
+		Subject:      "[PATCH] Some patch",
+		Author:       "bar@foo.com",
+		AuthorName:   "bar",
+		Cc:           []string{"bar@foo.com", "someone@foo.com"},
+		RawCc:        []string{"bar@foo.com", "foo+9909090909090909@bar.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
 	}},
