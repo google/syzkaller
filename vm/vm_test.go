@@ -103,6 +103,7 @@ type Test struct {
 	Body           func(outc chan vmimpl.Chunk, errc chan error)
 	BodyExecuting  func(outc chan vmimpl.Chunk, errc chan error, inject chan<- bool)
 	Report         *report.Report
+	ExpectedErr    error
 }
 
 var tests = []*Test{
@@ -204,9 +205,9 @@ var tests = []*Test{
 	{
 		Name: "fuzzer-is-preempted",
 		Body: func(outc chan vmimpl.Chunk, errc chan error) {
-			outc <- vmimpl.Chunk{Data: []byte("BUG: bad\n")}
-			outc <- vmimpl.Chunk{Data: []byte(executorPreemptedStr + "\n")}
+			outc <- vmimpl.Chunk{Data: []byte("BUG: bad\n" + executorPreemptedStr + "\n")}
 		},
+		ExpectedErr: vmimpl.ErrPreempted,
 	},
 	{
 		Name: "program-exits-but-kernel-crashes-afterwards",
@@ -410,7 +411,11 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		WithEarlyFinishCb(func() { finishCalled++ }),
 		injectExecuting,
 	)
-	if err != nil {
+	if test.ExpectedErr != nil {
+		if err != test.ExpectedErr {
+			t.Fatalf("want err %v, got %v", test.ExpectedErr, err)
+		}
+	} else if err != nil {
 		t.Fatal(err)
 	}
 	<-done
@@ -465,7 +470,10 @@ func TestExtractMultipleErrors(t *testing.T) {
 		reporter:   reporter,
 		output:     []byte(validKASANReport + strings.Repeat(someLine, 10) + validKASANReport),
 	}
-	reps := mon.extractErrors("unknown error")
+	reps, err := mon.extractErrors("unknown error")
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Len(t, reps, 2, "expected to see 2 reports, got %v", len(reps))
 	assert.Equal(t, reps[0].Title, reps[1].Title)
 	assert.False(t, reps[0].Corrupted)

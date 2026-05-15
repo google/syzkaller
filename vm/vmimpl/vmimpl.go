@@ -152,8 +152,9 @@ type ctorFunc func(env *Env) (Pool, error)
 
 var (
 	// Close to interrupt all pending operations in all VMs.
-	Shutdown   = make(chan struct{})
-	ErrTimeout = errors.New("timeout")
+	Shutdown     = make(chan struct{})
+	ErrTimeout   = errors.New("timeout")
+	ErrPreempted = errors.New("instance is preempted")
 
 	Types = make(map[string]Type)
 )
@@ -170,11 +171,11 @@ func (cc CmdCloser) Close() error {
 var WaitForOutputTimeout = 10 * time.Second
 
 type MultiplexConfig struct {
-	Console     io.Closer
-	Close       <-chan bool
-	Debug       bool
-	Scale       time.Duration
-	IgnoreError func(err error) bool
+	Console         io.Closer
+	Close           <-chan bool
+	Debug           bool
+	Scale           time.Duration
+	PreemptionError func(err error) bool
 }
 
 func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config MultiplexConfig) (
@@ -206,8 +207,8 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
-			} else if config.IgnoreError != nil && config.IgnoreError(err) {
-				err = ErrTimeout
+			} else if config.PreemptionError != nil && config.PreemptionError(err) {
+				err = ErrPreempted
 			}
 			// Once the command has failed, we might want to let the full console
 			// output accumulate before we abort the console connection too.
