@@ -160,7 +160,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 	lineCover := perLineCoverage(file.covered, file.uncovered)
 	for i, ln := range lines {
 		start := 0
-		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
+		cover := append(slices.Clone(lineCover[i+1]), lineCoverChunk{End: backend.LineEnd})
 		for _, cov := range cover {
 			end := min(cov.End-1, len(ln))
 			if end == start {
@@ -770,7 +770,7 @@ func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 	buf.WriteString("</td><td>")
 	for i, ln := range lines {
 		start := 0
-		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
+		cover := append(slices.Clone(lineCover[i+1]), lineCoverChunk{End: backend.LineEnd})
 		for _, cov := range cover {
 			end := min(cov.End-1, len(ln))
 			if end == start {

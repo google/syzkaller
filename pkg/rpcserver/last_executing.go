@@ -70,7 +70,7 @@ func (last *LastExecuting) Hanged(id, proc int, progData []byte, now time.Durati
 // ExecRecord.Time is the difference in start executing time between this
 // program and the program that started executing last.
 func (last *LastExecuting) Collect() []ExecRecord {
-	procs := append(last.procs, last.hanged...)
+	procs := slices.Concat(last.procs, last.hanged)
 	last.procs = nil // The type must not be used after this.
 	last.hanged = nil
 	slices.SortFunc(procs, func(a, b ExecRecord) int {

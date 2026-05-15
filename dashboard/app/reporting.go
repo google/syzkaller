@@ -428,7 +428,7 @@ func createNotification(ctx context.Context, typ dashapi.BugNotif, public bool, 
 		CC:        kernelRepo.CC.Always,
 	}
 	if public {
-		notif.Maintainers = append(crash.Maintainers, kernelRepo.CC.Maintainers...)
+		notif.Maintainers = slices.Concat(crash.Maintainers, kernelRepo.CC.Maintainers)
 	}
 	if (public || reporting.moderation) && bugReporting.CC != "" {
 		notif.CC = append(notif.CC, strings.Split(bugReporting.CC, "|")...)

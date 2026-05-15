@@ -232,10 +232,8 @@ func logSeries(series *lore.Series) {
 	}
 }
 
+var sanitizeNameRe = regexp.MustCompile("[^a-zA-Z0-9]+")
+
 func sanitizeName(str string) string {
-	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
-	if err != nil {
-		return ""
-	}
-	return reg.ReplaceAllString(str, "")
+	return sanitizeNameRe.ReplaceAllString(str, "")
 }

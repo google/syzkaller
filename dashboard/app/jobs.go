@@ -1318,7 +1318,7 @@ func createBugReportForJob(ctx context.Context, job *Job, jobKey *db.Key, config
 		PatchLink:       externalLink(ctx, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
-		rep.Maintainers = append(crash.Maintainers, kernelRepo.CC.Maintainers...)
+		rep.Maintainers = slices.Concat(crash.Maintainers, kernelRepo.CC.Maintainers)
 		rep.ExtID = bugReporting.ExtID
 		if bugReporting.CC != "" {
 			rep.CC = strings.Split(bugReporting.CC, "|")

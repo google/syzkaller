@@ -391,9 +391,7 @@ func (ctx *Ctx) setKernelRepos(ns string, list []KernelRepo) {
 }
 
 func (ctx *Ctx) setNoObsoletions() {
-	ctx.transformContext = func(ctx context.Context) context.Context {
-		return contextWithNoObsoletions(ctx)
-	}
+	ctx.transformContext = contextWithNoObsoletions
 }
 
 func (ctx *Ctx) updateReporting(ns, name string, f func(Reporting) Reporting) {

@@ -5,6 +5,7 @@ package prog
 
 import (
 	"bytes"
+	"slices"
 	"strconv"
 )
 
@@ -59,7 +60,7 @@ func (target *Target) ParseLog(data []byte, mode DeserializeMode) []*LogEntry {
 			continue
 		}
 
-		tmp := append(cur, line...)
+		tmp := slices.Concat(cur, line)
 
 		p, err := target.Deserialize(tmp, mode)
 		if err != nil {

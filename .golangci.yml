@@ -30,6 +30,7 @@ linters:
     - funlen
     - gocognit
     - goconst
+    - gocritic
     - gocyclo
     - godot
     - goprintffuncname
@@ -55,7 +56,6 @@ linters:
     - errcheck
     - gochecknoglobals
     - gochecknoinits
-    - gocritic
     - godox
     - gomodguard
     - gosec
@@ -87,6 +87,32 @@ linters:
       min-len: 3
       min-occurrences: 3
       ignore-string-values: ['\.html|^true$']
+    gocritic:
+      disable-all: true
+      enabled-checks:
+        - appendAssign
+        - argOrder
+        - badCall
+        - badCond
+        - caseOrder
+        - codegenComment
+        - dupArg
+        - dupBranchBody
+        - dupCase
+        - dupSubExpr
+        - flagDeref
+        - flagName
+        - mapKey
+        - newDeref
+        - offBy1
+        - regexpMust
+        - sloppyLen
+        - sloppyTypeAssert
+        - underef
+        - unlambda
+        - unslice
+        - valSwap
+        - wrapperFunc
     gocyclo:
       # TODO: consider reducing this value.
       min-complexity: 24

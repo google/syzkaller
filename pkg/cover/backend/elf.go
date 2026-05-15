@@ -218,7 +218,7 @@ func elfGetCompilerVersion(path string) string {
 	if err != nil {
 		return ""
 	}
-	return string(data[:])
+	return string(data)
 }
 
 func elfReadTextSecRange(module *vminfo.KernelModule) (*SecRange, error) {
