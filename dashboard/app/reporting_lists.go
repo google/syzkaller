@@ -294,7 +294,7 @@ func querySubsystemReport(ctx context.Context, subsystem *Subsystem, reporting *
 	slices.SortFunc(noRepro, func(a, b *Bug) int {
 		return cmp.Compare(b.NumCrashes, a.NumCrashes)
 	})
-	takeBugs := append(withRepro, noRepro[:takeNoRepro]...)
+	takeBugs := slices.Concat(withRepro, noRepro[:takeNoRepro])
 	slices.SortFunc(takeBugs, func(a, b *Bug) int {
 		prioA, prioB := a.prio(), b.prio()
 		if prioA != prioB {

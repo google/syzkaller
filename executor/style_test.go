@@ -244,7 +244,7 @@ func executorFiles(t *testing.T) []string {
 	if len(cc) == 0 || len(h) == 0 {
 		t.Fatal("found no executor files")
 	}
-	res := append(cc, h...)
+	res := slices.Concat(cc, h)
 	slices.Sort(res)
 	return res
 }

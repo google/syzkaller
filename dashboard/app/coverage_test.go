@@ -47,15 +47,15 @@ func TestFileCoverage(t *testing.T) {
 		{
 			name:     "empty db",
 			covDB:    func(t *testing.T) spannerclient.SpannerClient { return emptyCoverageDBFixture(t, 1) },
-			fileProv: func(t *testing.T) covermerger.FileVersProvider { return staticFileProvider(t) },
+			fileProv: staticFileProvider,
 			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
 				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c",
 			wantInRes: []string{"1 line1"},
 		},
 		{
 			name:     "regular db",
-			covDB:    func(t *testing.T) spannerclient.SpannerClient { return coverageDBFixture(t) },
-			fileProv: func(t *testing.T) covermerger.FileVersProvider { return staticFileProvider(t) },
+			covDB:    coverageDBFixture,
+			fileProv: staticFileProvider,
 			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
 				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c",
 			wantInRes: []string{
@@ -65,8 +65,8 @@ func TestFileCoverage(t *testing.T) {
 		},
 		{
 			name:     "multimanager db",
-			covDB:    func(t *testing.T) spannerclient.SpannerClient { return multiManagerCovDBFixture(t) },
-			fileProv: func(t *testing.T) covermerger.FileVersProvider { return staticFileProvider(t) },
+			covDB:    multiManagerCovDBFixture,
+			fileProv: staticFileProvider,
 			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
 				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c" +
 				"&manager=special-cc-manager&unique-only=1",

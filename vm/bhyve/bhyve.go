@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -351,7 +352,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	} else {
 		sshargs = vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false)
 	}
-	args := append(sshargs, inst.User+"@"+inst.Addr, command)
+	args := append(slices.Clone(sshargs), inst.User+"@"+inst.Addr, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}

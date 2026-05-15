@@ -990,7 +990,7 @@ func (target *Target) lazyInit() {
 		}
 	}
 	target.CFlags = newCFlags
-	target.CxxFlags = append(target.CFlags, commonCxxFlags...)
+	target.CxxFlags = slices.Concat(target.CFlags, commonCxxFlags)
 	// Check that the compiler is actually functioning. It may be present, but still broken.
 	// Common for Linux distros, over time we've seen:
 	//	Error: alignment too large: 15 assumed

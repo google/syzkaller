@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -112,7 +113,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed copying module files: %w", err)
 	}
 
-	images := append(buildCfg.AdditionalImages, "boot.img")
+	images := append(slices.Clone(buildCfg.AdditionalImages), "boot.img")
 	if err := a.embedImages(imageFile, buildDistDir, images...); err != nil {
 		return details, fmt.Errorf("failed to embed images: %w", err)
 	}

@@ -95,7 +95,7 @@ func (pr *prober) run() (*Info, error) {
 		}
 		fileDedup := make(map[uint64]bool)
 		for _, res := range desc.results {
-			cover := append(res.Info.Calls[0].Cover, res.Info.Calls[1].Cover...)
+			cover := slices.Concat(res.Info.Calls[0].Cover, res.Info.Calls[1].Cover)
 			for _, pc := range cover {
 				if fileDedup[pc] {
 					continue

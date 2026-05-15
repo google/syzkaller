@@ -915,7 +915,7 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
 	}
-	if mgr.Priority < MinManagerPriority && mgr.Priority > MaxManagerPriority {
+	if mgr.Priority < MinManagerPriority || mgr.Priority > MaxManagerPriority {
 		panic(fmt.Sprintf("manager %v/%v priority is not in the [%d;%d] range",
 			ns, name, MinManagerPriority, MaxManagerPriority))
 	}
