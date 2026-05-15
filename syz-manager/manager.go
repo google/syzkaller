@@ -51,6 +51,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 var (
@@ -704,6 +705,9 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 	defer cancel()
 	_, reps, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
 	if err != nil {
+		if errors.Is(err, vmimpl.ErrPreempted) {
+			log.Logf(0, "VM %v: preempted while executing", inst.Index())
+		}
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
 	if len(reps) == 0 {
