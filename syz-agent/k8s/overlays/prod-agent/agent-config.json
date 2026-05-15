@@ -13,5 +13,5 @@
     "cmdline": "root=/dev/sda1",
     "qemu_args": "-machine q35 -enable-kvm -smp 2,sockets=2,cores=1"
   },
-  "cache_size": 500000000000
+  "cache_size": 350000000000
 }
