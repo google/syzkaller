@@ -373,8 +373,8 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 			for _, c := range comments {
 				if c.ExtID == r.ReplyTo {
 					author = c.Author
-					if result.ThreadSubject == "" && c.Subject != "" {
-						result.ThreadSubject = c.Subject
+					if result.ThreadSubject == "" && c.Subject.Valid && c.Subject.StringVal != "" {
+						result.ThreadSubject = c.Subject.StringVal
 					}
 					break
 				}
@@ -437,7 +437,7 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
 		ReportingID: reporting.ID,
 		ExtID:       req.MessageExtID,
-		Subject:     req.Comment.Subject,
+		Subject:     spanner.NullString{StringVal: req.Comment.Subject, Valid: req.Comment.Subject != ""},
 		Author:      req.Author,
 		BodyURI:     fmt.Sprintf("text://%v", textID),
 		Date:        aidb.TimeNow(ctx),
