@@ -6,6 +6,7 @@
   "target": "linux/amd64",
   "image": "/disk-images/buildroot_amd64",
   "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
+  "strace_bin": "/opt/bin/strace",
   "type": "qemu",
   "vm": {
     "cpu": 2,
