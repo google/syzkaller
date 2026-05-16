@@ -327,6 +327,7 @@ func initState(cfg *Config, syzkallerDir string) map[string]any {
 		"Image":        cfg.Image,
 		"Type":         cfg.Type,
 		"VM":           cfg.VM,
+		"StraceBin":    cfg.StraceBin,
 		"KernelConfig": cfg.kernelConfigData,
 	}
 }

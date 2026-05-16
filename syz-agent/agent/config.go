@@ -26,6 +26,7 @@ type Config struct {
 	Image           string          `json:"image"`
 	Type            string          `json:"type"`
 	VM              json.RawMessage `json:"vm"`
+	StraceBin       string          `json:"strace_bin"`
 	CacheSize       uint64          `json:"cache_size"`
 	Model           string          `json:"model"`
 	Workflows       []string        `json:"workflows"`
