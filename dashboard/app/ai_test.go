@@ -1110,3 +1110,41 @@ func TestAIManualJobCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestAIReproCJobCreateFromBugPage(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+	bug, _, _ := c.loadBug(extID)
+
+	_, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "repro-c", Name: "repro-c"},
+		},
+	})
+	require.NoError(t, err)
+
+	jobCreateURL := fmt.Sprintf("/bug?id=%v&ai-job-create=repro-c", bug.keyHash(c.ctx))
+	_, err = c.AuthGET(AccessUser, jobCreateURL)
+	require.NoError(t, err)
+
+	resp, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "repro-c", Name: "repro-c"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, "", resp.ID)
+	require.Equal(t, "repro-c", resp.Workflow)
+
+	require.Equal(t, "title1\n\nreport1", resp.Args["BugDescription"])
+}

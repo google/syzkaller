@@ -938,6 +938,12 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		return nil, textErr
 	}
 
+	if job.Type == ai.WorkflowReproC {
+		if args["BugDescription"] == nil || args["BugDescription"] == "" {
+			args["BugDescription"] = fmt.Sprintf("%v\n\n%v", args["BugTitle"], args["CrashReport"])
+		}
+	}
+
 	if job.Type == ai.WorkflowPatchIteration {
 		history, err := buildPatchHistory(ctx, job)
 		if err != nil {
@@ -1710,6 +1716,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			workflows[ai.WorkflowPatching] = true
 		}
 		workflows[ai.WorkflowRepro] = true
+		workflows[ai.WorkflowReproC] = true
 	}
 	return workflows
 }
