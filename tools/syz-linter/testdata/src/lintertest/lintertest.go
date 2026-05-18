@@ -325,3 +325,10 @@ type groupedType2 struct {
 func groupedFunc() {}
 type groupedType struct{} // want "Keep one empty line between top-level declarations"
 const groupedConst = 1 // want "Keep one empty line between top-level declarations"
+
+func formatStrings() {
+	fmt.Sprintf("value %d", 0) // want "Don't use %d format, use %v instead"
+	fmt.Sprintf("value %v", 0)
+	log.Printf("value %t", true) // want "Don't use %t format, use %v instead"
+	log.Printf("value %v", true)
+}
