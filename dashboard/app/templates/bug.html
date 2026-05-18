@@ -38,6 +38,14 @@ Page with details about a single bug.
 		{{end}}
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	{{if .Bug.FixCandidateJob}}
+		<div class="fix-candidate-block">{{template "bisect_results" .Bug.FixCandidateJob}}</div>
+	{{end}}
+	<div>
+		{{if .Bug.BisectCauseJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectCauseJob}}</div>{{end}}
+		{{if .Bug.BisectFixJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectFixJob}}</div>{{end}}
+		<div class="bug-bisection-stop"></div>
+	</div>
 	{{if .AIWorkflows}}
 		<form method="POST">
 			<select name="ai-job-create" onchange="displayAICreateJobArgs(this)">
@@ -84,14 +92,6 @@ Page with details about a single bug.
 			</div>
 		</div>
 	{{end}}
-	{{if .Bug.FixCandidateJob}}
-		<div class="fix-candidate-block">{{template "bisect_results" .Bug.FixCandidateJob}}</div>
-	{{end}}
-	<div>
-		{{if .Bug.BisectCauseJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectCauseJob}}</div>{{end}}
-		{{if .Bug.BisectFixJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectFixJob}}</div>{{end}}
-		<div class="bug-bisection-stop"></div>
-	</div>
 
 	{{range $item := .Sections}}
 	<div class="collapsible {{if $item.Show}}collapsible-show{{else}}collapsible-hide{{end}}">
