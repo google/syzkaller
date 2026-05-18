@@ -619,3 +619,12 @@ func extractBaseCommitHint(email string) string {
 	}
 	return ""
 }
+
+// DirectlyAddressedTo returns true if the specified bugID was explicitly mentioned
+// in the raw To/Cc headers of the email.
+func (email *Email) DirectlyAddressedTo(bugID string) bool {
+	return slices.ContainsFunc(email.RawCc, func(addr string) bool {
+		_, context, _ := RemoveAddrContext(addr)
+		return context == bugID
+	})
+}

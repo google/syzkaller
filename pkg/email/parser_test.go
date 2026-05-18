@@ -1284,3 +1284,15 @@ base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are b
 		},
 	},
 }
+
+func TestDirectlyAddressedTo(t *testing.T) {
+	msg := &Email{
+		RawCc: []string{
+			"\"Name\" <user@example.com>",
+			"syzbot+12345hash@syzkaller.appspotmail.com",
+			"other@example.com",
+		},
+	}
+	assert.True(t, msg.DirectlyAddressedTo("12345hash"))
+	assert.False(t, msg.DirectlyAddressedTo("67890hash"))
+}
