@@ -75,11 +75,16 @@ func TestAggregateTestResults(t *testing.T) {
 			results: []instance.EnvTestResult{
 				{Error: errors.New("infra error1")},
 				{Error: errors.New("infra error2")},
-				{Error: &instance.TestError{Title: "test error", Report: &report.Report{
-					Title:  "report title",
-					Report: []byte("report body"),
-					Output: []byte("output"),
-				}}},
+				{
+					Error: &instance.TestError{
+						Title: "test error",
+						Report: &report.Report{
+							Title:  "report title",
+							Report: []byte("report body"),
+							Output: []byte("output"),
+						},
+					},
+				},
 			},
 			title: "",
 			err:   errors.New("report title\n\nreport body\n\noutput"),

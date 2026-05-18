@@ -18,7 +18,8 @@ func TestAssignRandomAsync(t *testing.T) {
 		check func(*Prog) bool
 	}{
 		{
-			"linux", "amd64",
+			"linux",
+			"amd64",
 			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 read(r0, &AUTO=""/4, 0x4)
@@ -29,7 +30,8 @@ close(r0)
 			},
 		},
 		{
-			"linux", "amd64",
+			"linux",
+			"amd64",
 			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 nanosleep(&AUTO={0x0,0x4C4B40}, &AUTO={0,0})
 write(r0, &AUTO="01010101", 0x4)
@@ -41,7 +43,8 @@ close(r0)
 			},
 		},
 		{
-			"linux", "amd64",
+			"linux",
+			"amd64",
 			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 r1 = dup(r0)
 r2 = dup(r1)
@@ -94,7 +97,8 @@ func TestDoubleExecCollide(t *testing.T) {
 		shouldFail bool
 	}{
 		{
-			"linux", "amd64",
+			"linux",
+			"amd64",
 			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 r1 = dup(r0)
 r2 = dup(r1)
@@ -159,7 +163,8 @@ func TestDupCallCollide(t *testing.T) {
 		rets []string
 	}{
 		{
-			"linux", "amd64",
+			"linux",
+			"amd64",
 			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 r1 = dup(r0)
 r2 = dup(r1)

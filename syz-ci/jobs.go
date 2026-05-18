@@ -414,8 +414,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		{"syzkaller commit", req.SyzkallerCommit != ""},
 		// We either want a normal repro (with options and syz repro text)
 		// or it's a boot time bug, in which case both are empty.
-		{"reproducer consistency", (len(req.ReproOpts) != 0 && len(req.ReproSyz) != 0) ||
-			(len(req.ReproOpts) == 0 && len(req.ReproSyz) == 0)},
+		{
+			name: "reproducer consistency",
+			ok: (len(req.ReproOpts) != 0 && len(req.ReproSyz) != 0) ||
+				(len(req.ReproOpts) == 0 && len(req.ReproSyz) == 0),
+		},
 	}
 	for _, req := range required {
 		if !req.ok {

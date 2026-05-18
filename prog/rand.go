@@ -543,7 +543,8 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	}
 	for _, p := range target.SpecialPointers {
 		cfg.MemRegions = append(cfg.MemRegions, ifuzz.MemRegion{
-			Start: p & ^target.PageSize, Size: p & ^target.PageSize + target.PageSize,
+			Start: p & ^target.PageSize,
+			Size:  p & ^target.PageSize + target.PageSize,
 		})
 	}
 	switch target.Arch {

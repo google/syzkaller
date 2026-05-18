@@ -923,9 +923,17 @@ func handleTestCommand(ctx context.Context, info *bugInfoResult,
 	}
 	reply := ""
 	err := handleTestRequest(ctx, &testReqArgs{
-		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
-		user: msg.Author, extID: msg.MessageID, link: msg.Link,
-		patch: []byte(msg.Patch), repo: repo, branch: branch, jobCC: msg.Cc})
+		bug:          info.bug,
+		bugKey:       info.bugKey,
+		bugReporting: info.bugReporting,
+		user:         msg.Author,
+		extID:        msg.MessageID,
+		link:         msg.Link,
+		patch:        []byte(msg.Patch),
+		repo:         repo,
+		branch:       branch,
+		jobCC:        msg.Cc,
+	})
 	if err != nil {
 		var testDenied *TestRequestDeniedError
 		var badTest *BadTestRequestError
@@ -1371,8 +1379,10 @@ func matchBugFromList(ctx context.Context, sender, subject string) (*bugInfoResu
 			continue
 		}
 		candidates = append(candidates, &bugInfoResult{
-			bug: bug, bugKey: bugKeys[i],
-			bugReporting: bugReporting, reporting: reporting,
+			bug:          bug,
+			bugKey:       bugKeys[i],
+			bugReporting: bugReporting,
+			reporting:    reporting,
 		})
 	}
 	if len(candidates) > 1 {

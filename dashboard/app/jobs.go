@@ -58,7 +58,8 @@ func handleTestRequest(ctx context.Context, args *testReqArgs) error {
 	}
 	_, _, err = addTestJob(ctx, &testJobArgs{
 		testReqArgs: *args,
-		crash:       crash, crashKey: crashKey,
+		crash:       crash,
+		crashKey:    crashKey,
 	})
 	if err != nil {
 		return err

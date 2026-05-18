@@ -33,103 +33,124 @@ type Command struct {
 
 // Commands are used to run unit tests and for the syz-codesearch tool.
 var Commands = []Command{
-	{"dir-index", 1, func(index *Index, args []string) (string, error) {
-		subdirs, files, err := index.DirIndex(args[0])
-		if err != nil {
-			return "", err
-		}
-		b := new(strings.Builder)
-		fmt.Fprintf(b, "directory %v subdirs:\n", args[0])
-		for _, subdir := range subdirs {
-			fmt.Fprintf(b, " - %v\n", subdir)
-		}
-		fmt.Fprintf(b, "\ndirectory %v files:\n", args[0])
-		for _, file := range files {
-			fmt.Fprintf(b, " - %v\n", file)
-		}
-		return b.String(), nil
-	}},
-	{"read-file", 1, func(index *Index, args []string) (string, error) {
-		return index.ReadFile(args[0])
-	}},
-	{"file-index", 1, func(index *Index, args []string) (string, error) {
-		entities, err := index.FileIndex(args[0])
-		if err != nil {
-			return "", err
-		}
-		b := new(strings.Builder)
-		fmt.Fprintf(b, "file %v defines the following entities:\n\n", args[0])
-		for _, ent := range entities {
-			fmt.Fprintf(b, "%v %v\n", ent.Kind, ent.Name)
-		}
-		return b.String(), nil
-	}},
-	{"def-comment", 2, func(index *Index, args []string) (string, error) {
-		info, err := index.DefinitionComment(args[0], args[1])
-		if err != nil {
-			return "", err
-		}
-		if info.Body == "" {
-			return fmt.Sprintf("%v %v is defined in %v and is not commented\n",
-				info.Kind, args[1], info.File), nil
-		}
-		return fmt.Sprintf("%v %v is defined in %v and commented as:\n\n%v",
-			info.Kind, args[1], info.File, info.Body), nil
-	}},
-	{"def-source", 3, func(index *Index, args []string) (string, error) {
-		info, err := index.DefinitionSource(args[0], args[1], args[2] == "yes")
-		if err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("%v %v is defined in %v:\n\n%v", info.Kind, args[1], info.File, info.Body), nil
-	}},
-	{"find-references", 5, func(index *Index, args []string) (string, error) {
-		contextLines, err := strconv.Atoi(args[3])
-		if err != nil {
-			return "", fmt.Errorf("failed to parse number of context lines %q: %w", args[3], err)
-		}
-		outputLimit, err := strconv.Atoi(args[4])
-		if err != nil {
-			return "", fmt.Errorf("failed to parse output limit %q: %w", args[4], err)
-		}
-		refs, totalCount, err := index.FindReferences(args[0], args[1], args[2], contextLines, outputLimit)
-		if err != nil {
-			return "", err
-		}
-		b := new(strings.Builder)
-		fmt.Fprintf(b, "%v has %v references:\n\n", args[1], totalCount)
-		for _, ref := range refs {
-			fmt.Fprintf(b, "%v %v %v it at %v:%v\n%v\n\n",
-				ref.ReferencingEntityKind, ref.ReferencingEntityName, ref.ReferenceKind,
-				ref.SourceFile, ref.SourceLine, ref.SourceSnippet)
-		}
-		return b.String(), nil
-	}},
-	{"struct-layout", 0, func(index *Index, args []string) (string, error) {
-		if len(args) != 2 && len(args) != 3 {
-			return "", fmt.Errorf("codesearch command struct-layout requires 2 or 3 args, but %v provided",
-				len(args))
-		}
-		var fieldOffset *uint
-		if len(args) == 3 {
-			val, err := strconv.ParseUint(args[2], 10, 64)
+	{
+		Name:  "dir-index",
+		NArgs: 1,
+		Func: func(index *Index, args []string) (string, error) {
+			subdirs, files, err := index.DirIndex(args[0])
 			if err != nil {
-				return "", fmt.Errorf("bad offset: %w", err)
+				return "", err
 			}
-			fieldOffset = new(uint)
-			*fieldOffset = uint(val)
-		}
-		fields, err := index.GetStructLayout(args[0], args[1], fieldOffset)
-		if err != nil {
-			return "", err
-		}
-		b := new(strings.Builder)
-		fmt.Fprintf(b, "struct %v has %v fields:\n", args[1], len(fields))
-		for _, f := range fields {
-			fmt.Fprintf(b, "[%v - %v] %v\n", f.OffsetBits, f.OffsetBits+f.SizeBits, f.Name)
-		}
-		return b.String(), nil
-	}},
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "directory %v subdirs:\n", args[0])
+			for _, subdir := range subdirs {
+				fmt.Fprintf(b, " - %v\n", subdir)
+			}
+			fmt.Fprintf(b, "\ndirectory %v files:\n", args[0])
+			for _, file := range files {
+				fmt.Fprintf(b, " - %v\n", file)
+			}
+			return b.String(), nil
+		}},
+	{
+		Name:  "read-file",
+		NArgs: 1,
+		Func: func(index *Index, args []string) (string, error) {
+			return index.ReadFile(args[0])
+		}},
+	{
+		Name:  "file-index",
+		NArgs: 1,
+		Func: func(index *Index, args []string) (string, error) {
+			entities, err := index.FileIndex(args[0])
+			if err != nil {
+				return "", err
+			}
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "file %v defines the following entities:\n\n", args[0])
+			for _, ent := range entities {
+				fmt.Fprintf(b, "%v %v\n", ent.Kind, ent.Name)
+			}
+			return b.String(), nil
+		}},
+	{
+		Name:  "def-comment",
+		NArgs: 2,
+		Func: func(index *Index, args []string) (string, error) {
+			info, err := index.DefinitionComment(args[0], args[1])
+			if err != nil {
+				return "", err
+			}
+			if info.Body == "" {
+				return fmt.Sprintf("%v %v is defined in %v and is not commented\n",
+					info.Kind, args[1], info.File), nil
+			}
+			return fmt.Sprintf("%v %v is defined in %v and commented as:\n\n%v",
+				info.Kind, args[1], info.File, info.Body), nil
+		}},
+	{
+		Name:  "def-source",
+		NArgs: 3,
+		Func: func(index *Index, args []string) (string, error) {
+			info, err := index.DefinitionSource(args[0], args[1], args[2] == "yes")
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("%v %v is defined in %v:\n\n%v", info.Kind, args[1], info.File, info.Body), nil
+		}},
+	{
+		Name:  "find-references",
+		NArgs: 5,
+		Func: func(index *Index, args []string) (string, error) {
+			contextLines, err := strconv.Atoi(args[3])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse number of context lines %q: %w", args[3], err)
+			}
+			outputLimit, err := strconv.Atoi(args[4])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse output limit %q: %w", args[4], err)
+			}
+			refs, totalCount, err := index.FindReferences(args[0], args[1], args[2], contextLines, outputLimit)
+			if err != nil {
+				return "", err
+			}
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "%v has %v references:\n\n", args[1], totalCount)
+			for _, ref := range refs {
+				fmt.Fprintf(b, "%v %v %v it at %v:%v\n%v\n\n",
+					ref.ReferencingEntityKind, ref.ReferencingEntityName, ref.ReferenceKind,
+					ref.SourceFile, ref.SourceLine, ref.SourceSnippet)
+			}
+			return b.String(), nil
+		}},
+	{
+		Name:  "struct-layout",
+		NArgs: 0,
+		Func: func(index *Index, args []string) (string, error) {
+			if len(args) != 2 && len(args) != 3 {
+				return "", fmt.Errorf("codesearch command struct-layout requires 2 or 3 args, but %v provided",
+					len(args))
+			}
+			var fieldOffset *uint
+			if len(args) == 3 {
+				val, err := strconv.ParseUint(args[2], 10, 64)
+				if err != nil {
+					return "", fmt.Errorf("bad offset: %w", err)
+				}
+				fieldOffset = new(uint)
+				*fieldOffset = uint(val)
+			}
+			fields, err := index.GetStructLayout(args[0], args[1], fieldOffset)
+			if err != nil {
+				return "", err
+			}
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "struct %v has %v fields:\n", args[1], len(fields))
+			for _, f := range fields {
+				fmt.Fprintf(b, "[%v - %v] %v\n", f.OffsetBits, f.OffsetBits+f.SizeBits, f.Name)
+			}
+			return b.String(), nil
+		}},
 }
 
 func IsSourceFile(file string) bool {

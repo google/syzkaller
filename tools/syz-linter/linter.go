@@ -74,6 +74,8 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkLogErrorFormat(n)
 				pass.checkSliceClone(n)
 				pass.checkSortUsage(n)
+			case *ast.CompositeLit:
+				pass.checkCompositeLit(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
@@ -801,4 +803,35 @@ func isMinusOne(e ast.Expr) bool {
 	}
 	lit, ok := unary.X.(*ast.BasicLit)
 	return ok && lit.Kind == token.INT && lit.Value == "1"
+}
+
+func (pass *Pass) checkCompositeLit(n *ast.CompositeLit) {
+	if len(n.Elts) <= 1 {
+		return
+	}
+
+	typ := pass.TypesInfo.TypeOf(n)
+	if typ == nil {
+		return
+	}
+	if _, ok := typ.Underlying().(*types.Struct); !ok {
+		return
+	}
+
+	lines := make(map[int]bool)
+	for _, elt := range n.Elts {
+		line := pass.Fset.Position(elt.Pos()).Line
+		lines[line] = true
+	}
+
+	startLine := pass.Fset.Position(n.Lbrace).Line
+	endLine := pass.Fset.Position(n.Rbrace).Line
+
+	if startLine == endLine {
+		return
+	}
+
+	if len(lines) < len(n.Elts) {
+		pass.report(n, "multi-line struct initialization must have one field per line")
+	}
 }
