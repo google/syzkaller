@@ -91,11 +91,14 @@ var metaArches = &typeDesc{
 	Args:      []namedArg{metaArch, metaArch, metaArch, metaArch, metaArch, metaArch, metaArch, metaArch},
 }
 
-var metaArch = namedArg{Name: "arch", Type: &typeArg{
-	Kind: kindString,
-	Check: func(comp *compiler, t *ast.Type) {
-		if targets.List[comp.target.OS][t.String] == nil {
-			comp.error(t.Pos, "unknown arch %v", t.String)
-		}
+var metaArch = namedArg{
+	Name: "arch",
+	Type: &typeArg{
+		Kind: kindString,
+		Check: func(comp *compiler, t *ast.Type) {
+			if targets.List[comp.target.OS][t.String] == nil {
+				comp.error(t.Pos, "unknown arch %v", t.String)
+			}
+		},
 	},
-}}
+}

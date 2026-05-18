@@ -776,11 +776,12 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		desc = "---"
 	}
 	return &uiAIJob{
-		ID:              job.ID,
-		Link:            fmt.Sprintf("/ai_job?id=%v", job.ID),
-		Workflow:        job.Workflow,
-		Description:     desc,
-		DescriptionLink: job.Link, AgentName: nullString(job.AgentName),
+		ID:               job.ID,
+		Link:             fmt.Sprintf("/ai_job?id=%v", job.ID),
+		Workflow:         job.Workflow,
+		Description:      desc,
+		DescriptionLink:  job.Link,
+		AgentName:        nullString(job.AgentName),
 		Created:          job.Created,
 		Started:          nullTime(job.Started),
 		Finished:         nullTime(job.Finished),

@@ -777,11 +777,17 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 	if osutil.IsExist(imageFile) {
 		if mgr.managercfg.Type == "qemu" {
 			// For qemu we currently use non-bootable disk images.
-			pending = append(pending, pendingAsset{imageFile, dashapi.NonBootableDisk,
-				"non_bootable_disk.raw"})
+			pending = append(pending, pendingAsset{
+				path:      imageFile,
+				assetType: dashapi.NonBootableDisk,
+				name:      "non_bootable_disk.raw",
+			})
 		} else {
-			pending = append(pending, pendingAsset{imageFile, dashapi.BootableDisk,
-				"disk.raw"})
+			pending = append(pending, pendingAsset{
+				path:      imageFile,
+				assetType: dashapi.BootableDisk,
+				name:      "disk.raw",
+			})
 		}
 	}
 	target := mgr.managercfg.SysTarget

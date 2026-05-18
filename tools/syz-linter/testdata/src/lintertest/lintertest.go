@@ -325,3 +325,22 @@ type groupedType2 struct {
 func groupedFunc() {}
 type groupedType struct{} // want "Keep one empty line between top-level declarations"
 const groupedConst = 1 // want "Keep one empty line between top-level declarations"
+
+type StructLayout struct {
+	A int
+	B int
+	C int
+}
+
+func testStructLayout() {
+	_ = StructLayout{A: 1, B: 2, C: 3}
+	_ = StructLayout{ // want "multi-line struct initialization must have one field per line"
+		A: 1, B: 2,
+		C: 3,
+	}
+	_ = StructLayout{
+		A: 1,
+		B: 2,
+		C: 3,
+	}
+}

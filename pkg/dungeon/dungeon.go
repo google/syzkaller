@@ -160,34 +160,70 @@ var classDefs = []struct {
 	Description string
 	Subsystems  []string
 }{
-	{"Weaver", "🕸️", "Masters of the web, spinning fixes across the stack.", []string{
-		"net", "ipv4", "ipv6", "tcp", "udp", "sctp", "bpf",
-		"wireless", "bluetooth", "can", "tipc", "nfc", "bridge", "netlink",
-	}},
-	{"Geomancer", "🏔️", "Architects shifting the bedrock of the file systems.", []string{
-		"fs", "ext4", "btrfs", "xfs", "vfs", "block", "scsi", "nvme", "io-uring", "fuse", "overlayfs",
-	}},
-	{"Voidwalker", "🔮", "Those who stare into the null pointer void.", []string{
-		"mm", "kasan", "slab", "kcsan", "kmemleak",
-	}},
-	{"Paladin", "🛡️", "Guardians protecting the kernel gates.", []string{
-		"security", "selinux", "apparmor", "lsm", "audit", "keyrings", "crypto",
-	}},
-	{"Bard", "🎻", "Keepers of peripherals, ensuring the kernel sings.", []string{
-		"sound", "usb", "media", "video", "drm", "gpu", "input", "hid", "drivers",
-	}},
-	{"Artificer", "🛠️", "Forging the hardware links that bind the machine.", []string{
-		"pci", "i2c", "spi", "gpio", "clk", "pm", "dmaengine", "iio", "rtc", "watchdog",
-	}},
-	{"Warlock", "🌀", "Summoners of virtual worlds and guest spirits.", []string{
-		"kvm", "xen", "virt", "hyperv",
-	}},
-	{"Rogue", "🗡️", "Specialists striking from the architecture shadows.", []string{
-		"arch", "arm", "arm64", "x86", "riscv", "s390",
-	}},
-	{"Druid", "🌿", "Tending the roots of the scheduler and core.", []string{
-		"kernel", "sched", "rcu", "locking", "trace", "cgroups",
-	}},
+	{
+		"Weaver",
+		"🕸️",
+		"Masters of the web, spinning fixes across the stack.",
+		[]string{
+			"net", "ipv4", "ipv6", "tcp", "udp", "sctp", "bpf",
+			"wireless", "bluetooth", "can", "tipc", "nfc", "bridge", "netlink",
+		}},
+	{
+		"Geomancer",
+		"🏔️",
+		"Architects shifting the bedrock of the file systems.",
+		[]string{
+			"fs", "ext4", "btrfs", "xfs", "vfs", "block", "scsi", "nvme", "io-uring", "fuse", "overlayfs",
+		}},
+	{
+		"Voidwalker",
+		"🔮",
+		"Those who stare into the null pointer void.",
+		[]string{
+			"mm", "kasan", "slab", "kcsan", "kmemleak",
+		}},
+	{
+		"Paladin",
+		"🛡️",
+		"Guardians protecting the kernel gates.",
+		[]string{
+			"security", "selinux", "apparmor", "lsm", "audit", "keyrings", "crypto",
+		}},
+	{
+		"Bard",
+		"🎻",
+		"Keepers of peripherals, ensuring the kernel sings.",
+		[]string{
+			"sound", "usb", "media", "video", "drm", "gpu", "input", "hid", "drivers",
+		}},
+	{
+		"Artificer",
+		"🛠️",
+		"Forging the hardware links that bind the machine.",
+		[]string{
+			"pci", "i2c", "spi", "gpio", "clk", "pm", "dmaengine", "iio", "rtc", "watchdog",
+		}},
+	{
+		"Warlock",
+		"🌀",
+		"Summoners of virtual worlds and guest spirits.",
+		[]string{
+			"kvm", "xen", "virt", "hyperv",
+		}},
+	{
+		"Rogue",
+		"🗡️",
+		"Specialists striking from the architecture shadows.",
+		[]string{
+			"arch", "arm", "arm64", "x86", "riscv", "s390",
+		}},
+	{
+		"Druid",
+		"🌿",
+		"Tending the roots of the scheduler and core.",
+		[]string{
+			"kernel", "sched", "rcu", "locking", "trace", "cgroups",
+		}},
 }
 
 var classLookup = make(map[string]heroClass)
@@ -284,94 +320,179 @@ var (
 	)
 )
 
+// nolint:funlen
 func GetBadges() []BadgeDefinition {
 	return []BadgeDefinition{
-		{Emoji: "🐉", Name: "Dragon Vanquisher", Description: "The Scaled Slayer. Fixed a bug with over 1000 crashes.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return bug.NumCrashes > 1000 }},
-		{Emoji: "💀", Name: "Necromancer", Description: "The Reanimator. Resolved a bug that had been open for over a year.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return bug.DaysOpen > 365 }},
-		{Emoji: "👁️", Name: "Diviner", Description: "The Grave-Warden. Fixed a bug that lacked a reproducer.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return bug.LacksReproducer }},
-		{Emoji: "🪽", Name: "Windwalker", Description: "The Swift Message. Fixed a bug within 7 days of its first crash.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return bug.HoursToFix >= 0 && bug.HoursToFix < 7*24 }},
-		{Emoji: "🔥", Name: "Hydra Hunter", Description: "The Regenerating Beast. Fixed 10+ bugs.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return totalBugs >= 10 }},
-		{Emoji: "🧌", Name: "Troll Crusher", Description: "The Stubborn Brute. Fixed 50+ bugs.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return totalBugs >= 50 }},
-		{Emoji: "🐙", Name: "Kraken Bane", Description: "The Tangled Terror. Fixed 100+ bugs.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return totalBugs >= 100 }},
-		{Emoji: "👹", Name: "Demon Slayer", Description: "The Ancient Demon. Fixed 250+ bugs.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return totalBugs >= 250 }},
-		{Emoji: "🔱", Name: "Leviathan Conqueror", Description: "The Mythic Entity. Fixed 500+ bugs.",
-			Predicate: func(bug BugInfo, totalBugs int) bool { return totalBugs >= 500 }},
-		{Emoji: "🏺", Name: "Sealer", Description: "Fixed a memory leak.",
+		{
+			Emoji:       "🐉",
+			Name:        "Dragon Vanquisher",
+			Description: "The Scaled Slayer. Fixed a bug with over 1000 crashes.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return bug.NumCrashes > 1000 },
+		},
+		{
+			Emoji:       "💀",
+			Name:        "Necromancer",
+			Description: "The Reanimator. Resolved a bug that had been open for over a year.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return bug.DaysOpen > 365 },
+		},
+		{
+			Emoji:       "👁️",
+			Name:        "Diviner",
+			Description: "The Grave-Warden. Fixed a bug that lacked a reproducer.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return bug.LacksReproducer },
+		},
+		{
+			Emoji:       "🪽",
+			Name:        "Windwalker",
+			Description: "The Swift Message. Fixed a bug within 7 days of its first crash.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return bug.HoursToFix >= 0 && bug.HoursToFix < 7*24 },
+		},
+		{
+			Emoji:       "🔥",
+			Name:        "Hydra Hunter",
+			Description: "The Regenerating Beast. Fixed 10+ bugs.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return totalBugs >= 10 },
+		},
+		{
+			Emoji:       "🧌",
+			Name:        "Troll Crusher",
+			Description: "The Stubborn Brute. Fixed 50+ bugs.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return totalBugs >= 50 },
+		},
+		{
+			Emoji:       "🐙",
+			Name:        "Kraken Bane",
+			Description: "The Tangled Terror. Fixed 100+ bugs.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return totalBugs >= 100 },
+		},
+		{
+			Emoji:       "👹",
+			Name:        "Demon Slayer",
+			Description: "The Ancient Demon. Fixed 250+ bugs.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return totalBugs >= 250 },
+		},
+		{
+			Emoji:       "🔱",
+			Name:        "Leviathan Conqueror",
+			Description: "The Mythic Entity. Fixed 500+ bugs.",
+			Predicate:   func(bug BugInfo, totalBugs int) bool { return totalBugs >= 500 },
+		},
+		{
+			Emoji:       "🏺",
+			Name:        "Sealer",
+			Description: "Fixed a memory leak.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, leakBadgeRegex.MatchString)
-			}},
-		{Emoji: "📜", Name: "Keeper of Secrets", Description: "Fixed an infoleak vulnerability.",
+			},
+		},
+		{
+			Emoji:       "📜",
+			Name:        "Keeper of Secrets",
+			Description: "Fixed an infoleak vulnerability.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "infoleak")
 				})
-			}},
-		{Emoji: "⏳", Name: "Master of Time", Description: "Fixed a time-related bug.",
+			},
+		},
+		{
+			Emoji:       "⏳",
+			Name:        "Master of Time",
+			Description: "Fixed a time-related bug.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "time:", "timer:")
 				})
-			}},
-		{Emoji: "🛶", Name: "Pathfinder", Description: "Fixed an out-of-bounds error.",
+			},
+		},
+		{
+			Emoji:       "🛶",
+			Name:        "Pathfinder",
+			Description: "Fixed an out-of-bounds error.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "out-of-bounds")
 				})
-			}},
-		{Emoji: "🦄", Name: "Beast Tamer", Description: "Fixed a data race.",
+			},
+		},
+		{
+			Emoji:       "🦄",
+			Name:        "Beast Tamer",
+			Description: "Fixed a data race.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "data-race")
 				})
-			}},
-		{Emoji: "⚒️", Name: "Armorer", Description: "Fixed a general protection fault.",
+			},
+		},
+		{
+			Emoji:       "⚒️",
+			Name:        "Armorer",
+			Description: "Fixed a general protection fault.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "general protection fault")
 				})
-			}},
-		{Emoji: "🪦", Name: "Grave Robber", Description: "Fixed a use-after-free error.",
+			},
+		},
+		{
+			Emoji:       "🪦",
+			Name:        "Grave Robber",
+			Description: "Fixed a use-after-free error.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "use-after-free")
 				})
-			}},
-		{Emoji: "🗝️", Name: "Locksmith", Description: "Fixed a locking issue.",
+			},
+		},
+		{
+			Emoji:       "🗝️",
+			Name:        "Locksmith",
+			Description: "Fixed a locking issue.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, lockBadgeRegex.MatchString)
-			}},
-		{Emoji: "🕯️", Name: "Exorcist", Description: "Fixed a hung task or zombie process.",
+			},
+		},
+		{
+			Emoji:       "🕯️",
+			Name:        "Exorcist",
+			Description: "Fixed a hung task or zombie process.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "hung task", "task hung", "zombie")
 				})
-			}},
-		{Emoji: "🕳️", Name: "Abyss Walker", Description: "Fixed a NULL pointer dereference.",
+			},
+		},
+		{
+			Emoji:       "🕳️",
+			Name:        "Abyss Walker",
+			Description: "Fixed a NULL pointer dereference.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "null-ptr-deref", "null pointer")
 				})
-			}},
-		{Emoji: "⚗️", Name: "Alchemist", Description: "Fixed an uninitialized value bug.",
+			},
+		},
+		{
+			Emoji:       "⚗️",
+			Name:        "Alchemist",
+			Description: "Fixed an uninitialized value bug.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "uninit", "kmsan")
 				})
-			}},
-		{Emoji: "🪓", Name: "Executioner", Description: "Fixed a double free bug.",
+			},
+		},
+		{
+			Emoji:       "🪓",
+			Name:        "Executioner",
+			Description: "Fixed a double free bug.",
 			Predicate: func(bug BugInfo, totalBugs int) bool {
 				return checkBugAndCommits(bug.LowerTitle, bug.LowerCommitTitles, func(s string) bool {
 					return containsAny(s, "double-free", "double free")
 				})
-			}},
+			},
+		},
 	}
 }
 

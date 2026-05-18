@@ -1484,12 +1484,15 @@ func TestAIManualPushToReporting(t *testing.T) {
 	c.SetAIConfig(&AIConfig{})
 
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName: "test", CodeRevision: "test-rev", Workflows: []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
+		AgentName:    "test",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
 	})
 	require.NoError(t, err)
 	jobID := c.createAIJob(extID, "patching", "")
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID, Results: map[string]any{
+		ID: jobID,
+		Results: map[string]any{
 			"PatchDiff":        "diff",
 			"PatchDescription": "Subject\n\nBody",
 			"KernelCommit":     "abcd",

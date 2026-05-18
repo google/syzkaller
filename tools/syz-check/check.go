@@ -439,8 +439,11 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 	// in such case we choose the one that produces fewer warnings.
 	for _, symb := range ss {
 		if symb.Size == 0 || symb.Size%int(unsafe.Sizeof(nlaPolicy{})) != 0 {
-			warnings = append(warnings, Warn{pos: astStruct.Pos, typ: WarnNetlinkBadSize,
-				msg: fmt.Sprintf("%v (%v), size %v", kernelName, name, ss[0].Size)})
+			warnings = append(warnings, Warn{
+				pos: astStruct.Pos,
+				typ: WarnNetlinkBadSize,
+				msg: fmt.Sprintf("%v (%v), size %v", kernelName, name, ss[0].Size),
+			})
 			continue
 		}
 		binary := make([]byte, symb.Size)
