@@ -1227,7 +1227,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 			aiJobs = append(aiJobs, makeUIAIJob(job))
 		}
 
-		patchVersions, err = getPatchVersions(ctx, bug)
+		patchVersions, err = getPatchVersions(ctx, bug, jobs)
 		if err != nil {
 			return err
 		}
@@ -2758,15 +2758,26 @@ func bugLink(id string) string {
 	return "/bug?id=" + id
 }
 
-func getPatchVersions(ctx context.Context, bug *Bug) ([]*uiPatchVersion, error) {
+func getPatchVersions(ctx context.Context, bug *Bug, jobs []*aidb.Job) ([]*uiPatchVersion, error) {
 	reportings, err := aidb.LoadBugJobReportings(ctx, bug.keyHash(ctx))
 	if err != nil {
 		return nil, err
+	}
+	jobMap := make(map[string]*aidb.Job)
+	for _, job := range jobs {
+		jobMap[job.ID] = job
 	}
 	var patchVersions []*uiPatchVersion
 	for _, r := range reportings {
 		if !r.Version.Valid {
 			continue
+		}
+		if job, ok := jobMap[r.JobID]; ok && job.Type == ai.WorkflowPatchIteration {
+			res, err := castJobResults[ai.PatchIterationOutputs](job)
+			if err == nil && res.PatchDiff == "" {
+				// Only show iterations that produced a new patch.
+				continue
+			}
 		}
 		patchVersions = append(patchVersions, &uiPatchVersion{
 			Version:  int(r.Version.Int64),
