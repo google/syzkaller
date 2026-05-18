@@ -313,6 +313,12 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		VerboseOutput: true,
 	})
 	if err != nil {
+		// Passing context.Background will make it uninterruptible, but the other option is to modify the Copy interface
+		// across all vm implementations to accept a context parameter.
+		// TODO: pass context to Copy
+		if inst.hasBeenPreempted(context.Background()) {
+			return "", vmimpl.ErrPreempted
+		}
 		return "", err
 	}
 	return vmDst, nil
