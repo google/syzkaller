@@ -205,9 +205,7 @@ func (h *Handler) ProcessPolledEmail(ctx context.Context, polled *lore.PolledEma
 		return fmt.Errorf("failed to record reply: %w", err)
 	}
 	if res.ReportID == "" {
-		if len(parsed.BugIDs) == 0 {
-			return ErrUnknownReport
-		}
+		return ErrUnknownReport
 	} else if !res.New {
 		log.Printf("email %q: already seen, skipping", parsed.MessageID)
 		return nil

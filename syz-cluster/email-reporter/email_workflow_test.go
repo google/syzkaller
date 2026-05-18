@@ -167,6 +167,8 @@ From: Another User <c@example.com>
 To: Bot <bot@syzbot.com>
 Content-Type: text/plain
 
+Reported-by: bot+1234567890abcdef@syzbot.com
+
 #syz upstream
 `)
 		assert.NoError(t, poller.Poll(ctx, writeTo))
