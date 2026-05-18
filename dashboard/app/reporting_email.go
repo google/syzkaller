@@ -817,6 +817,12 @@ func handleBugCommand(ctx context.Context, bugInfo *bugInfoResult, msg *email.Em
 		CC:     msg.Cc,
 	}
 	if command != nil {
+		// If syzbot isn't explicitly CC'd (e.g., the command was sent to a mailing list
+		// and the Bug ID is only in the quoted email body), ignore all commands EXCEPT `#syz test`.
+		// This prevents dashboard/app from hijacking discussions meant for other bots (like lore-relay).
+		if command.Command != email.CmdTest && !msg.DirectlyAddressedTo(bugInfo.bugReporting.ID) {
+			return ""
+		}
 		switch command.Command {
 		case email.CmdTest:
 			return handleTestCommand(ctx, bugInfo, msg, command)

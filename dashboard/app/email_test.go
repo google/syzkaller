@@ -1530,3 +1530,27 @@ Author: someone@mail.com
 		assert.Contains(t, msg.Body, "I see the command but can't find the corresponding bug")
 	})
 }
+
+func TestEmailIndirectCommandIgnored(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+
+	msg := c.pollEmailBug()
+
+	// Simulate an email that is NOT addressed directly to syzbot, but contains
+	// a Reported-by tag (which provides the Bug ID) and a command.
+	// We expect the command to be ignored (no reply from syzbot).
+	body := "Some text\n\nReported-by: " + msg.Sender + "\n\n#syz upstream"
+	c.incomingEmail("patch-bot@kernel.org", body,
+		EmailOptFrom("someone@kernel.org"),
+		EmailOptCC([]string{"patch-bot@kernel.org", "test@syzkaller.com"}))
+
+	// No email should be sent back.
+	c.expectNoEmail()
+}
