@@ -286,7 +286,9 @@ func init() {
 		ai.WorkflowReproC,
 		"reproduce a kernel crash and generate a C reproducer",
 		&aflow.Flow{
-
+			Consts: map[string]any{
+				"NeedStrace": true,
+			},
 			Root: aflow.Pipeline(
 				kernel.Checkout,
 				kernel.Build,

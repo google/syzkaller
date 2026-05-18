@@ -66,6 +66,9 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 	return &aflow.Flow{
 		Name: name,
+		Consts: map[string]any{
+			"NeedStrace": false,
+		},
 		Root: aflow.Pipeline(
 			// Setup base kernel for code tools.
 			baseCommitPicker,

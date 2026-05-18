@@ -45,6 +45,7 @@ type ReproduceArgs struct {
 	KernelCommit string
 	KernelConfig string
 	StraceBin    string
+	NeedStrace   bool
 }
 
 type reproduceResult struct {
@@ -100,7 +101,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	cfg.Image = args.Image
 	cfg.Type = args.Type
 	cfg.VM = vmCfg
-	if args.StraceBin != "" {
+	if args.NeedStrace && args.StraceBin != "" {
 		cfg.StraceBin = args.StraceBin
 		cfg.StraceBinOnTarget = false
 	}
