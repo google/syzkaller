@@ -50,6 +50,9 @@ func createPatchingFlow(name string, summaryWindow, compressTokens int) *aflow.F
 	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 	return &aflow.Flow{
 		Name: name,
+		Consts: map[string]any{
+			"NeedStrace": false,
+		},
 		Root: aflow.Pipeline(
 			baseCommitPicker,
 			actionsyzlang.CreateSimplifiedCRepro,
