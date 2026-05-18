@@ -89,6 +89,7 @@ type instance struct {
 	consolew       io.WriteCloser
 	consoleReadCmd string // optional: command to read non-standard kernel console
 	timeouts       targets.Timeouts
+	preempted      bool
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -278,7 +279,10 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 
 func (inst *instance) Close() error {
 	close(inst.closed)
-	err := inst.GCE.DeleteInstance(inst.name, inst.zone, true)
+	var err error
+	if !inst.preempted {
+		err = inst.GCE.DeleteInstance(inst.name, inst.zone, true)
+	}
 	if inst.consolew != nil {
 		err2 := inst.consolew.Close()
 		if err == nil {
@@ -401,20 +405,18 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		Scale:   inst.timeouts.Scale,
 		PreemptionError: func(err error) bool {
 			var mergeError *vmimpl.MergerError
-			isPreempted := false
 			if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
 				log.Logf(0, "%v: gce console connection failed with %v", inst.name, mergeError.Err)
-				isPreempted = true
+				inst.preempted = true
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				if inst.hasBeenPreempted(ctx) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
-					isPreempted = true
 				}
 			}
-			if isPreempted {
+			if inst.preempted {
 				inst.GCE.ReportPreemption(inst.zone)
 				return true
 			}
@@ -465,7 +467,8 @@ func (inst *instance) hasBeenPreempted(ctx context.Context) bool {
 	case <-ctx.Done():
 		return false
 	}
-	return inst.GCE.IsInstanceRunning(inst.name, inst.zone)
+	inst.preempted = !inst.GCE.IsInstanceRunning(inst.name, inst.zone)
+	return inst.preempted
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
