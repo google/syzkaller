@@ -109,9 +109,8 @@ func init() {
 	aflow.Register[Inputs, ai.PatchingOutputs](
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
-		createPatchingFlow("", 0, 0),
+		createPatchingFlow("", 0, 200_000),
 		createPatchingFlow("summary", 10, 0),
-		createPatchingFlow("compressed", 0, 200_000),
 	)
 }
 

@@ -245,8 +245,7 @@ func init() {
 	aflow.Register[PatchIterationInputs, ai.PatchIterationOutputs](
 		ai.WorkflowPatchIteration,
 		"address iterative feedback on generated patches",
-		createPatchIterationFlow("", 0, 0),
-		createPatchIterationFlow("compressed", 0, 200_000),
+		createPatchIterationFlow("", 0, 200_000),
 	)
 }
 
