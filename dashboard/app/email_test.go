@@ -1446,6 +1446,32 @@ Author: default@sender.com
 `)
 }
 
+func TestForwardNotDirect(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.updateReporting("access-public-email", "access-public-email-reporting1",
+		func(r Reporting) Reporting {
+			r.Config = &forwardEmailConfig
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+
+	// Send to one of the mailing lists, but only include the bug ID in the body.
+	c.incomingEmail("test@syzkaller.com", "Reported-by: "+sender+"\n\n#syz fix: some: commit title",
+		EmailOptCC(nil), EmailOptSubject("fix bug title"))
+
+	c.expectNoEmail()
+}
+
 func TestForwardEmailInbox(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
