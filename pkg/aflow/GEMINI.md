@@ -8,15 +8,23 @@ The `aflow` package provides a structured way to define and execute workflows co
 and AI agents. It is used in `syzkaller` for high-level automated tasks such as:
 - **Patching**: Automatically generating and refining kernel patches.
 - **Moderation**: Assessing the impact and actionability of bug reports.
-- **Reproduction**: Finding ways to reproduce reported crashes. See [crash-to-repro.md](docs/crash-to-repro.md) for the workflow's design document.
-- **Assessment**: Analyzing KCSAN reports for confidence and benignity.
+- **Reproduction**: Finding ways to reproduce reported crashes (both syzkaller and C reproducers).
+    See [crash-to-repro.md](docs/crash-to-repro.md) and
+    [c-repro-from-description.md](docs/c-repro-from-description.md) for workflow design documents.
+    Reproducer workflows often run generated code multiple times (e.g., executing with and without
+    `strace`, or iterating through a repair loop) to gather debugging context.
+- **Assessment**: Analyzing KCSAN and security reports for confidence and benignity.
 
 ### Core Concepts
 
-- **Flow**: A high-level workflow definition that specifies inputs, outputs, and a sequence of actions.
+- **Flow**: A high-level workflow definition that specifies inputs, outputs, and a sequence of
+    actions. Workflows can also define constant variables available to all actions via `Flow.Consts`.
 - **Action**: A single step in a flow.
-    - **LLMAgent**: An AI agent powered by Gemini. It can be given instructions, a prompt, and a set of tools.
+    - **LLMAgent**: An AI agent powered by Gemini. It can be given instructions, a prompt, and a
+        set of tools.
     - **FuncAction**: A standard Go function wrapped to be used as a workflow step.
+    - **Control Flow**: Actions like `aflow.If` and `aflow.ForEach` provide conditional execution
+        and iteration within a flow.
 - **Tool**: A capability provided to an `LLMAgent`.
     - **FuncTool**: A Go function exposed to the LLM.
     - **LLMTool**: A nested `LLMAgent` exposed as a tool to a parent agent, allowing for hierarchical reasoning.
@@ -45,8 +53,10 @@ We globally agree on the semantics of names so that actions can work securely ac
 - **`BugTitle`**: The original bug title straight from the dashboard.
 - **`ReproducedBugTitle`**: The bug title that resulted from successfully running a reproducer.
 - **`CrashReport`**: The verbatim bug report body to reproduce.
-- **`CandidateReproSyz`**: A raw, unformatted syzkaller program typically generated directly by the LLM.
-- **`ReproSyz`**: A definitively formatted, verified, and ready-to-execute syzkaller program (e.g. the output of the `Format` action).
+- **`CandidateReproSyz`** / **`CandidateReproC`**: A raw, unformatted reproducer program (syzkaller
+    or C) typically generated directly by the LLM.
+- **`ReproSyz`** / **`ReproC`**: A definitively formatted, verified, and ready-to-execute
+    reproducer program.
 - **`ReproOpts`**: Reproducer configuration options.
 - **`KernelRepo` / `KernelBranch` / `KernelCommit`**: Information uniquely identifying the target kernel tree and revision.
 - **`KernelConfig`**: The kernel build setup configuration.
@@ -79,9 +89,28 @@ Workflows are typically registered using `aflow.Register`.
 
 - **Models**: Prefer `aflow.GoodBalancedModel` (Flash) for simple tasks and `aflow.BestExpensiveModel` (Pro)
     for complex reasoning.
+- **Context Compression**: For agents processing very large contexts (e.g., `patching` or
+    `reproc`), set `CompressTokens` to establish a threshold. The system establishes an anchor
+    token baseline from the first prompt and calculates a delta for subsequent turns. When the
+    delta exceeds the limit, older messages are summarized to avoid maximum token limits.
+- **Thinking Level**: We use `ThinkingLevel` (e.g., `genai.ThinkingLevelHigh`) rather than
+    `ThinkingBudget` to enable dynamic reasoning for complex models (Gemini 3+).
+- **Validation & Output Formatting**: Structured outputs can be validated using
+    `ValidatedLLMOutputs`. If validation fails, an error is returned to the LLM as a
+    `BadCallError`, creating a tight feedback loop for self-correction.
+- **Tool Call Loop Detection**: The `LLMAgent` maintains a rolling window of the last 20 tool
+    calls to detect and prevent infinite loops, stopping execution if the exact same tool call
+    is made 3 times.
 - **Caching**: LLM responses are cached by default based on the prompt, configuration, and history.
     This is crucial for development and cost management.
-- **Error Handling**: Use `aflow.BadCallError` when an LLM provides invalid tool arguments to allow it to self-correct.
+- **Error Handling**: Use `aflow.BadCallError` when an LLM provides invalid tool arguments to
+    allow it to self-correct.
+
+### MCP Integration
+
+Workflows and tools can be exposed via the Model Context Protocol (MCP) in `mcp.go`.
+A `session-initializer` tool is generally used first to set up initial workflow arguments in
+MCP mode.
 
 ### Dashboard integration
 
