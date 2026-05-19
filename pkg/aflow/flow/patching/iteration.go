@@ -81,7 +81,7 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 			// Analyze comments to decide whether we need to generate a new patch version.
 			&aflow.LLMAgent{
 				Name:           "verdict-agent",
-				Model:          aflow.GoodBalancedModel,
+				Model:          aflow.BestExpensiveModel,
 				Outputs:        aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictAgentOutputs),
 				TaskType:       aflow.FormalReasoningTask,
 				Instruction:    verdictInstruction,
@@ -120,7 +120,7 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 					getRecentCommits,
 					&aflow.LLMAgent{
 						Name:  "changelog-generator",
-						Model: aflow.BestExpensiveModel,
+						Model: aflow.GoodBalancedModel,
 						// nolint: lll
 						Outputs: aflow.LLMOutputs[struct {
 							PatchDescriptionRaw string `jsonschema:"The updated full commit message for the new patch."`
