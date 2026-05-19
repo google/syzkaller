@@ -677,6 +677,49 @@ func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
 	return nil
 }
 
+type LogCommandErrorArgs struct {
+	JobID         string
+	ReportingID   string
+	CommandSource string
+	CommandExtID  string
+	User          string
+	Action        string
+	Error         string
+}
+
+func LogCommandError(ctx context.Context, args LogCommandErrorArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.JobID),
+			ReportingID: toNullString(args.ReportingID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      args.Action,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+			Error:       toNullString(args.Error),
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{journalMut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
+}
+
 func LoadPendingJobReportingBySource(ctx context.Context, source string) ([]*JobReporting, error) {
 	return selectAll[JobReporting](ctx, spanner.Statement{
 		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL`,

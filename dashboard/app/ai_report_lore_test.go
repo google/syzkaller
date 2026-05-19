@@ -163,6 +163,22 @@ In-Reply-To: <mock@msgid-2>
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 3)
+
+	// 6. Simulate a lore-relay restart.
+	// A new poller will re-read recent messages from the archive.
+	// Because we recorded the failed command in the Journal, it should not send a duplicate error reply.
+	poller2, err := lore.NewPoller(pollerCfg)
+	require.NoError(t, err)
+
+	relay2 := lorerelay.NewRelay(&lorerelay.Config{
+		DocsLink:    "http://docs.link",
+		LoreArchive: "archive@lore.com",
+	}, c.globalClient, poller2, mockSnd)
+
+	err = relay2.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+	// Sent count should still be exactly 3. No new error replies.
+	require.Len(t, mockSnd.sent, 3)
 }
 
 func TestAILoreIntegrationReject(t *testing.T) {
