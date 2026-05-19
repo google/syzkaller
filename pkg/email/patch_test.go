@@ -549,7 +549,7 @@ Something was broken. This fixes it.
 `,
 			baseCommit: "f5e343a447510a663fbf6215584a9bf8e03bfd5c",
 			fixes: ai.FixesTag{
-				Hash:  "9320daf2018f",
+				Hash:  "9320daf2018f12345678",
 				Title: "some old bug",
 			},
 			authors: []string{"syzbot@kernel.org"},

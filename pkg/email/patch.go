@@ -83,7 +83,11 @@ func FormatPatchDescription(description string, data PatchTemplateData) string {
 	}
 	var fixesStr string
 	if data.Fixes.Hash != "" {
-		fixesStr = fmt.Sprintf("%v (\"%v\")", data.Fixes.Hash, data.Fixes.Title)
+		hash := data.Fixes.Hash
+		if len(hash) > 12 {
+			hash = hash[:12]
+		}
+		fixesStr = fmt.Sprintf("%v (\"%v\")", hash, data.Fixes.Title)
 	}
 	err := patchTemplate.Execute(buf, map[string]any{
 		"description": strings.TrimSpace(description),
