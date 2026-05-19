@@ -9,8 +9,9 @@
   "strace_bin": "/opt/bin/strace",
   "type": "qemu",
   "vm": {
+    "count": 3,
     "cpu": 2,
-    "mem": 2048,
+    "mem": 8192,
     "cmdline": "root=/dev/sda1",
     "qemu_args": "-machine q35 -enable-kvm -smp 2,sockets=2,cores=1"
   },
