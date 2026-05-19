@@ -142,6 +142,11 @@ The following C code is a draft of the vulnerable syscall sequence. Keep in mind
 it may lack the precise threading, sandboxing, and some arguments of a working reproducer:
 
 {{.SimplifiedCRepro}}
+` + commonFaultInjectionPrompt
+
+// This part is shared between patching and patch-iteration.
+const commonFaultInjectionPrompt = `
+
 {{if .ReproducedFaultInjection}}
 The reproducer uses fault injection to force allocation failure at a specific point.
 These injected failures often exercise rarely used error-handling paths,
@@ -174,6 +179,10 @@ Frequently the same coding mistake is done in several locations in the source co
 Check if your fix should be extended/applied to similar cases around to fix other similar bugs.
 But don't go too wide, don't try to fix problems kernel-wide, fix similar issues
 in the same file only.
+` + commonPatchInstruction
+
+// This part is shared between patching and patch-iteration.
+const commonPatchInstruction = `
 
 If you are changing post-conditions of a function, consider all callers of the functions,
 and if they need to be updated to handle new post-conditions. For example, if you make
@@ -182,8 +191,9 @@ need to be updated to handle NULL return value.
 
 {{if titleIsWarning .ReproducedBugTitle}}
 If you will end up removing the WARN_ON macro because the condition can legitimately happen,
-add a pr_err call that logs that the unlikely condition has happened. The pr_err message
-must not include "WARNING" string.
+add a pr_err/dev_err/... (whatever is the macro for printing runtime errors used in the file)
+call that logs that the unlikely condition has happened. The pr_err/dev_err/... message
+must not include "WARNING" nor "BUG" strings.
 {{end}}
 `
 
@@ -231,9 +241,29 @@ a kernel bug fixing commit. The description should start with a one-line summary
 and then include description of the bug being fixed, and how it's fixed by the provided patch.
 
 Your final reply should contain only the text of the commit description.
-Phrase the one-line summary so that it is not longer than 72 characters.
+` + commonPatchDescriptionInstruction
+
+// This part is shared between patching and patch-iteration.
+const commonPatchDescriptionInstruction = `
+
+The one-line summary must be not longer than 72 characters.
+
 IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
 automatically, so keep paragraphs as single lines without newlines.
+
+Generally try to phrase the description without mentioning syzkaller
+(avoid phrases like "the bug was triggered by syzkaller" or "the bug was triggered by fuzzer", etc).
+How the bug was triggered is generally an irrelevant detail.
+Any bug triggered by a fuzzer can also be triggered by a malicious user, or a buggy program.
+
+{{if titleIsWarning .ReproducedBugTitle}}
+If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
+must not be used for conditions that can legitimately happen, and that pr_err
+should be used instead if necessary.
+
+Don't assume that panic_on_warn is set, and that WARNINGs are fatal.
+While panic_on_warn may be set when the bug was reproduced, it's generally not set on production systems.
+{{end}}
 `
 
 const descriptionPrompt = `
@@ -265,12 +295,6 @@ Format the summary line consistently with these, look how prefixes
 are specified, letter capitalization, style, etc. 
 
 {{.RecentCommits}}
-
-{{if titleIsWarning .ReproducedBugTitle}}
-If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
-must not be used for conditions that can legitimately happen, and that pr_err
-should be used instead if necessary.
-{{end}}
 `
 
 func PatchGenerationLoop(summaryWindow, compressTokens int,

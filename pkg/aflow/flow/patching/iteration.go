@@ -293,31 +293,13 @@ However, do NOT proactively hunt for other instances of the same bug in the file
 unrelated code. Keep your changes strictly focused on fixing the specific bug reported
 and addressing the feedback provided.
 
-If you are changing post-conditions of a function, consider all callers of the functions,
-and if they need to be updated to handle new post-conditions.
-
-{{if titleIsWarning .ReproducedBugTitle}}
-If you will end up removing the WARN_ON macro because the condition can legitimately happen,
-add a pr_err call that logs that the unlikely condition has happened. The pr_err message
-must not include "WARNING" string.
-{{end}}
-
 Your final reply should contain an explanation of what you did in the patch and why.
-`
+` + commonPatchInstruction
 
 const patchIterationPrompt = `
 The crash that corresponds to the bug is:
 
 {{.ReproducedCrashReport}}
-
-{{if .ReproducedFaultInjection}}
-The reproducer uses fault injection to force allocation failure at a specific point.
-These injected failures often exercise rarely used error-handling paths,
-so the bug is frequently in that error handling.
-The following fault injection report(s) show what was injected:
-
-{{.ReproducedFaultInjection}}
-{{end}}
 
 A previous version of a patch was generated to fix this bug:
 
@@ -362,7 +344,7 @@ from scratch using the {{.toolCodeeditor}} tool.
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
 {{end}}
-`
+` + commonFaultInjectionPrompt
 
 const verdictInstruction = `
 You are an expert Linux kernel developer. You are reviewing comments on a proposed patch for a kernel bug.
@@ -436,9 +418,7 @@ CRITICAL: Do NOT rewrite or rephrase the existing patch description. You may onl
 if the previous description is now fundamentally incorrect due to the new changes. Otherwise,
 keep it exactly as it was, and document all new changes exclusively in the change log.
 
-IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
-automatically, so keep paragraphs as single lines without newlines.
-`
+` + commonPatchDescriptionInstruction
 
 const changelogPrompt = `
 Bug title: {{jsonMarshal .ReproducedBugTitle}}
