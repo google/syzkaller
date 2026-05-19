@@ -750,7 +750,8 @@ func processIncomingEmail(ctx context.Context, msg *email.Email) error {
 			replies = append(replies, handleBugCommand(ctx, bugInfo, msg, nil))
 		}
 		reply := groupEmailReplies(replies)
-		if reply == "" && len(msg.Commands) > 0 && len(missingLists) > 0 && !unCc {
+		if reply == "" && len(msg.Commands) > 0 && len(missingLists) > 0 &&
+			!unCc && msg.DirectlyAddressedTo(bugInfo.bugReporting.ID) {
 			return forwardEmail(ctx, msg, missingLists, nil, bugInfo.bugReporting.ID, bugInfo.bugReporting.ExtID)
 		}
 		if reply != "" {
