@@ -55,6 +55,22 @@ func TestIf(t *testing.T) {
 		testFlow[inputs, outputs](t, map[string]any{"Cond": 0}, map[string]any{"Done": ""},
 			&If{Condition: "Cond", Do: action}, nil, nil)
 	})
+
+	elseAction := NewFuncAction("else-body", func(ctx *Context, args actionArgs) (actionResults, error) {
+		return actionResults{"else"}, nil
+	})
+
+	t.Run("ElseTrue", func(t *testing.T) {
+		type inputs struct{ Cond bool }
+		testFlow[inputs, outputs](t, map[string]any{"Cond": true}, map[string]any{"Done": "done"},
+			&If{Condition: "Cond", Do: action, Else: elseAction}, nil, nil)
+	})
+
+	t.Run("ElseFalse", func(t *testing.T) {
+		type inputs struct{ Cond bool }
+		testFlow[inputs, outputs](t, map[string]any{"Cond": false}, map[string]any{"Done": "else"},
+			&If{Condition: "Cond", Do: action, Else: elseAction}, nil, nil)
+	})
 }
 
 func TestIfErrors(t *testing.T) {
@@ -72,6 +88,30 @@ func TestIfErrors(t *testing.T) {
 			Condition: "Cond",
 			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (struct{}, error) {
 				return struct{}{}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{ Cond bool }, struct{ Done string }](t,
+		"flow test: action If: output Done is produced by Else but not by Do",
+		&Flow{Root: &If{
+			Condition: "Cond",
+			Do: NewFuncAction("do", func(ctx *Context, args struct{}) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+			Else: NewFuncAction("else", func(ctx *Context, args struct{}) (struct{ Done string }, error) {
+				return struct{ Done string }{"else"}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{ Cond bool }, struct{ Done string }](t,
+		"flow test: action If: output Done has different types in Do and Else",
+		&Flow{Root: &If{
+			Condition: "Cond",
+			Do: NewFuncAction("do", func(ctx *Context, args struct{}) (struct{ Done string }, error) {
+				return struct{ Done string }{"done"}, nil
+			}),
+			Else: NewFuncAction("else", func(ctx *Context, args struct{}) (struct{ Done int }, error) {
+				return struct{ Done int }{0}, nil
 			}),
 		}})
 }

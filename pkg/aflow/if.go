@@ -15,6 +15,7 @@ import (
 type If struct {
 	Condition string
 	Do        Action
+	Else      Action
 
 	ifVars map[string]reflect.Type
 }
@@ -25,30 +26,42 @@ func (i *If) execute(ctx *Context) error {
 		return fmt.Errorf("if condition %q is missing", i.Condition)
 	}
 
-	run := val != nil && !reflect.ValueOf(val).IsZero()
+	run := false
+	if val != nil {
+		v := reflect.ValueOf(val)
+		if !v.IsZero() {
+			run = true
+			switch v.Kind() {
+			case reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
+				run = v.Len() > 0
+			}
+		}
+	}
+
+	span := &trajectory.Span{
+		Type: trajectory.SpanAction,
+		Name: "If",
+		Args: map[string]any{i.Condition: val},
+	}
+	if err := ctx.startSpan(span); err != nil {
+		return err
+	}
+
+	var err error
 	if run {
-		span := &trajectory.Span{
-			Type: trajectory.SpanAction,
-			Name: "If",
-			Args: map[string]any{i.Condition: val},
-		}
-		if err := ctx.startSpan(span); err != nil {
-			return err
-		}
-		err := i.Do.execute(ctx)
-		if err := ctx.finishSpan(span, err); err != nil {
-			return err
-		}
-	} else {
-		// If the condition is false, populate outputs with zero values
-		// so that subsequent actions or the final output extraction don't panic.
+		err = i.Do.execute(ctx)
+	} else if i.Else != nil {
+		err = i.Else.execute(ctx)
+	}
+
+	if err == nil {
 		for name, typ := range i.ifVars {
 			if _, ok := ctx.state[name]; !ok {
 				ctx.state[name] = reflect.Zero(typ).Interface()
 			}
 		}
 	}
-	return nil
+	return ctx.finishSpan(span, err)
 }
 
 func (i *If) verify(ctx *verifyContext) {
@@ -64,15 +77,44 @@ func (i *If) verify(ctx *verifyContext) {
 	}
 
 	if ctx.outputs {
-		origState := maps.Clone(ctx.state)
-		i.Do.verify(ctx)
-		i.ifVars = make(map[string]reflect.Type)
-		for name, desc := range ctx.state {
-			if origState[name] == nil {
-				i.ifVars[name] = desc.typ
-			}
-		}
+		i.verifyOutputs(ctx)
 	} else {
 		i.Do.verify(ctx)
+		if i.Else != nil {
+			i.Else.verify(ctx)
+		}
+	}
+}
+
+func (i *If) verifyOutputs(ctx *verifyContext) {
+	origState := maps.Clone(ctx.state)
+	i.Do.verify(ctx)
+	doState := ctx.state
+
+	ctx.state = maps.Clone(origState)
+	if i.Else != nil {
+		i.Else.verify(ctx)
+	}
+
+	i.ifVars = make(map[string]reflect.Type)
+	for name, desc := range ctx.state {
+		if origState[name] == nil {
+			if doState[name] == nil {
+				ctx.errorf("If", "output %v is produced by Else but not by Do", name)
+			}
+			i.ifVars[name] = desc.typ
+		}
+	}
+	for name, desc := range doState {
+		if origState[name] == nil {
+			if existing := ctx.state[name]; existing != nil {
+				if existing.typ != desc.typ {
+					ctx.errorf("If", "output %v has different types in Do and Else", name)
+				}
+			} else {
+				ctx.state[name] = desc
+			}
+			i.ifVars[name] = desc.typ
+		}
 	}
 }
