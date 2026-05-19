@@ -44,10 +44,6 @@ func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq
 	}
 
 	if err != nil {
-		var cannotUpstreamErr *aidb.ErrCannotUpstream
-		if errors.As(err, &cannotUpstreamErr) {
-			return &dashapi.SendExternalCommandResp{Error: cannotUpstreamErr.Reason}, nil
-		}
 		if errors.Is(err, dashapi.ErrReportNotFound) {
 			return &dashapi.SendExternalCommandResp{Error: dashapi.ErrReportNotFound.Error()}, nil
 		}
@@ -65,6 +61,24 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 
 	err = processUpstreamSubcommand(ctx, job, reporting, req)
 	if err != nil {
+		var cannotUpstreamErr *aidb.ErrCannotUpstream
+		if errors.As(err, &cannotUpstreamErr) {
+			// We log logical rejection errors to the Journal so that IsCommandProcessed
+			// returns true on subsequent retries (e.g., if lore-relay restarts). This prevents
+			// lore-relay from sending duplicate "Command failed" emails to the user.
+			if req.Source != "" && req.MessageExtID != "" {
+				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
+					JobID:         job.ID,
+					ReportingID:   reporting.ID,
+					CommandSource: string(req.Source),
+					CommandExtID:  req.MessageExtID,
+					User:          req.Author,
+					Action:        aidb.ActionApprove,
+					Error:         cannotUpstreamErr.Reason,
+				})
+			}
+			return &dashapi.SendExternalCommandResp{Error: cannotUpstreamErr.Reason}, nil
+		}
 		return nil, err
 	}
 

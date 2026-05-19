@@ -1,0 +1,1 @@
+ALTER TABLE Journal DROP COLUMN Error;

@@ -95,6 +95,7 @@ type Journal struct {
 	User        string
 	Action      string
 	Details     spanner.NullJSON
+	Error       spanner.NullString
 	SourceExtID spanner.NullString
 	Source      spanner.NullString
 	ReportingID spanner.NullString

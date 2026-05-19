@@ -163,6 +163,7 @@ type uiJobReviewHistory struct {
 	Correct string
 	Source  string
 	Stage   string
+	Error   string
 }
 
 type uiPatchVersion struct {
@@ -855,6 +856,7 @@ func makeUIJobReviewHistory(history []*aidb.Journal, reportings []*aidb.JobRepor
 			Date:    h.Date,
 			User:    h.User,
 			Correct: val,
+			Error:   h.Error.StringVal,
 			Source:  h.Source.StringVal,
 			Stage:   stageMap[h.ReportingID.StringVal],
 		})
