@@ -304,7 +304,7 @@ func init() {
 					CompressTokens: compressTokensThreshold,
 				},
 				&aflow.DoWhile{
-					MaxIterations: 10,
+					MaxIterations: 20,
 					While:         "ContinueSignal",
 					Do: aflow.Pipeline(
 						&aflow.If{
