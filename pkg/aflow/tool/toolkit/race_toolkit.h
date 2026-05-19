@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
+#include <time.h>
 #include <unistd.h>
 
 // Unbuffered I/O: Ensure logs are written immediately.
@@ -50,6 +51,30 @@
 
 // Signal: Set a memory location to a specific value to release a WAIT_ON.
 #define SIGNAL(addr, val) __atomic_store_n(addr, val, __ATOMIC_RELEASE)
+
+// --- Timing Primitives ---
+// Robust timing loops in VM environments (using CLOCK_MONOTONIC to avoid time(NULL) jumps).
+
+static inline double timer_elapsed_sec(struct timespec* start)
+{
+	struct timespec now;
+	if (clock_gettime(CLOCK_MONOTONIC, &now) == -1) {
+		perror("clock_gettime(CLOCK_MONOTONIC) elapsed");
+		exit(1);
+	}
+	return (double)(now.tv_sec - start->tv_sec) + (double)(now.tv_nsec - start->tv_nsec) / 1e9;
+}
+
+// Initialize a monotonic timer variable.
+#define TIMER_START(t)                                          \
+	struct timespec t;                                      \
+	if (clock_gettime(CLOCK_MONOTONIC, &t) == -1) {         \
+		perror("clock_gettime(CLOCK_MONOTONIC) start"); \
+		exit(1);                                        \
+	}
+
+// Check if the elapsed time since 't' is less than 'sec' seconds.
+#define TIMER_NOT_EXPIRED(t, sec) (timer_elapsed_sec(&(t)) < (double)(sec))
 
 // Futex-based Event: Shared with syzkaller executor.
 // Best for general synchronization or longer waits to save CPU.
@@ -113,3 +138,10 @@ static int setup_uffd(void* addr, size_t len)
 // 5. Call SETUP_UNBUFFERED_IO() at the start of main() to ensure that logs are printed
 //    immediately. This is essential for understanding the exact interleaving of events
 //    when debugging race conditions.
+// 6. For timing-based loops (e.g., running a race for 10 seconds), do NOT use time(NULL)
+//    or loops relying on real-time clocks, as VM clocks are highly unreliable and can fail or drift.
+//    Instead, use the robust monotonic timing primitives TIMER_START and TIMER_NOT_EXPIRED:
+//        TIMER_START(start);
+//        while (TIMER_NOT_EXPIRED(start, 10.0)) {
+//            // Your race logic here
+//        }

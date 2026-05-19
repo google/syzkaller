@@ -71,6 +71,21 @@ void test_pin_to_cpu()
 	printf("test_pin_to_cpu passed\n");
 }
 
+void test_timer()
+{
+	TIMER_START(t);
+	int iterations = 0;
+	while (TIMER_NOT_EXPIRED(t, 0.1)) {
+		usleep(1000);
+		iterations++;
+	}
+	double elapsed = timer_elapsed_sec(&t);
+	assert(elapsed >= 0.1);
+	assert(elapsed < 0.3);
+	assert(iterations > 0);
+	printf("test_timer passed (elapsed: %f, iterations: %d)\n", elapsed, iterations);
+}
+
 int main()
 {
 	SETUP_UNBUFFERED_IO();
@@ -78,5 +93,6 @@ int main()
 	test_wait_on_signal();
 	test_event();
 	test_setup_uffd();
+	test_timer();
 	return 0;
 }
