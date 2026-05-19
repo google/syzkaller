@@ -99,6 +99,9 @@ var localUIConfig = &GlobalConfig{
 			DisplayTitle: "Linux",
 			AccessLevel:  AccessPublic,
 			AI: &AIConfig{
+				BaseRepository: "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+				BaseBranch:     "master",
+				BaseCommit:     "RC",
 				Stages: []AIPatchStageConfig{
 					{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 					{Name: "public", ServingIntegration: "lore", MailingList: "test@syzkaller.com"},
@@ -488,6 +491,21 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			PublishedExtID: "<mock-msg-2>",
 		})
 	}
+
+	// This should be last so that the app allows creation of all job types.
+	globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-local-ui",
+		CodeRevision: "xxx",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)},
+			{Type: ai.WorkflowModeration, Name: string(ai.WorkflowModeration)},
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+			{Type: ai.WorkflowPatchIteration, Name: string(ai.WorkflowPatchIteration)},
+			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+			{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)},
+		},
+	})
 }
 
 // Advance the timer with random duration. Return the (copied) old time.
