@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 )
 
 type tagExtractorArgs struct {
@@ -110,7 +111,7 @@ func mergeTags(ctx *aflow.Context, args tagsMergerArgs) (tagsMergerResult, error
 	}
 	for _, tag := range args.AddTags {
 		s := tagsMap[tag.Tag]
-		if !slices.Contains(s, tag.Value) {
+		if !slices.ContainsFunc(s, func(val string) bool { return email.EmailsMatch(val, tag.Value) }) {
 			s = append(s, tag.Value)
 		}
 		tagsMap[tag.Tag] = s

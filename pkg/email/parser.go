@@ -260,6 +260,17 @@ func CanonicalEmail(email string) string {
 	return strings.ToLower(user + domain)
 }
 
+// EmailsMatch parses the emails and compares their addresses case-insensitively, ignoring names.
+// If either email fails to parse, it falls back to an exact string comparison.
+func EmailsMatch(val1, val2 string) bool {
+	addr1, err1 := mail.ParseAddress(val1)
+	addr2, err2 := mail.ParseAddress(val2)
+	if err1 == nil && err2 == nil {
+		return strings.EqualFold(addr1.Address, addr2.Address)
+	}
+	return val1 == val2
+}
+
 // Split splits email into user (without context) and domain (with @ prefix).
 func Split(email string) (string, string, error) {
 	addr, err := mail.ParseAddress(email)
