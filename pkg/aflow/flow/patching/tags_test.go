@@ -22,6 +22,9 @@ func TestMergeTags(t *testing.T) {
 			{Tag: "Acked-by", Value: "New Acker <ack@ack.com>"},
 			// Duplicate tag to check deduplication.
 			{Tag: "Tested-by", Value: "Existing Tester <test@test.com>"},
+			// Duplicate tag with different name to check email-based deduplication.
+			{Tag: "Tested-by", Value: "test@test.com"},
+			{Tag: "Reviewed-by", Value: "old@rev.com"},
 		},
 		RemoveTags: []ai.EmailTag{
 			{Tag: "Reviewed-by", Value: "Drop Me <drop@me.com>"},
