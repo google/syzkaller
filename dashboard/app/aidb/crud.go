@@ -589,6 +589,10 @@ func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
 			return ErrNotFound
 		}
 
+		if job.Correct.Valid && !job.Correct.Bool {
+			return &ErrCannotUpstream{Reason: "Cannot upstream a rejected patch. Unreject it first."}
+		}
+
 		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
 			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage); err != nil {
 				return err

@@ -265,6 +265,23 @@ In-Reply-To: <mock@msgid-1>
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 1)
+
+	// 5. Try to upstream - should fail because it's rejected.
+	loreArchive.SaveMessageAt(t, `From: user@email
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <reply2>
+In-Reply-To: <mock@msgid-1>
+
+#syz upstream
+`, now.Add(time.Minute*2))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	require.Len(t, mockSnd.sent, 2)
+	assert.Equal(t, []string{"user@email"}, mockSnd.sent[1].To)
+	expectedBody := "> #syz upstream\n\nCommand failed:\n\nCannot upstream a rejected patch. Unreject it first.\n\n"
+	assert.Equal(t, expectedBody, string(mockSnd.sent[1].Body))
 }
 
 func TestAILoreUnknownMessageID(t *testing.T) {
