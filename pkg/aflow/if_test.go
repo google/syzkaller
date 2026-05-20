@@ -56,6 +56,24 @@ func TestIf(t *testing.T) {
 			&If{Condition: "Cond", Do: action}, nil, nil)
 	})
 
+	t.Run("SliceTrue", func(t *testing.T) {
+		type inputs struct{ Cond []string }
+		testFlow[inputs, outputs](t, map[string]any{"Cond": []string{"item"}}, map[string]any{"Done": "done"},
+			&If{Condition: "Cond", Do: action}, nil, nil)
+	})
+
+	t.Run("SliceEmpty", func(t *testing.T) {
+		type inputs struct{ Cond []string }
+		testFlow[inputs, outputs](t, map[string]any{"Cond": []string{}}, map[string]any{"Done": ""},
+			&If{Condition: "Cond", Do: action}, nil, nil)
+	})
+
+	t.Run("SliceNil", func(t *testing.T) {
+		type inputs struct{ Cond []string }
+		testFlow[inputs, outputs](t, map[string]any{"Cond": ([]string)(nil)}, map[string]any{"Done": ""},
+			&If{Condition: "Cond", Do: action}, nil, nil)
+	})
+
 	elseAction := NewFuncAction("else-body", func(ctx *Context, args actionArgs) (actionResults, error) {
 		return actionResults{"else"}, nil
 	})
