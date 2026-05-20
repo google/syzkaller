@@ -47,6 +47,14 @@ func (e *ErrCannotReject) Error() string {
 	return e.Reason
 }
 
+type ErrCannotUnreject struct {
+	Reason string
+}
+
+func (e *ErrCannotUnreject) Error() string {
+	return e.Reason
+}
+
 func init() {
 	// This forces unmarshalling of JSON integers into json.Number rather than float64.
 	spanner.UseNumberWithJSONDecoderEncoder(true)
@@ -707,6 +715,59 @@ func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
 	return nil
 }
 
+func UnrejectReportCommand(ctx context.Context, args UnrejectReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		job, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if job == nil {
+			return ErrNotFound
+		}
+
+		if !job.Correct.Valid || job.Correct.Bool {
+			return &ErrCannotUnreject{Reason: "Cannot unreject a patch that is not rejected."}
+		}
+
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionUnreject,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+
+		job.Correct = spanner.NullBool{Valid: false}
+		jobMut, err := spanner.UpdateStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
+}
+
 type LogCommandErrorArgs struct {
 	JobID         string
 	ReportingID   string
@@ -1180,6 +1241,13 @@ type RejectReportArgs struct {
 	CommandExtID  string
 	User          string
 	Reason        string
+}
+
+type UnrejectReportArgs struct {
+	Job           *Job
+	CommandSource string
+	CommandExtID  string
+	User          string
 }
 
 func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// nolint: dupl
 func TestMapCommands(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -65,6 +66,30 @@ func TestMapCommands(t *testing.T) {
 					MessageExtID: "<msg@id>",
 					Author:       "user@example.com",
 					Reject:       &dashapi.RejectCommand{Reason: "some reason"},
+				},
+			},
+		},
+		{
+			name: "unreject",
+			polled: &lore.PolledEmail{
+				RootMessageID: "<root@id>",
+				Email: &lore.Email{
+					Email: &email.Email{
+						MessageID: "<msg@id>",
+						Author:    "user@example.com",
+						Commands: []*email.SingleCommand{
+							{Command: email.CmdUnreject},
+						},
+					},
+				},
+			},
+			want: []*dashapi.SendExternalCommandReq{
+				{
+					Source:       dashapi.AIJobSourceLore,
+					RootExtID:    "<root@id>",
+					MessageExtID: "<msg@id>",
+					Author:       "user@example.com",
+					Unreject:     &dashapi.UnrejectCommand{},
 				},
 			},
 		},

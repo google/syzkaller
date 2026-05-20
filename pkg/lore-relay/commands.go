@@ -35,6 +35,9 @@ func extractCommands(polled *lore.PolledEmail, dkimOk bool) ([]*dashapi.SendExte
 				Reason: polled.Email.Body,
 			}
 			reqs = append(reqs, req)
+		case email.CmdUnreject:
+			req.Unreject = &dashapi.UnrejectCommand{}
+			reqs = append(reqs, req)
 		default:
 			return nil, fmt.Errorf("unsupported command: %s", cmd.Str)
 		}
