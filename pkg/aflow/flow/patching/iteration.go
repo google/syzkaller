@@ -58,118 +58,106 @@ type verdictAgentArgs struct {
 	UpdateFixesReason string   `jsonschema:"Explanation of why Fixes tag needs update, and any hints by reviewers."`
 }
 
-func validateVerdictAgentOutputs(ctx *aflow.Context, state struct{}, args verdictAgentArgs) (verdictAgentArgs, error) {
-	return args, nil
-}
-
-func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
-	return &aflow.Flow{
-		Name: name,
-		Consts: map[string]any{
-			"NeedStrace": false,
-		},
-		Root: aflow.Pipeline(
-			// Setup base kernel for code tools.
-			baseCommitPicker,
-			kernel.Checkout,
-			kernel.Build,
-			crash.Reproduce,
-			codesearcher.PrepareIndex,
-			extractNewComments,
-			extractLatestPatchInfo,
-
-			// Analyze comments to decide whether we need to generate a new patch version.
-			&aflow.LLMAgent{
-				Name:        "verdict-agent",
-				Model:       aflow.BestExpensiveModel,
-				Outputs:     aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictAgentOutputs),
-				TaskType:    aflow.FormalReasoningTask,
-				Instruction: verdictInstruction,
-				Prompt:      verdictPrompt,
-				Tools: aflow.Tools(codesearcher.Tools, grepper.Tool,
-					codeexpert.NewTool(compressTokens), gitlog.Tools, viewPatchHistoryTool),
-				SummaryWindow:  summaryWindow,
-				CompressTokens: compressTokens,
+func init() {
+	aflow.Register[PatchIterationInputs, ai.PatchIterationOutputs](
+		ai.WorkflowPatchIteration,
+		"address iterative feedback on generated patches",
+		&aflow.Flow{
+			Consts: map[string]any{
+				"NeedStrace": false,
 			},
-			tagExtractorAgent(summaryWindow, compressTokens),
-			tagsMergerAction,
-			extractTriageResults,
+			Root: aflow.Pipeline(
+				// Setup base kernel for code tools.
+				baseCommitPicker,
+				kernel.Checkout,
+				kernel.Build,
+				crash.Reproduce,
+				codesearcher.PrepareIndex,
+				extractNewComments,
+				extractLatestPatchInfo,
 
-			// If the verdict agent decides a new patch is needed, generate it by applying the previous
-			// patch to a scratch tree and having the LLM agent modify it.
-			&aflow.If{
-				Condition: "NeedNewVersion",
-				Do: aflow.Pipeline(
-					kernel.CheckoutScratch,
-					&aflow.If{
-						Condition: "CodeItems",
-						Do: PatchGenerationLoop(
-							summaryWindow, compressTokens, applyGitPatch,
-							patchIterationInstruction, patchIterationPrompt, viewPatchHistoryTool),
-						Else: aflow.Pipeline(applyGitPatch, forwardPatchDiff),
-					},
-					&aflow.If{
-						Condition: "FixesItems",
-						Do: aflow.Pipeline(
-							&aflow.LLMAgent{
-								Name:          "fixes-finder",
-								Model:         aflow.BestExpensiveModel,
-								Outputs:       aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
-								TaskType:      aflow.FormalReasoningTask,
-								Instruction:   fixesIterationInstruction,
-								Prompt:        fixesIterationPrompt,
-								Tools:         commonTools,
-								SummaryWindow: summaryWindow,
-							},
-						),
-					},
-					resolveFixes,
-					getRecentCommits,
-					&aflow.LLMAgent{
-						Name:  "changelog-generator",
-						Model: aflow.GoodBalancedModel,
-						// nolint: lll
-						Outputs: aflow.LLMOutputs[struct {
-							PatchDescriptionRaw string `jsonschema:"The updated full commit message for the new patch."`
-							NewChangeLog        string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
-						}](),
-						TaskType:       aflow.FormalReasoningTask,
-						Instruction:    changelogInstruction,
-						Prompt:         changelogPrompt,
-						SummaryWindow:  summaryWindow,
-						CompressTokens: compressTokens,
-					},
-					formatPatchDescription,
-					getMaintainers,
-				),
-			},
+				// Analyze comments to decide whether we need to generate a new patch version.
+				&aflow.LLMAgent{
+					Name:        "verdict-agent",
+					Model:       aflow.BestExpensiveModel,
+					Outputs:     aflow.LLMOutputs[verdictAgentArgs](),
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: verdictInstruction,
+					Prompt:      verdictPrompt,
+					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools, viewPatchHistoryTool),
+				},
+				tagExtractor,
+				tagsMergerAction,
+				extractTriageResults,
+				// If the verdict agent decides a new patch is needed, generate it by applying the previous
+				// patch to a scratch tree and having the LLM agent modify it.
+				&aflow.If{
+					Condition: "NeedNewVersion",
+					Do: aflow.Pipeline(
+						kernel.CheckoutScratch,
+						&aflow.If{
+							Condition: "CodeItems",
+							Do: patchGenerationLoop(
+								applyGitPatch, patchIterationInstruction, patchIterationPrompt, viewPatchHistoryTool),
+							Else: aflow.Pipeline(applyGitPatch, forwardPatchDiff),
+						},
+						&aflow.If{
+							Condition: "FixesItems",
+							Do: aflow.Pipeline(
+								&aflow.LLMAgent{
+									Name:        "fixes-finder",
+									Model:       aflow.BestExpensiveModel,
+									Outputs:     aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+									TaskType:    aflow.FormalReasoningTask,
+									Instruction: fixesIterationInstruction,
+									Prompt:      fixesIterationPrompt,
+									Tools:       commonTools,
+								},
+							),
+						},
+						resolveFixes,
+						getRecentCommits,
+						&aflow.LLMAgent{
+							Name:  "changelog-generator",
+							Model: aflow.GoodBalancedModel,
+							// nolint: lll
+							Outputs: aflow.LLMOutputs[struct {
+								PatchDescriptionRaw string `jsonschema:"The updated full commit message for the new patch."`
+								NewChangeLog        string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
+							}](),
+							TaskType:    aflow.FormalReasoningTask,
+							Instruction: changelogInstruction,
+							Prompt:      changelogPrompt,
+						},
+						formatPatchDescription,
+						getMaintainers,
+					),
+				},
 
-			// Evaluate each new thread comment individually to decide if it needs a direct reply.
-			&aflow.ForEach{
-				List: "NewComments",
-				Item: "CurrentComment",
-				Do: aflow.Pipeline(
-					&aflow.LLMAgent{
-						Name:  "comment-reply-agent",
-						Model: aflow.BestExpensiveModel,
-						// nolint: lll
-						Outputs: aflow.LLMOutputs[struct {
-							Action    string `jsonschema:"Either 'reply' or 'ignore'"`
-							Reason    string `jsonschema:"Explanation of why you chose to reply or ignore"`
-							Quote     string `jsonschema:"A brief, relevant verbatim excerpt (1-3 lines) cut directly from the original comment being replied to."`
-							ReplyText string `jsonschema:"The final text of your reply."`
-						}](),
-						TaskType:      aflow.FormalReasoningTask,
-						Instruction:   commentProcessInstruction,
-						Prompt:        commentProcessPrompt,
-						SummaryWindow: summaryWindow,
-					},
-					appendCommentReply,
-				),
-			},
-		),
-	}
+				// Evaluate each new thread comment individually to decide if it needs a direct reply.
+				&aflow.ForEach{
+					List: "NewComments",
+					Item: "CurrentComment",
+					Do: aflow.Pipeline(
+						&aflow.LLMAgent{
+							Name:  "comment-reply-agent",
+							Model: aflow.BestExpensiveModel,
+							// nolint: lll
+							Outputs: aflow.LLMOutputs[struct {
+								Action    string `jsonschema:"Either 'reply' or 'ignore'"`
+								Reason    string `jsonschema:"Explanation of why you chose to reply or ignore"`
+								Quote     string `jsonschema:"A brief, relevant verbatim excerpt (1-3 lines) cut directly from the original comment being replied to."`
+								ReplyText string `jsonschema:"The final text of your reply."`
+							}](),
+							TaskType:    aflow.FormalReasoningTask,
+							Instruction: commentProcessInstruction,
+							Prompt:      commentProcessPrompt,
+						},
+						appendCommentReply,
+					),
+				},
+			),
+		})
 }
 
 type viewPatchHistoryArgs struct {
@@ -317,14 +305,6 @@ var appendCommentReply = aflow.NewFuncAction("append-comment-reply", func(ctx *a
 	}
 	return struct{ Replies []ai.CommentReply }{res}, nil
 })
-
-func init() {
-	aflow.Register[PatchIterationInputs, ai.PatchIterationOutputs](
-		ai.WorkflowPatchIteration,
-		"address iterative feedback on generated patches",
-		createPatchIterationFlow("", 0, 200_000),
-	)
-}
 
 const fixesIterationInstruction = fixesInstruction + `
 Additionally, you are provided with a previous guess for the Fixes tag and the reason reviewers asked to update it.
