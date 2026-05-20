@@ -175,6 +175,7 @@ type OracleResult struct {
 
 type GeneratorResult struct {
 	RawCandidateReproC string `jsonschema:"The C reproducer code"`
+	IsProbe            bool   `jsonschema:"True if minimal capability probe, false otherwise."`
 }
 
 type LoopControllerArgs struct {
@@ -420,15 +421,16 @@ major step in the reproduction sequence.
         exit(1);
     }
     printf("[+] do_something successful.\n");
-6. For the very first attempt at generating a reproducer (when no previous feedback is provided),
-prioritize generating a simple 'probe' program. This program's sole purpose is to verify that the
-test environment has the necessary kernel capabilities. It should focus on probing the specific
-kernel subsystems, device files, or syscalls required for the reproduction (for example: opening
-/dev/vhci to check if the virtual Bluetooth controller is accessible, loading a minimal dummy BPF
-program to check if BPF_SYSCALL is enabled and permitted, or making a specific socket/ioctl call
-to verify subsystem availability). Print clear messages indicating success or failure of these
-specific kernel/subsystem probes, and exit with 0 only if all relevant subsystem checks pass.
-Do not attempt complex race conditions or heavy logic in this first version.`
+6. Prioritize generating a simple 'probe' program first to verify that the test environment has the
+necessary kernel capabilities (e.g., on the very first attempt, or if a previous probe failed). This
+program's sole purpose is to verify subsystem availability and privileges by probing specific device
+files, subsystems, or syscalls (for example: opening /dev/vhci to check if the virtual Bluetooth
+controller is accessible, loading a minimal dummy BPF program, or making a specific socket/ioctl call).
+Print clear messages indicating success or failure of these probes, and exit with 0 only if all checks pass.
+Do not attempt complex logic or try to trigger the actual bug/crash until you have confirmed
+a successful probe run in the environment.
+7. You must set the IsProbe output field to true if the generated C program is a minimal capability probe.
+Set it to false if the C program is a full reproducer candidate attempting to trigger the target bug/crash.`
 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
@@ -442,9 +444,22 @@ to provide detailed feedback on why it failed and how to fix it.
 The Strace Output will contain the syscall trace if the run was successful and strace was supported.
 Use this trace to identify which syscall failed or behaved unexpectedly.
 
-If the output indicates that this was a successful probe execution (all probes passed),
-set Reproduced to false but provide feedback indicating that the environment is ready
-and the agent should now proceed to generate the full reproducer in the next iteration.
+The input variable 'IsProbe' indicates whether the executed program was a simple environment
+probe (true) or a full reproducer candidate (false).
+Use this to guide your classification and feedback:
+
+1. If 'IsProbe' is true:
+   - If the execution was successful (all environment/subsystem probes passed), provide feedback
+     explicitly indicating that the environment is ready and the agent should now proceed to
+     generate the full reproducer in the next iteration.
+   - If the probe failed (e.g., missing permissions, missing devices, or sandbox restrictions),
+     explain what failed so the generator can adjust its environment setups.
+
+2. If 'IsProbe' is false:
+   - A successful execution (exit 0) WITHOUT a crash means the reproduction attempt failed to trigger
+     the bug. Do NOT classify this as a successful probe. Instead, analyze the console/strace output
+     to understand why the bug did not trigger (e.g., timing, input arguments, environment setup)
+     and provide feedback on how to improve the reproducer logic to trigger the crash.
 
 If reproduction failed due to environmental issues (e.g., missing permissions, missing devices,
 or sandbox restrictions), assume execution might succeed with a different approach or more
@@ -452,7 +467,8 @@ robust code (e.g., adding namespace setup or better error handling), and suggest
 to the C code.`
 
 const oraclePrompt = `Bug Description: {{.BugDescription}}
-Reproduced: {{.Reproduced}}
+IsProbe: {{.IsProbe}}
+Reproduced: {{.CandidateReproduced}}
 Console Output: {{.TruncatedConsoleOutput}}
 Strace Output: {{.TruncatedStraceOutput}}
 Crash Report: {{.TruncatedCrashReport}}
