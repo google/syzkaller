@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"net/mail"
 	"strings"
 	"text/template"
 
@@ -54,6 +55,14 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 			}
 			for _, cc := range res.Patch.Cc {
 				recipients = append(recipients, ai.Recipient{Email: cc, To: false})
+			}
+			for i := range recipients {
+				addr, err := mail.ParseAddress(recipients[i].Email)
+				if err != nil {
+					return "", fmt.Errorf("failed to parse email %q: %w", recipients[i].Email, err)
+				}
+				recipients[i].Email = addr.Address
+				recipients[i].Name = addr.Name
 			}
 		}
 		// TODO: Figure out what Authors we want to use here.

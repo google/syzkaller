@@ -100,8 +100,9 @@ type PollExternalReportResp struct {
 }
 
 type ReportPollResult struct {
-	ID            string // JobReporting ID
-	CanUpstream   bool
+	ID          string // JobReporting ID
+	CanUpstream bool
+	// Emails with name ("First Last" <email@address.com>).
 	To            []string
 	Cc            []string
 	Patch         *NewReportResult `json:",omitempty"`

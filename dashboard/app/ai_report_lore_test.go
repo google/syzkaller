@@ -109,8 +109,8 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.NotContains(t, body, "Signed-off-by")
 	assert.Contains(t, body, "Closes: "+appURL(c.ctx)+"/bug?extid="+extID)
 	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/ai_job?id="+jobID)
-	assert.Contains(t, body, "To: <maintainer@email.com>")
-	assert.Contains(t, body, "Cc: <reviewer@email.com>")
+	assert.Contains(t, body, `To: "Maintainer" <maintainer@email.com>`)
+	assert.Contains(t, body, `Cc: "Reviewer" <reviewer@email.com>`)
 	// 3. Approval (#syz upstream).
 	loreArchive.SaveMessageAt(t, `From: "User Name" <user@email>
 Subject: Re: [PATCH RFC] Test Subject
@@ -128,7 +128,7 @@ In-Reply-To: <mock@msgid-1>
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
-	assert.Equal(t, []string{"public@test.com", "maintainer@email.com"}, mockSnd.sent[1].To)
+	assert.Equal(t, []string{"public@test.com", `"Maintainer" <maintainer@email.com>`}, mockSnd.sent[1].To)
 	assert.Equal(t, "[PATCH] Test Subject", mockSnd.sent[1].Subject)
 	assert.Equal(t, []string{"archive@lore.com", "reviewer@email.com"}, mockSnd.sent[1].Cc)
 

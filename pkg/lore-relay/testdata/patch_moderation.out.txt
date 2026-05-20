@@ -3,9 +3,9 @@ Subject: [PATCH RFC] Fix a bug in subsystem
 This patch fixes a bug by doing X and Y.
 
 Assisted-by: Gemini:gemini-1.5-pro Gemini:gemini-1.5-flash
-To: <maintainer@email.com>
+To: "Joe (Company)" <maintainer@email.com>
 To: <maintainer2@email.com>
-Cc: <reviewer@email.com>
+Cc: "Kernel Maintainerov" <reviewer@email.com>
 Cc: <reviewer2@email.com>
 
 ---

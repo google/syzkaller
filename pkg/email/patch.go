@@ -136,9 +136,9 @@ Link: {{$link}}{{end}}
 {{- range $addr := .authors}}
 Signed-off-by: {{$addr}}{{end}}
 {{- range $addr := .to}}
-To: {{$addr.String}}{{end}}
+To: {{$addr}}{{end}}
 {{- range $addr := .cc}}
-Cc: {{$addr.String}}{{end}}
+Cc: {{$addr}}{{end}}
 
 `))
 

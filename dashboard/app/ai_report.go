@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"net/mail"
 	"slices"
 	"strings"
 
@@ -296,21 +297,16 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			result.Patch.Closes = closes
 		}
 
-		to := []string{stageCfg.MailingList}
-		var cc []string
+		result.To = []string{stageCfg.MailingList}
 		if stageCfg.MergePatchCc && result.Patch != nil {
-			to = append(to, result.Patch.To...)
-			cc = append(cc, result.Patch.Cc...)
+			result.To = append(result.To, result.Patch.To...)
+			result.Cc = append(result.Cc, result.Patch.Cc...)
 		}
 
-		canUpstream := idx < len(nsCfg.AI.Stages)-1
+		result.CanUpstream = idx < len(nsCfg.AI.Stages)-1
 		if result.Patch == nil {
-			canUpstream = false
+			result.CanUpstream = false
 		}
-
-		result.CanUpstream = canUpstream
-		result.To = to
-		result.Cc = cc
 
 		return &dashapi.PollExternalReportResp{
 			Result: result,
@@ -345,10 +341,11 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}
 	var to, cc []string
 	for _, rec := range res.Recipients {
+		addr := mail.Address{Name: rec.Name, Address: rec.Email}
 		if rec.To {
-			to = append(to, rec.Email)
+			to = append(to, addr.String())
 		} else {
-			cc = append(cc, rec.Email)
+			cc = append(cc, addr.String())
 		}
 	}
 
