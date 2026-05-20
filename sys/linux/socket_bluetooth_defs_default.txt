@@ -1,0 +1,10 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["386", "amd64", "arm", "arm64", "riscv64", "s390x"]
+
+# The following constants were removed from upstream in 4f10f1dfb235 ("net: remove ISDN subsystem and Bluetooth CMTP").
+define CMTPCONNADD	1074021320
+define CMTPCONNDEL	1074021321
+define CMTPGETCONNINFO	2147763155
+define CMTPGETCONNLIST	2147763154

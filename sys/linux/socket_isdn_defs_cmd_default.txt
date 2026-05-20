@@ -1,0 +1,7 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["amd64", "arm64", "riscv64", "s390x", "mips64le", "ppc64le"]
+
+# The following constants were removed from upstream in 4f10f1dfb235 ("net: remove ISDN subsystem and Bluetooth CMTP").
+define CAPI_MANUFACTURER_CMD	3222291232

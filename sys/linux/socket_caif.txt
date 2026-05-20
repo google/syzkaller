@@ -3,7 +3,13 @@
 
 include <linux/socket.h>
 include <linux/net.h>
-include <uapi/linux/caif/caif_socket.h>
+
+# The following constants were removed from upstream in 6d5431555de0 ("caif: remove CAIF NETWORK LAYER").
+define CAIFPROTO_AT	0
+define CAIFPROTO_DEBUG	5
+define CAIFSO_LINK_SELECT	127
+define CAIFSO_REQ_PARAM	128
+define CAIF_ATTYPE_PLAIN	2
 
 resource sock_caif[sock]
 

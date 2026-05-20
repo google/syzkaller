@@ -10,6 +10,20 @@ include <linux/if_arp.h>
 include <linux/ax25.h>
 include <net/ax25.h>
 
+# The following constants were removed from upstream in dd8d4bc28ad7 ("net: remove ax25 and amateur radio (hamradio) subsystem").
+define AX25_P_ARP	205
+define AX25_P_ATALK	202
+define AX25_P_ATALK_ARP	203
+define AX25_P_FLEXNET	206
+define AX25_P_LQ	196
+define AX25_P_NETROM	207
+define AX25_P_ROSE	1
+define AX25_P_SEGMENT	8
+define AX25_P_TEXNET	195
+define AX25_P_TEXT	240
+define AX25_P_VJCOMP	6
+define AX25_P_VJUNCOMP	7
+
 resource sock_ax25[sock]
 
 syz_init_net_socket$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols]) sock_ax25

@@ -1,0 +1,8 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["mips64le", "ppc64le"]
+
+# The following constants were removed from upstream in 15c9ed1d8286 ("pppoe: remove kernel-mode relay support").
+define PPPOEIOCDFWD	536916225
+define PPPOEIOCSFWD	2148053248

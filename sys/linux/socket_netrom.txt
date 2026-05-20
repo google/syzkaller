@@ -2,9 +2,18 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/net.h>
-include <uapi/linux/netrom.h>
 include <uapi/linux/ax25.h>
 include <asm/ioctls.h>
+
+# The following constants were removed from upstream in dd8d4bc28ad7 ("net: remove ax25 and amateur radio (hamradio) subsystem").
+define NETROM_IDLE	7
+define NETROM_N2	3
+define NETROM_NEIGH	0
+define NETROM_NODE	1
+define NETROM_T1	1
+define NETROM_T2	2
+define NETROM_T4	6
+define SIOCNRDECOBS	35298
 
 resource sock_netrom[sock]
 
