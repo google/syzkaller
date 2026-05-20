@@ -11,6 +11,8 @@ config:
  - NO_HZ
  - HIGH_RES_TIMERS
  - POSIX_AUX_CLOCKS: [v6.17]
+ - RSEQ
+ - RSEQ_SLICE_EXTENSION: [v7.0, -arm, -arm64]
  - PREEMPT
  - IRQ_TIME_ACCOUNTING: [-riscv, -s390]
  - BSD_PROCESS_ACCT
@@ -25,8 +27,9 @@ config:
  - LOG_BUF_SHIFT: 18
  - NUMA: [-arm]
  - NUMA_EMU: [x86_64]
- - NUMA_BALANCING: [-arm, -preempt_rt]
- - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -preempt_rt]
+ # Disabled for arm/riscv due to lack of support, and for preempt_rt to avoid latency.
+ - NUMA_BALANCING: [-arm, -riscv, -preempt_rt]
+ - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -riscv, -preempt_rt]
  # Starting from v6.13, depends on !CPU_MITIGATIONS.
  - ADDRESS_MASKING: [x86_64, v6.4, -v6.12, -stable-6.6]
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
@@ -120,7 +123,8 @@ config:
  - ZONE_DEVICE: [-arm, -riscv, -s390]
  - DEVICE_PRIVATE: [-arm, -riscv, -s390]
  - PERCPU_STATS
- - READ_ONLY_THP_FOR_FS: [-arm, -riscv, -preempt_rt]
+ # Removed in 2dfa808bf4d7c "mm: remove READ_ONLY_THP_FOR_FS Kconfig option".
+ - READ_ONLY_THP_FOR_FS: [-arm, -riscv, -preempt_rt, -v7.1]
  - PCI
  - PCIEPORTBUS
  - HOTPLUG_PCI_PCIE
@@ -377,6 +381,7 @@ config:
  - USB_RAW_GADGET: [v5.5]
  - USB_FEW_INIT_RETRIES: [v5.10]
  - TYPEC
+ - PHY_GOOGLE_USB: [v6.20, -arm64_emu]
  - TYPEC_TCPM
  - TYPEC_UCSI: [-s390]
  - UCSI_ACPI: [-arm, -riscv, -s390]
@@ -393,7 +398,8 @@ config:
  - ASYNC_TX_DMA
  - SW_SYNC
  - UDMABUF
- - DMABUF_MOVE_NOTIFY: [v5.5]
+ # Removed in 609fc8766d68d "dma-buf: Always build with DMABUF_MOVE_NOTIFY".
+ - DMABUF_MOVE_NOTIFY: [v5.5, -v7.1]
  - DMABUF_HEAPS: [v5.5]
  - DMABUF_HEAPS_SYSTEM: [v5.5]
  - DMABUF_HEAPS_CMA: [v5.5]
