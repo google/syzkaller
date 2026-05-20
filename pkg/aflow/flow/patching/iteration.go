@@ -77,16 +77,18 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 			crash.Reproduce,
 			codesearcher.PrepareIndex,
 			extractNewComments,
+			extractLatestPatchInfo,
 
 			// Analyze comments to decide whether we need to generate a new patch version.
 			&aflow.LLMAgent{
-				Name:           "verdict-agent",
-				Model:          aflow.BestExpensiveModel,
-				Outputs:        aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictAgentOutputs),
-				TaskType:       aflow.FormalReasoningTask,
-				Instruction:    verdictInstruction,
-				Prompt:         verdictPrompt,
-				Tools:          aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools),
+				Name:        "verdict-agent",
+				Model:       aflow.BestExpensiveModel,
+				Outputs:     aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictAgentOutputs),
+				TaskType:    aflow.FormalReasoningTask,
+				Instruction: verdictInstruction,
+				Prompt:      verdictPrompt,
+				Tools: aflow.Tools(codesearcher.Tools, grepper.Tool,
+					codeexpert.NewTool(compressTokens), gitlog.Tools, viewPatchHistoryTool),
 				SummaryWindow:  summaryWindow,
 				CompressTokens: compressTokens,
 			},
@@ -99,13 +101,12 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 			&aflow.If{
 				Condition: "NeedNewVersion",
 				Do: aflow.Pipeline(
-					extractLatestPatchInfo,
 					kernel.CheckoutScratch,
 					&aflow.If{
 						Condition: "CodeItems",
 						Do: PatchGenerationLoop(
 							summaryWindow, compressTokens, applyGitPatch,
-							patchIterationInstruction, patchIterationPrompt),
+							patchIterationInstruction, patchIterationPrompt, viewPatchHistoryTool),
 						Else: aflow.Pipeline(applyGitPatch, forwardPatchDiff),
 					},
 					&aflow.If{
@@ -171,6 +172,41 @@ func createPatchIterationFlow(name string, summaryWindow, compressTokens int) *a
 	}
 }
 
+type viewPatchHistoryArgs struct {
+	Version int `json:",omitempty" jsonschema:"The version of the patch to view. If omitted, returns a summary."`
+}
+
+type viewPatchHistoryResult struct {
+	Result string `jsonschema:"The requested patch history information."`
+}
+
+var viewPatchHistoryTool = aflow.NewFuncTool("view-patch-history", func(ctx *aflow.Context, state struct {
+	PatchHistory []ai.PatchHistoryEntry
+}, args viewPatchHistoryArgs) (viewPatchHistoryResult, error) {
+	summary := "Available patch versions:\n"
+	for _, entry := range state.PatchHistory {
+		summary += fmt.Sprintf("v%d: %d comments\n", entry.Version, len(entry.Comments))
+	}
+	summary += "Call this tool with a specific version number to see its diff, description, and comments."
+
+	if args.Version == 0 {
+		return viewPatchHistoryResult{summary}, nil
+	}
+	for _, entry := range state.PatchHistory {
+		if entry.Version == args.Version {
+			res := fmt.Sprintf("Version: v%d\nDescription:\n%s\n\nDiff:\n%s\n\nComments:\n",
+				entry.Version, entry.Description, entry.Diff)
+			for _, comment := range entry.Comments {
+				b, _ := json.Marshal(comment)
+				res += string(b) + "\n"
+			}
+			return viewPatchHistoryResult{res}, nil
+		}
+	}
+	return viewPatchHistoryResult{fmt.Sprintf("Note: the specified version (v%d) is not found.\n\n%s",
+		args.Version, summary)}, nil
+}, "View previous versions of the patch, their descriptions, and reviewer comments.")
+
 var extractTriageResults = aflow.NewFuncAction("extract-triage-results", func(ctx *aflow.Context, args struct {
 	CodeItems        []string
 	DescriptionItems []string
@@ -213,16 +249,36 @@ var extractNewComments = aflow.NewFuncAction("extract-new-comments", func(ctx *a
 var extractLatestPatchInfo = aflow.NewFuncAction("extract-latest-patch-info", func(ctx *aflow.Context, args struct {
 	PatchHistory []ai.PatchHistoryEntry
 }) (struct {
-	OldPatchDescription string
-	OldPatchDiff        string
+	PreviousPatchVersion     int
+	PreviousPatchDescription string
+	PreviousPatchDiff        string
+	PreviousComments         []ai.ExternalComment
 }, error) {
 	if len(args.PatchHistory) == 0 {
-		return struct{ OldPatchDescription, OldPatchDiff string }{}, aflow.FlowError(fmt.Errorf("PatchHistory is empty"))
+		return struct {
+			PreviousPatchVersion     int
+			PreviousPatchDescription string
+			PreviousPatchDiff        string
+			PreviousComments         []ai.ExternalComment
+		}{}, aflow.FlowError(fmt.Errorf("PatchHistory is empty"))
 	}
 	latest := args.PatchHistory[len(args.PatchHistory)-1]
-	return struct{ OldPatchDescription, OldPatchDiff string }{
-		OldPatchDescription: latest.Description,
-		OldPatchDiff:        latest.Diff,
+	var previousComments []ai.ExternalComment
+	for _, c := range latest.Comments {
+		if !c.New {
+			previousComments = append(previousComments, c)
+		}
+	}
+	return struct {
+		PreviousPatchVersion     int
+		PreviousPatchDescription string
+		PreviousPatchDiff        string
+		PreviousComments         []ai.ExternalComment
+	}{
+		PreviousPatchVersion:     latest.Version,
+		PreviousPatchDescription: latest.Description,
+		PreviousPatchDiff:        latest.Diff,
+		PreviousComments:         previousComments,
 	}, nil
 })
 
@@ -323,9 +379,9 @@ The crash that corresponds to the bug is:
 
 {{.ReproducedCrashReport}}
 
-A previous version of a patch was generated to fix this bug:
+A previous version of a patch (v{{.PreviousPatchVersion}}) was generated to fix this bug:
 
-{{.OldPatchDiff}}
+{{.PreviousPatchDiff}}
 
 The triage agent has extracted the following required changes from the reviewers' emails:
 
@@ -333,7 +389,7 @@ The triage agent has extracted the following required changes from the reviewers
 - {{$item}}
 {{end}}
 
-IMPORTANT: The previous version of the patch (shown above) is CURRENTLY APPLIED
+IMPORTANT: The current version of the patch (v{{.PreviousPatchVersion}}, shown above) is CURRENTLY APPLIED
 to the source tree. Do not start from scratch! Use the {{.toolCodeeditor}} tool to modify
 the currently applied patch so that it addresses the reviewers' feedback.
 
@@ -400,25 +456,25 @@ Bug title: {{jsonMarshal .BugTitle}}
 Crash report:
 {{jsonMarshal .CrashReport}}
 
-Patch history and previous comments:
-{{range $entry := .PatchHistory}}
-Version: v{{$entry.Version}}
-Description:
-{{$entry.Description}}
+Current patch version: v{{.PreviousPatchVersion}}
+Current patch description:
+{{.PreviousPatchDescription}}
 
-Diff:
-{{$entry.Diff}}
+Current patch diff:
+{{.PreviousPatchDiff}}
 
-Comments on this version:
-{{range $comment := $entry.Comments}}
+Previous reviewer comments on this patch version:
+{{range $comment := .PreviousComments}}
 {{jsonMarshal $comment}}
 {{end}}
-{{end}}
 
-Reviewer comments:
+New reviewer comments to evaluate:
 {{range $comment := .NewComments}}
 {{jsonMarshal $comment}}
 {{end}}
+
+Note: You can use the {{.toolViewPatchHistory}} tool to see the full patch history,
+including previous versions, diffs, descriptions, and older comments if needed.
 `
 
 const changelogInstruction = `
@@ -471,10 +527,10 @@ Fault injection report(s):
 {{end}}
 
 Previous version description:
-{{.OldPatchDescription}}
+{{.PreviousPatchDescription}}
 
 Previous version diff:
-{{.OldPatchDiff}}
+{{.PreviousPatchDiff}}
 
 The triage agent has extracted the following required changes from the reviewers' emails:
 {{range $item := .DescriptionItems}}

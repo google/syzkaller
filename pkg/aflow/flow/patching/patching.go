@@ -298,7 +298,7 @@ are specified, letter capitalization, style, etc.
 `
 
 func PatchGenerationLoop(summaryWindow, compressTokens int,
-	beforeEach aflow.Action, instruction, prompt string) aflow.Action {
+	beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
 	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
 
 	doPipeline := []aflow.Action{}
@@ -314,7 +314,7 @@ func PatchGenerationLoop(summaryWindow, compressTokens int,
 			TaskType:       aflow.FormalReasoningTask,
 			Instruction:    instruction,
 			Prompt:         prompt,
-			Tools:          aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool),
+			Tools:          aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool, extraTools),
 			SummaryWindow:  summaryWindow,
 			CompressTokens: compressTokens,
 		},

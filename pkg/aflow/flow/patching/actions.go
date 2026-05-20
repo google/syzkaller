@@ -154,11 +154,11 @@ func formatDescription(ctx *aflow.Context, args formatDescriptionArgs) (formatDe
 var applyGitPatch = aflow.NewFuncAction("apply-git-patch", applyGitPatchFunc)
 
 var forwardPatchDiff = aflow.NewFuncAction("forward-patch-diff", func(ctx *aflow.Context, args struct {
-	OldPatchDiff string
+	PreviousPatchDiff string
 }) (struct {
 	PatchDiff string
 }, error) {
-	return struct{ PatchDiff string }{PatchDiff: args.OldPatchDiff}, nil
+	return struct{ PatchDiff string }{PatchDiff: args.PreviousPatchDiff}, nil
 })
 
 type applyGitPatchArgs struct {
