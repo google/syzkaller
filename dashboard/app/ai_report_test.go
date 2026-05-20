@@ -926,7 +926,7 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	err = json.Unmarshal(data, &gotPatchHistory2)
 	require.NoError(t, err)
 
-	require.Len(t, gotPatchHistory2, 1)
+	require.Len(t, gotPatchHistory2, 2)
 	// Zero out timestamps for comparison.
 	for i := range gotPatchHistory2 {
 		for j := range gotPatchHistory2[i].Comments {
@@ -935,6 +935,19 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	}
 
 	wantPatchHistory := []ai.PatchHistoryEntry{
+		{
+			Version:     1,
+			Diff:        "diff",
+			Description: "Test Subject\n\nTest Body",
+			Comments: []ai.ExternalComment{
+				{
+					ExtID:  "<comment-id-1>",
+					Author: "reviewer@email.com",
+					Body:   "This is a comment",
+					New:    false,
+				},
+			},
+		},
 		{
 			Version:     2,
 			Diff:        "new diff",
