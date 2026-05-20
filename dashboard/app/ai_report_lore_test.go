@@ -266,6 +266,23 @@ In-Reply-To: <mock@msgid-1>
 
 	require.Len(t, mockSnd.sent, 1)
 
+	// 4a. Reject again (#syz reject) - should fail because already rejected.
+	loreArchive.SaveMessageAt(t, `From: user@email
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <reply1-again>
+In-Reply-To: <mock@msgid-1>
+
+#syz reject
+`, now.Add(time.Minute*1+time.Second*30))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	require.Len(t, mockSnd.sent, 2)
+	assert.Equal(t, []string{"user@email"}, mockSnd.sent[1].To)
+	expectedRejectBody := "> #syz reject\n\nCommand failed:\n\nCannot reject a patch that is already rejected.\n\n"
+	assert.Equal(t, expectedRejectBody, string(mockSnd.sent[1].Body))
+
 	// 5. Try to upstream - should fail because it's rejected.
 	loreArchive.SaveMessageAt(t, `From: user@email
 Subject: Re: [PATCH RFC] Test Subject
@@ -278,10 +295,10 @@ In-Reply-To: <mock@msgid-1>
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
-	require.Len(t, mockSnd.sent, 2)
-	assert.Equal(t, []string{"user@email"}, mockSnd.sent[1].To)
+	require.Len(t, mockSnd.sent, 3)
+	assert.Equal(t, []string{"user@email"}, mockSnd.sent[2].To)
 	expectedBody := "> #syz upstream\n\nCommand failed:\n\nCannot upstream a rejected patch. Unreject it first.\n\n"
-	assert.Equal(t, expectedBody, string(mockSnd.sent[1].Body))
+	assert.Equal(t, expectedBody, string(mockSnd.sent[2].Body))
 }
 
 func TestAILoreUnknownMessageID(t *testing.T) {

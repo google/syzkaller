@@ -185,6 +185,18 @@ func TestAIExternalReporting(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, job.Correct.Valid)
 	require.False(t, job.Correct.Bool)
+
+	c.advanceTime(time.Second)
+
+	// Try to reject the patch again - should fail.
+	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID: "moderation-msg-id",
+		Reject:    &dashapi.RejectCommand{Reason: "Bad patch again"},
+		Author:    "test-user",
+		Source:    "lore",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Cannot reject a patch that is already rejected.", resp.Error)
 }
 
 func TestAIReportNotFound(t *testing.T) {

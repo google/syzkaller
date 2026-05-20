@@ -39,6 +39,14 @@ func (e *ErrCannotUpstream) Error() string {
 	return e.Reason
 }
 
+type ErrCannotReject struct {
+	Reason string
+}
+
+func (e *ErrCannotReject) Error() string {
+	return e.Reason
+}
+
 func init() {
 	// This forces unmarshalling of JSON integers into json.Number rather than float64.
 	spanner.UseNumberWithJSONDecoderEncoder(true)
@@ -650,6 +658,22 @@ func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
 	}
 
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		job, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if job == nil {
+			return ErrNotFound
+		}
+
+		if job.Correct.Valid && !job.Correct.Bool {
+			return &ErrCannotReject{Reason: "Cannot reject a patch that is already rejected."}
+		}
+
 		journal := &Journal{
 			ID:          uuid.NewString(),
 			JobID:       toNullString(args.Job.ID),
@@ -667,9 +691,11 @@ func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
 			return err
 		}
 
-		jobMut := spanner.Update("Jobs",
-			[]string{"ID", "Correct"},
-			[]any{args.Job.ID, spanner.NullBool{Bool: false, Valid: true}})
+		job.Correct = spanner.NullBool{Bool: false, Valid: true}
+		jobMut, err := spanner.UpdateStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
 		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
 	})
 	if err != nil {
