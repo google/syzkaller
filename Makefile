@@ -296,7 +296,7 @@ tidy: descriptions
 		--extra-arg=-std=c++17 \
 		executor/*.cc
 
-lint:
+lint: check_whitespace check_sql_newlines check_links check_html check_shebang
 	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
@@ -316,7 +316,7 @@ presubmit:
 
 presubmit_aux:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_sql_newlines check_links check_html check_shebang check_k8s tidy
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_k8s tidy
 	$(GO) mod tidy
 
 presubmit_build: descriptions
