@@ -307,7 +307,7 @@ linux-input@vger.kernel.org (open list:INPUT (KEYBOARD, MOUSE, JOYSTICK, TOUCHSC
 				{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
 				{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
 				{mail.Address{Name: "Supporter Foo (Company)", Address: "c@email.com"}, To},
-				{mail.Address{Name: "open list:INPUT (KEYBOARD, MOUSE, JOYSTICK, TOUCHSCREEN)...", Address: "linux-input@vger.kernel.org"}, Cc},
+				{mail.Address{Name: "", Address: "linux-input@vger.kernel.org"}, To},
 				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
 				{mail.Address{Name: "", Address: "somelist@list.com"}, To},
 			},
