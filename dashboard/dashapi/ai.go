@@ -123,6 +123,7 @@ type NewReportResult struct {
 	BaseTree   string
 	Fixes      ai.FixesTag
 	Links      []string
+	Closes     []string
 	ReportedBy []string
 
 	ReviewedBy []string

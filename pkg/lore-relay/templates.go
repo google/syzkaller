@@ -64,6 +64,7 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 				Authors:    res.Patch.Authors,
 				Recipients: recipients,
 				Links:      res.Patch.Links,
+				Closes:     res.Patch.Closes,
 				ReportedBy: res.Patch.ReportedBy,
 				ReviewedBy: res.Patch.ReviewedBy,
 				AckedBy:    res.Patch.AckedBy,

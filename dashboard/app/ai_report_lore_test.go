@@ -107,7 +107,7 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.Contains(t, body, "Fixes: 123456789012 (\"original bug\")")
 	assert.Contains(t, body, "Assisted-by: Gemini:gemini-3.1-pro-preview")
 	assert.NotContains(t, body, "Signed-off-by")
-	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/bug?extid="+extID)
+	assert.Contains(t, body, "Closes: "+appURL(c.ctx)+"/bug?extid="+extID)
 	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/ai_job?id="+jobID)
 	assert.Contains(t, body, "To: <maintainer@email.com>")
 	assert.Contains(t, body, "Cc: <reviewer@email.com>")

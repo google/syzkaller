@@ -63,6 +63,7 @@ type PatchTemplateData struct {
 	Authors    []string
 	Recipients []ai.Recipient
 	Links      []string
+	Closes     []string
 	ReportedBy []string
 
 	ReviewedBy []string
@@ -97,6 +98,7 @@ func FormatPatchDescription(description string, data PatchTemplateData) string {
 		"to":          to,
 		"cc":          cc,
 		"links":       data.Links,
+		"closes":      data.Closes,
 		"reportedBy":  data.ReportedBy,
 		"reviewedBy":  data.ReviewedBy,
 		"ackedBy":     data.AckedBy,
@@ -127,6 +129,8 @@ Acked-by: {{$addr}}{{end}}
 Tested-by: {{$addr}}{{end}}
 {{- range $addr := .reportedBy}}
 Reported-by: {{$addr}}{{end}}
+{{- range $link := .closes}}
+Closes: {{$link}}{{end}}
 {{- range $link := .links}}
 Link: {{$link}}{{end}}
 {{- range $addr := .authors}}
