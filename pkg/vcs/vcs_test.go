@@ -299,14 +299,18 @@ func TestParseMaintainersLinux(t *testing.T) {
 Foo Bar <a@email.com> (maintainer:KERNEL)
 Foo Bar<b@email.com> (reviewer:KERNEL)
 <somelist@list.com> (open list:FOO)
-"Supporter Foo" <c@email.com> (supporter:KERNEL)
+"Supporter Foo (Company)" <c@email.com> (supporter:KERNEL)
 linux-kernel@vger.kernel.org (open list)
+linux-input@vger.kernel.org (open list:INPUT (KEYBOARD, MOUSE, JOYSTICK, TOUCHSCREEN)...)
 		`,
-			Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+			Recipients{
+				{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
 				{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
-				{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
+				{mail.Address{Name: "Supporter Foo (Company)", Address: "c@email.com"}, To},
+				{mail.Address{Name: "open list:INPUT (KEYBOARD, MOUSE, JOYSTICK, TOUCHSCREEN)...", Address: "linux-input@vger.kernel.org"}, Cc},
 				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
-				{mail.Address{Name: "", Address: "somelist@list.com"}, To}},
+				{mail.Address{Name: "", Address: "somelist@list.com"}, To},
+			},
 		},
 		{
 			`
@@ -315,10 +319,12 @@ Foo Bar<b@email.com> (reviewer:KERNEL)
 "Supporter Foo" <c@email.com> (supporter:KERNEL)
 linux-kernel@vger.kernel.org (open list)
 			`,
-			Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+			Recipients{
+				{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
 				{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
 				{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
-				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}},
+				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To},
+			},
 		},
 	}
 	for i, test := range tests {
