@@ -63,6 +63,7 @@ const (
 	CmdUnset
 	CmdRegenerate
 	CmdReject
+	CmdUnreject
 
 	cmdTest5
 )
@@ -389,6 +390,8 @@ func strToCmd(str string) Command {
 		return CmdRegenerate
 	case "reject":
 		return CmdReject
+	case "unreject":
+		return CmdUnreject
 	case "test_5_arg_cmd":
 		return cmdTest5
 	}

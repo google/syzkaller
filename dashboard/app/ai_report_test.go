@@ -152,6 +152,8 @@ func TestAIExternalReporting(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, pollResp.Result)
 
+	tReject := c.mockedTime
+
 	// Reject the patch.
 	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		RootExtID: "moderation-msg-id",
@@ -165,7 +167,7 @@ func TestAIExternalReporting(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*uiJobReviewHistory{
 		{
-			Date:    c.mockedTime,
+			Date:    tReject,
 			User:    "test-user",
 			Correct: aiCorrectnessIncorrect,
 			Source:  "lore",
@@ -197,6 +199,62 @@ func TestAIExternalReporting(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "Cannot reject a patch that is already rejected.", resp.Error)
+
+	c.advanceTime(time.Second)
+	tUnreject := c.mockedTime
+
+	// Unreject the patch.
+	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID: "moderation-msg-id",
+		Unreject:  &dashapi.UnrejectCommand{},
+		Author:    "test-user",
+		Source:    "lore",
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+
+	c.advanceTime(time.Second)
+
+	// Unreject the patch again - should fail.
+	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID: "moderation-msg-id",
+		Unreject:  &dashapi.UnrejectCommand{},
+		Author:    "test-user",
+		Source:    "lore",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Cannot unreject a patch that is not rejected.", resp.Error)
+
+	uiHistory, err = LoadUIJobReviewHistory(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Equal(t, []*uiJobReviewHistory{
+		{
+			Date:    tUnreject,
+			User:    "test-user",
+			Correct: "?",
+			Source:  "lore",
+			Stage:   "",
+		},
+		{
+			Date:    tReject,
+			User:    "test-user",
+			Correct: aiCorrectnessIncorrect,
+			Source:  "lore",
+			Stage:   "",
+		},
+		{
+			Date:    t0,
+			User:    "test-user",
+			Correct: aiCorrectnessCorrect,
+			Source:  "lore",
+			Stage:   "public",
+		},
+	}, uiHistory)
+
+	// Verify Job.Correct = nil (Valid = false).
+	job, err = aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	require.False(t, job.Correct.Valid)
 }
 
 func TestAIReportNotFound(t *testing.T) {

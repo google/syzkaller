@@ -16,6 +16,7 @@ const (
 	ActionJobReview = "JobReview" // Outdated. Use ActionApprove/ActionReject.
 	ActionApprove   = "Approve"
 	ActionReject    = "Reject"
+	ActionUnreject  = "Unreject"
 )
 
 const (

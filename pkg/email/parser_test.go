@@ -409,6 +409,14 @@ baz
 			Args:    "",
 		},
 	},
+	{
+		body: `#syz unreject`,
+		cmd: &SingleCommand{
+			Command: CmdUnreject,
+			Str:     "unreject",
+			Args:    "",
+		},
+	},
 }
 
 type ParseTest struct {
