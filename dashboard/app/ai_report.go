@@ -283,15 +283,17 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 
 		if result.Patch != nil {
 			var links []string
+			var closes []string
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
-				links = append(links, link)
+				closes = append(closes, link)
 				if reporter != "" && !slices.Contains(result.Patch.ReportedBy, reporter) {
 					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
 				}
 			}
 			links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
 			result.Patch.Links = links
+			result.Patch.Closes = closes
 		}
 
 		to := []string{stageCfg.MailingList}

@@ -1746,10 +1746,11 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	res.Recipients = append(res.Recipients, ai.Recipient{Email: "stable@vger.kernel.org"})
 	// TODO: add a human who reviewed the patch to authors.
 	var links []string
+	var closes []string
 	var reportedBy []string
 	if job.BugID.Valid {
 		link, reporter := jobBugInfo(ctx, job.BugID)
-		links = append(links, link)
+		closes = append(closes, link)
 		if reporter != "" {
 			reportedBy = append(reportedBy, reporter)
 		}
@@ -1760,6 +1761,7 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 		Tools:      slices.Collect(maps.Keys(models)),
 		Recipients: res.Recipients,
 		Links:      links,
+		Closes:     closes,
 		ReportedBy: reportedBy,
 	})
 	changeID, link, err := gerrit.CreateChange(ctx, res.KernelRepo, res.KernelBranch,

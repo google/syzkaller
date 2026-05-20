@@ -125,8 +125,10 @@ func TestAIExternalReporting(t *testing.T) {
 		BaseCommit: "commit",
 		BaseTree:   "repo",
 		Authors:    []string{"test-user"},
-		Links: []string{
+		Closes: []string{
 			appURL(c.ctx) + "/bug?extid=" + extID,
+		},
+		Links: []string{
 			appURL(c.ctx) + "/ai_job?id=" + jobID,
 		},
 		Fixes: ai.FixesTag{
@@ -864,8 +866,10 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 			BaseCommit: "repo_commit",
 			BaseTree:   "repo_url",
 			ReviewedBy: []string{"Test Reviewer <test@reviewer.com>"},
-			Links: []string{
+			Closes: []string{
 				appURL(c.ctx) + "/bug?extid=" + extID,
+			},
+			Links: []string{
 				appURL(c.ctx) + "/ai_job?id=" + resp.ID,
 			},
 		},
