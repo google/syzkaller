@@ -246,7 +246,7 @@ func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
 
 func ParseMaintainersLinux(text []byte) Recipients {
 	lines := strings.Split(string(text), "\n")
-	reRole := regexp.MustCompile(` \([^)]+\)$`)
+	reRole := regexp.MustCompile(` \([^()]*(?:\([^()]*\)[^()]*)*\)$`)
 	var mtrs Recipients
 	// LMKL is To by default, but it changes to Cc if there's also a subsystem list.
 	lkmlType := To
