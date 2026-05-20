@@ -1390,35 +1390,12 @@ func tryCreatePatchIterationJob(ctx context.Context, g *aidb.PendingCommentGroup
 }
 
 func buildPatchHistory(ctx context.Context, job *aidb.Job) ([]ai.PatchHistoryEntry, error) {
-	if !job.ParentReportingID.Valid {
-		return nil, nil
-	}
-	reportingID := job.ParentReportingID.StringVal
-	reporting, err := aidb.LoadJobReporting(ctx, reportingID)
+	lineage, err := loadPatchLineage(ctx, job.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load reporting %s: %w", reportingID, err)
-	}
-	if reporting == nil {
-		return nil, nil
+		return nil, fmt.Errorf("failed to load patch lineage: %w", err)
 	}
 
-	parentDiff, parentDesc := findLatestPatch(ctx, reporting.JobID)
-
-	comments, err := aidb.LoadJobCommentsByReporting(ctx, reportingID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load comments for %s: %w", reportingID, err)
-	}
-
-	var uris []string
-	for _, c := range comments {
-		if c.BodyURI != "" {
-			uris = append(uris, c.BodyURI)
-		}
-	}
-	bodies, err := loadContent(ctx, uris)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load comment bodies: %w", err)
-	}
+	var history []ai.PatchHistoryEntry
 	targetIDs := make(map[string]bool)
 	if m, ok := job.Args.Value.(map[string]any); ok {
 		if ids, _ := m["TargetCommentIDs"].([]any); ids != nil {
@@ -1430,46 +1407,68 @@ func buildPatchHistory(ctx context.Context, job *aidb.Job) ([]ai.PatchHistoryEnt
 		}
 	}
 
-	var commentsInfo []ai.ExternalComment
-	for _, c := range comments {
-		isTarget := false
-		if len(targetIDs) > 0 {
-			isTarget = targetIDs[c.ID]
-		} else {
-			isTarget = !c.Processed
+	for _, node := range lineage {
+		if node.Reporting == nil {
+			continue // Skip the last node which is the job currently being polled.
 		}
 
-		if !c.Processed && !isTarget {
-			// This comment arrived after the job was created, or is not meant to be processed by this job.
-			continue
+		reporting := node.Reporting
+		parentDiff, parentDesc := extractPatch(node.Job)
+
+		comments, err := aidb.LoadJobCommentsByReporting(ctx, reporting.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load comments for %s: %w", reporting.ID, err)
 		}
 
-		commentsInfo = append(commentsInfo, ai.ExternalComment{
-			ExtID:     c.ExtID,
-			Author:    c.Author,
-			Body:      bodies[c.BodyURI],
-			Timestamp: c.Date,
-			BotReply:  c.OwnEmail,
-			New:       isTarget,
-		})
-	}
-	return []ai.PatchHistoryEntry{
-		{
+		var uris []string
+		for _, c := range comments {
+			if c.BodyURI != "" {
+				uris = append(uris, c.BodyURI)
+			}
+		}
+		bodies, err := loadContent(ctx, uris)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load comment bodies: %w", err)
+		}
+
+		var commentsInfo []ai.ExternalComment
+		for _, c := range comments {
+			isTarget := false
+			if len(targetIDs) > 0 {
+				isTarget = targetIDs[c.ID]
+			} else {
+				isTarget = !c.Processed
+			}
+
+			if !c.Processed && !isTarget {
+				// This comment arrived after the job was created, or is not meant to be processed by this job.
+				continue
+			}
+
+			commentsInfo = append(commentsInfo, ai.ExternalComment{
+				ExtID:     c.ExtID,
+				Author:    c.Author,
+				Body:      bodies[c.BodyURI],
+				Timestamp: c.Date,
+				BotReply:  c.OwnEmail,
+				New:       isTarget,
+			})
+		}
+
+		history = append(history, ai.PatchHistoryEntry{
 			Version:     int(reporting.Version.Int64),
 			Diff:        parentDiff,
 			Description: parentDesc,
 			Comments:    commentsInfo,
-		},
-	}, nil
+		})
+	}
+
+	return history, nil
 }
 
-func findLatestPatch(ctx context.Context, jobID string) (diff, desc string) {
-	j, err := aidb.LoadJob(ctx, jobID)
-	if err != nil || j == nil {
-		return "", ""
-	}
-	if j.Results.Valid {
-		if m, ok := j.Results.Value.(map[string]any); ok {
+func extractPatch(job *aidb.Job) (diff, desc string) {
+	if job != nil && job.Results.Valid {
+		if m, ok := job.Results.Value.(map[string]any); ok {
 			diff, _ = m["PatchDiff"].(string)
 			desc, _ = m["PatchDescription"].(string)
 		}
