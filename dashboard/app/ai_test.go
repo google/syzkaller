@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -443,6 +444,14 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	respJSON, err := c.GET(fmt.Sprintf("/ai_job?id=%v&json=1", resp.ID))
 	require.NoError(t, err)
 	require.Contains(t, string(respJSON), `"Trajectory"`)
+
+	// Verify export output.
+	respExportJSON, err := c.GET(fmt.Sprintf("/ai_job?id=%v&export=1", resp.ID))
+	require.NoError(t, err)
+	var exportResp dashapi.AIJobPollResp
+	require.NoError(t, json.Unmarshal(respExportJSON, &exportResp))
+	require.Equal(t, resp.ID, exportResp.ID)
+	require.Equal(t, string(ai.WorkflowAssessmentKCSAN), exportResp.Workflow)
 
 	// Since the job is not completed, setting correctness must fail.
 	values := url.Values{}
