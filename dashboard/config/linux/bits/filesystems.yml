@@ -127,7 +127,8 @@ config:
  - NFS_FS
  - NFS_V3_ACL
  - NFS_V4
- - NFS_V4_1
+ # Removed in 7537db24806fd "NFS: Merge CONFIG_NFS_V4_1 with CONFIG_NFS_V4".
+ - NFS_V4_1: [-v7.1]
  - NFS_V4_2
  - ROOT_NFS
  - NFS_FSCACHE

@@ -39,14 +39,15 @@ config:
  - OPENVSWITCH_VXLAN
  - OPENVSWITCH_GENEVE
 
- - CAIF
- - CAIF_NETDEV
- - CAIF_DEBUG
- - CAIF_USB
- - CAIF_DRIVERS: [v5.5]
- - CAIF_TTY
+ # Removed in 6d5431555de03 "caif: remove CAIF NETWORK LAYER".
+ - CAIF: [-v7.1]
+ - CAIF_NETDEV: [-v7.1]
+ - CAIF_DEBUG: [-v7.1]
+ - CAIF_USB: [-v7.1]
+ - CAIF_DRIVERS: [v5.5, -v7.1]
+ - CAIF_TTY: [-v7.1]
  - CAIF_HSI: [-v5.14]
- - CAIF_VIRTIO
+ - CAIF_VIRTIO: [-v7.1]
 
  - BRIDGE
  - BRIDGE_VLAN_FILTERING
@@ -159,12 +160,13 @@ config:
 
  - ATM
  - ATM_DRIVERS
- - ATM_CLIP
- - ATM_LANE
- - ATM_MPOA
+ # Removed in 6deb53595092b "net: remove unused ATM protocols and legacy ATM device drivers".
+ - ATM_CLIP: [-v7.1]
+ - ATM_LANE: [-v7.1]
+ - ATM_MPOA: [-v7.1]
  - ATM_BR2684
  - NET_SCH_ATM: n
- - ATM_TCP
+ - ATM_TCP: [-v7.1]
  - USB_ATM
 
  - WAN
@@ -214,11 +216,12 @@ config:
  - USBIP_HOST
  - USBIP_VUDC
 
- - ISDN: [-s390]
- - ISDN_CAPI: [-s390]
- - MISDN: [-s390]
- - MISDN_DSP: [-s390]
- - MISDN_L1OIP: [-s390]
+ # Removed in 4f10f1dfb235a "net: remove ISDN subsystem and Bluetooth CMTP".
+ - ISDN: [-s390, -v7.1]
+ - ISDN_CAPI: [-s390, -v7.1]
+ - MISDN: [-s390, -v7.1]
+ - MISDN_DSP: [-s390, -v7.1]
+ - MISDN_L1OIP: [-s390, -v7.1]
 
  - AF_RXRPC
  - AF_RXRPC_IPV6

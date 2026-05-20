@@ -125,7 +125,8 @@ config:
  - NF_CONNTRACK_SANE
  - NF_CONNTRACK_SIP
  - NF_CONNTRACK_TFTP
- - NF_CT_PROTO_UDPLITE
+ # Removed in 84dee05d9d618 "netfilter: conntrack: remove UDP-Lite conntrack support".
+ - NF_CT_PROTO_UDPLITE: [-v7.1]
  - NF_CT_NETLINK
  - NF_CT_NETLINK_TIMEOUT
  - NF_CT_NETLINK_HELPER

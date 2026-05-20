@@ -35,7 +35,9 @@ config:
   - MOUSE_PS2: n
   - NETLABEL: [n, weak]
   - PCCARD: [n, weak]
-  - PREEMPT_VOLUNTARY: n
+  # In newer kernels, ARM defaults to PREEMPT_VOLUNTARY=y in some configs (e.g. vexpress),
+  # so we cannot enforce 'n' there.
+  - PREEMPT_VOLUNTARY: [n, -arm]
   - RFKILL: n
   - SOUND: [n, weak]
   - TCG_TPM: n

@@ -71,7 +71,8 @@ includes:
  - media.yml: [-baseline, -onlynet, -onlyusb, -reduced]
  - bluetooth.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
  - wireless.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
- - hamradio.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
+ # Removed in dd8d4bc28ad72 "net: remove ax25 and amateur radio (hamradio) subsystem" (v7.1).
+ - hamradio.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390, -upstream, -linux-next]
  - comedi.yml: [-baseline, -onlynet, -onlyusb, -android, -chromeos, -s390, -arm64_emu]
  - usb.yml: [onlyusb]
  - lsm.yml: [lsm]
