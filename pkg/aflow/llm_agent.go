@@ -50,15 +50,17 @@ type LLMAgent struct {
 	Prompt string
 	// Set of tools for the agent to use.
 	Tools []Tool
+
 	// Number of historical message (sliding window) to keep. If zero, we don't enable the sliding
 	// window summary feature (don't toss old messages).
-	// Mutually exclusive with CompressTokens.
-	SummaryWindow int
+	// Mutually exclusive with compressTokens.
+	summaryWindow int
+
 	// Token limit for historical messages. If > 0, when the total input tokens exceed this limit,
 	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
 	// all intermediate messages, leaving only the anchor prompt and the new summary.
-	// Mutually exclusive with SummaryWindow.
-	CompressTokens int
+	// Mutually exclusive with summaryWindow.
+	compressTokens int
 
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
@@ -210,9 +212,6 @@ type llmOutputs struct {
 }
 
 func (a *LLMAgent) execute(ctx *Context) error {
-	if a.SummaryWindow > 0 && a.CompressTokens > 0 {
-		return errors.New("SummaryWindow and CompressTokens are mutually exclusive")
-	}
 	if a.Candidates <= 1 {
 		reply, outputs, err := a.executeOne(ctx, 0)
 		if err != nil {
@@ -313,7 +312,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			// will be fetched from the next successful API response.
 			lastInputTokens = 0
 		}
-		if newSummaryMessage != nil || a.CompressTokens > 0 {
+		if newSummaryMessage != nil || a.compressTokens > 0 {
 			// If compression happened, reset the existing summaryMessage to nil (or the new one)
 			summaryMessage = newSummaryMessage
 		}
@@ -504,7 +503,7 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instructi
 
 func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, instruction string, tokensToCompress int) (
 	[]*genai.Content, *genai.Content, bool, error) {
-	if a.CompressTokens == 0 || tokensToCompress <= a.CompressTokens {
+	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens {
 		// Return existing state unchanged.
 		return req, nil, false, nil
 	}
@@ -520,16 +519,16 @@ func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, inst
 }
 
 func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {
-	// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1 messages
+	// Sliding window optimization: keep index 0 (anchor) and the last summaryWindow-1 messages
 	// (recent history), then discard the old ones with stale context and to free up tokens.
 	// We need to add a new summary if we don't have one yet, or existing summary is going to be popped.
-	if a.SummaryWindow <= 0 || len(req) <= a.SummaryWindow {
+	if a.summaryWindow <= 0 || len(req) <= a.summaryWindow {
 		return req, false
 	}
 	// If we haven't created a summary, surely need to create one.
 	addNewSummary := summary == nil
 	// popEnd is the last index of elements to be popped
-	popEnd := len(req) - a.SummaryWindow
+	popEnd := len(req) - a.summaryWindow
 	// If we already have a summary, we iterate through the elements being popped
 	// (index 1 to popEnd), and see if the summary would be popped (hence needing
 	// a new summary).
@@ -876,6 +875,13 @@ func (err *retryError) Unwrap() error {
 }
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
+	if a.summaryWindow != 0 && a.compressTokens != 0 {
+		ctx.errorf(a.Name, "summaryWindow and compressTokens are mutually exclusive")
+	}
+	if a.compressTokens == 0 && a.summaryWindow == 0 {
+		// Empirically good value we use by default.
+		a.compressTokens = 200_000
+	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
 	if a.Outputs == nil {

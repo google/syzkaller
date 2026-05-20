@@ -8,16 +8,13 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
 
-func NewTool(compressTokens int) *aflow.LLMTool {
-	return &aflow.LLMTool{
-		Name:           "codeexpert",
-		Model:          aflow.GoodBalancedModel,
-		TaskType:       aflow.FormalReasoningTask,
-		Description:    description,
-		Instruction:    instruction,
-		Tools:          codesearcher.Tools,
-		CompressTokens: compressTokens,
-	}
+var Tool = &aflow.LLMTool{
+	Name:        "codeexpert",
+	Model:       aflow.GoodBalancedModel,
+	TaskType:    aflow.FormalReasoningTask,
+	Description: description,
+	Instruction: instruction,
+	Tools:       codesearcher.Tools,
 }
 
 const description = `

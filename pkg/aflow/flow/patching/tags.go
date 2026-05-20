@@ -126,17 +126,13 @@ func mergeTags(ctx *aflow.Context, args tagsMergerArgs) (tagsMergerResult, error
 
 var tagsMergerAction = aflow.NewFuncAction("tags-merger", mergeTags)
 
-func tagExtractorAgent(summaryWindow, compressTokens int) *aflow.LLMAgent {
-	return &aflow.LLMAgent{
-		Name:           "tag-extractor",
-		Model:          aflow.GoodBalancedModel,
-		Outputs:        aflow.ValidatedLLMOutputs[tagExtractorState, tagExtractorArgs](validateTagExtractorOutputs),
-		TaskType:       aflow.FormalReasoningTask,
-		Instruction:    tagExtractorInstruction,
-		Prompt:         tagExtractorPrompt,
-		SummaryWindow:  summaryWindow,
-		CompressTokens: compressTokens,
-	}
+var tagExtractor = &aflow.LLMAgent{
+	Name:        "tag-extractor",
+	Model:       aflow.GoodBalancedModel,
+	Outputs:     aflow.ValidatedLLMOutputs[tagExtractorState, tagExtractorArgs](validateTagExtractorOutputs),
+	TaskType:    aflow.FormalReasoningTask,
+	Instruction: tagExtractorInstruction,
+	Prompt:      tagExtractorPrompt,
 }
 
 var emptyTagsAction = aflow.NewFuncAction("empty-tags", func(ctx *aflow.Context, args struct{}) (struct {

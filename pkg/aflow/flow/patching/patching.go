@@ -46,73 +46,61 @@ type Inputs struct {
 	StraceBin      string
 }
 
-func createPatchingFlow(name string, summaryWindow, compressTokens int) *aflow.Flow {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
-	return &aflow.Flow{
-		Name: name,
-		Consts: map[string]any{
-			"NeedStrace": false,
-		},
-		Root: aflow.Pipeline(
-			baseCommitPicker,
-			actionsyzlang.CreateSimplifiedCRepro,
-			kernel.Checkout,
-			kernel.Build,
-			// Ensure we can reproduce the crash (and the build boots).
-			crash.Reproduce,
-			codesearcher.PrepareIndex,
-			&aflow.LLMAgent{
-				Name:           "debugger",
-				Model:          aflow.BestExpensiveModel,
-				Reply:          "BugExplanation",
-				TaskType:       aflow.FormalReasoningTask,
-				Instruction:    debuggingInstruction,
-				Prompt:         debuggingPrompt,
-				Tools:          commonTools,
-				SummaryWindow:  summaryWindow,
-				CompressTokens: compressTokens,
-			},
-			kernel.CheckoutScratch,
-			PatchGenerationLoop(summaryWindow, compressTokens, nil, patchInstruction, patchPrompt),
-			&aflow.LLMAgent{
-				Name:           "fixes-finder",
-				Model:          aflow.BestExpensiveModel,
-				Outputs:        aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
-				TaskType:       aflow.FormalReasoningTask,
-				Instruction:    fixesInstruction,
-				Prompt:         fixesPrompt,
-				Tools:          commonTools,
-				SummaryWindow:  summaryWindow,
-				CompressTokens: compressTokens,
-			},
-			formatFixes,
-			getMaintainers,
-			getRecentCommits,
-			&aflow.LLMAgent{
-				Name:           "description-generator",
-				Model:          aflow.BestExpensiveModel,
-				Reply:          "PatchDescriptionRaw",
-				TaskType:       aflow.FormalReasoningTask,
-				Instruction:    descriptionInstruction,
-				Prompt:         descriptionPrompt,
-				Tools:          commonTools,
-				SummaryWindow:  summaryWindow,
-				CompressTokens: compressTokens,
-			},
-			formatPatchDescription,
-			emptyTagsAction,
-		),
-	}
-}
-
 func init() {
 	aflow.Register[Inputs, ai.PatchingOutputs](
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
-		createPatchingFlow("", 0, 200_000),
-		createPatchingFlow("summary", 10, 0),
-	)
+		&aflow.Flow{
+			Consts: map[string]any{
+				"NeedStrace": false,
+			},
+			Root: aflow.Pipeline(
+				baseCommitPicker,
+				actionsyzlang.CreateSimplifiedCRepro,
+				kernel.Checkout,
+				kernel.Build,
+				// Ensure we can reproduce the crash (and the build boots).
+				crash.Reproduce,
+				codesearcher.PrepareIndex,
+				&aflow.LLMAgent{
+					Name:        "debugger",
+					Model:       aflow.BestExpensiveModel,
+					Reply:       "BugExplanation",
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: debuggingInstruction,
+					Prompt:      debuggingPrompt,
+					Tools:       commonTools,
+				},
+				kernel.CheckoutScratch,
+				patchGenerationLoop(nil, patchInstruction, patchPrompt),
+				&aflow.LLMAgent{
+					Name:        "fixes-finder",
+					Model:       aflow.BestExpensiveModel,
+					Outputs:     aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: fixesInstruction,
+					Prompt:      fixesPrompt,
+					Tools:       commonTools,
+				},
+				formatFixes,
+				getMaintainers,
+				getRecentCommits,
+				&aflow.LLMAgent{
+					Name:        "description-generator",
+					Model:       aflow.BestExpensiveModel,
+					Reply:       "PatchDescriptionRaw",
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: descriptionInstruction,
+					Prompt:      descriptionPrompt,
+					Tools:       commonTools,
+				},
+				formatPatchDescription,
+				emptyTagsAction,
+			),
+		})
 }
+
+var commonTools = aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
 
 // TODO: mention not doing assumptions about the source code, and instead querying code using tools.
 // TODO: mention to extensively use provided tools to confirm everything.
@@ -297,34 +285,27 @@ are specified, letter capitalization, style, etc.
 {{.RecentCommits}}
 `
 
-func PatchGenerationLoop(summaryWindow, compressTokens int,
-	beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.NewTool(compressTokens), gitlog.Tools)
-
-	doPipeline := []aflow.Action{}
+func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
+	actions := []aflow.Action{}
 	if beforeEach != nil {
-		doPipeline = append(doPipeline, beforeEach)
+		actions = append(actions, beforeEach)
 	}
 
-	doPipeline = append(doPipeline,
-		&aflow.LLMAgent{
-			Name:           "patch-generator",
-			Model:          aflow.BestExpensiveModel,
-			Reply:          "PatchExplanation",
-			TaskType:       aflow.FormalReasoningTask,
-			Instruction:    instruction,
-			Prompt:         prompt,
-			Tools:          aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool, extraTools),
-			SummaryWindow:  summaryWindow,
-			CompressTokens: compressTokens,
-		},
-		crash.TestPatch, // -> PatchDiff or TestError
-	)
-
 	return &aflow.DoWhile{
-		Do:            aflow.Pipeline(doPipeline...),
 		While:         "TestError",
 		MaxIterations: 10,
+		Do: aflow.Pipeline(append(actions,
+			&aflow.LLMAgent{
+				Name:        "patch-generator",
+				Model:       aflow.BestExpensiveModel,
+				Reply:       "PatchExplanation",
+				TaskType:    aflow.FormalReasoningTask,
+				Instruction: instruction,
+				Prompt:      prompt,
+				Tools:       aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool, extraTools),
+			},
+			crash.TestPatch, // -> PatchDiff or TestError
+		)...),
 	}
 }
 

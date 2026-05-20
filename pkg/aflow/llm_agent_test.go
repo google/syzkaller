@@ -187,7 +187,7 @@ func TestSummaryWindow(t *testing.T) {
 			Name:          "summary_agent",
 			Model:         "model",
 			Reply:         "Reply",
-			SummaryWindow: 3,
+			summaryWindow: 3,
 			TaskType:      FormalReasoningTask,
 			Instruction:   "Instructions",
 			Prompt:        "Initial Prompt",
@@ -225,17 +225,6 @@ func TestSummaryWindow(t *testing.T) {
 	)
 }
 
-func TestSummaryWindowMutualExclusion(t *testing.T) {
-	ctx := &Context{}
-	agent := &LLMAgent{
-		Name:           "mutually_exclusive",
-		SummaryWindow:  3,
-		CompressTokens: 100,
-	}
-	err := agent.execute(ctx)
-	assert.ErrorContains(t, err, "SummaryWindow and CompressTokens are mutually exclusive")
-}
-
 func TestTokenCompression(t *testing.T) {
 	type flowOutputs struct {
 		Reply string
@@ -249,7 +238,7 @@ func TestTokenCompression(t *testing.T) {
 			Name:           "token_compression_agent",
 			Model:          "model",
 			Reply:          "Reply",
-			CompressTokens: 100,
+			compressTokens: 100,
 			TaskType:       FormalReasoningTask,
 			Instruction:    "Instructions",
 			Prompt:         "Initial Prompt",
@@ -263,7 +252,7 @@ func TestTokenCompression(t *testing.T) {
 			// 1. Initial request. Return a tool call and establish the anchor token count.
 			createToolCallResponse(150, "id1", "tick"),
 			// 2. Second request. Return another tool call and report total tokens 260.
-			// This means delta = 260 - 150 = 110. Since 110 > CompressTokens (100), compression triggers!
+			// This means delta = 260 - 150 = 110. Since 110 > compressTokensValue (100), compression triggers!
 			createToolCallResponse(260, "id2", "tick"),
 			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model).
 			// We return the compressed summary.
@@ -481,6 +470,20 @@ func TestAgentRegistrationErrors(t *testing.T) {
 						return struct{}{}, nil
 					}, "tool description"),
 				},
+			},
+		})
+	testRegistrationError[struct{}, struct{}](t,
+		`flow test: action smarty: summaryWindow and compressTokens are mutually exclusive`,
+		&Flow{
+			Root: &LLMAgent{
+				Name:           "smarty",
+				Model:          "model",
+				Reply:          "Result",
+				TaskType:       FormalReasoningTask,
+				Instruction:    "Instruction",
+				Prompt:         "Prompt",
+				summaryWindow:  3,
+				compressTokens: 100,
 			},
 		})
 }
