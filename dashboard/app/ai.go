@@ -573,15 +573,35 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		CanSetCorrectness:  canSetCorrectness,
 		Reportings:         uiReportings,
 	}
+	if handled, err := handleAIJobPageJSON(ctx, w, r, job, uiJob, uiTrajectory, uiArgs); handled {
+		return err
+	}
+	return serveTemplate(w, "ai_job.html", page)
+}
+
+func handleAIJobPageJSON(ctx context.Context, w http.ResponseWriter, r *http.Request,
+	job *aidb.Job, uiJob *uiAIJob, uiTrajectory []*aflowhtml.UIAITrajectorySpan, uiArgs []*uiAIJobArg) (bool, error) {
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, &uiAIJobDetails{
+		return true, writeJSONVersionOf(w, &uiAIJobDetails{
 			Job:        uiJob,
 			Trajectory: uiTrajectory,
 			Args:       uiArgs,
 		})
 	}
-	return serveTemplate(w, "ai_job.html", page)
+	if r.FormValue("export") == "1" {
+		w.Header().Set("Content-Type", "application/json")
+		pollArgs, err := buildAIJobPollArgs(ctx, job)
+		if err != nil {
+			return true, err
+		}
+		return true, json.NewEncoder(w).Encode(&dashapi.AIJobPollResp{
+			ID:       job.ID,
+			Workflow: job.Workflow,
+			Args:     pollArgs,
+		})
+	}
+	return false, nil
 }
 
 func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, template.HTML, error) {
@@ -902,8 +922,21 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if job == nil {
 		return &dashapi.AIJobPollResp{}, nil
 	}
+	args, err := buildAIJobPollArgs(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dashapi.AIJobPollResp{
+		ID:       job.ID,
+		Workflow: job.Workflow,
+		Args:     args,
+	}, nil
+}
+
+func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, error) {
 	if !job.Args.Valid {
-		job.Args.Value = map[string]any{}
+		return map[string]any{}, nil
 	}
 	args := make(map[string]any)
 	var textErr error
@@ -954,11 +987,7 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		args["PatchHistory"] = history
 	}
 
-	return &dashapi.AIJobPollResp{
-		ID:       job.ID,
-		Workflow: job.Workflow,
-		Args:     args,
-	}, nil
+	return args, nil
 }
 
 func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient) (*aidb.Job, error) {
