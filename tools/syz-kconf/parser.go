@@ -320,6 +320,8 @@ func parseNode(node yaml.Node) (name, val string, constraints []string, err erro
 			val = `"` + prop + `"`
 		} else if prop == "n" {
 			val = kconfig.No
+		} else if prop == "y" {
+			val = kconfig.Yes
 		} else if intVal, err := strconv.ParseUint(prop, 0, 64); err == nil {
 			val = fmt.Sprint(intVal)
 		} else {
