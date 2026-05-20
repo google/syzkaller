@@ -23,6 +23,11 @@ version (e.g. an RFC v2) if necessary.
 ```
 You can provide the reason for rejection in the email body for better accounting.
 
+* If you accidentally rejected a patch, you can undo it:
+```
+#syz unreject
+```
+
 * Approve a patch and send it to the public list:
 ```
 #syz upstream
