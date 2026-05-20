@@ -30,6 +30,17 @@ config FOO
 	transitional
 `,
 		},
+		{
+			in: `
+mainmenu "test_if_depends"
+config FOO
+	bool "FOO"
+
+config BAR
+	bool "BAR"
+	depends on FOO if CC_IS_GCC
+`,
+		},
 	}
 	target := targets.Get("linux", "amd64")
 	for i, test := range tests {

@@ -324,6 +324,9 @@ func (kp *kconfigParser) parseProperty(prop string) {
 	case "depends":
 		kp.MustConsume("on")
 		cur.dependsOn = exprAnd(cur.dependsOn, kp.parseExpr())
+		if kp.TryConsume("if") {
+			_ = kp.parseExpr()
+		}
 	case "visible":
 		kp.MustConsume("if")
 		cur.visibleIf = exprAnd(cur.visibleIf, kp.parseExpr())
