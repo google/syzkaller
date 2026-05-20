@@ -72,8 +72,8 @@ func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, 
 var getMaintainers = aflow.NewFuncAction("get-maintainers", maintainers)
 
 type maintainersArgs struct {
-	KernelSrc string
-	PatchDiff string
+	KernelCommit string
+	PatchDiff    string
 }
 
 type maintainersResult struct {
@@ -82,23 +82,30 @@ type maintainersResult struct {
 
 func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, error) {
 	res := maintainersResult{}
-	// See #1441 re --git-min-percent.
-	script := filepath.Join(args.KernelSrc, "scripts/get_maintainer.pl")
-	cmd := exec.Command(script, "--git-min-percent=15")
-	cmd.Dir = args.KernelSrc
-	cmd.Stdin = strings.NewReader(args.PatchDiff)
-	output, err := osutil.Run(time.Minute, cmd)
-	if err != nil {
-		return res, err
-	}
-	for _, recipient := range vcs.ParseMaintainersLinux(output) {
-		res.Recipients = append(res.Recipients, ai.Recipient{
-			Name:  recipient.Address.Name,
-			Email: recipient.Address.Address,
-			To:    recipient.Type == vcs.To,
-		})
-	}
-	return res, nil
+	// get_maintainer.pl needs a non-shallow checkout, so we use the global one.
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
+		if _, err := repo.SwitchCommit(args.KernelCommit); err != nil {
+			return err
+		}
+		// See #1441 re --git-min-percent.
+		script := filepath.Join(kernelRepoDir, "scripts/get_maintainer.pl")
+		cmd := exec.Command(script, "--git-min-percent=15")
+		cmd.Dir = kernelRepoDir
+		cmd.Stdin = strings.NewReader(args.PatchDiff)
+		output, err := osutil.Run(time.Minute, cmd)
+		if err != nil {
+			return err
+		}
+		for _, recipient := range vcs.ParseMaintainersLinux(output) {
+			res.Recipients = append(res.Recipients, ai.Recipient{
+				Name:  recipient.Address.Name,
+				Email: recipient.Address.Address,
+				To:    recipient.Type == vcs.To,
+			})
+		}
+		return nil
+	})
+	return res, err
 }
 
 var getRecentCommits = aflow.NewFuncAction("get-recent-commits", recentCommits)
