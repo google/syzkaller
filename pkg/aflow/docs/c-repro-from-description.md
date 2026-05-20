@@ -23,22 +23,27 @@ The workflow is registered as `repro-c` and consists of a preprocessing phase fo
 3.  **Initial Research**: The `initial-researcher` agent analyzes the bug description and generates an initial reproduction strategy (`InitialReproStrategy`). It has access to codesearch and grep tools, as well as the toolkit query tool.
 
 ### Iterative Loop
-The workflow enters a `DoWhile` loop with a maximum of 5 iterations. The loop condition is controlled by `ContinueSignal`.
+The workflow enters a `DoWhile` loop with a maximum of 20 iterations. The loop condition is controlled by `ContinueSignal`.
 
 In each iteration, the following steps are executed:
 1.  **Strategy Refinement**: If `OracleFeedback` is available (from previous iterations), the `strategy-refiner` agent is invoked to update the strategy, producing `RefinedReproStrategy`.
 2.  **Strategy Merge**: `MergeStrategy` merges `InitialReproStrategy` and `RefinedReproStrategy` into `CurrentReproStrategy`. If a refined strategy exists, it is preferred.
-3.  **Code Generation**: The `repro-generator` agent generates C code (`RawCandidateReproC`) based on `CurrentReproStrategy`.
-    *   **Probe Strategy**: On the very first attempt, the generator is instructed to prioritize a simple "probe" program to check if necessary devices or syscalls are available, rather than attempting full reproduction immediately.
+3.  **Code Generation**: The `repro-generator` agent generates C code (`RawCandidateReproC`) and a boolean `IsProbe` flag based on `CurrentReproStrategy`.
+    *   **Structured Probe Strategy**: The generator is instructed to prioritize a simple "probe" program to verify subsystem availability and kernel privileges (both on the very first attempt, or if a previous probe failed). It sets `IsProbe` to `true` for environment probes, and `false` for full reproducer candidates attempting to trigger the crash.
 4.  **Self-Repair & Toolkit Expansion**: The workflow enters a nested `DoWhile` loop (max 3 iterations) to handle compilation failures:
-    *   **Toolkit Expansion & Compilation**: `CompileCProg` action replaces `#include "race_toolkit.h"` with the actual content of the race toolkit and attempts to compile the program.
+    *   **Toolkit Expansion & Compilation**: `CompileCProg` action replaces `#include "race_toolkit.h"` with the
+        actual content of the race toolkit and attempts to compile the program.
+        *   **Race Condition Toolkit**: The toolkit (`race_toolkit.h`) provides pre-defined C snippets and macros
+            for advanced race setups: CPU pinning (`PIN_TO_CPU`), memory barriers (`MB`), spin-wait barriers
+            (`WAIT_ON`/`SIGNAL`), userfaultfd (`setup_uffd`), and robust timing primitives (`TIMER_START`,
+            `TIMER_NOT_EXPIRED`) designed to survive clock resets/drifts in minimal QEMU VM environments.
     *   **Success**: If compilation succeeds, it outputs `FormattedReproC` and clears `CompilerError` to exit the repair loop.
     *   **Repair**: If compilation fails, the `repro-repairer` agent is invoked to fix the code based on the compiler error, updating `RawCandidateReproC` for the next attempt.
 5.  **Execution**: `crash.RunCRepro` runs the candidate reproducer in the VM. It returns whether it reproduced the crash, the console output, and crash report details if successful.
 6.  **Log Truncation**: `TruncateLog` keeps the last 200 lines of console output to fit LLM context limits.
-7.  **Oracle Analysis**: The `repro-oracle` agent analyzes the execution results. It checks if the crash title matches the expected bug and provides feedback (`OracleFeedback`).
-    *   If it was a successful probe, it provides feedback to proceed to generate the full reproducer.
-    *   If failed due to environmental issues, it suggests modifications.
+7.  **Oracle Analysis**: The `repro-oracle` agent analyzes the execution results using the structured `IsProbe` flag to branch its logic:
+    *   **If `IsProbe` is true**: A successful run (all capability checks passed) confirms the environment is ready, and the Oracle instructs the generator to proceed to the full reproducer. A failed run prompts feedback on which capabilities failed to help the generator adjust its setups.
+    *   **If `IsProbe` is false**: A successful execution (exit 0) WITHOUT a crash means reproduction failed to trigger the bug (NOT a successful probe). The Oracle analyzes strace/console output to tighten the race window or adjust input parameters.
 8.  **Loop Control**: `LoopController` determines if the loop should continue:
     *   If successful reproduction occurred and the title matches, it promotes the candidate to the final output and stops (`ContinueSignal` becomes empty).
     *   If a collision is detected (different crash), it provides feedback and continues.
