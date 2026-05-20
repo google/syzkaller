@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -143,6 +144,10 @@ func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunR
 	var rep *report.Report
 	if len(reps) > 0 {
 		rep = reps[0]
+	}
+	if ctxTimeout.Err() == context.DeadlineExceeded || errors.Is(err, context.DeadlineExceeded) {
+		output = append(output, []byte(fmt.Sprintf("\n[host] Command execution timed out after %v\n", opts.Duration))...)
+		err = nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %w", err)
