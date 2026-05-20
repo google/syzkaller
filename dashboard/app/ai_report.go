@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 	"google.golang.org/appengine/v2/log"
 )
 
@@ -288,7 +289,9 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
 				closes = append(closes, link)
-				if reporter != "" && !slices.Contains(result.Patch.ReportedBy, reporter) {
+				if reporter != "" && !slices.ContainsFunc(result.Patch.ReportedBy, func(val string) bool {
+					return email.EmailsMatch(val, reporter)
+				}) {
 					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
 				}
 			}
