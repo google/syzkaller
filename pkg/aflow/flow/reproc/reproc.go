@@ -185,6 +185,9 @@ type LoopControllerArgs struct {
 	FormattedReproC      string
 	CandidateBugTitle    string
 	CandidateCrashReport string
+	IsProbe              bool
+	TestError            string
+	ProbeSuccessful      bool
 }
 
 type LoopControllerResult struct {
@@ -194,11 +197,17 @@ type LoopControllerResult struct {
 	Reproduced            bool
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
+	ProbeSuccessful       bool
 }
 
 func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopControllerResult, error) {
 	res := LoopControllerResult{
-		OracleFeedback: args.Feedback,
+		OracleFeedback:  args.Feedback,
+		ProbeSuccessful: args.ProbeSuccessful,
+	}
+
+	if args.IsProbe && args.TestError == "" && !args.CandidateReproduced {
+		res.ProbeSuccessful = true
 	}
 
 	if args.CandidateReproduced && args.TitleMatches {
@@ -421,19 +430,24 @@ major step in the reproduction sequence.
         exit(1);
     }
     printf("[+] do_something successful.\n");
-6. Prioritize generating a simple 'probe' program first to verify that the test environment has the
-necessary kernel capabilities (e.g., on the very first attempt, or if a previous probe failed). This
-program's sole purpose is to verify subsystem availability and privileges by probing specific device
-files, subsystems, or syscalls (for example: opening /dev/vhci to check if the virtual Bluetooth
-controller is accessible, loading a minimal dummy BPF program, or making a specific socket/ioctl call).
-Print clear messages indicating success or failure of these probes, and exit with 0 only if all checks pass.
-Do not attempt complex logic or try to trigger the actual bug/crash until you have confirmed
-a successful probe run in the environment.
+6. You MUST start by generating a simple 'probe' program first if the input variable NeedProbe is
+true. This is a strict, non-negotiable requirement to verify that the test environment has the
+necessary kernel capabilities and privileges.
+This program's sole purpose is to verify subsystem availability and privileges by probing specific
+device files, subsystems, or syscalls (for example: opening /dev/vhci to check if the virtual
+Bluetooth controller is accessible, loading a minimal dummy BPF program, or making a specific
+socket/ioctl call).
+Print clear messages indicating success or failure of these probes, and exit with 0 only if
+all checks pass.
+Do NOT attempt complex logic, and do NOT try to trigger the actual bug/crash in this first version,
+regardless of how simple the reproducer seems. You must wait until a successful probe run has been
+confirmed in the environment (i.e., when NeedProbe becomes false).
 7. You must set the IsProbe output field to true if the generated C program is a minimal capability probe.
 Set it to false if the C program is a full reproducer candidate attempting to trigger the target bug/crash.`
 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
-Strategy: {{.CurrentReproStrategy}}`
+Strategy: {{.CurrentReproStrategy}}
+NeedProbe: {{if .ProbeSuccessful}}false{{else}}true{{end}}`
 
 const oracleInstruction = `You are a security researcher with deep Linux kernel background.
 Analyze the results of running the reproducer and determine if it was successful.

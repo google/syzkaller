@@ -59,6 +59,41 @@ func TestLoopControllerFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "continue", res.ContinueSignal)
 	assert.Contains(t, res.OracleFeedback, "Collision detected")
+
+	// Case 3: Successful Probe Run.
+	args = LoopControllerArgs{
+		Feedback:            "probe successful",
+		IsProbe:             true,
+		TestError:           "",
+		CandidateReproduced: false,
+		ProbeSuccessful:     false,
+	}
+	res, err = LoopControllerFunc(ctx, args)
+	assert.NoError(t, err)
+	assert.True(t, res.ProbeSuccessful)
+
+	// Case 4: Failed Probe Run due to compilation or run error.
+	args = LoopControllerArgs{
+		Feedback:            "probe failed",
+		IsProbe:             true,
+		TestError:           "compilation failed",
+		CandidateReproduced: false,
+		ProbeSuccessful:     false,
+	}
+	res, err = LoopControllerFunc(ctx, args)
+	assert.NoError(t, err)
+	assert.False(t, res.ProbeSuccessful)
+
+	// Case 5: Preserve previously successful ProbeSuccessful state.
+	args = LoopControllerArgs{
+		Feedback:            "new run",
+		IsProbe:             false,
+		CandidateReproduced: false,
+		ProbeSuccessful:     true,
+	}
+	res, err = LoopControllerFunc(ctx, args)
+	assert.NoError(t, err)
+	assert.True(t, res.ProbeSuccessful)
 }
 
 func TestExtractCCode(t *testing.T) {
