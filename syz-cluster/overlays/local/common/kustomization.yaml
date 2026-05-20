@@ -11,5 +11,5 @@ resources:
   - network-policy-spanner.yaml
   - workflow-artifacts.yaml
 
-patchesStrategicMerge:
-  - patch-workflow-controller-configmap.yaml
+patches:
+  - path: patch-workflow-controller-configmap.yaml
