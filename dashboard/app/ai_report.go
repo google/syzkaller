@@ -198,8 +198,9 @@ func determineNextStage(ctx context.Context, cfg *AIConfig, job *aidb.Job,
 	return &cfg.Stages[currentIndex+1], nil
 }
 
-func handleRejectCommand(ctx context.Context, req *dashapi.SendExternalCommandReq,
-) (*dashapi.SendExternalCommandResp, error) {
+// nolint: dupl
+func handleRejectCommand(ctx context.Context,
+	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
 	_, job, err := lookupJobByExtReq(ctx, req)
 	if err != nil {
 		return nil, err
@@ -218,6 +219,20 @@ func handleRejectCommand(ctx context.Context, req *dashapi.SendExternalCommandRe
 		Reason:        reason,
 	})
 	if err != nil {
+		var cannotRejectErr *aidb.ErrCannotReject
+		if errors.As(err, &cannotRejectErr) {
+			if req.Source != "" && req.MessageExtID != "" {
+				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
+					JobID:         job.ID,
+					CommandSource: string(req.Source),
+					CommandExtID:  req.MessageExtID,
+					User:          req.Author,
+					Action:        aidb.ActionReject,
+					Error:         cannotRejectErr.Reason,
+				})
+			}
+			return &dashapi.SendExternalCommandResp{Error: cannotRejectErr.Reason}, nil
+		}
 		return nil, err
 	}
 
