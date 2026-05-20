@@ -284,28 +284,46 @@ func TestFileLink(t *testing.T) {
 	}
 }
 
-func TestParse(t *testing.T) {
-	test1 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
-	Foo Bar<b@email.com> (reviewer:KERNEL)
-	<somelist@list.com> (open list:FOO)
-	"Supporter Foo" <c@email.com> (supporter:KERNEL)
-	linux-kernel@vger.kernel.org (open list)`)
-	test2 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
-	Foo Bar<b@email.com> (reviewer:KERNEL)
-	"Supporter Foo" <c@email.com> (supporter:KERNEL)
-	linux-kernel@vger.kernel.org (open list)`)
-
-	maintainers1 := Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
-		{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
-		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
-		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
-		{mail.Address{Name: "", Address: "somelist@list.com"}, To}}
-	maintainers2 := Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
-		{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
-		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
-		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}}
-
-	require.Equal(t, maintainers1, ParseMaintainersLinux(test1))
-	require.Equal(t, maintainers2, ParseMaintainersLinux(test2))
-	require.Equal(t, Recipients(nil), ParseMaintainersLinux([]byte("")))
+func TestParseMaintainersLinux(t *testing.T) {
+	type Test struct {
+		Input string
+		Want  Recipients
+	}
+	tests := []Test{
+		{
+			"",
+			Recipients(nil),
+		},
+		{
+			`
+Foo Bar <a@email.com> (maintainer:KERNEL)
+Foo Bar<b@email.com> (reviewer:KERNEL)
+<somelist@list.com> (open list:FOO)
+"Supporter Foo" <c@email.com> (supporter:KERNEL)
+linux-kernel@vger.kernel.org (open list)
+		`,
+			Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+				{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
+				{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
+				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
+				{mail.Address{Name: "", Address: "somelist@list.com"}, To}},
+		},
+		{
+			`
+Foo Bar <a@email.com> (maintainer:KERNEL)
+Foo Bar<b@email.com> (reviewer:KERNEL)
+"Supporter Foo" <c@email.com> (supporter:KERNEL)
+linux-kernel@vger.kernel.org (open list)
+			`,
+			Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+				{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
+				{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
+				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}},
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			require.Equal(t, test.Want, ParseMaintainersLinux([]byte(test.Input)), test.Input)
+		})
+	}
 }
