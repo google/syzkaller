@@ -1,0 +1,8 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["amd64", "arm64", "riscv64", "s390x"]
+
+# The following constants were removed from upstream in 15c9ed1d8286 ("pppoe: remove kernel-mode relay support").
+define PPPOEIOCDFWD	45313
+define PPPOEIOCSFWD	1074311424

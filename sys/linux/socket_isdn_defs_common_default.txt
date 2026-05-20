@@ -1,0 +1,23 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["386", "amd64", "arm", "arm64", "riscv64", "s390x"]
+
+# The following constants were removed from upstream in 4f10f1dfb235 ("net: remove ISDN subsystem and Bluetooth CMTP").
+define CAPI_CLR_FLAGS	2147762981
+define CAPI_GET_ERRCODE	2147631905
+define CAPI_GET_FLAGS	2147762979
+define CAPI_INSTALLED	2147631906
+define CAPI_NCCI_GETUNIT	2147762983
+define CAPI_NCCI_OPENCOUNT	2147762982
+define CAPI_REGISTER	1074545409
+define CAPI_SET_FLAGS	2147762980
+define IMADDTIMER	2147764544
+define IMCLEAR_L2	2147764550
+define IMCTRLREQ	2147764549
+define IMDELTIMER	2147764545
+define IMGETCOUNT	2147764547
+define IMGETDEVINFO	2147764548
+define IMGETVERSION	2147764546
+define IMHOLD_L1	2147764552
+define IMSETDEVNAME	2149075271

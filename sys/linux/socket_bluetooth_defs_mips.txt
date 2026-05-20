@@ -1,0 +1,10 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["mips64le", "ppc64le"]
+
+# The following constants were removed from upstream in 4f10f1dfb235 ("net: remove ISDN subsystem and Bluetooth CMTP").
+define CMTPCONNADD	2147763144
+define CMTPCONNDEL	2147763145
+define CMTPGETCONNINFO	1074021331
+define CMTPGETCONNLIST	1074021330

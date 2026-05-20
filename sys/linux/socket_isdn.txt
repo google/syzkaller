@@ -4,10 +4,74 @@
 # AF_ISDN support.
 
 include <linux/socket.h>
-include <linux/mISDNif.h>
-include <linux/isdn/capiutil.h>
-include <uapi/linux/capi.h>
-include <uapi/linux/isdn/capicmd.h>
+include <linux/net.h>
+include <linux/fcntl.h>
+
+# The following constants were removed from upstream in 4f10f1dfb235 ("net: remove ISDN subsystem and Bluetooth CMTP").
+define CAPI_ALERT	1
+define CAPI_CONF	129
+define CAPI_CONNECT	2
+define CAPI_CONNECT_ACTIVE	3
+define CAPI_CONNECT_B3	130
+define CAPI_CONNECT_B3_ACTIVE	131
+define CAPI_CONNECT_B3_T90_ACTIVE	136
+define CAPI_DATA_B3	134
+define CAPI_DISCONNECT	4
+define CAPI_DISCONNECT_B3	132
+define CAPI_FACILITY	128
+define CAPI_GET_MANUFACTURER	3221504774
+define CAPI_GET_PROFILE	3225436937
+define CAPI_GET_SERIAL	3221504776
+define CAPI_IND	130
+define CAPI_INFO	8
+define CAPI_LISTEN	5
+define CAPI_MANUFACTURER	255
+define CAPI_REQ	128
+define CAPI_RESET_B3	135
+define CAPI_RESP	131
+define CAPI_SELECT_B_PROTOCOL	65
+define ISDN_P_BASE	0
+define ISDN_P_B_HDLC	34
+define ISDN_P_B_L2DSP	37
+define ISDN_P_B_L2DSPHDLC	38
+define ISDN_P_B_L2DTMF	36
+define ISDN_P_B_RAW	33
+define ISDN_P_B_X75SLP	35
+define ISDN_P_LAPD_NT	17
+define ISDN_P_LAPD_TE	16
+define ISDN_P_NT_E1	4
+define ISDN_P_NT_S0	2
+define ISDN_P_TE_E1	3
+define ISDN_P_TE_S0	1
+define MISDN_CHMAP_SIZE	16
+define MISDN_CTRL_CONNECT	2
+define MISDN_CTRL_DISCONNECT	4
+define MISDN_CTRL_FILL_EMPTY	512
+define MISDN_CTRL_GETOP	0
+define MISDN_CTRL_GETPEER	1024
+define MISDN_CTRL_HFC_CONF_JOIN	16387
+define MISDN_CTRL_HFC_CONF_SPLIT	16388
+define MISDN_CTRL_HFC_ECHOCAN_OFF	16392
+define MISDN_CTRL_HFC_ECHOCAN_ON	16391
+define MISDN_CTRL_HFC_OP	16384
+define MISDN_CTRL_HFC_PCM_CONN	16385
+define MISDN_CTRL_HFC_PCM_DISC	16386
+define MISDN_CTRL_HFC_RECEIVE_OFF	16389
+define MISDN_CTRL_HFC_RECEIVE_ON	16390
+define MISDN_CTRL_HFC_WD_INIT	16393
+define MISDN_CTRL_HFC_WD_RESET	16394
+define MISDN_CTRL_HW_FEATURES	8193
+define MISDN_CTRL_HW_FEATURES_OP	8192
+define MISDN_CTRL_L1_TIMER3	2048
+define MISDN_CTRL_LOOP	1
+define MISDN_CTRL_PCMCONNECT	16
+define MISDN_CTRL_PCMDISCONNECT	32
+define MISDN_CTRL_RX_BUFFER	8
+define MISDN_CTRL_RX_OFF	256
+define MISDN_CTRL_SETPEER	64
+define MISDN_CTRL_UNSETPEER	128
+define MISDN_MAX_IDLEN	20
+define MISDN_TIME_STAMP	1
 
 resource sock_isdn_base[sock]
 

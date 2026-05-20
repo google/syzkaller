@@ -3,7 +3,23 @@
 
 include <linux/socket.h>
 include <linux/net.h>
-include <uapi/linux/rose.h>
+include <uapi/linux/ax25.h>
+
+# The following constants were removed from upstream in dd8d4bc28ad7 ("net: remove ax25 and amateur radio (hamradio) subsystem").
+define ROSE_DEFER	1
+define ROSE_HOLDBACK	7
+define ROSE_IDLE	5
+define ROSE_MAX_DIGIS	6
+define ROSE_QBITINCL	6
+define ROSE_T1	2
+define ROSE_T2	3
+define ROSE_T3	4
+define SIOCRSACCEPT	35299
+define SIOCRSCLRRT	35300
+define SIOCRSGCAUSE	35296
+define SIOCRSGL2CALL	35301
+define SIOCRSSCAUSE	35297
+define SIOCRSSL2CALL	35298
 
 resource sock_rose[sock]
 
