@@ -1,4 +1,6 @@
-{{.Patch.Body}}
+{{if .Patch.Authors}}From: {{index .Patch.Authors 0}}
+
+{{end}}{{.Patch.Body}}
 
 ---
 {{if .Patch.Changelog}}{{range $i, $c := .Patch.Changelog}}{{if $i}}
