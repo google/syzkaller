@@ -43,7 +43,8 @@ func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
 	// ld.lld: error: arch/x86/entry/vdso/vgetrandom-x32.o:(.note.gnu.property+0x0): data is too short
 	// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
 	configScript := filepath.Join(srcDir, "scripts", "config")
-	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript, "-d", "X86_X32_ABI"); err != nil {
+	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript,
+		"-d", "X86_X32_ABI", "--set-str", "INITRAMFS_SOURCE", ""); err != nil {
 		return err
 	}
 	target := targets.List[targets.Linux][targets.AMD64]
