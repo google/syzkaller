@@ -113,6 +113,7 @@ func TestAILoreIntegration(t *testing.T) {
 Subject: Re: [PATCH RFC] Test Subject
 Message-ID: <reply1>
 In-Reply-To: <mock@msgid-1>
+Cc: "New Reviewer" <newreviewer@email.com>
 
 #syz upstream
 `, now.Add(time.Minute))
@@ -127,7 +128,12 @@ In-Reply-To: <mock@msgid-1>
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
 	assert.Equal(t, []string{"public@test.com", `"Maintainer" <maintainer@email.com>`}, mockSnd.sent[1].To)
 	assert.Equal(t, "[PATCH] Test Subject", mockSnd.sent[1].Subject)
-	assert.Equal(t, []string{"archive@lore.com", "reviewer@email.com"}, mockSnd.sent[1].Cc)
+	assert.Equal(t, []string{
+		"archive@lore.com",
+		"newreviewer@email.com",
+		"reviewer@email.com",
+		"user@email",
+	}, mockSnd.sent[1].Cc)
 
 	bodyPublic := string(mockSnd.sent[1].Body)
 	assert.NotContains(t, bodyPublic, "Final To:")
@@ -650,6 +656,7 @@ func TestAILoreIteration(t *testing.T) {
 
 	require.Len(t, mockSnd.sent, 2)
 	assert.Equal(t, "[PATCH RFC v2] Test Subject", mockSnd.sent[1].Subject)
+	assert.Contains(t, mockSnd.sent[1].Cc, "reviewer@email.com")
 	body = string(mockSnd.sent[1].Body)
 	assert.NotContains(t, body, "Test Subject")
 	assert.Contains(t, body, "Fixes: abcdefabcdef (\"introduce a bug\")")

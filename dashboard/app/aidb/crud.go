@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
@@ -898,9 +899,40 @@ func LoadJobReportings(ctx context.Context, jobID string) ([]*JobReporting, erro
 	})
 }
 
-func SaveJobComment(ctx context.Context, entry *JobComment) error {
+func SaveJobComment(ctx context.Context, entry *JobComment, extraCc []string) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
 	entry.ID = uuid.NewString()
-	err := saveEntity(ctx, "JobComments", entry)
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		mut, err := spanner.InsertStruct("JobComments", entry)
+		if err != nil {
+			return err
+		}
+		muts := []*spanner.Mutation{mut}
+
+		if len(extraCc) > 0 {
+			stmt := spanner.Statement{
+				SQL:    selectJobReporting() + ` WHERE ID = @id`,
+				Params: map[string]any{"id": entry.ReportingID},
+			}
+			reporting, err := readRow[JobReporting](ctx, txn, stmt)
+			if err != nil {
+				return err
+			}
+			if reporting != nil {
+				reporting.ExtraCcList = email.MergeEmailLists(reporting.ExtraCcList, extraCc)
+				repMut, err := spanner.UpdateStruct("JobReporting", reporting)
+				if err != nil {
+					return err
+				}
+				muts = append(muts, repMut)
+			}
+		}
+		return txn.BufferWrite(muts)
+	})
 	if err != nil && spanner.ErrCode(err) == codes.AlreadyExists {
 		return ErrDuplicateComment
 	}
@@ -1256,6 +1288,7 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 			Source:       parentRep.Source,
 			Version:      spanner.NullInt64{Int64: int64(nextVersion), Valid: true},
 			UpstreamedBy: parentRep.UpstreamedBy,
+			ExtraCcList:  parentRep.ExtraCcList,
 			CreatedAt:    TimeNow(ctx),
 		}
 
@@ -1446,19 +1479,6 @@ func RunInTransaction(ctx context.Context, f func(ctx context.Context, txn *span
 		return err
 	}
 	_, err = client.ReadWriteTransaction(ctx, f)
-	return err
-}
-
-func saveEntity[T any](ctx context.Context, table string, obj *T) error {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-	mut, err := spanner.InsertOrUpdateStruct(table, obj)
-	if err != nil {
-		return err
-	}
-	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
 	return err
 }
 

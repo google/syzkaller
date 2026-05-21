@@ -113,6 +113,7 @@ type JobReporting struct {
 	UpstreamedBy spanner.NullString
 	ExtID        spanner.NullString
 	Version      spanner.NullInt64
+	ExtraCcList  []string
 	CreatedAt    time.Time
 }
 

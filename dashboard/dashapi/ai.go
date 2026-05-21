@@ -66,6 +66,7 @@ type SendExternalCommandReq struct {
 	MessageExtID string
 	Author       string
 	AuthorName   string
+	Cc           []string
 	OwnEmail     bool
 	DKIM         bool
 	// Only one must be set.

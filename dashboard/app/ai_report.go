@@ -134,6 +134,13 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	}
 	nextStage := nextStageCfg.Name
 
+	var extraCcList []string
+	if currentReporting != nil {
+		extraCcList = currentReporting.ExtraCcList
+	}
+	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
+	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
+
 	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
 		Job: job,
 		Reporting: &aidb.JobReporting{
@@ -142,6 +149,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
 			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
 			Version:      spanner.NullInt64{Int64: 1, Valid: true},
+			ExtraCcList:  extraCcList,
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
 		CommandSource: string(req.Source),
@@ -320,6 +328,9 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			result.To = append(result.To, result.Patch.To...)
 			result.Cc = append(result.Cc, result.Patch.Cc...)
 		}
+
+		result.Cc = append(result.Cc, r.ExtraCcList...)
+		result.Cc = email.SubtractEmailLists(unique(result.Cc), result.To)
 
 		result.CanUpstream = idx < len(nsCfg.AI.Stages)-1
 		if result.Patch == nil {
@@ -532,6 +543,7 @@ func handleCommentCommand(ctx context.Context,
 		return nil, fmt.Errorf("failed to store comment body: %w", err)
 	}
 
+	extraCc := email.SubtractEmailLists(req.Cc, ownEmails(ctx))
 	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
 		ReportingID:  reporting.ID,
 		ExtID:        req.MessageExtID,
@@ -542,7 +554,7 @@ func handleCommentCommand(ctx context.Context,
 		OwnEmail:     req.OwnEmail,
 		Processed:    req.OwnEmail,
 		VerifiedDKIM: req.DKIM,
-	})
+	}, extraCc)
 	if err != nil && !errors.Is(err, aidb.ErrDuplicateComment) {
 		return nil, err
 	}
