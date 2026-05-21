@@ -22,6 +22,7 @@ func extractCommands(polled *lore.PolledEmail, dkimOk bool) ([]*dashapi.SendExte
 			MessageExtID: polled.Email.MessageID,
 			Author:       polled.Email.Author,
 			AuthorName:   polled.Email.AuthorName,
+			Cc:           polled.Email.Cc,
 			OwnEmail:     polled.Email.OwnEmail,
 			DKIM:         dkimOk,
 		}
@@ -50,6 +51,7 @@ func extractCommands(polled *lore.PolledEmail, dkimOk bool) ([]*dashapi.SendExte
 			MessageExtID: polled.Email.MessageID,
 			Author:       polled.Email.Author,
 			AuthorName:   polled.Email.AuthorName,
+			Cc:           polled.Email.Cc,
 			OwnEmail:     polled.Email.OwnEmail,
 			DKIM:         dkimOk,
 			Comment: &dashapi.CommentCommand{

@@ -1,0 +1,1 @@
+ALTER TABLE JobReporting ADD COLUMN ExtraCcList ARRAY<STRING(MAX)>;

@@ -200,6 +200,7 @@ In-Reply-To: <reply1>
 			RootExtID:    "<mock@msgid-1>",
 			MessageExtID: "<reply2>",
 			Author:       "user@email",
+			Cc:           []string{"user@email"},
 			Upstream:     &dashapi.UpstreamCommand{},
 		},
 	}, mockDash.commands)
@@ -438,6 +439,7 @@ func mockMainScenarioCommands() []*dashapi.SendExternalCommandReq {
 			RootExtID:    "<mock@msgid-1>",
 			MessageExtID: "<reply1>",
 			Author:       "user@email",
+			Cc:           []string{"user@email"},
 			Comment: &dashapi.CommentCommand{
 				Subject: "Re: [PATCH] Fix bug",
 				Body:    "This looks interesting.\n",
@@ -448,6 +450,7 @@ func mockMainScenarioCommands() []*dashapi.SendExternalCommandReq {
 			RootExtID:    "<mock@msgid-1>",
 			MessageExtID: "<reply2>",
 			Author:       "user@email",
+			Cc:           []string{"user@email"},
 			Upstream:     &dashapi.UpstreamCommand{},
 		},
 		{
@@ -455,6 +458,7 @@ func mockMainScenarioCommands() []*dashapi.SendExternalCommandReq {
 			RootExtID:    "<mock@msgid-1>",
 			MessageExtID: "<reply3>",
 			Author:       "user@email",
+			Cc:           []string{"user@email"},
 			Reject: &dashapi.RejectCommand{
 				Reason: "#syz reject\n",
 			},
