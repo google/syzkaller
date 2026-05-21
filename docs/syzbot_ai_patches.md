@@ -1,6 +1,17 @@
-# syzbot AI patches
+# AI-generated patches
 
-`syzbot` automatically generates and sends patches for found bugs using AI.
+`syzbot` tries to automatically generate and send patches for found bugs using AI.
+
+Patches mailed to the kernel mailing lists were reviewed and `Signed-off-by`
+by at least one human developer in accordance with
+[AI Coding Assistants](https://docs.kernel.org/process/coding-assistants.html)
+guidelines.
+
+You can comment on the patches as usual, and ask for changes to the code and/or
+description, ask to include tags, or ask clarifying questions.
+`syzbot` will try to address the comments and send a new version of the patch
+if necessary. Comments may be batched, so the reply may take up to
+several hours.
 
 ## The Intended Workflow
 
