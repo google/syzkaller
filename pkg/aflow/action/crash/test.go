@@ -70,38 +70,55 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 		TestError string
 	}
 	cached, err := aflow.CacheObject(ctx, "patch-test", desc, func() (Cached, error) {
-		var res Cached
-		if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
-			res.TestError = fmt.Sprintf("Building the kernel failed with %v", err)
-			return res, nil
+		for _, fn := range []func(ctx *aflow.Context, args testArgs) (string, error){
+			testPatchBuild,
+			testPatchRepro,
+		} {
+			testError, err := fn(ctx, args)
+			if err != nil || testError != "" {
+				return Cached{testError}, err
+			}
 		}
-		workdir, err := ctx.TempDir()
-		if err != nil {
-			return res, err
-		}
-		reproduceArgs := ReproduceArgs{
-			Syzkaller:    args.Syzkaller,
-			Image:        args.Image,
-			Type:         args.Type,
-			VM:           args.VM,
-			ReproOpts:    args.ReproOpts,
-			ReproSyz:     args.ReproSyz,
-			ReproC:       args.ReproC,
-			KernelSrc:    args.KernelScratchSrc,
-			KernelObj:    args.KernelScratchSrc,
-			KernelCommit: args.KernelCommit,
-			KernelConfig: args.KernelConfig,
-		}
-		testRes, err := RunTest(reproduceArgs, workdir, false)
-		if testRes.Report != nil {
-			res.TestError = string(testRes.Report.Report)
-		} else {
-			res.TestError = testRes.BootError
-		}
-		return res, err
+		return Cached{}, nil
 	})
 	res.TestError = cached.TestError
 	return res, err
+}
+
+func testPatchBuild(ctx *aflow.Context, args testArgs) (string, error) {
+	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
+		// TODO: should distinguish between infra errors, and patch compilation errors.
+		return fmt.Sprintf("Building the kernel failed with: %v", err), nil
+	}
+	return "", nil
+}
+
+func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
+	workdir, err := ctx.TempDir()
+	if err != nil {
+		return "", err
+	}
+	reproduceArgs := ReproduceArgs{
+		Syzkaller:    args.Syzkaller,
+		Image:        args.Image,
+		Type:         args.Type,
+		VM:           args.VM,
+		ReproOpts:    args.ReproOpts,
+		ReproSyz:     args.ReproSyz,
+		ReproC:       args.ReproC,
+		KernelSrc:    args.KernelScratchSrc,
+		KernelObj:    args.KernelScratchSrc,
+		KernelCommit: args.KernelCommit,
+		KernelConfig: args.KernelConfig,
+	}
+	testRes, err := RunTest(reproduceArgs, workdir, false)
+	if err != nil {
+		return "", err
+	}
+	if testRes.Report != nil {
+		return string(testRes.Report.Report), nil
+	}
+	return testRes.BootError, nil
 }
 
 func currentDiff(repo string) (string, error) {
