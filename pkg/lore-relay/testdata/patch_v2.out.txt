@@ -24,4 +24,7 @@ diff --git a/file2 b/file2
 
 base-commit: 123456abcdef
 -- 
-See http://docs.link for more information.
+See http://docs.link for information about AI-generated patches.
+You can comment on the patch as usual, syzbot will try to address
+the comments and send a new version of the patch if necessary.
+syzbot engineers can be reached at syzkaller@googlegroups.com.

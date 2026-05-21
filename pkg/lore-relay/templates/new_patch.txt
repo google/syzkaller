@@ -11,7 +11,11 @@
 base-commit: {{.Patch.BaseCommit}}
 -- 
 {{ if .CanUpstream }}This is an AI-generated patch subject to moderation.
-Reply with '#syz upstream' to send it to the mailing list.
-Reply with '#syz reject' to reject it (or '#syz unreject' to undo).
+Reply with '#syz upstream' to Sign-off the patch as a human author
+and send it to the upstream kernel mailing lists.
+Reply with '#syz reject' to reject it ('#syz unreject' to undo).
 
-{{ end }}See {{.DocsLink}} for more information.
+{{ end }}See {{.DocsLink}} for information about AI-generated patches.
+You can comment on the patch as usual, syzbot will try to address
+the comments and send a new version of the patch if necessary.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
