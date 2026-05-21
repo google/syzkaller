@@ -50,6 +50,13 @@ func (a *funcAction[Args, Results]) verify(ctx *verifyContext) {
 	provideOutputs[Results](ctx, a.name)
 }
 
+func (a *funcAction[Args, Results]) info() *ActionNode {
+	return &ActionNode{
+		Type: "FuncAction",
+		Name: a.name,
+	}
+}
+
 func (a *funcAction[Args, Results]) testVerify(t *testing.T, ctx *verifyContext, args, results any) (
 	map[string]any, map[string]any, func(map[string]any) map[string]any) {
 	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))

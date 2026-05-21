@@ -36,7 +36,8 @@ func main() {
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
-		flagHTML = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
+		flagHTML      = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
+		flagVisualize = flag.String("visualize", "", "visualize the workflow data-flow graph in a browser")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -53,6 +54,17 @@ func main() {
 		}
 		return
 	}
+	if *flagVisualize != "" {
+		flow := aflow.Flows[*flagVisualize]
+		if flow == nil {
+			tool.Failf("workflow %q is not found", *flagVisualize)
+		}
+		if err := visualizeGraph(flow); err != nil {
+			tool.Fail(err)
+		}
+		return
+	}
+
 	if *flagFlow == "" {
 		fmt.Fprintf(os.Stderr, "syz-aflow usage:\n")
 		flag.PrintDefaults()

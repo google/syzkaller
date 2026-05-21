@@ -6,6 +6,15 @@ package aflow
 type Action interface {
 	verify(*verifyContext)
 	execute(*Context) error
+	info() *ActionNode
+}
+
+// ActionNode provides info about workflow for SVG visualization by tools/syz-aflow.
+type ActionNode struct {
+	Type     string
+	Name     string
+	Branch   string
+	Children []*ActionNode
 }
 
 type pipeline struct {
@@ -34,4 +43,15 @@ func (p *pipeline) verify(ctx *verifyContext) {
 	for _, a := range p.actions {
 		a.verify(ctx)
 	}
+}
+
+func (p *pipeline) info() *ActionNode {
+	n := &ActionNode{
+		Type: "Pipeline",
+		Name: "Pipeline",
+	}
+	for _, a := range p.actions {
+		n.Children = append(n.Children, a.info())
+	}
+	return n
 }

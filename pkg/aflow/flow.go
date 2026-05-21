@@ -29,7 +29,13 @@ type Flow struct {
 	Root   Action
 
 	Models []string // LLM models used in this workflow.
+	Graph  *FlowGraph
 	*FlowType
+}
+
+type FlowGraph struct {
+	Root  *ActionNode
+	Edges []DataEdge
 }
 
 type FlowType struct {
@@ -94,6 +100,10 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 	requireInputs[Outputs](ctx, "flow outputs")
 	if err := ctx.finalize(); err != nil {
 		return fmt.Errorf("flow %v: %w", flow.Name, err)
+	}
+	flow.Graph = &FlowGraph{
+		Root:  flow.Root.info(),
+		Edges: ctx.edges,
 	}
 	flow.Models = slices.Collect(maps.Keys(ctx.models))
 	slices.Sort(flow.Models)
