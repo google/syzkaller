@@ -146,12 +146,16 @@ Cc: {{$addr}}{{end}}
 func formatAssistedBy(tools []string) string {
 	slices.Sort(tools)
 	slices.Reverse(tools)
-	for i, tool := range tools {
+	res := []string{"syzbot"}
+	for _, tool := range tools {
 		if strings.HasPrefix(tool, "gemini") {
-			tools[i] = "Gemini:" + tool
+			tool = "Gemini:" + tool
+		}
+		if tool != "syzbot" {
+			res = append(res, tool)
 		}
 	}
-	return strings.Join(tools, " ")
+	return strings.Join(res, " ")
 }
 
 var diffRegexps = []*regexp.Regexp{

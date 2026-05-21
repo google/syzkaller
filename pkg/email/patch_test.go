@@ -570,6 +570,7 @@ Something was broken. This fixes it.
 Something was broken. This fixes it.
 
 Fixes: 9320daf2018f ("some old bug")
+Assisted-by: syzbot
 Reviewed-by: Alice <alice@test.com>
 Reviewed-by: Bob <bob@test.com>
 Acked-by: Charlie <charley@test.com>
@@ -604,6 +605,7 @@ Something was broken. This fixes it.
 
 Something was broken. This fixes it.
 
+Assisted-by: syzbot
 Signed-off-by: syzbot@kernel.org
 To: "Foo Bar" <foobar@test.com>
 Cc: <linux-kernel@vger.kernel.org>
@@ -632,7 +634,7 @@ Something was broken. This fixes it.
 
 Something was broken. This fixes it.
 
-Assisted-by: Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview
+Assisted-by: syzbot Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview
 Signed-off-by: syzbot@kernel.org
 Signed-off-by: "Kernel Dev" <dev@kernel.org>
 To: "Foo Bar" <foobar@test.com>

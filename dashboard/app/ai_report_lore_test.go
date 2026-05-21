@@ -105,7 +105,7 @@ func TestAILoreIntegration(t *testing.T) {
 
 	body := string(mockSnd.sent[0].Body)
 	assert.Contains(t, body, "Fixes: 123456789012 (\"original bug\")")
-	assert.Contains(t, body, "Assisted-by: Gemini:gemini-3.1-pro-preview")
+	assert.Contains(t, body, "Assisted-by: syzbot Gemini:gemini-3.1-pro-preview")
 	assert.NotContains(t, body, "Signed-off-by")
 	assert.Contains(t, body, "Closes: "+appURL(c.ctx)+"/bug?extid="+extID)
 	assert.Contains(t, body, "Link: "+appURL(c.ctx)+"/ai_job?id="+jobID)
