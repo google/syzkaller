@@ -414,9 +414,11 @@ Watch out for citations (lines starting with >) which often contain previous mes
 Note: You shouldn't fully debug the issue right now. Just do a cautious check if the V+1 patch is necessary.
 
 If the incoming comments (especially new ones) are contradictory or unclear,
-it is fine to postpone patch creation (leave all Items arrays empty), even if
-it's obvious that we'll eventually need a new version. In that case, we can
-ask clarifying questions in the replies on this turn instead.
+or if there is an ongoing discussion between reviewers, it is fine to postpone
+patch creation (leave all Items arrays empty), even if it's obvious that a new
+version will eventually be needed. In that case, clarifying questions can be
+asked in the generated replies instead, or the system can wait for the
+discussion to settle.
 
 IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) does NOT automatically mean that
 a new version of the patch must be generated. Do not extract tag updates as ActionableItems.
@@ -530,6 +532,11 @@ are specified, letter capitalization, style, etc.
 const commentProcessInstruction = `
 You are a friendly expert Linux kernel developer. You are evaluating whether a specific comment
 on a patch requires a written reply, and writing the final text of that reply.
+
+Note that not all comments require a reply, and that's perfectly fine.
+Only reply to comments that are directly addressed to you and require a response.
+If the reviewers are discussing the patch among themselves, or asking to wait
+for something, ignore the comment (Action is "ignore").
 
 If you choose to reply (Action is "reply"), you must also provide:
 1. The final text of your reply (in the ReplyText field).
