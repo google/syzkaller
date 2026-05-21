@@ -47,6 +47,7 @@ func TestLoopControllerFunc(t *testing.T) {
 	assert.Equal(t, "", res.ContinueSignal)
 	assert.Equal(t, "code", res.ReproC)
 	assert.True(t, res.Reproduced)
+	assert.Equal(t, "good", res.EquivalenceAnalysis)
 
 	// Case 2: Collision.
 	args = LoopControllerArgs{

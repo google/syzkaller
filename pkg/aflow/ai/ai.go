@@ -139,4 +139,5 @@ type ReproCOutputs struct {
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
 	OtherCrashReports     []string
+	EquivalenceAnalysis   string
 }

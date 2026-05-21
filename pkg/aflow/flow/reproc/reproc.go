@@ -198,6 +198,7 @@ type LoopControllerResult struct {
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
 	ProbeSuccessful       bool
+	EquivalenceAnalysis   string
 }
 
 func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopControllerResult, error) {
@@ -216,6 +217,7 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 		res.ReproducedBugTitle = args.CandidateBugTitle
 		res.ReproducedCrashReport = args.CandidateCrashReport
 		res.ContinueSignal = ""
+		res.EquivalenceAnalysis = args.Feedback
 	} else {
 		if args.CandidateReproduced && !args.TitleMatches {
 			res.OracleFeedback = fmt.Sprintf(
@@ -463,10 +465,19 @@ Use this to guide your classification and feedback:
      explain what failed so the generator can adjust its environment setups.
 
 2. If 'IsProbe' is false:
-   - A successful execution (exit 0) WITHOUT a crash means the reproduction attempt failed to trigger
-     the bug. Do NOT classify this as a successful probe. Instead, analyze the console/strace output
-     to understand why the bug did not trigger (e.g., timing, input arguments, environment setup)
-     and provide feedback on how to improve the reproducer logic to trigger the crash.
+   - If a crash was triggered (Reproduced is true):
+     - Determine if the triggered crash matches the expected bug.
+     - If you conclude they represent the same underlying bug (the same root cause)
+       despite different titles, crash signatures, or call traces, set TitleMatches
+       to true and provide a detailed, technical, and verbose explanation of the
+       equivalence in the 'Feedback' field.
+     - If they do not represent the same bug (a completely unrelated crash/collision),
+        set TitleMatches to false and explain the collision in 'Feedback'.
+     - If they match exactly, set TitleMatches to true and provide a brief confirmation in 'Feedback'.
+   - If the execution was successful (exit 0) WITHOUT a crash (Reproduced is false):
+     - The reproduction attempt failed to trigger the bug. Analyze the console/strace output
+       to understand why the bug did not trigger (e.g., timing, input arguments, environment setup)
+       and provide feedback on how to improve the reproducer logic to trigger the crash.
 
 If reproduction failed due to environmental issues (e.g., missing permissions, missing devices,
 or sandbox restrictions), assume execution might succeed with a different approach or more
