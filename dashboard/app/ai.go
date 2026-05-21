@@ -197,6 +197,7 @@ type uiAIJob struct {
 	Correct          string
 	CorrectTitle     string
 	Results          []*uiAIResult
+	IsCurrent        bool
 }
 
 type uiAIResult struct {
@@ -548,6 +549,32 @@ func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, use
 	return aiJobApplyLabels(ctx, job)
 }
 
+func buildUIJobChain(ctx context.Context, r *http.Request, job *aidb.Job, uiJob *uiAIJob) ([]*uiAIJob, error) {
+	lineage, err := loadPatchLineage(ctx, job.ID)
+	if err == nil && len(lineage) > 0 {
+		var chainJobs []*aidb.Job
+		for _, item := range slices.Backward(lineage) {
+			chainJobs = append(chainJobs, item.Job)
+		}
+		chainJobs, err = filterJobsAccess(ctx, r, chainJobs)
+		if err != nil {
+			return nil, err
+		}
+		var uiJobs []*uiAIJob
+		for _, j := range chainJobs {
+			if j.ID == job.ID {
+				uiJob.IsCurrent = true
+				uiJobs = append(uiJobs, uiJob)
+			} else {
+				uiJobs = append(uiJobs, makeUIAIJob(j))
+			}
+		}
+		return uiJobs, nil
+	}
+	uiJob.IsCurrent = true
+	return []*uiAIJob{uiJob}, nil
+}
+
 func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	job, err := aidb.LoadJob(ctx, r.FormValue("id"))
 	if err != nil {
@@ -613,6 +640,11 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 
+	uiJobs, err := buildUIJobChain(ctx, r, job, uiJob)
+	if err != nil {
+		return err
+	}
+
 	usesReportingStages := aiJobUsesReportingStages(ctx, job)
 
 	canPushToReporting := false
@@ -628,7 +660,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	page := &uiAIJobPage{
 		Header:             hdr,
 		Job:                uiJob,
-		Jobs:               []*uiAIJob{uiJob},
+		Jobs:               uiJobs,
 		Args:               uiArgs,
 		CrashReport:        crashReport,
 		History:            uiHistory,

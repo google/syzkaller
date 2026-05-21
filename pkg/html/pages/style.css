@@ -596,3 +596,7 @@ aside {
 .disabled-link {
 	color: grey;
 }
+
+.ai_current_job {
+	background-color: lightgreen;
+}

@@ -735,7 +735,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tr></thead>
 	<tbody>
 	{{range $job := .}}
-	<tr>
+	<tr {{if $job.IsCurrent}}class="ai_current_job"{{end}}>
 		<td class="tag">{{link $job.Link $job.ID}}</td>
 		<td>{{$job.Workflow}}</td>
 		<td class="ai_result">
