@@ -7,7 +7,8 @@ import os
 import re
 import sys
 
-link_re = re.compile('\[' + '[^\[\]]+' + '\]' + '\(' + '([^\(\)]+)' + '\)')
+# Match Markdown links: [text](link) and capture the link target.
+link_re = re.compile(r'\[[^\[\]]+\]\(([^()]+)\)')
 
 if len(sys.argv) < 3:
 	print('Usage: <root_dir> <doc_files>...')
