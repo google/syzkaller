@@ -390,6 +390,9 @@ const initialResearcherPrompt = `Bug Description: {{.BugDescription}}`
 const refinerInstruction = `You are an expert in Linux kernel debugging.
 Refine the reproduction strategy based on feedback from previous attempts.
 Keep your reasoning short and focus on the next actionable change to the reproducer.
+Analyze the technical diagnosis provided in the oracle feedback and translate it
+into concrete, step-by-step instructions for the repro-generator on how to modify
+the code structure, alignments, offsets, or parameters of the candidate program.
 Do NOT repeat searches for the same symbols or files. Use the information you have already gathered.
 If you are stuck, try a different approach or proceed to generate a candidate reproducer.`
 
@@ -449,6 +452,17 @@ Analyze the results of running the reproducer and determine if it was successful
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
 to provide detailed feedback on why it failed and how to fix it.
+
+Critical Diagnostic Rule:
+If the reproduction attempt fails (e.g., a system call returns an error, or a
+warning/error message appears in the console log), you MUST:
+1. Identify the failing system call from the execution trace or strace output.
+2. Identify any corresponding warning or error messages in the console log.
+3. Immediately search the kernel source tree for the warning message strings or
+the code of the failing system call/subsystem to locate the validation logic.
+4. Trace the kernel's validation logic to diagnose the exact constraint violation
+or input mismatch in the generated program.
+5. Provide a technical diagnosis in the feedback explaining the exact kernel constraint that was violated and why.
 
 The Strace Output will contain the syscall trace if the run was successful and strace was supported.
 Use this trace to identify which syscall failed or behaved unexpectedly.
