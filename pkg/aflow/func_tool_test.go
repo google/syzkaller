@@ -64,12 +64,12 @@ func TestToolErrors(t *testing.T) {
 }
 
 func TestToolLoopDetection(t *testing.T) {
-	agent := &LLMAgent{Name: "test-agent"}
+	session := &agentSession{LLMAgent: &LLMAgent{Name: "test-agent"}}
 	args := map[string]any{"Query": "test"}
 
 	// Record defaultLoopDetectionLimit identical calls.
 	for range defaultLoopDetectionLimit {
-		agent.recordToolCall("test-tool", args)
+		session.recordToolCall("test-tool", args)
 	}
 
 	// The 4th call should be detected as a duplicate.
@@ -77,7 +77,7 @@ func TestToolLoopDetection(t *testing.T) {
 		Name: "test-tool",
 		Args: args,
 	}
-	err := agent.checkDuplicateCall(call)
+	err := session.checkDuplicateCall(call)
 	var badCallErr *badCallError
 	require.ErrorAs(t, err, &badCallErr)
 	require.Contains(t, err.Error(), "repeating the same tool call")
@@ -87,7 +87,7 @@ func TestToolLoopDetection(t *testing.T) {
 		Name: "diff-tool",
 		Args: args,
 	}
-	err = agent.checkDuplicateCall(diffCall)
+	err = session.checkDuplicateCall(diffCall)
 	require.NoError(t, err, "unexpected error on different call: %v", err)
 }
 
