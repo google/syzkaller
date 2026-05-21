@@ -9,6 +9,6 @@
     "To": ["\"Joe (Company)\" <maintainer@email.com>", "maintainer2@email.com"],
     "Cc": ["\"Kernel Maintainerov\" <reviewer@email.com>", "reviewer2@email.com"],
     "Tools": ["gemini-1.5-pro", "gemini-1.5-flash"],
-    "Authors": ["syzbot <syzbot+123@syzkaller.appspotmail.com>"]
+    "Authors": ["\"Human Approver\" <human@approver.com>"]
   }
 }

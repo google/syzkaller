@@ -634,7 +634,7 @@ Something was broken. This fixes it.
 
 Something was broken. This fixes it.
 
-Assisted-by: syzbot Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview
+Assisted-by: Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview syzbot
 Signed-off-by: syzbot@kernel.org
 Signed-off-by: "Kernel Dev" <dev@kernel.org>
 To: "Foo Bar" <foobar@test.com>
