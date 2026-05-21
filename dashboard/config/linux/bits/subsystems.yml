@@ -581,3 +581,5 @@ config:
  - ELF_CORE
 
  - IO_URING_MOCK_FILE: [v6.17]
+ - IO_URING_BPF: [linux-next]
+ - FUSE_IO_URING: [linux-next]
