@@ -1,11 +1,11 @@
 Subject: [PATCH RFC] Fix a bug in subsystem
 
-From: syzbot <syzbot+123@syzkaller.appspotmail.com>
+From: "Human Approver" <human@approver.com>
 
 This patch fixes a bug by doing X and Y.
 
-Assisted-by: syzbot Gemini:gemini-1.5-pro Gemini:gemini-1.5-flash
-Signed-off-by: syzbot <syzbot+123@syzkaller.appspotmail.com>
+Assisted-by: Gemini:gemini-1.5-pro Gemini:gemini-1.5-flash syzbot
+Signed-off-by: "Human Approver" <human@approver.com>
 To: "Joe (Company)" <maintainer@email.com>
 To: <maintainer2@email.com>
 Cc: "Kernel Maintainerov" <reviewer@email.com>

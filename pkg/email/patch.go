@@ -144,9 +144,10 @@ Cc: {{$addr}}{{end}}
 
 // formatAssistedBy formats models according to the kernel standard.
 func formatAssistedBy(tools []string) string {
+	tools = slices.Clone(tools)
 	slices.Sort(tools)
 	slices.Reverse(tools)
-	res := []string{"syzbot"}
+	var res []string
 	for _, tool := range tools {
 		if strings.HasPrefix(tool, "gemini") {
 			tool = "Gemini:" + tool
@@ -155,6 +156,7 @@ func formatAssistedBy(tools []string) string {
 			res = append(res, tool)
 		}
 	}
+	res = append(res, "syzbot")
 	return strings.Join(res, " ")
 }
 
