@@ -5,8 +5,7 @@
 FILES=0
 FAILED=""
 shopt -s nocasematch
-for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cc" -o -name "*.md" \
-	-o -name "*.S" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" | \
+for F in $(git ls-files | grep -E '\.(go|sh|cc|md|S|py|yml|yaml)$' | \
 	grep -E -v "/gen/|executor/syscalls.h|dashboard/config/linux/bits|pkg/csource/generated.go|tools/check-language.sh"); do
 	((FILES+=1))
 	L=0

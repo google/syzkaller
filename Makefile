@@ -438,7 +438,7 @@ check_commits:
 	./tools/check-commits.sh
 
 check_links:
-	python ./tools/check_links.py $$(pwd) $$(find . -name '*.md')
+	python ./tools/check_links.py $$(pwd) $$(git ls-files '*.md')
 
 check_html:
 	./tools/check-html.sh
