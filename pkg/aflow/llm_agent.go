@@ -61,9 +61,23 @@ type LLMAgent struct {
 	// all intermediate messages, leaving only the anchor prompt and the new summary.
 	// Mutually exclusive with summaryWindow.
 	compressTokens int
+}
 
+type agentSession struct {
+	*LLMAgent
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
+	// req stores the active conversation history slice in this execution.
+	req []*genai.Content
+	// summaryMessage points to the summary message in req if the sliding window
+	// summary feature is enabled. We need it to check if the message-to-be-popped
+	// is a summary - if so, we need to add a new summary.
+	summaryMessage *genai.Content
+	// outputs stores the results returned by the final set-results tool call, if any.
+	outputs map[string]any
+	// answerNow is set to true when the input overflows and the agent must
+	// immediately respond.
+	answerNow bool
 }
 
 type toolCallRecord struct {
@@ -263,7 +277,8 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	reply, outputs, err := a.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
+	s := &agentSession{LLMAgent: a}
+	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
 		span.Results = outputs
@@ -271,37 +286,28 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
-func (a *LLMAgent) handleOverflowError(cfg *genai.GenerateContentConfig, req []*genai.Content, answerNow bool) bool {
-	if a.Reply == llmToolReply && len(req) >= 3 && !answerNow {
+func (a *agentSession) handleOverflowError(cfg *genai.GenerateContentConfig) bool {
+	if a.Reply == llmToolReply && len(a.req) >= 3 && !a.answerNow {
 		cfg.ToolConfig = &genai.ToolConfig{
 			FunctionCallingConfig: &genai.FunctionCallingConfig{
 				Mode: genai.FunctionCallingConfigModeNone,
 			},
 		}
-		req[len(req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
+		a.req[len(a.req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
 		return true
 	}
 	return false
 }
 
-func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
+func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
-	var outputs map[string]any
-	answerNow := false
-	req := []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
-	// It points to the summary message if the sliding window summary feature is enabled.
-	// We need it to check if the message-to-be-popped is a summary - if so, we need to add
-	// a new summary.
-	var summaryMessage *genai.Content
+	a.req = []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
 	var lastInputTokens int
 	var anchorTokens int
 	for range defaultMaxIterations {
 		var err error
-		var newSummaryMessage *genai.Content
-		var compressed bool
 		tokensToCompress := max(0, lastInputTokens-anchorTokens)
-		req, newSummaryMessage, compressed, err = a.maybeCompressContext(
-			ctx, req, instruction, tokensToCompress)
+		compressed, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
 		if err != nil {
 			return "", nil, err
 		}
@@ -312,10 +318,6 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			// will be fetched from the next successful API response.
 			lastInputTokens = 0
 		}
-		if newSummaryMessage != nil || a.compressTokens > 0 {
-			// If compression happened, reset the existing summaryMessage to nil (or the new one)
-			summaryMessage = newSummaryMessage
-		}
 
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
@@ -325,9 +327,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		addNewSummary := false
-		req, addNewSummary = a.slide(req, summaryMessage)
-		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
+		addNewSummary := a.slide()
+		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate)
 
 		if resp != nil && resp.UsageMetadata != nil {
 			lastInputTokens = int(resp.UsageMetadata.PromptTokenCount)
@@ -345,8 +346,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
 			if isInputTokenOverflowError(respErr) {
-				if a.handleOverflowError(cfg, req, answerNow) {
-					answerNow = true
+				if a.handleOverflowError(cfg) {
+					a.answerNow = true
 					continue
 				}
 			}
@@ -362,42 +363,38 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if reply == "" && len(calls) == 0 {
 			resp.Candidates[0].Content.Parts = []*genai.Part{{Text: "empty"}}
 		}
-		req = append(req, resp.Candidates[0].Content)
+		a.req = append(a.req, resp.Candidates[0].Content)
 
 		// We told LLM to add a new summary. Let's re-direct the pointer to it.
 		if addNewSummary {
-			summaryMessage = req[len(req)-1]
+			a.summaryMessage = a.req[len(a.req)-1]
 		}
 		if len(calls) == 0 {
-			if missing := a.checkFinalReply(reply, outputs); missing != nil {
-				req = append(req, missing)
+			if missing := a.checkFinalReply(reply); missing != nil {
+				a.req = append(a.req, missing)
 				continue
 			}
 			// This is the final reply.
-			return reply, outputs, nil
+			return reply, a.outputs, nil
 		}
 		// This is not the final reply, LLM asked to execute some tools.
 		// Append the current reply, and tool responses to the next request.
-		responses, outputs1, err := a.callTools(ctx, tools, calls)
+		err = a.callTools(ctx, tools, calls)
 		if err != nil {
 			return "", nil, err
 		}
-		// Overwrite previous outputs, if LLM calls the tool more than once.
-		// It shouldn't, but this seems to be the easiest way to handle it gracefully.
-		if outputs1 != nil {
-			outputs = outputs1
+		if a.outputs != nil {
 			if a.Reply == "" {
-				return "", outputs, nil
+				return "", a.outputs, nil
 			}
 		}
-		req = append(req, responses)
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
 		defaultMaxIterations)
 }
 
-func (a *LLMAgent) checkFinalReply(reply string, outputs map[string]any) *genai.Content {
-	if a.Outputs != nil && outputs == nil {
+func (a *agentSession) checkFinalReply(reply string) *genai.Content {
+	if a.Outputs != nil && a.outputs == nil {
 		// LLM did not call set-results.
 		return genai.NewContentFromText(llmMissingOutputs, genai.RoleUser)
 	}
@@ -432,7 +429,7 @@ You MUST provide the summary in your final response text. Do not use tools.
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
 
-func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instruction string) (*genai.Content, error) {
+func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai.Content, error) {
 	// Lightweight config targeting the Flash model.
 	cfg := &genai.GenerateContentConfig{
 		Temperature:       genai.Ptr[float32](tokenCompressionTemperature),
@@ -452,7 +449,7 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instructi
 		return nil, err
 	}
 
-	compressReq := slices.Clone(req)
+	compressReq := slices.Clone(a.req)
 	if instruction != "" && len(compressReq) > 0 {
 		compressReq[0] = osutil.JSONDeepCopy(compressReq[0])
 		if len(compressReq[0].Parts) > 0 {
@@ -501,40 +498,41 @@ func (a *LLMAgent) compressContext(ctx *Context, req []*genai.Content, instructi
 	return newSummary, ctx.finishSpan(span, nil)
 }
 
-func (a *LLMAgent) maybeCompressContext(ctx *Context, req []*genai.Content, instruction string, tokensToCompress int) (
-	[]*genai.Content, *genai.Content, bool, error) {
+func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, tokensToCompress int) (bool, error) {
 	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens {
 		// Return existing state unchanged.
-		return req, nil, false, nil
+		return false, nil
 	}
 
-	newSummary, err := a.compressContext(ctx, req, instruction)
+	newSummary, err := a.compressContext(ctx, instruction)
 	if err != nil {
-		return req, nil, false, fmt.Errorf("context compression failed: %w", err)
+		return false, fmt.Errorf("context compression failed: %w", err)
 	}
 
 	// Truncate history to Anchor + Summary.
-	req = []*genai.Content{req[0], newSummary}
-	return req, nil, true, nil
+	a.req = []*genai.Content{a.req[0], newSummary}
+	// If compression happened, reset the existing summaryMessage to nil.
+	a.summaryMessage = nil
+	return true, nil
 }
 
-func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {
+func (a *agentSession) slide() bool {
 	// Sliding window optimization: keep index 0 (anchor) and the last summaryWindow-1 messages
 	// (recent history), then discard the old ones with stale context and to free up tokens.
 	// We need to add a new summary if we don't have one yet, or existing summary is going to be popped.
-	if a.summaryWindow <= 0 || len(req) <= a.summaryWindow {
-		return req, false
+	if a.summaryWindow <= 0 || len(a.req) <= a.summaryWindow {
+		return false
 	}
 	// If we haven't created a summary, surely need to create one.
-	addNewSummary := summary == nil
+	addNewSummary := a.summaryMessage == nil
 	// popEnd is the last index of elements to be popped
-	popEnd := len(req) - a.summaryWindow
+	popEnd := len(a.req) - a.summaryWindow
 	// If we already have a summary, we iterate through the elements being popped
 	// (index 1 to popEnd), and see if the summary would be popped (hence needing
 	// a new summary).
 	for i := 1; i <= popEnd; i++ {
-		if req[i] == summary {
-			// The existing summary message is among the summary message.
+		if a.req[i] == a.summaryMessage {
+			// The existing summary message is among the elements being popped.
 			addNewSummary = true
 			break
 		}
@@ -545,19 +543,19 @@ func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai
 	// ask it to summarize? We may get the summary as the final reply...
 	// Or, what if it summarizes w/o calling any tools?
 	if addNewSummary {
-		req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
+		a.req[len(a.req)-1].Parts = append(a.req[len(a.req)-1].Parts, &genai.Part{
 			Text: slidingWindowInstruction,
 		})
 	}
 	// The actual popping.
-	if addNewSummary && (summary != nil) {
+	if addNewSummary && (a.summaryMessage != nil) {
 		// Before we actually pop the old summary, save it so the new summary can
 		// incorporate enough old information.
-		req = append([]*genai.Content{req[0], summary}, req[popEnd+1:]...)
+		a.req = append([]*genai.Content{a.req[0], a.summaryMessage}, a.req[popEnd+1:]...)
 	} else {
-		req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
+		a.req = append([]*genai.Content{a.req[0]}, a.req[popEnd+1:]...)
 	}
-	return req, addNewSummary
+	return addNewSummary
 }
 
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, string, map[string]Tool) {
@@ -608,12 +606,10 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, s
 	}, instruction, prompt, toolMap
 }
 
-func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai.FunctionCall) (
-	*genai.Content, map[string]any, error) {
+func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*genai.FunctionCall) error {
 	responses := &genai.Content{
 		Role: string(genai.RoleUser),
 	}
-	var outputs map[string]any
 	for _, call := range calls {
 		span := &trajectory.Span{
 			Type: trajectory.SpanTool,
@@ -621,7 +617,7 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 			Args: call.Args,
 		}
 		if err := ctx.startSpan(span); err != nil {
-			return nil, nil, err
+			return err
 		}
 		toolErr := BadCallError("tool %q does not exist, please correct the name", call.Name)
 		tool := tools[call.Name]
@@ -637,7 +633,7 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 			span.Error = toolErr.Error()
 		}
 		if err := ctx.finishSpan(span, nil); err != nil {
-			return nil, nil, err
+			return err
 		}
 		if toolErr != nil {
 			// LLM provided wrong arguments to the tool,
@@ -646,7 +642,7 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 			if callErr := new(badCallError); errors.As(toolErr, &callErr) {
 				span.Results = map[string]any{"error": toolErr.Error()}
 			} else {
-				return nil, nil, fmt.Errorf("tool %v failed: error: %w\nargs: %+v",
+				return fmt.Errorf("tool %v failed: error: %w\nargs: %+v",
 					call.Name, toolErr, call.Args)
 			}
 		}
@@ -658,10 +654,11 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 			},
 		})
 		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
-			outputs = span.Results
+			a.outputs = span.Results
 		}
 	}
-	return responses, outputs, nil
+	a.req = append(a.req, responses)
+	return nil
 }
 
 func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *trajectory.Span) (
@@ -948,14 +945,14 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	}
 }
 
-func (a *LLMAgent) recordToolCall(name string, args map[string]any) {
+func (a *agentSession) recordToolCall(name string, args map[string]any) {
 	a.toolHistory = append(a.toolHistory, toolCallRecord{Name: name, Args: args})
 	if len(a.toolHistory) > maxHistorySize {
 		a.toolHistory = a.toolHistory[1:] // Keep it a rolling window.
 	}
 }
 
-func (a *LLMAgent) checkDuplicateCall(call *genai.FunctionCall) error {
+func (a *agentSession) checkDuplicateCall(call *genai.FunctionCall) error {
 	limit := defaultLoopDetectionLimit
 	if len(a.toolHistory) < limit {
 		return nil
