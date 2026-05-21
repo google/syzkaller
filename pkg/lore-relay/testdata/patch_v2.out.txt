@@ -24,4 +24,6 @@ diff --git a/file2 b/file2
 
 base-commit: 123456abcdef
 -- 
+This is an AI-generated patch.
+Maintainers can be reached at test-maintainer@example.com.
 See http://docs.link for more information.

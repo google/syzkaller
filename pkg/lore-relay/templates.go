@@ -21,10 +21,11 @@ var templatesFS embed.FS
 
 // TemplateData holds data for rendering email templates.
 type TemplateData struct {
-	Patch       *dashapi.NewReportResult
-	Replies     []*dashapi.ReplyResult
-	DocsLink    string
-	CanUpstream bool
+	Patch            *dashapi.NewReportResult
+	Replies          []*dashapi.ReplyResult
+	DocsLink         string
+	MaintainersEmail string
+	CanUpstream      bool
 }
 
 func renderTemplate(name, tmplStr string, data TemplateData) (string, error) {
@@ -44,8 +45,9 @@ func renderTemplate(name, tmplStr string, data TemplateData) (string, error) {
 // RenderBody renders the email body based on the poll result.
 func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 	data := TemplateData{
-		DocsLink:    cfg.DocsLink,
-		CanUpstream: res.CanUpstream,
+		DocsLink:         cfg.DocsLink,
+		MaintainersEmail: cfg.MaintainersEmail,
+		CanUpstream:      res.CanUpstream,
 	}
 	if res.Patch != nil {
 		var recipients []ai.Recipient

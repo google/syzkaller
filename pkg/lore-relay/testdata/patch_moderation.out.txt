@@ -19,8 +19,10 @@ index 123..456 100644
 
 base-commit: abcdef123456
 -- 
-This is an AI-generated patch subject to moderation.
+This is an AI-generated patch.
+It is subject to moderation.
 Reply with '#syz upstream' to send it to the mailing list.
 Reply with '#syz reject' to reject it (or '#syz unreject' to undo).
 
+Maintainers can be reached at test-maintainer@example.com.
 See http://docs.link for more information.

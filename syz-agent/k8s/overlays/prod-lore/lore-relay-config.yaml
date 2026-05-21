@@ -11,6 +11,7 @@ own_emails:
 lore_archive: "syzbot@lists.linux.dev"
 verify_dkim: true
 docs_link: "https://github.com/google/syzkaller/blob/master/docs/syzbot_ai_patches.md"
+maintainers_email: "syzkaller@googlegroups.com"
 smtp:
   host: "gcp-secret:lore-relay-smtp-host"
   port: "gcp-secret:lore-relay-smtp-port"

@@ -42,7 +42,10 @@ func TestRender(t *testing.T) {
 			err = json.Unmarshal(inputData, &res)
 			require.NoError(t, err)
 
-			output, err := RenderBody(&Config{DocsLink: "http://docs.link"}, &res)
+			output, err := RenderBody(&Config{
+				DocsLink:         "http://docs.link",
+				MaintainersEmail: "test-maintainer@example.com",
+			}, &res)
 			require.NoError(t, err)
 			subject := GenerateSubject(&res)
 			fullOutput := "Subject: " + subject + "\n\n" + output

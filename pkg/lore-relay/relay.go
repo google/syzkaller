@@ -37,6 +37,8 @@ type Config struct {
 	LorePollInterval time.Duration `yaml:"lore_poll_interval"`
 	// DocsLink is the link to the documentation.
 	DocsLink string `yaml:"docs_link"`
+	// MaintainersEmail is the email address to reach the maintainers.
+	MaintainersEmail string `yaml:"maintainers_email"`
 	// Tracer is used for debug logging.
 	Tracer debugtracer.DebugTracer `yaml:"-"`
 	// LoreArchive is an optional mailing list that will be added to Cc on all sent emails.

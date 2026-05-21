@@ -10,8 +10,10 @@
 
 base-commit: {{.Patch.BaseCommit}}
 -- 
-{{ if .CanUpstream }}This is an AI-generated patch subject to moderation.
+This is an AI-generated patch.
+{{ if .CanUpstream }}It is subject to moderation.
 Reply with '#syz upstream' to send it to the mailing list.
 Reply with '#syz reject' to reject it (or '#syz unreject' to undo).
 
+{{ end }}{{ if .MaintainersEmail }}Maintainers can be reached at {{.MaintainersEmail}}.
 {{ end }}See {{.DocsLink}} for more information.
