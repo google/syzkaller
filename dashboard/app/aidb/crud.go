@@ -690,6 +690,7 @@ func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
 			Action:      ActionReject,
 			Source:      toNullString(args.CommandSource),
 			SourceExtID: toNullString(args.CommandExtID),
+			ReportingID: toNullString(args.ReportingID),
 		}
 		if args.Reason != "" {
 			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
@@ -746,6 +747,7 @@ func UnrejectReportCommand(ctx context.Context, args UnrejectReportArgs) error {
 			Action:      ActionUnreject,
 			Source:      toNullString(args.CommandSource),
 			SourceExtID: toNullString(args.CommandExtID),
+			ReportingID: toNullString(args.ReportingID),
 		}
 		journalMut, err := spanner.InsertStruct("Journal", journal)
 		if err != nil {
@@ -1237,6 +1239,7 @@ type UpstreamReportArgs struct {
 
 type RejectReportArgs struct {
 	Job           *Job
+	ReportingID   string
 	CommandSource string
 	CommandExtID  string
 	User          string
@@ -1245,6 +1248,7 @@ type RejectReportArgs struct {
 
 type UnrejectReportArgs struct {
 	Job           *Job
+	ReportingID   string
 	CommandSource string
 	CommandExtID  string
 	User          string
