@@ -65,8 +65,9 @@ func (dw *DoWhile) loop(ctx *Context) error {
 }
 
 func (dw *DoWhile) verify(ctx *verifyContext) {
+	name := "DoWhile " + dw.While
 	if max := 1000; dw.MaxIterations <= 0 || dw.MaxIterations >= max {
-		ctx.errorf("DoWhile", "bad MaxIterations value %v, should be within [1, %v]",
+		ctx.errorf(name, "bad MaxIterations value %v, should be within [1, %v]",
 			dw.MaxIterations, max)
 	}
 	// Verification of loops is a bit tricky.
@@ -97,9 +98,22 @@ func (dw *DoWhile) verify(ctx *verifyContext) {
 	if inputs {
 		ctx.inputs, ctx.outputs = true, false
 		dw.Do.verify(ctx)
-		ctx.requireNotEmpty("DoWhile", "While", dw.While)
-		ctx.requireInput("DoWhile", dw.While, reflect.TypeFor[string]())
+		ctx.requireNotEmpty(name, "While", dw.While)
+		ctx.requireInput(name, dw.While, reflect.TypeFor[string]())
 	}
+}
+
+func (dw *DoWhile) info() *ActionNode {
+	n := &ActionNode{
+		Type: "DoWhile",
+		Name: "DoWhile " + dw.While,
+	}
+	if dw.Do != nil {
+		do := dw.Do.info()
+		do.Branch = "Body"
+		n.Children = append(n.Children, do)
+	}
+	return n
 }
 
 // ForEach executes an action for each element in a slice.
@@ -190,17 +204,19 @@ func (f *ForEach) verify(ctx *verifyContext) {
 		ctx.inputs, ctx.outputs = inputs, outputs
 	}()
 
+	name := f.List + " -> " + f.Item
+
 	if outputs {
 		ctx.inputs, ctx.outputs = false, true
 		origState := maps.Clone(ctx.state)
-		ctx.provideOutput("ForEach", f.Item, elemType)
+		ctx.provideOutput(name, f.Item, elemType)
 
 		f.Do.verify(ctx)
 
 		f.loopVars = make(map[string]reflect.Type)
-		for name, desc := range ctx.state {
-			if origState[name] == nil && name != f.Item {
-				f.loopVars[name] = desc.typ
+		for stateName, desc := range ctx.state {
+			if origState[stateName] == nil && stateName != f.Item {
+				f.loopVars[stateName] = desc.typ
 			}
 		}
 
@@ -210,13 +226,26 @@ func (f *ForEach) verify(ctx *verifyContext) {
 
 	if inputs {
 		ctx.inputs, ctx.outputs = true, false
-		ctx.state[f.Item] = &varState{action: "ForEach", typ: elemType, used: false}
+		ctx.state[f.Item] = &varState{action: name, typ: elemType, used: false}
 
 		f.Do.verify(ctx)
 
 		if !ctx.state[f.Item].used {
-			ctx.errorf("ForEach", "item %v is unused", f.Item)
+			ctx.errorf(name, "item %v is unused", f.Item)
 		}
 		delete(ctx.state, f.Item)
 	}
+}
+
+func (f *ForEach) info() *ActionNode {
+	n := &ActionNode{
+		Type: "ForEach",
+		Name: f.List + " -> " + f.Item,
+	}
+	if f.Do != nil {
+		do := f.Do.info()
+		do.Branch = "Body"
+		n.Children = append(n.Children, do)
+	}
+	return n
 }

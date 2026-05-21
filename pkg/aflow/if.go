@@ -65,14 +65,20 @@ func (i *If) execute(ctx *Context) error {
 }
 
 func (i *If) verify(ctx *verifyContext) {
+	name := "If " + i.Condition
 	if ctx.inputs {
-		ctx.requireNotEmpty("If", "Condition", i.Condition)
+		ctx.requireNotEmpty(name, "Condition", i.Condition)
 
 		state := ctx.state[i.Condition]
 		if state == nil {
-			ctx.errorf("If", "no input %v", i.Condition)
+			ctx.errorf(name, "no input %v", i.Condition)
 		} else {
 			state.used = true
+			ctx.edges = append(ctx.edges, DataEdge{
+				From: state.action,
+				To:   name,
+				Var:  i.Condition,
+			})
 		}
 	}
 
@@ -86,7 +92,26 @@ func (i *If) verify(ctx *verifyContext) {
 	}
 }
 
+func (i *If) info() *ActionNode {
+	n := &ActionNode{
+		Type: "If",
+		Name: "If " + i.Condition,
+	}
+	if i.Do != nil {
+		do := i.Do.info()
+		do.Branch = "Body"
+		n.Children = append(n.Children, do)
+	}
+	if i.Else != nil {
+		el := i.Else.info()
+		el.Branch = "Else"
+		n.Children = append(n.Children, el)
+	}
+	return n
+}
+
 func (i *If) verifyOutputs(ctx *verifyContext) {
+	name := "If " + i.Condition
 	origState := maps.Clone(ctx.state)
 	i.Do.verify(ctx)
 	doState := ctx.state
@@ -97,24 +122,24 @@ func (i *If) verifyOutputs(ctx *verifyContext) {
 	}
 
 	i.ifVars = make(map[string]reflect.Type)
-	for name, desc := range ctx.state {
-		if origState[name] == nil {
-			if doState[name] == nil {
-				ctx.errorf("If", "output %v is produced by Else but not by Do", name)
+	for stateName, desc := range ctx.state {
+		if origState[stateName] == nil {
+			if doState[stateName] == nil {
+				ctx.errorf(name, "output %v is produced by Else but not by Do", stateName)
 			}
-			i.ifVars[name] = desc.typ
+			i.ifVars[stateName] = desc.typ
 		}
 	}
-	for name, desc := range doState {
-		if origState[name] == nil {
-			if existing := ctx.state[name]; existing != nil {
+	for stateName, desc := range doState {
+		if origState[stateName] == nil {
+			if existing := ctx.state[stateName]; existing != nil {
 				if existing.typ != desc.typ {
-					ctx.errorf("If", "output %v has different types in Do and Else", name)
+					ctx.errorf(name, "output %v has different types in Do and Else", stateName)
 				}
 			} else {
-				ctx.state[name] = desc
+				ctx.state[stateName] = desc
 			}
-			i.ifVars[name] = desc.typ
+			i.ifVars[stateName] = desc.typ
 		}
 	}
 }

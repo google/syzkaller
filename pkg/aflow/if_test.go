@@ -93,7 +93,7 @@ func TestIf(t *testing.T) {
 
 func TestIfErrors(t *testing.T) {
 	testRegistrationError[struct{}, struct{}](t,
-		"flow test: action If: Condition must not be empty",
+		"flow test: action If : Condition must not be empty",
 		&Flow{Root: &If{
 			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (struct{}, error) {
 				return struct{}{}, nil
@@ -101,7 +101,7 @@ func TestIfErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{}, struct{}](t,
-		"flow test: action If: no input Cond",
+		"flow test: action If Cond: no input Cond",
 		&Flow{Root: &If{
 			Condition: "Cond",
 			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (struct{}, error) {
@@ -110,7 +110,7 @@ func TestIfErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{ Cond bool }, struct{ Done string }](t,
-		"flow test: action If: output Done is produced by Else but not by Do",
+		"flow test: action If Cond: output Done is produced by Else but not by Do",
 		&Flow{Root: &If{
 			Condition: "Cond",
 			Do: NewFuncAction("do", func(ctx *Context, args struct{}) (struct{}, error) {
@@ -122,7 +122,7 @@ func TestIfErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{ Cond bool }, struct{ Done string }](t,
-		"flow test: action If: output Done has different types in Do and Else",
+		"flow test: action If Cond: output Done has different types in Do and Else",
 		&Flow{Root: &If{
 			Condition: "Cond",
 			Do: NewFuncAction("do", func(ctx *Context, args struct{}) (struct{ Done string }, error) {

@@ -71,7 +71,7 @@ func TestDoWhileErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{ Input string }, struct{}](t,
-		"flow test: action DoWhile: While must not be empty",
+		"flow test: action DoWhile : While must not be empty",
 		&Flow{Root: &DoWhile{
 			Do: NewFuncAction("body", func(ctx *Context, args struct {
 				Input string
@@ -96,7 +96,7 @@ func TestDoWhileErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{}, struct{}](t,
-		"flow test: action DoWhile: bad MaxIterations value 0, should be within [1, 1000]",
+		"flow test: action DoWhile Output1: bad MaxIterations value 0, should be within [1, 1000]",
 		&Flow{Root: &DoWhile{
 			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
 				return output{}, nil
@@ -198,7 +198,7 @@ func TestForEachErrors(t *testing.T) {
 		}})
 
 	testRegistrationError[struct{ List []string }, struct{}](t,
-		"flow test: action ForEach: item Item is unused",
+		"flow test: action List -> Item: item Item is unused",
 		&Flow{Root: &ForEach{
 			List: "List",
 			Item: "Item",

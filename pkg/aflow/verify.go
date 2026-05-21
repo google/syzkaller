@@ -15,7 +15,14 @@ type verifyContext struct {
 	outputs bool // provide action outputs
 	state   map[string]*varState
 	models  map[string]bool
+	edges   []DataEdge
 	err     error
+}
+
+type DataEdge struct {
+	From string
+	To   string
+	Var  string
 }
 
 type varState struct {
@@ -57,6 +64,11 @@ func (ctx *verifyContext) requireInput(who, name string, typ reflect.Type) {
 		ctx.errorf(who, "input %v has wrong type: want %v, has %v",
 			name, typ, state.typ)
 	}
+	ctx.edges = append(ctx.edges, DataEdge{
+		From: state.action,
+		To:   who,
+		Var:  name,
+	})
 	state.used = true
 }
 

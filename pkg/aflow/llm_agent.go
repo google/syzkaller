@@ -916,6 +916,13 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	}
 }
 
+func (a *LLMAgent) info() *ActionNode {
+	return &ActionNode{
+		Type: "LLMAgent",
+		Name: a.Name,
+	}
+}
+
 func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	if !ctx.inputs || strings.Contains(text, llmToolPrompt) {
 		return
@@ -939,8 +946,13 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 		ctx.errorf(a.Name, "%v: %v", what, err)
 	}
 	for name := range used {
-		if ctx.state[name] != nil {
-			ctx.state[name].used = true
+		if state := ctx.state[name]; state != nil {
+			state.used = true
+			ctx.edges = append(ctx.edges, DataEdge{
+				From: state.action,
+				To:   a.Name,
+				Var:  name,
+			})
 		}
 	}
 }
