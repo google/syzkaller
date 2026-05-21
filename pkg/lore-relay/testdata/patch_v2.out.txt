@@ -2,6 +2,8 @@ Subject: [PATCH v3] Fix another bug
 
 This is v3 of the patch with fixed z.
 
+Assisted-by: syzbot
+
 ---
 v3:
 - Fixed ABCD.
