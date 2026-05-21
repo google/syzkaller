@@ -171,7 +171,7 @@ func TestAIExternalReporting(t *testing.T) {
 			User:    "test-user",
 			Correct: aiCorrectnessIncorrect,
 			Source:  "lore",
-			Stage:   "", // Rejections are not per-stage.
+			Stage:   "moderation",
 		},
 		{
 			Date:    t0,
@@ -233,14 +233,14 @@ func TestAIExternalReporting(t *testing.T) {
 			User:    "test-user",
 			Correct: "?",
 			Source:  "lore",
-			Stage:   "",
+			Stage:   "moderation",
 		},
 		{
 			Date:    tReject,
 			User:    "test-user",
 			Correct: aiCorrectnessIncorrect,
 			Source:  "lore",
-			Stage:   "",
+			Stage:   "moderation",
 		},
 		{
 			Date:    t0,

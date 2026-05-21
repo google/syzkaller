@@ -56,6 +56,7 @@ func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq
 	return resp, nil
 }
 
+// nolint: dupl
 func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommandReq,
 ) (*dashapi.SendExternalCommandResp, error) {
 	reporting, job, err := lookupJobByExtReq(ctx, req)
@@ -203,7 +204,7 @@ func determineNextStage(ctx context.Context, cfg *AIConfig, job *aidb.Job,
 // nolint: dupl
 func handleRejectCommand(ctx context.Context,
 	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
-	_, job, err := lookupJobByExtReq(ctx, req)
+	reporting, job, err := lookupJobByExtReq(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -215,6 +216,7 @@ func handleRejectCommand(ctx context.Context,
 
 	err = aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
 		Job:           job,
+		ReportingID:   reporting.ID,
 		CommandSource: string(req.Source),
 		CommandExtID:  req.MessageExtID,
 		User:          req.Author,
@@ -226,6 +228,7 @@ func handleRejectCommand(ctx context.Context,
 			if req.Source != "" && req.MessageExtID != "" {
 				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
 					JobID:         job.ID,
+					ReportingID:   reporting.ID,
 					CommandSource: string(req.Source),
 					CommandExtID:  req.MessageExtID,
 					User:          req.Author,
@@ -476,13 +479,14 @@ func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq)
 // nolint: dupl
 func handleUnrejectCommand(ctx context.Context,
 	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
-	_, job, err := lookupJobByExtReq(ctx, req)
+	reporting, job, err := lookupJobByExtReq(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
 	err = aidb.UnrejectReportCommand(ctx, aidb.UnrejectReportArgs{
 		Job:           job,
+		ReportingID:   reporting.ID,
 		CommandSource: string(req.Source),
 		CommandExtID:  req.MessageExtID,
 		User:          req.Author,
@@ -493,6 +497,7 @@ func handleUnrejectCommand(ctx context.Context,
 			if req.Source != "" && req.MessageExtID != "" {
 				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
 					JobID:         job.ID,
+					ReportingID:   reporting.ID,
 					CommandSource: string(req.Source),
 					CommandExtID:  req.MessageExtID,
 					User:          req.Author,
