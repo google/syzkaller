@@ -41,6 +41,12 @@ type uiAIJobsPage struct {
 	ShowAborted     bool
 	ManualWorkflows []ManualWorkflowSpec
 	Managers        []string
+	HasNextPage     bool
+	NextCursorTime  string
+	NextCursorID    string
+	HasPrevPage     bool
+	PrevCursorTime  string
+	PrevCursorID    string
 }
 
 type ManualWorkflowSpec struct {
@@ -214,13 +220,67 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	currentWorkflow := r.FormValue("workflow")
 	showAborted := r.FormValue("show_aborted") != ""
 
+	cursorTimeStr := r.FormValue("cursor_time")
+	var cursorTime time.Time
+	if cursorTimeStr != "" {
+		t, err := time.Parse(time.RFC3339Nano, cursorTimeStr)
+		if err != nil {
+			return fmt.Errorf("%w: invalid cursor_time %q", ErrClientBadRequest, cursorTimeStr)
+		}
+		cursorTime = t
+	}
+	cursorIDStr := r.FormValue("cursor_id")
+	reverse := r.FormValue("reverse") != ""
+	const limit = 500
+
 	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, &aidb.JobFilter{
 		Workflow:    currentWorkflow,
 		ShowAborted: showAborted,
+		CursorTime:  cursorTime,
+		CursorID:    cursorIDStr,
+		Reverse:     reverse,
+		Limit:       limit + 1,
 	})
 	if err != nil {
 		return err
 	}
+
+	hasNextPage := false
+	hasPrevPage := false
+
+	if reverse {
+		if len(jobs) > limit {
+			hasPrevPage = true
+			jobs = jobs[1:]
+		}
+		if cursorTimeStr != "" {
+			hasNextPage = true
+		}
+	} else {
+		if len(jobs) > limit {
+			hasNextPage = true
+			jobs = jobs[:limit]
+		}
+		if cursorTimeStr != "" {
+			hasPrevPage = true
+		}
+	}
+
+	var nextCursorTime string
+	var nextCursorID string
+	var prevCursorTime string
+	var prevCursorID string
+
+	if len(jobs) > 0 {
+		firstJob := jobs[0]
+		prevCursorTime = firstJob.Created.Format(time.RFC3339Nano)
+		prevCursorID = firstJob.ID
+
+		lastJob := jobs[len(jobs)-1]
+		nextCursorTime = lastJob.Created.Format(time.RFC3339Nano)
+		nextCursorID = lastJob.ID
+	}
+
 	jobs, err = filterJobsAccess(ctx, r, jobs)
 	if err != nil {
 		return err
@@ -257,6 +317,12 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		ShowAborted:     showAborted,
 		ManualWorkflows: manualAIWorkflows(cfg),
 		Managers:        managers,
+		HasNextPage:     hasNextPage,
+		NextCursorTime:  nextCursorTime,
+		NextCursorID:    nextCursorID,
+		HasPrevPage:     hasPrevPage,
+		PrevCursorTime:  prevCursorTime,
+		PrevCursorID:    prevCursorID,
 	}
 
 	if r.FormValue("json") == "1" {

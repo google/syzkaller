@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -302,6 +303,10 @@ func staleUnfinishedJobs(cutoff time.Time, workflows, namespaces []string) spann
 type JobFilter struct {
 	Workflow    string
 	ShowAborted bool
+	Limit       int
+	CursorTime  time.Time
+	CursorID    string
+	Reverse     bool
 }
 
 func LoadNamespaceJobs(ctx context.Context, ns string, filter *JobFilter) ([]*Job, error) {
@@ -324,11 +329,35 @@ func LoadNamespaceJobs(ctx context.Context, ns string, filter *JobFilter) ([]*Jo
 	if !filter.ShowAborted {
 		sql += " AND NOT Aborted"
 	}
-	sql += " ORDER BY Created DESC"
-	return selectAll[Job](ctx, spanner.Statement{
+	if !filter.CursorTime.IsZero() && filter.CursorID != "" {
+		if filter.Reverse {
+			sql += " AND (Created > @cursorTime OR (Created = @cursorTime AND ID > @cursorID))"
+		} else {
+			sql += " AND (Created < @cursorTime OR (Created = @cursorTime AND ID < @cursorID))"
+		}
+		params["cursorTime"] = filter.CursorTime
+		params["cursorID"] = filter.CursorID
+	}
+	if filter.Reverse {
+		sql += " ORDER BY Created ASC, ID ASC"
+	} else {
+		sql += " ORDER BY Created DESC, ID DESC"
+	}
+	if filter.Limit > 0 {
+		sql += " LIMIT @limit"
+		params["limit"] = filter.Limit
+	}
+	jobs, err := selectAll[Job](ctx, spanner.Statement{
 		SQL:    sql,
 		Params: params,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if filter.Reverse {
+		slices.Reverse(jobs)
+	}
+	return jobs, nil
 }
 
 func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
