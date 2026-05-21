@@ -5,9 +5,9 @@ package aflow
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
 )
 
@@ -75,16 +75,9 @@ func TestToolLoopDetection(t *testing.T) {
 		Args: args,
 	}
 	err := agent.checkDuplicateCall(call)
-	if err == nil {
-		t.Fatalf("expected loop error, got nil")
-	}
 	var badCallErr *badCallError
-	if !errors.As(err, &badCallErr) {
-		t.Fatalf("expected BadCallError, got %T: %v", err, err)
-	}
-	if !strings.Contains(err.Error(), "repeating the same tool call") {
-		t.Fatalf("unexpected error message: %v", err)
-	}
+	require.ErrorAs(t, err, &badCallErr)
+	require.Contains(t, err.Error(), "repeating the same tool call")
 
 	// A different call should not be detected as a duplicate.
 	diffCall := &genai.FunctionCall{
@@ -92,7 +85,5 @@ func TestToolLoopDetection(t *testing.T) {
 		Args: args,
 	}
 	err = agent.checkDuplicateCall(diffCall)
-	if err != nil {
-		t.Fatalf("unexpected error on different call: %v", err)
-	}
+	require.NoError(t, err, "unexpected error on different call: %v", err)
 }
