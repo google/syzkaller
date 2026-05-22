@@ -105,6 +105,11 @@ tls_enable {
 	rec_seq			array[int8, 8]
 }
 
+# Parameters defined only under _KERNEL.
+define CRYPTO_AES_128_NIST_GMAC	26
+define CRYPTO_AES_192_NIST_GMAC	27
+define CRYPTO_AES_256_NIST_GMAC	28
+
 ktls_cipher_algo = CRYPTO_AES_NIST_GCM_16, CRYPTO_AES_CBC, CRYPTO_CHACHA20_POLY1305
 ktls_auth_algo = 0, CRYPTO_AES_128_NIST_GMAC, CRYPTO_AES_192_NIST_GMAC, CRYPTO_AES_256_NIST_GMAC
 ktls_vmajor = TLS_MAJOR_VER_ONE
