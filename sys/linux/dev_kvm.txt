@@ -124,6 +124,7 @@ syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[
 resource kvm_run_ptr[int64]
 define KVM_RUN_SIZE	sizeof(struct kvm_run)
 mmap$KVM_VCPU(addr vma, len vcpu_mmap_size, prot flags[mmap_prot], flags flags[mmap_flags], cpufd fd_kvmcpu, offset const[0]) kvm_run_ptr
+munmap$KVM_VCPU(addr kvm_run_ptr, len intptr)
 _ = __NR_mmap2
 
 define KVM_EXIT_MMIO_OFFSET	offsetof(struct kvm_run, mmio)
