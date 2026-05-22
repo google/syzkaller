@@ -1,0 +1,14 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/procdesc.h>
+
+resource procdesc[fd]
+
+pdfork(fdp ptr[out, procdesc], flags flags[pdfork_flags]) pid
+pdrfork(fdp ptr[out, procdesc], flags flags[pdfork_flags], rflags flags[rfork_flags]) pid
+pdgetpid(fd procdesc, pid ptr[out, pid])
+pdwait(fd procdesc, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt], siginfo ptr[out, siginfo, opt])
+
+pdfork_flags = PD_DAEMON, PD_CLOEXEC
