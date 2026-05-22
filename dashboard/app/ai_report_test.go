@@ -25,7 +25,7 @@ func TestAIExternalReporting(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
@@ -274,7 +274,7 @@ func TestAINoFailedJobReported(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
 		},
@@ -327,7 +327,7 @@ func TestAINoParallelReports(t *testing.T) {
 			},
 		},
 	}
-	c.SetAIConfig(aiCfg)
+	c.SetAIConfig("ains", aiCfg)
 
 	// Report a crash to create a bug.
 	build := testBuild(1)
@@ -441,7 +441,7 @@ func TestAIUpstreamTwice(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
@@ -524,7 +524,7 @@ func TestAIUpstreamIdempotency(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
@@ -595,7 +595,7 @@ func TestAINoStages(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{})
+	c.SetAIConfig("ains", &AIConfig{})
 
 	build := testBuild(1)
 	c.aiClient.UploadBuild(build)
@@ -652,7 +652,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
@@ -765,7 +765,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
@@ -1105,7 +1105,7 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
@@ -1230,7 +1230,7 @@ func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			// Explicitly disable auto-triggering.
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: false},
@@ -1310,7 +1310,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
@@ -1409,7 +1409,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
@@ -1568,7 +1568,7 @@ func TestAIManualPushToReporting(t *testing.T) {
 	extID := c.aiClient.pollEmailExtID()
 
 	// 1. Finish a job with no AI stages configured (no reporting generated).
-	c.SetAIConfig(&AIConfig{})
+	c.SetAIConfig("ains", &AIConfig{})
 
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test",
@@ -1593,7 +1593,7 @@ func TestAIManualPushToReporting(t *testing.T) {
 	require.Empty(t, reportings)
 
 	// 2. Add an AI stage to the config and push the job.
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{{Name: "public", ServingIntegration: "lore"}},
 	})
 
@@ -1613,7 +1613,7 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
@@ -1675,7 +1675,7 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
@@ -1778,7 +1778,7 @@ func TestAIPatchFilter(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
