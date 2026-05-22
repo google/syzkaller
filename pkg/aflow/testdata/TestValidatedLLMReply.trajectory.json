@@ -1,0 +1,76 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instructions",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:05Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:07Z",
+		"Instruction": "Instructions",
+		"Prompt": "Prompt",
+		"Reply": "changed-reply"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:08Z",
+		"Results": {
+			"Result": "changed-reply"
+		}
+	}
+]

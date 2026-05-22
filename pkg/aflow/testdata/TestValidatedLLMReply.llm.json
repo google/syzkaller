@@ -1,0 +1,62 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"responseModalities": [
+				"TEXT"
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "reply1"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Your last reply did not pass verification with the following error.\nCorrect your reply accordingly.\n\nError:\nplease don't reply like this"
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

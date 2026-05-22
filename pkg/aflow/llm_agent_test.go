@@ -486,6 +486,21 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				compressTokens: 100,
 			},
 		})
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action smarty: both Reply and ValidatedReply are specified",
+		&Flow{
+			Root: &LLMAgent{
+				Name:  "smarty",
+				Model: "model",
+				Reply: "foo",
+				ValidatedReply: LLMReply("bar", func(*Context, struct{}, string) (string, error) {
+					return "", nil
+				}),
+				TaskType:    FormalReasoningTask,
+				Instruction: "Instructions",
+				Prompt:      "Initial Prompt",
+			},
+		})
 }
 
 func TestOutputOverflow(t *testing.T) {
@@ -605,4 +620,34 @@ func TestValidatedLLMOutputsVerify(t *testing.T) {
 				Prompt:      "Initial Prompt",
 			},
 		})
+}
+
+func TestValidatedLLMReply(t *testing.T) {
+	testFlow[struct{ StateValue int }, struct{ Result string }](
+		t, map[string]any{"StateValue": 42}, map[string]any{"Result": "changed-reply"},
+		&LLMAgent{
+			Name:  "smarty",
+			Model: "model",
+			ValidatedReply: LLMReply("Result", func(ctx *Context, state struct{ StateValue int }, reply string) (string, error) {
+				require.Equal(t, 42, state.StateValue)
+				switch reply {
+				case "reply1":
+					return "", BadCallError("please don't reply like this")
+				case "reply2":
+					return "changed-reply", nil
+				default:
+					t.Fatalf("unexpected reply %q", reply)
+					return "", nil
+				}
+			}),
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instructions",
+			Prompt:      "Prompt",
+		},
+		[]any{
+			genai.NewPartFromText("reply1"),
+			genai.NewPartFromText("reply2"),
+		},
+		nil,
+	)
 }
