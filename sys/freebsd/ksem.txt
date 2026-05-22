@@ -2,7 +2,6 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <sys/types.h>
-include <sys/ksem.h>
 include <fcntl.h>
 
 resource semid[intptr]
