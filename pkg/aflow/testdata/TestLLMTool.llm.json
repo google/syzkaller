@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
 					}
 				],
 				"role": "user"
@@ -168,7 +168,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
 					}
 				],
 				"role": "user"
@@ -532,7 +532,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
 					}
 				],
 				"role": "user"

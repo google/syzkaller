@@ -13,7 +13,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Instruction": "Instructions",
+		"Instruction": "Instruction",
 		"Prompt": "Prompt"
 	},
 	{
@@ -58,7 +58,7 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:07Z",
-		"Instruction": "Instructions",
+		"Instruction": "Instruction",
 		"Prompt": "Prompt",
 		"Reply": "changed-reply"
 	},

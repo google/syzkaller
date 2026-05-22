@@ -10,17 +10,17 @@
 		"Seq": 1,
 		"Nesting": 1,
 		"Type": "agent",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
-		"Prompt": "Initial Prompt"
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
 	},
 	{
 		"Seq": 2,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:03Z"
 	},
@@ -28,7 +28,7 @@
 		"Seq": 2,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:03Z",
 		"Finished": "0001-01-01T00:00:04Z"
@@ -55,7 +55,7 @@
 		"Seq": 4,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z"
 	},
@@ -63,7 +63,7 @@
 		"Seq": 4,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z",
 		"Finished": "0001-01-01T00:00:08Z"
@@ -90,7 +90,7 @@
 		"Seq": 6,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:11Z"
 	},
@@ -98,7 +98,7 @@
 		"Seq": 6,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:11Z",
 		"Finished": "0001-01-01T00:00:12Z",
@@ -126,7 +126,7 @@
 		"Seq": 8,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:15Z"
 	},
@@ -134,7 +134,7 @@
 		"Seq": 8,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:15Z",
 		"Finished": "0001-01-01T00:00:16Z"
@@ -159,7 +159,7 @@
 		"Seq": 10,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:19Z"
 	},
@@ -167,7 +167,7 @@
 		"Seq": 10,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:19Z",
 		"Finished": "0001-01-01T00:00:20Z",
@@ -193,7 +193,7 @@
 		"Seq": 12,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:23Z"
 	},
@@ -201,7 +201,7 @@
 		"Seq": 12,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:23Z",
 		"Finished": "0001-01-01T00:00:24Z"
@@ -226,7 +226,7 @@
 		"Seq": 14,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:27Z"
 	},
@@ -234,7 +234,7 @@
 		"Seq": 14,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:27Z",
 		"Finished": "0001-01-01T00:00:28Z",
@@ -260,7 +260,7 @@
 		"Seq": 16,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:31Z"
 	},
@@ -268,7 +268,7 @@
 		"Seq": 16,
 		"Nesting": 2,
 		"Type": "llm",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:31Z",
 		"Finished": "0001-01-01T00:00:32Z"
@@ -277,12 +277,12 @@
 		"Seq": 1,
 		"Nesting": 1,
 		"Type": "agent",
-		"Name": "summary_agent",
+		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:33Z",
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
-		"Prompt": "Initial Prompt",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt",
 		"Reply": "Done"
 	},
 	{

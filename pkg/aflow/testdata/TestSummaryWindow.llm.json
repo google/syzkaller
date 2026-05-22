@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
 					}
 				],
 				"role": "user"
@@ -50,7 +50,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -63,7 +63,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -101,7 +101,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -142,7 +142,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -183,7 +183,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -238,7 +238,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -279,7 +279,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -334,7 +334,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"

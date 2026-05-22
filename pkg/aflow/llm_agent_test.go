@@ -184,13 +184,8 @@ func TestSummaryWindow(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
 		&LLMAgent{
-			Name:          "summary_agent",
-			Model:         "model",
 			Reply:         "Reply",
 			summaryWindow: 3,
-			TaskType:      FormalReasoningTask,
-			Instruction:   "Instructions",
-			Prompt:        "Initial Prompt",
 			Tools: []Tool{
 				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
 					return toolResults{123}, nil
@@ -235,13 +230,8 @@ func TestTokenCompression(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
 		&LLMAgent{
-			Name:           "token_compression_agent",
-			Model:          "model",
 			Reply:          "Reply",
 			compressTokens: 100,
-			TaskType:       FormalReasoningTask,
-			Instruction:    "Instructions",
-			Prompt:         "Initial Prompt",
 			Tools: []Tool{
 				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
 					return toolResults{123}, nil
@@ -272,7 +262,7 @@ func TestTokenCompression(t *testing.T) {
 				assert.Equal(t, 2, len(req), "History should be truncated to just Anchor and Summary")
 
 				// Assert Anchor Message remains untouched.
-				assert.Equal(t, "Initial Prompt", req[0].Parts[0].Text)
+				assert.Equal(t, "Prompt", req[0].Parts[0].Text)
 
 				// Assert Summary is correctly formatted.
 				assert.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
@@ -320,13 +310,8 @@ func TestSetResultsToolIsNotLast(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done", "Result": 42},
 		&LLMAgent{
-			Name:        "smarty",
-			Model:       "model",
-			Reply:       "Reply",
-			Outputs:     LLMOutputs[flowResults](),
-			TaskType:    FormalReasoningTask,
-			Instruction: "Instructions",
-			Prompt:      "Initial Prompt",
+			Reply:   "Reply",
+			Outputs: LLMOutputs[flowResults](),
 			Tools: []Tool{
 				NewFuncTool("tool", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
 					return struct{}{}, nil
@@ -352,12 +337,7 @@ func TestOnlyStructuredOutputs(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Result": 42},
 		&LLMAgent{
-			Name:        "smarty",
-			Model:       "model",
-			Outputs:     LLMOutputs[flowResults](),
-			TaskType:    FormalReasoningTask,
-			Instruction: "Instructions",
-			Prompt:      "Initial Prompt",
+			Outputs: LLMOutputs[flowResults](),
 		},
 		[]any{
 			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
@@ -376,12 +356,8 @@ func TestNilToolArg(t *testing.T) {
 	testFlow[struct{}, flowResults](t, nil,
 		map[string]any{"Result": "Result"},
 		&LLMAgent{
-			Name:        "smarty",
-			Model:       "model",
 			Reply:       "Result",
-			TaskType:    FormalReasoningTask,
 			Instruction: "Instructions: use the provided tool {{.toolSwissKnife}} for something.",
-			Prompt:      "Initial Prompt",
 			Tools: []Tool{
 				NewFuncTool("swiss-knife", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
 					require.Equal(t, args.Optional, nil)
@@ -403,10 +379,7 @@ func TestToolInPrompt(t *testing.T) {
 	}
 	testFlow[struct{}, flowResults](t, nil, map[string]any{"Ignored": "Ignored"},
 		&LLMAgent{
-			Name:        "prompt-tester",
-			Model:       "model",
 			Reply:       "Ignored",
-			TaskType:    FormalReasoningTask,
 			Instruction: "Use {{.toolSwissKnife}}",
 			Prompt:      "Please call {{.toolSwissKnife}} now.",
 			Tools: []Tool{
@@ -515,15 +488,10 @@ func TestOutputOverflow(t *testing.T) {
 	}
 	testFlow[struct{}, flowResults](t, nil, string(genai.FinishReasonMaxTokens),
 		&LLMAgent{
-			Name:  "smarty",
-			Model: "model",
 			Reply: "Result",
 			Outputs: LLMOutputs[struct {
 				Output int `jsonschema:"Some output."`
 			}](),
-			TaskType:    FormalReasoningTask,
-			Instruction: "Instruction",
-			Prompt:      "Prompt",
 		},
 		[]any{
 			// First return few overflow errors. The framework should reduce amount of thinking.
@@ -561,8 +529,6 @@ func TestValidatedLLMOutputs(t *testing.T) {
 	testFlow[flowInputs, flowOutputs](t, map[string]any{"StateValue": 42, "Unrelated": 123},
 		map[string]any{"Result": 43, "Unrelated": 123},
 		&LLMAgent{
-			Name:  "smarty",
-			Model: "model",
 			Outputs: ValidatedLLMOutputs[flowResults](
 				func(ctx *Context, state subState, args flowResults) (flowResults, error) {
 					if state.StateValue != 42 {
@@ -576,9 +542,7 @@ func TestValidatedLLMOutputs(t *testing.T) {
 					}
 					return args, nil
 				}),
-			TaskType:    FormalReasoningTask,
-			Instruction: "Instructions",
-			Prompt:      "Initial Prompt with {{.StateValue}} and {{.Unrelated}}",
+			Prompt: "Initial Prompt with {{.StateValue}} and {{.Unrelated}}",
 		},
 		[]any{
 			// First try returns an invalid result.
@@ -626,8 +590,6 @@ func TestValidatedLLMReply(t *testing.T) {
 	testFlow[struct{ StateValue int }, struct{ Result string }](
 		t, map[string]any{"StateValue": 42}, map[string]any{"Result": "changed-reply"},
 		&LLMAgent{
-			Name:  "smarty",
-			Model: "model",
 			ValidatedReply: LLMReply("Result", func(ctx *Context, state struct{ StateValue int }, reply string) (string, error) {
 				require.Equal(t, 42, state.StateValue)
 				switch reply {
@@ -640,9 +602,6 @@ func TestValidatedLLMReply(t *testing.T) {
 					return "", nil
 				}
 			}),
-			TaskType:    FormalReasoningTask,
-			Instruction: "Instructions",
-			Prompt:      "Prompt",
 		},
 		[]any{
 			genai.NewPartFromText("reply1"),

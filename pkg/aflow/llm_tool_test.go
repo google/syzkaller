@@ -25,12 +25,7 @@ func TestLLMTool(t *testing.T) {
 	testFlow[inputs, outputs](t, map[string]any{"Input": 42}, map[string]any{"Reply": "YES"},
 		Pipeline(
 			&LLMAgent{
-				Name:        "smarty",
-				Model:       "model",
-				TaskType:    FormalReasoningTask,
-				Reply:       "Reply",
-				Instruction: "Do something!",
-				Prompt:      "Prompt",
+				Reply: "Reply",
 				Tools: []Tool{
 					&LLMTool{
 						Name:        "researcher",

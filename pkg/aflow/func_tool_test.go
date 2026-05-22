@@ -24,12 +24,7 @@ func TestToolErrors(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		"tool faulty failed: error: hard error\nargs: map[CallError:false]",
 		&LLMAgent{
-			Name:        "smarty",
-			Model:       "model",
-			Reply:       "Reply",
-			TaskType:    FormalReasoningTask,
-			Instruction: "Do something!",
-			Prompt:      "Prompt",
+			Reply: "Reply",
 			Tools: []Tool{
 				NewFuncTool("faulty", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
 					if args.CallError {
