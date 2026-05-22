@@ -290,7 +290,9 @@ are specified, letter capitalization, style, etc.
 {{.RecentCommits}}
 `
 
-const patchDescriptionLineLength = 72
+// Recommended description length according to
+// https://docs.kernel.org/process/submitting-patches.html
+const patchDescriptionLineLength = 75
 
 func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
 	actions := []aflow.Action{}
