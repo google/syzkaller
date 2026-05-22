@@ -56,6 +56,18 @@ type verdictAgentArgs struct {
 	DescriptionItems  []string `jsonschema:"Clean list of changes requested to the commit description/changelog."`
 	FixesItems        []string `jsonschema:"Clean list of comments suggesting Fixes tag is incorrect or needs update."`
 	UpdateFixesReason string   `jsonschema:"Explanation of why Fixes tag needs update, and any hints by reviewers."`
+	ResendReason      string   `jsonschema:"Reason for resending the patch unchanged (e.g., 're-test'), or empty."`
+}
+
+func validateVerdictArgs(ctx *aflow.Context, state struct{}, args verdictAgentArgs) (verdictAgentArgs, error) {
+	hasItems := len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
+	hasResend := args.ResendReason != ""
+	if hasItems && hasResend {
+		return args, aflow.BadCallError("cannot provide both Items arrays and a ResendReason; " +
+			"if you want to make changes, leave ResendReason empty; " +
+			"if you want to resend without changes, leave all Items arrays empty")
+	}
+	return args, nil
 }
 
 func init() {
@@ -80,7 +92,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:        "verdict-agent",
 					Model:       aflow.BestExpensiveModel,
-					Outputs:     aflow.LLMOutputs[verdictAgentArgs](),
+					Outputs:     aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictArgs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: verdictInstruction,
 					Prompt:      verdictPrompt,
@@ -199,13 +211,15 @@ var extractTriageResults = aflow.NewFuncAction("extract-triage-results", func(ct
 	CodeItems        []string
 	DescriptionItems []string
 	FixesItems       []string
+	ResendReason     string
 }) (struct {
 	NeedNewVersion bool
 }, error) {
 	return struct {
 		NeedNewVersion bool
 	}{
-		NeedNewVersion: len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0,
+		NeedNewVersion: len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 ||
+			len(args.FixesItems) > 0 || args.ResendReason != "",
 	}, nil
 })
 
@@ -413,6 +427,14 @@ Separate the actionable items into three strictly divided categories:
 Watch out for citations (lines starting with >) which often contain previous messages or context, not new requirements.
 Note: You shouldn't fully debug the issue right now. Just do a cautious check if the V+1 patch is necessary.
 
+If and ONLY if a reviewer EXPLICITLY asks the bot to "resend" the patch and does so without
+requesting any code or description changes, you must capture the reason in ResendReason and
+leave the Items arrays empty.
+Do not infer a resend request from ambiguous statements. The ResendReason should capture the
+context, e.g., "re-test after an unrelated CI failure".
+If the reviewer explicitly asks the bot to resend but gives no reason (e.g., "Please re-send
+this series unchanged"), use a simple summary like "explicitly requested by reviewer".
+
 If the incoming comments (especially new ones) are contradictory or unclear,
 or if there is an ongoing discussion between reviewers, it is fine to postpone
 patch creation (leave all Items arrays empty), even if it's obvious that a new
@@ -479,7 +501,12 @@ of the most important changes (e.g., '- Fixed memory leak in error path', '- Ren
 
 Focus ONLY on the actionable items that are relevant to the patch description or changelog.
 
-{{if .DescriptionItems}}
+{{if .ResendReason}}
+CRITICAL: This is a RESEND of the exact same patch without any code or description changes.
+The reason for resending is: {{.ResendReason}}
+You MUST keep the patch description exactly as it was.
+In the changelog, you MUST explicitly state that this is a resend and briefly mention the reason.
+{{else if .DescriptionItems}}
 CRITICAL: Reviewers have explicitly requested changes to the commit description.
 You MUST update the previous description to apply their feedback.
 Do not completely rewrite the description unless explicitly requested.
