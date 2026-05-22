@@ -79,6 +79,7 @@ includes:
  - apparmor.yml: [apparmor]
  - selinux.yml: [selinux]
  - smack.yml: [smack]
+ - lockup.yml: []
  - debug.yml: [-nonoise]
  # lockdep is broken on arm: https://lore.kernel.org/all/0000000000004f14c105bde08f75@google.com/
  - lockdep.yml: [-nonoise, -arm]
