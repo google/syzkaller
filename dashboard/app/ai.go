@@ -1096,15 +1096,28 @@ func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient)
 	if job != nil {
 		return job, nil
 	}
+	// These jobs are important for UX, others can wait.
+	job, err = pollPatchIterationJob(ctx, req, client)
+	if err != nil || job != nil {
+		return job, err
+	}
+	// Filter out patch-iteration, as it has already been processed above.
+	var remainingWorkflows []dashapi.AIWorkflow
+	for _, w := range req.Workflows {
+		if w.Type != ai.WorkflowPatchIteration {
+			remainingWorkflows = append(remainingWorkflows, w)
+		}
+	}
+	req.Workflows = remainingWorkflows
+	if len(req.Workflows) == 0 {
+		return nil, nil
+	}
 	job, err = aidb.StartJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed StartJob: %w", err)
 	}
 	if job != nil {
 		return job, nil
-	}
-	if _, err := autoCreatePatchIterationJobs(ctx, client); err != nil {
-		return nil, fmt.Errorf("autoCreatePatchIterationJobs failed: %w", err)
 	}
 	if _, err := autoCreateAIJobs(ctx, req.Workflows, client); err != nil {
 		return nil, fmt.Errorf("autoCreateAIJobs failed: %w", err)
@@ -1114,6 +1127,30 @@ func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient)
 		return nil, fmt.Errorf("failed StartJob after autoCreate: %w", err)
 	}
 	return job, nil
+}
+
+func pollPatchIterationJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient) (*aidb.Job, error) {
+	idx := -1
+	for i, w := range req.Workflows {
+		if w.Type == ai.WorkflowPatchIteration {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, nil
+	}
+
+	reqCopy := *req
+	reqCopy.Workflows = []dashapi.AIWorkflow{req.Workflows[idx]}
+
+	if job, err := aidb.StartJob(ctx, &reqCopy, client.AIJobNamespaces); err != nil || job != nil {
+		return job, err
+	}
+	if _, err := autoCreatePatchIterationJobs(ctx, client); err != nil {
+		return nil, fmt.Errorf("autoCreatePatchIterationJobs failed: %w", err)
+	}
+	return aidb.StartJob(ctx, &reqCopy, client.AIJobNamespaces)
 }
 
 func finishIterationJob(ctx context.Context, job *aidb.Job) error {
