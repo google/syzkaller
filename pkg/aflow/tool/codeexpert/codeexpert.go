@@ -6,6 +6,8 @@ package codeexpert
 import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
+	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 var Tool = &aflow.LLMTool{
@@ -14,7 +16,7 @@ var Tool = &aflow.LLMTool{
 	TaskType:    aflow.FormalReasoningTask,
 	Description: description,
 	Instruction: instruction,
-	Tools:       codesearcher.Tools,
+	Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, gitlog.Tools),
 }
 
 const description = `

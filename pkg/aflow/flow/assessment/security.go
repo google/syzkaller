@@ -8,8 +8,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 type assessmentSecurityInputs struct {
@@ -52,7 +52,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: securityInstruction,
 					Prompt:      securityPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+					Tools:       common.CodeAccessTools,
 				},
 				formatExplanation,
 			),
@@ -70,7 +70,7 @@ You can check the kernel config by grepping ".config" file; you can check kernel
 ".config" file for "CONFIG_CMDLINE=". Assume sysctl parameters have default values.
 But analyze for the corresponding production build w/o debugging tools enabled (like KASAN, KMSAN, UBSAN).
 
-Don't make assumptions; verify them with source code access. Try different strategies when analyzing the bug:
+Try different strategies when analyzing the bug:
  - think of ways in which the vulnerable code is unreachable
  - or the other way around: try to come up with different ideas of how an unprivileged user can reach the bug
 If still unsure err on the side of the bug being non-exploitable/not-accessible.
@@ -145,7 +145,7 @@ This is particularly important for mobile and desktop environments where users c
 Determine if the bug can be triggered by the kernel mounting and parsing a malicious filesystem image.
 This is highly critical for Desktop and Mobile environments where external media or downloaded images
 might be auto-mounted.
-`
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
 
 const securityPrompt = `
 The kernel bug report is:

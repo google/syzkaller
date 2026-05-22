@@ -11,10 +11,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
-	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/email"
 )
 
@@ -96,7 +94,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: verdictInstruction,
 					Prompt:      verdictPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools, viewPatchHistoryTool),
+					Tools:       aflow.Tools(common.CodeAccessTools, viewPatchHistoryTool),
 				},
 				tagExtractor,
 				tagsMergerAction,
@@ -123,7 +121,7 @@ func init() {
 									TaskType:    aflow.FormalReasoningTask,
 									Instruction: fixesIterationInstruction,
 									Prompt:      fixesIterationPrompt,
-									Tools:       commonTools,
+									Tools:       common.CodeAccessTools,
 								},
 							),
 						},

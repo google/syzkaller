@@ -15,8 +15,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/toolkit"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
@@ -292,6 +292,7 @@ func SaveReproCFunc(ctx *aflow.Context, args SaveReproCArgs) (SaveReproCResult, 
 var SaveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
 
 func init() {
+	tools := aflow.Tools(common.CodeAccessTools, toolkit.ToolGetToolkit)
 	aflow.Register[ReproCInputs, ai.ReproCOutputs](
 		ai.WorkflowReproC,
 		"reproduce a kernel crash and generate a C reproducer",
@@ -310,7 +311,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: initialResearcherInstruction,
 					Prompt:      initialResearcherPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+					Tools:       tools,
 				},
 				&aflow.DoWhile{
 					MaxIterations: 20,
@@ -325,7 +326,7 @@ func init() {
 								TaskType:    aflow.FormalReasoningTask,
 								Instruction: refinerInstruction,
 								Prompt:      refinerPrompt,
-								Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+								Tools:       tools,
 							},
 						},
 						MergeStrategy,
@@ -336,7 +337,7 @@ func init() {
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: generatorInstruction,
 							Prompt:      generatorPrompt,
-							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+							Tools:       tools,
 						},
 						&aflow.DoWhile{
 							MaxIterations: 3,
@@ -353,7 +354,7 @@ func init() {
 										TaskType:    aflow.FormalReasoningTask,
 										Instruction: repairerInstruction,
 										Prompt:      repairerPrompt,
-										Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+										Tools:       tools,
 									},
 								},
 							),
@@ -367,7 +368,7 @@ func init() {
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: oracleInstruction,
 							Prompt:      oraclePrompt,
-							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+							Tools:       tools,
 						},
 						LoopController,
 					),

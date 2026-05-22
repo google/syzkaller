@@ -12,11 +12,9 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
-	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -69,7 +67,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: debuggingInstruction,
 					Prompt:      debuggingPrompt,
-					Tools:       commonTools,
+					Tools:       common.CodeAccessTools,
 				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(nil, patchInstruction, patchPrompt),
@@ -80,7 +78,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: fixesInstruction,
 					Prompt:      fixesPrompt,
-					Tools:       commonTools,
+					Tools:       common.CodeAccessTools,
 				},
 				formatFixes,
 				getMaintainers,
@@ -92,19 +90,13 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: descriptionInstruction,
 					Prompt:      descriptionPrompt,
-					Tools:       commonTools,
+					Tools:       common.CodeAccessTools,
 				},
 				formatPatchDescription,
 				emptyTagsAction,
 			),
 		})
 }
-
-var commonTools = aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
-
-// TODO: mention not doing assumptions about the source code, and instead querying code using tools.
-// TODO: mention to extensively use provided tools to confirm everything.
-// TODO: use cause bisection info, if available.
 
 const debuggingInstruction = `
 You are an experienced Linux kernel developer tasked with debugging a kernel crash root cause.
@@ -119,7 +111,7 @@ they happen on the KASAN shadow memory around address dfff800000000000 or dffffc
 Don't be confused by that. Look for the like at the top of the report that tells
 the access address and size.
 {{end}}
-`
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
 
 const debuggingPrompt = `
 The crash is:
@@ -308,7 +300,7 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, ex
 				TaskType:    aflow.FormalReasoningTask,
 				Instruction: instruction,
 				Prompt:      prompt,
-				Tools:       aflow.Tools(commonTools, codeeditor.Tool, patchdiff.Tool, extraTools),
+				Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, extraTools),
 			},
 			crash.TestPatch, // -> PatchDiff or TestError
 		)...),

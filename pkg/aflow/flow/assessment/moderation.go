@@ -7,8 +7,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 type moderationInputs struct {
@@ -39,7 +39,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: moderationInstruction,
 					Prompt:      moderationPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+					Tools:       common.CodeAccessTools,
 				},
 				formatExplanation,
 			),
@@ -73,9 +73,7 @@ In the final reply explain why you think the report is self-consistent and actio
 or why it's inconsistent and/or not actionable.
 
 Use the provided tools to confirm any assumptions, variables/fields being accessed, etc.
-In particular, don't make assumptions about the kernel source code,
-use codesearch tools to read the actual source code.
-`
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
 
 const moderationPrompt = `
 The bug report is:
