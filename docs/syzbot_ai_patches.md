@@ -33,6 +33,7 @@ version (e.g. an RFC v2) if necessary.
 #syz reject
 ```
 You can provide the reason for rejection in the email body for better accounting.
+Once a patch is rejected, the AI will stop reacting to further comments on this patch version.
 
 * If you accidentally rejected a patch, you can undo it:
 ```
