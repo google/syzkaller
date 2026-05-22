@@ -25,7 +25,7 @@ func TestAILoreIntegration(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
@@ -185,7 +185,7 @@ func TestAILoreIntegrationReject(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
@@ -383,9 +383,15 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				IterationDebounce:  10 * time.Minute,
+			},
 		},
 	})
 
@@ -518,7 +524,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 
 	// 5. Complete the iteration job to verify CC behavior on replies and Fixes passing.
 	// Advance time to pass the debounce logic so the iteration job gets created.
-	c.advanceTime(31 * time.Minute)
+	c.advanceTime(11 * time.Minute)
 
 	pollReq := &dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
@@ -571,9 +577,15 @@ func TestAILoreIteration(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{
+	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				IterationDebounce:  10 * time.Minute,
+			},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", AddressComments: true},
 		},
 	})
@@ -662,7 +674,7 @@ func TestAILoreIteration(t *testing.T) {
 
 	// 5. Complete the iteration job to verify CC behavior on replies and Fixes passing.
 	// Advance time to pass the debounce logic so the iteration job gets created.
-	c.advanceTime(31 * time.Minute)
+	c.advanceTime(11 * time.Minute)
 
 	pollReq := &dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
