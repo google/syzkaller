@@ -865,6 +865,7 @@ func LoadPendingCommentGroups(ctx context.Context, namespace, stage string) ([]*
               JOIN JobReporting ON JobComments.ReportingID = JobReporting.ID
               JOIN Jobs ON JobReporting.JobID = Jobs.ID
               WHERE JobComments.Processed = false AND Jobs.Namespace = @namespace AND JobReporting.Stage = @stage
+              AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
               GROUP BY JobComments.ReportingID`,
 		Params: map[string]any{"namespace": namespace, "stage": stage},
 	})

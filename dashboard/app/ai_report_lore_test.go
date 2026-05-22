@@ -316,6 +316,31 @@ In-Reply-To: <mock@msgid-1>
 	assert.Equal(t, []string{"user@email"}, mockSnd.sent[3].To)
 	expectedBody := "> #syz upstream\n\nCommand failed:\n\nCannot upstream a rejected patch. Unreject it first.\n\n"
 	assert.Equal(t, expectedBody, string(mockSnd.sent[3].Body))
+
+	// 6. Test that a comment on a rejected patch does not trigger an iteration.
+	loreArchive.SaveMessageAt(t, `From: reviewer@email.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <comment3>
+In-Reply-To: <mock@msgid-1>
+
+Here is another comment after rejection.
+`, now.Add(time.Minute*3))
+
+	err = relay.PollLoreOnce(t.Context())
+	require.NoError(t, err)
+
+	c.advanceTime(31 * time.Minute)
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	assert.Empty(t, resp.ID) // No job should be created.
 }
 
 func TestAILoreUnknownMessageID(t *testing.T) {
