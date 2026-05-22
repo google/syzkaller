@@ -79,7 +79,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:        "fixes-finder",
 					Model:       aflow.BestExpensiveModel,
-					Outputs:     aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+					Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: fixesInstruction,
 					Prompt:      fixesPrompt,

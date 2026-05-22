@@ -90,7 +90,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:        "verdict-agent",
 					Model:       aflow.BestExpensiveModel,
-					Outputs:     aflow.ValidatedLLMOutputs[struct{}, verdictAgentArgs](validateVerdictArgs),
+					Outputs:     aflow.ValidatedLLMOutputs[verdictAgentArgs](validateVerdictArgs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: verdictInstruction,
 					Prompt:      verdictPrompt,
@@ -117,7 +117,7 @@ func init() {
 								&aflow.LLMAgent{
 									Name:        "fixes-finder",
 									Model:       aflow.BestExpensiveModel,
-									Outputs:     aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+									Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 									TaskType:    aflow.FormalReasoningTask,
 									Instruction: fixesIterationInstruction,
 									Prompt:      fixesIterationPrompt,
