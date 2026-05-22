@@ -35,7 +35,7 @@ type LLMAgent struct {
 	// Reply should not be empty unless Outputs are specified.
 	Reply string
 	// Optional additional structured outputs besides the final text reply.
-	// Use LLMOutputs function to create it.
+	// Use LLMOutputs or ValidatedLLMOutputs functions to create it.
 	Outputs *llmOutputs
 	// Task type controls various LLM parameters, see TaskType consts below.
 	TaskType TaskType
@@ -147,14 +147,14 @@ func Tools(tools ...any) []Tool {
 
 // LLMOutputs creates a special tool that can be used by LLM to provide structured outputs.
 func LLMOutputs[Args any]() *llmOutputs {
-	return ValidatedLLMOutputs[struct{}, Args](nil)
+	return ValidatedLLMOutputs[Args, struct{}](nil)
 }
 
 // ValidatedLLMOutputs is like LLMOutputs but allows to validate the outputs before accepting them.
 // The validate function may return modified Args, which will be used as the final result.
 // If the validate function returns an error, it will be returned to the LLM agent,
 // so that it can retry the call. Use BadCallError if LLM must retry.
-func ValidatedLLMOutputs[State, Args any](validate func(*Context, State, Args) (Args, error)) *llmOutputs {
+func ValidatedLLMOutputs[Args, State any](validate func(*Context, State, Args) (Args, error)) *llmOutputs {
 	return &llmOutputs{
 		tool: NewFuncTool(llmSetResultsTool, func(ctx *Context, state State, args Args) (Args, error) {
 			if validate != nil {

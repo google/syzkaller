@@ -548,7 +548,7 @@ func TestValidatedLLMOutputs(t *testing.T) {
 		&LLMAgent{
 			Name:  "smarty",
 			Model: "model",
-			Outputs: ValidatedLLMOutputs[subState, flowResults](
+			Outputs: ValidatedLLMOutputs[flowResults](
 				func(ctx *Context, state subState, args flowResults) (flowResults, error) {
 					if state.StateValue != 42 {
 						return args, fmt.Errorf("bad state value: %v", state.StateValue)
@@ -596,7 +596,7 @@ func TestValidatedLLMOutputsVerify(t *testing.T) {
 			Root: &LLMAgent{
 				Name:  "smarty",
 				Model: "model",
-				Outputs: ValidatedLLMOutputs[missingState, flowResults](
+				Outputs: ValidatedLLMOutputs[flowResults](
 					func(ctx *Context, state missingState, args flowResults) (flowResults, error) {
 						return args, nil
 					}),
