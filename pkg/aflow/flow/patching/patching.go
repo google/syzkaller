@@ -227,6 +227,12 @@ const descriptionInstruction = `
 You are an experienced Linux kernel developer tasked with writing a commit description for
 a kernel bug fixing commit. The description should start with a one-line summary,
 and then include description of the bug being fixed, and how it's fixed by the provided patch.
+The one-line summary should describe the change being made, rather than mention the tool that
+detected the bug.
+
+The description must not contain lines starting with '#' because they will dropped by git as comments.
+The description must not contain lines starting with '--' or '---' (including inline code diffs)
+because they may confuse git/patch utilities.
 
 Your final reply should contain only the text of the commit description.
 ` + commonPatchDescriptionInstruction
