@@ -34,6 +34,9 @@ type LLMAgent struct {
 	// and as final workflow outputs.
 	// Reply should not be empty unless Outputs are specified.
 	Reply string
+	// Similar to Reply, but allows to validate/fixup LLM replies using the provided callback function.
+	// Use LLMReply function to create it.
+	ValidatedReply *llmReply
 	// Optional additional structured outputs besides the final text reply.
 	// Use LLMOutputs or ValidatedLLMOutputs functions to create it.
 	Outputs *llmOutputs
@@ -145,6 +148,29 @@ func Tools(tools ...any) []Tool {
 	return res
 }
 
+func LLMReply[State any](name string, validate func(*Context, State, string) (string, error)) *llmReply {
+	return &llmReply{
+		name: name,
+		verify: func(ctx *verifyContext) {
+			ctx.requireNotEmpty("LLMReply", "Name", name)
+			requireInputs[State](ctx, name)
+		},
+		execute: func(ctx *Context, reply string) (string, error) {
+			state, err := convertFromMap[State](ctx.state, false, false)
+			if err != nil {
+				return "", err
+			}
+			return validate(ctx, state, reply)
+		},
+	}
+}
+
+type llmReply struct {
+	name    string
+	verify  func(*verifyContext)
+	execute func(*Context, string) (string, error)
+}
+
 // LLMOutputs creates a special tool that can be used by LLM to provide structured outputs.
 func LLMOutputs[Args any]() *llmOutputs {
 	return ValidatedLLMOutputs[Args, struct{}](nil)
@@ -198,6 +224,12 @@ Prefer calling several tools at the same time to save round-trips.
 
 const llmMissingReply = `You did not provide any final reply to the question. Please return something.
 Or did you want to call some other tools, but did not actually do that?
+`
+
+const llmBadReply = `Your last reply did not pass verification with the following error.
+Correct your reply accordingly.
+
+Error:
 `
 
 const llmMissingOutputs = `You did not call set-results tool.
@@ -370,8 +402,12 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 			a.summaryMessage = a.req[len(a.req)-1]
 		}
 		if len(calls) == 0 {
-			if missing := a.checkFinalReply(reply); missing != nil {
-				a.req = append(a.req, missing)
+			reply, wrong, err := a.checkFinalReply(ctx, reply)
+			if err != nil {
+				return "", nil, err
+			}
+			if wrong != "" {
+				a.req = append(a.req, genai.NewContentFromText(wrong, genai.RoleUser))
 				continue
 			}
 			// This is the final reply.
@@ -393,16 +429,26 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		defaultMaxIterations)
 }
 
-func (a *agentSession) checkFinalReply(reply string) *genai.Content {
+func (a *agentSession) checkFinalReply(ctx *Context, reply string) (string, string, error) {
 	if a.Outputs != nil && a.outputs == nil {
 		// LLM did not call set-results.
-		return genai.NewContentFromText(llmMissingOutputs, genai.RoleUser)
+		return "", llmMissingOutputs, nil
 	}
 	if reply == "" {
 		// LLM did not provide any final reply.
-		return genai.NewContentFromText(llmMissingReply, genai.RoleUser)
+		return "", llmMissingReply, nil
 	}
-	return nil
+	if a.ValidatedReply != nil {
+		var err error
+		reply, err = a.ValidatedReply.execute(ctx, reply)
+		if err != nil {
+			if callErr := new(badCallError); errors.As(err, &callErr) {
+				return "", llmBadReply + err.Error(), nil
+			}
+			return "", "", err
+		}
+	}
+	return reply, "", nil
 }
 
 const tokenCompressionInstruction = `
@@ -881,6 +927,13 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
+	if a.ValidatedReply != nil {
+		if a.Reply != "" {
+			ctx.errorf(a.Name, "both Reply and ValidatedReply are specified")
+		}
+		a.ValidatedReply.verify(ctx)
+		a.Reply = a.ValidatedReply.name
+	}
 	if a.Outputs == nil {
 		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
 	}
