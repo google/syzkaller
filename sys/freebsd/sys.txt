@@ -35,7 +35,7 @@ sf_hdtr {
 
 resource lwpid[int32]: 0, 0xffffffffffffffff
 
-sf_flags = SF_NODISKIO, SF_NOCACHE, SF_SYNC, SF_USER_READAHEAD
+sf_flags = SF_NODISKIO, SF_NOCACHE, SF_USER_READAHEAD
 sendfile(fd fd, s sock_in, offset fileoff, nbytes int64, hdtr ptr[in, sf_hdtr], sbytes ptr[out, fileoff[int64]], flags flags[sf_flags])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
