@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instructions"
+						"text": "Instruction"
 					}
 				],
 				"role": "user"

@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 					}
 				],
 				"role": "user"
@@ -75,7 +75,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -88,7 +88,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"
@@ -127,7 +127,7 @@
 			{
 				"parts": [
 					{
-						"text": "Initial Prompt"
+						"text": "Prompt"
 					}
 				],
 				"role": "user"

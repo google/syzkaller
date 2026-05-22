@@ -31,6 +31,7 @@ var flagUpdate = flag.Bool("update", false, "update golden test files to match t
 // If -update flag is provided, the golden testdata files are updated to match the actual execution.
 func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result any, root Action,
 	llmReplies []any, consts map[string]any) {
+	setupDefaults(root)
 	flows := make(map[string]*Flow)
 	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{{
 		Consts: consts,
@@ -155,4 +156,39 @@ func testRegistrationError[Inputs, Outputs any](t *testing.T, expected string, f
 	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{flow})
 	require.Error(t, err)
 	require.Equal(t, expected, err.Error())
+}
+
+func setupDefaults(a Action) {
+	if a == nil {
+		return
+	}
+	switch a := a.(type) {
+	case *LLMAgent:
+		if a.Name == "" {
+			a.Name = "smarty"
+		}
+		if a.Model == "" {
+			a.Model = "model"
+		}
+		if a.TaskType == 0 {
+			a.TaskType = FormalReasoningTask
+		}
+		if a.Instruction == "" {
+			a.Instruction = "Instruction"
+		}
+		if a.Prompt == "" {
+			a.Prompt = "Prompt"
+		}
+	case *pipeline:
+		for _, sub := range a.actions {
+			setupDefaults(sub)
+		}
+	case *If:
+		setupDefaults(a.Do)
+		setupDefaults(a.Else)
+	case *DoWhile:
+		setupDefaults(a.Do)
+	case *ForEach:
+		setupDefaults(a.Do)
+	}
 }

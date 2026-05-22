@@ -13,8 +13,8 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
-		"Prompt": "Initial Prompt"
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt"
 	},
 	{
 		"Seq": 2,
@@ -118,8 +118,8 @@
 		"Results": {
 			"Result": 42
 		},
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
-		"Prompt": "Initial Prompt",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Prompt",
 		"Reply": "Done"
 	},
 	{

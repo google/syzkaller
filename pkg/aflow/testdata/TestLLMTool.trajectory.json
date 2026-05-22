@@ -13,7 +13,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt"
 	},
 	{
@@ -336,7 +336,7 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:35Z",
-		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "YES"
 	},
