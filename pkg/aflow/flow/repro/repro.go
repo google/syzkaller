@@ -12,8 +12,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/syzlang"
 	"github.com/google/syzkaller/prog"
 )
@@ -56,11 +56,10 @@ func init() {
 						CandidateReproSyz string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
 					}](),
 					Tools: aflow.Tools(
+						common.CodeAccessTools,
 						syzlang.ReadDescription,
 						syzlang.Reproduce,
 						syzlang.Coverage,
-						codesearcher.Tools,
-						grepper.Tool,
 					),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
@@ -86,9 +85,6 @@ func init() {
 const reproInstruction = `
 You are an expert in the Linux kernel fuzzing. Your goal is to write a syzkaller program to trigger a specific bug.
 
-Don't make assumptions about the kernel source code, use the provided codesearch tools
-to examine the kernel code instead.
-
 Document about syzkaller program syntax:
 ===
 {{.DocProgramSyntax}}
@@ -98,7 +94,7 @@ Document about syzlang system call descriptions syntax:
 ===
 {{.DocSyscallDescriptionsSyntax}}
 ===
-`
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
 
 const reproPrompt = `
 Bug title: {{.BugTitle}}

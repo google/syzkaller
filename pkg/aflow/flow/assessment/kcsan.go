@@ -7,8 +7,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
-	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 type kcsanInputs struct {
@@ -38,7 +38,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: kcsanInstruction,
 					Prompt:      kcsanPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+					Tools:       common.CodeAccessTools,
 				},
 				formatExplanation,
 			),
@@ -111,8 +111,7 @@ the logic itself must change.
 ## 2. RESEARCH & ANALYSIS WORKFLOW
 
 1.  **Locate the Race:** Find the exact variables and functions in the stack
-    traces. **Use codesearch tools to read the actual source code and
-    confirm all assumptions.** Do not speculate about hypothetical compiler
+    traces. Do not speculate about hypothetical compiler
     behaviors or theoretical dangers (e.g., dismissing something as
     "fundamentally unsafe") without tracing the actual data flow to a crash.
 2.  **Contextualize:** Identify held locks, RCU sections, or interrupt
@@ -163,7 +162,7 @@ the logic itself must change.
   "Hold 'mapping->i_pages' lock", "Convert to 'atomic_t'") or required memory
   ordering annotations (e.g., "Wrap in 'READ_ONCE()'", "Use
   'smp_load_acquire()'").
-`
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
 
 const kcsanPrompt = `
 The data race report is:
