@@ -14,7 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
-	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -140,22 +139,6 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 		return nil
 	})
 	return res, err
-}
-
-var formatPatchDescription = aflow.NewFuncAction("format-patch-description", formatDescription)
-
-type formatDescriptionArgs struct {
-	PatchDescriptionRaw string
-}
-
-type formatDescriptionResult struct {
-	PatchDescription string
-}
-
-func formatDescription(ctx *aflow.Context, args formatDescriptionArgs) (formatDescriptionResult, error) {
-	return formatDescriptionResult{
-		PatchDescription: email.WordWrap(args.PatchDescriptionRaw, 72),
-	}, nil
 }
 
 var applyGitPatch = aflow.NewFuncAction("apply-git-patch", applyGitPatchFunc)

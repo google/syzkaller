@@ -49,7 +49,7 @@ type PatchIterationInputs struct {
 	StraceBin      string
 }
 
-type verdictAgentArgs struct {
+type verdictAgentOutputs struct {
 	CodeItems         []string `jsonschema:"Clean list of changes explicitly requested for the code itself."`
 	DescriptionItems  []string `jsonschema:"Clean list of changes requested to the commit description/changelog."`
 	FixesItems        []string `jsonschema:"Clean list of comments suggesting Fixes tag is incorrect or needs update."`
@@ -57,7 +57,7 @@ type verdictAgentArgs struct {
 	ResendReason      string   `jsonschema:"Reason for resending the patch unchanged (e.g., 're-test'), or empty."`
 }
 
-func validateVerdictArgs(ctx *aflow.Context, state struct{}, args verdictAgentArgs) (verdictAgentArgs, error) {
+func validateVerdictOutputs(ctx *aflow.Context, state struct{}, args verdictAgentOutputs) (verdictAgentOutputs, error) {
 	hasItems := len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
 	hasResend := args.ResendReason != ""
 	if hasItems && hasResend {
@@ -66,6 +66,20 @@ func validateVerdictArgs(ctx *aflow.Context, state struct{}, args verdictAgentAr
 			"if you want to resend without changes, leave all Items arrays empty")
 	}
 	return args, nil
+}
+
+// nolint: lll
+type changelogGeneratorOutputs struct {
+	PatchDescription string `jsonschema:"The updated full commit message for the new patch."`
+	NewChangeLog     string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
+}
+
+func validateChangelogOutputs(ctx *aflow.Context, state struct{}, args changelogGeneratorOutputs) (
+	changelogGeneratorOutputs, error) {
+	return changelogGeneratorOutputs{
+		PatchDescription: email.WordWrap(args.PatchDescription, patchDescriptionLineLength),
+		NewChangeLog:     args.NewChangeLog,
+	}, nil
 }
 
 func init() {
@@ -90,7 +104,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:        "verdict-agent",
 					Model:       aflow.BestExpensiveModel,
-					Outputs:     aflow.ValidatedLLMOutputs[verdictAgentArgs](validateVerdictArgs),
+					Outputs:     aflow.ValidatedLLMOutputs[verdictAgentOutputs](validateVerdictOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: verdictInstruction,
 					Prompt:      verdictPrompt,
@@ -128,18 +142,13 @@ func init() {
 						resolveFixes,
 						getRecentCommits,
 						&aflow.LLMAgent{
-							Name:  "changelog-generator",
-							Model: aflow.GoodBalancedModel,
-							// nolint: lll
-							Outputs: aflow.LLMOutputs[struct {
-								PatchDescriptionRaw string `jsonschema:"The updated full commit message for the new patch."`
-								NewChangeLog        string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
-							}](),
+							Name:        "changelog-generator",
+							Model:       aflow.GoodBalancedModel,
+							Outputs:     aflow.ValidatedLLMOutputs[changelogGeneratorOutputs](validateChangelogOutputs),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: changelogInstruction,
 							Prompt:      changelogPrompt,
 						},
-						formatPatchDescription,
 						getMaintainers,
 					),
 				},

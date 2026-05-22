@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -89,15 +90,17 @@ func init() {
 				getMaintainers,
 				getRecentCommits,
 				&aflow.LLMAgent{
-					Name:        "description-generator",
-					Model:       aflow.BestExpensiveModel,
-					Reply:       "PatchDescriptionRaw",
+					Name:  "description-generator",
+					Model: aflow.BestExpensiveModel,
+					ValidatedReply: aflow.LLMReply("PatchDescription",
+						func(ctx *aflow.Context, state struct{}, reply string) (string, error) {
+							return email.WordWrap(reply, patchDescriptionLineLength), nil
+						}),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: descriptionInstruction,
 					Prompt:      descriptionPrompt,
 					Tools:       common.CodeAccessTools,
 				},
-				formatPatchDescription,
 			),
 		})
 }
@@ -286,6 +289,8 @@ are specified, letter capitalization, style, etc.
 
 {{.RecentCommits}}
 `
+
+const patchDescriptionLineLength = 72
 
 func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
 	actions := []aflow.Action{}
