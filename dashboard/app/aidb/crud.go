@@ -907,7 +907,7 @@ func LoadJobReporting(ctx context.Context, id string) (*JobReporting, error) {
 	})
 }
 
-func CreatePatchIterationJob(ctx context.Context, reportingID string, debounce time.Duration) (*Job, error) {
+func CreatePatchIterationJob(ctx context.Context, reportingID string) (*Job, error) {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return nil, err

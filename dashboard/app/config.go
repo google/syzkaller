@@ -164,8 +164,9 @@ type AIPatchStageConfig struct {
 	ServingIntegration string // e.g. "lore"
 	MailingList        string
 	NoParallelReports  bool
-	MergePatchCc       bool // If true, CC people mentioned in the patch report (authors, reviewers).
-	AddressComments    bool // If true, automatically trigger a patch iteration on new comments.
+	MergePatchCc       bool          // If true, CC people mentioned in the patch report (authors, reviewers).
+	AddressComments    bool          // If true, automatically trigger a patch iteration on new comments.
+	IterationDebounce  time.Duration // Wait time before creating a new iteration. Defaults to 30m.
 }
 
 func (cfg *AIConfig) StageIndexByName(name string) int {
@@ -724,7 +725,7 @@ func checkCoverageConfig(ns string, cfg *Config) {
 
 func checkAIConfig(ns string, cfg *AIConfig) {
 	stageNames := make(map[string]bool)
-	for _, stage := range cfg.Stages {
+	for i, stage := range cfg.Stages {
 		if stage.Name == "" {
 			panic(fmt.Sprintf("%v: AI stage name cannot be empty", ns))
 		}
@@ -732,6 +733,9 @@ func checkAIConfig(ns string, cfg *AIConfig) {
 			panic(fmt.Sprintf("%v: duplicate AI stage name %q", ns, stage.Name))
 		}
 		stageNames[stage.Name] = true
+		if stage.IterationDebounce == 0 {
+			cfg.Stages[i].IterationDebounce = 30 * time.Minute
+		}
 	}
 	if cfg.SecurityPrio == nil {
 		cfg.SecurityPrio = func(*Bug, ai.AssessmentSecurityOutputs) BugPrio {

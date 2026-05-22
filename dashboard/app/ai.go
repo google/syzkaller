@@ -1434,13 +1434,16 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	})
 }
 
-const patchIterationDebounce = 30 * time.Minute
 const maxIterationGroupsPerPoll = 5
 
 // TODO: We could probably be more smart at avoiding looking into the specific
 // reportings each time, e.g. in case of retrials on errors.
 func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, error) {
-	var groups []*aidb.PendingCommentGroup
+	type pendingIteration struct {
+		*aidb.PendingCommentGroup
+		Debounce time.Duration
+	}
+	var groups []*pendingIteration
 
 	for ns, cfg := range getConfig(ctx).Namespaces {
 		if cfg.AI == nil || !client.AllowedNamespace(ns) {
@@ -1452,7 +1455,12 @@ func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, 
 				if err != nil {
 					return false, fmt.Errorf("failed to load pending comment groups for %v/%v: %w", ns, stage.Name, err)
 				}
-				groups = append(groups, grp...)
+				for _, g := range grp {
+					groups = append(groups, &pendingIteration{
+						PendingCommentGroup: g,
+						Debounce:            stage.IterationDebounce,
+					})
+				}
 			}
 		}
 	}
@@ -1466,10 +1474,10 @@ func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, 
 		groups = groups[:maxIterationGroupsPerPoll]
 	}
 	for _, g := range groups {
-		if timeNow(ctx).Sub(g.LatestComment) < patchIterationDebounce {
+		if timeNow(ctx).Sub(g.LatestComment) < g.Debounce {
 			continue
 		}
-		created, err := tryCreatePatchIterationJob(ctx, g)
+		created, err := tryCreatePatchIterationJob(ctx, g.PendingCommentGroup)
 		if err != nil {
 			log.Errorf(ctx, "tryCreatePatchIterationJob failed: %v", err)
 		} else if created {
@@ -1480,7 +1488,7 @@ func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, 
 }
 
 func tryCreatePatchIterationJob(ctx context.Context, g *aidb.PendingCommentGroup) (bool, error) {
-	job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID, patchIterationDebounce)
+	job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID)
 	if err != nil {
 		return false, fmt.Errorf("failed to create patch iteration job for %s: %w", g.ReportingID, err)
 	}
