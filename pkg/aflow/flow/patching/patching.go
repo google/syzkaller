@@ -53,6 +53,11 @@ func init() {
 		&aflow.Flow{
 			Consts: map[string]any{
 				"NeedStrace": false,
+				// For convenience of the patch-iteration workflow.
+				"ReviewedBy": []string{},
+				"AckedBy":    []string{},
+				"TestedBy":   []string{},
+				"ReportedBy": []string{},
 			},
 			Root: aflow.Pipeline(
 				baseCommitPicker,
@@ -95,7 +100,6 @@ func init() {
 					Tools:       commonTools,
 				},
 				formatPatchDescription,
-				emptyTagsAction,
 			),
 		})
 }

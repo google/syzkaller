@@ -136,20 +136,6 @@ var tagExtractor = &aflow.LLMAgent{
 	Prompt:      tagExtractorPrompt,
 }
 
-var emptyTagsAction = aflow.NewFuncAction("empty-tags", func(ctx *aflow.Context, args struct{}) (struct {
-	ReviewedBy []string
-	AckedBy    []string
-	TestedBy   []string
-	ReportedBy []string
-}, error) {
-	return struct {
-		ReviewedBy []string
-		AckedBy    []string
-		TestedBy   []string
-		ReportedBy []string
-	}{}, nil
-})
-
 const tagExtractorInstruction = `
 You are an expert Linux kernel maintainer. Your task is to extract review tags from comments on a proposed patch.
 Reviewers may provide tags to add to the commit.
