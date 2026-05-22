@@ -14,7 +14,6 @@ include <cam/cam_ccb.h>
 include <cam/cam_periph.h>
 include <cam/cam_queue.h>
 include <cam/cam_xpt.h>
-include <cam/cam_xpt_internal.h>
 include <cam/scsi/scsi_pass.h>
 include <cam/scsi/scsi_all.h>
 include <dev/nvme/nvme.h>
@@ -27,12 +26,6 @@ define SID_VENDOR_SIZE_PLUS_ONE	(SID_VENDOR_SIZE+1)
 define SID_PRODUCT_SIZE_PLUS_ONE	(SID_PRODUCT_SIZE+1)
 define SID_REVISION_SIZE_PLUS_ONE	(SID_REVISION_SIZE+1)
 
-# TODO: Descriptions for following structs are quite complex, I will complete them when I was free
-define CAM_EB_SIZE	sizeof(struct cam_eb)
-define CAM_ED_SIZE	sizeof(struct cam_ed)
-define CAM_ET_SIZE	sizeof(struct cam_et)
-define MTX_SIZE	sizeof(struct mtx)
-
 openat$pass(fd const[AT_FDCWD], file ptr[in, string["/dev/pass0"]], flags flags[open_flags], mode const[0]) fd_pass
 
 ioctl$CAMIOQUEUE(fd fd_pass, cmd const[CAMIOQUEUE], arg ptr[in, ptr[in, ccb]])
@@ -40,8 +33,6 @@ ioctl$CAMIOGET(fd fd_pass, cmd const[CAMIOGET], arg ptr[out, ptr[out, ccb]])
 ioctl$CAMIOCOMMAND(fd fd_pass, cmd const[CAMIOCOMMAND], arg ptr[inout, ccb])
 
 ccb_hdr_func_codes = XPT_FC_QUEUED, XPT_FC_USER_CCB, XPT_FC_XPT_ONLY, XPT_FC_DEV_QUEUED, XPT_NOOP, XPT_SCSI_IO, XPT_GDEV_TYPE, XPT_GDEVLIST, XPT_PATH_INQ, XPT_REL_SIMQ, XPT_SASYNC_CB, XPT_SDEV_TYPE, XPT_SCAN_BUS, XPT_DEV_MATCH, XPT_DEBUG, XPT_PATH_STATS, XPT_GDEV_STATS, XPT_DEV_ADVINFO, XPT_ASYNC, XPT_ABORT, XPT_RESET_BUS, XPT_RESET_DEV, XPT_TERM_IO, XPT_SCAN_LUN, XPT_GET_TRAN_SETTINGS, XPT_SET_TRAN_SETTINGS, XPT_CALC_GEOMETRY, XPT_ATA_IO, XPT_GET_SIM_KNOB_OLD, XPT_SET_SIM_KNOB, XPT_GET_SIM_KNOB, XPT_SMP_IO, XPT_NVME_IO, XPT_MMC_IO, XPT_SCAN_TGT, XPT_NVME_ADMIN, XPT_ENG_INQ, XPT_ENG_EXEC, XPT_EN_LUN, XPT_TARGET_IO, XPT_ACCEPT_TARGET_IO, XPT_CONT_TARGET_IO, XPT_IMMED_NOTIFY, XPT_NOTIFY_ACK, XPT_IMMEDIATE_NOTIFY, XPT_NOTIFY_ACKNOWLEDGE, XPT_REPROBE_LUN, XPT_MMC_SET_TRAN_SETTINGS, XPT_MMC_GET_TRAN_SETTINGS, XPT_VUNIQUE
-cam_periph_flags = CAM_PERIPH_RUNNING, CAM_PERIPH_LOCKED, CAM_PERIPH_LOCK_WANTED, CAM_PERIPH_INVALID, CAM_PERIPH_NEW_DEV_FOUND, CAM_PERIPH_RECOVERY_INPROG, CAM_PERIPH_RUN_TASK, CAM_PERIPH_FREE, CAM_PERIPH_ANNOUNCED, CAM_PERIPH_RECOVERY_WAIT, CAM_PERIPH_RECOVERY_WAIT_FAILED
-cam_periph_ac_codes = AC_UNIT_ATTENTION, AC_ADVINFO_CHANGED, AC_CONTRACT, AC_GETDEV_CHANGED, AC_INQ_CHANGED, AC_TRANSFER_NEG, AC_LOST_DEVICE, AC_FOUND_DEVICE, AC_PATH_DEREGISTERED, AC_PATH_REGISTERED, AC_SENT_BDR, AC_SCSI_AEN, AC_UNSOL_RESEL, AC_BUS_RESET
 ata_support2_flags = ATA_SUPPORT_WRITEREADVERIFY, ATA_SUPPORT_WRITEUNCORREXT, ATA_SUPPORT_RWLOGDMAEXT, ATA_SUPPORT_MICROCODE3, ATA_SUPPORT_FREEFALL, ATA_SUPPORT_SENSE_REPORT, ATA_SUPPORT_EPC, ATA_SUPPORT_AMAX_ADDR, ATA_SUPPORT_DSN
 ata_enabled2_flags = ATA_ENABLED_WRITEREADVERIFY, ATA_ENABLED_WRITEUNCORREXT, ATA_ENABLED_FREEFALL, ATA_ENABLED_SENSE_REPORT, ATA_ENABLED_EPC, ATA_ENABLED_DSN
 ata_security_status_flags = ATA_SECURITY_LEVEL, ATA_SECURITY_ENH_SUPP, ATA_SECURITY_COUNT_EXP, ATA_SECURITY_FROZEN, ATA_SECURITY_LOCKED, ATA_SECURITY_ENABLED, ATA_SECURITY_SUPPORTED
@@ -86,7 +77,7 @@ ccb_hdr {
 	cbfcnp		intptr
 	func_code	flags[ccb_hdr_func_codes, int32]
 	status		int32
-	path		ptr[in, cam_path]
+	path		const[0, intptr]
 	path_id		int32
 	target_id	int32
 	target_lun	int64
@@ -125,91 +116,9 @@ cam_pinfo {
 }
 
 camq_entry [
-	le	LIST_ENTRY[in, ccb_hdr]
-	sle	SLIST_ENTRY[in, ccb_hdr]
-	tqe	TAILQ_ENTRY[in, ccb_hdr]
-	stqe	STAILQ_ENTRY[in, ccb_hdr]
+	next	const[0, intptr]
+	prev	const[0, intptr]
 ]
-
-cam_path {
-	periph	ptr[in, cam_periph, opt]
-	bus	ptr[in, array[int8, CAM_EB_SIZE]]
-	target	ptr[in, array[int8, CAM_ED_SIZE]]
-	device	ptr[in, array[int8, CAM_ET_SIZE]]
-}
-
-cam_periph {
-	periph_start		ptr[in, void]
-	periph_alloc		ptr[in, void]
-	periph_dtor		ptr[in, void]
-	periph_name		ptr[in, array[int8]]
-	path			ptr[in, cam_path]
-	softc			ptr[in, void]
-	sim			ptr[in, cam_sim]
-	unit_number		int32
-	type			int32
-	flags			flags[cam_periph_flags, int32]
-	scheduled_priority	int32
-	immediate_priority	int32
-	periph_allocating	int32
-	periph_allocated	int32
-	refcount		int32
-	ccb_list		SLIST_HEAD[in, ccb_hdr]
-	periph_links		SLIST_ENTRY[in, cam_periph]
-	unit_links		TAILQ_ENTRY[in, cam_periph]
-	deferred_callback	ptr[in, void]
-	deferred_ac		flags[cam_periph_ac_codes, int32]
-	periph_run_task		task
-	ccb_zone		ptr[in, array[int8]]
-	periph_rootmount	root_hold_token
-}
-
-cam_sim {
-	sim_action		intptr
-	sim_poll		intptr
-	sim_name		ptr[in, array[int8]]
-	softc			ptr[in, array[int8]]
-	mtx			ptr[in, array[int8, MTX_SIZE]]
-	links			TAILQ_ENTRY[in, cam_sim]
-	path_id			int32
-	unit_number		int32
-	bus_id			int32
-	max_tagged_dev_openings	int32
-	max_dev_openings	int32
-	flags			int32
-	devq			cam_devq
-	refcount		int32
-}
-
-cam_devq {
-	send_mtx	array[int8, MTX_SIZE]
-	send_queue	camq
-	send_openings	int32
-	send_active	int32
-}
-
-camq {
-	queue_array	ptr[in, array[ptr[in, cam_pinfo]]]
-	array_size	len[queue_array, int32]
-	entries		int32
-	generation	int32
-	qfrozen_cnt	int32
-}
-
-root_hold_token {
-	flags	int32
-	who	ptr[in, array[int8]]
-	list	TAILQ_ENTRY[in, root_hold_token]
-}
-
-task {
-	ta_link		STAILQ_ENTRY[in, task]
-	ta_pending	int16
-	ta_priority	int8
-	ta_flags	int8
-	ta_func		ptr[in, void]
-	ta_context	ptr[in, void]
-}
 
 ccb_scsiio {
 	ccb_h		ccb_hdr
@@ -803,25 +712,3 @@ ata_cmd_set {
 	command2	flags[ata_command2_flags, int16]
 	extension	flags[ata_extension_flags, int16]
 } [packed]
-
-type LIST_ENTRY[DIR, T] {
-	le_next	ptr[DIR, T, opt]
-	le_prev	ptr[DIR, ptr[DIR, T], opt]
-}
-
-type SLIST_HEAD[DIR, T] {
-	slh_first	ptr[DIR, T, opt]
-}
-
-type SLIST_ENTRY[DIR, T] {
-	sle_next	ptr[DIR, T, opt]
-}
-
-type TAILQ_ENTRY[DIR, T] {
-	tqe_next	ptr[DIR, T, opt]
-	tqe_prev	ptr[DIR, ptr[DIR, T], opt]
-}
-
-type STAILQ_ENTRY[DIR, T] {
-	stqe_next	ptr[DIR, T, opt]
-}
