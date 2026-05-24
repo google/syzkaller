@@ -1,0 +1,28 @@
+TITLE: int3 in __pmd_alloc
+TYPE: DoS
+FRAME: __pmd_alloc
+PANICKED: Y
+
+[  150.665871][    C0] Oops: int3: 0000 [#1] SMP KASAN NOPTI
+[  150.665887][    C0] CPU: 0 UID: 0 PID: 5959 Comm: syz-executor130 Not tainted 6.15.0-syzkaller-13743-g8630c59e9936 #0 PREEMPT(full)
+[  150.665899][    C0] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+[  150.665905][    C0] RIP: 0010:kmem_cache_alloc_noprof+0x83/0x3b0
+[  150.665922][    C0] Code: ff f6 c7 04 0f 85 59 02 00 00 89 de 4c 89 e7 e8 03 35 0b 00 4d 85 e4 41 0f 94 c7 85 c0 0f 95 c0 41 08 c7 0f 85 67 02 00 00 cc <70> 48 c7 44 24 20 00 00 00 00 41 b9 ff ff ff ff 65 48 8b 05 5d 8d
+[  150.665932][    C0] RSP: 0018:ffffc9000407f600 EFLAGS: 00000246
+[  150.665940][    C0] RAX: 0000000000000000 RBX: 0000000000000cc0 RCX: 0000000000000001
+[  150.665946][    C0] RDX: dffffc0000000000 RSI: 0000000000000cc0 RDI: ffff88801b84c500
+[  150.666014][    C0] Call Trace:
+[  150.666017][    C0]  <TASK>
+[  150.666032][    C0]  __pmd_alloc+0xbf/0x930
+[  150.666050][    C0]  copy_page_range+0x3f75/0x5d90
+[  150.666187][    C0]  dup_mmap+0xe88/0x21d0
+[  150.666213][    C0]  copy_process+0x4081/0x76a0
+[  150.666280][    C0]  kernel_clone+0xfc/0x960
+[  150.666321][    C0]  __do_sys_clone+0xce/0x120
+[  150.666396][    C0]  do_syscall_64+0xcd/0x4c0
+[  150.666404][    C0]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  150.666469][    C0]  </TASK>
+[  150.666478][    C0] ---[ end trace 0000000000000000 ]---
+[  150.666483][    C0] RIP: 0010:kmem_cache_alloc_noprof+0x83/0x3b0
+[  150.666570][    C0] Kernel panic - not syncing: Fatal exception in interrupt
+[  150.667220][    C0] Kernel Offset: disabled
