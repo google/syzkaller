@@ -257,6 +257,7 @@ var titleToType = []struct {
 			"divide error in",
 			"general protection fault in",
 			"go runtime error",
+			"int3 in",
 			"invalid opcode in",
 			"kernel panic:",
 			"kernel stack overflow",

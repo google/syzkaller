@@ -2566,6 +2566,23 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		[]byte("int3:"),
+		[]oopsFormat{
+			{
+				title: compile("int3: "),
+				fmt:   "int3 in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						linuxCallTrace,
+						parseStackTrace,
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("UBSAN:"),
 		[]oopsFormat{
 			{
