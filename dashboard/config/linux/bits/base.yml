@@ -24,6 +24,11 @@ config:
  # Continuous fuzzing is more important than breaking on warnings.
  - WERROR: n
 
+ # SHA1 module signatures fail with modern OpenSSL versions. This is weak
+ # because base.yml is included for configs that do not enable module signing.
+ - MODULE_SIG_SHA512: [weak]
+ - MODULE_SIG_HASH: ["sha512", weak]
+
  # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
  # Huge page overcommit is disabled by default, allowing some overcommit
  # with vm.nr_overcommit_hugepages is intended to give more coverage.
