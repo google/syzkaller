@@ -260,7 +260,7 @@ generate_rpc:
 
 generate_trace2syz:
 	(cd tools/syz-trace2syz/parser; ragel -Z -G2 -o lex.go straceLex.rl)
-	(cd tools/syz-trace2syz/parser; goyacc -o strace.go -p Strace -v="" strace.y)
+	(cd tools/syz-trace2syz/parser; $(HOSTGO) tool goyacc -o strace.go -p Strace -v="" strace.y)
 
 format: format_go format_cpp format_sys format_keep_sorted
 
@@ -428,7 +428,6 @@ install_prerequisites: act
 	sudo apt-get install -y -q clang-tidy || true
 	sudo apt-get install -y -q clang clang-format ragel
 	sudo apt-get install -y -q flatbuffers-compiler libflatbuffers-dev
-	GO111MODULE=off go get -u golang.org/x/tools/cmd/goyacc
 
 check_copyright:
 	./tools/check-copyright.sh
