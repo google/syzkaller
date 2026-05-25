@@ -355,5 +355,6 @@ tool (
 	github.com/google/keep-sorted
 	github.com/vektra/mockery/v3
 	golang.org/x/tools/cmd/deadcode
+	golang.org/x/tools/cmd/goyacc
 	golang.org/x/tools/cmd/stringer
 )
