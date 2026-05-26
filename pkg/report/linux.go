@@ -157,6 +157,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 const contextConsole = "console"
 
 var linuxPanickedRe = regexp.MustCompile(`Kernel panic - not syncing`)
+var replayRe = regexp.MustCompile(`^\n[^\n]*\*\* replaying previous printk message \*\*`)
 var linuxFaultInjectionRe = []byte("FAULT_INJECTION: forcing a failure")
 
 func (ctx *linux) ContainsCrash(output []byte) bool {
@@ -363,6 +364,13 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 }
 
+func isTruncatedByReplay(output []byte, pos int) bool {
+	if pos >= len(output) {
+		return false
+	}
+	return replayRe.Match(output[pos:])
+}
+
 func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, context string) {
 	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
 		next = bytes.IndexByte(output[pos:], '\n')
@@ -374,6 +382,9 @@ func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, contex
 		line := output[pos:next]
 		for _, oops1 := range linuxOopses {
 			if matchOops(line, oops1, ctx.ignores) {
+				if isTruncatedByReplay(output, next) {
+					continue
+				}
 				oops = oops1
 				startPos = pos
 				context = ctx.extractContext(line)
@@ -444,6 +455,9 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 						}
 					}
 				}
+				continue
+			}
+			if isTruncatedByReplay(output, next) {
 				continue
 			}
 			endPos = next
