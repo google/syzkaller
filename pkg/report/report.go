@@ -453,6 +453,7 @@ func compile(re string) *regexp.Regexp {
 	re = strings.ReplaceAll(re, "{{PC}}", "\\[\\<?(?:0x)?[0-9a-f]+\\>?\\]")
 	re = strings.ReplaceAll(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)")
 	re = strings.ReplaceAll(re, "{{SRC}}", "([a-zA-Z0-9-_/.]+\\.[a-z]+:[0-9]+)")
+	re = strings.ReplaceAll(re, "{{TASK}}", `[\s\S]{0,100}?`)
 	return regexp.MustCompile(re)
 }
 
