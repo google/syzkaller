@@ -21,7 +21,7 @@ type BackportCommit struct {
 
 // linuxFixBackports() cherry-picks the commits necessary to compile/run older Linux kernel releases.
 func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
-	return applyFixBackports(repo,
+	return BackportCommits(repo,
 		append(
 			slices.Clone(pickLinuxCommits),
 			extraCommits...,
@@ -29,7 +29,10 @@ func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
 	)
 }
 
-func applyFixBackports(repo *gitRepo, commits []BackportCommit) error {
+// BackportCommits conditionally cherry-picks the given commits into the repository.
+// A commit is only cherry-picked if its GuiltyHash is present (if specified)
+// and a commit with the same original title is not already present.
+func BackportCommits(repo Repo, commits []BackportCommit) error {
 	for _, info := range commits {
 		if info.GuiltyHash != "" {
 			contains, err := repo.Contains(info.GuiltyHash)
@@ -57,7 +60,7 @@ func applyFixBackports(repo *gitRepo, commits []BackportCommit) error {
 			// The fix is already present.
 			continue
 		}
-		_, err = repo.Run("cherry-pick", "--no-commit", info.FixHash)
+		err = repo.cherryPick(info.FixHash)
 		if err != nil {
 			return err
 		}

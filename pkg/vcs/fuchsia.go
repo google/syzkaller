@@ -122,6 +122,10 @@ func (ctx *fuchsia) CommitExists(commit string) (bool, error) {
 	return ctx.repo.CommitExists(commit)
 }
 
+func (ctx *fuchsia) cherryPick(commit string) error {
+	return ctx.repo.cherryPick(commit)
+}
+
 func (ctx *fuchsia) PushCommit(repo, commit string) error {
 	// Fuchsia repo doesn't accept unauthenticated pushes.
 	return fmt.Errorf("not implemented for fuchsia: PushCommit")

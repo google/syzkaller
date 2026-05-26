@@ -79,6 +79,9 @@ type Repo interface {
 
 	// PushCommit is used to store commit in remote repo.
 	PushCommit(repo, commit string) error
+
+	// cherryPick cherry-picks the given commit without committing it.
+	cherryPick(commit string) error
 }
 
 // Bisecter may be optionally implemented by Repo.
