@@ -1,0 +1,68 @@
+TITLE: INFO: task hung in p9_fd_close
+ALT: hang in p9_fd_close
+TYPE: HANG
+FRAME: p9_fd_close
+
+[ 1052.080846][   T41] INFO: task ����
+[ 1052.080846][   T41] �� �!�:18088 blocked for more than 143 seconds.
+[ 1052.101131][   T41]       Tainted: G             L      syzkaller #0
+[ 1052.124530][   T41] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1052.150223][   T41] task:����
+[ 1052.150223][   T41] �� �!� state:D stack:25960 pid:18088 tgid:18087 ppid:15126  task_flags:0x400140 flags:0x08080002
+[ 1052.189780][   T41] Call Trace:
+[ 1052.199981][   T41]  <TASK>
+[ 1052.211420][   T41]  __schedule+0x10e9/0x6820
+[ 1052.215835][   T41]  ? __pfx___schedule+0x10/0x10
+[ 1052.218049][   T41]  ? find_held_lock+0x2b/0x80
+[ 1052.219922][   T41]  ? schedule+0x2bf/0x390
+[ 1052.227703][   T41]  schedule+0xdd/0x390
+[ 1052.258119][   T41]  schedule_timeout+0x1b2/0x280
+[ 1052.260559][   T41]  ? __pfx_schedule_timeout+0x10/0x10
+[ 1052.283275][   T41]  ? __wait_for_common+0x2da/0x4c0
+[ 1052.287218][   T41]  ? rcu_is_watching+0x12/0xc0
+[ 1052.291037][   T41]  __wait_for_common+0x2e7/0x4c0
+[ 1052.316193][   T41]  ? __pfx_schedule_timeout+0x10/0x10
+[ 1052.322635][   T41]  ? __pfx___wait_for_common+0x10/0x10
+[ 1052.332888][   T41]  ? find_held_lock+0x2b/0x80
+[ 1052.348967][   T41]  ? __flush_work+0x928/0xcb0
+[ 1052.405764][   T41]  ? __flush_work+0x928/0xcb0
+[ 1052.425811][   T41]  ? __flush_work+0x4ca/0xcb0
+[ 1052.427704][   T41]  __flush_work+0x7c7/0xcb0
+[ 1052.429405][   T41]  ? __pfx___flush_work+0x10/0x10
+[ 1052.443091][   T41]  ? __pfx_wq_barrier_func+0x10/0x10
+[ 1052.453168][   T41]  ? __pfx___might_resched+0x10/0x10
+[ 1052.455225][   T41]  ? rcu_is_watching+0x12/0xc0
+[ 1052.456896][   T41]  p9_fd_close+0x299/0x5a0
+[ 1052.458482][   T41]  p9_client_create+0x678/0xd40
+[ 1052.460555][   T41]  ? __pfx_p9_client_create+0x10/0x10
+[ 1052.484930][   T41]  ? lockdep_init_map_type+0x5c/0x250
+[ 1052.492269][   T41]  ? __raw_spin_lock_init+0x3a/0x110
+[ 1052.506956][   T41]  v9fs_session_init+0x3c/0xd20
+[ 1052.508619][   T41]  ? kasan_save_track+0x14/0x30
+[ 1052.529673][   T41]  v9fs_get_tree+0xb8/0xb50
+[ 1052.535364][   T41]  ? rcu_is_watching+0x12/0xc0
+[ 1052.550007][   T41]  ? __pfx_v9fs_get_tree+0x10/0x10
+[ 1052.557496][   T41]  ? bpf_lsm_capable+0x9/0x10
+[ 1052.572469][   T41]  ? security_capable+0x80/0x260
+[ 1052.574127][   T41]  vfs_get_tree+0x92/0x320
+[ 1052.598084][   T41]  path_mount+0x7d0/0x23d0
+[ 1052.599770][   T41]  ? __pfx_path_mount+0x10/0x10
+[ 1052.613058][   T41]  ? lockdep_hardirqs_on+0x78/0x100
+[ 1052.633211][   T41]  ? putname+0xb1/0x110
+[ 1052.634658][   T41]  ? kmem_cache_free+0x127/0x6c0
+[ 1052.646748][   T41]  ? __ia32_sys_mount+0x292/0x310
+[ 1052.648963][   T41]  __ia32_sys_mount+0x292/0x310
+[ 1052.656120][   T41]  ? __pfx___ia32_sys_mount+0x10/0x10
+[ 1052.657912][   T41]  ? rcu_is_watching+0x12/0xc0
+[ 1052.669251][   T41]  __do_fast_syscall_32+0xe7/0x950
+[ 1052.673954][   T41]  ? lockdep_hardirqs_on+0x78/0x100
+[ 1052.681143][   T41]  do_fast_syscall_32+0x32/0x70
+[ 1052.690801][   T41]  entry_SYSENTER_compat_after_hwframe+0x84/0x8e
+[ 1052.696247][   T41] RIP: 0023:0xf7f07fcc
+[ 1052.699933][   T41] RSP: 002b:00000000f53c650c EFLAGS: 00000292 ORIG_RAX: 0000000000000015
+[ 1052.710363][   T41] RAX: ffffffffffffffda RBX: 0000000080000000 RCX: 0000000080000680
+[ 1052.715567][   T41] RDX: 00000000800006c0 RSI: 0000000000008010 RDI: 0000000080000080
+[ 1052.720552][   T41] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[ 1052.735955][   T41] R10: 0000000000000000 R11: 0000000000000292 R12: 0000000000000000
+[ 1052.743600][   T41] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[ 1052.751781][   T41]  </TASK>

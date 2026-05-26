@@ -1,0 +1,38 @@
+TITLE: INFO: task hung in read_cache_folio
+ALT: hang in read_cache_folio
+TYPE: HANG
+FRAME: read_cache_folio
+
+[  584.319520][   T31] INFO: t
+** replaying previous printk message **
+[  584.319520][   T31] INFO: task udevd:5612 blocked in I/O wait for more than 143 seconds.
+[  584.319554][   T31]       Tainted: G             L      syzkaller #0
+[  584.319578][   T31] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  584.319585][   T31] task:udevd           state:D stack:0     pid:5612  tgid:5612  ppid:4302   task_flags:0x400140 flags:0x00800019
+[  584.319601][   T31] Call trace:
+[  584.319605][   T31]  __switch_to+0x2b0/0x6e0 (T)
+[  584.319622][   T31]  __schedule+0x1b74/0x2d24
+[  584.319631][   T31]  schedule+0xa4/0x140
+[  584.319639][   T31]  io_schedule+0x1c/0xe0
+[  584.319647][   T31]  folio_wait_bit_common+0x674/0x9ec
+[  584.319659][   T31]  do_read_cache_folio+0x240/0x5b8
+[  584.319668][   T31]  read_cache_folio+0x68/0x84
+[  584.319677][   T31]  read_part_sector+0xcc/0x6e8
+[  584.319689][   T31]  adfspart_check_POWERTEC+0x98/0x5ac
+[  584.319697][   T31]  bdev_disk_changed+0x6fc/0x11c8
+[  584.319708][   T31]  blkdev_get_whole+0x15c/0x240
+[  584.319719][   T31]  bdev_open+0x2d8/0x8cc
+[  584.319728][   T31]  blkdev_open+0x2d8/0x404
+[  584.319738][   T31]  do_dentry_open+0x5c8/0x10dc
+[  584.319747][   T31]  vfs_open+0x44/0x2d4
+[  584.319756][   T31]  path_openat+0x2234/0x2a6c
+[  584.319765][   T31]  do_file_open+0x1c4/0x2e4
+[  584.319772][   T31]  do_sys_openat2+0x114/0x1e8
+[  584.319782][   T31]  do_sys_open+0xac/0xdc
+[  584.319790][   T31]  __arm64_sys_openat+0x9c/0xb8
+[  584.319799][   T31]  invoke_syscall+0x98/0x244
+[  584.319810][   T31]  el0_svc_common+0xe8/0x23c
+[  584.319820][   T31]  do_el0_svc+0x48/0x58
+[  584.319829][   T31]  el0_svc+0x60/0x25c
+[  584.319839][   T31]  el0t_64_sync_handler+0x48/0x148
+[  584.319848][   T31]  el0t_64_sync+0x198/0x19c
