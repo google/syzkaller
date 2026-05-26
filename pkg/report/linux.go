@@ -2250,7 +2250,7 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
-				title: compile(`INFO: task .* blocked (?:in I/O wait )?for more than [0-9]+ seconds`),
+				title: compile(`INFO: task {{TASK}} blocked (?:in I/O wait )?for more than [0-9]+ seconds`),
 				fmt:   "INFO: task hung in %[1]v",
 				alt:   []string{"hang in %[1]v"},
 				stack: &stackFmt{
@@ -2262,7 +2262,7 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
-				title: compile("INFO: task .* can't die for more than .* seconds"),
+				title: compile("INFO: task {{TASK}} can't die for more than .* seconds"),
 				fmt:   "INFO: task can't die in %[1]v",
 				alt:   []string{"hang in %[1]v"},
 				stack: &stackFmt{
