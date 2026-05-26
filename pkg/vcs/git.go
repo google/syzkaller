@@ -521,7 +521,7 @@ func (git *gitRepo) previousReleaseTags(commit string, self, onlyTop, includeRC 
 	tags1 := gitParseReleaseTags(output, includeRC)
 	tags = append(tags, tags1...)
 	if len(tags) == 0 {
-		return nil, fmt.Errorf("no release tags found for commit %v", commit)
+		return nil, fmt.Errorf("no release tags found for commit %v\n%s", commit, output)
 	}
 	return tags, nil
 }
