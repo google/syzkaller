@@ -1471,65 +1471,46 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	})
 }
 
-const maxIterationGroupsPerPoll = 5
-
 // TODO: We could probably be more smart at avoiding looking into the specific
 // reportings each time, e.g. in case of retrials on errors.
 func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, error) {
-	type pendingIteration struct {
-		*aidb.PendingCommentGroup
-		Debounce time.Duration
-	}
-	var groups []*pendingIteration
-
+	var groups []*aidb.PendingCommentGroup
 	for ns, cfg := range getConfig(ctx).Namespaces {
 		if cfg.AI == nil || !client.AllowedNamespace(ns) {
 			continue
 		}
 		for _, stage := range cfg.AI.Stages {
-			if stage.AddressComments {
-				grp, err := aidb.LoadPendingCommentGroups(ctx, ns, stage.Name)
-				if err != nil {
-					return false, fmt.Errorf("failed to load pending comment groups for %v/%v: %w", ns, stage.Name, err)
+			if !stage.AddressComments {
+				continue
+			}
+			grp, err := aidb.LoadPendingCommentGroups(ctx, ns, stage.Name)
+			if err != nil {
+				return false, fmt.Errorf("failed to load pending comment groups for %v/%v: %w", ns, stage.Name, err)
+			}
+			for _, g := range grp {
+				if timeNow(ctx).Sub(g.LatestComment) < stage.IterationDebounce {
+					continue
 				}
-				for _, g := range grp {
-					groups = append(groups, &pendingIteration{
-						PendingCommentGroup: g,
-						Debounce:            stage.IterationDebounce,
-					})
-				}
+				groups = append(groups, g)
 			}
 		}
 	}
 
-	// If there are too many, pick a random subset.
-	if len(groups) > maxIterationGroupsPerPoll {
-		r := rand.New(rand.NewSource(timeNow(ctx).UnixNano()))
-		r.Shuffle(len(groups), func(i, j int) {
-			groups[i], groups[j] = groups[j], groups[i]
-		})
-		groups = groups[:maxIterationGroupsPerPoll]
-	}
-	for _, g := range groups {
-		if timeNow(ctx).Sub(g.LatestComment) < g.Debounce {
-			continue
-		}
-		created, err := tryCreatePatchIterationJob(ctx, g.PendingCommentGroup)
+	// Each attempt is an expensive transaction, and our query for selecting pending jobs is imprecise,
+	// so limit the number, other jobs will be checked on next polls due to the random shuffle.
+	rand.Shuffle(len(groups), func(i, j int) {
+		groups[i], groups[j] = groups[j], groups[i]
+	})
+	const maxGroupsPerPoll = 5
+	for _, g := range groups[:min(len(groups), maxGroupsPerPoll)] {
+		job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID)
 		if err != nil {
-			log.Errorf(ctx, "tryCreatePatchIterationJob failed: %v", err)
-		} else if created {
+			log.Errorf(ctx, "failed to create patch iteration job for %v: %v", g.ReportingID, err)
+		} else if job != nil {
 			return true, nil
 		}
 	}
 	return false, nil
-}
-
-func tryCreatePatchIterationJob(ctx context.Context, g *aidb.PendingCommentGroup) (bool, error) {
-	job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID)
-	if err != nil {
-		return false, fmt.Errorf("failed to create patch iteration job for %s: %w", g.ReportingID, err)
-	}
-	return job != nil, nil
 }
 
 func buildPatchHistory(ctx context.Context, job *aidb.Job) ([]ai.PatchHistoryEntry, error) {
