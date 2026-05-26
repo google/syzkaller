@@ -21,9 +21,11 @@ Tool provides list of source files and subdirectories in the given directory in 
 
 	ToolReadFile = aflow.NewFuncTool("read-file", readFile, `
 Tool provides full contents of a single source file as is. Avoid using this tool if there are better
-and more specialized tools for the job, because source files may be large and contain lots
-of unrelated information.
+and more specialized tools for the job. The tool returns at most 100 lines at a time.
+If you need more, you need to call the tool several times. But avoid fetching large files
+with lots of repetitive calls if possible.
 `)
+
 	ToolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
@@ -98,7 +100,9 @@ type dirIndexResult struct {
 }
 
 type readFileArgs struct {
-	File string `jsonschema:"Source file path."`
+	File      string `jsonschema:"Source file path."`
+	FirstLine int    `jsonschema:"First source line to return, 1-based."`
+	LineCount int    `jsonschema:"Number of lines to return, capped at 100."`
 }
 
 type readFileResult struct {
@@ -187,7 +191,7 @@ func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIn
 }
 
 func readFile(ctx *aflow.Context, state prepareResult, args readFileArgs) (readFileResult, error) {
-	contents, err := state.Index.ReadFile(args.File)
+	contents, err := state.Index.ReadFile(args.File, args.FirstLine, args.LineCount)
 	return readFileResult{
 		Contents: contents,
 	}, err
