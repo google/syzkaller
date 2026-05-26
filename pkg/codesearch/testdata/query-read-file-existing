@@ -1,4 +1,4 @@
-read-file mm/slub.c
+read-file mm/slub.c 1 10
 
-// slub.c contents.
-// This file is used in read-file test.
+   1:	// slub.c contents.
+   2:	// This file is used in read-file test.

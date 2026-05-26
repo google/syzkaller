@@ -54,9 +54,17 @@ var Commands = []Command{
 		}},
 	{
 		Name:  "read-file",
-		NArgs: 1,
+		NArgs: 3,
 		Func: func(index *Index, args []string) (string, error) {
-			return index.ReadFile(args[0])
+			firstLine, err := strconv.Atoi(args[1])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse first line %q: %w", args[1], err)
+			}
+			lineCount, err := strconv.Atoi(args[2])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse line count %q: %w", args[2], err)
+			}
+			return index.ReadFile(args[0], firstLine, lineCount)
 		}},
 	{
 		Name:  "file-index",
@@ -228,12 +236,15 @@ func (index *Index) DirIndex(dir string) ([]string, []string, error) {
 	return subdirs, files, nil
 }
 
-func (index *Index) ReadFile(file string) (string, error) {
+func (index *Index) ReadFile(file string, firstLine, lineCount int) (string, error) {
 	if err := escaping(file); err != nil {
 		return "", err
 	}
+	firstLine = max(1, firstLine)
+	lineCount = max(1, min(100, lineCount))
 	for _, dir := range index.srcDirs {
-		data, err := os.ReadFile(filepath.Join(dir, file))
+		path := filepath.Join(dir, file)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
@@ -244,7 +255,20 @@ func (index *Index) ReadFile(file string) (string, error) {
 			}
 			return "", err
 		}
-		return string(data), nil
+		lines := bytes.Split(data, []byte{'\n'})
+		if last := len(lines) - 1; last >= 0 && len(lines[last]) == 0 {
+			lines = lines[:last]
+		}
+		if firstLine > len(lines) {
+			return "", aflow.BadCallError("file %v does not have line %v, it has only %v lines",
+				file, firstLine, len(lines))
+		}
+		end := min(firstLine+lineCount-1, len(lines))
+		b := new(strings.Builder)
+		for i := firstLine - 1; i < end; i++ {
+			fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
+		}
+		return b.String(), nil
 	}
 	return "", aflow.BadCallError("the file does not exist")
 }
@@ -252,7 +276,7 @@ func (index *Index) ReadFile(file string) (string, error) {
 func (index *Index) FileIndex(file string) ([]Entity, error) {
 	file = filepath.Clean(file)
 	// This allows to distinguish missing files from files that don't define anything.
-	if _, err := index.ReadFile(file); err != nil {
+	if _, err := index.ReadFile(file, 1, 1); err != nil {
 		return nil, err
 	}
 	var entities []Entity
@@ -437,9 +461,9 @@ func formatSourceFile(file string, start, end int, includeLines bool) (string, e
 	lines := bytes.Split(data, []byte{'\n'})
 	start--
 	end--
-	if start < 0 || end < start || end > len(lines) {
+	if start < 0 || end < start || end >= len(lines) {
 		return "", fmt.Errorf("codesearch: bad line range [%v-%v] for file %v with %v lines",
-			start, end, file, len(lines))
+			start+1, end+1, file, len(lines))
 	}
 	b := new(strings.Builder)
 	for line := start; line <= end; line++ {
