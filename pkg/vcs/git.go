@@ -578,6 +578,11 @@ func (git *gitRepo) CommitExists(commit string) (bool, error) {
 	return git.Git.CommitExists(commit)
 }
 
+func (git *gitRepo) cherryPick(commit string) error {
+	_, err := git.Run("cherry-pick", "--no-commit", commit)
+	return err
+}
+
 func (git *gitRepo) PushCommit(repo, commit string) error {
 	tagName := "tag-" + commit // assign tag to guarantee remote persistence
 	git.Run("tag", tagName)    // ignore errors on re-tagging
