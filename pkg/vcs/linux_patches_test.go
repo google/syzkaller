@@ -39,8 +39,7 @@ func TestFixBackport(t *testing.T) {
 	// Verify that the fix gets backported.
 	err := applyFixBackports(repo.repo, []BackportCommit{
 		{
-			FixHash:  fixCommit.Hash,
-			FixTitle: `fix title`,
+			FixHash: fixCommit.Hash,
 		},
 	})
 	if err != nil {
@@ -85,7 +84,6 @@ func TestConditionalFixBackport(t *testing.T) {
 		{
 			GuiltyHash: badCommit.Hash,
 			FixHash:    fixCommit.Hash,
-			FixTitle:   `fix title`,
 		},
 	}
 	err := applyFixBackports(repo.repo, rules)
