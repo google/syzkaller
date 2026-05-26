@@ -131,6 +131,11 @@ table td, table th {
 	max-width: 100pt;
 }
 
+.list_table .key-col {
+	width: 120pt;
+	min-width: 120pt;
+}
+
 .list_table .title {
 	min-width: 350pt;
 	width: max-content;
@@ -390,7 +395,7 @@ aside {
 	width: 90%;
 	height: 400px;
 	margin: 0 0;
-	overflow: scroll;
+	overflow: auto;
 	resize: vertical;
 	border: 1px solid #777;
 	padding: 0px;
@@ -404,10 +409,10 @@ aside {
 #ai_result_div {
 	align: left;
 	margin: 0 0;
-	overflow: scroll;
-	border: 1px solid #777;
+	overflow: auto;
+	border: none;
 	padding: 0px;
-	background: #F4F4F4;
+	background: transparent;
 }
 
 #ai_result_div pre {
