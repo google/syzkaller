@@ -54,45 +54,25 @@ func TestAILoreIntegration(t *testing.T) {
 	}, c.globalClient, poller, mockSnd)
 
 	// 1. Create a bug and AI job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	extID, jobID := c.setupAIPatchJob(t)
 
 	err = c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 		JobID: jobID,
 		Span:  &trajectory.Span{Seq: 1, Type: trajectory.SpanAgent, Name: "patch-generator", Model: "gemini-3.1-pro-preview"},
 	})
 	require.NoError(t, err)
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
-			"TestedBy":         []string{"Tester One <test1@test.com>"},
-			"Fixes": map[string]any{
-				"Hash":  "123456789012",
-				"Title": "original bug",
-			},
-			"Recipients": []map[string]any{
-				{"Name": "Maintainer", "Email": "maintainer@email.com", "To": true},
-				{"Name": "Reviewer", "Email": "reviewer@email.com", "To": false},
-			},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"ReviewedBy": []string{"Reviewer One <rev1@test.com>"},
+		"TestedBy":   []string{"Tester One <test1@test.com>"},
+		"Fixes": map[string]any{
+			"Hash":  "123456789012",
+			"Title": "original bug",
+		},
+		"Recipients": []map[string]any{
+			{"Name": "Maintainer", "Email": "maintainer@email.com", "To": true},
+			{"Name": "Reviewer", "Email": "reviewer@email.com", "To": false},
 		},
 	})
-	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
 	err = relay.PollDashboardOnce(t.Context())
@@ -214,30 +194,9 @@ func TestAILoreIntegrationReject(t *testing.T) {
 	}, c.globalClient, poller, mockSnd)
 
 	// 1. Create a bug and AI job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID, nil)
 
 	// 2. Poll Dashboard - should report to moderation.
 	err = relay.PollDashboardOnce(t.Context())
@@ -417,36 +376,16 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	}, c.globalClient, poller, mockSnd)
 
 	// 1. Create a bug and AI job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
-			"TestedBy":         []string{"Tester One <test1@test.com>"},
-			"Fixes": map[string]any{
-				"Hash":  "123456789012",
-				"Title": "original bug",
-			},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"ReviewedBy": []string{"Reviewer One <rev1@test.com>"},
+		"TestedBy":   []string{"Tester One <test1@test.com>"},
+		"Fixes": map[string]any{
+			"Hash":  "123456789012",
+			"Title": "original bug",
 		},
 	})
-	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
 	err = relay.PollDashboardOnce(t.Context())
@@ -612,36 +551,16 @@ func TestAILoreIteration(t *testing.T) {
 	}, c.globalClient, poller, mockSnd)
 
 	// 1. Create a bug and AI job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-			"ReviewedBy":       []string{"Reviewer One <rev1@test.com>"},
-			"TestedBy":         []string{"Tester One <test1@test.com>"},
-			"Fixes": map[string]any{
-				"Hash":  "123456789012",
-				"Title": "original bug",
-			},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"ReviewedBy": []string{"Reviewer One <rev1@test.com>"},
+		"TestedBy":   []string{"Tester One <test1@test.com>"},
+		"Fixes": map[string]any{
+			"Hash":  "123456789012",
+			"Title": "original bug",
 		},
 	})
-	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
 	err = relay.PollDashboardOnce(t.Context())

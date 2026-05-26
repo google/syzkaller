@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"testing"
 	"time"
@@ -20,6 +21,40 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/stretchr/testify/require"
 )
+
+func (ctx *Ctx) setupAIPatchJob(t *testing.T) (string, string) {
+	t.Helper()
+	build := testBuild(1)
+	ctx.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	ctx.aiClient.ReportCrash(crash)
+	extID := ctx.aiClient.pollEmailExtID()
+
+	_, err := ctx.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := ctx.createAIJob(extID, string(ai.WorkflowPatching), "")
+	return extID, jobID
+}
+
+func (ctx *Ctx) finishAIPatchJob(t *testing.T, jobID string, customResults map[string]any) {
+	t.Helper()
+	results := map[string]any{
+		"PatchDescription": "Test Subject\n\nTest Body",
+		"PatchDiff":        "diff",
+		"KernelRepo":       "repo",
+		"KernelCommit":     "commit",
+	}
+	maps.Copy(results, customResults)
+	err := ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      jobID,
+		Results: results,
+	})
+	require.NoError(t, err)
+}
 
 func TestAIExternalReporting(t *testing.T) {
 	c := NewSpannerCtx(t)
@@ -49,20 +84,12 @@ func TestAIExternalReporting(t *testing.T) {
 	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 
 	// Mark job as done with results.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-			"Fixes": map[string]any{
-				"Hash":  "123456789012",
-				"Title": "original bug",
-			},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"Fixes": map[string]any{
+			"Hash":  "123456789012",
+			"Title": "original bug",
 		},
 	})
-	require.NoError(t, err)
 
 	// Poll for pending reports and confirm published.
 	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
@@ -331,7 +358,6 @@ func TestAINoParallelReports(t *testing.T) {
 
 	// Report a crash to create a bug.
 	build := testBuild(1)
-	build.Manager = "ains"
 	c.aiClient.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.aiClient.ReportCrash(crash)
@@ -349,27 +375,16 @@ func TestAINoParallelReports(t *testing.T) {
 	jobID1 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 	jobID2 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID1,
-		Results: map[string]any{
-			"PatchDescription": "Job 1 Subject\n\nJob 1 Body",
-			"PatchDiff":        "diff1",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit1",
-		},
+	c.finishAIPatchJob(t, jobID1, map[string]any{
+		"PatchDescription": "Job 1 Subject\n\nJob 1 Body",
+		"PatchDiff":        "diff1",
+		"KernelCommit":     "commit1",
 	})
-	require.NoError(t, err)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID2,
-		Results: map[string]any{
-			"PatchDescription": "Job 2 Subject\n\nJob 2 Body",
-			"PatchDiff":        "diff2",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit2",
-		},
+	c.finishAIPatchJob(t, jobID2, map[string]any{
+		"PatchDescription": "Job 2 Subject\n\nJob 2 Body",
+		"PatchDiff":        "diff2",
+		"KernelCommit":     "commit2",
 	})
-	require.NoError(t, err)
 
 	// Poll for pending reports.
 	// Stage 0 ("review") allows parallel reports.
@@ -597,21 +612,9 @@ func TestAINoStages(t *testing.T) {
 
 	c.SetAIConfig("ains", &AIConfig{})
 
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, "patching", "")
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
 			"PatchDescription": "Test Subject\n\nTest Body",
@@ -773,12 +776,9 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	})
 
 	// 1. Setup bug and job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	extID, jobID := c.setupAIPatchJob(t)
 
+	// Poll to mark the job as started.
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
@@ -786,27 +786,11 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobID := c.createAIJob(extID, "patching", "")
-
-	// Poll to mark the job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"KernelRepo":   "exact-repo",
+		"KernelBranch": "exact-branch",
+		"KernelCommit": "exact-commit",
 	})
-	require.NoError(t, err)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "exact-repo",
-			"KernelBranch":     "exact-branch",
-			"KernelCommit":     "exact-commit",
-		},
-	})
-	require.NoError(t, err)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
 	require.NoError(t, err)
@@ -1112,12 +1096,9 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	})
 
 	// 1. Setup bug and initial patching job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
+	// Poll to mark the job as started.
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
@@ -1125,28 +1106,13 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobID := c.createAIJob(extID, "patching", "")
-
-	// Poll to mark the job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
 	// Complete the initial patching job successfully.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Desc Subject\n\nDesc Body",
-			"PatchDiff":        "diff",
-			"KernelCommit":     "exact-commit-hash",
-			"KernelRepo":       "exact-repo",
-			"KernelBranch":     "exact-branch",
-		},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"PatchDescription": "Desc Subject\n\nDesc Body",
+		"KernelCommit":     "exact-commit-hash",
+		"KernelRepo":       "exact-repo",
+		"KernelBranch":     "exact-branch",
 	})
-	require.NoError(t, err)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
 	require.NoError(t, err)
@@ -1238,12 +1204,9 @@ func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
 	})
 
 	// 1. Setup bug and patching job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
+	// Poll to mark job as started.
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
@@ -1251,21 +1214,10 @@ func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobID := c.createAIJob(extID, "patching", "")
-
-	// Poll to mark job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"PatchDescription": "Desc1 Subject\n\nDesc1 Body",
+		"PatchDiff":        "diff1",
 	})
-	require.NoError(t, err)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID:      jobID,
-		Results: map[string]any{"PatchDescription": "Desc1 Subject\n\nDesc1 Body", "PatchDiff": "diff1"},
-	})
-	require.NoError(t, err)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
 	require.NoError(t, err)
@@ -1341,11 +1293,10 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	require.NoError(t, err)
 
 	// Complete V1 job.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID:      jobID1,
-		Results: map[string]any{"PatchDescription": "Desc1 Subject\n\nDesc1 Body", "PatchDiff": "diff1"},
+	c.finishAIPatchJob(t, jobID1, map[string]any{
+		"PatchDescription": "Desc1 Subject\n\nDesc1 Body",
+		"PatchDiff":        "diff1",
 	})
-	require.NoError(t, err)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID1)
 	require.NoError(t, err)
@@ -1381,11 +1332,10 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	c.advanceTime(1 * time.Second) // Ensure later CreatedAt.
 
 	// Complete V2 job.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID:      jobID2,
-		Results: map[string]any{"PatchDescription": "Desc2 Subject\n\nDesc2 Body", "PatchDiff": "diff2"},
+	c.finishAIPatchJob(t, jobID2, map[string]any{
+		"PatchDescription": "Desc2 Subject\n\nDesc2 Body",
+		"PatchDiff":        "diff2",
 	})
-	require.NoError(t, err)
 
 	// Advance time past debounce.
 	c.advanceTime(31 * time.Minute)
@@ -1417,12 +1367,9 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	})
 
 	// 1. Setup bug and job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
+	// Poll to mark the job as started.
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
@@ -1430,26 +1377,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobID := c.createAIJob(extID, "patching", "")
-
-	// Poll to mark the job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID, nil)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
 	require.NoError(t, err)
@@ -1682,12 +1610,9 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	})
 
 	// 1. Setup bug and job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
+	_, jobID := c.setupAIPatchJob(t)
 
+	// Poll to mark the job as started.
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
@@ -1695,26 +1620,7 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobID := c.createAIJob(extID, "patching", "")
-
-	// Poll to mark the job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID, nil)
 
 	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
 	require.NoError(t, err)
@@ -1819,17 +1725,11 @@ func TestAIPatchFilter(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "exact-repo",
-			"KernelBranch":     "exact-branch",
-			"KernelCommit":     "exact-commit",
-		},
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"KernelRepo":   "exact-repo",
+		"KernelBranch": "exact-branch",
+		"KernelCommit": "exact-commit",
 	})
-	require.NoError(t, err)
 
 	job, err := aidb.LoadJob(c.ctx, jobID)
 	require.NoError(t, err)
