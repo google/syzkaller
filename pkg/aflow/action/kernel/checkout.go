@@ -4,6 +4,7 @@
 package kernel
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
@@ -42,10 +43,23 @@ type checkoutScratchResult struct {
 	KernelScratchSrc string
 }
 
+var kernelBackports = []vcs.BackportCommit{
+	{
+		// Required for out-of-tree builds (like building the kernel in a separate obj directory).
+		GuiltyHash: `1fb5f6b61535c24bed6f503707efc4358d3b70c3`,
+		FixHash:    `75bc03df42db6c52399d71a5d7252a12673fdce3`,
+	},
+}
+
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 	var res checkoutResult
+	cacheKey := args.KernelCommit
+	for _, bp := range kernelBackports {
+		cacheKey += "-" + bp.FixHash
+	}
+
 	err := UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		dir, err := ctx.Cache("src", args.KernelCommit, func(dir string) error {
+		dir, err := ctx.Cache("src", cacheKey, func(dir string) error {
 			if _, err := repo.SwitchCommit(args.KernelCommit); err != nil {
 				if _, err := repo.CheckoutCommit(args.KernelRepo, args.KernelCommit); err != nil {
 					return err
@@ -72,7 +86,33 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					}
 				}
 			}
-			return shallowGitClone(dir, kernelRepoDir)
+			if err := vcs.BackportCommits(repo, kernelBackports); err != nil {
+				return fmt.Errorf("failed to apply backports: %w", err)
+			}
+
+			// vcs.BackportCommits cherry-picks commits but leaves them uncommitted in the index/tree.
+			// Because we use a shallow clone (--depth=1) to populate the target directory, it only pulls
+			// HEAD and ignores any uncommitted state. Therefore, we must manually extract these changes
+			// as a patch and apply them downstream to ensure the isolated environment actually receives them.
+			diff, err := osutil.RunCmd(time.Minute, kernelRepoDir, "git", "diff", "HEAD")
+			if err != nil {
+				return fmt.Errorf("failed to get backports diff: %w", err)
+			}
+			if err := shallowGitClone(dir, kernelRepoDir); err != nil {
+				return err
+			}
+			if len(diff) > 0 {
+				if err := vcs.Patch(dir, diff); err != nil {
+					return fmt.Errorf("failed to apply backports patch: %w", err)
+				}
+				// Commit the backports so they don't appear in subsequent diffs (like patch-diff).
+				if _, err := osutil.RunCmd(time.Minute, dir, "git",
+					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
+					"commit", "-am", "aflow: apply backports"); err != nil {
+					return fmt.Errorf("failed to commit backports: %w", err)
+				}
+			}
+			return nil
 		})
 		res.KernelSrc = dir
 		return err
