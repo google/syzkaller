@@ -98,9 +98,9 @@ var Commands = []Command{
 		}},
 	{
 		Name:  "def-source",
-		NArgs: 3,
+		NArgs: 2,
 		Func: func(index *Index, args []string) (string, error) {
-			info, err := index.DefinitionSource(args[0], args[1], args[2] == "yes")
+			info, err := index.DefinitionSource(args[0], args[1])
 			if err != nil {
 				return "", err
 			}
@@ -298,14 +298,14 @@ type EntityInfo struct {
 }
 
 func (index *Index) DefinitionComment(contextFile, name string) (*EntityInfo, error) {
-	return index.definitionSource(contextFile, name, true, false)
+	return index.definitionSource(contextFile, name, true)
 }
 
-func (index *Index) DefinitionSource(contextFile, name string, includeLines bool) (*EntityInfo, error) {
-	return index.definitionSource(contextFile, name, false, includeLines)
+func (index *Index) DefinitionSource(contextFile, name string) (*EntityInfo, error) {
+	return index.definitionSource(contextFile, name, false)
 }
 
-func (index *Index) definitionSource(contextFile, name string, comment, includeLines bool) (*EntityInfo, error) {
+func (index *Index) definitionSource(contextFile, name string, comment bool) (*EntityInfo, error) {
 	def := index.findDefinition(contextFile, name)
 	if def == nil {
 		return nil, aflow.BadCallError("requested entity does not exist")
@@ -314,7 +314,7 @@ func (index *Index) definitionSource(contextFile, name string, comment, includeL
 	if comment {
 		lineRange = def.Comment
 	}
-	src, err := index.formatSource(lineRange, includeLines)
+	src, err := index.formatSource(lineRange)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 					EndLine:   min(def.Body.EndLine, ref.Line+uint32(contextLines)),
 				}
 				var err error
-				snippet, err = index.formatSource(lines, true)
+				snippet, err = index.formatSource(lines)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -439,7 +439,7 @@ func (index *Index) GetStructLayout(contextFile, name string, fieldOffset *uint)
 	return res, nil
 }
 
-func (index *Index) formatSource(lines LineRange, includeLines bool) (string, error) {
+func (index *Index) formatSource(lines LineRange) (string, error) {
 	if lines.File == "" {
 		return "", nil
 	}
@@ -448,12 +448,12 @@ func (index *Index) formatSource(lines LineRange, includeLines bool) (string, er
 		if !osutil.IsExist(file) {
 			continue
 		}
-		return formatSourceFile(file, int(lines.StartLine), int(lines.EndLine), includeLines)
+		return formatSourceFile(file, int(lines.StartLine), int(lines.EndLine))
 	}
 	return "", fmt.Errorf("codesearch: can't find %q file in any of %v", lines.File, index.srcDirs)
 }
 
-func formatSourceFile(file string, start, end int, includeLines bool) (string, error) {
+func formatSourceFile(file string, start, end int) (string, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return "", err
@@ -467,11 +467,7 @@ func formatSourceFile(file string, start, end int, includeLines bool) (string, e
 	}
 	b := new(strings.Builder)
 	for line := start; line <= end; line++ {
-		if includeLines {
-			fmt.Fprintf(b, "%4v:\t%s\n", line+1, lines[line])
-		} else {
-			fmt.Fprintf(b, "%s\n", lines[line])
-		}
+		fmt.Fprintf(b, "%4v:\t%s\n", line+1, lines[line])
 	}
 	return b.String(), nil
 }

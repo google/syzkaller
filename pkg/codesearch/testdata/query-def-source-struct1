@@ -1,4 +1,4 @@
-def-source source0.c some_struct yes
+def-source source0.c some_struct
 
 struct some_struct is defined in source0.h:
 

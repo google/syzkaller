@@ -1,4 +1,4 @@
-def-source source0.c open yes
+def-source source0.c open
 
 function open is defined in source0.c:
 

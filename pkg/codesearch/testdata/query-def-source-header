@@ -1,4 +1,4 @@
-def-source source0.c function_with_comment_in_header yes
+def-source source0.c function_with_comment_in_header
 
 function function_with_comment_in_header is defined in source0.c:
 

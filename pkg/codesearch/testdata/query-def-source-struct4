@@ -1,4 +1,4 @@
-def-source source0.c typedefed_struct_t yes
+def-source source0.c typedefed_struct_t
 
 typedef typedefed_struct_t is defined in source0.h:
 

@@ -1,4 +1,4 @@
-def-source source0.c func_in_header yes
+def-source source0.c func_in_header
 
 function func_in_header is defined in source0.h:
 

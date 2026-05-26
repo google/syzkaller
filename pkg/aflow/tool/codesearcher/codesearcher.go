@@ -135,9 +135,8 @@ type defCommentResult struct {
 
 // nolint: lll
 type defSourceArgs struct {
-	ContextFile  string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
-	Name         string `jsonschema:"Name of the entity of interest."`
-	IncludeLines bool   `jsonschema:"Whether to include line numbers in the output or not. Line numbers may distract you, so ask for them only if you need to match lines elsewhere with the source code."`
+	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
+	Name        string `jsonschema:"Name of the entity of interest."`
 }
 
 // nolint: lll
@@ -209,6 +208,7 @@ func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fil
 	return res, err
 }
 
+// nolint:dupl
 func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentArgs) (defCommentResult, error) {
 	info, err := state.Index.DefinitionComment(args.ContextFile, args.Name)
 	if err != nil {
@@ -220,8 +220,9 @@ func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentA
 	}, nil
 }
 
+// nolint:dupl
 func definitionSource(ctx *aflow.Context, state prepareResult, args defSourceArgs) (defSourceResult, error) {
-	info, err := state.Index.DefinitionSource(args.ContextFile, args.Name, args.IncludeLines)
+	info, err := state.Index.DefinitionSource(args.ContextFile, args.Name)
 	if err != nil {
 		return defSourceResult{}, err
 	}

@@ -1,4 +1,4 @@
-def-source source0.c function_with_quotes_in_type yes
+def-source source0.c function_with_quotes_in_type
 
 function function_with_quotes_in_type is defined in source0.c:
 

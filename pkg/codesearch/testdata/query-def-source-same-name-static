@@ -1,4 +1,4 @@
-def-source source1.c same_name_in_several_files yes
+def-source source1.c same_name_in_several_files
 
 function same_name_in_several_files is defined in source1.c:
 

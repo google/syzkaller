@@ -1,4 +1,4 @@
-def-source source0.c some_struct_with_a_comment yes
+def-source source0.c some_struct_with_a_comment
 
 struct some_struct_with_a_comment is defined in source0.h:
 
