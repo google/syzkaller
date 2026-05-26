@@ -1,4 +1,4 @@
-def-source source0.c some_enum_t yes
+def-source source0.c some_enum_t
 
 typedef some_enum_t is defined in source0.h:
 

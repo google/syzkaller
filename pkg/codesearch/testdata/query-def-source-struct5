@@ -1,4 +1,4 @@
-def-source source0.c another_struct yes
+def-source source0.c another_struct
 
 struct another_struct is defined in source0.h:
 

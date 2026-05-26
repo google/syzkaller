@@ -1,4 +1,4 @@
-def-source source0.c struct_in_c_file yes
+def-source source0.c struct_in_c_file
 
 struct struct_in_c_file is defined in source0.c:
 
