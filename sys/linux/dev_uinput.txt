@@ -16,16 +16,16 @@ ioctl$UI_DEV_SETUP(fd fd_uinput, cmd const[UI_DEV_SETUP], arg ptr[in, uinput_set
 ioctl$UI_SET_EVBIT(fd fd_uinput, cmd const[UI_SET_EVBIT], arg intptr[0:EV_MAX])
 ioctl$UI_SET_KEYBIT(fd fd_uinput, cmd const[UI_SET_KEYBIT], arg intptr[0:KEY_MAX])
 ioctl$UI_SET_RELBIT(fd fd_uinput, cmd const[UI_SET_RELBIT], arg intptr[0:REL_MAX])
-ioctl$UI_SET_MSCBIT(fd fd_uinput, cmd const[UI_SET_MSCBIT], arg intptr[0:ABS_MAX])
-ioctl$UI_SET_ABSBIT(fd fd_uinput, cmd const[UI_SET_ABSBIT], arg intptr[0:MSC_MAX])
+ioctl$UI_SET_MSCBIT(fd fd_uinput, cmd const[UI_SET_MSCBIT], arg intptr[0:MSC_MAX])
+ioctl$UI_SET_ABSBIT(fd fd_uinput, cmd const[UI_SET_ABSBIT], arg intptr[0:ABS_MAX])
 ioctl$UI_SET_LEDBIT(fd fd_uinput, cmd const[UI_SET_LEDBIT], arg intptr[0:LED_MAX])
 ioctl$UI_SET_SNDBIT(fd fd_uinput, cmd const[UI_SET_SNDBIT], arg intptr[0:SND_MAX])
 ioctl$UI_SET_FFBIT(fd fd_uinput, cmd const[UI_SET_FFBIT], arg intptr[0:FF_MAX])
 ioctl$UI_SET_SWBIT(fd fd_uinput, cmd const[UI_SET_SWBIT], arg intptr[0:SW_MAX])
 ioctl$UI_SET_PROPBIT(fd fd_uinput, cmd const[UI_SET_PROPBIT], arg intptr[0:INPUT_PROP_MAX])
 ioctl$UI_SET_PHYS(fd fd_uinput, cmd const[UI_SET_PHYS], arg ptr[in, string[uinput_names]])
-ioctl$UI_BEGIN_FF_UPLOAD(fd fd_uinput, cmd const[UI_BEGIN_FF_UPLOAD], arg ptr[in, uinput_ff_upload])
-ioctl$UI_BEGIN_FF_ERASE(fd fd_uinput, cmd const[UI_BEGIN_FF_ERASE], arg ptr[in, uinput_ff_erase])
+ioctl$UI_BEGIN_FF_UPLOAD(fd fd_uinput, cmd const[UI_BEGIN_FF_UPLOAD], arg ptr[inout, uinput_ff_upload])
+ioctl$UI_BEGIN_FF_ERASE(fd fd_uinput, cmd const[UI_BEGIN_FF_ERASE], arg ptr[inout, uinput_ff_erase])
 ioctl$UI_END_FF_UPLOAD(fd fd_uinput, cmd const[UI_END_FF_UPLOAD], arg ptr[in, uinput_ff_upload])
 ioctl$UI_END_FF_ERASE(fd fd_uinput, cmd const[UI_END_FF_ERASE], arg ptr[in, uinput_ff_erase])
 ioctl$UI_GET_SYSNAME(fd fd_uinput, cmd const[UI_GET_SYSNAME_64], arg ptr[out, array[int8, 64]])
@@ -55,20 +55,20 @@ uinput_setup {
 }
 
 uinput_ff_upload {
-	request_id	int32[0:16]
+	request_id	int32[0:15]
 	retval		int32
 	effect		ff_effect
 	old		ff_effect
 }
 
 uinput_ff_erase {
-	request_id	int32[0:16]
+	request_id	int32[0:15]
 	retval		int32
 	effect_id	int32
 }
 
 uinput_abs_setup {
-	code	int16
+	code	int16[0:ABS_MAX]
 	absinfo	input_absinfo
 }
 
@@ -76,3 +76,4 @@ uinput_names = "syz0", "syz1"
 uinput_open_flags = O_RDWR, O_RDWR_NONBLOCK
 
 define UI_GET_SYSNAME_64	UI_GET_SYSNAME(64)
+define O_RDWR_NONBLOCK	O_RDWR | O_NONBLOCK
