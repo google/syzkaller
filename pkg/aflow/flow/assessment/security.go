@@ -13,6 +13,8 @@ import (
 )
 
 type assessmentSecurityInputs struct {
+	TargetOS     string
+	TargetArch   string
 	CrashReport  string
 	ReproSyz     string
 	ReproC       string

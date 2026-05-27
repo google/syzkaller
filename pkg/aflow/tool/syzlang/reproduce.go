@@ -30,6 +30,8 @@ type ReproduceResult struct {
 }
 
 type reproduceState struct {
+	TargetOS     string
+	TargetArch   string
 	KernelSrc    string
 	KernelCommit string
 	KernelConfig string
@@ -45,7 +47,7 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 		return ReproduceResult{}, aflow.BadCallError("syz program cannot be empty")
 	}
 
-	pt, err := prog.GetTarget("linux", "amd64")
+	pt, err := prog.GetTarget(state.TargetOS, state.TargetArch)
 	if err != nil {
 		return ReproduceResult{}, err
 	}
@@ -61,6 +63,7 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 	}
 
 	reproArgs := crash.ReproduceArgs{
+		TargetArch:   state.TargetArch,
 		Syzkaller:    state.Syzkaller,
 		Image:        state.Image,
 		Type:         state.Type,

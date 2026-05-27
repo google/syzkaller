@@ -21,6 +21,8 @@ import (
 )
 
 type Inputs struct {
+	TargetOS     string
+	TargetArch   string
 	ReproOpts    string
 	ReproSyz     string
 	ReproC       string

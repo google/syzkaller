@@ -16,8 +16,10 @@ import (
 var CreateSimplifiedCRepro = aflow.NewFuncAction("syz-repro-to-c-repro", createCRepro)
 
 type createCReproArgs struct {
-	ReproSyz string
-	ReproC   string
+	TargetOS   string
+	TargetArch string
+	ReproSyz   string
+	ReproC     string
 }
 
 type createCReproResult struct {
@@ -32,9 +34,9 @@ func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult
 		// For these cases return the provided C repro.
 		return createCReproResult{truncateLargeData(args.ReproC)}, nil
 	}
-	pt, err := prog.GetTarget("linux", "amd64")
+	pt, err := prog.GetTarget(args.TargetOS, args.TargetArch)
 	if err != nil {
-		return createCReproResult{}, fmt.Errorf("failed to get target linux/amd64: %w", err)
+		return createCReproResult{}, fmt.Errorf("failed to get target %s/%s: %w", args.TargetOS, args.TargetArch, err)
 	}
 	p, err := pt.Deserialize([]byte(args.ReproSyz), prog.NonStrict)
 	if err != nil {

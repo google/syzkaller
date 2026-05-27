@@ -33,7 +33,7 @@ func TestCoverageFiles(t *testing.T) {
 	require.NoError(t, err)
 	covID := filepath.Base(covDir)
 
-	res, err := getCoverageFiles(ctx, reproduceState{}, CoverageFilesArgs{
+	res, err := getCoverageFiles(ctx, reproduceState{TargetOS: "linux", TargetArch: "amd64"}, CoverageFilesArgs{
 		CoverageID: covID,
 	})
 	require.NoError(t, err)

@@ -84,7 +84,7 @@ func TestAggregateTestResults(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := aggregateTestResults(tc.results, crashReporter, "")
+			res, err := aggregateTestResults(tc.results, crashReporter, "", "amd64")
 			require.NoError(t, err)
 
 			if tc.expectedReport != nil {
