@@ -929,8 +929,14 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		ctx.errorf(a.Name, "summaryWindow and compressTokens are mutually exclusive")
 	}
 	if a.compressTokens == 0 && a.summaryWindow == 0 {
-		// Empirically good value we use by default.
-		a.compressTokens = 200_000
+		// Value chosen based on Gemini summarization of:
+		// "Retrieval and Multi-Hop Reasoning in 1M-Token Context Windows: Evaluating LLMs on Classical Chinese Text"
+		// (https://arxiv.org/pdf/2605.02173)
+		// and "Gemini 3.1 Pro: The Complete Guide to Google's Latest AI Model"
+		// (https://o-mega.ai/articles/gemini-3-1-pro-the-complete-guide-to-google-s-latest-ai-model-february-2026)
+		// for gemini-3.1-pro model.
+		// Note: here we assume the model has 1M input context.
+		a.compressTokens = 150_000
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
