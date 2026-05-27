@@ -96,6 +96,7 @@ const (
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
+	hardLoopDetectionLimit    = 6
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
 	// We abort execution after this many iterations to prevent infinite loops.
 	maxLLMIterations = 250
@@ -680,10 +681,9 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*g
 		toolErr := BadCallError("tool %q does not exist, please correct the name", call.Name)
 		tool := tools[call.Name]
 		if tool != nil {
-			if err := a.checkDuplicateCall(call); err != nil {
+			if err := a.recordAndCheckDuplicate(call); err != nil {
 				toolErr = err
 			} else {
-				a.recordToolCall(call.Name, call.Args)
 				span.Results, toolErr = tool.execute(ctx, call.Args)
 			}
 		}
@@ -711,6 +711,12 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*g
 				Response: span.Results,
 			},
 		})
+		if isDuplicateErr(toolErr) {
+			responses.Parts = append(responses.Parts, &genai.Part{
+				Text: fmt.Sprintf("SYSTEM WARNING: You are repeating tool call %q. "+
+					"Please try a different approach, search term, or proceed without it.", call.Name),
+			})
+		}
 		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
 			a.outputs = span.Results
 		}
@@ -1016,14 +1022,12 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	}
 }
 
-func (a *agentSession) recordToolCall(name string, args map[string]any) {
-	a.toolHistory = append(a.toolHistory, toolCallRecord{Name: name, Args: args})
+func (a *agentSession) recordAndCheckDuplicate(call *genai.FunctionCall) error {
+	a.toolHistory = append(a.toolHistory, toolCallRecord{Name: call.Name, Args: call.Args})
 	if len(a.toolHistory) > maxHistorySize {
 		a.toolHistory = a.toolHistory[1:] // Keep it a rolling window.
 	}
-}
 
-func (a *agentSession) checkDuplicateCall(call *genai.FunctionCall) error {
 	limit := defaultLoopDetectionLimit
 	if len(a.toolHistory) < limit {
 		return nil
@@ -1036,8 +1040,20 @@ func (a *agentSession) checkDuplicateCall(call *genai.FunctionCall) error {
 		}
 	}
 
-	if repeats >= limit {
-		return BadCallError("You are repeating the same tool call with the exact same arguments. " +
+	if repeats >= hardLoopDetectionLimit {
+		return fmt.Errorf("agent got stuck in an infinite loop repeating tool call %q with args %+v",
+			call.Name, call.Args)
+	}
+
+	if repeats == hardLoopDetectionLimit-1 {
+		return newDuplicateCallError("CRITICAL WARNING: This is your %d-th attempt to call %q with args %+v. "+
+			"You are stuck in a loop. You MUST change your search query, try a different tool, or proceed "+
+			"to the next step with your current knowledge. The next duplicate attempt will force-terminate your execution.",
+			repeats, call.Name, call.Args)
+	}
+
+	if repeats > limit {
+		return newDuplicateCallError("You are repeating the same tool call with the exact same arguments. " +
 			"Please synthesize the information you already have instead of repeating queries.")
 	}
 
@@ -1063,4 +1079,21 @@ func toolTemplateName(name string) string {
 		cap = false
 	}
 	return buf.String()
+}
+
+type duplicateCallError struct {
+	*badCallError
+}
+
+func (e *duplicateCallError) Unwrap() error {
+	return e.badCallError
+}
+
+func newDuplicateCallError(message string, args ...any) error {
+	return &duplicateCallError{&badCallError{fmt.Errorf(message, args...)}}
+}
+
+func isDuplicateErr(err error) bool {
+	var dupErr *duplicateCallError
+	return errors.As(err, &dupErr)
 }

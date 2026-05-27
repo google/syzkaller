@@ -180,6 +180,9 @@ func TestSummaryWindow(t *testing.T) {
 	type toolResults struct {
 		ResFoo int `jsonschema:"foo"`
 	}
+	type toolArgs struct {
+		Seq int `jsonschema:"seq"`
+	}
 	requestSeq := 0
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
@@ -187,7 +190,7 @@ func TestSummaryWindow(t *testing.T) {
 			Reply:         "Reply",
 			summaryWindow: 3,
 			Tools: []Tool{
-				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+				NewFuncTool("tick", func(ctx *Context, state struct{}, args toolArgs) (toolResults, error) {
 					return toolResults{123}, nil
 				}, "logic ticker"),
 			},
@@ -200,6 +203,7 @@ func TestSummaryWindow(t *testing.T) {
 					FunctionCall: &genai.FunctionCall{
 						ID:   fmt.Sprintf("id%v", requestSeq),
 						Name: "tick",
+						Args: map[string]any{"Seq": float64(requestSeq)},
 					}}}
 				lastReq := req[len(req)-1]
 				lastPart := lastReq.Parts[len(lastReq.Parts)-1]
