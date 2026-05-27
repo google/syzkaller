@@ -14,13 +14,13 @@ func TestFormat(t *testing.T) {
 	validProg := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 `
-	res, err := formatActionFunc(nil, FormatArgs{CandidateReproSyz: validProg})
+	res, err := formatActionFunc(nil, FormatArgs{TargetOS: "linux", TargetArch: "amd64", CandidateReproSyz: validProg})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.ReproSyz)
 
 	// Test invalid program.
 	invalidProg := `r0 = unknown_syscall_name(0x123)`
-	_, err2 := formatActionFunc(nil, FormatArgs{CandidateReproSyz: invalidProg})
+	_, err2 := formatActionFunc(nil, FormatArgs{TargetOS: "linux", TargetArch: "amd64", CandidateReproSyz: invalidProg})
 	require.Error(t, err2)
 	require.Contains(t, err2.Error(), "unknown syscall")
 }

@@ -19,7 +19,7 @@ func TestSyzlangToC(t *testing.T) {
 	validProg := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 `
-	res, err := createCRepro(nil, createCReproArgs{ReproSyz: validProg})
+	res, err := createCRepro(nil, createCReproArgs{TargetOS: "linux", TargetArch: "amd64", ReproSyz: validProg})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.SimplifiedCRepro)
 	require.Contains(t, res.SimplifiedCRepro, "int main")
@@ -27,7 +27,7 @@ write(r0, &AUTO="01010101", 0x4)
 
 func TestSyzlangToC_Invalid(t *testing.T) {
 	invalidProg := `r0 = unknown_syscall(0x123)`
-	res, err := createCRepro(nil, createCReproArgs{ReproSyz: invalidProg})
+	res, err := createCRepro(nil, createCReproArgs{TargetOS: "linux", TargetArch: "amd64", ReproSyz: invalidProg})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to deserialize syz repro")
 	require.Empty(t, res.SimplifiedCRepro)

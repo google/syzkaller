@@ -33,6 +33,7 @@ var ErrDidNotCrash = errors.New("reproducer did not crash")
 var Reproduce = aflow.NewFuncAction("crash-reproducer", ReproduceFunc)
 
 type ReproduceArgs struct {
+	TargetArch   string
 	Syzkaller    string
 	Image        string
 	Type         string
@@ -86,14 +87,15 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
 		return res, fmt.Errorf("failed to parse VM config: %w", err)
 	}
-	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
+	targetArch := args.TargetArch
+	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
 		return res, fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 
 	cfg := mgrconfig.DefaultValues()
-	cfg.RawTarget = "linux/amd64"
+	cfg.RawTarget = targets.Linux + "/" + targetArch
 	cfg.Workdir = workdir
 	cfg.Syzkaller = args.Syzkaller
 	cfg.KernelObj = args.KernelObj
@@ -138,7 +140,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 		return res, err
 	}
 
-	return aggregateTestResults(validResults, crashReporter, args.KernelObj)
+	return aggregateTestResults(validResults, crashReporter, args.KernelObj, targetArch)
 }
 
 type reproRunner struct {
@@ -160,7 +162,7 @@ func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
 }
 
 func aggregateTestResults(validResults []instance.EnvTestResult,
-	crashReporter *report.Reporter, kernelObj string) (RunTestResult, error) {
+	crashReporter *report.Reporter, kernelObj, targetArch string) (RunTestResult, error) {
 	var res RunTestResult
 	if len(validResults) > 0 {
 		res.ConsoleOutput = string(validResults[0].RawOutput)
@@ -217,7 +219,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(kernelObj, firstCoverage)
+		coverage, err := symbolize(targetArch, kernelObj, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -310,14 +312,14 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 	return res, err
 }
 
-func symbolize(kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func symbolize(targetArch, kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	pcs := make(map[uint64][]symbolizer.Frame)
 	for _, call := range coverage {
 		for _, pc := range call {
 			pcs[pc] = nil
 		}
 	}
-	target := targets.Get(targets.Linux, targets.AMD64)
+	target := targets.Get(targets.Linux, targetArch)
 	vmlinux := filepath.Join(kernelObj, target.KernelObject)
 	symb := symbolizer.Make(target)
 	defer symb.Close()

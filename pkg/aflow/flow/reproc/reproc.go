@@ -23,6 +23,8 @@ import (
 )
 
 type ReproCInputs struct {
+	TargetOS       string
+	TargetArch     string
 	BugDescription string
 
 	KernelRepo   string
@@ -55,6 +57,8 @@ func FormatCFunc(ctx *aflow.Context, args FormatCArgs) (FormatCResult, error) {
 var FormatC = aflow.NewFuncAction("format-c", FormatCFunc)
 
 type CompileCProgArgs struct {
+	TargetOS               string
+	TargetArch             string
 	CurrentCandidateReproC string
 }
 
@@ -78,7 +82,7 @@ func extractCCode(text string) string {
 }
 
 func CompileCProgFunc(ctx *aflow.Context, args CompileCProgArgs) (CompileCProgResult, error) {
-	target, err := prog.GetTarget("linux", "amd64")
+	target, err := prog.GetTarget(args.TargetOS, args.TargetArch)
 	if err != nil {
 		return CompileCProgResult{}, err
 	}

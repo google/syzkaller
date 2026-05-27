@@ -14,6 +14,8 @@ import (
 var Format = aflow.NewFuncAction("syzlang-format", formatActionFunc)
 
 type FormatArgs struct {
+	TargetOS          string
+	TargetArch        string
 	CandidateReproSyz string
 }
 
@@ -22,7 +24,7 @@ type FormatResult struct {
 }
 
 func formatActionFunc(ctx *aflow.Context, args FormatArgs) (FormatResult, error) {
-	pt, err := prog.GetTarget("linux", "amd64")
+	pt, err := prog.GetTarget(args.TargetOS, args.TargetArch)
 	if err != nil {
 		return FormatResult{}, err
 	}

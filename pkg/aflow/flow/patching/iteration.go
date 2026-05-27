@@ -17,6 +17,8 @@ import (
 )
 
 type PatchIterationInputs struct {
+	TargetOS   string
+	TargetArch string
 	// Standard test environment config (same as in patching.Inputs)
 	Syzkaller    string
 	Image        string

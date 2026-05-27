@@ -41,7 +41,7 @@ ioctl(r0, 0x4c80, 0x0)`,
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := reproduce(&aflow.Context{}, reproduceState{}, ReproduceArgs{
+			_, err := reproduce(&aflow.Context{}, reproduceState{TargetOS: "linux", TargetArch: "amd64"}, ReproduceArgs{
 				ReproSyz: tc.syzProg,
 			})
 			if tc.wantError != "" {
