@@ -109,12 +109,7 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 	var output []byte
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		var err error
-		cmd := osutil.Command("git", gitArgs...)
-		cmd.Dir = kernelRepoDir
-		if err := osutil.Sandbox(cmd, true, true); err != nil {
-			return err
-		}
-		output, err = osutil.Run(10*time.Minute, cmd)
+		output, err = runGit(kernelRepoDir, 10*time.Minute, gitArgs...)
 		return err
 	})
 	if err != nil {
@@ -139,12 +134,7 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 	var output []byte
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		var err error
-		cmd := osutil.Command("git", "show", "--no-color", args.Commit)
-		cmd.Dir = kernelRepoDir
-		if err := osutil.Sandbox(cmd, true, true); err != nil {
-			return err
-		}
-		output, err = osutil.Run(5*time.Minute, cmd)
+		output, err = runGit(kernelRepoDir, 5*time.Minute, "show", "--no-color", args.Commit)
 		return err
 	})
 	if err != nil {
@@ -171,12 +161,7 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	var output []byte
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		var err error
-		cmd := osutil.Command("git", "blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
-		cmd.Dir = kernelRepoDir
-		if err := osutil.Sandbox(cmd, true, true); err != nil {
-			return err
-		}
-		output, err = osutil.Run(5*time.Minute, cmd)
+		output, err = runGit(kernelRepoDir, 5*time.Minute, "blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
 		return err
 	})
 	if err != nil {
@@ -222,4 +207,13 @@ Full output is too long, showing %v out of %v lines.
 
 %s
 `, maxLines, len(lines), slices.Concat(lines[:maxLines]))
+}
+
+func runGit(dir string, timeout time.Duration, args ...string) ([]byte, error) {
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = dir
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
+		return nil, err
+	}
+	return osutil.Run(timeout, cmd)
 }
