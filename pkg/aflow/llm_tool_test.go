@@ -23,29 +23,27 @@ func TestLLMTool(t *testing.T) {
 		Something string `jsonschema:"something"`
 	}
 	testFlow[inputs, outputs](t, map[string]any{"Input": 42}, map[string]any{"Reply": "YES"},
-		Pipeline(
-			&LLMAgent{
-				Reply: "Reply",
-				Tools: []Tool{
-					&LLMTool{
-						Name:        "researcher",
-						Model:       "sub-agent-model",
-						TaskType:    FormalReasoningTask,
-						Description: "researcher description",
-						Instruction: "researcher instruction",
-						Tools: []Tool{
-							NewFuncTool("researcher-tool", func(ctx *Context, state inputs, args toolArgs) (struct{}, error) {
-								// State passed all the way from the workflow inputs.
-								assert.Equal(t, state.Input, 42)
-								assert.True(t, strings.HasPrefix(args.Something, "subtool input"),
-									"args.Something=%q", args.Something)
-								return struct{}{}, nil
-							}, "researcher-tool description"),
-						},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				&LLMTool{
+					Name:        "researcher",
+					Model:       "sub-agent-model",
+					TaskType:    FormalReasoningTask,
+					Description: "researcher description",
+					Instruction: "researcher instruction",
+					Tools: []Tool{
+						NewFuncTool("researcher-tool", func(ctx *Context, state inputs, args toolArgs) (struct{}, error) {
+							// State passed all the way from the workflow inputs.
+							assert.Equal(t, state.Input, 42)
+							assert.True(t, strings.HasPrefix(args.Something, "subtool input"),
+								"args.Something=%q", args.Something)
+							return struct{}{}, nil
+						}, "researcher-tool description"),
 					},
 				},
 			},
-		),
+		},
 		[]any{
 			// Main agent calls the tool sub-agent.
 			&genai.Part{
@@ -106,6 +104,66 @@ func TestLLMTool(t *testing.T) {
 			// Main returns result.
 			genai.NewPartFromText("YES"),
 		},
+		nil,
+	)
+}
+
+func TestLLMToolMaxIters(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	type toolArgs struct {
+		Arg int `jsonschema:"something"`
+	}
+	replies := []any{
+		// Main agent calls the tool sub-agent.
+		&genai.Part{
+			FunctionCall: &genai.FunctionCall{
+				ID:   "id0",
+				Name: "researcher",
+				Args: map[string]any{
+					"Question": "What do you think?",
+				},
+			},
+		},
+	}
+	// Sub-agent calls own tool maxLLMIterations times.
+	for i := range maxLLMIterations {
+		replies = append(replies, &genai.Part{
+			FunctionCall: &genai.FunctionCall{
+				ID:   "id1",
+				Name: "researcher-tool",
+				Args: map[string]any{
+					"Arg": i,
+				},
+			},
+		})
+	}
+	replies = append(replies,
+		// Sub-agent returns result.
+		genai.NewPartFromText("Nothing."),
+		// Main returns result.
+		genai.NewPartFromText("YES"),
+	)
+	testFlow[struct{}, outputs](t, nil, map[string]any{"Reply": "YES"},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				&LLMTool{
+					Name:        "researcher",
+					Model:       "sub-agent-model",
+					TaskType:    FormalReasoningTask,
+					Description: "researcher description",
+					Instruction: "researcher instruction",
+					Tools: []Tool{
+						NewFuncTool("researcher-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+							return struct{}{}, nil
+						}, "researcher-tool description"),
+					},
+				},
+			},
+		},
+		replies,
 		nil,
 	)
 }
