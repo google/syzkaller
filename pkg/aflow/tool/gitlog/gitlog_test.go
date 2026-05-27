@@ -14,6 +14,7 @@ import (
 )
 
 func TestGitShow(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	repo := vcs.MakeTestRepo(t, filepath.Join(tmpDir, "repo", "linux"))
 	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
@@ -54,6 +55,7 @@ diff --git a/foo\.c b/foo\.c
 }
 
 func TestGitBlame(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
@@ -105,6 +107,7 @@ $`, c1.Hash[:12], c2.Hash[:12])
 }
 
 func TestGitLog(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
@@ -220,5 +223,21 @@ void foo() {
 		logArgs{SymbolName: "non_existing_symbol", SourcePath: "foo.c"},
 		logResult{},
 		"git log failed: fatal: -L parameter 'non_existing_symbol' starting at line 1: no match",
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{CodeRegexp: `foo\(`, SourcePath: "foo.c"},
+		logResult{Output: fmt.Sprintf("%s second commit\n%s initial commit\n",
+			c2.Hash[:12], c1.Hash[:12])},
+		``,
+		aflow.TestWorkdir(tmpDir))
+
+	// Bad grep expression.
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{CodeRegexp: `foo(`, SourcePath: "foo.c"},
+		logResult{},
+		`git log failed: fatal: invalid regex: Unmatched ( or \(`,
 		aflow.TestWorkdir(tmpDir))
 }
