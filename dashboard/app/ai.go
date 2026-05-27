@@ -173,12 +173,14 @@ type uiJobReviewHistory struct {
 }
 
 type uiPatchVersion struct {
-	Version  int
-	Stage    string
-	Reported time.Time
-	Link     string
-	JobID    string
-	JobLink  string
+	Version     int
+	Stage       string
+	Reported    time.Time
+	Link        string
+	JobID       string
+	JobLink     string
+	ReportingID string
+	CanIterate  bool
 }
 
 type uiAIJob struct {

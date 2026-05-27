@@ -692,7 +692,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{end}}
 {{end}}
 
-{{/* List of AI patch versions, invoked with []*uiPatchVersion */}}
+{{/* List of AI patch versions, invoked with *uiBugPage */}}
 {{define "patch_version_list"}}
 <table class="list_table">
 	<thead><tr>
@@ -701,9 +701,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'Reported', textSort)" href="#">Reported</a></th>
 			<th><a onclick="return sortTable(this, 'Report Link', textSort)" href="#">Report Link</a></th>
 			<th><a onclick="return sortTable(this, 'Job', textSort)" href="#">Job</a></th>
+			{{if .Header.AIActions}}<th>Actions</th>{{end}}
 	</tr></thead>
 	<tbody>
-	{{range $v := .}}
+	{{range $v := .PatchVersions}}
 	<tr>
 			<td>{{$v.Version}}</td>
 			<td>{{$v.Stage}}</td>
@@ -712,6 +713,16 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{if $v.Link}}<a href="{{$v.Link}}">Discussion</a>{{else}}Not reported{{end}}
 			</td>
 			<td class="tag">{{link $v.JobLink $v.JobID}}</td>
+			{{if $.Header.AIActions}}
+			<td>
+				{{if $v.CanIterate}}
+					<form method="POST" style="display:inline;">
+						<input type="hidden" name="ai-job-iteration" value="{{$v.ReportingID}}">
+						<button class="button" type="submit">Process Comments</button>
+					</form>
+				{{end}}
+			</td>
+			{{end}}
 	</tr>
 	{{end}}
 	</tbody>

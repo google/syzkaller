@@ -1227,7 +1227,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 			aiJobs = append(aiJobs, makeUIAIJob(job))
 		}
 
-		patchVersions, err = getPatchVersions(ctx, bug, jobs)
+		patchVersions, err = getPatchVersions(ctx, bug, jobs, hdr.AIActions)
 		if err != nil {
 			return err
 		}
@@ -1247,17 +1247,13 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
 	if workflow := r.FormValue("ai-job-create"); workflow != "" {
-		if !hdr.AIActions {
-			return ErrAccess
+		if err := handleBugJobCreate(ctx, r, hdr, bug, aiWorkflows, workflow); err != nil {
+			return err
 		}
-		args, err := parseAIJobArgs(r, workflow, aiWorkflows)
-		if err != nil {
-			hdr.Message = err.Error()
-		} else {
-			if _, err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
-				return err
-			}
-			hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
+	}
+	if reportingID := r.FormValue("ai-job-iteration"); reportingID != "" {
+		if err := handleManualIterationJob(ctx, r, hdr, reportingID); err != nil {
+			return err
 		}
 	}
 	if r.FormValue("json") == "1" {
@@ -1266,6 +1262,45 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func handleBugJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader,
+	bug *Bug, aiWorkflows []*uiWorkflow, workflow string) error {
+	if !hdr.AIActions {
+		return ErrAccess
+	}
+	if r.Method != http.MethodPost {
+		return ErrAccess
+	}
+	args, err := parseAIJobArgs(r, workflow, aiWorkflows)
+	if err != nil {
+		hdr.Message = err.Error()
+		return nil
+	}
+	if _, err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
+		return fmt.Errorf("failed to create AI job %q: %w", workflow, err)
+	}
+	hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
+	return nil
+}
+
+func handleManualIterationJob(ctx context.Context, r *http.Request,
+	hdr *uiHeader, reportingID string) error {
+	if !hdr.AIActions {
+		return ErrAccess
+	}
+	if r.Method != http.MethodPost {
+		return ErrAccess
+	}
+	job, err := aidb.CreatePatchIterationJob(ctx, reportingID)
+	if err != nil {
+		return fmt.Errorf("failed to create patch iteration job for %v: %w", reportingID, err)
+	} else if job == nil {
+		hdr.Message = "Iteration job is already running or in backoff."
+		return nil
+	}
+	hdr.Message = "Patch iteration job triggered successfully."
+	return nil
 }
 
 func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow) (map[string]any, error) {
@@ -2758,7 +2793,7 @@ func bugLink(id string) string {
 	return "/bug?id=" + id
 }
 
-func getPatchVersions(ctx context.Context, bug *Bug, jobs []*aidb.Job) ([]*uiPatchVersion, error) {
+func getPatchVersions(ctx context.Context, bug *Bug, jobs []*aidb.Job, aiActions bool) ([]*uiPatchVersion, error) {
 	reportings, err := aidb.LoadBugJobReportings(ctx, bug.keyHash(ctx))
 	if err != nil {
 		return nil, err
@@ -2768,6 +2803,7 @@ func getPatchVersions(ctx context.Context, bug *Bug, jobs []*aidb.Job) ([]*uiPat
 		jobMap[job.ID] = job
 	}
 	var patchVersions []*uiPatchVersion
+	latestFound := false
 	for _, r := range reportings {
 		if !r.Version.Valid {
 			continue
@@ -2779,14 +2815,33 @@ func getPatchVersions(ctx context.Context, bug *Bug, jobs []*aidb.Job) ([]*uiPat
 				continue
 			}
 		}
+
+		canIterate := false
+		if !latestFound {
+			latestFound = true
+			canIterate = aiActions && hasUnprocessedComments(ctx, r.ID)
+		}
+
 		patchVersions = append(patchVersions, &uiPatchVersion{
-			Version:  int(r.Version.Int64),
-			Stage:    r.Stage,
-			Reported: r.CreatedAt,
-			Link:     r.ExternalLink(),
-			JobID:    r.JobID,
-			JobLink:  fmt.Sprintf("/ai_job?id=%s", r.JobID),
+			Version:     int(r.Version.Int64),
+			Stage:       r.Stage,
+			Reported:    r.CreatedAt,
+			Link:        r.ExternalLink(),
+			JobID:       r.JobID,
+			JobLink:     fmt.Sprintf("/ai_job?id=%s", r.JobID),
+			ReportingID: r.ID,
+			CanIterate:  canIterate,
 		})
 	}
 	return patchVersions, nil
+}
+
+func hasUnprocessedComments(ctx context.Context, reportingID string) bool {
+	comments, err := aidb.LoadJobCommentsByReporting(ctx, reportingID)
+	if err != nil {
+		return false
+	}
+	return slices.ContainsFunc(comments, func(c *aidb.JobComment) bool {
+		return !c.Processed
+	})
 }

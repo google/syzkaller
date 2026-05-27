@@ -330,12 +330,14 @@ func TestAIJobActions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobCreateURL := fmt.Sprintf("/bug?id=%v&ai-job-create=patching", bug.keyHash(c.ctx))
-	_, err = c.AuthGET(AccessPublic, jobCreateURL)
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	values := url.Values{}
+	values.Set("ai-job-create", "patching")
+	_, err = c.AuthPOSTForm(AccessPublic, jobCreateURL, values)
 	require.Error(t, err)
 	// Redirect to login page.
 	require.Contains(t, err.Error(), fmt.Sprint(http.StatusTemporaryRedirect))
-	_, err = c.AuthGET(AccessUser, jobCreateURL)
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL, values)
 	require.NoError(t, err)
 
 	resp, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
@@ -369,7 +371,7 @@ func TestAIJobActions(t *testing.T) {
 	}))
 
 	jobAssessURL := fmt.Sprintf("/ai_job?id=%v", resp.ID)
-	values := url.Values{}
+	values = url.Values{}
 	values.Set("correct", aiCorrectnessCorrect)
 	_, err = c.AuthPOSTForm(AccessPublic, jobAssessURL, values)
 	require.Error(t, err)
@@ -385,8 +387,10 @@ func TestAIJobActions(t *testing.T) {
 	extID2 := c.aiClient.pollEmailExtID()
 	bug2, _, _ := c.loadBug(extID2)
 
-	jobCreateURL2 := fmt.Sprintf("/bug?id=%v&ai-job-create=patching", bug2.keyHash(c.ctx))
-	_, err = c.AuthGET(AccessUser, jobCreateURL2)
+	jobCreateURL2 := fmt.Sprintf("/bug?id=%v", bug2.keyHash(c.ctx))
+	values = url.Values{}
+	values.Set("ai-job-create", "patching")
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL2, values)
 	require.NoError(t, err)
 
 	resp2, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
@@ -1140,8 +1144,10 @@ func TestAIReproCJobCreateFromBugPage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	jobCreateURL := fmt.Sprintf("/bug?id=%v&ai-job-create=repro-c", bug.keyHash(c.ctx))
-	_, err = c.AuthGET(AccessUser, jobCreateURL)
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	values := url.Values{}
+	values.Set("ai-job-create", "repro-c")
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL, values)
 	require.NoError(t, err)
 
 	resp, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
