@@ -83,7 +83,19 @@ foo.c-6-	line;
 		state{KernelSrc: repo.Dir},
 		args{Expression: "bad expression ("},
 		results{},
-		`bad expression: fatal: command line, 'bad expression (': Unmatched ( or \(`)
+		`bad expression: fatal: -e option, 'bad expression (': Unmatched ( or \(`)
+
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: "foobar", PathPrefix: "foo.c"},
+		results{Output: `foo.c=2=int some_func(void)
+--
+foo.c-4-	line;
+foo.c:5:	foobar;
+foo.c-6-	line;
+`},
+		"")
+
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
 		args{Expression: "->root"},
