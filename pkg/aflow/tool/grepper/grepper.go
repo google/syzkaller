@@ -47,8 +47,7 @@ type results struct {
 func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	cmdArgs := []string{
 		"grep", "--extended-regexp", "--line-number",
-		"--show-function", "-C1", "--no-color",
-		"-e", args.Expression, "--",
+		"--show-function", "-C1", "-e", args.Expression, "--",
 	}
 	if args.PathPrefix != "" {
 		cmdArgs = append(cmdArgs, args.PathPrefix)
@@ -74,8 +73,33 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	// but should be bearable for syz-agent.
 	// Each match takes 3-6 lines (counting context, function lines, and -- delimiters).
 	const maxLines = 500
+	// Grep can match some effectively binary files, e.g. svg.
+	// They can contain lines >100K. We mainly intend to match source/docs files
+	// which should not contain long lines, so cap at 200 chars.
+	const maxLineLen = 200
 	lines := slices.Collect(bytes.Lines(output))
+	var truncated bool
+	for i, line := range lines {
+		hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
+		contentLen := len(line)
+		if hasNewline {
+			contentLen--
+		}
+		if contentLen > maxLineLen {
+			newLine := slices.Clone(line[:maxLineLen])
+			newLine = append(newLine, []byte("...")...)
+			if hasNewline {
+				newLine = append(newLine, '\n')
+			}
+			lines[i] = newLine
+			truncated = true
+		}
+	}
+
 	if len(lines) <= maxLines {
+		if truncated {
+			return results{string(slices.Concat(lines...))}, nil
+		}
 		return results{string(output)}, nil
 	}
 	res := fmt.Sprintf(`
@@ -83,6 +107,6 @@ Full output is too long, showing %v out of %v lines.
 Use more precise expression if possible.
 
 %s
-`, maxLines, len(lines), slices.Concat(lines[:maxLines]))
+`, maxLines, len(lines), slices.Concat(lines[:maxLines]...))
 	return results{res}, nil
 }
