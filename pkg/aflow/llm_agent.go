@@ -98,7 +98,7 @@ const (
 	defaultLoopDetectionLimit = 3
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
 	// We abort execution after this many iterations to prevent infinite loops.
-	defaultMaxIterations = 250
+	maxLLMIterations = 250
 )
 
 type TaskType int
@@ -318,17 +318,23 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
-func (a *agentSession) handleOverflowError(cfg *genai.GenerateContentConfig) bool {
-	if a.Reply == llmToolReply && len(a.req) >= 3 && !a.answerNow {
-		cfg.ToolConfig = &genai.ToolConfig{
-			FunctionCallingConfig: &genai.FunctionCallingConfig{
-				Mode: genai.FunctionCallingConfigModeNone,
-			},
-		}
-		a.req[len(a.req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
-		return true
+func (a *agentSession) tryAnswerNow(cfg *genai.GenerateContentConfig, overflow bool) bool {
+	if a.Reply != llmToolReply || len(a.req) < 3 || a.answerNow {
+		return false
 	}
-	return false
+	a.answerNow = true
+	cfg.ToolConfig = &genai.ToolConfig{
+		FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode: genai.FunctionCallingConfigModeNone,
+		},
+	}
+	request := genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
+	if overflow {
+		a.req[len(a.req)-1] = request
+	} else {
+		a.req = append(a.req, request)
+	}
+	return true
 }
 
 func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
@@ -336,8 +342,7 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 	a.req = []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
 	var lastInputTokens int
 	var anchorTokens int
-	for range defaultMaxIterations {
-		var err error
+	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
 		tokensToCompress := max(0, lastInputTokens-anchorTokens)
 		compressed, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
 		if err != nil {
@@ -378,8 +383,10 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
 			if isInputTokenOverflowError(respErr) {
-				if a.handleOverflowError(cfg) {
-					a.answerNow = true
+				if a.tryAnswerNow(cfg, true) {
+					// This avoids a corner case when we overflowed the context
+					// on the very last iteration before maxLLMIterations.
+					iter--
 					continue
 				}
 			}
@@ -426,7 +433,7 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		}
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		defaultMaxIterations)
+		maxLLMIterations)
 }
 
 func (a *agentSession) checkFinalReply(ctx *Context, reply string) (string, string, error) {

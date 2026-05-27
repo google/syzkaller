@@ -1,0 +1,9889 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Question": "What do you think?"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "What do you think?"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Arg": 0
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Arg": 0
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Arg": 1
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"Arg": 1
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 9,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:17Z",
+		"Args": {
+			"Arg": 2
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:17Z",
+		"Finished": "0001-01-01T00:00:18Z",
+		"Args": {
+			"Arg": 2
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 11,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:19Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:19Z",
+		"Finished": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:21Z",
+		"Args": {
+			"Arg": 3
+		}
+	},
+	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Args": {
+			"Arg": 3
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Args": {
+			"Arg": 4
+		}
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"Args": {
+			"Arg": 4
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:29Z",
+		"Args": {
+			"Arg": 5
+		}
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:30Z",
+		"Args": {
+			"Arg": 5
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 17,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:31Z"
+	},
+	{
+		"Seq": 17,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:31Z",
+		"Finished": "0001-01-01T00:00:32Z"
+	},
+	{
+		"Seq": 18,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:33Z",
+		"Args": {
+			"Arg": 6
+		}
+	},
+	{
+		"Seq": 18,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:33Z",
+		"Finished": "0001-01-01T00:00:34Z",
+		"Args": {
+			"Arg": 6
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 19,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:35Z"
+	},
+	{
+		"Seq": 19,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:35Z",
+		"Finished": "0001-01-01T00:00:36Z"
+	},
+	{
+		"Seq": 20,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:37Z",
+		"Args": {
+			"Arg": 7
+		}
+	},
+	{
+		"Seq": 20,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:37Z",
+		"Finished": "0001-01-01T00:00:38Z",
+		"Args": {
+			"Arg": 7
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 21,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:39Z"
+	},
+	{
+		"Seq": 21,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:39Z",
+		"Finished": "0001-01-01T00:00:40Z"
+	},
+	{
+		"Seq": 22,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:41Z",
+		"Args": {
+			"Arg": 8
+		}
+	},
+	{
+		"Seq": 22,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:41Z",
+		"Finished": "0001-01-01T00:00:42Z",
+		"Args": {
+			"Arg": 8
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 23,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:43Z"
+	},
+	{
+		"Seq": 23,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:43Z",
+		"Finished": "0001-01-01T00:00:44Z"
+	},
+	{
+		"Seq": 24,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:45Z",
+		"Args": {
+			"Arg": 9
+		}
+	},
+	{
+		"Seq": 24,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:45Z",
+		"Finished": "0001-01-01T00:00:46Z",
+		"Args": {
+			"Arg": 9
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 25,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:47Z"
+	},
+	{
+		"Seq": 25,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:47Z",
+		"Finished": "0001-01-01T00:00:48Z"
+	},
+	{
+		"Seq": 26,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:49Z",
+		"Args": {
+			"Arg": 10
+		}
+	},
+	{
+		"Seq": 26,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:49Z",
+		"Finished": "0001-01-01T00:00:50Z",
+		"Args": {
+			"Arg": 10
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 27,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:51Z"
+	},
+	{
+		"Seq": 27,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:51Z",
+		"Finished": "0001-01-01T00:00:52Z"
+	},
+	{
+		"Seq": 28,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:53Z",
+		"Args": {
+			"Arg": 11
+		}
+	},
+	{
+		"Seq": 28,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:53Z",
+		"Finished": "0001-01-01T00:00:54Z",
+		"Args": {
+			"Arg": 11
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 29,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:55Z"
+	},
+	{
+		"Seq": 29,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:55Z",
+		"Finished": "0001-01-01T00:00:56Z"
+	},
+	{
+		"Seq": 30,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:57Z",
+		"Args": {
+			"Arg": 12
+		}
+	},
+	{
+		"Seq": 30,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:57Z",
+		"Finished": "0001-01-01T00:00:58Z",
+		"Args": {
+			"Arg": 12
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 31,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:59Z"
+	},
+	{
+		"Seq": 31,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:59Z",
+		"Finished": "0001-01-01T00:01:00Z"
+	},
+	{
+		"Seq": 32,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:01Z",
+		"Args": {
+			"Arg": 13
+		}
+	},
+	{
+		"Seq": 32,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:01Z",
+		"Finished": "0001-01-01T00:01:02Z",
+		"Args": {
+			"Arg": 13
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 33,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:03Z"
+	},
+	{
+		"Seq": 33,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:03Z",
+		"Finished": "0001-01-01T00:01:04Z"
+	},
+	{
+		"Seq": 34,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:05Z",
+		"Args": {
+			"Arg": 14
+		}
+	},
+	{
+		"Seq": 34,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:05Z",
+		"Finished": "0001-01-01T00:01:06Z",
+		"Args": {
+			"Arg": 14
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 35,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:07Z"
+	},
+	{
+		"Seq": 35,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:07Z",
+		"Finished": "0001-01-01T00:01:08Z"
+	},
+	{
+		"Seq": 36,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:09Z",
+		"Args": {
+			"Arg": 15
+		}
+	},
+	{
+		"Seq": 36,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:09Z",
+		"Finished": "0001-01-01T00:01:10Z",
+		"Args": {
+			"Arg": 15
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 37,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:11Z"
+	},
+	{
+		"Seq": 37,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:11Z",
+		"Finished": "0001-01-01T00:01:12Z"
+	},
+	{
+		"Seq": 38,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:13Z",
+		"Args": {
+			"Arg": 16
+		}
+	},
+	{
+		"Seq": 38,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:13Z",
+		"Finished": "0001-01-01T00:01:14Z",
+		"Args": {
+			"Arg": 16
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 39,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:15Z"
+	},
+	{
+		"Seq": 39,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:15Z",
+		"Finished": "0001-01-01T00:01:16Z"
+	},
+	{
+		"Seq": 40,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:17Z",
+		"Args": {
+			"Arg": 17
+		}
+	},
+	{
+		"Seq": 40,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:17Z",
+		"Finished": "0001-01-01T00:01:18Z",
+		"Args": {
+			"Arg": 17
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 41,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:19Z"
+	},
+	{
+		"Seq": 41,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:19Z",
+		"Finished": "0001-01-01T00:01:20Z"
+	},
+	{
+		"Seq": 42,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:21Z",
+		"Args": {
+			"Arg": 18
+		}
+	},
+	{
+		"Seq": 42,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:21Z",
+		"Finished": "0001-01-01T00:01:22Z",
+		"Args": {
+			"Arg": 18
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 43,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:23Z"
+	},
+	{
+		"Seq": 43,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:23Z",
+		"Finished": "0001-01-01T00:01:24Z"
+	},
+	{
+		"Seq": 44,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:25Z",
+		"Args": {
+			"Arg": 19
+		}
+	},
+	{
+		"Seq": 44,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:25Z",
+		"Finished": "0001-01-01T00:01:26Z",
+		"Args": {
+			"Arg": 19
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 45,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:27Z"
+	},
+	{
+		"Seq": 45,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:27Z",
+		"Finished": "0001-01-01T00:01:28Z"
+	},
+	{
+		"Seq": 46,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:29Z",
+		"Args": {
+			"Arg": 20
+		}
+	},
+	{
+		"Seq": 46,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:29Z",
+		"Finished": "0001-01-01T00:01:30Z",
+		"Args": {
+			"Arg": 20
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 47,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:31Z"
+	},
+	{
+		"Seq": 47,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:31Z",
+		"Finished": "0001-01-01T00:01:32Z"
+	},
+	{
+		"Seq": 48,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:33Z",
+		"Args": {
+			"Arg": 21
+		}
+	},
+	{
+		"Seq": 48,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:33Z",
+		"Finished": "0001-01-01T00:01:34Z",
+		"Args": {
+			"Arg": 21
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 49,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:35Z"
+	},
+	{
+		"Seq": 49,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:35Z",
+		"Finished": "0001-01-01T00:01:36Z"
+	},
+	{
+		"Seq": 50,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:37Z",
+		"Args": {
+			"Arg": 22
+		}
+	},
+	{
+		"Seq": 50,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:37Z",
+		"Finished": "0001-01-01T00:01:38Z",
+		"Args": {
+			"Arg": 22
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 51,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:39Z"
+	},
+	{
+		"Seq": 51,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:39Z",
+		"Finished": "0001-01-01T00:01:40Z"
+	},
+	{
+		"Seq": 52,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:41Z",
+		"Args": {
+			"Arg": 23
+		}
+	},
+	{
+		"Seq": 52,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:41Z",
+		"Finished": "0001-01-01T00:01:42Z",
+		"Args": {
+			"Arg": 23
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 53,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:43Z"
+	},
+	{
+		"Seq": 53,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:43Z",
+		"Finished": "0001-01-01T00:01:44Z"
+	},
+	{
+		"Seq": 54,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:45Z",
+		"Args": {
+			"Arg": 24
+		}
+	},
+	{
+		"Seq": 54,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:45Z",
+		"Finished": "0001-01-01T00:01:46Z",
+		"Args": {
+			"Arg": 24
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 55,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:47Z"
+	},
+	{
+		"Seq": 55,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:47Z",
+		"Finished": "0001-01-01T00:01:48Z"
+	},
+	{
+		"Seq": 56,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:49Z",
+		"Args": {
+			"Arg": 25
+		}
+	},
+	{
+		"Seq": 56,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:49Z",
+		"Finished": "0001-01-01T00:01:50Z",
+		"Args": {
+			"Arg": 25
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 57,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:51Z"
+	},
+	{
+		"Seq": 57,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:51Z",
+		"Finished": "0001-01-01T00:01:52Z"
+	},
+	{
+		"Seq": 58,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:53Z",
+		"Args": {
+			"Arg": 26
+		}
+	},
+	{
+		"Seq": 58,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:53Z",
+		"Finished": "0001-01-01T00:01:54Z",
+		"Args": {
+			"Arg": 26
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 59,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:55Z"
+	},
+	{
+		"Seq": 59,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:55Z",
+		"Finished": "0001-01-01T00:01:56Z"
+	},
+	{
+		"Seq": 60,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:57Z",
+		"Args": {
+			"Arg": 27
+		}
+	},
+	{
+		"Seq": 60,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:01:57Z",
+		"Finished": "0001-01-01T00:01:58Z",
+		"Args": {
+			"Arg": 27
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 61,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:59Z"
+	},
+	{
+		"Seq": 61,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:01:59Z",
+		"Finished": "0001-01-01T00:02:00Z"
+	},
+	{
+		"Seq": 62,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:01Z",
+		"Args": {
+			"Arg": 28
+		}
+	},
+	{
+		"Seq": 62,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:01Z",
+		"Finished": "0001-01-01T00:02:02Z",
+		"Args": {
+			"Arg": 28
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 63,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:03Z"
+	},
+	{
+		"Seq": 63,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:03Z",
+		"Finished": "0001-01-01T00:02:04Z"
+	},
+	{
+		"Seq": 64,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:05Z",
+		"Args": {
+			"Arg": 29
+		}
+	},
+	{
+		"Seq": 64,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:05Z",
+		"Finished": "0001-01-01T00:02:06Z",
+		"Args": {
+			"Arg": 29
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 65,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:07Z"
+	},
+	{
+		"Seq": 65,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:07Z",
+		"Finished": "0001-01-01T00:02:08Z"
+	},
+	{
+		"Seq": 66,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:09Z",
+		"Args": {
+			"Arg": 30
+		}
+	},
+	{
+		"Seq": 66,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:09Z",
+		"Finished": "0001-01-01T00:02:10Z",
+		"Args": {
+			"Arg": 30
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 67,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:11Z"
+	},
+	{
+		"Seq": 67,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:11Z",
+		"Finished": "0001-01-01T00:02:12Z"
+	},
+	{
+		"Seq": 68,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:13Z",
+		"Args": {
+			"Arg": 31
+		}
+	},
+	{
+		"Seq": 68,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:13Z",
+		"Finished": "0001-01-01T00:02:14Z",
+		"Args": {
+			"Arg": 31
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 69,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:15Z"
+	},
+	{
+		"Seq": 69,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:15Z",
+		"Finished": "0001-01-01T00:02:16Z"
+	},
+	{
+		"Seq": 70,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:17Z",
+		"Args": {
+			"Arg": 32
+		}
+	},
+	{
+		"Seq": 70,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:17Z",
+		"Finished": "0001-01-01T00:02:18Z",
+		"Args": {
+			"Arg": 32
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 71,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:19Z"
+	},
+	{
+		"Seq": 71,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:19Z",
+		"Finished": "0001-01-01T00:02:20Z"
+	},
+	{
+		"Seq": 72,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:21Z",
+		"Args": {
+			"Arg": 33
+		}
+	},
+	{
+		"Seq": 72,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:21Z",
+		"Finished": "0001-01-01T00:02:22Z",
+		"Args": {
+			"Arg": 33
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 73,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:23Z"
+	},
+	{
+		"Seq": 73,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:23Z",
+		"Finished": "0001-01-01T00:02:24Z"
+	},
+	{
+		"Seq": 74,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:25Z",
+		"Args": {
+			"Arg": 34
+		}
+	},
+	{
+		"Seq": 74,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:25Z",
+		"Finished": "0001-01-01T00:02:26Z",
+		"Args": {
+			"Arg": 34
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 75,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:27Z"
+	},
+	{
+		"Seq": 75,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:27Z",
+		"Finished": "0001-01-01T00:02:28Z"
+	},
+	{
+		"Seq": 76,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:29Z",
+		"Args": {
+			"Arg": 35
+		}
+	},
+	{
+		"Seq": 76,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:29Z",
+		"Finished": "0001-01-01T00:02:30Z",
+		"Args": {
+			"Arg": 35
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 77,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:31Z"
+	},
+	{
+		"Seq": 77,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:31Z",
+		"Finished": "0001-01-01T00:02:32Z"
+	},
+	{
+		"Seq": 78,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:33Z",
+		"Args": {
+			"Arg": 36
+		}
+	},
+	{
+		"Seq": 78,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:33Z",
+		"Finished": "0001-01-01T00:02:34Z",
+		"Args": {
+			"Arg": 36
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 79,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:35Z"
+	},
+	{
+		"Seq": 79,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:35Z",
+		"Finished": "0001-01-01T00:02:36Z"
+	},
+	{
+		"Seq": 80,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:37Z",
+		"Args": {
+			"Arg": 37
+		}
+	},
+	{
+		"Seq": 80,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:37Z",
+		"Finished": "0001-01-01T00:02:38Z",
+		"Args": {
+			"Arg": 37
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 81,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:39Z"
+	},
+	{
+		"Seq": 81,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:39Z",
+		"Finished": "0001-01-01T00:02:40Z"
+	},
+	{
+		"Seq": 82,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:41Z",
+		"Args": {
+			"Arg": 38
+		}
+	},
+	{
+		"Seq": 82,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:41Z",
+		"Finished": "0001-01-01T00:02:42Z",
+		"Args": {
+			"Arg": 38
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 83,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:43Z"
+	},
+	{
+		"Seq": 83,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:43Z",
+		"Finished": "0001-01-01T00:02:44Z"
+	},
+	{
+		"Seq": 84,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:45Z",
+		"Args": {
+			"Arg": 39
+		}
+	},
+	{
+		"Seq": 84,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:45Z",
+		"Finished": "0001-01-01T00:02:46Z",
+		"Args": {
+			"Arg": 39
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 85,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:47Z"
+	},
+	{
+		"Seq": 85,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:47Z",
+		"Finished": "0001-01-01T00:02:48Z"
+	},
+	{
+		"Seq": 86,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:49Z",
+		"Args": {
+			"Arg": 40
+		}
+	},
+	{
+		"Seq": 86,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:49Z",
+		"Finished": "0001-01-01T00:02:50Z",
+		"Args": {
+			"Arg": 40
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 87,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:51Z"
+	},
+	{
+		"Seq": 87,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:51Z",
+		"Finished": "0001-01-01T00:02:52Z"
+	},
+	{
+		"Seq": 88,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:53Z",
+		"Args": {
+			"Arg": 41
+		}
+	},
+	{
+		"Seq": 88,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:53Z",
+		"Finished": "0001-01-01T00:02:54Z",
+		"Args": {
+			"Arg": 41
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 89,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:55Z"
+	},
+	{
+		"Seq": 89,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:55Z",
+		"Finished": "0001-01-01T00:02:56Z"
+	},
+	{
+		"Seq": 90,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:57Z",
+		"Args": {
+			"Arg": 42
+		}
+	},
+	{
+		"Seq": 90,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:02:57Z",
+		"Finished": "0001-01-01T00:02:58Z",
+		"Args": {
+			"Arg": 42
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 91,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:59Z"
+	},
+	{
+		"Seq": 91,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:02:59Z",
+		"Finished": "0001-01-01T00:03:00Z"
+	},
+	{
+		"Seq": 92,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:01Z",
+		"Args": {
+			"Arg": 43
+		}
+	},
+	{
+		"Seq": 92,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:01Z",
+		"Finished": "0001-01-01T00:03:02Z",
+		"Args": {
+			"Arg": 43
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 93,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:03Z"
+	},
+	{
+		"Seq": 93,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:03Z",
+		"Finished": "0001-01-01T00:03:04Z"
+	},
+	{
+		"Seq": 94,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:05Z",
+		"Args": {
+			"Arg": 44
+		}
+	},
+	{
+		"Seq": 94,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:05Z",
+		"Finished": "0001-01-01T00:03:06Z",
+		"Args": {
+			"Arg": 44
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 95,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:07Z"
+	},
+	{
+		"Seq": 95,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:07Z",
+		"Finished": "0001-01-01T00:03:08Z"
+	},
+	{
+		"Seq": 96,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:09Z",
+		"Args": {
+			"Arg": 45
+		}
+	},
+	{
+		"Seq": 96,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:09Z",
+		"Finished": "0001-01-01T00:03:10Z",
+		"Args": {
+			"Arg": 45
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 97,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:11Z"
+	},
+	{
+		"Seq": 97,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:11Z",
+		"Finished": "0001-01-01T00:03:12Z"
+	},
+	{
+		"Seq": 98,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:13Z",
+		"Args": {
+			"Arg": 46
+		}
+	},
+	{
+		"Seq": 98,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:13Z",
+		"Finished": "0001-01-01T00:03:14Z",
+		"Args": {
+			"Arg": 46
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 99,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:15Z"
+	},
+	{
+		"Seq": 99,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:15Z",
+		"Finished": "0001-01-01T00:03:16Z"
+	},
+	{
+		"Seq": 100,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:17Z",
+		"Args": {
+			"Arg": 47
+		}
+	},
+	{
+		"Seq": 100,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:17Z",
+		"Finished": "0001-01-01T00:03:18Z",
+		"Args": {
+			"Arg": 47
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 101,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:19Z"
+	},
+	{
+		"Seq": 101,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:19Z",
+		"Finished": "0001-01-01T00:03:20Z"
+	},
+	{
+		"Seq": 102,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:21Z",
+		"Args": {
+			"Arg": 48
+		}
+	},
+	{
+		"Seq": 102,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:21Z",
+		"Finished": "0001-01-01T00:03:22Z",
+		"Args": {
+			"Arg": 48
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 103,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:23Z"
+	},
+	{
+		"Seq": 103,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:23Z",
+		"Finished": "0001-01-01T00:03:24Z"
+	},
+	{
+		"Seq": 104,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:25Z",
+		"Args": {
+			"Arg": 49
+		}
+	},
+	{
+		"Seq": 104,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:25Z",
+		"Finished": "0001-01-01T00:03:26Z",
+		"Args": {
+			"Arg": 49
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 105,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:27Z"
+	},
+	{
+		"Seq": 105,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:27Z",
+		"Finished": "0001-01-01T00:03:28Z"
+	},
+	{
+		"Seq": 106,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:29Z",
+		"Args": {
+			"Arg": 50
+		}
+	},
+	{
+		"Seq": 106,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:29Z",
+		"Finished": "0001-01-01T00:03:30Z",
+		"Args": {
+			"Arg": 50
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 107,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:31Z"
+	},
+	{
+		"Seq": 107,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:31Z",
+		"Finished": "0001-01-01T00:03:32Z"
+	},
+	{
+		"Seq": 108,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:33Z",
+		"Args": {
+			"Arg": 51
+		}
+	},
+	{
+		"Seq": 108,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:33Z",
+		"Finished": "0001-01-01T00:03:34Z",
+		"Args": {
+			"Arg": 51
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 109,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:35Z"
+	},
+	{
+		"Seq": 109,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:35Z",
+		"Finished": "0001-01-01T00:03:36Z"
+	},
+	{
+		"Seq": 110,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:37Z",
+		"Args": {
+			"Arg": 52
+		}
+	},
+	{
+		"Seq": 110,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:37Z",
+		"Finished": "0001-01-01T00:03:38Z",
+		"Args": {
+			"Arg": 52
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 111,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:39Z"
+	},
+	{
+		"Seq": 111,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:39Z",
+		"Finished": "0001-01-01T00:03:40Z"
+	},
+	{
+		"Seq": 112,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:41Z",
+		"Args": {
+			"Arg": 53
+		}
+	},
+	{
+		"Seq": 112,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:41Z",
+		"Finished": "0001-01-01T00:03:42Z",
+		"Args": {
+			"Arg": 53
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 113,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:43Z"
+	},
+	{
+		"Seq": 113,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:43Z",
+		"Finished": "0001-01-01T00:03:44Z"
+	},
+	{
+		"Seq": 114,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:45Z",
+		"Args": {
+			"Arg": 54
+		}
+	},
+	{
+		"Seq": 114,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:45Z",
+		"Finished": "0001-01-01T00:03:46Z",
+		"Args": {
+			"Arg": 54
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 115,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:47Z"
+	},
+	{
+		"Seq": 115,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:47Z",
+		"Finished": "0001-01-01T00:03:48Z"
+	},
+	{
+		"Seq": 116,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:49Z",
+		"Args": {
+			"Arg": 55
+		}
+	},
+	{
+		"Seq": 116,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:49Z",
+		"Finished": "0001-01-01T00:03:50Z",
+		"Args": {
+			"Arg": 55
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 117,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:51Z"
+	},
+	{
+		"Seq": 117,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:51Z",
+		"Finished": "0001-01-01T00:03:52Z"
+	},
+	{
+		"Seq": 118,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:53Z",
+		"Args": {
+			"Arg": 56
+		}
+	},
+	{
+		"Seq": 118,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:53Z",
+		"Finished": "0001-01-01T00:03:54Z",
+		"Args": {
+			"Arg": 56
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 119,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:55Z"
+	},
+	{
+		"Seq": 119,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:55Z",
+		"Finished": "0001-01-01T00:03:56Z"
+	},
+	{
+		"Seq": 120,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:57Z",
+		"Args": {
+			"Arg": 57
+		}
+	},
+	{
+		"Seq": 120,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:03:57Z",
+		"Finished": "0001-01-01T00:03:58Z",
+		"Args": {
+			"Arg": 57
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 121,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:59Z"
+	},
+	{
+		"Seq": 121,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:03:59Z",
+		"Finished": "0001-01-01T00:04:00Z"
+	},
+	{
+		"Seq": 122,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:01Z",
+		"Args": {
+			"Arg": 58
+		}
+	},
+	{
+		"Seq": 122,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:01Z",
+		"Finished": "0001-01-01T00:04:02Z",
+		"Args": {
+			"Arg": 58
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 123,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:03Z"
+	},
+	{
+		"Seq": 123,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:03Z",
+		"Finished": "0001-01-01T00:04:04Z"
+	},
+	{
+		"Seq": 124,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:05Z",
+		"Args": {
+			"Arg": 59
+		}
+	},
+	{
+		"Seq": 124,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:05Z",
+		"Finished": "0001-01-01T00:04:06Z",
+		"Args": {
+			"Arg": 59
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 125,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:07Z"
+	},
+	{
+		"Seq": 125,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:07Z",
+		"Finished": "0001-01-01T00:04:08Z"
+	},
+	{
+		"Seq": 126,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:09Z",
+		"Args": {
+			"Arg": 60
+		}
+	},
+	{
+		"Seq": 126,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:09Z",
+		"Finished": "0001-01-01T00:04:10Z",
+		"Args": {
+			"Arg": 60
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 127,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:11Z"
+	},
+	{
+		"Seq": 127,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:11Z",
+		"Finished": "0001-01-01T00:04:12Z"
+	},
+	{
+		"Seq": 128,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:13Z",
+		"Args": {
+			"Arg": 61
+		}
+	},
+	{
+		"Seq": 128,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:13Z",
+		"Finished": "0001-01-01T00:04:14Z",
+		"Args": {
+			"Arg": 61
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 129,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:15Z"
+	},
+	{
+		"Seq": 129,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:15Z",
+		"Finished": "0001-01-01T00:04:16Z"
+	},
+	{
+		"Seq": 130,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:17Z",
+		"Args": {
+			"Arg": 62
+		}
+	},
+	{
+		"Seq": 130,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:17Z",
+		"Finished": "0001-01-01T00:04:18Z",
+		"Args": {
+			"Arg": 62
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 131,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:19Z"
+	},
+	{
+		"Seq": 131,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:19Z",
+		"Finished": "0001-01-01T00:04:20Z"
+	},
+	{
+		"Seq": 132,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:21Z",
+		"Args": {
+			"Arg": 63
+		}
+	},
+	{
+		"Seq": 132,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:21Z",
+		"Finished": "0001-01-01T00:04:22Z",
+		"Args": {
+			"Arg": 63
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 133,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:23Z"
+	},
+	{
+		"Seq": 133,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:23Z",
+		"Finished": "0001-01-01T00:04:24Z"
+	},
+	{
+		"Seq": 134,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:25Z",
+		"Args": {
+			"Arg": 64
+		}
+	},
+	{
+		"Seq": 134,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:25Z",
+		"Finished": "0001-01-01T00:04:26Z",
+		"Args": {
+			"Arg": 64
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 135,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:27Z"
+	},
+	{
+		"Seq": 135,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:27Z",
+		"Finished": "0001-01-01T00:04:28Z"
+	},
+	{
+		"Seq": 136,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:29Z",
+		"Args": {
+			"Arg": 65
+		}
+	},
+	{
+		"Seq": 136,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:29Z",
+		"Finished": "0001-01-01T00:04:30Z",
+		"Args": {
+			"Arg": 65
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 137,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:31Z"
+	},
+	{
+		"Seq": 137,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:31Z",
+		"Finished": "0001-01-01T00:04:32Z"
+	},
+	{
+		"Seq": 138,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:33Z",
+		"Args": {
+			"Arg": 66
+		}
+	},
+	{
+		"Seq": 138,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:33Z",
+		"Finished": "0001-01-01T00:04:34Z",
+		"Args": {
+			"Arg": 66
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 139,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:35Z"
+	},
+	{
+		"Seq": 139,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:35Z",
+		"Finished": "0001-01-01T00:04:36Z"
+	},
+	{
+		"Seq": 140,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:37Z",
+		"Args": {
+			"Arg": 67
+		}
+	},
+	{
+		"Seq": 140,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:37Z",
+		"Finished": "0001-01-01T00:04:38Z",
+		"Args": {
+			"Arg": 67
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 141,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:39Z"
+	},
+	{
+		"Seq": 141,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:39Z",
+		"Finished": "0001-01-01T00:04:40Z"
+	},
+	{
+		"Seq": 142,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:41Z",
+		"Args": {
+			"Arg": 68
+		}
+	},
+	{
+		"Seq": 142,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:41Z",
+		"Finished": "0001-01-01T00:04:42Z",
+		"Args": {
+			"Arg": 68
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 143,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:43Z"
+	},
+	{
+		"Seq": 143,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:43Z",
+		"Finished": "0001-01-01T00:04:44Z"
+	},
+	{
+		"Seq": 144,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:45Z",
+		"Args": {
+			"Arg": 69
+		}
+	},
+	{
+		"Seq": 144,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:45Z",
+		"Finished": "0001-01-01T00:04:46Z",
+		"Args": {
+			"Arg": 69
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 145,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:47Z"
+	},
+	{
+		"Seq": 145,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:47Z",
+		"Finished": "0001-01-01T00:04:48Z"
+	},
+	{
+		"Seq": 146,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:49Z",
+		"Args": {
+			"Arg": 70
+		}
+	},
+	{
+		"Seq": 146,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:49Z",
+		"Finished": "0001-01-01T00:04:50Z",
+		"Args": {
+			"Arg": 70
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 147,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:51Z"
+	},
+	{
+		"Seq": 147,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:51Z",
+		"Finished": "0001-01-01T00:04:52Z"
+	},
+	{
+		"Seq": 148,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:53Z",
+		"Args": {
+			"Arg": 71
+		}
+	},
+	{
+		"Seq": 148,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:53Z",
+		"Finished": "0001-01-01T00:04:54Z",
+		"Args": {
+			"Arg": 71
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 149,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:55Z"
+	},
+	{
+		"Seq": 149,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:55Z",
+		"Finished": "0001-01-01T00:04:56Z"
+	},
+	{
+		"Seq": 150,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:57Z",
+		"Args": {
+			"Arg": 72
+		}
+	},
+	{
+		"Seq": 150,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:04:57Z",
+		"Finished": "0001-01-01T00:04:58Z",
+		"Args": {
+			"Arg": 72
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 151,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:59Z"
+	},
+	{
+		"Seq": 151,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:04:59Z",
+		"Finished": "0001-01-01T00:05:00Z"
+	},
+	{
+		"Seq": 152,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:01Z",
+		"Args": {
+			"Arg": 73
+		}
+	},
+	{
+		"Seq": 152,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:01Z",
+		"Finished": "0001-01-01T00:05:02Z",
+		"Args": {
+			"Arg": 73
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 153,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:03Z"
+	},
+	{
+		"Seq": 153,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:03Z",
+		"Finished": "0001-01-01T00:05:04Z"
+	},
+	{
+		"Seq": 154,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:05Z",
+		"Args": {
+			"Arg": 74
+		}
+	},
+	{
+		"Seq": 154,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:05Z",
+		"Finished": "0001-01-01T00:05:06Z",
+		"Args": {
+			"Arg": 74
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 155,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:07Z"
+	},
+	{
+		"Seq": 155,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:07Z",
+		"Finished": "0001-01-01T00:05:08Z"
+	},
+	{
+		"Seq": 156,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:09Z",
+		"Args": {
+			"Arg": 75
+		}
+	},
+	{
+		"Seq": 156,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:09Z",
+		"Finished": "0001-01-01T00:05:10Z",
+		"Args": {
+			"Arg": 75
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 157,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:11Z"
+	},
+	{
+		"Seq": 157,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:11Z",
+		"Finished": "0001-01-01T00:05:12Z"
+	},
+	{
+		"Seq": 158,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:13Z",
+		"Args": {
+			"Arg": 76
+		}
+	},
+	{
+		"Seq": 158,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:13Z",
+		"Finished": "0001-01-01T00:05:14Z",
+		"Args": {
+			"Arg": 76
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 159,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:15Z"
+	},
+	{
+		"Seq": 159,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:15Z",
+		"Finished": "0001-01-01T00:05:16Z"
+	},
+	{
+		"Seq": 160,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:17Z",
+		"Args": {
+			"Arg": 77
+		}
+	},
+	{
+		"Seq": 160,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:17Z",
+		"Finished": "0001-01-01T00:05:18Z",
+		"Args": {
+			"Arg": 77
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 161,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:19Z"
+	},
+	{
+		"Seq": 161,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:19Z",
+		"Finished": "0001-01-01T00:05:20Z"
+	},
+	{
+		"Seq": 162,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:21Z",
+		"Args": {
+			"Arg": 78
+		}
+	},
+	{
+		"Seq": 162,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:21Z",
+		"Finished": "0001-01-01T00:05:22Z",
+		"Args": {
+			"Arg": 78
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 163,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:23Z"
+	},
+	{
+		"Seq": 163,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:23Z",
+		"Finished": "0001-01-01T00:05:24Z"
+	},
+	{
+		"Seq": 164,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:25Z",
+		"Args": {
+			"Arg": 79
+		}
+	},
+	{
+		"Seq": 164,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:25Z",
+		"Finished": "0001-01-01T00:05:26Z",
+		"Args": {
+			"Arg": 79
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 165,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:27Z"
+	},
+	{
+		"Seq": 165,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:27Z",
+		"Finished": "0001-01-01T00:05:28Z"
+	},
+	{
+		"Seq": 166,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:29Z",
+		"Args": {
+			"Arg": 80
+		}
+	},
+	{
+		"Seq": 166,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:29Z",
+		"Finished": "0001-01-01T00:05:30Z",
+		"Args": {
+			"Arg": 80
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 167,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:31Z"
+	},
+	{
+		"Seq": 167,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:31Z",
+		"Finished": "0001-01-01T00:05:32Z"
+	},
+	{
+		"Seq": 168,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:33Z",
+		"Args": {
+			"Arg": 81
+		}
+	},
+	{
+		"Seq": 168,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:33Z",
+		"Finished": "0001-01-01T00:05:34Z",
+		"Args": {
+			"Arg": 81
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 169,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:35Z"
+	},
+	{
+		"Seq": 169,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:35Z",
+		"Finished": "0001-01-01T00:05:36Z"
+	},
+	{
+		"Seq": 170,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:37Z",
+		"Args": {
+			"Arg": 82
+		}
+	},
+	{
+		"Seq": 170,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:37Z",
+		"Finished": "0001-01-01T00:05:38Z",
+		"Args": {
+			"Arg": 82
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 171,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:39Z"
+	},
+	{
+		"Seq": 171,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:39Z",
+		"Finished": "0001-01-01T00:05:40Z"
+	},
+	{
+		"Seq": 172,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:41Z",
+		"Args": {
+			"Arg": 83
+		}
+	},
+	{
+		"Seq": 172,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:41Z",
+		"Finished": "0001-01-01T00:05:42Z",
+		"Args": {
+			"Arg": 83
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 173,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:43Z"
+	},
+	{
+		"Seq": 173,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:43Z",
+		"Finished": "0001-01-01T00:05:44Z"
+	},
+	{
+		"Seq": 174,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:45Z",
+		"Args": {
+			"Arg": 84
+		}
+	},
+	{
+		"Seq": 174,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:45Z",
+		"Finished": "0001-01-01T00:05:46Z",
+		"Args": {
+			"Arg": 84
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 175,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:47Z"
+	},
+	{
+		"Seq": 175,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:47Z",
+		"Finished": "0001-01-01T00:05:48Z"
+	},
+	{
+		"Seq": 176,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:49Z",
+		"Args": {
+			"Arg": 85
+		}
+	},
+	{
+		"Seq": 176,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:49Z",
+		"Finished": "0001-01-01T00:05:50Z",
+		"Args": {
+			"Arg": 85
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 177,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:51Z"
+	},
+	{
+		"Seq": 177,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:51Z",
+		"Finished": "0001-01-01T00:05:52Z"
+	},
+	{
+		"Seq": 178,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:53Z",
+		"Args": {
+			"Arg": 86
+		}
+	},
+	{
+		"Seq": 178,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:53Z",
+		"Finished": "0001-01-01T00:05:54Z",
+		"Args": {
+			"Arg": 86
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 179,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:55Z"
+	},
+	{
+		"Seq": 179,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:55Z",
+		"Finished": "0001-01-01T00:05:56Z"
+	},
+	{
+		"Seq": 180,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:57Z",
+		"Args": {
+			"Arg": 87
+		}
+	},
+	{
+		"Seq": 180,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:05:57Z",
+		"Finished": "0001-01-01T00:05:58Z",
+		"Args": {
+			"Arg": 87
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 181,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:59Z"
+	},
+	{
+		"Seq": 181,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:05:59Z",
+		"Finished": "0001-01-01T00:06:00Z"
+	},
+	{
+		"Seq": 182,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:01Z",
+		"Args": {
+			"Arg": 88
+		}
+	},
+	{
+		"Seq": 182,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:01Z",
+		"Finished": "0001-01-01T00:06:02Z",
+		"Args": {
+			"Arg": 88
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 183,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:03Z"
+	},
+	{
+		"Seq": 183,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:03Z",
+		"Finished": "0001-01-01T00:06:04Z"
+	},
+	{
+		"Seq": 184,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:05Z",
+		"Args": {
+			"Arg": 89
+		}
+	},
+	{
+		"Seq": 184,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:05Z",
+		"Finished": "0001-01-01T00:06:06Z",
+		"Args": {
+			"Arg": 89
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 185,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:07Z"
+	},
+	{
+		"Seq": 185,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:07Z",
+		"Finished": "0001-01-01T00:06:08Z"
+	},
+	{
+		"Seq": 186,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:09Z",
+		"Args": {
+			"Arg": 90
+		}
+	},
+	{
+		"Seq": 186,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:09Z",
+		"Finished": "0001-01-01T00:06:10Z",
+		"Args": {
+			"Arg": 90
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 187,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:11Z"
+	},
+	{
+		"Seq": 187,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:11Z",
+		"Finished": "0001-01-01T00:06:12Z"
+	},
+	{
+		"Seq": 188,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:13Z",
+		"Args": {
+			"Arg": 91
+		}
+	},
+	{
+		"Seq": 188,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:13Z",
+		"Finished": "0001-01-01T00:06:14Z",
+		"Args": {
+			"Arg": 91
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 189,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:15Z"
+	},
+	{
+		"Seq": 189,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:15Z",
+		"Finished": "0001-01-01T00:06:16Z"
+	},
+	{
+		"Seq": 190,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:17Z",
+		"Args": {
+			"Arg": 92
+		}
+	},
+	{
+		"Seq": 190,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:17Z",
+		"Finished": "0001-01-01T00:06:18Z",
+		"Args": {
+			"Arg": 92
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 191,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:19Z"
+	},
+	{
+		"Seq": 191,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:19Z",
+		"Finished": "0001-01-01T00:06:20Z"
+	},
+	{
+		"Seq": 192,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:21Z",
+		"Args": {
+			"Arg": 93
+		}
+	},
+	{
+		"Seq": 192,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:21Z",
+		"Finished": "0001-01-01T00:06:22Z",
+		"Args": {
+			"Arg": 93
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 193,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:23Z"
+	},
+	{
+		"Seq": 193,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:23Z",
+		"Finished": "0001-01-01T00:06:24Z"
+	},
+	{
+		"Seq": 194,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:25Z",
+		"Args": {
+			"Arg": 94
+		}
+	},
+	{
+		"Seq": 194,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:25Z",
+		"Finished": "0001-01-01T00:06:26Z",
+		"Args": {
+			"Arg": 94
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 195,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:27Z"
+	},
+	{
+		"Seq": 195,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:27Z",
+		"Finished": "0001-01-01T00:06:28Z"
+	},
+	{
+		"Seq": 196,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:29Z",
+		"Args": {
+			"Arg": 95
+		}
+	},
+	{
+		"Seq": 196,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:29Z",
+		"Finished": "0001-01-01T00:06:30Z",
+		"Args": {
+			"Arg": 95
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 197,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:31Z"
+	},
+	{
+		"Seq": 197,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:31Z",
+		"Finished": "0001-01-01T00:06:32Z"
+	},
+	{
+		"Seq": 198,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:33Z",
+		"Args": {
+			"Arg": 96
+		}
+	},
+	{
+		"Seq": 198,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:33Z",
+		"Finished": "0001-01-01T00:06:34Z",
+		"Args": {
+			"Arg": 96
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 199,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:35Z"
+	},
+	{
+		"Seq": 199,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:35Z",
+		"Finished": "0001-01-01T00:06:36Z"
+	},
+	{
+		"Seq": 200,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:37Z",
+		"Args": {
+			"Arg": 97
+		}
+	},
+	{
+		"Seq": 200,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:37Z",
+		"Finished": "0001-01-01T00:06:38Z",
+		"Args": {
+			"Arg": 97
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 201,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:39Z"
+	},
+	{
+		"Seq": 201,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:39Z",
+		"Finished": "0001-01-01T00:06:40Z"
+	},
+	{
+		"Seq": 202,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:41Z",
+		"Args": {
+			"Arg": 98
+		}
+	},
+	{
+		"Seq": 202,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:41Z",
+		"Finished": "0001-01-01T00:06:42Z",
+		"Args": {
+			"Arg": 98
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 203,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:43Z"
+	},
+	{
+		"Seq": 203,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:43Z",
+		"Finished": "0001-01-01T00:06:44Z"
+	},
+	{
+		"Seq": 204,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:45Z",
+		"Args": {
+			"Arg": 99
+		}
+	},
+	{
+		"Seq": 204,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:45Z",
+		"Finished": "0001-01-01T00:06:46Z",
+		"Args": {
+			"Arg": 99
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 205,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:47Z"
+	},
+	{
+		"Seq": 205,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:47Z",
+		"Finished": "0001-01-01T00:06:48Z"
+	},
+	{
+		"Seq": 206,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:49Z",
+		"Args": {
+			"Arg": 100
+		}
+	},
+	{
+		"Seq": 206,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:49Z",
+		"Finished": "0001-01-01T00:06:50Z",
+		"Args": {
+			"Arg": 100
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 207,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:51Z"
+	},
+	{
+		"Seq": 207,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:51Z",
+		"Finished": "0001-01-01T00:06:52Z"
+	},
+	{
+		"Seq": 208,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:53Z",
+		"Args": {
+			"Arg": 101
+		}
+	},
+	{
+		"Seq": 208,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:53Z",
+		"Finished": "0001-01-01T00:06:54Z",
+		"Args": {
+			"Arg": 101
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 209,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:55Z"
+	},
+	{
+		"Seq": 209,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:55Z",
+		"Finished": "0001-01-01T00:06:56Z"
+	},
+	{
+		"Seq": 210,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:57Z",
+		"Args": {
+			"Arg": 102
+		}
+	},
+	{
+		"Seq": 210,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:06:57Z",
+		"Finished": "0001-01-01T00:06:58Z",
+		"Args": {
+			"Arg": 102
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 211,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:59Z"
+	},
+	{
+		"Seq": 211,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:06:59Z",
+		"Finished": "0001-01-01T00:07:00Z"
+	},
+	{
+		"Seq": 212,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:01Z",
+		"Args": {
+			"Arg": 103
+		}
+	},
+	{
+		"Seq": 212,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:01Z",
+		"Finished": "0001-01-01T00:07:02Z",
+		"Args": {
+			"Arg": 103
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 213,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:03Z"
+	},
+	{
+		"Seq": 213,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:03Z",
+		"Finished": "0001-01-01T00:07:04Z"
+	},
+	{
+		"Seq": 214,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:05Z",
+		"Args": {
+			"Arg": 104
+		}
+	},
+	{
+		"Seq": 214,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:05Z",
+		"Finished": "0001-01-01T00:07:06Z",
+		"Args": {
+			"Arg": 104
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 215,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:07Z"
+	},
+	{
+		"Seq": 215,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:07Z",
+		"Finished": "0001-01-01T00:07:08Z"
+	},
+	{
+		"Seq": 216,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:09Z",
+		"Args": {
+			"Arg": 105
+		}
+	},
+	{
+		"Seq": 216,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:09Z",
+		"Finished": "0001-01-01T00:07:10Z",
+		"Args": {
+			"Arg": 105
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 217,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:11Z"
+	},
+	{
+		"Seq": 217,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:11Z",
+		"Finished": "0001-01-01T00:07:12Z"
+	},
+	{
+		"Seq": 218,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:13Z",
+		"Args": {
+			"Arg": 106
+		}
+	},
+	{
+		"Seq": 218,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:13Z",
+		"Finished": "0001-01-01T00:07:14Z",
+		"Args": {
+			"Arg": 106
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 219,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:15Z"
+	},
+	{
+		"Seq": 219,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:15Z",
+		"Finished": "0001-01-01T00:07:16Z"
+	},
+	{
+		"Seq": 220,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:17Z",
+		"Args": {
+			"Arg": 107
+		}
+	},
+	{
+		"Seq": 220,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:17Z",
+		"Finished": "0001-01-01T00:07:18Z",
+		"Args": {
+			"Arg": 107
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 221,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:19Z"
+	},
+	{
+		"Seq": 221,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:19Z",
+		"Finished": "0001-01-01T00:07:20Z"
+	},
+	{
+		"Seq": 222,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:21Z",
+		"Args": {
+			"Arg": 108
+		}
+	},
+	{
+		"Seq": 222,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:21Z",
+		"Finished": "0001-01-01T00:07:22Z",
+		"Args": {
+			"Arg": 108
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 223,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:23Z"
+	},
+	{
+		"Seq": 223,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:23Z",
+		"Finished": "0001-01-01T00:07:24Z"
+	},
+	{
+		"Seq": 224,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:25Z",
+		"Args": {
+			"Arg": 109
+		}
+	},
+	{
+		"Seq": 224,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:25Z",
+		"Finished": "0001-01-01T00:07:26Z",
+		"Args": {
+			"Arg": 109
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 225,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:27Z"
+	},
+	{
+		"Seq": 225,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:27Z",
+		"Finished": "0001-01-01T00:07:28Z"
+	},
+	{
+		"Seq": 226,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:29Z",
+		"Args": {
+			"Arg": 110
+		}
+	},
+	{
+		"Seq": 226,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:29Z",
+		"Finished": "0001-01-01T00:07:30Z",
+		"Args": {
+			"Arg": 110
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 227,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:31Z"
+	},
+	{
+		"Seq": 227,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:31Z",
+		"Finished": "0001-01-01T00:07:32Z"
+	},
+	{
+		"Seq": 228,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:33Z",
+		"Args": {
+			"Arg": 111
+		}
+	},
+	{
+		"Seq": 228,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:33Z",
+		"Finished": "0001-01-01T00:07:34Z",
+		"Args": {
+			"Arg": 111
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 229,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:35Z"
+	},
+	{
+		"Seq": 229,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:35Z",
+		"Finished": "0001-01-01T00:07:36Z"
+	},
+	{
+		"Seq": 230,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:37Z",
+		"Args": {
+			"Arg": 112
+		}
+	},
+	{
+		"Seq": 230,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:37Z",
+		"Finished": "0001-01-01T00:07:38Z",
+		"Args": {
+			"Arg": 112
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 231,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:39Z"
+	},
+	{
+		"Seq": 231,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:39Z",
+		"Finished": "0001-01-01T00:07:40Z"
+	},
+	{
+		"Seq": 232,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:41Z",
+		"Args": {
+			"Arg": 113
+		}
+	},
+	{
+		"Seq": 232,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:41Z",
+		"Finished": "0001-01-01T00:07:42Z",
+		"Args": {
+			"Arg": 113
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 233,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:43Z"
+	},
+	{
+		"Seq": 233,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:43Z",
+		"Finished": "0001-01-01T00:07:44Z"
+	},
+	{
+		"Seq": 234,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:45Z",
+		"Args": {
+			"Arg": 114
+		}
+	},
+	{
+		"Seq": 234,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:45Z",
+		"Finished": "0001-01-01T00:07:46Z",
+		"Args": {
+			"Arg": 114
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 235,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:47Z"
+	},
+	{
+		"Seq": 235,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:47Z",
+		"Finished": "0001-01-01T00:07:48Z"
+	},
+	{
+		"Seq": 236,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:49Z",
+		"Args": {
+			"Arg": 115
+		}
+	},
+	{
+		"Seq": 236,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:49Z",
+		"Finished": "0001-01-01T00:07:50Z",
+		"Args": {
+			"Arg": 115
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 237,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:51Z"
+	},
+	{
+		"Seq": 237,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:51Z",
+		"Finished": "0001-01-01T00:07:52Z"
+	},
+	{
+		"Seq": 238,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:53Z",
+		"Args": {
+			"Arg": 116
+		}
+	},
+	{
+		"Seq": 238,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:53Z",
+		"Finished": "0001-01-01T00:07:54Z",
+		"Args": {
+			"Arg": 116
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 239,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:55Z"
+	},
+	{
+		"Seq": 239,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:55Z",
+		"Finished": "0001-01-01T00:07:56Z"
+	},
+	{
+		"Seq": 240,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:57Z",
+		"Args": {
+			"Arg": 117
+		}
+	},
+	{
+		"Seq": 240,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:07:57Z",
+		"Finished": "0001-01-01T00:07:58Z",
+		"Args": {
+			"Arg": 117
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 241,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:59Z"
+	},
+	{
+		"Seq": 241,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:07:59Z",
+		"Finished": "0001-01-01T00:08:00Z"
+	},
+	{
+		"Seq": 242,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:01Z",
+		"Args": {
+			"Arg": 118
+		}
+	},
+	{
+		"Seq": 242,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:01Z",
+		"Finished": "0001-01-01T00:08:02Z",
+		"Args": {
+			"Arg": 118
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 243,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:03Z"
+	},
+	{
+		"Seq": 243,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:03Z",
+		"Finished": "0001-01-01T00:08:04Z"
+	},
+	{
+		"Seq": 244,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:05Z",
+		"Args": {
+			"Arg": 119
+		}
+	},
+	{
+		"Seq": 244,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:05Z",
+		"Finished": "0001-01-01T00:08:06Z",
+		"Args": {
+			"Arg": 119
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 245,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:07Z"
+	},
+	{
+		"Seq": 245,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:07Z",
+		"Finished": "0001-01-01T00:08:08Z"
+	},
+	{
+		"Seq": 246,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:09Z",
+		"Args": {
+			"Arg": 120
+		}
+	},
+	{
+		"Seq": 246,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:09Z",
+		"Finished": "0001-01-01T00:08:10Z",
+		"Args": {
+			"Arg": 120
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 247,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:11Z"
+	},
+	{
+		"Seq": 247,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:11Z",
+		"Finished": "0001-01-01T00:08:12Z"
+	},
+	{
+		"Seq": 248,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:13Z",
+		"Args": {
+			"Arg": 121
+		}
+	},
+	{
+		"Seq": 248,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:13Z",
+		"Finished": "0001-01-01T00:08:14Z",
+		"Args": {
+			"Arg": 121
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 249,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:15Z"
+	},
+	{
+		"Seq": 249,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:15Z",
+		"Finished": "0001-01-01T00:08:16Z"
+	},
+	{
+		"Seq": 250,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:17Z",
+		"Args": {
+			"Arg": 122
+		}
+	},
+	{
+		"Seq": 250,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:17Z",
+		"Finished": "0001-01-01T00:08:18Z",
+		"Args": {
+			"Arg": 122
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 251,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:19Z"
+	},
+	{
+		"Seq": 251,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:19Z",
+		"Finished": "0001-01-01T00:08:20Z"
+	},
+	{
+		"Seq": 252,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:21Z",
+		"Args": {
+			"Arg": 123
+		}
+	},
+	{
+		"Seq": 252,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:21Z",
+		"Finished": "0001-01-01T00:08:22Z",
+		"Args": {
+			"Arg": 123
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 253,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:23Z"
+	},
+	{
+		"Seq": 253,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:23Z",
+		"Finished": "0001-01-01T00:08:24Z"
+	},
+	{
+		"Seq": 254,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:25Z",
+		"Args": {
+			"Arg": 124
+		}
+	},
+	{
+		"Seq": 254,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:25Z",
+		"Finished": "0001-01-01T00:08:26Z",
+		"Args": {
+			"Arg": 124
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 255,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:27Z"
+	},
+	{
+		"Seq": 255,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:27Z",
+		"Finished": "0001-01-01T00:08:28Z"
+	},
+	{
+		"Seq": 256,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:29Z",
+		"Args": {
+			"Arg": 125
+		}
+	},
+	{
+		"Seq": 256,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:29Z",
+		"Finished": "0001-01-01T00:08:30Z",
+		"Args": {
+			"Arg": 125
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 257,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:31Z"
+	},
+	{
+		"Seq": 257,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:31Z",
+		"Finished": "0001-01-01T00:08:32Z"
+	},
+	{
+		"Seq": 258,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:33Z",
+		"Args": {
+			"Arg": 126
+		}
+	},
+	{
+		"Seq": 258,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:33Z",
+		"Finished": "0001-01-01T00:08:34Z",
+		"Args": {
+			"Arg": 126
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 259,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:35Z"
+	},
+	{
+		"Seq": 259,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:35Z",
+		"Finished": "0001-01-01T00:08:36Z"
+	},
+	{
+		"Seq": 260,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:37Z",
+		"Args": {
+			"Arg": 127
+		}
+	},
+	{
+		"Seq": 260,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:37Z",
+		"Finished": "0001-01-01T00:08:38Z",
+		"Args": {
+			"Arg": 127
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 261,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:39Z"
+	},
+	{
+		"Seq": 261,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:39Z",
+		"Finished": "0001-01-01T00:08:40Z"
+	},
+	{
+		"Seq": 262,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:41Z",
+		"Args": {
+			"Arg": 128
+		}
+	},
+	{
+		"Seq": 262,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:41Z",
+		"Finished": "0001-01-01T00:08:42Z",
+		"Args": {
+			"Arg": 128
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 263,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:43Z"
+	},
+	{
+		"Seq": 263,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:43Z",
+		"Finished": "0001-01-01T00:08:44Z"
+	},
+	{
+		"Seq": 264,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:45Z",
+		"Args": {
+			"Arg": 129
+		}
+	},
+	{
+		"Seq": 264,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:45Z",
+		"Finished": "0001-01-01T00:08:46Z",
+		"Args": {
+			"Arg": 129
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 265,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:47Z"
+	},
+	{
+		"Seq": 265,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:47Z",
+		"Finished": "0001-01-01T00:08:48Z"
+	},
+	{
+		"Seq": 266,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:49Z",
+		"Args": {
+			"Arg": 130
+		}
+	},
+	{
+		"Seq": 266,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:49Z",
+		"Finished": "0001-01-01T00:08:50Z",
+		"Args": {
+			"Arg": 130
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 267,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:51Z"
+	},
+	{
+		"Seq": 267,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:51Z",
+		"Finished": "0001-01-01T00:08:52Z"
+	},
+	{
+		"Seq": 268,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:53Z",
+		"Args": {
+			"Arg": 131
+		}
+	},
+	{
+		"Seq": 268,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:53Z",
+		"Finished": "0001-01-01T00:08:54Z",
+		"Args": {
+			"Arg": 131
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 269,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:55Z"
+	},
+	{
+		"Seq": 269,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:55Z",
+		"Finished": "0001-01-01T00:08:56Z"
+	},
+	{
+		"Seq": 270,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:57Z",
+		"Args": {
+			"Arg": 132
+		}
+	},
+	{
+		"Seq": 270,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:08:57Z",
+		"Finished": "0001-01-01T00:08:58Z",
+		"Args": {
+			"Arg": 132
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 271,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:59Z"
+	},
+	{
+		"Seq": 271,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:08:59Z",
+		"Finished": "0001-01-01T00:09:00Z"
+	},
+	{
+		"Seq": 272,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:01Z",
+		"Args": {
+			"Arg": 133
+		}
+	},
+	{
+		"Seq": 272,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:01Z",
+		"Finished": "0001-01-01T00:09:02Z",
+		"Args": {
+			"Arg": 133
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 273,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:03Z"
+	},
+	{
+		"Seq": 273,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:03Z",
+		"Finished": "0001-01-01T00:09:04Z"
+	},
+	{
+		"Seq": 274,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:05Z",
+		"Args": {
+			"Arg": 134
+		}
+	},
+	{
+		"Seq": 274,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:05Z",
+		"Finished": "0001-01-01T00:09:06Z",
+		"Args": {
+			"Arg": 134
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 275,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:07Z"
+	},
+	{
+		"Seq": 275,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:07Z",
+		"Finished": "0001-01-01T00:09:08Z"
+	},
+	{
+		"Seq": 276,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:09Z",
+		"Args": {
+			"Arg": 135
+		}
+	},
+	{
+		"Seq": 276,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:09Z",
+		"Finished": "0001-01-01T00:09:10Z",
+		"Args": {
+			"Arg": 135
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 277,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:11Z"
+	},
+	{
+		"Seq": 277,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:11Z",
+		"Finished": "0001-01-01T00:09:12Z"
+	},
+	{
+		"Seq": 278,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:13Z",
+		"Args": {
+			"Arg": 136
+		}
+	},
+	{
+		"Seq": 278,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:13Z",
+		"Finished": "0001-01-01T00:09:14Z",
+		"Args": {
+			"Arg": 136
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 279,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:15Z"
+	},
+	{
+		"Seq": 279,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:15Z",
+		"Finished": "0001-01-01T00:09:16Z"
+	},
+	{
+		"Seq": 280,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:17Z",
+		"Args": {
+			"Arg": 137
+		}
+	},
+	{
+		"Seq": 280,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:17Z",
+		"Finished": "0001-01-01T00:09:18Z",
+		"Args": {
+			"Arg": 137
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 281,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:19Z"
+	},
+	{
+		"Seq": 281,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:19Z",
+		"Finished": "0001-01-01T00:09:20Z"
+	},
+	{
+		"Seq": 282,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:21Z",
+		"Args": {
+			"Arg": 138
+		}
+	},
+	{
+		"Seq": 282,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:21Z",
+		"Finished": "0001-01-01T00:09:22Z",
+		"Args": {
+			"Arg": 138
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 283,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:23Z"
+	},
+	{
+		"Seq": 283,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:23Z",
+		"Finished": "0001-01-01T00:09:24Z"
+	},
+	{
+		"Seq": 284,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:25Z",
+		"Args": {
+			"Arg": 139
+		}
+	},
+	{
+		"Seq": 284,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:25Z",
+		"Finished": "0001-01-01T00:09:26Z",
+		"Args": {
+			"Arg": 139
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 285,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:27Z"
+	},
+	{
+		"Seq": 285,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:27Z",
+		"Finished": "0001-01-01T00:09:28Z"
+	},
+	{
+		"Seq": 286,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:29Z",
+		"Args": {
+			"Arg": 140
+		}
+	},
+	{
+		"Seq": 286,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:29Z",
+		"Finished": "0001-01-01T00:09:30Z",
+		"Args": {
+			"Arg": 140
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 287,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:31Z"
+	},
+	{
+		"Seq": 287,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:31Z",
+		"Finished": "0001-01-01T00:09:32Z"
+	},
+	{
+		"Seq": 288,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:33Z",
+		"Args": {
+			"Arg": 141
+		}
+	},
+	{
+		"Seq": 288,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:33Z",
+		"Finished": "0001-01-01T00:09:34Z",
+		"Args": {
+			"Arg": 141
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 289,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:35Z"
+	},
+	{
+		"Seq": 289,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:35Z",
+		"Finished": "0001-01-01T00:09:36Z"
+	},
+	{
+		"Seq": 290,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:37Z",
+		"Args": {
+			"Arg": 142
+		}
+	},
+	{
+		"Seq": 290,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:37Z",
+		"Finished": "0001-01-01T00:09:38Z",
+		"Args": {
+			"Arg": 142
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 291,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:39Z"
+	},
+	{
+		"Seq": 291,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:39Z",
+		"Finished": "0001-01-01T00:09:40Z"
+	},
+	{
+		"Seq": 292,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:41Z",
+		"Args": {
+			"Arg": 143
+		}
+	},
+	{
+		"Seq": 292,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:41Z",
+		"Finished": "0001-01-01T00:09:42Z",
+		"Args": {
+			"Arg": 143
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 293,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:43Z"
+	},
+	{
+		"Seq": 293,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:43Z",
+		"Finished": "0001-01-01T00:09:44Z"
+	},
+	{
+		"Seq": 294,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:45Z",
+		"Args": {
+			"Arg": 144
+		}
+	},
+	{
+		"Seq": 294,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:45Z",
+		"Finished": "0001-01-01T00:09:46Z",
+		"Args": {
+			"Arg": 144
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 295,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:47Z"
+	},
+	{
+		"Seq": 295,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:47Z",
+		"Finished": "0001-01-01T00:09:48Z"
+	},
+	{
+		"Seq": 296,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:49Z",
+		"Args": {
+			"Arg": 145
+		}
+	},
+	{
+		"Seq": 296,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:49Z",
+		"Finished": "0001-01-01T00:09:50Z",
+		"Args": {
+			"Arg": 145
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 297,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:51Z"
+	},
+	{
+		"Seq": 297,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:51Z",
+		"Finished": "0001-01-01T00:09:52Z"
+	},
+	{
+		"Seq": 298,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:53Z",
+		"Args": {
+			"Arg": 146
+		}
+	},
+	{
+		"Seq": 298,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:53Z",
+		"Finished": "0001-01-01T00:09:54Z",
+		"Args": {
+			"Arg": 146
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 299,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:55Z"
+	},
+	{
+		"Seq": 299,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:55Z",
+		"Finished": "0001-01-01T00:09:56Z"
+	},
+	{
+		"Seq": 300,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:57Z",
+		"Args": {
+			"Arg": 147
+		}
+	},
+	{
+		"Seq": 300,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:09:57Z",
+		"Finished": "0001-01-01T00:09:58Z",
+		"Args": {
+			"Arg": 147
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 301,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:59Z"
+	},
+	{
+		"Seq": 301,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:09:59Z",
+		"Finished": "0001-01-01T00:10:00Z"
+	},
+	{
+		"Seq": 302,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:01Z",
+		"Args": {
+			"Arg": 148
+		}
+	},
+	{
+		"Seq": 302,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:01Z",
+		"Finished": "0001-01-01T00:10:02Z",
+		"Args": {
+			"Arg": 148
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 303,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:03Z"
+	},
+	{
+		"Seq": 303,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:03Z",
+		"Finished": "0001-01-01T00:10:04Z"
+	},
+	{
+		"Seq": 304,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:05Z",
+		"Args": {
+			"Arg": 149
+		}
+	},
+	{
+		"Seq": 304,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:05Z",
+		"Finished": "0001-01-01T00:10:06Z",
+		"Args": {
+			"Arg": 149
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 305,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:07Z"
+	},
+	{
+		"Seq": 305,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:07Z",
+		"Finished": "0001-01-01T00:10:08Z"
+	},
+	{
+		"Seq": 306,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:09Z",
+		"Args": {
+			"Arg": 150
+		}
+	},
+	{
+		"Seq": 306,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:09Z",
+		"Finished": "0001-01-01T00:10:10Z",
+		"Args": {
+			"Arg": 150
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 307,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:11Z"
+	},
+	{
+		"Seq": 307,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:11Z",
+		"Finished": "0001-01-01T00:10:12Z"
+	},
+	{
+		"Seq": 308,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:13Z",
+		"Args": {
+			"Arg": 151
+		}
+	},
+	{
+		"Seq": 308,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:13Z",
+		"Finished": "0001-01-01T00:10:14Z",
+		"Args": {
+			"Arg": 151
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 309,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:15Z"
+	},
+	{
+		"Seq": 309,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:15Z",
+		"Finished": "0001-01-01T00:10:16Z"
+	},
+	{
+		"Seq": 310,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:17Z",
+		"Args": {
+			"Arg": 152
+		}
+	},
+	{
+		"Seq": 310,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:17Z",
+		"Finished": "0001-01-01T00:10:18Z",
+		"Args": {
+			"Arg": 152
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 311,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:19Z"
+	},
+	{
+		"Seq": 311,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:19Z",
+		"Finished": "0001-01-01T00:10:20Z"
+	},
+	{
+		"Seq": 312,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:21Z",
+		"Args": {
+			"Arg": 153
+		}
+	},
+	{
+		"Seq": 312,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:21Z",
+		"Finished": "0001-01-01T00:10:22Z",
+		"Args": {
+			"Arg": 153
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 313,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:23Z"
+	},
+	{
+		"Seq": 313,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:23Z",
+		"Finished": "0001-01-01T00:10:24Z"
+	},
+	{
+		"Seq": 314,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:25Z",
+		"Args": {
+			"Arg": 154
+		}
+	},
+	{
+		"Seq": 314,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:25Z",
+		"Finished": "0001-01-01T00:10:26Z",
+		"Args": {
+			"Arg": 154
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 315,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:27Z"
+	},
+	{
+		"Seq": 315,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:27Z",
+		"Finished": "0001-01-01T00:10:28Z"
+	},
+	{
+		"Seq": 316,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:29Z",
+		"Args": {
+			"Arg": 155
+		}
+	},
+	{
+		"Seq": 316,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:29Z",
+		"Finished": "0001-01-01T00:10:30Z",
+		"Args": {
+			"Arg": 155
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 317,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:31Z"
+	},
+	{
+		"Seq": 317,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:31Z",
+		"Finished": "0001-01-01T00:10:32Z"
+	},
+	{
+		"Seq": 318,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:33Z",
+		"Args": {
+			"Arg": 156
+		}
+	},
+	{
+		"Seq": 318,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:33Z",
+		"Finished": "0001-01-01T00:10:34Z",
+		"Args": {
+			"Arg": 156
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 319,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:35Z"
+	},
+	{
+		"Seq": 319,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:35Z",
+		"Finished": "0001-01-01T00:10:36Z"
+	},
+	{
+		"Seq": 320,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:37Z",
+		"Args": {
+			"Arg": 157
+		}
+	},
+	{
+		"Seq": 320,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:37Z",
+		"Finished": "0001-01-01T00:10:38Z",
+		"Args": {
+			"Arg": 157
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 321,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:39Z"
+	},
+	{
+		"Seq": 321,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:39Z",
+		"Finished": "0001-01-01T00:10:40Z"
+	},
+	{
+		"Seq": 322,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:41Z",
+		"Args": {
+			"Arg": 158
+		}
+	},
+	{
+		"Seq": 322,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:41Z",
+		"Finished": "0001-01-01T00:10:42Z",
+		"Args": {
+			"Arg": 158
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 323,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:43Z"
+	},
+	{
+		"Seq": 323,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:43Z",
+		"Finished": "0001-01-01T00:10:44Z"
+	},
+	{
+		"Seq": 324,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:45Z",
+		"Args": {
+			"Arg": 159
+		}
+	},
+	{
+		"Seq": 324,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:45Z",
+		"Finished": "0001-01-01T00:10:46Z",
+		"Args": {
+			"Arg": 159
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 325,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:47Z"
+	},
+	{
+		"Seq": 325,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:47Z",
+		"Finished": "0001-01-01T00:10:48Z"
+	},
+	{
+		"Seq": 326,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:49Z",
+		"Args": {
+			"Arg": 160
+		}
+	},
+	{
+		"Seq": 326,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:49Z",
+		"Finished": "0001-01-01T00:10:50Z",
+		"Args": {
+			"Arg": 160
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 327,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:51Z"
+	},
+	{
+		"Seq": 327,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:51Z",
+		"Finished": "0001-01-01T00:10:52Z"
+	},
+	{
+		"Seq": 328,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:53Z",
+		"Args": {
+			"Arg": 161
+		}
+	},
+	{
+		"Seq": 328,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:53Z",
+		"Finished": "0001-01-01T00:10:54Z",
+		"Args": {
+			"Arg": 161
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 329,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:55Z"
+	},
+	{
+		"Seq": 329,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:55Z",
+		"Finished": "0001-01-01T00:10:56Z"
+	},
+	{
+		"Seq": 330,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:57Z",
+		"Args": {
+			"Arg": 162
+		}
+	},
+	{
+		"Seq": 330,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:10:57Z",
+		"Finished": "0001-01-01T00:10:58Z",
+		"Args": {
+			"Arg": 162
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 331,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:59Z"
+	},
+	{
+		"Seq": 331,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:10:59Z",
+		"Finished": "0001-01-01T00:11:00Z"
+	},
+	{
+		"Seq": 332,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:01Z",
+		"Args": {
+			"Arg": 163
+		}
+	},
+	{
+		"Seq": 332,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:01Z",
+		"Finished": "0001-01-01T00:11:02Z",
+		"Args": {
+			"Arg": 163
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 333,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:03Z"
+	},
+	{
+		"Seq": 333,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:03Z",
+		"Finished": "0001-01-01T00:11:04Z"
+	},
+	{
+		"Seq": 334,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:05Z",
+		"Args": {
+			"Arg": 164
+		}
+	},
+	{
+		"Seq": 334,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:05Z",
+		"Finished": "0001-01-01T00:11:06Z",
+		"Args": {
+			"Arg": 164
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 335,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:07Z"
+	},
+	{
+		"Seq": 335,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:07Z",
+		"Finished": "0001-01-01T00:11:08Z"
+	},
+	{
+		"Seq": 336,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:09Z",
+		"Args": {
+			"Arg": 165
+		}
+	},
+	{
+		"Seq": 336,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:09Z",
+		"Finished": "0001-01-01T00:11:10Z",
+		"Args": {
+			"Arg": 165
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 337,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:11Z"
+	},
+	{
+		"Seq": 337,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:11Z",
+		"Finished": "0001-01-01T00:11:12Z"
+	},
+	{
+		"Seq": 338,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:13Z",
+		"Args": {
+			"Arg": 166
+		}
+	},
+	{
+		"Seq": 338,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:13Z",
+		"Finished": "0001-01-01T00:11:14Z",
+		"Args": {
+			"Arg": 166
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 339,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:15Z"
+	},
+	{
+		"Seq": 339,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:15Z",
+		"Finished": "0001-01-01T00:11:16Z"
+	},
+	{
+		"Seq": 340,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:17Z",
+		"Args": {
+			"Arg": 167
+		}
+	},
+	{
+		"Seq": 340,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:17Z",
+		"Finished": "0001-01-01T00:11:18Z",
+		"Args": {
+			"Arg": 167
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 341,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:19Z"
+	},
+	{
+		"Seq": 341,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:19Z",
+		"Finished": "0001-01-01T00:11:20Z"
+	},
+	{
+		"Seq": 342,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:21Z",
+		"Args": {
+			"Arg": 168
+		}
+	},
+	{
+		"Seq": 342,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:21Z",
+		"Finished": "0001-01-01T00:11:22Z",
+		"Args": {
+			"Arg": 168
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 343,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:23Z"
+	},
+	{
+		"Seq": 343,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:23Z",
+		"Finished": "0001-01-01T00:11:24Z"
+	},
+	{
+		"Seq": 344,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:25Z",
+		"Args": {
+			"Arg": 169
+		}
+	},
+	{
+		"Seq": 344,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:25Z",
+		"Finished": "0001-01-01T00:11:26Z",
+		"Args": {
+			"Arg": 169
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 345,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:27Z"
+	},
+	{
+		"Seq": 345,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:27Z",
+		"Finished": "0001-01-01T00:11:28Z"
+	},
+	{
+		"Seq": 346,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:29Z",
+		"Args": {
+			"Arg": 170
+		}
+	},
+	{
+		"Seq": 346,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:29Z",
+		"Finished": "0001-01-01T00:11:30Z",
+		"Args": {
+			"Arg": 170
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 347,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:31Z"
+	},
+	{
+		"Seq": 347,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:31Z",
+		"Finished": "0001-01-01T00:11:32Z"
+	},
+	{
+		"Seq": 348,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:33Z",
+		"Args": {
+			"Arg": 171
+		}
+	},
+	{
+		"Seq": 348,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:33Z",
+		"Finished": "0001-01-01T00:11:34Z",
+		"Args": {
+			"Arg": 171
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 349,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:35Z"
+	},
+	{
+		"Seq": 349,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:35Z",
+		"Finished": "0001-01-01T00:11:36Z"
+	},
+	{
+		"Seq": 350,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:37Z",
+		"Args": {
+			"Arg": 172
+		}
+	},
+	{
+		"Seq": 350,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:37Z",
+		"Finished": "0001-01-01T00:11:38Z",
+		"Args": {
+			"Arg": 172
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 351,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:39Z"
+	},
+	{
+		"Seq": 351,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:39Z",
+		"Finished": "0001-01-01T00:11:40Z"
+	},
+	{
+		"Seq": 352,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:41Z",
+		"Args": {
+			"Arg": 173
+		}
+	},
+	{
+		"Seq": 352,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:41Z",
+		"Finished": "0001-01-01T00:11:42Z",
+		"Args": {
+			"Arg": 173
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 353,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:43Z"
+	},
+	{
+		"Seq": 353,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:43Z",
+		"Finished": "0001-01-01T00:11:44Z"
+	},
+	{
+		"Seq": 354,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:45Z",
+		"Args": {
+			"Arg": 174
+		}
+	},
+	{
+		"Seq": 354,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:45Z",
+		"Finished": "0001-01-01T00:11:46Z",
+		"Args": {
+			"Arg": 174
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 355,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:47Z"
+	},
+	{
+		"Seq": 355,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:47Z",
+		"Finished": "0001-01-01T00:11:48Z"
+	},
+	{
+		"Seq": 356,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:49Z",
+		"Args": {
+			"Arg": 175
+		}
+	},
+	{
+		"Seq": 356,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:49Z",
+		"Finished": "0001-01-01T00:11:50Z",
+		"Args": {
+			"Arg": 175
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 357,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:51Z"
+	},
+	{
+		"Seq": 357,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:51Z",
+		"Finished": "0001-01-01T00:11:52Z"
+	},
+	{
+		"Seq": 358,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:53Z",
+		"Args": {
+			"Arg": 176
+		}
+	},
+	{
+		"Seq": 358,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:53Z",
+		"Finished": "0001-01-01T00:11:54Z",
+		"Args": {
+			"Arg": 176
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 359,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:55Z"
+	},
+	{
+		"Seq": 359,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:55Z",
+		"Finished": "0001-01-01T00:11:56Z"
+	},
+	{
+		"Seq": 360,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:57Z",
+		"Args": {
+			"Arg": 177
+		}
+	},
+	{
+		"Seq": 360,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:11:57Z",
+		"Finished": "0001-01-01T00:11:58Z",
+		"Args": {
+			"Arg": 177
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 361,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:59Z"
+	},
+	{
+		"Seq": 361,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:11:59Z",
+		"Finished": "0001-01-01T00:12:00Z"
+	},
+	{
+		"Seq": 362,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:01Z",
+		"Args": {
+			"Arg": 178
+		}
+	},
+	{
+		"Seq": 362,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:01Z",
+		"Finished": "0001-01-01T00:12:02Z",
+		"Args": {
+			"Arg": 178
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 363,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:03Z"
+	},
+	{
+		"Seq": 363,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:03Z",
+		"Finished": "0001-01-01T00:12:04Z"
+	},
+	{
+		"Seq": 364,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:05Z",
+		"Args": {
+			"Arg": 179
+		}
+	},
+	{
+		"Seq": 364,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:05Z",
+		"Finished": "0001-01-01T00:12:06Z",
+		"Args": {
+			"Arg": 179
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 365,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:07Z"
+	},
+	{
+		"Seq": 365,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:07Z",
+		"Finished": "0001-01-01T00:12:08Z"
+	},
+	{
+		"Seq": 366,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:09Z",
+		"Args": {
+			"Arg": 180
+		}
+	},
+	{
+		"Seq": 366,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:09Z",
+		"Finished": "0001-01-01T00:12:10Z",
+		"Args": {
+			"Arg": 180
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 367,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:11Z"
+	},
+	{
+		"Seq": 367,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:11Z",
+		"Finished": "0001-01-01T00:12:12Z"
+	},
+	{
+		"Seq": 368,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:13Z",
+		"Args": {
+			"Arg": 181
+		}
+	},
+	{
+		"Seq": 368,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:13Z",
+		"Finished": "0001-01-01T00:12:14Z",
+		"Args": {
+			"Arg": 181
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 369,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:15Z"
+	},
+	{
+		"Seq": 369,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:15Z",
+		"Finished": "0001-01-01T00:12:16Z"
+	},
+	{
+		"Seq": 370,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:17Z",
+		"Args": {
+			"Arg": 182
+		}
+	},
+	{
+		"Seq": 370,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:17Z",
+		"Finished": "0001-01-01T00:12:18Z",
+		"Args": {
+			"Arg": 182
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 371,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:19Z"
+	},
+	{
+		"Seq": 371,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:19Z",
+		"Finished": "0001-01-01T00:12:20Z"
+	},
+	{
+		"Seq": 372,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:21Z",
+		"Args": {
+			"Arg": 183
+		}
+	},
+	{
+		"Seq": 372,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:21Z",
+		"Finished": "0001-01-01T00:12:22Z",
+		"Args": {
+			"Arg": 183
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 373,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:23Z"
+	},
+	{
+		"Seq": 373,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:23Z",
+		"Finished": "0001-01-01T00:12:24Z"
+	},
+	{
+		"Seq": 374,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:25Z",
+		"Args": {
+			"Arg": 184
+		}
+	},
+	{
+		"Seq": 374,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:25Z",
+		"Finished": "0001-01-01T00:12:26Z",
+		"Args": {
+			"Arg": 184
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 375,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:27Z"
+	},
+	{
+		"Seq": 375,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:27Z",
+		"Finished": "0001-01-01T00:12:28Z"
+	},
+	{
+		"Seq": 376,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:29Z",
+		"Args": {
+			"Arg": 185
+		}
+	},
+	{
+		"Seq": 376,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:29Z",
+		"Finished": "0001-01-01T00:12:30Z",
+		"Args": {
+			"Arg": 185
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 377,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:31Z"
+	},
+	{
+		"Seq": 377,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:31Z",
+		"Finished": "0001-01-01T00:12:32Z"
+	},
+	{
+		"Seq": 378,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:33Z",
+		"Args": {
+			"Arg": 186
+		}
+	},
+	{
+		"Seq": 378,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:33Z",
+		"Finished": "0001-01-01T00:12:34Z",
+		"Args": {
+			"Arg": 186
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 379,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:35Z"
+	},
+	{
+		"Seq": 379,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:35Z",
+		"Finished": "0001-01-01T00:12:36Z"
+	},
+	{
+		"Seq": 380,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:37Z",
+		"Args": {
+			"Arg": 187
+		}
+	},
+	{
+		"Seq": 380,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:37Z",
+		"Finished": "0001-01-01T00:12:38Z",
+		"Args": {
+			"Arg": 187
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 381,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:39Z"
+	},
+	{
+		"Seq": 381,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:39Z",
+		"Finished": "0001-01-01T00:12:40Z"
+	},
+	{
+		"Seq": 382,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:41Z",
+		"Args": {
+			"Arg": 188
+		}
+	},
+	{
+		"Seq": 382,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:41Z",
+		"Finished": "0001-01-01T00:12:42Z",
+		"Args": {
+			"Arg": 188
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 383,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:43Z"
+	},
+	{
+		"Seq": 383,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:43Z",
+		"Finished": "0001-01-01T00:12:44Z"
+	},
+	{
+		"Seq": 384,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:45Z",
+		"Args": {
+			"Arg": 189
+		}
+	},
+	{
+		"Seq": 384,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:45Z",
+		"Finished": "0001-01-01T00:12:46Z",
+		"Args": {
+			"Arg": 189
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 385,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:47Z"
+	},
+	{
+		"Seq": 385,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:47Z",
+		"Finished": "0001-01-01T00:12:48Z"
+	},
+	{
+		"Seq": 386,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:49Z",
+		"Args": {
+			"Arg": 190
+		}
+	},
+	{
+		"Seq": 386,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:49Z",
+		"Finished": "0001-01-01T00:12:50Z",
+		"Args": {
+			"Arg": 190
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 387,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:51Z"
+	},
+	{
+		"Seq": 387,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:51Z",
+		"Finished": "0001-01-01T00:12:52Z"
+	},
+	{
+		"Seq": 388,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:53Z",
+		"Args": {
+			"Arg": 191
+		}
+	},
+	{
+		"Seq": 388,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:53Z",
+		"Finished": "0001-01-01T00:12:54Z",
+		"Args": {
+			"Arg": 191
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 389,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:55Z"
+	},
+	{
+		"Seq": 389,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:55Z",
+		"Finished": "0001-01-01T00:12:56Z"
+	},
+	{
+		"Seq": 390,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:57Z",
+		"Args": {
+			"Arg": 192
+		}
+	},
+	{
+		"Seq": 390,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:12:57Z",
+		"Finished": "0001-01-01T00:12:58Z",
+		"Args": {
+			"Arg": 192
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 391,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:59Z"
+	},
+	{
+		"Seq": 391,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:12:59Z",
+		"Finished": "0001-01-01T00:13:00Z"
+	},
+	{
+		"Seq": 392,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:01Z",
+		"Args": {
+			"Arg": 193
+		}
+	},
+	{
+		"Seq": 392,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:01Z",
+		"Finished": "0001-01-01T00:13:02Z",
+		"Args": {
+			"Arg": 193
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 393,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:03Z"
+	},
+	{
+		"Seq": 393,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:03Z",
+		"Finished": "0001-01-01T00:13:04Z"
+	},
+	{
+		"Seq": 394,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:05Z",
+		"Args": {
+			"Arg": 194
+		}
+	},
+	{
+		"Seq": 394,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:05Z",
+		"Finished": "0001-01-01T00:13:06Z",
+		"Args": {
+			"Arg": 194
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 395,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:07Z"
+	},
+	{
+		"Seq": 395,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:07Z",
+		"Finished": "0001-01-01T00:13:08Z"
+	},
+	{
+		"Seq": 396,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:09Z",
+		"Args": {
+			"Arg": 195
+		}
+	},
+	{
+		"Seq": 396,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:09Z",
+		"Finished": "0001-01-01T00:13:10Z",
+		"Args": {
+			"Arg": 195
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 397,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:11Z"
+	},
+	{
+		"Seq": 397,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:11Z",
+		"Finished": "0001-01-01T00:13:12Z"
+	},
+	{
+		"Seq": 398,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:13Z",
+		"Args": {
+			"Arg": 196
+		}
+	},
+	{
+		"Seq": 398,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:13Z",
+		"Finished": "0001-01-01T00:13:14Z",
+		"Args": {
+			"Arg": 196
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 399,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:15Z"
+	},
+	{
+		"Seq": 399,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:15Z",
+		"Finished": "0001-01-01T00:13:16Z"
+	},
+	{
+		"Seq": 400,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:17Z",
+		"Args": {
+			"Arg": 197
+		}
+	},
+	{
+		"Seq": 400,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:17Z",
+		"Finished": "0001-01-01T00:13:18Z",
+		"Args": {
+			"Arg": 197
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 401,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:19Z"
+	},
+	{
+		"Seq": 401,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:19Z",
+		"Finished": "0001-01-01T00:13:20Z"
+	},
+	{
+		"Seq": 402,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:21Z",
+		"Args": {
+			"Arg": 198
+		}
+	},
+	{
+		"Seq": 402,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:21Z",
+		"Finished": "0001-01-01T00:13:22Z",
+		"Args": {
+			"Arg": 198
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 403,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:23Z"
+	},
+	{
+		"Seq": 403,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:23Z",
+		"Finished": "0001-01-01T00:13:24Z"
+	},
+	{
+		"Seq": 404,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:25Z",
+		"Args": {
+			"Arg": 199
+		}
+	},
+	{
+		"Seq": 404,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:25Z",
+		"Finished": "0001-01-01T00:13:26Z",
+		"Args": {
+			"Arg": 199
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 405,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:27Z"
+	},
+	{
+		"Seq": 405,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:27Z",
+		"Finished": "0001-01-01T00:13:28Z"
+	},
+	{
+		"Seq": 406,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:29Z",
+		"Args": {
+			"Arg": 200
+		}
+	},
+	{
+		"Seq": 406,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:29Z",
+		"Finished": "0001-01-01T00:13:30Z",
+		"Args": {
+			"Arg": 200
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 407,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:31Z"
+	},
+	{
+		"Seq": 407,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:31Z",
+		"Finished": "0001-01-01T00:13:32Z"
+	},
+	{
+		"Seq": 408,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:33Z",
+		"Args": {
+			"Arg": 201
+		}
+	},
+	{
+		"Seq": 408,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:33Z",
+		"Finished": "0001-01-01T00:13:34Z",
+		"Args": {
+			"Arg": 201
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 409,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:35Z"
+	},
+	{
+		"Seq": 409,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:35Z",
+		"Finished": "0001-01-01T00:13:36Z"
+	},
+	{
+		"Seq": 410,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:37Z",
+		"Args": {
+			"Arg": 202
+		}
+	},
+	{
+		"Seq": 410,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:37Z",
+		"Finished": "0001-01-01T00:13:38Z",
+		"Args": {
+			"Arg": 202
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 411,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:39Z"
+	},
+	{
+		"Seq": 411,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:39Z",
+		"Finished": "0001-01-01T00:13:40Z"
+	},
+	{
+		"Seq": 412,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:41Z",
+		"Args": {
+			"Arg": 203
+		}
+	},
+	{
+		"Seq": 412,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:41Z",
+		"Finished": "0001-01-01T00:13:42Z",
+		"Args": {
+			"Arg": 203
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 413,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:43Z"
+	},
+	{
+		"Seq": 413,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:43Z",
+		"Finished": "0001-01-01T00:13:44Z"
+	},
+	{
+		"Seq": 414,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:45Z",
+		"Args": {
+			"Arg": 204
+		}
+	},
+	{
+		"Seq": 414,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:45Z",
+		"Finished": "0001-01-01T00:13:46Z",
+		"Args": {
+			"Arg": 204
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 415,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:47Z"
+	},
+	{
+		"Seq": 415,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:47Z",
+		"Finished": "0001-01-01T00:13:48Z"
+	},
+	{
+		"Seq": 416,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:49Z",
+		"Args": {
+			"Arg": 205
+		}
+	},
+	{
+		"Seq": 416,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:49Z",
+		"Finished": "0001-01-01T00:13:50Z",
+		"Args": {
+			"Arg": 205
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 417,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:51Z"
+	},
+	{
+		"Seq": 417,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:51Z",
+		"Finished": "0001-01-01T00:13:52Z"
+	},
+	{
+		"Seq": 418,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:53Z",
+		"Args": {
+			"Arg": 206
+		}
+	},
+	{
+		"Seq": 418,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:53Z",
+		"Finished": "0001-01-01T00:13:54Z",
+		"Args": {
+			"Arg": 206
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 419,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:55Z"
+	},
+	{
+		"Seq": 419,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:55Z",
+		"Finished": "0001-01-01T00:13:56Z"
+	},
+	{
+		"Seq": 420,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:57Z",
+		"Args": {
+			"Arg": 207
+		}
+	},
+	{
+		"Seq": 420,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:13:57Z",
+		"Finished": "0001-01-01T00:13:58Z",
+		"Args": {
+			"Arg": 207
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 421,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:59Z"
+	},
+	{
+		"Seq": 421,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:13:59Z",
+		"Finished": "0001-01-01T00:14:00Z"
+	},
+	{
+		"Seq": 422,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:01Z",
+		"Args": {
+			"Arg": 208
+		}
+	},
+	{
+		"Seq": 422,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:01Z",
+		"Finished": "0001-01-01T00:14:02Z",
+		"Args": {
+			"Arg": 208
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 423,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:03Z"
+	},
+	{
+		"Seq": 423,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:03Z",
+		"Finished": "0001-01-01T00:14:04Z"
+	},
+	{
+		"Seq": 424,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:05Z",
+		"Args": {
+			"Arg": 209
+		}
+	},
+	{
+		"Seq": 424,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:05Z",
+		"Finished": "0001-01-01T00:14:06Z",
+		"Args": {
+			"Arg": 209
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 425,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:07Z"
+	},
+	{
+		"Seq": 425,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:07Z",
+		"Finished": "0001-01-01T00:14:08Z"
+	},
+	{
+		"Seq": 426,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:09Z",
+		"Args": {
+			"Arg": 210
+		}
+	},
+	{
+		"Seq": 426,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:09Z",
+		"Finished": "0001-01-01T00:14:10Z",
+		"Args": {
+			"Arg": 210
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 427,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:11Z"
+	},
+	{
+		"Seq": 427,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:11Z",
+		"Finished": "0001-01-01T00:14:12Z"
+	},
+	{
+		"Seq": 428,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:13Z",
+		"Args": {
+			"Arg": 211
+		}
+	},
+	{
+		"Seq": 428,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:13Z",
+		"Finished": "0001-01-01T00:14:14Z",
+		"Args": {
+			"Arg": 211
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 429,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:15Z"
+	},
+	{
+		"Seq": 429,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:15Z",
+		"Finished": "0001-01-01T00:14:16Z"
+	},
+	{
+		"Seq": 430,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:17Z",
+		"Args": {
+			"Arg": 212
+		}
+	},
+	{
+		"Seq": 430,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:17Z",
+		"Finished": "0001-01-01T00:14:18Z",
+		"Args": {
+			"Arg": 212
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 431,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:19Z"
+	},
+	{
+		"Seq": 431,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:19Z",
+		"Finished": "0001-01-01T00:14:20Z"
+	},
+	{
+		"Seq": 432,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:21Z",
+		"Args": {
+			"Arg": 213
+		}
+	},
+	{
+		"Seq": 432,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:21Z",
+		"Finished": "0001-01-01T00:14:22Z",
+		"Args": {
+			"Arg": 213
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 433,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:23Z"
+	},
+	{
+		"Seq": 433,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:23Z",
+		"Finished": "0001-01-01T00:14:24Z"
+	},
+	{
+		"Seq": 434,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:25Z",
+		"Args": {
+			"Arg": 214
+		}
+	},
+	{
+		"Seq": 434,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:25Z",
+		"Finished": "0001-01-01T00:14:26Z",
+		"Args": {
+			"Arg": 214
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 435,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:27Z"
+	},
+	{
+		"Seq": 435,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:27Z",
+		"Finished": "0001-01-01T00:14:28Z"
+	},
+	{
+		"Seq": 436,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:29Z",
+		"Args": {
+			"Arg": 215
+		}
+	},
+	{
+		"Seq": 436,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:29Z",
+		"Finished": "0001-01-01T00:14:30Z",
+		"Args": {
+			"Arg": 215
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 437,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:31Z"
+	},
+	{
+		"Seq": 437,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:31Z",
+		"Finished": "0001-01-01T00:14:32Z"
+	},
+	{
+		"Seq": 438,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:33Z",
+		"Args": {
+			"Arg": 216
+		}
+	},
+	{
+		"Seq": 438,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:33Z",
+		"Finished": "0001-01-01T00:14:34Z",
+		"Args": {
+			"Arg": 216
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 439,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:35Z"
+	},
+	{
+		"Seq": 439,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:35Z",
+		"Finished": "0001-01-01T00:14:36Z"
+	},
+	{
+		"Seq": 440,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:37Z",
+		"Args": {
+			"Arg": 217
+		}
+	},
+	{
+		"Seq": 440,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:37Z",
+		"Finished": "0001-01-01T00:14:38Z",
+		"Args": {
+			"Arg": 217
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 441,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:39Z"
+	},
+	{
+		"Seq": 441,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:39Z",
+		"Finished": "0001-01-01T00:14:40Z"
+	},
+	{
+		"Seq": 442,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:41Z",
+		"Args": {
+			"Arg": 218
+		}
+	},
+	{
+		"Seq": 442,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:41Z",
+		"Finished": "0001-01-01T00:14:42Z",
+		"Args": {
+			"Arg": 218
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 443,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:43Z"
+	},
+	{
+		"Seq": 443,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:43Z",
+		"Finished": "0001-01-01T00:14:44Z"
+	},
+	{
+		"Seq": 444,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:45Z",
+		"Args": {
+			"Arg": 219
+		}
+	},
+	{
+		"Seq": 444,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:45Z",
+		"Finished": "0001-01-01T00:14:46Z",
+		"Args": {
+			"Arg": 219
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 445,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:47Z"
+	},
+	{
+		"Seq": 445,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:47Z",
+		"Finished": "0001-01-01T00:14:48Z"
+	},
+	{
+		"Seq": 446,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:49Z",
+		"Args": {
+			"Arg": 220
+		}
+	},
+	{
+		"Seq": 446,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:49Z",
+		"Finished": "0001-01-01T00:14:50Z",
+		"Args": {
+			"Arg": 220
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 447,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:51Z"
+	},
+	{
+		"Seq": 447,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:51Z",
+		"Finished": "0001-01-01T00:14:52Z"
+	},
+	{
+		"Seq": 448,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:53Z",
+		"Args": {
+			"Arg": 221
+		}
+	},
+	{
+		"Seq": 448,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:53Z",
+		"Finished": "0001-01-01T00:14:54Z",
+		"Args": {
+			"Arg": 221
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 449,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:55Z"
+	},
+	{
+		"Seq": 449,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:55Z",
+		"Finished": "0001-01-01T00:14:56Z"
+	},
+	{
+		"Seq": 450,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:57Z",
+		"Args": {
+			"Arg": 222
+		}
+	},
+	{
+		"Seq": 450,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:14:57Z",
+		"Finished": "0001-01-01T00:14:58Z",
+		"Args": {
+			"Arg": 222
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 451,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:59Z"
+	},
+	{
+		"Seq": 451,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:14:59Z",
+		"Finished": "0001-01-01T00:15:00Z"
+	},
+	{
+		"Seq": 452,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:01Z",
+		"Args": {
+			"Arg": 223
+		}
+	},
+	{
+		"Seq": 452,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:01Z",
+		"Finished": "0001-01-01T00:15:02Z",
+		"Args": {
+			"Arg": 223
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 453,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:03Z"
+	},
+	{
+		"Seq": 453,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:03Z",
+		"Finished": "0001-01-01T00:15:04Z"
+	},
+	{
+		"Seq": 454,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:05Z",
+		"Args": {
+			"Arg": 224
+		}
+	},
+	{
+		"Seq": 454,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:05Z",
+		"Finished": "0001-01-01T00:15:06Z",
+		"Args": {
+			"Arg": 224
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 455,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:07Z"
+	},
+	{
+		"Seq": 455,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:07Z",
+		"Finished": "0001-01-01T00:15:08Z"
+	},
+	{
+		"Seq": 456,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:09Z",
+		"Args": {
+			"Arg": 225
+		}
+	},
+	{
+		"Seq": 456,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:09Z",
+		"Finished": "0001-01-01T00:15:10Z",
+		"Args": {
+			"Arg": 225
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 457,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:11Z"
+	},
+	{
+		"Seq": 457,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:11Z",
+		"Finished": "0001-01-01T00:15:12Z"
+	},
+	{
+		"Seq": 458,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:13Z",
+		"Args": {
+			"Arg": 226
+		}
+	},
+	{
+		"Seq": 458,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:13Z",
+		"Finished": "0001-01-01T00:15:14Z",
+		"Args": {
+			"Arg": 226
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 459,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:15Z"
+	},
+	{
+		"Seq": 459,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:15Z",
+		"Finished": "0001-01-01T00:15:16Z"
+	},
+	{
+		"Seq": 460,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:17Z",
+		"Args": {
+			"Arg": 227
+		}
+	},
+	{
+		"Seq": 460,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:17Z",
+		"Finished": "0001-01-01T00:15:18Z",
+		"Args": {
+			"Arg": 227
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 461,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:19Z"
+	},
+	{
+		"Seq": 461,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:19Z",
+		"Finished": "0001-01-01T00:15:20Z"
+	},
+	{
+		"Seq": 462,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:21Z",
+		"Args": {
+			"Arg": 228
+		}
+	},
+	{
+		"Seq": 462,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:21Z",
+		"Finished": "0001-01-01T00:15:22Z",
+		"Args": {
+			"Arg": 228
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 463,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:23Z"
+	},
+	{
+		"Seq": 463,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:23Z",
+		"Finished": "0001-01-01T00:15:24Z"
+	},
+	{
+		"Seq": 464,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:25Z",
+		"Args": {
+			"Arg": 229
+		}
+	},
+	{
+		"Seq": 464,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:25Z",
+		"Finished": "0001-01-01T00:15:26Z",
+		"Args": {
+			"Arg": 229
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 465,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:27Z"
+	},
+	{
+		"Seq": 465,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:27Z",
+		"Finished": "0001-01-01T00:15:28Z"
+	},
+	{
+		"Seq": 466,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:29Z",
+		"Args": {
+			"Arg": 230
+		}
+	},
+	{
+		"Seq": 466,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:29Z",
+		"Finished": "0001-01-01T00:15:30Z",
+		"Args": {
+			"Arg": 230
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 467,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:31Z"
+	},
+	{
+		"Seq": 467,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:31Z",
+		"Finished": "0001-01-01T00:15:32Z"
+	},
+	{
+		"Seq": 468,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:33Z",
+		"Args": {
+			"Arg": 231
+		}
+	},
+	{
+		"Seq": 468,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:33Z",
+		"Finished": "0001-01-01T00:15:34Z",
+		"Args": {
+			"Arg": 231
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 469,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:35Z"
+	},
+	{
+		"Seq": 469,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:35Z",
+		"Finished": "0001-01-01T00:15:36Z"
+	},
+	{
+		"Seq": 470,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:37Z",
+		"Args": {
+			"Arg": 232
+		}
+	},
+	{
+		"Seq": 470,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:37Z",
+		"Finished": "0001-01-01T00:15:38Z",
+		"Args": {
+			"Arg": 232
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 471,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:39Z"
+	},
+	{
+		"Seq": 471,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:39Z",
+		"Finished": "0001-01-01T00:15:40Z"
+	},
+	{
+		"Seq": 472,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:41Z",
+		"Args": {
+			"Arg": 233
+		}
+	},
+	{
+		"Seq": 472,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:41Z",
+		"Finished": "0001-01-01T00:15:42Z",
+		"Args": {
+			"Arg": 233
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 473,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:43Z"
+	},
+	{
+		"Seq": 473,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:43Z",
+		"Finished": "0001-01-01T00:15:44Z"
+	},
+	{
+		"Seq": 474,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:45Z",
+		"Args": {
+			"Arg": 234
+		}
+	},
+	{
+		"Seq": 474,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:45Z",
+		"Finished": "0001-01-01T00:15:46Z",
+		"Args": {
+			"Arg": 234
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 475,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:47Z"
+	},
+	{
+		"Seq": 475,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:47Z",
+		"Finished": "0001-01-01T00:15:48Z"
+	},
+	{
+		"Seq": 476,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:49Z",
+		"Args": {
+			"Arg": 235
+		}
+	},
+	{
+		"Seq": 476,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:49Z",
+		"Finished": "0001-01-01T00:15:50Z",
+		"Args": {
+			"Arg": 235
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 477,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:51Z"
+	},
+	{
+		"Seq": 477,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:51Z",
+		"Finished": "0001-01-01T00:15:52Z"
+	},
+	{
+		"Seq": 478,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:53Z",
+		"Args": {
+			"Arg": 236
+		}
+	},
+	{
+		"Seq": 478,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:53Z",
+		"Finished": "0001-01-01T00:15:54Z",
+		"Args": {
+			"Arg": 236
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 479,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:55Z"
+	},
+	{
+		"Seq": 479,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:55Z",
+		"Finished": "0001-01-01T00:15:56Z"
+	},
+	{
+		"Seq": 480,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:57Z",
+		"Args": {
+			"Arg": 237
+		}
+	},
+	{
+		"Seq": 480,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:15:57Z",
+		"Finished": "0001-01-01T00:15:58Z",
+		"Args": {
+			"Arg": 237
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 481,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:59Z"
+	},
+	{
+		"Seq": 481,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:15:59Z",
+		"Finished": "0001-01-01T00:16:00Z"
+	},
+	{
+		"Seq": 482,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:01Z",
+		"Args": {
+			"Arg": 238
+		}
+	},
+	{
+		"Seq": 482,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:01Z",
+		"Finished": "0001-01-01T00:16:02Z",
+		"Args": {
+			"Arg": 238
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 483,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:03Z"
+	},
+	{
+		"Seq": 483,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:03Z",
+		"Finished": "0001-01-01T00:16:04Z"
+	},
+	{
+		"Seq": 484,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:05Z",
+		"Args": {
+			"Arg": 239
+		}
+	},
+	{
+		"Seq": 484,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:05Z",
+		"Finished": "0001-01-01T00:16:06Z",
+		"Args": {
+			"Arg": 239
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 485,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:07Z"
+	},
+	{
+		"Seq": 485,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:07Z",
+		"Finished": "0001-01-01T00:16:08Z"
+	},
+	{
+		"Seq": 486,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:09Z",
+		"Args": {
+			"Arg": 240
+		}
+	},
+	{
+		"Seq": 486,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:09Z",
+		"Finished": "0001-01-01T00:16:10Z",
+		"Args": {
+			"Arg": 240
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 487,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:11Z"
+	},
+	{
+		"Seq": 487,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:11Z",
+		"Finished": "0001-01-01T00:16:12Z"
+	},
+	{
+		"Seq": 488,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:13Z",
+		"Args": {
+			"Arg": 241
+		}
+	},
+	{
+		"Seq": 488,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:13Z",
+		"Finished": "0001-01-01T00:16:14Z",
+		"Args": {
+			"Arg": 241
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 489,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:15Z"
+	},
+	{
+		"Seq": 489,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:15Z",
+		"Finished": "0001-01-01T00:16:16Z"
+	},
+	{
+		"Seq": 490,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:17Z",
+		"Args": {
+			"Arg": 242
+		}
+	},
+	{
+		"Seq": 490,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:17Z",
+		"Finished": "0001-01-01T00:16:18Z",
+		"Args": {
+			"Arg": 242
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 491,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:19Z"
+	},
+	{
+		"Seq": 491,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:19Z",
+		"Finished": "0001-01-01T00:16:20Z"
+	},
+	{
+		"Seq": 492,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:21Z",
+		"Args": {
+			"Arg": 243
+		}
+	},
+	{
+		"Seq": 492,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:21Z",
+		"Finished": "0001-01-01T00:16:22Z",
+		"Args": {
+			"Arg": 243
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 493,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:23Z"
+	},
+	{
+		"Seq": 493,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:23Z",
+		"Finished": "0001-01-01T00:16:24Z"
+	},
+	{
+		"Seq": 494,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:25Z",
+		"Args": {
+			"Arg": 244
+		}
+	},
+	{
+		"Seq": 494,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:25Z",
+		"Finished": "0001-01-01T00:16:26Z",
+		"Args": {
+			"Arg": 244
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 495,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:27Z"
+	},
+	{
+		"Seq": 495,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:27Z",
+		"Finished": "0001-01-01T00:16:28Z"
+	},
+	{
+		"Seq": 496,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:29Z",
+		"Args": {
+			"Arg": 245
+		}
+	},
+	{
+		"Seq": 496,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:29Z",
+		"Finished": "0001-01-01T00:16:30Z",
+		"Args": {
+			"Arg": 245
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 497,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:31Z"
+	},
+	{
+		"Seq": 497,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:31Z",
+		"Finished": "0001-01-01T00:16:32Z"
+	},
+	{
+		"Seq": 498,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:33Z",
+		"Args": {
+			"Arg": 246
+		}
+	},
+	{
+		"Seq": 498,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:33Z",
+		"Finished": "0001-01-01T00:16:34Z",
+		"Args": {
+			"Arg": 246
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 499,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:35Z"
+	},
+	{
+		"Seq": 499,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:35Z",
+		"Finished": "0001-01-01T00:16:36Z"
+	},
+	{
+		"Seq": 500,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:37Z",
+		"Args": {
+			"Arg": 247
+		}
+	},
+	{
+		"Seq": 500,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:37Z",
+		"Finished": "0001-01-01T00:16:38Z",
+		"Args": {
+			"Arg": 247
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 501,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:39Z"
+	},
+	{
+		"Seq": 501,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:39Z",
+		"Finished": "0001-01-01T00:16:40Z"
+	},
+	{
+		"Seq": 502,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:41Z",
+		"Args": {
+			"Arg": 248
+		}
+	},
+	{
+		"Seq": 502,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:41Z",
+		"Finished": "0001-01-01T00:16:42Z",
+		"Args": {
+			"Arg": 248
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 503,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:43Z"
+	},
+	{
+		"Seq": 503,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:43Z",
+		"Finished": "0001-01-01T00:16:44Z"
+	},
+	{
+		"Seq": 504,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:45Z",
+		"Args": {
+			"Arg": 249
+		}
+	},
+	{
+		"Seq": 504,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:16:45Z",
+		"Finished": "0001-01-01T00:16:46Z",
+		"Args": {
+			"Arg": 249
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 505,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:47Z"
+	},
+	{
+		"Seq": 505,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:16:47Z",
+		"Finished": "0001-01-01T00:16:48Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Finished": "0001-01-01T00:16:49Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "What do you think?",
+		"Reply": "Nothing."
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:16:50Z",
+		"Args": {
+			"Question": "What do you think?"
+		},
+		"Results": {
+			"Answer": "Nothing."
+		}
+	},
+	{
+		"Seq": 506,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:16:51Z"
+	},
+	{
+		"Seq": 506,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:16:51Z",
+		"Finished": "0001-01-01T00:16:52Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:16:53Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt",
+		"Reply": "YES"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:16:54Z",
+		"Results": {
+			"Reply": "YES"
+		}
+	}
+]
