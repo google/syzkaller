@@ -1323,8 +1323,7 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
 	finished := timeNow(ctx)
-	errStr := req.Error[:min(len(req.Error), 4<<10)]
-	job, err = aidb.SetJobDone(ctx, req.ID, finished, errStr, req.Results)
+	job, err = aidb.SetJobDone(ctx, req.ID, finished, req.Error, req.Results)
 	if err != nil {
 		return nil, err
 	}

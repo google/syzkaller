@@ -313,6 +313,44 @@ func TestAIJobNotFound(t *testing.T) {
 	expectFailureStatus(t, err, http.StatusNotFound)
 }
 
+func TestAIJobLongError(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "KCSAN: data-race in foo / bar"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	resp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-long-error",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	longError := "build failed\n" + strings.Repeat("kernel config prompt failed\n", 300)
+	require.Greater(t, len(longError), 4<<10)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    resp.ID,
+		Error: longError,
+	}))
+
+	job, err := aidb.LoadJob(c.ctx, resp.ID)
+	require.NoError(t, err)
+	require.Equal(t, longError, job.Error)
+
+	page, err := c.GET(fmt.Sprintf("/ai_job?id=%v", resp.ID))
+	require.NoError(t, err)
+	require.Contains(t, string(page), "Show error")
+	require.Contains(t, string(page), "kernel config prompt failed")
+}
+
 func TestAIJobActions(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
