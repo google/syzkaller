@@ -190,6 +190,32 @@ func TestConvertFromMap(t *testing.T) {
 		`item 0 in field "Arr": missing argument "B"`,
 		`item 0 in field "Arr": struct { A int; B string }: field "B" is not present when converting map`)
 
+	testConvertFromMap(t, true, map[string]any{
+		"Nested": "not a map",
+	}, struct {
+		Nested struct {
+			A int
+		}
+	}{},
+		`field "Nested" must be a map, got string`,
+		`field "Nested" must be a map, got string`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"Strs": "not a slice",
+	}, struct {
+		Strs []string
+	}{},
+		`field "Strs" must be a slice, got string`,
+		`field "Strs" must be a slice, got string`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"Strs": []any{1, 2},
+	}, struct {
+		Strs []string
+	}{},
+		`item 0 in field "Strs": argument "Strs[0]" has wrong type: got int, want string`,
+		`item 0 in field "Strs": struct { Strs []string }: field "Strs[0]" has wrong type: got int, want string`)
+
 	t1, _ := time.Parse(time.RFC3339, "2026-04-16T14:26:33Z")
 	testConvertFromMap(t, true, map[string]any{
 		"T": "2026-04-16T14:26:33Z",
