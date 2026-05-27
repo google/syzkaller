@@ -468,12 +468,17 @@ These are provided for your information and will be preserved in the history
 anyway, so DO NOT duplicate their contents in your summary.
 
 Write a comprehensive and substantial summary of the current state of the workspace
-and the investigation based on the SUBSEQUENT messages. Do NOT write a very short summary.
+and the investigation based on the SUBSEQUENT messages with all relevant details required
+to continue work. Do NOT write a short summary.
 Include:
 1. A detailed list of what approaches have been tried so far and their results (including dead-ends).
 2. The current hypotheses, theories, or active lines of investigation.
-3. Any specific file paths, code snippets, or configuration values that are critical to remember.
+3. Any specific file paths, complete code snippets of relevant functions/structs/etc,
+   or configuration values that are critical to remember.
 4. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.
+
+Write plain text in non-verbose manner: drop articles, filler words, pleasantries, hedging, etc;
+sentence fragments are OK; keep technical terms/errors exact; keep code blocks unchanged.
 
 You MUST provide the summary in your final response text. Do not use tools.
 `
