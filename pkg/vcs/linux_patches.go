@@ -21,24 +21,26 @@ type BackportCommit struct {
 
 // linuxFixBackports() cherry-picks the commits necessary to compile/run older Linux kernel releases.
 func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
-	return BackportCommits(repo,
+	_, err := BackportCommits(repo,
 		append(
 			slices.Clone(pickLinuxCommits),
 			extraCommits...,
 		),
 		defaultLinuxRepo,
 	)
+	return err
 }
 
 // BackportCommits conditionally cherry-picks the given commits into the repository.
 // A commit is only cherry-picked if its GuiltyHash is present (if specified)
 // and a commit with the same original title is not already present.
-func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) error {
+func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) (bool, error) {
+	applied := false
 	for _, info := range commits {
 		if info.GuiltyHash != "" {
 			contains, err := repo.Contains(info.GuiltyHash)
 			if err != nil {
-				return fmt.Errorf("failed to check if %s is present: %w", info.GuiltyHash, err)
+				return applied, fmt.Errorf("failed to check if %s is present: %w", info.GuiltyHash, err)
 			}
 			if !contains {
 				// There's no reason to backport a fix.
@@ -48,16 +50,16 @@ func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) 
 		if remoteRepoURL != "" {
 			err := repo.fetchRemote(remoteRepoURL, info.FixHash)
 			if err != nil {
-				return fmt.Errorf("failed to fetch fix commit %s: %w", info.FixHash, err)
+				return applied, fmt.Errorf("failed to fetch fix commit %s: %w", info.FixHash, err)
 			}
 		}
 		fixCommitOrig, err := repo.Commit(info.FixHash)
 		if err != nil {
-			return fmt.Errorf("fix commit %s not found: %w", info.FixHash, err)
+			return applied, fmt.Errorf("fix commit %s not found: %w", info.FixHash, err)
 		}
 		fixCommit, err := repo.GetCommitByTitle(fixCommitOrig.Title)
 		if err != nil {
-			return err
+			return applied, err
 		}
 		if fixCommit != nil {
 			// The fix is already present.
@@ -65,10 +67,11 @@ func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) 
 		}
 		err = repo.cherryPick(info.FixHash)
 		if err != nil {
-			return err
+			return applied, err
 		}
+		applied = true
 	}
-	return nil
+	return applied, nil
 }
 
 var pickLinuxCommits = []BackportCommit{

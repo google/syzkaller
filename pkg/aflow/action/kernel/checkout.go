@@ -86,31 +86,22 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					}
 				}
 			}
-			if err := vcs.BackportCommits(repo, kernelBackports, args.KernelRepo); err != nil {
+			applied, err := vcs.BackportCommits(repo, kernelBackports, args.KernelRepo)
+			if err != nil {
 				return fmt.Errorf("failed to apply backports: %w", err)
 			}
 
 			// vcs.BackportCommits cherry-picks commits but leaves them uncommitted in the index/tree.
-			// Because we use a shallow clone (--depth=1) to populate the target directory, it only pulls
-			// HEAD and ignores any uncommitted state. Therefore, we must manually extract these changes
-			// as a patch and apply them downstream to ensure the isolated environment actually receives them.
-			diff, err := osutil.RunCmd(time.Minute, kernelRepoDir, "git", "diff", "HEAD")
-			if err != nil {
-				return fmt.Errorf("failed to get backports diff: %w", err)
+			// We must commit them so that the subsequent shallow clone pulls the fully prepared tree.
+			if applied {
+				if _, err := osutil.RunCmd(time.Minute, kernelRepoDir, "git",
+					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
+					"commit", "-m", "aflow: apply backports"); err != nil {
+					return fmt.Errorf("failed to commit backports: %w", err)
+				}
 			}
 			if err := shallowGitClone(dir, kernelRepoDir); err != nil {
 				return err
-			}
-			if len(diff) > 0 {
-				if err := vcs.Patch(dir, diff); err != nil {
-					return fmt.Errorf("failed to apply backports patch: %w", err)
-				}
-				// Commit the backports so they don't appear in subsequent diffs (like patch-diff).
-				if _, err := osutil.RunCmd(time.Minute, dir, "git",
-					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
-					"commit", "-am", "aflow: apply backports"); err != nil {
-					return fmt.Errorf("failed to commit backports: %w", err)
-				}
 			}
 			return nil
 		})
