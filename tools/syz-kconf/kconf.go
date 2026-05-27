@@ -71,7 +71,7 @@ func main() {
 		fmt.Printf("git checkout %v %v\n", inst.Kernel.Repo, inst.Kernel.Tag)
 		if _, err := repo.SwitchCommit(inst.Kernel.Tag); err != nil {
 			if _, err := repo.CheckoutCommit(inst.Kernel.Repo, inst.Kernel.Tag); err != nil {
-				tool.Failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, err)
+				tool.Failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, osutil.VerboseMessage(err))
 			}
 		}
 		releaseTag, err := releaseTag(*flagSourceDir)
