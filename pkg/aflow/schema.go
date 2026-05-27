@@ -176,6 +176,9 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 	if targetType.Kind() == reflect.Struct {
 		mm, ok := f.(map[string]any)
 		if !ok {
+			if tool {
+				return BadCallError("field %q must be a map, got %T", name, f)
+			}
 			return fmt.Errorf("field %q must be a map, got %T", name, f)
 		}
 		var structVal reflect.Value
@@ -205,6 +208,9 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 func setSliceField(val any, field reflect.Value, name string, f any, targetType reflect.Type, tool bool) error {
 	slice, ok := f.([]any)
 	if !ok {
+		if tool {
+			return BadCallError("field %q must be a slice, got %T", name, f)
+		}
 		return fmt.Errorf("field %q must be a slice, got %T", name, f)
 	}
 	elemType := targetType.Elem()
@@ -212,6 +218,9 @@ func setSliceField(val any, field reflect.Value, name string, f any, targetType 
 	for i, item := range slice {
 		elem := reflect.New(elemType).Elem()
 		if err := setField(elem, val, item, fmt.Sprintf("%s[%d]", name, i), tool); err != nil {
+			if tool {
+				return BadCallError("item %d in field %q: %v", i, name, err)
+			}
 			return fmt.Errorf("item %d in field %q: %w", i, name, err)
 		}
 		res = reflect.Append(res, elem)
