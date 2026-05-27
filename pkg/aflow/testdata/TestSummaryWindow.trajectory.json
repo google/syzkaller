@@ -38,7 +38,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:05Z"
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Seq": 1
+		}
 	},
 	{
 		"Seq": 3,
@@ -47,6 +50,9 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:05Z",
 		"Finished": "0001-01-01T00:00:06Z",
+		"Args": {
+			"Seq": 1
+		},
 		"Results": {
 			"ResFoo": 123
 		}
@@ -73,7 +79,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:09Z"
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Seq": 2
+		}
 	},
 	{
 		"Seq": 5,
@@ -82,6 +91,9 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:09Z",
 		"Finished": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Seq": 2
+		},
 		"Results": {
 			"ResFoo": 123
 		}
@@ -109,7 +121,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:13Z"
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Seq": 3
+		}
 	},
 	{
 		"Seq": 7,
@@ -118,6 +133,9 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:13Z",
 		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"Seq": 3
+		},
 		"Results": {
 			"ResFoo": 123
 		}
@@ -144,7 +162,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:17Z"
+		"Started": "0001-01-01T00:00:17Z",
+		"Args": {
+			"Seq": 4
+		}
 	},
 	{
 		"Seq": 9,
@@ -153,7 +174,12 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:17Z",
 		"Finished": "0001-01-01T00:00:18Z",
-		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+		"Args": {
+			"Seq": 4
+		},
+		"Results": {
+			"ResFoo": 123
+		}
 	},
 	{
 		"Seq": 10,
@@ -178,7 +204,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:21Z"
+		"Started": "0001-01-01T00:00:21Z",
+		"Args": {
+			"Seq": 5
+		}
 	},
 	{
 		"Seq": 11,
@@ -187,7 +216,12 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:21Z",
 		"Finished": "0001-01-01T00:00:22Z",
-		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+		"Args": {
+			"Seq": 5
+		},
+		"Results": {
+			"ResFoo": 123
+		}
 	},
 	{
 		"Seq": 12,
@@ -211,7 +245,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:25Z"
+		"Started": "0001-01-01T00:00:25Z",
+		"Args": {
+			"Seq": 6
+		}
 	},
 	{
 		"Seq": 13,
@@ -220,7 +257,12 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:25Z",
 		"Finished": "0001-01-01T00:00:26Z",
-		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+		"Args": {
+			"Seq": 6
+		},
+		"Results": {
+			"ResFoo": 123
+		}
 	},
 	{
 		"Seq": 14,
@@ -245,7 +287,10 @@
 		"Nesting": 2,
 		"Type": "tool",
 		"Name": "tick",
-		"Started": "0001-01-01T00:00:29Z"
+		"Started": "0001-01-01T00:00:29Z",
+		"Args": {
+			"Seq": 7
+		}
 	},
 	{
 		"Seq": 15,
@@ -254,7 +299,12 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:29Z",
 		"Finished": "0001-01-01T00:00:30Z",
-		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+		"Args": {
+			"Seq": 7
+		},
+		"Results": {
+			"ResFoo": 123
+		}
 	},
 	{
 		"Seq": 16,

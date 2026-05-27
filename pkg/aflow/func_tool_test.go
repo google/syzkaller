@@ -62,27 +62,23 @@ func TestToolLoopDetection(t *testing.T) {
 	session := &agentSession{LLMAgent: &LLMAgent{Name: "test-agent"}}
 	args := map[string]any{"Query": "test"}
 
-	// Record defaultLoopDetectionLimit identical calls.
+	// The first 3 identical calls should be allowed.
 	for range defaultLoopDetectionLimit {
-		session.recordToolCall("test-tool", args)
+		call := &genai.FunctionCall{Name: "test-tool", Args: args}
+		err := session.recordAndCheckDuplicate(call)
+		require.NoError(t, err)
 	}
 
-	// The 4th call should be detected as a duplicate.
-	call := &genai.FunctionCall{
-		Name: "test-tool",
-		Args: args,
-	}
-	err := session.checkDuplicateCall(call)
+	// The 4th identical call should be detected as a duplicate.
+	call := &genai.FunctionCall{Name: "test-tool", Args: args}
+	err := session.recordAndCheckDuplicate(call)
 	var badCallErr *badCallError
 	require.ErrorAs(t, err, &badCallErr)
 	require.Contains(t, err.Error(), "repeating the same tool call")
 
 	// A different call should not be detected as a duplicate.
-	diffCall := &genai.FunctionCall{
-		Name: "diff-tool",
-		Args: args,
-	}
-	err = session.checkDuplicateCall(diffCall)
+	diffCall := &genai.FunctionCall{Name: "diff-tool", Args: args}
+	err = session.recordAndCheckDuplicate(diffCall)
 	require.NoError(t, err, "unexpected error on different call: %v", err)
 }
 

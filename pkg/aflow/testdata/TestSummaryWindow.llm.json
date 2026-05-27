@@ -19,6 +19,15 @@
 							"name": "tick",
 							"parametersJsonSchema": {
 								"additionalProperties": false,
+								"properties": {
+									"Seq": {
+										"description": "seq",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Seq"
+								],
 								"type": "object"
 							},
 							"responseJsonSchema": {
@@ -73,6 +82,9 @@
 					{
 						"functionCall": {
 							"id": "id1",
+							"args": {
+								"Seq": 1
+							},
 							"name": "tick"
 						}
 					}
@@ -111,6 +123,9 @@
 					{
 						"functionCall": {
 							"id": "id2",
+							"args": {
+								"Seq": 2
+							},
 							"name": "tick"
 						}
 					}
@@ -152,6 +167,9 @@
 					{
 						"functionCall": {
 							"id": "id3",
+							"args": {
+								"Seq": 3
+							},
 							"name": "tick"
 						}
 					},
@@ -193,6 +211,9 @@
 					{
 						"functionCall": {
 							"id": "id3",
+							"args": {
+								"Seq": 3
+							},
 							"name": "tick"
 						}
 					},
@@ -207,6 +228,9 @@
 					{
 						"functionCall": {
 							"id": "id4",
+							"args": {
+								"Seq": 4
+							},
 							"name": "tick"
 						}
 					}
@@ -220,7 +244,7 @@
 							"id": "id4",
 							"name": "tick",
 							"response": {
-								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+								"ResFoo": 123
 							}
 						}
 					},
@@ -248,6 +272,9 @@
 					{
 						"functionCall": {
 							"id": "id5",
+							"args": {
+								"Seq": 5
+							},
 							"name": "tick"
 						}
 					},
@@ -264,7 +291,7 @@
 							"id": "id5",
 							"name": "tick",
 							"response": {
-								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+								"ResFoo": 123
 							}
 						}
 					}
@@ -289,6 +316,9 @@
 					{
 						"functionCall": {
 							"id": "id5",
+							"args": {
+								"Seq": 5
+							},
 							"name": "tick"
 						}
 					},
@@ -303,6 +333,9 @@
 					{
 						"functionCall": {
 							"id": "id6",
+							"args": {
+								"Seq": 6
+							},
 							"name": "tick"
 						}
 					}
@@ -316,7 +349,7 @@
 							"id": "id6",
 							"name": "tick",
 							"response": {
-								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+								"ResFoo": 123
 							}
 						}
 					},
@@ -344,6 +377,9 @@
 					{
 						"functionCall": {
 							"id": "id7",
+							"args": {
+								"Seq": 7
+							},
 							"name": "tick"
 						}
 					},
@@ -360,7 +396,7 @@
 							"id": "id7",
 							"name": "tick",
 							"response": {
-								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
+								"ResFoo": 123
 							}
 						}
 					}
