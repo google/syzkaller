@@ -41,7 +41,7 @@ func TestFixBackport(t *testing.T) {
 		{
 			FixHash: fixCommit.Hash,
 		},
-	})
+	}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestConditionalFixBackport(t *testing.T) {
 			FixHash:    fixCommit.Hash,
 		},
 	}
-	err := BackportCommits(repo.repo, rules)
+	err := BackportCommits(repo.repo, rules, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestConditionalFixBackport(t *testing.T) {
 
 	// .. but we do cherry-pick otherwise.
 	repo.Git("checkout", "branch-with-bug")
-	err = BackportCommits(repo.repo, rules)
+	err = BackportCommits(repo.repo, rules, "")
 	if err != nil {
 		t.Fatal(err)
 	}

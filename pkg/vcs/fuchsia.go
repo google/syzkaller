@@ -78,6 +78,10 @@ func (ctx *fuchsia) CheckoutCommit(repo, commit string) (*Commit, error) {
 	return ctx.repo.CheckoutCommit(repo, commit)
 }
 
+func (ctx *fuchsia) fetchRemote(repo, commit string) error {
+	return ctx.repo.fetchRemote(repo, commit)
+}
+
 func (ctx *fuchsia) SwitchCommit(commit string) (*Commit, error) {
 	return ctx.repo.SwitchCommit(commit)
 }

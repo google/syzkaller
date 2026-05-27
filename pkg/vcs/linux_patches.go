@@ -26,13 +26,14 @@ func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
 			slices.Clone(pickLinuxCommits),
 			extraCommits...,
 		),
+		defaultLinuxRepo,
 	)
 }
 
 // BackportCommits conditionally cherry-picks the given commits into the repository.
 // A commit is only cherry-picked if its GuiltyHash is present (if specified)
 // and a commit with the same original title is not already present.
-func BackportCommits(repo Repo, commits []BackportCommit) error {
+func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) error {
 	for _, info := range commits {
 		if info.GuiltyHash != "" {
 			contains, err := repo.Contains(info.GuiltyHash)
@@ -44,13 +45,15 @@ func BackportCommits(repo Repo, commits []BackportCommit) error {
 				continue
 			}
 		}
+		if remoteRepoURL != "" {
+			err := repo.fetchRemote(remoteRepoURL, info.FixHash)
+			if err != nil {
+				return fmt.Errorf("failed to fetch fix commit %s: %w", info.FixHash, err)
+			}
+		}
 		fixCommitOrig, err := repo.Commit(info.FixHash)
 		if err != nil {
-			if info.GuiltyHash != "" {
-				return fmt.Errorf("fix commit %s for guilty commit %s not found: %w", info.FixHash, info.GuiltyHash, err)
-			}
-			// If the fix commit isn't found in the local object db, we simply skip it.
-			continue
+			return fmt.Errorf("fix commit %s not found: %w", info.FixHash, err)
 		}
 		fixCommit, err := repo.GetCommitByTitle(fixCommitOrig.Title)
 		if err != nil {
