@@ -35,7 +35,7 @@ type baseCommitResult struct {
 func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, error) {
 	commit := ""
 	err := kernel.UseLinuxRepo(ctx, func(_ string, repo vcs.Repo) error {
-		head, err := repo.Poll(args.BaseRepository, args.BaseBranch)
+		head, err := repo.CheckoutBranch(args.BaseRepository, args.BaseBranch)
 		if err != nil {
 			return err
 		}
