@@ -163,6 +163,17 @@ func (git *gitRepo) CheckoutCommit(repo, commit string) (*Commit, error) {
 	return git.SwitchCommit(commit)
 }
 
+func (git *gitRepo) FetchTags(repo string) error {
+	if err := git.repair(); err != nil {
+		return err
+	}
+	repoHash := hash.String([]byte(repo))
+	// Ignore error as we can double add the same remote and that will fail.
+	git.Run("remote", "add", repoHash, repo)
+	_, err := git.Run("fetch", "--force", "--tags", repoHash)
+	return err
+}
+
 func (git *gitRepo) fetchRemote(repo, commit string) error {
 	if commit != "" && gitFullHashRe.MatchString(commit) {
 		// If the commit is already present locally, we don't need to fetch it.
