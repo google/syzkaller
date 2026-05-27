@@ -12,6 +12,8 @@ import (
 )
 
 type kcsanInputs struct {
+	TargetOS     string
+	TargetArch   string
 	CrashReport  string
 	KernelRepo   string
 	KernelCommit string

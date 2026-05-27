@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // TestPatch action does an in-tree kernel build in KernelScratchSrc dir,
@@ -27,6 +28,8 @@ import (
 var TestPatch = aflow.NewFuncAction("test-patch", testPatch)
 
 type testArgs struct {
+	TargetOS         string
+	TargetArch       string
 	Syzkaller        string
 	Image            string
 	Type             string
@@ -86,7 +89,8 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 }
 
 func testPatchBuild(ctx *aflow.Context, args testArgs) (string, error) {
-	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
+	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc,
+		args.KernelConfig, args.TargetOS, args.TargetArch, false); err != nil {
 		// TODO: should distinguish between infra errors, and patch compilation errors.
 		return fmt.Sprintf("Building the kernel failed with: %v", err), nil
 	}
@@ -94,11 +98,15 @@ func testPatchBuild(ctx *aflow.Context, args testArgs) (string, error) {
 }
 
 func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
+	if args.TargetOS != targets.Linux {
+		return "", aflow.FlowError(fmt.Errorf("can only run on the Linux kernel"))
+	}
 	workdir, err := ctx.TempDir()
 	if err != nil {
 		return "", err
 	}
 	reproduceArgs := ReproduceArgs{
+		TargetArch:   args.TargetArch,
 		Syzkaller:    args.Syzkaller,
 		Image:        args.Image,
 		Type:         args.Type,

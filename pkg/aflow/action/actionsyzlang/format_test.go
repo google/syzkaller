@@ -10,17 +10,22 @@ import (
 )
 
 func TestFormat(t *testing.T) {
-	// Test valid program.
-	validProg := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+	tests := []string{"amd64", "arm64"}
+	for _, arch := range tests {
+		t.Run(arch, func(t *testing.T) {
+			// Test valid program.
+			validProg := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 `
-	res, err := formatActionFunc(nil, FormatArgs{CandidateReproSyz: validProg})
-	require.NoError(t, err)
-	require.NotEmpty(t, res.ReproSyz)
+			res, err := formatActionFunc(nil, FormatArgs{TargetOS: "linux", TargetArch: arch, CandidateReproSyz: validProg})
+			require.NoError(t, err)
+			require.NotEmpty(t, res.ReproSyz)
 
-	// Test invalid program.
-	invalidProg := `r0 = unknown_syscall_name(0x123)`
-	_, err2 := formatActionFunc(nil, FormatArgs{CandidateReproSyz: invalidProg})
-	require.Error(t, err2)
-	require.Contains(t, err2.Error(), "unknown syscall")
+			// Test invalid program.
+			invalidProg := `r0 = unknown_syscall_name(0x123)`
+			_, err2 := formatActionFunc(nil, FormatArgs{TargetOS: "linux", TargetArch: arch, CandidateReproSyz: invalidProg})
+			require.Error(t, err2)
+			require.Contains(t, err2.Error(), "unknown syscall")
+		})
+	}
 }

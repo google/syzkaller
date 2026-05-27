@@ -25,6 +25,8 @@ import (
 var Build = aflow.NewFuncAction("kernel-builder", buildKernel)
 
 type buildArgs struct {
+	TargetOS     string
+	TargetArch   string
 	KernelSrc    string
 	KernelCommit string
 	KernelConfig string
@@ -34,7 +36,7 @@ type buildResult struct {
 	KernelObj string // Directory with build artifacts.
 }
 
-func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
+func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch string, cleanup bool) error {
 	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
 		return err
 	}
@@ -43,12 +45,15 @@ func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
 	// ld.lld: error: arch/x86/entry/vdso/vgetrandom-x32.o:(.note.gnu.property+0x0): data is too short
 	// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
 	configScript := filepath.Join(srcDir, "scripts", "config")
-	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript,
-		"-d", "X86_X32_ABI", "--set-str", "INITRAMFS_SOURCE", ""); err != nil {
+	configArgs := []string{"--set-str", "INITRAMFS_SOURCE", ""}
+	if targetArch == targets.AMD64 {
+		configArgs = append(configArgs, "-d", "X86_X32_ABI")
+	}
+	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript, configArgs...); err != nil {
 		return err
 	}
-	target := targets.List[targets.Linux][targets.AMD64]
-	image := filepath.FromSlash(build.LinuxKernelImage(targets.AMD64))
+	target := targets.List[targetOS][targetArch]
+	image := filepath.FromSlash(build.LinuxKernelImage(targetArch))
 	makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
 		"ccache", buildDir, runtime.NumCPU())
 	const compileCommands = "compile_commands.json"
@@ -89,7 +94,7 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v",
 		args.KernelCommit, hash.String(args.KernelConfig))
 	dir, err := ctx.Cache("build", desc, func(dir string) error {
-		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, true)
+		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, args.TargetOS, args.TargetArch, true)
 	})
 	return buildResult{KernelObj: dir}, err
 }

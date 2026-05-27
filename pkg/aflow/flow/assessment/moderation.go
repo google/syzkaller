@@ -12,6 +12,8 @@ import (
 )
 
 type moderationInputs struct {
+	TargetOS     string
+	TargetArch   string
 	BugTitle     string
 	CrashReport  string
 	KernelRepo   string
