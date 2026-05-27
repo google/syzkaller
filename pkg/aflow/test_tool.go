@@ -18,6 +18,7 @@ type TestToolOption func(*Context)
 // return struct. In the latter case, the function is executed with the actual results,
 // and is supposed to do assertions on the value.
 func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wantError string, opts ...TestToolOption) {
+	t.Helper()
 	type tester interface {
 		testVerify(t *testing.T, ctx *verifyContext, state, args, results any) (
 			map[string]any, map[string]any, func(map[string]any))

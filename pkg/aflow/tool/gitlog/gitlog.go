@@ -202,6 +202,10 @@ func gitBadCallError(err error, name, advice string) error {
 		bytes.Contains(verr.Output, []byte("no such path"))) {
 		return aflow.BadCallError("%s failed: %s", name, bytes.TrimSpace(verr.Output))
 	}
+	// This should mean an invalid grep expression.
+	if verr.ExitCode == 128 && bytes.Contains(verr.Output, []byte("fatal:")) {
+		return aflow.BadCallError("%s failed: %s", name, bytes.TrimSpace(verr.Output))
+	}
 	if verr.ExitCode == 1 && len(verr.Output) == 0 {
 		return nil // No matches is a valid result.
 	}
