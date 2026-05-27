@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )
@@ -67,7 +68,7 @@ type ManualWorkflowField struct {
 
 func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 	defaultRepo, defaultBranch := cfg.mainRepoBranch()
-	return []ManualWorkflowSpec{
+	ret := []ManualWorkflowSpec{
 		{
 			Name: string(ai.WorkflowPatching),
 			Type: ai.WorkflowPatching,
@@ -127,6 +128,21 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 			},
 		},
 	}
+	for i := range ret {
+		ret[i].Fields = append(ret[i].Fields,
+			ManualWorkflowField{
+				ID:           "TargetOS",
+				DefaultValue: targets.Linux,
+				Hidden:       true,
+			},
+			ManualWorkflowField{
+				ID:           "TargetArch",
+				DefaultValue: targets.AMD64,
+				Hidden:       true,
+			},
+		)
+	}
+	return ret
 }
 
 type uiAIJobArg struct {
@@ -1455,6 +1471,8 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"KernelCommit":    build.KernelCommit,
 		"KernelConfigID":  build.KernelConfig,
 		"SyzkallerCommit": build.SyzkallerCommit,
+		"TargetOS":        build.OS,
+		"TargetArch":      build.Arch,
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
