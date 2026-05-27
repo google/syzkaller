@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gcpsecret"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 type Config struct {
@@ -23,6 +24,9 @@ type Config struct {
 	SyzkallerBranch string          `json:"syzkaller_branch"`
 	KernelConfig    string          `json:"kernel_config"`
 	Target          string          `json:"target"`
+	TargetOS        string          `json:"-"`
+	TargetArch      string          `json:"-"`
+	TargetVMArch    string          `json:"-"`
 	Image           string          `json:"image"`
 	Type            string          `json:"type"`
 	VM              json.RawMessage `json:"vm"`
@@ -47,6 +51,17 @@ func loadConfig(configFile string) (*Config, error) {
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
+
+	if cfg.Target == "" {
+		return nil, fmt.Errorf("agent target must be specified in config")
+	}
+	osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(cfg.Target)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse agent target %q: %w", cfg.Target, err)
+	}
+	cfg.TargetOS = osVal
+	cfg.TargetArch = arch
+	cfg.TargetVMArch = vmarch
 
 	resolvedDashKey, err := gcpsecret.Resolve(context.Background(), cfg.DashboardKey)
 	if err != nil {

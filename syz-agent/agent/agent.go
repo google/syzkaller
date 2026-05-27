@@ -22,7 +22,6 @@ import (
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/updater"
@@ -71,7 +70,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	var upd *updater.Updater
 
 	if syzkallerDir == "" {
-		upd, err = setupUpdater(cfg, cfg.Target, exitOnUpgrade)
+		upd, err = setupUpdater(cfg, exitOnUpgrade)
 		if err != nil {
 			return err
 		}
@@ -168,11 +167,7 @@ func reportBuildError(commit *vcs.Commit, buildErr error) {
 		commit.Hash, title, path)
 }
 
-func setupUpdater(cfg *Config, target string, exitOnUpgrade bool) (*updater.Updater, error) {
-	osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(target)
-	if err != nil {
-		return nil, err
-	}
+func setupUpdater(cfg *Config, exitOnUpgrade bool) (*updater.Updater, error) {
 	buildSem := osutil.NewSemaphore(1)
 	return updater.New(&updater.Config{
 		ReportBuildError: func(commit *vcs.Commit, _ string, buildErr error) {
@@ -184,9 +179,9 @@ func setupUpdater(cfg *Config, target string, exitOnUpgrade bool) (*updater.Upda
 		SyzkallerBranch: cfg.SyzkallerBranch,
 		Targets: map[updater.Target]bool{
 			{
-				OS:     osVal,
-				VMArch: vmarch,
-				Arch:   arch,
+				OS:     cfg.TargetOS,
+				VMArch: cfg.TargetVMArch,
+				Arch:   cfg.TargetArch,
 			}: true,
 		},
 		MakeTargets: []string{"agent"},
@@ -289,6 +284,14 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	}
 	inputs := initState(s.cfg, s.syzkallerDir)
 	maps.Insert(inputs, maps.All(req.Args))
+
+	if os, _ := inputs["TargetOS"].(string); os != "" && os != s.cfg.TargetOS {
+		return nil, fmt.Errorf("dashboard requested TargetOS %q, but agent is configured for %q", os, s.cfg.TargetOS)
+	}
+	if arch, _ := inputs["TargetArch"].(string); arch != "" && arch != s.cfg.TargetArch {
+		return nil, fmt.Errorf("dashboard requested TargetArch %q, but agent is configured for %q", arch, s.cfg.TargetArch)
+	}
+
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
 		return s.dash.AITrajectoryLog(&dashapi.AITrajectoryReq{
@@ -323,6 +326,8 @@ func (s *Server) resetModelQuota() {
 
 func initState(cfg *Config, syzkallerDir string) map[string]any {
 	return map[string]any{
+		"TargetOS":     cfg.TargetOS,
+		"TargetArch":   cfg.TargetArch,
 		"Syzkaller":    osutil.Abs(syzkallerDir),
 		"Image":        cfg.Image,
 		"Type":         cfg.Type,
