@@ -1453,6 +1453,8 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"KernelCommit":    build.KernelCommit,
 		"KernelConfigID":  build.KernelConfig,
 		"SyzkallerCommit": build.SyzkallerCommit,
+		"TargetOS":        build.OS,
+		"TargetArch":      build.Arch,
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
