@@ -34,6 +34,9 @@ type Repo interface {
 	// CheckoutCommit checkouts the specified repository on the specified commit.
 	CheckoutCommit(repo, commit string) (*Commit, error)
 
+	// FetchTags forces the fetching of tags from the specified remote repository.
+	FetchTags(repo string) error
+
 	// SwitchCommit checkouts the specified commit without fetching.
 	SwitchCommit(commit string) (*Commit, error)
 

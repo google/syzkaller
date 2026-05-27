@@ -43,6 +43,11 @@ func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, 
 		case "HEAD":
 			commit = head.Hash
 		case "RC":
+			// FetchTags is called to force fetch the tags.
+			// See the discussion at https://github.com/google/syzkaller/pull/7385.
+			if err := repo.FetchTags(args.BaseRepository); err != nil {
+				return fmt.Errorf("failed to fetch tags: %w", err)
+			}
 			tag, err := repo.ReleaseTag(head.Hash)
 			if err != nil {
 				return err

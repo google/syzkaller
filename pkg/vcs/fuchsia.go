@@ -78,6 +78,10 @@ func (ctx *fuchsia) CheckoutCommit(repo, commit string) (*Commit, error) {
 	return ctx.repo.CheckoutCommit(repo, commit)
 }
 
+func (ctx *fuchsia) FetchTags(repo string) error {
+	return ctx.repo.FetchTags(repo)
+}
+
 func (ctx *fuchsia) fetchRemote(repo, commit string) error {
 	return ctx.repo.fetchRemote(repo, commit)
 }
