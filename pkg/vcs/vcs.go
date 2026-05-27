@@ -82,6 +82,9 @@ type Repo interface {
 
 	// cherryPick cherry-picks the given commit without committing it.
 	cherryPick(commit string) error
+
+	// fetchRemote fetches the specified commit from the given remote repo.
+	fetchRemote(repo, commit string) error
 }
 
 // Bisecter may be optionally implemented by Repo.

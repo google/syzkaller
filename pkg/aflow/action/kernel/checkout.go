@@ -86,7 +86,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					}
 				}
 			}
-			if err := vcs.BackportCommits(repo, kernelBackports); err != nil {
+			if err := vcs.BackportCommits(repo, kernelBackports, args.KernelRepo); err != nil {
 				return fmt.Errorf("failed to apply backports: %w", err)
 			}
 

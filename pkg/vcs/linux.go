@@ -34,6 +34,8 @@ var (
 	_ ConfigMinimizer = new(linux)
 )
 
+const defaultLinuxRepo = "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux"
+
 func newLinux(dir string, opts []RepoOpt, vmType string) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
