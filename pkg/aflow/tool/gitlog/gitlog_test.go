@@ -51,7 +51,37 @@ diff --git a/foo\.c b/foo\.c
 		state{},
 		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567"},
 		showResult{},
-		"git show failed: fatal: bad object 0123456789abcdef0123456789abcdef01234567", aflow.TestWorkdir(tmpDir))
+		`git show failed: fatal: Not a valid object name 0123456789abcdef0123456789abcdef01234567^{commit}`,
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolShow,
+		state{},
+		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567:missing.c"},
+		showResult{},
+		`git show failed: fatal: Not a valid object name 0123456789abcdef0123456789abcdef01234567^{commit}`,
+		aflow.TestWorkdir(tmpDir))
+
+	// Test git-show with non-existing file.
+	aflow.TestTool(t, ToolShow,
+		state{},
+		showArgs{Commit: c1.Hash + ":missing.c"},
+		showResult{},
+		fmt.Sprintf(`file "missing.c" is not present on commit "%s"`, c1.Hash),
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolShow,
+		state{},
+		showArgs{},
+		showResult{},
+		`commit hash is required`,
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolShow,
+		state{},
+		showArgs{Commit: ":mm/mmap.c"},
+		showResult{},
+		`commit hash is required`,
+		aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitBlame(t *testing.T) {

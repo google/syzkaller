@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -120,19 +121,35 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 }
 
 type showArgs struct {
-	Commit string `jsonschema:"Commit hash or reference."`
+	Commit string `jsonschema:"Commit hash or reference (hash:file/name.c)."`
 }
 
 type showResult struct {
-	Output string `jsonschema:"Full commit information including diff."`
+	Output string `jsonschema:"Full commit/object information including diff."`
 }
 
 func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error) {
-	if args.Commit == "" {
+	commitHash, filePath, _ := strings.Cut(args.Commit, ":")
+	if commitHash == "" {
 		return showResult{}, aflow.BadCallError("commit hash is required")
 	}
+
 	var output []byte
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
+		if _, err := runGit(kernelRepoDir, time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
+			return gitBadCallError(err, "git show", fmt.Sprintf("commit %v does not exist", commitHash))
+		}
+
+		if filePath != "" {
+			out, err := runGit(kernelRepoDir, time.Minute, "ls-tree", "--name-only", commitHash, "--", filePath)
+			if err != nil {
+				return err
+			}
+			if len(bytes.TrimSpace(out)) == 0 {
+				return aflow.BadCallError("file %q is not present on commit %q", filePath, commitHash)
+			}
+		}
+
 		var err error
 		output, err = runGit(kernelRepoDir, 5*time.Minute, "show", "--no-color", args.Commit)
 		return err
@@ -161,7 +178,8 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	var output []byte
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		var err error
-		output, err = runGit(kernelRepoDir, 5*time.Minute, "blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
+		output, err = runGit(kernelRepoDir, 5*time.Minute,
+			"blame", "-s", "-L", lineRange, "--abbrev=12", state.KernelCommit, "--", args.File)
 		return err
 	})
 	if err != nil {
@@ -179,6 +197,7 @@ func gitBadCallError(err error, name, advice string) error {
 		return aflow.BadCallError("%s timed out. %s", name, advice)
 	}
 	if verr.ExitCode == 128 && (bytes.Contains(verr.Output, []byte("bad object")) ||
+		bytes.Contains(verr.Output, []byte("Not a valid object name")) ||
 		bytes.Contains(verr.Output, []byte("bad revision")) ||
 		bytes.Contains(verr.Output, []byte("unknown revision")) ||
 		bytes.Contains(verr.Output, []byte("ambiguous argument")) ||
