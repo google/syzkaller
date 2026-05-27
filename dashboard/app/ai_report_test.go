@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1768,4 +1769,101 @@ func TestAIPatchFilter(t *testing.T) {
 	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")
 	c.expectOK(err)
 	require.NotContains(t, string(reply), crash.Title)
+}
+
+func TestAIManualIteration(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    false, // Automatic reaction disabled.
+			},
+		},
+	})
+
+	// Create a bug and AI job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Register workflow and create a job.
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+
+	c.finishAIPatchJob(t, jobID, nil)
+
+	// Confirm report published.
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollResp.Result.ID,
+		PublishedExtID: "moderation-msg-id",
+	})
+	require.NoError(t, err)
+
+	// Simulate a comment.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "moderation-msg-id",
+		MessageExtID: "<comment-1>",
+		Author:       "reviewer@email.com",
+		Comment:      &dashapi.CommentCommand{Body: "This is a review comment."},
+	})
+	require.NoError(t, err)
+
+	// Verify autoCreatePatchIterationJobs does NOT create a job because AddressComments = false.
+	created, err := autoCreatePatchIterationJobs(c.ctx, APIClient{AIJobNamespaces: []string{"ains"}})
+	require.NoError(t, err)
+	assert.False(t, created, "should not create job when AddressComments=false")
+
+	bug, _, err := findBugByReportingID(c.ctx, extID)
+	require.NoError(t, err)
+
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+
+	// Trigger the manual iteration job.
+	values := url.Values{}
+	values.Set("ai-job-iteration", reportings[0].ID)
+	_, err = c.AuthPOSTForm(AccessAdmin, fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)), values)
+	require.NoError(t, err)
+
+	// Poll the job and verify the comment text is passed in PatchHistory.
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	var gotPatchHistory []ai.PatchHistoryEntry
+	data, err := json.Marshal(resp.Args["PatchHistory"])
+	require.NoError(t, err)
+	err = json.Unmarshal(data, &gotPatchHistory)
+	require.NoError(t, err)
+
+	require.Len(t, gotPatchHistory, 1)
+	require.Len(t, gotPatchHistory[0].Comments, 1)
+	assert.Contains(t, gotPatchHistory[0].Comments[0].Body, "This is a review comment.")
 }
