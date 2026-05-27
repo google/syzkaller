@@ -119,7 +119,7 @@
 		"Name": "",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:15Z",
-		"Error": "DoWhile loop is going in cycles for 3 iterations"
+		"Error": "DoWhile reached max iteration limit 3"
 	},
 	{
 		"Seq": 0,
@@ -128,6 +128,6 @@
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
 		"Finished": "0001-01-01T00:00:16Z",
-		"Error": "DoWhile loop is going in cycles for 3 iterations"
+		"Error": "DoWhile reached max iteration limit 3"
 	}
 ]

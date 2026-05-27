@@ -61,7 +61,7 @@ func (dw *DoWhile) loop(ctx *Context) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("DoWhile loop is going in cycles for %v iterations", dw.MaxIterations)
+	return fmt.Errorf("DoWhile reached max iteration limit %v", dw.MaxIterations)
 }
 
 func (dw *DoWhile) verify(ctx *verifyContext) {

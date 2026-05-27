@@ -109,7 +109,7 @@ func TestDoWhileMaxIters(t *testing.T) {
 	type actionResults struct {
 		Error string
 	}
-	testFlow[struct{}, struct{}](t, nil, "DoWhile loop is going in cycles for 3 iterations",
+	testFlow[struct{}, struct{}](t, nil, "DoWhile reached max iteration limit 3",
 		&DoWhile{
 			Do: NewFuncAction("nop", func(ctx *Context, args struct{}) (actionResults, error) {
 				return actionResults{"failed"}, nil
