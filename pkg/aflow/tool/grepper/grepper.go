@@ -37,6 +37,7 @@ type state struct {
 
 type args struct {
 	Expression string `jsonschema:"Git grep expression in extended regexp syntax."`
+	PathPrefix string `jsonschema:"Optional path prefix or file to restrict the scope of the grep." json:",omitempty"`
 }
 
 type results struct {
@@ -44,8 +45,15 @@ type results struct {
 }
 
 func grepper(ctx *aflow.Context, state state, args args) (results, error) {
-	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", "grep", "--extended-regexp",
-		"--line-number", "--show-function", "-C1", "--no-color", "--", args.Expression)
+	cmdArgs := []string{
+		"grep", "--extended-regexp", "--line-number",
+		"--show-function", "-C1", "--no-color",
+		"-e", args.Expression, "--",
+	}
+	if args.PathPrefix != "" {
+		cmdArgs = append(cmdArgs, args.PathPrefix)
+	}
+	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", cmdArgs...)
 	if err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 			if exitErr.ExitCode() == 1 && len(output) == 0 {
