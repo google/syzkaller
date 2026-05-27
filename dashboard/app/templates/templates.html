@@ -762,7 +762,18 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{formatTime $job.Started}}</td>
 		<td>{{formatTime $job.Finished}}</td>
 		<td class="tag">{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
-		<td>{{$job.Error}}</td>
+		<td>
+			{{if $job.Error}}
+				{{if gt (len $job.Error) 200}}
+					<details>
+						<summary>Show error ({{len $job.Error}} bytes)</summary>
+						<pre style="white-space: pre-wrap; word-wrap: break-word;">{{$job.Error}}</pre>
+					</details>
+				{{else}}
+					{{$job.Error}}
+				{{end}}
+			{{end}}
+		</td>
 	</tr>
 	{{end}}
 	</tbody>
