@@ -216,6 +216,22 @@ func TestConvertFromMap(t *testing.T) {
 		`item 0 in field "Strs": argument "Strs[0]" has wrong type: got int, want string`,
 		`item 0 in field "Strs": struct { Strs []string }: field "Strs[0]" has wrong type: got int, want string`)
 
+	testConvertFromMap(t, true, map[string]any{
+		"Strs": []any{nil, "a"},
+	}, struct {
+		Strs []string
+	}{},
+		`item 0 in field "Strs" cannot be null`,
+		`item 0 in field "Strs" cannot be null`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"Ptrs": []any{nil},
+	}, struct {
+		Ptrs []*string
+	}{
+		Ptrs: []*string{nil},
+	}, "", "")
+
 	t1, _ := time.Parse(time.RFC3339, "2026-04-16T14:26:33Z")
 	testConvertFromMap(t, true, map[string]any{
 		"T": "2026-04-16T14:26:33Z",

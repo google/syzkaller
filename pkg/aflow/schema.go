@@ -217,6 +217,17 @@ func setSliceField(val any, field reflect.Value, name string, f any, targetType 
 	res := reflect.MakeSlice(targetType, 0, len(slice))
 	for i, item := range slice {
 		elem := reflect.New(elemType).Elem()
+		if item == nil {
+			switch elemType.Kind() {
+			case reflect.Ptr, reflect.Interface, reflect.Slice, reflect.Map:
+				res = reflect.Append(res, elem)
+				continue
+			}
+			if tool {
+				return BadCallError("item %d in field %q cannot be null", i, name)
+			}
+			return fmt.Errorf("item %d in field %q cannot be null", i, name)
+		}
 		if err := setField(elem, val, item, fmt.Sprintf("%s[%d]", name, i), tool); err != nil {
 			if tool {
 				return BadCallError("item %d in field %q: %v", i, name, err)
