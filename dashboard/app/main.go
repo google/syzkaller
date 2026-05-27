@@ -1069,6 +1069,8 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		if err := memcache.Flush(ctx); err != nil {
 			return fmt.Errorf("failed to flush memcache: %w", err)
 		}
+	case "update_kcsan_prio":
+		return handleUpdateKCSANPrio(ctx, w, r)
 	case "invalidate_bisection":
 		return handleInvalidateBisection(ctx, w, r)
 	case "updateBugReporting":

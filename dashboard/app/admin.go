@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -15,6 +16,34 @@ import (
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
 )
+
+func handleUpdateKCSANPrio(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	var bugKeys []*db.Key
+	if err := foreachBug(ctx, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).Filter("Namespace=", "upstream")
+	}, func(bug *Bug, key *db.Key) error {
+		if strings.HasPrefix(bug.Title, "KCSAN:") && bug.HasLabel(PriorityLabel, string(HighPrioBug)) {
+			bugKeys = append(bugKeys, key)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	log.Warningf(ctx, "fetched %d bugs to update", len(bugKeys))
+	bugKeys = bugKeys[:min(10, len(bugKeys))]
+	return updateBatch(ctx, bugKeys, func(key *db.Key, bug *Bug) {
+		labels := bug.LabelValues(PriorityLabel)
+		for i := range labels {
+			labels[i].Value = string(LowPrioBug)
+		}
+		if err := bug.SetLabels(makeLabelSet(ctx, bug), labels); err != nil {
+			log.Warningf(ctx, "label update failed: %v", err)
+		}
+	})
+}
 
 func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	encodedKey := r.FormValue("key")
