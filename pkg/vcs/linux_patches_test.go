@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFixBackport(t *testing.T) {
@@ -37,7 +38,7 @@ func TestFixBackport(t *testing.T) {
 	}
 
 	// Verify that the fix gets backported.
-	err := BackportCommits(repo.repo, []BackportCommit{
+	applied, err := BackportCommits(repo.repo, []BackportCommit{
 		{
 			FixHash: fixCommit.Hash,
 		},
@@ -45,6 +46,7 @@ func TestFixBackport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.True(t, applied)
 	if !osutil.IsExist(filePath) {
 		t.Fatalf("the commit was not backported, but should have")
 	}
@@ -86,20 +88,22 @@ func TestConditionalFixBackport(t *testing.T) {
 			FixHash:    fixCommit.Hash,
 		},
 	}
-	err := BackportCommits(repo.repo, rules, "")
+	applied, err := BackportCommits(repo.repo, rules, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.False(t, applied)
 	if osutil.IsExist(filePath) {
 		t.Fatalf("the commit was backported, but shouldn't have been")
 	}
 
 	// .. but we do cherry-pick otherwise.
 	repo.Git("checkout", "branch-with-bug")
-	err = BackportCommits(repo.repo, rules, "")
+	applied, err = BackportCommits(repo.repo, rules, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.True(t, applied)
 	if !osutil.IsExist(filePath) {
 		t.Fatalf("the commit was not backported, but should have been")
 	}
