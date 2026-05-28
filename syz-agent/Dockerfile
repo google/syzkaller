@@ -28,7 +28,10 @@ ENV GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 # The artifacts to be used for buildig and running kernels.
 ADD https://storage.googleapis.com/syzkaller/images/buildroot-amd64-2025.05.gz /disk-images/buildroot_amd64.gz
 RUN gzip -d /disk-images/buildroot_amd64.gz
+ADD https://storage.googleapis.com/syzkaller/images/buildroot-arm64-img-2025.05.gz /disk-images/buildroot_arm64.gz
+RUN gzip -d /disk-images/buildroot_arm64.gz
 ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-apparmor-kasan.config /kernel-configs/upstream-apparmor-kasan.config
+ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-arm64-gce-kasan.config /kernel-configs/upstream-arm64-gce-kasan.config
 
 COPY --from=syz-agent-builder /syzkaller/tools/git-cookie-authdaemon /app/git-cookie-authdaemon
 COPY --from=syz-agent-builder /syzkaller/syz-agent/run.sh /app/run.sh

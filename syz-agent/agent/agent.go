@@ -56,11 +56,13 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	if name == "" {
 		return fmt.Errorf("agent name must be specified")
 	}
-	kernelConfig, err := os.ReadFile(cfg.KernelConfig)
-	if err != nil {
-		return err
+	for target, tcfg := range cfg.Targets {
+		kernelConfig, err := os.ReadFile(tcfg.KernelConfig)
+		if err != nil {
+			return fmt.Errorf("failed to read kernel config for target %v: %w", target, err)
+		}
+		tcfg.kernelConfigData = string(kernelConfig)
 	}
-	cfg.kernelConfigData = string(kernelConfig)
 
 	if cfg.HTTP != "" {
 		tool.ServeHTTP(cfg.HTTP)
@@ -98,7 +100,12 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	}
 
 	if cfg.MCP {
-		http.Handle("/", mcpHandler(initState(cfg, syzkallerDir, name), workdir, cache))
+		var firstTarget *TargetConfig
+		for _, tcfg := range cfg.Targets {
+			firstTarget = tcfg
+			break
+		}
+		http.Handle("/", mcpHandler(initState(firstTarget, syzkallerDir, name), workdir, cache))
 		select {}
 	}
 
@@ -169,7 +176,7 @@ func reportBuildError(commit *vcs.Commit, buildErr error) {
 
 func setupUpdater(cfg *Config, exitOnUpgrade bool) (*updater.Updater, error) {
 	buildSem := osutil.NewSemaphore(1)
-	return updater.New(&updater.Config{
+	cfgUpdater := &updater.Config{
 		ReportBuildError: func(commit *vcs.Commit, _ string, buildErr error) {
 			reportBuildError(commit, buildErr)
 		},
@@ -177,15 +184,17 @@ func setupUpdater(cfg *Config, exitOnUpgrade bool) (*updater.Updater, error) {
 		BuildSem:        buildSem,
 		SyzkallerRepo:   cfg.SyzkallerRepo,
 		SyzkallerBranch: cfg.SyzkallerBranch,
-		Targets: map[updater.Target]bool{
-			{
-				OS:     cfg.TargetOS,
-				VMArch: cfg.TargetVMArch,
-				Arch:   cfg.TargetArch,
-			}: true,
-		},
-		MakeTargets: []string{"agent"},
-	})
+		Targets:         make(map[updater.Target]bool),
+		MakeTargets:     []string{"agent"},
+	}
+	for _, tcfg := range cfg.Targets {
+		cfgUpdater.Targets[updater.Target{
+			OS:     tcfg.TargetOS,
+			VMArch: tcfg.TargetVMArch,
+			Arch:   tcfg.TargetArch,
+		}] = true
+	}
+	return updater.New(cfgUpdater)
 }
 
 type Server struct {
@@ -282,15 +291,29 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
-	inputs := initState(s.cfg, s.syzkallerDir, s.name)
-	maps.Insert(inputs, maps.All(req.Args))
+	agentOS, _ := req.Args["TargetOS"].(string)
+	agentArch, _ := req.Args["TargetArch"].(string)
 
-	if os, _ := inputs["TargetOS"].(string); os != "" && os != s.cfg.TargetOS {
-		return nil, fmt.Errorf("dashboard requested TargetOS %q, but agent is configured for %q", os, s.cfg.TargetOS)
+	if agentArch == "x86_64" {
+		agentArch = "amd64"
+	} else if agentArch == "aarch64" {
+		agentArch = "arm64"
 	}
-	if arch, _ := inputs["TargetArch"].(string); arch != "" && arch != s.cfg.TargetArch {
-		return nil, fmt.Errorf("dashboard requested TargetArch %q, but agent is configured for %q", arch, s.cfg.TargetArch)
+
+	var tcfg *TargetConfig
+	for _, t := range s.cfg.Targets {
+		if t.TargetOS == agentOS && t.TargetArch == agentArch {
+			tcfg = t
+			break
+		}
 	}
+	if tcfg == nil {
+		return nil, fmt.Errorf("dashboard requested TargetOS %q TargetArch %q, but agent does not support it",
+			agentOS, agentArch)
+	}
+
+	inputs := initState(tcfg, s.syzkallerDir, s.name)
+	maps.Insert(inputs, maps.All(req.Args))
 
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
@@ -324,7 +347,7 @@ func (s *Server) resetModelQuota() {
 	}
 }
 
-func initState(cfg *Config, syzkallerDir, agentName string) map[string]any {
+func initState(cfg *TargetConfig, syzkallerDir, agentName string) map[string]any {
 	return map[string]any{
 		"AgentName":    agentName,
 		"TargetOS":     cfg.TargetOS,

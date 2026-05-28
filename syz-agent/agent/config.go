@@ -14,30 +14,35 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-type Config struct {
-	HTTP            string          `json:"http"`
-	MCP             bool            `json:"mcp"` // Start MCP server on the HTTP address, and don't connect to dashboard.
-	DashboardAddr   string          `json:"dashboard_addr"`
-	DashboardClient string          `json:"dashboard_client"` // Global non-namespace client.
-	DashboardKey    string          `json:"dashboard_key"`
-	SyzkallerRepo   string          `json:"syzkaller_repo"`
-	SyzkallerBranch string          `json:"syzkaller_branch"`
-	KernelConfig    string          `json:"kernel_config"`
-	Target          string          `json:"target"`
-	TargetOS        string          `json:"-"`
-	TargetArch      string          `json:"-"`
-	TargetVMArch    string          `json:"-"`
-	Image           string          `json:"image"`
-	Type            string          `json:"type"`
-	VM              json.RawMessage `json:"vm"`
-	StraceBin       string          `json:"strace_bin"`
-	CacheSize       uint64          `json:"cache_size"`
-	Model           string          `json:"model"`
-	Workflows       []string        `json:"workflows"`
-	GeminiAPIKey    string          `json:"gemini_api_key"`
-	CloudProject    string          `json:"cloud_project"`
+type TargetConfig struct {
+	KernelConfig string          `json:"kernel_config"`
+	Image        string          `json:"image"`
+	Type         string          `json:"type"`
+	VM           json.RawMessage `json:"vm"`
+	StraceBin    string          `json:"strace_bin"`
 
-	kernelConfigData string
+	TargetOS         string `json:"-"`
+	TargetArch       string `json:"-"`
+	TargetVMArch     string `json:"-"`
+	kernelConfigData string `json:"-"`
+}
+
+type Config struct {
+	HTTP string `json:"http"`
+	// Start MCP server on the HTTP address, and don't connect to dashboard.
+	MCP           bool   `json:"mcp"`
+	DashboardAddr string `json:"dashboard_addr"`
+	// Global non-namespace client.
+	DashboardClient string                   `json:"dashboard_client"`
+	DashboardKey    string                   `json:"dashboard_key"`
+	SyzkallerRepo   string                   `json:"syzkaller_repo"`
+	SyzkallerBranch string                   `json:"syzkaller_branch"`
+	Targets         map[string]*TargetConfig `json:"targets"`
+	CacheSize       uint64                   `json:"cache_size"`
+	Model           string                   `json:"model"`
+	Workflows       []string                 `json:"workflows"`
+	GeminiAPIKey    string                   `json:"gemini_api_key"`
+	CloudProject    string                   `json:"cloud_project"`
 }
 
 func loadConfig(configFile string) (*Config, error) {
@@ -52,16 +57,37 @@ func loadConfig(configFile string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	if cfg.Target == "" {
-		return nil, fmt.Errorf("agent target must be specified in config")
+	if len(cfg.Targets) == 0 {
+		return nil, fmt.Errorf("at least one target must be specified in config")
 	}
-	osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(cfg.Target)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse agent target %q: %w", cfg.Target, err)
+	for target, tcfg := range cfg.Targets {
+		osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(target)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse agent target %q: %w", target, err)
+		}
+		tcfg.TargetOS = osVal
+		tcfg.TargetArch = arch
+		tcfg.TargetVMArch = vmarch
+
+		if len(tcfg.VM) == 0 {
+			continue
+		}
+		var vmCfg map[string]any
+		if err := json.Unmarshal(tcfg.VM, &vmCfg); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal VM config for target %q: %w", target, err)
+		}
+		if gcsPath, ok := vmCfg["gcs_path"].(string); ok {
+			resolvedPath, err := gcpsecret.Resolve(context.Background(), gcsPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve gcs_path for target %q: %w", target, err)
+			}
+			vmCfg["gcs_path"] = resolvedPath
+		}
+		tcfg.VM, err = json.Marshal(vmCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal VM config for target %q: %w", target, err)
+		}
 	}
-	cfg.TargetOS = osVal
-	cfg.TargetArch = arch
-	cfg.TargetVMArch = vmarch
 
 	resolvedDashKey, err := gcpsecret.Resolve(context.Background(), cfg.DashboardKey)
 	if err != nil {

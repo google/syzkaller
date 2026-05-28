@@ -18,7 +18,11 @@ func TestConfigPlainValues(t *testing.T) {
 
 	confFile := filepath.Join(tmpDir, "config.json")
 	content := `{
-		"target": "linux/amd64",
+		"targets": {
+			"linux/amd64": {
+				"image": "image1"
+			}
+		},
 		"dashboard_client": "test-dashboard-client",
 		"dashboard_key": "test-dashboard-key",
 		"gemini_api_key": "test-gemini-key"
@@ -41,7 +45,11 @@ func TestConfigEnvResolution(t *testing.T) {
 
 	confFile := filepath.Join(tmpDir, "config.json")
 	content := `{
-		"target": "linux/amd64",
+		"targets": {
+			"linux/amd64": {
+				"image": "image1"
+			}
+		},
 		"dashboard_client": "env:CLIENT_ENV",
 		"dashboard_key": "env:DASHBOARD_ENV",
 		"gemini_api_key": "env:GEMINI_ENV"
