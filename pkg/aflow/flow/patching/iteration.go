@@ -17,6 +17,7 @@ import (
 )
 
 type PatchIterationInputs struct {
+	AgentName  string
 	TargetOS   string
 	TargetArch string
 	// Standard test environment config (same as in patching.Inputs)

@@ -21,6 +21,7 @@ import (
 )
 
 type Inputs struct {
+	AgentName    string
 	TargetOS     string
 	TargetArch   string
 	ReproOpts    string

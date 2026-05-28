@@ -19,6 +19,7 @@ import (
 )
 
 type ReproInputs struct {
+	AgentName    string
 	TargetOS     string
 	TargetArch   string
 	BugTitle     string
