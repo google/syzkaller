@@ -14,6 +14,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONWARNINGS: ignore
+
 jobs:
   aux:
     runs-on: ubuntu-latest
