@@ -227,6 +227,10 @@ func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmai
 			dkimOk = true
 		}
 	}
+	if r.cfg.VerifyDKIM && !dkimOk && len(polled.Email.Commands) > 0 {
+		r.cfg.Tracer.Logf("ignoring commands from %s due to DKIM failure", polled.Email.Author)
+		return nil
+	}
 	reqs, err := extractCommands(polled, dkimOk)
 	if err != nil {
 		// TODO: for tracked threads we may want to reply with an error (#7199).
