@@ -22,6 +22,10 @@ run_checks() {
 	local dir=$3
 	echo "Checking $name $target..."
 	local yaml
+	if [ "$(uname)" != "Linux" ]; then
+		echo "SKIPPED: Skipping checks for $name $target (not running on Linux)"
+		return
+	fi
 	yaml=$(make -C "$dir" -s "$target" KUSTOMIZE="$KUSTOMIZE")
 	if [ $? -ne 0 ]; then
 		echo "FAILED: $name $target (make failed)"
