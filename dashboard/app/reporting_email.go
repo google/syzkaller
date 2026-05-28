@@ -723,7 +723,7 @@ func processIncomingEmail(ctx context.Context, msg *email.Email) error {
 	if bugListInfo != nil {
 		const maxCommands = 10
 		if len(msg.Commands) > maxCommands {
-			return replyTo(ctx, msg, bugListInfo.id,
+			return replyError(ctx, msg, bugListInfo.id,
 				fmt.Sprintf("Too many commands (%d > %d)", len(msg.Commands), maxCommands))
 		}
 		for _, command := range msg.Commands {
@@ -735,7 +735,7 @@ func processIncomingEmail(ctx context.Context, msg *email.Email) error {
 	} else {
 		const maxCommands = 3
 		if len(msg.Commands) > maxCommands {
-			return replyTo(ctx, msg, bugInfo.bugReporting.ID,
+			return replyError(ctx, msg, bugInfo.bugReporting.ID,
 				fmt.Sprintf("Too many commands (%d > %d)", len(msg.Commands), maxCommands))
 		}
 		unCc := false
@@ -1230,7 +1230,7 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 			log.Errorf(ctx, "failed to format sender email address: %v", err)
 			from = "ERROR"
 		}
-		if err := replyTo(ctx, msg, "", fmt.Sprintf(replyBadBugID, from)); err != nil {
+		if err := replyError(ctx, msg, "", fmt.Sprintf(replyBadBugID, from)); err != nil {
 			log.Errorf(ctx, "failed to send reply: %v", err)
 		}
 		return nil
@@ -1238,7 +1238,7 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 	bugReporting, _ := bugReportingByID(bug, bugID)
 	if bugReporting == nil {
 		log.Errorf(ctx, "can't find bug reporting: %v", err)
-		if err := replyTo(ctx, msg, "", "Can't find the corresponding bug."); err != nil {
+		if err := replyError(ctx, msg, "", "Can't find the corresponding bug."); err != nil {
 			log.Errorf(ctx, "failed to send reply: %v", err)
 		}
 		return nil
@@ -1287,7 +1287,7 @@ func bugInfoWithoutBugID(ctx context.Context, msg *email.Email) *bugInfoResult {
 		if matchingErr == errAmbiguousTitle {
 			message = fmt.Sprintf(replyAmbiguousBugID, from)
 		}
-		if err := replyTo(ctx, msg, "", message); err != nil {
+		if err := replyError(ctx, msg, "", message); err != nil {
 			log.Errorf(ctx, "failed to send reply: %v", err)
 		}
 	}
@@ -1509,6 +1509,10 @@ func sendMailText(ctx context.Context, subject, from string, to []string, replyT
 }
 
 func replyTo(ctx context.Context, msg *email.Email, bugID, reply string) error {
+	if msg.OwnEmail {
+		log.Errorf(ctx, "not sending reply to own email")
+		return nil
+	}
 	from, err := email.AddAddrContext(fromAddr(ctx), bugID)
 	if err != nil {
 		log.Errorf(ctx, "failed to build the From address: %v", err)
@@ -1525,6 +1529,18 @@ func replyTo(ctx context.Context, msg *email.Email, bugID, reply string) error {
 		Headers: mail.Header{"In-Reply-To": []string{msg.MessageID}},
 	}
 	return sendEmail(ctx, replyMsg)
+}
+
+func replyError(ctx context.Context, msg *email.Email, bugID, reply string) error {
+	if len(msg.Commands) == 0 {
+		log.Infof(ctx, "not sending error reply to %q: no commands", msg.MessageID)
+		return nil
+	}
+	if msg.OwnEmail {
+		log.Infof(ctx, "not sending error reply to %q: own email", msg.MessageID)
+		return nil
+	}
+	return replyTo(ctx, msg, bugID, reply)
 }
 
 // Sends email, can be stubbed for testing.

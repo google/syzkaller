@@ -646,6 +646,41 @@ but the HASH does not correspond to any known bug.
 Please double check the address.
 
 `)
+
+	// If the email contains a fake bug hash, but NO commands, do not reply.
+	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "Just some random discussion",
+		EmailOptFrom("user@example.com"))
+	c.expectNoEmail()
+}
+
+func TestEmailLoop(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Send an invalid command to get the error reply with HASH.
+	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "#syz invalid")
+	reply := c.pollEmailBug()
+	c.expectEQ(reply.Body, `> #syz invalid
+
+I see the command but can't find the corresponding bug.
+The email is sent to  syzbot+HASH@testapp.appspotmail.com address
+but the HASH does not correspond to any known bug.
+Please double check the address.
+
+`)
+
+	// Now simulate the mailing list forwarding this reply back to us.
+	// We inject a fake command to ensure it doesn't bounce even if the parser extracts a command.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", reply.Body+"\n#syz invalid",
+		EmailOptFrom("syzbot@testapp.appspotmail.com"),
+		EmailOptSender("syzkaller-upstream-moderation@googlegroups.com"))
+	c.expectNoEmail()
+
+	// Verify we don't reply to our own emails even if they have commands and wrong Bug IDs.
+	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "#syz invalid",
+		EmailOptFrom("syzbot@testapp.appspotmail.com"),
+		EmailOptSender("syzkaller-upstream-moderation@googlegroups.com"))
+	c.expectNoEmail()
 }
 
 func TestEmailFailedBuild(t *testing.T) {
