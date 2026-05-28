@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -409,6 +410,74 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
 	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
 		bug.NeedCommitInfo = true
+	})
+}
+
+func patchBuildArchs(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	arm64ReStr := r.FormValue("arm64_re")
+	if arm64ReStr == "" {
+		return fmt.Errorf("no arm64_re parameter")
+	}
+	arm64Re, err := regexp.Compile(arm64ReStr)
+	if err != nil {
+		return fmt.Errorf("invalid arm64_re: %w", err)
+	}
+	dryRun := r.FormValue("dry_run") == "1"
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "Patching builds for namespace %q (dry_run=%v)\n", ns, dryRun)
+
+	var builds []*Build
+	keys, err := db.NewQuery("Build").
+		Filter("Namespace=", ns).
+		GetAll(ctx, &builds)
+	if err != nil {
+		return fmt.Errorf("failed to query builds: %w", err)
+	}
+
+	var toUpdate []*db.Key
+	newArchs := make(map[string]string)
+
+	for i, build := range builds {
+		if build.Arch != "x86_64" {
+			continue
+		}
+
+		targetArch := "amd64"
+		if arm64Re.MatchString(build.Manager) {
+			targetArch = "arm64"
+		}
+		if targetArch == build.Arch {
+			continue
+		}
+
+		key := keys[i]
+		toUpdate = append(toUpdate, key)
+		newArchs[key.String()] = targetArch
+
+		fmt.Fprintf(w, "Build %q (Manager: %q) %q -> %q\n", build.ID, build.Manager, build.Arch, targetArch)
+	}
+
+	fmt.Fprintf(w, "Found %d builds to patch.\n", len(toUpdate))
+
+	if dryRun {
+		fmt.Fprintf(w, "Dry run, skipping datastore update.\n")
+		return nil
+	}
+
+	return updateBatch(ctx, toUpdate, func(key *db.Key, b *Build) {
+		targetArch, ok := newArchs[key.String()]
+		if !ok {
+			panic("unknown build key")
+		}
+		b.Arch = targetArch
 	})
 }
 
