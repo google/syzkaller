@@ -631,6 +631,7 @@ func TestAINoStages(t *testing.T) {
 	require.False(t, job.Correct.Valid)
 
 	values := url.Values{}
+	values.Set("action", "set_correctness")
 	values.Set("correct", aiCorrectnessCorrect)
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
 	require.NoError(t, err)
@@ -1527,7 +1528,7 @@ func TestAIManualPushToReporting(t *testing.T) {
 	})
 
 	values := url.Values{}
-	values.Set("push_to_reporting", "1")
+	values.Set("action", "push_to_reporting")
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
 	require.NoError(t, err)
 
@@ -1589,6 +1590,7 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	require.NoError(t, err)
 
 	values := url.Values{}
+	values.Set("action", "set_correctness")
 	values.Set("correct", aiCorrectnessCorrect)
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
 	require.NoError(t, err)

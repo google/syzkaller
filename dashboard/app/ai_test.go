@@ -377,6 +377,7 @@ func TestAIJobActions(t *testing.T) {
 
 	jobAssessURL := fmt.Sprintf("/ai_job?id=%v", resp.ID)
 	values = url.Values{}
+	values.Set("action", "set_correctness")
 	values.Set("correct", aiCorrectnessCorrect)
 	_, err = c.AuthPOSTForm(AccessPublic, jobAssessURL, values)
 	require.Error(t, err)
@@ -466,6 +467,7 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 
 	// Since the job is not completed, setting correctness must fail.
 	values := url.Values{}
+	values.Set("action", "set_correctness")
 	values.Set("correct", aiCorrectnessCorrect)
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", resp.ID), values)
 	require.Error(t, err)
@@ -498,6 +500,7 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 
 	// Re-mark the result as incorrect, this should remove the label.
 	valuesIncorrect := url.Values{}
+	valuesIncorrect.Set("action", "set_correctness")
 	valuesIncorrect.Set("correct", aiCorrectnessIncorrect)
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", resp.ID), valuesIncorrect)
 	require.NoError(t, err)
@@ -1167,4 +1170,137 @@ func TestAIReproCJobCreateFromBugPage(t *testing.T) {
 	require.Equal(t, "repro-c", resp.Workflow)
 
 	require.Equal(t, "title1\n\nreport1", resp.Args["BugDescription"])
+}
+
+func TestAIJobRestart(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+		},
+	})
+
+	// 1. Setup bug and patching job 1.
+	extID, jobID1 := c.setupAIPatchJob(t)
+
+	// Poll job 1 (now it is RUNNING).
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatching, Name: "patching"},
+		},
+	}
+	resp1, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, jobID1, resp1.ID)
+
+	jobURL1 := fmt.Sprintf("/ai_job?id=%v", jobID1)
+	values := url.Values{}
+	values.Set("action", "restart")
+
+	// Try to restart RUNNING job -> should fail with 400
+	_, err = c.AuthPOSTForm(AccessUser, jobURL1, values)
+	require.Error(t, err)
+	c.expectBadReqest(err)
+	require.Contains(t, err.Error(), "cannot restart a running job")
+
+	// Mark job 1 as SUCCESSFUL.
+	c.finishAIPatchJob(t, jobID1, nil)
+
+	// Try to restart SUCCESSFUL job -> should fail with 400
+	_, err = c.AuthPOSTForm(AccessUser, jobURL1, values)
+	require.Error(t, err)
+	c.expectBadReqest(err)
+	require.Contains(t, err.Error(), "cannot restart a successful job")
+
+	// Create job 2 (a failed patching job).
+	jobID2 := c.createAIJob(extID, "patching", "")
+	resp2, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, jobID2, resp2.ID)
+
+	// Mark job 2 as FAILED.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    jobID2,
+		Error: "some workflow error",
+	})
+	require.NoError(t, err)
+
+	jobURL2 := fmt.Sprintf("/ai_job?id=%v", jobID2)
+
+	// Public user cannot restart.
+	_, err = c.AuthPOSTForm(AccessPublic, jobURL2, values)
+	require.Error(t, err)
+
+	// User can restart FAILED job, and it should redirect to the new job.
+	_, err = c.AuthPOSTForm(AccessUser, jobURL2, values)
+	require.Error(t, err)
+	var httpErr *HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	require.Equal(t, http.StatusFound, httpErr.Code)
+	loc := httpErr.Headers.Get("Location")
+	require.True(t, strings.HasPrefix(loc, "/ai_job?id="))
+	newJobID := strings.TrimPrefix(loc, "/ai_job?id=")
+	require.NotEmpty(t, newJobID)
+	require.NotEqual(t, jobID2, newJobID)
+
+	// Verify the new job is polled and has same arguments.
+	pollResp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, newJobID, pollResp.ID)
+	require.Equal(t, "patching", pollResp.Workflow)
+	require.NotEmpty(t, pollResp.Args["BugTitle"])
+
+	// 2. Setup patch iteration job to test it cannot be restarted.
+	// Confirm published report for job 1 (moderation stage).
+	pollReportResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
+	require.NoError(t, err)
+	require.NotNil(t, pollReportResp.Result)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollReportResp.Result.ID,
+		PublishedExtID: "msg-id-moderation",
+	})
+	require.NoError(t, err)
+
+	// Simulate comment arrival on the thread.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "msg-id-moderation",
+		MessageExtID: "<comment-1>",
+		Author:       "reviewer@email.com",
+		Comment:      &dashapi.CommentCommand{Body: "Please fix this"},
+	})
+	require.NoError(t, err)
+
+	c.advanceTime(31 * time.Minute)
+
+	// Poll for patch iteration job.
+	pollReqIteration := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	respIteration, err := c.agentClient.AIJobPoll(pollReqIteration)
+	require.NoError(t, err)
+	require.NotEmpty(t, respIteration.ID)
+
+	// Mark patch iteration job as FAILED.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    respIteration.ID,
+		Error: "iteration failed",
+	})
+	require.NoError(t, err)
+
+	// Try to restart FAILED patch-iteration job -> should fail with 400.
+	patchIterationJobURL := fmt.Sprintf("/ai_job?id=%v", respIteration.ID)
+	_, err = c.AuthPOSTForm(AccessUser, patchIterationJobURL, values)
+	require.Error(t, err)
+	c.expectBadReqest(err)
+	require.Contains(t, err.Error(), "cannot restart a patch iteration workflow")
 }

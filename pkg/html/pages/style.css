@@ -605,3 +605,8 @@ aside {
 .ai_current_job {
 	background-color: lightgreen;
 }
+
+.restart-form {
+	margin-top: 5px;
+	margin-bottom: 15px;
+}

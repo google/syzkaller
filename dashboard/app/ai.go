@@ -165,6 +165,7 @@ type uiAIJobPage struct {
 	CanPushToReporting bool
 	CanSetCorrectness  bool
 	Reportings         []*uiJobReporting
+	CanRestart         bool
 }
 
 type uiAIJobDetails struct {
@@ -439,32 +440,50 @@ func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *A
 	return latest, nextStageCfg, nil
 }
 
-func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hdr *uiHeader) error {
+func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hdr *uiHeader) (string, error) {
 	if r.Method != http.MethodPost {
-		return nil
+		return "", nil
 	}
 
-	correct := r.FormValue("correct")
-	pushToReporting := r.FormValue("push_to_reporting") == "1"
-
-	if correct == "" && !pushToReporting {
-		return nil
+	action := r.FormValue("action")
+	if action == "" {
+		return "", nil
 	}
 	if !hdr.AIActions {
-		return ErrAccess
-	}
-	if !job.Finished.Valid || job.Error != "" {
-		return fmt.Errorf("job is in wrong state to be modified")
+		return "", ErrAccess
 	}
 	user := currentUser(ctx)
 	if user == nil {
-		return ErrAccess
+		return "", ErrAccess
 	}
 
-	if pushToReporting {
-		return handleAIJobPagePushToReporting(ctx, job, "", user.Email)
+	switch action {
+	case "restart":
+		if err := checkJobRestartable(job, hdr.AIActions); err != nil {
+			return "", err
+		}
+		newJobID, err := aidb.RestartJob(ctx, job.ID)
+		if err != nil {
+			return "", err
+		}
+		return newJobID, nil
+
+	case "push_to_reporting":
+		if !job.Finished.Valid || job.Error != "" {
+			return "", fmt.Errorf("job is in wrong state to be modified")
+		}
+		return "", handleAIJobPagePushToReporting(ctx, job, "", user.Email)
+
+	case "set_correctness":
+		if !job.Finished.Valid || job.Error != "" {
+			return "", fmt.Errorf("job is in wrong state to be modified")
+		}
+		correct := r.FormValue("correct")
+		return "", handleAIJobPageCorrectness(ctx, job, correct, "", user.Email)
+
+	default:
+		return "", fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
-	return handleAIJobPageCorrectness(ctx, job, correct, "", user.Email)
 }
 
 func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userName, userEmail string) error {
@@ -593,26 +612,72 @@ func buildUIJobChain(ctx context.Context, r *http.Request, job *aidb.Job, uiJob 
 	return []*uiAIJob{uiJob}, nil
 }
 
-func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func loadAndFilterJob(ctx context.Context, r *http.Request) (*aidb.Job, error) {
 	job, err := aidb.LoadJob(ctx, r.FormValue("id"))
 	if err != nil {
 		if errors.Is(err, aidb.ErrNotFound) {
-			return fmt.Errorf("failed to query the job: %w", ErrClientNotFound)
+			return nil, fmt.Errorf("failed to query the job: %w", ErrClientNotFound)
 		}
-		return err
+		return nil, err
 	}
 	if jobs, err := filterJobsAccess(ctx, r, []*aidb.Job{job}); err != nil {
-		return err
+		return nil, err
 	} else if len(jobs) == 0 {
+		return nil, ErrAccess
+	}
+	return job, nil
+}
+
+func checkJobRestartable(job *aidb.Job, userHasAIActions bool) error {
+	if !userHasAIActions {
 		return ErrAccess
+	}
+	if job.Type == ai.WorkflowPatchIteration {
+		return fmt.Errorf("%w: cannot restart a patch iteration workflow", ErrClientBadRequest)
+	}
+	if !job.Finished.Valid {
+		return fmt.Errorf("%w: cannot restart a running job", ErrClientBadRequest)
+	}
+	if job.Error == "" {
+		return fmt.Errorf("%w: cannot restart a successful job", ErrClientBadRequest)
+	}
+	return nil
+}
+
+func determineJobActions(ctx context.Context, job *aidb.Job, hdr *uiHeader,
+	uiReportings []*uiJobReporting) (bool, bool, bool) {
+	usesReportingStages := aiJobUsesReportingStages(ctx, job)
+
+	canPushToReporting := false
+	if len(uiReportings) == 0 && job.Type == ai.WorkflowPatching && job.Finished.Valid && job.Error == "" {
+		if usesReportingStages && checkJobUpstreamable(job) == nil {
+			canPushToReporting = true
+		}
+	}
+
+	canSetCorrectness := !usesReportingStages
+	canRestart := checkJobRestartable(job, hdr.AIActions) == nil
+
+	return canPushToReporting, canSetCorrectness, canRestart
+}
+
+func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	job, err := loadAndFilterJob(ctx, r)
+	if err != nil {
+		return err
 	}
 	hdr, err := commonHeader(ctx, r, w, job.Namespace)
 	if err != nil {
 		return err
 	}
 
-	if err := handleAIJobPagePost(ctx, job, r, hdr); err != nil {
+	newJobID, err := handleAIJobPagePost(ctx, job, r, hdr)
+	if err != nil {
 		return err
+	}
+	if newJobID != "" {
+		http.Redirect(w, r, "/ai_job?id="+newJobID, http.StatusFound)
+		return nil
 	}
 
 	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
@@ -663,17 +728,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	usesReportingStages := aiJobUsesReportingStages(ctx, job)
-
-	canPushToReporting := false
-	if len(uiReportings) == 0 && job.Type == ai.WorkflowPatching && job.Finished.Valid && job.Error == "" {
-		if usesReportingStages && checkJobUpstreamable(job) == nil {
-			canPushToReporting = true
-		}
-	}
-
-	// Disable manual correctness for stage-reported jobs to avoid duplicating moderation functionality.
-	canSetCorrectness := !usesReportingStages
+	canPushToReporting, canSetCorrectness, canRestart := determineJobActions(ctx, job, hdr, uiReportings)
 
 	page := &uiAIJobPage{
 		Header:             hdr,
@@ -688,6 +743,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		CanPushToReporting: canPushToReporting,
 		CanSetCorrectness:  canSetCorrectness,
 		Reportings:         uiReportings,
+		CanRestart:         canRestart,
 	}
 	if handled, err := handleAIJobPageJSON(ctx, w, r, job, uiJob, uiTrajectory, uiArgs); handled {
 		return err

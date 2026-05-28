@@ -171,6 +171,37 @@ func cloneJob(ctx context.Context, orig *Job) *Job {
 	}
 }
 
+func RestartJob(ctx context.Context, jobID string) (string, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	var newJobID string
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		iter := txn.Query(ctx, spanner.Statement{
+			SQL:    selectJobs() + `WHERE ID = @id`,
+			Params: map[string]any{"id": jobID},
+		})
+		defer iter.Stop()
+		var jobs []*Job
+		if err := spanner.SelectAll(iter, &jobs); err != nil {
+			return err
+		}
+		if len(jobs) == 0 {
+			return ErrNotFound
+		}
+		orig := jobs[0]
+		newJob := cloneJob(ctx, orig)
+		newJobID = newJob.ID
+		mut, err := spanner.InsertStruct("Jobs", newJob)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return newJobID, err
+}
+
 func StartJob(ctx context.Context, req *dashapi.AIJobPollReq, namespaces []string) (*Job, error) {
 	var workflows []string
 	for _, flow := range req.Workflows {
