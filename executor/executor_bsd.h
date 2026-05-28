@@ -143,6 +143,8 @@ static void cover_protect(cover_t* cov)
 
 static void cover_unprotect(cover_t* cov)
 {
+	if (cov == nullptr)
+		fail("cover_unprotect invoked without cover_t");
 	if (cov->mmap_alloc_ptr == NULL)
 		fail("cover_unprotect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
