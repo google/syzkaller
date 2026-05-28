@@ -13,7 +13,7 @@ The workflow is registered as `repro-c` and consists of a preprocessing phase fo
 - `KernelCommit`: Commit hash to checkout.
 - `KernelConfig`: Kernel configuration.
 - `Image`: Path to the VM image.
-- `Type`: VM type (currently only "qemu" is supported).
+- `Type`: VM type (e.g., "qemu" or "gce").
 - `VM`: JSON raw message for VM configuration.
 - `Syzkaller`: Path to syzkaller directory.
 

@@ -77,19 +77,22 @@ type RunTestResult struct {
 // RunTest boots the kernel and runs a single test program.
 func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
 	res := RunTestResult{}
-	if args.Type != "qemu" {
-		return res, errors.New("RunTest: only qemu VM type is supported")
+	if args.Type != "qemu" && args.Type != "gce" {
+		return res, fmt.Errorf("run test: unsupported VM type %q", args.Type)
 	}
 	if collectCoverage && args.ReproSyz == "" {
-		return res, errors.New("RunTest: coverage collection requires a syzkaller program")
+		return res, errors.New("run test: coverage collection requires a syzkaller program")
 	}
 
 	var vmConfig map[string]any
 	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
 		return res, fmt.Errorf("failed to parse VM config: %w", err)
 	}
+
 	targetArch := args.TargetArch
-	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	if args.Type == "qemu" {
+		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	}
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
 		return res, fmt.Errorf("failed to serialize VM config: %w", err)
