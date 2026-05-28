@@ -28,6 +28,7 @@ import (
 var TestPatch = aflow.NewFuncAction("test-patch", testPatch)
 
 type testArgs struct {
+	AgentName        string
 	TargetOS         string
 	TargetArch       string
 	Syzkaller        string
@@ -106,6 +107,7 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 		return "", err
 	}
 	reproduceArgs := ReproduceArgs{
+		AgentName:    args.AgentName,
 		TargetArch:   args.TargetArch,
 		Syzkaller:    args.Syzkaller,
 		Image:        args.Image,
