@@ -65,12 +65,17 @@ type agentSession struct {
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
 	// req stores the active conversation history slice in this execution.
-	req []*genai.Content
+	req []llmMessage
 	// outputs stores the results returned by the final set-results tool call, if any.
 	outputs map[string]any
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
+}
+
+type llmMessage struct {
+	content    *genai.Content
+	tokenCount int // tokens consumed by this message
 }
 
 type toolCallRecord struct {
@@ -318,7 +323,7 @@ func (a *agentSession) tryAnswerNow(cfg *genai.GenerateContentConfig, overflow b
 			Mode: genai.FunctionCallingConfigModeNone,
 		},
 	}
-	request := genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
+	request := llmMessage{content: genai.NewContentFromText(llmAnswerNow, genai.RoleUser)}
 	if overflow {
 		a.req[len(a.req)-1] = request
 	} else {
@@ -329,22 +334,20 @@ func (a *agentSession) tryAnswerNow(cfg *genai.GenerateContentConfig, overflow b
 
 func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
-	a.req = []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
-	var lastInputTokens int
+	a.req = []llmMessage{{content: genai.NewContentFromText(prompt, genai.RoleUser)}}
 	var anchorTokens int
 	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
-		tokensToCompress := max(0, lastInputTokens-anchorTokens)
-		compressed, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
+		var currentInputTokens int
+		for _, msg := range a.req {
+			currentInputTokens += msg.tokenCount
+		}
+		tokensToCompress := max(0, currentInputTokens-anchorTokens)
+		_, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
 		if err != nil {
 			return "", nil, err
 		}
-		if compressed {
-			// Reset tokens to 0 so that if the main API call fails (e.g., token overflow)
-			// and the loop retries via `continue`, it doesn't immediately try to
-			// compress the already-compressed context again. The real token count
-			// will be fetched from the next successful API response.
-			lastInputTokens = 0
-		}
+		// Context has been compressed. The preserved messages have valid
+		// token counts and the total is small, so we don't need to reset tokens here.
 
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
@@ -355,13 +358,6 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 			return "", nil, err
 		}
 		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate, a.Model)
-
-		if resp != nil && resp.UsageMetadata != nil {
-			lastInputTokens = int(resp.UsageMetadata.PromptTokenCount)
-			if anchorTokens == 0 {
-				anchorTokens = lastInputTokens
-			}
-		}
 
 		if respErr != nil {
 			span.Error = respErr.Error()
@@ -385,13 +381,31 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		if err := ctx.finishSpan(span, respErr); err != nil {
 			return "", nil, err
 		}
+
+		if span.InputTokens > 0 {
+			var assignedTokens int
+			for _, msg := range a.req {
+				assignedTokens += msg.tokenCount
+			}
+			newTokens := span.InputTokens - assignedTokens
+			if newTokens > 0 {
+				a.req[len(a.req)-1].tokenCount += newTokens
+			}
+			if anchorTokens == 0 {
+				anchorTokens = span.InputTokens
+			}
+		}
+
 		// If the LLM did not provide any reply and does not want to call any
 		// tools, we got an empty response. Populate the `Part`s with `Text`
 		// before appending to the history to avoid `INVALID_ARGUMENT` errors.
 		if reply == "" && len(calls) == 0 {
 			resp.Candidates[0].Content.Parts = []*genai.Part{{Text: "empty"}}
 		}
-		a.req = append(a.req, resp.Candidates[0].Content)
+		a.req = append(a.req, llmMessage{
+			content:    resp.Candidates[0].Content,
+			tokenCount: span.OutputTokens,
+		})
 
 		if len(calls) == 0 {
 			reply, wrong, err := a.checkFinalReply(ctx, reply)
@@ -399,7 +413,7 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 				return "", nil, err
 			}
 			if wrong != "" {
-				a.req = append(a.req, genai.NewContentFromText(wrong, genai.RoleUser))
+				a.req = append(a.req, llmMessage{content: genai.NewContentFromText(wrong, genai.RoleUser)})
 				continue
 			}
 			// This is the final reply.
@@ -478,7 +492,7 @@ Do NOT use any tools.
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
 
-func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai.Content, error) {
+func (a *agentSession) compressContext(ctx *Context, instruction string, splitIndex int) (*genai.Content, int, error) {
 	// Lightweight config targeting the Flash model.
 	cfg := &genai.GenerateContentConfig{
 		Temperature:       genai.Ptr[float32](tokenCompressionTemperature),
@@ -495,26 +509,29 @@ func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai
 		Model: ctx.modelName(GoodBalancedModel),
 	}
 	if err := ctx.startSpan(span); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	compressReq := slices.Clone(a.req)
+	var compressReq []llmMessage
+	compressReq = append(compressReq, a.req[:splitIndex]...)
 	if instruction != "" && len(compressReq) > 0 {
-		compressReq[0] = osutil.JSONDeepCopy(compressReq[0])
-		if len(compressReq[0].Parts) > 0 {
-			compressReq[0].Parts[0] = &genai.Part{
-				Text: "<system_instructions>\n" + instruction + "\n</system_instructions>\n\n" + compressReq[0].Parts[0].Text,
+		compressReq[0].content = osutil.JSONDeepCopy(compressReq[0].content)
+		if len(compressReq[0].content.Parts) > 0 {
+			compressReq[0].content.Parts[0] = &genai.Part{
+				Text: "<system_instructions>\n" + instruction + "\n</system_instructions>\n\n" +
+					compressReq[0].content.Parts[0].Text,
 			}
 		}
 	}
 
 	// We append a final prompt to ensure the model knows it must summarize now,
 	// rather than trying to continue the original conversation.
-	compressReq = append(compressReq, genai.NewContentFromText(tokenCompressionPrompt, genai.RoleUser))
-
+	compressReq = append(compressReq, llmMessage{
+		content: genai.NewContentFromText(tokenCompressionPrompt, genai.RoleUser),
+	})
 	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel)
 	if err != nil {
-		return nil, ctx.finishSpan(span, err)
+		return nil, 0, ctx.finishSpan(span, err)
 	}
 
 	reply, _, respErr := a.parseResponse(resp, span)
@@ -524,7 +541,7 @@ func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai
 	span.Thoughts = ""
 
 	if respErr != nil {
-		return nil, ctx.finishSpan(span, respErr)
+		return nil, 0, ctx.finishSpan(span, respErr)
 	}
 
 	reply = strings.TrimSpace(reply)
@@ -539,22 +556,50 @@ func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai
 		genai.RoleUser,
 	)
 
-	return newSummary, ctx.finishSpan(span, nil)
+	return newSummary, span.OutputTokens, ctx.finishSpan(span, nil)
 }
 
-func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, tokensToCompress int) (bool, error) {
+func (a *agentSession) maybeCompressContext(ctx *Context, instruction string,
+	tokensToCompress int) (bool, error) {
 	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens {
 		// Return existing state unchanged.
 		return false, nil
 	}
 
-	newSummary, err := a.compressContext(ctx, instruction)
+	preserveHistoryTokens := 20000
+
+	// Find the split index to preserve up to preserveHistoryTokens.
+	splitIndex := len(a.req)
+	var suffixTokens int
+	for i, msg := range slices.Backward(a.req) {
+		suffixTokens += msg.tokenCount
+		if suffixTokens > preserveHistoryTokens {
+			break
+		}
+		// We only want to split at a message that came from the model (an LLM reply).
+		if msg.content.Role == genai.RoleModel {
+			splitIndex = i
+		}
+	}
+
+	// If we couldn't find a suitable split, or if the split index is too small (e.g. 1),
+	// we just compress everything up to len(a.req).
+	if splitIndex <= 1 {
+		splitIndex = len(a.req)
+	}
+
+	newSummary, summaryTokens, err := a.compressContext(ctx, instruction, splitIndex)
 	if err != nil {
 		return false, fmt.Errorf("context compression failed: %w", err)
 	}
 
-	// Truncate history to Anchor + Summary.
-	a.req = []*genai.Content{a.req[0], newSummary}
+	// Truncate history to Anchor + Summary + Preserved Suffix.
+	newReq := []llmMessage{a.req[0], {content: newSummary, tokenCount: summaryTokens}}
+	if splitIndex < len(a.req) {
+		newReq = append(newReq, a.req[splitIndex:]...)
+	}
+	a.req = newReq
+
 	// Reset duplicate tool call history. Since the detailed conversation history
 	// is discarded during compression, the LLM loses access to past raw tool
 	// responses. We must reset the loop detection history to allow the LLM to
@@ -668,7 +713,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*g
 			a.outputs = span.Results
 		}
 	}
-	a.req = append(a.req, responses)
+	a.req = append(a.req, llmMessage{content: responses})
 	return nil
 }
 
@@ -703,11 +748,17 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 }
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate int, model ModelType) (*genai.GenerateContentResponse, error) {
+	req []llmMessage, candidate int, model ModelType) (*genai.GenerateContentResponse, error) {
 	// Copy the config in case we modify it below.
 	cfg = osutil.JSONDeepCopy(cfg)
+
+	var rawReq []*genai.Content
+	for _, msg := range req {
+		rawReq = append(rawReq, msg.content)
+	}
+
 	for try := 0; ; try++ {
-		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try, model)
+		resp, err := a.generateContentCached(ctx, cfg, rawReq, candidate, try, model)
 		if retryErr := new(retryError); errors.As(err, &retryErr) {
 			time.Sleep(retryErr.delay)
 			continue

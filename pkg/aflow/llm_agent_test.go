@@ -193,10 +193,10 @@ func TestTokenCompression(t *testing.T) {
 		},
 		[]any{
 			// 1. Initial request. Return a tool call and establish the anchor token count.
-			createToolCallResponse(150, "id1", "tick"),
+			createToolCallResponse(150, "id1", "tick", nil),
 			// 2. Second request. Return another tool call and report total tokens 260.
 			// This means delta = 260 - 150 = 110. Since 110 > compressTokensValue (100), compression triggers!
-			createToolCallResponse(260, "id2", "tick"),
+			createToolCallResponse(260, "id2", "tick", nil),
 			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model).
 			// We return the compressed summary.
 			&genai.GenerateContentResponse{
@@ -262,9 +262,9 @@ func TestTokenCompressionResetsHistory(t *testing.T) {
 			},
 		},
 		[]any{
-			createToolCallResponse(150, "id1", "tick"),
-			createToolCallResponse(150, "id2", "tick"),
-			createToolCallResponse(260, "id3", "tick"),
+			createToolCallResponse(150, "id1", "tick", nil),
+			createToolCallResponse(150, "id2", "tick", nil),
+			createToolCallResponse(260, "id3", "tick", nil),
 			&genai.GenerateContentResponse{
 				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
 					PromptTokenCount:     260,
@@ -275,7 +275,7 @@ func TestTokenCompressionResetsHistory(t *testing.T) {
 						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
 						Role:  genai.RoleModel,
 					}}}},
-			createToolCallResponse(50, "id4", "tick"),
+			createToolCallResponse(50, "id4", "tick", nil),
 			genai.NewPartFromText("Done"),
 		},
 		nil,
@@ -283,7 +283,104 @@ func TestTokenCompressionResetsHistory(t *testing.T) {
 	require.Equal(t, 4, toolExecutionCount, "toolHistory was not reset on compression!")
 }
 
-func createToolCallResponse(tokens int32, id, name string) *genai.GenerateContentResponse {
+// TestTokenCompressionPreservesSuffix verifies that context compression keeps the most recent chat history
+// suffix whose token usage fits into preserveTokens.
+func TestTokenCompressionPreservesSuffix(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	type toolResults struct {
+		ResFoo int `jsonschema:"foo"`
+	}
+	type tickArgs struct {
+		ID int `jsonschema:"id"`
+	}
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				NewFuncTool("tick", func(ctx *Context, state struct{}, args tickArgs) (toolResults, error) {
+					return toolResults{123}, nil
+				}, "logic ticker"),
+			},
+		},
+		[]any{
+			// Req 0: Anchor prompt
+			// Req 1 (Tool): 10,000 tokens
+			createToolCallResponse(10000, "id1", "tick", map[string]any{"ID": 1}),
+			// Req 2 (Tool Result)
+			// Req 3 (Tool): 20,000 tokens
+			createToolCallResponse(20000, "id2", "tick", map[string]any{"ID": 2}),
+			// Req 4 (Tool Result)
+			// Req 5 (Tool): 140,000 tokens
+			createToolCallResponse(140000, "id3", "tick", map[string]any{"ID": 3}),
+			// Req 6 (Tool Result)
+			// Req 7 (Tool): 150,000 tokens
+			createToolCallResponse(150000, "id4", "tick", map[string]any{"ID": 4}),
+			// Req 8 (Tool Result)
+			// Req 9 (Tool): 159,000 tokens
+			createToolCallResponse(159000, "id5", "tick", map[string]any{"ID": 5}),
+			// Req 10 (Tool Result)
+			// Req 11 (Tool): 165,000 tokens -> Triggers compression!
+			// 165,000 - 10,000 = 155,000 > 150,000 (default compressTokens limit).
+			// We have 12 elements (0 to 11) plus the tool result for 11 (Req 12).
+			// Default preserve limit is 20,000.
+			// Req 5: 165,000 - 140,000 = 25,000 > 20,000
+			// Req 7: 165,000 - 150,000 = 15,000 <= 20,000. splitIndex = 7.
+			// The history will be: [Req 0] + [Summary of Req 1..6] + [Req 7, 8, 9, 10, 11, 12]. Length = 8.
+			createToolCallResponse(165000, "id6", "tick", map[string]any{"ID": 6}),
+
+			// Compressor response:
+			&genai.GenerateContentResponse{
+				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+					PromptTokenCount:     165000,
+					CandidatesTokenCount: 10,
+				},
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
+						Role:  genai.RoleModel,
+					}}}},
+
+			// After compression, the agent executes again with the truncated history.
+			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (*genai.GenerateContentResponse, error) {
+				// We expect Anchor + Summary + Req 7..12
+				require.Equal(t, 8, len(req), "History should be truncated to Anchor, Summary, and preserved suffix")
+				assert.Equal(t, "Prompt", req[0].Parts[0].Text)
+				assert.Equal(t,
+					"Here is the summary of the previous execution history:\n\ncompressed summary",
+					req[1].Parts[0].Text)
+				// Req 7
+				assert.Equal(t, "tick", req[2].Parts[0].FunctionCall.Name)
+				// Req 8
+				assert.Equal(t, "tick", req[3].Parts[0].FunctionResponse.Name)
+				// Req 9
+				assert.Equal(t, "tick", req[4].Parts[0].FunctionCall.Name)
+				// Req 10
+				assert.Equal(t, "tick", req[5].Parts[0].FunctionResponse.Name)
+				// Req 11
+				assert.Equal(t, "tick", req[6].Parts[0].FunctionCall.Name)
+				// Req 12
+				assert.Equal(t, "tick", req[7].Parts[0].FunctionResponse.Name)
+
+				return &genai.GenerateContentResponse{
+					UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+						PromptTokenCount:     50,
+						CandidatesTokenCount: 10,
+					},
+					Candidates: []*genai.Candidate{{
+						Content: &genai.Content{
+							Parts: []*genai.Part{genai.NewPartFromText("Done")},
+							Role:  genai.RoleModel,
+						}}}}, nil
+			},
+		},
+		nil,
+	)
+}
+
+func createToolCallResponse(tokens int32, id, name string, args map[string]any) *genai.GenerateContentResponse {
 	return &genai.GenerateContentResponse{
 		UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
 			PromptTokenCount:     tokens,
@@ -292,7 +389,7 @@ func createToolCallResponse(tokens int32, id, name string) *genai.GenerateConten
 		Candidates: []*genai.Candidate{{
 			Content: &genai.Content{
 				Parts: []*genai.Part{
-					{FunctionCall: &genai.FunctionCall{ID: id, Name: name}},
+					{FunctionCall: &genai.FunctionCall{ID: id, Name: name, Args: args}},
 				},
 				Role: genai.RoleModel,
 			}}},
