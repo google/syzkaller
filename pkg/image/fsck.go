@@ -37,7 +37,9 @@ func Fsck(r io.Reader, fsckCmd string) ([]byte, bool, error) {
 		return nil, false, fmt.Errorf("failed to close temporary file: %w", err)
 	}
 
-	osutil.SandboxChown(tempFile.Name())
+	if err := osutil.SandboxChown(tempFile.Name()); err != nil {
+		return nil, false, fmt.Errorf("failed to change ownership of temporary file: %w", err)
+	}
 
 	// And run the provided fsck command on it.
 	fsck := append(strings.Fields(fsckCmd), tempFile.Name())
