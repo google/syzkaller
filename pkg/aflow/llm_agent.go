@@ -491,6 +491,12 @@ sentence fragments are OK; keep technical terms/errors exact; keep code blocks u
 You MUST provide the summary in your final response text. Do not use tools.
 `
 
+const tokenCompressionPrompt = `
+Task: Provide the comprehensive summary of the above execution history now.
+Important: You must output the actual summary text in your final response.
+Do NOT use any tools.
+`
+
 // We use a very low temperature for the compressor to ensure it acts as a strict,
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
@@ -527,12 +533,7 @@ func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai
 
 	// We append a final prompt to ensure the model knows it must summarize now,
 	// rather than trying to continue the original conversation.
-	compressReq = append(compressReq, genai.NewContentFromText(
-		"Task: Provide the comprehensive summary of the above execution history now.\n"+
-			"Important: You must output the actual summary text in your final response. "+
-			"Do NOT use any tools.",
-		genai.RoleUser,
-	))
+	compressReq = append(compressReq, genai.NewContentFromText(tokenCompressionPrompt, genai.RoleUser))
 
 	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel)
 	if err != nil {
