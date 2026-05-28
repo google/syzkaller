@@ -55,7 +55,7 @@ func TestMerger(t *testing.T) {
 
 	wp2.Write([]byte("555\r\n666\n\r\r777"))
 	got = (<-merger.Output).Data
-	if want := "222555\n666\n"; string(got) != want {
+	if want := "222555\r\n666\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 	// We need to robustly read until we get what we want if we want to be safe.
@@ -64,7 +64,7 @@ func TestMerger(t *testing.T) {
 
 	wp1.Close()
 	got = (<-merger.Output).Data
-	if want := "444\n"; string(got) != want {
+	if want := "444\r\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
@@ -79,12 +79,12 @@ func TestMerger(t *testing.T) {
 
 	wp2.Close()
 	got = (<-merger.Output).Data
-	if want := "777\n"; string(got) != want {
+	if want := "\r\r777\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
 	merger.Wait()
-	want := "111333\n222555\n666\n444\n777\n"
+	want := "111333\n222555\r\n666\n444\r\n\r\r777\n"
 	if got := tee.String(); got != want {
 		t.Fatalf("bad tee: '%s', want '%s'", got, want)
 	}
