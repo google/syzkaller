@@ -262,7 +262,7 @@
 			{
 				"parts": [
 					{
-						"text": "Task: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response. Do NOT use any tools."
+						"text": "\nTask: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response.\nDo NOT use any tools.\n"
 					}
 				],
 				"role": "user"

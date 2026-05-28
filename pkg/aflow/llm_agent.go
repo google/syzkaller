@@ -54,15 +54,9 @@ type LLMAgent struct {
 	// Set of tools for the agent to use.
 	Tools []Tool
 
-	// Number of historical message (sliding window) to keep. If zero, we don't enable the sliding
-	// window summary feature (don't toss old messages).
-	// Mutually exclusive with compressTokens.
-	summaryWindow int
-
 	// Token limit for historical messages. If > 0, when the total input tokens exceed this limit,
 	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
 	// all intermediate messages, leaving only the anchor prompt and the new summary.
-	// Mutually exclusive with summaryWindow.
 	compressTokens int
 }
 
@@ -72,10 +66,6 @@ type agentSession struct {
 	toolHistory []toolCallRecord
 	// req stores the active conversation history slice in this execution.
 	req []*genai.Content
-	// summaryMessage points to the summary message in req if the sliding window
-	// summary feature is enabled. We need it to check if the message-to-be-popped
-	// is a summary - if so, we need to add a new summary.
-	summaryMessage *genai.Content
 	// outputs stores the results returned by the final set-results tool call, if any.
 	outputs map[string]any
 	// answerNow is set to true when the input overflows and the agent must
@@ -244,14 +234,6 @@ Provide a best-effort answer to the original question with all of the informatio
 you have so far without calling any more tools!
 `
 
-const slidingWindowInstruction = `
-You MUST attach a summary of your most up-to-date findings/knowledge in your reply, which summarizes
-all the historical context, because I will remove old chats if they fall out of the context sliding window
-(for example, I will remove the oldest 3 chats if the sliding window is 10 but there have been 13 LLM chat
-messages). In your summary, KEEP/INCLUDE ALL useful code. Because I will drop old messages, the code read
-by tools will also be tossed.
-`
-
 type llmOutputs struct {
 	tool           Tool
 	provideOutputs func(*verifyContext, string, bool)
@@ -365,7 +347,6 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		addNewSummary := a.slide()
 		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate)
 
 		if resp != nil && resp.UsageMetadata != nil {
@@ -405,10 +386,6 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		}
 		a.req = append(a.req, resp.Candidates[0].Content)
 
-		// We told LLM to add a new summary. Let's re-direct the pointer to it.
-		if addNewSummary {
-			a.summaryMessage = a.req[len(a.req)-1]
-		}
 		if len(calls) == 0 {
 			reply, wrong, err := a.checkFinalReply(ctx, reply)
 			if err != nil {
@@ -577,48 +554,6 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	// when trying to re-fetch information that is no longer in its context.
 	a.toolHistory = nil
 	return true, nil
-}
-
-func (a *agentSession) slide() bool {
-	// Sliding window optimization: keep index 0 (anchor) and the last summaryWindow-1 messages
-	// (recent history), then discard the old ones with stale context and to free up tokens.
-	// We need to add a new summary if we don't have one yet, or existing summary is going to be popped.
-	if a.summaryWindow <= 0 || len(a.req) <= a.summaryWindow {
-		return false
-	}
-	// If we haven't created a summary, surely need to create one.
-	addNewSummary := a.summaryMessage == nil
-	// popEnd is the last index of elements to be popped
-	popEnd := len(a.req) - a.summaryWindow
-	// If we already have a summary, we iterate through the elements being popped
-	// (index 1 to popEnd), and see if the summary would be popped (hence needing
-	// a new summary).
-	for i := 1; i <= popEnd; i++ {
-		if a.req[i] == a.summaryMessage {
-			// The existing summary message is among the elements being popped.
-			addNewSummary = true
-			break
-		}
-	}
-	// Append the very prompt, asking LLM to add summary.
-	// TODO: what if it is ready to provide an answer right now,
-	// and don't want to call any tools anymore, but instead we
-	// ask it to summarize? We may get the summary as the final reply...
-	// Or, what if it summarizes w/o calling any tools?
-	if addNewSummary {
-		a.req[len(a.req)-1].Parts = append(a.req[len(a.req)-1].Parts, &genai.Part{
-			Text: slidingWindowInstruction,
-		})
-	}
-	// The actual popping.
-	if addNewSummary && (a.summaryMessage != nil) {
-		// Before we actually pop the old summary, save it so the new summary can
-		// incorporate enough old information.
-		a.req = append([]*genai.Content{a.req[0], a.summaryMessage}, a.req[popEnd+1:]...)
-	} else {
-		a.req = append([]*genai.Content{a.req[0]}, a.req[popEnd+1:]...)
-	}
-	return addNewSummary
 }
 
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, string, map[string]Tool) {
@@ -940,10 +875,7 @@ func (err *retryError) Unwrap() error {
 }
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
-	if a.summaryWindow != 0 && a.compressTokens != 0 {
-		ctx.errorf(a.Name, "summaryWindow and compressTokens are mutually exclusive")
-	}
-	if a.compressTokens == 0 && a.summaryWindow == 0 {
+	if a.compressTokens == 0 {
 		// Value chosen based on Gemini summarization of:
 		// "Retrieval and Multi-Hop Reasoning in 1M-Token Context Windows: Evaluating LLMs on Classical Chinese Text"
 		// (https://arxiv.org/pdf/2605.02173)
