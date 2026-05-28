@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 )
 
 var (
@@ -30,7 +30,7 @@ around them. Covered lines are prefixed with '* '.
 )
 
 type CoverageFilesArgs struct {
-	CoverageID string `jsonschema:"Coverage ID returned by the reproduce-crash tool."`
+	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
 }
 
 type CoverageFilesResult struct {
@@ -38,9 +38,9 @@ type CoverageFilesResult struct {
 }
 
 func getCoverageFiles(ctx *aflow.Context, state reproduceState, args CoverageFilesArgs) (CoverageFilesResult, error) {
-	coverage, err := readCoverage(ctx, args.CoverageID)
+	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
 	if err != nil {
-		return CoverageFilesResult{}, err
+		return CoverageFilesResult{}, aflow.BadCallError("failed to read coverage: %v", err)
 	}
 
 	var files []string
@@ -58,8 +58,8 @@ func getCoverageFiles(ctx *aflow.Context, state reproduceState, args CoverageFil
 }
 
 type FileCoverageArgs struct {
-	CoverageID string `jsonschema:"CoverageID returned by the reproduce-crash tool."`
-	Filename   string `jsonschema:"Name of the source file to inspect."`
+	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash tool."`
+	Filename          string `jsonschema:"Name of the source file to inspect."`
 }
 
 type FileCoverageResult struct {
@@ -71,9 +71,9 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 		return FileCoverageResult{}, aflow.BadCallError("filename must be a safe, local relative path")
 	}
 
-	coverage, err := readCoverage(ctx, args.CoverageID)
+	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
 	if err != nil {
-		return FileCoverageResult{}, err
+		return FileCoverageResult{}, aflow.BadCallError("failed to read coverage: %v", err)
 	}
 
 	funcLines := make(map[string][]int)
@@ -124,15 +124,4 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 	slices.Sort(res.Snippets)
 
 	return res, nil
-}
-
-func readCoverage(ctx *aflow.Context, coverageID string) ([][]symbolizer.Frame, error) {
-	if !filepath.IsLocal(coverageID) {
-		return nil, aflow.BadCallError("invalid CoverageID: %v", coverageID)
-	}
-	frames, err := aflow.CacheReadObject[[][]symbolizer.Frame](ctx, "coverage", coverageID, "coverage.json")
-	if err != nil {
-		return nil, aflow.BadCallError("invalid or missing CoverageID: %v", coverageID)
-	}
-	return frames, nil
 }
