@@ -173,57 +173,6 @@ func TestParseLLMErrorBackoff(t *testing.T) {
 	t.Logf("total backoff: %v", totalBackoff)
 }
 
-func TestSummaryWindow(t *testing.T) {
-	type flowOutputs struct {
-		Reply string
-	}
-	type toolResults struct {
-		ResFoo int `jsonschema:"foo"`
-	}
-	type toolArgs struct {
-		Seq int `jsonschema:"seq"`
-	}
-	requestSeq := 0
-	testFlow[struct{}, flowOutputs](t, nil,
-		map[string]any{"Reply": "Done"},
-		&LLMAgent{
-			Reply:         "Reply",
-			summaryWindow: 3,
-			Tools: []Tool{
-				NewFuncTool("tick", func(ctx *Context, state struct{}, args toolArgs) (toolResults, error) {
-					return toolResults{123}, nil
-				}, "logic ticker"),
-			},
-		},
-		[]any{
-			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
-				*genai.GenerateContentResponse, error) {
-				requestSeq++
-				reply := []*genai.Part{{
-					FunctionCall: &genai.FunctionCall{
-						ID:   fmt.Sprintf("id%v", requestSeq),
-						Name: "tick",
-						Args: map[string]any{"Seq": float64(requestSeq)},
-					}}}
-				lastReq := req[len(req)-1]
-				lastPart := lastReq.Parts[len(lastReq.Parts)-1]
-				if lastPart.Text == slidingWindowInstruction {
-					reply = append(reply, genai.NewPartFromText(fmt.Sprintf("summary %v", requestSeq)))
-				} else if requestSeq > 6 {
-					reply = []*genai.Part{genai.NewPartFromText("Done")}
-				}
-				return &genai.GenerateContentResponse{
-					Candidates: []*genai.Candidate{{
-						Content: &genai.Content{
-							Parts: reply,
-							Role:  genai.RoleModel,
-						}}}}, nil
-			},
-		},
-		nil,
-	)
-}
-
 func TestTokenCompression(t *testing.T) {
 	type flowOutputs struct {
 		Reply string
@@ -494,20 +443,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 						return struct{}{}, nil
 					}, "tool description"),
 				},
-			},
-		})
-	testRegistrationError[struct{}, struct{}](t,
-		`flow test: action smarty: summaryWindow and compressTokens are mutually exclusive`,
-		&Flow{
-			Root: &LLMAgent{
-				Name:           "smarty",
-				Model:          "model",
-				Reply:          "Result",
-				TaskType:       FormalReasoningTask,
-				Instruction:    "Instruction",
-				Prompt:         "Prompt",
-				summaryWindow:  3,
-				compressTokens: 100,
 			},
 		})
 	testRegistrationError[struct{}, struct{}](t,
