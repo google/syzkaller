@@ -98,7 +98,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	}
 
 	if cfg.MCP {
-		http.Handle("/", mcpHandler(initState(cfg, syzkallerDir), workdir, cache))
+		http.Handle("/", mcpHandler(initState(cfg, syzkallerDir, name), workdir, cache))
 		select {}
 	}
 
@@ -282,7 +282,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
-	inputs := initState(s.cfg, s.syzkallerDir)
+	inputs := initState(s.cfg, s.syzkallerDir, s.name)
 	maps.Insert(inputs, maps.All(req.Args))
 
 	if os, _ := inputs["TargetOS"].(string); os != "" && os != s.cfg.TargetOS {
@@ -324,8 +324,9 @@ func (s *Server) resetModelQuota() {
 	}
 }
 
-func initState(cfg *Config, syzkallerDir string) map[string]any {
+func initState(cfg *Config, syzkallerDir, agentName string) map[string]any {
 	return map[string]any{
+		"AgentName":    agentName,
 		"TargetOS":     cfg.TargetOS,
 		"TargetArch":   cfg.TargetArch,
 		"Syzkaller":    osutil.Abs(syzkallerDir),

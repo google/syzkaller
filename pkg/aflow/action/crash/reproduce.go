@@ -33,6 +33,7 @@ var ErrDidNotCrash = errors.New("reproducer did not crash")
 var Reproduce = aflow.NewFuncAction("crash-reproducer", ReproduceFunc)
 
 type ReproduceArgs struct {
+	AgentName    string
 	TargetArch   string
 	Syzkaller    string
 	Image        string
@@ -95,6 +96,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	}
 
 	cfg := mgrconfig.DefaultValues()
+	cfg.Name = args.AgentName
 	cfg.RawTarget = targets.Linux + "/" + targetArch
 	cfg.Workdir = workdir
 	cfg.Syzkaller = args.Syzkaller
