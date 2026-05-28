@@ -28,6 +28,11 @@ if [ "$TARGETOS" != "linux" ]; then
     exit 0
 fi
 
+if [ "$TARGETOS" != "$BUILDOS" ]; then
+    echo "[INFO] TARGETOS is '$TARGETOS', not '$BUILDOS'. Skipping check."
+    exit 0
+fi
+
 if [ -z "$TARGETARCH" ]; then
     echoerr "Error: \$TARGETARCH environment variable is not set."
     exit 1
