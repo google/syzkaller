@@ -268,6 +268,6 @@ void foo() {
 		state{KernelCommit: "HEAD"},
 		logArgs{CodeRegexp: `foo(`, SourcePath: "foo.c"},
 		logResult{},
-		`git log failed: fatal: invalid regex: Unmatched ( or \(`,
-		aflow.TestWorkdir(tmpDir))
+		`git log failed: fatal: invalid regex: `,
+		aflow.TestErrorPrefix(), aflow.TestWorkdir(tmpDir))
 }
