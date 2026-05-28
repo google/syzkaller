@@ -49,6 +49,11 @@ var kernelBackports = []vcs.BackportCommit{
 		GuiltyHash: `1fb5f6b61535c24bed6f503707efc4358d3b70c3`,
 		FixHash:    `75bc03df42db6c52399d71a5d7252a12673fdce3`,
 	},
+	{
+		// Required for out-of-tree builds (like building the kernel in a separate obj directory).
+		GuiltyHash: `84a0884a373ec7efbb9d1ea0cd6ed85ed94dddb6`,
+		FixHash:    `75bc03df42db6c52399d71a5d7252a12673fdce3`,
+	},
 }
 
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
