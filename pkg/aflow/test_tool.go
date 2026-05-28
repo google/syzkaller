@@ -5,12 +5,18 @@ package aflow
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-type TestToolOption func(*Context)
+type TestToolOption func(*testToolContext)
+
+type testToolContext struct {
+	ctx           Context
+	errorIsPrefix bool
+}
 
 // TestTool runs the given tool on provided initState/initArgs and compares results/error
 // with the provided wantResults/wantError.
@@ -28,20 +34,25 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	require.NoError(t, vctx.finalize())
 	// Just ensure it does not crash.
 	_ = tool.declaration()
-	// We don't init all fields, init more, if necessary.
-	ctx := &Context{
-		state: state,
+	tctx := &testToolContext{
+		// We don't init all fields, init more, if necessary.
+		ctx: Context{state: state},
 	}
 	for _, opt := range opts {
-		opt(ctx)
+		opt(tctx)
 	}
-	defer ctx.Close()
-	gotResults, err := tool.execute(ctx, args)
+	defer tctx.ctx.Close()
+	gotResults, err := tool.execute(&tctx.ctx, args)
 	gotError := ""
 	if err != nil {
 		gotError = err.Error()
 	}
-	require.Equal(t, wantError, gotError)
+	if tctx.errorIsPrefix {
+		require.True(t, strings.HasPrefix(gotError, wantError),
+			"error %q does not have prefix %q", gotError, wantError)
+	} else {
+		require.Equal(t, wantError, gotError)
+	}
 	if wantError != "" {
 		var badCallErr *badCallError
 		if !errors.As(err, &badCallErr) {
@@ -51,9 +62,15 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	resultChecker(gotResults)
 }
 
+func TestErrorPrefix() TestToolOption {
+	return func(tctx *testToolContext) {
+		tctx.errorIsPrefix = true
+	}
+}
+
 func TestWorkdir(dir string) TestToolOption {
-	return func(ctx *Context) {
-		ctx.Workdir = dir
+	return func(tctx *testToolContext) {
+		tctx.ctx.Workdir = dir
 	}
 }
 
