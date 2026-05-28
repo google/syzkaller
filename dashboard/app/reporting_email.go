@@ -692,8 +692,9 @@ func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxCon
 }
 
 func processIncomingEmail(ctx context.Context, msg *email.Email) error {
-	// Ignore any incoming emails from syzbot itself.
-	if ownEmail(ctx) == msg.Author {
+	// Ignore any incoming emails from syzbot itself, including context
+	// addresses such as syzbot+HASH@domain.
+	if msg.OwnEmail {
 		// But we still want to remember the id of our own message, so just neutralize the command.
 		msg.Commands = nil
 	}
@@ -1225,6 +1226,10 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 	bug, bugKey, err := findBugByReportingID(ctx, bugID)
 	if err != nil {
 		log.Errorf(ctx, "can't find bug: %v", err)
+		if msg.OwnEmail {
+			log.Infof(ctx, "ignoring own email with unknown bug ID")
+			return nil
+		}
 		from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
 		if err != nil {
 			log.Errorf(ctx, "failed to format sender email address: %v", err)

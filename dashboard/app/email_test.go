@@ -612,6 +612,13 @@ func TestEmailErrors(t *testing.T) {
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "Investment Proposal")
 	c.expectNoEmail()
 
+	// Do not reply to syzbot's own context-address replies. Otherwise an error
+	// reply that quotes a stale syzbot+HASH address can start a mail loop.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz upstream\n\n"+
+		"On Thu, syzbot ci <syzbot+cidbb9f477452b5813@testapp.appspotmail.com> wrote:",
+		EmailOptFrom("syzbot+cidbb9f477452b5813@testapp.appspotmail.com"))
+	c.expectNoEmail()
+
 	// If email contains a command we need to reply.
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")
 	reply := c.pollEmailBug()
