@@ -287,6 +287,53 @@ func TestTokenCompression(t *testing.T) {
 	)
 }
 
+// TestTokenCompressionResetsHistory verifies that when context compression occurs,
+// the duplicate tool call detection history is reset.
+// This is tested by making 3 identical calls (which fills the history up to the limit),
+// triggering compression, and then asserting that the 4th identical call is allowed
+// (whereas it would be blocked as a duplicate if history wasn't reset).
+func TestTokenCompressionResetsHistory(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	type toolResults struct {
+		ResFoo int `jsonschema:"foo"`
+	}
+	toolExecutionCount := 0
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Reply:          "Reply",
+			compressTokens: 100,
+			Tools: []Tool{
+				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+					toolExecutionCount++
+					return toolResults{123}, nil
+				}, "logic ticker"),
+			},
+		},
+		[]any{
+			createToolCallResponse(150, "id1", "tick"),
+			createToolCallResponse(150, "id2", "tick"),
+			createToolCallResponse(260, "id3", "tick"),
+			&genai.GenerateContentResponse{
+				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
+					PromptTokenCount:     260,
+					CandidatesTokenCount: 10,
+				},
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
+						Role:  genai.RoleModel,
+					}}}},
+			createToolCallResponse(50, "id4", "tick"),
+			genai.NewPartFromText("Done"),
+		},
+		nil,
+	)
+	require.Equal(t, 4, toolExecutionCount, "toolHistory was not reset on compression!")
+}
+
 func createToolCallResponse(tokens int32, id, name string) *genai.GenerateContentResponse {
 	return &genai.GenerateContentResponse{
 		UsageMetadata: &genai.GenerateContentResponseUsageMetadata{

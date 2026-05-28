@@ -570,8 +570,12 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 
 	// Truncate history to Anchor + Summary.
 	a.req = []*genai.Content{a.req[0], newSummary}
-	// If compression happened, reset the existing summaryMessage to nil.
-	a.summaryMessage = nil
+	// Reset duplicate tool call history. Since the detailed conversation history
+	// is discarded during compression, the LLM loses access to past raw tool
+	// responses. We must reset the loop detection history to allow the LLM to
+	// re-query tools if needed, preventing it from getting permanently stuck
+	// when trying to re-fetch information that is no longer in its context.
+	a.toolHistory = nil
 	return true, nil
 }
 
