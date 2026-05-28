@@ -171,6 +171,9 @@ in the same file only.
 // This part is shared between patching and patch-iteration.
 const commonPatchInstruction = `
 
+Do not paper over problems without resolving the actual root cause. In particular, do not work around
+false positives in bug detection tools by changing production code. Such patches will not be accepted.
+
 If you are changing post-conditions of a function, consider all callers of the functions,
 and if they need to be updated to handle new post-conditions. For example, if you make
 a function that previously never returned a NULL, return NULL, consider if callers
