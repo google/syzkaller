@@ -9,7 +9,7 @@ for F in $(find . -name "*.html"); do
 	TABS=`cat $F | grep "	"  | wc -l`
 	# templates.html uses several spaces to format commit info using fixed-width font.
 	SPACES=`cat $F | grep -v "Commit.Date" | grep "  "  | wc -l`
-	if [ "$TABS" = "0" ] || [ "$SPACES" = "0" ]; then continue; fi
+	if [ "$TABS" -eq "0" ] || [ "$SPACES" -eq "0" ]; then continue; fi
 	# Ignore untracked files.
 	git ls-files --error-unmatch $F >/dev/null 2>&1
 	if [ $? -ne 0 ]; then continue; fi
