@@ -22,14 +22,17 @@ approach for testing and development.
        "dashboard_client": "my-local-agent",
        "dashboard_addr": "https://syzkaller.appspot.com",
        "dashboard_key": "YOUR_KEY",
-       "target": "linux/amd64",
-       "image": "/disk-images/buildroot_amd64",
-       "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
-       "type": "qemu",
-       "vm": {
-         "cpu": 2,
-         "mem": 2048,
-         "cmdline": "root=/dev/sda1"
+       "targets": {
+         "linux/amd64": {
+           "image": "/disk-images/buildroot_amd64",
+           "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
+           "type": "qemu",
+           "vm": {
+             "cpu": 2,
+             "mem": 2048,
+             "cmdline": "root=/dev/sda1"
+           }
+         }
        },
        "cache_size": 107374182400
    }
