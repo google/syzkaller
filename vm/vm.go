@@ -415,8 +415,9 @@ func (mon *monitor) monitorExecution() ([]*report.Report, error) {
 				mon.outc = nil
 				continue
 			}
-			mon.inst.pool.statOutputReceived.Add(len(chunk.Data))
-			if rep, done, appendErr := mon.appendOutput(chunk.Data); done {
+			output := cleanOutputForRun(chunk.Data)
+			mon.inst.pool.statOutputReceived.Add(len(output))
+			if rep, done, appendErr := mon.appendOutput(output); done {
 				return rep, appendErr
 			}
 		case <-mon.injectExecuting:
@@ -462,6 +463,13 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool, error) {
 	}
 	mon.curPos = max(mon.curPos, 0)
 	return nil, false, nil
+}
+
+func cleanOutputForRun(out []byte) []byte {
+	if bytes.IndexByte(out, '\r') == -1 {
+		return out
+	}
+	return bytes.ReplaceAll(out, []byte("\r"), nil)
 }
 
 func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error) {
@@ -546,7 +554,7 @@ func (mon *monitor) waitForOutput() {
 			if !ok {
 				return
 			}
-			mon.output = append(mon.output, chunk.Data...)
+			mon.output = append(mon.output, cleanOutputForRun(chunk.Data)...)
 		case <-timer.C:
 			return
 		case <-Shutdown:
