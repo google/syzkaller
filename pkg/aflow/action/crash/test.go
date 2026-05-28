@@ -73,7 +73,7 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 	type Cached struct {
 		TestError string
 	}
-	cached, err := aflow.CacheObject(ctx, "patch-test", desc, func() (Cached, error) {
+	cached, _, err := aflow.CacheObject(ctx, "patch-test", desc, func() (Cached, error) {
 		for _, fn := range []func(ctx *aflow.Context, args testArgs) (string, error){
 			testPatchBuild,
 			testPatchRepro,

@@ -191,3 +191,38 @@ func TestCacheReadObject(t *testing.T) {
 	require.NotNil(t, entry)
 	require.Equal(t, entry.lastUsed, mockedTime)
 }
+
+func TestRetrieveObject(t *testing.T) {
+	ctx := NewTestContext(t)
+	type X struct {
+		I int
+		S string
+	}
+	x, id, err := CacheObject(ctx, "foo", "1", func() (X, error) {
+		return X{42, "foo"}, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, x, X{42, "foo"})
+	require.NotEmpty(t, id)
+
+	x2, err := RetrieveObject[X](ctx, id)
+	require.NoError(t, err)
+	require.Equal(t, x2, X{42, "foo"})
+}
+
+func TestRetrieveObject_InvalidID(t *testing.T) {
+	ctx := NewTestContext(t)
+	type X struct{}
+
+	_, err := RetrieveObject[X](ctx, "coverage/")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "parts cannot be empty")
+
+	_, err = RetrieveObject[X](ctx, "invalid")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid cached ID format")
+
+	_, err = RetrieveObject[X](ctx, "../invalid")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid cached ID (not local)")
+}

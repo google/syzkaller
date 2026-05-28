@@ -801,7 +801,7 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateConten
 	model := ctx.modelName(a.Model)
 	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
 		model, hash.String(cfg), hash.String(req), candidate)
-	cached, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
+	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
 		resp, err := ctx.generateContent(model, cfg, req)
 		err = parseLLMError(resp, err, model, try)
 		return Cached{

@@ -38,8 +38,8 @@ and program execution.
 ### A. New Tools (`pkg/aflow/tool`)
 Several critical tools are introduced for the LLM agent to iterate effectively:
 * `read-description`: Takes a file name and returns the content of the syzlang description file.
-* `reproduce-crash`: Takes a `.syz` program, parses and deserializes it to catch compilation/syntax errors, then executes it in a test VM. Returns the triggered bug title, crash report, and a `CoverageID`.
-* `get-coverage-files` & `get-file-coverage`: Tools taking a `CoverageID` to inspect which source files and executed functions/lines were covered.
+* `reproduce-crash`: Takes a `.syz` program, parses and deserializes it to catch compilation/syntax errors, then executes it in a test VM. Returns the triggered bug title, crash report, and a `ExecutionCachedID`.
+* `get-coverage-files` & `get-file-coverage`: Tools taking a `ExecutionCachedID` to inspect which source files and executed functions/lines were covered.
 * `codesearcher` & `grepper`: Tools enabling the LLM to inspect the Linux kernel source code and stack context on the fly.
 
 ### B. Actions (`pkg/aflow/action`)

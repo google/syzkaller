@@ -27,14 +27,12 @@ func TestCoverageFiles(t *testing.T) {
 		},
 	}
 
-	covDir, err := ctx.Cache("coverage", "dummy-desc", func(dir string) error {
-		return osutil.WriteJSON(filepath.Join(dir, "coverage.json"), dummyCov)
+	_, reproExecCachedID, err := aflow.CacheObject(ctx, "repro", "dummy-desc", func() (map[string]any, error) {
+		return map[string]any{"Coverage": dummyCov}, nil
 	})
 	require.NoError(t, err)
-	covID := filepath.Base(covDir)
-
 	res, err := getCoverageFiles(ctx, reproduceState{TargetOS: "linux", TargetArch: "amd64"}, CoverageFilesArgs{
-		CoverageID: covID,
+		ExecutionCachedID: reproExecCachedID,
 	})
 	require.NoError(t, err)
 
@@ -52,11 +50,10 @@ func TestFileCoverage(t *testing.T) {
 		},
 	}
 
-	covDir, err := ctx.Cache("coverage", "dummy-desc-2", func(dir string) error {
-		return osutil.WriteJSON(filepath.Join(dir, "coverage.json"), dummyCov)
+	_, reproExecCachedID, err := aflow.CacheObject(ctx, "repro", "dummy-desc-2", func() (map[string]any, error) {
+		return map[string]any{"Coverage": dummyCov}, nil
 	})
 	require.NoError(t, err)
-	covID := filepath.Base(covDir)
 
 	kernelSrc := t.TempDir()
 	err = osutil.MkdirAll(kernelSrc)
@@ -75,8 +72,8 @@ void foo(void) {
 	require.NoError(t, err)
 
 	res, err := getFileCoverage(ctx, reproduceState{KernelSrc: kernelSrc}, FileCoverageArgs{
-		CoverageID: covID,
-		Filename:   "foo.c",
+		ExecutionCachedID: reproExecCachedID,
+		Filename:          "foo.c",
 	})
 	require.NoError(t, err)
 

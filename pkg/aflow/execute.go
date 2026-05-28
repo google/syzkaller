@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -329,13 +330,34 @@ func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string
 	return dir, nil
 }
 
-func CacheObject[T any](ctx *Context, typ, desc string, populate func() (T, error)) (T, error) {
+func CacheObject[T any](
+	ctx *Context,
+	typ,
+	desc string,
+	populate func() (T, error),
+) (obj T, id string, err error) {
 	dir, obj, err := cacheCreateObject(ctx.cache, typ, desc, populate)
 	if err != nil {
-		return obj, err
+		return obj, "", err
 	}
 	ctx.cachedDirs = append(ctx.cachedDirs, dir)
-	return obj, nil
+	id = typ + "/" + filepath.Base(dir)
+	return obj, id, nil
+}
+
+func RetrieveObject[T any](ctx *Context, cachedID string) (T, error) {
+	var res T
+	if !filepath.IsLocal(cachedID) {
+		return res, fmt.Errorf("invalid cached ID (not local): %q", cachedID)
+	}
+	parts := strings.Split(cachedID, "/")
+	if len(parts) != 2 {
+		return res, fmt.Errorf("invalid cached ID format: %q", cachedID)
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return res, fmt.Errorf("invalid cached ID: parts cannot be empty")
+	}
+	return CacheReadObject[T](ctx, parts[0], parts[1], "object")
 }
 
 func CacheReadObject[T any](ctx *Context, typ, id, filename string) (T, error) {
