@@ -132,7 +132,7 @@ func BenchmarkConn(b *testing.B) {
 		Files:      []string{"file1"},
 	}
 
-	serv, err := Listen(":0")
+	serv, err := Listen("127.0.0.1:0")
 	if err != nil {
 		b.Fatal(err)
 	}
