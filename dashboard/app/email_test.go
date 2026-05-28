@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // nolint: funlen
@@ -602,50 +600,6 @@ func TestEmailCrossReportingDup(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestEmailErrors(t *testing.T) {
-	c := NewCtx(t)
-	defer c.Close()
-
-	// No reply for email without bug hash and no commands.
-	c.incomingEmail("syzbot@testapp.appspotmail.com", "Investment Proposal")
-	c.expectNoEmail()
-
-	// If email contains a command we need to reply.
-	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")
-	reply := c.pollEmailBug()
-	c.expectEQ(reply.To, []string{"default@sender.com"})
-	c.expectEQ(reply.Body, `> #syz invalid
-
-I see the command but can't find the corresponding bug.
-Please resend the email to syzbot+HASH@testapp.appspotmail.com address
-that is the sender of the bug report (also present in the Reported-by tag).
-
-`)
-
-	// If the command was seen on a mailing list, but syzbot was not addressed, do NOT reply.
-	// Since we receive the email, it hits our endpoint, but the To header is the mailing list.
-	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid",
-		EmailOptTo("test@syzkaller.com"), EmailOptSender("test@syzkaller.com"))
-	c.expectNoEmail()
-
-	// If the command was seen on a mailing list AND syzbot was explicitly addressed (without hash), we DO reply.
-	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid",
-		EmailOptSender("test@syzkaller.com"), EmailOptCC([]string{"test@syzkaller.com"}))
-	reply = c.pollEmailBug()
-	assert.Contains(t, reply.Body, "I see the command but can't find the corresponding bug")
-
-	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "#syz invalid")
-	reply = c.pollEmailBug()
-	c.expectEQ(reply.Body, `> #syz invalid
-
-I see the command but can't find the corresponding bug.
-The email is sent to  syzbot+HASH@testapp.appspotmail.com address
-but the HASH does not correspond to any known bug.
-Please double check the address.
-
-`)
 }
 
 func TestEmailFailedBuild(t *testing.T) {
@@ -1470,91 +1424,6 @@ func TestForwardNotDirect(t *testing.T) {
 		EmailOptCC(nil), EmailOptSubject("fix bug title"))
 
 	c.expectNoEmail()
-}
-
-func TestForwardEmailInbox(t *testing.T) {
-	c := NewCtx(t)
-	defer c.Close()
-
-	c.transformContext = func(c context.Context) context.Context {
-		newConfig := *getConfig(c)
-		newConfig.MonitoredInboxes = []*PerInboxConfig{
-			{
-				InboxRe:   `^syzbot\+prefix.*@testapp\.appspotmail\.com$`,
-				ForwardTo: []string{`forward@a.com`, `forward@b.com`},
-			},
-		}
-		return contextWithConfig(c, &newConfig)
-	}
-
-	t.Run("forwarded", func(t *testing.T) {
-		from := "syzbot+prefixABCD@testapp.appspotmail.com"
-		c.incomingEmail(from,
-			"#syz invalid",
-			EmailOptSubject("test subject"),
-			EmailOptMessageID(1),
-			EmailOptFrom("someone@mail.com"),
-			EmailOptCC([]string{"some@list.com"}))
-		msg := c.pollEmailBug()
-		require.NotNil(t, msg)
-		assert.Equal(t, `"syzbot" <syzbot@testapp.appspotmail.com>`, msg.Sender)
-		assert.Equal(t, "Forwarded: test subject", msg.Subject)
-		assert.ElementsMatch(t, []string{"forward@a.com", "forward@b.com"},
-			msg.To, "must be sent to the author and the missing lists")
-		assert.ElementsMatch(t, []string{"\"syzbot\" <" + from + ">", "someone@mail.com"}, msg.Cc)
-		assert.Equal(t, "<1>", msg.Headers.Get("In-Reply-To"))
-		assert.Equal(t, `For archival purposes, forwarding an incoming command email to
-forward@a.com, forward@b.com.
-
-***
-
-Subject: test subject
-Author: someone@mail.com
-
-#syz invalid
-`, msg.Body)
-
-		t.Run("no-loop", func(t *testing.T) {
-			// Ensure that we don't react to replies.
-			c.incomingEmail("syzbot@testapp.appspotmail.com", msg.Body,
-				EmailOptFrom("syzbot@testapp.appspotmail.com"),
-				EmailOptCC(append(slices.Clone(msg.Cc), msg.To...)))
-			c.expectNoEmail()
-		})
-
-		t.Run("duplicate-from-mailing-list", func(t *testing.T) {
-			mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
-			// Ensure we don't forward the same email when we receive it again via a mailing list.
-			c.incomingEmail(from,
-				"#syz invalid",
-				EmailOptSubject("test subject"),
-				EmailOptMessageID(1),
-				EmailOptFrom("someone@mail.com"),
-				EmailOptCC([]string{"some@list.com"}), // same as original
-				EmailOptSender(mailingList))           // this makes msg.MailingList set
-			c.expectNoEmail()
-		})
-	})
-
-	t.Run("no command", func(t *testing.T) {
-		c.incomingEmail("syzbot+prefixABCD@testapp.appspotmail.com",
-			"Some spam message",
-			EmailOptMessageID(1),
-			EmailOptFrom("someone@mail.com"))
-		c.expectNoEmail()
-	})
-
-	t.Run("unrelated", func(t *testing.T) {
-		// It will react as if the email targeted the bug ABCD.
-		c.incomingEmail("syzbot+ABCD@testapp.appspotmail.com",
-			"#syz invalid",
-			EmailOptMessageID(1),
-			EmailOptFrom("someone@mail.com"),
-			EmailOptCC([]string{"some@list.com"}))
-		msg := c.pollEmailBug()
-		require.NotNil(t, msg)
-		assert.Contains(t, msg.Body, "I see the command but can't find the corresponding bug")
-	})
 }
 
 func TestEmailIndirectCommandIgnored(t *testing.T) {

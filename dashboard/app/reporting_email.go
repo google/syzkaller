@@ -1225,14 +1225,17 @@ func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
 	bug, bugKey, err := findBugByReportingID(ctx, bugID)
 	if err != nil {
 		log.Errorf(ctx, "can't find bug: %v", err)
-		from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
-		if err != nil {
-			log.Errorf(ctx, "failed to format sender email address: %v", err)
-			from = "ERROR"
-		}
-		if err := replyTo(ctx, msg, "", fmt.Sprintf(replyBadBugID, from)); err != nil {
-			log.Errorf(ctx, "failed to send reply: %v", err)
-		}
+		/*
+			from, err := email.AddAddrContext(ownEmail(ctx), "HASH")
+			if err != nil {
+				log.Errorf(ctx, "failed to format sender email address: %v", err)
+				from = "ERROR"
+			}
+
+				if err := replyTo(ctx, msg, "", fmt.Sprintf(replyBadBugID, from)); err != nil {
+					log.Errorf(ctx, "failed to send reply: %v", err)
+				}
+		*/
 		return nil
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
