@@ -99,7 +99,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 			// vcs.BackportCommits cherry-picks commits but leaves them uncommitted in the index/tree.
 			// We must commit them so that the subsequent shallow clone pulls the fully prepared tree.
 			if applied {
-				if _, err := osutil.RunCmd(time.Minute, kernelRepoDir, "git",
+				if _, err := runSandboxedGit(time.Minute, kernelRepoDir,
 					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
 					"commit", "-m", "aflow: apply backports"); err != nil {
 					return fmt.Errorf("failed to commit backports: %w", err)
@@ -125,6 +125,15 @@ func checkoutScratch(ctx *aflow.Context, args checkoutScratchArgs) (checkoutScra
 		return checkoutScratchResult{}, err
 	}
 	return checkoutScratchResult{dir}, nil
+}
+
+func runSandboxedGit(timeout time.Duration, dir string, args ...string) ([]byte, error) {
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = dir
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return nil, fmt.Errorf("failed to sandbox git: %w", err)
+	}
+	return osutil.Run(timeout, cmd)
 }
 
 func shallowGitClone(dir, remoteDir string) error {
