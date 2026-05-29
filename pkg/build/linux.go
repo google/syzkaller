@@ -59,7 +59,7 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 		if err := osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image")); err != nil {
 			return details, err
 		}
-	} else if err := embedLinuxKernel(params, kernelPath); err != nil {
+	} else if err := EmbedLinuxKernel(params, kernelPath); err != nil {
 		return details, err
 	}
 	vmlinux := filepath.Join(params.OutputDir, "obj", "vmlinux")
