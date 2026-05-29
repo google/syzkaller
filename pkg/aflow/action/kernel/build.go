@@ -40,14 +40,15 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch string, cleanup boo
 	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
 		return err
 	}
-	// We don't fuzz x32 arch, and it's not very interesting,
-	// but building with this config and ld.lld fails with the following error:
-	// ld.lld: error: arch/x86/entry/vdso/vgetrandom-x32.o:(.note.gnu.property+0x0): data is too short
-	// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
 	configScript := filepath.Join(srcDir, "scripts", "config")
 	configArgs := []string{"--set-str", "INITRAMFS_SOURCE", ""}
 	if targetArch == targets.AMD64 {
-		configArgs = append(configArgs, "-d", "X86_X32_ABI")
+		// We don't fuzz x32 arch, and it's not very interesting,
+		// but building with this config and ld.lld fails with the following error:
+		// ld.lld: error: arch/x86/entry/vdso/vgetrandom-x32.o:(.note.gnu.property+0x0): data is too short
+		// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
+		// Also enforce gzip since lz4 is not present in the Docker container.
+		configArgs = append(configArgs, "-d", "X86_X32_ABI", "-e", "KERNEL_GZIP", "-d", "KERNEL_LZ4")
 	}
 	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript, configArgs...); err != nil {
 		return err
