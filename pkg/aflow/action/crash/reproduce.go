@@ -90,8 +90,21 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	}
 
 	targetArch := args.TargetArch
-	if args.Type == "qemu" {
+	switch args.Type {
+	case "qemu":
 		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	case "gce":
+		params := build.Params{
+			TargetOS:     targets.Linux,
+			TargetArch:   targetArch,
+			UserspaceDir: args.Image,
+			OutputDir:    workdir,
+		}
+		kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+		if err := build.EmbedLinuxKernel(params, kernelPath); err != nil {
+			return res, fmt.Errorf("failed to embed kernel into image: %w", err)
+		}
+		args.Image = filepath.Join(workdir, "image")
 	}
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {

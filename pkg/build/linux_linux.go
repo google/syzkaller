@@ -14,14 +14,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// embedLinuxKernel copies a new kernel into an existing disk image.
+// EmbedLinuxKernel copies a new kernel into an existing disk image.
 // There are several assumptions about the image:
 // - the image is ext4 (may be inferred from image name if necessary, e.g. "image.btrfs")
 // - the data is on partition 1 (we could see what partitions we got and use the last one)
 // - ssh works without password (we don't copy the key)
 // - cmdline file is not supported (should be moved to kernel config)
 // - the kernel is stored in the image in /vmlinuz file.
-func embedLinuxKernel(params Params, kernelPath string) error {
+func EmbedLinuxKernel(params Params, kernelPath string) error {
 	return embedFiles(params, func(mountDir string) error {
 		if err := copyKernel(mountDir, kernelPath); err != nil {
 			return err
