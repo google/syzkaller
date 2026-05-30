@@ -681,6 +681,15 @@ Please double check the address.
 		EmailOptFrom("syzbot@testapp.appspotmail.com"),
 		EmailOptSender("syzkaller-upstream-moderation@googlegroups.com"))
 	c.expectNoEmail()
+
+	// A reply from a context-addressed syzbot sender is still our own email and
+	// must not trigger a new error reply from quoted commands.
+	c.incomingEmail("syzbot+123@testapp.appspotmail.com", `> #syz upstream
+
+Failed to process the command.`,
+		EmailOptFrom("syzbot+cidbb9f477452b5813@testapp.appspotmail.com"),
+		EmailOptSender("syzkaller-upstream-moderation@googlegroups.com"))
+	c.expectNoEmail()
 }
 
 func TestEmailFailedBuild(t *testing.T) {
