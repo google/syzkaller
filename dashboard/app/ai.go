@@ -1022,13 +1022,6 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	}
 }
 
-func summarizeAIJobError(err string) string {
-	if len(err) <= maxAIJobListErrorSummary {
-		return err
-	}
-	return err[:maxAIJobListErrorSummary] + "..."
-}
-
 func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*aflowhtml.UIAITrajectorySpan {
 	var res []*aflowhtml.UIAITrajectorySpan
 	for _, span := range trajetory {
@@ -1337,10 +1330,7 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
 	finished := timeNow(ctx)
-	jobError := req.Error
-	if len(jobError) > maxAIJobDoneErrorLen {
-		jobError = req.Error[:maxAIJobDoneErrorLen] + "\n... [truncated]"
-	}
+	jobError := truncateAIJobError(req.Error)
 	job, err = aidb.SetJobDone(ctx, req.ID, finished, jobError, req.Results)
 	if err != nil {
 		return nil, err
@@ -1383,6 +1373,20 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		log.Errorf(ctx, "failed to add initial job reporting for job %v: %v", job.ID, err)
 	}
 	return nil, nil
+}
+
+func truncateAIJobError(err string) string {
+	if len(err) > maxAIJobDoneErrorLen {
+		err = err[:maxAIJobDoneErrorLen] + "\n... [truncated]"
+	}
+	return err
+}
+
+func summarizeAIJobError(err string) string {
+	if len(err) <= maxAIJobListErrorSummary {
+		return err
+	}
+	return err[:maxAIJobListErrorSummary] + "..."
 }
 
 func shouldReportJob(job *aidb.Job) bool {
