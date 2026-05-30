@@ -262,6 +262,22 @@ table td, table th {
 	text-align: center;
 }
 
+.list_table .ai_job_error_cell {
+	max-width: 500pt;
+	white-space: normal;
+}
+
+.list_table .ai_job_error {
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+.list_table .ai_job_error_note {
+	color: #555;
+	font-size: 85%;
+}
+
 .list_table .status-crashed {
 	background-color: #FF8674;
 }
