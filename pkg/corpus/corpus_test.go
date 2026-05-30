@@ -76,6 +76,106 @@ func TestCorpusCoverage(t *testing.T) {
 	assert.Equal(t, corpus.StatCover.Val(), 3)
 }
 
+func TestFocusAreaStatsIncludeAllArea(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name: "dummy",
+			CoverPCs: map[uint64]struct{}{
+				42: {},
+			},
+			Weight: 10,
+		},
+		{
+			Weight: 1,
+		},
+		{
+			CoverPCs: map[uint64]struct{}{
+				42: {},
+			},
+			Weight: 1,
+		},
+	})
+	rs := rand.NewSource(0)
+
+	inp := generateInput(target, rs, 5)
+	inp.Cover = []uint64{42}
+	corpus.Save(inp)
+
+	inp = generateInput(target, rs, 5)
+	inp.Cover = []uint64{100}
+	corpus.Save(inp)
+
+	assert.Equal(t, map[string]int{
+		"dummy":          1,
+		allFocusAreaName: 2,
+	}, corpus.ProgsPerArea())
+}
+
+func TestFocusAreaStatsDoNotDuplicateExistingProgram(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name: "area",
+			CoverPCs: map[uint64]struct{}{
+				1: {},
+				2: {},
+			},
+			Weight: 1,
+		},
+	})
+	rs := rand.NewSource(0)
+
+	inp := generateInput(target, rs, 5)
+	inp.Cover = []uint64{1}
+	corpus.Save(inp)
+	assert.Equal(t, map[string]int{"area": 1}, corpus.ProgsPerArea())
+
+	inp.Cover = []uint64{2}
+	inp.Signal = signal.FromRaw([]uint64{2}, 0)
+	corpus.Save(inp)
+
+	assert.Equal(t, map[string]int{"area": 1}, corpus.ProgsPerArea())
+}
+
+func TestFocusAreaStatsSurviveMinimize(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name: "first",
+			CoverPCs: map[uint64]struct{}{
+				1: {},
+				2: {},
+			},
+			Weight: 1,
+		},
+		{
+			Name: "second",
+			CoverPCs: map[uint64]struct{}{
+				2: {},
+				3: {},
+			},
+			Weight: 1,
+		},
+	})
+	rs := rand.NewSource(0)
+
+	inp := generateInput(target, rs, 5)
+	inp.Cover = []uint64{2}
+	corpus.Save(inp)
+	assert.Equal(t, map[string]int{
+		"first":  1,
+		"second": 1,
+	}, corpus.ProgsPerArea())
+
+	corpus.Minimize(true)
+
+	assert.Equal(t, map[string]int{
+		"first":  1,
+		"second": 1,
+	}, corpus.ProgsPerArea())
+}
+
 func TestCorpusSaveConcurrency(t *testing.T) {
 	target := getTarget(t, targets.TestOS, targets.TestArch64)
 	corpus := NewCorpus(context.Background())
