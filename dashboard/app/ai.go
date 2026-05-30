@@ -68,6 +68,11 @@ type ManualWorkflowField struct {
 	Options      []string
 }
 
+const (
+	maxAIJobDoneErrorLen     = 1 << 20
+	maxAIJobListErrorSummary = 200
+)
+
 func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 	if cfg == nil || cfg.AI == nil {
 		return nil
@@ -240,6 +245,7 @@ type uiAIJob struct {
 	CodeRevision     string
 	CodeRevisionLink string
 	Error            string
+	ErrorSummary     string
 	Correct          string
 	CorrectTitle     string
 	Results          []*uiAIResult
@@ -1012,7 +1018,15 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		Correct:          correct,
 		CorrectTitle:     title,
 		Results:          results,
+		ErrorSummary:     summarizeAIJobError(job.Error),
 	}
+}
+
+func summarizeAIJobError(err string) string {
+	if len(err) <= maxAIJobListErrorSummary {
+		return err
+	}
+	return err[:maxAIJobListErrorSummary] + "..."
 }
 
 func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*aflowhtml.UIAITrajectorySpan {
@@ -1323,7 +1337,11 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
 	finished := timeNow(ctx)
-	job, err = aidb.SetJobDone(ctx, req.ID, finished, req.Error, req.Results)
+	jobError := req.Error
+	if len(jobError) > maxAIJobDoneErrorLen {
+		jobError = req.Error[:maxAIJobDoneErrorLen] + "\n... [truncated]"
+	}
+	job, err = aidb.SetJobDone(ctx, req.ID, finished, jobError, req.Results)
 	if err != nil {
 		return nil, err
 	}
