@@ -116,7 +116,7 @@ func (kc *kernelContext) Loop(ctx context.Context) error {
 				return nil
 			case err := <-kc.pool.BootErrors:
 				title := "unknown"
-				var bootErr vm.BootErrorer
+				var bootErr vm.BootError
 				if errors.As(err, &bootErr) {
 					title, _ = bootErr.BootError()
 				}
