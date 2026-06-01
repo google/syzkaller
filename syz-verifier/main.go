@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
@@ -45,7 +46,7 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 	// Executor process restarts between program executions to clear accumulated kernel/VM stat.
 	cfg.Experimental.ResetAccState = true
 
-	kernel.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
+	kernel.serv, err = execbackend.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
 		Manager: kernel,
 		Stats:   kernel.servStats,

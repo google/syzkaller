@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -37,7 +37,7 @@ type kernelContext struct {
 	cfg        *mgrconfig.Config
 	reporter   *report.Reporter
 	fuzzer     atomic.Pointer[fuzzer.Fuzzer]
-	serv       rpcserver.Server
+	serv       execbackend.Server
 	servStats  rpcserver.Stats
 	crashes    chan *report.Report
 	pool       *vm.Dispatcher
@@ -73,7 +73,7 @@ func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, erro
 		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
 	}
 
-	kernelCtx.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
+	kernelCtx.serv, err = execbackend.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
 		Manager: kernelCtx,
 		Stats:   kernelCtx.servStats,
@@ -95,7 +95,7 @@ func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, erro
 func (kc *kernelContext) Loop(ctx context.Context) error {
 	defer log.Logf(1, "%s: kernel context loop terminated", kc.name)
 
-	if err := kc.serv.Listen(); err != nil {
+	if err := kc.serv.Setup(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
 	eg, groupCtx := errgroup.WithContext(ctx)
@@ -247,54 +247,16 @@ func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) ([]uint6
 }
 
 func (kc *kernelContext) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
-	index := inst.Index()
-	injectExec := make(chan bool, 10)
-	kc.serv.CreateInstance(index, injectExec, updInfo)
-	rep, err := kc.runInstance(ctx, inst, injectExec)
-	lastExec, _ := kc.serv.ShutdownInstance(index, rep != nil)
-	if rep != nil {
-		rpcserver.PrependExecuting(rep, lastExec)
+	reps, err := kc.serv.RunRequests(ctx, inst, kc.reporter, updInfo)
+	if len(reps) > 0 {
 		select {
-		case kc.crashes <- rep:
+		case kc.crashes <- reps[0]:
 		case <-ctx.Done():
 		}
 	}
 	if err != nil {
 		log.Errorf("#%d run failed: %s", inst.Index(), err)
 	}
-}
-
-func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
-	injectExec <-chan bool) (*report.Report, error) {
-	fwdAddr, err := inst.Forward(kc.serv.Port())
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup port forwarding: %w", err)
-	}
-	executorBin, err := inst.Copy(kc.cfg.ExecutorBin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %w", err)
-	}
-	host, port, err := net.SplitHostPort(fwdAddr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse manager's address")
-	}
-	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
-	ctxTimeout, cancel := context.WithTimeout(ctx, kc.cfg.Timeouts.VMRunningTime)
-	defer cancel()
-	_, reps, err := inst.Run(ctxTimeout, kc.reporter, cmd,
-		vm.WithExitCondition(vm.ExitTimeout),
-		vm.WithInjectExecuting(injectExec),
-		vm.WithEarlyFinishCb(func() {
-			// Depending on the crash type and kernel config, fuzzing may continue
-			// running for several seconds even after kernel has printed a crash report.
-			// This litters the log and we want to prevent it.
-			kc.serv.StopFuzzing(inst.Index())
-		}),
-	)
-	if len(reps) > 0 {
-		return reps[0], err
-	}
-	return nil, err
 }
 
 func (kc *kernelContext) TriageProgress() float64 {

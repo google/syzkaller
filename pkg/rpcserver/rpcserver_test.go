@@ -38,7 +38,7 @@ func getTestDefaultCfg() mgrconfig.Config {
 func TestNew(t *testing.T) {
 	defaultCfg := getTestDefaultCfg()
 
-	nilServer := func(s Server) {
+	nilBackend := func(s Server) {
 		assert.Nil(t, s)
 	}
 
@@ -57,7 +57,7 @@ func TestNew(t *testing.T) {
 				cfg.Sandbox = "unknown"
 				return &cfg
 			},
-			expectedServCheck: nilServer,
+			expectedServCheck: nilBackend,
 			expectsErr:        true,
 		},
 		{
