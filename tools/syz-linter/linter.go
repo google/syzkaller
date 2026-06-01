@@ -46,6 +46,7 @@ func main() {
 func New(conf any) ([]*analysis.Analyzer, error) {
 	return append([]*analysis.Analyzer{
 		SyzAnalyzer,
+		SrcOrderAnalyzer,
 		// Some standard analyzers that are not enabled in vet.
 		atomicalign.Analyzer,
 		copylock.Analyzer,
@@ -114,6 +115,8 @@ func run(p *analysis.Pass) (any, error) {
 	return nil, nil
 }
 
+type Pass analysis.Pass
+
 func (pass *Pass) checkTopLevelDecls(file *ast.File, commentLines map[int]bool) {
 	isRelevantDecl := func(d ast.Decl) token.Token {
 		switch x := d.(type) {
@@ -164,8 +167,6 @@ topLoop:
 		pass.report(d2, "Keep one empty line between top-level declarations")
 	}
 }
-
-type Pass analysis.Pass
 
 func (pass *Pass) report(pos ast.Node, msg string, args ...any) {
 	pass.Report(analysis.Diagnostic{

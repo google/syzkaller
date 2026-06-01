@@ -13,3 +13,7 @@ import (
 func TestLinter(t *testing.T) {
 	analysistest.Run(t, osutil.Abs("testdata"), SyzAnalyzer, "lintertest")
 }
+
+func TestSrcOrder(t *testing.T) {
+	analysistest.RunWithSuggestedFixes(t, osutil.Abs("testdata"), SrcOrderAnalyzer, "srcordertest")
+}
