@@ -22,6 +22,7 @@ import (
 	"go/token"
 	"go/types"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
@@ -34,7 +35,10 @@ import (
 	"golang.org/x/tools/go/analysis/passes/structtag"
 )
 
-func main() {}
+func main() {
+	// New used as a plugin, this marks it used for deadcode checker.
+	runtime.KeepAlive(New)
+}
 
 func New(conf any) ([]*analysis.Analyzer, error) {
 	return []*analysis.Analyzer{

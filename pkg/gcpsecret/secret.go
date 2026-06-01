@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"cloud.google.com/go/compute/metadata"
@@ -83,4 +84,9 @@ func Resolve(ctx context.Context, val string) (string, error) {
 		return string(data), nil
 	}
 	return val, nil
+}
+
+func init() {
+	// Used by dashboard/app configs.
+	runtime.KeepAlive(GcpSecret)
 }

@@ -141,10 +141,6 @@ func CreateJob(ctx context.Context, job *Job) (string, error) {
 	return job.ID, err
 }
 
-func UpdateJob(ctx context.Context, job *Job) error {
-	return saveEntity(ctx, "Jobs", job)
-}
-
 func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
 	job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
 	job.CodeRevision = req.CodeRevision
@@ -542,10 +538,6 @@ func selectJournal() string {
 
 func selectJobReporting() string {
 	return selectAllFrom[JobReporting]("JobReporting")
-}
-
-func AddJobReporting(ctx context.Context, entry *JobReporting) error {
-	return saveEntity(ctx, "JobReporting", entry)
 }
 
 func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction, job *Job, stage string) error {
@@ -1293,20 +1285,6 @@ func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, 
 		return nil, nil
 	}
 	return res, err
-}
-
-func AddJournalEntry(ctx context.Context, entry *Journal) error {
-	entry.ID = uuid.NewString()
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-	mut, err := spanner.InsertStruct("Journal", entry)
-	if err != nil {
-		return err
-	}
-	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
-	return err
 }
 
 func IsCommandProcessed(ctx context.Context, source, sourceExtID string) (bool, error) {

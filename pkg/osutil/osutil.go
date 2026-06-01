@@ -139,11 +139,6 @@ func VerboseMessage(err error) string {
 	return msg
 }
 
-func IsDir(name string) bool {
-	fileInfo, err := os.Stat(name)
-	return err == nil && fileInfo.IsDir()
-}
-
 // IsExist returns true if the file name exists.
 func IsExist(name string) bool {
 	_, err := os.Stat(name)

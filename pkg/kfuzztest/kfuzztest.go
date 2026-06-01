@@ -70,10 +70,6 @@ const (
 	AttributeArray
 )
 
-func (a AnnotationAttribute) String() string {
-	return [...]string{"ATTRIBUTE_LEN", "ATTRIBUTE_STRING", "ATTRIBUTE_ARRAY"}[a]
-}
-
 type SyzAnnotation struct {
 	InputType       string
 	FieldName       string

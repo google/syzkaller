@@ -6,6 +6,8 @@
 package proggen
 
 import (
+	"runtime"
+
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -29,4 +31,9 @@ func Fuzz(data []byte) int {
 		return 0
 	}
 	return len(progs)
+}
+
+func init() {
+	// Mark as used for deadcode checker.
+	runtime.KeepAlive(Fuzz)
 }
