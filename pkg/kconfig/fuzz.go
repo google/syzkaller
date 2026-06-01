@@ -4,6 +4,8 @@
 package kconfig
 
 import (
+	"runtime"
+
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -24,4 +26,11 @@ func FuzzParseExpr(data []byte) int {
 	}
 	p.parseExpr()
 	return 0
+}
+
+func init() {
+	// Mark as used for deadcode checker.
+	runtime.KeepAlive(FuzzParseKConfig)
+	runtime.KeepAlive(FuzzParseConfig)
+	runtime.KeepAlive(FuzzParseExpr)
 }

@@ -5,6 +5,7 @@ package tool
 
 import (
 	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -25,4 +26,9 @@ func FuzzParseFlags(data []byte) int {
 		panic("changed")
 	}
 	return 1
+}
+
+func init() {
+	// Mark as used for deadcode checker.
+	runtime.KeepAlive(FuzzParseFlags)
 }

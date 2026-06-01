@@ -3,9 +3,17 @@
 
 package linux
 
-import "bytes"
+import (
+	"bytes"
+	"runtime"
+)
 
 func Fuzz(data []byte) int {
 	parseLinuxMaintainers(bytes.NewReader(data))
 	return 0
+}
+
+func init() {
+	// Mark as used for deadcode checker.
+	runtime.KeepAlive(Fuzz)
 }

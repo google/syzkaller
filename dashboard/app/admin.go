@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -412,10 +413,11 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	})
 }
 
-// Prevent warnings about dead code.
-var (
-	_ = dropNamespace
-	_ = adminSendEmail
-	_ = updateHeadReproLevel
-	_ = updateCrashPriorities
-)
+func init() {
+	// Prevent warnings about dead code.
+	runtime.KeepAlive(dropNamespace)
+	runtime.KeepAlive(dropEntities)
+	runtime.KeepAlive(adminSendEmail)
+	runtime.KeepAlive(updateHeadReproLevel)
+	runtime.KeepAlive(updateCrashPriorities)
+}

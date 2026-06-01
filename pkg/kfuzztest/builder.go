@@ -26,14 +26,6 @@ func NewBuilder(
 	return &Builder{funcs, structs, constraints, annotations}
 }
 
-func (b *Builder) AddStruct(s SyzStruct) {
-	b.structs = append(b.structs, s)
-}
-
-func (b *Builder) AddFunc(f SyzFunc) {
-	b.funcs = append(b.funcs, f)
-}
-
 func (b *Builder) EmitSyzlangDescription() (string, error) {
 	constraintMap := make(map[string]map[string]SyzConstraint)
 	for _, constraint := range b.constraints {

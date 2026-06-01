@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	texttemplate "text/template"
 	"time"
@@ -30,9 +31,13 @@ var globSearchPath = func() string {
 }()
 
 // SetGlobSearchPath overrides the default path where syzkaller looks for templates.
-// Used externally - do not remove.
 func SetGlobSearchPath(path string) {
 	globSearchPath = path
+}
+
+func init() {
+	// Used externally - do not remove.
+	runtime.KeepAlive(SetGlobSearchPath)
 }
 
 func CreateGlob(glob string) *template.Template {
