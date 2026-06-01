@@ -42,9 +42,11 @@ In each iteration, the following steps are executed:
 5.  **Execution**: `crash.RunCRepro` runs the candidate reproducer in the VM. It returns whether it reproduced the crash, the console output, and crash report details if successful.
 6.  **Log Truncation**: `TruncateLog` keeps the last 200 lines of console output to fit LLM context limits.
 7.  **Oracle Analysis**: The `repro-oracle` agent analyzes the execution results using the structured `IsProbe` flag to branch its logic:
-    *   **If `IsProbe` is true**: A successful run (all capability checks passed) confirms the environment is ready, and the Oracle instructs the generator to proceed to the full reproducer. A failed run prompts feedback on which capabilities failed to help the generator adjust its setups.
+    *   **If `IsProbe` is true**: A successful run (all capability checks passed) confirms the environment is ready. The Oracle sets `ProbePassed` to true and instructs the generator to proceed to the full reproducer. A failed run sets `ProbePassed` to false and prompts feedback on which capabilities failed to help the generator adjust its setups.
     *   **If `IsProbe` is false**: A successful execution (exit 0) WITHOUT a crash means reproduction failed to trigger the bug (NOT a successful probe). The Oracle analyzes strace/console output to tighten the race window or adjust input parameters.
+    *   **Terminal Mismatches**: If the Oracle detects a terminal environmental mismatch (e.g., a core virtual device like `/dev/kvm` is physically missing and required kernel modules are missing from the guest disk image), it sets `TerminalError` to a descriptive message explaining the missing dependency, signaling that further iterations are futile.
 8.  **Loop Control**: `LoopController` determines if the loop should continue:
+    *   If `TerminalError` is set, it immediately aborts the workflow with a fatal error to prevent wasteful LLM calls.
     *   If successful reproduction occurred and the title matches, it promotes the candidate to the final output and stops (`ContinueSignal` becomes empty).
     *   If a collision is detected (different crash), it provides feedback and continues.
     *   Otherwise, it continues.
