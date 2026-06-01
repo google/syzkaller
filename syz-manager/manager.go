@@ -484,7 +484,7 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 
 func (mgr *Manager) convertBootError(err error) *manager.Crash {
 	if bootErr, ok := errors.AsType[vm.BootError](err); ok {
-		title, output := bootErr.BootError()
+		title, output := bootErr.Details()
 		rep := mgr.reporter.Parse(output)
 		if rep != nil && rep.Type == crash_pkg.UnexpectedReboot {
 			// Avoid detecting any boot crash as "unexpected kernel reboot".

@@ -117,7 +117,7 @@ func (kc *kernelContext) Loop(ctx context.Context) error {
 			case err := <-kc.pool.BootErrors:
 				title := "unknown"
 				if bootErr, ok := errors.AsType[vm.BootError](err); ok {
-					title, _ = bootErr.BootError()
+					title, _ = bootErr.Details()
 				}
 				// Boot errors are not useful for patch fuzzing (at least yet).
 				// Fetch them to not block the channel and print them to the logs.

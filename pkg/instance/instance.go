@@ -343,7 +343,7 @@ func (inst *inst) test() EnvTestResult {
 			Error: testErr,
 		}
 		if bootErr, ok := errors.AsType[vm.BootError](err); ok {
-			testErr.Title, testErr.Output = bootErr.BootError()
+			testErr.Title, testErr.Output = bootErr.Details()
 			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
 			if rep != nil && rep.Type == crash.UnexpectedReboot {
@@ -366,7 +366,7 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Infra = true
 			if infraErr, ok := errors.AsType[vm.InfraError](err); ok {
 				// In case there's more info available.
-				testErr.Title, testErr.Output = infraErr.InfraError()
+				testErr.Title, testErr.Output = infraErr.Details()
 			}
 		}
 		return ret
