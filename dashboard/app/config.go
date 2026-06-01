@@ -152,6 +152,9 @@ type AIConfig struct {
 	Stages                []AIPatchStageConfig
 	SecurityPrio          func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
 
+	// Emails or domains allowed to execute external AI commands (#syz upstream, reject, etc).
+	AllowedCommandAuthors []string
+
 	// These are passed to the patching workflow, see the workflow inputs for details.
 	BaseRepository string
 	BaseBranch     string
