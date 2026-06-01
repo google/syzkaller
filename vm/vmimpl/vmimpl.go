@@ -112,7 +112,7 @@ func (err BootError) Error() string {
 	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
 }
 
-func (err BootError) BootError() (string, []byte) {
+func (err BootError) Details() (string, []byte) {
 	return err.Title, err.Output
 }
 
@@ -127,7 +127,7 @@ func (err InfraError) Error() string {
 	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
 }
 
-func (err InfraError) InfraError() (string, []byte) {
+func (err InfraError) Details() (string, []byte) {
 	return err.Title, err.Output
 }
 
