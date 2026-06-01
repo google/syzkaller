@@ -1867,3 +1867,126 @@ func TestAIManualIteration(t *testing.T) {
 	require.Len(t, gotPatchHistory[0].Comments, 1)
 	assert.Contains(t, gotPatchHistory[0].Comments[0].Body, "This is a review comment.")
 }
+
+func TestAIActionEmailsAuth(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+		AllowedCommandAuthors: []string{
+			"exact@email.com",
+			"domain.com",
+		},
+	})
+
+	// Report a crash to create a bug.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Register workflow and create a job.
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	// Create and finish a job.
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	c.finishAIPatchJob(t, jobID, map[string]any{})
+
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollResp.Result.ID,
+		PublishedExtID: "msg_ext_id",
+	})
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name   string
+		author string
+		dkim   bool
+		cmd    *dashapi.SendExternalCommandReq
+		errMsg string
+	}{
+		{
+			name:   "unauthorized_email",
+			author: "fake@email.com",
+			dkim:   true,
+			cmd:    &dashapi.SendExternalCommandReq{Upstream: &dashapi.UpstreamCommand{}},
+			errMsg: "You are not authorized to send this command. Please contact the system administrators.",
+		},
+		{
+			name:   "unauthorized_domain",
+			author: "exact@other.com",
+			dkim:   true,
+			cmd:    &dashapi.SendExternalCommandReq{Upstream: &dashapi.UpstreamCommand{}},
+			errMsg: "You are not authorized to send this command. Please contact the system administrators.",
+		},
+		{
+			name:   "authorized_but_no_dkim",
+			author: "exact@email.com",
+			dkim:   false,
+			cmd:    &dashapi.SendExternalCommandReq{Upstream: &dashapi.UpstreamCommand{}},
+			errMsg: "Command ignored: sender identity could not be verified (DKIM failed or missing).",
+		},
+		{
+			name:   "authorized_domain_unreject",
+			author: "user@domain.com",
+			dkim:   true,
+			cmd:    &dashapi.SendExternalCommandReq{Unreject: &dashapi.UnrejectCommand{}},
+			errMsg: "Cannot unreject a patch that is not rejected.", // Auth passed!
+		},
+		{
+			name:   "authorized_exact_reject",
+			author: "exact@email.com",
+			dkim:   true,
+			cmd:    &dashapi.SendExternalCommandReq{Reject: &dashapi.RejectCommand{Reason: "bad"}},
+			errMsg: "", // Auth passed and successfully rejected!
+		},
+		{
+			name:   "authorized_exact_upstream_rejected",
+			author: "exact@email.com",
+			dkim:   true,
+			cmd:    &dashapi.SendExternalCommandReq{Upstream: &dashapi.UpstreamCommand{}},
+			errMsg: "Cannot upstream a rejected patch. Unreject it first.", // Auth passed!
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.cmd.Source = dashapi.AIJobSourceLore
+			tc.cmd.RootExtID = "msg_ext_id"
+			tc.cmd.MessageExtID = "msg_ext_" + tc.name
+			tc.cmd.Author = tc.author
+			tc.cmd.DKIM = tc.dkim
+
+			// First attempt should return the error (if any) and journal it.
+			resp, err := c.globalClient.AIReportCommand(tc.cmd)
+			require.NoError(t, err)
+			if tc.errMsg != "" {
+				assert.Equal(t, tc.errMsg, resp.Error)
+			} else {
+				assert.Empty(t, resp.Error)
+			}
+
+			// Second attempt with the exact same Source and MessageExtID should be treated as
+			// an idempotent no-op (because it was already journaled), returning no error.
+			resp2, err2 := c.globalClient.AIReportCommand(tc.cmd)
+			require.NoError(t, err2)
+			assert.Empty(t, resp2.Error, "duplicate command should not return an error")
+		})
+	}
+}

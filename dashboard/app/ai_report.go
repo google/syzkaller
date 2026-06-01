@@ -56,7 +56,6 @@ func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq
 	return resp, nil
 }
 
-// nolint: dupl
 func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommandReq,
 ) (*dashapi.SendExternalCommandResp, error) {
 	reporting, job, err := lookupJobByExtReq(ctx, req)
@@ -66,28 +65,35 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 
 	err = processUpstreamSubcommand(ctx, job, reporting, req)
 	if err != nil {
-		var cannotUpstreamErr *aidb.ErrCannotUpstream
-		if errors.As(err, &cannotUpstreamErr) {
-			// We log logical rejection errors to the Journal so that IsCommandProcessed
-			// returns true on subsequent retries (e.g., if lore-relay restarts). This prevents
-			// lore-relay from sending duplicate "Command failed" emails to the user.
-			if req.Source != "" && req.MessageExtID != "" {
-				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
-					JobID:         job.ID,
-					ReportingID:   reporting.ID,
-					CommandSource: string(req.Source),
-					CommandExtID:  req.MessageExtID,
-					User:          req.Author,
-					Action:        aidb.ActionApprove,
-					Error:         cannotUpstreamErr.Reason,
-				})
-			}
-			return &dashapi.SendExternalCommandResp{Error: cannotUpstreamErr.Reason}, nil
-		}
-		return nil, err
+		return handleCommandError(ctx, job, reporting, req, aidb.ActionApprove, err)
 	}
 
 	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.SendExternalCommandReq) error {
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil || len(nsCfg.AI.AllowedCommandAuthors) == 0 {
+		return nil
+	}
+
+	// Verify the request came through an authenticated channel (DKIM must be OK).
+	if !req.DKIM {
+		return &aidb.ErrNotAuthorized{
+			Reason: "Command ignored: sender identity could not be verified (DKIM failed or missing).",
+		}
+	}
+
+	author := email.CanonicalEmail(req.Author)
+	for _, allowed := range nsCfg.AI.AllowedCommandAuthors {
+		allowed = strings.ToLower(allowed)
+		if allowed == author || strings.HasSuffix(author, "@"+allowed) {
+			return nil
+		}
+	}
+	return &aidb.ErrNotAuthorized{
+		Reason: "You are not authorized to send this command. Please contact the system administrators.",
+	}
 }
 
 func formatUpstreamedBy(name, email string) string {
@@ -99,6 +105,9 @@ func formatUpstreamedBy(name, email string) string {
 
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
+	if err := checkActionAuthorized(ctx, job, req); err != nil {
+		return err
+	}
 	if err := checkJobUpstreamable(job); err != nil {
 		return err
 	}
@@ -201,7 +210,6 @@ func determineNextStage(ctx context.Context, cfg *AIConfig, job *aidb.Job,
 	return &cfg.Stages[currentIndex+1], nil
 }
 
-// nolint: dupl
 func handleRejectCommand(ctx context.Context,
 	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
 	reporting, job, err := lookupJobByExtReq(ctx, req)
@@ -214,31 +222,19 @@ func handleRejectCommand(ctx context.Context,
 		reason = req.Reject.Reason
 	}
 
-	err = aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
-		Job:           job,
-		ReportingID:   reporting.ID,
-		CommandSource: string(req.Source),
-		CommandExtID:  req.MessageExtID,
-		User:          req.Author,
-		Reason:        reason,
-	})
+	err = checkActionAuthorized(ctx, job, req)
+	if err == nil {
+		err = aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
+			Job:           job,
+			ReportingID:   reporting.ID,
+			CommandSource: string(req.Source),
+			CommandExtID:  req.MessageExtID,
+			User:          req.Author,
+			Reason:        reason,
+		})
+	}
 	if err != nil {
-		var cannotRejectErr *aidb.ErrCannotReject
-		if errors.As(err, &cannotRejectErr) {
-			if req.Source != "" && req.MessageExtID != "" {
-				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
-					JobID:         job.ID,
-					ReportingID:   reporting.ID,
-					CommandSource: string(req.Source),
-					CommandExtID:  req.MessageExtID,
-					User:          req.Author,
-					Action:        aidb.ActionReject,
-					Error:         cannotRejectErr.Reason,
-				})
-			}
-			return &dashapi.SendExternalCommandResp{Error: cannotRejectErr.Reason}, nil
-		}
-		return nil, err
+		return handleCommandError(ctx, job, reporting, req, aidb.ActionReject, err)
 	}
 
 	return &dashapi.SendExternalCommandResp{}, nil
@@ -451,6 +447,36 @@ func apiAIConfirmReport(ctx context.Context, req *dashapi.ConfirmPublishedReq) (
 	return nil, nil
 }
 
+func handleCommandError(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
+	req *dashapi.SendExternalCommandReq, action string, err error) (*dashapi.SendExternalCommandResp, error) {
+	var cannotUpstreamErr *aidb.ErrCannotUpstream
+	var cannotRejectErr *aidb.ErrCannotReject
+	var cannotUnrejectErr *aidb.ErrCannotUnreject
+	var notAuthorizedErr *aidb.ErrNotAuthorized
+
+	switch {
+	case errors.As(err, &cannotUpstreamErr),
+		errors.As(err, &cannotRejectErr),
+		errors.As(err, &cannotUnrejectErr),
+		errors.As(err, &notAuthorizedErr):
+		errReason := err.Error()
+		if req.Source != "" && req.MessageExtID != "" {
+			_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
+				JobID:         job.ID,
+				ReportingID:   reporting.ID,
+				CommandSource: string(req.Source),
+				CommandExtID:  req.MessageExtID,
+				User:          req.Author,
+				Action:        action,
+				Error:         errReason,
+			})
+		}
+		return &dashapi.SendExternalCommandResp{Error: errReason}, nil
+	default:
+		return nil, err
+	}
+}
+
 func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq) (
 	*aidb.JobReporting, *aidb.Job, error) {
 	extID := req.RootExtID
@@ -476,7 +502,6 @@ func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq)
 	return reporting, job, nil
 }
 
-// nolint: dupl
 func handleUnrejectCommand(ctx context.Context,
 	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
 	reporting, job, err := lookupJobByExtReq(ctx, req)
@@ -484,30 +509,18 @@ func handleUnrejectCommand(ctx context.Context,
 		return nil, err
 	}
 
-	err = aidb.UnrejectReportCommand(ctx, aidb.UnrejectReportArgs{
-		Job:           job,
-		ReportingID:   reporting.ID,
-		CommandSource: string(req.Source),
-		CommandExtID:  req.MessageExtID,
-		User:          req.Author,
-	})
+	err = checkActionAuthorized(ctx, job, req)
+	if err == nil {
+		err = aidb.UnrejectReportCommand(ctx, aidb.UnrejectReportArgs{
+			Job:           job,
+			ReportingID:   reporting.ID,
+			CommandSource: string(req.Source),
+			CommandExtID:  req.MessageExtID,
+			User:          req.Author,
+		})
+	}
 	if err != nil {
-		var cannotUnrejectErr *aidb.ErrCannotUnreject
-		if errors.As(err, &cannotUnrejectErr) {
-			if req.Source != "" && req.MessageExtID != "" {
-				_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
-					JobID:         job.ID,
-					ReportingID:   reporting.ID,
-					CommandSource: string(req.Source),
-					CommandExtID:  req.MessageExtID,
-					User:          req.Author,
-					Action:        aidb.ActionUnreject,
-					Error:         cannotUnrejectErr.Reason,
-				})
-			}
-			return &dashapi.SendExternalCommandResp{Error: cannotUnrejectErr.Reason}, nil
-		}
-		return nil, err
+		return handleCommandError(ctx, job, reporting, req, aidb.ActionUnreject, err)
 	}
 
 	return &dashapi.SendExternalCommandResp{}, nil

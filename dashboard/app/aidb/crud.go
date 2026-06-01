@@ -56,6 +56,14 @@ func (e *ErrCannotUnreject) Error() string {
 	return e.Reason
 }
 
+type ErrNotAuthorized struct {
+	Reason string
+}
+
+func (e *ErrNotAuthorized) Error() string {
+	return e.Reason
+}
+
 func init() {
 	// This forces unmarshalling of JSON integers into json.Number rather than float64.
 	spanner.UseNumberWithJSONDecoderEncoder(true)
