@@ -231,7 +231,7 @@ func deserializeLegacyOptions(data string, opts *Options) (int, error) {
 	data = strings.TrimPrefix(data, "{")
 	data = strings.TrimSuffix(data, "}")
 	totalRead := 0
-	for _, token := range strings.Fields(data) {
+	for token := range strings.FieldsSeq(data) {
 		key, value, keyValueFound := strings.Cut(token, ":")
 		if !keyValueFound {
 			return totalRead, fmt.Errorf("error splitting options token %v", token)

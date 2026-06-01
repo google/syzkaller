@@ -69,16 +69,14 @@ func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan ex
 	paths, output := make(chan string, procs), make(chan extracted, procs)
 	var wg sync.WaitGroup
 	for range procs {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for path := range paths {
 				output <- extracted{
 					path: path,
 					list: matcher.Match(path),
 				}
 			}
-		}()
+		})
 	}
 	go func() {
 		wg.Wait()

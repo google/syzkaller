@@ -167,9 +167,9 @@ func main() {
 		}
 	}
 
-	attrs := reflect.TypeOf(prog.SyscallAttrs{})
-	for i := range attrs.NumField() {
-		data.CallAttrs = append(data.CallAttrs, prog.CppName(attrs.Field(i).Name))
+	attrs := reflect.TypeFor[prog.SyscallAttrs]()
+	for field := range attrs.Fields() {
+		data.CallAttrs = append(data.CallAttrs, prog.CppName(field.Name))
 	}
 
 	props := prog.CallProps{}

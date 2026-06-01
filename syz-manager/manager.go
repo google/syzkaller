@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -190,11 +191,12 @@ var (
 )
 
 func modesDescription() string {
-	desc := "mode of operation, one of:\n"
+	var desc strings.Builder
+	desc.WriteString("mode of operation, one of:\n")
 	for _, mode := range modes {
-		desc += fmt.Sprintf(" - %v: %v\n", mode.Name, mode.Description)
+		desc.WriteString(fmt.Sprintf(" - %v: %v\n", mode.Name, mode.Description))
 	}
-	return desc
+	return desc.String()
 }
 
 const (
@@ -481,8 +483,7 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 }
 
 func (mgr *Manager) convertBootError(err error) *manager.Crash {
-	var bootErr vm.BootError
-	if errors.As(err, &bootErr) {
+	if bootErr, ok := errors.AsType[vm.BootError](err); ok {
 		title, output := bootErr.BootError()
 		rep := mgr.reporter.Parse(output)
 		if rep != nil && rep.Type == crash_pkg.UnexpectedReboot {

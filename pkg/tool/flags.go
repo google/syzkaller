@@ -59,7 +59,7 @@ func ParseArchList(OS, archList string) ([]string, error) {
 	}
 	archMap := make(map[string]bool)
 	if archList != "" {
-		for _, arch := range strings.Split(archList, ",") {
+		for arch := range strings.SplitSeq(archList, ",") {
 			if allArches[arch] == nil {
 				return nil, fmt.Errorf("bad arch %q for OS %q in arches flag", arch, OS)
 			}
@@ -94,16 +94,16 @@ func deserializeFlags(value string) ([]Flag, error) {
 		return nil, nil
 	}
 	var flags []Flag
-	for _, arg := range strings.Split(value, ":") {
-		eq := strings.IndexByte(arg, '=')
-		if eq == -1 {
+	for arg := range strings.SplitSeq(value, ":") {
+		before, after, ok := strings.Cut(arg, "=")
+		if !ok {
 			return nil, fmt.Errorf("failed to parse flags %q: no eq", value)
 		}
-		name, err := flagUnescape(arg[:eq])
+		name, err := flagUnescape(before)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
-		value, err := flagUnescape(arg[eq+1:])
+		value, err := flagUnescape(after)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
@@ -166,7 +166,7 @@ func (cfgs *CfgsFlag) Set(value string) error {
 	if len(*cfgs) > 0 {
 		return errors.New("configs flag were already set")
 	}
-	for _, cfg := range strings.Split(value, ",") {
+	for cfg := range strings.SplitSeq(value, ",") {
 		cfg = strings.TrimSpace(cfg)
 		*cfgs = append(*cfgs, cfg)
 	}

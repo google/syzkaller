@@ -155,8 +155,7 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 	}
 	_, _, err = env.BuildKernel(buildCfg)
 	if err != nil {
-		var verr *osutil.VerboseError
-		if errors.As(err, &verr) {
+		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
 			log.Printf("BUILD BROKEN: %s", verr)
 			saveLog(com.Hash, 0, verr.Output)
 		} else {

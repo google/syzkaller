@@ -98,7 +98,7 @@ func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, er
 
 func gitParseReleaseTags(output []byte, includeRC bool) []string {
 	var tags []string
-	for _, tag := range bytes.Split(output, []byte{'\n'}) {
+	for tag := range bytes.SplitSeq(output, []byte{'\n'}) {
 		if gitReleaseTagToInt(string(tag), includeRC) != 0 {
 			tags = append(tags, string(tag))
 		}

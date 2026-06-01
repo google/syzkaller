@@ -171,7 +171,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		args = append(args, "-I"+sourceDir+"/"+incdir)
 	}
 	if arch.includeDirs != "" {
-		for _, dir := range strings.Split(arch.includeDirs, ",") {
+		for dir := range strings.SplitSeq(arch.includeDirs, ",") {
 			args = append(args, "-I"+dir)
 		}
 	}

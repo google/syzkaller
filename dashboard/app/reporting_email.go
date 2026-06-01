@@ -143,15 +143,13 @@ func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
 			minDrop = nsConfig.Coverage.RegressionThreshold
 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := sendNsCoverageReport(ctx, nsName, emailTo, periods, minDrop); err != nil {
 				msg := fmt.Sprintf("error generating coverage report for ns '%s': %s", nsName, err.Error())
 				log.Errorf(ctx, "%s", msg)
 				return
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -574,13 +572,13 @@ func sendMailTemplate(ctx context.Context, params *mailSendParams) error {
 
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
-	for i := len(rep.Subsystems) - 1; i >= 0; i-- {
+	for _, v := range slices.Backward(rep.Subsystems) {
 		question := ""
-		if rep.Subsystems[i].SetBy == "" {
+		if v.SetBy == "" {
 			// Include the question mark for automatically created tags.
 			question = "?"
 		}
-		title = fmt.Sprintf("[%s%s] %s", rep.Subsystems[i].Name, question, title)
+		title = fmt.Sprintf("[%s%s] %s", v.Name, question, title)
 	}
 	return title + rep.Title
 }
@@ -644,10 +642,8 @@ func matchInbox(ctx context.Context, msg *email.Email) *PerInboxConfig {
 	// address that matched InboxRe.
 	for _, item := range getConfig(ctx).MonitoredInboxes {
 		rg := regexp.MustCompile(item.InboxRe)
-		for _, cc := range msg.RawCc {
-			if rg.MatchString(cc) {
-				return item
-			}
+		if slices.ContainsFunc(msg.RawCc, rg.MatchString) {
+			return item
 		}
 	}
 	return nil

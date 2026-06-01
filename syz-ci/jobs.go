@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -65,11 +66,9 @@ func newJobManager(cfg *Config, managers []*Manager, shutdownPending chan struct
 
 // startLoop starts a job loop in parallel.
 func (jm *JobManager) startLoop(ctx context.Context, wg *sync.WaitGroup) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		jm.loop(ctx)
-	}()
+	})
 }
 
 func (jm *JobManager) loop(ctx context.Context) {
@@ -100,11 +99,9 @@ func (jm *JobManager) loop(ctx context.Context) {
 			jp.jobFilter = jm.parallelJobFilter
 		}
 		jp.name = fmt.Sprintf("%v%v", jm.cfg.Name, jp.instanceSuffix)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			jp.loop(ctx)
-		}()
+		})
 		if !main || !jm.needParallelProcessor() {
 			break
 		}
@@ -528,8 +525,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
-		var infraErr *build.InfraError
-		if errors.As(err, &infraErr) {
+		if _, ok := errors.AsType[*build.InfraError](err); ok {
 			resp.Flags |= dashapi.BisectResultInfraError
 		}
 		return err
@@ -593,10 +589,8 @@ var ignoredCommits = []string{
 
 func (jp *JobProcessor) ignoreBisectCommit(commit *vcs.Commit) bool {
 	// First look at the always ignored values.
-	for _, hash := range ignoredCommits {
-		if commit.Hash == hash {
-			return true
-		}
+	if slices.Contains(ignoredCommits, commit.Hash) {
+		return true
 	}
 	_, ok := jp.cfg.BisectIgnore[commit.Hash]
 	return ok

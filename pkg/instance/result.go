@@ -48,8 +48,7 @@ func resultRank(res *EnvTestResult) (int, bool) {
 	if res.Error == nil {
 		return rankSuccess, true
 	}
-	var crash *CrashError
-	if errors.As(res.Error, &crash) {
+	if crash, ok := errors.AsType[*CrashError](res.Error); ok {
 		if crash.Report != nil && len(crash.Report.Report) > 0 {
 			return rankCrashReport, false
 		}

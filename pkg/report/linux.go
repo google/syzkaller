@@ -264,7 +264,7 @@ func (ctx *linux) isFaultInjectionBoundary(line []byte) bool {
 func compactFaultInjectionReport(report []byte) []byte {
 	var compact []byte
 	hasTrace := false
-	for _, line := range bytes.Split(report, []byte{'\n'}) {
+	for line := range bytes.SplitSeq(report, []byte{'\n'}) {
 		line = bytes.TrimRight(line, " \t")
 		trimmed := bytes.TrimSpace(line)
 		if len(trimmed) == 0 {
@@ -825,7 +825,7 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 	width := 0
 	bytes := []byte{}
 	trapOffset := -1
-	for _, part := range strings.Split(strings.TrimSpace(codeSlice), " ") {
+	for part := range strings.SplitSeq(strings.TrimSpace(codeSlice), " ") {
 		if part == "" || len(part)%2 != 0 {
 			return parsedOpcodes{}, fmt.Errorf("invalid opcodes string %#v", part)
 		}
@@ -1011,8 +1011,7 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 		clean := filepath.Clean(string(file))
 
 		// Check if the new path has *both* the same directory prefix *and* a deeper suffix.
-		if strings.HasPrefix(clean, deepestPath) {
-			suffix := strings.TrimPrefix(clean, deepestPath)
+		if suffix, ok := strings.CutPrefix(clean, deepestPath); ok {
 			if deeperPathRe.Match([]byte(suffix)) {
 				guilty = clean
 				deepestPath = filepath.Dir(guilty)

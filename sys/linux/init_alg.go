@@ -5,6 +5,7 @@ package linux
 
 import (
 	"math/rand"
+	"strings"
 
 	"github.com/google/syzkaller/prog"
 )
@@ -79,18 +80,18 @@ func generateAlg(rnd *rand.Rand, typ int) string {
 }
 
 func generateAlgImpl(rnd *rand.Rand, alg algDesc) string {
-	args := ""
+	var args strings.Builder
 	if len(alg.args) != 0 {
-		args += "("
+		args.WriteString("(")
 		for i, a := range alg.args {
 			if i != 0 {
-				args += ","
+				args.WriteString(",")
 			}
-			args += generateAlg(rnd, a)
+			args.WriteString(generateAlg(rnd, a))
 		}
-		args += ")"
+		args.WriteString(")")
 	}
-	return alg.name + args
+	return alg.name + args.String()
 }
 
 func fixedSizeData(str string, sz uint64) []byte {

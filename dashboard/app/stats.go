@@ -106,8 +106,7 @@ func getAllMulti[T any](ctx context.Context, keys []*db.Key, objects []*T) (*db.
 		if err == nil {
 			continue
 		}
-		var merr appengine.MultiError
-		if errors.As(err, &merr) {
+		if merr, ok := errors.AsType[appengine.MultiError](err); ok {
 			for i, objErr := range merr {
 				if objErr != nil {
 					return keys[from+i], objErr

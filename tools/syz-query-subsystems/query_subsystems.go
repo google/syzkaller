@@ -102,7 +102,7 @@ func postProcessList(list []*subsystem.Subsystem) []*subsystem.Subsystem {
 
 func prepareFilter() func(*subsystem.Subsystem) bool {
 	keep := map[string]bool{}
-	for _, name := range strings.Split(*flagFilter, ",") {
+	for name := range strings.SplitSeq(*flagFilter, ",") {
 		name = strings.TrimSpace(name)
 		if name != "" {
 			keep[name] = true

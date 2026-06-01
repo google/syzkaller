@@ -135,7 +135,7 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 		p0, callIndex0 = removeUnrelatedCalls(p0, callIndex0, pred)
 	}
 
-	for i := len(p0.Calls) - 1; i >= 0; i-- {
+	for i := range slices.Backward(p0.Calls) {
 		if i == callIndex0 {
 			continue
 		}
@@ -164,7 +164,7 @@ func removeUnrelatedCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, i
 		return p0, callIndex0
 	}
 	p, callIndex := p0.Clone(), callIndex0
-	for i := len(p0.Calls) - 1; i >= 0; i-- {
+	for i := range slices.Backward(p0.Calls) {
 		if keepCalls[i] {
 			continue
 		}
@@ -374,8 +374,7 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 		return true
 	}
 	// Try to remove individual elements one-by-one.
-	for i := len(a.Inner) - 1; i >= 0; i-- {
-		elem := a.Inner[i]
+	for i, elem := range slices.Backward(a.Inner) {
 		elemPath := fmt.Sprintf("%v-%v", path, i)
 		if ctx.mode != MinimizeCrash && !ctx.triedPaths[elemPath] &&
 			(typ.Kind == ArrayRandLen ||

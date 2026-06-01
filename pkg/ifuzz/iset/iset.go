@@ -69,7 +69,7 @@ type ModeInsns [ModeLast][TypeLast][]Insn
 
 func (modeInsns *ModeInsns) Add(insn Insn) {
 	_, mode, pseudo, priv := insn.Info()
-	for m := Mode(0); m < ModeLast; m++ {
+	for m := range ModeLast {
 		if mode&(1<<uint(m)) == 0 {
 			continue
 		}

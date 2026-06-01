@@ -155,7 +155,7 @@ func extractFromExecutable(binFile string) ([]uint64, error) {
 		return nil, nil
 	}
 	var vals []uint64
-	for _, val := range strings.Split(string(out), " ") {
+	for val := range strings.SplitSeq(string(out), " ") {
 		n, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse value: %w (%v)", err, val)

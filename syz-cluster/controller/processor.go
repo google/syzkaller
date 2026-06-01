@@ -50,11 +50,9 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 	defer wg.Wait()
 
 	ch := make(chan *db.Session, 1)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		sp.seriesRunner(ctx, ch)
-	}()
+	})
 	// First pick up the previously running sessions.
 	activeSessions, err := sp.sessionRepo.ListRunning(ctx)
 	if err != nil {
@@ -69,12 +67,10 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 		}
 	}
 	// Then, monitor the DB for the new series.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		sp.streamSeries(ctx, ch)
 		close(ch)
-	}()
+	})
 	return nil
 }
 

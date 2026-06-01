@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -76,7 +77,7 @@ func main() {
 			reportError("empty attribute name")
 		}
 		var vals []string
-		for _, v := range strings.Split(line[colon+1:], " ") {
+		for v := range strings.SplitSeq(line[colon+1:], " ") {
 			v = strings.TrimSpace(v)
 			if v == "" {
 				continue
@@ -150,8 +151,7 @@ nextInsn:
 			continue
 		}
 		mod0 := insn.Mod
-		for j := len(deduped) - 1; j >= 0; j-- {
-			insn1 := deduped[j]
+		for _, insn1 := range slices.Backward(deduped) {
 			if insn.Mod == 3 && insn1.Mod == -3 || insn.Mod == -3 && insn1.Mod == 3 || insn1.Mod == -1 {
 				insn.Mod = insn1.Mod
 			}

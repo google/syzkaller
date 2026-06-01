@@ -112,9 +112,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 
 	ctx, stop := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			ok, err := s.poll(ctx)
 			if err != nil {
@@ -133,7 +131,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 			case <-time.After(delay):
 			}
 		}
-	}()
+	})
 
 	select {
 	case <-shutdownPending:
@@ -154,9 +152,8 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 
 func reportBuildError(commit *vcs.Commit, buildErr error) {
 	var output []byte
-	var verbose *osutil.VerboseError
 	title := buildErr.Error()
-	if errors.As(buildErr, &verbose) {
+	if verbose, ok := errors.AsType[*osutil.VerboseError](buildErr); ok {
 		output = verbose.Output
 	}
 	path, err := osutil.WriteTempFile(output)

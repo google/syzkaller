@@ -294,13 +294,13 @@ func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 	if first == -1 {
 		return
 	}
-	names := ""
+	var names strings.Builder
 	for _, field := range fields[first:last] {
 		for _, name := range field.Names {
-			names += ", " + name.Name
+			names.WriteString(", " + name.Name)
 		}
 	}
-	pass.report(fields[first], "Use '%v %v'", names[2:], pass.typ(fields[first].Type))
+	pass.report(fields[first], "Use '%v %v'", names.String()[2:], pass.typ(fields[first].Type))
 }
 
 func (pass *Pass) checkContextArgs(n *ast.FuncDecl) {

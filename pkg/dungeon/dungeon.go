@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -60,12 +61,7 @@ func checkBugAndCommits(lowerTitle string, lowerCommitTitles []string, predicate
 	if predicate(lowerTitle) {
 		return true
 	}
-	for _, commitTitle := range lowerCommitTitles {
-		if predicate(commitTitle) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(lowerCommitTitles, predicate)
 }
 
 type heroClass struct {

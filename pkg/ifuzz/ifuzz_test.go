@@ -24,7 +24,7 @@ func TestMode(t *testing.T) {
 
 func testMode(t *testing.T, arch string) {
 	all := make(map[iset.Insn]bool)
-	for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
+	for mode := range iset.ModeLast {
 		for priv := range 2 {
 			for exec := range 2 {
 				insns := allInsns(arch, mode, priv != 0, exec != 0)
@@ -55,7 +55,7 @@ func testDecode(t *testing.T, arch string) {
 	r := rand.New(testutil.RandSource(t))
 
 	for range 10 {
-		for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
+		for mode := range iset.ModeLast {
 			cfg := &iset.Config{
 				Mode: mode,
 				Priv: true,
@@ -127,7 +127,7 @@ func TestGenerate(t *testing.T) {
 func testGenerate(t *testing.T, arch string) {
 	insnset := iset.Arches[arch]
 	r := rand.New(testutil.RandSource(t))
-	for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
+	for mode := range iset.ModeLast {
 		for repeat := 1; repeat < 10; repeat++ {
 			if len(insnset.GetInsns(mode, iset.TypeUser)) == 0 {
 				continue

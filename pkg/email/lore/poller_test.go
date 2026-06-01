@@ -28,8 +28,7 @@ func TestPoller(t *testing.T) {
 	poller, err := NewPoller(cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// 1. Save some messages to build initial graph.
 	t.Logf("saving initial messages")

@@ -44,7 +44,7 @@ func main() {
 		tool.Fail(err)
 	}
 	pred := func(candidate *kconfig.ConfigFile) (bool, error) {
-		for _, cfg := range strings.Split(*flagConfigs, ",") {
+		for cfg := range strings.SplitSeq(*flagConfigs, ",") {
 			if candidate.Value(cfg) == kconfig.No {
 				return false, nil
 			}

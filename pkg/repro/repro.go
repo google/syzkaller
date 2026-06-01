@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -387,8 +388,8 @@ func lastEntries(entries []*prog.LogEntry) []*prog.LogEntry {
 	}
 	sort.Ints(indices)
 	var lastEntries []*prog.LogEntry
-	for i := len(indices) - 1; i >= 0; i-- {
-		lastEntries = append(lastEntries, entries[indices[i]])
+	for _, indice := range slices.Backward(indices) {
+		lastEntries = append(lastEntries, entries[indice])
 	}
 	return lastEntries
 }

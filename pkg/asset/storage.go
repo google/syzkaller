@@ -129,8 +129,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		compressor = typeDescr.customCompressor
 	}
 	res, err := compressor(req, storage.backend.upload)
-	var existsErr *FileExistsError
-	if errors.As(err, &existsErr) {
+	if existsErr, ok := errors.AsType[*FileExistsError](err); ok {
 		storage.tracer.Logf("asset %s already exists", path)
 		if extra == nil || !extra.SkipIfExists {
 			return "", err
@@ -144,8 +143,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		if err != nil {
 			more := ""
 			closeErr := res.writer.Close()
-			var exiterr *exec.ExitError
-			if errors.As(closeErr, &exiterr) {
+			if exiterr, ok := errors.AsType[*exec.ExitError](closeErr); ok {
 				more = fmt.Sprintf(", process state '%s'", exiterr.ProcessState)
 			}
 			return "", fmt.Errorf("failed to redirect byte stream: copied %d bytes, error %w%s",

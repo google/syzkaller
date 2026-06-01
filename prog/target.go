@@ -426,7 +426,7 @@ func (target *Target) UpdateGlobs(globFiles map[string][]string) {
 
 func requiredGlobs(pattern string) []string {
 	var res []string
-	for _, tok := range strings.Split(pattern, ":") {
+	for tok := range strings.SplitSeq(pattern, ":") {
 		if tok[0] != '-' {
 			res = append(res, tok)
 		}

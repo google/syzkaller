@@ -98,8 +98,7 @@ func (e *flowError) Unwrap() error {
 }
 
 func IsModelQuotaError(err error) string {
-	var quotaErr *modelQuotaError
-	if errors.As(err, &quotaErr) {
+	if quotaErr, ok := errors.AsType[*modelQuotaError](err); ok {
 		return quotaErr.model
 	}
 	return ""

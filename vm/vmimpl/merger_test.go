@@ -69,8 +69,7 @@ func TestMerger(t *testing.T) {
 	}
 
 	var merr MergerError
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	if err := <-merger.Errors(ctx); err == nil {
 		t.Fatalf("merger did not produce an error on pipe close")
 	} else if !errors.As(err, &merr) || merr.Name != "pipe1" || merr.R != rp1 || merr.Err != io.EOF {

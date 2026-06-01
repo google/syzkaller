@@ -96,7 +96,7 @@ func (w *writer) doInterface(v reflect.Value) {
 	// T has kind reflect.Int. But if we serialize obj as just "42", it will be turned into plain int.
 	// Detect this case and serialize obj as "T(42)".
 	if (elem.Kind() == reflect.Bool || elem.Kind() == reflect.String ||
-		elem.Type().ConvertibleTo(reflect.TypeOf(0))) &&
+		elem.Type().ConvertibleTo(reflect.TypeFor[int]())) &&
 		strings.Contains(elem.Type().String(), ".") {
 		w.string(elem.Type().Name())
 		w.byte('(')
@@ -141,8 +141,7 @@ func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
 	}
 	w.byte('{')
 	fieldNames := false
-	for i := range v.NumField() {
-		f := v.Field(i)
+	for _, f := range v.Fields() {
 		if isDefaultValue(f) || !f.CanSet() {
 			fieldNames = true
 			break
@@ -201,8 +200,8 @@ func isDefaultValue(v reflect.Value) bool {
 	case reflect.Slice:
 		return v.IsNil() || v.Len() == 0
 	case reflect.Struct:
-		for i := range v.NumField() {
-			if !isDefaultValue(v.Field(i)) {
+		for _, field := range v.Fields() {
+			if !isDefaultValue(field) {
 				return false
 			}
 		}

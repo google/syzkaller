@@ -422,8 +422,8 @@ func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *A
 		for _, r := range reportings {
 			stageMap[r.Stage] = r
 		}
-		for i := len(nsCfg.AI.Stages) - 1; i >= 0; i-- {
-			stageName := nsCfg.AI.Stages[i].Name
+		for _, v := range slices.Backward(nsCfg.AI.Stages) {
+			stageName := v.Name
 			if r, ok := stageMap[stageName]; ok {
 				latest = r
 				currentStage = stageName
@@ -1477,9 +1477,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
 	}
-	for k, v := range extraArgs {
-		args[k] = v
-	}
+	maps.Copy(args, extraArgs)
 	return aidb.CreateJob(ctx, &aidb.Job{
 		Type:        typ,
 		Workflow:    workflow,

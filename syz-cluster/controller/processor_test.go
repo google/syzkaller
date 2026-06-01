@@ -26,11 +26,9 @@ func TestProcessor(t *testing.T) {
 	// Start the loop.
 	var wg sync.WaitGroup
 	ctx2, cancel := context.WithCancel(ctx)
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		processor.Loop(ctx2)
-		wg.Done()
-	}()
+	})
 
 	// Add some series.
 	var allSeries []*api.Series
@@ -87,11 +85,9 @@ func TestFinishRunningSteps(t *testing.T) {
 	// Start the loop.
 	var wg sync.WaitGroup
 	ctx2, cancel := context.WithCancel(ctx)
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		processor.Loop(ctx2)
-		wg.Done()
-	}()
+	})
 
 	series := &api.Series{
 		ExtID: "ext-id",

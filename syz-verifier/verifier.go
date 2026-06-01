@@ -6,7 +6,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -217,9 +219,7 @@ func (vrf *Verifier) waitForKernelsReady(ctx context.Context) (map[*prog.Syscall
 		if idx == 0 {
 			// Initialize with first kernel's syscalls.
 			totalEnabledSyscalls = make(map[*prog.Syscall]bool)
-			for k, v := range enabledSyscalls {
-				totalEnabledSyscalls[k] = v
-			}
+			maps.Copy(totalEnabledSyscalls, enabledSyscalls)
 		} else {
 			// Intersect: keep only syscalls enabled in ALL kernels.
 			for k := range totalEnabledSyscalls {
@@ -332,13 +332,7 @@ func (vrf *Verifier) compareResults(prog *prog.Prog, responses []*queue.Result) 
 
 			// Print full program with detailed call information.
 			for callIdx, call := range prog.Calls {
-				isMismatch := false
-				for _, mc := range mismatchCalls {
-					if mc == callIdx {
-						isMismatch = true
-						break
-					}
-				}
+				isMismatch := slices.Contains(mismatchCalls, callIdx)
 
 				prefix := "   "
 				if isMismatch {

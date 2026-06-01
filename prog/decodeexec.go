@@ -304,7 +304,7 @@ func (dec *execDecoder) addStat(stat string, n int) {
 		return
 	}
 	prefix := ""
-	for _, part := range strings.Split(stat, "/") {
+	for part := range strings.SplitSeq(stat, "/") {
 		dec.stats[prefix+part] += n
 		prefix += part + "/"
 	}

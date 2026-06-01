@@ -342,8 +342,7 @@ func (inst *inst) test() EnvTestResult {
 		ret := EnvTestResult{
 			Error: testErr,
 		}
-		var bootErr vm.BootError
-		if errors.As(err, &bootErr) {
+		if bootErr, ok := errors.AsType[vm.BootError](err); ok {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
@@ -365,8 +364,7 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Title = rep.Title
 		} else {
 			testErr.Infra = true
-			var infraErr vm.InfraError
-			if errors.As(err, &infraErr) {
+			if infraErr, ok := errors.AsType[vm.InfraError](err); ok {
 				// In case there's more info available.
 				testErr.Title, testErr.Output = infraErr.InfraError()
 			}
@@ -555,8 +553,7 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 	reportData, err := os.ReadFile(filepath.Join(cfg.Workdir, "report.json"))
 	if err != nil {
 		if os.IsNotExist(err) {
-			var verboseErr *osutil.VerboseError
-			if errors.As(retErr, &verboseErr) {
+			if verboseErr, ok := errors.AsType[*osutil.VerboseError](retErr); ok {
 				// Include more details into the report.
 				prefix := fmt.Sprintf("%s, exit code %d\n\n", verboseErr, verboseErr.ExitCode)
 				output = append([]byte(prefix), output...)

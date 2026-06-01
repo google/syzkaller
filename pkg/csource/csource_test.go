@@ -128,7 +128,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool, ct *prog.ChoiceTab
 	}
 }
 
-var failedTests uint32
+var failedTests atomic.Uint32
 
 func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	// Each failure produces lots of output (including full C source).
@@ -138,12 +138,12 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	if os.Getenv("CI") != "" {
 		maxFailures = 1
 	}
-	if atomic.LoadUint32(&failedTests) > maxFailures {
+	if failedTests.Load() > maxFailures {
 		return
 	}
 	src, err := Write(p, opts)
 	if err != nil {
-		if atomic.AddUint32(&failedTests, 1) > maxFailures {
+		if failedTests.Add(1) > maxFailures {
 			t.Fatal()
 		}
 		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
@@ -155,7 +155,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		matches, opts, p.Serialize())
 	bin, err := Build(p.Target, src)
 	if err != nil {
-		if atomic.AddUint32(&failedTests, 1) > maxFailures {
+		if failedTests.Add(1) > maxFailures {
 			t.Fatal()
 		}
 		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())

@@ -315,11 +315,9 @@ func main() {
 	var wg sync.WaitGroup
 	if *flagManagers {
 		for _, mgr := range managers {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				mgr.loop(ctx)
-			}()
+			})
 		}
 	}
 
@@ -399,9 +397,8 @@ loop:
 
 func uploadSyzkallerBuildError(cfg *Config, commit *vcs.Commit, compilerID string, buildErr error) {
 	var output []byte
-	var verbose *osutil.VerboseError
 	title := buildErr.Error()
-	if errors.As(buildErr, &verbose) {
+	if verbose, ok := errors.AsType[*osutil.VerboseError](buildErr); ok {
 		output = verbose.Output
 	}
 	title = "syzkaller: " + title

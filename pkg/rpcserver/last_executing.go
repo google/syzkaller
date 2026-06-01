@@ -77,12 +77,12 @@ func (last *LastExecuting) Collect() []ExecRecord {
 		return cmp.Compare(a.Time, b.Time)
 	})
 	max := procs[len(procs)-1].Time
-	for i := len(procs) - 1; i >= 0; i-- {
-		if procs[i].Time == 0 {
+	for i, proc := range slices.Backward(procs) {
+		if proc.Time == 0 {
 			procs = procs[i+1:]
 			break
 		}
-		procs[i].Time = max - procs[i].Time
+		procs[i].Time = max - proc.Time
 	}
 	return procs
 }

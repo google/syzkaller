@@ -1058,9 +1058,9 @@ func processMergedFlags(flags []string) []string {
 			m[s] = true
 		}
 		keep := ""
-		for i := len(flags) - 1; i >= 0; i-- {
-			if m[flags[i]] {
-				keep = flags[i]
+		for _, flag := range slices.Backward(flags) {
+			if m[flag] {
+				keep = flag
 				break
 			}
 		}

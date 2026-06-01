@@ -36,7 +36,7 @@ func main() {
 // Process input lines and return a string containing the list of corresponding register IDs.
 func printSysRegIDs(table []byte) {
 	ret := ""
-	for _, line := range bytes.Split(table, []byte("\n")) {
+	for line := range bytes.SplitSeq(table, []byte("\n")) {
 		if bytes.HasPrefix(line, []byte("#")) {
 			continue
 		}

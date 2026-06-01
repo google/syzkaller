@@ -208,9 +208,9 @@ func (c *client) ListObjects(bucketObjectPath string) ([]*Object, error) {
 }
 
 func split(file string) (bucket, filename string, err error) {
-	pos := strings.IndexByte(file, '/')
-	if pos == -1 {
+	before, after, ok := strings.Cut(file, "/")
+	if !ok {
 		return "", "", fmt.Errorf("invalid GCS file name: %v", file)
 	}
-	return file[:pos], file[pos+1:], nil
+	return before, after, nil
 }

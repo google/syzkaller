@@ -648,7 +648,7 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, s
 	prompt := formatTemplate(a.Prompt, state)
 	return &genai.GenerateContentConfig{
 		ResponseModalities: []string{"TEXT"},
-		Temperature:        genai.Ptr(taskParameters[a.TaskType]),
+		Temperature:        new(taskParameters[a.TaskType]),
 		SystemInstruction:  genai.NewContentFromText(instruction, genai.RoleUser),
 		Tools:              tools,
 		ThinkingConfig: &genai.ThinkingConfig{

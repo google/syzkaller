@@ -158,7 +158,7 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		return nil
 	}
 
-	unmarshalerType := reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+	unmarshalerType := reflect.TypeFor[json.Unmarshaler]()
 	if targetType.Implements(unmarshalerType) || reflect.PointerTo(targetType).Implements(unmarshalerType) {
 		if raw, err := json.Marshal(f); err == nil {
 			ptr := reflect.New(targetType)

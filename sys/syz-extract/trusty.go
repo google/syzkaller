@@ -31,7 +31,7 @@ func (*trusty) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 		args = append(args, "-I"+filepath.Join(dir, incdir))
 	}
 	if arch.includeDirs != "" {
-		for _, dir := range strings.Split(arch.includeDirs, ",") {
+		for dir := range strings.SplitSeq(arch.includeDirs, ",") {
 			args = append(args, "-I"+dir)
 		}
 	}

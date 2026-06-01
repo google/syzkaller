@@ -237,10 +237,7 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 		r.adjustPoolSizeLocked()
 		r.mu.Unlock()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			r.handle(ctx, crash)
 
 			r.mu.Lock()
@@ -254,7 +251,7 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			case r.pingQueue <- struct{}{}:
 			default:
 			}
-		}()
+		})
 	}
 }
 

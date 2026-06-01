@@ -129,12 +129,12 @@ func checkConfigs(instances []*Instance, unusedFeatures []string) error {
 		}
 	}
 	dedup := make(map[string]bool)
-	errorString := ""
+	var errorString strings.Builder
 	for _, inst := range instances {
 		for _, cfg := range inst.Configs {
 			if strings.HasPrefix(cfg.Name, "CONFIG_") {
 				msg := fmt.Sprintf("Warning: excessive CONFIG_ in %v at %v:%v ?", cfg.Name, cfg.File, cfg.Line)
-				errorString += "\n" + msg
+				errorString.WriteString("\n" + msg)
 			}
 			for _, feat := range cfg.Constraints {
 				if feat[0] == '-' {
@@ -148,12 +148,12 @@ func checkConfigs(instances []*Instance, unusedFeatures []string) error {
 					continue
 				}
 				dedup[msg] = true
-				errorString += "\n" + msg
+				errorString.WriteString("\n" + msg)
 			}
 		}
 	}
-	if errorString != "" {
-		return errors.New(errorString[1:])
+	if errorString.String() != "" {
+		return errors.New(errorString.String()[1:])
 	}
 	return nil
 }

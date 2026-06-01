@@ -6,6 +6,7 @@ package kernel
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -58,13 +59,14 @@ var kernelBackports = []vcs.BackportCommit{
 
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 	var res checkoutResult
-	cacheKey := args.KernelCommit
+	var cacheKey strings.Builder
+	cacheKey.WriteString(args.KernelCommit)
 	for _, bp := range kernelBackports {
-		cacheKey += "-" + bp.FixHash
+		cacheKey.WriteString("-" + bp.FixHash)
 	}
 
 	err := UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		dir, err := ctx.Cache("src", cacheKey, func(dir string) error {
+		dir, err := ctx.Cache("src", cacheKey.String(), func(dir string) error {
 			if _, err := repo.SwitchCommit(args.KernelCommit); err != nil {
 				if _, err := repo.CheckoutCommit(args.KernelRepo, args.KernelCommit); err != nil {
 					return err

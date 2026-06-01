@@ -768,11 +768,11 @@ func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
 	for len(ln) != 0 && ln[0] == ' ' {
 		ln = ln[1:]
 	}
-	colon := bytes.IndexByte(ln, ':')
-	if colon == -1 {
+	before, _, ok := bytes.Cut(ln, []byte{':'})
+	if !ok {
 		return 0
 	}
-	pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
+	pc, err := strconv.ParseUint(string(before), 16, 64)
 	if err != nil {
 		return 0
 	}

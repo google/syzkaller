@@ -85,8 +85,7 @@ func TestReproOrder(t *testing.T) {
 	obj.Enqueue(crashes[0])
 	obj.Enqueue(crashes[2])
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go obj.Loop(ctx)
 
 	for i := range len(crashes) * 2 {
@@ -106,8 +105,7 @@ func TestReproRWRace(t *testing.T) {
 	}
 	obj := NewReproLoop(mock, 3, false)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	go obj.Loop(ctx) // calls runRepro()
 

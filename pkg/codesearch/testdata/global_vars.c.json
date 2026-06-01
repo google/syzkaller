@@ -8,8 +8,7 @@
 				"file": "global_vars.c",
 				"start_line": 14,
 				"end_line": 18
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "global_var",
@@ -19,8 +18,7 @@
 				"file": "global_vars.c",
 				"start_line": 11,
 				"end_line": 11
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "local_to_file_var",
@@ -31,8 +29,7 @@
 				"file": "global_vars.c",
 				"start_line": 12,
 				"end_line": 12
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "macro_var",
@@ -42,8 +39,7 @@
 				"file": "global_vars.c",
 				"start_line": 7,
 				"end_line": 7
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "static_macro_var",
@@ -54,8 +50,7 @@
 				"file": "global_vars.c",
 				"start_line": 9,
 				"end_line": 9
-			},
-			"comment": {}
+			}
 		}
 	]
 }

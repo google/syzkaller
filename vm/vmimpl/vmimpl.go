@@ -102,8 +102,7 @@ func MakeBootError(err error, output []byte) error {
 		// was collected, but turned out to be empty.
 		output = []byte("<empty boot output>")
 	}
-	var verboseError *osutil.VerboseError
-	if errors.As(err, &verboseError) {
+	if verboseError, ok := errors.AsType[*osutil.VerboseError](err); ok {
 		return BootError{verboseError.Error(), append(verboseError.Output, output...)}
 	}
 	return BootError{err.Error(), output}
@@ -282,8 +281,7 @@ func UnusedTCPPort() int {
 		// Although we exclude ports <1024 in RandomPort(), it's still possible that we can face a restricted port.
 		var opErr *net.OpError
 		if errors.As(err, &opErr) && opErr.Op == "listen" {
-			var syscallErr *os.SyscallError
-			if errors.As(opErr.Err, &syscallErr) {
+			if syscallErr, ok := errors.AsType[*os.SyscallError](opErr.Err); ok {
 				if errors.Is(syscallErr.Err, syscall.EADDRINUSE) || errors.Is(syscallErr.Err, syscall.EACCES) {
 					continue
 				}

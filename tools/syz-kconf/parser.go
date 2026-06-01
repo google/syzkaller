@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -63,12 +64,7 @@ func (features Features) Match(constraints []string) bool {
 }
 
 func constraintsInclude(constraints []string, what string) bool {
-	for _, feat := range constraints {
-		if feat == what {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(constraints, what)
 }
 
 type rawMain struct {

@@ -173,8 +173,7 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 	cmd.Env = append([]string{fmt.Sprintf("%v=%v", runToolEnv, cfg.Tool)}, os.Environ()...)
 	data, err := cmd.Output()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			err = fmt.Errorf("%v: %w\n%s", relFile, err, exitErr.Stderr)
 		}
 		return nil, err

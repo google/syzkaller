@@ -82,8 +82,8 @@ func JSONToInsns(jsonStr []byte) []*arm64.Insn {
 		opcode := uint32(0)
 		curBit := uint(31)
 		fields := []arm64.InsnField{}
-		pieces := strings.Split(desc.Bits, "|")
-		for _, piece := range pieces {
+		pieces := strings.SplitSeq(desc.Bits, "|")
+		for piece := range pieces {
 			size := uint(1)
 			pair := strings.Split(piece, ":")
 			var pattern = piece

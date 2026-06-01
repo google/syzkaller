@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"slices"
 	"sort"
+	"strings"
 )
 
 // Calulation of call-to-call priorities.
@@ -144,14 +145,15 @@ func (target *Target) calcResourceUsage(enabled map[*Syscall]bool) map[string]ma
 			if target.AuxResources[a.Desc.Name] {
 				noteUsagef(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
 			} else {
-				str := "res"
+				var str strings.Builder
+				str.WriteString("res")
 				for i, k := range a.Desc.Kind {
-					str += "-" + k
+					str.WriteString("-" + k)
 					w := int32(10)
 					if i < len(a.Desc.Kind)-1 {
 						w = 2
 					}
-					noteUsage(uses, c, w, ctx.Dir, str)
+					noteUsage(uses, c, w, ctx.Dir, str.String())
 				}
 			}
 		case *PtrType:

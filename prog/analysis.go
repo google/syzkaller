@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/image"
 )
@@ -401,10 +402,5 @@ func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader, c *
 }
 
 func (p *Prog) ContainsAny() bool {
-	for _, c := range p.Calls {
-		if p.Target.CallContainsAny(c) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(p.Calls, p.Target.CallContainsAny)
 }

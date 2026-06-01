@@ -181,8 +181,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 			continue
 		}
 
-		var crashErr *instance.CrashError
-		if errors.As(result.Error, &crashErr) {
+		if crashErr, ok := errors.AsType[*instance.CrashError](result.Error); ok {
 			title := crashErr.Report.Title
 			if stat, ok := crashes[title]; ok {
 				stat.count++
