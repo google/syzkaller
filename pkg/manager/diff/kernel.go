@@ -140,9 +140,9 @@ func (kc *kernelContext) BugFrames() (leaks, races []string) {
 }
 
 func (kc *kernelContext) MachineChecked(features flatrpc.Feature,
-	syscalls map[*prog.Syscall]bool) (queue.Source, error) {
+	syscalls map[*prog.Syscall]bool) error {
 	if len(syscalls) == 0 {
-		return nil, fmt.Errorf("all system calls are disabled")
+		return fmt.Errorf("all system calls are disabled")
 	}
 	log.Logf(0, "%s: machine check complete", kc.name)
 	kc.features = features
@@ -154,7 +154,8 @@ func (kc *kernelContext) MachineChecked(features flatrpc.Feature,
 		source = kc.source
 	}
 	opts := fuzzer.DefaultExecOpts(kc.cfg, features, kc.debug)
-	return queue.DefaultOpts(source, opts), nil
+	kc.serv.SetSource(queue.DefaultOpts(source, opts))
+	return nil
 }
 
 func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
