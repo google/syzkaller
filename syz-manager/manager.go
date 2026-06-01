@@ -481,7 +481,7 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 }
 
 func (mgr *Manager) convertBootError(err error) *manager.Crash {
-	var bootErr vm.BootErrorer
+	var bootErr vm.BootError
 	if errors.As(err, &bootErr) {
 		title, output := bootErr.BootError()
 		rep := mgr.reporter.Parse(output)

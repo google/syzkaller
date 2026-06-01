@@ -342,7 +342,7 @@ func (inst *inst) test() EnvTestResult {
 		ret := EnvTestResult{
 			Error: testErr,
 		}
-		var bootErr vm.BootErrorer
+		var bootErr vm.BootError
 		if errors.As(err, &bootErr) {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			ret.RawOutput = testErr.Output
@@ -365,7 +365,7 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Title = rep.Title
 		} else {
 			testErr.Infra = true
-			var infraErr vm.InfraErrorer
+			var infraErr vm.InfraError
 			if errors.As(err, &infraErr) {
 				// In case there's more info available.
 				testErr.Title, testErr.Output = infraErr.InfraError()
