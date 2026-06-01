@@ -354,5 +354,6 @@ tool (
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	github.com/google/keep-sorted
 	github.com/vektra/mockery/v3
+	golang.org/x/tools/cmd/deadcode
 	golang.org/x/tools/cmd/stringer
 )
