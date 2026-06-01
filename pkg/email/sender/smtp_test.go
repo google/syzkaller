@@ -37,6 +37,26 @@ func TestRawEmail(t *testing.T) {
 				"Content-Transfer-Encoding: 8bit\r\n\r\n" +
 				"Email body",
 		},
+		{
+			// CRLF in the (attacker-controlled) Subject and In-Reply-To must not
+			// inject additional headers into the outgoing message.
+			item: &Email{
+				To:        []string{"1@to.com"},
+				InReplyTo: "<reply@domain>\r\nBcc: victim@evil.com",
+				Subject:   "subject\r\nBcc: victim@evil.com",
+				Body:      []byte("Email body"),
+			},
+			id: "<id@domain>",
+			result: "From: \"name\" <a@b.com>\r\n" +
+				"To: 1@to.com\r\n" +
+				"Subject: subjectBcc: victim@evil.com\r\n" +
+				"In-Reply-To: <reply@domain>Bcc: victim@evil.com\r\n" +
+				"Message-ID: <id@domain>\r\n" +
+				"MIME-Version: 1.0\r\n" +
+				"Content-Type: text/plain; charset=UTF-8\r\n" +
+				"Content-Transfer-Encoding: 8bit\r\n\r\n" +
+				"Email body",
+		},
 	}
 
 	cfg := SMTPConfig{

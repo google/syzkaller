@@ -92,23 +92,30 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 	return msgID, nil
 }
 
+// stripCRLF removes CR and LF from a header value. The Subject and In-Reply-To
+// can originate from an incoming email (e.g. a #syz command reply), and an
+// RFC 2047 encoded-word Subject decodes to arbitrary bytes including CRLF, so
+// writing it verbatim lets a sender inject extra headers into the outgoing mail.
+func stripCRLF(s string) string {
+	return strings.NewReplacer("\r", "", "\n", "").Replace(s)
+}
+
 func (s *smtpSender) rawEmail(item *Email, id string) []byte {
 	var msg bytes.Buffer
 
-	fmt.Fprintf(&msg, "From: %s\r\n", s.cfg.From.String())
-	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(item.To, ", "))
+	fmt.Fprintf(&msg, "From: %s\r\n", stripCRLF(s.cfg.From.String()))
+	fmt.Fprintf(&msg, "To: %s\r\n", stripCRLF(strings.Join(item.To, ", ")))
 	if len(item.Cc) > 0 {
-		fmt.Fprintf(&msg, "Cc: %s\r\n", strings.Join(item.Cc, ", "))
+		fmt.Fprintf(&msg, "Cc: %s\r\n", stripCRLF(strings.Join(item.Cc, ", ")))
 	}
-	fmt.Fprintf(&msg, "Subject: %s\r\n", item.Subject)
-	if item.InReplyTo != "" {
-		inReplyTo := item.InReplyTo
+	fmt.Fprintf(&msg, "Subject: %s\r\n", stripCRLF(item.Subject))
+	if inReplyTo := stripCRLF(item.InReplyTo); inReplyTo != "" {
 		if inReplyTo[0] != '<' {
 			inReplyTo = "<" + inReplyTo + ">"
 		}
 		fmt.Fprintf(&msg, "In-Reply-To: %s\r\n", inReplyTo)
 	}
-	if id != "" {
+	if id = stripCRLF(id); id != "" {
 		if id[0] != '<' {
 			id = "<" + id + ">"
 		}
