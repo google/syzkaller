@@ -4,6 +4,8 @@
 // Package signal provides types for working with feedback signal.
 package signal
 
+import "maps"
+
 type (
 	elemType uint64
 	prioType int8
@@ -22,9 +24,7 @@ func (s Signal) Empty() bool {
 
 func (s Signal) Copy() Signal {
 	c := make(Signal, len(s))
-	for e, p := range s {
-		c[e] = p
-	}
+	maps.Copy(c, s)
 	return c
 }
 

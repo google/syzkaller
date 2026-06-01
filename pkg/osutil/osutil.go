@@ -73,8 +73,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmd.Args)
 		}
 		exitCode := cmd.ProcessState.ExitCode()
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			}

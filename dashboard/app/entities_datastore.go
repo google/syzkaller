@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -1102,12 +1103,7 @@ func timeDate(t time.Time) int {
 }
 
 func stringInList(list []string, str string) bool {
-	for _, s := range list {
-		if s == str {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, str)
 }
 
 func stringListsIntersect(a, b []string) bool {

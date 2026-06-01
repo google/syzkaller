@@ -9,7 +9,6 @@
 				"start_line": 23,
 				"end_line": 34
 			},
-			"comment": {},
 			"refs": [
 				{
 					"name": "refs0",
@@ -102,8 +101,7 @@
 				"file": "refs.c",
 				"start_line": 9,
 				"end_line": 11
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "refs2",
@@ -113,8 +111,7 @@
 				"file": "refs.c",
 				"start_line": 13,
 				"end_line": 15
-			},
-			"comment": {}
+			}
 		},
 		{
 			"name": "refs3",
@@ -125,7 +122,6 @@
 				"start_line": 17,
 				"end_line": 21
 			},
-			"comment": {},
 			"refs": [
 				{
 					"name": "refs2",

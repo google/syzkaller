@@ -83,7 +83,7 @@ type gvisorConfig struct {
 // parseGVisorConfig parses a set of flags into a `gvisorConfig`.
 func parseGVisorConfig(config []byte) (gvisorConfig, error) {
 	var cfg gvisorConfig
-	for _, flag := range strings.Fields(string(config)) {
+	for flag := range strings.FieldsSeq(string(config)) {
 		switch flag {
 		case gvisorFlagCover:
 			cfg.Coverage = true

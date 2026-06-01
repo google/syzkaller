@@ -23,7 +23,7 @@ func makeLineToLineMatcher(textFrom, textTo string) *LineToLineMatcher {
 	toLines := strings.Split(textTo, "\n")
 	curFromLinePos := 0
 	lineToLine := []int{}
-	for _, line := range strings.Split(textFrom, "\n") {
+	for line := range strings.SplitSeq(textFrom, "\n") {
 		toLinePos := diffMatcher.DiffXIndex(diffs, curFromLinePos)
 		toLine := -1
 		if bestMatchDestLine, ok := textDestPosToLine[toLinePos]; ok {

@@ -144,8 +144,8 @@ func main() {
 	if *flagExports == "all" {
 		*flagExports = "cover,subsystem,module,funccover,rawcover,rawcoverfiles"
 	}
-	exports := strings.Split(*flagExports, ",")
-	for _, export := range exports {
+	exports := strings.SplitSeq(*flagExports, ",")
+	for export := range exports {
 		log.Logf(1, "start generate %v", export)
 		switch export {
 		case "cover":

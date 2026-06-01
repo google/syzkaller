@@ -4,6 +4,7 @@
 package linux
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/prog"
@@ -95,10 +96,8 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, dir prog.Di
 			return
 		}
 		if int64(valArg.Val) < 0 {
-			for _, val := range flagsType.Vals {
-				if val == valArg.Val {
-					return // verdict
-				}
+			if slices.Contains(flagsType.Vals, valArg.Val) {
+				return // verdict
 			}
 		}
 		valArg.Val = genOffset()

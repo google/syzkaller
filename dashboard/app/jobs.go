@@ -45,11 +45,9 @@ type testReqArgs struct {
 func handleTestRequest(ctx context.Context, args *testReqArgs) error {
 	log.Infof(ctx, "test request: bug=%s user=%q extID=%q patch=%v, repo=%q branch=%q",
 		args.bug.Title, args.user, args.extID, len(args.patch), args.repo, args.branch)
-	for _, blocked := range getConfig(ctx).EmailBlocklist {
-		if args.user == blocked {
-			return &TestRequestDeniedError{
-				fmt.Sprintf("test request from blocked user: %v", args.user),
-			}
+	if slices.Contains(getConfig(ctx).EmailBlocklist, args.user) {
+		return &TestRequestDeniedError{
+			fmt.Sprintf("test request from blocked user: %v", args.user),
 		}
 	}
 	crash, crashKey, err := findCrashForBug(ctx, args.bug)

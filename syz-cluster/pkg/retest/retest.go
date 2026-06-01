@@ -111,9 +111,7 @@ func testOnEnv(env instance.Env, finding *api.RawFinding) *testResult {
 		return ret
 	}
 
-	var testErr *instance.TestError
-	var crashErr *instance.CrashError
-	if errors.As(res.Error, &testErr) {
+	if testErr, ok := errors.AsType[*instance.TestError](res.Error); ok {
 		ret.Status = api.StepResultError
 		ret.Error = testErr.Title
 		ret.Title = testErr.Title
@@ -121,7 +119,7 @@ func testOnEnv(env instance.Env, finding *api.RawFinding) *testResult {
 			ret.Report = testErr.Report.Report
 			ret.Title = testErr.Report.Title
 		}
-	} else if errors.As(res.Error, &crashErr) {
+	} else if crashErr, ok := errors.AsType[*instance.CrashError](res.Error); ok {
 		ret.Status = api.StepResultFailed
 		if crashErr.Report != nil {
 			ret.Report = crashErr.Report.Report

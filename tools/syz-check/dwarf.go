@@ -7,6 +7,7 @@ import (
 	"debug/dwarf"
 	"debug/elf"
 	"fmt"
+	"maps"
 	"runtime"
 	"strings"
 )
@@ -87,9 +88,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	result := make(map[string]*dwarf.StructType)
 	go func() {
 		for structs := range structc {
-			for name, str := range structs {
-				result[name] = str
-			}
+			maps.Copy(result, structs)
 		}
 		errc <- nil
 	}()

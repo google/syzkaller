@@ -269,8 +269,7 @@ func (w *execContext) writeChecksums() {
 	slices.SortFunc(csumArgs, func(a, b Arg) int {
 		return cmp.Compare(w.args[a].Addr, w.args[b].Addr)
 	})
-	for i := len(csumArgs) - 1; i >= 0; i-- {
-		arg := csumArgs[i]
+	for _, arg := range slices.Backward(csumArgs) {
 		info := w.csumMap[arg]
 		if _, ok := arg.Type().(*CsumType); !ok {
 			panic("csum arg is not csum type")

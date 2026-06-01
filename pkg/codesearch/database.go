@@ -28,8 +28,8 @@ type Definition struct {
 	Type     string      `json:"type,omitempty"`
 	Kind     EntityKind  `json:"kind,omitempty"`
 	IsStatic bool        `json:"is_static,omitempty"`
-	Body     LineRange   `json:"body,omitempty"`
-	Comment  LineRange   `json:"comment,omitempty"`
+	Body     LineRange   `json:"body,omitzero"`
+	Comment  LineRange   `json:"comment,omitzero"`
 	Refs     []Reference `json:"refs,omitempty"`
 	Fields   []FieldInfo `json:"fields,omitempty"`
 }

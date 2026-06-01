@@ -141,11 +141,11 @@ func removeSystemDefines(src []byte, defines []string) ([]byte, error) {
 		"__STDC_EMBED_EMPTY__":     "2",
 	}
 	for _, def := range defines {
-		eq := strings.IndexByte(def, '=')
-		if eq == -1 {
+		before, after, ok := strings.Cut(def, "=")
+		if !ok {
 			remove[def] = "1"
 		} else {
-			remove[def[:eq]] = def[eq+1:]
+			remove[before] = after
 		}
 	}
 	for def, val := range remove {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -927,9 +928,7 @@ func TestAIJobNamespaces(t *testing.T) {
 	c.transformContext = func(ctx context.Context) context.Context {
 		cfg := *getConfig(ctx)
 		newClients := map[string]APIClient{}
-		for k, v := range cfg.Clients {
-			newClients[k] = v
-		}
+		maps.Copy(newClients, cfg.Clients)
 		newClients["restricted-ai"] = APIClient{
 			Key:             "restrictedkey123456",
 			Methods:         AIMethods,

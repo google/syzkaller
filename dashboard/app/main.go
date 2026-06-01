@@ -2219,13 +2219,7 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 			})
 		}
 		for _, mgr := range managers {
-			found := false
-			for _, mgr1 := range bug.PatchedOn {
-				if mgr == mgr1 {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(bug.PatchedOn, mgr)
 			if found {
 				uiBug.PatchedOn = append(uiBug.PatchedOn, mgr)
 			} else {
@@ -2732,8 +2726,8 @@ func fetchErrorLogs(ctx context.Context) ([]byte, error) {
 	}
 
 	buf := new(bytes.Buffer)
-	for i := len(lines) - 1; i >= 0; i-- {
-		buf.WriteString(lines[i])
+	for _, line := range slices.Backward(lines) {
+		buf.WriteString(line)
 		buf.WriteByte('\n')
 	}
 	return buf.Bytes(), nil

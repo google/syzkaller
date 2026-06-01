@@ -656,12 +656,10 @@ func (env *env) test() (*testResult, error) {
 	}
 	if err != nil {
 		errInfo := fmt.Sprintf("failed building %v: ", current.Hash)
-		var verr *osutil.VerboseError
-		var kerr *build.KernelError
-		if errors.As(err, &verr) {
+		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
 			errInfo += verr.Error()
 			env.saveDebugFile(current.Hash, 0, verr.Output)
-		} else if errors.As(err, &kerr) {
+		} else if kerr, ok := errors.AsType[*build.KernelError](err); ok {
 			errInfo += string(kerr.Report)
 			env.saveDebugFile(current.Hash, 0, kerr.Output)
 		} else {

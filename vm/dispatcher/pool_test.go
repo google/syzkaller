@@ -262,9 +262,7 @@ func TestPoolCancelRun(t *testing.T) {
 	started := make(chan struct{})
 	// Schedule more jobs than could be processed simultaneously.
 	for range 15 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
 				select {
 				case <-ctx.Done():
@@ -273,7 +271,7 @@ func TestPoolCancelRun(t *testing.T) {
 				}
 				<-ctx.Done()
 			})
-		}()
+		})
 	}
 
 	// Two can be started.

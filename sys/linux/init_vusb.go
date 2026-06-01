@@ -270,7 +270,7 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 		// Patch in IDs auto-extracted from the matching rules for the USB audio class.
 		// Do not patch IDs that are not used in the matching rules to avoid subverting
 		// the kernel into matching the device to a different driver.
-		var ids string
+		var ids strings.Builder
 		for _, name := range []string{
 			"snd-bcd2000",
 			"snd-ua101",
@@ -286,11 +286,11 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			"snd_usb_variax",
 		} {
 			if driverIDs, ok := usbIds[name]; ok {
-				ids += driverIDs
+				ids.WriteString(driverIDs)
 			}
 		}
-		if ids != "" {
-			patchUsbDeviceID(g, &arg, calls, ids, false)
+		if ids.String() != "" {
+			patchUsbDeviceID(g, &arg, calls, ids.String(), false)
 		}
 	}
 	return

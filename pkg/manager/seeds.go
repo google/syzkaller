@@ -220,7 +220,7 @@ func parseRequires(data []byte) map[string]bool {
 		if !strings.HasPrefix(line, prefix) {
 			continue
 		}
-		for _, req := range strings.Fields(line[len(prefix):]) {
+		for req := range strings.FieldsSeq(line[len(prefix):]) {
 			positive := true
 			if req[0] == '-' {
 				positive = false
@@ -252,7 +252,7 @@ func MatchRequirements(props, requires map[string]bool) bool {
 			continue
 		}
 		matched := true
-		for _, req1 := range strings.Split(req, ",") {
+		for req1 := range strings.SplitSeq(req, ",") {
 			if !props[req1] {
 				matched = false
 			}

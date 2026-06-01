@@ -97,9 +97,7 @@ func loadBugReports(dash *dashapi.Dashboard, IDs []string) <-chan *workItem {
 	ret := make(chan *workItem)
 	var wg sync.WaitGroup
 	for range threads {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for id := range ids {
 				resp, err := dash.LoadBug(id)
 				if err != nil {
@@ -114,7 +112,7 @@ func loadBugReports(dash *dashapi.Dashboard, IDs []string) <-chan *workItem {
 					bugID:  id,
 				}
 			}
-		}()
+		})
 	}
 	go func() {
 		for i, id := range IDs {

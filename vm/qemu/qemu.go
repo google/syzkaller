@@ -623,7 +623,7 @@ func handleVfioPciArg(arg string, index int) string {
 }
 
 func splitArgs(str, templateDir string, index int) (args []string) {
-	for _, arg := range strings.Split(str, " ") {
+	for arg := range strings.SplitSeq(str, " ") {
 		if arg == "" {
 			continue
 		}

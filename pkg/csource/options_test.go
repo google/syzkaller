@@ -194,7 +194,7 @@ func TestParseOptionsCanned(t *testing.T) {
 
 func allOptionsSingle(OS string) []Options {
 	var opts []Options
-	fields := reflect.TypeOf(Options{}).NumField()
+	fields := reflect.TypeFor[Options]().NumField()
 	for i := range fields {
 		// Because of constraints on options, we need some defaults
 		// (e.g. no collide without threaded).
@@ -212,7 +212,7 @@ func allOptionsSingle(OS string) []Options {
 
 func allOptionsPermutations(OS string) []Options {
 	opts := []Options{{}}
-	fields := reflect.TypeOf(Options{}).NumField()
+	fields := reflect.TypeFor[Options]().NumField()
 	for i := range fields {
 		var newOpts []Options
 		for _, opt := range opts {

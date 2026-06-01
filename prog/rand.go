@@ -1036,10 +1036,10 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 	relatedRes := map[*ResultArg]bool{resource: true}
 
 	// Remove unrelated calls from the program.
-	for idx := len(p.Calls) - 1; idx >= 0; idx-- {
+	for idx, v := range slices.Backward(p.Calls) {
 		includeCall := false
 		var newResources []*ResultArg
-		ForeachArg(p.Calls[idx], func(arg Arg, _ *ArgCtx) {
+		ForeachArg(v, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*ResultArg); ok {
 				if a.Res != nil && !relatedRes[a.Res] {
 					newResources = append(newResources, a.Res)

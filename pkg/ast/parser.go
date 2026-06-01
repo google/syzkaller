@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -171,10 +172,8 @@ func (p *parser) tryConsume(tok token) bool {
 }
 
 func (p *parser) expect(tokens ...token) {
-	for _, tok := range tokens {
-		if p.tok == tok {
-			return
-		}
+	if slices.Contains(tokens, p.tok) {
+		return
 	}
 	var str []string
 	for _, tok := range tokens {
@@ -319,11 +318,11 @@ func (p *parser) parseCall(name *Ident) *Call {
 }
 
 func callName(s string) string {
-	pos := strings.IndexByte(s, '$')
-	if pos == -1 {
+	before, _, ok := strings.Cut(s, "$")
+	if !ok {
 		return s
 	}
-	return s[:pos]
+	return before
 }
 
 func (p *parser) parseFlags(name *Ident) Node {

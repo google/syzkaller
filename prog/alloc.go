@@ -48,7 +48,7 @@ func newMemAlloc(totalMemSize uint64) *memAlloc {
 func (ma *memAlloc) noteAlloc(addr0, size0 uint64) {
 	addr := addr0 / memAllocGranule
 	size := (addr0+size0+memAllocGranule-1)/memAllocGranule - addr
-	for i := uint64(0); i < size; i++ {
+	for i := range size {
 		ma.set(addr + i)
 	}
 }
@@ -68,7 +68,7 @@ func (ma *memAlloc) alloc(r *randGen, size0, alignment0 uint64) uint64 {
 	start0 := ma.last[alignment]
 	for start := start0; start <= end; start += alignment {
 		empty := true
-		for i := uint64(0); i < size; i++ {
+		for i := range size {
 			if ma.get(start + i) {
 				empty = false
 				break

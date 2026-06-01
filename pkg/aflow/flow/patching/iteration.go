@@ -6,6 +6,7 @@ package patching
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
@@ -35,7 +36,7 @@ type PatchIterationInputs struct {
 	PatchHistory []ai.PatchHistoryEntry
 
 	// Base fixes tag from previous version.
-	BaseFixes ai.FixesTag `json:",omitempty"`
+	BaseFixes ai.FixesTag `json:",omitzero"`
 
 	BaseReviewedBy []string `json:",omitempty"`
 	BaseAckedBy    []string `json:",omitempty"`
@@ -190,28 +191,30 @@ type viewPatchHistoryResult struct {
 var viewPatchHistoryTool = aflow.NewFuncTool("view-patch-history", func(ctx *aflow.Context, state struct {
 	PatchHistory []ai.PatchHistoryEntry
 }, args viewPatchHistoryArgs) (viewPatchHistoryResult, error) {
-	summary := "Available patch versions:\n"
+	var summary strings.Builder
+	summary.WriteString("Available patch versions:\n")
 	for _, entry := range state.PatchHistory {
-		summary += fmt.Sprintf("v%d: %d comments\n", entry.Version, len(entry.Comments))
+		summary.WriteString(fmt.Sprintf("v%d: %d comments\n", entry.Version, len(entry.Comments)))
 	}
-	summary += "Call this tool with a specific version number to see its diff, description, and comments."
+	summary.WriteString("Call this tool with a specific version number to see its diff, description, and comments.")
 
 	if args.Version == 0 {
-		return viewPatchHistoryResult{summary}, nil
+		return viewPatchHistoryResult{summary.String()}, nil
 	}
 	for _, entry := range state.PatchHistory {
 		if entry.Version == args.Version {
-			res := fmt.Sprintf("Version: v%d\nDescription:\n%s\n\nDiff:\n%s\n\nComments:\n",
-				entry.Version, entry.Description, entry.Diff)
+			var res strings.Builder
+			res.WriteString(fmt.Sprintf("Version: v%d\nDescription:\n%s\n\nDiff:\n%s\n\nComments:\n",
+				entry.Version, entry.Description, entry.Diff))
 			for _, comment := range entry.Comments {
 				b, _ := json.Marshal(comment)
-				res += string(b) + "\n"
+				res.WriteString(string(b) + "\n")
 			}
-			return viewPatchHistoryResult{res}, nil
+			return viewPatchHistoryResult{res.String()}, nil
 		}
 	}
 	return viewPatchHistoryResult{fmt.Sprintf("Note: the specified version (v%d) is not found.\n\n%s",
-		args.Version, summary)}, nil
+		args.Version, summary.String())}, nil
 }, "View previous versions of the patch, their descriptions, and reviewer comments.")
 
 var extractTriageResults = aflow.NewFuncAction("extract-triage-results", func(ctx *aflow.Context, args struct {

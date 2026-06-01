@@ -69,8 +69,7 @@ func handleContext(fn contextHandler) http.Handler {
 			http.Error(w, "403 Forbidden", http.StatusForbidden)
 			return
 		}
-		var redir *ErrRedirect
-		if errors.As(err, &redir) {
+		if redir, ok := errors.AsType[*ErrRedirect](err); ok {
 			http.Redirect(w, r, redir.Error(), http.StatusFound)
 			return
 		}
@@ -87,8 +86,7 @@ func handleContext(fn contextHandler) http.Handler {
 func logErrorPrepareStatus(ctx context.Context, err error) int {
 	status := http.StatusInternalServerError
 	logf := log.Errorf
-	var clientError *ErrClient
-	if errors.As(err, &clientError) {
+	if clientError, ok := errors.AsType[*ErrClient](err); ok {
 		// We don't log these as errors because they can be provoked
 		// by invalid user requests, so we don't wan't to pollute error log.
 		logf = log.Warningf

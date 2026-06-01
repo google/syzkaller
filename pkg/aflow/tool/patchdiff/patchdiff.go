@@ -48,8 +48,7 @@ func patchDiff(ctx *aflow.Context, state state, args args) (result, error) {
 
 	output, err := osutil.Run(1*time.Minute, cmd)
 	if err != nil {
-		var verr *osutil.VerboseError
-		if errors.As(err, &verr) {
+		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
 			if bytes.Contains(verr.Output, []byte("outside repository")) {
 				return result{}, aflow.BadCallError("git diff failed: the file is outside the repository")
 			}

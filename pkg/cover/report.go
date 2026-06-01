@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -182,16 +183,16 @@ func (rg *ReportGenerator) frame2line(files fileMap, pcToProgs map[uint64]map[in
 }
 
 func coverageCallbackMismatch(debug bool, numPCs int, unmatchedPCs map[uint64]bool) error {
-	debugStr := ""
+	var debugStr strings.Builder
 	if debug {
-		debugStr += "\n\nUnmatched PCs:\n"
+		debugStr.WriteString("\n\nUnmatched PCs:\n")
 		for pc := range unmatchedPCs {
-			debugStr += fmt.Sprintf("%x\n", pc)
+			debugStr.WriteString(fmt.Sprintf("%x\n", pc))
 		}
 	}
 	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks."+
 		" Check the discoverModules() code. Use ?force=1 to disable this message.%s",
-		len(unmatchedPCs), numPCs, debugStr)
+		len(unmatchedPCs), numPCs, debugStr.String())
 }
 
 func uniquePCs(progs ...Prog) []uint64 {

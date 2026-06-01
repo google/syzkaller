@@ -152,11 +152,9 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	}
 	var wg sync.WaitGroup
 	for call, info := range job.calls {
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			job.handleCall(call, info)
-			wg.Done()
-		}()
+		})
 	}
 	wg.Wait()
 }

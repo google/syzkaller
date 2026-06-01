@@ -245,8 +245,8 @@ func rm(file, syscall string, target *prog.Target) {
 		if err != nil {
 			tool.Failf("failed to deserialize: %w\n%s", err, rec.Val)
 		}
-		for i := len(p.Calls) - 1; i >= 0; i-- {
-			if strings.Contains(p.Calls[i].Meta.Name, syscall) {
+		for i, v := range slices.Backward(p.Calls) {
+			if strings.Contains(v.Meta.Name, syscall) {
 				p.RemoveCall(i)
 			}
 		}

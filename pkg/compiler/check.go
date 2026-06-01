@@ -618,8 +618,7 @@ func (comp *compiler) validateFieldPathRec(t0, t *ast.Type, targets []*ast.Type,
 		comp.validateFieldPathRec(t0, t, targets, parents, warned)
 		return
 	}
-	for pi := len(parents) - 1; pi >= 0; pi-- {
-		parent := parents[pi]
+	for pi, parent := range slices.Backward(parents) {
 		if parent.name != "" && parent.name == target.Ident ||
 			parent.name == "" && target.Ident == prog.SyscallRef {
 			parents1 := make([]parentDesc, pi+1)
@@ -955,12 +954,12 @@ func (comp *compiler) checkResourceRecursion(n *ast.Resource) {
 	var seen []string
 	for n != nil {
 		if slices.Contains(seen, n.Name.Name) {
-			chain := ""
+			var chain strings.Builder
 			for _, r := range seen {
-				chain += r + "->"
+				chain.WriteString(r + "->")
 			}
-			chain += n.Name.Name
-			comp.error(n.Pos, "recursive resource %v", chain)
+			chain.WriteString(n.Name.Name)
+			comp.error(n.Pos, "recursive resource %v", chain.String())
 			return
 		}
 		seen = append(seen, n.Name.Name)
@@ -984,12 +983,13 @@ func (comp *compiler) checkStructRecursion(checked map[string]bool, n *ast.Struc
 			continue
 		}
 		path = path[i:]
-		str := ""
+		var str strings.Builder
 		for _, elem := range path {
-			str += fmt.Sprintf("%v.%v -> ", elem.Struct, elem.Field)
+			str.WriteString(fmt.Sprintf("%v.%v -> ", elem.Struct, elem.Field))
 		}
-		str += name
-		comp.error(path[0].Pos, "recursive declaration: %v (mark some pointers as opt, or use variable-length arrays)", str)
+		str.WriteString(name)
+		comp.error(path[0].Pos, "recursive declaration: %v (mark some pointers as opt, or use variable-length arrays)",
+			str.String())
 		checked[name] = true
 		return
 	}
@@ -1546,31 +1546,31 @@ func (comp *compiler) checkDupConstsCall(n *ast.Call, dups map[string]map[string
 		dups[n.CallName] = make(map[string]dupConstArg)
 	}
 	hasConsts := false
-	constArgID := ""
+	var constArgID strings.Builder
 	for i, arg := range n.Args {
 		desc := comp.getTypeDesc(arg.Type)
 		switch desc {
 		case typeConst:
 			v := arg.Type.Args[0].Value
 			if v != 0 && v != 18446744073709551516 { // AT_FDCWD
-				constArgID += fmt.Sprintf("(%v-%v)", i, fmt.Sprintf("%v", v))
+				constArgID.WriteString(fmt.Sprintf("(%v-%v)", i, fmt.Sprintf("%v", v)))
 				hasConsts = true
 			}
 		case typeResource:
-			constArgID += fmt.Sprintf("(%v-%v)", i, arg.Type.Ident)
+			constArgID.WriteString(fmt.Sprintf("(%v-%v)", i, arg.Type.Ident))
 		}
 	}
 	if !hasConsts {
 		return
 	}
-	dup, ok := dups[n.CallName][constArgID]
+	dup, ok := dups[n.CallName][constArgID.String()]
 	if !ok {
-		dups[n.CallName][constArgID] = dupConstArg{
+		dups[n.CallName][constArgID.String()] = dupConstArg{
 			pos:  n.Pos,
 			name: n.Name.Name,
 		}
 		return
 	}
 	comp.error(n.Pos, "call %v: duplicate const %v, previously used in call %v at %v",
-		n.Name.Name, constArgID, dup.name, dup.pos)
+		n.Name.Name, constArgID.String(), dup.name, dup.pos)
 }

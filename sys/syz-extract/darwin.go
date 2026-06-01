@@ -35,7 +35,7 @@ func (*darwin) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 	}
 	fmt.Printf("dirs: %v", arch.includeDirs)
 	if arch.includeDirs != "" {
-		for _, dir := range strings.Split(arch.includeDirs, ",") {
+		for dir := range strings.SplitSeq(arch.includeDirs, ",") {
 			args = append(args, "-I"+dir)
 		}
 	}

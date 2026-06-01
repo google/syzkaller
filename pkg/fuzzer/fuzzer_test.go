@@ -30,7 +30,7 @@ import (
 )
 
 func TestFuzz(t *testing.T) {
-	defer checkGoroutineLeaks()
+	t.Cleanup(checkGoroutineLeaks)
 
 	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
 	if err != nil {
@@ -42,8 +42,7 @@ func TestFuzz(t *testing.T) {
 	}
 	executor := csource.BuildExecutor(t, target, "../..", "-fsanitize-coverage=trace-pc", "-g")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	corpusUpdates := make(chan corpus.NewItemEvent)
 	fuzzer := NewFuzzer(ctx, &Config{
@@ -98,8 +97,7 @@ func BenchmarkFuzzer(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := b.Context()
 	calls := map[*prog.Syscall]bool{}
 	for _, c := range target.Syscalls {
 		calls[c] = true
@@ -245,7 +243,7 @@ func checkGoroutineLeaks() {
 	for range 3 {
 		buf = buf[:runtime.Stack(buf, true)]
 		err = ""
-		for _, g := range strings.Split(string(buf), "\n\n") {
+		for g := range strings.SplitSeq(string(buf), "\n\n") {
 			if !strings.Contains(g, "pkg/fuzzer/fuzzer.go") {
 				continue
 			}

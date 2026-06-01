@@ -172,8 +172,7 @@ func restoreMissingPoints(g *Graph) {
 			prevs[pt.Time] = prev
 		}
 		var next Pt
-		for pti := len(g.Points) - 1; pti >= 0; pti-- {
-			pt := g.Points[pti]
+		for _, pt := range slices.Backward(g.Points) {
 			if pt.Vals[i] != 0 {
 				next = Pt{pt.Time, pt.Vals[i]}
 				continue
@@ -196,8 +195,8 @@ func printFinalStats(graphs []*Graph) {
 		fmt.Printf("%-12v%16v%16v%16v\n", "", graphs[0].Headers[0], graphs[0].Headers[i], "diff")
 		for _, g := range graphs {
 			lastNonZero := func(x int) uint64 {
-				for j := len(g.Points) - 1; j >= 0; j-- {
-					if v := g.Points[j].Vals[x]; v != 0 {
+				for _, v := range slices.Backward(g.Points) {
+					if v := v.Vals[x]; v != 0 {
 						return v
 					}
 				}

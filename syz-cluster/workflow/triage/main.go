@@ -93,8 +93,7 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	ret := &api.TriageResult{}
 	for _, campaign := range fuzzConfigs {
 		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, treesResp.Trees, campaign)
-		var skipErr *SkipTriageError
-		if errors.As(err, &skipErr) {
+		if skipErr, ok := errors.AsType[*SkipTriageError](err); ok {
 			ret.SkipReason = skipErr.Reason.Error()
 			continue
 		} else if err != nil {

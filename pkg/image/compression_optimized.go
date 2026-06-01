@@ -103,12 +103,12 @@ func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 		words := uintptr(n-1) / wordSize
 		src := (*word)(unsafe.Pointer(&scratch.buf[0]))
 		dst := (*word)(unsafe.Pointer(&data[offset]))
-		for i := uintptr(0); i < words; i++ {
+		for range words {
 			if *src != 0 {
 				*dst = *src
 			}
-			src = (*word)(unsafe.Pointer(uintptr(unsafe.Pointer(src)) + wordSize))
-			dst = (*word)(unsafe.Pointer(uintptr(unsafe.Pointer(dst)) + wordSize))
+			src = (*word)(unsafe.Add(unsafe.Pointer(src), wordSize))
+			dst = (*word)(unsafe.Add(unsafe.Pointer(dst), wordSize))
 			hasData = true
 		}
 		// Copy any remaining trailing bytes.

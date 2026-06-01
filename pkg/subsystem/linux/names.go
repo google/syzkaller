@@ -67,22 +67,23 @@ func emailToName(email string) string {
 }
 
 func buildEmailStripRe() *regexp.Regexp {
-	raw := `^(?:`
+	var raw strings.Builder
+	raw.WriteString(`^(?:`)
 	for i := range len(stripPrefixes) {
 		if i > 0 {
-			raw += "|"
+			raw.WriteString("|")
 		}
-		raw += regexp.QuoteMeta(stripPrefixes[i])
+		raw.WriteString(regexp.QuoteMeta(stripPrefixes[i]))
 	}
-	raw += ")*(.*?)(?:"
+	raw.WriteString(")*(.*?)(?:")
 	for i := range len(stripSuffixes) {
 		if i > 0 {
-			raw += "|"
+			raw.WriteString("|")
 		}
-		raw += regexp.QuoteMeta(stripSuffixes[i])
+		raw.WriteString(regexp.QuoteMeta(stripSuffixes[i]))
 	}
-	raw += ")*@.*$"
-	return regexp.MustCompile(raw)
+	raw.WriteString(")*@.*$")
+	return regexp.MustCompile(raw.String())
 }
 
 var (

@@ -798,16 +798,16 @@ func TestHintsLimiter(t *testing.T) {
 	// Base case.
 	comps := make(CompMap)
 	comps.Add(1000, 1000, 1100, true)
-	for i := uint64(0); i < 9; i++ {
+	for i := range uint64(9) {
 		comps.Add(2000, 2000+i, 2100+i, true)
 	}
-	for i := uint64(0); i < 10; i++ {
+	for i := range uint64(10) {
 		comps.Add(3000, 3000+i, 3100+i, true)
 	}
-	for i := uint64(0); i < 11; i++ {
+	for i := range uint64(11) {
 		comps.Add(4000, 4000+i, 4100+i, true)
 	}
-	for i := uint64(0); i < 20; i++ {
+	for i := range uint64(20) {
 		comps.Add(5000, 5000+i, 5100+i, true)
 	}
 	assert.Equal(t, perPCCount(comps), map[uint64]int{
@@ -828,13 +828,13 @@ func TestHintsLimiter(t *testing.T) {
 
 	// Test that counts are accumulated in the limiter.
 	comps = make(CompMap)
-	for i := uint64(0); i < 3; i++ {
+	for i := range uint64(3) {
 		comps.Add(1000, 1000+i, 1100+i, true)
 	}
-	for i := uint64(0); i < 3; i++ {
+	for i := range uint64(3) {
 		comps.Add(2000, 2000+i, 2100+i, true)
 	}
-	for i := uint64(0); i < 3; i++ {
+	for i := range uint64(3) {
 		comps.Add(3000, 3000+i, 3100+i, true)
 	}
 	assert.Equal(t, perPCCount(comps), map[uint64]int{

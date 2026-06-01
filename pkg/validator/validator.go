@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/auth"
@@ -51,11 +52,9 @@ func PanicIfNot(results ...Result) error {
 var ErrValueNotAllowed = errors.New("value is not allowed")
 
 func Allowlisted(str string, allowlist []string, valueName ...string) Result {
-	for _, allowed := range allowlist {
-		if allowed == str {
-			return Result{
-				Ok: true,
-			}
+	if slices.Contains(allowlist, str) {
+		return Result{
+			Ok: true,
 		}
 	}
 	if len(valueName) == 0 {

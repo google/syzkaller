@@ -422,20 +422,20 @@ func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool)
 // than the firstTitle has.
 func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
 	baseRank := report.TitlesToImpact(firstTitle)
-	res := ""
+	var res strings.Builder
 	for _, ti := range titlesInfo {
 		if ti.Rank <= baseRank {
 			continue
 		}
-		res += fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
+		res.WriteString(fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
 			ti.Rank,
 			100*float32(ti.Count)/float32(ti.Total),
-			ti.Title)
+			ti.Title))
 	}
-	if res != "" {
-		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res)
+	if res.String() != "" {
+		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res.String())
 	}
-	return res
+	return res.String()
 }
 
 var crashIDRe = regexp.MustCompile(`^\w+$`)

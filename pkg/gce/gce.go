@@ -263,8 +263,7 @@ retry:
 		}
 		if err = ctx.waitForZonalCompletion("create instance", currentZone, op.Name, false); err != nil {
 			zoneList.recordInsertionFailure(currentZone)
-			var resourcePoolExhaustedError resourcePoolExhaustedError
-			if errors.As(err, &resourcePoolExhaustedError) {
+			if _, ok := errors.AsType[resourcePoolExhaustedError](err); ok {
 				if i < len(zones)-1 {
 					continue
 				}
@@ -475,7 +474,7 @@ func (ctx *Context) waitForCompletion(typ, desc, zone, opName string, ignoreNotF
 			continue
 		case "DONE":
 			if op.Error != nil {
-				reason := ""
+				var reason strings.Builder
 				for _, operr := range op.Error.Errors {
 					if operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED" ||
 						operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS" {
@@ -484,9 +483,9 @@ func (ctx *Context) waitForCompletion(typ, desc, zone, opName string, ignoreNotF
 					if ignoreNotFound && operr.Code == "RESOURCE_NOT_FOUND" {
 						return nil
 					}
-					reason += fmt.Sprintf("%+v.", operr)
+					reason.WriteString(fmt.Sprintf("%+v.", operr))
 				}
-				return fmt.Errorf("%v operation failed: %v", desc, reason)
+				return fmt.Errorf("%v operation failed: %v", desc, reason.String())
 			}
 			return nil
 		default:

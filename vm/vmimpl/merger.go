@@ -97,13 +97,11 @@ func (merger *OutputMerger) AddDecoder(name string, typ OutputType, r io.ReadClo
 		done: make(chan struct{}),
 	}
 	merger.decoderErr[name] = state
-	merger.wg.Add(1)
-	go func() {
-		defer merger.wg.Done()
+	merger.wg.Go(func() {
 		defer close(state.done)
 		err := merger.runDecoder(typ, r, decoder)
 		state.err = MergerError{name, r, err}
-	}()
+	})
 }
 
 func (merger *OutputMerger) runDecoder(typ OutputType, r io.ReadCloser,

@@ -65,8 +65,8 @@ func (be *dummyStorageBackend) getPath(url string) (string, error) {
 	if strings.HasPrefix(url, "http://unknown-bucket/") {
 		return "", ErrUnknownBucket
 	}
-	if strings.HasPrefix(url, "http://download/") {
-		return strings.TrimPrefix(url, "http://download/"), nil
+	if after, ok := strings.CutPrefix(url, "http://download/"); ok {
+		return after, nil
 	}
 	return "", fmt.Errorf("unknown URL format")
 }

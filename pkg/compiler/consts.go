@@ -6,6 +6,7 @@ package compiler
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -269,9 +270,7 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 // Updates desc and returns set of unsupported syscalls and flags.
 func (comp *compiler) patchConsts(consts0 map[string]uint64) {
 	consts := make(map[string]uint64)
-	for name, val := range consts0 {
-		consts[name] = val
-	}
+	maps.Copy(consts, consts0)
 	for name, val := range comp.builtinConsts {
 		if _, ok := consts[name]; ok {
 			panic(fmt.Sprintf("builtin const %v already defined", name))

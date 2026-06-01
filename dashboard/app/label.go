@@ -168,7 +168,7 @@ func (s *labelSet) Help() string {
 func writeWrapped(sb *strings.Builder, str string) {
 	const limit = 80
 	lineLen := 0
-	for _, token := range strings.Fields(str) {
+	for token := range strings.FieldsSeq(str) {
 		if lineLen >= limit ||
 			lineLen > 0 && lineLen+len(token) >= limit {
 			sb.WriteByte('\n')

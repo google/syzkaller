@@ -302,12 +302,7 @@ func relevantScope(scopeFnArgs map[fnArg]bool, scopeVal string, scope *FunctionS
 		return true
 	}
 	// For the scope argument, check that it has the right value.
-	for _, val := range scope.Values {
-		if val == scopeVal {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(scope.Values, scopeVal)
 }
 
 func refineFieldType(f *Field, typ string, preserveSize bool) {

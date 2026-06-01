@@ -799,7 +799,7 @@ func enumerateFlags(target *prog.Target, fs FileSystem) []*Image {
 	for _, flags := range CoveringArray(fs.MkfsFlagCombinations, fs.MaxSeeds) {
 		imageFlags := slices.Clone(fs.MkfsFlags)
 		for _, rawFlag := range flags {
-			for _, f := range strings.Split(rawFlag, " ") {
+			for f := range strings.SplitSeq(rawFlag, " ") {
 				if f == "" {
 					continue
 				}

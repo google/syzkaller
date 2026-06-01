@@ -297,13 +297,7 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 					startPos := userPos + len(user)
 					endPos := userPos + len(user) + domainPos + 1
 					tag := string(line[startPos:endPos])
-					present := false
-					for _, tag1 := range tags {
-						if tag1 == tag {
-							present = true
-							break
-						}
-					}
+					present := slices.Contains(tags, tag)
 					if !present {
 						tags = append(tags, tag)
 					}
@@ -404,7 +398,7 @@ func (git *gitRepo) LatestCommits(afterCommit string, afterDate time.Time) ([]Co
 		return nil, nil
 	}
 	var ret []CommitShort
-	for _, line := range strings.Split(string(output), "\n") {
+	for line := range strings.SplitSeq(string(output), "\n") {
 		hash, date, _ := strings.Cut(line, ":")
 		commitDate, err := time.Parse(gitDateFormat, date)
 		if err != nil {
@@ -559,7 +553,7 @@ func (git *gitRepo) MergeBases(firstCommit, secondCommit string) ([]*Commit, err
 		return nil, err
 	}
 	ret := []*Commit{}
-	for _, hash := range strings.Fields(string(output)) {
+	for hash := range strings.FieldsSeq(string(output)) {
 		commit, err := git.Commit(hash)
 		if err != nil {
 			return nil, err
@@ -701,15 +695,15 @@ func (git Git) Commit(hash string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	pos := bytes.Index(output, []byte(patchSeparator))
-	if pos == -1 {
+	before, after, ok := bytes.Cut(output, []byte(patchSeparator))
+	if !ok {
 		return nil, fmt.Errorf("git log output does not contain patch separator")
 	}
-	commit, err := gitParseCommit(output[:pos], nil, nil, git.ignoreCC)
+	commit, err := gitParseCommit(before, nil, nil, git.ignoreCC)
 	if err != nil {
 		return nil, err
 	}
-	commit.Patch = output[pos+len(patchSeparator):]
+	commit.Patch = after
 	for len(commit.Patch) != 0 && commit.Patch[0] == '\n' {
 		commit.Patch = commit.Patch[1:]
 	}

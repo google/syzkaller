@@ -222,8 +222,7 @@ func (h *Handler) stripContextPrefix(msg *email.Email) string {
 	prefix := h.emailConfig.Dashapi.ContextPrefix
 	var reportID string
 	for i, id := range msg.BugIDs {
-		if strings.HasPrefix(id, prefix) {
-			trimmed := strings.TrimPrefix(id, prefix)
+		if trimmed, ok := strings.CutPrefix(id, prefix); ok {
 			msg.BugIDs[i] = trimmed
 			if reportID == "" {
 				reportID = trimmed

@@ -11,6 +11,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 	"sync"
 	"time"
@@ -952,9 +953,7 @@ func (n *repoNode) reachableMerged(in, onlyMerge bool, ret map[*repoNode]bool) {
 
 func (n *repoNode) allReachable() map[*repoNode]bool {
 	ret := n.reachable(true)
-	for node, merge := range n.reachable(false) {
-		ret[node] = merge
-	}
+	maps.Copy(ret, n.reachable(false))
 	return ret
 }
 
