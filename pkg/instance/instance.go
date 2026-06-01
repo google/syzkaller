@@ -483,7 +483,9 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 	optionalFlags bool, slowdown int, coverFile, progFile string) string {
 	repeatCount := 1
 	if opts.Repeat {
-		repeatCount = 0
+		// syz-execprog uses 0 for infinite loop. Allow specific repeat count
+		// for better control (e.g. flake testing or coverage collection).
+		repeatCount = opts.RepeatTimes
 	}
 	sandbox := opts.Sandbox
 	if sandbox == "" {
