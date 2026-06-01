@@ -1181,10 +1181,10 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 	return
 }
 
-func (mgr *Manager) MachineChecked(features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) (queue.Source, error) {
+// nolint: funlen
+func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) error {
 	if len(enabledSyscalls) == 0 {
-		return nil, fmt.Errorf("all system calls are disabled")
+		return fmt.Errorf("all system calls are disabled")
 	}
 	if mgr.mode.ExitAfterMachineCheck {
 		mgr.exit(mgr.mode.Name)
@@ -1199,7 +1199,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		}
 		data, err := kfuzztest.ExtractData(path.Join(mgr.cfg.KernelObj, "vmlinux"))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, call := range data.Calls {
 			enabledSyscalls[call] = true
@@ -1273,19 +1273,22 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			log.Logf(0, "restarting VMs for snapshot mode")
 			mgr.snapshotSource = queue.Distribute(source)
 			mgr.pool.SetDefault(mgr.snapshotInstance)
+			mgr.serv.SetSource(queue.Callback(func() *queue.Request {
+				return nil
+			}))
 			mgr.serv.Close()
 			mgr.serv = nil
-			return queue.Callback(func() *queue.Request {
-				return nil
-			}), nil
+			return nil
 		}
-		return source, nil
+		mgr.serv.SetSource(source)
+		return nil
 	case ModeCorpusRun:
 		ctx := &corpusRunner{
 			candidates: candidates,
 			rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
-		return queue.DefaultOpts(ctx, opts), nil
+		mgr.serv.SetSource(queue.DefaultOpts(ctx, opts))
+		return nil
 	case ModeRunTests:
 		ctx := &runtest.Context{
 			Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
@@ -1307,7 +1310,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			}
 			mgr.exit("tests")
 		}()
-		return ctx, nil
+		mgr.serv.SetSource(ctx)
+		return nil
 	case ModeIfaceProbe:
 		exec := queue.Plain()
 		go func() {
@@ -1321,7 +1325,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			}
 			mgr.exit("interface probe")
 		}()
-		return exec, nil
+		mgr.serv.SetSource(exec)
+		return nil
 	}
 	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
 }

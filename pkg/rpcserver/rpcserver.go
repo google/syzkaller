@@ -67,7 +67,7 @@ type RemoteConfig struct {
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
-	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error)
+	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error
 	CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error)
 }
 
@@ -77,6 +77,14 @@ type Server interface {
 	Port() int
 	TriagedCorpus()
 	Serve(context.Context) error
+
+	// SetSource updates the source of execution requests for the backend.
+	// This is typically called after the initial machine check is complete.
+	SetSource(source queue.Source)
+
+	// Features returns the enabled features. It is only valid after the machine check is complete.
+	Features() flatrpc.Feature
+
 	CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error
 	ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte)
 	StopFuzzing(id int)
@@ -97,6 +105,7 @@ type server struct {
 	checkFailures    int
 	onHandshake      chan *handshakeResult
 	baseSource       *queue.DynamicSourceCtl
+	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
@@ -226,6 +235,11 @@ func newImpl(cfg *Config, mgr Manager) *server {
 }
 
 func (serv *server) Close() error {
+	// Unset the source so that we don't hold references to it (allowing GC)
+	// and don't serve any new requests from lingering connections.
+	serv.baseSource.Store(queue.Callback(func() *queue.Request {
+		return nil
+	}))
 	return serv.serv.Close()
 }
 
@@ -478,12 +492,12 @@ func (serv *server) runCheck(ctx context.Context, info *handshakeResult) error {
 		return checkErr
 	}
 	enabledFeatures := features.Enabled()
+	serv.enabledFeatures = enabledFeatures
 	serv.setupFeatures = features.NeedSetup()
-	newSource, err := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
+	err := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
 	if err != nil {
 		return err
 	}
-	serv.baseSource.Store(newSource)
 	serv.checkDone.Store(true)
 	return nil
 }
@@ -596,6 +610,14 @@ func (serv *server) DistributeSignalDelta(plus signal.Signal) {
 	serv.foreachRunnerAsync(func(runner *Runner) {
 		runner.SendSignalUpdate(plusRaw)
 	})
+}
+
+func (serv *server) SetSource(source queue.Source) {
+	serv.baseSource.Store(source)
+}
+
+func (serv *server) Features() flatrpc.Feature {
+	return serv.enabledFeatures
 }
 
 func (serv *server) TriagedCorpus() {
