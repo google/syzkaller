@@ -105,7 +105,7 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_rpc generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race \
+	tidy deadcode test test_race \
 	check_copyright check_language check_whitespace check_sql_newlines check_links check_diff check_commits check_shebang check_html \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
@@ -296,10 +296,15 @@ tidy: descriptions
 		--extra-arg=-std=c++17 \
 		executor/*.cc
 
-lint: check_whitespace check_sql_newlines check_links check_html check_shebang
+lint: deadcode check_whitespace check_sql_newlines check_links check_html check_shebang
 	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
+
+deadcode:
+	# If deadcode flags an unused function that is used externally,
+	# use runtime.KeepAlive call with a comment in an init function to suppress the warning.
+	go run $(GOHOSTFLAGS) golang.org/x/tools/cmd/deadcode -test ./... | awk '{print} /unreachable/{fail=1} END{exit fail}'
 
 presubmit:
 	$(MAKE) presubmit_aux
