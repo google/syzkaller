@@ -31,8 +31,11 @@ import (
 	"golang.org/x/tools/go/analysis/passes/atomicalign"
 	"golang.org/x/tools/go/analysis/passes/copylock"
 	"golang.org/x/tools/go/analysis/passes/deepequalerrors"
+	"golang.org/x/tools/go/analysis/passes/httpresponse"
+	"golang.org/x/tools/go/analysis/passes/modernize"
 	"golang.org/x/tools/go/analysis/passes/nilness"
 	"golang.org/x/tools/go/analysis/passes/structtag"
+	"golang.org/x/tools/go/analysis/passes/waitgroup"
 )
 
 func main() {
@@ -41,7 +44,7 @@ func main() {
 }
 
 func New(conf any) ([]*analysis.Analyzer, error) {
-	return []*analysis.Analyzer{
+	return append([]*analysis.Analyzer{
 		SyzAnalyzer,
 		// Some standard analyzers that are not enabled in vet.
 		atomicalign.Analyzer,
@@ -49,7 +52,9 @@ func New(conf any) ([]*analysis.Analyzer, error) {
 		deepequalerrors.Analyzer,
 		nilness.Analyzer,
 		structtag.Analyzer,
-	}, nil
+		waitgroup.Analyzer,
+		httpresponse.Analyzer,
+	}, modernize.Suite...), nil
 }
 
 var SyzAnalyzer = &analysis.Analyzer{
