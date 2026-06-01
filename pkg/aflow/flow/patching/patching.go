@@ -252,6 +252,11 @@ Generally try to phrase the description without mentioning syzkaller
 How the bug was triggered is generally an irrelevant detail.
 Any bug triggered by a fuzzer can also be triggered by a malicious user, or a buggy program.
 
+If the crash is reported by a sanitizer (e.g., KASAN, KMSAN, lockdep), include the relevant
+parts of the sanitizer output to illustrate the problem. Exclude less relevant sections,
+as the stack trace can be very long. Describe the execution path that leads to the manifestation
+of the kernel bug.
+
 {{if titleIsWarning .ReproducedBugTitle}}
 If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
 must not be used for conditions that can legitimately happen, and that pr_err
