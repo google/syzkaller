@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"net"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -56,7 +56,7 @@ type Kernel struct {
 	reporter        *report.Reporter
 	queueConfigured bool
 
-	serv      rpcserver.Server
+	serv      execbackend.Server
 	servStats rpcserver.Stats
 
 	pool    *vm.Dispatcher
@@ -423,11 +423,8 @@ func (vrf *Verifier) createRequests(prog *prog.Prog) (map[int]*queue.Request, []
 // Kernel
 // =============================================================================.
 func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
-	index := inst.Index()
-	injectExec := make(chan bool, 10)
-	kernel.serv.CreateInstance(index, injectExec, updInfo)
-	reps, err := kernel.runInstance(ctx, inst, injectExec)
-	_, _ = kernel.serv.ShutdownInstance(index, len(reps) > 0)
+	reps, err := kernel.serv.RunRequests(ctx, inst, kernel.reporter, updInfo)
+
 	if len(reps) > 0 {
 		// Just log crashes - syz-verifier focuses on behavioral differences, not crashes.
 		select {
@@ -439,36 +436,6 @@ func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, upd
 	if err != nil {
 		log.Errorf("#%d run failed: %s", inst.Index(), err)
 	}
-}
-
-func (kernel *Kernel) runInstance(ctx context.Context, inst *vm.Instance,
-	injectExec <-chan bool) ([]*report.Report, error) {
-	fwdAddr, err := inst.Forward(kernel.serv.Port())
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup port forwarding: %w", err)
-	}
-	executorBin, err := inst.Copy(kernel.cfg.ExecutorBin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %w", err)
-	}
-	host, port, err := net.SplitHostPort(fwdAddr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse manager's address")
-	}
-	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
-	ctxTimeout, cancel := context.WithTimeout(ctx, kernel.cfg.Timeouts.VMRunningTime)
-	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, kernel.reporter, cmd,
-		vm.WithExitCondition(vm.ExitTimeout),
-		vm.WithInjectExecuting(injectExec),
-		vm.WithEarlyFinishCb(func() {
-			// Depending on the crash type and kernel config, fuzzing may continue
-			// running for several seconds even after kernel has printed a crash report.
-			// This litters the log and we want to prevent it.
-			kernel.serv.StopFuzzing(inst.Index())
-		}),
-	)
-	return rep, err
 }
 
 func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
@@ -494,7 +461,7 @@ func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
 
 func (kernel *Kernel) loop(ctx context.Context) {
 	defer log.Logf(1, "syz-verifier (%s): kernel context loop terminated", kernel.cfg.Name)
-	if err := kernel.serv.Listen(); err != nil {
+	if err := kernel.serv.Setup(); err != nil {
 		log.Fatalf("failed to start rpc server: %v", err)
 	}
 	// Respect both the caller-provided context and global shutdown.
@@ -510,7 +477,6 @@ func (kernel *Kernel) loop(ctx context.Context) {
 			log.Fatalf("%s", err)
 		}
 	}()
-	log.Logf(0, "serving rpc on tcp://%v", kernel.serv.Port())
 	kernel.pool.Loop(runCtx)
 }
 

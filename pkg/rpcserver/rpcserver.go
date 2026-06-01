@@ -28,9 +28,30 @@ import (
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm/dispatcher"
 	"golang.org/x/sync/errgroup"
 )
+
+type RunnerInfo struct {
+	Status         string
+	DetailedStatus func() []byte
+	MachineInfo    func() []byte
+}
+
+type UpdateInfo func(func(*RunnerInfo))
+
+type Server interface {
+	Setup() error
+	Close() error
+	Port() int
+	TriagedCorpus()
+	Serve(context.Context) error
+	SetSource(source queue.Source)
+	Features() flatrpc.Feature
+	CreateInstance(id int, injectExec chan<- bool, updInfo UpdateInfo) chan error
+	ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte)
+	StopFuzzing(id int)
+	DistributeSignalDelta(plus signal.Signal)
+}
 
 type Config struct {
 	vminfo.Config
@@ -50,6 +71,8 @@ type Config struct {
 	DebugTimeouts bool
 	Procs         int
 	Slowdown      int
+	ExecutorBin   string
+	Timeouts      targets.Timeouts
 	pcBase        uint64
 	localModules  []*vminfo.KernelModule
 
@@ -69,26 +92,6 @@ type Manager interface {
 	BugFrames() (leaks []string, races []string)
 	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error
 	CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error)
-}
-
-type Server interface {
-	Listen() error
-	Close() error
-	Port() int
-	TriagedCorpus()
-	Serve(context.Context) error
-
-	// SetSource updates the source of execution requests for the backend.
-	// This is typically called after the initial machine check is complete.
-	SetSource(source queue.Source)
-
-	// Features returns the enabled features. It is only valid after the machine check is complete.
-	Features() flatrpc.Feature
-
-	CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error
-	ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte)
-	StopFuzzing(id int)
-	DistributeSignalDelta(plus signal.Signal)
 }
 
 type server struct {
@@ -195,8 +198,11 @@ func New(cfg *RemoteConfig) (Server, error) {
 		// gVisor/Starnix are not Linux, so filtering against Linux ranges won't work.
 		FilterSignal:      cfg.Type != targets.GVisor && cfg.Type != targets.Starnix,
 		PrintMachineCheck: true,
+		DebugTimeouts:     cfg.Debug,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
+		ExecutorBin:       cfg.ExecutorBin,
+		Timeouts:          cfg.Timeouts,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
 	}, cfg.Manager), nil
@@ -243,12 +249,13 @@ func (serv *server) Close() error {
 	return serv.serv.Close()
 }
 
-func (serv *server) Listen() error {
+func (serv *server) Setup() error {
 	s, err := flatrpc.Listen(serv.cfg.RPC)
 	if err != nil {
 		return err
 	}
 	serv.serv = s
+	log.Logf(0, "serving rpc on tcp://%v", serv.Port())
 	return nil
 }
 
@@ -552,7 +559,7 @@ func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
 }
 
-func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error {
+func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo UpdateInfo) chan error {
 	runner := &Runner{
 		id:            id,
 		source:        serv.execSource,
@@ -590,7 +597,7 @@ func (serv *server) StopFuzzing(id int) {
 	runner := serv.runners[id]
 	serv.mu.Unlock()
 	if runner.updInfo != nil {
-		runner.updInfo(func(info *dispatcher.Info) {
+		runner.updInfo(func(info *RunnerInfo) {
 			info.Status = "fuzzing is stopped"
 		})
 	}

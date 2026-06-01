@@ -27,6 +27,7 @@ import (
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -52,7 +53,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
-	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 var (
@@ -72,7 +72,7 @@ type Manager struct {
 	sysTarget       *targets.Target
 	reporter        *report.Reporter
 	crashStore      *manager.CrashStore
-	serv            rpcserver.Server
+	serv            execbackend.Server
 	http            *manager.HTTPServer
 	servStats       rpcserver.Stats
 	corpus          *corpus.Corpus
@@ -92,10 +92,9 @@ type Manager struct {
 	// cfg.DashboardOnlyRepro is set, so that we don't accidentially use dash for anything.
 	dashRepro *dashapi.Dashboard
 
-	mu             sync.Mutex
-	fuzzer         atomic.Pointer[fuzzer.Fuzzer]
-	snapshotSource *queue.Distributor
-	phase          int
+	mu     sync.Mutex
+	fuzzer atomic.Pointer[fuzzer.Fuzzer]
+	phase  int
 
 	disabledHashes   map[string]struct{}
 	newRepros        [][]byte
@@ -320,29 +319,8 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		close(mgr.corpusPreload)
 	}
 
-	// Create RPC server for fuzzers.
-	mgr.servStats = rpcserver.NewStats()
-	rpcCfg := &rpcserver.RemoteConfig{
-		Config:  mgr.cfg,
-		Manager: mgr,
-		Stats:   mgr.servStats,
-		Debug:   *flagDebug,
-	}
-	mgr.serv, err = rpcserver.New(rpcCfg)
-	if err != nil {
-		log.Fatalf("failed to create rpc server: %v", err)
-	}
-	if err := mgr.serv.Listen(); err != nil {
-		log.Fatalf("failed to start rpc server: %v", err)
-	}
 	ctx := vm.ShutdownCtx()
-	go func() {
-		err := mgr.serv.Serve(ctx)
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-	}()
-	log.Logf(0, "serving rpc on tcp://%v", mgr.serv.Port())
+	mgr.initRPCServer(ctx)
 
 	if cfg.DashboardAddr != "" {
 		opts := []dashapi.DashboardOpts{}
@@ -377,7 +355,7 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-executor manually as:")
-		log.Logf(0, "syz-executor runner local manager.ip %v", mgr.serv.Port())
+		log.Logf(0, "you are supposed to start syz-executor manually")
 		<-vm.Shutdown
 		return
 	}
@@ -408,6 +386,38 @@ func (mgr *Manager) exit(reason string) {
 	close(vm.Shutdown)
 	time.Sleep(10 * time.Second)
 	os.Exit(0)
+}
+
+func (mgr *Manager) initRPCServer(ctx context.Context) {
+	var err error
+	mgr.servStats = rpcserver.NewStats()
+	rpcCfg := &rpcserver.RemoteConfig{
+		Config:  mgr.cfg,
+		Manager: mgr,
+		Stats:   mgr.servStats,
+		Debug:   *flagDebug,
+	}
+	mgr.serv, err = execbackend.New(rpcCfg)
+	if err != nil {
+		log.Fatalf("failed to create rpcserver: %v", err)
+	}
+
+	if mgr.cfg.Snapshot {
+		snapCfg := execbackend.SnapshotConfig{
+			Config: mgr.cfg,
+			Stats:  mgr.servStats,
+		}
+		mgr.serv = execbackend.NewSnapshotBackend(mgr.serv, snapCfg)
+	}
+	if err := mgr.serv.Setup(); err != nil {
+		log.Fatalf("failed to start rpc server: %v", err)
+	}
+	go func() {
+		err := mgr.serv.Serve(ctx)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+	}()
 }
 
 func (mgr *Manager) heartbeatLoop() {
@@ -632,37 +642,16 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 		// We're in the process of switching off the RPCServer.
 		return
 	}
-	injectExec := make(chan bool, 10)
-	serv.CreateInstance(inst.Index(), injectExec, updInfo)
 
-	reps, vmInfo, err := mgr.runInstanceInner(ctx, inst,
-		vm.WithExitCondition(vm.ExitTimeout),
-		vm.WithInjectExecuting(injectExec),
-		vm.WithEarlyFinishCb(func() {
-			// Depending on the crash type and kernel config, fuzzing may continue
-			// running for several seconds even after kernel has printed a crash report.
-			// This litters the log, and we want to prevent it.
-			serv.StopFuzzing(inst.Index())
-		}))
-	var extraExecs []report.ExecutorInfo
+	reps, err := serv.RunRequests(ctx, inst, mgr.reporter, updInfo)
+
 	var rep *report.Report
 	if len(reps) != 0 {
 		rep = reps[0]
 	}
-	if rep != nil && rep.Executor != nil {
-		extraExecs = []report.ExecutorInfo{*rep.Executor}
-	}
 	var memoryDump string
 	if mgr.cfg.MemoryDump && rep != nil {
 		memoryDump = mgr.extractMemoryDump(inst, rep)
-	}
-	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil, extraExecs...)
-	if rep != nil {
-		rpcserver.PrependExecuting(rep, lastExec)
-		if len(vmInfo) != 0 {
-			machineInfo = append(append(vmInfo, '\n'), machineInfo...)
-		}
-		rep.MachineInfo = machineInfo
 	}
 	if err == nil && rep != nil {
 		mgr.crashes <- &manager.Crash{
@@ -675,52 +664,6 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	if err != nil {
 		log.Logf(1, "VM %v: failed with error: %v", inst.Index(), err)
 	}
-}
-
-func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opts ...func(*vm.RunOptions),
-) ([]*report.Report, []byte, error) {
-	fwdAddr, err := inst.Forward(mgr.serv.Port())
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
-	}
-
-	// If ExecutorBin is provided, it means that syz-executor is already in the image,
-	// so no need to copy it.
-	executorBin := mgr.sysTarget.ExecutorBin
-	if executorBin == "" {
-		executorBin, err = inst.Copy(mgr.cfg.ExecutorBin)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to copy binary: %w", err)
-		}
-	}
-
-	// Run the fuzzer binary.
-	start := time.Now()
-
-	host, port, err := net.SplitHostPort(fwdAddr)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse manager's address")
-	}
-	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
-	ctxTimeout, cancel := context.WithTimeout(ctx, mgr.cfg.Timeouts.VMRunningTime)
-	defer cancel()
-	_, reps, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
-	if err != nil {
-		if errors.Is(err, vmimpl.ErrPreempted) {
-			log.Logf(0, "VM %v: preempted while executing", inst.Index())
-		}
-		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
-	}
-	if len(reps) == 0 {
-		// This is the only "OK" outcome.
-		log.Logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
-		return nil, nil, nil
-	}
-	vmInfo, err := inst.Info()
-	if err != nil {
-		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
-	}
-	return reps, vmInfo, nil
 }
 
 func (mgr *Manager) emailCrash(crash *manager.Crash) {
@@ -1181,8 +1124,8 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 	return
 }
 
-// nolint: funlen
-func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) error {
+func (mgr *Manager) MachineChecked(features flatrpc.Feature,
+	enabledSyscalls map[*prog.Syscall]bool) error {
 	if len(enabledSyscalls) == 0 {
 		return fmt.Errorf("all system calls are disabled")
 	}
@@ -1269,17 +1212,6 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 			}
 		}
 		source := queue.DefaultOpts(fuzzerObj, opts)
-		if mgr.cfg.Snapshot {
-			log.Logf(0, "restarting VMs for snapshot mode")
-			mgr.snapshotSource = queue.Distribute(source)
-			mgr.pool.SetDefault(mgr.snapshotInstance)
-			mgr.serv.SetSource(queue.Callback(func() *queue.Request {
-				return nil
-			}))
-			mgr.serv.Close()
-			mgr.serv = nil
-			return nil
-		}
 		mgr.serv.SetSource(source)
 		return nil
 	case ModeCorpusRun:
