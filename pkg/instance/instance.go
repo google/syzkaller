@@ -508,7 +508,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 	}
 	coverArg := ""
 	if coverFile != "" {
-		coverArg = " -cover=%v -coverfile=" + coverFile
+		coverArg = " -cover=true -coverfile=" + coverFile
 	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
 		" -procs=%v -repeat=%v -threaded=%v -collide=%v%v%v %v",

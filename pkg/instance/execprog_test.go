@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,6 +65,162 @@ func init() {
 			return globalMockPool, nil
 		},
 	})
+}
+
+func TestRetrieveCoverageFiles_Success(t *testing.T) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetArch:   targets.AMD64,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+			Timeouts: targets.Timeouts{
+				Scale: 1,
+			},
+		},
+		Type:    "mock-vm",
+		Workdir: t.TempDir(),
+	}
+	pool, err := vm.Create(cfg, false)
+	require.NoError(t, err)
+
+	vmInst, err := pool.Create(t.Context(), 0)
+	require.NoError(t, err)
+
+	execProgInst := &ExecProgInstance{
+		VMInstance: vmInst,
+		mgrCfg:     cfg,
+	}
+
+	prefix := "/tmp/syz-cover-123"
+
+	globalMockPool.inst.runFunc = func(ctx context.Context, command string) (<-chan vmimpl.Chunk, <-chan error, error) {
+		outc := make(chan vmimpl.Chunk, 10)
+		errc := make(chan error, 1)
+
+		go func() {
+			defer close(outc)
+			defer close(errc)
+
+			if file, ok := strings.CutPrefix(command, "cat "); ok {
+				file = strings.TrimSpace(strings.TrimSuffix(file, " 2>/dev/null || true"))
+				switch file {
+				case prefix + "_prog1.0":
+					outc <- vmimpl.Chunk{Data: []byte("0x123\n0x456\n"), Type: vmimpl.OutputStdout}
+				case prefix + "_prog1.1":
+					outc <- vmimpl.Chunk{Data: []byte("0x789\n"), Type: vmimpl.OutputStdout}
+				}
+				errc <- nil
+			}
+		}()
+
+		return outc, errc, nil
+	}
+
+	coverage, err := execProgInst.retrieveCoverageFiles(prefix, 2)
+	require.NoError(t, err)
+	require.Len(t, coverage, 3)
+	require.Equal(t, []uint64{0x123, 0x456}, coverage[0])
+	require.Equal(t, []uint64{0x789}, coverage[1])
+	require.Nil(t, coverage[2])
+}
+
+func TestRetrieveCoverageFiles_EmptyList(t *testing.T) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetArch:   targets.AMD64,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+			Timeouts: targets.Timeouts{
+				Scale: 1,
+			},
+		},
+		Type:    "mock-vm",
+		Workdir: t.TempDir(),
+	}
+	pool, err := vm.Create(cfg, false)
+	require.NoError(t, err)
+
+	vmInst, err := pool.Create(t.Context(), 0)
+	require.NoError(t, err)
+
+	execProgInst := &ExecProgInstance{
+		VMInstance: vmInst,
+		mgrCfg:     cfg,
+	}
+
+	prefix := "/tmp/syz-cover-123"
+
+	globalMockPool.inst.runFunc = func(ctx context.Context, command string) (<-chan vmimpl.Chunk, <-chan error, error) {
+		outc := make(chan vmimpl.Chunk, 10)
+		errc := make(chan error, 1)
+
+		go func() {
+			defer close(outc)
+			defer close(errc)
+
+			if strings.HasPrefix(command, "cat ") {
+				errc <- nil // Empty output.
+			}
+		}()
+
+		return outc, errc, nil
+	}
+
+	coverage, err := execProgInst.retrieveCoverageFiles(prefix, 2)
+	require.NoError(t, err)
+	require.Len(t, coverage, 3)
+	require.Nil(t, coverage[0])
+	require.Nil(t, coverage[1])
+	require.Nil(t, coverage[2])
+}
+
+func TestRetrieveCoverageFiles_ReadError(t *testing.T) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetArch:   targets.AMD64,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+			Timeouts: targets.Timeouts{
+				Scale: 1,
+			},
+		},
+		Type:    "mock-vm",
+		Workdir: t.TempDir(),
+	}
+	pool, err := vm.Create(cfg, false)
+	require.NoError(t, err)
+
+	vmInst, err := pool.Create(t.Context(), 0)
+	require.NoError(t, err)
+
+	execProgInst := &ExecProgInstance{
+		VMInstance: vmInst,
+		mgrCfg:     cfg,
+	}
+
+	prefix := "/tmp/syz-cover-123"
+
+	globalMockPool.inst.runFunc = func(ctx context.Context, command string) (<-chan vmimpl.Chunk, <-chan error, error) {
+		outc := make(chan vmimpl.Chunk, 10)
+		errc := make(chan error, 1)
+
+		go func() {
+			defer close(outc)
+			defer close(errc)
+
+			if strings.HasPrefix(command, "cat ") {
+				errc <- errors.New("read error")
+			}
+		}()
+
+		return outc, errc, nil
+	}
+
+	_, err = execProgInst.retrieveCoverageFiles(prefix, 1)
+	require.Error(t, err)
 }
 
 func TestRunStreamAndCollectStdout_Success(t *testing.T) {
