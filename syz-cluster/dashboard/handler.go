@@ -72,6 +72,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{id}/log", errToStatus(h.sessionLog))
 	mux.HandleFunc("/sessions/{id}/triage_log", errToStatus(h.sessionTriageLog))
+	mux.HandleFunc("/sessions/{id}/triage_trajectory", errToStatus(h.sessionTriageTrajectory))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
 	mux.HandleFunc("/test_steps/{step_id}/log", errToStatus(h.sessionTestStepLog))
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
@@ -425,6 +426,17 @@ func (h *dashboardHandler) sessionTriageLog(w http.ResponseWriter, r *http.Reque
 		return fmt.Errorf("%w: session", errNotFound)
 	}
 	return h.streamBlob(w, session.TriageLogURI)
+}
+
+func (h *dashboardHandler) sessionTriageTrajectory(w http.ResponseWriter, r *http.Request) error {
+	session, err := h.sessionRepo.GetByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return err
+	} else if session == nil {
+		return fmt.Errorf("%w: session", errNotFound)
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	return h.streamBlob(w, session.TriageTrajectoryURI.StringVal)
 }
 
 // nolint:dupl

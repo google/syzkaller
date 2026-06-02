@@ -121,13 +121,16 @@
                     <th>Status</th>
                     <td>{{.Status}}</td>
                 </tr>
-                {{if or (not .SkipReason.IsNull) .TriageLogURI}}
+                {{if or (not .SkipReason.IsNull) .TriageLogURI .TriageTrajectoryURI.Valid}}
                 <tr>
                     <th>Triaged</th>
                     <td>
                         {{if not .SkipReason.IsNull}}Skipped: {{.SkipReason.StringVal}}{{else}}OK{{end}}
                         {{if .TriageLogURI}}
                             <a href="/sessions/{{.ID}}/triage_log">[Log]</a>
+                        {{end}}
+                        {{if .TriageTrajectoryURI.Valid}}
+                            <a href="/sessions/{{.ID}}/triage_trajectory" target="_blank">[Trajectory]</a>
                         {{end}}
                     </td>
                 </tr>
