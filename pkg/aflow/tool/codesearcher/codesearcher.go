@@ -15,17 +15,6 @@ import (
 )
 
 var (
-	ToolDirIndex = aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
-Tool provides list of source files and subdirectories in the given directory in the source tree.
-`)
-
-	ToolReadFile = aflow.NewFuncTool("read-file", readFile, `
-Tool provides full contents of a single source file as is. Avoid using this tool if there are better
-and more specialized tools for the job. The tool returns at most 100 lines at a time.
-If you need more, you need to call the tool several times. But avoid fetching large files
-with lots of repetitive calls if possible.
-`)
-
 	ToolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
@@ -87,26 +76,6 @@ type prepareArgs struct {
 
 type prepareResult struct {
 	Index index
-}
-
-// nolint: lll
-type dirIndexArgs struct {
-	Dir string `jsonschema:"Relative directory in the source tree. Use an empty string for the root of the tree, or paths like 'net/ipv4/' for subdirs."`
-}
-
-type dirIndexResult struct {
-	Subdirs []string `jsonschema:"List of direct subdirectories."`
-	Files   []string `jsonschema:"List of source files."`
-}
-
-type readFileArgs struct {
-	File      string `jsonschema:"Source file path."`
-	FirstLine int    `jsonschema:"First source line to return, 1-based."`
-	LineCount int    `jsonschema:"Number of lines to return, capped at 100."`
-}
-
-type readFileResult struct {
-	Contents string `jsonschema:"File contents."`
 }
 
 type fileIndexArgs struct {
@@ -179,21 +148,6 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 	srcDirs := []string{args.KernelSrc, args.KernelObj}
 	csIndex, err := codesearch.NewIndex(filepath.Join(dir, "index.json"), srcDirs)
 	return prepareResult{index{csIndex}}, err
-}
-
-func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIndexResult, error) {
-	subdirs, files, err := state.Index.DirIndex(args.Dir)
-	return dirIndexResult{
-		Subdirs: subdirs,
-		Files:   files,
-	}, err
-}
-
-func readFile(ctx *aflow.Context, state prepareResult, args readFileArgs) (readFileResult, error) {
-	contents, err := state.Index.ReadFile(args.File, args.FirstLine, args.LineCount)
-	return readFileResult{
-		Contents: contents,
-	}, err
 }
 
 func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fileIndexResult, error) {
