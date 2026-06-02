@@ -37,7 +37,7 @@ var Commands = []Command{
 		Name:  "dir-index",
 		NArgs: 1,
 		Func: func(index *Index, args []string) (string, error) {
-			subdirs, files, err := index.DirIndex(args[0])
+			subdirs, files, err := DirIndex(index.srcDirs, args[0])
 			if err != nil {
 				return "", err
 			}
@@ -64,7 +64,7 @@ var Commands = []Command{
 			if err != nil {
 				return "", fmt.Errorf("failed to parse line count %q: %w", args[2], err)
 			}
-			return index.ReadFile(args[0], firstLine, lineCount)
+			return ReadFile(index.srcDirs, args[0], firstLine, lineCount)
 		}},
 	{
 		Name:  "file-index",
@@ -207,76 +207,10 @@ type Entity struct {
 	Name string
 }
 
-func (index *Index) DirIndex(dir string) ([]string, []string, error) {
-	if err := escaping(dir); err != nil {
-		return nil, nil, err
-	}
-	exists := false
-	var subdirs, files []string
-	for _, root := range index.srcDirs {
-		exists1, subdirs1, files1, err := dirIndex(root, dir)
-		if err != nil {
-			return nil, nil, err
-		}
-		if exists1 {
-			exists = true
-		}
-		subdirs = append(subdirs, subdirs1...)
-		files = append(files, files1...)
-	}
-	if !exists {
-		return nil, nil, aflow.BadCallError("the directory does not exist")
-	}
-	slices.Sort(subdirs)
-	slices.Sort(files)
-	// Dedup dirs across src/build trees,
-	// also dedup files, but hopefully there are no duplicates.
-	subdirs = slices.Compact(subdirs)
-	files = slices.Compact(files)
-	return subdirs, files, nil
-}
-
-func (index *Index) ReadFile(file string, firstLine, lineCount int) (string, error) {
-	if err := escaping(file); err != nil {
-		return "", err
-	}
-	firstLine = max(1, firstLine)
-	lineCount = max(1, min(100, lineCount))
-	for _, dir := range index.srcDirs {
-		path := filepath.Join(dir, file)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			var errno syscall.Errno
-			if errors.As(err, &errno) && errno == syscall.EISDIR {
-				return "", aflow.BadCallError("the file is a directory")
-			}
-			return "", err
-		}
-		lines := bytes.Split(data, []byte{'\n'})
-		if last := len(lines) - 1; last >= 0 && len(lines[last]) == 0 {
-			lines = lines[:last]
-		}
-		if firstLine > len(lines) {
-			return "", aflow.BadCallError("file %v does not have line %v, it has only %v lines",
-				file, firstLine, len(lines))
-		}
-		end := min(firstLine+lineCount-1, len(lines))
-		b := new(strings.Builder)
-		for i := firstLine - 1; i < end; i++ {
-			fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
-		}
-		return b.String(), nil
-	}
-	return "", aflow.BadCallError("the file does not exist")
-}
-
 func (index *Index) FileIndex(file string) ([]Entity, error) {
 	file = filepath.Clean(file)
 	// This allows to distinguish missing files from files that don't define anything.
-	if _, err := index.ReadFile(file, 1, 1); err != nil {
+	if _, err := ReadFile(index.srcDirs, file, 1, 1); err != nil {
 		return nil, err
 	}
 	var entities []Entity
@@ -504,4 +438,70 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 		}
 	}
 	return true, subdirs, files, err
+}
+
+func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {
+	if err := escaping(dir); err != nil {
+		return nil, nil, err
+	}
+	exists := false
+	var subdirs, files []string
+	for _, root := range srcDirs {
+		exists1, subdirs1, files1, err := dirIndex(root, dir)
+		if err != nil {
+			return nil, nil, err
+		}
+		if exists1 {
+			exists = true
+		}
+		subdirs = append(subdirs, subdirs1...)
+		files = append(files, files1...)
+	}
+	if !exists {
+		return nil, nil, aflow.BadCallError("the directory does not exist")
+	}
+	slices.Sort(subdirs)
+	slices.Sort(files)
+	// Dedup dirs across src/build trees,
+	// also dedup files, but hopefully there are no duplicates.
+	subdirs = slices.Compact(subdirs)
+	files = slices.Compact(files)
+	return subdirs, files, nil
+}
+
+func ReadFile(srcDirs []string, file string, firstLine, lineCount int) (string, error) {
+	if err := escaping(file); err != nil {
+		return "", err
+	}
+	firstLine = max(1, firstLine)
+	lineCount = max(1, min(100, lineCount))
+	for _, dir := range srcDirs {
+		path := filepath.Join(dir, file)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			var errno syscall.Errno
+			if errors.As(err, &errno) && errno == syscall.EISDIR {
+				return "", aflow.BadCallError("the file is a directory")
+			}
+			return "", err
+		}
+		lines := bytes.Split(data, []byte{'\n'})
+		if last := len(lines) - 1; last >= 0 && len(lines[last]) == 0 {
+			lines = lines[:last]
+		}
+		if firstLine > len(lines) {
+			return "", aflow.BadCallError("file %v does not have line %v, it has only %v lines",
+				file, firstLine, len(lines))
+		}
+		end := min(firstLine+lineCount-1, len(lines))
+		b := new(strings.Builder)
+		for i := firstLine - 1; i < end; i++ {
+			fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
+		}
+		return b.String(), nil
+	}
+	return "", aflow.BadCallError("the file does not exist")
 }
