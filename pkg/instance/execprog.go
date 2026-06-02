@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -23,6 +24,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 type ExecutorLogger func(int, string, ...any)
@@ -298,4 +300,77 @@ func parseCoverageFile(filename string) ([]uint64, error) {
 		res = append(res, v)
 	}
 	return res, nil
+}
+
+// runStreamAndCollectStdout runs a command on the VM and streams its
+// stdout to the provided writer. Use a file for large outputs (like memory
+// dumps) to avoid OOMs, and a buffer for small outputs.
+// This function is also used by dump.go.
+// If this function returns an error, you MUST NOT reuse the same vm for
+// any further command execution since the outc channel might be constantly
+// drained, making the output incomplete.
+func runStreamAndCollectStdout(ctx context.Context, inst *vm.Instance, command string, w io.Writer) error {
+	// In case of write error to w, we want to cancel the command
+	// execution, so that we don't keep getting chunks written to the channel.
+	cancellableCtx, cancel := context.WithCancel(ctx)
+
+	outc, errc, err := inst.RunStream(cancellableCtx, command)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	// A deadlock can happen if this function returns early while outc is still active.
+	// If the channel buffer fills up, decoders in merger.go will block trying to send to outc.
+	// Consequently, merger.Wait() in Multiplex will block forever waiting for decoders to finish.
+	// Draining the channel in a background goroutine unblocks the decoders and breaks the deadlock.
+	defer func() {
+		if outc != nil {
+			go func() {
+				for range outc {
+				}
+			}()
+		}
+	}()
+	// First cancel the execution before draining.
+	defer cancel()
+
+	writeChunk := func(chunk vmimpl.Chunk) error {
+		// Filter out console and stderr by only taking from stdout.
+		if chunk.Type != vmimpl.OutputStdout {
+			return nil
+		}
+		if _, err := w.Write(chunk.Data); err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
+		return nil
+	}
+
+	for {
+		select {
+		case chunk, ok := <-outc:
+			if !ok {
+				outc = nil
+				continue
+			}
+			if err := writeChunk(chunk); err != nil {
+				return err
+			}
+		case err := <-errc:
+			errc = nil
+			// Command finished. Drain outc to get any remaining command
+			// output. The deferred drain is not run here, because we still
+			// need the output.
+			n := len(outc)
+			for range n {
+				if err := writeChunk(<-outc); err != nil {
+					return err
+				}
+			}
+			outc = nil
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }

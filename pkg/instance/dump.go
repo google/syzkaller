@@ -12,7 +12,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
-	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func ExtractMemoryDump(inst *vm.Instance, target *targets.Target, path string) error {
@@ -51,35 +50,11 @@ func extractKdumpInner(inst *vm.Instance, path, cmd string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	outc, errc, err := inst.RunStream(ctx, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to start command: %w", err)
-	}
-
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create dump file: %w", err)
 	}
 	defer f.Close()
 
-	for {
-		select {
-		case chunk, ok := <-outc:
-			if !ok {
-				outc = nil
-				continue
-			}
-			if chunk.Type != vmimpl.OutputStdout {
-				// Filter out console and stderr.
-				continue
-			}
-			if _, err := f.Write(chunk.Data); err != nil {
-				return fmt.Errorf("failed to write to dump file: %w", err)
-			}
-		case err := <-errc:
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
+	return runStreamAndCollectStdout(ctx, inst, cmd, f)
 }
