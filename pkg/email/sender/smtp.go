@@ -39,16 +39,17 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 	auth := smtp.PlainAuth("", s.cfg.User, s.cfg.Password, s.cfg.Host)
 	smtpAddr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
 
-	// Create a slice of recipients (To + Cc) without duplicates.
-	recipients := slices.Concat(item.To, item.Cc)
-	slices.Sort(recipients)
-	recipients = slices.Compact(recipients)
-
-	for _, addr := range recipients {
-		if _, err := mail.ParseAddress(addr); err != nil {
+	// Extract bare email addresses for the SMTP envelope.
+	var envRecipients []string
+	for _, addr := range slices.Concat(item.To, item.Cc) {
+		parsed, err := mail.ParseAddress(addr)
+		if err != nil {
 			return "", fmt.Errorf("invalid recipient address %q: %w", addr, err)
 		}
+		envRecipients = append(envRecipients, parsed.Address)
 	}
+	slices.Sort(envRecipients)
+	envRecipients = slices.Compact(envRecipients)
 
 	if s.cfg.Port == 465 {
 		// Implicit TLS.
@@ -71,7 +72,7 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 		if err = client.Mail(s.cfg.From.Address); err != nil {
 			return "", fmt.Errorf("client.Mail failed: %w", err)
 		}
-		for _, addr := range recipients {
+		for _, addr := range envRecipients {
 			if err = client.Rcpt(addr); err != nil {
 				return "", fmt.Errorf("client.Rcpt failed for %v: %w", addr, err)
 			}
@@ -90,7 +91,7 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 		}
 		client.Quit()
 	} else {
-		err := smtp.SendMail(smtpAddr, auth, s.cfg.From.Address, recipients, msg)
+		err := smtp.SendMail(smtpAddr, auth, s.cfg.From.Address, envRecipients, msg)
 		if err != nil {
 			return "", err
 		}
