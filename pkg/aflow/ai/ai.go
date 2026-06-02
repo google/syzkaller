@@ -18,6 +18,7 @@ const (
 	WorkflowAssessmentSecurity = WorkflowType("assessment-security")
 	WorkflowRepro              = WorkflowType("repro")
 	WorkflowReproC             = WorkflowType("repro-c")
+	WorkflowPatchTriage        = WorkflowType("patch-triage")
 )
 
 // Outputs of various workflow types.
@@ -140,4 +141,13 @@ type ReproCOutputs struct {
 	ReproducedCrashReport string
 	OtherCrashReports     []string
 	EquivalenceAnalysis   string
+}
+
+type PatchTriageArgs struct {
+	KernelSrc string
+}
+
+type PatchTriageResult struct {
+	WorthFuzzing bool   `jsonschema:"True if functional. False if only docs/comments/unreachable."`
+	Reasoning    string `jsonschema:"A concise explanation of why this patch should or shouldn't be fuzzed."`
 }
