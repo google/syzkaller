@@ -157,8 +157,10 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 
 		if len(triage) != 0 {
 			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
+			jobType := JobTriage
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
+				jobType = JobCandidateTriage
 			}
 			job := &triageJob{
 				p:        req.Prog.Clone(),
@@ -168,7 +170,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 				calls:    triage,
 				info: &JobInfo{
 					Name: req.Prog.String(),
-					Type: "triage",
+					Type: jobType,
 				},
 			}
 			for id := range triage {
