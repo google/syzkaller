@@ -20,6 +20,15 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
+type JobType string
+
+const (
+	JobTriage          JobType = "triage"
+	JobCandidateTriage JobType = "candidate_triage"
+	JobSmash           JobType = "smash"
+	JobHints           JobType = "hints"
+)
+
 type job interface {
 	run(fuzzer *Fuzzer)
 }
@@ -31,7 +40,7 @@ type jobIntrospector interface {
 type JobInfo struct {
 	Name  string
 	Calls []string
-	Type  string
+	Type  JobType
 	Execs atomic.Int32
 
 	syncBuffer
@@ -181,7 +190,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 			p:    p.Clone(),
 			info: &JobInfo{
 				Name:  p.String(),
-				Type:  "smash",
+				Type:  JobSmash,
 				Calls: []string{p.CallName(call)},
 			},
 		})
@@ -192,7 +201,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 				call: call,
 				info: &JobInfo{
 					Name:  p.String(),
-					Type:  "hints",
+					Type:  JobHints,
 					Calls: []string{p.CallName(call)},
 				},
 			})

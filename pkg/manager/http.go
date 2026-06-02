@@ -1037,14 +1037,21 @@ func (serv *HTTPServer) httpJobs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid job id (the job has likely already finished)", http.StatusBadRequest)
 		return
 	}
-	jobType := r.FormValue("type")
+	jobType := fuzzer.JobType(r.FormValue("type"))
+
+	pageTitle := fmt.Sprintf("%s jobs", jobType)
+	if jobType == fuzzer.JobCandidateTriage {
+		pageTitle = "candidate triage jobs"
+	}
+
 	data := UIJobList{
-		UIPageHeader: serv.pageHeader(r, fmt.Sprintf("%s jobs", jobType)),
+		UIPageHeader: serv.pageHeader(r, pageTitle),
 	}
 	switch jobType {
-	case "triage":
-	case "smash":
-	case "hints":
+	case fuzzer.JobTriage:
+	case fuzzer.JobCandidateTriage:
+	case fuzzer.JobSmash:
+	case fuzzer.JobHints:
 	default:
 		http.Error(w, "unknown job type", http.StatusBadRequest)
 		return

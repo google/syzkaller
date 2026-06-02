@@ -55,7 +55,7 @@ func newStats(target *prog.Target) Stats {
 		statJobsTriage: stat.New("triage jobs", "Running triage jobs", stat.StackedGraph("jobs"),
 			stat.Link("/jobs?type=triage")),
 		statJobsTriageCandidate: stat.New("candidate triage jobs", "Running candidate triage jobs",
-			stat.StackedGraph("jobs"), stat.Link("/jobs?type=triage")),
+			stat.StackedGraph("jobs"), stat.Link("/jobs?type=candidate_triage")),
 		statJobsSmash: stat.New("smash jobs", "Running smash jobs", stat.StackedGraph("jobs"),
 			stat.Link("/jobs?type=smash")),
 		statJobsFaultInjection: stat.New("fault jobs", "Running fault injection jobs", stat.StackedGraph("jobs")),
