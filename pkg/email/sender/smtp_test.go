@@ -4,6 +4,7 @@
 package sender
 
 import (
+	"context"
 	"fmt"
 	"net/mail"
 	"testing"
@@ -37,6 +38,38 @@ func TestRawEmail(t *testing.T) {
 				"Content-Transfer-Encoding: 8bit\r\n\r\n" +
 				"Email body",
 		},
+		{
+			item: &Email{
+				To:      []string{"1@to.com"},
+				Subject: "subject\r\nBcc: attacker@evil.com",
+				Body:    []byte("body"),
+			},
+			id: "<id@domain>",
+			result: "From: \"name\" <a@b.com>\r\n" +
+				"To: 1@to.com\r\n" +
+				"Subject: =?utf-8?q?subject=0D=0ABcc:_attacker@evil.com?=\r\n" +
+				"Message-ID: <id@domain>\r\n" +
+				"MIME-Version: 1.0\r\n" +
+				"Content-Type: text/plain; charset=UTF-8\r\n" +
+				"Content-Transfer-Encoding: 8bit\r\n\r\n" +
+				"body",
+		},
+		{
+			item: &Email{
+				To:      []string{"\"=?utf-8?q?Attacker=0D=0ABcc:_evil@evil.com?=\" <attacker@example.com>"},
+				Subject: "subject",
+				Body:    []byte("body"),
+			},
+			id: "<id@domain>",
+			result: "From: \"name\" <a@b.com>\r\n" +
+				"To: \"=?utf-8?q?Attacker=0D=0ABcc:_evil@evil.com?=\" <attacker@example.com>\r\n" +
+				"Subject: subject\r\n" +
+				"Message-ID: <id@domain>\r\n" +
+				"MIME-Version: 1.0\r\n" +
+				"Content-Type: text/plain; charset=UTF-8\r\n" +
+				"Content-Transfer-Encoding: 8bit\r\n\r\n" +
+				"body",
+		},
 	}
 
 	cfg := SMTPConfig{
@@ -53,4 +86,17 @@ func TestRawEmail(t *testing.T) {
 			assert.Equal(t, test.result, string(ret))
 		})
 	}
+}
+
+func TestSendInvalidRecipients(t *testing.T) {
+	s := &smtpSender{cfg: SMTPConfig{}}
+	_, err := s.Send(context.Background(), &Email{
+		To: []string{"valid@to.com"},
+		Cc: []string{"invalid\r\nemail@to.com"},
+	})
+	assert.ErrorContains(t, err, "invalid recipient address")
+	_, err = s.Send(context.Background(), &Email{
+		To: []string{"just name"},
+	})
+	assert.ErrorContains(t, err, "invalid recipient address")
 }

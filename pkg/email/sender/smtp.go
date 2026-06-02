@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"mime"
 	"net/mail"
 	"net/smtp"
 	"slices"
@@ -42,6 +43,12 @@ func (s *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 	recipients := slices.Concat(item.To, item.Cc)
 	slices.Sort(recipients)
 	recipients = slices.Compact(recipients)
+
+	for _, addr := range recipients {
+		if _, err := mail.ParseAddress(addr); err != nil {
+			return "", fmt.Errorf("invalid recipient address %q: %w", addr, err)
+		}
+	}
 
 	if s.cfg.Port == 465 {
 		// Implicit TLS.
@@ -100,7 +107,7 @@ func (s *smtpSender) rawEmail(item *Email, id string) []byte {
 	if len(item.Cc) > 0 {
 		fmt.Fprintf(&msg, "Cc: %s\r\n", strings.Join(item.Cc, ", "))
 	}
-	fmt.Fprintf(&msg, "Subject: %s\r\n", item.Subject)
+	fmt.Fprintf(&msg, "Subject: %s\r\n", mime.QEncoding.Encode("utf-8", item.Subject))
 	if item.InReplyTo != "" {
 		inReplyTo := item.InReplyTo
 		if inReplyTo[0] != '<' {
