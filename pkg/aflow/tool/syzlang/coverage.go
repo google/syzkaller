@@ -79,7 +79,8 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 	funcLines := make(map[string][]int)
 	for _, callcov := range coverage {
 		for _, frame := range callcov {
-			if frame.File == args.Filename && frame.Func != "" {
+			filePath := frame.File
+			if filePath == args.Filename && frame.Func != "" {
 				funcLines[frame.Func] = append(funcLines[frame.Func], frame.Line)
 			}
 		}
