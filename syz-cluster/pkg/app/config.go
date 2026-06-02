@@ -28,6 +28,17 @@ type AppConfig struct {
 	// Trees and Fuzzer configuration.
 	Trees       []*api.Tree             `yaml:"trees"`
 	FuzzTargets []*api.FuzzTriageTarget `yaml:"fuzz_targets"`
+	// AI configuration (e.g. LLM secrets).
+	AI *AIConfig `yaml:"aiConfig"`
+}
+
+type AIConfig struct {
+	// The name of the GCP Secret Manager secret containing the Gemini API key.
+	GeminiAPIKey string `yaml:"geminiAPIKey"`
+}
+
+func (c *AIConfig) Empty() bool {
+	return c == nil || c.GeminiAPIKey == ""
 }
 
 const (
@@ -106,6 +117,7 @@ func loadConfig(path string) (*AppConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse: %w", err)
 	}
+
 	err = obj.Validate()
 	if err != nil {
 		return nil, err

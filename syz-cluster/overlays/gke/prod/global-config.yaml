@@ -31,6 +31,9 @@ emailReporting:
     from: syzbot@syzkaller.appspotmail.com
     contextPrefix: ci
 
+aiConfig:
+  geminiAPIKey: "gcp-secret:syz-cluster-gemini-key"
+
 trees:
   - name: bpf-next
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git

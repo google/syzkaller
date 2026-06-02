@@ -7,6 +7,9 @@ loreArchives:
   - netdev
   - linux-ext4
 
+aiConfig:
+  geminiAPIKey: "gcp-secret:syz-cluster-gemini-key"
+
 trees:
   - name: net
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git
