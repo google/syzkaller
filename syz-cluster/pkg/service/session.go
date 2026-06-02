@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -38,6 +39,7 @@ var ErrSessionNotFound = errors.New("session not found")
 
 func (s *SessionService) TriageResult(ctx context.Context, sessionID string, req *api.UploadTriageResultReq) error {
 	var triageLogURI string
+	var triageTrajectoryURI string
 	if len(req.Log) > 0 {
 		var err error
 		triageLogURI, err = s.blobStorage.Write(bytes.NewReader(req.Log), "Session", sessionID, "triage_log")
@@ -45,8 +47,19 @@ func (s *SessionService) TriageResult(ctx context.Context, sessionID string, req
 			return fmt.Errorf("failed to save the triage log: %w", err)
 		}
 	}
+	if len(req.Trajectory) > 0 {
+		var err error
+		triageTrajectoryURI, err = s.blobStorage.Write(
+			bytes.NewReader(req.Trajectory), "Session", sessionID, "triage_trajectory")
+		if err != nil {
+			return fmt.Errorf("failed to save the triage trajectory: %w", err)
+		}
+	}
 	err := s.sessionRepo.Update(ctx, sessionID, func(session *db.Session) error {
 		session.TriageLogURI = triageLogURI
+		if triageTrajectoryURI != "" {
+			session.TriageTrajectoryURI = spanner.NullString{StringVal: triageTrajectoryURI, Valid: true}
+		}
 		if req.SkipReason != "" {
 			session.SetSkipReason(req.SkipReason)
 		}
@@ -91,7 +104,9 @@ func (s *SessionService) GetSessionInfo(ctx context.Context, sessionID string) (
 	}
 
 	info := &api.SessionInfo{
-		Series: series,
+		Series:              series,
+		TriageLogURI:        session.TriageLogURI,
+		TriageTrajectoryURI: session.TriageTrajectoryURI.StringVal,
 	}
 
 	if session.JobID.Valid {

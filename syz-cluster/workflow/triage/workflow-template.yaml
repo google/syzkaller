@@ -63,6 +63,10 @@ spec:
               mountPath: /workdir
             - name: output
               mountPath: /output
+            - name: aflow-cache
+              mountPath: /tmp/aflow-cache
+            - name: config-volume
+              mountPath: /config
       volumes:
         - name: base-kernel-repo
           persistentVolumeClaim:
@@ -71,6 +75,11 @@ spec:
           emptyDir: {}
         - name: output
           emptyDir: {}
+        - name: aflow-cache
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: global-config
       outputs:
         parameters:
           - name: result

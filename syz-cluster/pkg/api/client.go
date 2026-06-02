@@ -41,6 +41,7 @@ func (client Client) GetJob(ctx context.Context, jobID string) (*Job, error) {
 type UploadTriageResultReq struct {
 	SkipReason string `json:"skip_reason"`
 	Log        []byte `json:"log"`
+	Trajectory []byte `json:"trajectory,omitempty"`
 }
 
 func (client Client) UploadTriageResult(ctx context.Context, sessionID string, req *UploadTriageResultReq) error {

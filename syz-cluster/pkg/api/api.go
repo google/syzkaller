@@ -11,6 +11,8 @@ type TriageResult struct {
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
 	Targets []*TestTarget `json:"targets"`
+	// Aflow Trajectory.
+	Trajectory []byte `json:"trajectory,omitempty"`
 }
 
 // TestTarget groups the testing tasks that share the same base/patched builds.
@@ -274,6 +276,8 @@ type Job struct {
 }
 
 type SessionInfo struct {
-	Series *Series `json:"series"`
-	Job    *Job    `json:"job,omitempty"`
+	Series              *Series `json:"series"`
+	Job                 *Job    `json:"job,omitempty"`
+	TriageLogURI        string  `json:"triage_log_uri,omitempty"`
+	TriageTrajectoryURI string  `json:"triage_trajectory_uri,omitempty"`
 }
