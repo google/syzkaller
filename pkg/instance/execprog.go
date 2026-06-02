@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"slices"
 	"strconv"
 	"time"
 
@@ -238,13 +236,24 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target, opts 
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (*RunResult, error) {
 	coverFile := ""
+	ncalls := 0
+	if opts.CollectCoverage && inst.mgrCfg.TargetOS != "linux" {
+		return nil, fmt.Errorf("coverage collection via ssh cat is only supported on Linux")
+	}
+
 	if opts.CollectCoverage {
-		coverDir, err := os.MkdirTemp("", "syz-cover")
-		if err != nil {
-			return nil, err
+		if opts.Opts.Repeat {
+			return nil, fmt.Errorf("coverage retrieval is not supported when repeat is enabled")
 		}
-		defer osutil.RemoveAll(coverDir)
-		coverFile = filepath.Join(coverDir, "cover")
+		progData, err := os.ReadFile(progFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read prog file: %w", err)
+		}
+		_, ncalls, err = prog.CallSet(progData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse prog: %w", err)
+		}
+		coverFile = fmt.Sprintf("/tmp/syz-cover-%d", time.Now().UnixNano())
 	}
 	vmProgFile, err := inst.VMInstance.Copy(progFile)
 	if err != nil {
@@ -257,18 +266,11 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (
 		return nil, err
 	}
 	if coverFile != "" {
-		files, err := filepath.Glob(coverFile + "*")
+		coverage, err := inst.retrieveCoverageFiles(coverFile, ncalls)
 		if err != nil {
-			return nil, fmt.Errorf("failed to glob cover files: %w", err)
+			return nil, err
 		}
-		slices.Sort(files)
-		for _, f := range files {
-			cover, err := parseCoverageFile(f)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse cover file: %w", err)
-			}
-			res.Coverage = append(res.Coverage, cover)
-		}
+		res.Coverage = coverage
 	}
 	return res, nil
 }
@@ -286,14 +288,10 @@ func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, opts RunOptions) (*RunR
 	return inst.RunSyzProgFile(progFile, opts)
 }
 
-func parseCoverageFile(filename string) ([]uint64, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
+func parseCoverageData(data []byte) ([]uint64, error) {
 	var res []uint64
 	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
-		v, err := strconv.ParseUint(s.Text(), 16, 64)
+		v, err := strconv.ParseUint(s.Text(), 0, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -378,4 +376,41 @@ func runStreamAndCollectStdout(ctx context.Context, inst *vm.Instance, command s
 			return ctx.Err()
 		}
 	}
+}
+
+func (inst *ExecProgInstance) runStreamAndCollectStdoutToBuf(ctx context.Context, command string) ([]byte, error) {
+	var buf bytes.Buffer
+	err := runStreamAndCollectStdout(ctx, inst.VMInstance, command, &buf)
+	return buf.Bytes(), err
+}
+
+func (inst *ExecProgInstance) retrieveCoverageFiles(vmCoverFilePrefix string, ncalls int) ([][]uint64, error) {
+	// syz-execprog generates these coverage files during execution (see tools/syz-execprog/execprog.go).
+	// Because we run a single program exactly once (opts.Repeat is false), it generates:
+	// - Per-call coverage: <prefix>_prog1.<call_index>
+	// - Extra coverage (background threads): <prefix>_prog1.extra
+	var files []string
+	for i := range ncalls {
+		files = append(files, fmt.Sprintf("%s_prog1.%d", vmCoverFilePrefix, i))
+	}
+	files = append(files, fmt.Sprintf("%s_prog1.extra", vmCoverFilePrefix))
+
+	coverage := make([][]uint64, 0, ncalls)
+	for _, file := range files {
+		catCmd := "cat " + file + " 2>/dev/null || true"
+		catCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		catOutput, err := inst.runStreamAndCollectStdoutToBuf(catCtx, catCmd)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read coverage file %s in VM: %w", file, err)
+		}
+
+		cover, err := parseCoverageData(catOutput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse cover data from %s: %w", file, err)
+		}
+		coverage = append(coverage, cover)
+	}
+
+	return coverage, nil
 }
