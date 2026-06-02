@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
@@ -157,7 +158,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 		return res, err
 	}
 
-	return aggregateTestResults(validResults, crashReporter, args.KernelObj, targetArch)
+	return aggregateTestResults(validResults, crashReporter, args)
 }
 
 type reproRunner struct {
@@ -179,7 +180,7 @@ func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
 }
 
 func aggregateTestResults(validResults []instance.EnvTestResult,
-	crashReporter *report.Reporter, kernelObj, targetArch string) (RunTestResult, error) {
+	crashReporter *report.Reporter, args ReproduceArgs) (RunTestResult, error) {
 	var res RunTestResult
 	if len(validResults) > 0 {
 		res.ConsoleOutput = string(validResults[0].RawOutput)
@@ -235,7 +236,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(targetArch, kernelObj, firstCoverage)
+		coverage, err := symbolize(args, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -327,22 +328,28 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 	return res, err
 }
 
-func symbolize(targetArch, kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	pcs := make(map[uint64][]symbolizer.Frame)
 	for _, call := range coverage {
 		for _, pc := range call {
 			pcs[pc] = nil
 		}
 	}
-	target := targets.Get(targets.Linux, targetArch)
-	vmlinux := filepath.Join(kernelObj, target.KernelObject)
+	target := targets.Get(targets.Linux, args.TargetArch)
+	vmlinux := filepath.Join(args.KernelObj, target.KernelObject)
 	symb := symbolizer.Make(target)
 	defer symb.Close()
 	frames, err := symb.Symbolize(vmlinux, slices.Collect(maps.Keys(pcs))...)
 	if err != nil {
 		return nil, err
 	}
+	kernelDirs := &mgrconfig.KernelDirs{
+		Src: args.KernelSrc,
+		Obj: args.KernelObj,
+	}
 	for _, frame := range frames {
+		relPath, _ := backend.CleanPath(frame.File, kernelDirs, nil)
+		frame.File = relPath
 		pcs[frame.PC] = append(pcs[frame.PC], frame)
 	}
 	var res [][]symbolizer.Frame
