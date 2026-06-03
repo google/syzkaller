@@ -7,5 +7,7 @@ resources:
 
 configMapGenerator:
   - name: global-config
+    options:
+      disableNameSuffixHash: true
     files:
       - config.yaml=global-config.yaml
