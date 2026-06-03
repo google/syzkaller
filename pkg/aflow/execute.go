@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/osutil"
