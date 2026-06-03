@@ -367,6 +367,11 @@ func runStreamAndCollectStdout(ctx context.Context, inst *vm.Instance, command s
 					return err
 				}
 			}
+			// In case of race between context cancellation and receiving
+			// command error, prioritize context error.
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			outc = nil
 			return err
 		case <-ctx.Done():
