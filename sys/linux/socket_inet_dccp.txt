@@ -5,6 +5,7 @@
 
 include <linux/dccp.h>
 include <linux/in.h>
+include <linux/net.h>
 
 resource sock_dccp[sock_in]
 

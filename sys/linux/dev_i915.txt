@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <uapi/drm/i915_drm.h>
+include <linux/fcntl.h>
 
 resource fd_i915[fd]
 
