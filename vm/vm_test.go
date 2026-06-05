@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testPool struct {
@@ -349,6 +350,27 @@ func TestMonitorExecution(t *testing.T) {
 			testMonitorExecution(t, test)
 		})
 	}
+}
+
+func TestNilChannelBlock(t *testing.T) {
+	inst, reporter := makeLinuxAMD64Futex(t, "test")
+	testInst := inst.impl.(*testInstance)
+
+	go func() {
+		close(testInst.outc)
+		time.Sleep(10 * time.Millisecond)
+		testInst.errc <- nil
+	}()
+
+	start := time.Now()
+	_, _, err := inst.Run(context.Background(), reporter, "", withTestRunOptionsDefaults(), WithExitCondition(ExitNormal))
+	require.NoError(t, err)
+
+	duration := time.Since(start)
+	// vmimpl.WaitForOutputTimeout is artificially set to 3s in vm_test.go init().
+	// If the bug is present, duration will be >= 3 seconds. Testing for 2s to
+	// compensate potential timer inaccuracy.
+	require.Less(t, duration, 2*time.Second, "test took %v, meaning it is waiting for a nil outc channel", duration)
 }
 
 func makeLinuxAMD64Futex(t *testing.T, poolName string) (*Instance, *report.Reporter) {
