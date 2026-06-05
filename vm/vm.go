@@ -541,6 +541,9 @@ func (mon *monitor) createReports(defaultError string) []*report.Report {
 }
 
 func (mon *monitor) waitForOutput() {
+	if mon.outc == nil {
+		return
+	}
 	timer := time.NewTimer(vmimpl.WaitForOutputTimeout * mon.inst.pool.timeouts.Scale)
 	defer timer.Stop()
 	for {
