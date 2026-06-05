@@ -302,69 +302,152 @@ func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns st
 // It identifies files in the "files" table that are not referenced by any entries in the "merge_history" table,
 // indicating they are no longer associated with an active merge session.
 //
-// To avoid exceeding Spanner transaction limits, orphaned files are deleted in batches of 10,000.
-// Note that in case of an error during batch deletion, some files may be deleted but not counted in the total.
+// To avoid slow anti-joins in Spanner, this function fetches all valid sessions from merge_history first,
+// then streams distinct sessions from files and performs the filtering in Go.
+//
+// To avoid exceeding Spanner mutation limits, file entries are deleted in batches of 10,000.
 //
 // Returns the number of orphaned file entries successfully deleted.
 func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int64, error) {
-	batchSize := 10_000
 	if client == nil {
 		return 0, fmt.Errorf("nil spannerclient")
 	}
 
-	iter := client.Single().Query(ctx, spanner.Statement{
-		SQL: `SELECT session, filepath
-					FROM files
-					WHERE NOT EXISTS (
-						SELECT 1
-						FROM merge_history
-						WHERE merge_history.session = files.session
-					)`})
-	defer iter.Stop()
-
-	var totalDeleted atomic.Int64
-	eg, _ := errgroup.WithContext(ctx)
-	var batch []spanner.Key
+	// 1. Get all valid sessions from merge_history
+	validSessions := make(map[string]bool)
+	iterHistory := client.Single().Query(ctx, spanner.Statement{
+		SQL: `SELECT DISTINCT session FROM merge_history`})
+	defer iterHistory.Stop()
 	for {
-		row, err := iter.Next()
+		row, err := iterHistory.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return 0, fmt.Errorf("iter.Next: %w", err)
+			return 0, fmt.Errorf("iterHistory.Next: %w", err)
 		}
 		var r struct {
-			Session  string
-			Filepath string
+			Session string
 		}
 		if err = row.ToStruct(&r); err != nil {
 			return 0, fmt.Errorf("row.ToStruct: %w", err)
 		}
-		batch = append(batch, spanner.Key{r.Session, r.Filepath})
-		if len(batch) > batchSize {
-			goSpannerDelete(ctx, batch, eg, client, &totalDeleted)
-			batch = nil
-		}
+		validSessions[r.Session] = true
 	}
-	goSpannerDelete(ctx, batch, eg, client, &totalDeleted)
+
+	// 2. Stream distinct sessions from files and feed to workers.
+	var totalDeleted atomic.Int64
+	eg, gCtx := errgroup.WithContext(ctx)
+
+	sessionCh := make(chan string)
+	const numWorkers = 10
+
+	// Spawn workers to process garbage sessions.
+	for range numWorkers {
+		eg.Go(func() error {
+			for session := range sessionCh {
+				if err := processGarbageSession(gCtx, client, session, &totalDeleted); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+
+	eg.Go(func() error {
+		defer close(sessionCh)
+		iterFiles := client.Single().Query(gCtx, spanner.Statement{
+			SQL: `SELECT DISTINCT session FROM files`})
+		defer iterFiles.Stop()
+
+		for {
+			row, err := iterFiles.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("iterFiles.Next: %w", err)
+			}
+			var r struct {
+				Session string
+			}
+			if err = row.ToStruct(&r); err != nil {
+				return fmt.Errorf("row.ToStruct: %w", err)
+			}
+			if !validSessions[r.Session] {
+				select {
+				case sessionCh <- r.Session:
+				case <-gCtx.Done():
+					return gCtx.Err()
+				}
+			}
+		}
+		return nil
+	})
+
 	if err := eg.Wait(); err != nil {
-		return 0, fmt.Errorf("spanner.Delete: %w", err)
+		return totalDeleted.Load(), err
 	}
 	return totalDeleted.Load(), nil
 }
 
-func goSpannerDelete(ctx context.Context, batch []spanner.Key, eg *errgroup.Group, client spannerclient.SpannerClient,
-	totalDeleted *atomic.Int64) {
+func processGarbageSession(ctx context.Context, client spannerclient.SpannerClient, session string,
+	totalDeleted *atomic.Int64) error {
+	iterRows := client.Single().Query(ctx, spanner.Statement{
+		SQL:    `SELECT manager, filepath FROM files WHERE session = $1`,
+		Params: map[string]any{"p1": session},
+	})
+	defer iterRows.Stop()
+
+	var batch []spanner.Key
+	batchSize := 10000
+
+	for {
+		row, err := iterRows.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("iterRows.Next: %w", err)
+		}
+		var r struct {
+			Manager  string
+			Filepath string
+		}
+		if err = row.ToStruct(&r); err != nil {
+			return fmt.Errorf("row.ToStruct: %w", err)
+		}
+
+		batch = append(batch, spanner.Key{session, r.Manager, r.Filepath})
+
+		if len(batch) >= batchSize {
+			if err := deleteFilesBatch(ctx, batch, client, totalDeleted); err != nil {
+				return err
+			}
+			batch = nil
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+	if len(batch) > 0 {
+		if err := deleteFilesBatch(ctx, batch, client, totalDeleted); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteFilesBatch(ctx context.Context, batch []spanner.Key, client spannerclient.SpannerClient,
+	totalDeleted *atomic.Int64) error {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)
-	eg.Go(func() error {
-		mutation := spanner.Delete("files", ks)
-		_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
-		if err == nil {
-			totalDeleted.Add(int64(ksSize))
-		}
-		return err
-	})
+	mutation := spanner.Delete("files", ks)
+	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
+	if err == nil {
+		totalDeleted.Add(int64(ksSize))
+	}
+	return err
 }
 
 type FileCoverageWithDetails struct {
