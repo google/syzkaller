@@ -17,6 +17,47 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
+type CoverageFilters struct {
+	Areas          []corpus.FocusArea
+	ExecutorFilter map[uint64]struct{}
+}
+
+func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Config,
+	strict bool) (CoverageFilters, error) {
+	var ret CoverageFilters
+	needExecutorFilter := len(cfg.Experimental.FocusAreas) > 0
+	for _, area := range cfg.Experimental.FocusAreas {
+		pcs, err := CoverageFilter(source, area.Filter, strict)
+		if err != nil {
+			return ret, err
+		}
+		// KCOV will point to the next instruction, so we need to adjust the map.
+		covPCs := make(map[uint64]struct{})
+		for pc := range pcs {
+			next := backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
+			covPCs[next] = struct{}{}
+		}
+		ret.Areas = append(ret.Areas, corpus.FocusArea{
+			Name:     area.Name,
+			CoverPCs: covPCs,
+			Weight:   area.Weight,
+		})
+		if area.Filter.Empty() {
+			// An empty cover filter indicates that the user is interested in all the coverage.
+			needExecutorFilter = false
+		}
+	}
+	if needExecutorFilter {
+		ret.ExecutorFilter = map[uint64]struct{}{}
+		for _, area := range ret.Areas {
+			for pc := range area.CoverPCs {
+				ret.ExecutorFilter[pc] = struct{}{}
+			}
+		}
+	}
+	return ret, nil
+}
+
 func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg,
 	strict bool) (map[uint64]struct{}, error) {
 	if covCfg.Empty() {
@@ -129,45 +170,4 @@ func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
 		regexps = append(regexps, r)
 	}
 	return regexps, nil
-}
-
-type CoverageFilters struct {
-	Areas          []corpus.FocusArea
-	ExecutorFilter map[uint64]struct{}
-}
-
-func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Config,
-	strict bool) (CoverageFilters, error) {
-	var ret CoverageFilters
-	needExecutorFilter := len(cfg.Experimental.FocusAreas) > 0
-	for _, area := range cfg.Experimental.FocusAreas {
-		pcs, err := CoverageFilter(source, area.Filter, strict)
-		if err != nil {
-			return ret, err
-		}
-		// KCOV will point to the next instruction, so we need to adjust the map.
-		covPCs := make(map[uint64]struct{})
-		for pc := range pcs {
-			next := backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
-			covPCs[next] = struct{}{}
-		}
-		ret.Areas = append(ret.Areas, corpus.FocusArea{
-			Name:     area.Name,
-			CoverPCs: covPCs,
-			Weight:   area.Weight,
-		})
-		if area.Filter.Empty() {
-			// An empty cover filter indicates that the user is interested in all the coverage.
-			needExecutorFilter = false
-		}
-	}
-	if needExecutorFilter {
-		ret.ExecutorFilter = map[uint64]struct{}{}
-		for _, area := range ret.Areas {
-			for pc := range area.CoverPCs {
-				ret.ExecutorFilter[pc] = struct{}{}
-			}
-		}
-	}
-	return ret, nil
 }

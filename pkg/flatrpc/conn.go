@@ -43,6 +43,21 @@ func Listen(addr string) (*Serv, error) {
 	}, nil
 }
 
+func (s *Serv) Close() error {
+	return s.ln.Close()
+}
+
+type Conn struct {
+	conn net.Conn
+
+	sendMu  sync.Mutex
+	builder *flatbuffers.Builder
+
+	data    []byte
+	hasData int
+	lastMsg int
+}
+
 // Serve accepts incoming connections and calls handler for each of them.
 // An error returned from the handler stops the server and aborts the whole processing.
 func (s *Serv) Serve(ctx context.Context, handler func(context.Context, *Conn) error) error {
@@ -79,21 +94,6 @@ func (s *Serv) Serve(ctx context.Context, handler func(context.Context, *Conn) e
 		})
 	}
 	return eg.Wait()
-}
-
-func (s *Serv) Close() error {
-	return s.ln.Close()
-}
-
-type Conn struct {
-	conn net.Conn
-
-	sendMu  sync.Mutex
-	builder *flatbuffers.Builder
-
-	data    []byte
-	hasData int
-	lastMsg int
 }
 
 func NewConn(conn net.Conn) *Conn {

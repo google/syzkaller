@@ -61,29 +61,10 @@ type verdictAgentOutputs struct {
 	ResendReason      string   `jsonschema:"Reason for resending the patch unchanged (e.g., 're-test'), or empty."`
 }
 
-func validateVerdictOutputs(ctx *aflow.Context, state struct{}, args verdictAgentOutputs) (verdictAgentOutputs, error) {
-	hasItems := len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
-	hasResend := args.ResendReason != ""
-	if hasItems && hasResend {
-		return args, aflow.BadCallError("cannot provide both Items arrays and a ResendReason; " +
-			"if you want to make changes, leave ResendReason empty; " +
-			"if you want to resend without changes, leave all Items arrays empty")
-	}
-	return args, nil
-}
-
 // nolint: lll
 type changelogGeneratorOutputs struct {
 	PatchDescription string `jsonschema:"The updated full commit message for the new patch."`
 	NewChangeLog     string `jsonschema:"A bulleted list of changes made in this new version compared to the previous version."`
-}
-
-func validateChangelogOutputs(ctx *aflow.Context, state struct{}, args changelogGeneratorOutputs) (
-	changelogGeneratorOutputs, error) {
-	return changelogGeneratorOutputs{
-		PatchDescription: email.WordWrap(args.PatchDescription, patchDescriptionLineLength),
-		NewChangeLog:     args.NewChangeLog,
-	}, nil
 }
 
 func init() {
@@ -181,6 +162,25 @@ func init() {
 				},
 			),
 		})
+}
+
+func validateVerdictOutputs(ctx *aflow.Context, state struct{}, args verdictAgentOutputs) (verdictAgentOutputs, error) {
+	hasItems := len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
+	hasResend := args.ResendReason != ""
+	if hasItems && hasResend {
+		return args, aflow.BadCallError("cannot provide both Items arrays and a ResendReason; " +
+			"if you want to make changes, leave ResendReason empty; " +
+			"if you want to resend without changes, leave all Items arrays empty")
+	}
+	return args, nil
+}
+
+func validateChangelogOutputs(ctx *aflow.Context, state struct{}, args changelogGeneratorOutputs) (
+	changelogGeneratorOutputs, error) {
+	return changelogGeneratorOutputs{
+		PatchDescription: email.WordWrap(args.PatchDescription, patchDescriptionLineLength),
+		NewChangeLog:     args.NewChangeLog,
+	}, nil
 }
 
 type viewPatchHistoryArgs struct {

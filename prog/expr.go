@@ -58,19 +58,6 @@ func (v *Value) Evaluate(finder ArgFinder) (uint64, bool) {
 	return constArg.Val, true
 }
 
-func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) ArgFinder {
-	return func(path []string) Arg {
-		f := t.findArg(unionArg.Option, path, nil, nil, parents, 0)
-		if f == nil {
-			return nil
-		}
-		if f.isAnyPtr {
-			return SquashedArgFound
-		}
-		return f.arg
-	}
-}
-
 func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
 	if r.patchConditionalDepth > 1 {
 		// Some nested patchConditionalFields() calls are fine as we could trigger a resource
@@ -106,67 +93,6 @@ func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, chan
 		}
 	}
 	return extraCalls, anyPatched
-}
-
-func forEachStaleUnion(target *Target, c *Call, cb func(*UnionArg, *UnionType, []int)) {
-	for _, callArg := range c.Args {
-		foreachSubArgWithStack(callArg, func(arg Arg, argCtx *ArgCtx) {
-			if target.isAnyPtr(arg.Type()) {
-				argCtx.Stop = true
-				return
-			}
-			unionArg, ok := arg.(*UnionArg)
-			if !ok {
-				return
-			}
-			unionType, ok := arg.Type().(*UnionType)
-			if !ok || !unionType.isConditional() {
-				return
-			}
-			argFinder := makeArgFinder(target, c, unionArg, argCtx.parentStack)
-			ok, calculated := checkUnionArg(unionArg.Index, unionType, argFinder)
-			if !calculated {
-				// Let it stay as is.
-				return
-			}
-			if !unionArg.transient && ok {
-				return
-			}
-			matchingIndices := matchingUnionArgs(unionType, argFinder)
-			if len(matchingIndices) == 0 {
-				// Conditional fields are transformed in such a way
-				// that one field always matches.
-				// For unions we demand that there's a field w/o conditions.
-				panic(fmt.Sprintf("no matching union fields: %#v", unionType))
-			}
-			cb(unionArg, unionType, matchingIndices)
-		})
-	}
-}
-
-func checkUnionArg(idx int, typ *UnionType, finder ArgFinder) (ok, calculated bool) {
-	field := typ.Fields[idx]
-	if field.Condition == nil {
-		return true, true
-	}
-	val, ok := field.Condition.Evaluate(finder)
-	if !ok {
-		// We could not calculate the expression.
-		// Let the union stay as it was.
-		return true, false
-	}
-	return val != 0, true
-}
-
-func matchingUnionArgs(typ *UnionType, finder ArgFinder) []int {
-	var ret []int
-	for i := range typ.Fields {
-		ok, _ := checkUnionArg(i, typ, finder)
-		if ok {
-			ret = append(ret, i)
-		}
-	}
-	return ret
 }
 
 func (p *Prog) checkConditions() error {
@@ -225,4 +151,78 @@ func (c *Call) setDefaultConditions(target *Target, transientOnly bool) bool {
 		}
 	}
 	return anyReplaced
+}
+
+func forEachStaleUnion(target *Target, c *Call, cb func(*UnionArg, *UnionType, []int)) {
+	for _, callArg := range c.Args {
+		foreachSubArgWithStack(callArg, func(arg Arg, argCtx *ArgCtx) {
+			if target.isAnyPtr(arg.Type()) {
+				argCtx.Stop = true
+				return
+			}
+			unionArg, ok := arg.(*UnionArg)
+			if !ok {
+				return
+			}
+			unionType, ok := arg.Type().(*UnionType)
+			if !ok || !unionType.isConditional() {
+				return
+			}
+			argFinder := makeArgFinder(target, c, unionArg, argCtx.parentStack)
+			ok, calculated := checkUnionArg(unionArg.Index, unionType, argFinder)
+			if !calculated {
+				// Let it stay as is.
+				return
+			}
+			if !unionArg.transient && ok {
+				return
+			}
+			matchingIndices := matchingUnionArgs(unionType, argFinder)
+			if len(matchingIndices) == 0 {
+				// Conditional fields are transformed in such a way
+				// that one field always matches.
+				// For unions we demand that there's a field w/o conditions.
+				panic(fmt.Sprintf("no matching union fields: %#v", unionType))
+			}
+			cb(unionArg, unionType, matchingIndices)
+		})
+	}
+}
+
+func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) ArgFinder {
+	return func(path []string) Arg {
+		f := t.findArg(unionArg.Option, path, nil, nil, parents, 0)
+		if f == nil {
+			return nil
+		}
+		if f.isAnyPtr {
+			return SquashedArgFound
+		}
+		return f.arg
+	}
+}
+
+func matchingUnionArgs(typ *UnionType, finder ArgFinder) []int {
+	var ret []int
+	for i := range typ.Fields {
+		ok, _ := checkUnionArg(i, typ, finder)
+		if ok {
+			ret = append(ret, i)
+		}
+	}
+	return ret
+}
+
+func checkUnionArg(idx int, typ *UnionType, finder ArgFinder) (ok, calculated bool) {
+	field := typ.Fields[idx]
+	if field.Condition == nil {
+		return true, true
+	}
+	val, ok := field.Condition.Evaluate(finder)
+	if !ok {
+		// We could not calculate the expression.
+		// Let the union stay as it was.
+		return true, false
+	}
+	return val != 0, true
 }

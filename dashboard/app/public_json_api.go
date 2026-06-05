@@ -16,6 +16,52 @@ import (
 	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
+type publicBackportBug struct {
+	Namespace       string `json:"namespace"`
+	Title           string `json:"title"`
+	ConfigLink      string `json:"config_link"`
+	SyzReproLink    string `json:"syz_repro_link"`
+	CReproLink      string `json:"c_repro_link"`
+	SyzkallerCommit string `json:"syzkaller_commit"`
+}
+
+type publicMissingBackport struct {
+	From   publicKernelTree    `json:"from"`
+	To     publicKernelTree    `json:"to"`
+	Commit string              `json:"commit"`
+	Title  string              `json:"title"`
+	Bugs   []publicBackportBug `json:"bugs"`
+}
+
+type publicKernelTree struct {
+	Repo   string `json:"repo"`
+	Branch string `json:"branch"`
+}
+
+type publicAPIBackports struct {
+	Version int                     `json:"version"`
+	List    []publicMissingBackport `json:"list"`
+}
+
+func GetJSONDescrFor(page any) ([]byte, error) {
+	var res any
+	switch i := page.(type) {
+	case *uiBugPage:
+		res = getExtAPIDescrForBug(i.Bug)
+	case *uiTerminalPage:
+		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
+	case *uiMainPage:
+		res = getExtAPIDescrForBugGroups(i.Groups)
+	case *uiBackportsPage:
+		res = getExtAPIDescrForBackports(i.Groups)
+	case *uiDungeonPage, *uiDungeonPlayer, *uiDungeonKingdom, *uiAIJobsPage, *uiAIJobDetails:
+		res = i
+	default:
+		return nil, ErrClientNotFound
+	}
+	return json.MarshalIndent(res, "", "\t")
+}
+
 func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 	return &api.Bug{
 		Version:    api.Version,
@@ -83,6 +129,23 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 	}
 }
 
+func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *api.BugGroup {
+	var bugs []api.BugSummary
+	for _, group := range bugGroups {
+		for _, bug := range group.Bugs {
+			bugs = append(bugs, api.BugSummary{
+				Title:      bug.Title,
+				Link:       bug.Link,
+				FixCommits: getBugFixCommits(bug),
+			})
+		}
+	}
+	return &api.BugGroup{
+		Version: api.Version,
+		Bugs:    bugs,
+	}
+}
+
 func getBugFixCommits(bug *uiBug) []api.Commit {
 	var res []api.Commit
 	for _, commit := range bug.Commits {
@@ -101,50 +164,6 @@ func getBugFixCommits(bug *uiBug) []api.Commit {
 		res = append(res, apiCommit)
 	}
 	return res
-}
-
-func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *api.BugGroup {
-	var bugs []api.BugSummary
-	for _, group := range bugGroups {
-		for _, bug := range group.Bugs {
-			bugs = append(bugs, api.BugSummary{
-				Title:      bug.Title,
-				Link:       bug.Link,
-				FixCommits: getBugFixCommits(bug),
-			})
-		}
-	}
-	return &api.BugGroup{
-		Version: api.Version,
-		Bugs:    bugs,
-	}
-}
-
-type publicKernelTree struct {
-	Repo   string `json:"repo"`
-	Branch string `json:"branch"`
-}
-
-type publicBackportBug struct {
-	Namespace       string `json:"namespace"`
-	Title           string `json:"title"`
-	ConfigLink      string `json:"config_link"`
-	SyzReproLink    string `json:"syz_repro_link"`
-	CReproLink      string `json:"c_repro_link"`
-	SyzkallerCommit string `json:"syzkaller_commit"`
-}
-
-type publicMissingBackport struct {
-	From   publicKernelTree    `json:"from"`
-	To     publicKernelTree    `json:"to"`
-	Commit string              `json:"commit"`
-	Title  string              `json:"title"`
-	Bugs   []publicBackportBug `json:"bugs"`
-}
-
-type publicAPIBackports struct {
-	Version int                     `json:"version"`
-	List    []publicMissingBackport `json:"list"`
 }
 
 func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
@@ -186,25 +205,6 @@ func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
 			return res
 		}(),
 	}
-}
-
-func GetJSONDescrFor(page any) ([]byte, error) {
-	var res any
-	switch i := page.(type) {
-	case *uiBugPage:
-		res = getExtAPIDescrForBug(i.Bug)
-	case *uiTerminalPage:
-		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
-	case *uiMainPage:
-		res = getExtAPIDescrForBugGroups(i.Groups)
-	case *uiBackportsPage:
-		res = getExtAPIDescrForBackports(i.Groups)
-	case *uiDungeonPage, *uiDungeonPlayer, *uiDungeonKingdom, *uiAIJobsPage, *uiAIJobDetails:
-		res = i
-	default:
-		return nil, ErrClientNotFound
-	}
-	return json.MarshalIndent(res, "", "\t")
 }
 
 func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p *coverageHeatmapParams) error {

@@ -228,16 +228,6 @@ func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subs
 	return subsystem
 }
 
-func unique(list []string) []string {
-	m := make(map[string]struct{})
-	for _, s := range list {
-		m[s] = struct{}{}
-	}
-	ret := maps.Keys(m)
-	slices.Sort(ret)
-	return ret
-}
-
 func maintainersFromRecords(records []*maintainersRecord) []string {
 	// Generally we avoid merging maintainers from too many MAINTAINERS records,
 	// as we may end up pinging too many unrelated people.
@@ -278,6 +268,16 @@ func maintainersFromRecords(records []*maintainersRecord) []string {
 		}
 	}
 	return retList
+}
+
+func unique(list []string) []string {
+	m := make(map[string]struct{})
+	for _, s := range list {
+		m[s] = struct{}{}
+	}
+	ret := maps.Keys(m)
+	slices.Sort(ret)
+	return ret
 }
 
 func getMaintainers(root fs.FS) ([]*maintainersRecord, error) {

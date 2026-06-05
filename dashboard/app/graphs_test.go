@@ -117,6 +117,18 @@ func TestManagersGraphs(t *testing.T) {
 	_ = reply
 }
 
+func TestManagersGraph_FuzzingMetric_OK_OnValidInput(t *testing.T) {
+	c := managersGraphFixture(t)
+	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus")
+	c.expectOK(err)
+}
+
+func TestManagersGraph_FuzzingMetric_BadRequest_OnMalformedInput(t *testing.T) {
+	c := managersGraphFixture(t)
+	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus'%2F*%22ZYLQ%22*%2F+AND+'0'%3D'0&Months=27")
+	c.expectBadReqest(err)
+}
+
 func managersGraphFixture(t *testing.T) *Ctx {
 	c := NewCtx(t)
 	t.Cleanup(c.Close)
@@ -132,16 +144,4 @@ func managersGraphFixture(t *testing.T) *Ctx {
 	})
 
 	return c
-}
-
-func TestManagersGraph_FuzzingMetric_OK_OnValidInput(t *testing.T) {
-	c := managersGraphFixture(t)
-	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus")
-	c.expectOK(err)
-}
-
-func TestManagersGraph_FuzzingMetric_BadRequest_OnMalformedInput(t *testing.T) {
-	c := managersGraphFixture(t)
-	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus'%2F*%22ZYLQ%22*%2F+AND+'0'%3D'0&Months=27")
-	c.expectBadReqest(err)
 }

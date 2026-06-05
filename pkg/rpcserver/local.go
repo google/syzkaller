@@ -65,6 +65,12 @@ func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 	return instErr
 }
 
+type local struct {
+	cfg       *LocalConfig
+	serv      Server
+	setupDone chan bool
+}
+
 func setupLocal(ctx context.Context, cfg *LocalConfig) (*local, context.Context, error) {
 	if cfg.VMArch == "" {
 		cfg.VMArch = cfg.Target.Arch
@@ -106,12 +112,6 @@ func cancelOnInterrupts(ctx context.Context) context.Context {
 		}
 	}()
 	return ret
-}
-
-type local struct {
-	cfg       *LocalConfig
-	serv      Server
-	setupDone chan bool
 }
 
 func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {

@@ -135,6 +135,30 @@ type LinesCoverage struct {
 	HitCounts         []int64
 }
 
+func ReadLinesHitCount(ctx context.Context, client spannerclient.SpannerClient,
+	ns, commit, file, manager string, tp TimePeriod,
+) ([]int64, []int64, error) {
+	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err == iterator.Done {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("iter.Next: %w", err)
+	}
+	var r LinesCoverage
+	if err = row.ToStruct(&r); err != nil {
+		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+	}
+	if _, err := iter.Next(); err != iterator.Done {
+		return nil, nil, fmt.Errorf("more than 1 line is available")
+	}
+	return r.LinesInstrumented, r.HitCounts, nil
+}
+
 func linesCoverageStmt(ns, filepath, commit, manager string, timePeriod TimePeriod) spanner.Statement {
 	if manager == "" {
 		manager = "*"
@@ -158,30 +182,6 @@ where
 			"p6": manager,
 		},
 	}
-}
-
-func ReadLinesHitCount(ctx context.Context, client spannerclient.SpannerClient,
-	ns, commit, file, manager string, tp TimePeriod,
-) ([]int64, []int64, error) {
-	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil, nil
-	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("iter.Next: %w", err)
-	}
-	var r LinesCoverage
-	if err = row.ToStruct(&r); err != nil {
-		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
-	}
-	if _, err := iter.Next(); err != iterator.Done {
-		return nil, nil, fmt.Errorf("more than 1 line is available")
-	}
-	return r.LinesInstrumented, r.HitCounts, nil
 }
 
 func historyMutation(session string, template *HistoryRecord) *spanner.Mutation {
@@ -228,29 +228,6 @@ func fileRecordMutation(session string, mcr *MergedCoverageRecord) *spanner.Muta
 		panic(fmt.Sprintf("failed to fileRecordMutation: %v", err))
 	}
 	return insert
-}
-
-func fileSubsystemsMutation(ns, filePath string, subsystems []string) *spanner.Mutation {
-	insert, err := spanner.InsertOrUpdateStruct("file_subsystems", &fileSubsystems{
-		Namespace:  ns,
-		FilePath:   filePath,
-		Subsystems: subsystems,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("failed to fileSubsystemsMutation(): %s", err.Error()))
-	}
-	return insert
-}
-
-func getFileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache map[string][]string) []string {
-	sss, cached := ssCache[filePath]
-	if !cached {
-		for _, match := range ssMatcher.Match(filePath) {
-			sss = append(sss, match.Name)
-		}
-		ssCache[filePath] = sss
-	}
-	return sss
 }
 
 func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns string,
@@ -385,14 +362,6 @@ type FileCoverageWithLineInfo struct {
 
 func (fc *FileCoverageWithLineInfo) CovMap() map[int]int64 {
 	return MakeCovMap(fc.LinesInstrumented, fc.HitCounts)
-}
-
-func MakeCovMap(keys, vals []int64) map[int]int64 {
-	res := map[int]int64{}
-	for i, key := range keys {
-		res[int(key)] = vals[i]
-	}
-	return res
 }
 
 type SelectScope struct {
@@ -612,6 +581,14 @@ func IsComparable(fullLines, fullHitCounts, partialLines, partialHitCounts []int
 	return true
 }
 
+func MakeCovMap(keys, vals []int64) map[int]int64 {
+	res := map[int]int64{}
+	for i, key := range keys {
+		res[int(key)] = vals[i]
+	}
+	return res
+}
+
 // Returns partial hitcounts that are the only source of the full hitcounts.
 func UniqCoverage(fullCov, partCov map[int]int64) map[int]int64 {
 	res := maps.Clone(partCov)
@@ -642,6 +619,29 @@ func RegenerateSubsystems(ctx context.Context, ns string, sss []*subsystem.Subsy
 		return 0, err
 	}
 	return len(mutations), nil
+}
+
+func fileSubsystemsMutation(ns, filePath string, subsystems []string) *spanner.Mutation {
+	insert, err := spanner.InsertOrUpdateStruct("file_subsystems", &fileSubsystems{
+		Namespace:  ns,
+		FilePath:   filePath,
+		Subsystems: subsystems,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to fileSubsystemsMutation(): %s", err.Error()))
+	}
+	return insert
+}
+
+func getFileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache map[string][]string) []string {
+	sss, cached := ssCache[filePath]
+	if !cached {
+		for _, match := range ssMatcher.Match(filePath) {
+			sss = append(sss, match.Name)
+		}
+		ssCache[filePath] = sss
+	}
+	return sss
 }
 
 func getFilePaths(ctx context.Context, ns string, client spannerclient.SpannerClient) ([]string, error) {

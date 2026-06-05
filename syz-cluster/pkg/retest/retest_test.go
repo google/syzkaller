@@ -36,6 +36,88 @@ func (m *mockEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCo
 	return m.results, m.err
 }
 
+type TestParams struct {
+	BaseResults           []instance.EnvTestResult
+	BaseError             error
+	PatchedResults        []instance.EnvTestResult
+	PatchedError          error
+	ExpectedTitles        []string
+	ExpectedBaseStatus    string
+	ExpectedPatchedStatus string
+}
+
+func TestRetestScenarios(t *testing.T) {
+	t.Run("both crash", func(t *testing.T) {
+		crash := instance.EnvTestResult{
+			Error: &instance.CrashError{
+				Report: &report.Report{Title: "crash title"},
+			},
+		}
+		runTest(t, TestParams{
+			BaseResults:           []instance.EnvTestResult{crash},
+			PatchedResults:        []instance.EnvTestResult{crash},
+			ExpectedTitles:        nil,
+			ExpectedBaseStatus:    api.StepResultFailed,
+			ExpectedPatchedStatus: api.StepResultFailed,
+		})
+	})
+
+	t.Run("patched affected", func(t *testing.T) {
+		pass := instance.EnvTestResult{RawOutput: []byte("log")}
+		crash := instance.EnvTestResult{
+			RawOutput: []byte("log"),
+			Error: &instance.CrashError{
+				Report: &report.Report{Title: "new crash"},
+			},
+		}
+		runTest(t, TestParams{
+			BaseResults:           []instance.EnvTestResult{pass},
+			PatchedResults:        []instance.EnvTestResult{crash},
+			ExpectedTitles:        []string{"new crash"},
+			ExpectedBaseStatus:    api.StepResultPassed,
+			ExpectedPatchedStatus: api.StepResultFailed,
+		})
+	})
+
+	t.Run("both pass", func(t *testing.T) {
+		pass := instance.EnvTestResult{RawOutput: []byte("log")}
+		runTest(t, TestParams{
+			BaseResults:           []instance.EnvTestResult{pass},
+			PatchedResults:        []instance.EnvTestResult{pass},
+			ExpectedTitles:        nil,
+			ExpectedBaseStatus:    api.StepResultPassed,
+			ExpectedPatchedStatus: api.StepResultPassed,
+		})
+	})
+
+	t.Run("patched mixed", func(t *testing.T) {
+		pass := instance.EnvTestResult{RawOutput: []byte("log")}
+		crash := instance.EnvTestResult{
+			RawOutput: []byte("log"),
+			Error: &instance.CrashError{
+				Report: &report.Report{Title: "mixed crash"},
+			},
+		}
+		runTest(t, TestParams{
+			BaseResults:           []instance.EnvTestResult{pass},
+			PatchedResults:        []instance.EnvTestResult{pass, crash},
+			ExpectedTitles:        []string{"mixed crash"},
+			ExpectedBaseStatus:    api.StepResultPassed,
+			ExpectedPatchedStatus: api.StepResultFailed,
+		})
+	})
+
+	t.Run("test failure", func(t *testing.T) {
+		runTest(t, TestParams{
+			BaseError:             fmt.Errorf("test failure"),
+			PatchedResults:        []instance.EnvTestResult{{RawOutput: []byte("log")}},
+			ExpectedTitles:        nil,
+			ExpectedBaseStatus:    api.StepResultError,
+			ExpectedPatchedStatus: api.StepResultPassed,
+		})
+	})
+}
+
 func runTest(t *testing.T, params TestParams) {
 	env, ctx := app.TestEnvironment(t)
 	client := controller.TestServer(t, env)
@@ -124,86 +206,4 @@ func runTest(t *testing.T, params TestParams) {
 	}
 	assert.Equal(t, params.ExpectedBaseStatus, baseStatus, "base status mismatch")
 	assert.Equal(t, params.ExpectedPatchedStatus, patchedStatus, "patched status mismatch")
-}
-
-type TestParams struct {
-	BaseResults           []instance.EnvTestResult
-	BaseError             error
-	PatchedResults        []instance.EnvTestResult
-	PatchedError          error
-	ExpectedTitles        []string
-	ExpectedBaseStatus    string
-	ExpectedPatchedStatus string
-}
-
-func TestRetestScenarios(t *testing.T) {
-	t.Run("both crash", func(t *testing.T) {
-		crash := instance.EnvTestResult{
-			Error: &instance.CrashError{
-				Report: &report.Report{Title: "crash title"},
-			},
-		}
-		runTest(t, TestParams{
-			BaseResults:           []instance.EnvTestResult{crash},
-			PatchedResults:        []instance.EnvTestResult{crash},
-			ExpectedTitles:        nil,
-			ExpectedBaseStatus:    api.StepResultFailed,
-			ExpectedPatchedStatus: api.StepResultFailed,
-		})
-	})
-
-	t.Run("patched affected", func(t *testing.T) {
-		pass := instance.EnvTestResult{RawOutput: []byte("log")}
-		crash := instance.EnvTestResult{
-			RawOutput: []byte("log"),
-			Error: &instance.CrashError{
-				Report: &report.Report{Title: "new crash"},
-			},
-		}
-		runTest(t, TestParams{
-			BaseResults:           []instance.EnvTestResult{pass},
-			PatchedResults:        []instance.EnvTestResult{crash},
-			ExpectedTitles:        []string{"new crash"},
-			ExpectedBaseStatus:    api.StepResultPassed,
-			ExpectedPatchedStatus: api.StepResultFailed,
-		})
-	})
-
-	t.Run("both pass", func(t *testing.T) {
-		pass := instance.EnvTestResult{RawOutput: []byte("log")}
-		runTest(t, TestParams{
-			BaseResults:           []instance.EnvTestResult{pass},
-			PatchedResults:        []instance.EnvTestResult{pass},
-			ExpectedTitles:        nil,
-			ExpectedBaseStatus:    api.StepResultPassed,
-			ExpectedPatchedStatus: api.StepResultPassed,
-		})
-	})
-
-	t.Run("patched mixed", func(t *testing.T) {
-		pass := instance.EnvTestResult{RawOutput: []byte("log")}
-		crash := instance.EnvTestResult{
-			RawOutput: []byte("log"),
-			Error: &instance.CrashError{
-				Report: &report.Report{Title: "mixed crash"},
-			},
-		}
-		runTest(t, TestParams{
-			BaseResults:           []instance.EnvTestResult{pass},
-			PatchedResults:        []instance.EnvTestResult{pass, crash},
-			ExpectedTitles:        []string{"mixed crash"},
-			ExpectedBaseStatus:    api.StepResultPassed,
-			ExpectedPatchedStatus: api.StepResultFailed,
-		})
-	})
-
-	t.Run("test failure", func(t *testing.T) {
-		runTest(t, TestParams{
-			BaseError:             fmt.Errorf("test failure"),
-			PatchedResults:        []instance.EnvTestResult{{RawOutput: []byte("log")}},
-			ExpectedTitles:        nil,
-			ExpectedBaseStatus:    api.StepResultError,
-			ExpectedPatchedStatus: api.StepResultPassed,
-		})
-	})
 }

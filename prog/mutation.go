@@ -50,10 +50,6 @@ type MutateOpts struct {
 	RemoveCallWeight   int
 }
 
-func (o MutateOpts) weight() int {
-	return o.SquashWeight + o.SpliceWeight + o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
-}
-
 func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool,
 	corpus []*Prog, opts MutateOpts) {
 	if p.isUnsafe {
@@ -102,6 +98,10 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	if got := len(p.Calls); got < 1 || got > ncalls {
 		panic(fmt.Sprintf("bad number of calls after mutation: %v, want [1, %v]", got, ncalls))
 	}
+}
+
+func (o MutateOpts) weight() int {
+	return o.SquashWeight + o.SpliceWeight + o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
 }
 
 // Internal state required for performing mutations -- currently this matches
@@ -312,10 +312,17 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	return calls, true
 }
 
-func regenerate(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
-	var newArg Arg
-	newArg, calls = r.generateArg(s, arg.Type(), arg.Dir())
-	replaceArg(arg, newArg)
+func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	if r.bin() {
+		return regenerate(r, s, arg)
+	}
+	a := arg.(*ConstArg)
+	if t.Align == 0 {
+		a.Val = mutateInt(r, a, t)
+	} else {
+		a.Val = mutateAlignedInt(r, a, t)
+	}
+	a.Val = truncateToBitSize(a.Val, t.TypeBitSize())
 	return
 }
 
@@ -351,20 +358,6 @@ func mutateAlignedInt(r *randGen, a *ConstArg, t *IntType) uint64 {
 	return t.RangeBegin + index*t.Align + misalignment
 }
 
-func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	if r.bin() {
-		return regenerate(r, s, arg)
-	}
-	a := arg.(*ConstArg)
-	if t.Align == 0 {
-		a.Val = mutateInt(r, a, t)
-	} else {
-		a.Val = mutateAlignedInt(r, a, t)
-	}
-	a.Val = truncateToBitSize(a.Val, t.TypeBitSize())
-	return
-}
-
 func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*ConstArg)
 	for oldVal := a.Val; oldVal == a.Val; {
@@ -392,6 +385,13 @@ func (t *VmaType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Ca
 
 func (t *ProcType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	return regenerate(r, s, arg)
+}
+
+func regenerate(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
+	var newArg Arg
+	newArg, calls = r.generateArg(s, arg.Type(), arg.Dir())
+	replaceArg(arg, newArg)
+	return
 }
 
 func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
@@ -898,6 +898,21 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 	},
 }
 
+func swapInt(v uint64, size int) uint64 {
+	switch size {
+	case 1:
+		return v
+	case 2:
+		return uint64(swap16(uint16(v)))
+	case 4:
+		return uint64(swap32(uint32(v)))
+	case 8:
+		return swap64(v)
+	default:
+		panic(fmt.Sprintf("swapInt: bad size %v", size))
+	}
+}
+
 func swap16(v uint16) uint16 {
 	v0 := byte(v >> 0)
 	v1 := byte(v >> 8)
@@ -939,21 +954,6 @@ func swap64(v uint64) uint64 {
 	v |= uint64(v1) << 48
 	v |= uint64(v0) << 56
 	return v
-}
-
-func swapInt(v uint64, size int) uint64 {
-	switch size {
-	case 1:
-		return v
-	case 2:
-		return uint64(swap16(uint16(v)))
-	case 4:
-		return uint64(swap32(uint32(v)))
-	case 8:
-		return swap64(v)
-	default:
-		panic(fmt.Sprintf("swapInt: bad size %v", size))
-	}
 }
 
 func loadInt(data []byte, size int) uint64 {

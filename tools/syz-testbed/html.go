@@ -126,15 +126,6 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-type uiTable struct {
-	Table     *Table
-	ColumnURL func(string) string
-	RowURL    func(string) string
-	Extra     bool
-	HasFooter bool
-	AlignedBy string
-}
-
 const (
 	HTMLStatsTable         = "stats"
 	HTMLBugsTable          = "bugs"
@@ -153,19 +144,28 @@ type uiTableType struct {
 	Generator uiTableGenerator
 }
 
+type uiMainPage struct {
+	Name       string
+	Summary    uiTable
+	Views      []StatView
+	ActiveView uiStatView
+}
+
+type uiTable struct {
+	Table     *Table
+	ColumnURL func(string) string
+	RowURL    func(string) string
+	Extra     bool
+	HasFooter bool
+	AlignedBy string
+}
+
 type uiStatView struct {
 	Name            string
 	TableTypes      map[string]uiTableType
 	ActiveTableType string
 	ActiveTable     *uiTable
 	GenTableURL     func(uiTableType) string
-}
-
-type uiMainPage struct {
-	Name       string
-	Summary    uiTable
-	Views      []StatView
-	ActiveView uiStatView
 }
 
 func (ctx *TestbedContext) getTableTypes() []uiTableType {
@@ -303,4 +303,5 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, name strin
 
 //go:embed templates
 var testbedTemplates embed.FS
+
 var mainTemplate = pages.CreateFromFS(testbedTemplates, "templates/*.html")

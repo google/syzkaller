@@ -9,6 +9,10 @@ import (
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 )
 
+type LineToLineMatcher struct {
+	lineToLine []int
+}
+
 func makeLineToLineMatcher(textFrom, textTo string) *LineToLineMatcher {
 	diffMatcher := dmp.New()
 	diffMatcher.DiffTimeout = 0
@@ -37,10 +41,6 @@ func makeLineToLineMatcher(textFrom, textTo string) *LineToLineMatcher {
 	return &LineToLineMatcher{
 		lineToLine: lineToLine,
 	}
-}
-
-type LineToLineMatcher struct {
-	lineToLine []int
 }
 
 func (lm *LineToLineMatcher) SameLinePos(line int) int {

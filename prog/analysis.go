@@ -107,15 +107,6 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 
 type parentStack []Arg
 
-func allocStack() parentStack {
-	// Let's save some allocations during stack traversal.
-	return make([]Arg, 0, 4)
-}
-
-func pushStack(ps parentStack, a Arg) parentStack {
-	return append(ps, a)
-}
-
 func popStack(ps parentStack) (parentStack, Arg) {
 	if len(ps) > 0 {
 		return ps[:len(ps)-1], ps[len(ps)-1]
@@ -141,70 +132,9 @@ func foreachSubArgWithStack(arg Arg, f func(Arg, *ArgCtx)) {
 	foreachArgImpl(arg, nil, &ArgCtx{parentStack: allocStack()}, f)
 }
 
-func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
-	ctx := &ArgCtx{}
-	if c.Ret != nil {
-		foreachArgImpl(c.Ret, nil, ctx, f)
-	}
-	ctx.Parent = &c.Args
-	ctx.Fields = c.Meta.Args
-	for i, arg := range c.Args {
-		foreachArgImpl(arg, &ctx.Fields[i], ctx, f)
-	}
-}
-
-func foreachArgImpl(arg Arg, field *Field, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
-	ctx0 := *ctx
-	defer func() { *ctx = ctx0 }()
-
-	if ctx.parentStack != nil {
-		switch arg.Type().(type) {
-		case *StructType, *UnionType:
-			ctx.parentStack = pushStack(ctx.parentStack, arg)
-		}
-	}
-	ctx.Field = field
-	f(arg, ctx)
-	if ctx.Stop {
-		return
-	}
-	switch a := arg.(type) {
-	case *GroupArg:
-		overlayField := 0
-		if typ, ok := a.Type().(*StructType); ok {
-			ctx.Parent = &a.Inner
-			ctx.Fields = typ.Fields
-			overlayField = typ.OverlayField
-		}
-		var totalSize uint64
-		for i, arg1 := range a.Inner {
-			if i == overlayField {
-				ctx.Offset = ctx0.Offset
-			}
-			foreachArgImpl(arg1, nil, ctx, f)
-			size := arg1.Size()
-			ctx.Offset += size
-			if totalSize < ctx.Offset {
-				totalSize = ctx.Offset - ctx0.Offset
-			}
-		}
-		if debug {
-			claimedSize := a.Size()
-			varlen := a.Type().Varlen()
-			if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
-				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %#v type %#v",
-					totalSize, claimedSize, a, a.Type().Name()))
-			}
-		}
-	case *PointerArg:
-		if a.Res != nil {
-			ctx.Base = a
-			ctx.Offset = 0
-			foreachArgImpl(a.Res, nil, ctx, f)
-		}
-	case *UnionArg:
-		foreachArgImpl(a.Option, nil, ctx, f)
-	}
+func allocStack() parentStack {
+	// Let's save some allocations during stack traversal.
+	return make([]Arg, 0, 4)
 }
 
 type RequiredFeatures struct {
@@ -399,6 +329,76 @@ func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader, c *
 			cb(fmt.Sprintf("mount_%v", id), MountInRepro, bytes.NewReader(data), c)
 		})
 	}
+}
+
+func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
+	ctx := &ArgCtx{}
+	if c.Ret != nil {
+		foreachArgImpl(c.Ret, nil, ctx, f)
+	}
+	ctx.Parent = &c.Args
+	ctx.Fields = c.Meta.Args
+	for i, arg := range c.Args {
+		foreachArgImpl(arg, &ctx.Fields[i], ctx, f)
+	}
+}
+
+func foreachArgImpl(arg Arg, field *Field, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
+	ctx0 := *ctx
+	defer func() { *ctx = ctx0 }()
+
+	if ctx.parentStack != nil {
+		switch arg.Type().(type) {
+		case *StructType, *UnionType:
+			ctx.parentStack = pushStack(ctx.parentStack, arg)
+		}
+	}
+	ctx.Field = field
+	f(arg, ctx)
+	if ctx.Stop {
+		return
+	}
+	switch a := arg.(type) {
+	case *GroupArg:
+		overlayField := 0
+		if typ, ok := a.Type().(*StructType); ok {
+			ctx.Parent = &a.Inner
+			ctx.Fields = typ.Fields
+			overlayField = typ.OverlayField
+		}
+		var totalSize uint64
+		for i, arg1 := range a.Inner {
+			if i == overlayField {
+				ctx.Offset = ctx0.Offset
+			}
+			foreachArgImpl(arg1, nil, ctx, f)
+			size := arg1.Size()
+			ctx.Offset += size
+			if totalSize < ctx.Offset {
+				totalSize = ctx.Offset - ctx0.Offset
+			}
+		}
+		if debug {
+			claimedSize := a.Size()
+			varlen := a.Type().Varlen()
+			if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
+				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %#v type %#v",
+					totalSize, claimedSize, a, a.Type().Name()))
+			}
+		}
+	case *PointerArg:
+		if a.Res != nil {
+			ctx.Base = a
+			ctx.Offset = 0
+			foreachArgImpl(a.Res, nil, ctx, f)
+		}
+	case *UnionArg:
+		foreachArgImpl(a.Option, nil, ctx, f)
+	}
+}
+
+func pushStack(ps parentStack, a Arg) parentStack {
+	return append(ps, a)
 }
 
 func (p *Prog) ContainsAny() bool {

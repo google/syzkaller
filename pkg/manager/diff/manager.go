@@ -50,13 +50,6 @@ type Config struct {
 	runRepro func(context.Context, []byte, repro.Environment) (*repro.Result, *repro.Stats, error)
 }
 
-func (cfg *Config) TriageDeadline() <-chan time.Time {
-	if cfg.MaxTriageTime == 0 {
-		return nil
-	}
-	return time.After(cfg.MaxTriageTime)
-}
-
 type Bug struct {
 	// The report from the patched kernel.
 	Report *report.Report
@@ -245,6 +238,13 @@ loop:
 	return g.Wait()
 }
 
+func (cfg *Config) TriageDeadline() <-chan time.Time {
+	if cfg.MaxTriageTime == 0 {
+		return nil
+	}
+	return time.After(cfg.MaxTriageTime)
+}
+
 func (dc *diffContext) handleReproResult(ctx context.Context, ret reproRunnerResult, reproLoop *manager.ReproLoop) {
 	// We have run the reproducer on the base instance.
 
@@ -381,17 +381,6 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
 const maxReproAttempts = 6
 
-func needReproForTitle(title string) bool {
-	if strings.Contains(title, "no output") ||
-		strings.Contains(title, "lost connection") ||
-		strings.Contains(title, "detected stall") ||
-		strings.Contains(title, "SYZ") {
-		// Don't waste time reproducing these.
-		return false
-	}
-	return true
-}
-
 func (dc *diffContext) NeedRepro(crash *manager.Crash) bool {
 	if crash.FullRepro {
 		return true
@@ -407,6 +396,17 @@ func (dc *diffContext) NeedRepro(crash *manager.Crash) bool {
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
 	return dc.reproAttempts[crash.Title] <= maxReproAttempts
+}
+
+func needReproForTitle(title string) bool {
+	if strings.Contains(title, "no output") ||
+		strings.Contains(title, "lost connection") ||
+		strings.Contains(title, "detected stall") ||
+		strings.Contains(title, "SYZ") {
+		// Don't waste time reproducing these.
+		return false
+	}
+	return true
 }
 
 func (dc *diffContext) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {

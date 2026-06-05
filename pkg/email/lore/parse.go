@@ -47,19 +47,6 @@ func Threads(emails []*Email) []*Thread {
 	return listThreads(emails, 0)
 }
 
-func listThreads(emails []*Email, maxDepth int) []*Thread {
-	ctx := &parseCtx{
-		maxDepth: maxDepth,
-		messages: map[string]*Email{},
-		next:     map[*Email][]*Email{},
-	}
-	for _, email := range emails {
-		ctx.record(email)
-	}
-	ctx.process()
-	return ctx.threads
-}
-
 // PatchSeries is similar to Threads, but returns only the patch series submitted to the mailing lists.
 func PatchSeries(emails []*Email) []*Series {
 	var ret []*Series
@@ -129,6 +116,19 @@ func PatchSeries(emails []*Email) []*Series {
 		})
 	}
 	return ret
+}
+
+func listThreads(emails []*Email, maxDepth int) []*Thread {
+	ctx := &parseCtx{
+		maxDepth: maxDepth,
+		messages: map[string]*Email{},
+		next:     map[*Email][]*Email{},
+	}
+	for _, email := range emails {
+		ctx.record(email)
+	}
+	ctx.process()
+	return ctx.threads
 }
 
 // DiscussionType extracts the specific discussion type from an email.

@@ -287,6 +287,10 @@ func TestSyzTestFlow(t *testing.T) {
 	})
 }
 
+type fakeSender struct {
+	ch chan *sender.Email
+}
+
 func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment,
 	series *api.Series) (*Handler, *api.ReporterClient, *fakeSender, controller.EntityIDs) {
 	client := controller.TestServer(t, env)
@@ -307,10 +311,6 @@ func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment
 	}
 
 	return handler, reporterClient, emailServer, ids.EntityIDs
-}
-
-type fakeSender struct {
-	ch chan *sender.Email
 }
 
 func makeFakeSender() *fakeSender {

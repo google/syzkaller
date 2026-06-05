@@ -14,6 +14,11 @@ import (
 
 type Sig [sha1.Size]byte
 
+func String(pieces ...any) string {
+	sig := Hash(pieces...)
+	return sig.String()
+}
+
 func Hash(pieces ...any) Sig {
 	h := sha1.New()
 	for _, data := range pieces {
@@ -34,11 +39,6 @@ func Hash(pieces ...any) Sig {
 	var sig Sig
 	copy(sig[:], h.Sum(nil))
 	return sig
-}
-
-func String(pieces ...any) string {
-	sig := Hash(pieces...)
-	return sig.String()
 }
 
 func (sig *Sig) String() string {

@@ -88,13 +88,6 @@ func init() {
 	})
 }
 
-func withTestRunOptionsDefaults() func(*RunOptions) {
-	return func(opts *RunOptions) {
-		opts.beforeContext = maxErrorLength + 100
-		opts.tickerPeriod = 1 * time.Second
-	}
-}
-
 type Test struct {
 	Name           string
 	Exit           ExitCondition
@@ -351,39 +344,6 @@ func TestMonitorExecution(t *testing.T) {
 	}
 }
 
-func makeLinuxAMD64Futex(t *testing.T, poolName string) (*Instance, *report.Reporter) {
-	cfg := &mgrconfig.Config{
-		Derived: mgrconfig.Derived{
-			TargetOS:     targets.Linux,
-			TargetArch:   targets.AMD64,
-			TargetVMArch: targets.AMD64,
-			Timeouts: targets.Timeouts{
-				Scale:    1,
-				Slowdown: 1,
-				NoOutput: 5 * time.Second,
-			},
-			SysTarget: targets.Get(targets.Linux, targets.AMD64),
-		},
-		Workdir: t.TempDir(),
-		Type:    poolName,
-	}
-	pool, err := Create(cfg, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { pool.Close() })
-	reporter, err := report.NewReporter(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	inst, err := pool.Create(t.Context(), 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { inst.Close() })
-	return inst, reporter
-}
-
 func testMonitorExecution(t *testing.T, test *Test) {
 	inst, reporter := makeLinuxAMD64Futex(t, "test")
 	testInst := inst.impl.(*testInstance)
@@ -446,6 +406,13 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	}
 }
 
+func withTestRunOptionsDefaults() func(*RunOptions) {
+	return func(opts *RunOptions) {
+		opts.beforeContext = maxErrorLength + 100
+		opts.tickerPeriod = 1 * time.Second
+	}
+}
+
 func TestVMType(t *testing.T) {
 	testCases := []struct {
 		in   string
@@ -478,6 +445,39 @@ func TestExtractMultipleErrors(t *testing.T) {
 	assert.Equal(t, reps[0].Title, reps[1].Title)
 	assert.False(t, reps[0].Corrupted)
 	assert.False(t, reps[1].Corrupted)
+}
+
+func makeLinuxAMD64Futex(t *testing.T, poolName string) (*Instance, *report.Reporter) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetArch:   targets.AMD64,
+			TargetVMArch: targets.AMD64,
+			Timeouts: targets.Timeouts{
+				Scale:    1,
+				Slowdown: 1,
+				NoOutput: 5 * time.Second,
+			},
+			SysTarget: targets.Get(targets.Linux, targets.AMD64),
+		},
+		Workdir: t.TempDir(),
+		Type:    poolName,
+	}
+	pool, err := Create(cfg, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { pool.Close() })
+	reporter, err := report.NewReporter(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inst, err := pool.Create(t.Context(), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { inst.Close() })
+	return inst, reporter
 }
 
 const someLine = "[   96.999999] some message \n"

@@ -17,18 +17,6 @@ type mockRunner struct {
 	idx       int
 }
 
-func (m *mockRunner) Test(numVMs int) ([]EnvTestResult, error) {
-	var batch []EnvTestResult
-	for range numVMs {
-		if m.idx >= len(m.responses) {
-			return nil, fmt.Errorf("ran out of responses")
-		}
-		batch = append(batch, m.responses[m.idx])
-		m.idx++
-	}
-	return batch, nil
-}
-
 func TestCollectRuns(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -151,4 +139,16 @@ func TestCollectRuns(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (m *mockRunner) Test(numVMs int) ([]EnvTestResult, error) {
+	var batch []EnvTestResult
+	for range numVMs {
+		if m.idx >= len(m.responses) {
+			return nil, fmt.Errorf("ran out of responses")
+		}
+		batch = append(batch, m.responses[m.idx])
+		m.idx++
+	}
+	return batch, nil
 }

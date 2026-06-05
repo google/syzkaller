@@ -90,7 +90,9 @@ func Config() (*AppConfig, error) {
 const configPath = `/config/config.yaml`
 
 var configLoadedOnce sync.Once
+
 var configErr error
+
 var config *AppConfig
 
 func loadConfig(path string) (*AppConfig, error) {
@@ -181,13 +183,6 @@ func (c DashapiConfig) Validate() error {
 	return nil
 }
 
-func ensureNonEmpty(name, val string) error {
-	if val == "" {
-		return fmt.Errorf("%v must not be empty", name)
-	}
-	return nil
-}
-
 func ensureURL(name, val string) error {
 	if err := ensureNonEmpty(name, val); err != nil {
 		return err
@@ -205,6 +200,13 @@ func ensureEmail(name, val string) error {
 	_, err := mail.ParseAddress(val)
 	if err != nil {
 		return fmt.Errorf("%v contains invalid email address", name)
+	}
+	return nil
+}
+
+func ensureNonEmpty(name, val string) error {
+	if val == "" {
+		return fmt.Errorf("%v must not be empty", name)
 	}
 	return nil
 }

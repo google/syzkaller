@@ -84,19 +84,19 @@ func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
 	return rep.BisectCause
 }
 
+func optlink(url, text string) template.HTML {
+	if url == "" {
+		return template.HTML("")
+	}
+	return link(url, text)
+}
+
 func link(url, text string) template.HTML {
 	text = template.HTMLEscapeString(text)
 	if url != "" {
 		text = fmt.Sprintf(`<a href="%v">%v</a>`, url, text)
 	}
 	return template.HTML(text)
-}
-
-func optlink(url, text string) template.HTML {
-	if url == "" {
-		return template.HTML("")
-	}
-	return link(url, text)
 }
 
 func FormatTime(t time.Time) string {
@@ -132,6 +132,17 @@ func formatClock(t time.Time) string {
 	return t.Format("15:04")
 }
 
+func formatLateness(now, t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	d := now.Sub(t)
+	if d < 5*time.Minute {
+		return "now"
+	}
+	return formatDuration(d)
+}
+
 func formatDuration(d time.Duration) string {
 	if d == 0 {
 		return ""
@@ -147,17 +158,6 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%vh%02vm", hours, mins)
 	}
 	return fmt.Sprintf("%vm", mins)
-}
-
-func formatLateness(now, t time.Time) string {
-	if t.IsZero() {
-		return "never"
-	}
-	d := now.Sub(t)
-	if d < 5*time.Minute {
-		return "now"
-	}
-	return formatDuration(d)
 }
 
 func formatReproLevel(l dashapi.ReproLevel) string {

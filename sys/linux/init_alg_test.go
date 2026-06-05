@@ -21,13 +21,6 @@ import (
 // Finally, they still won't pass because some algorithms are arch-dependent.
 var flagRunAlgTests = flag.Bool("algtests", false, "run AF_ALG tests")
 
-func algTest(t *testing.T) {
-	if !*flagRunAlgTests {
-		t.Skip()
-	}
-	t.Parallel()
-}
-
 // TestAlgDescriptions checks that there are no duplicate names and that
 // templates mentioned in complete algorithms are also present as standalone templates.
 func TestAlgDescriptions(t *testing.T) {
@@ -176,6 +169,13 @@ func TestTemplateAlg2(t *testing.T) {
 			}
 		}
 	}
+}
+
+func algTest(t *testing.T) {
+	if !*flagRunAlgTests {
+		t.Skip()
+	}
+	t.Parallel()
 }
 
 type sockaddrAlg struct {

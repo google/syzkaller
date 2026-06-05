@@ -13,17 +13,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Sleep for d.
-// If shutdown is in progress, return false prematurely.
-func SleepInterruptible(d time.Duration) bool {
-	select {
-	case <-time.After(d):
-		return true
-	case <-Shutdown:
-		return false
-	}
-}
-
 type SSHOptions struct {
 	Addr string
 	Port int
@@ -66,6 +55,17 @@ func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop <-chan e
 	}
 }
 
+// Sleep for d.
+// If shutdown is in progress, return false prematurely.
+func SleepInterruptible(d time.Duration) bool {
+	select {
+	case <-time.After(d):
+		return true
+	case <-Shutdown:
+		return false
+	}
+}
+
 var ErrCantSSH = fmt.Errorf("can't ssh into the instance")
 
 func SSHArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
@@ -74,36 +74,6 @@ func SSHArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
 
 func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHCfg bool) []string {
 	return sshArgs(debug, sshKey, "-p", port, forwardPort, systemSSHCfg)
-}
-
-func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
-	return append(sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg), "-O") // Default to legacy scp protocol.
-}
-
-func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
-	args := []string{portArg, fmt.Sprint(port)}
-	if !systemSSHCfg {
-		args = append(args,
-			"-F", "/dev/null",
-			"-o", "UserKnownHostsFile=/dev/null",
-			"-o", "IdentitiesOnly=yes")
-	}
-	args = append(args,
-		"-o", "BatchMode=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "ConnectTimeout=10",
-	)
-	if sshKey != "" {
-		args = append(args, "-i", sshKey)
-	}
-	if forwardPort != 0 {
-		// Forward target port as part of the ssh connection (reverse proxy).
-		args = append(args, "-R", fmt.Sprintf("%v:127.0.0.1:%v", forwardPort, forwardPort))
-	}
-	if debug {
-		args = append(args, "-v")
-	}
-	return args
 }
 
 type SCPOptions struct {
@@ -139,4 +109,34 @@ func SCP(hostSrc, vmDst string, opts SCPOptions) error {
 		log.Logf(0, "result: %s", output)
 	}
 	return nil
+}
+
+func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
+	return append(sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg), "-O") // Default to legacy scp protocol.
+}
+
+func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
+	args := []string{portArg, fmt.Sprint(port)}
+	if !systemSSHCfg {
+		args = append(args,
+			"-F", "/dev/null",
+			"-o", "UserKnownHostsFile=/dev/null",
+			"-o", "IdentitiesOnly=yes")
+	}
+	args = append(args,
+		"-o", "BatchMode=yes",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "ConnectTimeout=10",
+	)
+	if sshKey != "" {
+		args = append(args, "-i", sshKey)
+	}
+	if forwardPort != 0 {
+		// Forward target port as part of the ssh connection (reverse proxy).
+		args = append(args, "-R", fmt.Sprintf("%v:127.0.0.1:%v", forwardPort, forwardPort))
+	}
+	if debug {
+		args = append(args, "-v")
+	}
+	return args
 }

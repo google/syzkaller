@@ -32,10 +32,6 @@ type DiffBug struct {
 	Patched DiffBugInfo
 }
 
-func (bug DiffBug) PatchedOnly() bool {
-	return bug.Base.NotCrashed && bug.Patched.Crashes > 0
-}
-
 func (bug DiffBug) AffectsBoth() bool {
 	return bug.Base.Crashes > 0 && bug.Patched.Crashes > 0
 }
@@ -169,6 +165,10 @@ func (s *DiffFuzzerStore) PlainTextDump() []byte {
 	}
 	w.Flush()
 	return buf.Bytes()
+}
+
+func (bug DiffBug) PatchedOnly() bool {
+	return bug.Base.NotCrashed && bug.Patched.Crashes > 0
 }
 
 func (s *DiffFuzzerStore) saveFile(title, name string, data []byte) string {

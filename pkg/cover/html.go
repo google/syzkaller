@@ -516,6 +516,18 @@ func (rg *ReportGenerator) DoFileCover(w io.Writer, params HandlerParams) error 
 	return writer.WriteAll(d)
 }
 
+func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(params.Progs, params.Filter)
+	data, err := rg.convertToStats(progs)
+	if err != nil {
+		return err
+	}
+
+	d := groupCoverByFilePrefixes(data, rg.subsystem)
+
+	return coverTableTemplate.Execute(w, d)
+}
+
 func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsystem) map[string]map[string]string {
 	d := make(map[string]map[string]string)
 
@@ -604,14 +616,14 @@ func isExcluded(path string, excludes []string) bool {
 	return false
 }
 
-func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
+func (rg *ReportGenerator) DoModuleCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
 	}
 
-	d := groupCoverByFilePrefixes(data, rg.subsystem)
+	d := groupCoverByModule(data)
 
 	return coverTableTemplate.Execute(w, d)
 }
@@ -678,18 +690,6 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 	}
 
 	return d
-}
-
-func (rg *ReportGenerator) DoModuleCover(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(params.Progs, params.Filter)
-	data, err := rg.convertToStats(progs)
-	if err != nil {
-		return err
-	}
-
-	d := groupCoverByModule(data)
-
-	return coverTableTemplate.Execute(w, d)
 }
 
 var csvHeader = []string{
@@ -867,66 +867,6 @@ func mergeLine(chunks []lineCoverChunk, start, end int, covered bool) []lineCove
 	return res
 }
 
-func addFunctionCoverage(file *file, data *templateData) {
-	var buf bytes.Buffer
-	var coveredTotal int
-	var TotalInCoveredFunc int
-	for _, function := range file.functions {
-		percentage := ""
-		coveredTotal += function.covered
-		if function.covered > 0 {
-			percentage = fmt.Sprintf("%v%%", Percent(function.covered, function.pcs))
-			TotalInCoveredFunc += function.pcs
-		} else {
-			percentage = "---"
-		}
-		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", function.name))
-		buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentage))
-		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(function.pcs)))
-		buf.WriteString("</span></span></span><br>\n")
-	}
-	buf.WriteString("-----------<br>\n")
-	buf.WriteString("<span class='hover'>SUMMARY")
-	percentInCoveredFunc := ""
-	if TotalInCoveredFunc > 0 {
-		percentInCoveredFunc = fmt.Sprintf("%v%%", Percent(coveredTotal, TotalInCoveredFunc))
-	} else {
-		percentInCoveredFunc = "---"
-	}
-	buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentInCoveredFunc))
-	buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(TotalInCoveredFunc)))
-	buf.WriteString("</span></span></span><br>\n")
-	data.Functions = append(data.Functions, template.HTML(buf.String()))
-}
-
-func processDir(dir *templateDir) {
-	for len(dir.Dirs) == 1 && len(dir.Files) == 0 {
-		for _, child := range dir.Dirs {
-			dir.Name += "/" + child.Name
-			dir.Files = child.Files
-			dir.Dirs = child.Dirs
-		}
-	}
-	slices.SortFunc(dir.Files, func(a, b *templateFile) int {
-		return cmp.Compare(a.Name, b.Name)
-	})
-	for _, f := range dir.Files {
-		dir.Total += f.Total
-		dir.Covered += f.Covered
-		f.Percent = Percent(f.Covered, f.Total)
-	}
-	for _, child := range dir.Dirs {
-		processDir(child)
-		dir.Total += child.Total
-		dir.Covered += child.Covered
-	}
-	dir.Percent = Percent(dir.Covered, dir.Total)
-	if dir.Covered == 0 {
-		dir.Dirs = nil
-		dir.Files = nil
-	}
-}
-
 func Percent[T int | int64](covered, total T) T {
 	if total == 0 {
 		return 0
@@ -966,6 +906,38 @@ type templateData struct {
 	RawCover  bool
 }
 
+func addFunctionCoverage(file *file, data *templateData) {
+	var buf bytes.Buffer
+	var coveredTotal int
+	var TotalInCoveredFunc int
+	for _, function := range file.functions {
+		percentage := ""
+		coveredTotal += function.covered
+		if function.covered > 0 {
+			percentage = fmt.Sprintf("%v%%", Percent(function.covered, function.pcs))
+			TotalInCoveredFunc += function.pcs
+		} else {
+			percentage = "---"
+		}
+		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", function.name))
+		buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentage))
+		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(function.pcs)))
+		buf.WriteString("</span></span></span><br>\n")
+	}
+	buf.WriteString("-----------<br>\n")
+	buf.WriteString("<span class='hover'>SUMMARY")
+	percentInCoveredFunc := ""
+	if TotalInCoveredFunc > 0 {
+		percentInCoveredFunc = fmt.Sprintf("%v%%", Percent(coveredTotal, TotalInCoveredFunc))
+	} else {
+		percentInCoveredFunc = "---"
+	}
+	buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentInCoveredFunc))
+	buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(TotalInCoveredFunc)))
+	buf.WriteString("</span></span></span><br>\n")
+	data.Functions = append(data.Functions, template.HTML(buf.String()))
+}
+
 type templateProg struct {
 	Sig     string
 	Content template.HTML
@@ -985,6 +957,34 @@ type templateDir struct {
 	Files []*templateFile
 }
 
+func processDir(dir *templateDir) {
+	for len(dir.Dirs) == 1 && len(dir.Files) == 0 {
+		for _, child := range dir.Dirs {
+			dir.Name += "/" + child.Name
+			dir.Files = child.Files
+			dir.Dirs = child.Dirs
+		}
+	}
+	slices.SortFunc(dir.Files, func(a, b *templateFile) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
+	for _, f := range dir.Files {
+		dir.Total += f.Total
+		dir.Covered += f.Covered
+		f.Percent = Percent(f.Covered, f.Total)
+	}
+	for _, child := range dir.Dirs {
+		processDir(child)
+		dir.Total += child.Total
+		dir.Covered += child.Covered
+	}
+	dir.Percent = Percent(dir.Covered, dir.Total)
+	if dir.Covered == 0 {
+		dir.Dirs = nil
+		dir.Files = nil
+	}
+}
+
 type templateFile struct {
 	templateBase
 	Index        int
@@ -998,4 +998,5 @@ var coverTemplate = template.Must(template.New("").Parse(templatesCover))
 
 //go:embed templates/cover-table.html
 var templatesCoverTable string
+
 var coverTableTemplate = template.Must(template.New("coverTable").Parse(templatesCoverTable))

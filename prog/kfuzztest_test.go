@@ -30,28 +30,6 @@ func TestRoundUpPowerOfTwo(t *testing.T) {
 	}
 }
 
-func createBuffer(data []any) []byte {
-	var buf bytes.Buffer
-
-	for _, d := range data {
-		switch val := d.(type) {
-		case uint8, uint16, uint32, uint64:
-			binary.Write(&buf, binary.LittleEndian, val)
-		case []byte:
-			buf.Write(val)
-		}
-	}
-
-	return buf.Bytes()
-}
-
-func createPrefix() []byte {
-	var prefix bytes.Buffer
-	binary.Write(&prefix, binary.LittleEndian, kFuzzTestMagic)
-	binary.Write(&prefix, binary.LittleEndian, uint32(0))
-	return prefix.Bytes()
-}
-
 // nolint:dupl,lll
 func TestMarshallKFuzzTestArg(t *testing.T) {
 	testCases := []testCase{
@@ -259,4 +237,26 @@ func testOne(t *testing.T, tc testCase) {
 	assert.Equal(t, wantRegionArray, gotRegionArray)
 	assert.Equal(t, wantRelocTable, gotRelocTable)
 	assert.Equal(t, wantPayload, gotPayload)
+}
+
+func createBuffer(data []any) []byte {
+	var buf bytes.Buffer
+
+	for _, d := range data {
+		switch val := d.(type) {
+		case uint8, uint16, uint32, uint64:
+			binary.Write(&buf, binary.LittleEndian, val)
+		case []byte:
+			buf.Write(val)
+		}
+	}
+
+	return buf.Bytes()
+}
+
+func createPrefix() []byte {
+	var prefix bytes.Buffer
+	binary.Write(&prefix, binary.LittleEndian, kFuzzTestMagic)
+	binary.Write(&prefix, binary.LittleEndian, uint32(0))
+	return prefix.Bytes()
 }

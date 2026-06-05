@@ -121,29 +121,9 @@ type uiBugFilter struct {
 	SetURL  func(string, string) string
 }
 
-func makeUIBugFilter(ctx context.Context, filter *userBugFilter) *uiBugFilter {
-	url := getCurrentURL(ctx)
-	return &uiBugFilter{
-		Filter: filter,
-		DropURL: func(name, value string) string {
-			return urlutil.DropParam(url, name, value)
-		},
-		SetURL: func(name, value string) string {
-			return urlutil.SetParam(url, name, value)
-		},
-	}
-}
-
 type uiManagerList struct {
 	RepoLink string
 	List     []*uiManager
-}
-
-func makeManagerList(managers []*uiManager, ns string) *uiManagerList {
-	return &uiManagerList{
-		RepoLink: fmt.Sprintf("/%s/repos", ns),
-		List:     managers,
-	}
 }
 
 type uiTerminalPage struct {
@@ -356,17 +336,6 @@ type uiCollapsible struct {
 	Show  bool   // By default it's collapsed.
 	Type  string // Template system understands it.
 	Value any
-}
-
-func makeCollapsibleBugJobs(title string, jobs []*uiJob) *uiCollapsible {
-	return &uiCollapsible{
-		Title: fmt.Sprintf("%s (%d)", title, len(jobs)),
-		Type:  sectionJobList,
-		Value: &uiJobList{
-			PerBug: true,
-			Jobs:   jobs,
-		},
-	}
 }
 
 type uiBugGroup struct {
@@ -590,11 +559,6 @@ func (filter *userBugFilter) MatchBug(ctx context.Context, bug *Bug) bool {
 
 func (filter *userBugFilter) Hash() string {
 	return hash.String([]byte(fmt.Sprintf("%#v", filter)))
-}
-
-func splitLabel(rawLabel string) (BugLabelType, string) {
-	label, value, _ := strings.Cut(rawLabel, ":")
-	return BugLabelType(label), value
 }
 
 func (filter *userBugFilter) Any() bool {
@@ -1058,6 +1022,19 @@ func handleTerminalBugList(ctx context.Context, w http.ResponseWriter, r *http.R
 	return serveTemplate(w, "terminal.html", data)
 }
 
+func makeUIBugFilter(ctx context.Context, filter *userBugFilter) *uiBugFilter {
+	url := getCurrentURL(ctx)
+	return &uiBugFilter{
+		Filter: filter,
+		DropURL: func(name, value string) string {
+			return urlutil.DropParam(url, name, value)
+		},
+		SetURL: func(name, value string) string {
+			return urlutil.SetParam(url, name, value)
+		},
+	}
+}
+
 func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	accessLevel := accessLevel(ctx, r)
 	if accessLevel != AccessAdmin {
@@ -1176,6 +1153,13 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		data.CauseBisectionsLink = urlutil.SetParam("/admin", "job_type", fmt.Sprintf("%d", JobBisectCause))
 	}
 	return serveTemplate(w, "admin.html", data)
+}
+
+func makeManagerList(managers []*uiManager, ns string) *uiManagerList {
+	return &uiManagerList{
+		RepoLink: fmt.Sprintf("/%s/repos", ns),
+		List:     managers,
+	}
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
@@ -1412,6 +1396,17 @@ func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel
 	return sections, nil
 }
 
+func makeCollapsibleBugJobs(title string, jobs []*uiJob) *uiCollapsible {
+	return &uiCollapsible{
+		Title: fmt.Sprintf("%s (%d)", title, len(jobs)),
+		Type:  sectionJobList,
+		Value: &uiJobList{
+			PerBug: true,
+			Jobs:   jobs,
+		},
+	}
+}
+
 func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*uiBugDetails, error) {
 	managers, err := CachedManagerList(ctx, bug.Namespace)
 	if err != nil {
@@ -1553,52 +1548,6 @@ func debugBugSubsystems(ctx context.Context, w http.ResponseWriter, bug *Bug) er
 	return nil
 }
 
-func makeBugLabelUI(ctx context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
-	url := getCurrentURL(ctx)
-	filterValue := entry.String()
-
-	// If we're on a main/terminal/subsystem page, let's stay there.
-	link := url
-	if !strings.HasPrefix(url, "/"+bug.Namespace) {
-		link = fmt.Sprintf("/%s", bug.Namespace)
-	}
-	link = urlutil.TransformParam(link, "label", func(oldLabels []string) []string {
-		return mergeLabelSet(oldLabels, entry.String())
-	})
-	ret := &uiBugLabel{
-		Name: filterValue,
-		Link: link,
-	}
-	// Patch depending on the specific label type.
-	switch entry.Label {
-	case SubsystemLabel:
-		// Use just the subsystem name.
-		ret.Name = entry.Value
-		// Prefer link to the per-subsystem page.
-		if !strings.HasPrefix(url, "/"+bug.Namespace) || strings.Contains(url, "/s/") {
-			ret.Link = fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Value)
-		}
-	}
-	return ret
-}
-
-func mergeLabelSet(oldLabels []string, newLabel string) []string {
-	// Leave only one label for each type.
-	labelsMap := map[BugLabelType]string{}
-	for _, rawLabel := range append(oldLabels, newLabel) {
-		label, value := splitLabel(rawLabel)
-		labelsMap[label] = value
-	}
-	var ret []string
-	for label, value := range labelsMap {
-		ret = append(ret, BugLabel{
-			Label: label,
-			Value: value,
-		}.String())
-	}
-	return ret
-}
-
 func getBugDiscussionsUI(ctx context.Context, bug *Bug) ([]*uiBugDiscussion, error) {
 	// TODO: also include dup bug discussions.
 	// TODO: limit the number of DiscussionReminder type entries, e.g. all with
@@ -1736,6 +1685,16 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 	}
 }
 
+func handleText(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleTextImpl(ctx, w, r, r.FormValue("tag"))
+}
+
+func handleTextX(tag string) contextHandler {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		return handleTextImpl(ctx, w, r, tag)
+	}
+}
+
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
 func handleTextImpl(ctx context.Context, w http.ResponseWriter, r *http.Request, tag string) error {
 	var id int64
@@ -1793,16 +1752,6 @@ func augmentRepro(ctx context.Context, w http.ResponseWriter, tag string, bug *B
 		if crash != nil {
 			fmt.Fprintf(w, "#%s\n", crash.ReproOpts)
 		}
-	}
-}
-
-func handleText(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	return handleTextImpl(ctx, w, r, r.FormValue("tag"))
-}
-
-func handleTextX(tag string) contextHandler {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		return handleTextImpl(ctx, w, r, tag)
 	}
 }
 
@@ -2113,31 +2062,6 @@ func loadSimilarBugsUI(ctx context.Context, bug *Bug, state *ReportingState,
 	return group, nil
 }
 
-func closedBugStatus(bug *Bug, bugReporting *BugReporting) string {
-	status := ""
-	switch bug.Status {
-	case BugStatusInvalid:
-		switch bug.StatusReason {
-		case dashapi.InvalidatedByNoActivity:
-			fallthrough
-		case dashapi.InvalidatedByRevokedRepro:
-			status = "obsoleted due to no activity"
-		default:
-			status = "closed as invalid"
-		}
-		if bugReporting.Auto {
-			status = "auto-" + status
-		}
-	case BugStatusFixed:
-		status = "fixed"
-	case BugStatusDup:
-		status = "closed as dup"
-	default:
-		status = fmt.Sprintf("unknown (%v)", bug.Status)
-	}
-	return fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
-}
-
 func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
 	reportingIdx, status, link := 0, "", ""
 	var reported time.Time
@@ -2232,6 +2156,82 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 	return uiBug
 }
 
+func makeBugLabelUI(ctx context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
+	url := getCurrentURL(ctx)
+	filterValue := entry.String()
+
+	// If we're on a main/terminal/subsystem page, let's stay there.
+	link := url
+	if !strings.HasPrefix(url, "/"+bug.Namespace) {
+		link = fmt.Sprintf("/%s", bug.Namespace)
+	}
+	link = urlutil.TransformParam(link, "label", func(oldLabels []string) []string {
+		return mergeLabelSet(oldLabels, entry.String())
+	})
+	ret := &uiBugLabel{
+		Name: filterValue,
+		Link: link,
+	}
+	// Patch depending on the specific label type.
+	switch entry.Label {
+	case SubsystemLabel:
+		// Use just the subsystem name.
+		ret.Name = entry.Value
+		// Prefer link to the per-subsystem page.
+		if !strings.HasPrefix(url, "/"+bug.Namespace) || strings.Contains(url, "/s/") {
+			ret.Link = fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Value)
+		}
+	}
+	return ret
+}
+
+func mergeLabelSet(oldLabels []string, newLabel string) []string {
+	// Leave only one label for each type.
+	labelsMap := map[BugLabelType]string{}
+	for _, rawLabel := range append(oldLabels, newLabel) {
+		label, value := splitLabel(rawLabel)
+		labelsMap[label] = value
+	}
+	var ret []string
+	for label, value := range labelsMap {
+		ret = append(ret, BugLabel{
+			Label: label,
+			Value: value,
+		}.String())
+	}
+	return ret
+}
+
+func splitLabel(rawLabel string) (BugLabelType, string) {
+	label, value, _ := strings.Cut(rawLabel, ":")
+	return BugLabelType(label), value
+}
+
+func closedBugStatus(bug *Bug, bugReporting *BugReporting) string {
+	status := ""
+	switch bug.Status {
+	case BugStatusInvalid:
+		switch bug.StatusReason {
+		case dashapi.InvalidatedByNoActivity:
+			fallthrough
+		case dashapi.InvalidatedByRevokedRepro:
+			status = "obsoleted due to no activity"
+		default:
+			status = "closed as invalid"
+		}
+		if bugReporting.Auto {
+			status = "auto-" + status
+		}
+	case BugStatusFixed:
+		status = "fixed"
+	case BugStatusDup:
+		status = "closed as dup"
+	default:
+		status = fmt.Sprintf("unknown (%v)", bug.Status)
+	}
+	return fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
+}
+
 func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
 	bug.NumCrashes += dup.NumCrashes
 	bug.BisectCause = mergeBisectStatus(bug.BisectCause, dup.BisectCause)
@@ -2297,60 +2297,6 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 }
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
-
-func makeUIAssets(ctx context.Context, build *Build, crash *Crash, forReport bool) []*uiAsset {
-	var uiAssets []*uiAsset
-	for _, asset := range createAssetList(ctx, build, crash, forReport) {
-		uiAssets = append(uiAssets, &uiAsset{
-			Title:       asset.Title,
-			DownloadURL: asset.DownloadURL,
-			FsckLogURL:  asset.FsckLogURL,
-			FsIsClean:   asset.FsIsClean,
-		})
-	}
-	return uiAssets
-}
-
-func makeUICrash(ctx context.Context, crash *Crash, build *Build) *uiCrash {
-	ui := &uiCrash{
-		Title:           crash.Title,
-		Manager:         crash.Manager,
-		Time:            crash.Time,
-		Maintainers:     strings.Join(crash.Maintainers, ", "),
-		LogLink:         textLink(textCrashLog, crash.Log),
-		LogHasStrace:    dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
-		ReportLink:      textLink(textCrashReport, crash.Report),
-		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
-		ReproCLink:      textLink(textReproC, crash.ReproC),
-		ReproOpts:       string(crash.ReproOpts),
-		ReproLogLink:    textLink(textReproLog, crash.ReproLog),
-		ReproIsRevoked:  crash.ReproIsRevoked,
-		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
-		Assets:          makeUIAssets(ctx, build, crash, true),
-	}
-	if build != nil {
-		ui.uiBuild = makeUIBuild(ctx, build, true)
-	}
-	return ui
-}
-
-func makeUIBuild(ctx context.Context, build *Build, forReport bool) *uiBuild {
-	return &uiBuild{
-		Time:                build.Time,
-		SyzkallerCommit:     build.SyzkallerCommit,
-		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
-		SyzkallerCommitDate: build.SyzkallerCommitDate,
-		KernelRepo:          build.KernelRepo,
-		KernelBranch:        build.KernelBranch,
-		KernelAlias:         kernelRepoInfo(ctx, build).Alias,
-		KernelCommit:        build.KernelCommit,
-		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
-		KernelCommitTitle:   build.KernelCommitTitle,
-		KernelCommitDate:    build.KernelCommitDate,
-		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
-		Assets:              makeUIAssets(ctx, build, nil, forReport),
-	}
-}
 
 func loadRepos(ctx context.Context, ns string) ([]*uiRepo, error) {
 	managers, _, err := loadNsManagerList(ctx, ns, nil)
@@ -2611,49 +2557,6 @@ func loadTestPatchJobs(ctx context.Context, bug *Bug) ([]*uiJob, error) {
 	return results, nil
 }
 
-func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
-	ui := &uiJob{
-		JobInfo:           makeJobInfo(ctx, job, jobKey, bug, build, crash),
-		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey, false),
-		RestartJobLink:    invalidateJobLink(ctx, job, jobKey, true),
-		FixCandidate:      job.IsCrossTree(),
-	}
-	if crash != nil {
-		ui.Crash = makeUICrash(ctx, crash, build)
-	}
-	return ui
-}
-
-func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bool) string {
-	if !user.IsAdmin(ctx) {
-		return ""
-	}
-	if job.InvalidatedBy != "" || job.Finished.IsZero() {
-		return ""
-	}
-	if job.Type != JobBisectCause && job.Type != JobBisectFix {
-		return ""
-	}
-	params := url.Values{}
-	params.Add("action", "invalidate_bisection")
-	params.Add("key", jobKey.Encode())
-	if restart {
-		params.Add("restart", "1")
-	}
-	return "/admin?" + params.Encode()
-}
-
-func formatLogLine(line string) string {
-	const maxLineLen = 1000
-	line = strings.ReplaceAll(line, "\n", " ")
-	line = strings.ReplaceAll(line, "\r", "")
-	if len(line) > maxLineLen {
-		line = line[:maxLineLen]
-		line += "..."
-	}
-	return line
-}
-
 func fetchErrorLogs(ctx context.Context) ([]byte, error) {
 	if !appengine.IsAppEngine() {
 		return nil, nil
@@ -2733,12 +2636,15 @@ func fetchErrorLogs(ctx context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (j *bugJob) ui(ctx context.Context) (*uiJob, error) {
-	err := j.load(ctx)
-	if err != nil {
-		return nil, err
+func formatLogLine(line string) string {
+	const maxLineLen = 1000
+	line = strings.ReplaceAll(line, "\n", " ")
+	line = strings.ReplaceAll(line, "\r", "")
+	if len(line) > maxLineLen {
+		line = line[:maxLineLen]
+		line += "..."
 	}
-	return makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build), nil
+	return line
 }
 
 func (b *bugJobs) uiAll(ctx context.Context) ([]*uiJob, error) {
@@ -2767,6 +2673,100 @@ func (b *bugJobs) uiBestFixCandidate(ctx context.Context) (*uiJob, error) {
 		return nil, nil
 	}
 	return j.ui(ctx)
+}
+
+func (j *bugJob) ui(ctx context.Context) (*uiJob, error) {
+	err := j.load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build), nil
+}
+
+func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
+	ui := &uiJob{
+		JobInfo:           makeJobInfo(ctx, job, jobKey, bug, build, crash),
+		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey, false),
+		RestartJobLink:    invalidateJobLink(ctx, job, jobKey, true),
+		FixCandidate:      job.IsCrossTree(),
+	}
+	if crash != nil {
+		ui.Crash = makeUICrash(ctx, crash, build)
+	}
+	return ui
+}
+
+func makeUICrash(ctx context.Context, crash *Crash, build *Build) *uiCrash {
+	ui := &uiCrash{
+		Title:           crash.Title,
+		Manager:         crash.Manager,
+		Time:            crash.Time,
+		Maintainers:     strings.Join(crash.Maintainers, ", "),
+		LogLink:         textLink(textCrashLog, crash.Log),
+		LogHasStrace:    dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
+		ReportLink:      textLink(textCrashReport, crash.Report),
+		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
+		ReproCLink:      textLink(textReproC, crash.ReproC),
+		ReproOpts:       string(crash.ReproOpts),
+		ReproLogLink:    textLink(textReproLog, crash.ReproLog),
+		ReproIsRevoked:  crash.ReproIsRevoked,
+		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
+		Assets:          makeUIAssets(ctx, build, crash, true),
+	}
+	if build != nil {
+		ui.uiBuild = makeUIBuild(ctx, build, true)
+	}
+	return ui
+}
+
+func makeUIBuild(ctx context.Context, build *Build, forReport bool) *uiBuild {
+	return &uiBuild{
+		Time:                build.Time,
+		SyzkallerCommit:     build.SyzkallerCommit,
+		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
+		SyzkallerCommitDate: build.SyzkallerCommitDate,
+		KernelRepo:          build.KernelRepo,
+		KernelBranch:        build.KernelBranch,
+		KernelAlias:         kernelRepoInfo(ctx, build).Alias,
+		KernelCommit:        build.KernelCommit,
+		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
+		KernelCommitTitle:   build.KernelCommitTitle,
+		KernelCommitDate:    build.KernelCommitDate,
+		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
+		Assets:              makeUIAssets(ctx, build, nil, forReport),
+	}
+}
+
+func makeUIAssets(ctx context.Context, build *Build, crash *Crash, forReport bool) []*uiAsset {
+	var uiAssets []*uiAsset
+	for _, asset := range createAssetList(ctx, build, crash, forReport) {
+		uiAssets = append(uiAssets, &uiAsset{
+			Title:       asset.Title,
+			DownloadURL: asset.DownloadURL,
+			FsckLogURL:  asset.FsckLogURL,
+			FsIsClean:   asset.FsIsClean,
+		})
+	}
+	return uiAssets
+}
+
+func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bool) string {
+	if !user.IsAdmin(ctx) {
+		return ""
+	}
+	if job.InvalidatedBy != "" || job.Finished.IsZero() {
+		return ""
+	}
+	if job.Type != JobBisectCause && job.Type != JobBisectFix {
+		return ""
+	}
+	params := url.Values{}
+	params.Add("action", "invalidate_bisection")
+	params.Add("key", jobKey.Encode())
+	if restart {
+		params.Add("restart", "1")
+	}
+	return "/admin?" + params.Encode()
 }
 
 // bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with

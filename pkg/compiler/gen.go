@@ -456,6 +456,21 @@ func rounddown(v, a uint64) uint64 {
 	return v & ^(a - 1)
 }
 
+func setBitfieldTypeSize(t prog.Type, v uint64) {
+	p, _, _ := bitfieldFields(t)
+	*p = v
+}
+
+func setBitfieldOffset(t prog.Type, v uint64) {
+	_, p, _ := bitfieldFields(t)
+	*p = v
+}
+
+func setBitfieldUnitOffset(t prog.Type, v uint64) {
+	_, _, p := bitfieldFields(t)
+	*p = v
+}
+
 func bitfieldFields(t0 prog.Type) (*uint64, *uint64, *uint64) {
 	switch t := t0.(type) {
 	case *prog.IntType:
@@ -471,21 +486,6 @@ func bitfieldFields(t0 prog.Type) (*uint64, *uint64, *uint64) {
 	default:
 		panic(fmt.Sprintf("type %#v can't be a bitfield", t))
 	}
-}
-
-func setBitfieldTypeSize(t prog.Type, v uint64) {
-	p, _, _ := bitfieldFields(t)
-	*p = v
-}
-
-func setBitfieldOffset(t prog.Type, v uint64) {
-	_, p, _ := bitfieldFields(t)
-	*p = v
-}
-
-func setBitfieldUnitOffset(t prog.Type, v uint64) {
-	_, _, p := bitfieldFields(t)
-	*p = v
 }
 
 func genPad(size uint64) prog.Field {

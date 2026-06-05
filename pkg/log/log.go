@@ -79,10 +79,6 @@ func Log(v int, msg string) {
 	Logf(v, "%v", msg)
 }
 
-func Logf(v int, msg string, args ...any) {
-	writeMessage(v, "", msg, args...)
-}
-
 func Error(err error) {
 	Errorf("%v", err)
 }
@@ -99,16 +95,15 @@ func Fatalf(msg string, args ...any) {
 	golog.Fatal(message("FATAL", msg, args...))
 }
 
-func message(severity, msg string, args ...any) string {
-	var sb strings.Builder
-	if severity != "" {
-		fmt.Fprintf(&sb, "[%s] ", severity)
-	}
-	if instanceName != "" {
-		fmt.Fprintf(&sb, "%s: ", instanceName)
-	}
-	fmt.Fprintf(&sb, msg, args...)
-	return sb.String()
+type VerboseWriter int
+
+func (w VerboseWriter) Write(data []byte) (int, error) {
+	Logf(int(w), "%s", data)
+	return len(data), nil
+}
+
+func Logf(v int, msg string, args ...any) {
+	writeMessage(v, "", msg, args...)
 }
 
 func writeMessage(v int, severity, msg string, args ...any) {
@@ -149,9 +144,14 @@ func writeMessage(v int, severity, msg string, args ...any) {
 	}
 }
 
-type VerboseWriter int
-
-func (w VerboseWriter) Write(data []byte) (int, error) {
-	Logf(int(w), "%s", data)
-	return len(data), nil
+func message(severity, msg string, args ...any) string {
+	var sb strings.Builder
+	if severity != "" {
+		fmt.Fprintf(&sb, "[%s] ", severity)
+	}
+	if instanceName != "" {
+		fmt.Fprintf(&sb, "%s: ", instanceName)
+	}
+	fmt.Fprintf(&sb, msg, args...)
+	return sb.String()
 }

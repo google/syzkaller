@@ -90,6 +90,16 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 	return w.buf, nil
 }
 
+type execContext struct {
+	target     *Target
+	buf        []byte
+	args       map[Arg]argInfo
+	copyoutSeq uint64
+	// Per-call state cached here to not pass it through all functions.
+	csumMap  map[Arg]CsumInfo
+	csumUses map[Arg]struct{}
+}
+
 func (w *execContext) serializeCall(c *Call) error {
 	// We introduce special serialization logic for kfuzztest targets, which
 	// require special handling due to their use of relocation tables to copy
@@ -189,16 +199,6 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) error {
 	lenArg := c.Args[2].(*ConstArg)
 	lenArg.Val = uint64(len(finalBlob))
 	return nil
-}
-
-type execContext struct {
-	target     *Target
-	buf        []byte
-	args       map[Arg]argInfo
-	copyoutSeq uint64
-	// Per-call state cached here to not pass it through all functions.
-	csumMap  map[Arg]CsumInfo
-	csumUses map[Arg]struct{}
 }
 
 type argInfo struct {

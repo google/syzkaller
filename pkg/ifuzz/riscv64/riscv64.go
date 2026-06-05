@@ -86,6 +86,20 @@ func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
 
 var templates []*Insn
 
+func ParseInsn(val uint32) (Insn, error) {
+	for _, tmpl := range templates {
+		if tmpl.matchesValue(val) {
+			newInsn := *tmpl
+			newInsn.initFromValue(val)
+			return newInsn, nil
+		}
+	}
+	unknown := Insn{
+		Name: "unknown",
+	}
+	return unknown, fmt.Errorf("unrecognized instruction: %08x", val)
+}
+
 func (insn *Insn) initFromValue(val uint32) {
 	operands := []uint32{}
 	for _, field := range insn.Fields {
@@ -99,18 +113,4 @@ func (insn *Insn) initFromValue(val uint32) {
 func (insn *Insn) matchesValue(val uint32) bool {
 	opcode := val & insn.OpcodeMask
 	return opcode == insn.Opcode
-}
-
-func ParseInsn(val uint32) (Insn, error) {
-	for _, tmpl := range templates {
-		if tmpl.matchesValue(val) {
-			newInsn := *tmpl
-			newInsn.initFromValue(val)
-			return newInsn, nil
-		}
-	}
-	unknown := Insn{
-		Name: "unknown",
-	}
-	return unknown, fmt.Errorf("unrecognized instruction: %08x", val)
 }

@@ -24,18 +24,6 @@ func IterCount() int {
 	return iters
 }
 
-func RandSource(t *testing.T) rand.Source {
-	seed := time.Now().UnixNano()
-	if fixed := os.Getenv("SYZ_SEED"); fixed != "" {
-		seed, _ = strconv.ParseInt(fixed, 0, 64)
-	}
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	t.Logf("seed=%v", seed)
-	return rand.NewSource(seed)
-}
-
 func RandMountImage(r *rand.Rand) []byte {
 	const maxLen = 1 << 20 // 1 MB.
 	len := r.Intn(maxLen)
@@ -49,6 +37,18 @@ func RandMountImage(r *rand.Rand) []byte {
 // but it handles time.Time as well w/o panicing (unfortunately testing/quick panics on time.Time).
 func RandValue(t *testing.T, typ any) any {
 	return randValue(t, rand.New(RandSource(t)), reflect.TypeOf(typ)).Interface()
+}
+
+func RandSource(t *testing.T) rand.Source {
+	seed := time.Now().UnixNano()
+	if fixed := os.Getenv("SYZ_SEED"); fixed != "" {
+		seed, _ = strconv.ParseInt(fixed, 0, 64)
+	}
+	if os.Getenv("CI") != "" {
+		seed = 0 // required for deterministic coverage reports
+	}
+	t.Logf("seed=%v", seed)
+	return rand.NewSource(seed)
 }
 
 func randValue(t *testing.T, rnd *rand.Rand, typ reflect.Type) reflect.Value {

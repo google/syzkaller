@@ -93,13 +93,6 @@ type Field struct {
 	relatedFields map[Type]struct{}
 }
 
-func (f *Field) Dir(def Dir) Dir {
-	if f.HasDirection {
-		return f.Direction
-	}
-	return def
-}
-
 type ArgFinder func(path []string) Arg
 
 // Special case reply of ArgFinder.
@@ -131,11 +124,6 @@ func (bo BinaryExpression) GoString() string {
 	return fmt.Sprintf("&prog.BinaryExpression{%#v,%#v,%#v}", bo.Operator, bo.Left, bo.Right)
 }
 
-func (bo BinaryExpression) ForEachValue(cb func(*Value)) {
-	bo.Left.ForEachValue(cb)
-	bo.Right.ForEachValue(cb)
-}
-
 func (bo BinaryExpression) Clone() Expression {
 	return &BinaryExpression{
 		Operator: bo.Operator,
@@ -149,6 +137,11 @@ type Value struct {
 	Value uint64
 	// Path to the field.
 	Path []string
+}
+
+func (bo BinaryExpression) ForEachValue(cb func(*Value)) {
+	bo.Left.ForEachValue(cb)
+	bo.Right.ForEachValue(cb)
 }
 
 func (v *Value) GoString() string {
@@ -204,24 +197,40 @@ type Type interface {
 
 type Ref uint32
 
-func (ti Ref) String() string       { panic("prog.Ref method called") }
-func (ti Ref) Name() string         { panic("prog.Ref method called") }
+func (ti Ref) String() string { panic("prog.Ref method called") }
+
+func (ti Ref) Name() string { panic("prog.Ref method called") }
+
 func (ti Ref) TemplateName() string { panic("prog.Ref method called") }
 
-func (ti Ref) Optional() bool                                        { panic("prog.Ref method called") }
-func (ti Ref) Varlen() bool                                          { panic("prog.Ref method called") }
-func (ti Ref) Size() uint64                                          { panic("prog.Ref method called") }
-func (ti Ref) TypeBitSize() uint64                                   { panic("prog.Ref method called") }
-func (ti Ref) Alignment() uint64                                     { panic("prog.Ref method called") }
-func (ti Ref) Format() BinaryFormat                                  { panic("prog.Ref method called") }
-func (ti Ref) BitfieldOffset() uint64                                { panic("prog.Ref method called") }
-func (ti Ref) BitfieldLength() uint64                                { panic("prog.Ref method called") }
-func (ti Ref) IsBitfield() bool                                      { panic("prog.Ref method called") }
-func (ti Ref) UnitSize() uint64                                      { panic("prog.Ref method called") }
-func (ti Ref) UnitOffset() uint64                                    { panic("prog.Ref method called") }
-func (ti Ref) DefaultArg(dir Dir) Arg                                { panic("prog.Ref method called") }
-func (ti Ref) Clone() Type                                           { panic("prog.Ref method called") }
-func (ti Ref) isDefaultArg(arg Arg) bool                             { panic("prog.Ref method called") }
+func (ti Ref) Optional() bool { panic("prog.Ref method called") }
+
+func (ti Ref) Varlen() bool { panic("prog.Ref method called") }
+
+func (ti Ref) Size() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) TypeBitSize() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) Alignment() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) Format() BinaryFormat { panic("prog.Ref method called") }
+
+func (ti Ref) BitfieldOffset() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) BitfieldLength() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) IsBitfield() bool { panic("prog.Ref method called") }
+
+func (ti Ref) UnitSize() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) UnitOffset() uint64 { panic("prog.Ref method called") }
+
+func (ti Ref) DefaultArg(dir Dir) Arg { panic("prog.Ref method called") }
+
+func (ti Ref) Clone() Type { panic("prog.Ref method called") }
+
+func (ti Ref) isDefaultArg(arg Arg) bool { panic("prog.Ref method called") }
+
 func (ti Ref) generate(r *randGen, s *state, dir Dir) (Arg, []*Call) { panic("prog.Ref method called") }
 
 func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
@@ -236,7 +245,8 @@ func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	panic("prog.Ref method called")
 }
 
-func (ti Ref) ref() Ref       { panic("prog.Ref method called") }
+func (ti Ref) ref() Ref { panic("prog.Ref method called") }
+
 func (ti Ref) setRef(ref Ref) { panic("prog.Ref method called") }
 
 func IsPad(t Type) bool {
@@ -257,32 +267,13 @@ type TypeCommon struct {
 	self Ref
 }
 
-func (t *TypeCommon) Name() string {
-	return t.TypeName
-}
-
 func (t *TypeCommon) TemplateName() string {
 	before, _, _ := strings.Cut(t.TypeName, "[")
 	return before
 }
 
-func (t *TypeCommon) Optional() bool {
-	return t.IsOptional
-}
-
-func (t *TypeCommon) Size() uint64 {
-	if t.IsVarlen {
-		panic(fmt.Sprintf("static type size is not known: %#v", t))
-	}
-	return t.TypeSize
-}
-
 func (t *TypeCommon) TypeBitSize() uint64 {
 	panic("cannot get the bitsize for a non-integer type")
-}
-
-func (t *TypeCommon) Varlen() bool {
-	return t.IsVarlen
 }
 
 func (t *TypeCommon) Format() BinaryFormat {
@@ -387,10 +378,6 @@ type IntTypeCommon struct {
 	uselessHints map[uint64]struct{}
 }
 
-func (t *IntTypeCommon) String() string {
-	return t.Name()
-}
-
 func (t *IntTypeCommon) Format() BinaryFormat {
 	return t.ArgFormat
 }
@@ -465,6 +452,10 @@ func (t *ConstType) String() string {
 		return fmt.Sprintf("pad[%v]", t.Size())
 	}
 	return fmt.Sprintf("const[%v, %v]", t.Val, t.IntTypeCommon.String())
+}
+
+func (t *IntTypeCommon) String() string {
+	return t.Name()
 }
 
 func (t *ConstType) calcUselessHints() []uint64 {
@@ -690,6 +681,17 @@ func (t *BufferType) DefaultArg(dir Dir) Arg {
 	return MakeDataArg(t, dir, data)
 }
 
+func (t *TypeCommon) Size() uint64 {
+	if t.IsVarlen {
+		panic(fmt.Sprintf("static type size is not known: %#v", t))
+	}
+	return t.TypeSize
+}
+
+func (t *TypeCommon) Varlen() bool {
+	return t.IsVarlen
+}
+
 func (t *BufferType) isDefaultArg(arg Arg) bool {
 	a := arg.(*DataArg)
 	sz := uint64(0)
@@ -777,6 +779,10 @@ func (t *PtrType) DefaultArg(dir Dir) Arg {
 	return MakePointerArg(t, dir, 0, t.Elem.DefaultArg(t.ElemDir))
 }
 
+func (t *TypeCommon) Optional() bool {
+	return t.IsOptional
+}
+
 func (t *PtrType) isDefaultArg(arg Arg) bool {
 	a := arg.(*PointerArg)
 	if t.Optional() {
@@ -823,12 +829,23 @@ func (t *UnionType) String() string {
 	return t.Name()
 }
 
+func (t *TypeCommon) Name() string {
+	return t.TypeName
+}
+
 func (t *UnionType) DefaultArg(dir Dir) Arg {
 	idx, _ := t.defaultField()
 	f := t.Fields[idx]
 	arg := MakeUnionArg(t, dir, f.DefaultArg(f.Dir(dir)), idx)
 	arg.transient = t.isConditional()
 	return arg
+}
+
+func (f *Field) Dir(def Dir) Dir {
+	if f.HasDirection {
+		return f.Direction
+	}
+	return def
 }
 
 func (t *UnionType) defaultField() (int, bool) {

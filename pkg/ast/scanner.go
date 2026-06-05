@@ -113,6 +113,8 @@ type scanner struct {
 	errors int
 }
 
+type ErrorHandler func(pos Pos, msg string)
+
 func newScanner(data []byte, filename string, errorHandler ErrorHandler) *scanner {
 	if errorHandler == nil {
 		errorHandler = LoggingHandler
@@ -126,8 +128,6 @@ func newScanner(data []byte, filename string, errorHandler ErrorHandler) *scanne
 	s.next()
 	return s
 }
-
-type ErrorHandler func(pos Pos, msg string)
 
 func LoggingHandler(pos Pos, msg string) {
 	fmt.Fprintf(os.Stderr, "%v: %v\n", pos, msg)

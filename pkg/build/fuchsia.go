@@ -17,16 +17,6 @@ import (
 
 type fuchsia struct{}
 
-// syzRoot returns $GOPATH/src/github.com/google/syzkaller.
-func syzRoot() (string, error) {
-	_, selfPath, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("runtime.Caller failed")
-	}
-
-	return filepath.Abs(filepath.Join(filepath.Dir(selfPath), "../.."))
-}
-
 func (fu fuchsia) build(params Params) (ImageDetails, error) {
 	syzDir, err := syzRoot()
 	if err != nil {
@@ -91,6 +81,16 @@ func (fu fuchsia) build(params Params) (ImageDetails, error) {
 		}
 	}
 	return ImageDetails{}, nil
+}
+
+// syzRoot returns $GOPATH/src/github.com/google/syzkaller.
+func syzRoot() (string, error) {
+	_, selfPath, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("runtime.Caller failed")
+	}
+
+	return filepath.Abs(filepath.Join(filepath.Dir(selfPath), "../.."))
 }
 
 func (fu fuchsia) clean(params Params) error {

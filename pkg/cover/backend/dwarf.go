@@ -118,37 +118,6 @@ type Result struct {
 	Symbols     []*Symbol
 }
 
-func processModule(params *dwarfParams, module *vminfo.KernelModule, info *symbolInfo,
-	target *targets.Target) (*Result, error) {
-	symbols, err := params.readSymbols(module, info)
-	if err != nil {
-		return nil, err
-	}
-
-	var data []byte
-	var coverPoints [2][]uint64
-	if _, ok := arches[target.Arch]; !ok {
-		coverPoints, err = objdump(target, module)
-	} else if module.Name == "" {
-		data, err = params.readTextData(module)
-		if err != nil {
-			return nil, err
-		}
-		coverPoints, err = readCoverPoints(target, info, data)
-	} else {
-		coverPoints, err = params.readModuleCoverPoints(target, module, info)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	result := &Result{
-		Symbols:     symbols,
-		CoverPoints: coverPoints,
-	}
-	return result, nil
-}
-
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	kernelDirs := params.kernelDirs
@@ -260,6 +229,76 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	return impl, nil
 }
 
+// Regexps to parse compiler version string in isKcovBrokenInCompiler.
+// Some targets (e.g. NetBSD) use g++ instead of gcc.
+var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
+
+var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
+
+// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
+// verify that collected coverage points have matching callbacks.
+// See https://github.com/google/syzkaller/issues/4447 for more information.
+func isKcovBrokenInCompiler(versionStr string) bool {
+	if !gccRE.MatchString(versionStr) {
+		return false
+	}
+	groups := gccVersionRE.FindStringSubmatch(versionStr)
+	if len(groups) > 0 {
+		version, err := strconv.Atoi(groups[2])
+		if err == nil {
+			return version < 14
+		}
+	}
+	return true
+}
+
+type symbolInfo struct {
+	textAddr uint64
+	// Set of addresses that correspond to __sanitizer_cov_trace_pc or its trampolines.
+	tracePC     map[uint64]bool
+	traceCmp    map[uint64]bool
+	tracePCIdx  map[int]bool
+	traceCmpIdx map[int]bool
+}
+
+func processModule(params *dwarfParams, module *vminfo.KernelModule, info *symbolInfo,
+	target *targets.Target) (*Result, error) {
+	symbols, err := params.readSymbols(module, info)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []byte
+	var coverPoints [2][]uint64
+	if _, ok := arches[target.Arch]; !ok {
+		coverPoints, err = objdump(target, module)
+	} else if module.Name == "" {
+		data, err = params.readTextData(module)
+		if err != nil {
+			return nil, err
+		}
+		coverPoints, err = readCoverPoints(target, info, data)
+	} else {
+		coverPoints, err = params.readModuleCoverPoints(target, module, info)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	result := &Result{
+		Symbols:     symbols,
+		CoverPoints: coverPoints,
+	}
+	return result, nil
+}
+
+type pcRange struct {
+	// [start; end)
+	start uint64
+	end   uint64
+	unit  *CompileUnit
+}
+
 func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) []*Symbol {
 	// Assign coverage point PCs to symbols.
 	// Both symbols and coverage points are sorted, so we do it one pass over both.
@@ -318,44 +357,6 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 		}
 	}
 	return symbols
-}
-
-// Regexps to parse compiler version string in isKcovBrokenInCompiler.
-// Some targets (e.g. NetBSD) use g++ instead of gcc.
-var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
-var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
-
-// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
-// verify that collected coverage points have matching callbacks.
-// See https://github.com/google/syzkaller/issues/4447 for more information.
-func isKcovBrokenInCompiler(versionStr string) bool {
-	if !gccRE.MatchString(versionStr) {
-		return false
-	}
-	groups := gccVersionRE.FindStringSubmatch(versionStr)
-	if len(groups) > 0 {
-		version, err := strconv.Atoi(groups[2])
-		if err == nil {
-			return version < 14
-		}
-	}
-	return true
-}
-
-type symbolInfo struct {
-	textAddr uint64
-	// Set of addresses that correspond to __sanitizer_cov_trace_pc or its trampolines.
-	tracePC     map[uint64]bool
-	traceCmp    map[uint64]bool
-	tracePCIdx  map[int]bool
-	traceCmpIdx map[int]bool
-}
-
-type pcRange struct {
-	// [start; end)
-	start uint64
-	end   uint64
-	unit  *CompileUnit
 }
 
 type pcFixFn = (func([2]uint64) ([2]uint64, bool))
@@ -494,6 +495,30 @@ func rustRanges(debugInfo *dwarf.Data, ent *dwarf.Entry) ([]rustRange, error) {
 	return ret, nil
 }
 
+func symbolize(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
+	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
+	var frames []*Frame
+	type frameResult struct {
+		frames []*Frame
+		err    error
+	}
+	frameC := make(chan frameResult, len(pcs))
+	for mod, pcs1 := range pcs {
+		go func(mod *vminfo.KernelModule, pcs []uint64) {
+			frames, err := symbolizeModule(target, interner, kernelDirs, splitBuildDelimiters, mod, pcs)
+			frameC <- frameResult{frames: frames, err: err}
+		}(mod, pcs1)
+	}
+	for range pcs {
+		res := <-frameC
+		if res.err != nil {
+			return nil, res.err
+		}
+		frames = append(frames, res.frames...)
+	}
+	return frames, nil
+}
+
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
 	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]*Frame, error) {
 	procs := min(runtime.GOMAXPROCS(0)/2, len(pcs)/1000)
@@ -573,51 +598,6 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
-	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
-	var frames []*Frame
-	type frameResult struct {
-		frames []*Frame
-		err    error
-	}
-	frameC := make(chan frameResult, len(pcs))
-	for mod, pcs1 := range pcs {
-		go func(mod *vminfo.KernelModule, pcs []uint64) {
-			frames, err := symbolizeModule(target, interner, kernelDirs, splitBuildDelimiters, mod, pcs)
-			frameC <- frameResult{frames: frames, err: err}
-		}(mod, pcs1)
-	}
-	for range pcs {
-		res := <-frameC
-		if res.err != nil {
-			return nil, res.err
-		}
-		frames = append(frames, res.frames...)
-	}
-	return frames, nil
-}
-
-// nextCallTarget finds the next call instruction in data[] starting at *pos and returns that
-// instruction's target and pc.
-func nextCallTarget(arch *Arch, textAddr uint64, data []byte, pos *int) (uint64, uint64) {
-	for *pos < len(data) {
-		i := *pos
-		if i+arch.callLen > len(data) {
-			break
-		}
-		*pos += arch.scanSize
-		insn := data[i : i+arch.callLen]
-		if !arch.isCallInsn(arch, insn) {
-			continue
-		}
-		pc := textAddr + uint64(i)
-		callTarget := arch.callTarget(arch, insn, pc)
-		*pos = i + arch.scanSize
-		return callTarget, pc
-	}
-	return 0, 0
-}
-
 // readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_*) in the object file.
 // Currently it is [amd64|arm64]-specific: looks for opcode and correct offset.
 // Running objdump on the whole object file is too slow.
@@ -641,6 +621,52 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 		}
 	}
 	return pcs, nil
+}
+
+// nextCallTarget finds the next call instruction in data[] starting at *pos and returns that
+// instruction's target and pc.
+func nextCallTarget(arch *Arch, textAddr uint64, data []byte, pos *int) (uint64, uint64) {
+	for *pos < len(data) {
+		i := *pos
+		if i+arch.callLen > len(data) {
+			break
+		}
+		*pos += arch.scanSize
+		insn := data[i : i+arch.callLen]
+		if !arch.isCallInsn(arch, insn) {
+			continue
+		}
+		pc := textAddr + uint64(i)
+		callTarget := arch.callTarget(arch, insn, pc)
+		*pos = i + arch.scanSize
+		return callTarget, pc
+	}
+	return 0, 0
+}
+
+func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters []string) (string, string) {
+	filename := ""
+
+	path = filepath.Clean(path)
+	aname, apath := cleanPathAndroid(path, kernelDirs.Src, splitBuildDelimiters, osutil.IsExist)
+	if aname != "" {
+		return aname, apath
+	}
+	absPath := osutil.Abs(path)
+	switch {
+	case strings.HasPrefix(absPath, kernelDirs.Obj):
+		// Assume the file was built there.
+		path = strings.TrimPrefix(absPath, kernelDirs.Obj)
+		filename = filepath.Join(kernelDirs.Obj, path)
+	case strings.HasPrefix(absPath, kernelDirs.BuildSrc):
+		// Assume the file was moved from buildDir to srcDir.
+		path = strings.TrimPrefix(absPath, kernelDirs.BuildSrc)
+		filename = filepath.Join(kernelDirs.Src, path)
+	default:
+		// Assume this is relative path.
+		filename = filepath.Join(kernelDirs.Src, path)
+	}
+	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
 }
 
 // Source files for Android may be split between two subdirectories: the common AOSP kernel
@@ -676,31 +702,6 @@ func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(str
 		}
 	}
 	return "", ""
-}
-
-func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters []string) (string, string) {
-	filename := ""
-
-	path = filepath.Clean(path)
-	aname, apath := cleanPathAndroid(path, kernelDirs.Src, splitBuildDelimiters, osutil.IsExist)
-	if aname != "" {
-		return aname, apath
-	}
-	absPath := osutil.Abs(path)
-	switch {
-	case strings.HasPrefix(absPath, kernelDirs.Obj):
-		// Assume the file was built there.
-		path = strings.TrimPrefix(absPath, kernelDirs.Obj)
-		filename = filepath.Join(kernelDirs.Obj, path)
-	case strings.HasPrefix(absPath, kernelDirs.BuildSrc):
-		// Assume the file was moved from buildDir to srcDir.
-		path = strings.TrimPrefix(absPath, kernelDirs.BuildSrc)
-		filename = filepath.Join(kernelDirs.Src, path)
-	default:
-		// Assume this is relative path.
-		filename = filepath.Join(kernelDirs.Src, path)
-	}
-	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
 }
 
 // objdump is an old, slow way of finding coverage points.

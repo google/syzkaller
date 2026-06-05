@@ -27,10 +27,6 @@ type dashMock struct {
 	addBuildAsset addBuildAssetCallback
 }
 
-func newDashMock() *dashMock {
-	return &dashMock{downloadURLs: map[string]bool{}}
-}
-
 func (dm *dashMock) AddBuildAssets(req *dashapi.AddBuildAssetsReq) error {
 	for _, obj := range req.Assets {
 		if dm.addBuildAsset != nil {
@@ -49,69 +45,6 @@ func (dm *dashMock) NeededAssetsList() (*dashapi.NeededAssetsResp, error) {
 		resp.DownloadURLs = append(resp.DownloadURLs, url)
 	}
 	return resp, nil
-}
-
-func makeStorage(t *testing.T, dash Dashboard) (*Storage, *dummyStorageBackend) {
-	be := makeDummyStorageBackend()
-	cfg := &Config{
-		UploadTo: "dummy://test",
-	}
-	return &Storage{
-		dash:    dash,
-		cfg:     cfg,
-		backend: be,
-		tracer:  &debugtracer.TestTracer{T: t},
-	}, be
-}
-
-func validateGzip(res *uploadedFile, expected []byte) error {
-	if res == nil {
-		return fmt.Errorf("no file was uploaded")
-	}
-	reader, err := gzip.NewReader(bytes.NewReader(res.bytes))
-	if err != nil {
-		return fmt.Errorf("gzip.NewReader failed: %w", err)
-	}
-	defer reader.Close()
-	body, err := io.ReadAll(reader)
-	if err != nil {
-		return fmt.Errorf("read of ungzipped content failed: %w", err)
-	}
-	if !reflect.DeepEqual(body, expected) {
-		return fmt.Errorf("decompressed: %#v, expected: %#v", body, expected)
-	}
-	return nil
-}
-
-func validateXz(res *uploadedFile, expected []byte) error {
-	if res == nil {
-		return fmt.Errorf("no file was uploaded")
-	}
-	xzUsed := strings.HasSuffix(res.req.savePath, ".xz")
-	if !xzUsed {
-		return fmt.Errorf("xz expected to be used")
-	}
-	xzReader, err := xz.NewReader(bytes.NewReader(res.bytes))
-	if err != nil {
-		return fmt.Errorf("xz reader failed: %w", err)
-	}
-	out, err := io.ReadAll(xzReader)
-	if err != nil {
-		return fmt.Errorf("xz decompression failed: %w", err)
-	}
-	if !reflect.DeepEqual(out, expected) {
-		return fmt.Errorf("decompressed: %#v, expected: %#v", out, expected)
-	}
-	return nil
-}
-
-func (storage *Storage) sendBuildAsset(reader io.Reader, fileName string, assetType dashapi.AssetType,
-	build *dashapi.Build) error {
-	asset, err := storage.UploadBuildAsset(reader, fileName, assetType, build, nil)
-	if err != nil {
-		return err
-	}
-	return storage.ReportBuildAssets(build, asset)
 }
 
 func TestUploadBuildAsset(t *testing.T) {
@@ -216,18 +149,26 @@ type uploadedFile struct {
 	bytes []byte
 }
 
-func collectBytes(saveTo **uploadedFile) objectUploadCallback {
-	return func(req *uploadRequest) (*uploadResponse, error) {
-		buf := &bytes.Buffer{}
-		wwc := &wrappedWriteCloser{
-			writer: buf,
-			closeCallback: func() error {
-				*saveTo = &uploadedFile{req: *req, bytes: buf.Bytes()}
-				return nil
-			},
-		}
-		return &uploadResponse{path: req.savePath, writer: wwc}, nil
+func validateXz(res *uploadedFile, expected []byte) error {
+	if res == nil {
+		return fmt.Errorf("no file was uploaded")
 	}
+	xzUsed := strings.HasSuffix(res.req.savePath, ".xz")
+	if !xzUsed {
+		return fmt.Errorf("xz expected to be used")
+	}
+	xzReader, err := xz.NewReader(bytes.NewReader(res.bytes))
+	if err != nil {
+		return fmt.Errorf("xz reader failed: %w", err)
+	}
+	out, err := io.ReadAll(xzReader)
+	if err != nil {
+		return fmt.Errorf("xz decompression failed: %w", err)
+	}
+	if !reflect.DeepEqual(out, expected) {
+		return fmt.Errorf("decompressed: %#v, expected: %#v", out, expected)
+	}
+	return nil
 }
 
 func TestUploadHtmlAsset(t *testing.T) {
@@ -253,6 +194,39 @@ func TestUploadHtmlAsset(t *testing.T) {
 		dashapi.HTMLCoverageReport, build)
 	if err := validateGzip(file, htmlContent); err != nil {
 		t.Fatalf("cover_report.html validation failed: %s", err)
+	}
+}
+
+func validateGzip(res *uploadedFile, expected []byte) error {
+	if res == nil {
+		return fmt.Errorf("no file was uploaded")
+	}
+	reader, err := gzip.NewReader(bytes.NewReader(res.bytes))
+	if err != nil {
+		return fmt.Errorf("gzip.NewReader failed: %w", err)
+	}
+	defer reader.Close()
+	body, err := io.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("read of ungzipped content failed: %w", err)
+	}
+	if !reflect.DeepEqual(body, expected) {
+		return fmt.Errorf("decompressed: %#v, expected: %#v", body, expected)
+	}
+	return nil
+}
+
+func collectBytes(saveTo **uploadedFile) objectUploadCallback {
+	return func(req *uploadRequest) (*uploadResponse, error) {
+		buf := &bytes.Buffer{}
+		wwc := &wrappedWriteCloser{
+			writer: buf,
+			closeCallback: func() error {
+				*saveTo = &uploadedFile{req: *req, bytes: buf.Bytes()}
+				return nil
+			},
+		}
+		return &uploadResponse{path: req.savePath, writer: wwc}, nil
 	}
 }
 
@@ -313,6 +287,15 @@ func TestAssetStorageConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadBuildAssetStream of BootableDisk expected to succeed, got %v", err)
 	}
+}
+
+func (storage *Storage) sendBuildAsset(reader io.Reader, fileName string, assetType dashapi.AssetType,
+	build *dashapi.Build) error {
+	asset, err := storage.UploadBuildAsset(reader, fileName, assetType, build, nil)
+	if err != nil {
+		return err
+	}
+	return storage.ReportBuildAssets(build, asset)
 }
 
 func TestUploadSameContent(t *testing.T) {
@@ -394,4 +377,21 @@ func TestInvalidAssetURLs(t *testing.T) {
 	}
 	_, err := storage.DeprecateAssets()
 	assert.Error(t, err)
+}
+
+func newDashMock() *dashMock {
+	return &dashMock{downloadURLs: map[string]bool{}}
+}
+
+func makeStorage(t *testing.T, dash Dashboard) (*Storage, *dummyStorageBackend) {
+	be := makeDummyStorageBackend()
+	cfg := &Config{
+		UploadTo: "dummy://test",
+	}
+	return &Storage{
+		dash:    dash,
+		cfg:     cfg,
+		backend: be,
+		tracer:  &debugtracer.TestTracer{T: t},
+	}, be
 }

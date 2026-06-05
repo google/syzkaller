@@ -37,17 +37,6 @@ var (
 	flagToGCS               = flag.String("to-gcs", "", "[optional] gcs destination to save jsonl to")
 )
 
-func makeProvider() covermerger.FileVersProvider {
-	switch *flagSrcProvider {
-	case "git-clone":
-		return covermerger.MakeMonoRepo(*flagWorkdir)
-	case "web-git":
-		return covermerger.MakeWebGit(nil)
-	default:
-		panic(fmt.Sprintf("unknown provider %v", *flagSrcProvider))
-	}
-}
-
 func main() {
 	if err := do(); err != nil {
 		log.Fatalf("failed to saveCoverage: %v", err.Error())
@@ -139,6 +128,17 @@ func do() error {
 		}
 	}
 	return nil
+}
+
+func makeProvider() covermerger.FileVersProvider {
+	switch *flagSrcProvider {
+	case "git-clone":
+		return covermerger.MakeMonoRepo(*flagWorkdir)
+	case "web-git":
+		return covermerger.MakeWebGit(nil)
+	default:
+		panic(fmt.Sprintf("unknown provider %v", *flagSrcProvider))
+	}
 }
 
 func printCoverage(instrumented, covered int) {

@@ -32,23 +32,6 @@ type BuildParams struct {
 
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
 
-func parseConfig(conf []byte) (*BuildParams, error) {
-	buildCfg := new(BuildParams)
-	if err := config.LoadData(conf, buildCfg); err != nil {
-		return nil, fmt.Errorf("failed to parse build config: %w", err)
-	}
-
-	if buildCfg.BuildScript == "" {
-		return nil, fmt.Errorf("build script not specified for Android build")
-	}
-
-	if buildCfg.ConfigPath == "" {
-		return nil, fmt.Errorf("kernel config path not specified for Android build")
-	}
-
-	return buildCfg, nil
-}
-
 func (a android) readCompiler(path string) (string, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
@@ -124,6 +107,23 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 
 	return details, nil
+}
+
+func parseConfig(conf []byte) (*BuildParams, error) {
+	buildCfg := new(BuildParams)
+	if err := config.LoadData(conf, buildCfg); err != nil {
+		return nil, fmt.Errorf("failed to parse build config: %w", err)
+	}
+
+	if buildCfg.BuildScript == "" {
+		return nil, fmt.Errorf("build script not specified for Android build")
+	}
+
+	if buildCfg.ConfigPath == "" {
+		return nil, fmt.Errorf("kernel config path not specified for Android build")
+	}
+
+	return buildCfg, nil
 }
 
 func copyModuleFiles(srcDir, dstDir string) error {

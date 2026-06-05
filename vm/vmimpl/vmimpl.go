@@ -131,11 +131,6 @@ func (err InfraError) Details() (string, []byte) {
 	return err.Title, err.Output
 }
 
-// Register registers a new VM type within the package.
-func Register(typ string, desc Type) {
-	Types[typ] = desc
-}
-
 type Type struct {
 	Ctor ctorFunc
 	// It's possible to create out-of-thin-air instances of this type.
@@ -145,6 +140,11 @@ type Type struct {
 	// For preempted instances executor prints "SYZ-EXECUTOR: PREEMPTED" and then
 	// the host understands that the lost connection was expected and is not a bug.
 	Preemptible bool
+}
+
+// Register registers a new VM type within the package.
+func Register(typ string, desc Type) {
+	Types[typ] = desc
 }
 
 type ctorFunc func(env *Env) (Pool, error)
@@ -260,14 +260,6 @@ func waitAndKill(ctx context.Context, cmd *exec.Cmd) error {
 	return <-err
 }
 
-func RandomPort() int {
-	n, err := rand.Int(rand.Reader, big.NewInt(64<<10-1<<10))
-	if err != nil {
-		panic(err)
-	}
-	return int(n.Int64()) + 1<<10
-}
-
 func UnusedTCPPort() int {
 	for {
 		port := RandomPort()
@@ -289,6 +281,14 @@ func UnusedTCPPort() int {
 		}
 		log.Fatalf("error allocating port localhost:%d: %v", port, err)
 	}
+}
+
+func RandomPort() int {
+	n, err := rand.Int(rand.Reader, big.NewInt(64<<10-1<<10))
+	if err != nil {
+		panic(err)
+	}
+	return int(n.Int64()) + 1<<10
 }
 
 // Escapes double quotes(and nested double quote escapes). Ignores any other escapes.

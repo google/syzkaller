@@ -12,6 +12,17 @@ import (
 	"path/filepath"
 )
 
+// Rename is similar to os.Rename but handles cross-device renaming (by copying).
+func Rename(oldFile, newFile string) error {
+	err := os.Rename(oldFile, newFile)
+	if err != nil {
+		// Can't use syscall.EXDEV because this is used in appengine app.
+		err = CopyFile(oldFile, newFile)
+		os.Remove(oldFile)
+	}
+	return err
+}
+
 // CopyFile atomically copies oldFile to newFile preserving permissions and modification time.
 func CopyFile(oldFile, newFile string) error {
 	oldf, err := os.Open(oldFile)
@@ -40,17 +51,6 @@ func CopyFile(oldFile, newFile string) error {
 		return err
 	}
 	return os.Rename(tmpFile, newFile)
-}
-
-// Rename is similar to os.Rename but handles cross-device renaming (by copying).
-func Rename(oldFile, newFile string) error {
-	err := os.Rename(oldFile, newFile)
-	if err != nil {
-		// Can't use syscall.EXDEV because this is used in appengine app.
-		err = CopyFile(oldFile, newFile)
-		os.Remove(oldFile)
-	}
-	return err
 }
 
 // FillDirectory is used to fill in directory structure for tests.

@@ -66,7 +66,8 @@ const (
 	kindString
 )
 
-func canBeArg(comp *compiler, t *ast.Type) (bool, bool)    { return true, false }
+func canBeArg(comp *compiler, t *ast.Type) (bool, bool) { return true, false }
+
 func canBeArgRet(comp *compiler, t *ast.Type) (bool, bool) { return true, true }
 
 var typeInt = &typeDesc{
@@ -186,14 +187,6 @@ func generateFlagsType(comp *compiler, base prog.IntTypeCommon, name string) pro
 		Vals:          values,
 		BitMask:       isBitmask(values),
 	}
-}
-
-func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
-	align := base.UnitSize()
-	if align == 8 && comp.target.Int64Alignment != 0 {
-		align = comp.target.Int64Alignment
-	}
-	return align
 }
 
 var typePtr = &typeDesc{
@@ -942,6 +935,14 @@ func init() {
 			ArgFormat:  baseProgType.Format(),
 		}
 	}
+}
+
+func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
+	align := base.UnitSize()
+	if align == 8 && comp.target.Int64Alignment != 0 {
+		align = comp.target.Int64Alignment
+	}
+	return align
 }
 
 var typeStruct = &typeDesc{

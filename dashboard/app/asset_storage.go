@@ -322,20 +322,6 @@ func (ad *buildAssetDeprecator) needThisBuildAsset(build *Build, buildAsset *Ass
 	return false, fmt.Errorf("job-related assets are not supported yet")
 }
 
-func filterOutAssets(assets []Asset, deleteList []string) []Asset {
-	toDelete := map[string]bool{}
-	for _, url := range deleteList {
-		toDelete[url] = true
-	}
-	newAssets := []Asset{}
-	for _, asset := range assets {
-		if _, ok := toDelete[asset.DownloadURL]; !ok {
-			newAssets = append(newAssets, asset)
-		}
-	}
-	return newAssets
-}
-
 func (ad *buildAssetDeprecator) updateBuild(buildID string, urlsToDelete []string) error {
 	tx := func(ctx context.Context) error {
 		build, err := loadBuild(ad.ctx, ad.ns, buildID)
@@ -468,6 +454,20 @@ func (ad *crashAssetDeprecator) updateCrash(crashKey *db.Key, urlsToDelete []str
 		return fmt.Errorf("failed to update crash: %w", err)
 	}
 	return nil
+}
+
+func filterOutAssets(assets []Asset, deleteList []string) []Asset {
+	toDelete := map[string]bool{}
+	for _, url := range deleteList {
+		toDelete[url] = true
+	}
+	newAssets := []Asset{}
+	for _, asset := range assets {
+		if _, ok := toDelete[asset.DownloadURL]; !ok {
+			newAssets = append(newAssets, asset)
+		}
+	}
+	return newAssets
 }
 
 func queryLatestManagerAssets(ctx context.Context, ns string, assetType dashapi.AssetType,

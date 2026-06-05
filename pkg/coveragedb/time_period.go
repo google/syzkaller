@@ -58,19 +58,6 @@ func MinMaxDays(periodType string) (int, int, error) {
 	}
 }
 
-func PeriodOps(periodType string) (periodOps, error) {
-	switch periodType {
-	case DayPeriod:
-		return &DayPeriodOps{}, nil
-	case MonthPeriod:
-		return &MonthPeriodOps{}, nil
-	case QuarterPeriod:
-		return &QuarterPeriodOps{}, nil
-	default:
-		return nil, errUnknownTimePeriodType
-	}
-}
-
 type periodOps interface {
 	IsValidPeriod(p TimePeriod) bool
 	lastPeriodDate(d civil.Date) civil.Date
@@ -92,6 +79,19 @@ func GenNPeriodsTill(n int, d civil.Date, periodType string) ([]TimePeriod, erro
 	return res, nil
 }
 
+func PeriodOps(periodType string) (periodOps, error) {
+	switch periodType {
+	case DayPeriod:
+		return &DayPeriodOps{}, nil
+	case MonthPeriod:
+		return &MonthPeriodOps{}, nil
+	case QuarterPeriod:
+		return &QuarterPeriodOps{}, nil
+	default:
+		return nil, errUnknownTimePeriodType
+	}
+}
+
 type DayPeriodOps struct{}
 
 func (dpo *DayPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
@@ -108,20 +108,9 @@ func (dpo *DayPeriodOps) pointedPeriodDays(d civil.Date) int {
 
 type MonthPeriodOps struct{}
 
-func (m *MonthPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
-	d.Day = 1
-	d = d.AddDays(32)
-	d.Day = 1
-	return d.AddDays(-1)
-}
-
 func (m *MonthPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	lmd := m.lastPeriodDate(p.DateTo)
 	return lmd == p.DateTo && p.Days == lmd.Day
-}
-
-func (m *MonthPeriodOps) pointedPeriodDays(d civil.Date) int {
-	return m.lastPeriodDate(d).Day
 }
 
 type QuarterPeriodOps struct{}
@@ -137,6 +126,13 @@ func (q *QuarterPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
 	return (&MonthPeriodOps{}).lastPeriodDate(d)
 }
 
+func (m *MonthPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
+	d.Day = 1
+	d = d.AddDays(32)
+	d.Day = 1
+	return d.AddDays(-1)
+}
+
 func (q *QuarterPeriodOps) pointedPeriodDays(d civil.Date) int {
 	d = q.lastPeriodDate(d)
 	d.Day = 1
@@ -146,6 +142,10 @@ func (q *QuarterPeriodOps) pointedPeriodDays(d civil.Date) int {
 		d.Month--
 	}
 	return res
+}
+
+func (m *MonthPeriodOps) pointedPeriodDays(d civil.Date) int {
+	return m.lastPeriodDate(d).Day
 }
 
 func PeriodsToMerge(srcDates, mergedPeriods []TimePeriod, srcRows, mergedRows []int64, ops periodOps) []TimePeriod {

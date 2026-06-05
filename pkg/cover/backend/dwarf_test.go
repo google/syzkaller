@@ -109,15 +109,6 @@ type NextCallTargetTest struct {
 	ExpPC     uint64
 }
 
-func runNextCallTarget(t *testing.T, arg NextCallTargetTest) {
-	i := 0
-	target, pc := nextCallTarget(arg.Arch, arg.Text, arg.Data, &i)
-	if target != arg.ExpTarget || pc != arg.ExpPC {
-		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)",
-			arg.Arch, arg.Text, arg.Data, target, pc, arg.ExpTarget, arg.ExpPC)
-	}
-}
-
 func TestNextCallTargetARM64(t *testing.T) {
 	tests := []NextCallTargetTest{
 		// ffff800080020010:       9414234f        bl      ffff800080528d4c <__sanitizer_cov_trace_pc>
@@ -172,5 +163,14 @@ func TestNextCallTargetAMD64(t *testing.T) {
 	for _, test := range tests {
 		test.Arch = arches["amd64"]
 		runNextCallTarget(t, test)
+	}
+}
+
+func runNextCallTarget(t *testing.T, arg NextCallTargetTest) {
+	i := 0
+	target, pc := nextCallTarget(arg.Arch, arg.Text, arg.Data, &i)
+	if target != arg.ExpTarget || pc != arg.ExpPC {
+		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)",
+			arg.Arch, arg.Text, arg.Data, target, pc, arg.ExpTarget, arg.ExpPC)
 	}
 }

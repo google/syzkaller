@@ -69,10 +69,6 @@ func (storage *Storage) AssetTypeEnabled(assetType dashapi.AssetType) bool {
 	return storage.cfg.IsEnabled(assetType)
 }
 
-func (storage *Storage) getDefaultCompressor() Compressor {
-	return xzCompressor
-}
-
 type ExtraUploadArg struct {
 	// It is assumed that paths constructed with same UniqueTag values
 	// always correspond to an asset having the same content.
@@ -311,6 +307,10 @@ type StorageBackend interface {
 
 type Compressor func(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error)
+
+func (storage *Storage) getDefaultCompressor() Compressor {
+	return xzCompressor
+}
 
 func xzCompressor(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error) {

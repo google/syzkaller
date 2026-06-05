@@ -396,6 +396,47 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 	return commit.Hash, nil
 }
 
+func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
+	testRes := env.results[com.Hash]
+	if testRes.kernelSign == "" || len(com.Parents) != 1 {
+		return false, nil
+	}
+	parent := com.Parents[0]
+	parentRes := env.results[parent]
+	if parentRes == nil {
+		env.logf("parent commit %v wasn't tested", parent)
+		// We could not test the parent commit if it is not based on the previous release
+		// (instead based on an older release, i.e. a very old non-rebased commit
+		// merged into the current release).
+		// TODO: we can use a differnet compiler for this old commit
+		// since effectively it's in the older release, in that case we may not
+		// detect noop change anyway.
+		if _, err := env.repo.SwitchCommit(parent); err != nil {
+			return false, err
+		}
+		_, kernelSign, err := env.build()
+		if err != nil {
+			return false, err
+		}
+		parentRes = &testResult{kernelSign: kernelSign}
+	}
+	env.logf("culprit signature: %v", testRes.kernelSign)
+	env.logf("parent  signature: %v", parentRes.kernelSign)
+	return testRes.kernelSign == parentRes.kernelSign, nil
+}
+
+type testResult struct {
+	verdict    vcs.BisectResult
+	com        *vcs.Commit
+	rep        *report.Report
+	types      []crash.Type
+	kernelSign string
+	// The ratio of bad/(good+bad) results.
+	badRatio float64
+	// An estimate how much we can trust the result.
+	confidence float64
+}
+
 func (env *env) minimizeConfig() (*testResult, error) {
 	// Find minimal configuration based on baseline to reproduce the crash.
 	testResults := make(map[hash.Sig]*testResult)
@@ -430,35 +471,6 @@ func (env *env) minimizeConfig() (*testResult, error) {
 	}
 	env.kernelConfig = minConfig
 	return testResults[hash.Hash(minConfig)], nil
-}
-
-func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
-	testRes := env.results[com.Hash]
-	if testRes.kernelSign == "" || len(com.Parents) != 1 {
-		return false, nil
-	}
-	parent := com.Parents[0]
-	parentRes := env.results[parent]
-	if parentRes == nil {
-		env.logf("parent commit %v wasn't tested", parent)
-		// We could not test the parent commit if it is not based on the previous release
-		// (instead based on an older release, i.e. a very old non-rebased commit
-		// merged into the current release).
-		// TODO: we can use a differnet compiler for this old commit
-		// since effectively it's in the older release, in that case we may not
-		// detect noop change anyway.
-		if _, err := env.repo.SwitchCommit(parent); err != nil {
-			return false, err
-		}
-		_, kernelSign, err := env.build()
-		if err != nil {
-			return false, err
-		}
-		parentRes = &testResult{kernelSign: kernelSign}
-	}
-	env.logf("culprit signature: %v", testRes.kernelSign)
-	env.logf("parent  signature: %v", parentRes.kernelSign)
-	return testRes.kernelSign == parentRes.kernelSign, nil
 }
 
 func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result, error) {
@@ -588,18 +600,6 @@ func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult
 	}
 
 	return nil, nil
-}
-
-type testResult struct {
-	verdict    vcs.BisectResult
-	com        *vcs.Commit
-	rep        *report.Report
-	types      []crash.Type
-	kernelSign string
-	// The ratio of bad/(good+bad) results.
-	badRatio float64
-	// An estimate how much we can trust the result.
-	confidence float64
 }
 
 func (env *env) build() (*vcs.Commit, string, error) {

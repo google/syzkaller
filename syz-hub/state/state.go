@@ -109,6 +109,38 @@ func (st *State) Flush() {
 	}
 }
 
+func (st *State) createManager(name string) (*Manager, error) {
+	dir := filepath.Join(st.dir, "manager", name)
+	osutil.MkdirAll(dir)
+	mgr := &Manager{
+		name:          name,
+		dir:           dir,
+		corpusFile:    filepath.Join(dir, "corpus.db"),
+		corpusSeqFile: filepath.Join(dir, "seq"),
+		reproSeqFile:  filepath.Join(dir, "repro.seq"),
+		domainFile:    filepath.Join(dir, "domain"),
+		ownRepros:     make(map[string]bool),
+	}
+	mgr.corpusSeq = loadSeqFile(mgr.corpusSeqFile)
+	st.corpusSeq = max(st.corpusSeq, mgr.corpusSeq)
+	mgr.reproSeq = loadSeqFile(mgr.reproSeqFile)
+	if mgr.reproSeq == 0 {
+		mgr.reproSeq = st.reproSeq
+	}
+	st.reproSeq = max(st.reproSeq, mgr.reproSeq)
+	domainData, _ := os.ReadFile(mgr.domainFile)
+	mgr.Domain = string(domainData)
+	corpus, _, err := loadDB(mgr.corpusFile, name, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open manager corpus %v: %w", mgr.corpusFile, err)
+	}
+	mgr.Corpus = corpus
+	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
+		mgr.name, mgr.Domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
+	st.Managers[name] = mgr
+	return mgr, nil
+}
+
 func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file, true)
@@ -142,38 +174,6 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 		return nil, 0, fmt.Errorf("failed to flush corpus database: %w", err)
 	}
 	return db, maxSeq, nil
-}
-
-func (st *State) createManager(name string) (*Manager, error) {
-	dir := filepath.Join(st.dir, "manager", name)
-	osutil.MkdirAll(dir)
-	mgr := &Manager{
-		name:          name,
-		dir:           dir,
-		corpusFile:    filepath.Join(dir, "corpus.db"),
-		corpusSeqFile: filepath.Join(dir, "seq"),
-		reproSeqFile:  filepath.Join(dir, "repro.seq"),
-		domainFile:    filepath.Join(dir, "domain"),
-		ownRepros:     make(map[string]bool),
-	}
-	mgr.corpusSeq = loadSeqFile(mgr.corpusSeqFile)
-	st.corpusSeq = max(st.corpusSeq, mgr.corpusSeq)
-	mgr.reproSeq = loadSeqFile(mgr.reproSeqFile)
-	if mgr.reproSeq == 0 {
-		mgr.reproSeq = st.reproSeq
-	}
-	st.reproSeq = max(st.reproSeq, mgr.reproSeq)
-	domainData, _ := os.ReadFile(mgr.domainFile)
-	mgr.Domain = string(domainData)
-	corpus, _, err := loadDB(mgr.corpusFile, name, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open manager corpus %v: %w", mgr.corpusFile, err)
-	}
-	mgr.Corpus = corpus
-	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
-		mgr.name, mgr.Domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
-	st.Managers[name] = mgr
-	return mgr, nil
 }
 
 const purgedSuffix = ".purged"
@@ -481,14 +481,14 @@ func managerSupportsAllCalls(mgr, prog map[string]struct{}) bool {
 	return true
 }
 
+func saveSeqFile(filename string, seq uint64) {
+	writeFile(filename, []byte(fmt.Sprint(seq)))
+}
+
 func writeFile(name string, data []byte) {
 	if err := osutil.WriteFile(name, data); err != nil {
 		log.Logf(0, "failed to write file %v: %v", name, err)
 	}
-}
-
-func saveSeqFile(filename string, seq uint64) {
-	writeFile(filename, []byte(fmt.Sprint(seq)))
 }
 
 func loadSeqFile(filename string) uint64 {

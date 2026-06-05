@@ -267,14 +267,6 @@ func TestPeriodsToMerge(t *testing.T) {
 	}
 }
 
-func makeTimePeriod(s string, days int) TimePeriod {
-	d, err := civil.ParseDate(s)
-	if err != nil {
-		panic(err.Error())
-	}
-	return TimePeriod{DateTo: d, Days: days}
-}
-
 func TestAtMostNLatestPeriods(t *testing.T) {
 	sampleDays := []TimePeriod{
 		makeTimePeriod("2024-04-01", 1),
@@ -286,6 +278,14 @@ func TestAtMostNLatestPeriods(t *testing.T) {
 	}
 	assert.Equal(t, []TimePeriod{makeTimePeriod("2024-06-06", 1)}, AtMostNLatestPeriods(sampleDays, 1))
 	assert.Equal(t, sampleDays, AtMostNLatestPeriods(sampleDays, 100))
+}
+
+func makeTimePeriod(s string, days int) TimePeriod {
+	d, err := civil.ParseDate(s)
+	if err != nil {
+		panic(err.Error())
+	}
+	return TimePeriod{DateTo: d, Days: days}
 }
 
 func TestMakeTimePeriod(t *testing.T) {

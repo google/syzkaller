@@ -558,16 +558,6 @@ func zoneToRegion(zone string) string {
 	return regionNameRe.FindString(zone)
 }
 
-// promotes item to index 0 in list, while keeping the rest of the list as is.
-func promote(list []string, item string) []string {
-	if prefIdx := slices.Index(list, item); prefIdx > 0 {
-		pref := list[prefIdx]
-		copy(list[1:prefIdx+1], list[0:prefIdx])
-		list[0] = pref
-	}
-	return list
-}
-
 func (z *zoneList) sort() {
 	promote(z.list, z.preferredZone) // Ensure that in case of equal scores, we favor preferredZone.
 	slices.SortStableFunc(z.list, func(a, b string) int {
@@ -596,13 +586,13 @@ func (z *zoneList) recordInsertionSuccess(zone string) {
 	z.recordInsertion(zone, true)
 }
 
+func (ctx *Context) ReportPreemption(zone string) {
+	ctx.preemptibleZoneList.recordPreemption(zone)
+}
+
 func (z *zoneList) recordPreemption(zone string) {
 	// Technically not an insertion failure, but for our purposes it's the same.
 	z.recordInsertionFailure(zone)
-}
-
-func (ctx *Context) ReportPreemption(zone string) {
-	ctx.preemptibleZoneList.recordPreemption(zone)
 }
 
 func (z *zoneList) get() []string {
@@ -611,6 +601,16 @@ func (z *zoneList) get() []string {
 	list := slices.Clone(z.list)
 	if rand.Intn(100) < 5 { // Occasionally make preferredZone our first choice. It's cheaper and faster.
 		promote(list, z.preferredZone)
+	}
+	return list
+}
+
+// promotes item to index 0 in list, while keeping the rest of the list as is.
+func promote(list []string, item string) []string {
+	if prefIdx := slices.Index(list, item); prefIdx > 0 {
+		pref := list[prefIdx]
+		copy(list[1:prefIdx+1], list[0:prefIdx])
+		list[0] = pref
 	}
 	return list
 }

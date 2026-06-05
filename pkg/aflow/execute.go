@@ -183,6 +183,20 @@ type modelInfo struct {
 	OutputTokenLimit int
 }
 
+type Context struct {
+	Context     context.Context
+	Workdir     string
+	llmModel    string
+	cache       *Cache
+	cachedDirs  []string
+	tempDirs    []string
+	state       map[string]any
+	onEvent     onEvent
+	spanSeq     int
+	spanNesting int
+	stubContext
+}
+
 func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateContentConfig,
 	req []*genai.Content) (*genai.GenerateContentResponse, error) {
 	createClientOnce.Do(func() {
@@ -292,20 +306,6 @@ func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, s
 	}
 	return nil, nil, "", fmt.Errorf("set GOOGLE_API_KEY (Gemini API) " +
 		"or GOOGLE_CLOUD_PROJECT/GOOGLE_VERTEX_API_KEY (Vertex AI)")
-}
-
-type Context struct {
-	Context     context.Context
-	Workdir     string
-	llmModel    string
-	cache       *Cache
-	cachedDirs  []string
-	tempDirs    []string
-	state       map[string]any
-	onEvent     onEvent
-	spanSeq     int
-	spanNesting int
-	stubContext
 }
 
 type stubContext struct {

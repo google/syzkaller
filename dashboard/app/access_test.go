@@ -483,26 +483,6 @@ const (
 	AuthorizedAdmin
 )
 
-func makeUser(a UserAuthorizationLevel) *user.User {
-	u := &user.User{}
-	switch a {
-	case BadAuthDomain:
-		u.AuthDomain = "public.com"
-	case Regular:
-		u = nil
-	case Authenticated:
-		u.Email = "someuser@public.com"
-	case AuthorizedAccessPublic:
-		u.Email = "checked-email@public.com"
-	case AuthorizedUser:
-		u.Email = "customer@syzkaller.com"
-	case AuthorizedAdmin:
-		u.Email = "admin@syzkaller.com"
-		u.Admin = true
-	}
-	return u
-}
-
 func TestUserAccessLevel(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -625,4 +605,24 @@ func TestUserAccessLevel(t *testing.T) {
 			assert.Equal(t, test.wantIsAuthorized, gotIsAuthorized)
 		})
 	}
+}
+
+func makeUser(a UserAuthorizationLevel) *user.User {
+	u := &user.User{}
+	switch a {
+	case BadAuthDomain:
+		u.AuthDomain = "public.com"
+	case Regular:
+		u = nil
+	case Authenticated:
+		u.Email = "someuser@public.com"
+	case AuthorizedAccessPublic:
+		u.Email = "checked-email@public.com"
+	case AuthorizedUser:
+		u.Email = "customer@syzkaller.com"
+	case AuthorizedAdmin:
+		u.Email = "admin@syzkaller.com"
+		u.Admin = true
+	}
+	return u
 }

@@ -503,28 +503,6 @@ func (mgr *Manager) convertBootError(err error) *manager.Crash {
 	return nil
 }
 
-func reportReproError(err error) {
-	shutdown := false
-	select {
-	case <-vm.Shutdown:
-		shutdown = true
-	default:
-	}
-
-	if errors.Is(err, repro.ErrEmptyCrashLog) {
-		// The kernel could have crashed before we executed any programs.
-		log.Logf(0, "repro failed: %v", err)
-		return
-	} else if errors.Is(err, repro.ErrNoVMs) || errors.Is(err, context.Canceled) {
-		// This error is to be expected if we're shutting down.
-		if shutdown {
-			return
-		}
-	}
-	// Report everything else as errors.
-	log.Errorf("repro failed: %v", err)
-}
-
 func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
 	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
 		Config:   mgr.cfg,
@@ -591,6 +569,28 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 			log.Logf(0, "failed to report repro task done: %v", err)
 		}
 	}
+}
+
+func reportReproError(err error) {
+	shutdown := false
+	select {
+	case <-vm.Shutdown:
+		shutdown = true
+	default:
+	}
+
+	if errors.Is(err, repro.ErrEmptyCrashLog) {
+		// The kernel could have crashed before we executed any programs.
+		log.Logf(0, "repro failed: %v", err)
+		return
+	} else if errors.Is(err, repro.ErrNoVMs) || errors.Is(err, context.Canceled) {
+		// This error is to be expected if we're shutting down.
+		if shutdown {
+			return
+		}
+	}
+	// Report everything else as errors.
+	log.Errorf("repro failed: %v", err)
 }
 
 func (mgr *Manager) preloadCorpus() {
@@ -869,12 +869,6 @@ func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	return needRepro
 }
 
-func truncateReproLog(log []byte) []byte {
-	// Repro logs can get quite large and we have trouble sending large API requests (see #4495).
-	// Let's truncate the log to a 512KB prefix and 512KB suffix.
-	return report.Truncate(log, 512000, 512000)
-}
-
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats, reproErr error) {
 	reproLog := stats.FullLog()
 	if reproLog == nil && reproErr != nil {
@@ -978,6 +972,12 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 	if err != nil {
 		log.Logf(0, "%s", err)
 	}
+}
+
+func truncateReproLog(log []byte) []byte {
+	// Repro logs can get quite large and we have trouble sending large API requests (see #4495).
+	// Let's truncate the log to a 512KB prefix and 512KB suffix.
+	return report.Truncate(log, 512000, 512000)
 }
 
 func (mgr *Manager) ResizeReproPool(size int) {

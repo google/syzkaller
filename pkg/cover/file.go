@@ -104,6 +104,11 @@ func rendResult(content string, coverage *covermerger.MergeResult, renderConfig 
 	return strings.Join(resLines, "\n")
 }
 
+func RendHTMLLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
+	textLine := RendTextLine(code, line, coverage, config)
+	return `<pre style="margin: 0">` + html.EscapeString(textLine) + "</pre>"
+}
+
 func RendTextLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
 	res := ""
 	if config.ShowLineSourceExplanation {
@@ -127,11 +132,6 @@ func RendTextLine(code string, line int, coverage *covermerger.MergeResult, conf
 	}
 	res += code
 	return res
-}
-
-func RendHTMLLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
-	textLine := RendTextLine(code, line, coverage, config)
-	return `<pre style="margin: 0">` + html.EscapeString(textLine) + "</pre>"
 }
 
 func mainSignalSource(sources []*covermerger.FileRecord) string {

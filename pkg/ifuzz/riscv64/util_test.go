@@ -5,14 +5,6 @@ package riscv64
 
 import "testing"
 
-func extractBitsOne(t *testing.T, from uint32, start, size uint, expect uint32) {
-	ret := extractBits(from, start, size)
-	if ret != expect {
-		t.Fatalf("extractBits(%08x, %d, %d) = %x, want %x",
-			from, start, size, ret, expect)
-	}
-}
-
 func TestExtractBits(t *testing.T) {
 	extractBitsOne(t, 0, 0, 0, 0)
 	extractBitsOne(t, 0xffffffff, 0, 0, 0)
@@ -32,4 +24,12 @@ func TestExtractBits(t *testing.T) {
 	extractBitsOne(t, val, 24, 5, 3)
 	extractBitsOne(t, val, 19, 5, 2)
 	extractBitsOne(t, val, 11, 5, 1)
+}
+
+func extractBitsOne(t *testing.T, from uint32, start, size uint, expect uint32) {
+	ret := extractBits(from, start, size)
+	if ret != expect {
+		t.Fatalf("extractBits(%08x, %d, %d) = %x, want %x",
+			from, start, size, ret, expect)
+	}
 }

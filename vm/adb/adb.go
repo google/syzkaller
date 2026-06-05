@@ -83,20 +83,6 @@ var (
 	emulatorID    = `^emulator\-\d+$`
 )
 
-func loadDevice(data []byte) (*Device, error) {
-	devObj := &Device{}
-	var devStr string
-	err1 := config.LoadData(data, devObj)
-	err2 := config.LoadData(data, &devStr)
-	if err1 != nil && err2 != nil {
-		return nil, fmt.Errorf("failed to parse adb vm config: %w %w", err1, err2)
-	}
-	if err2 == nil {
-		devObj.Serial = devStr
-	}
-	return devObj, nil
-}
-
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Adb:          "adb",
@@ -193,25 +179,25 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	return inst, nil
 }
 
+func loadDevice(data []byte) (*Device, error) {
+	devObj := &Device{}
+	var devStr string
+	err1 := config.LoadData(data, devObj)
+	err2 := config.LoadData(data, &devStr)
+	if err1 != nil && err2 != nil {
+		return nil, fmt.Errorf("failed to parse adb vm config: %w %w", err1, err2)
+	}
+	if err2 == nil {
+		devObj.Serial = devStr
+	}
+	return devObj, nil
+}
+
 var (
 	consoleCacheMu sync.Mutex
 	consoleToDev   = make(map[string]string)
 	devToConsole   = make(map[string]string)
 )
-
-func parseAdbOutToInt(out []byte) int {
-	val := 0
-	for _, c := range out {
-		if c >= '0' && c <= '9' {
-			val = val*10 + int(c) - '0'
-			continue
-		}
-		if val != 0 {
-			break
-		}
-	}
-	return val
-}
 
 // findConsole returns console file associated with the dev device (e.g. /dev/ttyUSB0).
 // This code was tested with Suzy-Q and Android Serial Cable (ASC). For Suzy-Q see:
@@ -525,6 +511,20 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 	return val, nil
 }
 
+func parseAdbOutToInt(out []byte) int {
+	val := 0
+	for _, c := range out {
+		if c >= '0' && c <= '9' {
+			val = val*10 + int(c) - '0'
+			continue
+		}
+		if val != 0 {
+			break
+		}
+	}
+	return val
+}
+
 func (inst *instance) Close() error {
 	close(inst.closed)
 	return nil
@@ -537,18 +537,6 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	}
 	inst.adb("shell", "chmod", "+x", vmDst)
 	return vmDst, nil
-}
-
-// Check if the device is cuttlefish on remote vm.
-func isRemoteCuttlefish(dev string) (bool, string) {
-	if !strings.Contains(dev, ":") {
-		return false, ""
-	}
-	ip, _, _ := strings.Cut(dev, ":")
-	if ip == "localhost" || ip == "0.0.0.0" || ip == "127.0.0.1" {
-		return false, ip
-	}
-	return true, ip
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
@@ -613,6 +601,18 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		Debug:   inst.debug,
 		Scale:   inst.timeouts.Scale,
 	})
+}
+
+// Check if the device is cuttlefish on remote vm.
+func isRemoteCuttlefish(dev string) (bool, string) {
+	if !strings.Contains(dev, ":") {
+		return false, ""
+	}
+	ip, _, _ := strings.Cut(dev, ":")
+	if ip == "localhost" || ip == "0.0.0.0" || ip == "127.0.0.1" {
+		return false, ip
+	}
+	return true, ip
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

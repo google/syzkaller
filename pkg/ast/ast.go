@@ -4,14 +4,6 @@
 // Package ast parses and formats sys files.
 package ast
 
-// Pos represents source info for AST nodes.
-type Pos struct {
-	File string
-	Off  int // byte offset, starting at 0
-	Line int // line number, starting at 1
-	Col  int // column number, starting at 1 (byte count)
-}
-
 // Description contains top-level nodes of a parsed sys description.
 type Description struct {
 	Nodes []Node
@@ -42,17 +34,9 @@ type NewLine struct {
 	Pos Pos
 }
 
-func (n *NewLine) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokNewLine], ""
-}
-
 type Comment struct {
 	Pos  Pos
 	Text string
-}
-
-func (n *Comment) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokComment], ""
 }
 
 type Meta struct {
@@ -60,26 +44,14 @@ type Meta struct {
 	Value *Type
 }
 
-func (n *Meta) Info() (Pos, string, string) {
-	return n.Pos, "meta", n.Value.Ident
-}
-
 type Include struct {
 	Pos  Pos
 	File *String
 }
 
-func (n *Include) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokInclude], n.File.Value
-}
-
 type Incdir struct {
 	Pos Pos
 	Dir *String
-}
-
-func (n *Incdir) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokInclude], ""
 }
 
 type Define struct {
@@ -88,19 +60,11 @@ type Define struct {
 	Value *Int
 }
 
-func (n *Define) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokDefine], n.Name.Name
-}
-
 type Resource struct {
 	Pos    Pos
 	Name   *Ident
 	Base   *Type
 	Values []*Int
-}
-
-func (n *Resource) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokResource], n.Name.Name
 }
 
 type Call struct {
@@ -113,10 +77,6 @@ type Call struct {
 	Attrs    []*Type
 }
 
-func (n *Call) Info() (Pos, string, string) {
-	return n.Pos, "syscall", n.Name.Name
-}
-
 type Struct struct {
 	Pos      Pos
 	Name     *Ident
@@ -126,56 +86,16 @@ type Struct struct {
 	IsUnion  bool
 }
 
-func (n *Struct) Info() (Pos, string, string) {
-	typ := "struct"
-	if n.IsUnion {
-		typ = "union"
-	}
-	return n.Pos, typ, n.Name.Name
-}
-
 type IntFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*Int
 }
 
-func (n *IntFlags) Info() (Pos, string, string) {
-	return n.Pos, "flags", n.Name.Name
-}
-
-func (n *IntFlags) SetValues(values []*Int) {
-	n.Values = values
-}
-
-func (n *IntFlags) GetValues() []*Int {
-	return n.Values
-}
-
-func (n *IntFlags) GetPos() Pos {
-	return n.Pos
-}
-
 type StrFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*String
-}
-
-func (n *StrFlags) Info() (Pos, string, string) {
-	return n.Pos, "string flags", n.Name.Name
-}
-
-func (n *StrFlags) SetValues(values []*String) {
-	n.Values = values
-}
-
-func (n *StrFlags) GetValues() []*String {
-	return n.Values
-}
-
-func (n *StrFlags) GetPos() Pos {
-	return n.Pos
 }
 
 type TypeDef struct {
@@ -188,18 +108,10 @@ type TypeDef struct {
 	Struct *Struct
 }
 
-func (n *TypeDef) Info() (Pos, string, string) {
-	return n.Pos, "type", n.Name.Name
-}
-
 // Not top-level AST nodes.
 type Ident struct {
 	Pos  Pos
 	Name string
-}
-
-func (n *Ident) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokIdent], n.Name
 }
 
 type String struct {
@@ -208,8 +120,12 @@ type String struct {
 	Fmt   StrFmt
 }
 
-func (n *String) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokString], ""
+func (n *StrFlags) SetValues(values []*String) {
+	n.Values = values
+}
+
+func (n *StrFlags) GetValues() []*String {
+	return n.Values
 }
 
 func (n *String) GetName() string {
@@ -242,8 +158,12 @@ type Int struct {
 	CExpr    string
 }
 
-func (n *Int) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokInt], ""
+func (n *IntFlags) SetValues(values []*Int) {
+	n.Values = values
+}
+
+func (n *IntFlags) GetValues() []*Int {
+	return n.Values
 }
 
 func (n *Int) GetName() string {
@@ -266,10 +186,6 @@ type BinaryExpression struct {
 	Right    *Type
 }
 
-func (n *BinaryExpression) Info() (Pos, string, string) {
-	return n.Pos, "binary-expression", ""
-}
-
 type Type struct {
 	Pos Pos
 	// Only one of Value, Ident, String, Expression is filled.
@@ -286,10 +202,6 @@ type Type struct {
 	Args []*Type
 }
 
-func (n *Type) Info() (Pos, string, string) {
-	return n.Pos, "type-opt", n.Ident
-}
-
 type Field struct {
 	Pos      Pos
 	Name     *Ident
@@ -297,6 +209,94 @@ type Field struct {
 	Attrs    []*Type
 	NewBlock bool // separated from previous fields by a new line
 	Comments []*Comment
+}
+
+// Pos represents source info for AST nodes.
+type Pos struct {
+	File string
+	Off  int // byte offset, starting at 0
+	Line int // line number, starting at 1
+	Col  int // column number, starting at 1 (byte count)
+}
+
+func (n *NewLine) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokNewLine], ""
+}
+
+func (n *Comment) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokComment], ""
+}
+
+func (n *Meta) Info() (Pos, string, string) {
+	return n.Pos, "meta", n.Value.Ident
+}
+
+func (n *Include) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], n.File.Value
+}
+
+func (n *Incdir) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], ""
+}
+
+func (n *Define) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokDefine], n.Name.Name
+}
+
+func (n *Resource) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokResource], n.Name.Name
+}
+
+func (n *Call) Info() (Pos, string, string) {
+	return n.Pos, "syscall", n.Name.Name
+}
+
+func (n *Struct) Info() (Pos, string, string) {
+	typ := "struct"
+	if n.IsUnion {
+		typ = "union"
+	}
+	return n.Pos, typ, n.Name.Name
+}
+
+func (n *IntFlags) Info() (Pos, string, string) {
+	return n.Pos, "flags", n.Name.Name
+}
+
+func (n *IntFlags) GetPos() Pos {
+	return n.Pos
+}
+
+func (n *StrFlags) Info() (Pos, string, string) {
+	return n.Pos, "string flags", n.Name.Name
+}
+
+func (n *StrFlags) GetPos() Pos {
+	return n.Pos
+}
+
+func (n *TypeDef) Info() (Pos, string, string) {
+	return n.Pos, "type", n.Name.Name
+}
+
+func (n *Ident) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokIdent], n.Name
+}
+
+func (n *String) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokString], ""
+}
+
+func (n *Int) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInt], ""
+}
+
+func (n *BinaryExpression) Info() (Pos, string, string) {
+	return n.Pos, "binary-expression", ""
+}
+
+func (n *Type) Info() (Pos, string, string) {
+	return n.Pos, "type-opt", n.Ident
 }
 
 func (n *Field) Info() (Pos, string, string) {

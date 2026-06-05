@@ -36,7 +36,9 @@ type CrashStore struct {
 }
 
 const reproFileName = "repro.prog"
+
 const cReproFileName = "repro.cprog"
+
 const straceFileName = "strace.log"
 
 const MaxReproAttempts = 3
@@ -410,13 +412,13 @@ func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 	return ret, nil
 }
 
+func (cs *CrashStore) path(title string) string {
+	return filepath.Join(cs.BaseDir, "crashes", crashHash(title))
+}
+
 func crashHash(title string) string {
 	sig := hash.Hash([]byte(title))
 	return sig.String()
-}
-
-func (cs *CrashStore) path(title string) string {
-	return filepath.Join(cs.BaseDir, "crashes", crashHash(title))
 }
 
 func (cs *CrashStore) HasMemoryDump(title string) bool {

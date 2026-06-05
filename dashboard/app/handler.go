@@ -96,15 +96,6 @@ func logErrorPrepareStatus(ctx context.Context, err error) int {
 	return status
 }
 
-func isRobot(r *http.Request) bool {
-	userAgent := strings.ToLower(strings.Join(r.Header["User-Agent"], " "))
-	if strings.HasPrefix(userAgent, "curl") ||
-		strings.HasPrefix(userAgent, "wget") {
-		return true
-	}
-	return false
-}
-
 // We don't count the request round trip time here.
 // Actual delay will be the minDelay + requestRoundTripTime.
 func backpressureRobots(ctx context.Context, r *http.Request) func() {
@@ -123,6 +114,15 @@ func backpressureRobots(ctx context.Context, r *http.Request) func() {
 		case <-time.After(time.Until(delayUntil)):
 		}
 	}
+}
+
+func isRobot(r *http.Request) bool {
+	userAgent := strings.ToLower(strings.Join(r.Header["User-Agent"], " "))
+	if strings.HasPrefix(userAgent, "curl") ||
+		strings.HasPrefix(userAgent, "wget") {
+		return true
+	}
+	return false
 }
 
 func throttleRequest(ctx context.Context, w http.ResponseWriter, r *http.Request) bool {
@@ -181,6 +181,7 @@ type (
 )
 
 var ErrClientNotFound = &ErrClient{errors.New("resource not found")}
+
 var ErrClientBadRequest = &ErrClient{errors.New("bad request")}
 
 func (ce *ErrClient) HTTPStatus() int {
@@ -236,19 +237,6 @@ type uiNamespace struct {
 
 type cookieData struct {
 	Namespace string `json:"namespace"`
-}
-
-func commonHeaderRaw(ctx context.Context, r *http.Request) *uiHeader {
-	h := &uiHeader{
-		Admin:               accessLevel(ctx, r) == AccessAdmin,
-		URLPath:             r.URL.Path,
-		AnalyticsTrackingID: getConfig(ctx).AnalyticsTrackingID,
-		ContactEmail:        getConfig(ctx).ContactEmail,
-	}
-	if user.Current(ctx) == nil {
-		h.LoginLink, _ = user.LoginURL(ctx, r.URL.String())
-	}
-	return h
 }
 
 func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, ns string) (*uiHeader, error) {
@@ -315,6 +303,19 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 		h.ShowCoverageMenu = cfg.Coverage != nil
 	}
 	return h, nil
+}
+
+func commonHeaderRaw(ctx context.Context, r *http.Request) *uiHeader {
+	h := &uiHeader{
+		Admin:               accessLevel(ctx, r) == AccessAdmin,
+		URLPath:             r.URL.Path,
+		AnalyticsTrackingID: getConfig(ctx).AnalyticsTrackingID,
+		ContactEmail:        getConfig(ctx).ContactEmail,
+	}
+	if user.Current(ctx) == nil {
+		h.LoginLink, _ = user.LoginURL(ctx, r.URL.String())
+	}
+	return h
 }
 
 const cookieName = "syzkaller"

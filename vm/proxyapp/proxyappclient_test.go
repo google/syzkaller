@@ -31,33 +31,6 @@ var testEnv = &vmimpl.Env{
   }
 `)}
 
-func makeTestParams() *proxyAppParams {
-	return &proxyAppParams{
-		CommandRunner:  osutilCommandContext,
-		InitRetryDelay: 0,
-		LogOutput:      io.Discard,
-	}
-}
-
-func makeMockProxyAppProcess(t *testing.T) (
-	*mockProxyAppInterface, io.WriteCloser, io.ReadCloser, io.ReadCloser) {
-	rStdin, wStdin := io.Pipe()
-	rStdout, wStdout := io.Pipe()
-	rStderr, wStderr := io.Pipe()
-	wStderr.Close()
-
-	server := rpc.NewServer()
-	handler := makeMockProxyAppInterface(t)
-	server.RegisterName("ProxyVM", struct{ proxyrpc.ProxyAppInterface }{handler})
-
-	go server.ServeCodec(jsonrpc.NewServerCodec(stdInOutCloser{
-		rStdin,
-		wStdout,
-	}))
-
-	return handler, wStdin, rStdout, rStderr
-}
-
 type nopWriteCloser struct {
 	io.Writer
 }
@@ -82,6 +55,14 @@ func TestCtor_ReadBadConfig(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Nil(t, pool)
+}
+
+func makeTestParams() *proxyAppParams {
+	return &proxyAppParams{
+		CommandRunner:  osutilCommandContext,
+		InitRetryDelay: 0,
+		LogOutput:      io.Discard,
+	}
 }
 
 func TestCtor_FailedPipes(t *testing.T) {
@@ -170,64 +151,6 @@ func TestCtor_FailedConstructPool(t *testing.T) {
 	assert.Nil(t, p)
 }
 
-func initProxyAppServerFixture(mProxyAppServer *mockProxyAppInterface) *mockProxyAppInterface {
-	mProxyAppServer.
-		On("CreatePool", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			out := args.Get(1).(*proxyrpc.CreatePoolResult)
-			out.Count = 2
-		}).
-		Return(nil).
-		Once().
-		On("PoolLogs", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			select {
-			case mProxyAppServer.OnLogsReceived <- true:
-			default:
-			}
-		}).
-		Return(nil).
-		// PoolLogs is optional as we can call .closeProxy any time.
-		// If PoolLogs call is expected we are checking for OnLogsReceived.
-		// TODO: refactor it once Mock.Unset() is available.
-		Maybe()
-
-	return mProxyAppServer
-}
-
-// TODO: to remove duplicate see TestCtor_FailedConstructPool() comment.
-func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, *proxyAppParams) {
-	mProxyAppServer, stdin, stdout, stderr :=
-		makeMockProxyAppProcess(t)
-	initProxyAppServerFixture(mProxyAppServer)
-
-	mCmdRunner, params := makeMockCommandRunner(t)
-	mCmdRunner.
-		On("StdinPipe").
-		Return(stdin, nil).
-		On("StdoutPipe").
-		Return(stdout, nil).
-		On("StderrPipe").
-		Return(stderr, nil).
-		On("Start").
-		Return(nil).
-		On("Wait").
-		Run(func(args mock.Arguments) {
-			<-mCmdRunner.ctx.Done()
-			mCmdRunner.MethodCalled("waitDone")
-		}).
-		Return(nil).
-		Maybe()
-
-	return mProxyAppServer, mCmdRunner, params
-}
-
-func poolFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, vmimpl.Pool) {
-	mProxyAppServer, mCmdRunner, params := proxyAppServerFixture(t)
-	p, _ := ctor(params, testEnv)
-	return mProxyAppServer, mCmdRunner, p
-}
-
 func TestPool_Create_Ok(t *testing.T) {
 	mockServer, _, p := poolFixture(t)
 	mockServer.
@@ -281,25 +204,6 @@ func TestPool_Create_ProxyFailure(t *testing.T) {
 	inst, err := p.Create(t.Context(), "workdir", 0)
 	assert.Nil(t, inst)
 	assert.NotNil(t, err)
-}
-
-// nolint: dupl
-func createInstanceFixture(t *testing.T) (*mock.Mock, vmimpl.Instance) {
-	mockServer, _, p := poolFixture(t)
-	mockServer.
-		On("CreateInstance", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			in := args.Get(0).(proxyrpc.CreateInstanceParams)
-			out := args.Get(1).(*proxyrpc.CreateInstanceResult)
-			out.ID = fmt.Sprintf("instance_id_%v", in.Index)
-		}).
-		Return(nil)
-
-	inst, err := p.Create(t.Context(), "workdir", 0)
-	assert.Nil(t, err)
-	assert.NotNil(t, inst)
-
-	return &mockServer.Mock, inst
 }
 
 func TestInstance_Close(t *testing.T) {
@@ -504,6 +408,102 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 		"error reading progress from instance_id_0:test_run_id: runreadprogresserror\nSYZFAIL: proxy app plugin error\n",
 		output,
 	)
+}
+
+// nolint: dupl
+func createInstanceFixture(t *testing.T) (*mock.Mock, vmimpl.Instance) {
+	mockServer, _, p := poolFixture(t)
+	mockServer.
+		On("CreateInstance", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			in := args.Get(0).(proxyrpc.CreateInstanceParams)
+			out := args.Get(1).(*proxyrpc.CreateInstanceResult)
+			out.ID = fmt.Sprintf("instance_id_%v", in.Index)
+		}).
+		Return(nil)
+
+	inst, err := p.Create(t.Context(), "workdir", 0)
+	assert.Nil(t, err)
+	assert.NotNil(t, inst)
+
+	return &mockServer.Mock, inst
+}
+
+func poolFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, vmimpl.Pool) {
+	mProxyAppServer, mCmdRunner, params := proxyAppServerFixture(t)
+	p, _ := ctor(params, testEnv)
+	return mProxyAppServer, mCmdRunner, p
+}
+
+// TODO: to remove duplicate see TestCtor_FailedConstructPool() comment.
+func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, *proxyAppParams) {
+	mProxyAppServer, stdin, stdout, stderr :=
+		makeMockProxyAppProcess(t)
+	initProxyAppServerFixture(mProxyAppServer)
+
+	mCmdRunner, params := makeMockCommandRunner(t)
+	mCmdRunner.
+		On("StdinPipe").
+		Return(stdin, nil).
+		On("StdoutPipe").
+		Return(stdout, nil).
+		On("StderrPipe").
+		Return(stderr, nil).
+		On("Start").
+		Return(nil).
+		On("Wait").
+		Run(func(args mock.Arguments) {
+			<-mCmdRunner.ctx.Done()
+			mCmdRunner.MethodCalled("waitDone")
+		}).
+		Return(nil).
+		Maybe()
+
+	return mProxyAppServer, mCmdRunner, params
+}
+
+func makeMockProxyAppProcess(t *testing.T) (
+	*mockProxyAppInterface, io.WriteCloser, io.ReadCloser, io.ReadCloser) {
+	rStdin, wStdin := io.Pipe()
+	rStdout, wStdout := io.Pipe()
+	rStderr, wStderr := io.Pipe()
+	wStderr.Close()
+
+	server := rpc.NewServer()
+	handler := makeMockProxyAppInterface(t)
+	server.RegisterName("ProxyVM", struct{ proxyrpc.ProxyAppInterface }{handler})
+
+	go server.ServeCodec(jsonrpc.NewServerCodec(stdInOutCloser{
+		rStdin,
+		wStdout,
+	}))
+
+	return handler, wStdin, rStdout, rStderr
+}
+
+func initProxyAppServerFixture(mProxyAppServer *mockProxyAppInterface) *mockProxyAppInterface {
+	mProxyAppServer.
+		On("CreatePool", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			out := args.Get(1).(*proxyrpc.CreatePoolResult)
+			out.Count = 2
+		}).
+		Return(nil).
+		Once().
+		On("PoolLogs", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			select {
+			case mProxyAppServer.OnLogsReceived <- true:
+			default:
+			}
+		}).
+		Return(nil).
+		// PoolLogs is optional as we can call .closeProxy any time.
+		// If PoolLogs call is expected we are checking for OnLogsReceived.
+		// TODO: refactor it once Mock.Unset() is available.
+		Maybe()
+
+	return mProxyAppServer
 }
 
 // TODO: test for periodical proxyapp subprocess crashes handling.

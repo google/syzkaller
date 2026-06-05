@@ -20,6 +20,10 @@ type FuncLines struct {
 	Lines    []int64 // List of lines we know belong to this function name according to the addr2line output.
 }
 
+type FunctionFinder struct {
+	fileLineToFuncName map[string]map[int]string
+}
+
 func MakeFuncFinder(ctx context.Context, client spannerclient.SpannerClient, ns string, timePeriod TimePeriod,
 ) (*FunctionFinder, error) {
 	stmt := spanner.Statement{
@@ -58,10 +62,6 @@ where
 		}
 	}
 	return ff, nil
-}
-
-type FunctionFinder struct {
-	fileLineToFuncName map[string]map[int]string
 }
 
 func (ff *FunctionFinder) addLine(fileName, funcName string, line int) {

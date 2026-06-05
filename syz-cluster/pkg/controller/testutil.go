@@ -23,33 +23,6 @@ type EntityIDs struct {
 	SessionID string
 }
 
-// UploadTestSeries returns a (series ID, session ID) tuple.
-func UploadTestSeries(t *testing.T, ctx context.Context,
-	client *api.Client, series *api.Series) EntityIDs {
-	retSeries, err := client.UploadSeries(ctx, series)
-	assert.NoError(t, err)
-	retSession, err := client.UploadSession(ctx, &api.NewSession{
-		ExtID: series.ExtID,
-	})
-	assert.NoError(t, err)
-	return EntityIDs{
-		SeriesID:  retSeries.ID,
-		SessionID: retSession.ID,
-	}
-}
-
-func UploadTestBuild(t *testing.T, ctx context.Context, client *api.Client,
-	build *api.Build) *api.UploadBuildResp {
-	ret, err := client.UploadBuild(ctx, &api.UploadBuildReq{
-		Build:  *build,
-		Log:    []byte("build log"),
-		Config: []byte("build config"),
-	})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, ret.ID)
-	return ret
-}
-
 func TestServer(t *testing.T, env *app.AppEnvironment) *api.Client {
 	apiServer := NewAPIServer(env)
 	server := httptest.NewServer(apiServer.Mux())
@@ -71,32 +44,6 @@ func DummySeries() *api.Series {
 			},
 		},
 	}
-}
-
-func DummyBuild() *api.Build {
-	return &api.Build{
-		Arch:       "amd64",
-		TreeName:   "mainline",
-		TreeURL:    "https://git/repo",
-		ConfigName: "config",
-		CommitHash: "abcd",
-		Compiler:   "compiler",
-	}
-}
-
-func DummyFindings() []*api.RawFinding {
-	var findings []*api.RawFinding
-	for i := range 2 {
-		findings = append(findings, &api.RawFinding{
-			Title:    fmt.Sprintf("finding %d", i),
-			TestName: "test",
-			Report:   []byte(fmt.Sprintf("report %d", i)),
-			Log:      []byte(fmt.Sprintf("log %d", i)),
-			SyzRepro: []byte(fmt.Sprintf("log %d", i)),
-			CRepro:   []byte(fmt.Sprintf("log %d", i)),
-		})
-	}
-	return findings
 }
 
 type SeriesWithFindingIDs struct {
@@ -134,21 +81,62 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 	}
 }
 
+// UploadTestSeries returns a (series ID, session ID) tuple.
+func UploadTestSeries(t *testing.T, ctx context.Context,
+	client *api.Client, series *api.Series) EntityIDs {
+	retSeries, err := client.UploadSeries(ctx, series)
+	assert.NoError(t, err)
+	retSession, err := client.UploadSession(ctx, &api.NewSession{
+		ExtID: series.ExtID,
+	})
+	assert.NoError(t, err)
+	return EntityIDs{
+		SeriesID:  retSeries.ID,
+		SessionID: retSession.ID,
+	}
+}
+
+func UploadTestBuild(t *testing.T, ctx context.Context, client *api.Client,
+	build *api.Build) *api.UploadBuildResp {
+	ret, err := client.UploadBuild(ctx, &api.UploadBuildReq{
+		Build:  *build,
+		Log:    []byte("build log"),
+		Config: []byte("build config"),
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ret.ID)
+	return ret
+}
+
+func DummyBuild() *api.Build {
+	return &api.Build{
+		Arch:       "amd64",
+		TreeName:   "mainline",
+		TreeURL:    "https://git/repo",
+		ConfigName: "config",
+		CommitHash: "abcd",
+		Compiler:   "compiler",
+	}
+}
+
+func DummyFindings() []*api.RawFinding {
+	var findings []*api.RawFinding
+	for i := range 2 {
+		findings = append(findings, &api.RawFinding{
+			Title:    fmt.Sprintf("finding %d", i),
+			TestName: "test",
+			Report:   []byte(fmt.Sprintf("report %d", i)),
+			Log:      []byte(fmt.Sprintf("log %d", i)),
+			SyzRepro: []byte(fmt.Sprintf("log %d", i)),
+			CRepro:   []byte(fmt.Sprintf("log %d", i)),
+		})
+	}
+	return findings
+}
+
 func StartSession(t *testing.T, env *app.AppEnvironment, sessionID string) {
 	repo := db.NewSessionRepository(env.Spanner)
 	err := repo.Start(context.Background(), sessionID)
-	assert.NoError(t, err)
-}
-
-func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
-	repo := db.NewSessionRepository(env.Spanner)
-	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {
-		if session.StartedAt.IsNull() {
-			session.SetStartedAt(time.Now())
-		}
-		session.SetFinishedAt(time.Now())
-		return nil
-	})
 	assert.NoError(t, err)
 }
 
@@ -195,4 +183,16 @@ func FakeJobSession(t *testing.T, env *app.AppEnvironment, client *api.Client, s
 
 	MarkSessionFinished(t, env, sessionID)
 	return sessionID
+}
+
+func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
+	repo := db.NewSessionRepository(env.Spanner)
+	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {
+		if session.StartedAt.IsNull() {
+			session.SetStartedAt(time.Now())
+		}
+		session.SetFinishedAt(time.Now())
+		return nil
+	})
+	assert.NoError(t, err)
 }

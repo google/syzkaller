@@ -128,6 +128,16 @@ func mergeDiscussionSummary(ctx context.Context, key, source string, diff Discus
 	return nil
 }
 
+func (bug *Bug) discussionSummary() DiscussionSummary {
+	// TODO: if there ever appear any non-public DiscussionSource, we'll need to consider
+	// their accessLevel as well.
+	var ret DiscussionSummary
+	for _, item := range bug.DiscussionInfo {
+		ret.merge(item.Summary)
+	}
+	return ret
+}
+
 func (ds *DiscussionSummary) merge(diff DiscussionSummary) {
 	ds.AllMessages += diff.AllMessages
 	ds.ExternalMessages += diff.ExternalMessages
@@ -137,16 +147,6 @@ func (ds *DiscussionSummary) merge(diff DiscussionSummary) {
 	if ds.LastPatchMessage.Before(diff.LastPatchMessage) {
 		ds.LastPatchMessage = diff.LastPatchMessage
 	}
-}
-
-func (bug *Bug) discussionSummary() DiscussionSummary {
-	// TODO: if there ever appear any non-public DiscussionSource, we'll need to consider
-	// their accessLevel as well.
-	var ret DiscussionSummary
-	for _, item := range bug.DiscussionInfo {
-		ret.merge(item.Summary)
-	}
-	return ret
 }
 
 const maxMessagesInDiscussion = 1500

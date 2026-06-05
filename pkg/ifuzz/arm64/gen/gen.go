@@ -62,14 +62,6 @@ type insnDesc struct {
 	Alias  string
 }
 
-func isPrivateInsn(insn arm64.Insn) bool {
-	switch insn.Name {
-	case "AT", "DC", "IC", "SYS", "SYSL", "TLBI":
-		return true
-	}
-	return false
-}
-
 func JSONToInsns(jsonStr []byte) []*arm64.Insn {
 	var insnDescriptions []insnDesc
 	err := json.Unmarshal(jsonStr, &insnDescriptions)
@@ -136,4 +128,12 @@ func JSONToInsns(jsonStr []byte) []*arm64.Insn {
 		ret = append(ret, insn)
 	}
 	return ret
+}
+
+func isPrivateInsn(insn arm64.Insn) bool {
+	switch insn.Name {
+	case "AT", "DC", "IC", "SYS", "SYSL", "TLBI":
+		return true
+	}
+	return false
 }

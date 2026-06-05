@@ -73,6 +73,81 @@ type RunTestResult struct {
 	ConsoleOutput string
 }
 
+type reproRunner struct {
+	env             instance.Env
+	args            ReproduceArgs
+	collectCoverage bool
+}
+
+type cachedExecution struct {
+	BugTitle       string
+	Report         string
+	OtherReports   []string
+	FaultInjection string
+	Error          string
+	Coverage       [][]symbolizer.Frame
+}
+
+func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return nil, err
+	}
+	return cached.Coverage, nil
+}
+
+func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
+	res, _, err := ReproduceFuncWithCoverage(ctx, args, false)
+	return res, err
+}
+
+func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
+	collectCoverage bool) (reproduceResult, string, error) {
+	imageData, err := os.ReadFile(args.Image)
+	if err != nil {
+		return reproduceResult{}, "", err
+	}
+	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
+		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 6",
+		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
+		args.Type, hash.String(args.VM), hash.String(args.ReproC),
+		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
+
+	cached, cachedID, err := aflow.CacheObject(ctx, "repro", desc, func() (cachedExecution, error) {
+		var res cachedExecution
+		workdir, err := ctx.TempDir()
+		if err != nil {
+			return res, err
+		}
+		testRes, err := RunTest(args, workdir, collectCoverage)
+		if testRes.Report != nil {
+			res.BugTitle = testRes.Report.Title
+			res.Report = string(testRes.Report.Report)
+		}
+		for _, rep := range testRes.OtherReports {
+			res.OtherReports = append(res.OtherReports, string(rep.Report))
+		}
+		res.FaultInjection = testRes.FaultInjection
+		res.Error = testRes.BootError
+		res.Coverage = testRes.Coverage
+		return res, err
+	})
+	if err != nil {
+		return reproduceResult{}, "", err
+	}
+	if cached.Error != "" {
+		return reproduceResult{}, "", errors.New(cached.Error)
+	} else if cached.Report == "" && len(cached.OtherReports) == 0 {
+		return reproduceResult{}, cachedID, aflow.FlowError(ErrDidNotCrash)
+	}
+	return reproduceResult{
+		ReproducedBugTitle:       cached.BugTitle,
+		ReproducedCrashReport:    cached.Report,
+		OtherCrashReports:        cached.OtherReports,
+		ReproducedFaultInjection: cached.FaultInjection,
+	}, cachedID, nil
+}
+
 // RunTest boots the kernel and runs a single test program.
 func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
 	res := RunTestResult{}
@@ -158,12 +233,6 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	}
 
 	return aggregateTestResults(validResults, crashReporter, args.KernelObj, targetArch)
-}
-
-type reproRunner struct {
-	env             instance.Env
-	args            ReproduceArgs
-	collectCoverage bool
 }
 
 func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
@@ -256,75 +325,6 @@ func parseTestError(err *instance.TestError) string {
 		extraInfo = err.Report.Report
 	}
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
-}
-
-type cachedExecution struct {
-	BugTitle       string
-	Report         string
-	OtherReports   []string
-	FaultInjection string
-	Error          string
-	Coverage       [][]symbolizer.Frame
-}
-
-func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
-	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
-	if err != nil {
-		return nil, err
-	}
-	return cached.Coverage, nil
-}
-
-func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
-	collectCoverage bool) (reproduceResult, string, error) {
-	imageData, err := os.ReadFile(args.Image)
-	if err != nil {
-		return reproduceResult{}, "", err
-	}
-	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 6",
-		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
-		args.Type, hash.String(args.VM), hash.String(args.ReproC),
-		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
-
-	cached, cachedID, err := aflow.CacheObject(ctx, "repro", desc, func() (cachedExecution, error) {
-		var res cachedExecution
-		workdir, err := ctx.TempDir()
-		if err != nil {
-			return res, err
-		}
-		testRes, err := RunTest(args, workdir, collectCoverage)
-		if testRes.Report != nil {
-			res.BugTitle = testRes.Report.Title
-			res.Report = string(testRes.Report.Report)
-		}
-		for _, rep := range testRes.OtherReports {
-			res.OtherReports = append(res.OtherReports, string(rep.Report))
-		}
-		res.FaultInjection = testRes.FaultInjection
-		res.Error = testRes.BootError
-		res.Coverage = testRes.Coverage
-		return res, err
-	})
-	if err != nil {
-		return reproduceResult{}, "", err
-	}
-	if cached.Error != "" {
-		return reproduceResult{}, "", errors.New(cached.Error)
-	} else if cached.Report == "" && len(cached.OtherReports) == 0 {
-		return reproduceResult{}, cachedID, aflow.FlowError(ErrDidNotCrash)
-	}
-	return reproduceResult{
-		ReproducedBugTitle:       cached.BugTitle,
-		ReproducedCrashReport:    cached.Report,
-		OtherCrashReports:        cached.OtherReports,
-		ReproducedFaultInjection: cached.FaultInjection,
-	}, cachedID, nil
-}
-
-func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
-	res, _, err := ReproduceFuncWithCoverage(ctx, args, false)
-	return res, err
 }
 
 func symbolize(targetArch, kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {

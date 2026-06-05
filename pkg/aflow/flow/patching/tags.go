@@ -27,17 +27,6 @@ type tagExtractorState struct {
 	BaseReportedBy []string
 }
 
-func normalizeTagValue(val string) string {
-	addr, err := mail.ParseAddress(val)
-	if err != nil {
-		return val
-	}
-	if addr.Name == "" {
-		return addr.Address
-	}
-	return fmt.Sprintf("%s <%s>", addr.Name, addr.Address)
-}
-
 func validateTagExtractorOutputs(ctx *aflow.Context, state tagExtractorState,
 	args tagExtractorArgs) (tagExtractorArgs, error) {
 	tagsMap := map[string][]string{
@@ -78,6 +67,17 @@ func validateTagExtractorOutputs(ctx *aflow.Context, state tagExtractorState,
 	}
 	args.RemoveTags = validRemoveTags
 	return args, nil
+}
+
+func normalizeTagValue(val string) string {
+	addr, err := mail.ParseAddress(val)
+	if err != nil {
+		return val
+	}
+	if addr.Name == "" {
+		return addr.Address
+	}
+	return fmt.Sprintf("%s <%s>", addr.Name, addr.Address)
 }
 
 type tagsMergerArgs struct {

@@ -484,21 +484,6 @@ func bugListReportingConfig(ctx context.Context, ns string, stage *SubsystemRepo
 	return cfg.Config
 }
 
-func makeSubsystem(ns, name string) *Subsystem {
-	return &Subsystem{
-		Namespace: ns,
-		Name:      name,
-	}
-}
-
-func subsystemKey(ctx context.Context, s *Subsystem) *db.Key {
-	return db.NewKey(ctx, "Subsystem", fmt.Sprintf("%v-%v", s.Namespace, s.Name), 0, nil)
-}
-
-func subsystemReportKey(ctx context.Context, subsystemKey *db.Key, r *SubsystemReport) *db.Key {
-	return db.NewKey(ctx, "SubsystemReport", r.Created.UTC().Format(time.RFC822), 0, subsystemKey)
-}
-
 type subsystemsRegistry struct {
 	entities map[string]map[string]*Subsystem
 }
@@ -523,6 +508,13 @@ func (sr *subsystemsRegistry) get(ns, name string) *Subsystem {
 		ret = makeSubsystem(ns, name)
 	}
 	return ret
+}
+
+func makeSubsystem(ns, name string) *Subsystem {
+	return &Subsystem{
+		Namespace: ns,
+		Name:      name,
+	}
 }
 
 func (sr *subsystemsRegistry) store(item *Subsystem) {
@@ -618,4 +610,12 @@ func storeSubsystemReport(ctx context.Context, s *Subsystem, report *SubsystemRe
 		}
 		return nil
 	}, nil)
+}
+
+func subsystemKey(ctx context.Context, s *Subsystem) *db.Key {
+	return db.NewKey(ctx, "Subsystem", fmt.Sprintf("%v-%v", s.Namespace, s.Name), 0, nil)
+}
+
+func subsystemReportKey(ctx context.Context, subsystemKey *db.Key, r *SubsystemReport) *db.Key {
+	return db.NewKey(ctx, "SubsystemReport", r.Created.UTC().Format(time.RFC822), 0, subsystemKey)
 }

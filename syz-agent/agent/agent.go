@@ -159,21 +159,6 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	return nil
 }
 
-func reportBuildError(commit *vcs.Commit, buildErr error) {
-	var output []byte
-	title := buildErr.Error()
-	if verbose, ok := errors.AsType[*osutil.VerboseError](buildErr); ok {
-		output = verbose.Output
-	}
-	path, err := osutil.WriteTempFile(output)
-	if err != nil {
-		log.Logf(0, "failed to record syzkaller build error: %v", err)
-		return
-	}
-	log.Logf(0, "syzkaller (rev. %v) failed to build: %v, see more details in %v",
-		commit.Hash, title, path)
-}
-
 func setupUpdater(cfg *Config, exitOnUpgrade bool) (*updater.Updater, error) {
 	buildSem := osutil.NewSemaphore(1)
 	cfgUpdater := &updater.Config{
@@ -195,6 +180,21 @@ func setupUpdater(cfg *Config, exitOnUpgrade bool) (*updater.Updater, error) {
 		}] = true
 	}
 	return updater.New(cfgUpdater)
+}
+
+func reportBuildError(commit *vcs.Commit, buildErr error) {
+	var output []byte
+	title := buildErr.Error()
+	if verbose, ok := errors.AsType[*osutil.VerboseError](buildErr); ok {
+		output = verbose.Output
+	}
+	path, err := osutil.WriteTempFile(output)
+	if err != nil {
+		log.Logf(0, "failed to record syzkaller build error: %v", err)
+		return
+	}
+	log.Logf(0, "syzkaller (rev. %v) failed to build: %v, see more details in %v",
+		commit.Hash, title, path)
 }
 
 type Server struct {

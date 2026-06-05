@@ -35,10 +35,6 @@ type TypeConfig struct {
 	// TODO: here will also go compression settings, should we ever want to make it configurable.
 }
 
-func (tc *TypeConfig) Validate() error {
-	return nil
-}
-
 func (c *Config) IsEnabled(assetType dashapi.AssetType) bool {
 	return !c.Assets[assetType].Never
 }
@@ -71,5 +67,9 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("the currently supported upload destinations are: %v", allowedFormats)
 		}
 	}
+	return nil
+}
+
+func (tc *TypeConfig) Validate() error {
 	return nil
 }

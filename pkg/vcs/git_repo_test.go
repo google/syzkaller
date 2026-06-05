@@ -178,6 +178,15 @@ func TestMetadata(t *testing.T) {
 	}
 }
 
+type testCommit struct {
+	description string
+	title       string
+	title2      string
+	author      string
+	cc          []string
+	tags        []string
+}
+
 func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags bool) {
 	if !checkTags {
 		return
@@ -197,15 +206,6 @@ func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags 
 	if checkTags {
 		assert.Equal(t, test.tags, com.Tags)
 	}
-}
-
-type testCommit struct {
-	description string
-	title       string
-	title2      string
-	author      string
-	cc          []string
-	tags        []string
 }
 
 // nolint: lll

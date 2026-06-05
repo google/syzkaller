@@ -271,15 +271,6 @@ func (serv *server) Port() int {
 	return serv.serv.Addr.Port
 }
 
-// Must be simple enough to not require adding dependencies to the executor.
-func authHash(value uint64) uint64 {
-	prime1 := uint64(73856093)
-	prime2 := uint64(83492791)
-	hashValue := (value * prime1) ^ prime2
-
-	return hashValue
-}
-
 func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	// Use a random cookie, because we do not want the fuzzer to accidentally guess it and DDoS multiple managers.
 	helloCookie := rand.Uint64()
@@ -330,6 +321,15 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 
 	runner.resultCh <- err
 	return nil
+}
+
+// Must be simple enough to not require adding dependencies to the executor.
+func authHash(value uint64) uint64 {
+	prime1 := uint64(73856093)
+	prime2 := uint64(83492791)
+	hashValue := (value * prime1) ^ prime2
+
+	return hashValue
 }
 
 func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *flatrpc.Conn) error {

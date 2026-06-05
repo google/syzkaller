@@ -39,11 +39,6 @@ type FileRecord struct {
 	Manager   string
 }
 
-type RepoCommit struct {
-	Repo   string
-	Commit string
-}
-
 type MergeResult struct {
 	HitCounts   map[int]int64
 	FileExists  bool
@@ -53,6 +48,21 @@ type MergeResult struct {
 type FileCoverageMerger interface {
 	Add(record *FileRecord)
 	Result() *MergeResult
+}
+
+const allManagers = "*"
+
+type Config struct {
+	Jobs             int
+	Workdir          string
+	skipRepoClone    bool
+	Base             RepoCommit
+	FileVersProvider FileVersProvider
+}
+
+type RepoCommit struct {
+	Repo   string
+	Commit string
 }
 
 // MergeCSVWriteJSONL mergers input CSV and generates JSONL records.
@@ -111,7 +121,10 @@ func MergeCSVWriteJSONL(config *Config, descr *coveragedb.HistoryRecord, csvRead
 	return totalInstrumentedLines, totalCoveredLines, nil
 }
 
-const allManagers = "*"
+type FileMergeResult struct {
+	FilePath string
+	*MergeResult
+}
 
 func mergedCoverageRecords(fmr *FileMergeResult) ([]*coveragedb.MergedCoverageRecord, []*coveragedb.FuncLines) {
 	if !fmr.FileExists {
@@ -180,89 +193,6 @@ func bestFuncName(names []string) string {
 	return bestName
 }
 
-func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
-	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
-	repoCommitsMap := make(map[RepoCommit]bool)
-	for _, record := range records {
-		repoCommitsMap[record.RepoCommit] = true
-	}
-	repoCommitsMap[c.Base] = true
-	repoCommits := maps.Keys(repoCommitsMap)
-	fvs, err := c.FileVersProvider.GetFileVersions(targetFilePath, repoCommits...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
-	}
-	merger := makeFileLineCoverMerger(fvs, c.Base)
-	for _, record := range records {
-		merger.Add(record)
-	}
-	return merger.Result(), nil
-}
-
-func makeRecord(fields, schema []string) (*FileRecord, error) {
-	if len(fields) != len(schema) {
-		return nil, errors.New("fields size and schema size are not equal")
-	}
-	record := &FileRecord{}
-	for i, val := range fields {
-		key := schema[i]
-		var err error
-		switch key {
-		case KeyFilePath:
-			record.FilePath = val
-		case KeyFuncName:
-			record.FuncName = val
-		case KeyKernelRepo:
-			record.Repo = val
-		case KeyKernelCommit:
-			record.Commit = val
-		case KeyStartLine:
-			record.StartLine, err = readIntField(key, val)
-		case KeyHitCount:
-			record.HitCount, err = readIntField(key, val)
-		case KeyManager:
-			record.Manager = val
-		}
-		if err != nil {
-			return nil, err
-		}
-	}
-	return record, nil
-}
-
-func readIntField(field, val string) (int, error) {
-	res, err := strconv.Atoi(val)
-	if err != nil {
-		return -1, fmt.Errorf("failed to Atoi(%s) %s: %w", val, field, err)
-	}
-	return res, nil
-}
-
-type Config struct {
-	Jobs             int
-	Workdir          string
-	skipRepoClone    bool
-	Base             RepoCommit
-	FileVersProvider FileVersProvider
-}
-
-func isSchema(fields, schema []string) bool {
-	if len(fields) != len(schema) {
-		return false
-	}
-	for i := range len(fields) {
-		if fields[i] != schema[i] {
-			return false
-		}
-	}
-	return true
-}
-
-type FileMergeResult struct {
-	FilePath string
-	*MergeResult
-}
-
 func MergeCSVData(ctx context.Context, config *Config, reader io.Reader, results chan<- *FileMergeResult) error {
 	var schema []string
 	csvReader := csv.NewReader(reader)
@@ -310,6 +240,57 @@ func MergeCSVData(ctx context.Context, config *Config, reader io.Reader, results
 	return nil
 }
 
+func makeRecord(fields, schema []string) (*FileRecord, error) {
+	if len(fields) != len(schema) {
+		return nil, errors.New("fields size and schema size are not equal")
+	}
+	record := &FileRecord{}
+	for i, val := range fields {
+		key := schema[i]
+		var err error
+		switch key {
+		case KeyFilePath:
+			record.FilePath = val
+		case KeyFuncName:
+			record.FuncName = val
+		case KeyKernelRepo:
+			record.Repo = val
+		case KeyKernelCommit:
+			record.Commit = val
+		case KeyStartLine:
+			record.StartLine, err = readIntField(key, val)
+		case KeyHitCount:
+			record.HitCount, err = readIntField(key, val)
+		case KeyManager:
+			record.Manager = val
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return record, nil
+}
+
+func readIntField(field, val string) (int, error) {
+	res, err := strconv.Atoi(val)
+	if err != nil {
+		return -1, fmt.Errorf("failed to Atoi(%s) %s: %w", val, field, err)
+	}
+	return res, nil
+}
+
+func isSchema(fields, schema []string) bool {
+	if len(fields) != len(schema) {
+		return false
+	}
+	for i := range len(fields) {
+		if fields[i] != schema[i] {
+			return false
+		}
+	}
+	return true
+}
+
 type FileRecords struct {
 	fileName string
 	records  []*FileRecord
@@ -339,6 +320,25 @@ func mergeChanData(ctx context.Context, cfg *Config, recordChan <-chan *FileReco
 		})
 	}
 	return g.Wait()
+}
+
+func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
+	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
+	repoCommitsMap := make(map[RepoCommit]bool)
+	for _, record := range records {
+		repoCommitsMap[record.RepoCommit] = true
+	}
+	repoCommitsMap[c.Base] = true
+	repoCommits := maps.Keys(repoCommitsMap)
+	fvs, err := c.FileVersProvider.GetFileVersions(targetFilePath, repoCommits...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
+	}
+	merger := makeFileLineCoverMerger(fvs, c.Base)
+	for _, record := range records {
+		merger.Add(record)
+	}
+	return merger.Result(), nil
 }
 
 func groupFileRecords(ctx context.Context, recordChan <-chan *FileRecord) chan FileRecords {

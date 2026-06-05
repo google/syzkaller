@@ -285,19 +285,6 @@ func (d *DurationConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
-func checkReproTestConfig(cfg *ReproTestConfig) error {
-	if cfg.InputLogs != "" && !osutil.IsExist(cfg.InputLogs) {
-		return fmt.Errorf("input_log folder does not exist: %v", cfg.InputLogs)
-	}
-	if cfg.InputWorkdir != "" && !osutil.IsExist(cfg.InputWorkdir) {
-		return fmt.Errorf("input_workdir folder does not exist: %v", cfg.InputWorkdir)
-	}
-	if cfg.CrashesPerBug < 1 {
-		return fmt.Errorf("crashes_per_bug cannot be less than 1: %d", cfg.CrashesPerBug)
-	}
-	return nil
-}
-
 func checkConfig(cfg *TestbedConfig) error {
 	testbedNameRe := regexp.MustCompile(`^[0-9a-z\-]{1,20}$`)
 	if !testbedNameRe.MatchString(cfg.Name) {
@@ -342,6 +329,19 @@ func checkConfig(cfg *TestbedConfig) error {
 			return fmt.Errorf("duplicate checkout name: %v", co.Name)
 		}
 		names[co.Name] = true
+	}
+	return nil
+}
+
+func checkReproTestConfig(cfg *ReproTestConfig) error {
+	if cfg.InputLogs != "" && !osutil.IsExist(cfg.InputLogs) {
+		return fmt.Errorf("input_log folder does not exist: %v", cfg.InputLogs)
+	}
+	if cfg.InputWorkdir != "" && !osutil.IsExist(cfg.InputWorkdir) {
+		return fmt.Errorf("input_workdir folder does not exist: %v", cfg.InputWorkdir)
+	}
+	if cfg.CrashesPerBug < 1 {
+		return fmt.Errorf("crashes_per_bug cannot be less than 1: %d", cfg.CrashesPerBug)
 	}
 	return nil
 }

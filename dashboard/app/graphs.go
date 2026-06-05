@@ -637,37 +637,6 @@ func createCheckBox(r *http.Request, caption string, values []string) (*uiCheckb
 	return ui, nil
 }
 
-func createSlider(r *http.Request, caption string, min, max int) *uiSlider {
-	// TODO: turn this into proper ID that can be used in HTML.
-	id := caption
-	ui := &uiSlider{
-		ID:      id,
-		Caption: caption,
-		Val:     min,
-		Min:     min,
-		Max:     max,
-	}
-	if val, _ := strconv.Atoi(r.FormValue(id)); val >= min && val <= max {
-		ui.Val = val
-	}
-	return ui
-}
-
-func createMultiInput(r *http.Request, id, caption string) *uiMultiInput {
-	filteredValues := []string{}
-	for _, val := range r.Form[id] {
-		if val == "" {
-			continue
-		}
-		filteredValues = append(filteredValues, val)
-	}
-	return &uiMultiInput{
-		ID:      id,
-		Caption: caption,
-		Vals:    filteredValues,
-	}
-}
-
 func handleGraphCrashes(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
@@ -711,6 +680,37 @@ func handleGraphCrashes(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		data.Table = createCrashesTable(ctx, hdr.Namespace, data.TableDays.Val, bugs)
 	}
 	return serveTemplate(w, "graph_crashes.html", data)
+}
+
+func createSlider(r *http.Request, caption string, min, max int) *uiSlider {
+	// TODO: turn this into proper ID that can be used in HTML.
+	id := caption
+	ui := &uiSlider{
+		ID:      id,
+		Caption: caption,
+		Val:     min,
+		Min:     min,
+		Max:     max,
+	}
+	if val, _ := strconv.Atoi(r.FormValue(id)); val >= min && val <= max {
+		ui.Val = val
+	}
+	return ui
+}
+
+func createMultiInput(r *http.Request, id, caption string) *uiMultiInput {
+	filteredValues := []string{}
+	for _, val := range r.Form[id] {
+		if val == "" {
+			continue
+		}
+		filteredValues = append(filteredValues, val)
+	}
+	return &uiMultiInput{
+		ID:      id,
+		Caption: caption,
+		Vals:    filteredValues,
+	}
 }
 
 func createCrashesTable(ctx context.Context, ns string, days int, bugs []*Bug) *uiCrashPageTable {

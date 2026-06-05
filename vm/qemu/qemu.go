@@ -602,6 +602,23 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 	return args, nil
 }
 
+func splitArgs(str, templateDir string, index int) (args []string) {
+	for arg := range strings.SplitSeq(str, " ") {
+		if arg == "" {
+			continue
+		}
+		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
+		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
+		arg = handleVfioPciArg(arg, index)
+		const tcpPort = "{{TCP_PORT}}"
+		if strings.Contains(arg, tcpPort) {
+			arg = strings.ReplaceAll(arg, tcpPort, fmt.Sprint(vmimpl.UnusedTCPPort()))
+		}
+		args = append(args, arg)
+	}
+	return
+}
+
 // "vfio-pci,host=BN:DN.{{FN%8}},addr=0x11".
 func handleVfioPciArg(arg string, index int) string {
 	if !strings.Contains(arg, "{{FN%8}}") {
@@ -620,23 +637,6 @@ func handleVfioPciArg(arg string, index int) string {
 	}
 	arg = strings.ReplaceAll(arg, "{{FN%8}}", fmt.Sprint(index%8))
 	return arg
-}
-
-func splitArgs(str, templateDir string, index int) (args []string) {
-	for arg := range strings.SplitSeq(str, " ") {
-		if arg == "" {
-			continue
-		}
-		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
-		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
-		arg = handleVfioPciArg(arg, index)
-		const tcpPort = "{{TCP_PORT}}"
-		if strings.Contains(arg, tcpPort) {
-			arg = strings.ReplaceAll(arg, tcpPort, fmt.Sprint(vmimpl.UnusedTCPPort()))
-		}
-		args = append(args, arg)
-	}
-	return
 }
 
 func (inst *instance) Forward(port int) (string, error) {

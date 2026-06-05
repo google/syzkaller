@@ -17,63 +17,6 @@ type TestState struct {
 	state *State
 }
 
-func MakeTestState(t *testing.T) *TestState {
-	t.Parallel()
-	dir := t.TempDir()
-	state, err := Make(dir)
-	if err != nil {
-		t.Fatalf("failed to make state: %v", err)
-	}
-	return &TestState{t, dir, state}
-}
-
-func (ts *TestState) Reload() {
-	ts.state.Flush()
-	state, err := Make(ts.dir)
-	if err != nil {
-		ts.t.Fatalf("failed to make state: %v", err)
-	}
-	ts.state = state
-}
-
-func (ts *TestState) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) {
-	ts.t.Helper()
-	if err := ts.state.Connect(name, "", domain, fresh, calls, corpus); err != nil {
-		ts.t.Fatalf("Connect failed: %v", err)
-	}
-}
-
-func (ts *TestState) Sync(name string, add [][]byte, del []string) (string, []rpctype.HubInput, int) {
-	ts.t.Helper()
-	domain, inputs, pending, err := ts.state.Sync(name, add, del)
-	if err != nil {
-		ts.t.Fatalf("Sync failed: %v", err)
-	}
-	sort.Slice(inputs, func(i, j int) bool {
-		if inputs[i].Domain != inputs[j].Domain {
-			return inputs[i].Domain < inputs[j].Domain
-		}
-		return string(inputs[i].Prog) < string(inputs[j].Prog)
-	})
-	return domain, inputs, pending
-}
-
-func (ts *TestState) AddRepro(name string, repro []byte) {
-	ts.t.Helper()
-	if err := ts.state.AddRepro(name, repro); err != nil {
-		ts.t.Fatalf("AddRepro failed: %v", err)
-	}
-}
-
-func (ts *TestState) PendingRepro(name string) []byte {
-	ts.t.Helper()
-	repro, err := ts.state.PendingRepro(name)
-	if err != nil {
-		ts.t.Fatalf("PendingRepro failed: %v", err)
-	}
-	return repro
-}
-
 func TestBasic(t *testing.T) {
 	st := MakeTestState(t)
 
@@ -121,6 +64,22 @@ func TestRepro(t *testing.T) {
 	expectPendingRepro("foo", "read()")
 	expectPendingRepro("foo", "open()\nread()")
 	expectPendingRepro("foo", "")
+}
+
+func (ts *TestState) AddRepro(name string, repro []byte) {
+	ts.t.Helper()
+	if err := ts.state.AddRepro(name, repro); err != nil {
+		ts.t.Fatalf("AddRepro failed: %v", err)
+	}
+}
+
+func (ts *TestState) PendingRepro(name string) []byte {
+	ts.t.Helper()
+	repro, err := ts.state.PendingRepro(name)
+	if err != nil {
+		ts.t.Fatalf("PendingRepro failed: %v", err)
+	}
+	return repro
 }
 
 func TestDomain(t *testing.T) {
@@ -177,4 +136,45 @@ func TestDomain(t *testing.T) {
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
 		}, inputs)
 	}
+}
+
+func MakeTestState(t *testing.T) *TestState {
+	t.Parallel()
+	dir := t.TempDir()
+	state, err := Make(dir)
+	if err != nil {
+		t.Fatalf("failed to make state: %v", err)
+	}
+	return &TestState{t, dir, state}
+}
+
+func (ts *TestState) Reload() {
+	ts.state.Flush()
+	state, err := Make(ts.dir)
+	if err != nil {
+		ts.t.Fatalf("failed to make state: %v", err)
+	}
+	ts.state = state
+}
+
+func (ts *TestState) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) {
+	ts.t.Helper()
+	if err := ts.state.Connect(name, "", domain, fresh, calls, corpus); err != nil {
+		ts.t.Fatalf("Connect failed: %v", err)
+	}
+}
+
+func (ts *TestState) Sync(name string, add [][]byte, del []string) (string, []rpctype.HubInput, int) {
+	ts.t.Helper()
+	domain, inputs, pending, err := ts.state.Sync(name, add, del)
+	if err != nil {
+		ts.t.Fatalf("Sync failed: %v", err)
+	}
+	sort.Slice(inputs, func(i, j int) bool {
+		if inputs[i].Domain != inputs[j].Domain {
+			return inputs[i].Domain < inputs[j].Domain
+		}
+		return string(inputs[i].Prog) < string(inputs[j].Prog)
+	})
+	return domain, inputs, pending
 }

@@ -52,17 +52,6 @@ func (c *ValueCell) String() string {
 	return fmt.Sprintf("%.0f", math.Round(c.Value))
 }
 
-func NewRatioCell(trueCount, totalCount int) *RatioCell {
-	return &RatioCell{trueCount, totalCount}
-}
-
-func (c *RatioCell) Float64() float64 {
-	if c.TotalCount == 0 {
-		return 0
-	}
-	return float64(c.TrueCount) / float64(c.TotalCount)
-}
-
 func (c *RatioCell) String() string {
 	return fmt.Sprintf("%.1f%% (%d/%d)", c.Float64()*100.0, c.TrueCount, c.TotalCount)
 }
@@ -243,4 +232,15 @@ func (t *Table) GetFooterValue(column string) Cell {
 		// Column has mixed type cells, we cannot do anything here.
 		return ""
 	}
+}
+
+func NewRatioCell(trueCount, totalCount int) *RatioCell {
+	return &RatioCell{trueCount, totalCount}
+}
+
+func (c *RatioCell) Float64() float64 {
+	if c.TotalCount == 0 {
+		return 0
+	}
+	return float64(c.TrueCount) / float64(c.TotalCount)
 }

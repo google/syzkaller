@@ -11,20 +11,20 @@ import (
 	"github.com/google/syzkaller/pkg/vminfo"
 )
 
-type Canonicalizer struct {
-	// Map of modules stored as module name:kernel module.
-	modules map[string]*vminfo.KernelModule
-
-	// Contains a sorted list of the canonical module addresses.
-	moduleKeys []uint64
-}
-
 type CanonicalizerInstance struct {
 	canonical Canonicalizer
 
 	// Contains the canonicalize and decanonicalize conversion maps.
 	canonicalize   *Convert
 	decanonicalize *Convert
+}
+
+type Canonicalizer struct {
+	// Map of modules stored as module name:kernel module.
+	modules map[string]*vminfo.KernelModule
+
+	// Contains a sorted list of the canonical module addresses.
+	moduleKeys []uint64
 }
 
 // Contains the current conversion maps used.
@@ -140,15 +140,6 @@ func setModuleKeys(moduleKeys []uint64, modules []*vminfo.KernelModule) {
 	slices.Sort(moduleKeys)
 }
 
-func findModule(pc uint64, moduleKeys []uint64) (moduleIdx int) {
-	idx, found := slices.BinarySearch(moduleKeys, pc)
-	if found {
-		return idx
-	}
-	// BinarySearch returns the index above the correct module if not found.
-	return idx - 1
-}
-
 func (convert *Convert) convertPCs(pcs []uint64) []uint64 {
 	if convert == nil {
 		return pcs
@@ -187,6 +178,15 @@ func (convert *Convert) convertPC(pc uint64) (uint64, bool) {
 		}
 	}
 	return pc, true
+}
+
+func findModule(pc uint64, moduleKeys []uint64) (moduleIdx int) {
+	idx, found := slices.BinarySearch(moduleKeys, pc)
+	if found {
+		return idx
+	}
+	// BinarySearch returns the index above the correct module if not found.
+	return idx - 1
 }
 
 func (cc *convertContext) discarded() string {

@@ -9,15 +9,6 @@ import (
 	"testing"
 )
 
-func InitTargetTest(t *testing.T, os, arch string) *Target {
-	t.Parallel()
-	target, err := GetTarget(os, arch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return target
-}
-
 type DeserializeTest struct {
 	In        string
 	Out       string // if not set, equals to In
@@ -79,4 +70,13 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 			}
 		})
 	}
+}
+
+func InitTargetTest(t *testing.T, os, arch string) *Target {
+	t.Parallel()
+	target, err := GetTarget(os, arch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target
 }

@@ -179,6 +179,7 @@ var buildSem = osutil.NewSemaphore(1)
 var testSem = osutil.NewSemaphore(1)
 
 const fuzzingMinutesBeforeCover = 360
+
 const benchUploadPeriod = 30 * time.Minute
 
 func (mgr *Manager) loop(ctx context.Context) {
@@ -274,6 +275,19 @@ func (mgr *Manager) archiveCommit(commit string) {
 	}
 }
 
+// BuildInfo characterizes a kernel build.
+type BuildInfo struct {
+	Time              time.Time // when the build was done
+	Tag               string    // unique tag combined from compiler id, kernel commit and config tag
+	CompilerID        string    // compiler identity string (e.g. "gcc 7.1.1")
+	KernelRepo        string
+	KernelBranch      string
+	KernelCommit      string // git hash of kernel checkout
+	KernelCommitTitle string
+	KernelCommitDate  time.Time
+	KernelConfigTag   string // SHA1 hash of .config contents
+}
+
 func (mgr *Manager) pollAndBuild(ctx context.Context, lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
 	rebuildAfter := updater.BuildRetryPeriod
@@ -311,27 +325,6 @@ func (mgr *Manager) pollAndBuild(ctx context.Context, lastCommit string, latestI
 		}
 	}
 	return lastCommit, latestInfo, rebuildAfter
-}
-
-// BuildInfo characterizes a kernel build.
-type BuildInfo struct {
-	Time              time.Time // when the build was done
-	Tag               string    // unique tag combined from compiler id, kernel commit and config tag
-	CompilerID        string    // compiler identity string (e.g. "gcc 7.1.1")
-	KernelRepo        string
-	KernelBranch      string
-	KernelCommit      string // git hash of kernel checkout
-	KernelCommitTitle string
-	KernelCommitDate  time.Time
-	KernelConfigTag   string // SHA1 hash of .config contents
-}
-
-func loadBuildInfo(dir string) (*BuildInfo, error) {
-	info := new(BuildInfo)
-	if err := config.LoadFile(filepath.Join(dir, "tag"), info); err != nil {
-		return nil, err
-	}
-	return info, nil
 }
 
 // checkLatest checks if we have a good working latest build and returns its build info.
@@ -484,6 +477,14 @@ func (mgr *Manager) restartManager() {
 	}
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, benchFile, mgr.Errorf, bin, args...)
 	mgr.lastRestarted = time.Now()
+}
+
+func loadBuildInfo(dir string) (*BuildInfo, error) {
+	info := new(BuildInfo)
+	if err := config.LoadFile(filepath.Join(dir, "tag"), info); err != nil {
+		return nil, err
+	}
+	return info, nil
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {

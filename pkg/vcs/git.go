@@ -50,29 +50,6 @@ func newGitRepo(dir string, ignoreCC map[string]bool, opts []RepoOpt) *gitRepo {
 	return git
 }
 
-func filterEnv() []string {
-	// We have to filter various git environment variables - if
-	// these variables are set (e.g. if a test is being run as
-	// part of a rebase) we're going to be acting on some other
-	// repository (e.g the syzkaller tree itself) rather than the
-	// intended repo.
-	env := os.Environ()
-	env = slices.DeleteFunc(env, func(e string) bool {
-		return strings.HasPrefix(e, "GIT_DIR") ||
-			strings.HasPrefix(e, "GIT_WORK_TREE") ||
-			strings.HasPrefix(e, "GIT_INDEX_FILE") ||
-			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY") ||
-			strings.HasPrefix(e, "GIT_CONFIG_")
-	})
-	// Prevent submodules from overriding core.hooksPath.
-	env = append(env,
-		"GIT_CONFIG_COUNT=1",
-		"GIT_CONFIG_KEY_0=core.hooksPath",
-		"GIT_CONFIG_VALUE_0=/dev/null",
-	)
-	return env
-}
-
 func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 	git.Reset()
 	origin, err := git.getURL("origin")
@@ -107,14 +84,6 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	return git.Commit(HEAD)
-}
-
-func (git Git) getURL(remote string) (string, error) {
-	url, err := git.Run("remote", "get-url", remote)
-	if err != nil {
-		return "", err
-	}
-	return string(url), nil
 }
 
 func (git *gitRepo) isNetworkError(output []byte) bool {
@@ -270,76 +239,6 @@ func (git *gitRepo) Contains(commit string) (bool, error) {
 }
 
 const gitDateFormat = "Mon Jan 2 15:04:05 2006 -0700"
-
-func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
-	lines := bytes.Split(output, []byte{'\n'})
-	if len(lines) < 8 || len(lines[0]) != 40 {
-		return nil, fmt.Errorf("unexpected git log output: %q", output)
-	}
-	date, err := time.Parse(gitDateFormat, string(lines[4]))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
-	}
-	commitDate, err := time.Parse(gitDateFormat, string(lines[6]))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
-	}
-	recipients := make(map[string]bool)
-	recipients[strings.ToLower(string(lines[2]))] = true
-	var tags []string
-	// Use summary line + all description lines.
-	for _, line := range append([][]byte{lines[1]}, lines[7:]...) {
-		if user != nil {
-			userPos := bytes.Index(line, user)
-			if userPos != -1 {
-				domainPos := bytes.Index(line[userPos+len(user)+1:], domain)
-				if domainPos != -1 {
-					startPos := userPos + len(user)
-					endPos := userPos + len(user) + domainPos + 1
-					tag := string(line[startPos:endPos])
-					present := slices.Contains(tags, tag)
-					if !present {
-						tags = append(tags, tag)
-					}
-				}
-			}
-		}
-		for _, re := range ccRes {
-			matches := re.FindSubmatchIndex(line)
-			if matches == nil {
-				continue
-			}
-			addr, err := mail.ParseAddress(string(line[matches[2]:matches[3]]))
-			if err != nil {
-				break
-			}
-			email := strings.ToLower(addr.Address)
-			if ignoreCC[email] {
-				continue
-			}
-			recipients[email] = true
-			break
-		}
-	}
-	sortedRecipients := make(Recipients, 0, len(recipients))
-	for addr := range recipients {
-		sortedRecipients = append(sortedRecipients, RecipientInfo{mail.Address{Address: addr}, To})
-	}
-	sort.Sort(sortedRecipients)
-	parents := strings.Split(string(lines[5]), " ")
-	com := &Commit{
-		Hash:       string(lines[0]),
-		Title:      string(lines[1]),
-		Author:     string(lines[2]),
-		AuthorName: string(lines[3]),
-		Parents:    parents,
-		Recipients: sortedRecipients,
-		Tags:       tags,
-		Date:       date,
-		CommitDate: commitDate,
-	}
-	return com, nil
-}
 
 func (git *gitRepo) GetCommitByTitle(title string) (*Commit, error) {
 	commits, _, err := git.GetCommitsByTitles([]string{title})
@@ -563,22 +462,6 @@ func (git *gitRepo) MergeBases(firstCommit, secondCommit string) ([]*Commit, err
 	return ret, nil
 }
 
-// CommitExists relies on 'git cat-file -e'.
-// If object exists its exit status is 0.
-// If object doesn't exist its exit status is 1 (not documented).
-// Otherwise, the exit status is 128 (not documented).
-func (git Git) CommitExists(commit string) (bool, error) {
-	_, err := git.Run("cat-file", "-e", commit)
-	var vErr *osutil.VerboseError
-	if errors.As(err, &vErr) && vErr.ExitCode == 1 {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 func (git *gitRepo) CommitExists(commit string) (bool, error) {
 	return git.Git.CommitExists(commit)
 }
@@ -607,31 +490,36 @@ type ModifiedFile struct {
 	LeftHash string
 }
 
-// ParseGitDiff extracts the files modified in the git patch.
-func ParseGitDiff(patch []byte) []ModifiedFile {
-	var ret []ModifiedFile
-	scanner := bufio.NewScanner(bytes.NewReader(patch))
-	for scanner.Scan() {
-		line := scanner.Text()
-		indexMatch := indexRe.FindStringSubmatch(line)
-		if indexMatch != nil && len(ret) > 0 {
-			ret[len(ret)-1].LeftHash = indexMatch[1]
-		} else {
-			fileNameMatch := fileNameRe.FindStringSubmatch(line)
-			if fileNameMatch != nil {
-				ret = append(ret, ModifiedFile{Name: fileNameMatch[1]})
-			}
-		}
-	}
-	return ret
-}
-
 type Git struct {
 	Dir      string
 	Sandbox  bool
 	Env      []string
 	precious bool
 	ignoreCC map[string]bool
+}
+
+func (git Git) getURL(remote string) (string, error) {
+	url, err := git.Run("remote", "get-url", remote)
+	if err != nil {
+		return "", err
+	}
+	return string(url), nil
+}
+
+// CommitExists relies on 'git cat-file -e'.
+// If object exists its exit status is 0.
+// If object doesn't exist its exit status is 1 (not documented).
+// Otherwise, the exit status is 128 (not documented).
+func (git Git) CommitExists(commit string) (bool, error) {
+	_, err := git.Run("cat-file", "-e", commit)
+	var vErr *osutil.VerboseError
+	if errors.As(err, &vErr) && vErr.ExitCode == 1 {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (git Git) Run(args ...string) ([]byte, error) {
@@ -769,6 +657,99 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 	return commits, s.Err()
 }
 
+func filterEnv() []string {
+	// We have to filter various git environment variables - if
+	// these variables are set (e.g. if a test is being run as
+	// part of a rebase) we're going to be acting on some other
+	// repository (e.g the syzkaller tree itself) rather than the
+	// intended repo.
+	env := os.Environ()
+	env = slices.DeleteFunc(env, func(e string) bool {
+		return strings.HasPrefix(e, "GIT_DIR") ||
+			strings.HasPrefix(e, "GIT_WORK_TREE") ||
+			strings.HasPrefix(e, "GIT_INDEX_FILE") ||
+			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY") ||
+			strings.HasPrefix(e, "GIT_CONFIG_")
+	})
+	// Prevent submodules from overriding core.hooksPath.
+	env = append(env,
+		"GIT_CONFIG_COUNT=1",
+		"GIT_CONFIG_KEY_0=core.hooksPath",
+		"GIT_CONFIG_VALUE_0=/dev/null",
+	)
+	return env
+}
+
+func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
+	lines := bytes.Split(output, []byte{'\n'})
+	if len(lines) < 8 || len(lines[0]) != 40 {
+		return nil, fmt.Errorf("unexpected git log output: %q", output)
+	}
+	date, err := time.Parse(gitDateFormat, string(lines[4]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
+	}
+	commitDate, err := time.Parse(gitDateFormat, string(lines[6]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
+	}
+	recipients := make(map[string]bool)
+	recipients[strings.ToLower(string(lines[2]))] = true
+	var tags []string
+	// Use summary line + all description lines.
+	for _, line := range append([][]byte{lines[1]}, lines[7:]...) {
+		if user != nil {
+			userPos := bytes.Index(line, user)
+			if userPos != -1 {
+				domainPos := bytes.Index(line[userPos+len(user)+1:], domain)
+				if domainPos != -1 {
+					startPos := userPos + len(user)
+					endPos := userPos + len(user) + domainPos + 1
+					tag := string(line[startPos:endPos])
+					present := slices.Contains(tags, tag)
+					if !present {
+						tags = append(tags, tag)
+					}
+				}
+			}
+		}
+		for _, re := range ccRes {
+			matches := re.FindSubmatchIndex(line)
+			if matches == nil {
+				continue
+			}
+			addr, err := mail.ParseAddress(string(line[matches[2]:matches[3]]))
+			if err != nil {
+				break
+			}
+			email := strings.ToLower(addr.Address)
+			if ignoreCC[email] {
+				continue
+			}
+			recipients[email] = true
+			break
+		}
+	}
+	sortedRecipients := make(Recipients, 0, len(recipients))
+	for addr := range recipients {
+		sortedRecipients = append(sortedRecipients, RecipientInfo{mail.Address{Address: addr}, To})
+	}
+	sort.Sort(sortedRecipients)
+	parents := strings.Split(string(lines[5]), " ")
+	com := &Commit{
+		Hash:       string(lines[0]),
+		Title:      string(lines[1]),
+		Author:     string(lines[2]),
+		AuthorName: string(lines[3]),
+		Parents:    parents,
+		Recipients: sortedRecipients,
+		Tags:       tags,
+		Date:       date,
+		CommitDate: commitDate,
+	}
+	return com, nil
+}
+
 type BaseCommit struct {
 	*Commit
 	Branches []string
@@ -894,6 +875,25 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		ret = append(ret, &BaseCommit{Commit: info, Branches: branchList})
 	}
 	return git.minimizeBaseCommits(ret)
+}
+
+// ParseGitDiff extracts the files modified in the git patch.
+func ParseGitDiff(patch []byte) []ModifiedFile {
+	var ret []ModifiedFile
+	scanner := bufio.NewScanner(bytes.NewReader(patch))
+	for scanner.Scan() {
+		line := scanner.Text()
+		indexMatch := indexRe.FindStringSubmatch(line)
+		if indexMatch != nil && len(ret) > 0 {
+			ret[len(ret)-1].LeftHash = indexMatch[1]
+		} else {
+			fileNameMatch := fileNameRe.FindStringSubmatch(line)
+			if fileNameMatch != nil {
+				ret = append(ret, ModifiedFile{Name: fileNameMatch[1]})
+			}
+		}
+	}
+	return ret
 }
 
 func (git Git) minimizeBaseCommits(list []*BaseCommit) ([]*BaseCommit, error) {

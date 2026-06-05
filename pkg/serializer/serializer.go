@@ -11,6 +11,12 @@ import (
 	"io"
 )
 
+func WriteString(i any) string {
+	var sb strings.Builder
+	Write(&sb, i)
+	return sb.String()
+}
+
 // Write writes Go-syntax representation of v into w.
 // This is similar to fmt.Fprintf(w, "%#v", v), but properly handles pointers,
 // does not write package names before types, omits struct fields with default values,
@@ -25,12 +31,6 @@ func Write(ww io.Writer, i any) {
 		return
 	}
 	w.do(v, false)
-}
-
-func WriteString(i any) string {
-	var sb strings.Builder
-	Write(&sb, i)
-	return sb.String()
 }
 
 type writer struct {

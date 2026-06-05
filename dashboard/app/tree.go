@@ -228,43 +228,6 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 	return pollResultSkip{}
 }
 
-// selectRepoLabels attributes bugs to trees depending on the patch testing results.
-func (ctx *bugTreeContext) selectRepoLabels(in bool, results map[*repoNode]pollTreeJobResult) []string {
-	crashed := map[*repoNode]bool{}
-	for node, result := range results {
-		done, ok := result.(pollResultDone)
-		if ok {
-			crashed[node] = done.Crashed
-		}
-	}
-	for node := range crashed {
-		if !crashed[node] {
-			continue
-		}
-		// (1) The in = true case:
-		// If, for a tree X, there's a tree Y from which commits flow to X and the reproducer crashed
-		// on Y, X cannot be among bug origin trees.
-		// (1) The in = false case:
-		// If, for a tree X, there's a tree Y to which commits flow to X and the reproducer crashed
-		// on Y, X cannot be the last tree to which the bug has spread.
-		for otherNode := range node.reachable(!in) {
-			crashed[otherNode] = false
-		}
-	}
-	ret := []string{}
-	for node, set := range crashed {
-		if !set {
-			continue
-		}
-		if in && node.repo.LabelIntroduced != "" {
-			ret = append(ret, node.repo.LabelIntroduced)
-		} else if !in && node.repo.LabelReached != "" {
-			ret = append(ret, node.repo.LabelReached)
-		}
-	}
-	return ret
-}
-
 // Test if there's any sense in testing other trees.
 // For example, if we hit a bug on a mainline, there's no sense to test linux-next to check
 // if it's a linux-next bug.
@@ -376,14 +339,18 @@ type expectedResult any
 
 // resultFreshness subtypes.
 type wantFirstOK struct{}
+
 type wantFirstCrash struct{}
+
 type wantFirstAny struct{}
+
 type wantNewAny time.Time
 
 type runReproOn any
 
 // runReproOn subtypes.
 type runOnAny struct{} // attempts to find any result, if unsuccessful, runs on HEAD
+
 type runOnHEAD struct{}
 
 type runOnMergeBase struct {
@@ -477,49 +444,6 @@ func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duratio
 		return pollResultWait(job.Finished.Add(period))
 	}
 	return pollResultSkip{}
-}
-
-func (bug *Bug) findResult(ctx context.Context,
-	repo KernelRepo, result expectedResult, runOn runReproOn) (pollTreeJobResult, *Job) {
-	anyPending := false
-	for _, i := range bug.matchingTreeTests(repo, runOn) {
-		info := &bug.TreeTests.List[i]
-		anyPending = anyPending || info.Pending != ""
-		key := ""
-		switch result.(type) {
-		case wantFirstOK:
-			key = info.FirstOK
-		case wantFirstCrash:
-			key = info.FirstCrash
-		case wantFirstAny:
-			key = info.First
-		case wantNewAny:
-			key = info.Last
-		default:
-			return pollResultError(fmt.Errorf("unexpected expected result: %T", result)), nil
-		}
-		if key == "" {
-			continue
-		}
-		job, _, err := fetchJob(ctx, key)
-		if err != nil {
-			return pollResultError(err), nil
-		}
-		if date, ok := result.(wantNewAny); ok {
-			if job.Finished.Before(time.Time(date)) {
-				continue
-			}
-		}
-		return pollResultDone{
-			Crashed:  job.CrashTitle != "",
-			Finished: job.Finished,
-		}, job
-	}
-	if anyPending {
-		return pollResultPending{}, nil
-	} else {
-		return pollResultSkip{}, nil
-	}
 }
 
 func (bug *Bug) matchingTreeTests(repo KernelRepo, runOn runReproOn) []int {
@@ -800,6 +724,49 @@ func crossTreeBisection(ctx context.Context, bug *Bug,
 	return job, jobKey, expensive, err
 }
 
+func (bug *Bug) findResult(ctx context.Context,
+	repo KernelRepo, result expectedResult, runOn runReproOn) (pollTreeJobResult, *Job) {
+	anyPending := false
+	for _, i := range bug.matchingTreeTests(repo, runOn) {
+		info := &bug.TreeTests.List[i]
+		anyPending = anyPending || info.Pending != ""
+		key := ""
+		switch result.(type) {
+		case wantFirstOK:
+			key = info.FirstOK
+		case wantFirstCrash:
+			key = info.FirstCrash
+		case wantFirstAny:
+			key = info.First
+		case wantNewAny:
+			key = info.Last
+		default:
+			return pollResultError(fmt.Errorf("unexpected expected result: %T", result)), nil
+		}
+		if key == "" {
+			continue
+		}
+		job, _, err := fetchJob(ctx, key)
+		if err != nil {
+			return pollResultError(err), nil
+		}
+		if date, ok := result.(wantNewAny); ok {
+			if job.Finished.Before(time.Time(date)) {
+				continue
+			}
+		}
+		return pollResultDone{
+			Crashed:  job.CrashTitle != "",
+			Finished: job.Finished,
+		}, job
+	}
+	if anyPending {
+		return pollResultPending{}, nil
+	} else {
+		return pollResultSkip{}, nil
+	}
+}
+
 type lazyJobList struct {
 	ctx     context.Context
 	bug     *Bug
@@ -852,6 +819,43 @@ func doneCrossTreeBisection(ctx context.Context, jobKey *db.Key, job *Job) error
 type repoNode struct {
 	repo  KernelRepo
 	edges []repoEdge
+}
+
+// selectRepoLabels attributes bugs to trees depending on the patch testing results.
+func (ctx *bugTreeContext) selectRepoLabels(in bool, results map[*repoNode]pollTreeJobResult) []string {
+	crashed := map[*repoNode]bool{}
+	for node, result := range results {
+		done, ok := result.(pollResultDone)
+		if ok {
+			crashed[node] = done.Crashed
+		}
+	}
+	for node := range crashed {
+		if !crashed[node] {
+			continue
+		}
+		// (1) The in = true case:
+		// If, for a tree X, there's a tree Y from which commits flow to X and the reproducer crashed
+		// on Y, X cannot be among bug origin trees.
+		// (1) The in = false case:
+		// If, for a tree X, there's a tree Y to which commits flow to X and the reproducer crashed
+		// on Y, X cannot be the last tree to which the bug has spread.
+		for otherNode := range node.reachable(!in) {
+			crashed[otherNode] = false
+		}
+	}
+	ret := []string{}
+	for node, set := range crashed {
+		if !set {
+			continue
+		}
+		if in && node.repo.LabelIntroduced != "" {
+			ret = append(ret, node.repo.LabelIntroduced)
+		} else if !in && node.repo.LabelReached != "" {
+			ret = append(ret, node.repo.LabelReached)
+		}
+	}
+	return ret
 }
 
 type repoEdge struct {

@@ -72,10 +72,6 @@ func (n *NewLine) serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (n *Comment) serialize(w io.Writer) {
-	fmt.Fprintf(w, "#%v\n", strings.TrimRight(n.Text, " \t"))
-}
-
 func (n *Meta) serialize(w io.Writer) {
 	fmt.Fprintf(w, "meta ")
 	n.Value.serialize(w)
@@ -165,6 +161,10 @@ func (n *Struct) serialize(w io.Writer) {
 		fmt.Fprintf(w, " %v", attrs)
 	}
 	fmt.Fprintf(w, "\n")
+}
+
+func (n *Comment) serialize(w io.Writer) {
+	fmt.Fprintf(w, "#%v\n", strings.TrimRight(n.Text, " \t"))
 }
 
 func (n *IntFlags) serialize(w io.Writer) {

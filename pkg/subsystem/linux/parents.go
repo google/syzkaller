@@ -9,6 +9,8 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem"
 )
 
+type parentInfo map[*subsystem.Subsystem]map[*subsystem.Subsystem]string
+
 // parentTransformations applies all subsystem list transformations that have been implemented.
 func parentTransformations(matrix *CoincidenceMatrix,
 	list []*subsystem.Subsystem) ([]*subsystem.Subsystem, parentInfo, error) {
@@ -20,8 +22,6 @@ func parentTransformations(matrix *CoincidenceMatrix,
 	}
 	return list, info, nil
 }
-
-type parentInfo map[*subsystem.Subsystem]map[*subsystem.Subsystem]string
 
 func (pi parentInfo) Save(parent, child *subsystem.Subsystem, info string) {
 	if pi[parent] == nil {

@@ -296,30 +296,6 @@ type minimizeArgsCtx struct {
 	triedPaths map[string]bool
 }
 
-func (ctx *minimizeArgsCtx) do(arg Arg, field, path string) bool {
-	path += fmt.Sprintf("-%v", field)
-	if ctx.triedPaths[path] {
-		return false
-	}
-	p0 := *ctx.p0
-	if arg.Type().minimize(ctx, arg, path) {
-		return true
-	}
-	if *ctx.p0 == ctx.p {
-		// If minimize committed a new program, it must return true.
-		// Otherwise *ctx.p0 and ctx.p will point to the same program
-		// and any temp mutations to ctx.p will unintentionally affect ctx.p0.
-		panic("shared program committed")
-	}
-	if *ctx.p0 != p0 {
-		// New program was committed, but we did not start iteration anew.
-		// This means we are iterating over a stale tree and any changes won't be visible.
-		panic("iterating over stale program")
-	}
-	ctx.triedPaths[path] = true
-	return false
-}
-
 func (typ *TypeCommon) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	return false
 }
@@ -393,6 +369,30 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 			return true
 		}
 	}
+	return false
+}
+
+func (ctx *minimizeArgsCtx) do(arg Arg, field, path string) bool {
+	path += fmt.Sprintf("-%v", field)
+	if ctx.triedPaths[path] {
+		return false
+	}
+	p0 := *ctx.p0
+	if arg.Type().minimize(ctx, arg, path) {
+		return true
+	}
+	if *ctx.p0 == ctx.p {
+		// If minimize committed a new program, it must return true.
+		// Otherwise *ctx.p0 and ctx.p will point to the same program
+		// and any temp mutations to ctx.p will unintentionally affect ctx.p0.
+		panic("shared program committed")
+	}
+	if *ctx.p0 != p0 {
+		// New program was committed, but we did not start iteration anew.
+		// This means we are iterating over a stale tree and any changes won't be visible.
+		panic("iterating over stale program")
+	}
+	ctx.triedPaths[path] = true
 	return false
 }
 

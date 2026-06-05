@@ -209,90 +209,6 @@ void* aslr_base() { return NULL; }
 void __sanitizer_cov_trace_pc() { printf("%llu", (long long)(__builtin_return_address(0) - aslr_base())); }
 `
 
-func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir string) string {
-	kcovSrc := filepath.Join(dir, "kcov.c")
-	kcovObj := filepath.Join(dir, "kcov.o")
-	if err := osutil.WriteFile(kcovSrc, []byte(kcovCode)); err != nil {
-		t.Fatal(err)
-	}
-
-	aslrDefine := "-DNO_ASLR_BASE"
-	if target.OS == targets.Linux || target.OS == targets.OpenBSD ||
-		target.OS == targets.FreeBSD || target.OS == targets.NetBSD {
-		aslrDefine = "-DASLR_BASE"
-	}
-	aslrExtraLibs := []string{}
-	if target.OS == targets.Linux {
-		aslrExtraLibs = []string{"-ldl"}
-	}
-
-	targetCFlags := slices.DeleteFunc(slices.Clone(target.CFlags), func(flag string) bool {
-		return strings.HasPrefix(flag, "-std=c++")
-	})
-	kcovFlags := append([]string{"-c", "-fpie", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, targetCFlags...)
-	src := filepath.Join(dir, "main.c")
-	obj := filepath.Join(dir, "main.o")
-	bin := filepath.Join(dir, target.KernelObject)
-	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, kcovFlags...); err != nil {
-		t.Fatal(err)
-	}
-
-	// We used to compile and link with a single compiler invocation,
-	// but clang has a bug that it tries to link in ubsan runtime when
-	// -fsanitize-coverage=trace-pc is provided during linking and
-	// ubsan runtime is missing for arm/arm64/riscv arches in the llvm packages.
-	// So we first compile with -fsanitize-coverage and then link w/o it.
-	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, targetCFlags...), test.CFlags...)
-	if test.DebugInfo {
-		// TODO: pkg/cover doesn't support DWARF5 yet, which is the default in Clang.
-		cflags = append([]string{"-g", "-gdwarf-4"}, cflags...)
-	}
-	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, cflags...); err != nil {
-		errText := err.Error()
-		errText = strings.ReplaceAll(errText, "‘", "'")
-		errText = strings.ReplaceAll(errText, "’", "'")
-		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
-			os.Getenv("SYZ_ENV") == "" {
-			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
-		}
-		t.Fatal(err)
-	}
-
-	ldflags := append(append(append([]string{"-o", bin, obj, kcovObj}, aslrExtraLibs...),
-		targetCFlags...), test.LDFlags...)
-	staticIdx, pieIdx := -1, -1
-	for i, arg := range ldflags {
-		switch arg {
-		case "-static":
-			staticIdx = i
-		case "-pie":
-			pieIdx = i
-		}
-	}
-	if target.OS == targets.Fuchsia && pieIdx != -1 {
-		// Fuchsia toolchain fails when given -pie:
-		// clang-12: error: argument unused during compilation: '-pie'
-		ldflags[pieIdx] = ldflags[len(ldflags)-1]
-		ldflags = ldflags[:len(ldflags)-1]
-	} else if pieIdx != -1 && staticIdx != -1 {
-		// -static and -pie are incompatible during linking.
-		ldflags[staticIdx] = ldflags[len(ldflags)-1]
-		ldflags = ldflags[:len(ldflags)-1]
-	}
-	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, ldflags...); err != nil {
-		// Arm linker in the env image has a bug when linking a clang-produced files.
-		var vErr *osutil.VerboseError
-		if errors.As(err, &vErr) && regexp.MustCompile(`arm-linux-gnueabi.* assertion fail`).Match(vErr.Output) {
-			t.Skipf("skipping test, broken arm linker (%v)", err)
-		}
-		t.Fatal(err)
-	}
-	return bin
-}
-
 type reports struct {
 	csv           *bytes.Buffer
 	jsonl         *bytes.Buffer
@@ -401,6 +317,90 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 	return res, nil
 }
 
+func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir string) string {
+	kcovSrc := filepath.Join(dir, "kcov.c")
+	kcovObj := filepath.Join(dir, "kcov.o")
+	if err := osutil.WriteFile(kcovSrc, []byte(kcovCode)); err != nil {
+		t.Fatal(err)
+	}
+
+	aslrDefine := "-DNO_ASLR_BASE"
+	if target.OS == targets.Linux || target.OS == targets.OpenBSD ||
+		target.OS == targets.FreeBSD || target.OS == targets.NetBSD {
+		aslrDefine = "-DASLR_BASE"
+	}
+	aslrExtraLibs := []string{}
+	if target.OS == targets.Linux {
+		aslrExtraLibs = []string{"-ldl"}
+	}
+
+	targetCFlags := slices.DeleteFunc(slices.Clone(target.CFlags), func(flag string) bool {
+		return strings.HasPrefix(flag, "-std=c++")
+	})
+	kcovFlags := append([]string{"-c", "-fpie", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, targetCFlags...)
+	src := filepath.Join(dir, "main.c")
+	obj := filepath.Join(dir, "main.o")
+	bin := filepath.Join(dir, target.KernelObject)
+	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, kcovFlags...); err != nil {
+		t.Fatal(err)
+	}
+
+	// We used to compile and link with a single compiler invocation,
+	// but clang has a bug that it tries to link in ubsan runtime when
+	// -fsanitize-coverage=trace-pc is provided during linking and
+	// ubsan runtime is missing for arm/arm64/riscv arches in the llvm packages.
+	// So we first compile with -fsanitize-coverage and then link w/o it.
+	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, targetCFlags...), test.CFlags...)
+	if test.DebugInfo {
+		// TODO: pkg/cover doesn't support DWARF5 yet, which is the default in Clang.
+		cflags = append([]string{"-g", "-gdwarf-4"}, cflags...)
+	}
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, cflags...); err != nil {
+		errText := err.Error()
+		errText = strings.ReplaceAll(errText, "‘", "'")
+		errText = strings.ReplaceAll(errText, "’", "'")
+		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
+			os.Getenv("SYZ_ENV") == "" {
+			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
+		}
+		t.Fatal(err)
+	}
+
+	ldflags := append(append(append([]string{"-o", bin, obj, kcovObj}, aslrExtraLibs...),
+		targetCFlags...), test.LDFlags...)
+	staticIdx, pieIdx := -1, -1
+	for i, arg := range ldflags {
+		switch arg {
+		case "-static":
+			staticIdx = i
+		case "-pie":
+			pieIdx = i
+		}
+	}
+	if target.OS == targets.Fuchsia && pieIdx != -1 {
+		// Fuchsia toolchain fails when given -pie:
+		// clang-12: error: argument unused during compilation: '-pie'
+		ldflags[pieIdx] = ldflags[len(ldflags)-1]
+		ldflags = ldflags[:len(ldflags)-1]
+	} else if pieIdx != -1 && staticIdx != -1 {
+		// -static and -pie are incompatible during linking.
+		ldflags[staticIdx] = ldflags[len(ldflags)-1]
+		ldflags = ldflags[:len(ldflags)-1]
+	}
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, ldflags...); err != nil {
+		// Arm linker in the env image has a bug when linking a clang-produced files.
+		var vErr *osutil.VerboseError
+		if errors.As(err, &vErr) && regexp.MustCompile(`arm-linux-gnueabi.* assertion fail`).Match(vErr.Output) {
+			t.Skipf("skipping test, broken arm linker (%v)", err)
+		}
+		t.Fatal(err)
+	}
+	return bin
+}
+
 func checkCSVReport(t *testing.T, CSVReport []byte) {
 	csvReader := csv.NewReader(bytes.NewBuffer(CSVReport))
 	lines, err := csvReader.ReadAll()
@@ -462,21 +462,6 @@ var sampleJSONLlProgs = []byte(`{
 	]
 }`)
 
-func makeFileStat(name string) fileStats {
-	return fileStats{
-		Name:                       name,
-		CoveredLines:               1,
-		TotalLines:                 8,
-		CoveredPCs:                 1,
-		TotalPCs:                   4,
-		TotalFunctions:             2,
-		CoveredFunctions:           1,
-		CoveredPCsInFunctions:      1,
-		TotalPCsInCoveredFunctions: 2,
-		TotalPCsInFunctions:        2,
-	}
-}
-
 func TestCoverByFilePrefixes(t *testing.T) {
 	datas := []fileStats{
 		makeFileStat("a"),
@@ -503,4 +488,19 @@ func TestCoverByFilePrefixes(t *testing.T) {
 		"PCsInFuncs":        "3 / 6 / 50.00%",
 		"PCsInCoveredFuncs": "3 / 6 / 50.00%",
 	})
+}
+
+func makeFileStat(name string) fileStats {
+	return fileStats{
+		Name:                       name,
+		CoveredLines:               1,
+		TotalLines:                 8,
+		CoveredPCs:                 1,
+		TotalPCs:                   4,
+		TotalFunctions:             2,
+		CoveredFunctions:           1,
+		CoveredPCsInFunctions:      1,
+		TotalPCsInCoveredFunctions: 2,
+		TotalPCsInFunctions:        2,
+	}
 }

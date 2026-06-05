@@ -75,17 +75,6 @@ func (ctx *serializer) print(text string) {
 	ctx.printf("%v", text)
 }
 
-func (ctx *serializer) printf(text string, args ...any) {
-	fmt.Fprintf(ctx.buf, text, args...)
-}
-
-func (ctx *serializer) allocVarID(arg *ResultArg) int {
-	id := ctx.varSeq
-	ctx.varSeq++
-	ctx.vars[arg] = id
-	return id
-}
-
 func (ctx *serializer) call(c *Call) {
 	if c.Ret != nil && len(c.Ret.uses) != 0 {
 		ctx.printf("r%v = ", ctx.allocVarID(c.Ret))
@@ -130,14 +119,6 @@ func (ctx *serializer) call(c *Call) {
 	}
 
 	ctx.printf("\n")
-}
-
-func (ctx *serializer) arg(arg Arg) {
-	if arg == nil {
-		ctx.printf("nil")
-		return
-	}
-	arg.serialize(ctx)
 }
 
 func (a *ConstArg) serialize(ctx *serializer) {
@@ -234,6 +215,14 @@ func (a *UnionArg) serialize(ctx *serializer) {
 	ctx.arg(a.Option)
 }
 
+func (ctx *serializer) arg(arg Arg) {
+	if arg == nil {
+		ctx.printf("nil")
+		return
+	}
+	arg.serialize(ctx)
+}
+
 func (a *ResultArg) serialize(ctx *serializer) {
 	if len(a.uses) != 0 {
 		ctx.printf("<r%v=>", ctx.allocVarID(a))
@@ -253,6 +242,17 @@ func (a *ResultArg) serialize(ctx *serializer) {
 	if a.OpAdd != 0 {
 		ctx.printf("+%v", a.OpAdd)
 	}
+}
+
+func (ctx *serializer) printf(text string, args ...any) {
+	fmt.Fprintf(ctx.buf, text, args...)
+}
+
+func (ctx *serializer) allocVarID(arg *ResultArg) int {
+	id := ctx.varSeq
+	ctx.varSeq++
+	ctx.vars[arg] = id
+	return id
 }
 
 type DeserializeMode int
@@ -307,6 +307,145 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 		}
 	}
 	return prog, nil
+}
+
+const (
+	encodingAddrBase = 0x7f0000000000
+)
+
+func (target *Target) serializeAddr(arg *PointerArg) string {
+	ssize := ""
+	if arg.VmaSize != 0 {
+		ssize = fmt.Sprintf("/0x%x", arg.VmaSize)
+	}
+	return fmt.Sprintf("(0x%x%v)", encodingAddrBase+arg.Address, ssize)
+}
+
+func serializeData(buf *bytes.Buffer, data []byte, readable bool) {
+	if !readable && !isReadableData(data) {
+		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(data))
+		return
+	}
+	buf.WriteByte('\'')
+	encodeData(buf, data, true, false)
+	buf.WriteByte('\'')
+}
+
+func serializeCompressedData(buf *bytes.Buffer, data []byte) {
+	buf.WriteByte('"')
+	buf.WriteByte('$')
+	buf.Write(image.EncodeB64(data))
+	buf.WriteByte('"')
+}
+
+func EncodeData(buf *bytes.Buffer, data []byte, readable bool) {
+	if !readable && isReadableData(data) {
+		readable = true
+	}
+	encodeData(buf, data, readable, true)
+}
+
+func encodeData(buf *bytes.Buffer, data []byte, readable, cstr bool) {
+	for _, v := range data {
+		if !readable {
+			lo, hi := byteToHex(v)
+			buf.Write([]byte{'\\', 'x', hi, lo})
+			continue
+		}
+		switch v {
+		case '\a':
+			buf.Write([]byte{'\\', 'a'})
+		case '\b':
+			buf.Write([]byte{'\\', 'b'})
+		case '\f':
+			buf.Write([]byte{'\\', 'f'})
+		case '\n':
+			buf.Write([]byte{'\\', 'n'})
+		case '\r':
+			buf.Write([]byte{'\\', 'r'})
+		case '\t':
+			buf.Write([]byte{'\\', 't'})
+		case '\v':
+			buf.Write([]byte{'\\', 'v'})
+		case '\'':
+			buf.Write([]byte{'\\', '\''})
+		case '"':
+			buf.Write([]byte{'\\', '"'})
+		case '\\':
+			buf.Write([]byte{'\\', '\\'})
+		default:
+			if isPrintable(v) {
+				buf.WriteByte(v)
+			} else {
+				if cstr {
+					// We would like to use hex encoding with \x,
+					// but C's \x is hard to use: it can contain _any_ number of hex digits
+					// (not just 2 or 4), so later non-hex encoded chars will glue to \x.
+					c0 := (v>>6)&0x7 + '0'
+					c1 := (v>>3)&0x7 + '0'
+					c2 := (v>>0)&0x7 + '0'
+					buf.Write([]byte{'\\', c0, c1, c2})
+				} else {
+					lo, hi := byteToHex(v)
+					buf.Write([]byte{'\\', 'x', hi, lo})
+				}
+			}
+		}
+	}
+}
+
+func isReadableDataType(typ *BufferType) bool {
+	return typ.Kind == BufferString || typ.Kind == BufferFilename || typ.Kind == BufferGlob
+}
+
+func isReadableData(data []byte) bool {
+	if len(data) == 0 {
+		return false
+	}
+	for _, v := range data {
+		if isPrintable(v) {
+			continue
+		}
+		switch v {
+		case 0, '\a', '\b', '\f', '\n', '\r', '\t', '\v':
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func isPrintable(v byte) bool {
+	return v >= 0x20 && v < 0x7f
+}
+
+func byteToHex(v byte) (lo, hi byte) {
+	return toHexChar(v & 0xf), toHexChar(v >> 4)
+}
+
+func toHexChar(v byte) byte {
+	if v >= 16 {
+		panic("bad hex char")
+	}
+	if v < 10 {
+		return '0' + v
+	}
+	return 'a' + v - 10
+}
+
+type parser struct {
+	target  *Target
+	strict  bool
+	unsafe  bool
+	vars    map[string]*ResultArg
+	autos   map[Arg]bool
+	comment string
+
+	data []byte
+	s    string
+	i    int
+	l    int
+	e    error
 }
 
 func (p *parser) parseProg() (*Prog, error) {
@@ -860,18 +999,6 @@ func (p *parser) eatExcessive(stopAtComma bool, what string, args ...any) {
 	}
 }
 
-const (
-	encodingAddrBase = 0x7f0000000000
-)
-
-func (target *Target) serializeAddr(arg *PointerArg) string {
-	ssize := ""
-	if arg.VmaSize != 0 {
-		ssize = fmt.Sprintf("/0x%x", arg.VmaSize)
-	}
-	return fmt.Sprintf("(0x%x%v)", encodingAddrBase+arg.Address, ssize)
-}
-
 func (p *parser) parseAddr() (uint64, uint64, error) {
 	p.Parse('(')
 	pstr := p.Ident()
@@ -902,100 +1029,6 @@ func (p *parser) parseAddr() (uint64, uint64, error) {
 	}
 	p.Parse(')')
 	return addr, vmaSize, nil
-}
-
-func serializeData(buf *bytes.Buffer, data []byte, readable bool) {
-	if !readable && !isReadableData(data) {
-		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(data))
-		return
-	}
-	buf.WriteByte('\'')
-	encodeData(buf, data, true, false)
-	buf.WriteByte('\'')
-}
-
-func serializeCompressedData(buf *bytes.Buffer, data []byte) {
-	buf.WriteByte('"')
-	buf.WriteByte('$')
-	buf.Write(image.EncodeB64(data))
-	buf.WriteByte('"')
-}
-
-func EncodeData(buf *bytes.Buffer, data []byte, readable bool) {
-	if !readable && isReadableData(data) {
-		readable = true
-	}
-	encodeData(buf, data, readable, true)
-}
-
-func encodeData(buf *bytes.Buffer, data []byte, readable, cstr bool) {
-	for _, v := range data {
-		if !readable {
-			lo, hi := byteToHex(v)
-			buf.Write([]byte{'\\', 'x', hi, lo})
-			continue
-		}
-		switch v {
-		case '\a':
-			buf.Write([]byte{'\\', 'a'})
-		case '\b':
-			buf.Write([]byte{'\\', 'b'})
-		case '\f':
-			buf.Write([]byte{'\\', 'f'})
-		case '\n':
-			buf.Write([]byte{'\\', 'n'})
-		case '\r':
-			buf.Write([]byte{'\\', 'r'})
-		case '\t':
-			buf.Write([]byte{'\\', 't'})
-		case '\v':
-			buf.Write([]byte{'\\', 'v'})
-		case '\'':
-			buf.Write([]byte{'\\', '\''})
-		case '"':
-			buf.Write([]byte{'\\', '"'})
-		case '\\':
-			buf.Write([]byte{'\\', '\\'})
-		default:
-			if isPrintable(v) {
-				buf.WriteByte(v)
-			} else {
-				if cstr {
-					// We would like to use hex encoding with \x,
-					// but C's \x is hard to use: it can contain _any_ number of hex digits
-					// (not just 2 or 4), so later non-hex encoded chars will glue to \x.
-					c0 := (v>>6)&0x7 + '0'
-					c1 := (v>>3)&0x7 + '0'
-					c2 := (v>>0)&0x7 + '0'
-					buf.Write([]byte{'\\', c0, c1, c2})
-				} else {
-					lo, hi := byteToHex(v)
-					buf.Write([]byte{'\\', 'x', hi, lo})
-				}
-			}
-		}
-	}
-}
-
-func isReadableDataType(typ *BufferType) bool {
-	return typ.Kind == BufferString || typ.Kind == BufferFilename || typ.Kind == BufferGlob
-}
-
-func isReadableData(data []byte) bool {
-	if len(data) == 0 {
-		return false
-	}
-	for _, v := range data {
-		if isPrintable(v) {
-			continue
-		}
-		switch v {
-		case 0, '\a', '\b', '\f', '\n', '\r', '\t', '\v':
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 // Deserialize data, returning the data and whether it was encoded in Base64.
@@ -1077,28 +1110,10 @@ func (p *parser) deserializeData() ([]byte, bool, error) {
 	return data, false, nil
 }
 
-func isPrintable(v byte) bool {
-	return v >= 0x20 && v < 0x7f
-}
-
-func byteToHex(v byte) (lo, hi byte) {
-	return toHexChar(v & 0xf), toHexChar(v >> 4)
-}
-
 func hexToByte(lo, hi byte) (byte, bool) {
 	h, ok1 := fromHexChar(hi)
 	l, ok2 := fromHexChar(lo)
 	return h<<4 + l, ok1 && ok2
-}
-
-func toHexChar(v byte) byte {
-	if v >= 16 {
-		panic("bad hex char")
-	}
-	if v < 10 {
-		return '0' + v
-	}
-	return 'a' + v - 10
 }
 
 func fromHexChar(v byte) (byte, bool) {
@@ -1109,21 +1124,6 @@ func fromHexChar(v byte) (byte, bool) {
 		return v - 'a' + 10, true
 	}
 	return 0, false
-}
-
-type parser struct {
-	target  *Target
-	strict  bool
-	unsafe  bool
-	vars    map[string]*ResultArg
-	autos   map[Arg]bool
-	comment string
-
-	data []byte
-	s    string
-	i    int
-	l    int
-	e    error
 }
 
 func newParser(target *Target, data []byte, strict, unsafe bool) *parser {

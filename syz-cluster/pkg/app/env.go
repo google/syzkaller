@@ -61,14 +61,6 @@ func TestEnvironment(t *testing.T) (*AppEnvironment, context.Context) {
 	}, ctx
 }
 
-func DefaultSpannerURI() (db.ParsedURI, error) {
-	rawURI := os.Getenv("SPANNER_DATABASE_URI")
-	if rawURI == "" {
-		return db.ParsedURI{}, fmt.Errorf("no SPANNER_DATABASE_URI is set")
-	}
-	return db.ParseURI(rawURI)
-}
-
 func DefaultSpanner(ctx context.Context) (*spanner.Client, error) {
 	uri, err := DefaultSpannerURI()
 	if err != nil {
@@ -76,6 +68,14 @@ func DefaultSpanner(ctx context.Context) (*spanner.Client, error) {
 		return nil, err
 	}
 	return spanner.NewClient(ctx, uri.Full)
+}
+
+func DefaultSpannerURI() (db.ParsedURI, error) {
+	rawURI := os.Getenv("SPANNER_DATABASE_URI")
+	if rawURI == "" {
+		return db.ParsedURI{}, fmt.Errorf("no SPANNER_DATABASE_URI is set")
+	}
+	return db.ParseURI(rawURI)
 }
 
 func DefaultStorage(ctx context.Context) (blob.Storage, error) {

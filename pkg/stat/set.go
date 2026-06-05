@@ -39,18 +39,6 @@ type UI struct {
 	V     int
 }
 
-func New(name, desc string, opts ...any) *Val {
-	return global.New(name, desc, opts...)
-}
-
-func Collect(level Level) []UI {
-	return global.Collect(level)
-}
-
-func RenderGraphs() []UIGraph {
-	return global.RenderGraphs()
-}
-
 var global = newSet(256, true)
 
 type set struct {
@@ -102,6 +90,15 @@ func newSet(histSize int, tick bool) *set {
 	return s
 }
 
+// Additional options for Val metrics.
+// Level controls if the metric should be printed to console in periodic heartbeat logs,
+// or showed on the simple web interface, or showed in the expert interface only.
+type Level int
+
+func Collect(level Level) []UI {
+	return global.Collect(level)
+}
+
 func (s *set) Collect(level Level) []UI {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -132,11 +129,6 @@ func (s *set) Collect(level Level) []UI {
 	})
 	return res
 }
-
-// Additional options for Val metrics.
-// Level controls if the metric should be printed to console in periodic heartbeat logs,
-// or showed on the simple web interface, or showed in the expert interface only.
-type Level int
 
 const (
 	All Level = iota
@@ -179,6 +171,27 @@ func LenOf(containerPtr any, mu *sync.RWMutex) func() int {
 func FormatMB(v int, period time.Duration) string {
 	const KB, MB = 1 << 10, 1 << 20
 	return fmt.Sprintf("%v MB (%v kb/sec)", (v+MB/2)/MB, (v+KB/2)/KB/int(period/time.Second))
+}
+
+type Val struct {
+	name    string
+	desc    string
+	link    string
+	graph   string
+	level   Level
+	order   uint64
+	val     atomic.Uint64
+	ext     func() int
+	fmt     func(int, time.Duration) string
+	rate    bool
+	hist    bool
+	prev    int
+	histMu  sync.Mutex
+	histVal *gohistogram.NumericHistogram
+}
+
+func New(name, desc string, opts ...any) *Val {
+	return global.New(name, desc, opts...)
 }
 
 // Addittionally a custom 'func() int' can be passed to read the metric value from the function.
@@ -237,23 +250,6 @@ func (s *set) New(name, desc string, opts ...any) *Val {
 		s.graphs[v.graph].stacked = stacked
 	}
 	return v
-}
-
-type Val struct {
-	name    string
-	desc    string
-	link    string
-	graph   string
-	level   Level
-	order   uint64
-	val     atomic.Uint64
-	ext     func() int
-	fmt     func(int, time.Duration) string
-	rate    bool
-	hist    bool
-	prev    int
-	histMu  sync.Mutex
-	histVal *gohistogram.NumericHistogram
 }
 
 func (v *Val) Add(val int) {
@@ -392,6 +388,10 @@ type UIGraph struct {
 	Level   Level
 	Lines   []string
 	Points  []UIPoint
+}
+
+func RenderGraphs() []UIGraph {
+	return global.RenderGraphs()
 }
 
 type UIPoint struct {

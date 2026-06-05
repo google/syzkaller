@@ -36,23 +36,6 @@ type Crash struct {
 	MemoryDump  string
 }
 
-func (c *Crash) FullTitle() string {
-	suffix := ""
-	if c.FullRepro {
-		suffix = " (full)"
-	}
-	if c.Report.Title != "" {
-		return c.Report.Title + suffix
-	}
-	// Just use some unique, but stable titles.
-	if c.FromDashboard {
-		return fmt.Sprintf("dashboard crash %p%s", c, suffix)
-	} else if c.FromHub {
-		return fmt.Sprintf("crash from hub %p%s", c, suffix)
-	}
-	panic("the crash is expected to have a report")
-}
-
 type ReproManagerView interface {
 	RunRepro(ctx context.Context, crash *Crash) *ReproResult
 	NeedRepro(crash *Crash) bool
@@ -253,6 +236,23 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			}
 		})
 	}
+}
+
+func (c *Crash) FullTitle() string {
+	suffix := ""
+	if c.FullRepro {
+		suffix = " (full)"
+	}
+	if c.Report.Title != "" {
+		return c.Report.Title + suffix
+	}
+	// Just use some unique, but stable titles.
+	if c.FromDashboard {
+		return fmt.Sprintf("dashboard crash %p%s", c, suffix)
+	} else if c.FromHub {
+		return fmt.Sprintf("crash from hub %p%s", c, suffix)
+	}
+	panic("the crash is expected to have a report")
 }
 
 func (r *ReproLoop) calculateReproVMs(repros int) int {

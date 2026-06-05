@@ -36,13 +36,6 @@ type constVal struct {
 
 const undefined = "???"
 
-func NewConstFile() *ConstFile {
-	return &ConstFile{
-		arches: make(map[string]bool),
-		m:      make(map[string]constVal),
-	}
-}
-
 func (cf *ConstFile) AddArch(arch string, consts map[string]uint64, undeclared map[string]bool) error {
 	cf.arches[arch] = true
 	for name, val := range consts {
@@ -197,6 +190,13 @@ func DeserializeConstFile(glob string, eh ast.ErrorHandler) *ConstFile {
 		}
 	}
 	return cf
+}
+
+func NewConstFile() *ConstFile {
+	return &ConstFile{
+		arches: make(map[string]bool),
+		m:      make(map[string]constVal),
+	}
 }
 
 func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.ErrorHandler) bool {

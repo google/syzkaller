@@ -42,36 +42,6 @@ type Prog struct {
 	fileConsts map[string]*ConstInfo
 }
 
-func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) *compiler {
-	if eh == nil {
-		eh = ast.LoggingHandler
-	}
-	desc.Nodes = append(builtinDescs.Clone().Nodes, desc.Nodes...)
-	comp := &compiler{
-		desc:           desc,
-		target:         target,
-		eh:             eh,
-		ptrSize:        target.PtrSize,
-		unsupported:    make(map[string]bool),
-		resources:      make(map[string]*ast.Resource),
-		typedefs:       make(map[string]*ast.TypeDef),
-		structs:        make(map[string]*ast.Struct),
-		intFlags:       make(map[string]*ast.IntFlags),
-		strFlags:       make(map[string]*ast.StrFlags),
-		used:           make(map[string]bool),
-		usedTypedefs:   make(map[string]bool),
-		brokenTypedefs: make(map[string]bool),
-		structVarlen:   make(map[string]bool),
-		structTypes:    make(map[string]prog.Type),
-		structFiles:    make(map[*ast.Struct]map[string]ast.Pos),
-		recursiveQuery: make(map[ast.Node]bool),
-		builtinConsts: map[string]uint64{
-			"PTR_SIZE": target.PtrSize,
-		},
-	}
-	return comp
-}
-
 // Compile compiles sys description.
 func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
 	comp := createCompiler(desc.Clone(), target, eh)
@@ -141,6 +111,36 @@ type compiler struct {
 	builtinConsts  map[string]uint64
 	fileMetas      map[string]Meta
 	recursiveQuery map[ast.Node]bool
+}
+
+func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) *compiler {
+	if eh == nil {
+		eh = ast.LoggingHandler
+	}
+	desc.Nodes = append(builtinDescs.Clone().Nodes, desc.Nodes...)
+	comp := &compiler{
+		desc:           desc,
+		target:         target,
+		eh:             eh,
+		ptrSize:        target.PtrSize,
+		unsupported:    make(map[string]bool),
+		resources:      make(map[string]*ast.Resource),
+		typedefs:       make(map[string]*ast.TypeDef),
+		structs:        make(map[string]*ast.Struct),
+		intFlags:       make(map[string]*ast.IntFlags),
+		strFlags:       make(map[string]*ast.StrFlags),
+		used:           make(map[string]bool),
+		usedTypedefs:   make(map[string]bool),
+		brokenTypedefs: make(map[string]bool),
+		structVarlen:   make(map[string]bool),
+		structTypes:    make(map[string]prog.Type),
+		structFiles:    make(map[*ast.Struct]map[string]ast.Pos),
+		recursiveQuery: make(map[ast.Node]bool),
+		builtinConsts: map[string]uint64{
+			"PTR_SIZE": target.PtrSize,
+		},
+	}
+	return comp
 }
 
 type warn struct {

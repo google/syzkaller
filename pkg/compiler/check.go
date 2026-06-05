@@ -17,16 +17,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func (comp *compiler) typecheck() {
-	comp.checkComments()
-	comp.checkDirectives()
-	comp.checkNames()
-	comp.checkFlags()
-	comp.checkFields()
-	comp.checkTypedefs()
-	comp.checkTypes()
-}
-
 func (comp *compiler) check(consts map[string]uint64) {
 	comp.checkTypeValues()
 	comp.checkAttributeValues()
@@ -443,17 +433,6 @@ func (pd *parentDesc) String() string {
 	return pd.name
 }
 
-// templateBase return the part before '[' for full template names.
-func templateBase(name string) string {
-	before, _, _ := strings.Cut(name, "[")
-	return before
-}
-
-func parentTargetName(s *ast.Struct) string {
-	// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
-	return templateBase(s.Name.Name)
-}
-
 func (comp *compiler) checkFieldPathsRec(t0, t *ast.Type, parents []parentDesc,
 	checked, warned map[string]bool, isArg bool) {
 	desc := comp.getTypeDesc(t)
@@ -635,6 +614,11 @@ func (comp *compiler) validateFieldPathRec(t0, t *ast.Type, targets []*ast.Type,
 	warned[warnKey] = true
 }
 
+func parentTargetName(s *ast.Struct) string {
+	// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
+	return templateBase(s.Name.Name)
+}
+
 func (comp *compiler) checkPathField(target, t *ast.Type, field *ast.Field) bool {
 	for _, attr := range field.Attrs {
 		desc := structFieldAttrs[attr.Ident]
@@ -712,6 +696,16 @@ func CollectUnusedConsts(desc *ast.Description, target *targets.Target, includeU
 		}
 	}
 	return unused, nil
+}
+
+func (comp *compiler) typecheck() {
+	comp.checkComments()
+	comp.checkDirectives()
+	comp.checkNames()
+	comp.checkFlags()
+	comp.checkFields()
+	comp.checkTypedefs()
+	comp.checkTypes()
 }
 
 func (comp *compiler) collectUnused() []ast.Node {
@@ -1029,17 +1023,6 @@ func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []
 	}
 }
 
-func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
-	var flags checkFlags
-	if !n.IsUnion {
-		flags |= checkIsStruct
-	}
-	for _, f := range n.Fields {
-		comp.checkType(ctx, f.Type, flags)
-	}
-	comp.parseAttrs(structOrUnionAttrs(n), n, n.Attrs)
-}
-
 func (comp *compiler) checkCall(n *ast.Call) {
 	for _, a := range n.Args {
 		comp.checkType(checkCtx{}, a.Type, checkIsArg)
@@ -1062,6 +1045,17 @@ const (
 
 type checkCtx struct {
 	instantiationStack []string
+}
+
+func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
+	var flags checkFlags
+	if !n.IsUnion {
+		flags |= checkIsStruct
+	}
+	for _, f := range n.Fields {
+		comp.checkType(ctx, f.Type, flags)
+	}
+	comp.parseAttrs(structOrUnionAttrs(n), n, n.Attrs)
 }
 
 func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
@@ -1274,6 +1268,12 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 	}
 	t.Pos = pos0
 	comp.maybeRemoveBase(t, flags)
+}
+
+// templateBase return the part before '[' for full template names.
+func templateBase(name string) string {
+	before, _, _ := strings.Cut(name, "[")
+	return before
 }
 
 func (comp *compiler) maybeRemoveBase(t *ast.Type, flags checkFlags) {

@@ -18,7 +18,9 @@ type Instance interface {
 }
 
 type UpdateInfo func(cb func(info *Info))
+
 type Runner[T Instance] func(ctx context.Context, inst T, updInfo UpdateInfo)
+
 type CreateInstance[T Instance] func(context.Context, int) (T, error)
 
 // Pool[T] provides the functionality of a generic pool of instances.
@@ -111,49 +113,6 @@ func (p *Pool[T]) Loop(ctx context.Context) {
 		}()
 	}
 	wg.Wait()
-}
-
-func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
-	p.waitUnpaused()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	log.Logf(2, "pool: booting instance %d", inst.idx)
-
-	inst.reset(cancel)
-
-	start := time.Now()
-	inst.status(StateBooting)
-	defer inst.status(StateOffline)
-
-	obj, err := p.creator(ctx, inst.idx)
-	if err != nil {
-		p.reportBootError(ctx, err)
-		return
-	}
-	log.Logf(2, "pool: instance %d created", inst.idx)
-	defer obj.Close()
-
-	p.BootTime.Save(time.Since(start))
-
-	inst.status(StateWaiting)
-	// The job and jobChan fields are subject to concurrent updates.
-	inst.mu.Lock()
-	job, jobChan := inst.job, inst.jobChan
-	inst.mu.Unlock()
-
-	if job == nil {
-		select {
-		case newJob := <-jobChan:
-			job = newJob
-		case newJob := <-inst.switchToJob:
-			job = newJob
-		case <-ctx.Done():
-			return
-		}
-	}
-
-	inst.status(StateRunning)
-	job(ctx, obj, inst.updateInfo)
 }
 
 func (p *Pool[T]) reportBootError(ctx context.Context, err error) {
@@ -263,6 +222,49 @@ type poolInstance[T Instance] struct {
 	jobChan     chan Runner[T]
 	switchToJob chan Runner[T]
 	stop        func()
+}
+
+func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
+	p.waitUnpaused()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	log.Logf(2, "pool: booting instance %d", inst.idx)
+
+	inst.reset(cancel)
+
+	start := time.Now()
+	inst.status(StateBooting)
+	defer inst.status(StateOffline)
+
+	obj, err := p.creator(ctx, inst.idx)
+	if err != nil {
+		p.reportBootError(ctx, err)
+		return
+	}
+	log.Logf(2, "pool: instance %d created", inst.idx)
+	defer obj.Close()
+
+	p.BootTime.Save(time.Since(start))
+
+	inst.status(StateWaiting)
+	// The job and jobChan fields are subject to concurrent updates.
+	inst.mu.Lock()
+	job, jobChan := inst.job, inst.jobChan
+	inst.mu.Unlock()
+
+	if job == nil {
+		select {
+		case newJob := <-jobChan:
+			job = newJob
+		case newJob := <-inst.switchToJob:
+			job = newJob
+		case <-ctx.Done():
+			return
+		}
+	}
+
+	inst.status(StateRunning)
+	job(ctx, obj, inst.updateInfo)
 }
 
 type InstanceState int

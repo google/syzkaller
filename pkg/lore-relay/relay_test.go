@@ -309,29 +309,6 @@ This is just a normal comment.
 	require.Len(t, mockSnd.sent, 0)
 }
 
-func testCommandSilent(t *testing.T, incomingBody string, mockDash *mockDashboard) {
-	loreArchive := lore.NewTestLoreArchive(t, t.TempDir())
-	cfg := &Config{LorePollInterval: time.Hour}
-	if mockDash == nil {
-		mockDash = &mockDashboard{}
-	}
-	mockSnd := &mockSender{}
-	lorePoller, err := lore.NewPoller(lore.PollerConfig{
-		RepoDir: t.TempDir(),
-		URL:     loreArchive.Repo.Dir,
-		Tracer:  &debugtracer.TestTracer{T: t},
-	})
-	require.NoError(t, err)
-	relay := NewRelay(cfg, mockDash, lorePoller, mockSnd)
-
-	loreArchive.SaveMessageAt(t, incomingBody, time.Now())
-
-	err = relay.PollLoreOnce(context.Background())
-	require.NoError(t, err)
-
-	require.Len(t, mockSnd.sent, 0)
-}
-
 func TestMultipleCommandsReply(t *testing.T) {
 	incoming := `From: user@email
 Subject: [PATCH] Fix bug
@@ -416,6 +393,29 @@ type mockDashboard struct {
 	confirmed []*dashapi.ConfirmPublishedReq
 	cmdResp   *dashapi.SendExternalCommandResp
 	cmdErr    error
+}
+
+func testCommandSilent(t *testing.T, incomingBody string, mockDash *mockDashboard) {
+	loreArchive := lore.NewTestLoreArchive(t, t.TempDir())
+	cfg := &Config{LorePollInterval: time.Hour}
+	if mockDash == nil {
+		mockDash = &mockDashboard{}
+	}
+	mockSnd := &mockSender{}
+	lorePoller, err := lore.NewPoller(lore.PollerConfig{
+		RepoDir: t.TempDir(),
+		URL:     loreArchive.Repo.Dir,
+		Tracer:  &debugtracer.TestTracer{T: t},
+	})
+	require.NoError(t, err)
+	relay := NewRelay(cfg, mockDash, lorePoller, mockSnd)
+
+	loreArchive.SaveMessageAt(t, incomingBody, time.Now())
+
+	err = relay.PollLoreOnce(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, mockSnd.sent, 0)
 }
 
 func (m *mockDashboard) AIReportCommand(req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {

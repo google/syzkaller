@@ -64,13 +64,6 @@ type policyQueue struct {
 	pending  []*NetlinkPolicy
 }
 
-func (pq *policyQueue) policyUsed(name string) {
-	if pol := pq.policies[name]; pol != nil {
-		delete(pq.policies, name)
-		pq.pending = append(pq.pending, pol)
-	}
-}
-
 func (ctx *context) serializeNetlinkPolicy(pol *NetlinkPolicy, pq *policyQueue) {
 	if len(pol.Attrs) == 0 {
 		ctx.fmt("type %v auto_todo\n", pol.Name+autoSuffix)
@@ -112,6 +105,13 @@ func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 		typ = ctx.fieldType(field, nil, "", true)
 	}
 	return fmt.Sprintf("%v[%v, %v]", nlattr, attr.Name, typ)
+}
+
+func (pq *policyQueue) policyUsed(name string) {
+	if pol := pq.policies[name]; pol != nil {
+		delete(pq.policies, name)
+		pq.pending = append(pq.pending, pol)
+	}
 }
 
 func (ctx *context) netlinkType(attr *NetlinkAttr) *Type {

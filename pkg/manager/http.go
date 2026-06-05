@@ -398,46 +398,6 @@ func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool) UICrashType {
-	var crashes []UICrash
-	for _, crash := range info.Crashes {
-		crashes = append(crashes, UICrash{
-			CrashInfo: *crash,
-			Active:    crash.Time.After(startTime),
-		})
-	}
-	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
-		info.ReproAttempts >= MaxReproAttempts)
-	return UICrashType{
-		BugInfo:     *info,
-		RankTooltip: higherRankTooltip(info.Title, info.TailTitles),
-		New:         info.FirstTime.After(startTime),
-		Active:      info.LastTime.After(startTime),
-		Triaged:     triaged,
-		Crashes:     crashes,
-	}
-}
-
-// higherRankTooltip generates the prioritized list of the titles with higher Rank
-// than the firstTitle has.
-func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
-	baseRank := report.TitlesToImpact(firstTitle)
-	var res strings.Builder
-	for _, ti := range titlesInfo {
-		if ti.Rank <= baseRank {
-			continue
-		}
-		res.WriteString(fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
-			ti.Rank,
-			100*float32(ti.Count)/float32(ti.Total),
-			ti.Title))
-	}
-	if res.String() != "" {
-		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res.String())
-	}
-	return res.String()
-}
-
 var crashIDRe = regexp.MustCompile(`^\w+$`)
 
 func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
@@ -559,6 +519,7 @@ func (serv *HTTPServer) httpModuleCover(w http.ResponseWriter, r *http.Request) 
 }
 
 const ctTextPlain = "text/plain; charset=utf-8"
+
 const ctApplicationJSON = "application/json"
 
 func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int) {
@@ -930,10 +891,6 @@ func (serv *HTTPServer) httpAddCandidate(w http.ResponseWriter, r *http.Request)
 
 var alphaNumRegExp = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
 
-func isAlphanumeric(s string) bool {
-	return alphaNumRegExp.MatchString(s)
-}
-
 func (serv *HTTPServer) httpReport(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
 	if !isAlphanumeric(crashID) {
@@ -965,6 +922,10 @@ func (serv *HTTPServer) httpReport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func isAlphanumeric(s string) bool {
+	return alphaNumRegExp.MatchString(s)
+}
+
 func (serv *HTTPServer) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	serv.httpCoverCover(w, r, DoRawCover)
 }
@@ -975,51 +936,6 @@ func (serv *HTTPServer) httpRawCoverFiles(w http.ResponseWriter, r *http.Request
 
 func (serv *HTTPServer) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 	serv.httpCoverCover(w, r, DoFilterPCs)
-}
-
-func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UIDiffTable) {
-	for _, item := range serv.allDiffCrashes() {
-		if item.PatchedOnly() {
-			if patchedOnly == nil {
-				patchedOnly = &UIDiffTable{Title: "Patched-only"}
-			}
-			patchedOnly.List = append(patchedOnly.List, item)
-		} else if item.AffectsBoth() {
-			if both == nil {
-				both = &UIDiffTable{Title: "Affects both"}
-			}
-			both.List = append(both.List, item)
-		} else {
-			if inProgress == nil {
-				inProgress = &UIDiffTable{Title: "In Progress"}
-			}
-			inProgress.List = append(inProgress.List, item)
-		}
-	}
-	return
-}
-
-func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
-	var repros map[string]bool
-	if serv.ReproLoop != nil {
-		repros = serv.ReproLoop.Reproducing()
-	}
-	var list []UIDiffBug
-	for _, bug := range serv.DiffStore.List() {
-		list = append(list, UIDiffBug{
-			DiffBug:     bug,
-			Reproducing: repros[bug.Title],
-		})
-	}
-	sort.Slice(list, func(i, j int) bool {
-		first, second := list[i], list[j]
-		firstPatched, secondPatched := first.PatchedOnly(), second.PatchedOnly()
-		if firstPatched != secondPatched {
-			return firstPatched
-		}
-		return first.Title < second.Title
-	})
-	return list
 }
 
 func (serv *HTTPServer) httpJobs(w http.ResponseWriter, r *http.Request) {
@@ -1074,21 +990,6 @@ func (serv *HTTPServer) httpJobs(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, jobListTemplate, data)
 }
 
-func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string {
-	status := ""
-	if hasRepro {
-		status = "has repro"
-		if hasCRepro {
-			status = "has C repro"
-		}
-	} else if reproducing {
-		status = "reproducing"
-	} else if nonReproducible {
-		status = "non-reproducible"
-	}
-	return status
-}
-
 func executeTemplate(w http.ResponseWriter, templ *template.Template, data any) {
 	buf := new(bytes.Buffer)
 	if err := templ.Execute(buf, data); err != nil {
@@ -1134,6 +1035,28 @@ type UIDiffTable struct {
 	List  []UIDiffBug
 }
 
+func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UIDiffTable) {
+	for _, item := range serv.allDiffCrashes() {
+		if item.PatchedOnly() {
+			if patchedOnly == nil {
+				patchedOnly = &UIDiffTable{Title: "Patched-only"}
+			}
+			patchedOnly.List = append(patchedOnly.List, item)
+		} else if item.AffectsBoth() {
+			if both == nil {
+				both = &UIDiffTable{Title: "Affects both"}
+			}
+			both.List = append(both.List, item)
+		} else {
+			if inProgress == nil {
+				inProgress = &UIDiffTable{Title: "In Progress"}
+			}
+			inProgress.List = append(inProgress.List, item)
+		}
+	}
+	return
+}
+
 type UIVMData struct {
 	UIPageHeader
 	VMs []UIVMInfo
@@ -1166,6 +1089,61 @@ type UICrashType struct {
 	Crashes     []UICrash
 }
 
+func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool) UICrashType {
+	var crashes []UICrash
+	for _, crash := range info.Crashes {
+		crashes = append(crashes, UICrash{
+			CrashInfo: *crash,
+			Active:    crash.Time.After(startTime),
+		})
+	}
+	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
+		info.ReproAttempts >= MaxReproAttempts)
+	return UICrashType{
+		BugInfo:     *info,
+		RankTooltip: higherRankTooltip(info.Title, info.TailTitles),
+		New:         info.FirstTime.After(startTime),
+		Active:      info.LastTime.After(startTime),
+		Triaged:     triaged,
+		Crashes:     crashes,
+	}
+}
+
+// higherRankTooltip generates the prioritized list of the titles with higher Rank
+// than the firstTitle has.
+func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
+	baseRank := report.TitlesToImpact(firstTitle)
+	var res strings.Builder
+	for _, ti := range titlesInfo {
+		if ti.Rank <= baseRank {
+			continue
+		}
+		res.WriteString(fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
+			ti.Rank,
+			100*float32(ti.Count)/float32(ti.Total),
+			ti.Title))
+	}
+	if res.String() != "" {
+		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res.String())
+	}
+	return res.String()
+}
+
+func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string {
+	status := ""
+	if hasRepro {
+		status = "has repro"
+		if hasCRepro {
+			status = "has C repro"
+		}
+	} else if reproducing {
+		status = "reproducing"
+	} else if nonReproducible {
+		status = "non-reproducible"
+	}
+	return status
+}
+
 type UICrash struct {
 	CrashInfo
 	Active bool
@@ -1174,6 +1152,29 @@ type UICrash struct {
 type UIDiffBug struct {
 	DiffBug
 	Reproducing bool
+}
+
+func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
+	var repros map[string]bool
+	if serv.ReproLoop != nil {
+		repros = serv.ReproLoop.Reproducing()
+	}
+	var list []UIDiffBug
+	for _, bug := range serv.DiffStore.List() {
+		list = append(list, UIDiffBug{
+			DiffBug:     bug,
+			Reproducing: repros[bug.Title],
+		})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		first, second := list[i], list[j]
+		firstPatched, secondPatched := first.PatchedOnly(), second.PatchedOnly()
+		if firstPatched != secondPatched {
+			return firstPatched
+		}
+		return first.Title < second.Title
+	})
+	return list
 }
 
 type UIStat struct {

@@ -143,15 +143,6 @@ func searchModuleName(data []byte) string {
 	return string(data[pos+len(key) : end])
 }
 
-func getKaslrOffset(modules []*vminfo.KernelModule, pcBase uint64) uint64 {
-	for _, mod := range modules {
-		if mod.Name == "" {
-			return mod.Addr - pcBase
-		}
-	}
-	return 0
-}
-
 // when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
 func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*vminfo.KernelModule {
 	kaslrOffset := getKaslrOffset(modules, pcBase)
@@ -178,4 +169,13 @@ func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*
 		})
 	}
 	return modules1
+}
+
+func getKaslrOffset(modules []*vminfo.KernelModule, pcBase uint64) uint64 {
+	for _, mod := range modules {
+		if mod.Name == "" {
+			return mod.Addr - pcBase
+		}
+	}
+	return 0
 }

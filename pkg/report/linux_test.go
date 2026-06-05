@@ -361,21 +361,6 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 	}
 }
 
-func prepareLinuxReporter(t *testing.T, arch string) (*Reporter, *linux) {
-	cfg := &mgrconfig.Config{
-		Derived: mgrconfig.Derived{
-			TargetOS:   targets.Linux,
-			TargetArch: arch,
-			SysTarget:  targets.Get(targets.Linux, arch),
-		},
-	}
-	reporter, err := NewReporter(cfg)
-	if err != nil {
-		t.Errorf("failed to create a reporter instance for %#v: %v", arch, err)
-	}
-	return reporter, reporter.impl.(*linux)
-}
-
 func TestParseLinuxOpcodes(t *testing.T) {
 	type opcodeTest struct {
 		arch   string
@@ -537,6 +522,21 @@ func TestDisassemblyInReports(t *testing.T) {
 			})
 		}
 	}
+}
+
+func prepareLinuxReporter(t *testing.T, arch string) (*Reporter, *linux) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:   targets.Linux,
+			TargetArch: arch,
+			SysTarget:  targets.Get(targets.Linux, arch),
+		},
+	}
+	reporter, err := NewReporter(cfg)
+	if err != nil {
+		t.Errorf("failed to create a reporter instance for %#v: %v", arch, err)
+	}
+	return reporter, reporter.impl.(*linux)
 }
 
 func testDisassembly(t *testing.T, reporter *Reporter, linuxReporter *linux, testFilePrefix string) {

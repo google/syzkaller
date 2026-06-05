@@ -7,13 +7,6 @@ import (
 	"testing"
 )
 
-func extractBitsOne(t *testing.T, from uint32, start, size uint, expect uint32) {
-	ret := extractBits(from, start, size)
-	if ret != expect {
-		t.Fatalf("extractBits(%x, %d, %d) returned %x instead of %x", from, start, size, ret, expect)
-	}
-}
-
 func TestExtractBits(t *testing.T) {
 	extractBitsOne(t, 0, 0, 0, 0)
 	extractBitsOne(t, 0xffffffff, 0, 0, 0)
@@ -23,4 +16,11 @@ func TestExtractBits(t *testing.T) {
 	extractBitsOne(t, 0xf0f0f0f0, 31, 5, 0b11110)
 	extractBitsOne(t, 0xf0f0f0f0, 25, 4, 0b0011)
 	extractBitsOne(t, 0xf0f0f0f0, 21, 4, 0b1100)
+}
+
+func extractBitsOne(t *testing.T, from uint32, start, size uint, expect uint32) {
+	ret := extractBits(from, start, size)
+	if ret != expect {
+		t.Fatalf("extractBits(%x, %d, %d) returned %x instead of %x", from, start, size, ret, expect)
+	}
 }

@@ -18,14 +18,6 @@ import (
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
-func makeDefaultParams() *proxyAppParams {
-	return &proxyAppParams{
-		CommandRunner:  osutilCommandContext,
-		InitRetryDelay: 10 * time.Second,
-		LogOutput:      os.Stdout,
-	}
-}
-
 func init() {
 	vmimpl.Register("proxyapp", vmimpl.Type{
 		Ctor: func(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -41,8 +33,12 @@ type proxyAppParams struct {
 	LogOutput      io.Writer
 }
 
-func osutilCommandContext(ctx context.Context, bin string, args ...string) subProcessCmd {
-	return osutil.CommandContext(ctx, bin, args...)
+func makeDefaultParams() *proxyAppParams {
+	return &proxyAppParams{
+		CommandRunner:  osutilCommandContext,
+		InitRetryDelay: 10 * time.Second,
+		LogOutput:      os.Stdout,
+	}
 }
 
 type subProcessCmd interface {
@@ -51,6 +47,10 @@ type subProcessCmd interface {
 	StderrPipe() (io.ReadCloser, error)
 	Start() error
 	Wait() error
+}
+
+func osutilCommandContext(ctx context.Context, bin string, args ...string) subProcessCmd {
+	return osutil.CommandContext(ctx, bin, args...)
 }
 
 // Config is valid if at least cmd or rpc_server_uri specified.

@@ -113,13 +113,6 @@ func (cfg *EmailConfig) Validate() error {
 	return nil
 }
 
-func (cfg *EmailConfig) getSubject(title string) string {
-	if cfg.SubjectPrefix != "" {
-		return cfg.SubjectPrefix + " " + title
-	}
-	return title
-}
-
 // handleCoverageReports sends a coverage report for the two full months preceding the current one.
 // Assuming it is called June 15, the monthly report will cover April-May diff.
 func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
@@ -570,6 +563,13 @@ func sendMailTemplate(ctx context.Context, params *mailSendParams) error {
 	return sendMailText(ctx, params.cfg.getSubject(params.title), from, to, params.replyTo, body.String())
 }
 
+func (cfg *EmailConfig) getSubject(title string) string {
+	if cfg.SubjectPrefix != "" {
+		return cfg.SubjectPrefix + " " + title
+	}
+	return title
+}
+
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
 	for _, v := range slices.Backward(rep.Subsystems) {
@@ -800,6 +800,188 @@ func groupEmailReplies(replies []string) string {
 	return totalReply.String()
 }
 
+func processDiscussionEmail(ctx context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
+	log.Debugf(ctx, "processDiscussionEmail %s from source %v", msg.MessageID, source)
+	if len(msg.BugIDs) == 0 {
+		return nil
+	}
+	const limitIDs = 10
+	if len(msg.BugIDs) > limitIDs {
+		msg.BugIDs = msg.BugIDs[:limitIDs]
+	}
+	log.Debugf(ctx, "saving to discussions for %q", msg.BugIDs)
+	dType := dashapi.DiscussionMention
+	if source == dashapi.DiscussionLore {
+		dType = lore.DiscussionType(msg)
+	}
+	extIDs := []string{}
+	for _, id := range msg.BugIDs {
+		if isBugListHash(id) {
+			dType = dashapi.DiscussionReminder
+			continue
+		}
+		_, _, err := findBugByReportingID(ctx, id)
+		if err == nil {
+			extIDs = append(extIDs, id)
+		}
+	}
+	msg.BugIDs = extIDs
+	err := saveDiscussionMessage(ctx, msg, source, dType)
+	if err != nil {
+		return fmt.Errorf("failed to save in discussions: %w", err)
+	}
+	return nil
+}
+
+var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
+	email.CmdUpstream: dashapi.BugStatusUpstream,
+	email.CmdInvalid:  dashapi.BugStatusInvalid,
+	email.CmdUnDup:    dashapi.BugStatusOpen,
+	email.CmdFix:      dashapi.BugStatusOpen,
+	email.CmdUnFix:    dashapi.BugStatusUpdate,
+	email.CmdDup:      dashapi.BugStatusDup,
+	email.CmdUnCC:     dashapi.BugStatusUnCC,
+}
+
+var (
+	// The supported formats are:
+	// For bugs:
+	// #syz set LABEL[: value_1, [value_2, ....]]
+	// For bug lists:
+	// #syz set <N> LABEL[: value_1, [value_2, ....]]
+	setCmdRe         = regexp.MustCompile(`(?m)\s*([-\w]+)\s*(?:\:\s*([,\-\w\s]*?))?$`)
+	setCmdArgSplitRe = regexp.MustCompile(`[\s,]+`)
+	setBugCmdFormat  = `I've failed to parse your command. Please use the following format(s):
+#syz set some-flag
+#syz set label: value
+#syz set subsystems: one-subsystem, another-subsystem
+
+Or, for bug lists,
+#syz set <Ref> some-flag
+#syz set <Ref> label: value
+#syz set <Ref> subsystems: one-subsystem, another-subsystem
+
+The following labels are suported:
+%s`
+	setCmdUnknownLabel = `The specified label %q is unknown.
+Please use one of the supported labels.
+
+The following labels are suported:
+%s`
+	setCmdUnknownValue = `The specified label value is incorrect.
+%s.
+Please use one of the supported label values.
+
+The following labels are suported:
+%s`
+	cmdInternalErrorReply = `The command was not executed due to an internal error.
+Please contact the bot's maintainers.`
+)
+
+var (
+	unsetBugCmdFormat = `I've failed to parse your command. Please use the following format(s):
+#syz unset any-label
+
+Or, for bug lists,
+#syz unset <Ref> any-label
+`
+	unsetLabelsNotFound = `The following labels did not exist: %s`
+)
+
+func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Errorf(ctx, "email bounced: failed to read body: %v", err)
+		return
+	}
+	if nonCriticalBounceRe.Match(body) {
+		log.Infof(ctx, "email bounced: address not found")
+	} else {
+		log.Errorf(ctx, "email bounced")
+	}
+	log.Infof(ctx, "%s", body)
+}
+
+var (
+	setGroupCmdRe     = regexp.MustCompile(`(?m)\s*<(\d+)>\s*(.*)$`)
+	setGroupCmdFormat = `I've failed to parse your command. Please use the following format(s):
+#syz set <Ref> some-label, another-label
+#syz set <Ref> subsystems: one-subsystem, another-subsystem
+#syz unset <Ref> some-label
+`
+	setGroupCmdBadRef = `The specified <Ref> number is invalid. It must be one of the <NUM> values
+listed in the bug list table.
+`
+)
+
+// These are just stale emails in MAINTAINERS.
+var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
+
+type bugListInfoResult struct {
+	id     string
+	config *EmailConfig
+	keys   []*db.Key
+}
+
+func handleBugListCommand(ctx context.Context, bugListInfo *bugListInfoResult,
+	msg *email.Email, command *email.SingleCommand) string {
+	upd := &dashapi.BugListUpdate{
+		ID:    bugListInfo.id,
+		ExtID: msg.MessageID,
+		Link:  msg.Link,
+	}
+	switch command.Command {
+	case email.CmdUpstream:
+		upd.Command = dashapi.BugListUpstreamCmd
+	case email.CmdRegenerate:
+		upd.Command = dashapi.BugListRegenerateCmd
+	case email.CmdSet, email.CmdUnset:
+		// Extract and cut the <Ref> part.
+		match := setGroupCmdRe.FindStringSubmatch(command.Args)
+		if match == nil {
+			return setGroupCmdFormat
+		}
+		ref, args := match[1], match[2]
+		numRef, err := strconv.Atoi(ref)
+		if err != nil {
+			return setGroupCmdFormat
+		}
+		if numRef < 1 || numRef > len(bugListInfo.keys) {
+			return setGroupCmdBadRef
+		}
+		bugKey := bugListInfo.keys[numRef-1]
+		bug := new(Bug)
+		if err := db.Get(ctx, bugKey, bug); err != nil {
+			log.Errorf(ctx, "failed to fetch bug by key %s: %s", bugKey, err)
+			return cmdInternalErrorReply
+		}
+		command.Args = args
+		switch command.Command {
+		case email.CmdSet:
+			return handleSetCommand(ctx, bug, msg, command)
+		case email.CmdUnset:
+			return handleUnsetCommand(ctx, bug, msg, command)
+		}
+	default:
+		upd.Command = dashapi.BugListUpdateCmd
+	}
+	log.Infof(ctx, "bug list update: id=%s, cmd=%v", upd.ID, upd.Command)
+	reply, err := reportingBugListCommand(ctx, upd)
+	if err != nil {
+		log.Errorf(ctx, "bug list command failed: %s", err)
+		return cmdInternalErrorReply
+	}
+	return reply
+}
+
+type bugInfoResult struct {
+	bug          *Bug
+	bugKey       *db.Key
+	bugReporting *BugReporting
+	reporting    *Reporting
+}
+
 func handleBugCommand(ctx context.Context, bugInfo *bugInfoResult, msg *email.Email,
 	command *email.SingleCommand) string {
 	status := dashapi.BugStatusUpdate
@@ -867,49 +1049,6 @@ func handleBugCommand(ctx context.Context, bugInfo *bugInfoResult, msg *email.Em
 	return ""
 }
 
-func processDiscussionEmail(ctx context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
-	log.Debugf(ctx, "processDiscussionEmail %s from source %v", msg.MessageID, source)
-	if len(msg.BugIDs) == 0 {
-		return nil
-	}
-	const limitIDs = 10
-	if len(msg.BugIDs) > limitIDs {
-		msg.BugIDs = msg.BugIDs[:limitIDs]
-	}
-	log.Debugf(ctx, "saving to discussions for %q", msg.BugIDs)
-	dType := dashapi.DiscussionMention
-	if source == dashapi.DiscussionLore {
-		dType = lore.DiscussionType(msg)
-	}
-	extIDs := []string{}
-	for _, id := range msg.BugIDs {
-		if isBugListHash(id) {
-			dType = dashapi.DiscussionReminder
-			continue
-		}
-		_, _, err := findBugByReportingID(ctx, id)
-		if err == nil {
-			extIDs = append(extIDs, id)
-		}
-	}
-	msg.BugIDs = extIDs
-	err := saveDiscussionMessage(ctx, msg, source, dType)
-	if err != nil {
-		return fmt.Errorf("failed to save in discussions: %w", err)
-	}
-	return nil
-}
-
-var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
-	email.CmdUpstream: dashapi.BugStatusUpstream,
-	email.CmdInvalid:  dashapi.BugStatusInvalid,
-	email.CmdUnDup:    dashapi.BugStatusOpen,
-	email.CmdFix:      dashapi.BugStatusOpen,
-	email.CmdUnFix:    dashapi.BugStatusUpdate,
-	email.CmdDup:      dashapi.BugStatusDup,
-	email.CmdUnCC:     dashapi.BugStatusUnCC,
-}
-
 func handleTestCommand(ctx context.Context, info *bugInfoResult,
 	msg *email.Email, command *email.SingleCommand) string {
 	args := strings.Fields(command.Args)
@@ -956,41 +1095,6 @@ func handleTestCommand(ctx context.Context, info *bugInfoResult,
 	return reply
 }
 
-var (
-	// The supported formats are:
-	// For bugs:
-	// #syz set LABEL[: value_1, [value_2, ....]]
-	// For bug lists:
-	// #syz set <N> LABEL[: value_1, [value_2, ....]]
-	setCmdRe         = regexp.MustCompile(`(?m)\s*([-\w]+)\s*(?:\:\s*([,\-\w\s]*?))?$`)
-	setCmdArgSplitRe = regexp.MustCompile(`[\s,]+`)
-	setBugCmdFormat  = `I've failed to parse your command. Please use the following format(s):
-#syz set some-flag
-#syz set label: value
-#syz set subsystems: one-subsystem, another-subsystem
-
-Or, for bug lists,
-#syz set <Ref> some-flag
-#syz set <Ref> label: value
-#syz set <Ref> subsystems: one-subsystem, another-subsystem
-
-The following labels are suported:
-%s`
-	setCmdUnknownLabel = `The specified label %q is unknown.
-Please use one of the supported labels.
-
-The following labels are suported:
-%s`
-	setCmdUnknownValue = `The specified label value is incorrect.
-%s.
-Please use one of the supported label values.
-
-The following labels are suported:
-%s`
-	cmdInternalErrorReply = `The command was not executed due to an internal error.
-Please contact the bot's maintainers.`
-)
-
 func handleSetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 	command *email.SingleCommand) string {
 	labelSet := makeLabelSet(ctx, bug)
@@ -1028,16 +1132,6 @@ func handleSetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 	return ""
 }
 
-var (
-	unsetBugCmdFormat = `I've failed to parse your command. Please use the following format(s):
-#syz unset any-label
-
-Or, for bug lists,
-#syz unset <Ref> any-label
-`
-	unsetLabelsNotFound = `The following labels did not exist: %s`
-)
-
 func handleUnsetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 	command *email.SingleCommand) string {
 	match := setCmdRe.FindStringSubmatch(command.Args)
@@ -1069,93 +1163,6 @@ func handleUnsetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 		return cmdInternalErrorReply
 	}
 	return ""
-}
-
-func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
-	ctx := appengine.NewContext(r)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Errorf(ctx, "email bounced: failed to read body: %v", err)
-		return
-	}
-	if nonCriticalBounceRe.Match(body) {
-		log.Infof(ctx, "email bounced: address not found")
-	} else {
-		log.Errorf(ctx, "email bounced")
-	}
-	log.Infof(ctx, "%s", body)
-}
-
-var (
-	setGroupCmdRe     = regexp.MustCompile(`(?m)\s*<(\d+)>\s*(.*)$`)
-	setGroupCmdFormat = `I've failed to parse your command. Please use the following format(s):
-#syz set <Ref> some-label, another-label
-#syz set <Ref> subsystems: one-subsystem, another-subsystem
-#syz unset <Ref> some-label
-`
-	setGroupCmdBadRef = `The specified <Ref> number is invalid. It must be one of the <NUM> values
-listed in the bug list table.
-`
-)
-
-func handleBugListCommand(ctx context.Context, bugListInfo *bugListInfoResult,
-	msg *email.Email, command *email.SingleCommand) string {
-	upd := &dashapi.BugListUpdate{
-		ID:    bugListInfo.id,
-		ExtID: msg.MessageID,
-		Link:  msg.Link,
-	}
-	switch command.Command {
-	case email.CmdUpstream:
-		upd.Command = dashapi.BugListUpstreamCmd
-	case email.CmdRegenerate:
-		upd.Command = dashapi.BugListRegenerateCmd
-	case email.CmdSet, email.CmdUnset:
-		// Extract and cut the <Ref> part.
-		match := setGroupCmdRe.FindStringSubmatch(command.Args)
-		if match == nil {
-			return setGroupCmdFormat
-		}
-		ref, args := match[1], match[2]
-		numRef, err := strconv.Atoi(ref)
-		if err != nil {
-			return setGroupCmdFormat
-		}
-		if numRef < 1 || numRef > len(bugListInfo.keys) {
-			return setGroupCmdBadRef
-		}
-		bugKey := bugListInfo.keys[numRef-1]
-		bug := new(Bug)
-		if err := db.Get(ctx, bugKey, bug); err != nil {
-			log.Errorf(ctx, "failed to fetch bug by key %s: %s", bugKey, err)
-			return cmdInternalErrorReply
-		}
-		command.Args = args
-		switch command.Command {
-		case email.CmdSet:
-			return handleSetCommand(ctx, bug, msg, command)
-		case email.CmdUnset:
-			return handleUnsetCommand(ctx, bug, msg, command)
-		}
-	default:
-		upd.Command = dashapi.BugListUpdateCmd
-	}
-	log.Infof(ctx, "bug list update: id=%s, cmd=%v", upd.ID, upd.Command)
-	reply, err := reportingBugListCommand(ctx, upd)
-	if err != nil {
-		log.Errorf(ctx, "bug list command failed: %s", err)
-		return cmdInternalErrorReply
-	}
-	return reply
-}
-
-// These are just stale emails in MAINTAINERS.
-var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
-
-type bugListInfoResult struct {
-	id     string
-	config *EmailConfig
-	keys   []*db.Key
 }
 
 func identifyEmail(ctx context.Context, msg *email.Email) (*bugInfoResult, *bugListInfoResult, *EmailConfig) {
@@ -1200,13 +1207,6 @@ func identifyEmail(ctx context.Context, msg *email.Email) (*bugInfoResult, *bugL
 		return nil, nil, nil
 	}
 	return bugInfo, nil, bugInfo.reporting.Config.(*EmailConfig)
-}
-
-type bugInfoResult struct {
-	bug          *Bug
-	bugKey       *db.Key
-	bugReporting *BugReporting
-	reporting    *Reporting
 }
 
 func loadBugInfo(ctx context.Context, msg *email.Email) *bugInfoResult {
@@ -1325,17 +1325,6 @@ var (
 	errAmbiguousTitle    = errors.New("ambiguous bug title")
 )
 
-func getSubjectParser(ctx context.Context) *subjectTitleParser {
-	if getConfig(ctx) != getConfig(context.Background()) {
-		// For the non-default config, do not cache the parser.
-		return makeSubjectTitleParser(ctx)
-	}
-	subjectParserInit.Do(func() {
-		defaultSubjectParser = makeSubjectTitleParser(ctx)
-	})
-	return defaultSubjectParser
-}
-
 func matchBugFromList(ctx context.Context, sender, subject string) (*bugInfoResult, error) {
 	title, seq, err := getSubjectParser(ctx).parseTitle(subject)
 	if err != nil {
@@ -1398,6 +1387,17 @@ func matchBugFromList(ctx context.Context, sender, subject string) (*bugInfoResu
 
 type subjectTitleParser struct {
 	pattern *regexp.Regexp
+}
+
+func getSubjectParser(ctx context.Context) *subjectTitleParser {
+	if getConfig(ctx) != getConfig(context.Background()) {
+		// For the non-default config, do not cache the parser.
+		return makeSubjectTitleParser(ctx)
+	}
+	subjectParserInit.Do(func() {
+		defaultSubjectParser = makeSubjectTitleParser(ctx)
+	})
+	return defaultSubjectParser
 }
 
 func makeSubjectTitleParser(ctx context.Context) *subjectTitleParser {
@@ -1504,6 +1504,18 @@ func sendMailText(ctx context.Context, subject, from string, to []string, replyT
 	return sendEmail(ctx, msg)
 }
 
+func replyError(ctx context.Context, msg *email.Email, bugID, reply string) error {
+	if len(msg.Commands) == 0 {
+		log.Infof(ctx, "not sending error reply to %q: no commands", msg.MessageID)
+		return nil
+	}
+	if msg.OwnEmail {
+		log.Infof(ctx, "not sending error reply to %q: own email", msg.MessageID)
+		return nil
+	}
+	return replyTo(ctx, msg, bugID, reply)
+}
+
 func replyTo(ctx context.Context, msg *email.Email, bugID, reply string) error {
 	if msg.OwnEmail {
 		log.Errorf(ctx, "not sending reply to own email")
@@ -1527,18 +1539,6 @@ func replyTo(ctx context.Context, msg *email.Email, bugID, reply string) error {
 	return sendEmail(ctx, replyMsg)
 }
 
-func replyError(ctx context.Context, msg *email.Email, bugID, reply string) error {
-	if len(msg.Commands) == 0 {
-		log.Infof(ctx, "not sending error reply to %q: no commands", msg.MessageID)
-		return nil
-	}
-	if msg.OwnEmail {
-		log.Infof(ctx, "not sending error reply to %q: own email", msg.MessageID)
-		return nil
-	}
-	return replyTo(ctx, msg, bugID, reply)
-}
-
 // Sends email, can be stubbed for testing.
 var sendEmail = func(ctx context.Context, msg *aemail.Message) error {
 	if err := aemail.Send(ctx, msg); err != nil {
@@ -1552,13 +1552,6 @@ func replySubject(subject string) string {
 		return replySubjectPrefix + subject
 	}
 	return subject
-}
-
-func ownEmail(ctx context.Context) string {
-	if getConfig(ctx).OwnEmailAddress != "" {
-		return getConfig(ctx).OwnEmailAddress
-	}
-	return fmt.Sprintf("syzbot@%v.appspotmail.com", appengine.AppID(ctx))
 }
 
 func fromAddr(ctx context.Context) string {
@@ -1590,6 +1583,13 @@ func sanitizeCC(ctx context.Context, cc []string) []string {
 		res = append(res, mail.Address)
 	}
 	return res
+}
+
+func ownEmail(ctx context.Context) string {
+	if getConfig(ctx).OwnEmailAddress != "" {
+		return getConfig(ctx).OwnEmailAddress
+	}
+	return fmt.Sprintf("syzbot@%v.appspotmail.com", appengine.AppID(ctx))
 }
 
 func externalLink(ctx context.Context, tag string, id int64) string {
