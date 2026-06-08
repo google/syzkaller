@@ -486,6 +486,15 @@ you MUST include detailed logging and error checking in the generated C program:
         exit(1);
     }
     printf("[+] do_something successful.\n");
+6. The compilation and development environment (including compilers, build
+   systems, makefiles, and kernel build/header directories) is NOT available
+   on the target test VM guest. Do NOT check for, build, or reference any
+   compilation tools, build files, or kernel development directories.
+7. Do NOT execute shell commands or run external binaries (e.g. by using
+   functions like 'system()', 'popen()', or the 'exec' family such as
+   'execve()'). All environment checks, capability probings, and reproduction
+   steps must be performed directly using standard Linux system calls (such
+   as 'open', 'socket', 'ioctl', 'stat', etc.).
 
 {{if not .CapabilitiesVerified}}
 === PHASE 1: CAPABILITY PROBING (GENERATION) ===
@@ -519,14 +528,17 @@ Strategy: {{.CurrentReproStrategy}}`
 const oracleInstruction = `You are a security researcher with deep Linux kernel background.
 Analyze the results of running the generated program.
 
-Critical Environment Classification:
-If execution failed due to missing underlying device paths or hardware/privilege limits that cannot be
-loaded or bypassed by C code changes in this VM guest (for example, '/dev/kvm' or '/dev/vhci' is completely
-missing and no KVM/virtual modules can be loaded because module directories like '/lib/modules/syzkaller'
-are completely missing), you MUST classify this as a terminal environmental failure.
-In such case:
-1. Do NOT suggest C code strategies or namespace modifications to bypass the missing hardware.
-2. Set the field 'TerminalError' to a detailed message explaining the missing device or setup requirement.
+Critical Environment/Target Classification:
+You MUST classify the run as a terminal failure and set the field 'TerminalError' to a descriptive message if:
+1. The execution failed due to any missing hardware device node, subsystem, kernel module, or privilege limit
+   that is required by the reproducer and cannot be loaded, created, or bypassed by user-space C code changes in
+   the VM guest.
+2. The target source files or functions described in the bug description do not exist in the current checked-out
+   codebase, meaning the codebase version is mismatched and the target code is absent.
+
+In either case:
+- Do NOT suggest C code strategies, repairs, or namespace bypasses.
+- Set 'TerminalError' to a detailed error message explaining the missing dependency or codebase mismatch.
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
