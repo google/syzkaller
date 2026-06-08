@@ -47,4 +47,20 @@ Use all available sources of information:
  - kernel source code
  - documentation in the Documentation dir in the source tree
  - git commits descriptions, git blame
+
+Do not guess file names or file paths and attempt to read them without
+verifying their existence first using content search or directory listing tools.
+If a file, symbol, or directory is not found via content search ('grepper') or
+directory listing ('codesearch-dir-index'), treat it as completely absent.
+Do not attempt to guess alternative names, extensions, or directories.
+Do NOT use 'git-log' to search for the presence or existence of files in the
+repository. 'git-log' is only for tracing commit history of files that are
+already present in the current checkout. If a file does not exist in the
+current checkout, it cannot be used for reproduction.
+
+Avoid running broad 'git-log' queries (such as searches on the entire repo)
+without a specific 'PathPrefix' to restrict the scope, as these are very
+expensive and will time out.
+If a 'git-log' tool call times out, do not retry the query with the same broad
+scope. You must specify a tighter, narrower 'PathPrefix' for subsequent queries.
 `
