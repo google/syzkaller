@@ -523,7 +523,17 @@ and improve it. Keep your reasoning steps short and focused on the next logical 
 {{end}}`
 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
-Strategy: {{.CurrentReproStrategy}}`
+Strategy: {{.CurrentReproStrategy}}
+
+{{if .RawCandidateReproC}}
+Previous Reproducer Attempt:
+{{.RawCandidateReproC}}
+{{end}}
+
+{{if .OracleFeedback}}
+Execution Results & Debugging Feedback:
+{{.OracleFeedback}}
+{{end}}`
 
 const oracleInstruction = `You are a security researcher with deep Linux kernel background.
 Analyze the results of running the generated program.
