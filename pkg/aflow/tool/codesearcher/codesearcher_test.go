@@ -19,8 +19,8 @@ func TestStructLayout(t *testing.T) {
 		},
 		structLayoutResult{
 			Fields: []structLayoutField{
-				{Name: "X", OffsetBits: 0, SizeBits: 32},
-				{Name: "by_value", OffsetBits: 32, SizeBits: 64},
+				{Name: "X", OffsetBits: 0, SizeBits: 32, Type: "int"},
+				{Name: "by_value", OffsetBits: 32, SizeBits: 64, Type: "struct some_struct"},
 			},
 		},
 		``,

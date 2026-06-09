@@ -5,4 +5,3 @@ function same_name_in_several_files is defined in source1.c:
    4:	static void same_name_in_several_files()
    5:	{
    6:		// This is static version in source1.c.
-   7:	}

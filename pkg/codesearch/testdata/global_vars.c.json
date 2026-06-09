@@ -3,6 +3,7 @@
 		{
 			"name": "some_function",
 			"type": "void (void)",
+			"signature": "void (void)",
 			"kind": "function",
 			"body": {
 				"file": "global_vars.c",

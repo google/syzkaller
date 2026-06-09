@@ -1,0 +1,4 @@
+indirect-targets "void (int)"
+
+signature void (int) has 1 targets:
+ - my_work
