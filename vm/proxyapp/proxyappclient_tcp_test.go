@@ -25,49 +25,17 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testTCPEnv(port string) *vmimpl.Env {
-	return &vmimpl.Env{
-		Config: []byte(`
-{
-		"rpc_server_uri": "localhost:` + port + `",
-		"security": "none",
-		"config": {
-			"internal_values": 123
-		}
-	}
-`)}
-}
-
-func testTCPEnvTLS(port, certPath string) *vmimpl.Env {
-	return &vmimpl.Env{
-		Config: []byte(`
-{
-		"rpc_server_uri": "localhost:` + port + `",
-		"security": "tls",
-		"server_tls_cert": "` + certPath + `",
-		"config": {
-			"internal_values": 123
-		}
-	}
-`)}
-}
-
-func proxyAppServerTCPFixture(t *testing.T) (*mockProxyAppInterface, string, *proxyAppParams) {
-	mProxyAppServer, port, _ := makeMockProxyAppServer(t)
-	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
-}
-
-func proxyAppServerTCPFixtureTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, *proxyAppParams) {
-	mProxyAppServer, port, _ := makeMockProxyAppServerTLS(t, cert)
-	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
-}
-
 func TestCtor_TCP_Ok(t *testing.T) {
 	_, port, params := proxyAppServerTCPFixture(t)
 	p, err := ctor(params, testTCPEnv(port))
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, p.Count())
+}
+
+func proxyAppServerTCPFixture(t *testing.T) (*mockProxyAppInterface, string, *proxyAppParams) {
+	mProxyAppServer, port, _ := makeMockProxyAppServer(t)
+	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
 }
 
 func TestCtor_TCP_Ok_TLS(t *testing.T) {
@@ -119,6 +87,25 @@ func TestCtor_TCP_Ok_TLS(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, p.Count())
+}
+
+func testTCPEnvTLS(port, certPath string) *vmimpl.Env {
+	return &vmimpl.Env{
+		Config: []byte(`
+{
+		"rpc_server_uri": "localhost:` + port + `",
+		"security": "tls",
+		"server_tls_cert": "` + certPath + `",
+		"config": {
+			"internal_values": 123
+		}
+	}
+`)}
+}
+
+func proxyAppServerTCPFixtureTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, *proxyAppParams) {
+	mProxyAppServer, port, _ := makeMockProxyAppServerTLS(t, cert)
+	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
 }
 
 func TestCtor_TCP_WrongPort(t *testing.T) {
@@ -195,6 +182,37 @@ func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
 	}
 }
 
+func testTCPEnv(port string) *vmimpl.Env {
+	return &vmimpl.Env{
+		Config: []byte(`
+{
+		"rpc_server_uri": "localhost:` + port + `",
+		"security": "none",
+		"config": {
+			"internal_values": 123
+		}
+	}
+`)}
+}
+
+func makeMockProxyAppServer(t *testing.T) (*mockProxyAppInterface, string, func()) {
+	l, e := net.Listen("tcp", ":0")
+	if e != nil {
+		t.Fatalf("listen error: %v", e)
+	}
+
+	return makeMockProxyAppServerWithListener(t, l)
+}
+
+func makeMockProxyAppServerTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, func()) {
+	l, e := tls.Listen("tcp", ":0", &tls.Config{Certificates: []tls.Certificate{cert}})
+	if e != nil {
+		t.Fatalf("listen error: %v", e)
+	}
+
+	return makeMockProxyAppServerWithListener(t, l)
+}
+
 func makeMockProxyAppServerWithListener(t *testing.T, l net.Listener) (*mockProxyAppInterface, string, func()) {
 	handler := makeMockProxyAppInterface(t)
 	server := rpc.NewServer()
@@ -229,22 +247,4 @@ func makeMockProxyAppServerWithListener(t *testing.T, l net.Listener) (*mockProx
 			conn.Close()
 		}
 	}
-}
-
-func makeMockProxyAppServer(t *testing.T) (*mockProxyAppInterface, string, func()) {
-	l, e := net.Listen("tcp", ":0")
-	if e != nil {
-		t.Fatalf("listen error: %v", e)
-	}
-
-	return makeMockProxyAppServerWithListener(t, l)
-}
-
-func makeMockProxyAppServerTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, func()) {
-	l, e := tls.Listen("tcp", ":0", &tls.Config{Certificates: []tls.Certificate{cert}})
-	if e != nil {
-		t.Fatalf("listen error: %v", e)
-	}
-
-	return makeMockProxyAppServerWithListener(t, l)
 }

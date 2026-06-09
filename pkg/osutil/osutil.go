@@ -181,36 +181,6 @@ func CopyFiles(srcDir, dstDir string, files map[string]bool) error {
 	return os.Rename(tmpDir, dstDir)
 }
 
-func foreachPatternFile(srcDir, dstDir string, files map[string]bool, fn func(src, dst string) error) error {
-	srcDir = filepath.Clean(srcDir)
-	dstDir = filepath.Clean(dstDir)
-	for pattern, required := range files {
-		files, err := filepath.Glob(filepath.Join(srcDir, filepath.FromSlash(pattern)))
-		if err != nil {
-			return err
-		}
-		if len(files) == 0 {
-			if !required {
-				continue
-			}
-			return fmt.Errorf("file %v does not exist", pattern)
-		}
-		for _, file := range files {
-			if !strings.HasPrefix(file, srcDir) {
-				return fmt.Errorf("file %q matched from %q in %q doesn't have src prefix", file, pattern, srcDir)
-			}
-			dst := filepath.Join(dstDir, strings.TrimPrefix(file, srcDir))
-			if err := MkdirAll(filepath.Dir(dst)); err != nil {
-				return err
-			}
-			if err := fn(file, dst); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func CopyDirRecursively(srcDir, dstDir string) error {
 	if err := MkdirAll(dstDir); err != nil {
 		return err
@@ -248,12 +218,38 @@ func LinkFiles(srcDir, dstDir string, files map[string]bool) error {
 	return foreachPatternFile(srcDir, dstDir, files, os.Link)
 }
 
-func MkdirAll(dir string) error {
-	return os.MkdirAll(dir, DefaultDirPerm)
+func foreachPatternFile(srcDir, dstDir string, files map[string]bool, fn func(src, dst string) error) error {
+	srcDir = filepath.Clean(srcDir)
+	dstDir = filepath.Clean(dstDir)
+	for pattern, required := range files {
+		files, err := filepath.Glob(filepath.Join(srcDir, filepath.FromSlash(pattern)))
+		if err != nil {
+			return err
+		}
+		if len(files) == 0 {
+			if !required {
+				continue
+			}
+			return fmt.Errorf("file %v does not exist", pattern)
+		}
+		for _, file := range files {
+			if !strings.HasPrefix(file, srcDir) {
+				return fmt.Errorf("file %q matched from %q in %q doesn't have src prefix", file, pattern, srcDir)
+			}
+			dst := filepath.Join(dstDir, strings.TrimPrefix(file, srcDir))
+			if err := MkdirAll(filepath.Dir(dst)); err != nil {
+				return err
+			}
+			if err := fn(file, dst); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
-func WriteFile(filename string, data []byte) error {
-	return os.WriteFile(filename, data, DefaultFilePerm)
+func MkdirAll(dir string) error {
+	return os.MkdirAll(dir, DefaultDirPerm)
 }
 
 // WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
@@ -275,6 +271,10 @@ func WriteJSON[T any](filename string, obj T) error {
 		return fmt.Errorf("failed to marshal: %w", err)
 	}
 	return WriteFile(filename, jsonData)
+}
+
+func WriteFile(filename string, data []byte) error {
+	return os.WriteFile(filename, data, DefaultFilePerm)
 }
 
 func ReadJSON[T any](filename string) (T, error) {

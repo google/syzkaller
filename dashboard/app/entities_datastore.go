@@ -292,35 +292,9 @@ type BugDailyStats struct {
 	CrashCount int
 }
 
-type Commit struct {
-	Hash       string
-	Title      string
-	Author     string
-	AuthorName string
-	CC         string `datastore:",noindex"` // (|-delimited list)
-	Date       time.Time
-}
-
-func (com Commit) toDashapi() *dashapi.Commit {
-	return &dashapi.Commit{
-		Hash:       com.Hash,
-		Title:      com.Title,
-		Author:     com.Author,
-		AuthorName: com.AuthorName,
-		Date:       com.Date,
-	}
-}
-
 type BugDiscussionInfo struct {
 	Source  string
 	Summary DiscussionSummary
-}
-
-type DiscussionSummary struct {
-	AllMessages      int
-	ExternalMessages int
-	LastMessage      time.Time
-	LastPatchMessage time.Time
 }
 
 type BugReporting struct {
@@ -464,12 +438,19 @@ type Discussion struct {
 	Summary DiscussionSummary
 }
 
-func discussionKey(ctx context.Context, source, id string) *db.Key {
-	return db.NewKey(ctx, "Discussion", fmt.Sprintf("%v-%v", source, id), 0, nil)
+type DiscussionSummary struct {
+	AllMessages      int
+	ExternalMessages int
+	LastMessage      time.Time
+	LastPatchMessage time.Time
 }
 
 func (d *Discussion) key(ctx context.Context) *db.Key {
 	return discussionKey(ctx, d.Source, d.ID)
+}
+
+func discussionKey(ctx context.Context, source, id string) *db.Key {
+	return db.NewKey(ctx, "Discussion", fmt.Sprintf("%v-%v", source, id), 0, nil)
 }
 
 type DiscussionMessage struct {
@@ -525,16 +506,6 @@ func (r *SubsystemReport) getBugKeys() ([]*db.Key, error) {
 	return ret, nil
 }
 
-func (r *SubsystemReport) findStage(id string) *SubsystemReportStage {
-	for j := range r.Stages {
-		stage := &r.Stages[j]
-		if stage.ID == id {
-			return stage
-		}
-	}
-	return nil
-}
-
 type SubsystemReportStats struct {
 	Reported int
 	LowPrio  int
@@ -558,6 +529,16 @@ type SubsystemReportStage struct {
 	Reported   time.Time
 	Closed     time.Time
 	Moderation bool
+}
+
+func (r *SubsystemReport) findStage(id string) *SubsystemReportStage {
+	for j := range r.Stages {
+		stage := &r.Stages[j]
+		if stage.ID == id {
+			return stage
+		}
+	}
+	return nil
 }
 
 // Job represent a single patch testing or bisection job for syz-ci.
@@ -613,6 +594,25 @@ type Job struct {
 	Reported         bool   // have we reported result back to user?
 	InvalidatedBy    string // user who marked this bug as invalid, empty by default
 	BackportedCommit Commit
+}
+
+type Commit struct {
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	CC         string `datastore:",noindex"` // (|-delimited list)
+	Date       time.Time
+}
+
+func (com Commit) toDashapi() *dashapi.Commit {
+	return &dashapi.Commit{
+		Hash:       com.Hash,
+		Title:      com.Title,
+		Author:     com.Author,
+		AuthorName: com.AuthorName,
+		Date:       com.Date,
+	}
 }
 
 func (job *Job) IsBisection() bool {
@@ -746,28 +746,6 @@ type ReproTask struct {
 	Created      time.Time
 }
 
-func mgrKey(ctx context.Context, ns, name string) *db.Key {
-	return db.NewKey(ctx, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
-}
-
-func (mgr *Manager) key(ctx context.Context) *db.Key {
-	return mgrKey(ctx, mgr.Namespace, mgr.Name)
-}
-
-func loadManager(ctx context.Context, ns, name string) (*Manager, error) {
-	mgr := new(Manager)
-	if err := db.Get(ctx, mgrKey(ctx, ns, name), mgr); err != nil {
-		if err != db.ErrNoSuchEntity {
-			return nil, fmt.Errorf("failed to get manager %v/%v: %w", ns, name, err)
-		}
-		mgr = &Manager{
-			Namespace: ns,
-			Name:      name,
-		}
-	}
-	return mgr, nil
-}
-
 // updateManager does transactional compare-and-swap on the manager and its current stats.
 func updateManager(ctx context.Context, ns, name string, fn func(mgr *Manager, stats *ManagerStats) error) error {
 	date := timeDate(timeNow(ctx))
@@ -803,6 +781,10 @@ func updateManager(ctx context.Context, ns, name string, fn func(mgr *Manager, s
 	return runInTransaction(ctx, tx, nil)
 }
 
+func (mgr *Manager) key(ctx context.Context) *db.Key {
+	return mgrKey(ctx, mgr.Namespace, mgr.Name)
+}
+
 func loadAllManagers(ctx context.Context, ns string) ([]*Manager, []*db.Key, error) {
 	var managers []*Manager
 	query := db.NewQuery("Manager")
@@ -825,12 +807,33 @@ func loadAllManagers(ctx context.Context, ns string) ([]*Manager, []*db.Key, err
 	return result, resultKeys, nil
 }
 
-func buildKey(ctx context.Context, ns, id string) *db.Key {
-	if ns == "" {
-		panic("requesting build key outside of namespace")
+func lastManagerBuild(ctx context.Context, ns, manager string) (*Build, error) {
+	mgr, err := loadManager(ctx, ns, manager)
+	if err != nil {
+		return nil, err
 	}
-	h := hash.String([]byte(fmt.Sprintf("%v-%v", ns, id)))
-	return db.NewKey(ctx, "Build", h, 0, nil)
+	if mgr.CurrentBuild == "" {
+		return nil, fmt.Errorf("failed to fetch manager build: no builds")
+	}
+	return loadBuild(ctx, ns, mgr.CurrentBuild)
+}
+
+func loadManager(ctx context.Context, ns, name string) (*Manager, error) {
+	mgr := new(Manager)
+	if err := db.Get(ctx, mgrKey(ctx, ns, name), mgr); err != nil {
+		if err != db.ErrNoSuchEntity {
+			return nil, fmt.Errorf("failed to get manager %v/%v: %w", ns, name, err)
+		}
+		mgr = &Manager{
+			Namespace: ns,
+			Name:      name,
+		}
+	}
+	return mgr, nil
+}
+
+func mgrKey(ctx context.Context, ns, name string) *db.Key {
+	return db.NewKey(ctx, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
 }
 
 func loadBuild(ctx context.Context, ns, id string) (*Build, error) {
@@ -844,15 +847,12 @@ func loadBuild(ctx context.Context, ns, id string) (*Build, error) {
 	return build, nil
 }
 
-func lastManagerBuild(ctx context.Context, ns, manager string) (*Build, error) {
-	mgr, err := loadManager(ctx, ns, manager)
-	if err != nil {
-		return nil, err
+func buildKey(ctx context.Context, ns, id string) *db.Key {
+	if ns == "" {
+		panic("requesting build key outside of namespace")
 	}
-	if mgr.CurrentBuild == "" {
-		return nil, fmt.Errorf("failed to fetch manager build: no builds")
-	}
-	return loadBuild(ctx, ns, mgr.CurrentBuild)
+	h := hash.String([]byte(fmt.Sprintf("%v-%v", ns, id)))
+	return db.NewKey(ctx, "Build", h, 0, nil)
 }
 
 func loadBuilds(ctx context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
@@ -916,14 +916,6 @@ func (bug *Bug) key(ctx context.Context) *db.Key {
 	return db.NewKey(ctx, "Bug", bug.keyHash(ctx), 0, nil)
 }
 
-func (bug *Bug) keyHash(ctx context.Context) string {
-	return bugKeyHash(ctx, bug.Namespace, bug.Title, bug.Seq)
-}
-
-func bugKeyHash(ctx context.Context, ns, title string, seq int64) string {
-	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(ctx, ns).Key, ns, title, seq)))
-}
-
 func loadBug(ctx context.Context, bugHash string) (*Bug, error) {
 	bug := new(Bug)
 	bugKey := db.NewKey(ctx, "Bug", bugHash, 0, nil)
@@ -957,6 +949,14 @@ func loadSimilarBugs(ctx context.Context, bug *Bug) ([]*Bug, error) {
 		}
 	}
 	return ret, nil
+}
+
+func (bug *Bug) keyHash(ctx context.Context) string {
+	return bugKeyHash(ctx, bug.Namespace, bug.Title, bug.Seq)
+}
+
+func bugKeyHash(ctx context.Context, ns, title string, seq int64) string {
+	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(ctx, ns).Key, ns, title, seq)))
 }
 
 // Since these IDs appear in Reported-by tags in commit, we slightly limit their size.
@@ -1102,10 +1102,6 @@ func timeDate(t time.Time) int {
 	return year*10000 + int(month)*100 + day
 }
 
-func stringInList(list []string, str string) bool {
-	return slices.Contains(list, str)
-}
-
 func stringListsIntersect(a, b []string) bool {
 	m := map[string]bool{}
 	for _, strA := range a {
@@ -1119,6 +1115,13 @@ func stringListsIntersect(a, b []string) bool {
 	return false
 }
 
+func mergeStringList(list, add []string) []string {
+	for _, str := range add {
+		list = mergeString(list, str)
+	}
+	return list
+}
+
 func mergeString(list []string, str string) []string {
 	if !stringInList(list, str) {
 		list = append(list, str)
@@ -1126,11 +1129,8 @@ func mergeString(list []string, str string) []string {
 	return list
 }
 
-func mergeStringList(list, add []string) []string {
-	for _, str := range add {
-		list = mergeString(list, str)
-	}
-	return list
+func stringInList(list []string, str string) bool {
+	return slices.Contains(list, str)
 }
 
 // dateTime converts date in YYYYMMDD format back to Time.

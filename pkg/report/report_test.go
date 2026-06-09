@@ -103,6 +103,175 @@ func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 	testParseImpl(t, reporter, test)
 }
 
+func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
+	rep := reporter.Parse(test.Log)
+	containsCrash := reporter.ContainsCrash(test.Log)
+	expectCrash := (test.Title != "")
+	if expectCrash && !containsCrash {
+		t.Fatalf("did not find crash")
+	}
+	if !expectCrash && containsCrash {
+		t.Fatalf("found unexpected crash")
+	}
+	if rep != nil && rep.Title == "" {
+		t.Fatalf("found crash, but title is empty")
+	}
+	parsed := testFromReport(rep)
+	if !test.Equal(parsed) {
+		if *flagUpdate && test.StartLine+test.EndLine == "" {
+			updateReportTest(t, test, parsed)
+		}
+		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
+			test.Headers(), parsed.Headers(), parsed.corruptedReason)
+	}
+	if parsed.Title != "" && len(rep.Report) == 0 {
+		t.Fatalf("found crash message but report is empty")
+	}
+	if rep == nil {
+		return
+	}
+	checkReport(t, reporter, rep, test)
+}
+
+func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest) {
+	if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
+		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
+	}
+	if !bytes.Equal(rep.Output, test.Log) {
+		t.Fatalf("bad Output:\n%s", rep.Output)
+	}
+	if rep.StartPos != 0 && rep.EndPos != 0 && rep.StartPos >= rep.EndPos {
+		t.Fatalf("StartPos %v >= EndPos %v", rep.StartPos, rep.EndPos)
+	}
+	if rep.EndPos > len(rep.Output) {
+		t.Fatalf("EndPos %v > len(Output) %v", rep.EndPos, len(rep.Output))
+	}
+	if rep.SkipPos <= rep.StartPos || rep.SkipPos > rep.EndPos {
+		t.Fatalf("bad SkipPos %v: StartPos %v EndPos %v", rep.SkipPos, rep.StartPos, rep.EndPos)
+	}
+	if test.StartLine != "" {
+		if test.EndLine == "" {
+			test.EndLine = test.StartLine
+		}
+		startPos := bytes.Index(test.Log, []byte(test.StartLine))
+		endPos := bytes.Index(test.Log, []byte(test.EndLine)) + len(test.EndLine)
+		if rep.StartPos != startPos || rep.EndPos != endPos {
+			t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
+				rep.StartPos, rep.EndPos, startPos, endPos,
+				string(test.Log[rep.StartPos:rep.EndPos]))
+		}
+	}
+	if rep.StartPos != 0 {
+		// If we parse from StartPos, we must find the same report.
+		rep1 := reporter.ParseFrom(test.Log, rep.StartPos)
+		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != rep.StartPos {
+			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
+		}
+		// If we parse from EndPos, we must not find the same report.
+		rep2 := reporter.ParseFrom(test.Log, rep.EndPos)
+		if rep2 != nil && rep2.Title == rep.Title {
+			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
+		}
+	}
+}
+
+func TestGuiltyFile(t *testing.T) {
+	forEachFile(t, "guilty", testGuiltyFile)
+}
+
+func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
+	vars, report := parseGuiltyTest(t, fn)
+	file := vars["FILE"]
+	rep := reporter.Parse(report)
+	if rep == nil {
+		t.Fatalf("did not find crash in the input")
+	}
+	// Parse doesn't generally run on already symbolized output,
+	// but here we run it on symbolized output because we can't symbolize in tests.
+	// The problem is with duplicated lines due to inlined frames,
+	// Parse can strip such report after first title line because it thinks
+	// that the duplicated title line is beginning on another report.
+	// In such case we restore whole report, but still keep StartPos that
+	// Parse produces at least in some cases.
+	if !bytes.HasSuffix(report, rep.Report) {
+		rep.Report = report
+		rep.StartPos = 0
+	}
+	if err := reporter.Symbolize(rep); err != nil {
+		t.Fatalf("failed to symbolize report: %v", err)
+	}
+	if rep.GuiltyFile != file {
+		t.Fatalf("got guilty %q, want %q", rep.GuiltyFile, file)
+	}
+}
+
+func TestRawGuiltyFile(t *testing.T) {
+	forEachFile(t, "guilty_raw", testRawGuiltyFile)
+}
+
+func testRawGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
+	vars, report := parseGuiltyTest(t, fn)
+	outFile := reporter.ReportToGuiltyFile(vars["TITLE"], report)
+	if outFile != vars["FILE"] {
+		t.Fatalf("expected %#v, got %#v", vars["FILE"], outFile)
+	}
+}
+
+func parseGuiltyTest(t *testing.T, fn string) (map[string]string, []byte) {
+	data, err := os.ReadFile(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nlnl := bytes.Index(data, []byte{'\n', '\n'})
+	if nlnl == -1 {
+		t.Fatalf("no \\n\\n in file")
+	}
+	vars := map[string]string{}
+	s := bufio.NewScanner(bytes.NewReader(data[:nlnl]))
+	for s.Scan() {
+		ln := strings.TrimSpace(s.Text())
+		if ln == "" || ln[0] == '#' {
+			continue
+		}
+		colon := strings.IndexByte(ln, ':')
+		if colon == -1 {
+			t.Fatalf("no : in %s", ln)
+		}
+		vars[strings.TrimSpace(ln[:colon])] = strings.TrimSpace(ln[colon+1:])
+	}
+	return vars, data[nlnl+2:]
+}
+
+func TestSymbolize(t *testing.T) {
+	// We cannot fully test symbolization as we need kernel binaries with debug info, but
+	// let's at least test symbol demangling that's done as part of Symbolize().
+	forEachFile(t, "symbolize", testSymbolizeFile)
+}
+
+func testSymbolizeFile(t *testing.T, reporter *Reporter, fn string) {
+	test := parseReport(t, reporter, fn)
+	if !test.HasReport {
+		t.Fatalf("the test must have the REPORT section")
+	}
+	rep := reporter.Parse(test.Log)
+	if rep == nil {
+		t.Fatalf("did not find crash")
+	}
+	err := reporter.Symbolize(rep)
+	if err != nil {
+		t.Fatalf("failed to symbolize: %v", err)
+	}
+	parsed := testFromReport(rep)
+	if !test.Equal(parsed) {
+		if *flagUpdate {
+			updateReportTest(t, test, parsed)
+		}
+		assert.Equal(t, string(test.Report), string(rep.Report), "extracted wrong report")
+		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
+			test.Headers(), parsed.Headers(), parsed.corruptedReason)
+	}
+}
+
 func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 	data, err := os.ReadFile(fn)
 	if err != nil {
@@ -237,78 +406,6 @@ func testFromReport(rep *Report) *ParseTest {
 	return ret
 }
 
-func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
-	rep := reporter.Parse(test.Log)
-	containsCrash := reporter.ContainsCrash(test.Log)
-	expectCrash := (test.Title != "")
-	if expectCrash && !containsCrash {
-		t.Fatalf("did not find crash")
-	}
-	if !expectCrash && containsCrash {
-		t.Fatalf("found unexpected crash")
-	}
-	if rep != nil && rep.Title == "" {
-		t.Fatalf("found crash, but title is empty")
-	}
-	parsed := testFromReport(rep)
-	if !test.Equal(parsed) {
-		if *flagUpdate && test.StartLine+test.EndLine == "" {
-			updateReportTest(t, test, parsed)
-		}
-		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
-			test.Headers(), parsed.Headers(), parsed.corruptedReason)
-	}
-	if parsed.Title != "" && len(rep.Report) == 0 {
-		t.Fatalf("found crash message but report is empty")
-	}
-	if rep == nil {
-		return
-	}
-	checkReport(t, reporter, rep, test)
-}
-
-func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest) {
-	if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
-		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
-	}
-	if !bytes.Equal(rep.Output, test.Log) {
-		t.Fatalf("bad Output:\n%s", rep.Output)
-	}
-	if rep.StartPos != 0 && rep.EndPos != 0 && rep.StartPos >= rep.EndPos {
-		t.Fatalf("StartPos %v >= EndPos %v", rep.StartPos, rep.EndPos)
-	}
-	if rep.EndPos > len(rep.Output) {
-		t.Fatalf("EndPos %v > len(Output) %v", rep.EndPos, len(rep.Output))
-	}
-	if rep.SkipPos <= rep.StartPos || rep.SkipPos > rep.EndPos {
-		t.Fatalf("bad SkipPos %v: StartPos %v EndPos %v", rep.SkipPos, rep.StartPos, rep.EndPos)
-	}
-	if test.StartLine != "" {
-		if test.EndLine == "" {
-			test.EndLine = test.StartLine
-		}
-		startPos := bytes.Index(test.Log, []byte(test.StartLine))
-		endPos := bytes.Index(test.Log, []byte(test.EndLine)) + len(test.EndLine)
-		if rep.StartPos != startPos || rep.EndPos != endPos {
-			t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
-				rep.StartPos, rep.EndPos, startPos, endPos,
-				string(test.Log[rep.StartPos:rep.EndPos]))
-		}
-	}
-	if rep.StartPos != 0 {
-		// If we parse from StartPos, we must find the same report.
-		rep1 := reporter.ParseFrom(test.Log, rep.StartPos)
-		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != rep.StartPos {
-			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
-		}
-		// If we parse from EndPos, we must not find the same report.
-		rep2 := reporter.ParseFrom(test.Log, rep.EndPos)
-		if rep2 != nil && rep2.Title == rep.Title {
-			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
-		}
-	}
-}
-
 func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	buf := new(bytes.Buffer)
 	if test.Frame == "" {
@@ -322,103 +419,6 @@ func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	}
 	if err := os.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
 		t.Logf("failed to update test file: %v", err)
-	}
-}
-
-func TestGuiltyFile(t *testing.T) {
-	forEachFile(t, "guilty", testGuiltyFile)
-}
-
-func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
-	vars, report := parseGuiltyTest(t, fn)
-	file := vars["FILE"]
-	rep := reporter.Parse(report)
-	if rep == nil {
-		t.Fatalf("did not find crash in the input")
-	}
-	// Parse doesn't generally run on already symbolized output,
-	// but here we run it on symbolized output because we can't symbolize in tests.
-	// The problem is with duplicated lines due to inlined frames,
-	// Parse can strip such report after first title line because it thinks
-	// that the duplicated title line is beginning on another report.
-	// In such case we restore whole report, but still keep StartPos that
-	// Parse produces at least in some cases.
-	if !bytes.HasSuffix(report, rep.Report) {
-		rep.Report = report
-		rep.StartPos = 0
-	}
-	if err := reporter.Symbolize(rep); err != nil {
-		t.Fatalf("failed to symbolize report: %v", err)
-	}
-	if rep.GuiltyFile != file {
-		t.Fatalf("got guilty %q, want %q", rep.GuiltyFile, file)
-	}
-}
-
-func TestRawGuiltyFile(t *testing.T) {
-	forEachFile(t, "guilty_raw", testRawGuiltyFile)
-}
-
-func testRawGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
-	vars, report := parseGuiltyTest(t, fn)
-	outFile := reporter.ReportToGuiltyFile(vars["TITLE"], report)
-	if outFile != vars["FILE"] {
-		t.Fatalf("expected %#v, got %#v", vars["FILE"], outFile)
-	}
-}
-
-func parseGuiltyTest(t *testing.T, fn string) (map[string]string, []byte) {
-	data, err := os.ReadFile(fn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	nlnl := bytes.Index(data, []byte{'\n', '\n'})
-	if nlnl == -1 {
-		t.Fatalf("no \\n\\n in file")
-	}
-	vars := map[string]string{}
-	s := bufio.NewScanner(bytes.NewReader(data[:nlnl]))
-	for s.Scan() {
-		ln := strings.TrimSpace(s.Text())
-		if ln == "" || ln[0] == '#' {
-			continue
-		}
-		colon := strings.IndexByte(ln, ':')
-		if colon == -1 {
-			t.Fatalf("no : in %s", ln)
-		}
-		vars[strings.TrimSpace(ln[:colon])] = strings.TrimSpace(ln[colon+1:])
-	}
-	return vars, data[nlnl+2:]
-}
-
-func TestSymbolize(t *testing.T) {
-	// We cannot fully test symbolization as we need kernel binaries with debug info, but
-	// let's at least test symbol demangling that's done as part of Symbolize().
-	forEachFile(t, "symbolize", testSymbolizeFile)
-}
-
-func testSymbolizeFile(t *testing.T, reporter *Reporter, fn string) {
-	test := parseReport(t, reporter, fn)
-	if !test.HasReport {
-		t.Fatalf("the test must have the REPORT section")
-	}
-	rep := reporter.Parse(test.Log)
-	if rep == nil {
-		t.Fatalf("did not find crash")
-	}
-	err := reporter.Symbolize(rep)
-	if err != nil {
-		t.Fatalf("failed to symbolize: %v", err)
-	}
-	parsed := testFromReport(rep)
-	if !test.Equal(parsed) {
-		if *flagUpdate {
-			updateReportTest(t, test, parsed)
-		}
-		assert.Equal(t, string(test.Report), string(rep.Report), "extracted wrong report")
-		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
-			test.Headers(), parsed.Headers(), parsed.corruptedReason)
 	}
 }
 

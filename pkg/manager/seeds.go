@@ -212,37 +212,6 @@ func ParseSeedWithRequirements(target *prog.Target, data []byte, reqs map[string
 	return parseProg(target, data, prog.Strict, reqs)
 }
 
-func parseRequires(data []byte) map[string]bool {
-	requires := make(map[string]bool)
-	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
-		const prefix = "# requires:"
-		line := s.Text()
-		if !strings.HasPrefix(line, prefix) {
-			continue
-		}
-		for req := range strings.FieldsSeq(line[len(prefix):]) {
-			positive := true
-			if req[0] == '-' {
-				positive = false
-				req = req[1:]
-			}
-			requires[req] = positive
-		}
-	}
-	return requires
-}
-
-func checkArch(requires map[string]bool, arch string) bool {
-	for req, positive := range requires {
-		const prefix = "arch="
-		if strings.HasPrefix(req, prefix) &&
-			arch != req[len(prefix):] == positive {
-			return false
-		}
-	}
-	return true
-}
-
 func MatchRequirements(props, requires map[string]bool) bool {
 	for req, positive := range requires {
 		if positive {
@@ -293,6 +262,37 @@ func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode, reqs
 		}
 	}
 	return p, properties, nil
+}
+
+func parseRequires(data []byte) map[string]bool {
+	requires := make(map[string]bool)
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		const prefix = "# requires:"
+		line := s.Text()
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		for req := range strings.FieldsSeq(line[len(prefix):]) {
+			positive := true
+			if req[0] == '-' {
+				positive = false
+				req = req[1:]
+			}
+			requires[req] = positive
+		}
+	}
+	return requires
+}
+
+func checkArch(requires map[string]bool, arch string) bool {
+	for req, positive := range requires {
+		const prefix = "arch="
+		if strings.HasPrefix(req, prefix) &&
+			arch != req[len(prefix):] == positive {
+			return false
+		}
+	}
+	return true
 }
 
 type FilteredCandidates struct {

@@ -49,15 +49,6 @@ type ImageDetails struct {
 	CompilerID string
 }
 
-func sanitize(params *Params) {
-	if params.Tracer == nil {
-		params.Tracer = &debugtracer.NullTracer{}
-	}
-	if params.BuildCPUs == 0 {
-		params.BuildCPUs = runtime.NumCPU()
-	}
-}
-
 // Image creates a disk image for the specified OS/ARCH/VM.
 // Kernel is taken from KernelDir, userspace system is taken from UserspaceDir.
 // If CmdlineFile is not empty, contents of the file are appended to the kernel command line.
@@ -124,6 +115,15 @@ func Clean(params Params) error {
 		return err
 	}
 	return builder.clean(params)
+}
+
+func sanitize(params *Params) {
+	if params.Tracer == nil {
+		params.Tracer = &debugtracer.NullTracer{}
+	}
+	if params.BuildCPUs == 0 {
+		params.BuildCPUs = runtime.NumCPU()
+	}
 }
 
 type KernelError struct {

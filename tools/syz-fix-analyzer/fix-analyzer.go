@@ -68,6 +68,19 @@ type Job struct {
 	done    chan struct{}
 }
 
+type BugType string
+
+type BugMeta struct {
+	Type    BugType
+	Pattern string
+	Re      *regexp.Regexp
+}
+
+type TypeStats struct {
+	Total   int
+	Fixable []api.BugSummary
+}
+
 func run(cli *api.Client, ns, sourceDir string) (int, map[BugType]TypeStats, error) {
 	repo, err := vcs.NewRepo(targets.Linux, "", sourceDir, vcs.OptPrecious, vcs.OptDontSandbox)
 	if err != nil {
@@ -175,19 +188,6 @@ func isFixable(bug api.BugSummary, repo vcs.Repo) (BugType, bool, error) {
 	// TODO: check that the patch matches our expected form for this bug type
 	// (e.g. adds if+return/continue, etc).
 	return typ, true, nil
-}
-
-type BugType string
-
-type BugMeta struct {
-	Type    BugType
-	Pattern string
-	Re      *regexp.Regexp
-}
-
-type TypeStats struct {
-	Total   int
-	Fixable []api.BugSummary
 }
 
 var bugTypes = []*BugMeta{

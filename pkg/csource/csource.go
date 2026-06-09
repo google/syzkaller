@@ -37,6 +37,17 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// WriteLLM generates a minimal, single-threaded C reproducer for LLMs.
+func WriteLLM(p *prog.Prog) ([]byte, error) {
+	opts := Options{
+		Sandbox:      "",
+		CallComments: true,
+		Procs:        1,
+		Slowdown:     1,
+	}
+	return Write(p, opts)
+}
+
 // Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
@@ -52,35 +63,12 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	return ctx.generateSource()
 }
 
-// WriteLLM generates a minimal, single-threaded C reproducer for LLMs.
-func WriteLLM(p *prog.Prog) ([]byte, error) {
-	opts := Options{
-		Sandbox:      "",
-		CallComments: true,
-		Procs:        1,
-		Slowdown:     1,
-	}
-	return Write(p, opts)
-}
-
 type context struct {
 	p         *prog.Prog
 	opts      Options
 	target    *prog.Target
 	sysTarget *targets.Target
 	calls     map[string]uint64 // CallName -> NR
-}
-
-func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string {
-	if sandboxName == "" {
-		return "loop();"
-	}
-
-	arguments := "();"
-	if sandboxName == "android" {
-		arguments = "(" + strconv.Itoa(sandboxArg) + ");"
-	}
-	return "do_sandbox_" + sandboxName + arguments
 }
 
 func (ctx *context) generateSource() ([]byte, error) {
@@ -170,6 +158,18 @@ func (ctx *context) generateSource() ([]byte, error) {
 	return result, nil
 }
 
+func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string {
+	if sandboxName == "" {
+		return "loop();"
+	}
+
+	arguments := "();"
+	if sandboxName == "android" {
+		arguments = "(" + strconv.Itoa(sandboxArg) + ");"
+	}
+	return "do_sandbox_" + sandboxName + arguments
+}
+
 // This is a kludge, but we keep it here until a better approach is implemented.
 // TODO: untie syz_emit_ethernet/syz_extract_tcp_res and NetInjection. And also
 // untie VhciInjection and syz_emit_vhci. Then we could remove this method.
@@ -256,34 +256,6 @@ const indent string = "  " // Two spaces.
 // clang-format produces nicer comments with '//' prefixing versus '/* ... */' style comments.
 const commentPrefix string = "//"
 
-func linesToCStyleComment(lines []string) string {
-	var commentBuilder strings.Builder
-	for i, line := range lines {
-		commentBuilder.WriteString(commentPrefix + indent + line)
-		if i != len(lines)-1 {
-			commentBuilder.WriteString("\n")
-		}
-	}
-	return commentBuilder.String()
-}
-
-func generateComment(call *prog.Call) string {
-	lines := []string{fmt.Sprintf("%s arguments: [", call.Meta.Name)}
-	for i, arg := range call.Args {
-		argLines := prog.FormatArg(arg, call.Meta.Args[i].Name)
-		// Indent the formatted argument.
-		for i := range argLines {
-			argLines[i] = indent + argLines[i]
-		}
-		lines = append(lines, argLines...)
-	}
-	lines = append(lines, "]")
-	if call.Ret != nil {
-		lines = append(lines, "returns "+call.Ret.Type().Name())
-	}
-	return linesToCStyleComment(lines)
-}
-
 func (ctx *context) generateProgCalls(p *prog.Prog, trace, addComments bool) ([]string, []uint64, error) {
 	var comments []string
 	if addComments {
@@ -303,6 +275,34 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace, addComments bool) ([]
 	}
 	calls, vars := ctx.generateCalls(decoded, trace, addComments, comments)
 	return calls, vars, nil
+}
+
+func generateComment(call *prog.Call) string {
+	lines := []string{fmt.Sprintf("%s arguments: [", call.Meta.Name)}
+	for i, arg := range call.Args {
+		argLines := prog.FormatArg(arg, call.Meta.Args[i].Name)
+		// Indent the formatted argument.
+		for i := range argLines {
+			argLines[i] = indent + argLines[i]
+		}
+		lines = append(lines, argLines...)
+	}
+	lines = append(lines, "]")
+	if call.Ret != nil {
+		lines = append(lines, "returns "+call.Ret.Type().Name())
+	}
+	return linesToCStyleComment(lines)
+}
+
+func linesToCStyleComment(lines []string) string {
+	var commentBuilder strings.Builder
+	for i, line := range lines {
+		commentBuilder.WriteString(commentPrefix + indent + line)
+		if i != len(lines)-1 {
+			commentBuilder.WriteString("\n")
+		}
+	}
+	return commentBuilder.String()
 }
 
 func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
@@ -341,11 +341,6 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 		calls = append(calls, w.String())
 	}
 	return calls, p.Vars
-}
-
-func isNative(sysTarget *targets.Target, callName string) bool {
-	_, trampoline := sysTarget.SyscallTrampolines[callName]
-	return sysTarget.HasCallNumber(callName) && !trampoline
 }
 
 func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCopyout, trace bool) {
@@ -435,6 +430,11 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 		argsStrs = append(argsStrs, "0")
 	}
 	return fmt.Sprintf("%v(%v)", funcName, strings.Join(argsStrs, ", "))
+}
+
+func isNative(sysTarget *targets.Target, callName string) bool {
+	_, trampoline := sysTarget.SyscallTrampolines[callName]
+	return sysTarget.HasCallNumber(callName) && !trampoline
 }
 
 func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {

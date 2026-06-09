@@ -193,35 +193,6 @@ func (reporter *Reporter) Parse(output []byte) *Report {
 	return reporter.ParseFrom(output, 0)
 }
 
-func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
-	rep := reporter.impl.Parse(output[minReportPos:])
-	if rep == nil {
-		return nil
-	}
-	rep.Output = output
-	rep.StartPos += minReportPos
-	rep.EndPos += minReportPos
-	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
-	for i, title := range rep.AltTitles {
-		rep.AltTitles[i] = sanitizeTitle(replaceTable(dynamicTitleReplacement, title))
-	}
-	rep.Suppressed = matchesAny(rep.Output, reporter.suppressions)
-	if bytes.Contains(rep.Output, gceConsoleHangup) {
-		rep.Corrupted = true
-	}
-	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
-		rep.Frame = match[1]
-	}
-	rep.SkipPos = len(output)
-	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
-		rep.SkipPos = rep.StartPos + pos
-	}
-	// This generally should not happen.
-	// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
-	rep.EndPos = max(rep.EndPos, rep.SkipPos)
-	return rep
-}
-
 func (reporter *Reporter) ContainsCrash(output []byte) bool {
 	return reporter.impl.ContainsCrash(output)
 }
@@ -299,6 +270,35 @@ func ParseAll(reporter *Reporter, output []byte) (reports []*Report) {
 		reports = append(reports, rep)
 		skipPos = rep.SkipPos
 	}
+}
+
+func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
+	rep := reporter.impl.Parse(output[minReportPos:])
+	if rep == nil {
+		return nil
+	}
+	rep.Output = output
+	rep.StartPos += minReportPos
+	rep.EndPos += minReportPos
+	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
+	for i, title := range rep.AltTitles {
+		rep.AltTitles[i] = sanitizeTitle(replaceTable(dynamicTitleReplacement, title))
+	}
+	rep.Suppressed = matchesAny(rep.Output, reporter.suppressions)
+	if bytes.Contains(rep.Output, gceConsoleHangup) {
+		rep.Corrupted = true
+	}
+	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
+		rep.Frame = match[1]
+	}
+	rep.SkipPos = len(output)
+	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
+		rep.SkipPos = rep.StartPos + pos
+	}
+	// This generally should not happen.
+	// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
+	rep.EndPos = max(rep.EndPos, rep.SkipPos)
+	return rep
 }
 
 // GCE console connection sometimes fails with this message.
@@ -475,6 +475,65 @@ func containsCrash(output []byte, oopses []*oops, ignores []*regexp.Regexp) bool
 	return false
 }
 
+type stackParams struct {
+	// stackStartRes matches start of stack traces.
+	stackStartRes []*regexp.Regexp
+	// frameRes match different formats of lines containing kernel frames (capture function name).
+	frameRes []*regexp.Regexp
+	// skipPatterns match functions that must be unconditionally skipped.
+	skipPatterns []string
+	// If we looked at any lines that match corruptedLines during report analysis,
+	// then the report is marked as corrupted.
+	corruptedLines []*regexp.Regexp
+	// Prefixes that need to be removed from frames.
+	// E.g. syscall prefixes as different arches have different prefixes.
+	stripFramePrefixes []string
+}
+
+type extractedFrame struct {
+	canonical string
+	raw       string
+}
+
+func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignores []*regexp.Regexp) *Report {
+	rep := &Report{
+		Output: output,
+	}
+	var oops *oops
+	for pos := 0; pos < len(output); {
+		next := bytes.IndexByte(output[pos:], '\n')
+		if next != -1 {
+			next += pos
+		} else {
+			next = len(output)
+		}
+		line := output[pos:next]
+		for _, oops1 := range oopses {
+			if matchOops(line, oops1, ignores) {
+				oops = oops1
+				rep.StartPos = pos
+				rep.EndPos = next
+				break
+			}
+		}
+		if oops != nil {
+			break
+		}
+		pos = next + 1
+	}
+	if oops == nil {
+		return nil
+	}
+	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
+	rep.Title = title
+	rep.AltTitles = altTitles
+	rep.Report = output[rep.StartPos:]
+	rep.Corrupted = corrupted != ""
+	rep.CorruptedReason = corrupted
+	rep.Type = crash.TitleToType(rep.Title)
+	return rep
+}
+
 func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) bool {
 	match := bytes.Index(line, oops.header)
 	if match == -1 {
@@ -572,42 +631,6 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 	return
 }
 
-type stackParams struct {
-	// stackStartRes matches start of stack traces.
-	stackStartRes []*regexp.Regexp
-	// frameRes match different formats of lines containing kernel frames (capture function name).
-	frameRes []*regexp.Regexp
-	// skipPatterns match functions that must be unconditionally skipped.
-	skipPatterns []string
-	// If we looked at any lines that match corruptedLines during report analysis,
-	// then the report is marked as corrupted.
-	corruptedLines []*regexp.Regexp
-	// Prefixes that need to be removed from frames.
-	// E.g. syscall prefixes as different arches have different prefixes.
-	stripFramePrefixes []string
-}
-
-func (sp *stackParams) stripFrames(frames []string) []string {
-	var ret []string
-	for _, origFrame := range frames {
-		// Pick the shortest one.
-		frame := origFrame
-		for _, prefix := range sp.stripFramePrefixes {
-			newFrame := strings.TrimPrefix(origFrame, prefix)
-			if len(newFrame) < len(frame) {
-				frame = newFrame
-			}
-		}
-		ret = append(ret, frame)
-	}
-	return ret
-}
-
-type extractedFrame struct {
-	canonical string
-	raw       string
-}
-
 func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]extractedFrame, bool) {
 	skip := slices.Clone(params.skipPatterns)
 	skip = append(skip, stack.skip...)
@@ -636,8 +659,20 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]e
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
-func lines(text []byte) [][]byte {
-	return bytes.Split(text, []byte("\n"))
+func (sp *stackParams) stripFrames(frames []string) []string {
+	var ret []string
+	for _, origFrame := range frames {
+		// Pick the shortest one.
+		frame := origFrame
+		for _, prefix := range sp.stripFramePrefixes {
+			newFrame := strings.TrimPrefix(origFrame, prefix)
+			if len(newFrame) < len(frame) {
+				frame = newFrame
+			}
+		}
+		ret = append(ret, frame)
+	}
+	return ret
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
@@ -711,6 +746,10 @@ nextPart:
 	return results, ok
 }
 
+func lines(text []byte) [][]byte {
+	return bytes.Split(text, []byte("\n"))
+}
+
 func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []string {
 	if len(match) < 2 {
 		return frames
@@ -775,45 +814,6 @@ func uniqueStrings(source []string) []string {
 		ret = append(ret, item)
 	}
 	return ret
-}
-
-func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignores []*regexp.Regexp) *Report {
-	rep := &Report{
-		Output: output,
-	}
-	var oops *oops
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
-		if next != -1 {
-			next += pos
-		} else {
-			next = len(output)
-		}
-		line := output[pos:next]
-		for _, oops1 := range oopses {
-			if matchOops(line, oops1, ignores) {
-				oops = oops1
-				rep.StartPos = pos
-				rep.EndPos = next
-				break
-			}
-		}
-		if oops != nil {
-			break
-		}
-		pos = next + 1
-	}
-	if oops == nil {
-		return nil
-	}
-	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
-	rep.Title = title
-	rep.AltTitles = altTitles
-	rep.Report = output[rep.StartPos:]
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
-	rep.Type = crash.TitleToType(rep.Title)
-	return rep
 }
 
 func matchesAny(line []byte, res []*regexp.Regexp) bool {

@@ -43,41 +43,108 @@ type templateHeatmap struct {
 	Managers   []string
 }
 
-func (th *templateHeatmap) Filter(pred func(*templateHeatmapRow) bool) {
-	th.Root.filter(pred)
-}
-
-func (th *templateHeatmap) Transform(f func(*templateHeatmapRow)) {
-	th.Root.transform(f)
-}
-
-func (th *templateHeatmap) Sort(pred func(*templateHeatmapRow, *templateHeatmapRow) int) {
-	th.Root.sort(pred)
-}
-
-func (thm *templateHeatmapRow) transform(f func(*templateHeatmapRow)) {
+func (thm *templateHeatmapRow) Visit(v func(string, int64, bool), path ...string) {
+	curPath := append(slices.Clone(path), thm.Name)
+	v(strings.Join(curPath, "/"), thm.Summary, thm.IsDir)
 	for _, item := range thm.Items {
-		item.transform(f)
+		item.Visit(v, curPath...)
 	}
-	f(thm)
 }
 
-func (thm *templateHeatmapRow) filter(pred func(*templateHeatmapRow) bool) {
-	var filteredItems []*templateHeatmapRow
-	for _, item := range thm.Items {
-		item.filter(pred)
-		if pred(item) {
-			filteredItems = append(filteredItems, item)
+type pageColumnTarget struct {
+	TimePeriod coveragedb.TimePeriod
+	Commit     string
+}
+
+type StyleBodyJS struct {
+	Style template.CSS
+	Body  template.HTML
+	JS    template.HTML
+}
+
+type Format struct {
+	FilterMinCoveredLinesDrop int
+	OrderByCoveredLinesDrop   bool
+	DropCoveredLines0         bool
+}
+
+func DoHeatMapStyleBodyJS(
+	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
+	sss, managers []string, dataFilters Format) (template.CSS, template.HTML, template.HTML, error) {
+	covAndDates, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to FilesCoverageWithDetails: %w", err)
+	}
+	templData := FilesCoverageToTemplateData(covAndDates, scope.Ns)
+	templData.Subsystems = sss
+	templData.Managers = managers
+	FormatResult(templData, dataFilters)
+
+	return stylesBodyJSTemplate(templData)
+}
+
+func DoSubsystemsHeatMapStyleBodyJS(
+	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
+	sss, managers []string, format Format) (template.CSS, template.HTML, template.HTML, error) {
+	covWithDetails, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
+	if err != nil {
+		panic(err)
+	}
+	var ssCovAndDates []*coveragedb.FileCoverageWithDetails
+	for _, cwd := range covWithDetails {
+		for _, ssName := range cwd.Subsystems {
+			newRecord := coveragedb.FileCoverageWithDetails{
+				Filepath:     cwd.Filepath,
+				Subsystem:    ssName,
+				Instrumented: cwd.Instrumented,
+				Covered:      cwd.Covered,
+				TimePeriod:   cwd.TimePeriod,
+				Commit:       cwd.Commit,
+			}
+			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}
 	}
-	thm.Items = filteredItems
+	templData := FilesCoverageToTemplateData(ssCovAndDates, scope.Ns)
+	templData.Managers = managers
+	FormatResult(templData, format)
+	return stylesBodyJSTemplate(templData)
 }
 
-func (thm *templateHeatmapRow) sort(pred func(*templateHeatmapRow, *templateHeatmapRow) int) {
-	for _, item := range thm.Items {
-		item.sort(pred)
+func FilesCoverageToTemplateData(fCov []*coveragedb.FileCoverageWithDetails, namespace string) *templateHeatmap {
+	res := templateHeatmap{
+		Root: &templateHeatmapRow{
+			IsDir:        true,
+			builder:      map[string]*templateHeatmapRow{},
+			instrumented: map[coveragedb.TimePeriod]int64{},
+			covered:      map[coveragedb.TimePeriod]int64{},
+		},
 	}
-	slices.SortFunc(thm.Items, pred)
+	columns := map[pageColumnTarget]struct{}{}
+	for _, fc := range fCov {
+		var pathLeft []string
+		if fc.Subsystem != "" {
+			pathLeft = append(pathLeft, fc.Subsystem)
+		}
+		res.Root.addParts(
+			0,
+			append(pathLeft, strings.Split(fc.Filepath, "/")...),
+			fc.Filepath,
+			fc.Instrumented,
+			fc.Covered,
+			fc.TimePeriod)
+		columns[pageColumnTarget{TimePeriod: fc.TimePeriod, Commit: fc.Commit}] = struct{}{}
+	}
+	targetDateAndCommits := maps.Keys(columns)
+	sort.Slice(targetDateAndCommits, func(i, j int) bool {
+		return targetDateAndCommits[i].TimePeriod.DateTo.Before(targetDateAndCommits[j].TimePeriod.DateTo)
+	})
+	for _, tdc := range targetDateAndCommits {
+		tp := tdc.TimePeriod
+		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
+	}
+
+	res.Root.prepareDataFor(targetDateAndCommits, namespace)
+	return &res
 }
 
 func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, filePath string, instrumented, covered int64,
@@ -146,62 +213,6 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, na
 	}
 }
 
-func (thm *templateHeatmapRow) Visit(v func(string, int64, bool), path ...string) {
-	curPath := append(slices.Clone(path), thm.Name)
-	v(strings.Join(curPath, "/"), thm.Summary, thm.IsDir)
-	for _, item := range thm.Items {
-		item.Visit(v, curPath...)
-	}
-}
-
-type pageColumnTarget struct {
-	TimePeriod coveragedb.TimePeriod
-	Commit     string
-}
-
-func FilesCoverageToTemplateData(fCov []*coveragedb.FileCoverageWithDetails, namespace string) *templateHeatmap {
-	res := templateHeatmap{
-		Root: &templateHeatmapRow{
-			IsDir:        true,
-			builder:      map[string]*templateHeatmapRow{},
-			instrumented: map[coveragedb.TimePeriod]int64{},
-			covered:      map[coveragedb.TimePeriod]int64{},
-		},
-	}
-	columns := map[pageColumnTarget]struct{}{}
-	for _, fc := range fCov {
-		var pathLeft []string
-		if fc.Subsystem != "" {
-			pathLeft = append(pathLeft, fc.Subsystem)
-		}
-		res.Root.addParts(
-			0,
-			append(pathLeft, strings.Split(fc.Filepath, "/")...),
-			fc.Filepath,
-			fc.Instrumented,
-			fc.Covered,
-			fc.TimePeriod)
-		columns[pageColumnTarget{TimePeriod: fc.TimePeriod, Commit: fc.Commit}] = struct{}{}
-	}
-	targetDateAndCommits := maps.Keys(columns)
-	sort.Slice(targetDateAndCommits, func(i, j int) bool {
-		return targetDateAndCommits[i].TimePeriod.DateTo.Before(targetDateAndCommits[j].TimePeriod.DateTo)
-	})
-	for _, tdc := range targetDateAndCommits {
-		tp := tdc.TimePeriod
-		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
-	}
-
-	res.Root.prepareDataFor(targetDateAndCommits, namespace)
-	return &res
-}
-
-type StyleBodyJS struct {
-	Style template.CSS
-	Body  template.HTML
-	JS    template.HTML
-}
-
 func stylesBodyJSTemplate(templData *templateHeatmap,
 ) (template.CSS, template.HTML, template.HTML, error) {
 	var styles, body, js bytes.Buffer
@@ -217,54 +228,6 @@ func stylesBodyJSTemplate(templData *templateHeatmap,
 	return template.CSS(styles.String()),
 		template.HTML(body.String()),
 		template.HTML(js.Bytes()), nil
-}
-
-type Format struct {
-	FilterMinCoveredLinesDrop int
-	OrderByCoveredLinesDrop   bool
-	DropCoveredLines0         bool
-}
-
-func DoHeatMapStyleBodyJS(
-	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
-	sss, managers []string, dataFilters Format) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to FilesCoverageWithDetails: %w", err)
-	}
-	templData := FilesCoverageToTemplateData(covAndDates, scope.Ns)
-	templData.Subsystems = sss
-	templData.Managers = managers
-	FormatResult(templData, dataFilters)
-
-	return stylesBodyJSTemplate(templData)
-}
-
-func DoSubsystemsHeatMapStyleBodyJS(
-	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
-	sss, managers []string, format Format) (template.CSS, template.HTML, template.HTML, error) {
-	covWithDetails, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
-	if err != nil {
-		panic(err)
-	}
-	var ssCovAndDates []*coveragedb.FileCoverageWithDetails
-	for _, cwd := range covWithDetails {
-		for _, ssName := range cwd.Subsystems {
-			newRecord := coveragedb.FileCoverageWithDetails{
-				Filepath:     cwd.Filepath,
-				Subsystem:    ssName,
-				Instrumented: cwd.Instrumented,
-				Covered:      cwd.Covered,
-				TimePeriod:   cwd.TimePeriod,
-				Commit:       cwd.Commit,
-			}
-			ssCovAndDates = append(ssCovAndDates, &newRecord)
-		}
-	}
-	templData := FilesCoverageToTemplateData(ssCovAndDates, scope.Ns)
-	templData.Managers = managers
-	FormatResult(templData, format)
-	return stylesBodyJSTemplate(templData)
 }
 
 func FormatResult(thm *templateHeatmap, format Format) {
@@ -306,6 +269,43 @@ func FormatResult(thm *templateHeatmap, format Format) {
 			}
 		})
 	}
+}
+
+func (th *templateHeatmap) Filter(pred func(*templateHeatmapRow) bool) {
+	th.Root.filter(pred)
+}
+
+func (th *templateHeatmap) Transform(f func(*templateHeatmapRow)) {
+	th.Root.transform(f)
+}
+
+func (th *templateHeatmap) Sort(pred func(*templateHeatmapRow, *templateHeatmapRow) int) {
+	th.Root.sort(pred)
+}
+
+func (thm *templateHeatmapRow) transform(f func(*templateHeatmapRow)) {
+	for _, item := range thm.Items {
+		item.transform(f)
+	}
+	f(thm)
+}
+
+func (thm *templateHeatmapRow) filter(pred func(*templateHeatmapRow) bool) {
+	var filteredItems []*templateHeatmapRow
+	for _, item := range thm.Items {
+		item.filter(pred)
+		if pred(item) {
+			filteredItems = append(filteredItems, item)
+		}
+	}
+	thm.Items = filteredItems
+}
+
+func (thm *templateHeatmapRow) sort(pred func(*templateHeatmapRow, *templateHeatmapRow) int) {
+	for _, item := range thm.Items {
+		item.sort(pred)
+	}
+	slices.SortFunc(thm.Items, pred)
 }
 
 func approximateInstrumented(points int64) string {

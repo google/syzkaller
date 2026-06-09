@@ -59,53 +59,9 @@ type Request struct {
 	done   chan struct{}
 }
 
-type ExecutorID struct {
-	VM   int
-	Proc int
-}
-
 type DoneCallback func(*Request, *Result) bool
 
-func (r *Request) OnDone(cb DoneCallback) {
-	oldCallback := r.callback
-	r.callback = func(req *Request, res *Result) bool {
-		r.callback = oldCallback
-		if !cb(req, res) {
-			return false
-		}
-		if oldCallback == nil {
-			return true
-		}
-		return oldCallback(req, res)
-	}
-}
-
-func (r *Request) Done(res *Result) {
-	if r.callback != nil {
-		if !r.callback(r, res) {
-			return
-		}
-	}
-	if r.Stat != nil {
-		r.Stat.Add(1)
-	}
-	r.initChannel()
-	r.result = res
-	close(r.done)
-}
-
 var ErrRequestAborted = errors.New("context closed while waiting the result")
-
-// Wait() blocks until we have the result.
-func (r *Request) Wait(ctx context.Context) *Result {
-	r.initChannel()
-	select {
-	case <-ctx.Done():
-		return &Result{Status: ExecFailure, Err: ErrRequestAborted}
-	case <-r.done:
-		return r.result
-	}
-}
 
 // Risky() returns true if there's a substantial risk of the input crashing the VM.
 func (r *Request) Risky() bool {
@@ -146,29 +102,6 @@ func (r *Request) Validate() error {
 	return nil
 }
 
-func (r *Request) hash() hash.Sig {
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	if err := enc.Encode(r.Type); err != nil {
-		panic(err)
-	}
-	if err := enc.Encode(r.ExecOpts); err != nil {
-		panic(err)
-	}
-	var data []byte
-	switch r.Type {
-	case flatrpc.RequestTypeProgram:
-		data = r.Prog.Serialize()
-	case flatrpc.RequestTypeBinary:
-		data = []byte(r.BinaryFile)
-	case flatrpc.RequestTypeGlob:
-		data = []byte(r.GlobPattern)
-	default:
-		panic("unknown request type")
-	}
-	return hash.Hash(data, buf.Bytes())
-}
-
 func (r *Request) initChannel() {
 	r.mu.Lock()
 	if r.done == nil {
@@ -185,10 +118,20 @@ type Result struct {
 	Err      error // More details in case of ExecFailure.
 }
 
-func (r *Result) clone() *Result {
-	ret := *r
-	ret.Info = ret.Info.Clone()
-	return &ret
+type ExecutorID struct {
+	VM   int
+	Proc int
+}
+
+// Wait() blocks until we have the result.
+func (r *Request) Wait(ctx context.Context) *Result {
+	r.initChannel()
+	select {
+	case <-ctx.Done():
+		return &Result{Status: ExecFailure, Err: ErrRequestAborted}
+	case <-r.done:
+		return r.result
+	}
 }
 
 func (r *Result) Stop() bool {
@@ -374,12 +317,6 @@ func (do *DynamicOrderer) Append() Executor {
 	}
 }
 
-func (do *DynamicOrderer) submit(req *Request, prio int) {
-	do.mu.Lock()
-	defer do.mu.Unlock()
-	do.ops.Push(req, prio)
-}
-
 func (do *DynamicOrderer) Next() *Request {
 	do.mu.Lock()
 	defer do.mu.Unlock()
@@ -393,6 +330,12 @@ type dynamicOrdererItem struct {
 
 func (doi *dynamicOrdererItem) Submit(req *Request) {
 	doi.parent.submit(req, doi.prio)
+}
+
+func (do *DynamicOrderer) submit(req *Request, prio int) {
+	do.mu.Lock()
+	defer do.mu.Unlock()
+	do.ops.Push(req, prio)
 }
 
 type DynamicSourceCtl struct {
@@ -460,6 +403,20 @@ func (d *Deduplicator) Next() *Request {
 	}
 }
 
+func (r *Request) OnDone(cb DoneCallback) {
+	oldCallback := r.callback
+	r.callback = func(req *Request, res *Result) bool {
+		r.callback = oldCallback
+		if !cb(req, res) {
+			return false
+		}
+		if oldCallback == nil {
+			return true
+		}
+		return oldCallback(req, res)
+	}
+}
+
 func (d *Deduplicator) onDone(req *Request, res *Result) bool {
 	hash := req.hash()
 	clonedRes := res.clone()
@@ -476,6 +433,35 @@ func (d *Deduplicator) onDone(req *Request, res *Result) bool {
 		waitingReq.Done(res.clone())
 	}
 	return true
+}
+
+func (r *Request) hash() hash.Sig {
+	buf := new(bytes.Buffer)
+	enc := gob.NewEncoder(buf)
+	if err := enc.Encode(r.Type); err != nil {
+		panic(err)
+	}
+	if err := enc.Encode(r.ExecOpts); err != nil {
+		panic(err)
+	}
+	var data []byte
+	switch r.Type {
+	case flatrpc.RequestTypeProgram:
+		data = r.Prog.Serialize()
+	case flatrpc.RequestTypeBinary:
+		data = []byte(r.BinaryFile)
+	case flatrpc.RequestTypeGlob:
+		data = []byte(r.GlobPattern)
+	default:
+		panic("unknown request type")
+	}
+	return hash.Hash(data, buf.Bytes())
+}
+
+func (r *Result) clone() *Result {
+	ret := *r
+	ret.Info = ret.Info.Clone()
+	return &ret
 }
 
 // DefaultOpts applies opts to all requests in source.
@@ -549,6 +535,20 @@ func (rq *RandomQueue) Submit(req *Request) {
 			rq.queue[pos] = req
 		}
 	}
+}
+
+func (r *Request) Done(res *Result) {
+	if r.callback != nil {
+		if !r.callback(r, res) {
+			return
+		}
+	}
+	if r.Stat != nil {
+		r.Stat.Add(1)
+	}
+	r.initChannel()
+	r.result = res
+	close(r.done)
 }
 
 type tee struct {

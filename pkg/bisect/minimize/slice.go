@@ -27,25 +27,6 @@ type Config[T any] struct {
 	Logf func(string, ...any)
 }
 
-// Slice() finds a minimal subsequence of slice elements that still gives Pred() == true.
-// The algorithm works by sequentially splitting the slice into smaller-size chunks and running
-// Pred() witout those chunks. Slice() receives the original slice chunks.
-// The expected number of Pred() runs is O(|result|*log2(|elements|)).
-func Slice[T any](config Config[T], slice []T) ([]T, error) {
-	if config.Logf == nil {
-		config.Logf = func(string, ...any) {}
-	}
-	ctx := &sliceCtx[T]{
-		Config: config,
-		chunks: []*arrayChunk[T]{
-			{
-				elements: slice,
-			},
-		},
-	}
-	return ctx.bisect()
-}
-
 // SliceWithFixed behaves like Slice, but also allows to designate the elements that
 // must always remain (the "fixed" ones).
 func SliceWithFixed[T any](config Config[T], slice []T, fixed func(T) bool) ([]T, error) {
@@ -88,6 +69,25 @@ func SliceWithFixed[T any](config Config[T], slice []T, fixed func(T) bool) ([]T
 		return nil, err
 	}
 	return convert(result), nil
+}
+
+// Slice() finds a minimal subsequence of slice elements that still gives Pred() == true.
+// The algorithm works by sequentially splitting the slice into smaller-size chunks and running
+// Pred() witout those chunks. Slice() receives the original slice chunks.
+// The expected number of Pred() runs is O(|result|*log2(|elements|)).
+func Slice[T any](config Config[T], slice []T) ([]T, error) {
+	if config.Logf == nil {
+		config.Logf = func(string, ...any) {}
+	}
+	ctx := &sliceCtx[T]{
+		Config: config,
+		chunks: []*arrayChunk[T]{
+			{
+				elements: slice,
+			},
+		},
+	}
+	return ctx.bisect()
 }
 
 type sliceCtx[T any] struct {

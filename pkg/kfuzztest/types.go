@@ -33,12 +33,10 @@ type kfuzztestTarget struct {
 }
 
 const kfuzztestTargetStart string = "__kfuzztest_targets_start"
-const kfuzztestTargetEnd string = "__kfuzztest_targets_end"
-const kfuzztestTargetSize uint64 = 32
 
-func incorrectByteSizeErr(expected, actual uint64) error {
-	return fmt.Errorf("incorrect number of bytes: expected %d, got %d", expected, actual)
-}
+const kfuzztestTargetEnd string = "__kfuzztest_targets_end"
+
+const kfuzztestTargetSize uint64 = 32
 
 func (targ *kfuzztestTarget) fromBytes(elfFile *elf.File, data []byte) error {
 	if targ.size() != uint64(len(data)) {
@@ -72,7 +70,9 @@ type kfuzztestConstraint struct {
 }
 
 const kfuzztestConstraintStart string = "__kfuzztest_constraints_start"
+
 const kfuzztestConstraintEnd string = "__kfuzztest_constraints_end"
+
 const kfuzztestConstraintSize uint64 = 64
 
 func (c *kfuzztestConstraint) fromBytes(elfFile *elf.File, data []byte) error {
@@ -118,8 +118,14 @@ func (a *kfuzztestAnnotation) fromBytes(elfFile *elf.File, data []byte) error {
 	return nil
 }
 
+func incorrectByteSizeErr(expected, actual uint64) error {
+	return fmt.Errorf("incorrect number of bytes: expected %d, got %d", expected, actual)
+}
+
 const kftfAnnotationStart string = "__kfuzztest_annotations_start"
+
 const kftfAnnotationEnd string = "__kfuzztest_annotations_end"
+
 const kftfAnnotationSize uint64 = 32
 
 func (a *kfuzztestAnnotation) size() uint64 {

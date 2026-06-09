@@ -65,66 +65,6 @@ type LegacyOptions struct {
 	FaultNth  int  `json:"fault_nth,omitempty"`
 }
 
-// Check checks if the opts combination is valid or not.
-// For example, Collide without Threaded is not valid.
-// Invalid combinations must not be passed to Write.
-func (opts Options) Check(OS string) error {
-	switch opts.Sandbox {
-	case "", sandboxNone, sandboxNamespace, sandboxSetuid, sandboxAndroid:
-	default:
-		return fmt.Errorf("unknown sandbox %v", opts.Sandbox)
-	}
-	if !opts.Threaded && opts.Collide {
-		// Collide requires threaded.
-		return errors.New("option Collide without Threaded")
-	}
-	if !opts.Repeat {
-		if opts.Procs > 1 {
-			// This does not affect generated code.
-			return errors.New("option Procs>1 without Repeat")
-		}
-		if opts.NetReset {
-			return errors.New("option NetReset without Repeat")
-		}
-		if opts.RepeatTimes > 1 {
-			return errors.New("option RepeatTimes without Repeat")
-		}
-	}
-	if opts.Sandbox == "" {
-		if opts.NetInjection {
-			return errors.New("option NetInjection without sandbox")
-		}
-		if opts.NetDevices {
-			return errors.New("option NetDevices without sandbox")
-		}
-		if opts.Cgroups {
-			return errors.New("option Cgroups without sandbox")
-		}
-		if opts.BinfmtMisc {
-			return errors.New("option BinfmtMisc without sandbox")
-		}
-		if opts.VhciInjection {
-			return errors.New("option VhciInjection without sandbox")
-		}
-		if opts.Wifi {
-			return errors.New("option Wifi without sandbox")
-		}
-	}
-	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
-		// This is borken and never worked.
-		// This tries to create syz-tmp dir in cwd,
-		// which will fail if procs>1 and on second run of the program.
-		return errors.New("option Sandbox=namespace without UseTmpDir")
-	}
-	if opts.NetReset && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
-		return errors.New("option NetReset without sandbox")
-	}
-	if opts.Cgroups && !opts.UseTmpDir {
-		return errors.New("option Cgroups without UseTmpDir")
-	}
-	return opts.checkLinuxOnly(OS)
-}
-
 func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == targets.Linux {
 		return nil
@@ -198,12 +138,106 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 	return opts
 }
 
+// Check checks if the opts combination is valid or not.
+// For example, Collide without Threaded is not valid.
+// Invalid combinations must not be passed to Write.
+func (opts Options) Check(OS string) error {
+	switch opts.Sandbox {
+	case "", sandboxNone, sandboxNamespace, sandboxSetuid, sandboxAndroid:
+	default:
+		return fmt.Errorf("unknown sandbox %v", opts.Sandbox)
+	}
+	if !opts.Threaded && opts.Collide {
+		// Collide requires threaded.
+		return errors.New("option Collide without Threaded")
+	}
+	if !opts.Repeat {
+		if opts.Procs > 1 {
+			// This does not affect generated code.
+			return errors.New("option Procs>1 without Repeat")
+		}
+		if opts.NetReset {
+			return errors.New("option NetReset without Repeat")
+		}
+		if opts.RepeatTimes > 1 {
+			return errors.New("option RepeatTimes without Repeat")
+		}
+	}
+	if opts.Sandbox == "" {
+		if opts.NetInjection {
+			return errors.New("option NetInjection without sandbox")
+		}
+		if opts.NetDevices {
+			return errors.New("option NetDevices without sandbox")
+		}
+		if opts.Cgroups {
+			return errors.New("option Cgroups without sandbox")
+		}
+		if opts.BinfmtMisc {
+			return errors.New("option BinfmtMisc without sandbox")
+		}
+		if opts.VhciInjection {
+			return errors.New("option VhciInjection without sandbox")
+		}
+		if opts.Wifi {
+			return errors.New("option Wifi without sandbox")
+		}
+	}
+	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
+		// This is borken and never worked.
+		// This tries to create syz-tmp dir in cwd,
+		// which will fail if procs>1 and on second run of the program.
+		return errors.New("option Sandbox=namespace without UseTmpDir")
+	}
+	if opts.NetReset && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
+		return errors.New("option NetReset without sandbox")
+	}
+	if opts.Cgroups && !opts.UseTmpDir {
+		return errors.New("option Cgroups without UseTmpDir")
+	}
+	return opts.checkLinuxOnly(OS)
+}
+
 func (opts Options) Serialize() []byte {
 	data, err := json.Marshal(opts)
 	if err != nil {
 		panic(err)
 	}
 	return data
+}
+
+func DeserializeOptions(data []byte) (Options, error) {
+	opts := Options{
+		Slowdown: 1,
+		// Before CloseFDs was added, close_fds() was always called, so default to true.
+		CloseFDs: true,
+	}
+	if err := json.Unmarshal(data, &opts); err == nil {
+		return opts, nil
+	}
+	err := deserializeLegacyFormats(data, &opts)
+	return opts, err
+}
+
+// Support for legacy formats.
+func deserializeLegacyFormats(data []byte, opts *Options) error {
+	data = bytes.ReplaceAll(data, []byte("Sandbox: "), []byte("Sandbox:empty "))
+	strData := string(data)
+
+	// We can distinguish between legacy formats by the number
+	// of fields. The formats we support have 14, 15 and 16 fields.
+	fieldsFound, err := deserializeLegacyOptions(strData, opts)
+	if err != nil {
+		return fmt.Errorf("failed to parse '%v': %w", strData, err)
+	}
+	if fieldsFound < 14 || fieldsFound > 16 {
+		return fmt.Errorf("%v params found, expected 14 <= x <= 16", fieldsFound)
+	}
+
+	if opts.Sandbox == "empty" {
+		opts.Sandbox = ""
+	}
+	return err
 }
 
 func deserializeLegacyOptions(data string, opts *Options) (int, error) {
@@ -251,65 +285,12 @@ func deserializeLegacyOptions(data string, opts *Options) (int, error) {
 	return totalRead, nil
 }
 
-// Support for legacy formats.
-func deserializeLegacyFormats(data []byte, opts *Options) error {
-	data = bytes.ReplaceAll(data, []byte("Sandbox: "), []byte("Sandbox:empty "))
-	strData := string(data)
-
-	// We can distinguish between legacy formats by the number
-	// of fields. The formats we support have 14, 15 and 16 fields.
-	fieldsFound, err := deserializeLegacyOptions(strData, opts)
-	if err != nil {
-		return fmt.Errorf("failed to parse '%v': %w", strData, err)
-	}
-	if fieldsFound < 14 || fieldsFound > 16 {
-		return fmt.Errorf("%v params found, expected 14 <= x <= 16", fieldsFound)
-	}
-
-	if opts.Sandbox == "empty" {
-		opts.Sandbox = ""
-	}
-	return err
-}
-
-func DeserializeOptions(data []byte) (Options, error) {
-	opts := Options{
-		Slowdown: 1,
-		// Before CloseFDs was added, close_fds() was always called, so default to true.
-		CloseFDs: true,
-	}
-	if err := json.Unmarshal(data, &opts); err == nil {
-		return opts, nil
-	}
-	err := deserializeLegacyFormats(data, &opts)
-	return opts, err
-}
-
 type Feature struct {
 	Description string
 	Enabled     bool
 }
 
 type Features map[string]Feature
-
-func defaultFeatures(value bool) Features {
-	return map[string]Feature{
-		"tun":         {"setup and use /dev/tun for packet injection", value},
-		"net_dev":     {"setup more network devices for testing", value},
-		"net_reset":   {"reset network namespace between programs", value},
-		"cgroups":     {"setup cgroups for testing", value},
-		"binfmt_misc": {"setup binfmt_misc for testing", value},
-		"close_fds":   {"close fds after each program", value},
-		"devlink_pci": {"setup devlink PCI device", value},
-		"nic_vf":      {"setup NIC VF device", value},
-		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
-		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
-		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
-		"ieee802154":  {"setup and use mac802154_hwsim for emulation", value},
-		"sysctl":      {"setup sysctl's for fuzzing", value},
-		"swap":        {"setup and use a swap file", value},
-	}
-}
 
 func ParseFeaturesFlags(enable, disable string, defaultValue bool) (Features, error) {
 	const (
@@ -354,6 +335,25 @@ func PrintAvailableFeaturesFlags() {
 	names := slices.Sorted(maps.Keys(features))
 	for _, name := range names {
 		fmt.Printf("  %s - %s\n", name, features[name].Description)
+	}
+}
+
+func defaultFeatures(value bool) Features {
+	return map[string]Feature{
+		"tun":         {"setup and use /dev/tun for packet injection", value},
+		"net_dev":     {"setup more network devices for testing", value},
+		"net_reset":   {"reset network namespace between programs", value},
+		"cgroups":     {"setup cgroups for testing", value},
+		"binfmt_misc": {"setup binfmt_misc for testing", value},
+		"close_fds":   {"close fds after each program", value},
+		"devlink_pci": {"setup devlink PCI device", value},
+		"nic_vf":      {"setup NIC VF device", value},
+		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
+		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
+		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
+		"ieee802154":  {"setup and use mac802154_hwsim for emulation", value},
+		"sysctl":      {"setup sysctl's for fuzzing", value},
+		"swap":        {"setup and use a swap file", value},
 	}
 }
 

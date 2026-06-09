@@ -79,14 +79,6 @@ index 103167d..fbf7a68 100644
 	}, cfg.Experimental.FocusAreas)
 }
 
-func dummySymbolHashes() map[string]string {
-	ret := map[string]string{}
-	for i := range 100 {
-		ret[fmt.Sprint(i)] = fmt.Sprint(i)
-	}
-	return ret
-}
-
 func TestModifiedSymbols(t *testing.T) {
 	t.Run("too many changed", func(t *testing.T) {
 		ret := modifiedSymbols(map[string]string{
@@ -106,4 +98,12 @@ func TestModifiedSymbols(t *testing.T) {
 		patched["function2"] = "hash2"
 		assert.Equal(t, []string{"function", "function2"}, modifiedSymbols(base, patched))
 	})
+}
+
+func dummySymbolHashes() map[string]string {
+	ret := map[string]string{}
+	for i := range 100 {
+		ret[fmt.Sprint(i)] = fmt.Sprint(i)
+	}
+	return ret
 }

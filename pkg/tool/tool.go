@@ -42,11 +42,11 @@ func ServeHTTP(addr string) {
 	}()
 }
 
+func Fail(err error) {
+	Failf("%v", err)
+}
+
 func Failf(msg string, args ...any) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
-}
-
-func Fail(err error) {
-	Failf("%v", err)
 }

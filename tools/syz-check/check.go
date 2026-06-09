@@ -88,6 +88,27 @@ func main() {
 	}
 }
 
+const (
+	WarnCompiler           = "compiler"
+	WarnNoSuchStruct       = "no-such-struct"
+	WarnBadStructSize      = "bad-struct-size"
+	WarnBadFieldNumber     = "bad-field-number"
+	WarnBadFieldSize       = "bad-field-size"
+	WarnBadFieldOffset     = "bad-field-offset"
+	WarnBadBitfield        = "bad-bitfield"
+	WarnNoNetlinkPolicy    = "no-such-netlink-policy"
+	WarnNetlinkBadSize     = "bad-kernel-netlink-policy-size"
+	WarnNetlinkBadAttrType = "bad-netlink-attr-type"
+	WarnNetlinkBadAttr     = "bad-netlink-attr"
+)
+
+type Warn struct {
+	pos  ast.Pos
+	arch string
+	typ  string
+	msg  string
+}
+
 func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 	var warnings []Warn
 	if obj == "" {
@@ -120,27 +141,6 @@ func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 		warnings[i].arch = arch
 	}
 	return warnings, nil
-}
-
-const (
-	WarnCompiler           = "compiler"
-	WarnNoSuchStruct       = "no-such-struct"
-	WarnBadStructSize      = "bad-struct-size"
-	WarnBadFieldNumber     = "bad-field-number"
-	WarnBadFieldSize       = "bad-field-size"
-	WarnBadFieldOffset     = "bad-field-offset"
-	WarnBadBitfield        = "bad-bitfield"
-	WarnNoNetlinkPolicy    = "no-such-netlink-policy"
-	WarnNetlinkBadSize     = "bad-kernel-netlink-policy-size"
-	WarnNetlinkBadAttrType = "bad-netlink-attr-type"
-	WarnNetlinkBadAttr     = "bad-netlink-attr"
-)
-
-type Warn struct {
-	pos  ast.Pos
-	arch string
-	typ  string
-	msg  string
 }
 
 func writeWarnings(OS string, narches int, warnings []Warn) error {
@@ -410,6 +410,13 @@ func checkNetlink(arch, obj string, structTypes []prog.Type,
 	return warnings, nil
 }
 
+type checkAttr struct {
+	pos    ast.Pos
+	name   string
+	policy []nlaPolicy
+	attrs  map[int]bool
+}
+
 func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbolizer.Symbol, rodata *elf.Section,
 	structMap map[string]prog.Type, checkedAttrs map[string]*checkAttr, typ prog.Type) ([]Warn, error) {
 	name := typ.TemplateName()
@@ -482,13 +489,6 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 	return warnings, nil
 }
 
-type checkAttr struct {
-	pos    ast.Pos
-	name   string
-	policy []nlaPolicy
-	attrs  map[int]bool
-}
-
 func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
 	// Missing attribute checking is a bit tricky because we may split a single
 	// kernel policy into several policies for better precision.
@@ -554,9 +554,14 @@ const (
 	nlattrTT = "nlattr_tt"
 )
 
-func isNlattr(typ prog.Type) bool {
-	name := typ.TemplateName()
-	return name == nlattrT || name == nlattrTT
+type nlaPolicy struct {
+	typ        uint8
+	validation uint8
+	len        uint16
+	_          uint32
+	minVal     int16
+	maxVal     int16
+	_          int32
 }
 
 func checkNetlinkPolicy(structMap map[string]prog.Type, typ prog.Type, fields []prog.Field,
@@ -595,6 +600,11 @@ func checkNetlinkPolicy(structMap map[string]prog.Type, typ prog.Type, fields []
 		}
 	}
 	return warnings, checked, nil
+}
+
+func isNlattr(typ prog.Type) bool {
+	name := typ.TemplateName()
+	return name == nlattrT || name == nlattrTT
 }
 
 func checkNetlinkAttr(typ *prog.StructType, policy nlaPolicy) string {
@@ -747,16 +757,6 @@ func typeMinMaxValue(payload prog.Type) (minVal, maxVal uint64, ok bool) {
 		return minVal, maxVal, true
 	}
 	return 0, 0, false
-}
-
-type nlaPolicy struct {
-	typ        uint8
-	validation uint8
-	len        uint16
-	_          uint32
-	minVal     int16
-	maxVal     int16
-	_          int32
 }
 
 // nolint:staticcheck

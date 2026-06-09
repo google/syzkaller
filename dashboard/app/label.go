@@ -38,8 +38,16 @@ const (
 )
 
 type oneOf []string
+
 type subsetOf []string
+
 type trueFalse struct{}
+
+type labelSet struct {
+	c      context.Context
+	ns     string
+	labels map[BugLabelType]any
+}
 
 func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 	ret := map[BugLabelType]any{
@@ -87,42 +95,9 @@ func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 	}
 }
 
-type labelSet struct {
-	c      context.Context
-	ns     string
-	labels map[BugLabelType]any
-}
-
 func (s *labelSet) FindLabel(label BugLabelType) bool {
 	_, ok := s.labels[label]
 	return ok
-}
-
-func (s *labelSet) ValidateValues(label BugLabelType, values []BugLabel) string {
-	rules := s.labels[label]
-	if rules == nil {
-		return ""
-	}
-	switch v := rules.(type) {
-	case oneOf:
-		if len(values) != 1 {
-			return "You must specify only one of the allowed values"
-		}
-		if !stringInList([]string(v), values[0].Value) {
-			return fmt.Sprintf("%q is not among the allowed values", values[0].Value)
-		}
-	case subsetOf:
-		for _, item := range values {
-			if !stringInList([]string(v), item.Value) {
-				return fmt.Sprintf("%q is not among the allowed values", item.Value)
-			}
-		}
-	case trueFalse:
-		if len(values) != 1 || values[0].Value != "" {
-			return "This label does not support any values"
-		}
-	}
-	return ""
 }
 
 func (s *labelSet) Help() string {
@@ -215,6 +190,33 @@ func (bug *Bug) SetLabels(set *labelSet, values []BugLabel) error {
 	bug.UnsetLabels(label)
 	bug.Labels = append(bug.Labels, values...)
 	return nil
+}
+
+func (s *labelSet) ValidateValues(label BugLabelType, values []BugLabel) string {
+	rules := s.labels[label]
+	if rules == nil {
+		return ""
+	}
+	switch v := rules.(type) {
+	case oneOf:
+		if len(values) != 1 {
+			return "You must specify only one of the allowed values"
+		}
+		if !stringInList([]string(v), values[0].Value) {
+			return fmt.Sprintf("%q is not among the allowed values", values[0].Value)
+		}
+	case subsetOf:
+		for _, item := range values {
+			if !stringInList([]string(v), item.Value) {
+				return fmt.Sprintf("%q is not among the allowed values", item.Value)
+			}
+		}
+	case trueFalse:
+		if len(values) != 1 || values[0].Value != "" {
+			return "This label does not support any values"
+		}
+	}
+	return ""
 }
 
 func (bug *Bug) UnsetLabels(labels ...BugLabelType) map[BugLabelType]struct{} {

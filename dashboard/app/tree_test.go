@@ -998,17 +998,6 @@ func TestTreeConfigAppend(t *testing.T) {
 	assert.True(t, tested)
 }
 
-func setUpTreeTest(ctx *Ctx, repos []KernelRepo) *treeTestCtx {
-	ret := &treeTestCtx{
-		ctx:          ctx,
-		globalClient: ctx.makeClient(reportingClient, reportingKey, true),
-		client:       ctx.makeClient(clientTreeTests, keyTreeTests, true),
-		manager:      "test-manager",
-	}
-	ret.updateRepos(repos)
-	return ret
-}
-
 type treeTestCtx struct {
 	ctx          *Ctx
 	globalClient *apiClient
@@ -1021,6 +1010,17 @@ type treeTestCtx struct {
 	jobTestDays  []int
 	manager      string
 	validateJob  func(*dashapi.JobPollResp)
+}
+
+func setUpTreeTest(ctx *Ctx, repos []KernelRepo) *treeTestCtx {
+	ret := &treeTestCtx{
+		ctx:          ctx,
+		globalClient: ctx.makeClient(reportingClient, reportingKey, true),
+		client:       ctx.makeClient(clientTreeTests, keyTreeTests, true),
+		manager:      "test-manager",
+	}
+	ret.updateRepos(repos)
+	return ret
 }
 
 func (ctx *treeTestCtx) now() time.Time {

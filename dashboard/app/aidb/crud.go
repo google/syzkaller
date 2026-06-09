@@ -30,6 +30,7 @@ const (
 )
 
 var ErrNotFound = errors.New("entity not found")
+
 var ErrDuplicateComment = errors.New("duplicate job comment")
 
 type ErrCannotUpstream struct {
@@ -147,28 +148,6 @@ func CreateJob(ctx context.Context, job *Job) (string, error) {
 	}
 	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
 	return job.ID, err
-}
-
-func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
-	job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
-	job.CodeRevision = req.CodeRevision
-	job.AgentName = toNullString(req.AgentName)
-	return spanner.InsertOrUpdateStruct("Jobs", job)
-}
-
-func cloneJob(ctx context.Context, orig *Job) *Job {
-	return &Job{
-		ID:                uuid.NewString(),
-		Created:           TimeNow(ctx),
-		Type:              orig.Type,
-		Workflow:          orig.Workflow,
-		Namespace:         orig.Namespace,
-		BugID:             orig.BugID,
-		Description:       orig.Description,
-		Link:              orig.Link,
-		Args:              orig.Args,
-		ParentReportingID: orig.ParentReportingID,
-	}
 }
 
 func RestartJob(ctx context.Context, jobID string) (string, error) {
@@ -308,6 +287,28 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq, namespaces []s
 		return txn.BufferWrite([]*spanner.Mutation{mut})
 	})
 	return job, err
+}
+
+func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
+	job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
+	job.CodeRevision = req.CodeRevision
+	job.AgentName = toNullString(req.AgentName)
+	return spanner.InsertOrUpdateStruct("Jobs", job)
+}
+
+func cloneJob(ctx context.Context, orig *Job) *Job {
+	return &Job{
+		ID:                uuid.NewString(),
+		Created:           TimeNow(ctx),
+		Type:              orig.Type,
+		Workflow:          orig.Workflow,
+		Namespace:         orig.Namespace,
+		BugID:             orig.BugID,
+		Description:       orig.Description,
+		Link:              orig.Link,
+		Args:              orig.Args,
+		ParentReportingID: orig.ParentReportingID,
+	}
 }
 
 func unfinishedAgentJobs(req *dashapi.AIJobPollReq, workflows, namespaces []string) spanner.Statement {
@@ -498,55 +499,7 @@ func LoadTrajectory(ctx context.Context, jobID string) ([]*TrajectorySpan, error
 	})
 }
 
-func selectAll[T any](ctx context.Context, stmt spanner.Statement) ([]*T, error) {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	var items []*T
-	err = spanner.SelectAll(iter, &items)
-	if err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-func selectOne[T any](ctx context.Context, stmt spanner.Statement) (*T, error) {
-	all, err := selectAll[T](ctx, stmt)
-	if err != nil {
-		return nil, err
-	}
-	if len(all) == 0 {
-		return nil, ErrNotFound
-	}
-	if len(all) > 1 {
-		return nil, fmt.Errorf("selectOne: got %v of %T", len(all), *new(T))
-	}
-	return all[0], nil
-}
-
 var clients sync.Map // map[string]*spanner.Client
-
-func dbClient(ctx context.Context) (*spanner.Client, error) {
-	appID := appengine.AppID(ctx)
-	if v, ok := clients.Load(appID); ok {
-		return v.(*spanner.Client), nil
-	}
-	path := fmt.Sprintf("projects/%v/instances/%v/databases/%v",
-		appID, Instance, Database)
-	// We use background context for the client, so that it survives the request.
-	client, err := spanner.NewClientWithConfig(context.Background(), path, spanner.ClientConfig{})
-	if err != nil {
-		return nil, err
-	}
-	if actual, loaded := clients.LoadOrStore(appID, client); loaded {
-		client.Close()
-		return actual.(*spanner.Client), nil
-	}
-	return client, nil
-}
 
 func CloseClient(ctx context.Context) {
 	appID := appengine.AppID(ctx)
@@ -563,49 +516,8 @@ func selectAgents() string {
 	return selectAllFrom[Agent]("Agents")
 }
 
-func selectJobs() string {
-	return selectAllFrom[Job]("Jobs")
-}
-
 func selectTrajectorySpans() string {
 	return selectAllFrom[TrajectorySpan]("TrajectorySpans")
-}
-
-func selectJournal() string {
-	return selectAllFrom[Journal]("Journal")
-}
-
-func selectJobReporting() string {
-	return selectAllFrom[JobReporting]("JobReporting")
-}
-
-func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction, job *Job, stage string) error {
-	iterConflict := txn.Query(ctx, spanner.Statement{
-		SQL: `SELECT Jobs.ID
-				FROM Jobs
-				JOIN JobReporting ON Jobs.ID = JobReporting.JobID
-				WHERE Jobs.BugID = @bugID
-				  AND JobReporting.Stage = @stage
-				  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
-				  AND Jobs.ID != @currentJobID
-				LIMIT 1`,
-		Params: map[string]any{
-			"bugID":        job.BugID.StringVal,
-			"stage":        stage,
-			"currentJobID": job.ID,
-		},
-	})
-	defer iterConflict.Stop()
-	var conflicts []string
-	if err := spanner.SelectAll(iterConflict, &conflicts); err != nil {
-		return err
-	}
-	if len(conflicts) > 0 {
-		return &ErrCannotUpstream{
-			Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", stage),
-		}
-	}
-	return nil
 }
 
 func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobReporting, noParallel bool) error {
@@ -635,195 +547,6 @@ func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobRepor
 			return &ErrCannotUpstream{
 				Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", entry.Stage),
 			}
-		}
-		return err
-	}
-	return nil
-}
-
-func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-	if args.Reporting != nil {
-		args.Reporting.ID = uuid.NewString()
-		args.Reporting.JobID = args.Job.ID
-		args.Reporting.CreatedAt = TimeNow(ctx)
-	}
-
-	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.Statement{
-			SQL:    selectJobs() + ` WHERE ID = @id`,
-			Params: map[string]any{"id": args.Job.ID},
-		}
-		job, err := readRow[Job](ctx, txn, stmt)
-		if err != nil {
-			return err
-		}
-		if job == nil {
-			return ErrNotFound
-		}
-
-		if job.Correct.Valid && !job.Correct.Bool {
-			return &ErrCannotUpstream{Reason: "Cannot upstream a rejected patch. Unreject it first."}
-		}
-
-		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
-			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage); err != nil {
-				return err
-			}
-		}
-
-		journal := &Journal{
-			ID:          uuid.NewString(),
-			JobID:       toNullString(args.Job.ID),
-			Date:        TimeNow(ctx),
-			User:        args.User,
-			Action:      ActionApprove,
-			Source:      toNullString(args.CommandSource),
-			SourceExtID: toNullString(args.CommandExtID),
-		}
-		if args.Reporting != nil {
-			journal.ReportingID = toNullString(args.Reporting.ID)
-		}
-		if args.Reason != "" {
-			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
-		}
-		journalMut, err := spanner.InsertStruct("Journal", journal)
-		if err != nil {
-			return err
-		}
-		jobMut := spanner.Update("Jobs",
-			[]string{"ID", "Correct"},
-			[]any{args.Job.ID, spanner.NullBool{Bool: true, Valid: true}})
-		var mutations []*spanner.Mutation
-		mutations = append(mutations, jobMut, journalMut)
-
-		if args.Reporting != nil {
-			reportingMut, err := spanner.InsertStruct("JobReporting", args.Reporting)
-			if err != nil {
-				return err
-			}
-			mutations = append(mutations, reportingMut)
-		}
-
-		return txn.BufferWrite(mutations)
-	})
-	if err != nil {
-		if spanner.ErrCode(err) == codes.AlreadyExists {
-			return nil // Idempotent no-op.
-		}
-		return err
-	}
-	return nil
-}
-
-func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.Statement{
-			SQL:    selectJobs() + ` WHERE ID = @id`,
-			Params: map[string]any{"id": args.Job.ID},
-		}
-		job, err := readRow[Job](ctx, txn, stmt)
-		if err != nil {
-			return err
-		}
-		if job == nil {
-			return ErrNotFound
-		}
-
-		if job.Correct.Valid && !job.Correct.Bool {
-			return &ErrCannotReject{Reason: "Cannot reject a patch that is already rejected."}
-		}
-
-		journal := &Journal{
-			ID:          uuid.NewString(),
-			JobID:       toNullString(args.Job.ID),
-			Date:        TimeNow(ctx),
-			User:        args.User,
-			Action:      ActionReject,
-			Source:      toNullString(args.CommandSource),
-			SourceExtID: toNullString(args.CommandExtID),
-			ReportingID: toNullString(args.ReportingID),
-		}
-		if args.Reason != "" {
-			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
-		}
-		journalMut, err := spanner.InsertStruct("Journal", journal)
-		if err != nil {
-			return err
-		}
-
-		job.Correct = spanner.NullBool{Bool: false, Valid: true}
-		jobMut, err := spanner.UpdateStruct("Jobs", job)
-		if err != nil {
-			return err
-		}
-		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
-	})
-	if err != nil {
-		if spanner.ErrCode(err) == codes.AlreadyExists {
-			return nil // Idempotent no-op.
-		}
-		return err
-	}
-	return nil
-}
-
-func UnrejectReportCommand(ctx context.Context, args UnrejectReportArgs) error {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.Statement{
-			SQL:    selectJobs() + ` WHERE ID = @id`,
-			Params: map[string]any{"id": args.Job.ID},
-		}
-		job, err := readRow[Job](ctx, txn, stmt)
-		if err != nil {
-			return err
-		}
-		if job == nil {
-			return ErrNotFound
-		}
-
-		if !job.Correct.Valid || job.Correct.Bool {
-			return &ErrCannotUnreject{Reason: "Cannot unreject a patch that is not rejected."}
-		}
-
-		journal := &Journal{
-			ID:          uuid.NewString(),
-			JobID:       toNullString(args.Job.ID),
-			Date:        TimeNow(ctx),
-			User:        args.User,
-			Action:      ActionUnreject,
-			Source:      toNullString(args.CommandSource),
-			SourceExtID: toNullString(args.CommandExtID),
-			ReportingID: toNullString(args.ReportingID),
-		}
-		journalMut, err := spanner.InsertStruct("Journal", journal)
-		if err != nil {
-			return err
-		}
-
-		job.Correct = spanner.NullBool{Valid: false}
-		jobMut, err := spanner.UpdateStruct("Jobs", job)
-		if err != nil {
-			return err
-		}
-		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
-	})
-	if err != nil {
-		if spanner.ErrCode(err) == codes.AlreadyExists {
-			return nil // Idempotent no-op.
 		}
 		return err
 	}
@@ -1061,29 +784,6 @@ func hasRunningIterationJob(ctx context.Context, txn *spanner.ReadWriteTransacti
 	return row != nil, nil
 }
 
-// isNewestReport verifies if the given reporting is the newest one for the bug.
-// Returns true if no newer reporting exists.
-func isNewestReport(ctx context.Context, txn *spanner.ReadWriteTransaction,
-	bugID string, createdAt time.Time) (bool, error) {
-	stmt := spanner.Statement{
-		SQL: `SELECT JobReporting.ID FROM JobReporting
-              JOIN Jobs ON JobReporting.JobID = Jobs.ID
-              WHERE Jobs.BugID = @bugID
-                AND JobReporting.CreatedAt > @createdAt
-                AND JSON_VALUE(Jobs.Results, '$.PatchDiff') > ''
-              LIMIT 1`,
-		Params: map[string]any{
-			"bugID":     bugID,
-			"createdAt": createdAt,
-		},
-	}
-	row, err := readRow[struct{ ID string }](ctx, txn, stmt)
-	if err != nil {
-		return false, err
-	}
-	return row == nil, nil
-}
-
 // checkBackoff calculates an exponential backoff period if the latest iteration job failed.
 // It counts the number of failed iteration jobs for this reporting to determine the backoff duration.
 // Returns true if the backoff period hasn't elapsed yet, indicating we should not create a new job.
@@ -1162,17 +862,6 @@ func getUnprocessedComments(ctx context.Context, txn *spanner.ReadWriteTransacti
 		return nil, err
 	}
 	return commentIDs, nil
-}
-
-func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	var mutations []*spanner.Mutation
-	for _, id := range ids {
-		mutations = append(mutations, spanner.Update("JobComments", []string{"ID", "Processed"}, []any{id, true}))
-	}
-	return txn.BufferWrite(mutations)
 }
 
 func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
@@ -1257,6 +946,40 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 	return err
 }
 
+// isNewestReport verifies if the given reporting is the newest one for the bug.
+// Returns true if no newer reporting exists.
+func isNewestReport(ctx context.Context, txn *spanner.ReadWriteTransaction,
+	bugID string, createdAt time.Time) (bool, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT JobReporting.ID FROM JobReporting
+              JOIN Jobs ON JobReporting.JobID = Jobs.ID
+              WHERE Jobs.BugID = @bugID
+                AND JobReporting.CreatedAt > @createdAt
+                AND JSON_VALUE(Jobs.Results, '$.PatchDiff') > ''
+              LIMIT 1`,
+		Params: map[string]any{
+			"bugID":     bugID,
+			"createdAt": createdAt,
+		},
+	}
+	row, err := readRow[struct{ ID string }](ctx, txn, stmt)
+	if err != nil {
+		return false, err
+	}
+	return row == nil, nil
+}
+
+func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	var mutations []*spanner.Mutation
+	for _, id := range ids {
+		mutations = append(mutations, spanner.Update("JobComments", []string{"ID", "Processed"}, []any{id, true}))
+	}
+	return txn.BufferWrite(mutations)
+}
+
 func JobReportingPublished(ctx context.Context, id, extID string) error {
 	client, err := dbClient(ctx)
 	if err != nil {
@@ -1298,6 +1021,113 @@ type UpstreamReportArgs struct {
 	User          string
 }
 
+func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	if args.Reporting != nil {
+		args.Reporting.ID = uuid.NewString()
+		args.Reporting.JobID = args.Job.ID
+		args.Reporting.CreatedAt = TimeNow(ctx)
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		job, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if job == nil {
+			return ErrNotFound
+		}
+
+		if job.Correct.Valid && !job.Correct.Bool {
+			return &ErrCannotUpstream{Reason: "Cannot upstream a rejected patch. Unreject it first."}
+		}
+
+		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
+			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage); err != nil {
+				return err
+			}
+		}
+
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionApprove,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+		}
+		if args.Reporting != nil {
+			journal.ReportingID = toNullString(args.Reporting.ID)
+		}
+		if args.Reason != "" {
+			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+		jobMut := spanner.Update("Jobs",
+			[]string{"ID", "Correct"},
+			[]any{args.Job.ID, spanner.NullBool{Bool: true, Valid: true}})
+		var mutations []*spanner.Mutation
+		mutations = append(mutations, jobMut, journalMut)
+
+		if args.Reporting != nil {
+			reportingMut, err := spanner.InsertStruct("JobReporting", args.Reporting)
+			if err != nil {
+				return err
+			}
+			mutations = append(mutations, reportingMut)
+		}
+
+		return txn.BufferWrite(mutations)
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
+}
+
+func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction, job *Job, stage string) error {
+	iterConflict := txn.Query(ctx, spanner.Statement{
+		SQL: `SELECT Jobs.ID
+				FROM Jobs
+				JOIN JobReporting ON Jobs.ID = JobReporting.JobID
+				WHERE Jobs.BugID = @bugID
+				  AND JobReporting.Stage = @stage
+				  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
+				  AND Jobs.ID != @currentJobID
+				LIMIT 1`,
+		Params: map[string]any{
+			"bugID":        job.BugID.StringVal,
+			"stage":        stage,
+			"currentJobID": job.ID,
+		},
+	})
+	defer iterConflict.Stop()
+	var conflicts []string
+	if err := spanner.SelectAll(iterConflict, &conflicts); err != nil {
+		return err
+	}
+	if len(conflicts) > 0 {
+		return &ErrCannotUpstream{
+			Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", stage),
+		}
+	}
+	return nil
+}
+
 type RejectReportArgs struct {
 	Job           *Job
 	ReportingID   string
@@ -1307,12 +1137,123 @@ type RejectReportArgs struct {
 	Reason        string
 }
 
+func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		job, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if job == nil {
+			return ErrNotFound
+		}
+
+		if job.Correct.Valid && !job.Correct.Bool {
+			return &ErrCannotReject{Reason: "Cannot reject a patch that is already rejected."}
+		}
+
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionReject,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+			ReportingID: toNullString(args.ReportingID),
+		}
+		if args.Reason != "" {
+			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+
+		job.Correct = spanner.NullBool{Bool: false, Valid: true}
+		jobMut, err := spanner.UpdateStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
+}
+
 type UnrejectReportArgs struct {
 	Job           *Job
 	ReportingID   string
 	CommandSource string
 	CommandExtID  string
 	User          string
+}
+
+func UnrejectReportCommand(ctx context.Context, args UnrejectReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		job, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if job == nil {
+			return ErrNotFound
+		}
+
+		if !job.Correct.Valid || job.Correct.Bool {
+			return &ErrCannotUnreject{Reason: "Cannot unreject a patch that is not rejected."}
+		}
+
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionUnreject,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+			ReportingID: toNullString(args.ReportingID),
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+
+		job.Correct = spanner.NullBool{Valid: false}
+		jobMut, err := spanner.UpdateStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
 }
 
 func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, error) {
@@ -1324,6 +1265,24 @@ func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, 
 		return nil, nil
 	}
 	return res, err
+}
+
+func selectOne[T any](ctx context.Context, stmt spanner.Statement) (*T, error) {
+	all, err := selectAll[T](ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	if len(all) == 0 {
+		return nil, ErrNotFound
+	}
+	if len(all) > 1 {
+		return nil, fmt.Errorf("selectOne: got %v of %T", len(all), *new(T))
+	}
+	return all[0], nil
+}
+
+func selectJobReporting() string {
+	return selectAllFrom[JobReporting]("JobReporting")
 }
 
 func IsCommandProcessed(ctx context.Context, source, sourceExtID string) (bool, error) {
@@ -1350,6 +1309,25 @@ func LoadJobJournal(ctx context.Context, jobID string) ([]*Journal, error) {
 			"jobID": jobID,
 		},
 	})
+}
+
+func selectAll[T any](ctx context.Context, stmt spanner.Statement) ([]*T, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	var items []*T
+	err = spanner.SelectAll(iter, &items)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func selectJournal() string {
+	return selectAllFrom[Journal]("Journal")
 }
 
 func SetJobDone(ctx context.Context, jobID string, finished time.Time,
@@ -1391,6 +1369,10 @@ func SetJobDone(ctx context.Context, jobID string, finished time.Time,
 		return nil, err
 	}
 	return job, nil
+}
+
+func selectJobs() string {
+	return selectAllFrom[Job]("Jobs")
 }
 
 func selectAllFrom[T any](table string) string {
@@ -1449,6 +1431,25 @@ func saveEntity[T any](ctx context.Context, table string, obj *T) error {
 	}
 	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
 	return err
+}
+
+func dbClient(ctx context.Context) (*spanner.Client, error) {
+	appID := appengine.AppID(ctx)
+	if v, ok := clients.Load(appID); ok {
+		return v.(*spanner.Client), nil
+	}
+	path := fmt.Sprintf("projects/%v/instances/%v/databases/%v",
+		appID, Instance, Database)
+	// We use background context for the client, so that it survives the request.
+	client, err := spanner.NewClientWithConfig(context.Background(), path, spanner.ClientConfig{})
+	if err != nil {
+		return nil, err
+	}
+	if actual, loaded := clients.LoadOrStore(appID, client); loaded {
+		client.Close()
+		return actual.(*spanner.Client), nil
+	}
+	return client, nil
 }
 
 type dbQuerier interface {

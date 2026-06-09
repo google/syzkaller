@@ -63,10 +63,6 @@ func (features Features) Match(constraints []string) bool {
 	return true
 }
 
-func constraintsInclude(constraints []string, what string) bool {
-	return slices.Contains(constraints, what)
-}
-
 type rawMain struct {
 	Instances []map[string][]string
 	Includes  []map[string][]string
@@ -152,6 +148,10 @@ func parseInstance(name, configDir string, features []string, includes []map[str
 	return inst, errs.err()
 }
 
+func constraintsInclude(constraints []string, what string) bool {
+	return slices.Contains(constraints, what)
+}
+
 func parseFile(file string) (*rawFile, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -165,6 +165,8 @@ func parseFile(file string) (*rawFile, error) {
 	}
 	return raw, nil
 }
+
+type Errors []byte
 
 func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 	if raw.Kernel.Repo != "" || raw.Kernel.Tag != "" {
@@ -326,8 +328,6 @@ func parseNode(node yaml.Node) (name, val string, constraints []string, err erro
 	}
 	return
 }
-
-type Errors []byte
 
 func (errs *Errors) push(msg string, args ...any) {
 	*errs = append(*errs, fmt.Sprintf(msg+"\n", args...)...)

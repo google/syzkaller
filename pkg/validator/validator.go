@@ -21,15 +21,6 @@ type Result struct {
 
 var ResultOk = Result{true, nil}
 
-func AnyError(errPrefix string, results ...Result) error {
-	for _, res := range results {
-		if !res.Ok {
-			return wrapError(res.Err.Error(), errPrefix)
-		}
-	}
-	return nil
-}
-
 func AnyOk(results ...Result) Result {
 	if len(results) == 0 {
 		return ResultOk
@@ -45,6 +36,15 @@ func AnyOk(results ...Result) Result {
 func PanicIfNot(results ...Result) error {
 	if err := AnyError("", results...); err != nil {
 		panic(err.Error())
+	}
+	return nil
+}
+
+func AnyError(errPrefix string, results ...Result) error {
+	for _, res := range results {
+		if !res.Ok {
+			return wrapError(res.Err.Error(), errPrefix)
+		}
 	}
 	return nil
 }
@@ -84,10 +84,6 @@ var (
 
 type strValidationFunc func(string, ...string) Result
 
-func looksDangerous(s string) bool {
-	return strings.Contains(s, "--")
-}
-
 func makeStrReFunc(errStr, reStr string) strValidationFunc {
 	matchRe := regexp.MustCompile(reStr)
 	return func(s string, objName ...string) Result {
@@ -99,6 +95,10 @@ func makeStrReFunc(errStr, reStr string) strValidationFunc {
 		}
 		return ResultOk
 	}
+}
+
+func looksDangerous(s string) bool {
+	return strings.Contains(s, "--")
 }
 
 func makeStrLenFunc(errStr string, l int) strValidationFunc {

@@ -125,31 +125,6 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 	return convertConstInfo(ctx, comp.fileMetas)
 }
 
-func foreachFieldAttrConst(n *ast.Struct, cb func(*ast.Type)) {
-	for _, field := range n.Fields {
-		for _, attr := range field.Attrs {
-			attrDesc := structOrUnionFieldAttrs(n)[attr.Ident]
-			if attrDesc == nil {
-				return
-			}
-			if attrDesc.Type != exprAttr {
-				// For now, only these field attrs may have consts.
-				return
-			}
-			ast.Recursive(func(n ast.Node) bool {
-				t, ok := n.(*ast.Type)
-				if !ok || t.Expression != nil {
-					return true
-				}
-				if t.Ident != valueIdent {
-					cb(t)
-				}
-				return false
-			})(attr.Args[0])
-		}
-	}
-}
-
 func (comp *compiler) extractTypeConsts(ctx *constContext, n ast.Node) {
 	comp.foreachType(n, func(t *ast.Type, desc *typeDesc, args []*ast.Type, _ prog.IntTypeCommon) {
 		for i, arg := range args {
@@ -341,6 +316,31 @@ func (comp *compiler) patchConsts(consts0 map[string]uint64) {
 			if c, ok := decl.(*ast.Call); ok {
 				c.NR = ^uint64(0) // mark as unused to not generate it
 			}
+		}
+	}
+}
+
+func foreachFieldAttrConst(n *ast.Struct, cb func(*ast.Type)) {
+	for _, field := range n.Fields {
+		for _, attr := range field.Attrs {
+			attrDesc := structOrUnionFieldAttrs(n)[attr.Ident]
+			if attrDesc == nil {
+				return
+			}
+			if attrDesc.Type != exprAttr {
+				// For now, only these field attrs may have consts.
+				return
+			}
+			ast.Recursive(func(n ast.Node) bool {
+				t, ok := n.(*ast.Type)
+				if !ok || t.Expression != nil {
+					return true
+				}
+				if t.Ident != valueIdent {
+					cb(t)
+				}
+				return false
+			})(attr.Args[0])
 		}
 	}
 }

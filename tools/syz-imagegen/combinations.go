@@ -134,15 +134,15 @@ func (pc *pairCoverage) record(row []int, newID, newVal int) {
 	}
 }
 
-type pair struct {
-	pos   int
-	value int
-}
-
 type pairCombo struct {
 	first  pair
 	second pair
 	third  pair
+}
+
+type pair struct {
+	pos   int
+	value int
 }
 
 func rowToPairCombos(row []int, triples bool, newID, newVal int) []pairCombo {

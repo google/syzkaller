@@ -61,10 +61,6 @@ const (
 	prefixOpcode = uint32(1) << prefixShift
 )
 
-func (insn *Insn) isPrefixed() bool {
-	return insn.Opcode&prefixMask == prefixOpcode
-}
-
 func (insnset *InsnSet) GetInsns(mode iset.Mode, typ iset.Type) []iset.Insn {
 	return insnset.modeInsns[mode][typ]
 }
@@ -104,19 +100,12 @@ func (insnset *InsnSet) Decode(mode iset.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("unrecognised instruction %08x", insn32)
 }
 
-func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
-	return 0, fmt.Errorf("no external decoder")
+func (insn *Insn) isPrefixed() bool {
+	return insn.Opcode&prefixMask == prefixOpcode
 }
 
-func encodeBits(n uint, ff []InsnBits) uint32 {
-	ret := uint32(0)
-	for _, f := range ff {
-		mask := uint(1<<f.Length) - 1
-		field := uint32((n & mask) << (31 - (f.Start + f.Length - 1)))
-		ret = ret | field
-		n = n >> f.Length
-	}
-	return ret
+func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
+	return 0, fmt.Errorf("no external decoder")
 }
 
 func (insn *Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
@@ -183,22 +172,6 @@ func (insn *Insn) mode() iset.Mode {
 	return (1 << iset.ModeLong64) | (1 << iset.ModeProt32)
 }
 
-func uint32toBytes(v uint32) []byte {
-	ret := make([]byte, 4)
-	binary.LittleEndian.PutUint32(ret, v)
-
-	return ret
-}
-
-func (insn *Insn) enc(v map[string]uint) []byte {
-	ret := make([]byte, 0)
-	ret = append(ret, insn.encOpcode(v, insn.Opcode, insn.Fields)...)
-	if insn.isPrefixed() {
-		ret = append(ret, insn.encOpcode(v, insn.OpcodeSuffix, insn.FieldsSuffix)...)
-	}
-	return ret
-}
-
 func (insn *Insn) encOpcode(v map[string]uint, opcode uint32, f []InsnField) []byte {
 	insn32 := opcode
 	for _, f := range insn.Fields {
@@ -207,6 +180,24 @@ func (insn *Insn) encOpcode(v map[string]uint, opcode uint32, f []InsnField) []b
 		}
 	}
 	return uint32toBytes(insn32)
+}
+
+func encodeBits(n uint, ff []InsnBits) uint32 {
+	ret := uint32(0)
+	for _, f := range ff {
+		mask := uint(1<<f.Length) - 1
+		field := uint32((n & mask) << (31 - (f.Start + f.Length - 1)))
+		ret = ret | field
+		n = n >> f.Length
+	}
+	return ret
+}
+
+func uint32toBytes(v uint32) []byte {
+	ret := make([]byte, 4)
+	binary.LittleEndian.PutUint32(ret, v)
+
+	return ret
 }
 
 func (imap insnSetMap) ld64(reg uint, v uint64) []byte {
@@ -273,4 +264,13 @@ func (imap insnSetMap) ldgpr32(regaddr, regval uint, addr uint64, v uint32) []by
 
 func (imap insnSetMap) sc(lev uint) []byte {
 	return imap["sc"].enc(map[string]uint{"LEV": lev})
+}
+
+func (insn *Insn) enc(v map[string]uint) []byte {
+	ret := make([]byte, 0)
+	ret = append(ret, insn.encOpcode(v, insn.Opcode, insn.Fields)...)
+	if insn.isPrefixed() {
+		ret = append(ret, insn.encOpcode(v, insn.OpcodeSuffix, insn.FieldsSuffix)...)
+	}
+	return ret
 }

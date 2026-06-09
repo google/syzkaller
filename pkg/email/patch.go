@@ -71,6 +71,11 @@ type PatchTemplateData struct {
 	TestedBy   []string
 }
 
+func FormatPatch(description, diff string, data PatchTemplateData) string {
+	return FormatPatchDescription(description, data) +
+		fmt.Sprintf("%v\nbase-commit: %v\n", diff, data.BaseCommit)
+}
+
 func FormatPatchDescription(description string, data PatchTemplateData) string {
 	buf := new(bytes.Buffer)
 	var to, cc []mail.Address
@@ -108,11 +113,6 @@ func FormatPatchDescription(description string, data PatchTemplateData) string {
 		panic(err)
 	}
 	return buf.String()
-}
-
-func FormatPatch(description, diff string, data PatchTemplateData) string {
-	return FormatPatchDescription(description, data) +
-		fmt.Sprintf("%v\nbase-commit: %v\n", diff, data.BaseCommit)
 }
 
 // Note: the patches we generate should comply to:

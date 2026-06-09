@@ -141,47 +141,6 @@ const (
 	localUIGlobalPassword = "localuiglobalpasswordlocaluiglobalpasswordlocaluiglobalpassword"
 )
 
-func populateBuildsAndCrashes(t *testing.T, client *apiClient) {
-	bugTitles := []string{
-		"KASAN: slab-use-after-free Write in nr_neigh_put",
-		"KCSAN: data-race in mISDN_ioctl / mISDN_read",
-		"WARNING in raw_ioctl",
-	}
-	for buildID := range 3 {
-		build := &dashapi.Build{
-			Manager:           fmt.Sprintf("manager%v", buildID),
-			ID:                fmt.Sprintf("build%v", buildID),
-			OS:                targets.Linux,
-			Arch:              targets.AMD64,
-			VMArch:            targets.AMD64,
-			SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", buildID),
-			CompilerID:        fmt.Sprintf("compiler%v", buildID),
-			KernelRepo:        fmt.Sprintf("repo%v", buildID),
-			KernelBranch:      fmt.Sprintf("branch%v", buildID),
-			KernelCommit:      strings.Repeat(fmt.Sprint(buildID), 40)[:40],
-			KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", buildID),
-			KernelCommitDate:  time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC),
-			KernelConfig:      []byte(fmt.Sprintf("config%v", buildID)),
-		}
-		client.UploadBuild(build)
-		for bugID := range len(bugTitles) {
-			for crashID := range 3 {
-				client.ReportCrash(&dashapi.Crash{
-					BuildID:     build.ID,
-					Title:       bugTitles[bugID],
-					Log:         []byte(fmt.Sprintf("log %v %v", bugID, crashID)),
-					Report:      []byte(fmt.Sprintf("report %v %v", bugID, crashID)),
-					MachineInfo: []byte(fmt.Sprintf("machine info %v %v", bugID, crashID)),
-					ReproOpts:   []byte(fmt.Sprintf("repro opts %v %v", bugID, crashID)),
-					ReproSyz:    []byte(fmt.Sprintf("syncfs %v %v", bugID, crashID)),
-					ReproC:      []byte(fmt.Sprintf("int main() { return %v %v; }", bugID, crashID)),
-					ReproLog:    []byte(fmt.Sprintf("repro log %v %v", bugID, crashID)),
-				})
-			}
-		}
-	}
-}
-
 // nolint: funlen
 func populateLocalUIDB(t *testing.T, c *Ctx) {
 	client := c.makeClient(localUIClient, localUIPassword, true)
@@ -506,6 +465,47 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)},
 		},
 	})
+}
+
+func populateBuildsAndCrashes(t *testing.T, client *apiClient) {
+	bugTitles := []string{
+		"KASAN: slab-use-after-free Write in nr_neigh_put",
+		"KCSAN: data-race in mISDN_ioctl / mISDN_read",
+		"WARNING in raw_ioctl",
+	}
+	for buildID := range 3 {
+		build := &dashapi.Build{
+			Manager:           fmt.Sprintf("manager%v", buildID),
+			ID:                fmt.Sprintf("build%v", buildID),
+			OS:                targets.Linux,
+			Arch:              targets.AMD64,
+			VMArch:            targets.AMD64,
+			SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", buildID),
+			CompilerID:        fmt.Sprintf("compiler%v", buildID),
+			KernelRepo:        fmt.Sprintf("repo%v", buildID),
+			KernelBranch:      fmt.Sprintf("branch%v", buildID),
+			KernelCommit:      strings.Repeat(fmt.Sprint(buildID), 40)[:40],
+			KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", buildID),
+			KernelCommitDate:  time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC),
+			KernelConfig:      []byte(fmt.Sprintf("config%v", buildID)),
+		}
+		client.UploadBuild(build)
+		for bugID := range len(bugTitles) {
+			for crashID := range 3 {
+				client.ReportCrash(&dashapi.Crash{
+					BuildID:     build.ID,
+					Title:       bugTitles[bugID],
+					Log:         []byte(fmt.Sprintf("log %v %v", bugID, crashID)),
+					Report:      []byte(fmt.Sprintf("report %v %v", bugID, crashID)),
+					MachineInfo: []byte(fmt.Sprintf("machine info %v %v", bugID, crashID)),
+					ReproOpts:   []byte(fmt.Sprintf("repro opts %v %v", bugID, crashID)),
+					ReproSyz:    []byte(fmt.Sprintf("syncfs %v %v", bugID, crashID)),
+					ReproC:      []byte(fmt.Sprintf("int main() { return %v %v; }", bugID, crashID)),
+					ReproLog:    []byte(fmt.Sprintf("repro log %v %v", bugID, crashID)),
+				})
+			}
+		}
+	}
 }
 
 // Advance the timer with random duration. Return the (copied) old time.

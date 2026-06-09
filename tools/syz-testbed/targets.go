@@ -173,28 +173,6 @@ type SyzReproInput struct {
 	runBy     map[*Checkout]int
 }
 
-func (inp *SyzReproInput) QueryTitle(checkout *Checkout, dupsMap map[string]int) error {
-	data, err := os.ReadFile(inp.Path)
-	if err != nil {
-		return fmt.Errorf("failed to read: %w", err)
-	}
-	report := checkout.GetReporter().Parse(data)
-	if report == nil {
-		return fmt.Errorf("found no crash")
-	}
-	if inp.Title == "" {
-		inp.origTitle = report.Title
-		inp.Title = report.Title
-		// Some bug titles may be present in multiple log files.
-		// Ensure they are all distict to the user.
-		dupsMap[inp.origTitle]++
-		if dupsMap[inp.Title] > 1 {
-			inp.Title += fmt.Sprintf(" (%d)", dupsMap[inp.origTitle])
-		}
-	}
-	return nil
-}
-
 func (t *SyzReproTarget) NewJob(slotName string, checkouts []*Checkout) (*Checkout, Instance, error) {
 	t.mu.Lock()
 	seqID := t.seqID
@@ -236,6 +214,28 @@ func (t *SyzReproTarget) NewJob(slotName string, checkouts []*Checkout) (*Checko
 		return nil, nil, err
 	}
 	return checkout, instance, nil
+}
+
+func (inp *SyzReproInput) QueryTitle(checkout *Checkout, dupsMap map[string]int) error {
+	data, err := os.ReadFile(inp.Path)
+	if err != nil {
+		return fmt.Errorf("failed to read: %w", err)
+	}
+	report := checkout.GetReporter().Parse(data)
+	if report == nil {
+		return fmt.Errorf("found no crash")
+	}
+	if inp.Title == "" {
+		inp.origTitle = report.Title
+		inp.Title = report.Title
+		// Some bug titles may be present in multiple log files.
+		// Ensure they are all distict to the user.
+		dupsMap[inp.origTitle]++
+		if dupsMap[inp.Title] > 1 {
+			inp.Title += fmt.Sprintf(" (%d)", dupsMap[inp.origTitle])
+		}
+	}
+	return nil
 }
 
 func (t *SyzReproTarget) SupportsHTMLView(key string) bool {

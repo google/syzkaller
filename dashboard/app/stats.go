@@ -23,80 +23,6 @@ type bugInput struct {
 	build         *Build
 }
 
-func (bi *bugInput) fixedAt() time.Time {
-	closeTime := time.Time{}
-	if bi.bug.Status == BugStatusFixed {
-		closeTime = bi.bug.Closed
-	}
-	for _, commit := range bi.bug.CommitInfo {
-		if closeTime.IsZero() || closeTime.After(commit.Date) {
-			closeTime = commit.Date
-		}
-	}
-	return closeTime
-}
-
-func (bi *bugInput) bugStatus() (syzbotstats.BugStatus, error) {
-	if bi.bug.Status == BugStatusFixed ||
-		bi.bug.Closed.IsZero() && len(bi.bug.Commits) > 0 {
-		return syzbotstats.BugFixed, nil
-	} else if bi.bug.Closed.IsZero() {
-		return syzbotstats.BugPending, nil
-	} else if bi.bug.Status == BugStatusDup {
-		return syzbotstats.BugDup, nil
-	} else if bi.bug.Status == BugStatusInvalid {
-		if bi.bugReporting.Auto {
-			return syzbotstats.BugAutoInvalidated, nil
-		} else {
-			return syzbotstats.BugInvalidated, nil
-		}
-	}
-	return "", fmt.Errorf("cannot determine status")
-}
-
-// allBugInputs queries the raw data about all bugs from a namespace.
-func allBugInputs(ctx context.Context, ns string) ([]*bugInput, error) {
-	filter := func(query *db.Query) *db.Query {
-		return query.Filter("Namespace=", ns)
-	}
-	inputs := []*bugInput{}
-	bugs, bugKeys, err := loadAllBugs(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	crashLoader := &dependencyLoader[Crash]{}
-	for i, bug := range bugs {
-		bugReporting := lastReportedReporting(bug)
-		input := &bugInput{
-			bug:          bug,
-			bugReporting: bugReporting,
-		}
-		if bugReporting.CrashID != 0 {
-			crashKey := db.NewKey(ctx, "Crash", "", bugReporting.CrashID, bugKeys[i])
-			crashLoader.add(crashKey, func(crash *Crash) {
-				input.reportedCrash = crash
-			})
-		}
-		inputs = append(inputs, input)
-	}
-	if err := crashLoader.load(ctx); err != nil {
-		return nil, fmt.Errorf("failed to fetch crashes: %w", err)
-	}
-	buildLoader := &dependencyLoader[Build]{}
-	for _, input := range inputs {
-		if input.reportedCrash == nil {
-			continue
-		}
-		buildLoader.add(buildKey(ctx, ns, input.reportedCrash.BuildID), func(build *Build) {
-			input.build = build
-		})
-	}
-	if err := buildLoader.load(ctx); err != nil {
-		return nil, fmt.Errorf("failed to fetch builds: %w", err)
-	}
-	return inputs, nil
-}
-
 // Circumventing the datastore's multi query limitation.
 func getAllMulti[T any](ctx context.Context, keys []*db.Key, objects []*T) (*db.Key, error) {
 	const step = 1000
@@ -190,4 +116,78 @@ func getBugSummaries(ctx context.Context, ns, stage string) ([]*syzbotstats.BugS
 		ret = append(ret, obj)
 	}
 	return ret, nil
+}
+
+func (bi *bugInput) fixedAt() time.Time {
+	closeTime := time.Time{}
+	if bi.bug.Status == BugStatusFixed {
+		closeTime = bi.bug.Closed
+	}
+	for _, commit := range bi.bug.CommitInfo {
+		if closeTime.IsZero() || closeTime.After(commit.Date) {
+			closeTime = commit.Date
+		}
+	}
+	return closeTime
+}
+
+func (bi *bugInput) bugStatus() (syzbotstats.BugStatus, error) {
+	if bi.bug.Status == BugStatusFixed ||
+		bi.bug.Closed.IsZero() && len(bi.bug.Commits) > 0 {
+		return syzbotstats.BugFixed, nil
+	} else if bi.bug.Closed.IsZero() {
+		return syzbotstats.BugPending, nil
+	} else if bi.bug.Status == BugStatusDup {
+		return syzbotstats.BugDup, nil
+	} else if bi.bug.Status == BugStatusInvalid {
+		if bi.bugReporting.Auto {
+			return syzbotstats.BugAutoInvalidated, nil
+		} else {
+			return syzbotstats.BugInvalidated, nil
+		}
+	}
+	return "", fmt.Errorf("cannot determine status")
+}
+
+// allBugInputs queries the raw data about all bugs from a namespace.
+func allBugInputs(ctx context.Context, ns string) ([]*bugInput, error) {
+	filter := func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns)
+	}
+	inputs := []*bugInput{}
+	bugs, bugKeys, err := loadAllBugs(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	crashLoader := &dependencyLoader[Crash]{}
+	for i, bug := range bugs {
+		bugReporting := lastReportedReporting(bug)
+		input := &bugInput{
+			bug:          bug,
+			bugReporting: bugReporting,
+		}
+		if bugReporting.CrashID != 0 {
+			crashKey := db.NewKey(ctx, "Crash", "", bugReporting.CrashID, bugKeys[i])
+			crashLoader.add(crashKey, func(crash *Crash) {
+				input.reportedCrash = crash
+			})
+		}
+		inputs = append(inputs, input)
+	}
+	if err := crashLoader.load(ctx); err != nil {
+		return nil, fmt.Errorf("failed to fetch crashes: %w", err)
+	}
+	buildLoader := &dependencyLoader[Build]{}
+	for _, input := range inputs {
+		if input.reportedCrash == nil {
+			continue
+		}
+		buildLoader.add(buildKey(ctx, ns, input.reportedCrash.BuildID), func(build *Build) {
+			input.build = build
+		})
+	}
+	if err := buildLoader.load(ctx); err != nil {
+		return nil, fmt.Errorf("failed to fetch builds: %w", err)
+	}
+	return inputs, nil
 }

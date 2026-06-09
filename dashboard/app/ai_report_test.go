@@ -23,40 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (ctx *Ctx) setupAIPatchJob(t *testing.T) (string, string) {
-	t.Helper()
-	build := testBuild(1)
-	ctx.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	ctx.aiClient.ReportCrash(crash)
-	extID := ctx.aiClient.pollEmailExtID()
-
-	_, err := ctx.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := ctx.createAIJob(extID, string(ai.WorkflowPatching), "")
-	return extID, jobID
-}
-
-func (ctx *Ctx) finishAIPatchJob(t *testing.T, jobID string, customResults map[string]any) {
-	t.Helper()
-	results := map[string]any{
-		"PatchDescription": "Test Subject\n\nTest Body",
-		"PatchDiff":        "diff",
-		"KernelRepo":       "repo",
-		"KernelCommit":     "commit",
-	}
-	maps.Copy(results, customResults)
-	err := ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID:      jobID,
-		Results: results,
-	})
-	require.NoError(t, err)
-}
-
 func TestAIExternalReporting(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
@@ -1683,6 +1649,24 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	require.Empty(t, resp2.ID)
 }
 
+func (ctx *Ctx) setupAIPatchJob(t *testing.T) (string, string) {
+	t.Helper()
+	build := testBuild(1)
+	ctx.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	ctx.aiClient.ReportCrash(crash)
+	extID := ctx.aiClient.pollEmailExtID()
+
+	_, err := ctx.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := ctx.createAIJob(extID, string(ai.WorkflowPatching), "")
+	return extID, jobID
+}
+
 func TestAIPatchFilter(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
@@ -1991,4 +1975,20 @@ func TestAIActionEmailsAuth(t *testing.T) {
 			assert.Empty(t, resp2.Error, "duplicate command should not return an error")
 		})
 	}
+}
+
+func (ctx *Ctx) finishAIPatchJob(t *testing.T, jobID string, customResults map[string]any) {
+	t.Helper()
+	results := map[string]any{
+		"PatchDescription": "Test Subject\n\nTest Body",
+		"PatchDiff":        "diff",
+		"KernelRepo":       "repo",
+		"KernelCommit":     "commit",
+	}
+	maps.Copy(results, customResults)
+	err := ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      jobID,
+		Results: results,
+	})
+	require.NoError(t, err)
 }

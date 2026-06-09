@@ -669,15 +669,15 @@ func checkOpts(opts *csource.Options, timeouts targets.Timeouts, timeout time.Du
 	return true
 }
 
+type verdict struct {
+	Crashed  bool
+	Duration time.Duration
+}
+
 func (ctx *reproContext) testProg(p *prog.Prog, duration time.Duration, opts csource.Options,
 	strict bool) (ret verdict, err error) {
 	entry := prog.LogEntry{P: p}
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts, strict)
-}
-
-type verdict struct {
-	Crashed  bool
-	Duration time.Duration
 }
 
 func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, err error), strict bool) (
@@ -749,17 +749,6 @@ func isHighPrioReport(typ crash.Type) bool {
 
 var ErrNoVMs = errors.New("all VMs failed to boot")
 
-func encodeEntries(entries []*prog.LogEntry) []byte {
-	buf := new(bytes.Buffer)
-	for _, ent := range entries {
-		if len(ent.P.Calls) > prog.MaxCalls {
-			panic("prog.MaxCalls is exceeded")
-		}
-		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
-	}
-	return buf.Bytes()
-}
-
 func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options,
 	strict bool) (ret verdict, err error) {
 	if len(entries) == 0 {
@@ -785,6 +774,17 @@ func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Durat
 			Duration: duration,
 		}, ctx.reproLogf)
 	}, strict)
+}
+
+func encodeEntries(entries []*prog.LogEntry) []byte {
+	buf := new(bytes.Buffer)
+	for _, ent := range entries {
+		if len(ent.P.Calls) > prog.MaxCalls {
+			panic("prog.MaxCalls is exceeded")
+		}
+		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
+	}
+	return buf.Bytes()
 }
 
 func (ctx *reproContext) testCProg(p *prog.Prog, duration time.Duration, opts csource.Options,

@@ -65,23 +65,6 @@ const (
 	rlimitMask = 0xf
 )
 
-// openbsd:src/sys/sys/types.h
-func devmajor(dev uint64) uint64 {
-	return (dev >> 8) & 0xff
-}
-
-// openbsd:src/sys/sys/types.h
-func devminor(dev uint64) uint64 {
-	return (dev & 0xff) | ((dev & 0xffff0000) >> 8)
-}
-
-func isExecutorFd(dev uint64) bool {
-	major := devmajor(dev)
-	minor := devminor(dev)
-
-	return major == devFdMajor && minor >= 200
-}
-
 func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	argStart := 1
 	switch c.Meta.CallName {
@@ -153,6 +136,13 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		return arch.unix.Neutralize(c, fixStructure)
 	}
 	return nil
+}
+
+func isExecutorFd(dev uint64) bool {
+	major := devmajor(dev)
+	minor := devminor(dev)
+
+	return major == devFdMajor && minor >= 200
 }
 
 func (arch *arch) neutralizeClockSettime(c *prog.Call) {
@@ -281,4 +271,14 @@ func (arch *arch) annotateCall(c prog.ExecCall) string {
 		return fmt.Sprintf("major = %v, minor = %v", devmajor(dev), devminor(dev))
 	}
 	return ""
+}
+
+// openbsd:src/sys/sys/types.h
+func devmajor(dev uint64) uint64 {
+	return (dev >> 8) & 0xff
+}
+
+// openbsd:src/sys/sys/types.h
+func devminor(dev uint64) uint64 {
+	return (dev & 0xff) | ((dev & 0xffff0000) >> 8)
 }

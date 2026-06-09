@@ -256,6 +256,25 @@ func (err *CrashError) Error() string {
 	return err.Report.Title
 }
 
+type inst struct {
+	cfg             *mgrconfig.Config
+	optionalFlags   bool
+	reporter        *report.Reporter
+	vmPool          *vm.Pool
+	vm              *vm.Instance
+	vmIndex         int
+	reproSyz        []byte
+	reproOpts       []byte
+	reproC          []byte
+	collectCoverage bool
+}
+
+type EnvTestResult struct {
+	Error     error
+	RawOutput []byte
+	Coverage  [][]uint64
+}
+
 // Test boots numVMs VMs, tests basic kernel operation, and optionally tests the provided reproducer.
 // *TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
 // *CrashError is returned if the reproducer crashes kernel.
@@ -311,25 +330,6 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 		ret = append(ret, <-res)
 	}
 	return ret, nil
-}
-
-type inst struct {
-	cfg             *mgrconfig.Config
-	optionalFlags   bool
-	reporter        *report.Reporter
-	vmPool          *vm.Pool
-	vm              *vm.Instance
-	vmIndex         int
-	reproSyz        []byte
-	reproOpts       []byte
-	reproC          []byte
-	collectCoverage bool
-}
-
-type EnvTestResult struct {
-	Error     error
-	RawOutput []byte
-	Coverage  [][]uint64
 }
 
 func (inst *inst) test() EnvTestResult {

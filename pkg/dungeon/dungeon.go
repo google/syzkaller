@@ -48,22 +48,6 @@ func compileTokensRegex(tokens ...string) *regexp.Regexp {
 	return regexp.MustCompile(pattern.String())
 }
 
-func containsAny(s string, substrings ...string) bool {
-	for _, substr := range substrings {
-		if strings.Contains(s, substr) {
-			return true
-		}
-	}
-	return false
-}
-
-func checkBugAndCommits(lowerTitle string, lowerCommitTitles []string, predicate func(string) bool) bool {
-	if predicate(lowerTitle) {
-		return true
-	}
-	return slices.ContainsFunc(lowerCommitTitles, predicate)
-}
-
 type heroClass struct {
 	Name       string
 	Emoji      string
@@ -262,18 +246,6 @@ var HeroicAdjectives = map[byte]string{
 	'z': "The Zealous",
 }
 
-func GetMostFrequent(m map[string]int) string {
-	var maxKey string
-	maxVal := -1
-	for k, v := range m {
-		if v > maxVal || (v == maxVal && k < maxKey) {
-			maxKey = k
-			maxVal = v
-		}
-	}
-	return maxKey
-}
-
 func ResolveClass(subsystems map[string]int) (string, string, string) {
 	className := "Warrior"
 	classEmoji := "⚔️"
@@ -306,6 +278,18 @@ func GetHeroName(email string, names map[string]int) string {
 		return name + " " + adj
 	}
 	return name + " The Adventurer"
+}
+
+func GetMostFrequent(m map[string]int) string {
+	var maxKey string
+	maxVal := -1
+	for k, v := range m {
+		if v > maxVal || (v == maxVal && k < maxKey) {
+			maxKey = k
+			maxVal = v
+		}
+	}
+	return maxKey
 }
 
 var (
@@ -492,6 +476,22 @@ func GetBadges() []BadgeDefinition {
 	}
 }
 
+func containsAny(s string, substrings ...string) bool {
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
+}
+
+func checkBugAndCommits(lowerTitle string, lowerCommitTitles []string, predicate func(string) bool) bool {
+	if predicate(lowerTitle) {
+		return true
+	}
+	return slices.ContainsFunc(lowerCommitTitles, predicate)
+}
+
 // ScaleAttribute calculates the scaled attribute value on an RPG-like scale [3, 30] using a logarithmic function.
 func ScaleAttribute(rawVal, base, factor float64) int {
 	attr := int(base + factor*math.Log10(rawVal))
@@ -521,18 +521,6 @@ func CalculateLevel(score int) int {
 		}
 	}
 	return level
-}
-
-func GetClassNameByEmoji(emoji string) string {
-	if emoji == "⚔️" {
-		return "Warrior"
-	}
-	for _, c := range classLookup {
-		if c.Emoji == emoji {
-			return c.Name
-		}
-	}
-	return ""
 }
 
 type KingdomTier struct {
@@ -587,4 +575,16 @@ func GetKingdomGuilds(guildCounts map[string]int) []FormattedGuild {
 		guilds = append(guilds, FormattedGuild{Emoji: g.Emoji, Name: fmt.Sprintf("%d %s", g.Count, g.Name)})
 	}
 	return guilds
+}
+
+func GetClassNameByEmoji(emoji string) string {
+	if emoji == "⚔️" {
+		return "Warrior"
+	}
+	for _, c := range classLookup {
+		if c.Emoji == emoji {
+			return c.Name
+		}
+	}
+	return ""
 }

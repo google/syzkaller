@@ -33,13 +33,24 @@ func newVerifyContext() *verifyContext {
 	}
 }
 
-func (ctx *verifyContext) errorf(who, msg string, args ...any) {
-	noteError(&ctx.err, fmt.Sprintf("action %v: %v", who, msg), args...)
-}
-
 func (ctx *verifyContext) requireNotEmpty(who, name, value string) {
 	if value == "" {
 		ctx.errorf(who, "%v must not be empty", name)
+	}
+}
+
+func (ctx *verifyContext) finalize() error {
+	for name, state := range ctx.state {
+		if !state.used {
+			ctx.errorf(state.action, "output %v is unused", name)
+		}
+	}
+	return ctx.err
+}
+
+func requireInputs[T any](ctx *verifyContext, who string) {
+	for name, typ := range foreachFieldOf[T]() {
+		ctx.requireInput(who, name, typ)
 	}
 }
 
@@ -60,41 +71,6 @@ func (ctx *verifyContext) requireInput(who, name string, typ reflect.Type) {
 	state.used = true
 }
 
-func (ctx *verifyContext) provideOutput(who, name string, typ reflect.Type) {
-	if !ctx.outputs {
-		return
-	}
-	state := ctx.state[name]
-	if state != nil {
-		ctx.errorf(who, "output %v is already set by %v", name, state.action)
-	}
-	ctx.state[name] = &varState{
-		action: who,
-		typ:    typ,
-	}
-}
-
-func (ctx *verifyContext) finalize() error {
-	for name, state := range ctx.state {
-		if !state.used {
-			ctx.errorf(state.action, "output %v is unused", name)
-		}
-	}
-	return ctx.err
-}
-
-func noteError(errp *error, msg string, args ...any) {
-	if *errp == nil {
-		*errp = fmt.Errorf(msg, args...)
-	}
-}
-
-func requireInputs[T any](ctx *verifyContext, who string) {
-	for name, typ := range foreachFieldOf[T]() {
-		ctx.requireInput(who, name, typ)
-	}
-}
-
 func provideOutputs[T any](ctx *verifyContext, who string) {
 	for name, typ := range foreachFieldOf[T]() {
 		ctx.provideOutput(who, name, typ)
@@ -113,8 +89,32 @@ func provideArrayOutputs[T any](ctx *verifyContext, who string) {
 	}
 }
 
+func (ctx *verifyContext) provideOutput(who, name string, typ reflect.Type) {
+	if !ctx.outputs {
+		return
+	}
+	state := ctx.state[name]
+	if state != nil {
+		ctx.errorf(who, "output %v is already set by %v", name, state.action)
+	}
+	ctx.state[name] = &varState{
+		action: who,
+		typ:    typ,
+	}
+}
+
 func requireSchema[T any](ctx *verifyContext, who, what string) {
 	if _, err := schemaFor[T](); err != nil {
 		ctx.errorf(who, "%v: %v", what, err)
+	}
+}
+
+func (ctx *verifyContext) errorf(who, msg string, args ...any) {
+	noteError(&ctx.err, fmt.Sprintf("action %v: %v", who, msg), args...)
+}
+
+func noteError(errp *error, msg string, args ...any) {
+	if *errp == nil {
+		*errp = fmt.Errorf(msg, args...)
 	}
 }

@@ -73,6 +73,20 @@ func generateAlgName(rnd *rand.Rand) (string, string) {
 	return typ.name, name
 }
 
+func fixedSizeData(str string, sz uint64) []byte {
+	return append([]byte(str), make([]byte, sz)...)[:sz]
+}
+
+type algType struct {
+	name string
+	typ  int
+}
+
+type algDesc struct {
+	name string
+	args []int
+}
+
 func generateAlg(rnd *rand.Rand, typ int) string {
 	algs := allAlgs[typ]
 	alg := algs[rnd.Intn(len(algs))]
@@ -92,20 +106,6 @@ func generateAlgImpl(rnd *rand.Rand, alg algDesc) string {
 		args.WriteString(")")
 	}
 	return alg.name + args.String()
-}
-
-func fixedSizeData(str string, sz uint64) []byte {
-	return append([]byte(str), make([]byte, sz)...)[:sz]
-}
-
-type algType struct {
-	name string
-	typ  int
-}
-
-type algDesc struct {
-	name string
-	args []int
 }
 
 const (

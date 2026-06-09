@@ -214,14 +214,6 @@ var axisTitles = map[string]string{
 	"fuzzing": "Time, sec",
 }
 
-func getAxisTitle() string {
-	value, ok := axisTitles[*flagOver]
-	if ok {
-		return value
-	}
-	return *flagOver
-}
-
 func display(graphs []*Graph) {
 	var outf *os.File
 	var err error
@@ -249,6 +241,14 @@ func display(graphs []*Graph) {
 			tool.Failf("failed to start browser: %v", err)
 		}
 	}
+}
+
+func getAxisTitle() string {
+	value, ok := axisTitles[*flagOver]
+	if ok {
+		return value
+	}
+	return *flagOver
 }
 
 var htmlTemplate = template.Must(

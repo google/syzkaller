@@ -50,6 +50,43 @@ func NewCorpus(ctx context.Context) *Corpus {
 	return NewMonitoredCorpus(ctx, nil)
 }
 
+// It may happen that a single program is relevant because of several
+// sysalls. In that case, there will be several ItemUpdate entities.
+type ItemUpdate struct {
+	Call     int
+	RawCover []uint64
+}
+
+// Item objects are to be treated as immutable, otherwise it's just
+// too hard to synchonize accesses to them across the whole project.
+// When Corpus updates one of its items, it saves a copy of it.
+type Item struct {
+	Sig     string
+	Call    int
+	Prog    *prog.Prog
+	HasAny  bool // whether the prog contains squashed arguments
+	Signal  signal.Signal
+	Cover   []uint64
+	Updates []ItemUpdate
+
+	areas map[*focusAreaState]struct{}
+}
+
+type NewInput struct {
+	Prog     *prog.Prog
+	Call     int
+	Signal   signal.Signal
+	Cover    []uint64
+	RawCover []uint64
+}
+
+type NewItemEvent struct {
+	Sig      string
+	Exists   bool
+	ProgData []byte
+	NewCover []uint64
+}
+
 func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpus {
 	return NewFocusedCorpus(ctx, updates, nil)
 }
@@ -82,47 +119,6 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 		})
 	}
 	return corpus
-}
-
-// It may happen that a single program is relevant because of several
-// sysalls. In that case, there will be several ItemUpdate entities.
-type ItemUpdate struct {
-	Call     int
-	RawCover []uint64
-}
-
-// Item objects are to be treated as immutable, otherwise it's just
-// too hard to synchonize accesses to them across the whole project.
-// When Corpus updates one of its items, it saves a copy of it.
-type Item struct {
-	Sig     string
-	Call    int
-	Prog    *prog.Prog
-	HasAny  bool // whether the prog contains squashed arguments
-	Signal  signal.Signal
-	Cover   []uint64
-	Updates []ItemUpdate
-
-	areas map[*focusAreaState]struct{}
-}
-
-func (item Item) StringCall() string {
-	return item.Prog.CallName(item.Call)
-}
-
-type NewInput struct {
-	Prog     *prog.Prog
-	Call     int
-	Signal   signal.Signal
-	Cover    []uint64
-	RawCover []uint64
-}
-
-type NewItemEvent struct {
-	Sig      string
-	Exists   bool
-	ProgData []byte
-	NewCover []uint64
 }
 
 func (corpus *Corpus) Save(inp NewInput) {
@@ -250,6 +246,10 @@ func (corpus *Corpus) CallCover() map[string]*CallCov {
 		cc.Cover.Merge(inp.Cover)
 	}
 	return calls
+}
+
+func (item Item) StringCall() string {
+	return item.Prog.CallName(item.Call)
 }
 
 func (corpus *Corpus) ProgsPerArea() map[string]int {

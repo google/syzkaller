@@ -71,38 +71,6 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 	return &dashapi.SendExternalCommandResp{}, nil
 }
 
-func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.SendExternalCommandReq) error {
-	nsCfg := getNsConfig(ctx, job.Namespace)
-	if nsCfg.AI == nil || len(nsCfg.AI.AllowedCommandAuthors) == 0 {
-		return nil
-	}
-
-	// Verify the request came through an authenticated channel (DKIM must be OK).
-	if !req.DKIM {
-		return &aidb.ErrNotAuthorized{
-			Reason: "Command ignored: sender identity could not be verified (DKIM failed or missing).",
-		}
-	}
-
-	author := email.CanonicalEmail(req.Author)
-	for _, allowed := range nsCfg.AI.AllowedCommandAuthors {
-		allowed = strings.ToLower(allowed)
-		if allowed == author || strings.HasSuffix(author, "@"+allowed) {
-			return nil
-		}
-	}
-	return &aidb.ErrNotAuthorized{
-		Reason: "You are not authorized to send this command. Please contact the system administrators.",
-	}
-}
-
-func formatUpstreamedBy(name, email string) string {
-	if name != "" {
-		return fmt.Sprintf("%s <%s>", name, email)
-	}
-	return email
-}
-
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
 	if err := checkActionAuthorized(ctx, job, req); err != nil {
@@ -150,6 +118,13 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 		User:          req.Author,
 		Reason:        "",
 	})
+}
+
+func formatUpstreamedBy(name, email string) string {
+	if name != "" {
+		return fmt.Sprintf("%s <%s>", name, email)
+	}
+	return email
 }
 
 func aiJobUsesReportingStages(ctx context.Context, job *aidb.Job) bool {
@@ -334,59 +309,6 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
-	version int, authors []string) (*dashapi.NewReportResult, error) {
-	if res.PatchDescription == "" {
-		return nil, fmt.Errorf("patch generation result can't be empty")
-	}
-
-	subject, body, _ := strings.Cut(res.PatchDescription, "\n")
-	subject = strings.TrimSpace(subject)
-	body = strings.Trim(body, "\n\r")
-
-	if subject == "" {
-		return nil, fmt.Errorf("title line can't be empty")
-	}
-
-	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
-	if err != nil {
-		return nil, err
-	}
-	models := make(map[string]bool)
-	for _, span := range trajectory {
-		if span.Model != "" {
-			models[span.Model] = true
-		}
-	}
-	var to, cc []string
-	for _, rec := range res.Recipients {
-		addr := mail.Address{Name: rec.Name, Address: rec.Email}
-		if rec.To {
-			to = append(to, addr.String())
-		} else {
-			cc = append(cc, addr.String())
-		}
-	}
-
-	return &dashapi.NewReportResult{
-		Subject:    subject,
-		Body:       body,
-		GitDiff:    res.PatchDiff,
-		BaseCommit: res.KernelCommit,
-		BaseTree:   res.KernelRepo,
-		Version:    version,
-		To:         to,
-		Cc:         cc,
-		Tools:      slices.Collect(maps.Keys(models)),
-		Authors:    authors,
-		Fixes:      res.Fixes,
-		ReviewedBy: res.ReviewedBy,
-		AckedBy:    res.AckedBy,
-		TestedBy:   res.TestedBy,
-		ReportedBy: res.ReportedBy,
-	}, nil
-}
-
 func populateIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 	currentStage string, result *dashapi.ReportPollResult, authors []string) error {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
@@ -440,11 +362,113 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 	return nil
 }
 
+func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
+	version int, authors []string) (*dashapi.NewReportResult, error) {
+	if res.PatchDescription == "" {
+		return nil, fmt.Errorf("patch generation result can't be empty")
+	}
+
+	subject, body, _ := strings.Cut(res.PatchDescription, "\n")
+	subject = strings.TrimSpace(subject)
+	body = strings.Trim(body, "\n\r")
+
+	if subject == "" {
+		return nil, fmt.Errorf("title line can't be empty")
+	}
+
+	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
+	if err != nil {
+		return nil, err
+	}
+	models := make(map[string]bool)
+	for _, span := range trajectory {
+		if span.Model != "" {
+			models[span.Model] = true
+		}
+	}
+	var to, cc []string
+	for _, rec := range res.Recipients {
+		addr := mail.Address{Name: rec.Name, Address: rec.Email}
+		if rec.To {
+			to = append(to, addr.String())
+		} else {
+			cc = append(cc, addr.String())
+		}
+	}
+
+	return &dashapi.NewReportResult{
+		Subject:    subject,
+		Body:       body,
+		GitDiff:    res.PatchDiff,
+		BaseCommit: res.KernelCommit,
+		BaseTree:   res.KernelRepo,
+		Version:    version,
+		To:         to,
+		Cc:         cc,
+		Tools:      slices.Collect(maps.Keys(models)),
+		Authors:    authors,
+		Fixes:      res.Fixes,
+		ReviewedBy: res.ReviewedBy,
+		AckedBy:    res.AckedBy,
+		TestedBy:   res.TestedBy,
+		ReportedBy: res.ReportedBy,
+	}, nil
+}
+
 func apiAIConfirmReport(ctx context.Context, req *dashapi.ConfirmPublishedReq) (any, error) {
 	if err := aidb.JobReportingPublished(ctx, req.ReportID, req.PublishedExtID); err != nil {
 		return nil, fmt.Errorf("failed to mark published: %w", err)
 	}
 	return nil, nil
+}
+
+func handleUnrejectCommand(ctx context.Context,
+	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
+	reporting, job, err := lookupJobByExtReq(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkActionAuthorized(ctx, job, req)
+	if err == nil {
+		err = aidb.UnrejectReportCommand(ctx, aidb.UnrejectReportArgs{
+			Job:           job,
+			ReportingID:   reporting.ID,
+			CommandSource: string(req.Source),
+			CommandExtID:  req.MessageExtID,
+			User:          req.Author,
+		})
+	}
+	if err != nil {
+		return handleCommandError(ctx, job, reporting, req, aidb.ActionUnreject, err)
+	}
+
+	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.SendExternalCommandReq) error {
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil || len(nsCfg.AI.AllowedCommandAuthors) == 0 {
+		return nil
+	}
+
+	// Verify the request came through an authenticated channel (DKIM must be OK).
+	if !req.DKIM {
+		return &aidb.ErrNotAuthorized{
+			Reason: "Command ignored: sender identity could not be verified (DKIM failed or missing).",
+		}
+	}
+
+	author := email.CanonicalEmail(req.Author)
+	for _, allowed := range nsCfg.AI.AllowedCommandAuthors {
+		allowed = strings.ToLower(allowed)
+		if allowed == author || strings.HasSuffix(author, "@"+allowed) {
+			return nil
+		}
+	}
+	return &aidb.ErrNotAuthorized{
+		Reason: "You are not authorized to send this command. Please contact the system administrators.",
+	}
 }
 
 func handleCommandError(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
@@ -477,55 +501,6 @@ func handleCommandError(ctx context.Context, job *aidb.Job, reporting *aidb.JobR
 	}
 }
 
-func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq) (
-	*aidb.JobReporting, *aidb.Job, error) {
-	extID := req.RootExtID
-	if extID == "" {
-		return nil, nil, fmt.Errorf("RootExtID must be provided")
-	}
-
-	reporting, err := aidb.LoadJobReportingByExtID(ctx, extID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to lookup job reporting: %w", err)
-	}
-	if reporting == nil {
-		return nil, nil, dashapi.ErrReportNotFound
-	}
-
-	job, err := aidb.LoadJob(ctx, reporting.JobID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load job: %w", err)
-	}
-	if job == nil {
-		return nil, nil, fmt.Errorf("job %v not found", reporting.ID)
-	}
-	return reporting, job, nil
-}
-
-func handleUnrejectCommand(ctx context.Context,
-	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
-	reporting, job, err := lookupJobByExtReq(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	err = checkActionAuthorized(ctx, job, req)
-	if err == nil {
-		err = aidb.UnrejectReportCommand(ctx, aidb.UnrejectReportArgs{
-			Job:           job,
-			ReportingID:   reporting.ID,
-			CommandSource: string(req.Source),
-			CommandExtID:  req.MessageExtID,
-			User:          req.Author,
-		})
-	}
-	if err != nil {
-		return handleCommandError(ctx, job, reporting, req, aidb.ActionUnreject, err)
-	}
-
-	return &dashapi.SendExternalCommandResp{}, nil
-}
-
 func handleCommentCommand(ctx context.Context,
 	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
 	reporting, job, err := lookupJobByExtReq(ctx, req)
@@ -554,4 +529,29 @@ func handleCommentCommand(ctx context.Context,
 	}
 
 	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq) (
+	*aidb.JobReporting, *aidb.Job, error) {
+	extID := req.RootExtID
+	if extID == "" {
+		return nil, nil, fmt.Errorf("RootExtID must be provided")
+	}
+
+	reporting, err := aidb.LoadJobReportingByExtID(ctx, extID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to lookup job reporting: %w", err)
+	}
+	if reporting == nil {
+		return nil, nil, dashapi.ErrReportNotFound
+	}
+
+	job, err := aidb.LoadJob(ctx, reporting.JobID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load job: %w", err)
+	}
+	if job == nil {
+		return nil, nil, fmt.Errorf("job %v not found", reporting.ID)
+	}
+	return reporting, job, nil
 }

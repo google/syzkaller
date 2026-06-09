@@ -19,17 +19,6 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
-type PollerConfig struct {
-	RepoDir   string
-	URL       string
-	Tracer    debugtracer.DebugTracer
-	OwnEmails []string
-	// Time window to poll on initial startup if no history is available.
-	// Defaults to 24 hours if not set.
-	LookbackPeriod time.Duration
-	now            func() time.Time // for testing
-}
-
 type PolledEmail struct {
 	Email         *Email
 	RootMessageID string
@@ -42,6 +31,17 @@ type Poller struct {
 	ancestors   map[string]string // Message-ID -> In-Reply-To.
 	lastCommit  string
 	initialized bool
+}
+
+type PollerConfig struct {
+	RepoDir   string
+	URL       string
+	Tracer    debugtracer.DebugTracer
+	OwnEmails []string
+	// Time window to poll on initial startup if no history is available.
+	// Defaults to 24 hours if not set.
+	LookbackPeriod time.Duration
+	now            func() time.Time // for testing
 }
 
 func NewPoller(cfg PollerConfig) (*Poller, error) {

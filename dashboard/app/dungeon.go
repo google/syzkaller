@@ -69,12 +69,6 @@ type uiDungeonKingdom struct {
 	AuthorMap map[string]bool `json:"-"`
 }
 
-type uiDungeonMeta struct {
-	GeneratedAt time.Time `json:"generated_at"`
-	WindowStart time.Time `json:"window_start"`
-	WindowEnd   time.Time `json:"window_end"`
-}
-
 type uiDungeonPage struct {
 	Header        *uiHeader                    `json:"-"`
 	Meta          uiDungeonMeta                `json:"meta"`
@@ -88,39 +82,13 @@ type uiDungeonPage struct {
 	KingdomMapAll map[string]*uiDungeonKingdom `json:"-"`
 }
 
-func (p *uiDungeonPage) rebuildMaps() {
-	p.HeroMapAll = make(map[string]*uiDungeonPlayer)
-	for _, h := range p.HeroesAll {
-		p.HeroMapAll[h.ID] = h
-	}
-
-	p.HeroMap1Y = make(map[string]*uiDungeonPlayer)
-	for _, h := range p.Heroes1Y {
-		p.HeroMap1Y[h.ID] = h
-	}
-
-	p.KingdomMapAll = make(map[string]*uiDungeonKingdom)
-	for _, k := range p.KingdomsAll {
-		p.KingdomMapAll[k.ID] = k
-	}
-
-	p.KingdomMap1Y = make(map[string]*uiDungeonKingdom)
-	for _, k := range p.Kingdoms1Y {
-		p.KingdomMap1Y[k.ID] = k
-	}
+type uiDungeonMeta struct {
+	GeneratedAt time.Time `json:"generated_at"`
+	WindowStart time.Time `json:"window_start"`
+	WindowEnd   time.Time `json:"window_end"`
 }
 
 const dungeonCacheDuration = time.Hour
-
-func extractSubsystems(bug *Bug) []string {
-	var ret []string
-	for _, label := range bug.Labels {
-		if label.Label == SubsystemLabel {
-			ret = append(ret, label.Value)
-		}
-	}
-	return ret
-}
 
 // handleDungeon serves the main Syzkaller Dungeon page.
 func handleDungeon(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -292,56 +260,6 @@ func handleKingdomProfile(ctx context.Context, w http.ResponseWriter, r *http.Re
 	return serveTemplate(w, "dungeon-kingdom.html", page)
 }
 
-func addBugToPlayerMap(m map[string]*uiDungeonPlayer, email, name string, bug *Bug, xp int) {
-	p, ok := m[email]
-	if !ok {
-		p = &uiDungeonPlayer{
-			Name:       "",
-			Names:      make(map[string]int),
-			Subsystems: make(map[string]int),
-			Bugs:       []*Bug{},
-		}
-		m[email] = p
-	}
-	if name != "" {
-		p.Names[name]++
-	}
-	// Note: We also track the email in case we have to fall back to it.
-	p.Email = email
-
-	p.Bugs = append(p.Bugs, bug)
-	p.BugCount++
-
-	subsystems := extractSubsystems(bug)
-	for _, sub := range subsystems {
-		p.Subsystems[sub]++
-	}
-	p.Score += xp
-}
-
-func addBugToKingdomMap(m map[string]*uiDungeonKingdom, name, author string, bug *Bug, newBugForKingdom bool) {
-	k, ok := m[name]
-	if !ok {
-		k = &uiDungeonKingdom{
-			Name:      name,
-			AuthorMap: make(map[string]bool),
-		}
-		m[name] = k
-	}
-	if !k.AuthorMap[author] {
-		k.AuthorMap[author] = true
-		k.Heroes++
-	}
-
-	if newBugForKingdom {
-		k.Trophies++
-	}
-}
-
-func dungeonCacheKey(access AccessLevel) string {
-	return fmt.Sprintf("dungeon-%d", access)
-}
-
 func getDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDungeonPage, error) {
 	// Check memcache.
 	item, err := memcache.Get(ctx, dungeonCacheKey(access))
@@ -378,6 +296,28 @@ func getDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDung
 	return page, nil
 }
 
+func (p *uiDungeonPage) rebuildMaps() {
+	p.HeroMapAll = make(map[string]*uiDungeonPlayer)
+	for _, h := range p.HeroesAll {
+		p.HeroMapAll[h.ID] = h
+	}
+
+	p.HeroMap1Y = make(map[string]*uiDungeonPlayer)
+	for _, h := range p.Heroes1Y {
+		p.HeroMap1Y[h.ID] = h
+	}
+
+	p.KingdomMapAll = make(map[string]*uiDungeonKingdom)
+	for _, k := range p.KingdomsAll {
+		p.KingdomMapAll[k.ID] = k
+	}
+
+	p.KingdomMap1Y = make(map[string]*uiDungeonKingdom)
+	for _, k := range p.Kingdoms1Y {
+		p.KingdomMap1Y[k.ID] = k
+	}
+}
+
 func handleDungeonPreheat(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	for _, accessLevel := range []AccessLevel{AccessPublic, AccessUser, AccessAdmin} {
@@ -403,6 +343,10 @@ func handleDungeonPreheat(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 	}
+}
+
+func dungeonCacheKey(access AccessLevel) string {
+	return fmt.Sprintf("dungeon-%d", access)
 }
 
 func fetchDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDungeonPage, error) {
@@ -517,6 +461,62 @@ func fetchDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDu
 	}
 
 	return page, nil
+}
+
+func addBugToPlayerMap(m map[string]*uiDungeonPlayer, email, name string, bug *Bug, xp int) {
+	p, ok := m[email]
+	if !ok {
+		p = &uiDungeonPlayer{
+			Name:       "",
+			Names:      make(map[string]int),
+			Subsystems: make(map[string]int),
+			Bugs:       []*Bug{},
+		}
+		m[email] = p
+	}
+	if name != "" {
+		p.Names[name]++
+	}
+	// Note: We also track the email in case we have to fall back to it.
+	p.Email = email
+
+	p.Bugs = append(p.Bugs, bug)
+	p.BugCount++
+
+	subsystems := extractSubsystems(bug)
+	for _, sub := range subsystems {
+		p.Subsystems[sub]++
+	}
+	p.Score += xp
+}
+
+func extractSubsystems(bug *Bug) []string {
+	var ret []string
+	for _, label := range bug.Labels {
+		if label.Label == SubsystemLabel {
+			ret = append(ret, label.Value)
+		}
+	}
+	return ret
+}
+
+func addBugToKingdomMap(m map[string]*uiDungeonKingdom, name, author string, bug *Bug, newBugForKingdom bool) {
+	k, ok := m[name]
+	if !ok {
+		k = &uiDungeonKingdom{
+			Name:      name,
+			AuthorMap: make(map[string]bool),
+		}
+		m[name] = k
+	}
+	if !k.AuthorMap[author] {
+		k.AuthorMap[author] = true
+		k.Heroes++
+	}
+
+	if newBugForKingdom {
+		k.Trophies++
+	}
 }
 
 func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int) []*uiDungeonPlayer {

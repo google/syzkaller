@@ -42,26 +42,6 @@ type UIAITrajectorySpan struct {
 	ToolCalls            []string
 }
 
-// PopulateToolCalls infers tool calls for each LLM step and associates them
-// with the NEXT LLM call at the same Nesting level.
-func PopulateToolCalls(uiSpans []*UIAITrajectorySpan) {
-	// pendingToolsByNesting maps Nesting level -> list of tool names.
-	pendingToolsByNesting := make(map[int64][]string)
-
-	for _, s := range uiSpans {
-		switch s.Type {
-		case string(trajectory.SpanTool):
-			pendingToolsByNesting[s.Nesting] = append(pendingToolsByNesting[s.Nesting], s.Name)
-		case string(trajectory.SpanLLM):
-			pending := pendingToolsByNesting[s.Nesting]
-			if len(pending) > 0 {
-				s.ToolCalls = pending
-				pendingToolsByNesting[s.Nesting] = nil // Clear.
-			}
-		}
-	}
-}
-
 // RenderReport renders the trajectory spans to the given writer as HTML.
 func RenderReport(w io.Writer, spans []*trajectory.Span) error {
 	uiSpans := make([]*UIAITrajectorySpan, len(spans))
@@ -131,6 +111,26 @@ func RenderTrajectory(uiSpans []*UIAITrajectorySpan) (template.HTML, error) {
 		"TrajectoryJSON": template.JS(trajectoryJSON),
 	})
 	return template.HTML(buf.String()), err
+}
+
+// PopulateToolCalls infers tool calls for each LLM step and associates them
+// with the NEXT LLM call at the same Nesting level.
+func PopulateToolCalls(uiSpans []*UIAITrajectorySpan) {
+	// pendingToolsByNesting maps Nesting level -> list of tool names.
+	pendingToolsByNesting := make(map[int64][]string)
+
+	for _, s := range uiSpans {
+		switch s.Type {
+		case string(trajectory.SpanTool):
+			pendingToolsByNesting[s.Nesting] = append(pendingToolsByNesting[s.Nesting], s.Name)
+		case string(trajectory.SpanLLM):
+			pending := pendingToolsByNesting[s.Nesting]
+			if len(pending) > 0 {
+				s.ToolCalls = pending
+				pendingToolsByNesting[s.Nesting] = nil // Clear.
+			}
+		}
+	}
 }
 
 func marshalJSON(v any) string {

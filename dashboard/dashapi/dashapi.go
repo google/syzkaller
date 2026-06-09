@@ -31,6 +31,7 @@ type Dashboard struct {
 }
 
 type DashboardOpts any
+
 type UserAgent string
 
 func New(client, addr, key string, opts ...DashboardOpts) (*Dashboard, error) {
@@ -87,27 +88,6 @@ func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 	}, nil
 }
 
-// Build describes all aspects of a kernel build.
-type Build struct {
-	Manager             string
-	ID                  string
-	OS                  string
-	Arch                string
-	VMArch              string
-	SyzkallerCommit     string
-	SyzkallerCommitDate time.Time
-	CompilerID          string
-	KernelRepo          string
-	KernelBranch        string
-	KernelCommit        string
-	KernelCommitTitle   string
-	KernelCommitDate    time.Time
-	KernelConfig        []byte
-	Commits             []string // see BuilderPoll
-	FixCommits          []Commit
-	Assets              []NewAsset
-}
-
 type Commit struct {
 	Hash       string
 	Title      string
@@ -118,10 +98,6 @@ type Commit struct {
 	BugIDs     []string // ID's extracted from Reported-by tags
 	Date       time.Time
 	Link       string // set if the commit is a part of a reply
-}
-
-func (dash *Dashboard) UploadBuild(build *Build) error {
-	return dash.Query("upload_build", build, nil)
 }
 
 // BuilderPoll request is done by kernel builder before uploading a new build
@@ -275,6 +251,31 @@ func (dash *Dashboard) JobReset(req *JobResetReq) error {
 type BuildErrorReq struct {
 	Build Build
 	Crash Crash
+}
+
+// Build describes all aspects of a kernel build.
+type Build struct {
+	Manager             string
+	ID                  string
+	OS                  string
+	Arch                string
+	VMArch              string
+	SyzkallerCommit     string
+	SyzkallerCommitDate time.Time
+	CompilerID          string
+	KernelRepo          string
+	KernelBranch        string
+	KernelCommit        string
+	KernelCommitTitle   string
+	KernelCommitDate    time.Time
+	KernelConfig        []byte
+	Commits             []string // see BuilderPoll
+	FixCommits          []Commit
+	Assets              []NewAsset
+}
+
+func (dash *Dashboard) UploadBuild(build *Build) error {
+	return dash.Query("upload_build", build, nil)
 }
 
 func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
@@ -1110,6 +1111,8 @@ type RecipientInfo struct {
 
 type Recipients []RecipientInfo
 
-func (r Recipients) Len() int           { return len(r) }
+func (r Recipients) Len() int { return len(r) }
+
 func (r Recipients) Less(i, j int) bool { return r[i].Address.Address < r[j].Address.Address }
-func (r Recipients) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
+func (r Recipients) Swap(i, j int) { r[i], r[j] = r[j], r[i] }

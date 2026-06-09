@@ -73,17 +73,6 @@ const ForwardedPrefix = "Forwarded: "
 var groupsLinkRe = regexp.MustCompile(`(?m)\nTo view this discussion (?:on the web )?visit` +
 	` (https://groups\.google\.com/.*?)\.(:?$|\n|\r)`)
 
-func prepareEmails(list []string) map[string]bool {
-	ret := make(map[string]bool)
-	for _, email := range list {
-		ret[email] = true
-		if addr, err := mail.ParseAddress(email); err == nil {
-			ret[addr.Address] = true
-		}
-	}
-	return ret
-}
-
 func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
@@ -210,6 +199,17 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	return email, nil
 }
 
+func prepareEmails(list []string) map[string]bool {
+	ret := make(map[string]bool)
+	for _, email := range list {
+		ret[email] = true
+		if addr, err := mail.ParseAddress(email); err == nil {
+			ret[addr.Address] = true
+		}
+	}
+	return ret
+}
+
 // AddAddrContext embeds context into local part of the provided email address using '+'.
 // Returns the resulting email address.
 func AddAddrContext(email, context string) (string, error) {
@@ -233,34 +233,6 @@ func AddAddrContext(email, context string) (string, error) {
 	return result, nil
 }
 
-// RemoveAddrContext extracts context after '+' from the local part of the provided email address.
-// Returns address without the context and the context.
-func RemoveAddrContext(email string) (string, string, error) {
-	addr, err := mail.ParseAddress(email)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to parse %q as email: %w", email, err)
-	}
-	at := strings.IndexByte(addr.Address, '@')
-	if at == -1 {
-		return "", "", fmt.Errorf("failed to parse %q as email: no @", email)
-	}
-	plus := strings.LastIndexByte(addr.Address[:at], '+')
-	if plus == -1 {
-		return email, "", nil
-	}
-	context := addr.Address[plus+1 : at]
-	addr.Address = addr.Address[:plus] + addr.Address[at:]
-	return addr.String(), context, nil
-}
-
-func CanonicalEmail(email string) string {
-	user, domain, err := Split(email)
-	if err != nil {
-		return email
-	}
-	return strings.ToLower(user + domain)
-}
-
 // EmailsMatch parses the emails and compares their addresses case-insensitively, ignoring names.
 // If either email fails to parse, it falls back to an exact string comparison.
 func EmailsMatch(val1, val2 string) bool {
@@ -270,21 +242,6 @@ func EmailsMatch(val1, val2 string) bool {
 		return strings.EqualFold(addr1.Address, addr2.Address)
 	}
 	return val1 == val2
-}
-
-// Split splits email into user (without context) and domain (with @ prefix).
-func Split(email string) (string, string, error) {
-	addr, err := mail.ParseAddress(email)
-	if err != nil {
-		return "", "", err
-	}
-	user, domain, ok := strings.Cut(addr.Address, "@")
-	if !ok {
-		return "", "", fmt.Errorf("no @ in email address")
-	}
-	domain = "@" + domain
-	user, _, _ = strings.Cut(user, "+")
-	return user, domain, nil
 }
 
 func extractCommands(body string) []*SingleCommand {
@@ -538,20 +495,6 @@ func extractBodyBugIDs(body string, ownEmailMap map[string]bool, domains []strin
 	return ids
 }
 
-func unique(list []string) []string {
-	// We preserve the original order since it's necessary for bug IDs.
-	var ret []string
-	dup := map[string]struct{}{}
-	for _, v := range list {
-		if _, ok := dup[v]; ok {
-			continue
-		}
-		dup[v] = struct{}{}
-		ret = append(ret, v)
-	}
-	return ret
-}
-
 // MergeEmailLists merges several email lists removing duplicates and invalid entries.
 func MergeEmailLists(lists ...[]string) []string {
 	const (
@@ -588,6 +531,20 @@ func mergeRawAddresses(lists ...[]*mail.Address) []string {
 	return emails
 }
 
+func unique(list []string) []string {
+	// We preserve the original order since it's necessary for bug IDs.
+	var ret []string
+	dup := map[string]struct{}{}
+	for _, v := range list {
+		if _, ok := dup[v]; ok {
+			continue
+		}
+		dup[v] = struct{}{}
+		ret = append(ret, v)
+	}
+	return ret
+}
+
 func RemoveFromEmailList(list []string, toRemove string) []string {
 	var result []string
 	toRemove = CanonicalEmail(toRemove)
@@ -612,6 +569,29 @@ func SubtractEmailLists(list, toRemove []string) []string {
 		}
 	}
 	return result
+}
+
+func CanonicalEmail(email string) string {
+	user, domain, err := Split(email)
+	if err != nil {
+		return email
+	}
+	return strings.ToLower(user + domain)
+}
+
+// Split splits email into user (without context) and domain (with @ prefix).
+func Split(email string) (string, string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", err
+	}
+	user, domain, ok := strings.Cut(addr.Address, "@")
+	if !ok {
+		return "", "", fmt.Errorf("no @ in email address")
+	}
+	domain = "@" + domain
+	user, _, _ = strings.Cut(user, "+")
+	return user, domain, nil
 }
 
 // Decode RFC 2047-encoded subjects.
@@ -641,4 +621,24 @@ func (email *Email) DirectlyAddressedTo(bugID string) bool {
 		_, context, _ := RemoveAddrContext(addr)
 		return context == bugID
 	})
+}
+
+// RemoveAddrContext extracts context after '+' from the local part of the provided email address.
+// Returns address without the context and the context.
+func RemoveAddrContext(email string) (string, string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse %q as email: %w", email, err)
+	}
+	at := strings.IndexByte(addr.Address, '@')
+	if at == -1 {
+		return "", "", fmt.Errorf("failed to parse %q as email: no @", email)
+	}
+	plus := strings.LastIndexByte(addr.Address[:at], '+')
+	if plus == -1 {
+		return email, "", nil
+	}
+	context := addr.Address[plus+1 : at]
+	addr.Address = addr.Address[:plus] + addr.Address[at:]
+	return addr.String(), context, nil
 }

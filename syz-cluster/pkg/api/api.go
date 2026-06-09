@@ -88,19 +88,6 @@ type BuildResult struct {
 	Success bool   `json:"success"`
 }
 
-type Build struct {
-	Arch         string    `json:"arch"`
-	TreeName     string    `json:"tree_name"`
-	TreeURL      string    `json:"tree_url"`
-	CommitHash   string    `json:"commit_hash"`
-	CommitDate   time.Time `json:"commit_date"`
-	ConfigName   string    `json:"config_name"`
-	SeriesID     string    `json:"series_id"`
-	JobID        string    `json:"job_id,omitempty"`
-	Compiler     string    `json:"compiler"`
-	BuildSuccess bool      `json:"build_success"`
-}
-
 const (
 	TestRunning string = "running"
 	TestPassed  string = "passed"
@@ -264,6 +251,19 @@ type SubmitJobResponse struct {
 type FindingGroup struct {
 	Build      Build    `json:"build"`
 	FindingIDs []string `json:"finding_ids"`
+}
+
+type Build struct {
+	Arch         string    `json:"arch"`
+	TreeName     string    `json:"tree_name"`
+	TreeURL      string    `json:"tree_url"`
+	CommitHash   string    `json:"commit_hash"`
+	CommitDate   time.Time `json:"commit_date"`
+	ConfigName   string    `json:"config_name"`
+	SeriesID     string    `json:"series_id"`
+	JobID        string    `json:"job_id,omitempty"`
+	Compiler     string    `json:"compiler"`
+	BuildSuccess bool      `json:"build_success"`
 }
 
 type Job struct {

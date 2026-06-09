@@ -95,17 +95,6 @@ func (e *ExtractAllResult) String() string {
 	return builder.String()
 }
 
-// Given an address, returns the elf section that this address belongs to in
-// the Extractor's elf file.
-func (e *Extractor) elfSection(addr uint64) *elf.Section {
-	for _, section := range e.elfFile.Sections {
-		if addr >= section.Addr && addr < section.Addr+section.Size {
-			return section
-		}
-	}
-	return nil
-}
-
 // Reads a string of length at most 128 bytes from the Extractor's elf file.
 func (e *Extractor) readElfString(offset uint64) (string, error) {
 	strSection := e.elfSection(offset)
@@ -140,22 +129,6 @@ func (e *Extractor) buildSymbolIndex() error {
 		e.symbolsIndex[sym.Name] = sym
 	}
 	return nil
-}
-
-func (e *Extractor) getSymbol(symbolName string) (elf.Symbol, error) {
-	if !e.symbolsIndexInitialized {
-		err := e.buildSymbolIndex()
-		e.symbolsIndexInitialized = true
-		if err != nil {
-			return elf.Symbol{}, err
-		}
-	}
-
-	symbol, contains := e.symbolsIndex[symbolName]
-	if !contains {
-		return elf.Symbol{}, fmt.Errorf("symbol %s not found in %s", symbolName, e.vmlinuxPath)
-	}
-	return symbol, nil
 }
 
 func (e *Extractor) extractFuncs() ([]SyzFunc, error) {
@@ -432,4 +405,31 @@ func parseKftfObjects[T interface {
 	}
 
 	return out, nil
+}
+
+// Given an address, returns the elf section that this address belongs to in
+// the Extractor's elf file.
+func (e *Extractor) elfSection(addr uint64) *elf.Section {
+	for _, section := range e.elfFile.Sections {
+		if addr >= section.Addr && addr < section.Addr+section.Size {
+			return section
+		}
+	}
+	return nil
+}
+
+func (e *Extractor) getSymbol(symbolName string) (elf.Symbol, error) {
+	if !e.symbolsIndexInitialized {
+		err := e.buildSymbolIndex()
+		e.symbolsIndexInitialized = true
+		if err != nil {
+			return elf.Symbol{}, err
+		}
+	}
+
+	symbol, contains := e.symbolsIndex[symbolName]
+	if !contains {
+		return elf.Symbol{}, fmt.Errorf("symbol %s not found in %s", symbolName, e.vmlinuxPath)
+	}
+	return symbol, nil
 }

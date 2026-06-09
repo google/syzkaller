@@ -67,20 +67,6 @@ type CompileCProgResult struct {
 	FormattedReproC string
 }
 
-func extractCCode(text string) string {
-	re := regexp.MustCompile("(?s)```c\n(.*?)```")
-	match := re.FindStringSubmatch(text)
-	if len(match) > 1 {
-		return match[1]
-	}
-	re = regexp.MustCompile("(?s)```\n(.*?)```")
-	match = re.FindStringSubmatch(text)
-	if len(match) > 1 {
-		return match[1]
-	}
-	return text
-}
-
 func CompileCProgFunc(ctx *aflow.Context, args CompileCProgArgs) (CompileCProgResult, error) {
 	target, err := prog.GetTarget(args.TargetOS, args.TargetArch)
 	if err != nil {
@@ -102,6 +88,20 @@ func CompileCProgFunc(ctx *aflow.Context, args CompileCProgArgs) (CompileCProgRe
 		CompilerError:   err.Error(),
 		FormattedReproC: "",
 	}, nil
+}
+
+func extractCCode(text string) string {
+	re := regexp.MustCompile("(?s)```c\n(.*?)```")
+	match := re.FindStringSubmatch(text)
+	if len(match) > 1 {
+		return match[1]
+	}
+	re = regexp.MustCompile("(?s)```\n(.*?)```")
+	match = re.FindStringSubmatch(text)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return text
 }
 
 var CompileCProg = aflow.NewFuncAction("compile-c-prog", CompileCProgFunc)
@@ -264,41 +264,9 @@ type GeneratorValidationState struct {
 	CapabilitiesVerified bool `json:",omitempty"`
 }
 
-func validateGeneratorOutputs(ctx *aflow.Context, state GeneratorValidationState,
-	res GeneratorResult) (GeneratorResult, error) {
-	res.IsProbe = !state.CapabilitiesVerified
-	return res, nil
-}
-
 type OracleValidationState struct {
 	IsProbe             bool
 	CandidateReproduced bool
-}
-
-func validateOracleOutputs(ctx *aflow.Context, state OracleValidationState, res OracleResult) (OracleResult, error) {
-	if state.IsProbe {
-		if !res.ProbePassed && res.TerminalError == "" && res.Feedback == "" {
-			return res, aflow.BadCallError("when ProbePassed is false, you must provide Feedback " +
-				"explaining what failed, or set TerminalError if it is unrecoverable")
-		}
-		if res.TerminalError != "" && res.ProbePassed {
-			return res, aflow.BadCallError("TerminalError is set, so ProbePassed must be false")
-		}
-	} else {
-		if state.CandidateReproduced {
-			if !res.TitleMatches && res.Feedback == "" {
-				return res, aflow.BadCallError("collision detected (TitleMatches is false but " +
-					"CandidateReproduced is true), you must provide Feedback explaining the collision")
-			}
-		} else {
-			if res.Feedback == "" && res.TerminalError == "" {
-				return res, aflow.BadCallError("reproduction failed to trigger the crash, you must " +
-					"provide Feedback explaining why and how to improve the reproducer, or set " +
-					"TerminalError if it is unrecoverable")
-			}
-		}
-	}
-	return res, nil
 }
 
 type ExpandToolkitArgs struct {
@@ -444,6 +412,38 @@ func init() {
 			),
 		},
 	)
+}
+
+func validateGeneratorOutputs(ctx *aflow.Context, state GeneratorValidationState,
+	res GeneratorResult) (GeneratorResult, error) {
+	res.IsProbe = !state.CapabilitiesVerified
+	return res, nil
+}
+
+func validateOracleOutputs(ctx *aflow.Context, state OracleValidationState, res OracleResult) (OracleResult, error) {
+	if state.IsProbe {
+		if !res.ProbePassed && res.TerminalError == "" && res.Feedback == "" {
+			return res, aflow.BadCallError("when ProbePassed is false, you must provide Feedback " +
+				"explaining what failed, or set TerminalError if it is unrecoverable")
+		}
+		if res.TerminalError != "" && res.ProbePassed {
+			return res, aflow.BadCallError("TerminalError is set, so ProbePassed must be false")
+		}
+	} else {
+		if state.CandidateReproduced {
+			if !res.TitleMatches && res.Feedback == "" {
+				return res, aflow.BadCallError("collision detected (TitleMatches is false but " +
+					"CandidateReproduced is true), you must provide Feedback explaining the collision")
+			}
+		} else {
+			if res.Feedback == "" && res.TerminalError == "" {
+				return res, aflow.BadCallError("reproduction failed to trigger the crash, you must " +
+					"provide Feedback explaining why and how to improve the reproducer, or set " +
+					"TerminalError if it is unrecoverable")
+			}
+		}
+	}
+	return res, nil
 }
 
 const initialResearcherInstruction = `You are a security researcher with deep Linux kernel background.

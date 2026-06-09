@@ -87,6 +87,7 @@ var apiHandlers = map[string]APIHandler{
 }
 
 type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
+
 type APIHandler func(ctx context.Context, payload io.Reader) (any, error)
 
 const (
@@ -101,10 +102,6 @@ const (
 // Overridable for testing.
 var timeNow = func(ctx context.Context) time.Time {
 	return time.Now()
-}
-
-func timeSince(ctx context.Context, t time.Time) time.Duration {
-	return timeNow(ctx).Sub(t)
 }
 
 var maxCrashes = func() int {
@@ -190,10 +187,6 @@ type APIContext struct {
 	nsChecked bool
 }
 
-func apiContext(ctx context.Context) *APIContext {
-	return ctx.Value(&apiContextKey).(*APIContext)
-}
-
 // gcsPayloadHandler json.Decode the gcsURL from payload and stream pointed content.
 // This function streams ungzipped content in order to be aligned with other wrappers/handlers.
 func gcsPayloadHandler(handler APIHandler) APIHandler {
@@ -254,6 +247,10 @@ func anyHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHa
 	})
 }
 
+func apiContext(ctx context.Context) *APIContext {
+	return ctx.Value(&apiContextKey).(*APIContext)
+}
+
 func typedHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHandler {
 	return func(ctx context.Context, payload io.Reader) (any, error) {
 		req := new(Req)
@@ -307,15 +304,6 @@ loop:
 	return resp, nil
 }
 
-func reportEmail(ctx context.Context, ns string) string {
-	for _, reporting := range getNsConfig(ctx, ns).Reporting {
-		if _, ok := reporting.Config.(*EmailConfig); ok {
-			return ownEmail(ctx)
-		}
-	}
-	return ""
-}
-
 func apiCommitPoll(ctx context.Context, ns string, req *any) (any, error) {
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(ctx, ns),
@@ -357,6 +345,15 @@ func apiCommitPoll(ctx context.Context, ns string, req *any) (any, error) {
 		resp.Commits = append(resp.Commits, backportCommits...)
 	}
 	return resp, nil
+}
+
+func reportEmail(ctx context.Context, ns string) string {
+	for _, reporting := range getNsConfig(ctx, ns).Reporting {
+		if _, ok := reporting.Config.(*EmailConfig); ok {
+			return ownEmail(ctx)
+		}
+	}
+	return ""
 }
 
 func pollBackportCommits(ctx context.Context, ns string, count int) ([]string, error) {
@@ -555,79 +552,6 @@ func apiUploadBuild(ctx context.Context, ns string, req *dashapi.Build) (any, er
 	return nil, nil
 }
 
-func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (
-	*Build, bool, error) {
-	newAssets := []Asset{}
-	for i, toAdd := range req.Assets {
-		newAsset, err := parseIncomingAsset(ctx, toAdd, ns)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to parse asset #%d: %w", i, err)
-		}
-		newAssets = append(newAssets, newAsset)
-	}
-	if build, err := loadBuild(ctx, ns, req.ID); err == nil {
-		return build, false, nil
-	}
-	checkStrLen := func(str, name string, maxLen int) error {
-		if str == "" {
-			return fmt.Errorf("%v is empty", name)
-		}
-		if len(str) > maxLen {
-			return fmt.Errorf("%v is too long (%v)", name, len(str))
-		}
-		return nil
-	}
-	if err := checkStrLen(req.Manager, "Build.Manager", MaxStringLen); err != nil {
-		return nil, false, err
-	}
-	if err := checkStrLen(req.ID, "Build.ID", MaxStringLen); err != nil {
-		return nil, false, err
-	}
-	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
-		return nil, false, err
-	}
-	if len(req.KernelBranch) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
-	}
-	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
-		return nil, false, err
-	}
-	if len(req.CompilerID) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
-	}
-	if len(req.KernelCommit) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
-	}
-	configID, err := putText(ctx, ns, textKernelConfig, req.KernelConfig)
-	if err != nil {
-		return nil, false, err
-	}
-	build := &Build{
-		Namespace:           ns,
-		Manager:             req.Manager,
-		ID:                  req.ID,
-		Type:                typ,
-		Time:                now,
-		OS:                  req.OS,
-		Arch:                req.Arch,
-		VMArch:              req.VMArch,
-		SyzkallerCommit:     req.SyzkallerCommit,
-		SyzkallerCommitDate: req.SyzkallerCommitDate,
-		CompilerID:          req.CompilerID,
-		KernelRepo:          req.KernelRepo,
-		KernelBranch:        req.KernelBranch,
-		KernelCommit:        req.KernelCommit,
-		KernelCommitTitle:   req.KernelCommitTitle,
-		KernelCommitDate:    req.KernelCommitDate,
-		KernelConfig:        configID,
-		Assets:              newAssets,
-	}
-	if _, err := db.Put(ctx, buildKey(ctx, ns, req.ID), build); err != nil {
-		return nil, false, err
-	}
-	return build, true, nil
-}
-
 func addCommitsToBugs(ctx context.Context, ns, manager string, titles []string, fixCommits []dashapi.Commit) error {
 	presentCommits := make(map[string]bool)
 	bugFixedBy := make(map[string][]string)
@@ -797,6 +721,79 @@ func apiReportBuildError(ctx context.Context, ns string, req *dashapi.BuildError
 		return nil, fmt.Errorf("failed to update manager: %w", err)
 	}
 	return nil, nil
+}
+
+func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (
+	*Build, bool, error) {
+	newAssets := []Asset{}
+	for i, toAdd := range req.Assets {
+		newAsset, err := parseIncomingAsset(ctx, toAdd, ns)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to parse asset #%d: %w", i, err)
+		}
+		newAssets = append(newAssets, newAsset)
+	}
+	if build, err := loadBuild(ctx, ns, req.ID); err == nil {
+		return build, false, nil
+	}
+	checkStrLen := func(str, name string, maxLen int) error {
+		if str == "" {
+			return fmt.Errorf("%v is empty", name)
+		}
+		if len(str) > maxLen {
+			return fmt.Errorf("%v is too long (%v)", name, len(str))
+		}
+		return nil
+	}
+	if err := checkStrLen(req.Manager, "Build.Manager", MaxStringLen); err != nil {
+		return nil, false, err
+	}
+	if err := checkStrLen(req.ID, "Build.ID", MaxStringLen); err != nil {
+		return nil, false, err
+	}
+	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
+		return nil, false, err
+	}
+	if len(req.KernelBranch) > MaxStringLen {
+		return nil, false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
+	}
+	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
+		return nil, false, err
+	}
+	if len(req.CompilerID) > MaxStringLen {
+		return nil, false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
+	}
+	if len(req.KernelCommit) > MaxStringLen {
+		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
+	}
+	configID, err := putText(ctx, ns, textKernelConfig, req.KernelConfig)
+	if err != nil {
+		return nil, false, err
+	}
+	build := &Build{
+		Namespace:           ns,
+		Manager:             req.Manager,
+		ID:                  req.ID,
+		Type:                typ,
+		Time:                now,
+		OS:                  req.OS,
+		Arch:                req.Arch,
+		VMArch:              req.VMArch,
+		SyzkallerCommit:     req.SyzkallerCommit,
+		SyzkallerCommitDate: req.SyzkallerCommitDate,
+		CompilerID:          req.CompilerID,
+		KernelRepo:          req.KernelRepo,
+		KernelBranch:        req.KernelBranch,
+		KernelCommit:        req.KernelCommit,
+		KernelCommitTitle:   req.KernelCommitTitle,
+		KernelCommitDate:    req.KernelCommitDate,
+		KernelConfig:        configID,
+		Assets:              newAssets,
+	}
+	if _, err := db.Put(ctx, buildKey(ctx, ns, req.ID), build); err != nil {
+		return nil, false, err
+	}
+	return build, true, nil
 }
 
 const (
@@ -1369,65 +1366,6 @@ func apiNeededAssetsList(ctx context.Context, req *any) (any, error) {
 	return queryNeededAssets(ctx)
 }
 
-func findExistingBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, error) {
-	// First, try to find an existing bug that we already used to report this crash title.
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("MergedTitles=", titles[0]).
-		GetAll(ctx, &bugs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %w", err)
-	}
-	// We can find bugs with different bug.Title and uncomparable bug.Seq's.
-	// But there should be only one active bug for each crash title,
-	// so if we sort by Seq, the first active bug is our target bug.
-	slices.SortFunc(bugs, func(a, b *Bug) int {
-		return cmp.Compare(b.Seq, a.Seq)
-	})
-	for _, bug := range bugs {
-		if active, err := isActiveBug(ctx, bug); err != nil {
-			return nil, err
-		} else if active {
-			return bug, nil
-		}
-	}
-	// This is required for incremental migration.
-	// Older bugs don't have MergedTitles, so we need to check Title as well
-	// (reportCrash will set MergedTitles later).
-	for _, title := range titles {
-		bug, err := highestSeqBug(ctx, ns, title)
-		if err != nil {
-			return nil, err
-		}
-		if bug != nil {
-			if active, err := isActiveBug(ctx, bug); err != nil {
-				return nil, err
-			} else if active {
-				return bug, nil
-			}
-		}
-	}
-	return nil, nil
-}
-
-func highestSeqBug(ctx context.Context, ns, title string) (*Bug, error) {
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("Title=", title).
-		Order("-Seq").
-		Limit(1).
-		GetAll(ctx, &bugs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query the last bug report: %w", err)
-	}
-	if len(bugs) == 0 {
-		return nil, nil
-	}
-	return bugs[0], nil
-}
-
 func findBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, error) {
 	// First, try to find an existing bug that we already used to report this crash title.
 	bug, err := findExistingBugForCrash(ctx, ns, titles)
@@ -1486,6 +1424,48 @@ func findBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, err
 		}
 	}
 	return best, nil
+}
+
+func findExistingBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, error) {
+	// First, try to find an existing bug that we already used to report this crash title.
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("MergedTitles=", titles[0]).
+		GetAll(ctx, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
+	}
+	// We can find bugs with different bug.Title and uncomparable bug.Seq's.
+	// But there should be only one active bug for each crash title,
+	// so if we sort by Seq, the first active bug is our target bug.
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		return cmp.Compare(b.Seq, a.Seq)
+	})
+	for _, bug := range bugs {
+		if active, err := isActiveBug(ctx, bug); err != nil {
+			return nil, err
+		} else if active {
+			return bug, nil
+		}
+	}
+	// This is required for incremental migration.
+	// Older bugs don't have MergedTitles, so we need to check Title as well
+	// (reportCrash will set MergedTitles later).
+	for _, title := range titles {
+		bug, err := highestSeqBug(ctx, ns, title)
+		if err != nil {
+			return nil, err
+		}
+		if bug != nil {
+			if active, err := isActiveBug(ctx, bug); err != nil {
+				return nil, err
+			} else if active {
+				return bug, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func createBugForCrash(ctx context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
@@ -1556,6 +1536,23 @@ func createBugForCrash(ctx context.Context, ns string, req *dashapi.Crash) (*Bug
 	return bug, nil
 }
 
+func highestSeqBug(ctx context.Context, ns, title string) (*Bug, error) {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Title=", title).
+		Order("-Seq").
+		Limit(1).
+		GetAll(ctx, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the last bug report: %w", err)
+	}
+	if len(bugs) == 0 {
+		return nil, nil
+	}
+	return bugs[0], nil
+}
+
 func isActiveBug(ctx context.Context, bug *Bug) (bool, error) {
 	if bug == nil {
 		return false, nil
@@ -1581,101 +1578,9 @@ func needRepro(ctx context.Context, bug *Bug) bool {
 
 var syzErrorTitleRe = regexp.MustCompile(`^SYZFAIL:|^SYZFATAL:`)
 
-func needReproForBug(ctx context.Context, bug *Bug) bool {
-	// We already have fixing commits.
-	if len(bug.Commits) > 0 {
-		return false
-	}
-	if bug.Title == corruptedReportTitle ||
-		bug.Title == suppressedReportTitle {
-		return false
-	}
-	if !getNsConfig(ctx, bug.Namespace).NeedRepro(bug) {
-		return false
-	}
-	bestReproLevel := ReproLevelC
-	// For some bugs there's anyway no chance to find a C repro.
-	if syzErrorTitleRe.MatchString(bug.Title) {
-		bestReproLevel = ReproLevelSyz
-	}
-	if bug.HeadReproLevel < bestReproLevel {
-		// We have not found a best-level repro yet, try until we do.
-		return bug.NumRepro < maxReproPerBug || timeSince(ctx, bug.LastReproTime) >= reproRetryPeriod
-	}
-	// When the best repro is already found, still do a repro attempt once in a while.
-	return timeSince(ctx, bug.LastReproTime) >= reproStalePeriod
-}
-
 var dedupTextFor = map[string]bool{
 	textKernelConfig: true,
 	textMachineInfo:  true,
-}
-
-func putText(ctx context.Context, ns, tag string, data []byte) (int64, error) {
-	if ns == "" {
-		return 0, fmt.Errorf("putting text outside of namespace")
-	}
-	if len(data) == 0 {
-		return 0, nil
-	}
-	const (
-		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
-		// These text files usually compress very well.
-		maxTextLen       = 10 << 20   // 10 MB
-		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
-	)
-	if len(data) > maxTextLen {
-		data = data[:maxTextLen]
-	}
-	b := new(bytes.Buffer)
-	for {
-		z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
-		z.Write(data)
-		z.Close()
-		if len(b.Bytes()) < maxCompressedLen {
-			break
-		}
-		// For crash logs, it's better to preserve the end of the log - that is,
-		// where the panic message resides.
-		// Other types of data are not really assumed to be larger than 1MB compressed.
-		data = data[len(data)/10:]
-		b.Reset()
-	}
-	var key *db.Key
-	if dedupTextFor[tag] {
-		h := hash.Hash([]byte(ns), b.Bytes())
-		key = db.NewKey(ctx, tag, "", h.Truncate64(), nil)
-	} else {
-		key = db.NewIncompleteKey(ctx, tag, nil)
-	}
-	text := &Text{
-		Namespace: ns,
-		Text:      b.Bytes(),
-	}
-	key, err := db.Put(ctx, key, text)
-	if err != nil {
-		return 0, err
-	}
-	return key.IntID(), nil
-}
-
-func getText(ctx context.Context, tag string, id int64) ([]byte, string, error) {
-	if id == 0 {
-		return nil, "", nil
-	}
-	text := new(Text)
-	if err := db.Get(ctx, db.NewKey(ctx, tag, "", id, nil), text); err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
-	}
-	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
-	}
-	data, err := io.ReadAll(d)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
-	}
-	return data, text.Namespace, nil
 }
 
 // limitLength essentially does return s[:max],
@@ -1883,6 +1788,31 @@ func apiLogToReproduce(ctx context.Context, ns string, req *dashapi.LogToReproRe
 	return nil, nil
 }
 
+func needReproForBug(ctx context.Context, bug *Bug) bool {
+	// We already have fixing commits.
+	if len(bug.Commits) > 0 {
+		return false
+	}
+	if bug.Title == corruptedReportTitle ||
+		bug.Title == suppressedReportTitle {
+		return false
+	}
+	if !getNsConfig(ctx, bug.Namespace).NeedRepro(bug) {
+		return false
+	}
+	bestReproLevel := ReproLevelC
+	// For some bugs there's anyway no chance to find a C repro.
+	if syzErrorTitleRe.MatchString(bug.Title) {
+		bestReproLevel = ReproLevelSyz
+	}
+	if bug.HeadReproLevel < bestReproLevel {
+		// We have not found a best-level repro yet, try until we do.
+		return bug.NumRepro < maxReproPerBug || timeSince(ctx, bug.LastReproTime) >= reproRetryPeriod
+	}
+	// When the best repro is already found, still do a repro attempt once in a while.
+	return timeSince(ctx, bug.LastReproTime) >= reproStalePeriod
+}
+
 func logToReproForBug(ctx context.Context, bug *Bug, manager string) (*dashapi.LogToReproResp, error) {
 	const considerCrashes = 10
 	crashes, _, err := queryCrashesForBug(ctx, bug.key(ctx), considerCrashes)
@@ -1923,6 +1853,54 @@ func saveReproTask(ctx context.Context, ns, manager string, repro []byte) error 
 	key := db.NewIncompleteKey(ctx, "ReproTask", nil)
 	_, err = db.Put(ctx, key, obj)
 	return err
+}
+
+func putText(ctx context.Context, ns, tag string, data []byte) (int64, error) {
+	if ns == "" {
+		return 0, fmt.Errorf("putting text outside of namespace")
+	}
+	if len(data) == 0 {
+		return 0, nil
+	}
+	const (
+		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
+		// These text files usually compress very well.
+		maxTextLen       = 10 << 20   // 10 MB
+		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
+	)
+	if len(data) > maxTextLen {
+		data = data[:maxTextLen]
+	}
+	b := new(bytes.Buffer)
+	for {
+		z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
+		z.Write(data)
+		z.Close()
+		if len(b.Bytes()) < maxCompressedLen {
+			break
+		}
+		// For crash logs, it's better to preserve the end of the log - that is,
+		// where the panic message resides.
+		// Other types of data are not really assumed to be larger than 1MB compressed.
+		data = data[len(data)/10:]
+		b.Reset()
+	}
+	var key *db.Key
+	if dedupTextFor[tag] {
+		h := hash.Hash([]byte(ns), b.Bytes())
+		key = db.NewKey(ctx, tag, "", h.Truncate64(), nil)
+	} else {
+		key = db.NewIncompleteKey(ctx, tag, nil)
+	}
+	text := &Text{
+		Namespace: ns,
+		Text:      b.Bytes(),
+	}
+	key, err := db.Put(ctx, key, text)
+	if err != nil {
+		return 0, err
+	}
+	return key.IntID(), nil
 }
 
 func loadReproTasks(ctx context.Context, ns, manager string, limit int) ([]*ReproTask, error) {
@@ -1967,6 +1945,29 @@ func takeReproTask(ctx context.Context, ns, manager string) (int64, []byte, erro
 		return key.IntID(), log, err
 	}
 	return 0, nil, nil
+}
+
+func timeSince(ctx context.Context, t time.Time) time.Duration {
+	return timeNow(ctx).Sub(t)
+}
+
+func getText(ctx context.Context, tag string, id int64) ([]byte, string, error) {
+	if id == 0 {
+		return nil, "", nil
+	}
+	text := new(Text)
+	if err := db.Get(ctx, db.NewKey(ctx, tag, "", id, nil), text); err != nil {
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
+	}
+	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
+	}
+	data, err := io.ReadAll(d)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
+	}
+	return data, text.Namespace, nil
 }
 
 func apiCreateUploadURL(ctx context.Context, req *any) (any, error) {

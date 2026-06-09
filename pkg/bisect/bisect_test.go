@@ -155,154 +155,6 @@ func (env *testEnv) headCommit() int {
 	return int(commit)
 }
 
-func createTestRepo(t *testing.T, baseDir string) string {
-	repo := vcs.CreateTestRepo(t, baseDir, "")
-	if !repo.SupportsBisection() {
-		t.Skip("bisection is unsupported by git (probably too old version)")
-	}
-	for rv := 4; rv < 10; rv++ {
-		for i := range 6 {
-			if rv == 7 && i == 0 {
-				// Create a slightly special commit graph here (for #1527):
-				// Commit 650 is part of 700 release, but it does not have
-				// 600 (the previous release) in parents, instead it's based
-				// on the previous-previous release 500.
-				repo.Git("checkout", "v5.0")
-				com := repo.CommitChange("650")
-				repo.Git("checkout", "master")
-				repo.Git("merge", "-m", "700", com.Hash)
-			} else if rv == 8 && i == 4 {
-				// Let's construct a more elaborate case. See #4117.
-				// We branch off at 700 and merge it into 804.
-				repo.Git("checkout", "v7.0")
-				repo.CommitChange("790")
-				repo.CommitChange("791")
-				com := repo.CommitChange("792")
-				repo.Git("checkout", "master")
-				repo.Git("merge", "-m", "804", com.Hash)
-			} else {
-				repo.CommitChange(fmt.Sprintf("%v", rv*100+i))
-			}
-			if i == 0 {
-				repo.SetTag(fmt.Sprintf("v%v.0", rv))
-			}
-		}
-	}
-	// Emulate another tree, that's needed for cross-tree tests and
-	// for cause bisections for commits not reachable from master.
-	repo.Git("checkout", "v8.0")
-	repo.Git("checkout", "-b", "v8-branch")
-	repo.CommitFileChange("850", "v8-branch")
-	repo.CommitChange("851")
-	repo.CommitChange("852")
-	return baseDir
-}
-
-func testBisection(t *testing.T, baseDir string, test BisectionTest) {
-	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if test.startCommitBranch != "" {
-		r.SwitchCommit(test.startCommitBranch)
-	} else {
-		r.SwitchCommit("master")
-	}
-	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if sc == nil {
-		t.Fatalf("start commit %v is not found", test.startCommit)
-	}
-	r.SwitchCommit("master")
-	cfg := &Config{
-		Fix:   test.fix,
-		Trace: &debugtracer.TestTracer{T: t},
-		Manager: &mgrconfig.Config{
-			Derived: mgrconfig.Derived{
-				TargetOS:     targets.TestOS,
-				TargetVMArch: targets.TestArch64,
-			},
-			Type:      "qemu",
-			KernelSrc: baseDir,
-		},
-		Kernel: KernelConfig{
-			Repo:           baseDir,
-			Branch:         "master",
-			Commit:         sc.Hash,
-			CommitTitle:    sc.Title,
-			Config:         []byte("original config"),
-			BaselineConfig: []byte(test.baselineConfig),
-		},
-		CrossTree: test.crossTree,
-	}
-	inst := &testEnv{
-		t:    t,
-		r:    r,
-		test: test,
-	}
-
-	checkBisectionError := func(test BisectionTest, res *Result, err error) {
-		if test.expectErr != (err != nil) {
-			t.Fatalf("expected error %v, got %v", test.expectErr, err)
-		}
-		if test.expectErrType != nil && !errors.As(err, &test.expectErrType) {
-			t.Fatalf("expected %#v error, got %#v", test.expectErrType, err)
-		}
-		if err != nil {
-			if res != nil {
-				t.Fatalf("got both result and error: '%v' %+v", err, *res)
-			}
-		} else {
-			checkBisectionResult(t, test, res)
-		}
-		if test.extraTest != nil {
-			test.extraTest(t, res)
-		}
-	}
-
-	res, err := runImpl(cfg, r, inst)
-	checkBisectionError(test, res, err)
-	if !test.crossTree && !test.noFakeHashTest {
-		// Should be mitigated via GetCommitByTitle during bisection.
-		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
-		res, err = runImpl(cfg, r, inst)
-		checkBisectionError(test, res, err)
-	}
-}
-
-func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
-	if len(res.Commits) != test.commitLen {
-		t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
-	}
-	expectedTitle := test.introduced
-	if test.fix {
-		expectedTitle = test.fixCommit
-	}
-	if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
-		t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
-	}
-	if test.expectRep != (res.Report != nil) {
-		t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
-	}
-	if res.NoopChange != test.noopChange {
-		t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
-	}
-	if res.IsRelease != test.isRelease {
-		t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
-	}
-	if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
-		test.oldestLatest == 0 && res.Commit != nil {
-		t.Fatalf("expected latest/oldest: %v got '%v'",
-			test.oldestLatest, res.Commit.Title)
-	}
-	if test.resultingConfig != "" && test.resultingConfig != string(res.Config) {
-		t.Fatalf("expected resulting config: %q got %q",
-			test.resultingConfig, res.Config)
-	}
-}
-
 type BisectionTest struct {
 	// input environment
 	name string
@@ -749,6 +601,154 @@ func TestBisectionResults(t *testing.T) {
 			})
 		}
 	})
+}
+
+func createTestRepo(t *testing.T, baseDir string) string {
+	repo := vcs.CreateTestRepo(t, baseDir, "")
+	if !repo.SupportsBisection() {
+		t.Skip("bisection is unsupported by git (probably too old version)")
+	}
+	for rv := 4; rv < 10; rv++ {
+		for i := range 6 {
+			if rv == 7 && i == 0 {
+				// Create a slightly special commit graph here (for #1527):
+				// Commit 650 is part of 700 release, but it does not have
+				// 600 (the previous release) in parents, instead it's based
+				// on the previous-previous release 500.
+				repo.Git("checkout", "v5.0")
+				com := repo.CommitChange("650")
+				repo.Git("checkout", "master")
+				repo.Git("merge", "-m", "700", com.Hash)
+			} else if rv == 8 && i == 4 {
+				// Let's construct a more elaborate case. See #4117.
+				// We branch off at 700 and merge it into 804.
+				repo.Git("checkout", "v7.0")
+				repo.CommitChange("790")
+				repo.CommitChange("791")
+				com := repo.CommitChange("792")
+				repo.Git("checkout", "master")
+				repo.Git("merge", "-m", "804", com.Hash)
+			} else {
+				repo.CommitChange(fmt.Sprintf("%v", rv*100+i))
+			}
+			if i == 0 {
+				repo.SetTag(fmt.Sprintf("v%v.0", rv))
+			}
+		}
+	}
+	// Emulate another tree, that's needed for cross-tree tests and
+	// for cause bisections for commits not reachable from master.
+	repo.Git("checkout", "v8.0")
+	repo.Git("checkout", "-b", "v8-branch")
+	repo.CommitFileChange("850", "v8-branch")
+	repo.CommitChange("851")
+	repo.CommitChange("852")
+	return baseDir
+}
+
+func testBisection(t *testing.T, baseDir string, test BisectionTest) {
+	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if test.startCommitBranch != "" {
+		r.SwitchCommit(test.startCommitBranch)
+	} else {
+		r.SwitchCommit("master")
+	}
+	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sc == nil {
+		t.Fatalf("start commit %v is not found", test.startCommit)
+	}
+	r.SwitchCommit("master")
+	cfg := &Config{
+		Fix:   test.fix,
+		Trace: &debugtracer.TestTracer{T: t},
+		Manager: &mgrconfig.Config{
+			Derived: mgrconfig.Derived{
+				TargetOS:     targets.TestOS,
+				TargetVMArch: targets.TestArch64,
+			},
+			Type:      "qemu",
+			KernelSrc: baseDir,
+		},
+		Kernel: KernelConfig{
+			Repo:           baseDir,
+			Branch:         "master",
+			Commit:         sc.Hash,
+			CommitTitle:    sc.Title,
+			Config:         []byte("original config"),
+			BaselineConfig: []byte(test.baselineConfig),
+		},
+		CrossTree: test.crossTree,
+	}
+	inst := &testEnv{
+		t:    t,
+		r:    r,
+		test: test,
+	}
+
+	checkBisectionError := func(test BisectionTest, res *Result, err error) {
+		if test.expectErr != (err != nil) {
+			t.Fatalf("expected error %v, got %v", test.expectErr, err)
+		}
+		if test.expectErrType != nil && !errors.As(err, &test.expectErrType) {
+			t.Fatalf("expected %#v error, got %#v", test.expectErrType, err)
+		}
+		if err != nil {
+			if res != nil {
+				t.Fatalf("got both result and error: '%v' %+v", err, *res)
+			}
+		} else {
+			checkBisectionResult(t, test, res)
+		}
+		if test.extraTest != nil {
+			test.extraTest(t, res)
+		}
+	}
+
+	res, err := runImpl(cfg, r, inst)
+	checkBisectionError(test, res, err)
+	if !test.crossTree && !test.noFakeHashTest {
+		// Should be mitigated via GetCommitByTitle during bisection.
+		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
+		res, err = runImpl(cfg, r, inst)
+		checkBisectionError(test, res, err)
+	}
+}
+
+func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
+	if len(res.Commits) != test.commitLen {
+		t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
+	}
+	expectedTitle := test.introduced
+	if test.fix {
+		expectedTitle = test.fixCommit
+	}
+	if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
+		t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
+	}
+	if test.expectRep != (res.Report != nil) {
+		t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
+	}
+	if res.NoopChange != test.noopChange {
+		t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
+	}
+	if res.IsRelease != test.isRelease {
+		t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
+	}
+	if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
+		test.oldestLatest == 0 && res.Commit != nil {
+		t.Fatalf("expected latest/oldest: %v got '%v'",
+			test.oldestLatest, res.Commit.Title)
+	}
+	if test.resultingConfig != "" && test.resultingConfig != string(res.Config) {
+		t.Fatalf("expected resulting config: %q got %q",
+			test.resultingConfig, res.Config)
+	}
 }
 
 func checkTest(t *testing.T, test BisectionTest) {

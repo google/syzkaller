@@ -26,42 +26,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Find the corresponding QEMU binary for the target arch, if needed.
-func qemuBinary(arch string) (string, error) {
-	qarch, ok := map[string]string{
-		"386":      "i386",
-		"amd64":    "x86_64",
-		"arm64":    "aarch64",
-		"arm":      "arm",
-		"mips64le": "mips64el",
-		"ppc64le":  "ppc64le",
-		"riscv64":  "riscv64",
-		"s390x":    "s390x",
-	}[arch]
-	if !ok {
-		return "", fmt.Errorf("unsupported architecture: %s", arch)
-	}
-
-	qemuBinary := "qemu-" + qarch
-	path, err := exec.LookPath(qemuBinary)
-	if err != nil {
-		return "", fmt.Errorf("qemu binary not found in PATH: %s", qemuBinary)
-	}
-
-	return filepath.Base(path), nil
-}
-
-// If the tests are running on CI, or if there is an assertion failure in the executor,
-// report a fatal error. Otherwise, assume cross-arch execution does not work, and skip
-// the test.
-func handleCrossArchError(t *testing.T, err error) {
-	if os.Getenv("CI") != "" || strings.Contains(err.Error(), "SYZFAIL:") {
-		t.Fatal(err)
-	} else {
-		t.Skipf("skipping, cross-arch execution failed: %v", err)
-	}
-}
-
 // TestExecutor runs all internal executor unit tests.
 // We do it here because we already build executor binary here.
 func TestExecutor(t *testing.T) {
@@ -96,6 +60,42 @@ func TestExecutor(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Find the corresponding QEMU binary for the target arch, if needed.
+func qemuBinary(arch string) (string, error) {
+	qarch, ok := map[string]string{
+		"386":      "i386",
+		"amd64":    "x86_64",
+		"arm64":    "aarch64",
+		"arm":      "arm",
+		"mips64le": "mips64el",
+		"ppc64le":  "ppc64le",
+		"riscv64":  "riscv64",
+		"s390x":    "s390x",
+	}[arch]
+	if !ok {
+		return "", fmt.Errorf("unsupported architecture: %s", arch)
+	}
+
+	qemuBinary := "qemu-" + qarch
+	path, err := exec.LookPath(qemuBinary)
+	if err != nil {
+		return "", fmt.Errorf("qemu binary not found in PATH: %s", qemuBinary)
+	}
+
+	return filepath.Base(path), nil
+}
+
+// If the tests are running on CI, or if there is an assertion failure in the executor,
+// report a fatal error. Otherwise, assume cross-arch execution does not work, and skip
+// the test.
+func handleCrossArchError(t *testing.T, err error) {
+	if os.Getenv("CI") != "" || strings.Contains(err.Error(), "SYZFAIL:") {
+		t.Fatal(err)
+	} else {
+		t.Skipf("skipping, cross-arch execution failed: %v", err)
 	}
 }
 

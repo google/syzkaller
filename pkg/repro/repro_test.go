@@ -26,14 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func initTest(t *testing.T) (*rand.Rand, int) {
-	iters := 1000
-	if testing.Short() {
-		iters = 100
-	}
-	return rand.New(testutil.RandSource(t)), iters
-}
-
 func TestBisect(t *testing.T) {
 	ctx := &reproContext{
 		stats: new(Stats),
@@ -83,6 +75,14 @@ func TestBisect(t *testing.T) {
 	}
 }
 
+func initTest(t *testing.T) (*rand.Rand, int) {
+	iters := 1000
+	if testing.Short() {
+		iters = 100
+	}
+	return rand.New(testutil.RandSource(t)), iters
+}
+
 func TestSimplifies(t *testing.T) {
 	opts := csource.Options{
 		Threaded:     true,
@@ -127,34 +127,6 @@ func (tei *testExecInterface) RunSyz(_ context.Context, syzProg []byte, _ instan
 	return tei.run(syzProg)
 }
 
-func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
-	mgrConfig := &mgrconfig.Config{
-		Derived: mgrconfig.Derived{
-			TargetOS:     targets.Linux,
-			TargetVMArch: targets.AMD64,
-			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
-		},
-		Sandbox: "namespace",
-	}
-	var err error
-	mgrConfig.Target, err = prog.GetTarget(targets.Linux, targets.AMD64)
-	if err != nil {
-		t.Fatal(err)
-	}
-	reporter, err := report.NewReporter(mgrConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	env := Environment{
-		Config:   mgrConfig,
-		Features: flatrpc.AllFeatures,
-		Fast:     false,
-		Reporter: reporter,
-		logf:     t.Logf,
-	}
-	return runInner(context.Background(), []byte(log), env, exec)
-}
-
 const testReproLog = `
 2015/12/21 12:18:05 executing program 1:
 getpid()
@@ -176,25 +148,6 @@ var testCrashCondition = regexp.MustCompile(`(?s)pause\(\).*alarm\(0xa\)`)
 var (
 	expectedReproducer = "pause()\nalarm(0xa)\n"
 )
-
-func fakeCrashResult(title string) *instance.RunResult {
-	ret := &instance.RunResult{}
-	if title != "" {
-		ret.Report = &report.Report{
-			Title: title,
-			Type:  crash.TitleToType(title),
-		}
-	}
-	return ret
-}
-
-func testExecRunner(log []byte) (*instance.RunResult, error) {
-	crash := testCrashCondition.Match(log)
-	if crash {
-		return fakeCrashResult("crashed"), nil
-	}
-	return fakeCrashResult(""), nil
-}
 
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
 // No focus on error handling and minor corner cases.
@@ -380,6 +333,14 @@ func TestBrokenCompilerRepro(t *testing.T) {
 	require.Equal(t, false, result.CRepro, "C repro should have been skipped")
 }
 
+func testExecRunner(log []byte) (*instance.RunResult, error) {
+	crash := testCrashCondition.Match(log)
+	if crash {
+		return fakeCrashResult("crashed"), nil
+	}
+	return fakeCrashResult(""), nil
+}
+
 func TestAvoidLostConnection(t *testing.T) {
 	const log = `
 2015/12/21 12:18:05 executing program 1:
@@ -410,4 +371,43 @@ alarm(0xa)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "pause()\nalarm(0xa)\n", string(result.Prog.Serialize()))
+}
+
+func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
+	mgrConfig := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+		},
+		Sandbox: "namespace",
+	}
+	var err error
+	mgrConfig.Target, err = prog.GetTarget(targets.Linux, targets.AMD64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reporter, err := report.NewReporter(mgrConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := Environment{
+		Config:   mgrConfig,
+		Features: flatrpc.AllFeatures,
+		Fast:     false,
+		Reporter: reporter,
+		logf:     t.Logf,
+	}
+	return runInner(context.Background(), []byte(log), env, exec)
+}
+
+func fakeCrashResult(title string) *instance.RunResult {
+	ret := &instance.RunResult{}
+	if title != "" {
+		ret.Report = &report.Report{
+			Title: title,
+			Type:  crash.TitleToType(title),
+		}
+	}
+	return ret
 }

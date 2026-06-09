@@ -251,14 +251,6 @@ func TestOpenCorrupted(t *testing.T) {
 	}
 }
 
-func tempFile(t *testing.T) string {
-	fn, err := osutil.TempFile("syzkaller.test.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return fn
-}
-
 func TestDecompressionBombValLen(t *testing.T) {
 	// Regression test for decompression bomb: io.ReadAll(flate.NewReader(...))
 	// had no output size limit. A record whose decompressed value exceeds
@@ -284,6 +276,14 @@ func TestDecompressionBombValLen(t *testing.T) {
 		t.Fatal("db must be non-nil in repair mode even on error")
 	}
 	t.Logf("correctly rejected decompression bomb: %v", err)
+}
+
+func tempFile(t *testing.T) string {
+	fn, err := osutil.TempFile("syzkaller.test.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fn
 }
 
 func TestOversizeKeyLen(t *testing.T) {

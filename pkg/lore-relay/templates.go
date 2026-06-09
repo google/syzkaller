@@ -27,20 +27,6 @@ type TemplateData struct {
 	CanUpstream bool
 }
 
-func renderTemplate(name, tmplStr string, data TemplateData) (string, error) {
-	t, err := template.New(name).Funcs(template.FuncMap{
-		"quote": quote,
-	}).Parse(tmplStr)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-	return buf.String(), nil
-}
-
 // RenderBody renders the email body based on the poll result.
 func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 	data := TemplateData{
@@ -95,6 +81,20 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 		return renderTemplate("replies", string(tmpl), data)
 	}
 	return "", fmt.Errorf("empty report result")
+}
+
+func renderTemplate(name, tmplStr string, data TemplateData) (string, error) {
+	t, err := template.New(name).Funcs(template.FuncMap{
+		"quote": quote,
+	}).Parse(tmplStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+	return buf.String(), nil
 }
 
 // GenerateSubject generates the email subject based on the poll result.

@@ -183,26 +183,6 @@ type ProxyApp struct {
 	logPoolingDone      chan bool
 }
 
-func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, []io.Closer, error) {
-	subStdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get stdoutpipe: %w", err)
-	}
-
-	subStdin, err := cmd.StdinPipe()
-	if err != nil {
-		subStdout.Close()
-		return nil, nil, fmt.Errorf("failed to get stdinpipe: %w", err)
-	}
-
-	return jsonrpc.NewClient(stdInOutCloser{
-			subStdout,
-			subStdin,
-		}),
-		[]io.Closer{subStdin, subStdout},
-		nil
-}
-
 func initNetworkRPCClient(cfg *Config) (*rpc.Client, error) {
 	var conn io.ReadWriteCloser
 
@@ -293,19 +273,31 @@ func runProxyApp(params *proxyAppParams, cmd string, initRPClient bool) (*ProxyA
 	}, nil
 }
 
+func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, []io.Closer, error) {
+	subStdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get stdoutpipe: %w", err)
+	}
+
+	subStdin, err := cmd.StdinPipe()
+	if err != nil {
+		subStdout.Close()
+		return nil, nil, fmt.Errorf("failed to get stdinpipe: %w", err)
+	}
+
+	return jsonrpc.NewClient(stdInOutCloser{
+			subStdout,
+			subStdin,
+		}),
+		[]io.Closer{subStdin, subStdout},
+		nil
+}
+
 func (proxy *ProxyApp) signalLostConnection() {
 	select {
 	case proxy.onLostConnection <- true:
 	default:
 	}
-}
-
-func (proxy *ProxyApp) Call(serviceMethod string, args, reply any) error {
-	err := proxy.Client.Call(serviceMethod, args, reply)
-	if err == rpc.ErrShutdown {
-		proxy.signalLostConnection()
-	}
-	return err
 }
 
 func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
@@ -464,20 +456,6 @@ func (inst *instance) Forward(port int) (string, error) {
 	return reply.ManagerAddress, nil
 }
 
-func buildMerger(streams []struct {
-	name string
-	typ  vmimpl.OutputType
-}) (*vmimpl.OutputMerger, []io.Writer) {
-	var wPipes []io.Writer
-	merger := vmimpl.NewOutputMerger(nil)
-	for _, stream := range streams {
-		rpipe, wpipe := io.Pipe()
-		wPipes = append(wPipes, wpipe)
-		merger.Add(stream.name, stream.typ, rpipe)
-	}
-	return merger, wPipes
-}
-
 func (inst *instance) Run(ctx context.Context, command string) (<-chan vmimpl.Chunk, <-chan error, error) {
 	merger, wPipes := buildMerger([]struct {
 		name string
@@ -545,6 +523,20 @@ func (inst *instance) Run(ctx context.Context, command string) (<-chan vmimpl.Ch
 	return outc, terminationError, nil
 }
 
+func buildMerger(streams []struct {
+	name string
+	typ  vmimpl.OutputType
+}) (*vmimpl.OutputMerger, []io.Writer) {
+	var wPipes []io.Writer
+	merger := vmimpl.NewOutputMerger(nil)
+	for _, stream := range streams {
+		rpipe, wpipe := io.Pipe()
+		wPipes = append(wPipes, wpipe)
+		merger.Add(stream.name, stream.typ, rpipe)
+	}
+	return merger, wPipes
+}
+
 func (inst *instance) runStop(runID string) {
 	err := inst.ProxyApp.Call(
 		"ProxyVM.RunStop",
@@ -588,6 +580,14 @@ func (inst *instance) Close() error {
 		&reply)
 	if err != nil {
 		log.Logf(0, "error closing instance %v: %v", inst.ID, err)
+	}
+	return err
+}
+
+func (proxy *ProxyApp) Call(serviceMethod string, args, reply any) error {
+	err := proxy.Client.Call(serviceMethod, args, reply)
+	if err == rpc.ErrShutdown {
+		proxy.signalLostConnection()
 	}
 	return err
 }

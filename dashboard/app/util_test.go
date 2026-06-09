@@ -73,6 +73,22 @@ func NewCtx(t *testing.T) *Ctx {
 	return newCtx(t, "")
 }
 
+var appIDSeq = uint32(0)
+
+func NewSpannerCtx(t *testing.T) *Ctx {
+	ddlStatements, err := loadUpDDLStatements()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The code uses AppID as the spanner database URI project.
+	// So to give each test a private isolated instance of the spanner database,
+	// we give each test that uses spanner an unique AppID.
+	appID := fmt.Sprintf("testapp-%v", atomic.AddUint32(&appIDSeq, 1))
+	uri := fmt.Sprintf("projects/%s/instances/%v/databases/%v", appID, aidb.Instance, aidb.Database)
+	spannertest.NewTestDB(t, uri, ddlStatements)
+	return newCtx(t, appID)
+}
+
 func newCtx(t *testing.T, appID string) *Ctx {
 	if skipDevAppserverTests {
 		t.Skip("skipping test (no dev_appserver.py)")
@@ -108,22 +124,6 @@ func newCtx(t *testing.T, appID string) *Ctx {
 	ctx.aiClient = ctx.makeClient(clientAI, keyAI, true)
 	ctx.ctx = registerRequest(r, ctx).Context()
 	return ctx
-}
-
-var appIDSeq = uint32(0)
-
-func NewSpannerCtx(t *testing.T) *Ctx {
-	ddlStatements, err := loadUpDDLStatements()
-	if err != nil {
-		t.Fatal(err)
-	}
-	// The code uses AppID as the spanner database URI project.
-	// So to give each test a private isolated instance of the spanner database,
-	// we give each test that uses spanner an unique AppID.
-	appID := fmt.Sprintf("testapp-%v", atomic.AddUint32(&appIDSeq, 1))
-	uri := fmt.Sprintf("projects/%s/instances/%v/databases/%v", appID, aidb.Instance, aidb.Database)
-	spannertest.NewTestDB(t, uri, ddlStatements)
-	return newCtx(t, appID)
 }
 
 func executeSpannerDDL(ctx context.Context, statements []string) error {
@@ -224,13 +224,6 @@ func (ctx *Ctx) config() *GlobalConfig {
 	return getConfig(ctx.ctx)
 }
 
-func (ctx *Ctx) expectOK(err error) {
-	if err != nil {
-		ctx.t.Helper()
-		ctx.t.Fatalf("expected OK, got error: %v", err)
-	}
-}
-
 func (ctx *Ctx) expectFail(msg string, err error) {
 	ctx.t.Helper()
 	if err == nil {
@@ -239,6 +232,10 @@ func (ctx *Ctx) expectFail(msg string, err error) {
 	if !strings.Contains(err.Error(), msg) {
 		ctx.t.Fatalf("expected to fail with %q, but failed with %q", msg, err)
 	}
+}
+
+func (ctx *Ctx) expectBadReqest(err error) {
+	expectFailureStatus(ctx.t, err, http.StatusBadRequest)
 }
 
 func expectFailureStatus(t *testing.T, err error, code int) {
@@ -250,51 +247,6 @@ func expectFailureStatus(t *testing.T, err error, code int) {
 	if !errors.As(err, &httpErr) || httpErr.Code != code {
 		t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
 	}
-}
-
-func (ctx *Ctx) expectBadReqest(err error) {
-	expectFailureStatus(ctx.t, err, http.StatusBadRequest)
-}
-
-func (ctx *Ctx) expectEQ(got, want any) {
-	ctx.t.Helper()
-	require.Equal(ctx.t, want, got)
-}
-
-func (ctx *Ctx) expectNE(got, want any) {
-	if reflect.DeepEqual(got, want) {
-		ctx.t.Helper()
-		ctx.t.Fatalf("equal: %#v", got)
-	}
-}
-
-func (ctx *Ctx) expectTrue(v bool) {
-	if !v {
-		ctx.t.Helper()
-		ctx.t.Fatal("failed")
-	}
-}
-
-func caller(skip int) string {
-	pcs := make([]uintptr, 10)
-	n := runtime.Callers(skip+3, pcs)
-	pcs = pcs[:n]
-	frames := runtime.CallersFrames(pcs)
-	stack := ""
-	for {
-		frame, more := frames.Next()
-		if strings.HasPrefix(frame.Function, "testing.") {
-			break
-		}
-		stack = fmt.Sprintf("%v:%v\n", filepath.Base(frame.File), frame.Line) + stack
-		if !more {
-			break
-		}
-	}
-	if stack != "" {
-		stack = stack[:len(stack)-1]
-	}
-	return stack
 }
 
 func (ctx *Ctx) Close() {
@@ -671,6 +623,28 @@ func (ctx *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 	}
 }
 
+func caller(skip int) string {
+	pcs := make([]uintptr, 10)
+	n := runtime.Callers(skip+3, pcs)
+	pcs = pcs[:n]
+	frames := runtime.CallersFrames(pcs)
+	stack := ""
+	for {
+		frame, more := frames.Next()
+		if strings.HasPrefix(frame.Function, "testing.") {
+			break
+		}
+		stack = fmt.Sprintf("%v:%v\n", filepath.Base(frame.File), frame.Line) + stack
+		if !more {
+			break
+		}
+	}
+	if stack != "" {
+		stack = stack[:len(stack)-1]
+	}
+	return stack
+}
+
 func (ctx *Ctx) makeAPIClient() *api.Client {
 	return api.NewTestClient(ctx.inst.NewRequest, ctx.httpDoer())
 }
@@ -738,6 +712,13 @@ func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup s
 	client.expectTrue(reply.OK)
 }
 
+func (ctx *Ctx) expectTrue(v bool) {
+	if !v {
+		ctx.t.Helper()
+		ctx.t.Fatal("failed")
+	}
+}
+
 func (client *apiClient) pollSpecificJobs(manager string, jobs dashapi.ManagerJobs) *dashapi.JobPollResp {
 	req := &dashapi.JobPollReq{
 		Managers: map[string]dashapi.ManagerJobs{
@@ -766,6 +747,25 @@ func (client *apiClient) pollAndFailBisectJob(manager string) {
 		Error: []byte("pollAndFailBisectJob"),
 	}
 	client.expectOK(client.JobDone(done))
+}
+
+func (ctx *Ctx) expectOK(err error) {
+	if err != nil {
+		ctx.t.Helper()
+		ctx.t.Fatalf("expected OK, got error: %v", err)
+	}
+}
+
+func (ctx *Ctx) expectEQ(got, want any) {
+	ctx.t.Helper()
+	require.Equal(ctx.t, want, got)
+}
+
+func (ctx *Ctx) expectNE(got, want any) {
+	if reflect.DeepEqual(got, want) {
+		ctx.t.Helper()
+		ctx.t.Fatalf("equal: %#v", got)
+	}
 }
 
 type (
@@ -910,20 +910,6 @@ func getRequestID(ctx context.Context) int {
 	return val
 }
 
-// Create a shallow copy of GlobalConfig with a replaced namespace config.
-func replaceNamespaceConfig(ctx context.Context, ns string, f func(*Config) *Config) *GlobalConfig {
-	ret := *getConfig(ctx)
-	newNsMap := map[string]*Config{}
-	for name, nsCfg := range ret.Namespaces {
-		if name == ns {
-			nsCfg = f(nsCfg)
-		}
-		newNsMap[name] = nsCfg
-	}
-	ret.Namespaces = newNsMap
-	return &ret
-}
-
 func replaceManagerConfig(ctx context.Context, ns, mgr string, f func(ConfigManager) ConfigManager) *GlobalConfig {
 	return replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
 		ret := *cfg
@@ -952,6 +938,20 @@ func replaceReporting(ctx context.Context, ns, name string, f func(Reporting) Re
 		ret.Reporting = newReporting
 		return &ret
 	})
+}
+
+// Create a shallow copy of GlobalConfig with a replaced namespace config.
+func replaceNamespaceConfig(ctx context.Context, ns string, f func(*Config) *Config) *GlobalConfig {
+	ret := *getConfig(ctx)
+	newNsMap := map[string]*Config{}
+	for name, nsCfg := range ret.Namespaces {
+		if name == ns {
+			nsCfg = f(nsCfg)
+		}
+		newNsMap[name] = nsCfg
+	}
+	ret.Namespaces = newNsMap
+	return &ret
 }
 
 // SetAIConfig patches the config for a specific namespace to use the given AIConfig.

@@ -23,11 +23,6 @@ func PrintInsnRv(insn riscv64.Insn) {
 	fmt.Printf("{ \"%s\" [0x%x] %s }\n", insn.Name, insn.AsUInt32, operands)
 }
 
-func parseAndPrintRv(from uint32) {
-	insn, _ := riscv64.ParseInsn(from)
-	PrintInsnRv(insn)
-}
-
 func TestSomethingRv(t *testing.T) {
 	// add	a0,a0,a1
 	parseAndPrintRv(0x00b50533)
@@ -62,18 +57,6 @@ func TestSumRv(t *testing.T) {
 	}
 }
 
-func decodeRvText(t *testing.T, insnset iset.InsnSet, text []byte) {
-	for len(text) > 0 {
-		size, err := insnset.Decode(iset.ModeLong64, text)
-		if size == 0 || err != nil {
-			t.Errorf("failed to decode text: %v", text)
-			return
-		}
-		parseAndPrintRv(binary.LittleEndian.Uint32(text[:4]))
-		text = text[size:]
-	}
-}
-
 func TestDecodeSamplesRv(t *testing.T) {
 	testData := []string{
 		"7300100073900918",
@@ -92,4 +75,21 @@ func TestDecodeSamplesRv(t *testing.T) {
 		fmt.Printf("Decoding % x\n", text)
 		decodeRvText(t, insnset, text)
 	}
+}
+
+func decodeRvText(t *testing.T, insnset iset.InsnSet, text []byte) {
+	for len(text) > 0 {
+		size, err := insnset.Decode(iset.ModeLong64, text)
+		if size == 0 || err != nil {
+			t.Errorf("failed to decode text: %v", text)
+			return
+		}
+		parseAndPrintRv(binary.LittleEndian.Uint32(text[:4]))
+		text = text[size:]
+	}
+}
+
+func parseAndPrintRv(from uint32) {
+	insn, _ := riscv64.ParseInsn(from)
+	PrintInsnRv(insn)
 }

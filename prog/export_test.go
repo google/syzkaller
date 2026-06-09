@@ -23,13 +23,13 @@ var (
 	initTargetTest    = InitTargetTest
 )
 
+func initTest(t *testing.T) (*Target, rand.Source, int) {
+	return initRandomTargetTest(t, "linux", "amd64")
+}
+
 func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, int) {
 	target := initTargetTest(t, os, arch)
 	return target, testutil.RandSource(t), testutil.IterCount()
-}
-
-func initTest(t *testing.T) (*Target, rand.Source, int) {
-	return initRandomTargetTest(t, "linux", "amd64")
 }
 
 func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {

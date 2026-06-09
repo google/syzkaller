@@ -61,6 +61,14 @@ func TestDefaultCallArgs(t *testing.T) {
 	})
 }
 
+func TestSerialize(t *testing.T) {
+	testSerialize(t, false)
+}
+
+func TestSerializeVerbose(t *testing.T) {
+	testSerialize(t, true)
+}
+
 func testSerialize(t *testing.T, verbose bool) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
@@ -94,14 +102,6 @@ func testSerialize(t *testing.T, verbose bool) {
 			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s", data, data1)
 		}
 	}
-}
-
-func TestSerialize(t *testing.T) {
-	testSerialize(t, false)
-}
-
-func TestSerializeVerbose(t *testing.T) {
-	testSerialize(t, true)
 }
 
 func TestVmaType(t *testing.T) {

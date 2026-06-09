@@ -807,44 +807,7 @@ func (cfg *TestConfig) Validate() error {
 	return nil
 }
 
-func testBuild(id int) *dashapi.Build {
-	return &dashapi.Build{
-		Manager:           fmt.Sprintf("manager%v", id),
-		ID:                fmt.Sprintf("build%v", id),
-		OS:                targets.Linux,
-		Arch:              targets.AMD64,
-		VMArch:            targets.AMD64,
-		SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", id),
-		CompilerID:        fmt.Sprintf("compiler%v", id),
-		KernelRepo:        fmt.Sprintf("repo%v", id),
-		KernelBranch:      fmt.Sprintf("branch%v", id),
-		KernelCommit:      strings.Repeat(fmt.Sprint(id), 40)[:40],
-		KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", id),
-		KernelCommitDate:  buildCommitDate,
-		KernelConfig:      []byte(fmt.Sprintf("config%v", id)),
-	}
-}
-
 var buildCommitDate = time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC)
-
-func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
-	return &dashapi.Crash{
-		BuildID:     build.ID,
-		Title:       fmt.Sprintf("title%v", id),
-		Log:         []byte(fmt.Sprintf("log%v", id)),
-		Report:      []byte(fmt.Sprintf("report%v", id)),
-		MachineInfo: []byte(fmt.Sprintf("machine info %v", id)),
-	}
-}
-
-func testCrashWithRepro(build *dashapi.Build, id int) *dashapi.Crash {
-	crash := testCrash(build, id)
-	crash.ReproOpts = []byte(fmt.Sprintf("repro opts %v", id))
-	crash.ReproSyz = []byte(fmt.Sprintf("syncfs(%v)", id))
-	crash.ReproC = []byte(fmt.Sprintf("int main() { return %v; }", id))
-	crash.ReproLog = []byte(fmt.Sprintf("repro log %d", id))
-	return crash
-}
 
 func testCrashID(crash *dashapi.Crash) *dashapi.CrashID {
 	return &dashapi.CrashID{
@@ -921,6 +884,15 @@ func TestApp(t *testing.T) {
 	})
 	c.expectEQ(reply.Error, false)
 	c.expectEQ(reply.OK, true)
+}
+
+func testCrashWithRepro(build *dashapi.Build, id int) *dashapi.Crash {
+	crash := testCrash(build, id)
+	crash.ReproOpts = []byte(fmt.Sprintf("repro opts %v", id))
+	crash.ReproSyz = []byte(fmt.Sprintf("syncfs(%v)", id))
+	crash.ReproC = []byte(fmt.Sprintf("int main() { return %v; }", id))
+	crash.ReproLog = []byte(fmt.Sprintf("repro log %d", id))
+	return crash
 }
 
 func TestRedirects(t *testing.T) {
@@ -1126,6 +1098,16 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 }
 
+func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
+	return &dashapi.Crash{
+		BuildID:     build.ID,
+		Title:       fmt.Sprintf("title%v", id),
+		Log:         []byte(fmt.Sprintf("log%v", id)),
+		Report:      []byte(fmt.Sprintf("report%v", id)),
+		MachineInfo: []byte(fmt.Sprintf("machine info %v", id)),
+	}
+}
+
 func TestManagerFailedBuild(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -1204,6 +1186,24 @@ func TestManagerFailedBuild(t *testing.T) {
 	build.SyzkallerCommit = "syz7"
 	c.client.UploadBuild(build)
 	checkManagerBuild(c, build, nil, nil)
+}
+
+func testBuild(id int) *dashapi.Build {
+	return &dashapi.Build{
+		Manager:           fmt.Sprintf("manager%v", id),
+		ID:                fmt.Sprintf("build%v", id),
+		OS:                targets.Linux,
+		Arch:              targets.AMD64,
+		VMArch:            targets.AMD64,
+		SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", id),
+		CompilerID:        fmt.Sprintf("compiler%v", id),
+		KernelRepo:        fmt.Sprintf("repo%v", id),
+		KernelBranch:      fmt.Sprintf("branch%v", id),
+		KernelCommit:      strings.Repeat(fmt.Sprint(id), 40)[:40],
+		KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", id),
+		KernelCommitDate:  buildCommitDate,
+		KernelConfig:      []byte(fmt.Sprintf("config%v", id)),
+	}
 }
 
 func checkManagerBuild(c *Ctx, build, failedKernelBuild, failedSyzBuild *dashapi.Build) {

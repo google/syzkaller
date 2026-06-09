@@ -45,28 +45,8 @@ type randGen struct {
 	genDefaultResource    bool
 }
 
-func newRand(target *Target, rs rand.Source) *randGen {
-	return &randGen{
-		Rand:     rand.New(rs),
-		target:   target,
-		recDepth: make(map[Type]int),
-	}
-}
-
-func (r *randGen) rand(n int) uint64 {
-	return uint64(r.Intn(n))
-}
-
-func (r *randGen) randRange(begin, end uint64) uint64 {
-	return begin + uint64(r.Intn(int(end-begin+1)))
-}
-
 func (r *randGen) bin() bool {
 	return r.Intn(2) == 0
-}
-
-func (r *randGen) oneOf(n int) bool {
-	return r.Intn(n) == 0
 }
 
 func (r *randGen) rand64() uint64 {
@@ -108,54 +88,6 @@ func (r *randGen) randInt64() uint64 {
 	return r.randInt(64)
 }
 
-func (r *randGen) randInt(bits uint64) uint64 {
-	v := r.rand64()
-	switch {
-	case r.nOutOf(100, 182):
-		v %= 10
-	case bits >= 8 && r.nOutOf(50, 82):
-		v = specialInts[r.Intn(specialIntIndex[bits/8])]
-	case r.nOutOf(10, 32):
-		v %= 256
-	case r.nOutOf(10, 22):
-		v %= 4 << 10
-	case r.nOutOf(10, 12):
-		v %= 64 << 10
-	default:
-		v %= 1 << 31
-	}
-	switch {
-	case r.nOutOf(100, 107):
-	case r.nOutOf(5, 7):
-		v = uint64(-int64(v))
-	default:
-		v <<= uint(r.Intn(int(bits)))
-	}
-	return truncateToBitSize(v, bits)
-}
-
-func truncateToBitSize(v, bitSize uint64) uint64 {
-	if bitSize == 0 || bitSize > 64 {
-		panic(fmt.Sprintf("invalid bitSize value: %d", bitSize))
-	}
-	return v & uint64(1<<bitSize-1)
-}
-
-func (r *randGen) randRangeInt(begin, end, bitSize, align uint64) uint64 {
-	if r.oneOf(100) {
-		return r.randInt(bitSize)
-	}
-	if align != 0 {
-		if begin == 0 && int64(end) == -1 {
-			// Special [0:-1] range for all possible values.
-			end = uint64(1<<bitSize - 1)
-		}
-		endAlign := (end - begin) / align
-		return begin + r.randRangeInt(0, endAlign, bitSize, 0)*align
-	}
-	return begin + (r.Uint64() % (end - begin + 1))
-}
-
 // biasedRand returns a random int in range [0..n),
 // probability of n-1 is k times higher than probability of 0.
 func (r *randGen) biasedRand(n, k int) int {
@@ -166,129 +98,6 @@ func (r *randGen) biasedRand(n, k int) int {
 }
 
 const maxArrayLen = 10
-
-func (r *randGen) randArrayLen() uint64 {
-	// biasedRand produces: 10, 9, ..., 1, 0,
-	// we want: 1, 2, ..., 9, 10, 0
-	return uint64(maxArrayLen-r.biasedRand(maxArrayLen+1, 10)+1) % (maxArrayLen + 1)
-}
-
-func (r *randGen) randBufLen() (n uint64) {
-	switch {
-	case r.nOutOf(50, 56):
-		n = r.rand(256)
-	case r.nOutOf(5, 6):
-		n = 4 << 10
-	}
-	return
-}
-
-func (r *randGen) randPageCount() (n uint64) {
-	switch {
-	case r.nOutOf(100, 106):
-		n = r.rand(4) + 1
-	case r.nOutOf(5, 6):
-		n = r.rand(20) + 1
-	default:
-		n = (r.rand(3) + 1) * r.target.NumPages / 4
-	}
-	return
-}
-
-// Change a flag value or generate a new one.
-// If you are changing this function, run TestFlags and examine effect of results.
-func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
-	// Get these simpler cases out of the way first.
-	// Once in a while we want to return completely random values,
-	// or 0 which is frequently special.
-	if r.oneOf(100) {
-		return r.rand64()
-	}
-	if r.oneOf(50) {
-		return 0
-	}
-	if !bitmask && oldVal != 0 && r.oneOf(100) {
-		// Slightly increment/decrement the old value.
-		// This is especially important during mutation when len(vv) == 1,
-		// otherwise in that case we produce almost no randomness
-		// (the value is always mutated to 0).
-		inc := uint64(1)
-		if r.bin() {
-			inc = ^uint64(0)
-		}
-		v := oldVal + inc
-		for r.bin() {
-			v += inc
-		}
-		return v
-	}
-	if len(vv) == 1 {
-		// This usually means that value or 0,
-		// at least that's our best (and only) bet.
-		if r.bin() {
-			return 0
-		}
-		return vv[0]
-	}
-	if !bitmask && !r.oneOf(10) {
-		// Enumeration, so just choose one of the values.
-		return vv[r.rand(len(vv))]
-	}
-	if r.oneOf(len(vv) + 4) {
-		return 0
-	}
-	// Flip rand bits. Do this for non-bitmask sometimes
-	// because we may have detected bitmask incorrectly for complex cases
-	// (e.g. part of the vlaue is bitmask and another is not).
-	v := oldVal
-	if v != 0 && r.oneOf(10) {
-		v = 0 // Ignore the old value sometimes.
-	}
-	// We don't want to return 0 here, because we already given 0
-	// fixed probability above (otherwise we get 0 too frequently).
-	// Note: this loop can hang if all values are equal to 0. We don't generate such flags in the compiler now,
-	// but it used to hang occasionally, so we keep the try < 10 logic b/c we don't have a local check for values.
-	for try := 0; try < 10 && (v == 0 || r.nOutOf(2, 3)); try++ {
-		flag := vv[r.rand(len(vv))]
-		if r.oneOf(20) {
-			// Try choosing adjacent bit values in case we forgot
-			// to add all relevant flags to the descriptions.
-			if r.bin() {
-				flag >>= 1
-			} else {
-				flag <<= 1
-			}
-		}
-		v ^= flag
-	}
-	return v
-}
-
-func (r *randGen) filename(s *state, typ *BufferType) string {
-	fn := r.filenameImpl(s)
-	if fn != "" && fn[len(fn)-1] == 0 {
-		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
-	}
-	if escapingFilename(fn) {
-		panic(fmt.Sprintf("sandbox escaping file name %q, s.files are %v", fn, s.files))
-	}
-	if !typ.Varlen() {
-		size := typ.Size()
-		if uint64(len(fn)) < size {
-			fn += string(make([]byte, size-uint64(len(fn))))
-		}
-		fn = fn[:size]
-	} else if !typ.NoZ {
-		fn += "\x00"
-	}
-	return fn
-}
-
-func escapingFilename(file string) bool {
-	file = filepath.Clean(file)
-	return len(file) >= 1 && file[0] == '/' ||
-		len(file) >= 2 && file[0] == '.' && file[1] == '.'
-}
 
 var specialFiles = []string{"", "."}
 
@@ -329,89 +138,218 @@ func (r *randGen) filenameImpl(s *state) string {
 	return r.randFromMap(s.files)
 }
 
-func (r *randGen) randFilenameLength() int {
-	off := r.biasedRand(10, 5)
-	if r.bin() {
-		off = -off
-	}
-	lens := r.target.SpecialFileLenghts
-	return max(lens[r.Intn(len(lens))]+off, 0)
-}
-
 func (r *randGen) randFromMap(m map[string]bool) string {
 	files := slices.Sorted(maps.Keys(m))
 	return files[r.Intn(len(files))]
 }
 
-func (r *randGen) randString(s *state, t *BufferType) []byte {
-	if len(t.Values) != 0 {
-		return []byte(t.Values[r.Intn(len(t.Values))])
-	}
-	if len(s.strings) != 0 && r.bin() {
-		// Return an existing string.
-		// TODO(dvyukov): make s.strings indexed by string SubKind.
-		return []byte(r.randFromMap(s.strings))
-	}
-	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
-		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
-	buf := new(bytes.Buffer)
-	for r.nOutOf(3, 4) {
-		if r.nOutOf(10, 11) {
-			buf.Write([]byte{punct[r.Intn(len(punct))]})
-		} else {
-			buf.Write([]byte{byte(r.Intn(256))})
+func (r *randGen) enabledCtors(s *state, kind string) []ResourceCtor {
+	var ret []ResourceCtor
+	for _, info := range r.target.resourceCtors[kind] {
+		if s.ct.Generatable(info.Call.ID) {
+			ret = append(ret, info)
 		}
 	}
-	// We always null-terminate strings that are inputs to KFuzzTest calls to
-	// avoid false-positive buffer overflow reports.
-	if r.oneOf(100) == t.NoZ || r.genKFuzzTest {
-		buf.Write([]byte{0})
-	}
-	return buf.Bytes()
+	return ret
 }
 
-func (r *randGen) allocAddr(s *state, typ Type, dir Dir, size uint64, data Arg) *PointerArg {
-	return MakePointerArg(typ, dir, s.ma.alloc(r, size, data.Type().Alignment()), data)
+func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
+	switch kind {
+	case TextTarget:
+		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
+			return ifuzz.Mutate(cfg, r.Rand, text)
+		}
+		return mutateData(r, text, 40, 60)
+	default:
+		cfg := createIfuzzConfig(kind)
+		return ifuzz.Mutate(cfg, r.Rand, text)
+	}
 }
 
-func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *PointerArg {
-	page := s.va.alloc(r, numPages)
-	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
-}
-
-func (r *randGen) pruneRecursion(typ Type, limit int) (bool, func()) {
-	lt := leafType(typ)
-	if lt == nil {
-		return true, func() {}
-	}
-	if r.recDepth[lt] >= limit {
-		return false, nil
-	}
-	r.recDepth[lt]++
-	return true, func() {
-		r.recDepth[lt]--
-		if r.recDepth[lt] == 0 {
-			delete(r.recDepth, lt)
+func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
+	biasCall := -1
+	if insertionPoint > 0 {
+		// Choosing the base call is based on the insertion point of the new calls sequence.
+		insertionCall := p.Calls[r.Intn(insertionPoint)].Meta
+		if !insertionCall.Attrs.NoGenerate {
+			// We must be careful not to bias towards a non-generatable call.
+			biasCall = insertionCall.ID
 		}
 	}
+	idx := s.ct.choose(r.Rand, biasCall)
+	meta := r.target.Syscalls[idx]
+	return r.generateParticularCall(s, meta)
 }
 
-// leafType unwraps pointers and arrays to find the underlying named struct or union.
-// By tracking the leaf type, we share limits among identical cyclic structures (like
-// linked lists with multiple pointer fields) and prevent exponential tree explosions.
-func leafType(typ Type) Type {
-	for {
-		switch t := typ.(type) {
-		case *PtrType:
-			typ = t.Elem
-		case *ArrayType:
-			typ = t.Elem
+func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call) {
+	if meta.Attrs.Disabled {
+		panic(fmt.Sprintf("generating disabled call %v", meta.Name))
+	}
+	if meta.Attrs.NoGenerate {
+		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
+	}
+	return r.generateParticularCallUnsafe(s, meta)
+}
+
+// GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
+func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
+	p := &Prog{
+		Target: target,
+	}
+	r := newRand(target, rs)
+	s := newState(target, target.DefaultChoiceTable(), nil)
+	for _, meta := range target.PseudoSyscalls() {
+		calls := r.generateParticularCallUnsafe(s, meta)
+		for _, c := range calls {
+			s.analyze(c)
+			p.Calls = append(p.Calls, c)
+		}
+	}
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
+	return p
+}
+
+// PseudoSyscalls selects one *Syscall for each pseudosyscall.
+func (target *Target) PseudoSyscalls() []*Syscall {
+	handled := make(map[string]bool)
+	var ret []*Syscall
+	for _, meta := range target.Syscalls {
+		if !strings.HasPrefix(meta.CallName, "syz_") ||
+			handled[meta.CallName] ||
+			meta.Attrs.Disabled {
+			continue
+		}
+		ret = append(ret, meta)
+		handled[meta.CallName] = true
+	}
+	return ret
+}
+
+// GenSampleProg generates a single sample program for the call.
+func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source, ct *ChoiceTable) *Prog {
+	r := newRand(target, rs)
+	// Make sure no additional calls are created to provide the resources used by meta.
+	r.genDefaultResource = true
+	s := newState(target, ct, nil)
+	p := &Prog{
+		Target: target,
+	}
+	for _, c := range r.generateParticularCallUnsafe(s, meta) {
+		s.analyze(c)
+		p.Calls = append(p.Calls, c)
+	}
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
+	return p
+}
+
+func newRand(target *Target, rs rand.Source) *randGen {
+	return &randGen{
+		Rand:     rand.New(rs),
+		target:   target,
+		recDepth: make(map[Type]int),
+	}
+}
+
+func (r *randGen) generateParticularCallUnsafe(s *state, meta *Syscall) (calls []*Call) {
+	c := MakeCall(meta, nil)
+	// KFuzzTest calls restrict mutation and generation. Since calls to
+	// generateParticularCall can be recursive, we save the previous value, and
+	// set it true.
+	if c.Meta.Attrs.KFuzzTest {
+		tmp := r.genKFuzzTest
+		r.genKFuzzTest = true
+		defer func() {
+			r.genKFuzzTest = tmp
+		}()
+	}
+	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
+	moreCalls, _ := r.patchConditionalFields(c, s)
+	r.target.assignSizesCall(c)
+	return append(append(calls, moreCalls...), c)
+}
+
+// DataMmapProg creates program that maps data segment.
+// Also used for testing as the simplest program.
+func (target *Target) DataMmapProg() *Prog {
+	return &Prog{
+		Target:   target,
+		Calls:    target.MakeDataMmap(),
+		isUnsafe: true,
+	}
+}
+
+func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial bool) (arg Arg, calls []*Call) {
+	if dir == DirOut {
+		// No need to generate something interesting for output scalar arguments.
+		// But we still need to generate the argument itself so that it can be referenced
+		// in subsequent calls. For the same reason we do generate pointer/array/struct
+		// output arguments (their elements can be referenced in subsequent calls).
+		switch typ.(type) {
+		case *IntType, *FlagsType, *ConstType, *ProcType, *VmaType, *ResourceType:
+			return typ.DefaultArg(dir), nil
+		}
+	}
+
+	if typ.Optional() && r.oneOf(5) {
+		if res, ok := typ.(*ResourceType); ok {
+			v := res.Desc.Values[r.Intn(len(res.Desc.Values))]
+			return MakeResultArg(typ, dir, nil, v), nil
+		}
+		return typ.DefaultArg(dir), nil
+	}
+
+	if !ignoreSpecial && dir != DirOut {
+		switch typ.(type) {
 		case *StructType, *UnionType:
-			return t
-		default:
-			return nil
+			if gen := r.target.SpecialTypes[typ.Name()]; gen != nil {
+				return gen(&Gen{r, s}, typ, dir, nil)
+			}
 		}
 	}
+
+	return typ.generate(r, s, dir)
+}
+
+func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	canRecurse := false
+	if !r.inGenerateResource {
+		// Don't allow recursion for resourceCentric/createResource.
+		// That can lead to generation of huge programs and may be very slow
+		// (esp. if we are generating some failing attempts in createResource already).
+		r.inGenerateResource = true
+		defer func() { r.inGenerateResource = false }()
+		canRecurse = true
+	}
+	if (canRecurse && r.nOutOf(8, 10) ||
+		!canRecurse && r.nOutOf(19, 20)) && !r.genDefaultResource {
+		arg = r.existingResource(s, a, dir)
+		if arg != nil {
+			return
+		}
+	}
+	if canRecurse && !r.genDefaultResource {
+		if r.oneOf(4) {
+			arg, calls = r.resourceCentric(s, a, dir)
+			if arg != nil {
+				return
+			}
+		}
+		if r.nOutOf(4, 5) {
+			// If we could not reuse a resource, let's prefer resource creation over
+			// random int substitution.
+			arg, calls = r.createResource(s, a, dir)
+			if arg != nil {
+				return
+			}
+		}
+	}
+	special := a.SpecialValues()
+	arg = MakeResultArg(a, dir, nil, special[r.Intn(len(special))])
+	return
 }
 
 func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*Call) {
@@ -492,14 +430,136 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 	return arg, calls
 }
 
-func (r *randGen) enabledCtors(s *state, kind string) []ResourceCtor {
-	var ret []ResourceCtor
-	for _, info := range r.target.resourceCtors[kind] {
-		if s.ct.Generatable(info.Call.ID) {
-			ret = append(ret, info)
+func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	switch a.Kind {
+	case BufferBlobRand, BufferBlobRange:
+		sz := r.randBufLen()
+		if a.Kind == BufferBlobRange {
+			sz = r.randRange(a.RangeBegin, a.RangeEnd)
+		}
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, sz), nil
+		}
+		data := make([]byte, sz)
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		return MakeDataArg(a, dir, data), nil
+	case BufferString:
+		data := r.randString(s, a)
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, uint64(len(data))), nil
+		}
+		return MakeDataArg(a, dir, data), nil
+	case BufferFilename:
+		if dir == DirOut {
+			var sz uint64
+			switch {
+			case !a.Varlen():
+				sz = a.Size()
+			case r.nOutOf(1, 3):
+				sz = r.rand(100)
+			default:
+				sz = uint64(r.randFilenameLength())
+			}
+			return MakeOutDataArg(a, dir, sz), nil
+		}
+		return MakeDataArg(a, dir, []byte(r.filename(s, a))), nil
+	case BufferGlob:
+		return MakeDataArg(a, dir, r.randString(s, a)), nil
+	case BufferText:
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil
+		}
+		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
+	case BufferCompressed:
+		// Not super useful data, but we need something for pkg/csource tests.
+		// During fuzzing, such syscalls are marked as no_generate and we only take
+		// the compressed data from the seeds or corpus.
+		sz := r.randBufLen()
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, sz), nil
+		}
+		data := make([]byte, sz)
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		return MakeDataArg(a, dir, image.Compress(data)), nil
+	default:
+		panic("unknown buffer kind")
+	}
+}
+
+func (r *randGen) randBufLen() (n uint64) {
+	switch {
+	case r.nOutOf(50, 56):
+		n = r.rand(256)
+	case r.nOutOf(5, 6):
+		n = 4 << 10
+	}
+	return
+}
+
+func (r *randGen) filename(s *state, typ *BufferType) string {
+	fn := r.filenameImpl(s)
+	if fn != "" && fn[len(fn)-1] == 0 {
+		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
+	}
+	if escapingFilename(fn) {
+		panic(fmt.Sprintf("sandbox escaping file name %q, s.files are %v", fn, s.files))
+	}
+	if !typ.Varlen() {
+		size := typ.Size()
+		if uint64(len(fn)) < size {
+			fn += string(make([]byte, size-uint64(len(fn))))
+		}
+		fn = fn[:size]
+	} else if !typ.NoZ {
+		fn += "\x00"
+	}
+	return fn
+}
+
+func escapingFilename(file string) bool {
+	file = filepath.Clean(file)
+	return len(file) >= 1 && file[0] == '/' ||
+		len(file) >= 2 && file[0] == '.' && file[1] == '.'
+}
+
+func (r *randGen) randFilenameLength() int {
+	off := r.biasedRand(10, 5)
+	if r.bin() {
+		off = -off
+	}
+	lens := r.target.SpecialFileLenghts
+	return max(lens[r.Intn(len(lens))]+off, 0)
+}
+
+func (r *randGen) randString(s *state, t *BufferType) []byte {
+	if len(t.Values) != 0 {
+		return []byte(t.Values[r.Intn(len(t.Values))])
+	}
+	if len(s.strings) != 0 && r.bin() {
+		// Return an existing string.
+		// TODO(dvyukov): make s.strings indexed by string SubKind.
+		return []byte(r.randFromMap(s.strings))
+	}
+	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
+		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
+	buf := new(bytes.Buffer)
+	for r.nOutOf(3, 4) {
+		if r.nOutOf(10, 11) {
+			buf.Write([]byte{punct[r.Intn(len(punct))]})
+		} else {
+			buf.Write([]byte{byte(r.Intn(256))})
 		}
 	}
-	return ret
+	// We always null-terminate strings that are inputs to KFuzzTest calls to
+	// avoid false-positive buffer overflow reports.
+	if r.oneOf(100) == t.NoZ || r.genKFuzzTest {
+		buf.Write([]byte{0})
+	}
+	return buf.Bytes()
 }
 
 func (r *randGen) generateText(kind TextKind) []byte {
@@ -516,19 +576,6 @@ func (r *randGen) generateText(kind TextKind) []byte {
 	default:
 		cfg := createIfuzzConfig(kind)
 		return ifuzz.Generate(cfg, r.Rand)
-	}
-}
-
-func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
-	switch kind {
-	case TextTarget:
-		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
-			return ifuzz.Mutate(cfg, r.Rand, text)
-		}
-		return mutateData(r, text, 40, 60)
-	default:
-		cfg := createIfuzzConfig(kind)
-		return ifuzz.Mutate(cfg, r.Rand, text)
 	}
 }
 
@@ -626,265 +673,6 @@ func (r *randGen) nOutOf(n, outOf int) bool {
 	return v < n
 }
 
-func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
-	biasCall := -1
-	if insertionPoint > 0 {
-		// Choosing the base call is based on the insertion point of the new calls sequence.
-		insertionCall := p.Calls[r.Intn(insertionPoint)].Meta
-		if !insertionCall.Attrs.NoGenerate {
-			// We must be careful not to bias towards a non-generatable call.
-			biasCall = insertionCall.ID
-		}
-	}
-	idx := s.ct.choose(r.Rand, biasCall)
-	meta := r.target.Syscalls[idx]
-	return r.generateParticularCall(s, meta)
-}
-
-func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call) {
-	if meta.Attrs.Disabled {
-		panic(fmt.Sprintf("generating disabled call %v", meta.Name))
-	}
-	if meta.Attrs.NoGenerate {
-		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
-	}
-	return r.generateParticularCallUnsafe(s, meta)
-}
-
-func (r *randGen) generateParticularCallUnsafe(s *state, meta *Syscall) (calls []*Call) {
-	c := MakeCall(meta, nil)
-	// KFuzzTest calls restrict mutation and generation. Since calls to
-	// generateParticularCall can be recursive, we save the previous value, and
-	// set it true.
-	if c.Meta.Attrs.KFuzzTest {
-		tmp := r.genKFuzzTest
-		r.genKFuzzTest = true
-		defer func() {
-			r.genKFuzzTest = tmp
-		}()
-	}
-	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
-	moreCalls, _ := r.patchConditionalFields(c, s)
-	r.target.assignSizesCall(c)
-	return append(append(calls, moreCalls...), c)
-}
-
-// GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
-func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
-	p := &Prog{
-		Target: target,
-	}
-	r := newRand(target, rs)
-	s := newState(target, target.DefaultChoiceTable(), nil)
-	for _, meta := range target.PseudoSyscalls() {
-		calls := r.generateParticularCallUnsafe(s, meta)
-		for _, c := range calls {
-			s.analyze(c)
-			p.Calls = append(p.Calls, c)
-		}
-	}
-	if err := p.validate(); err != nil {
-		panic(err)
-	}
-	return p
-}
-
-// PseudoSyscalls selects one *Syscall for each pseudosyscall.
-func (target *Target) PseudoSyscalls() []*Syscall {
-	handled := make(map[string]bool)
-	var ret []*Syscall
-	for _, meta := range target.Syscalls {
-		if !strings.HasPrefix(meta.CallName, "syz_") ||
-			handled[meta.CallName] ||
-			meta.Attrs.Disabled {
-			continue
-		}
-		ret = append(ret, meta)
-		handled[meta.CallName] = true
-	}
-	return ret
-}
-
-// GenSampleProg generates a single sample program for the call.
-func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source, ct *ChoiceTable) *Prog {
-	r := newRand(target, rs)
-	// Make sure no additional calls are created to provide the resources used by meta.
-	r.genDefaultResource = true
-	s := newState(target, ct, nil)
-	p := &Prog{
-		Target: target,
-	}
-	for _, c := range r.generateParticularCallUnsafe(s, meta) {
-		s.analyze(c)
-		p.Calls = append(p.Calls, c)
-	}
-	if err := p.validate(); err != nil {
-		panic(err)
-	}
-	return p
-}
-
-// DataMmapProg creates program that maps data segment.
-// Also used for testing as the simplest program.
-func (target *Target) DataMmapProg() *Prog {
-	return &Prog{
-		Target:   target,
-		Calls:    target.MakeDataMmap(),
-		isUnsafe: true,
-	}
-}
-
-func (r *randGen) generateArgs(s *state, fields []Field, dir Dir) ([]Arg, []*Call) {
-	var calls []*Call
-	args := make([]Arg, len(fields))
-
-	// Generate all args. Size args have the default value 0 for now.
-	for i, field := range fields {
-		arg, calls1 := r.generateArg(s, field.Type, field.Dir(dir))
-		if arg == nil {
-			panic(fmt.Sprintf("generated arg is nil for field '%v', fields: %+v", field.Type.Name(), fields))
-		}
-		args[i] = arg
-		calls = append(calls, calls1...)
-	}
-
-	return args, calls
-}
-
-func (r *randGen) generateArg(s *state, typ Type, dir Dir) (arg Arg, calls []*Call) {
-	return r.generateArgImpl(s, typ, dir, false)
-}
-
-func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial bool) (arg Arg, calls []*Call) {
-	if dir == DirOut {
-		// No need to generate something interesting for output scalar arguments.
-		// But we still need to generate the argument itself so that it can be referenced
-		// in subsequent calls. For the same reason we do generate pointer/array/struct
-		// output arguments (their elements can be referenced in subsequent calls).
-		switch typ.(type) {
-		case *IntType, *FlagsType, *ConstType, *ProcType, *VmaType, *ResourceType:
-			return typ.DefaultArg(dir), nil
-		}
-	}
-
-	if typ.Optional() && r.oneOf(5) {
-		if res, ok := typ.(*ResourceType); ok {
-			v := res.Desc.Values[r.Intn(len(res.Desc.Values))]
-			return MakeResultArg(typ, dir, nil, v), nil
-		}
-		return typ.DefaultArg(dir), nil
-	}
-
-	if !ignoreSpecial && dir != DirOut {
-		switch typ.(type) {
-		case *StructType, *UnionType:
-			if gen := r.target.SpecialTypes[typ.Name()]; gen != nil {
-				return gen(&Gen{r, s}, typ, dir, nil)
-			}
-		}
-	}
-
-	return typ.generate(r, s, dir)
-}
-
-func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	canRecurse := false
-	if !r.inGenerateResource {
-		// Don't allow recursion for resourceCentric/createResource.
-		// That can lead to generation of huge programs and may be very slow
-		// (esp. if we are generating some failing attempts in createResource already).
-		r.inGenerateResource = true
-		defer func() { r.inGenerateResource = false }()
-		canRecurse = true
-	}
-	if (canRecurse && r.nOutOf(8, 10) ||
-		!canRecurse && r.nOutOf(19, 20)) && !r.genDefaultResource {
-		arg = r.existingResource(s, a, dir)
-		if arg != nil {
-			return
-		}
-	}
-	if canRecurse && !r.genDefaultResource {
-		if r.oneOf(4) {
-			arg, calls = r.resourceCentric(s, a, dir)
-			if arg != nil {
-				return
-			}
-		}
-		if r.nOutOf(4, 5) {
-			// If we could not reuse a resource, let's prefer resource creation over
-			// random int substitution.
-			arg, calls = r.createResource(s, a, dir)
-			if arg != nil {
-				return
-			}
-		}
-	}
-	special := a.SpecialValues()
-	arg = MakeResultArg(a, dir, nil, special[r.Intn(len(special))])
-	return
-}
-
-func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	switch a.Kind {
-	case BufferBlobRand, BufferBlobRange:
-		sz := r.randBufLen()
-		if a.Kind == BufferBlobRange {
-			sz = r.randRange(a.RangeBegin, a.RangeEnd)
-		}
-		if dir == DirOut {
-			return MakeOutDataArg(a, dir, sz), nil
-		}
-		data := make([]byte, sz)
-		for i := range data {
-			data[i] = byte(r.Intn(256))
-		}
-		return MakeDataArg(a, dir, data), nil
-	case BufferString:
-		data := r.randString(s, a)
-		if dir == DirOut {
-			return MakeOutDataArg(a, dir, uint64(len(data))), nil
-		}
-		return MakeDataArg(a, dir, data), nil
-	case BufferFilename:
-		if dir == DirOut {
-			var sz uint64
-			switch {
-			case !a.Varlen():
-				sz = a.Size()
-			case r.nOutOf(1, 3):
-				sz = r.rand(100)
-			default:
-				sz = uint64(r.randFilenameLength())
-			}
-			return MakeOutDataArg(a, dir, sz), nil
-		}
-		return MakeDataArg(a, dir, []byte(r.filename(s, a))), nil
-	case BufferGlob:
-		return MakeDataArg(a, dir, r.randString(s, a)), nil
-	case BufferText:
-		if dir == DirOut {
-			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil
-		}
-		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
-	case BufferCompressed:
-		// Not super useful data, but we need something for pkg/csource tests.
-		// During fuzzing, such syscalls are marked as no_generate and we only take
-		// the compressed data from the seeds or corpus.
-		sz := r.randBufLen()
-		if dir == DirOut {
-			return MakeOutDataArg(a, dir, sz), nil
-		}
-		data := make([]byte, sz)
-		for i := range data {
-			data[i] = byte(r.Intn(256))
-		}
-		return MakeDataArg(a, dir, image.Compress(data)), nil
-	default:
-		panic("unknown buffer kind")
-	}
-}
-
 func (a *VmaType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	npages := r.randPageCount()
 	if a.RangeBegin != 0 || a.RangeEnd != 0 {
@@ -893,8 +681,94 @@ func (a *VmaType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Cal
 	return r.allocVMA(s, a, dir, npages), nil
 }
 
+func (r *randGen) randPageCount() (n uint64) {
+	switch {
+	case r.nOutOf(100, 106):
+		n = r.rand(4) + 1
+	case r.nOutOf(5, 6):
+		n = r.rand(20) + 1
+	default:
+		n = (r.rand(3) + 1) * r.target.NumPages / 4
+	}
+	return
+}
+
+func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *PointerArg {
+	page := s.va.alloc(r, numPages)
+	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
+}
+
 func (a *FlagsType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	return MakeConstArg(a, dir, r.flags(a.Vals, a.BitMask, 0)), nil
+}
+
+// Change a flag value or generate a new one.
+// If you are changing this function, run TestFlags and examine effect of results.
+func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
+	// Get these simpler cases out of the way first.
+	// Once in a while we want to return completely random values,
+	// or 0 which is frequently special.
+	if r.oneOf(100) {
+		return r.rand64()
+	}
+	if r.oneOf(50) {
+		return 0
+	}
+	if !bitmask && oldVal != 0 && r.oneOf(100) {
+		// Slightly increment/decrement the old value.
+		// This is especially important during mutation when len(vv) == 1,
+		// otherwise in that case we produce almost no randomness
+		// (the value is always mutated to 0).
+		inc := uint64(1)
+		if r.bin() {
+			inc = ^uint64(0)
+		}
+		v := oldVal + inc
+		for r.bin() {
+			v += inc
+		}
+		return v
+	}
+	if len(vv) == 1 {
+		// This usually means that value or 0,
+		// at least that's our best (and only) bet.
+		if r.bin() {
+			return 0
+		}
+		return vv[0]
+	}
+	if !bitmask && !r.oneOf(10) {
+		// Enumeration, so just choose one of the values.
+		return vv[r.rand(len(vv))]
+	}
+	if r.oneOf(len(vv) + 4) {
+		return 0
+	}
+	// Flip rand bits. Do this for non-bitmask sometimes
+	// because we may have detected bitmask incorrectly for complex cases
+	// (e.g. part of the vlaue is bitmask and another is not).
+	v := oldVal
+	if v != 0 && r.oneOf(10) {
+		v = 0 // Ignore the old value sometimes.
+	}
+	// We don't want to return 0 here, because we already given 0
+	// fixed probability above (otherwise we get 0 too frequently).
+	// Note: this loop can hang if all values are equal to 0. We don't generate such flags in the compiler now,
+	// but it used to hang occasionally, so we keep the try < 10 logic b/c we don't have a local check for values.
+	for try := 0; try < 10 && (v == 0 || r.nOutOf(2, 3)); try++ {
+		flag := vv[r.rand(len(vv))]
+		if r.oneOf(20) {
+			// Try choosing adjacent bit values in case we forgot
+			// to add all relevant flags to the descriptions.
+			if r.bin() {
+				flag >>= 1
+			} else {
+				flag <<= 1
+			}
+		}
+		v ^= flag
+	}
+	return v
 }
 
 func (a *ConstType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
@@ -909,6 +783,54 @@ func (a *IntType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Cal
 		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits, a.Align)
 	}
 	return MakeConstArg(a, dir, v), nil
+}
+
+func (r *randGen) randInt(bits uint64) uint64 {
+	v := r.rand64()
+	switch {
+	case r.nOutOf(100, 182):
+		v %= 10
+	case bits >= 8 && r.nOutOf(50, 82):
+		v = specialInts[r.Intn(specialIntIndex[bits/8])]
+	case r.nOutOf(10, 32):
+		v %= 256
+	case r.nOutOf(10, 22):
+		v %= 4 << 10
+	case r.nOutOf(10, 12):
+		v %= 64 << 10
+	default:
+		v %= 1 << 31
+	}
+	switch {
+	case r.nOutOf(100, 107):
+	case r.nOutOf(5, 7):
+		v = uint64(-int64(v))
+	default:
+		v <<= uint(r.Intn(int(bits)))
+	}
+	return truncateToBitSize(v, bits)
+}
+
+func truncateToBitSize(v, bitSize uint64) uint64 {
+	if bitSize == 0 || bitSize > 64 {
+		panic(fmt.Sprintf("invalid bitSize value: %d", bitSize))
+	}
+	return v & uint64(1<<bitSize-1)
+}
+
+func (r *randGen) randRangeInt(begin, end, bitSize, align uint64) uint64 {
+	if r.oneOf(100) {
+		return r.randInt(bitSize)
+	}
+	if align != 0 {
+		if begin == 0 && int64(end) == -1 {
+			// Special [0:-1] range for all possible values.
+			end = uint64(1<<bitSize - 1)
+		}
+		endAlign := (end - begin) / align
+		return begin + r.randRangeInt(0, endAlign, bitSize, 0)*align
+	}
+	return begin + (r.Uint64() % (end - begin + 1))
 }
 
 func (a *ProcType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
@@ -941,10 +863,37 @@ func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 	return MakeGroupArg(a, dir, inner), calls
 }
 
+func (r *randGen) randRange(begin, end uint64) uint64 {
+	return begin + uint64(r.Intn(int(end-begin+1)))
+}
+
+func (r *randGen) randArrayLen() uint64 {
+	// biasedRand produces: 10, 9, ..., 1, 0,
+	// we want: 1, 2, ..., 9, 10, 0
+	return uint64(maxArrayLen-r.biasedRand(maxArrayLen+1, 10)+1) % (maxArrayLen + 1)
+}
+
 func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	args, calls := r.generateArgs(s, a.Fields, dir)
 	group := MakeGroupArg(a, dir, args)
 	return group, calls
+}
+
+func (r *randGen) generateArgs(s *state, fields []Field, dir Dir) ([]Arg, []*Call) {
+	var calls []*Call
+	args := make([]Arg, len(fields))
+
+	// Generate all args. Size args have the default value 0 for now.
+	for i, field := range fields {
+		arg, calls1 := r.generateArg(s, field.Type, field.Dir(dir))
+		if arg == nil {
+			panic(fmt.Sprintf("generated arg is nil for field '%v', fields: %+v", field.Type.Name(), fields))
+		}
+		args[i] = arg
+		calls = append(calls, calls1...)
+	}
+
+	return args, calls
 }
 
 func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
@@ -977,6 +926,57 @@ func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Cal
 	inner, calls := r.generateArg(s, a.Elem, a.ElemDir)
 	arg = r.allocAddr(s, a, dir, inner.Size(), inner)
 	return arg, calls
+}
+
+func (r *randGen) rand(n int) uint64 {
+	return uint64(r.Intn(n))
+}
+
+func (r *randGen) oneOf(n int) bool {
+	return r.Intn(n) == 0
+}
+
+func (r *randGen) allocAddr(s *state, typ Type, dir Dir, size uint64, data Arg) *PointerArg {
+	return MakePointerArg(typ, dir, s.ma.alloc(r, size, data.Type().Alignment()), data)
+}
+
+func (r *randGen) pruneRecursion(typ Type, limit int) (bool, func()) {
+	lt := leafType(typ)
+	if lt == nil {
+		return true, func() {}
+	}
+	if r.recDepth[lt] >= limit {
+		return false, nil
+	}
+	r.recDepth[lt]++
+	return true, func() {
+		r.recDepth[lt]--
+		if r.recDepth[lt] == 0 {
+			delete(r.recDepth, lt)
+		}
+	}
+}
+
+// leafType unwraps pointers and arrays to find the underlying named struct or union.
+// By tracking the leaf type, we share limits among identical cyclic structures (like
+// linked lists with multiple pointer fields) and prevent exponential tree explosions.
+func leafType(typ Type) Type {
+	for {
+		switch t := typ.(type) {
+		case *PtrType:
+			typ = t.Elem
+		case *ArrayType:
+			typ = t.Elem
+		case *StructType, *UnionType:
+			return t
+		default:
+			return nil
+		}
+	}
+}
+
+func (r *randGen) generateArg(s *state, typ Type, dir Dir) (arg Arg, calls []*Call) {
+	return r.generateArgImpl(s, typ, dir, false)
 }
 
 func (a *LenType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {

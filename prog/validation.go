@@ -107,37 +107,6 @@ func (ctx *validCtx) validateRet(c *Call) error {
 	return ctx.validateArg(c.Ret, c.Meta.Ret, DirOut)
 }
 
-func (ctx *validCtx) validateArg(arg Arg, typ Type, dir Dir) error {
-	if arg == nil {
-		return fmt.Errorf("nil arg")
-	}
-	if ctx.args[arg] {
-		return fmt.Errorf("arg %#v is referenced several times in the tree", arg)
-	}
-	if arg.Type() == nil {
-		return fmt.Errorf("no arg type")
-	}
-	if _, ok := typ.(*PtrType); ok {
-		dir = DirIn // pointers are always in
-	}
-	// We used to demand that Arg has exactly the same dir as Type, however,
-	// it leads to problems when dealing with ANYRES* types.
-	// If the resource was DirIn before squashing, we should not demand that
-	// it be DirInOut - it would only lead to mutations that make little sense.
-	// Let's only deny truly conflicting directions, e.g. DirIn vs DirOut.
-	if arg.Dir() != dir && dir != DirInOut {
-		return fmt.Errorf("arg %#v type %v has wrong dir %v, expect %v", arg, arg.Type(), arg.Dir(), dir)
-	}
-	if !ctx.target.isAnyPtr(arg.Type()) && arg.Type() != typ {
-		return fmt.Errorf("bad arg type %#v, expect %#v", arg.Type(), typ)
-	}
-	if ctx.currentCall.Meta.Attrs.NoSquash && ctx.target.isAnyPtr(arg.Type()) {
-		return fmt.Errorf("ANY argument for no_squash call %v", ctx.currentCall.Meta.Name)
-	}
-	ctx.args[arg] = true
-	return arg.validate(ctx, dir)
-}
-
 func (arg *ConstArg) validate(ctx *validCtx, dir Dir) error {
 	switch typ := arg.Type().(type) {
 	case *IntType:
@@ -317,4 +286,35 @@ func (arg *PointerArg) validate(ctx *validCtx, dir Dir) error {
 		}
 	}
 	return nil
+}
+
+func (ctx *validCtx) validateArg(arg Arg, typ Type, dir Dir) error {
+	if arg == nil {
+		return fmt.Errorf("nil arg")
+	}
+	if ctx.args[arg] {
+		return fmt.Errorf("arg %#v is referenced several times in the tree", arg)
+	}
+	if arg.Type() == nil {
+		return fmt.Errorf("no arg type")
+	}
+	if _, ok := typ.(*PtrType); ok {
+		dir = DirIn // pointers are always in
+	}
+	// We used to demand that Arg has exactly the same dir as Type, however,
+	// it leads to problems when dealing with ANYRES* types.
+	// If the resource was DirIn before squashing, we should not demand that
+	// it be DirInOut - it would only lead to mutations that make little sense.
+	// Let's only deny truly conflicting directions, e.g. DirIn vs DirOut.
+	if arg.Dir() != dir && dir != DirInOut {
+		return fmt.Errorf("arg %#v type %v has wrong dir %v, expect %v", arg, arg.Type(), arg.Dir(), dir)
+	}
+	if !ctx.target.isAnyPtr(arg.Type()) && arg.Type() != typ {
+		return fmt.Errorf("bad arg type %#v, expect %#v", arg.Type(), typ)
+	}
+	if ctx.currentCall.Meta.Attrs.NoSquash && ctx.target.isAnyPtr(arg.Type()) {
+		return fmt.Errorf("ANY argument for no_squash call %v", ctx.currentCall.Meta.Name)
+	}
+	ctx.args[arg] = true
+	return arg.validate(ctx, dir)
 }

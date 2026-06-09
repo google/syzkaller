@@ -39,25 +39,6 @@ const (
 	TraceCbCmp
 )
 
-// Normally, -fsanitize-coverage=trace-pc inserts calls to __sanitizer_cov_trace_pc() at the
-// beginning of every basic block. -fsanitize-coverage=trace-cmp adds calls to other functions,
-// like __sanitizer_cov_trace_cmp1() or __sanitizer_cov_trace_const_cmp4().
-//
-// On ARM64 there can be additional symbol names inserted by the linker. By default, BL instruction
-// can only target addresses within the +/-128M range from PC. To target farther addresses, the
-// ARM64 linker inserts so-called veneers that act as trampolines for functions. We count calls to
-// such veneers as normal calls to __sanitizer_cov_trace_XXX.
-func getTraceCallbackType(name string) int {
-	if name == "__sanitizer_cov_trace_pc" || name == "____sanitizer_cov_trace_pc_veneer" {
-		return TraceCbPc
-	}
-	if strings.HasPrefix(name, "__sanitizer_cov_trace_") ||
-		(strings.HasPrefix(name, "____sanitizer_cov_trace_") && strings.HasSuffix(name, "_veneer")) {
-		return TraceCbCmp
-	}
-	return TraceCbNone
-}
-
 func elfReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
@@ -108,6 +89,25 @@ func elfReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, e
 		}
 	}
 	return symbols, nil
+}
+
+// Normally, -fsanitize-coverage=trace-pc inserts calls to __sanitizer_cov_trace_pc() at the
+// beginning of every basic block. -fsanitize-coverage=trace-cmp adds calls to other functions,
+// like __sanitizer_cov_trace_cmp1() or __sanitizer_cov_trace_const_cmp4().
+//
+// On ARM64 there can be additional symbol names inserted by the linker. By default, BL instruction
+// can only target addresses within the +/-128M range from PC. To target farther addresses, the
+// ARM64 linker inserts so-called veneers that act as trampolines for functions. We count calls to
+// such veneers as normal calls to __sanitizer_cov_trace_XXX.
+func getTraceCallbackType(name string) int {
+	if name == "__sanitizer_cov_trace_pc" || name == "____sanitizer_cov_trace_pc_veneer" {
+		return TraceCbPc
+	}
+	if strings.HasPrefix(name, "__sanitizer_cov_trace_") ||
+		(strings.HasPrefix(name, "____sanitizer_cov_trace_") && strings.HasSuffix(name, "_veneer")) {
+		return TraceCbCmp
+	}
+	return TraceCbNone
 }
 
 func elfReadTextRanges(module *vminfo.KernelModule) ([]pcRange, []*CompileUnit, error) {

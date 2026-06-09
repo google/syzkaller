@@ -87,15 +87,15 @@ func OpenRemoteKernelLog(ip, console string) (rc io.ReadCloser, err error) {
 	return OpenConsoleByCmd("ssh", args)
 }
 
+// OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
+func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
+	return OpenRemoteConsole(bin, "-s", dev, "shell")
+}
+
 // Open dmesg remotely.
 func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
 	args = append(args, "dmesg -w")
 	return OpenConsoleByCmd(bin, args)
-}
-
-// OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
-func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
-	return OpenRemoteConsole(bin, "-s", dev, "shell")
 }
 
 // Open console log by cmd.

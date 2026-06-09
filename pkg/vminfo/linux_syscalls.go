@@ -271,6 +271,31 @@ func linuxSyzReadPartTableSupported(ctx *checkContext, call *prog.Syscall) strin
 	return ctx.onlySandboxNone()
 }
 
+func linuxSyzGenetlinkGetFamilyIDSupported(ctx *checkContext, call *prog.Syscall) string {
+	// TODO: try to obtain actual family ID here. It will disable whole sets of sendmsg syscalls.
+	return ctx.callSucceeds(fmt.Sprintf("socket(0x%x, 0x%x, 0x%x)",
+		ctx.val("AF_NETLINK"), ctx.val("SOCK_RAW"), ctx.val("NETLINK_GENERIC")))
+}
+
+func linuxPkeysSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.callSucceeds("pkey_alloc(0x0, 0x0)")
+}
+
+func linuxSyzSocketConnectNvmeTCPSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.onlySandboxNone()
+}
+
+func linuxVhciInjectionSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.rootCanOpen("/dev/vhci")
+}
+
+func linuxSyzInitNetSocketSupported(ctx *checkContext, call *prog.Syscall) string {
+	if reason := ctx.onlySandboxNone(); reason != "" {
+		return reason
+	}
+	return linuxSupportedSocket(ctx, call)
+}
+
 func linuxSupportedSocket(ctx *checkContext, call *prog.Syscall) string {
 	if call.Name == "socket" || call.Name == "socketpair" || call.Attrs.Automatic {
 		return "" // generic versions are always supported
@@ -301,31 +326,6 @@ func linuxSupportedSocket(ctx *checkContext, call *prog.Syscall) string {
 		return fmt.Sprintf("%v failed: %v", callStr, errno)
 	}
 	return ""
-}
-
-func linuxSyzGenetlinkGetFamilyIDSupported(ctx *checkContext, call *prog.Syscall) string {
-	// TODO: try to obtain actual family ID here. It will disable whole sets of sendmsg syscalls.
-	return ctx.callSucceeds(fmt.Sprintf("socket(0x%x, 0x%x, 0x%x)",
-		ctx.val("AF_NETLINK"), ctx.val("SOCK_RAW"), ctx.val("NETLINK_GENERIC")))
-}
-
-func linuxPkeysSupported(ctx *checkContext, call *prog.Syscall) string {
-	return ctx.callSucceeds("pkey_alloc(0x0, 0x0)")
-}
-
-func linuxSyzSocketConnectNvmeTCPSupported(ctx *checkContext, call *prog.Syscall) string {
-	return ctx.onlySandboxNone()
-}
-
-func linuxVhciInjectionSupported(ctx *checkContext, call *prog.Syscall) string {
-	return ctx.rootCanOpen("/dev/vhci")
-}
-
-func linuxSyzInitNetSocketSupported(ctx *checkContext, call *prog.Syscall) string {
-	if reason := ctx.onlySandboxNone(); reason != "" {
-		return reason
-	}
-	return linuxSupportedSocket(ctx, call)
 }
 
 func linuxBtfVmlinuxSupported(ctx *checkContext, call *prog.Syscall) string {

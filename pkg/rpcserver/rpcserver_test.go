@@ -22,19 +22,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func getTestDefaultCfg() mgrconfig.Config {
-	return mgrconfig.Config{
-		Type:    targets.Linux,
-		Sandbox: "none",
-		Derived: mgrconfig.Derived{
-			TargetOS:     targets.TestOS,
-			TargetArch:   targets.TestArch64,
-			TargetVMArch: targets.TestArch64,
-			Timeouts:     targets.Timeouts{Slowdown: 1},
-		},
-	}
-}
-
 func TestNew(t *testing.T) {
 	defaultCfg := getTestDefaultCfg()
 
@@ -251,6 +238,19 @@ func TestHandleConn(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func getTestDefaultCfg() mgrconfig.Config {
+	return mgrconfig.Config{
+		Type:    targets.Linux,
+		Sandbox: "none",
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.TestOS,
+			TargetArch:   targets.TestArch64,
+			TargetVMArch: targets.TestArch64,
+			Timeouts:     targets.Timeouts{Slowdown: 1},
+		},
 	}
 }
 

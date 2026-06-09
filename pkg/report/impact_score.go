@@ -48,23 +48,6 @@ var impactOrder = []crash.Type{
 	// crash.KCSANUnknown
 }
 
-// TitlesToImpact converts a bug title(s) to an impact score.
-// If several titles provided, it returns the highest score.
-// A higher score indicates a more severe impact.
-// -1 means unknown.
-func TitlesToImpact(title string, otherTitles ...string) int {
-	maxImpact := -1
-	for _, t := range append([]string{title}, otherTitles...) {
-		typ := crash.TitleToType(t)
-		for i, t := range impactOrder {
-			if typ == t {
-				maxImpact = max(maxImpact, len(impactOrder)-i)
-			}
-		}
-	}
-	return maxImpact
-}
-
 type TitleFreqRank struct {
 	Title string
 	Count int
@@ -105,4 +88,21 @@ func ExplainTitleStat(ts *titleStat) []*TitleFreqRank {
 		return lTitle < rTitle
 	})
 	return res
+}
+
+// TitlesToImpact converts a bug title(s) to an impact score.
+// If several titles provided, it returns the highest score.
+// A higher score indicates a more severe impact.
+// -1 means unknown.
+func TitlesToImpact(title string, otherTitles ...string) int {
+	maxImpact := -1
+	for _, t := range append([]string{title}, otherTitles...) {
+		typ := crash.TitleToType(t)
+		for i, t := range impactOrder {
+			if typ == t {
+				maxImpact = max(maxImpact, len(impactOrder)-i)
+			}
+		}
+	}
+	return maxImpact
 }

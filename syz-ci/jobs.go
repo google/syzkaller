@@ -175,12 +175,6 @@ func (jp *JobProcessor) pollCommits() {
 	}
 }
 
-func brokenRepo(url string) bool {
-	// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
-	// which contain hundreds of other commits. This makes fix attribution totally broken.
-	return strings.Contains(url, "git.cmpxchg.org/linux-mmots")
-}
-
 func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 	resp, err := mgr.dash.CommitPoll()
 	if err != nil {
@@ -242,6 +236,12 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 		})
 	}
 	return mgr.dash.UploadCommits(results)
+}
+
+func brokenRepo(url string) bool {
+	// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
+	// which contain hundreds of other commits. This makes fix attribution totally broken.
+	return strings.Contains(url, "git.cmpxchg.org/linux-mmots")
 }
 
 func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) ([]*vcs.Commit, error) {
@@ -322,6 +322,12 @@ func (jp *JobProcessor) pollJobs() {
 	jp.processJob(job)
 }
 
+type Job struct {
+	req  *dashapi.JobPollResp
+	resp *dashapi.JobDoneReq
+	mgr  *Manager
+}
+
 func (jp *JobProcessor) processJob(job *Job) {
 	req := job.req
 	jp.Logf(0, "starting job %v type %v for manager %v on %v/%v",
@@ -342,12 +348,6 @@ func (jp *JobProcessor) processJob(job *Job) {
 		jp.Errorf("failed to mark job as done: %v", err)
 		return
 	}
-}
-
-type Job struct {
-	req  *dashapi.JobPollResp
-	resp *dashapi.JobDoneReq
-	mgr  *Manager
 }
 
 func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {

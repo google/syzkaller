@@ -677,42 +677,6 @@ func TestHintsRandom(t *testing.T) {
 	}
 }
 
-func extractValues(c *Call) map[uint64]bool {
-	vals := make(map[uint64]bool)
-	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-		if arg.Dir() == DirOut {
-			return
-		}
-		switch a := arg.(type) {
-		case *ConstArg:
-			vals[a.Val] = true
-		case *DataArg:
-			data := a.Data()
-			for i := range data {
-				vals[uint64(data[i])] = true
-				if i < len(data)-1 {
-					v := uint64(data[i]) | uint64(data[i+1])<<8
-					vals[v] = true
-				}
-				if i < len(data)-3 {
-					v := uint64(data[i]) | uint64(data[i+1])<<8 |
-						uint64(data[i+2])<<16 | uint64(data[i+3])<<24
-					vals[v] = true
-				}
-				if i < len(data)-7 {
-					v := uint64(data[i]) | uint64(data[i+1])<<8 |
-						uint64(data[i+2])<<16 | uint64(data[i+3])<<24 |
-						uint64(data[i+4])<<32 | uint64(data[i+5])<<40 |
-						uint64(data[i+6])<<48 | uint64(data[i+7])<<56
-					vals[v] = true
-				}
-			}
-		}
-	})
-	delete(vals, 0) // replacing 0 can yield too many condidates
-	return vals
-}
-
 func TestHintsData(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	type Test struct {
@@ -790,6 +754,42 @@ func BenchmarkHints(b *testing.B) {
 			}
 		}
 	})
+}
+
+func extractValues(c *Call) map[uint64]bool {
+	vals := make(map[uint64]bool)
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+		if arg.Dir() == DirOut {
+			return
+		}
+		switch a := arg.(type) {
+		case *ConstArg:
+			vals[a.Val] = true
+		case *DataArg:
+			data := a.Data()
+			for i := range data {
+				vals[uint64(data[i])] = true
+				if i < len(data)-1 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8
+					vals[v] = true
+				}
+				if i < len(data)-3 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8 |
+						uint64(data[i+2])<<16 | uint64(data[i+3])<<24
+					vals[v] = true
+				}
+				if i < len(data)-7 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8 |
+						uint64(data[i+2])<<16 | uint64(data[i+3])<<24 |
+						uint64(data[i+4])<<32 | uint64(data[i+5])<<40 |
+						uint64(data[i+6])<<48 | uint64(data[i+7])<<56
+					vals[v] = true
+				}
+			}
+		}
+	})
+	delete(vals, 0) // replacing 0 can yield too many condidates
+	return vals
 }
 
 func TestHintsLimiter(t *testing.T) {

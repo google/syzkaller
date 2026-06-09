@@ -14,6 +14,14 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
+func mustSchemaFor[T any]() *jsonschema.Schema {
+	schema, err := schemaFor[T]()
+	if err != nil {
+		panic(err)
+	}
+	return schema
+}
+
 func schemaFor[T any]() (*jsonschema.Schema, error) {
 	typ := reflect.TypeFor[T]()
 	if typ.Kind() != reflect.Struct {
@@ -59,12 +67,13 @@ func checkSchemaType(typ reflect.Type) error {
 	return nil
 }
 
-func mustSchemaFor[T any]() *jsonschema.Schema {
-	schema, err := schemaFor[T]()
+func extractOutputs[T any](state map[string]any) map[string]any {
+	// Ensure that we actually have all outputs.
+	tmp, err := convertFromMap[T](state, false, false)
 	if err != nil {
 		panic(err)
 	}
-	return schema
+	return convertToMap(tmp)
 }
 
 func convertToMap[T any](val T) map[string]any {
@@ -240,13 +249,14 @@ func setSliceField(val any, field reflect.Value, name string, f any, targetType 
 	return nil
 }
 
-func extractOutputs[T any](state map[string]any) map[string]any {
-	// Ensure that we actually have all outputs.
-	tmp, err := convertFromMap[T](state, false, false)
-	if err != nil {
-		panic(err)
+func foreachFieldOf[T any]() iter.Seq2[string, reflect.Type] {
+	return func(yield func(string, reflect.Type) bool) {
+		for name, val := range foreachField(new(T)) {
+			if !yield(name, val.Type()) {
+				break
+			}
+		}
 	}
-	return convertToMap(tmp)
 }
 
 // foreachField iterates over all public fields of the struct provided in data.
@@ -255,16 +265,6 @@ func foreachField(data any) iter.Seq2[string, reflect.Value] {
 		v := reflect.ValueOf(data).Elem()
 		for _, field := range reflect.VisibleFields(v.Type()) {
 			if !yield(field.Name, v.FieldByIndex(field.Index)) {
-				break
-			}
-		}
-	}
-}
-
-func foreachFieldOf[T any]() iter.Seq2[string, reflect.Type] {
-	return func(yield func(string, reflect.Type) bool) {
-		for name, val := range foreachField(new(T)) {
-			if !yield(name, val.Type()) {
 				break
 			}
 		}

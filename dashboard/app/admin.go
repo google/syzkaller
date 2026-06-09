@@ -37,6 +37,156 @@ func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *ht
 	return nil
 }
 
+func restartFailedBisections(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	var jobs []*Job
+	var jobKeys []*db.Key
+	jobKeys, err := db.NewQuery("Job").
+		Filter("Finished>", time.Time{}).
+		GetAll(ctx, &jobs)
+	if err != nil {
+		return fmt.Errorf("failed to query jobs: %w", err)
+	}
+	toReset := []*db.Key{}
+	for i, job := range jobs {
+		if job.Namespace != ns {
+			continue
+		}
+		if job.Type != JobBisectCause && job.Type != JobBisectFix {
+			continue
+		}
+		if job.Error == 0 {
+			continue
+		}
+		errorTextBytes, _, err := getText(ctx, textError, job.Error)
+		if err != nil {
+			return fmt.Errorf("failed to query error text: %w", err)
+		}
+		fmt.Fprintf(w, "job type %v, ns %s, finished at %s, error:%s\n========\n",
+			job.Type, job.Namespace, job.Finished, string(errorTextBytes))
+		toReset = append(toReset, jobKeys[i])
+	}
+	if r.FormValue("apply") != "yes" {
+		return nil
+	}
+	for idx, jobKey := range toReset {
+		err = invalidateBisection(ctx, jobKey, true)
+		if err != nil {
+			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
+		}
+	}
+
+	fmt.Fprintf(w, "Done!\n")
+	return nil
+}
+
+// updateBugReporting adds missing reporting stages to bugs in a single namespace.
+// Use with care. There is no undo.
+// This can be used to migrate datastore to a new config with more reporting stages.
+// This functionality is intentionally not connected to any handler.
+// Before invoking it is recommended to stop all connected instances just in case.
+func updateBugReporting(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	var bugs []*Bug
+	keys, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		GetAll(ctx, &bugs)
+	if err != nil {
+		return err
+	}
+	log.Warningf(ctx, "fetched %v bugs for namespce %v", len(bugs), ns)
+	cfg := getNsConfig(ctx, ns)
+	var update []*db.Key
+	for i, bug := range bugs {
+		if len(bug.Reporting) >= len(cfg.Reporting) {
+			continue
+		}
+		update = append(update, keys[i])
+	}
+	return updateBatch(ctx, update, func(_ *db.Key, bug *Bug) {
+		err := bug.updateReportings(ctx, cfg, timeNow(ctx))
+		if err != nil {
+			panic(err)
+		}
+	})
+}
+
+// setMissingBugFields makes sure all Bug entity fields are present in the database.
+// The problem is that, in Datastore, sorting/filtering on a field will only return entries
+// where that field is present.
+func setMissingBugFields(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	var keys []*db.Key
+	// Query everything.
+	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	log.Warningf(ctx, "fetched %v bugs for update", len(keys))
+	// Save everything unchanged.
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {})
+}
+
+func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	// Read an optional "?limit=X" parameter from the URL.
+	limit := 0
+	if limitStr := r.FormValue("limit"); limitStr != "" {
+		parsed, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return fmt.Errorf("invalid limit parameter %q: %w", limitStr, err)
+		}
+		if parsed <= 0 {
+			return fmt.Errorf("limit parameter must be positive")
+		}
+		limit = parsed
+	}
+
+	var keys []*db.Key
+	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
+		if limit > 0 && len(keys) >= limit {
+			return nil // Stop accumulating if we hit our requested limit.
+		}
+		if len(bug.Commits) > 0 && !bug.NeedCommitInfo {
+			keys = append(keys, key)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
+		bug.NeedCommitInfo = true
+	})
+}
+
+func init() {
+	// Prevent warnings about dead code.
+	runtime.KeepAlive(dropNamespace)
+	runtime.KeepAlive(dropEntities)
+	runtime.KeepAlive(adminSendEmail)
+	runtime.KeepAlive(updateHeadReproLevel)
+	runtime.KeepAlive(updateCrashPriorities)
+}
+
 // dropNamespace drops all entities related to a single namespace.
 // Use with care. There is no undo.
 // This functionality is intentionally not connected to any handler.
@@ -142,92 +292,6 @@ func dropEntities(ctx context.Context, keys []*db.Key, dryRun bool) error {
 	return nil
 }
 
-func restartFailedBisections(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(ctx, r) != AccessAdmin {
-		return fmt.Errorf("admin only")
-	}
-	ns := r.FormValue("ns")
-	if ns == "" {
-		return fmt.Errorf("no ns parameter")
-	}
-	var jobs []*Job
-	var jobKeys []*db.Key
-	jobKeys, err := db.NewQuery("Job").
-		Filter("Finished>", time.Time{}).
-		GetAll(ctx, &jobs)
-	if err != nil {
-		return fmt.Errorf("failed to query jobs: %w", err)
-	}
-	toReset := []*db.Key{}
-	for i, job := range jobs {
-		if job.Namespace != ns {
-			continue
-		}
-		if job.Type != JobBisectCause && job.Type != JobBisectFix {
-			continue
-		}
-		if job.Error == 0 {
-			continue
-		}
-		errorTextBytes, _, err := getText(ctx, textError, job.Error)
-		if err != nil {
-			return fmt.Errorf("failed to query error text: %w", err)
-		}
-		fmt.Fprintf(w, "job type %v, ns %s, finished at %s, error:%s\n========\n",
-			job.Type, job.Namespace, job.Finished, string(errorTextBytes))
-		toReset = append(toReset, jobKeys[i])
-	}
-	if r.FormValue("apply") != "yes" {
-		return nil
-	}
-	for idx, jobKey := range toReset {
-		err = invalidateBisection(ctx, jobKey, true)
-		if err != nil {
-			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
-		}
-	}
-
-	fmt.Fprintf(w, "Done!\n")
-	return nil
-}
-
-// updateBugReporting adds missing reporting stages to bugs in a single namespace.
-// Use with care. There is no undo.
-// This can be used to migrate datastore to a new config with more reporting stages.
-// This functionality is intentionally not connected to any handler.
-// Before invoking it is recommended to stop all connected instances just in case.
-func updateBugReporting(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(ctx, r) != AccessAdmin {
-		return fmt.Errorf("admin only")
-	}
-	ns := r.FormValue("ns")
-	if ns == "" {
-		return fmt.Errorf("no ns parameter")
-	}
-	var bugs []*Bug
-	keys, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		GetAll(ctx, &bugs)
-	if err != nil {
-		return err
-	}
-	log.Warningf(ctx, "fetched %v bugs for namespce %v", len(bugs), ns)
-	cfg := getNsConfig(ctx, ns)
-	var update []*db.Key
-	for i, bug := range bugs {
-		if len(bug.Reporting) >= len(cfg.Reporting) {
-			continue
-		}
-		update = append(update, keys[i])
-	}
-	return updateBatch(ctx, update, func(_ *db.Key, bug *Bug) {
-		err := bug.updateReportings(ctx, cfg, timeNow(ctx))
-		if err != nil {
-			panic(err)
-		}
-	})
-}
-
 // updateCrashPriorities regenerates priorities for crashes.
 // This has become necessary after the "dashboard: support per-Manager priority" commit.
 // For now, the method only considers the crashes referenced from bug origin.
@@ -269,27 +333,6 @@ func updateCrashPriorities(ctx context.Context, w http.ResponseWriter, r *http.R
 		}
 		crash.UpdateReportingPriority(ctx, build, bug)
 	})
-}
-
-// setMissingBugFields makes sure all Bug entity fields are present in the database.
-// The problem is that, in Datastore, sorting/filtering on a field will only return entries
-// where that field is present.
-func setMissingBugFields(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(ctx, r) != AccessAdmin {
-		return fmt.Errorf("admin only")
-	}
-	var keys []*db.Key
-	// Query everything.
-	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
-		keys = append(keys, key)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	log.Warningf(ctx, "fetched %v bugs for update", len(keys))
-	// Save everything unchanged.
-	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {})
 }
 
 // adminSendEmail can be used to send an arbitrary message from the bot.
@@ -377,47 +420,4 @@ func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key 
 		log.Warningf(ctx, "updated %v bugs", len(batchKeys))
 	}
 	return nil
-}
-
-func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	// Read an optional "?limit=X" parameter from the URL.
-	limit := 0
-	if limitStr := r.FormValue("limit"); limitStr != "" {
-		parsed, err := strconv.Atoi(limitStr)
-		if err != nil {
-			return fmt.Errorf("invalid limit parameter %q: %w", limitStr, err)
-		}
-		if parsed <= 0 {
-			return fmt.Errorf("limit parameter must be positive")
-		}
-		limit = parsed
-	}
-
-	var keys []*db.Key
-	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
-		if limit > 0 && len(keys) >= limit {
-			return nil // Stop accumulating if we hit our requested limit.
-		}
-		if len(bug.Commits) > 0 && !bug.NeedCommitInfo {
-			keys = append(keys, key)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
-	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
-		bug.NeedCommitInfo = true
-	})
-}
-
-func init() {
-	// Prevent warnings about dead code.
-	runtime.KeepAlive(dropNamespace)
-	runtime.KeepAlive(dropEntities)
-	runtime.KeepAlive(adminSendEmail)
-	runtime.KeepAlive(updateHeadReproLevel)
-	runtime.KeepAlive(updateCrashPriorities)
 }

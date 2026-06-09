@@ -131,13 +131,6 @@ func (n *StrFlags) Clone() Node {
 	}
 }
 
-func (n *Ident) Clone() Node {
-	return &Ident{
-		Pos:  n.Pos,
-		Name: n.Name,
-	}
-}
-
 func (n *String) Clone() Node {
 	return &String{
 		Pos:   n.Pos,
@@ -153,6 +146,24 @@ func (n *Int) Clone() Node {
 		ValueFmt: n.ValueFmt,
 		Ident:    n.Ident,
 		CExpr:    n.CExpr,
+	}
+}
+
+func (n *Field) Clone() Node {
+	return &Field{
+		Pos:      n.Pos,
+		Name:     n.Name.Clone().(*Ident),
+		Type:     n.Type.Clone().(*Type),
+		Attrs:    cloneTypes(n.Attrs),
+		NewBlock: n.NewBlock,
+		Comments: cloneComments(n.Comments),
+	}
+}
+
+func (n *Ident) Clone() Node {
+	return &Ident{
+		Pos:  n.Pos,
+		Name: n.Name,
 	}
 }
 
@@ -172,17 +183,6 @@ func (n *Type) Clone() Node {
 		ret.Expression = n.Expression.Clone().(*BinaryExpression)
 	}
 	return ret
-}
-
-func (n *Field) Clone() Node {
-	return &Field{
-		Pos:      n.Pos,
-		Name:     n.Name.Clone().(*Ident),
-		Type:     n.Type.Clone().(*Type),
-		Attrs:    cloneTypes(n.Attrs),
-		NewBlock: n.NewBlock,
-		Comments: cloneComments(n.Comments),
-	}
 }
 
 func (n *BinaryExpression) Clone() Node {

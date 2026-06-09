@@ -27,38 +27,6 @@ const (
 	KFuzzTestMaxInputSize uint64 = 64 << 10
 )
 
-func kFuzzTestWritePrefix(buf *bytes.Buffer) {
-	prefix := (uint64(kFuzzTestVersion) << 32) | uint64(kFuzzTestMagic)
-	binary.Write(buf, binary.LittleEndian, prefix)
-}
-
-func isPowerOfTwo(n uint64) bool {
-	return n > 0 && (n&(n-1) == 0)
-}
-
-func roundUpPowerOfTwo(x, n uint64) uint64 {
-	if !isPowerOfTwo(n) {
-		panic("n was not a power of 2")
-	}
-	return (x + n - 1) &^ (n - 1)
-}
-
-// Pad b so that it's length is a multiple of alignment, with at least
-// minPadding bytes of padding, where alignment is a power of 2.
-func padWithAlignment(b *bytes.Buffer, alignment, minPadding uint64) {
-	var newSize uint64
-	if alignment == 0 {
-		newSize = uint64(b.Len()) + minPadding
-	} else {
-		newSize = roundUpPowerOfTwo(uint64(b.Len())+minPadding, alignment)
-	}
-
-	paddingBytes := newSize - uint64(b.Len())
-	for range paddingBytes {
-		b.WriteByte(byte(0))
-	}
-}
-
 type sliceQueue[T any] struct {
 	q []T
 }
@@ -77,10 +45,6 @@ func (sq *sliceQueue[T]) isEmpty() bool {
 	return len(sq.q) == 0
 }
 
-func newSliceQueue[T any]() *sliceQueue[T] {
-	return &sliceQueue[T]{q: make([]T, 0)}
-}
-
 type kFuzzTestRelocation struct {
 	offset    uint32
 	srcRegion Arg
@@ -96,107 +60,9 @@ type kFuzzTestRegion struct {
 // definitions in <include/linux/kfuzztest.h>.
 const kFuzzTestRegionSize = 8
 
-func kFuzzTestRegionArraySize(numRegions int) int {
-	return 4 + kFuzzTestRegionSize*numRegions
-}
-
-func kFuzzTestWriteRegion(buf *bytes.Buffer, region kFuzzTestRegion) {
-	binary.Write(buf, binary.LittleEndian, region.offset)
-	binary.Write(buf, binary.LittleEndian, region.size)
-}
-
-func kFuzzTestWriteRegionArray(buf *bytes.Buffer, regions []kFuzzTestRegion) {
-	binary.Write(buf, binary.LittleEndian, uint32(len(regions)))
-	for _, reg := range regions {
-		kFuzzTestWriteRegion(buf, reg)
-	}
-}
-
 const kFuzzTestRelocationSize = 12
 
-func kFuzzTestRelocTableSize(numRelocs int) int {
-	return 8 + kFuzzTestRelocationSize*numRelocs
-}
-
-func kFuzzTestWriteReloc(buf *bytes.Buffer, regToID *map[Arg]int, reloc kFuzzTestRelocation) {
-	binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.srcRegion]))
-	binary.Write(buf, binary.LittleEndian, reloc.offset)
-	if reloc.dstRegion == nil {
-		binary.Write(buf, binary.LittleEndian, kFuzzTestRegionIDNull)
-	} else {
-		binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.dstRegion]))
-	}
-}
-
-func kFuzzTestWriteRelocTable(buf *bytes.Buffer, regToID *map[Arg]int,
-	relocations []kFuzzTestRelocation, paddingBytes uint64) {
-	binary.Write(buf, binary.LittleEndian, uint32(len(relocations)))
-	binary.Write(buf, binary.LittleEndian, uint32(paddingBytes))
-	for _, reloc := range relocations {
-		kFuzzTestWriteReloc(buf, regToID, reloc)
-	}
-	buf.Write(make([]byte, paddingBytes))
-}
-
 const kFuzzTestPlaceHolderPtr uint64 = 0xFFFFFFFFFFFFFFFF
-
-// Expands a region, and returns a list of relocations that need to be made.
-func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
-	relocations := []kFuzzTestRelocation{}
-	var encoded bytes.Buffer
-	queue := newSliceQueue[Arg]()
-	queue.push(reg)
-
-	for !queue.isEmpty() {
-		arg := queue.pop()
-		padWithAlignment(&encoded, arg.Type().Alignment(), 0)
-
-		switch a := arg.(type) {
-		case *PointerArg:
-			offset := uint32(encoded.Len())
-			binary.Write(&encoded, binary.LittleEndian, kFuzzTestPlaceHolderPtr)
-			relocations = append(relocations, kFuzzTestRelocation{offset, reg, a.Res})
-		case *GroupArg:
-			for _, inner := range a.Inner {
-				queue.push(inner)
-			}
-		case *DataArg:
-			data := a.data
-			buffer, ok := a.ArgCommon.Type().(*BufferType)
-			if !ok {
-				panic("DataArg should be a BufferType")
-			}
-			// Unlike length fields whose incorrectness can be prevented easily,
-			// it is an invasive change to prevent generation of
-			// non-null-terminated strings. Forcibly null-terminating them
-			// during encoding allows us to centralize this easily and prevent
-			// false positive buffer overflows in KFuzzTest targets.
-			if buffer.Kind == BufferString && (len(data) == 0 || data[len(data)-1] != byte(0)) {
-				data = append(data, byte(0))
-			}
-			encoded.Write(data)
-		case *ConstArg:
-			val, _ := a.Value()
-			switch a.Size() {
-			case 1:
-				binary.Write(&encoded, binary.LittleEndian, uint8(val))
-			case 2:
-				binary.Write(&encoded, binary.LittleEndian, uint16(val))
-			case 4:
-				binary.Write(&encoded, binary.LittleEndian, uint32(val))
-			case 8:
-				binary.Write(&encoded, binary.LittleEndian, val)
-			default:
-				panic(fmt.Sprintf("unsupported constant size: %d", a.Size()))
-			}
-			// TODO: handle union args.
-		default:
-			panic(fmt.Sprintf("tried to serialize unsupported type: %s", a.Type().Name()))
-		}
-	}
-
-	return encoded.Bytes(), relocations
-}
 
 // MarshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
 // understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
@@ -293,4 +159,138 @@ Loop:
 	kFuzzTestWriteRelocTable(&out, &visitedRegions, allRelocations, paddingBytes)
 	out.Write(payload.Bytes())
 	return out.Bytes()
+}
+
+func kFuzzTestWritePrefix(buf *bytes.Buffer) {
+	prefix := (uint64(kFuzzTestVersion) << 32) | uint64(kFuzzTestMagic)
+	binary.Write(buf, binary.LittleEndian, prefix)
+}
+
+func kFuzzTestRegionArraySize(numRegions int) int {
+	return 4 + kFuzzTestRegionSize*numRegions
+}
+
+func kFuzzTestWriteRegionArray(buf *bytes.Buffer, regions []kFuzzTestRegion) {
+	binary.Write(buf, binary.LittleEndian, uint32(len(regions)))
+	for _, reg := range regions {
+		kFuzzTestWriteRegion(buf, reg)
+	}
+}
+
+func kFuzzTestWriteRegion(buf *bytes.Buffer, region kFuzzTestRegion) {
+	binary.Write(buf, binary.LittleEndian, region.offset)
+	binary.Write(buf, binary.LittleEndian, region.size)
+}
+
+func kFuzzTestRelocTableSize(numRelocs int) int {
+	return 8 + kFuzzTestRelocationSize*numRelocs
+}
+
+func kFuzzTestWriteRelocTable(buf *bytes.Buffer, regToID *map[Arg]int,
+	relocations []kFuzzTestRelocation, paddingBytes uint64) {
+	binary.Write(buf, binary.LittleEndian, uint32(len(relocations)))
+	binary.Write(buf, binary.LittleEndian, uint32(paddingBytes))
+	for _, reloc := range relocations {
+		kFuzzTestWriteReloc(buf, regToID, reloc)
+	}
+	buf.Write(make([]byte, paddingBytes))
+}
+
+func kFuzzTestWriteReloc(buf *bytes.Buffer, regToID *map[Arg]int, reloc kFuzzTestRelocation) {
+	binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.srcRegion]))
+	binary.Write(buf, binary.LittleEndian, reloc.offset)
+	if reloc.dstRegion == nil {
+		binary.Write(buf, binary.LittleEndian, kFuzzTestRegionIDNull)
+	} else {
+		binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.dstRegion]))
+	}
+}
+
+// Expands a region, and returns a list of relocations that need to be made.
+func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
+	relocations := []kFuzzTestRelocation{}
+	var encoded bytes.Buffer
+	queue := newSliceQueue[Arg]()
+	queue.push(reg)
+
+	for !queue.isEmpty() {
+		arg := queue.pop()
+		padWithAlignment(&encoded, arg.Type().Alignment(), 0)
+
+		switch a := arg.(type) {
+		case *PointerArg:
+			offset := uint32(encoded.Len())
+			binary.Write(&encoded, binary.LittleEndian, kFuzzTestPlaceHolderPtr)
+			relocations = append(relocations, kFuzzTestRelocation{offset, reg, a.Res})
+		case *GroupArg:
+			for _, inner := range a.Inner {
+				queue.push(inner)
+			}
+		case *DataArg:
+			data := a.data
+			buffer, ok := a.ArgCommon.Type().(*BufferType)
+			if !ok {
+				panic("DataArg should be a BufferType")
+			}
+			// Unlike length fields whose incorrectness can be prevented easily,
+			// it is an invasive change to prevent generation of
+			// non-null-terminated strings. Forcibly null-terminating them
+			// during encoding allows us to centralize this easily and prevent
+			// false positive buffer overflows in KFuzzTest targets.
+			if buffer.Kind == BufferString && (len(data) == 0 || data[len(data)-1] != byte(0)) {
+				data = append(data, byte(0))
+			}
+			encoded.Write(data)
+		case *ConstArg:
+			val, _ := a.Value()
+			switch a.Size() {
+			case 1:
+				binary.Write(&encoded, binary.LittleEndian, uint8(val))
+			case 2:
+				binary.Write(&encoded, binary.LittleEndian, uint16(val))
+			case 4:
+				binary.Write(&encoded, binary.LittleEndian, uint32(val))
+			case 8:
+				binary.Write(&encoded, binary.LittleEndian, val)
+			default:
+				panic(fmt.Sprintf("unsupported constant size: %d", a.Size()))
+			}
+			// TODO: handle union args.
+		default:
+			panic(fmt.Sprintf("tried to serialize unsupported type: %s", a.Type().Name()))
+		}
+	}
+
+	return encoded.Bytes(), relocations
+}
+
+// Pad b so that it's length is a multiple of alignment, with at least
+// minPadding bytes of padding, where alignment is a power of 2.
+func padWithAlignment(b *bytes.Buffer, alignment, minPadding uint64) {
+	var newSize uint64
+	if alignment == 0 {
+		newSize = uint64(b.Len()) + minPadding
+	} else {
+		newSize = roundUpPowerOfTwo(uint64(b.Len())+minPadding, alignment)
+	}
+
+	paddingBytes := newSize - uint64(b.Len())
+	for range paddingBytes {
+		b.WriteByte(byte(0))
+	}
+}
+
+func roundUpPowerOfTwo(x, n uint64) uint64 {
+	if !isPowerOfTwo(n) {
+		panic("n was not a power of 2")
+	}
+	return (x + n - 1) &^ (n - 1)
+}
+
+func isPowerOfTwo(n uint64) bool {
+	return n > 0 && (n&(n-1) == 0)
+}
+
+func newSliceQueue[T any]() *sliceQueue[T] {
+	return &sliceQueue[T]{q: make([]T, 0)}
 }

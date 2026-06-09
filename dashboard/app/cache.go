@@ -159,10 +159,6 @@ func CachedBugGroups(ctx context.Context, ns string, accessLevel AccessLevel) ([
 	return ret, err
 }
 
-func cachedBugGroupsKey(ns string, accessLevel AccessLevel) string {
-	return fmt.Sprintf("%v-%v-bug-groups", ns, accessLevel)
-}
-
 // minuteCacheUpdate updates memcache every minute (called by cron.yaml).
 func handleMinuteCacheUpdate(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
@@ -208,6 +204,10 @@ func minuteCacheNsUpdate(ctx context.Context, ns string) error {
 		}
 	}
 	return nil
+}
+
+func cachedBugGroupsKey(ns string, accessLevel AccessLevel) string {
+	return fmt.Sprintf("%v-%v-bug-groups", ns, accessLevel)
 }
 
 func CachedManagerList(ctx context.Context, ns string) ([]string, error) {
@@ -262,25 +262,6 @@ type RequesterInfo struct {
 	Requests []time.Time
 }
 
-func (ri *RequesterInfo) Record(now time.Time, cfg ThrottleConfig) bool {
-	var newRequests []time.Time
-	for _, req := range ri.Requests {
-		if now.Sub(req) >= cfg.Window {
-			continue
-		}
-		newRequests = append(newRequests, req)
-	}
-	newRequests = append(newRequests, now)
-	sort.Slice(ri.Requests, func(i, j int) bool { return ri.Requests[i].Before(ri.Requests[j]) })
-	// Don't store more than needed.
-	if len(newRequests) > cfg.Limit+1 {
-		newRequests = newRequests[len(newRequests)-(cfg.Limit+1):]
-	}
-	ri.Requests = newRequests
-	// Check that we satisfy the conditions.
-	return len(newRequests) <= cfg.Limit
-}
-
 var ErrThrottleTooManyRetries = errors.New("all attempts to record request failed")
 
 func ThrottleRequest(ctx context.Context, requesterID string) (bool, error) {
@@ -329,4 +310,23 @@ func ThrottleRequest(ctx context.Context, requesterID string) (bool, error) {
 		return ok, nil
 	}
 	return false, ErrThrottleTooManyRetries
+}
+
+func (ri *RequesterInfo) Record(now time.Time, cfg ThrottleConfig) bool {
+	var newRequests []time.Time
+	for _, req := range ri.Requests {
+		if now.Sub(req) >= cfg.Window {
+			continue
+		}
+		newRequests = append(newRequests, req)
+	}
+	newRequests = append(newRequests, now)
+	sort.Slice(ri.Requests, func(i, j int) bool { return ri.Requests[i].Before(ri.Requests[j]) })
+	// Don't store more than needed.
+	if len(newRequests) > cfg.Limit+1 {
+		newRequests = newRequests[len(newRequests)-(cfg.Limit+1):]
+	}
+	ri.Requests = newRequests
+	// Check that we satisfy the conditions.
+	return len(newRequests) <= cfg.Limit
 }

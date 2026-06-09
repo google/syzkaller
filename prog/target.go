@@ -326,13 +326,6 @@ func (target *Target) GetConst(name string) uint64 {
 	return v
 }
 
-func (target *Target) sanitize(c *Call, fix bool) error {
-	// For now, even though we accept the fix argument, it does not have the full effect.
-	// It de facto only denies structural changes, e.g. deletions of arguments.
-	// TODO: rewrite the corresponding sys/*/init.go code.
-	return target.Neutralize(c, fix)
-}
-
 func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) {
 	restoreLinks(syscalls, resources, types)
 }
@@ -529,6 +522,13 @@ func (pg *Builder) Append(c *Call) error {
 	pg.target.sanitize(c, true)
 	pg.p.Calls = append(pg.p.Calls, c)
 	return nil
+}
+
+func (target *Target) sanitize(c *Call, fix bool) error {
+	// For now, even though we accept the fix argument, it does not have the full effect.
+	// It de facto only denies structural changes, e.g. deletions of arguments.
+	// TODO: rewrite the corresponding sys/*/init.go code.
+	return target.Neutralize(c, fix)
 }
 
 func (pg *Builder) Allocate(size, alignment uint64) uint64 {

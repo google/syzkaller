@@ -40,6 +40,73 @@ type ParsedURI struct {
 	Full           string
 }
 
+//go:embed migrations/*.sql
+var migrationsFs embed.FS
+
+func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
+	uri := "projects/my-project/instances/test-instance/databases/" +
+		fmt.Sprintf("db%v", time.Now().UnixNano())
+	NewTestDB(t, uri, nil)
+	ctx := t.Context()
+	client, err := spanner.NewClient(ctx, uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(client.Close)
+	err = RunMigrations(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return client, ctx
+}
+
+func RunMigrations(uri string) error {
+	m, err := getMigrateInstance(uri)
+	if err != nil {
+		return err
+	}
+	err = m.Up()
+	if err == migrate.ErrNoChange {
+		// Not really an error.
+		return nil
+	}
+	return err
+}
+
+func getMigrateInstance(uri string) (*migrate.Migrate, error) {
+	sourceDriver, err := iofs.New(migrationsFs, "migrations")
+	if err != nil {
+		return nil, err
+	}
+	s := &migrate_spanner.Spanner{}
+	dbDriver, err := s.Open("spanner://" + uri + "?x-clean-statements=true")
+	if err != nil {
+		return nil, err
+	}
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "spanner", dbDriver)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func NewTestDB(t *testing.T, uri string, ddl []string) {
+	setupSpannerEmulator(t)
+	// Don't bother destroying instances/databases.
+	// We create isolated per-test databases, and the emulator is all in-memory.
+	// So when the emulator is killed with the test binary, everything is gone.
+	parsedURI, err := ParseURI(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateSpannerInstance(t.Context(), parsedURI); err != nil {
+		t.Fatalf("failed CreateSpannerInstance: %v", err)
+	}
+	if err := CreateSpannerDB(t.Context(), parsedURI, ddl); err != nil {
+		t.Fatalf("failed CreateSpannerDB: %v", err)
+	}
+}
+
 func ParseURI(uri string) (ParsedURI, error) {
 	ret := ParsedURI{Full: uri}
 	matches := regexp.MustCompile(`projects/(.*)/instances/(.*)/databases/(.*)`).FindStringSubmatch(uri)
@@ -97,73 +164,6 @@ func CreateSpannerDB(ctx context.Context, uri ParsedURI, ddl []string) error {
 	}
 	_, err = op.Wait(ctx)
 	return err
-}
-
-//go:embed migrations/*.sql
-var migrationsFs embed.FS
-
-func RunMigrations(uri string) error {
-	m, err := getMigrateInstance(uri)
-	if err != nil {
-		return err
-	}
-	err = m.Up()
-	if err == migrate.ErrNoChange {
-		// Not really an error.
-		return nil
-	}
-	return err
-}
-
-func getMigrateInstance(uri string) (*migrate.Migrate, error) {
-	sourceDriver, err := iofs.New(migrationsFs, "migrations")
-	if err != nil {
-		return nil, err
-	}
-	s := &migrate_spanner.Spanner{}
-	dbDriver, err := s.Open("spanner://" + uri + "?x-clean-statements=true")
-	if err != nil {
-		return nil, err
-	}
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "spanner", dbDriver)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
-	uri := "projects/my-project/instances/test-instance/databases/" +
-		fmt.Sprintf("db%v", time.Now().UnixNano())
-	NewTestDB(t, uri, nil)
-	ctx := t.Context()
-	client, err := spanner.NewClient(ctx, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(client.Close)
-	err = RunMigrations(uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return client, ctx
-}
-
-func NewTestDB(t *testing.T, uri string, ddl []string) {
-	setupSpannerEmulator(t)
-	// Don't bother destroying instances/databases.
-	// We create isolated per-test databases, and the emulator is all in-memory.
-	// So when the emulator is killed with the test binary, everything is gone.
-	parsedURI, err := ParseURI(uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := CreateSpannerInstance(t.Context(), parsedURI); err != nil {
-		t.Fatalf("failed CreateSpannerInstance: %v", err)
-	}
-	if err := CreateSpannerDB(t.Context(), parsedURI, ddl); err != nil {
-		t.Fatalf("failed CreateSpannerDB: %v", err)
-	}
 }
 
 var (
@@ -235,51 +235,8 @@ func startSpannerEmulator() error {
 	return nil
 }
 
-func readRow[T any](iter *spanner.RowIterator) (*T, error) {
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var obj T
-	err = row.ToStruct(&obj)
-	if err != nil {
-		return nil, err
-	}
-	return &obj, nil
-}
-
 type dbQuerier interface {
 	Query(context.Context, spanner.Statement) *spanner.RowIterator
-}
-
-func readEntity[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) (*T, error) {
-	iter := txn.Query(ctx, stmt)
-	defer iter.Stop()
-	return readRow[T](iter)
-}
-
-func readRows[T any](iter *spanner.RowIterator) ([]*T, error) {
-	var ret []*T
-	for {
-		obj, err := readRow[T](iter)
-		if err != nil {
-			return nil, err
-		}
-		if obj == nil {
-			break
-		}
-		ret = append(ret, obj)
-	}
-	return ret, nil
-}
-
-func readEntities[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) ([]*T, error) {
-	iter := txn.Query(ctx, stmt)
-	defer iter.Stop()
-	return readRows[T](iter)
 }
 
 const NoLimit = 0
@@ -334,6 +291,12 @@ func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key 
 	return err
 }
 
+func readEntity[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) (*T, error) {
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+	return readRow[T](iter)
+}
+
 var errEntityExists = errors.New("entity already exists")
 
 func (g *genericEntityOps[EntityType, KeyType]) Insert(ctx context.Context, obj *EntityType) error {
@@ -366,4 +329,41 @@ func (g *genericEntityOps[EntityType, KeyType]) Upsert(ctx context.Context, obj 
 func (g *genericEntityOps[EntityType, KeyType]) readEntities(ctx context.Context, stmt spanner.Statement) (
 	[]*EntityType, error) {
 	return readEntities[EntityType](ctx, g.client.Single(), stmt)
+}
+
+func readEntities[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) ([]*T, error) {
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+	return readRows[T](iter)
+}
+
+func readRows[T any](iter *spanner.RowIterator) ([]*T, error) {
+	var ret []*T
+	for {
+		obj, err := readRow[T](iter)
+		if err != nil {
+			return nil, err
+		}
+		if obj == nil {
+			break
+		}
+		ret = append(ret, obj)
+	}
+	return ret, nil
+}
+
+func readRow[T any](iter *spanner.RowIterator) (*T, error) {
+	row, err := iter.Next()
+	if err == iterator.Done {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var obj T
+	err = row.ToStruct(&obj)
+	if err != nil {
+		return nil, err
+	}
+	return &obj, nil
 }

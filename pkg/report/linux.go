@@ -157,7 +157,9 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 const contextConsole = "console"
 
 var linuxPanickedRe = regexp.MustCompile(`Kernel panic - not syncing`)
+
 var replayRe = regexp.MustCompile(`^\n[^\n]*\*\* replaying previous printk message \*\*`)
+
 var linuxFaultInjectionRe = []byte("FAULT_INJECTION: forcing a failure")
 
 func (ctx *linux) ContainsCrash(output []byte) bool {
@@ -364,13 +366,6 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 }
 
-func isTruncatedByReplay(output []byte, pos int) bool {
-	if pos >= len(output) {
-		return false
-	}
-	return replayRe.Match(output[pos:])
-}
-
 func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, context string) {
 	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
 		next = bytes.IndexByte(output[pos:], '\n')
@@ -508,6 +503,13 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		}
 	}
 	return
+}
+
+func isTruncatedByReplay(output []byte, pos int) bool {
+	if pos >= len(output) {
+		return false
+	}
+	return replayRe.Match(output[pos:])
 }
 
 func (ctx *linux) stripLinePrefix(line []byte, context string, useQuestionable bool) ([]byte, bool) {

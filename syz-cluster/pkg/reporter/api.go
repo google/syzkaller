@@ -20,23 +20,6 @@ type APIServer struct {
 	discussionService *service.DiscussionService
 }
 
-func NewAPIServer(env *app.AppEnvironment) *APIServer {
-	return &APIServer{
-		reportService:     service.NewReportService(env),
-		discussionService: service.NewDiscussionService(env),
-	}
-}
-
-func (s *APIServer) Mux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/reports/{report_id}/upstream", s.upstreamReport)
-	mux.HandleFunc("/reports/{report_id}/confirm", s.confirmReport)
-	mux.HandleFunc("/reports/{report_id}/invalidate", s.invalidateReport)
-	mux.HandleFunc("/reports/record_reply", s.recordReply)
-	mux.HandleFunc("/reports", s.nextReports)
-	return mux
-}
-
 func (s *APIServer) upstreamReport(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.UpstreamReportReq](w, r)
 	if req == nil {
@@ -91,4 +74,21 @@ func TestServer(t *testing.T, env *app.AppEnvironment) *api.ReporterClient {
 	server := httptest.NewServer(apiServer.Mux())
 	t.Cleanup(server.Close)
 	return api.NewReporterClient(server.URL)
+}
+
+func NewAPIServer(env *app.AppEnvironment) *APIServer {
+	return &APIServer{
+		reportService:     service.NewReportService(env),
+		discussionService: service.NewDiscussionService(env),
+	}
+}
+
+func (s *APIServer) Mux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/reports/{report_id}/upstream", s.upstreamReport)
+	mux.HandleFunc("/reports/{report_id}/confirm", s.confirmReport)
+	mux.HandleFunc("/reports/{report_id}/invalidate", s.invalidateReport)
+	mux.HandleFunc("/reports/record_reply", s.recordReply)
+	mux.HandleFunc("/reports", s.nextReports)
+	return mux
 }

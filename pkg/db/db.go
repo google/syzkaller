@@ -39,6 +39,134 @@ type Record struct {
 	Seq uint64
 }
 
+func (db *DB) Delete(key string) {
+	if _, ok := db.Records[key]; !ok {
+		return
+	}
+	delete(db.Records, key)
+	db.serialize(key, nil, seqDeleted)
+	db.uncompacted++
+}
+
+// DiscardData discards all record's values from memory.
+// This allows to save memory if values are not needed anymore,
+// but in exchange every compaction will need to re-read all data from disk.
+func (db *DB) DiscardData() {
+	db.dataDiscarded = true
+	for key, rec := range db.Records {
+		rec.Val = nil
+		db.Records[key] = rec
+	}
+}
+
+func (db *DB) serialize(key string, val []byte, seq uint64) {
+	if db.pending == nil {
+		db.pending = new(bytes.Buffer)
+	}
+	serializeRecord(db.pending, key, val, seq)
+}
+
+const (
+	dbMagic    = uint32(0xbaddb)
+	recMagic   = uint32(0xfee1bad)
+	curVersion = uint32(2)
+	seqDeleted = ^uint64(0)
+	// maxKeyLen guards against OOM when parsing a crafted corpus DB file.
+	// Real keys are SHA-256 hex strings (64 bytes); 64 KiB is a generous cap.
+	maxKeyLen = 64 << 10 // 65536
+	// maxValLen guards against decompression-bomb OOM in deserializeRecord.
+	// Corpus values are syscall-sequence programs; 16 MiB is a generous cap.
+	maxValLen = 16 << 20 // 16 MiB
+)
+
+// Create creates a new database in the specified file with the specified records.
+func Create(filename string, version uint64, records []Record) error {
+	os.Remove(filename)
+	db, err := Open(filename, true)
+	if err != nil {
+		return fmt.Errorf("failed to open database file: %w", err)
+	}
+	if err := db.BumpVersion(version); err != nil {
+		return fmt.Errorf("failed to bump database version: %w", err)
+	}
+	for _, rec := range records {
+		db.Save(hash.String(rec.Val), rec.Val, rec.Seq)
+	}
+	if err := db.Flush(); err != nil {
+		return fmt.Errorf("failed to save database file: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) BumpVersion(version uint64) error {
+	if err := db.Flush(); err != nil {
+		return err
+	}
+	if db.Version == version {
+		return nil
+	}
+	db.Version = version
+	return db.compact()
+}
+
+func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err error) {
+	if filename == "" {
+		return
+	}
+	db, err := Open(filename, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database file: %w", err)
+	}
+	recordKeys := slices.Sorted(maps.Keys(db.Records))
+	for _, key := range recordKeys {
+		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize corpus program: %w", err)
+		}
+		progs = append(progs, p)
+	}
+	return progs, nil
+}
+
+type DeserializeFailure struct {
+	File string
+	Err  error
+}
+
+func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailure, error) {
+	dstDB, err := Open(into, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+	var failed []DeserializeFailure
+	for _, add := range other {
+		addDB, err := Open(add, false)
+		if err == nil {
+			// It's a DB file.
+			for key, rec := range addDB.Records {
+				dstDB.Save(key, rec.Val, rec.Seq)
+			}
+			continue
+		}
+		if target == nil {
+			// We were not given a target, so we cannot parse it as a seed file.
+			return nil, fmt.Errorf("failed to open db %v: %w", add, err)
+		}
+		data, err := os.ReadFile(add)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
+			failed = append(failed, DeserializeFailure{add, err})
+		}
+		dstDB.Save(hash.String(data), data, 0)
+	}
+	if err := dstDB.Flush(); err != nil {
+		return nil, fmt.Errorf("failed to save db: %w", err)
+	}
+	return failed, nil
+}
+
 // Open opens the specified database file.
 // If the database is corrupted and reading failed, then it returns an non-nil db
 // with whatever records were recovered and a non-nil error at the same time.
@@ -75,26 +203,6 @@ func (db *DB) Save(key string, val []byte, seq uint64) {
 	db.uncompacted++
 }
 
-func (db *DB) Delete(key string) {
-	if _, ok := db.Records[key]; !ok {
-		return
-	}
-	delete(db.Records, key)
-	db.serialize(key, nil, seqDeleted)
-	db.uncompacted++
-}
-
-// DiscardData discards all record's values from memory.
-// This allows to save memory if values are not needed anymore,
-// but in exchange every compaction will need to re-read all data from disk.
-func (db *DB) DiscardData() {
-	db.dataDiscarded = true
-	for key, rec := range db.Records {
-		rec.Val = nil
-		db.Records[key] = rec
-	}
-}
-
 func (db *DB) Flush() error {
 	if db.pending == nil {
 		return nil
@@ -111,17 +219,6 @@ func (db *DB) Flush() error {
 	if db.uncompacted/10*9 < len(db.Records) {
 		return nil
 	}
-	return db.compact()
-}
-
-func (db *DB) BumpVersion(version uint64) error {
-	if err := db.Flush(); err != nil {
-		return err
-	}
-	if db.Version == version {
-		return nil
-	}
-	db.Version = version
 	return db.compact()
 }
 
@@ -157,26 +254,6 @@ func (db *DB) compact() error {
 	db.uncompacted = len(records)
 	return nil
 }
-
-func (db *DB) serialize(key string, val []byte, seq uint64) {
-	if db.pending == nil {
-		db.pending = new(bytes.Buffer)
-	}
-	serializeRecord(db.pending, key, val, seq)
-}
-
-const (
-	dbMagic    = uint32(0xbaddb)
-	recMagic   = uint32(0xfee1bad)
-	curVersion = uint32(2)
-	seqDeleted = ^uint64(0)
-	// maxKeyLen guards against OOM when parsing a crafted corpus DB file.
-	// Real keys are SHA-256 hex strings (64 bytes); 64 KiB is a generous cap.
-	maxKeyLen = 64 << 10 // 65536
-	// maxValLen guards against decompression-bomb OOM in deserializeRecord.
-	// Corpus values are syscall-sequence programs; 16 MiB is a generous cap.
-	maxValLen = 16 << 20 // 16 MiB
-)
 
 func serializeHeader(w *bytes.Buffer, version uint64) {
 	binary.Write(w, binary.LittleEndian, dbMagic)
@@ -321,81 +398,4 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 		}
 	}
 	return
-}
-
-// Create creates a new database in the specified file with the specified records.
-func Create(filename string, version uint64, records []Record) error {
-	os.Remove(filename)
-	db, err := Open(filename, true)
-	if err != nil {
-		return fmt.Errorf("failed to open database file: %w", err)
-	}
-	if err := db.BumpVersion(version); err != nil {
-		return fmt.Errorf("failed to bump database version: %w", err)
-	}
-	for _, rec := range records {
-		db.Save(hash.String(rec.Val), rec.Val, rec.Seq)
-	}
-	if err := db.Flush(); err != nil {
-		return fmt.Errorf("failed to save database file: %w", err)
-	}
-	return nil
-}
-
-func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err error) {
-	if filename == "" {
-		return
-	}
-	db, err := Open(filename, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database file: %w", err)
-	}
-	recordKeys := slices.Sorted(maps.Keys(db.Records))
-	for _, key := range recordKeys {
-		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize corpus program: %w", err)
-		}
-		progs = append(progs, p)
-	}
-	return progs, nil
-}
-
-type DeserializeFailure struct {
-	File string
-	Err  error
-}
-
-func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailure, error) {
-	dstDB, err := Open(into, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-	var failed []DeserializeFailure
-	for _, add := range other {
-		addDB, err := Open(add, false)
-		if err == nil {
-			// It's a DB file.
-			for key, rec := range addDB.Records {
-				dstDB.Save(key, rec.Val, rec.Seq)
-			}
-			continue
-		}
-		if target == nil {
-			// We were not given a target, so we cannot parse it as a seed file.
-			return nil, fmt.Errorf("failed to open db %v: %w", add, err)
-		}
-		data, err := os.ReadFile(add)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
-			failed = append(failed, DeserializeFailure{add, err})
-		}
-		dstDB.Save(hash.String(data), data, 0)
-	}
-	if err := dstDB.Flush(); err != nil {
-		return nil, fmt.Errorf("failed to save db: %w", err)
-	}
-	return failed, nil
 }

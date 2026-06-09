@@ -63,6 +63,20 @@ const (
 	binExitConditions = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
 )
 
+func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Config,
+	reporter *report.Reporter, opt *OptionalConfig) (*ExecProgInstance, error) {
+	vmInst, err := vmPool.Create(context.Background(), vmIndex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create VM: %w", err)
+	}
+	ret, err := SetupExecProg(vmInst, mgrCfg, reporter, opt)
+	if err != nil {
+		vmInst.Close()
+		return nil, err
+	}
+	return ret, nil
+}
+
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
 	opt *OptionalConfig) (*ExecProgInstance, error) {
 	var err error
@@ -103,18 +117,18 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	return ret, nil
 }
 
-func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Config,
-	reporter *report.Reporter, opt *OptionalConfig) (*ExecProgInstance, error) {
-	vmInst, err := vmPool.Create(context.Background(), vmIndex)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create VM: %w", err)
-	}
-	ret, err := SetupExecProg(vmInst, mgrCfg, reporter, opt)
-	if err != nil {
-		vmInst.Close()
-		return nil, err
-	}
-	return ret, nil
+type RunOptions struct {
+	Opts            csource.Options
+	Duration        time.Duration
+	CollectCoverage bool
+	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
+	// RunCProg() always runs with binExitConditions.
+	ExitConditions vm.ExitCondition
+	// If MemoryDump is set, the package will attempt to extract a memory dump from the VM.
+	MemoryDump bool
+	// If not empty, the memory dump file will be created in the given location.
+	// If empty, the system default temporary directory will be used.
+	MemoryDumpDir string
 }
 
 func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunResult, error) {
@@ -201,20 +215,6 @@ func (inst *ExecProgInstance) runBinary(bin string, opts RunOptions) (*RunResult
 	}
 	opts.ExitConditions = binExitConditions
 	return inst.runCommand(bin, opts)
-}
-
-type RunOptions struct {
-	Opts            csource.Options
-	Duration        time.Duration
-	CollectCoverage bool
-	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
-	// RunCProg() always runs with binExitConditions.
-	ExitConditions vm.ExitCondition
-	// If MemoryDump is set, the package will attempt to extract a memory dump from the VM.
-	MemoryDump bool
-	// If not empty, the memory dump file will be created in the given location.
-	// If empty, the system default temporary directory will be used.
-	MemoryDumpDir string
 }
 
 func (inst *ExecProgInstance) RunCProg(p *prog.Prog, opts RunOptions) (*RunResult, error) {

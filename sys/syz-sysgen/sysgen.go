@@ -41,17 +41,6 @@ type Define struct {
 	Value string
 }
 
-type ArchData struct {
-	Revision   string
-	ForkServer int
-	GOARCH     string
-	PageSize   uint64
-	NumPages   uint64
-	DataOffset uint64
-	Calls      []SyscallData
-	Defines    []Define
-}
-
 type OSData struct {
 	GOOS  string
 	Archs []ArchData
@@ -70,6 +59,7 @@ type TemplateData struct {
 }
 
 var srcDir = flag.String("src", "", "path to root of syzkaller source dir")
+
 var outDir = flag.String("out", "", "path to out dir")
 
 func main() {
@@ -197,6 +187,17 @@ type Job struct {
 	ArchData    ArchData
 	ConstInfo   map[string]*compiler.ConstInfo
 	Revision    string
+}
+
+type ArchData struct {
+	Revision   string
+	ForkServer int
+	GOARCH     string
+	PageSize   uint64
+	NumPages   uint64
+	DataOffset uint64
+	Calls      []SyscallData
+	Defines    []Define
 }
 
 func processJob(job *Job, descriptions *ast.Description, constFile *compiler.ConstFile) {

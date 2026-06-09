@@ -33,56 +33,6 @@ func (ii InboxInfo) LastEpochURL() string {
 
 var archiveRe = regexp.MustCompile(`/([\w-]+)/git/(\d+)\.git`)
 
-func ParseManifest(baseURL string, jsonData []byte) (map[string]*InboxInfo, error) {
-	var rawMap map[string]json.RawMessage
-	err := json.Unmarshal(jsonData, &rawMap)
-	if err != nil {
-		return nil, err
-	}
-	ret := map[string]*InboxInfo{}
-	for url := range rawMap {
-		groups := archiveRe.FindStringSubmatch(url)
-		if len(groups) == 0 {
-			// TODO: monitor these.
-			log.Printf("unexpected manifest.js key: %q", url)
-			continue
-		}
-		epoch, err := strconv.Atoi(groups[2])
-		if err != nil {
-			log.Printf("invalid manifest.js key: %q", url)
-			continue
-		}
-		inbox := ret[groups[1]]
-		if inbox == nil {
-			inbox = &InboxInfo{Prefix: fmt.Sprintf("%s/%s", baseURL, groups[1])}
-			ret[groups[1]] = inbox
-		}
-		inbox.Epochs = max(inbox.Epochs, epoch+1)
-	}
-	return ret, nil
-}
-
-func QueryManifest(baseURL string) (map[string]*InboxInfo, error) {
-	resp, err := http.Get(baseURL + "/manifest.js.gz")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	gzReader, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	defer gzReader.Close()
-
-	var buf bytes.Buffer
-	_, err = io.Copy(&buf, gzReader)
-	if err != nil {
-		return nil, err
-	}
-	return ParseManifest(baseURL, buf.Bytes())
-}
-
 // ManifestSource keeps an up to date version of the manifest.
 type ManifestSource struct {
 	mu          sync.Mutex
@@ -125,6 +75,56 @@ func (ms *ManifestSource) Loop(ctx context.Context) {
 		case <-time.After(nextAttemptIn):
 		}
 	}
+}
+
+func QueryManifest(baseURL string) (map[string]*InboxInfo, error) {
+	resp, err := http.Get(baseURL + "/manifest.js.gz")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer gzReader.Close()
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, gzReader)
+	if err != nil {
+		return nil, err
+	}
+	return ParseManifest(baseURL, buf.Bytes())
+}
+
+func ParseManifest(baseURL string, jsonData []byte) (map[string]*InboxInfo, error) {
+	var rawMap map[string]json.RawMessage
+	err := json.Unmarshal(jsonData, &rawMap)
+	if err != nil {
+		return nil, err
+	}
+	ret := map[string]*InboxInfo{}
+	for url := range rawMap {
+		groups := archiveRe.FindStringSubmatch(url)
+		if len(groups) == 0 {
+			// TODO: monitor these.
+			log.Printf("unexpected manifest.js key: %q", url)
+			continue
+		}
+		epoch, err := strconv.Atoi(groups[2])
+		if err != nil {
+			log.Printf("invalid manifest.js key: %q", url)
+			continue
+		}
+		inbox := ret[groups[1]]
+		if inbox == nil {
+			inbox = &InboxInfo{Prefix: fmt.Sprintf("%s/%s", baseURL, groups[1])}
+			ret[groups[1]] = inbox
+		}
+		inbox.Epochs = max(inbox.Epochs, epoch+1)
+	}
+	return ret, nil
 }
 
 func (ms *ManifestSource) Get(ctx context.Context) map[string]*InboxInfo {

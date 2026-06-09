@@ -9,6 +9,12 @@ import (
 	"google.golang.org/appengine/v2"
 )
 
+func main() {
+	enableProfiling()
+	installConfig(mainConfig)
+	appengine.Main()
+}
+
 // Doc on https://cloud.google.com/profiler/docs/profiling-go#using-profiler
 func enableProfiling() {
 	// Profiler initialization, best done as early as possible.
@@ -20,10 +26,4 @@ func enableProfiling() {
 	}); err != nil {
 		log.Logf(0, "failed to start profiler: %v", err)
 	}
-}
-
-func main() {
-	enableProfiling()
-	installConfig(mainConfig)
-	appengine.Main()
 }

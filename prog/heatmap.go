@@ -36,6 +36,12 @@ func MakeGenericHeatmap(data []byte, r *rand.Rand) Heatmap {
 	return hm
 }
 
+type GenericHeatmap struct {
+	r        *rand.Rand
+	segments []segment // "Interesting" parts of the data.
+	length   int       // Sum of all segment lengths.
+}
+
 func (hm *GenericHeatmap) NumMutations() int {
 	// At least one mutation.
 	n := 1
@@ -52,12 +58,6 @@ func (hm *GenericHeatmap) ChooseLocation() int {
 	heatmapIdx := hm.r.Intn(hm.length)
 	rawIdx := translateIdx(heatmapIdx, hm.segments)
 	return rawIdx
-}
-
-type GenericHeatmap struct {
-	r        *rand.Rand
-	segments []segment // "Interesting" parts of the data.
-	length   int       // Sum of all segment lengths.
 }
 
 type segment struct {

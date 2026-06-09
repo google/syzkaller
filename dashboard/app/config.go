@@ -232,6 +232,7 @@ type ACLItem struct {
 }
 
 const defaultDashboardClientName = "coverage-merger"
+
 const defaultRegressionThreshold = 50
 
 type CoverageConfig struct {
@@ -522,6 +523,10 @@ func contextWithConfig(ctx context.Context, cfg *GlobalConfig) context.Context {
 	return context.WithValue(ctx, &contextConfigKey, cfg)
 }
 
+func getNsConfig(ctx context.Context, ns string) *Config {
+	return getConfig(ctx).Namespaces[ns]
+}
+
 func getConfig(ctx context.Context) *GlobalConfig {
 	// Check point.
 	validateGlobalConfig()
@@ -539,10 +544,6 @@ func validateGlobalConfig() {
 			panic(fmt.Sprintf("global config changed during execution. Want:\n%s\nGot:\n%s", marshaledConfig, currentConfig))
 		}
 	}
-}
-
-func getNsConfig(ctx context.Context, ns string) *Config {
-	return getConfig(ctx).Namespaces[ns]
 }
 
 func checkConfig(cfg *GlobalConfig) {
@@ -848,15 +849,6 @@ func checkKernelRepos(ns string, config *Config, repos []KernelRepo) {
 	}
 }
 
-func checkCC(cc *CCConfig) {
-	emails := append(append(slices.Clone(cc.Always), cc.Maintainers...), cc.BuildMaintainers...)
-	for _, email := range emails {
-		if _, err := mail.ParseAddress(email); err != nil {
-			panic(fmt.Sprintf("bad email address %q: %v", email, err))
-		}
-	}
-}
-
 func checkNamespaceReporting(ns string, cfg *Config) {
 	checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
 	parentAccessLevel := cfg.AccessLevel
@@ -927,6 +919,15 @@ func checkManager(ns, name string, mgr ConfigManager) {
 			ns, name, MinManagerPriority, MaxManagerPriority))
 	}
 	checkCC(&mgr.CC)
+}
+
+func checkCC(cc *CCConfig) {
+	emails := append(append(slices.Clone(cc.Always), cc.Maintainers...), cc.BuildMaintainers...)
+	for _, email := range emails {
+		if _, err := mail.ParseAddress(email); err != nil {
+			panic(fmt.Sprintf("bad email address %q: %v", email, err))
+		}
+	}
 }
 
 func checkKcidb(ns string, kcidb *KcidbConfig) {

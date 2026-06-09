@@ -42,6 +42,50 @@ type Fuzzer struct {
 	execQueues
 }
 
+func (fuzzer *Fuzzer) RecommendedCalls() int {
+	if fuzzer.Config.ModeKFuzzTest {
+		return prog.RecommendedCallsKFuzzTest
+	}
+	return prog.RecommendedCalls
+}
+
+type execQueues struct {
+	triageCandidateQueue *queue.DynamicOrderer
+	candidateQueue       *queue.PlainQueue
+	triageQueue          *queue.DynamicOrderer
+	smashQueue           *queue.PlainQueue
+	source               queue.Source
+}
+
+func (fuzzer *Fuzzer) CandidatesToTriage() int {
+	return fuzzer.statCandidates.Val() + fuzzer.statJobsTriageCandidate.Val()
+}
+
+func (fuzzer *Fuzzer) CandidateTriageFinished() bool {
+	return fuzzer.CandidatesToTriage() == 0
+}
+
+func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queue.Result {
+	return fuzzer.executeWithFlags(executor, req, 0)
+}
+
+type Config struct {
+	Debug          bool
+	Corpus         *corpus.Corpus
+	Logf           func(level int, msg string, args ...any)
+	Snapshot       bool
+	Coverage       bool
+	FaultInjection bool
+	Comparisons    bool
+	Collide        bool
+	EnabledCalls   map[*prog.Syscall]bool
+	NoMutateCalls  map[int]bool
+	FetchRawCover  bool
+	NewInputFilter func(call string) bool
+	PatchTest      bool
+	ModeKFuzzTest  bool
+}
+
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	target *prog.Target) *Fuzzer {
 	if cfg.NewInputFilter == nil {
@@ -72,21 +116,6 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	return f
 }
 
-func (fuzzer *Fuzzer) RecommendedCalls() int {
-	if fuzzer.Config.ModeKFuzzTest {
-		return prog.RecommendedCallsKFuzzTest
-	}
-	return prog.RecommendedCalls
-}
-
-type execQueues struct {
-	triageCandidateQueue *queue.DynamicOrderer
-	candidateQueue       *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	smashQueue           *queue.PlainQueue
-	source               queue.Source
-}
-
 func newExecQueues(fuzzer *Fuzzer) execQueues {
 	ret := execQueues{
 		triageCandidateQueue: queue.DynamicOrder(),
@@ -111,119 +140,6 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 		queue.Callback(fuzzer.genFuzz),
 	)
 	return ret
-}
-
-func (fuzzer *Fuzzer) CandidatesToTriage() int {
-	return fuzzer.statCandidates.Val() + fuzzer.statJobsTriageCandidate.Val()
-}
-
-func (fuzzer *Fuzzer) CandidateTriageFinished() bool {
-	return fuzzer.CandidatesToTriage() == 0
-}
-
-func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queue.Result {
-	return fuzzer.executeWithFlags(executor, req, 0)
-}
-
-func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgFlags) *queue.Result {
-	fuzzer.enqueue(executor, req, flags, 0)
-	return req.Wait(fuzzer.ctx)
-}
-
-func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgFlags, attempt int) {
-	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
-		return fuzzer.processResult(req, res, flags, attempt)
-	})
-}
-
-func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgFlags, attempt int) {
-	fuzzer.prepare(req, flags, attempt)
-	executor.Submit(req)
-}
-
-func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
-	// If we are already triaging this exact prog, this is flaky coverage.
-	// Hanged programs are harmful as they consume executor procs.
-	dontTriage := flags&progInTriage > 0 || res.Status == queue.Hanged
-	// Triage the program.
-	// We do it before unblocking the waiting threads because
-	// it may result it concurrent modification of req.Prog.
-	var triage map[int]*triageCall
-	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !dontTriage {
-		for call, info := range res.Info.Calls {
-			fuzzer.triageProgCall(req.Prog, info, call, &triage)
-		}
-		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
-
-		if len(triage) != 0 {
-			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
-			jobType := JobTriage
-			if flags&progCandidate > 0 {
-				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
-				jobType = JobCandidateTriage
-			}
-			job := &triageJob{
-				p:        req.Prog.Clone(),
-				executor: res.Executor,
-				flags:    flags,
-				queue:    queue.Append(),
-				calls:    triage,
-				info: &JobInfo{
-					Name: req.Prog.String(),
-					Type: jobType,
-				},
-			}
-			for id := range triage {
-				job.info.Calls = append(job.info.Calls, job.p.CallName(id))
-			}
-			slices.Sort(job.info.Calls)
-			fuzzer.startJob(stat, job)
-		}
-	}
-
-	if res.Info != nil {
-		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
-		for call, info := range res.Info.Calls {
-			fuzzer.handleCallInfo(req, info, call)
-		}
-		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
-	}
-
-	// Corpus candidates may have flaky coverage, so we give them a second chance.
-	maxCandidateAttempts := 3
-	if req.Risky() {
-		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
-		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
-		maxCandidateAttempts = 2
-		if fuzzer.Config.Snapshot || res.Status == queue.Hanged {
-			maxCandidateAttempts = 0
-		}
-	}
-	if len(triage) == 0 && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
-		fuzzer.enqueue(fuzzer.candidateQueue, req, flags, attempt+1)
-		return false
-	}
-	if flags&progCandidate != 0 {
-		fuzzer.statCandidates.Add(-1)
-	}
-	return true
-}
-
-type Config struct {
-	Debug          bool
-	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...any)
-	Snapshot       bool
-	Coverage       bool
-	FaultInjection bool
-	Comparisons    bool
-	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(call string) bool
-	PatchTest      bool
-	ModeKFuzzTest  bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -348,6 +264,90 @@ func (fuzzer *Fuzzer) Logf(level int, msg string, args ...any) {
 }
 
 type ProgFlags int
+
+func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgFlags) *queue.Result {
+	fuzzer.enqueue(executor, req, flags, 0)
+	return req.Wait(fuzzer.ctx)
+}
+
+func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgFlags, attempt int) {
+	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
+		return fuzzer.processResult(req, res, flags, attempt)
+	})
+}
+
+func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgFlags, attempt int) {
+	fuzzer.prepare(req, flags, attempt)
+	executor.Submit(req)
+}
+
+func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
+	// If we are already triaging this exact prog, this is flaky coverage.
+	// Hanged programs are harmful as they consume executor procs.
+	dontTriage := flags&progInTriage > 0 || res.Status == queue.Hanged
+	// Triage the program.
+	// We do it before unblocking the waiting threads because
+	// it may result it concurrent modification of req.Prog.
+	var triage map[int]*triageCall
+	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !dontTriage {
+		for call, info := range res.Info.Calls {
+			fuzzer.triageProgCall(req.Prog, info, call, &triage)
+		}
+		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
+
+		if len(triage) != 0 {
+			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
+			jobType := JobTriage
+			if flags&progCandidate > 0 {
+				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
+				jobType = JobCandidateTriage
+			}
+			job := &triageJob{
+				p:        req.Prog.Clone(),
+				executor: res.Executor,
+				flags:    flags,
+				queue:    queue.Append(),
+				calls:    triage,
+				info: &JobInfo{
+					Name: req.Prog.String(),
+					Type: jobType,
+				},
+			}
+			for id := range triage {
+				job.info.Calls = append(job.info.Calls, job.p.CallName(id))
+			}
+			slices.Sort(job.info.Calls)
+			fuzzer.startJob(stat, job)
+		}
+	}
+
+	if res.Info != nil {
+		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
+		for call, info := range res.Info.Calls {
+			fuzzer.handleCallInfo(req, info, call)
+		}
+		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
+	}
+
+	// Corpus candidates may have flaky coverage, so we give them a second chance.
+	maxCandidateAttempts := 3
+	if req.Risky() {
+		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
+		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
+		maxCandidateAttempts = 2
+		if fuzzer.Config.Snapshot || res.Status == queue.Hanged {
+			maxCandidateAttempts = 0
+		}
+	}
+	if len(triage) == 0 && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
+		fuzzer.enqueue(fuzzer.candidateQueue, req, flags, attempt+1)
+		return false
+	}
+	if flags&progCandidate != 0 {
+		fuzzer.statCandidates.Add(-1)
+	}
+	return true
+}
 
 const (
 	// The candidate was loaded from our local corpus rather than come from hub.

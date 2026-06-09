@@ -72,6 +72,11 @@ func TestGenericHeatmap(t *testing.T) {
 	}
 }
 
+type region struct {
+	start int
+	end   int
+}
+
 // Check an index is within some regions.
 func checkIndex(index, maxIndex int, regions []region) bool {
 	if index < 0 || index >= maxIndex {
@@ -84,11 +89,6 @@ func checkIndex(index, maxIndex int, regions []region) bool {
 		}
 	}
 	return false
-}
-
-type region struct {
-	start int
-	end   int
 }
 
 func (hm *GenericHeatmap) debugPrint(t *testing.T, data []byte, regions []region) {

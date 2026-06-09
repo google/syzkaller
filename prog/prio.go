@@ -132,6 +132,12 @@ func (target *Target) calcStaticPriorities(enabled map[*Syscall]bool) [][]int32 
 	return prios
 }
 
+type weights struct {
+	call  int
+	in    int32
+	inout int32
+}
+
 func (target *Target) calcResourceUsage(enabled map[*Syscall]bool) map[string]map[int]weights {
 	uses := make(map[string]map[int]weights)
 	ForeachType(target.Syscalls, func(t Type, ctx *TypeCtx) {
@@ -189,12 +195,6 @@ func (target *Target) calcResourceUsage(enabled map[*Syscall]bool) map[string]ma
 		}
 	})
 	return uses
-}
-
-type weights struct {
-	call  int
-	in    int32
-	inout int32
 }
 
 func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string) {

@@ -304,11 +304,6 @@ syscall(SYS_csource8, /*num=*/(intptr_t)-1);
 	}
 }
 
-func generateSandboxFunctionSignatureTestCase(t *testing.T, sandbox string, sandboxArg int, expected, message string) {
-	actual := generateSandboxFunctionSignature(sandbox, sandboxArg)
-	assert.Equal(t, actual, expected, message)
-}
-
 func TestGenerateSandboxFunctionSignature(t *testing.T) {
 	// This test-case intentionally omits the following edge cases:
 	// - sandbox name as whitespaces, tabs
@@ -336,6 +331,11 @@ func TestGenerateSandboxFunctionSignature(t *testing.T) {
 		-1234,                        // sandbox arg
 		"do_sandbox_android(-1234);", // expected
 		"Android sandbox function requires an argument")
+}
+
+func generateSandboxFunctionSignatureTestCase(t *testing.T, sandbox string, sandboxArg int, expected, message string) {
+	actual := generateSandboxFunctionSignature(sandbox, sandboxArg)
+	assert.Equal(t, actual, expected, message)
 }
 
 func TestWriteLLM(t *testing.T) {

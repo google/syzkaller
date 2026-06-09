@@ -86,14 +86,6 @@ func ShutdownCtx() context.Context {
 	return ctx
 }
 
-// vmType splits the VM type from any suffix (separated by ":"). This is mostly
-// useful for the "proxyapp" type, where pkg/build needs to specify/handle
-// sub-types.
-func vmType(fullName string) string {
-	name, _, _ := strings.Cut(fullName, ":")
-	return name
-}
-
 // AllowsOvercommit returns if the instance type allows overcommit of instances
 // (i.e. creation of instances out-of-thin-air). Overcommit is used during image
 // and patch testing in syz-ci when it just asks for more than specified in config
@@ -149,36 +141,16 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 	}, nil
 }
 
-func (pool *Pool) Count() int {
-	return pool.count
+// vmType splits the VM type from any suffix (separated by ":"). This is mostly
+// useful for the "proxyapp" type, where pkg/build needs to specify/handle
+// sub-types.
+func vmType(fullName string) string {
+	name, _, _ := strings.Cut(fullName, ":")
+	return name
 }
 
-func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
-	if index < 0 || index >= pool.count {
-		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.count)
-	}
-	workdir, err := osutil.ProcessTempDir(pool.workdir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create instance temp dir: %w", err)
-	}
-	if pool.template != "" {
-		if err := osutil.CopyDirRecursively(pool.template, filepath.Join(workdir, "template")); err != nil {
-			return nil, err
-		}
-	}
-	impl, err := pool.impl.Create(ctx, workdir, index)
-	if err != nil {
-		os.RemoveAll(workdir)
-		return nil, err
-	}
-	atomic.AddInt32(&pool.activeCount, 1)
-	return &Instance{
-		pool:    pool,
-		impl:    impl,
-		workdir: workdir,
-		index:   index,
-		onClose: func() { atomic.AddInt32(&pool.activeCount, -1) },
-	}, nil
+func (pool *Pool) Count() int {
+	return pool.count
 }
 
 // TODO: Integration or end-to-end testing is needed.
@@ -328,13 +300,6 @@ func (inst *Instance) Info() ([]byte, error) {
 	return nil, nil
 }
 
-func (inst *Instance) diagnose(reps []*report.Report) ([]byte, bool) {
-	if len(reps) == 0 {
-		panic("reps is empty")
-	}
-	return inst.impl.Diagnose(reps[0])
-}
-
 func (inst *Instance) Index() int {
 	return inst.index
 }
@@ -352,6 +317,34 @@ type Dispatcher = dispatcher.Pool[*Instance]
 
 func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
 	return dispatcher.NewPool(pool.count, pool.Create, def)
+}
+
+func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
+	if index < 0 || index >= pool.count {
+		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.count)
+	}
+	workdir, err := osutil.ProcessTempDir(pool.workdir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create instance temp dir: %w", err)
+	}
+	if pool.template != "" {
+		if err := osutil.CopyDirRecursively(pool.template, filepath.Join(workdir, "template")); err != nil {
+			return nil, err
+		}
+	}
+	impl, err := pool.impl.Create(ctx, workdir, index)
+	if err != nil {
+		os.RemoveAll(workdir)
+		return nil, err
+	}
+	atomic.AddInt32(&pool.activeCount, 1)
+	return &Instance{
+		pool:    pool,
+		impl:    impl,
+		workdir: workdir,
+		index:   index,
+		onClose: func() { atomic.AddInt32(&pool.activeCount, -1) },
+	}, nil
 }
 
 type monitor struct {
@@ -460,13 +453,6 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool, error) {
 	return nil, false, nil
 }
 
-func cleanOutputForRun(out []byte) []byte {
-	if bytes.IndexByte(out, '\r') == -1 {
-		return out
-	}
-	return bytes.ReplaceAll(out, []byte("\r"), nil)
-}
-
 func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error) {
 	if mon.extractCalled {
 		panic("extractError called twice")
@@ -506,6 +492,13 @@ func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error)
 		reps[0].Output = append(reps[0].Output, diagOutput...)
 	}
 	return reps, nil
+}
+
+func (inst *Instance) diagnose(reps []*report.Report) ([]byte, bool) {
+	if len(reps) == 0 {
+		panic("reps is empty")
+	}
+	return inst.impl.Diagnose(reps[0])
 }
 
 func (mon *monitor) createReports(defaultError string) []*report.Report {
@@ -556,6 +549,13 @@ func (mon *monitor) waitForOutput() {
 			return
 		}
 	}
+}
+
+func cleanOutputForRun(out []byte) []byte {
+	if bytes.IndexByte(out, '\r') == -1 {
+		return out
+	}
+	return bytes.ReplaceAll(out, []byte("\r"), nil)
 }
 
 const (

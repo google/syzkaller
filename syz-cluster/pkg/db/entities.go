@@ -26,10 +26,6 @@ type Series struct {
 	Cc              []string           `spanner:"Cc"`
 }
 
-func (s *Series) SetLatestSession(session *Session) {
-	s.LatestSessionID = spanner.NullString{StringVal: session.ID, Valid: true}
-}
-
 type Patch struct {
 	ID       string `spanner:"ID"`
 	Seq      int64  `spanner:"Seq"`
@@ -83,6 +79,10 @@ type Session struct {
 	JobID        spanner.NullString `spanner:"JobID"`
 	// TODO: to accept more specific fuzzing assignment,
 	// add Triager, BaseRepo, BaseCommit, Config fields.
+}
+
+func (s *Series) SetLatestSession(session *Session) {
+	s.LatestSessionID = spanner.NullString{StringVal: session.ID, Valid: true}
 }
 
 type SessionStatus string

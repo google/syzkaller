@@ -514,22 +514,6 @@ func (inst *instance) setFuchsiaVersion() error {
 	return nil
 }
 
-// Get the currently-selected build dir in a Fuchsia checkout.
-func getFuchsiaBuildDir(fuchsiaDir string) (string, error) {
-	fxBuildDir := filepath.Join(fuchsiaDir, ".fx-build-dir")
-	contents, err := os.ReadFile(fxBuildDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to read %q: %w", fxBuildDir, err)
-	}
-
-	buildDir := strings.TrimSpace(string(contents))
-	if !filepath.IsAbs(buildDir) {
-		buildDir = filepath.Join(fuchsiaDir, buildDir)
-	}
-
-	return buildDir, nil
-}
-
 // Subset of data format used in tool_paths.json.
 type toolMetadata struct {
 	Name string
@@ -560,4 +544,20 @@ func GetToolPath(fuchsiaDir, toolName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("no path found for tool %q in %q", toolName, jsonPath)
+}
+
+// Get the currently-selected build dir in a Fuchsia checkout.
+func getFuchsiaBuildDir(fuchsiaDir string) (string, error) {
+	fxBuildDir := filepath.Join(fuchsiaDir, ".fx-build-dir")
+	contents, err := os.ReadFile(fxBuildDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", fxBuildDir, err)
+	}
+
+	buildDir := strings.TrimSpace(string(contents))
+	if !filepath.IsAbs(buildDir) {
+		buildDir = filepath.Join(fuchsiaDir, buildDir)
+	}
+
+	return buildDir, nil
 }

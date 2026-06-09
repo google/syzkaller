@@ -23,11 +23,6 @@ func PrintInsn(insn arm64.Insn) {
 	fmt.Printf("{ \"%s\" [0x%x] %s }\n", insn.Name, insn.AsUInt32, operands)
 }
 
-func parseAndPrint(from uint32) {
-	insn, _ := arm64.ParseInsn(from)
-	PrintInsn(insn)
-}
-
 func TestSomething(t *testing.T) {
 	parseAndPrint(0x0)
 	parseAndPrint(0xff3ffc00)
@@ -91,4 +86,9 @@ func TestDecodeSamples(t *testing.T) {
 			text = text[size:]
 		}
 	}
+}
+
+func parseAndPrint(from uint32) {
+	insn, _ := arm64.ParseInsn(from)
+	PrintInsn(insn)
 }

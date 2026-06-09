@@ -142,15 +142,6 @@ func checkBugPageJSONIs(c *Ctx, ID string, expectedContent []byte) {
 	c.expectEQ(string(actualContent), string(expectedContent))
 }
 
-func checkBugGroupPageJSONIs(c *Ctx, url string, expectedContent []byte) {
-	c.t.Helper()
-	contentType, _ := c.client.ContentType(url)
-	c.expectEQ(contentType, "application/json")
-
-	actualContent, _ := c.client.GET(url)
-	c.expectEQ(string(actualContent), string(expectedContent))
-}
-
 func TestJSONAPIFixCommits(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -219,6 +210,15 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	]
 }`)
 	checkBugGroupPageJSONIs(c, "/bug?extid=decf42d66dced481afc1&json=1", want)
+}
+
+func checkBugGroupPageJSONIs(c *Ctx, url string, expectedContent []byte) {
+	c.t.Helper()
+	contentType, _ := c.client.ContentType(url)
+	c.expectEQ(contentType, "application/json")
+
+	actualContent, _ := c.client.GET(url)
+	c.expectEQ(string(actualContent), string(expectedContent))
 }
 
 func TestJSONAPICauseBisection(t *testing.T) {

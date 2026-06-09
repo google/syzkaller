@@ -39,27 +39,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// FileSystem represents one file system.
-// Each FileSystem produces multiple images, see MkfsFlagCombinations and Image type.
-type FileSystem struct {
-	// Name of the file system. Needs to match the name passed to mount().
-	Name string `json:"name"`
-	// By default, syz_mount_image$NAME are generated. SyscallSuffix overrides the part after $.
-	SyscallSuffix string `json:"syscall_suffix"`
-	// Imagegen autodetects size for images starting from MinSize and then repeatedly doubling it if mkfs fails.
-	MinSize int `json:"min_size"`
-	// Don't populate this image with files (can't mount read-write).
-	ReadOnly bool `json:"read_only"`
-	// These flags are always appended to mkfs as is.
-	MkfsFlags []string `json:"mkfs_flags"`
-	// Generate images for all possible permutations of these flag combinations.
-	MkfsFlagCombinations [][]string `json:"mkfs_flag_combinations"`
-	// Limit the resulting number of seeds (in case there are too many possible combinations).
-	MaxSeeds int `json:"max_seeds"`
-	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
-	Mkfs func(img *Image) error
-}
-
 // nolint:lll
 var fileSystems = []FileSystem{
 	{
@@ -562,20 +541,6 @@ const (
 	parttable        = "parttable"
 )
 
-func (fs FileSystem) filePrefix() string {
-	if fs.Name == parttable {
-		return syzReadPartTable
-	}
-	return syzMountImage + "_" + fs.suffix()
-}
-
-func (fs FileSystem) suffix() string {
-	if fs.SyscallSuffix != "" {
-		return fs.SyscallSuffix
-	}
-	return fs.Name
-}
-
 // Image represents one image we generate for a file system.
 type Image struct {
 	target      *prog.Target
@@ -587,6 +552,27 @@ type Image struct {
 	disk        string   // disk image file name
 	templateDir string   // name of a directory with contents for the file system (shared across all images)
 	done        chan error
+}
+
+// FileSystem represents one file system.
+// Each FileSystem produces multiple images, see MkfsFlagCombinations and Image type.
+type FileSystem struct {
+	// Name of the file system. Needs to match the name passed to mount().
+	Name string `json:"name"`
+	// By default, syz_mount_image$NAME are generated. SyscallSuffix overrides the part after $.
+	SyscallSuffix string `json:"syscall_suffix"`
+	// Imagegen autodetects size for images starting from MinSize and then repeatedly doubling it if mkfs fails.
+	MinSize int `json:"min_size"`
+	// Don't populate this image with files (can't mount read-write).
+	ReadOnly bool `json:"read_only"`
+	// These flags are always appended to mkfs as is.
+	MkfsFlags []string `json:"mkfs_flags"`
+	// Generate images for all possible permutations of these flag combinations.
+	MkfsFlagCombinations [][]string `json:"mkfs_flag_combinations"`
+	// Limit the resulting number of seeds (in case there are too many possible combinations).
+	MaxSeeds int `json:"max_seeds"`
+	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
+	Mkfs func(img *Image) error
 }
 
 func (img *Image) String() string {
@@ -877,6 +863,13 @@ func (img *Image) generateSize() error {
 	return osutil.WriteFile(outFile, out)
 }
 
+func (fs FileSystem) filePrefix() string {
+	if fs.Name == parttable {
+		return syzReadPartTable
+	}
+	return syzMountImage + "_" + fs.suffix()
+}
+
 // Runs under sudo in a subprocess.
 func populate(disk, fs string) error {
 	output, err := runCmd("losetup", "-f", "--show", "-P", disk)
@@ -952,6 +945,13 @@ func writeImage(img *Image, data []byte) ([]byte, error) {
 	fmt.Fprintf(buf, "\")\n")
 
 	return buf.Bytes(), nil
+}
+
+func (fs FileSystem) suffix() string {
+	if fs.SyscallSuffix != "" {
+		return fs.SyscallSuffix
+	}
+	return fs.Name
 }
 
 func loadFilesystem(fileName string) FileSystem {

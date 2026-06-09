@@ -346,10 +346,6 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, ty
 	return minimizeCtx.getConfig(), nil
 }
 
-func serialize(cf *kconfig.ConfigFile) []byte {
-	return []byte(fmt.Sprintf("%v, rev: %v\n%s", configBisectTag, prog.GitRevision, cf.Serialize()))
-}
-
 type minimizeLinuxCtx struct {
 	kconf     *kconfig.KConfig
 	config    *kconfig.ConfigFile
@@ -410,4 +406,8 @@ func (ctx *minimizeLinuxCtx) runPred(cfg *kconfig.ConfigFile) (bool, error) {
 func (ctx *minimizeLinuxCtx) getConfig() []byte {
 	ctx.transform(ctx.config)
 	return serialize(ctx.config)
+}
+
+func serialize(cf *kconfig.ConfigFile) []byte {
+	return []byte(fmt.Sprintf("%v, rev: %v\n%s", configBisectTag, prog.GitRevision, cf.Serialize()))
 }

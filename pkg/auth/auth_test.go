@@ -13,22 +13,6 @@ import (
 	"time"
 )
 
-func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, Endpoint) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bytes, err := json.Marshal(jwtClaimsParse{
-			Subject:    claims.Subject,
-			Audience:   claims.Audience,
-			Expiration: fmt.Sprint(claims.Expiration.Unix()),
-		})
-		if err != nil {
-			t.Fatalf("marshal %v", err)
-		}
-		w.Header()["Content-Type"] = []string{"application/json"}
-		w.Write(bytes)
-	}))
-	return ts, MakeEndpoint(ts.URL)
-}
-
 func TestBearerValid(t *testing.T) {
 	tm := time.Now()
 	magic := "ValidSubj"
@@ -94,6 +78,22 @@ func TestBadHeader(t *testing.T) {
 	if err != nil || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
+}
+
+func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, Endpoint) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bytes, err := json.Marshal(jwtClaimsParse{
+			Subject:    claims.Subject,
+			Audience:   claims.Audience,
+			Expiration: fmt.Sprint(claims.Expiration.Unix()),
+		})
+		if err != nil {
+			t.Fatalf("marshal %v", err)
+		}
+		w.Header()["Content-Type"] = []string{"application/json"}
+		w.Write(bytes)
+	}))
+	return ts, MakeEndpoint(ts.URL)
 }
 
 func TestBadHttpStatus(t *testing.T) {

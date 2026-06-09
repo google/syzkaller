@@ -67,57 +67,6 @@ var (
 		"there are missing coverage callbacks")
 )
 
-func toolFileCover() {
-	dateTo, err := civil.ParseDate(*flagDateTo)
-	if err != nil {
-		tool.Failf("failed to parse date from: %v", err)
-	}
-	tp, err := coveragedb.MakeTimePeriod(dateTo, *flagPeriod)
-	if err != nil {
-		tool.Fail(err)
-	}
-	config := cover.DefaultTextRenderConfig()
-	config.ShowLineSourceExplanation = *flagDebug
-	mr, err := cover.GetMergeResult(context.Background(),
-		*flagNamespace,
-		*flagRepo,
-		*flagCommit,
-		*flagSourceCommit,
-		*flagForFile,
-		nil, tp)
-	if err != nil {
-		tool.Fail(err)
-	}
-
-	details, err := cover.RendFileCoverage(
-		*flagRepo,
-		*flagCommit,
-		*flagForFile,
-		covermerger.MakeWebGit(nil), // get files directly from WebGits
-		mr,
-		config,
-	)
-	if err != nil {
-		tool.Fail(err)
-	}
-	fmt.Println(details)
-}
-
-func initModules(cfg *mgrconfig.Config) []*vminfo.KernelModule {
-	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
-	if err != nil {
-		tool.Fail(err)
-	}
-	if *flagModules != "" {
-		m, err := loadModules(*flagModules)
-		if err != nil {
-			tool.Fail(err)
-		}
-		modules = m
-	}
-	return modules
-}
-
 func main() {
 	defer tool.Init()()
 	if *flagForFile != "" {
@@ -168,6 +117,57 @@ func main() {
 			tool.Failf("unknown export type: %q", export)
 		}
 	}
+}
+
+func toolFileCover() {
+	dateTo, err := civil.ParseDate(*flagDateTo)
+	if err != nil {
+		tool.Failf("failed to parse date from: %v", err)
+	}
+	tp, err := coveragedb.MakeTimePeriod(dateTo, *flagPeriod)
+	if err != nil {
+		tool.Fail(err)
+	}
+	config := cover.DefaultTextRenderConfig()
+	config.ShowLineSourceExplanation = *flagDebug
+	mr, err := cover.GetMergeResult(context.Background(),
+		*flagNamespace,
+		*flagRepo,
+		*flagCommit,
+		*flagSourceCommit,
+		*flagForFile,
+		nil, tp)
+	if err != nil {
+		tool.Fail(err)
+	}
+
+	details, err := cover.RendFileCoverage(
+		*flagRepo,
+		*flagCommit,
+		*flagForFile,
+		covermerger.MakeWebGit(nil), // get files directly from WebGits
+		mr,
+		config,
+	)
+	if err != nil {
+		tool.Fail(err)
+	}
+	fmt.Println(details)
+}
+
+func initModules(cfg *mgrconfig.Config) []*vminfo.KernelModule {
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		tool.Fail(err)
+	}
+	if *flagModules != "" {
+		m, err := loadModules(*flagModules)
+		if err != nil {
+			tool.Fail(err)
+		}
+		modules = m
+	}
+	return modules
 }
 
 func doReport(params cover.HandlerParams, fname string,

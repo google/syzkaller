@@ -33,6 +33,46 @@ type InstanceCommon struct {
 	stopChannel     chan bool
 }
 
+type SyzManagerInstance struct {
+	InstanceCommon
+	SyzkallerInfo
+	RunTime time.Duration
+}
+
+func (inst *SyzManagerInstance) FetchResult() (RunResult, error) {
+	bugs, err := collectBugs(inst.Workdir)
+	if err != nil {
+		return nil, err
+	}
+	records, err := readBenches(inst.BenchFile)
+	if err != nil {
+		return nil, err
+	}
+	return &SyzManagerResult{
+		Bugs:        bugs,
+		StatRecords: records,
+	}, nil
+}
+
+func (inst *SyzManagerInstance) Run() error {
+	ret := make(chan error, 1)
+	go func() {
+		ret <- inst.InstanceCommon.Run()
+	}()
+
+	select {
+	case err := <-ret:
+		if err != nil {
+			return fmt.Errorf("[%s] stopped: %w", inst.Name, err)
+		}
+		return nil
+	case <-time.After(inst.RunTime):
+		inst.Stop()
+		<-ret
+		return nil
+	}
+}
+
 func (inst *InstanceCommon) Run() error {
 	const stopDelay = time.Minute
 
@@ -79,53 +119,6 @@ func (inst *InstanceCommon) Stop() {
 	select {
 	case inst.stopChannel <- true:
 	default:
-	}
-}
-
-func (inst *InstanceCommon) Uptime() time.Duration {
-	if !inst.StartedAt.IsZero() && inst.StoppedAt.IsZero() {
-		return time.Since(inst.StartedAt)
-	}
-	return inst.StoppedAt.Sub(inst.StartedAt)
-}
-
-type SyzManagerInstance struct {
-	InstanceCommon
-	SyzkallerInfo
-	RunTime time.Duration
-}
-
-func (inst *SyzManagerInstance) FetchResult() (RunResult, error) {
-	bugs, err := collectBugs(inst.Workdir)
-	if err != nil {
-		return nil, err
-	}
-	records, err := readBenches(inst.BenchFile)
-	if err != nil {
-		return nil, err
-	}
-	return &SyzManagerResult{
-		Bugs:        bugs,
-		StatRecords: records,
-	}, nil
-}
-
-func (inst *SyzManagerInstance) Run() error {
-	ret := make(chan error, 1)
-	go func() {
-		ret <- inst.InstanceCommon.Run()
-	}()
-
-	select {
-	case err := <-ret:
-		if err != nil {
-			return fmt.Errorf("[%s] stopped: %w", inst.Name, err)
-		}
-		return nil
-	case <-time.After(inst.RunTime):
-		inst.Stop()
-		<-ret
-		return nil
 	}
 }
 
@@ -222,6 +215,13 @@ func (inst *SyzReproInstance) FetchResult() (RunResult, error) {
 		}
 	}
 	return result, nil
+}
+
+func (inst *InstanceCommon) Uptime() time.Duration {
+	if !inst.StartedAt.IsZero() && inst.StoppedAt.IsZero() {
+		return time.Since(inst.StartedAt)
+	}
+	return inst.StoppedAt.Sub(inst.StartedAt)
 }
 
 func (t *SyzReproTarget) newSyzReproInstance(slotName, uniqName string, input *SyzReproInput,

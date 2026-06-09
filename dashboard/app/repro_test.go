@@ -13,6 +13,14 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
+func TestNeedRepro1_normal(t *testing.T) { testNeedRepro1(t, normalCrash, true) }
+
+func TestNeedRepro1_dup(t *testing.T) { testNeedRepro1(t, dupCrash, false) }
+
+func TestNeedRepro1_closed(t *testing.T) { testNeedRepro1(t, closedCrash, true) }
+
+func TestNeedRepro1_closedRepro(t *testing.T) { testNeedRepro1(t, closedWithReproCrash, true) }
+
 // Normal workflow:
 //   - upload crash -> need repro
 //   - upload syz repro -> still need repro
@@ -66,10 +74,13 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	}
 }
 
-func TestNeedRepro1_normal(t *testing.T)      { testNeedRepro1(t, normalCrash, true) }
-func TestNeedRepro1_dup(t *testing.T)         { testNeedRepro1(t, dupCrash, false) }
-func TestNeedRepro1_closed(t *testing.T)      { testNeedRepro1(t, closedCrash, true) }
-func TestNeedRepro1_closedRepro(t *testing.T) { testNeedRepro1(t, closedWithReproCrash, true) }
+func TestNeedRepro2_normal(t *testing.T) { testNeedRepro2(t, normalCrash, true) }
+
+func TestNeedRepro2_dup(t *testing.T) { testNeedRepro2(t, dupCrash, false) }
+
+func TestNeedRepro2_closed(t *testing.T) { testNeedRepro2(t, closedCrash, true) }
+
+func TestNeedRepro2_closedRepro(t *testing.T) { testNeedRepro2(t, closedWithReproCrash, true) }
 
 // Upload C repro with first crash -> don't need repro.
 func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
@@ -90,10 +101,13 @@ func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	}
 }
 
-func TestNeedRepro2_normal(t *testing.T)      { testNeedRepro2(t, normalCrash, true) }
-func TestNeedRepro2_dup(t *testing.T)         { testNeedRepro2(t, dupCrash, false) }
-func TestNeedRepro2_closed(t *testing.T)      { testNeedRepro2(t, closedCrash, true) }
-func TestNeedRepro2_closedRepro(t *testing.T) { testNeedRepro2(t, closedWithReproCrash, true) }
+func TestNeedRepro3_normal(t *testing.T) { testNeedRepro3(t, normalCrash) }
+
+func TestNeedRepro3_dup(t *testing.T) { testNeedRepro3(t, dupCrash) }
+
+func TestNeedRepro3_closed(t *testing.T) { testNeedRepro3(t, closedCrash) }
+
+func TestNeedRepro3_closedRepro(t *testing.T) { testNeedRepro3(t, closedWithReproCrash) }
 
 // Test that after uploading 5 failed repros, app stops requesting repros.
 func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
@@ -128,11 +142,6 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 		c.client.ReportFailedRepro(testCrashID(crash1))
 	}
 }
-
-func TestNeedRepro3_normal(t *testing.T)      { testNeedRepro3(t, normalCrash) }
-func TestNeedRepro3_dup(t *testing.T)         { testNeedRepro3(t, dupCrash) }
-func TestNeedRepro3_closed(t *testing.T)      { testNeedRepro3(t, closedCrash) }
-func TestNeedRepro3_closedRepro(t *testing.T) { testNeedRepro3(t, closedWithReproCrash) }
 
 func normalCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)

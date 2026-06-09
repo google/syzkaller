@@ -83,53 +83,10 @@ func readBenches(benchFile string) ([]StatRecord, error) {
 	return ret, nil
 }
 
-// The input are stat snapshots of different instances taken at the same time.
-// This function groups those data points per stat types (e.g. exec total, crashes, etc.).
-func groupSamples(records []StatRecord) map[string]*sample.Sample {
-	ret := make(map[string]*sample.Sample)
-	for _, record := range records {
-		for key, value := range record {
-			if ret[key] == nil {
-				ret[key] = &sample.Sample{}
-			}
-			ret[key].Xs = append(ret[key].Xs, float64(value))
-		}
-	}
-	return ret
-}
-
 type BugSummary struct {
 	title        string
 	found        map[string]bool
 	resultsCount map[string]int // the number of run results that have found this bug
-}
-
-// If there are several instances belonging to a single checkout, we're interested in the
-// set of bugs found by at least one of those instances.
-func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
-	bugsMap := make(map[string]*BugSummary)
-	for _, group := range groups {
-		for _, result := range group.SyzManagerResults() {
-			for _, bug := range result.Bugs {
-				summary := bugsMap[bug.Title]
-				if summary == nil {
-					summary = &BugSummary{
-						title:        bug.Title,
-						found:        make(map[string]bool),
-						resultsCount: make(map[string]int),
-					}
-					bugsMap[bug.Title] = summary
-				}
-				summary.found[group.Name] = true
-				summary.resultsCount[group.Name]++
-			}
-		}
-	}
-	summaries := []*BugSummary{}
-	for _, value := range bugsMap {
-		summaries = append(summaries, value)
-	}
-	return summaries, nil
 }
 
 // For each checkout, take the union of sets of bugs found by each instance.
@@ -175,21 +132,38 @@ func (view *StatView) GenerateBugCountsTable() (*Table, error) {
 	return table, nil
 }
 
+// If there are several instances belonging to a single checkout, we're interested in the
+// set of bugs found by at least one of those instances.
+func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
+	bugsMap := make(map[string]*BugSummary)
+	for _, group := range groups {
+		for _, result := range group.SyzManagerResults() {
+			for _, bug := range result.Bugs {
+				summary := bugsMap[bug.Title]
+				if summary == nil {
+					summary = &BugSummary{
+						title:        bug.Title,
+						found:        make(map[string]bool),
+						resultsCount: make(map[string]int),
+					}
+					bugsMap[bug.Title] = summary
+				}
+				summary.found[group.Name] = true
+				summary.resultsCount[group.Name]++
+			}
+		}
+	}
+	summaries := []*BugSummary{}
+	for _, value := range bugsMap {
+		summaries = append(summaries, value)
+	}
+	return summaries, nil
+}
+
 func (group RunResultGroup) SyzManagerResults() []*SyzManagerResult {
 	ret := []*SyzManagerResult{}
 	for _, rawRes := range group.Results {
 		res, ok := rawRes.(*SyzManagerResult)
-		if ok {
-			ret = append(ret, res)
-		}
-	}
-	return ret
-}
-
-func (group RunResultGroup) SyzReproResults() []*SyzReproResult {
-	ret := []*SyzReproResult{}
-	for _, rawRes := range group.Results {
-		res, ok := rawRes.(*SyzReproResult)
 		if ok {
 			ret = append(ret, res)
 		}
@@ -208,38 +182,6 @@ func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 		ret = append(ret, record)
 	}
 	return ret
-}
-
-func (group RunResultGroup) minResultLength() int {
-	if len(group.Results) == 0 {
-		return 0
-	}
-	results := group.SyzManagerResults()
-	ret := len(results[0].StatRecords)
-	for _, result := range results {
-		ret = min(ret, len(result.StatRecords))
-	}
-	return ret
-}
-
-func (group RunResultGroup) groupNthRecord(i int) map[string]*sample.Sample {
-	records := []StatRecord{}
-	for _, result := range group.SyzManagerResults() {
-		records = append(records, result.StatRecords[i])
-	}
-	return groupSamples(records)
-}
-
-func (group RunResultGroup) groupLastRecord() map[string]*sample.Sample {
-	records := []StatRecord{}
-	for _, result := range group.SyzManagerResults() {
-		n := len(result.StatRecords)
-		if n == 0 {
-			continue
-		}
-		records = append(records, result.StatRecords[n-1])
-	}
-	return groupSamples(records)
 }
 
 func (view *StatView) StatsTable() (*Table, error) {
@@ -298,6 +240,53 @@ func (view *StatView) AlignedStatsTable(field string) (*Table, error) {
 		}
 	}
 	return table, nil
+}
+
+func (group RunResultGroup) minResultLength() int {
+	if len(group.Results) == 0 {
+		return 0
+	}
+	results := group.SyzManagerResults()
+	ret := len(results[0].StatRecords)
+	for _, result := range results {
+		ret = min(ret, len(result.StatRecords))
+	}
+	return ret
+}
+
+func (group RunResultGroup) groupNthRecord(i int) map[string]*sample.Sample {
+	records := []StatRecord{}
+	for _, result := range group.SyzManagerResults() {
+		records = append(records, result.StatRecords[i])
+	}
+	return groupSamples(records)
+}
+
+func (group RunResultGroup) groupLastRecord() map[string]*sample.Sample {
+	records := []StatRecord{}
+	for _, result := range group.SyzManagerResults() {
+		n := len(result.StatRecords)
+		if n == 0 {
+			continue
+		}
+		records = append(records, result.StatRecords[n-1])
+	}
+	return groupSamples(records)
+}
+
+// The input are stat snapshots of different instances taken at the same time.
+// This function groups those data points per stat types (e.g. exec total, crashes, etc.).
+func groupSamples(records []StatRecord) map[string]*sample.Sample {
+	ret := make(map[string]*sample.Sample)
+	for _, record := range records {
+		for key, value := range record {
+			if ret[key] == nil {
+				ret[key] = &sample.Sample{}
+			}
+			ret[key].Xs = append(ret[key].Xs, float64(value))
+		}
+	}
+	return ret
 }
 
 func (view *StatView) InstanceStatsTable() (*Table, error) {
@@ -407,6 +396,30 @@ func (view *StatView) GenerateReproAttemptsTable() (*Table, error) {
 	return table, nil
 }
 
+func (group RunResultGroup) SyzReproResults() []*SyzReproResult {
+	ret := []*SyzReproResult{}
+	for _, rawRes := range group.Results {
+		res, ok := rawRes.(*SyzReproResult)
+		if ok {
+			ret = append(ret, res)
+		}
+	}
+	return ret
+}
+
+func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
+	files := []string{}
+	for _, group := range view.Groups {
+		fileName := filepath.Join(benchDir, fmt.Sprintf("avg_%v.txt", group.Name))
+		err := group.SaveAvgBenchFile(fileName)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, fileName)
+	}
+	return files, nil
+}
+
 // Average bench files of several instances into a single bench file.
 func (group RunResultGroup) SaveAvgBenchFile(fileName string) error {
 	f, err := os.Create(fileName)
@@ -436,19 +449,6 @@ func (group RunResultGroup) SaveAvgBenchFile(fileName string) error {
 		}
 	}
 	return nil
-}
-
-func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
-	files := []string{}
-	for _, group := range view.Groups {
-		fileName := filepath.Join(benchDir, fmt.Sprintf("avg_%v.txt", group.Name))
-		err := group.SaveAvgBenchFile(fileName)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, fileName)
-	}
-	return files, nil
 }
 
 func (view *StatView) IsEmpty() bool {

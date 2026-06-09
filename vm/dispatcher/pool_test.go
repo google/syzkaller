@@ -317,18 +317,18 @@ func TestPoolBootErrors(t *testing.T) {
 	<-done
 }
 
+type testInstance struct {
+	index  int
+	hasRun atomic.Bool
+	stop   chan bool
+}
+
 func makePool(count int) []testInstance {
 	var ret []testInstance
 	for i := range count {
 		ret = append(ret, testInstance{index: i})
 	}
 	return ret
-}
-
-type testInstance struct {
-	index  int
-	hasRun atomic.Bool
-	stop   chan bool
 }
 
 func (ti *testInstance) reset() {

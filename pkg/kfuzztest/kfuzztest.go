@@ -100,6 +100,42 @@ type KFuzzTestData struct {
 	Types       []prog.Type
 }
 
+type extractKFuzzTestDataState struct {
+	once sync.Once
+	data KFuzzTestData
+	err  error
+}
+
+var extractState extractKFuzzTestDataState
+
+// ActivateKFuzzTargets extracts all KFuzzTest targets from a vmlinux binary
+// and extends a target with the discovered pseudo-syscalls.
+func ActivateKFuzzTargets(target *prog.Target, vmlinuxPath string) ([]*prog.Syscall, error) {
+	data, err := ExtractData(vmlinuxPath)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: comment this properly. It's important to note here that despite
+	// extending the target, correct encoding relies on syz_kfuzztest_run being
+	// compiled into the target, and its ID being available.
+	target.Extend(data.Calls, data.Types, data.Resources)
+	return data.Calls, nil
+}
+
+// ExtractData extracts KFuzzTest data from a vmlinux binary. The return value
+// of this call is cached so that it can be safely called multiple times
+// without incurring a new scan of a vmlinux image.
+// NOTE: the implementation assumes the existence of only one vmlinux image
+// per process, i.e. no attempt is made to distinguish different vmlinux images
+// based on their path.
+func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
+	extractState.once.Do(func() {
+		extractState.data, extractState.err = extractData(vmlinuxPath)
+	})
+
+	return extractState.data, extractState.err
+}
+
 func extractData(vmlinuxPath string) (KFuzzTestData, error) {
 	desc, err := ExtractDescription(vmlinuxPath)
 	if err != nil {
@@ -147,42 +183,6 @@ func extractData(vmlinuxPath string) (KFuzzTestData, error) {
 	}, nil
 }
 
-type extractKFuzzTestDataState struct {
-	once sync.Once
-	data KFuzzTestData
-	err  error
-}
-
-var extractState extractKFuzzTestDataState
-
-// ExtractData extracts KFuzzTest data from a vmlinux binary. The return value
-// of this call is cached so that it can be safely called multiple times
-// without incurring a new scan of a vmlinux image.
-// NOTE: the implementation assumes the existence of only one vmlinux image
-// per process, i.e. no attempt is made to distinguish different vmlinux images
-// based on their path.
-func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
-	extractState.once.Do(func() {
-		extractState.data, extractState.err = extractData(vmlinuxPath)
-	})
-
-	return extractState.data, extractState.err
-}
-
-// ActivateKFuzzTargets extracts all KFuzzTest targets from a vmlinux binary
-// and extends a target with the discovered pseudo-syscalls.
-func ActivateKFuzzTargets(target *prog.Target, vmlinuxPath string) ([]*prog.Syscall, error) {
-	data, err := ExtractData(vmlinuxPath)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: comment this properly. It's important to note here that despite
-	// extending the target, correct encoding relies on syz_kfuzztest_run being
-	// compiled into the target, and its ID being available.
-	target.Extend(data.Calls, data.Types, data.Resources)
-	return data.Calls, nil
-}
-
 const syzKfuzzTestRun string = "syz_kfuzztest_run"
 
 // Common prefix that all discriminated syz_kfuzztest_run pseudo-syscalls share.
@@ -196,6 +196,7 @@ func GetTestName(syscall *prog.Syscall) (string, bool) {
 }
 
 const kFuzzTestDir string = "/sys/kernel/debug/kfuzztest"
+
 const inputFile string = "input"
 
 func GetInputFilepath(testName string) string {

@@ -13,6 +13,37 @@ import (
 	"strings"
 )
 
+func ParseGlob(glob string, errorHandler ErrorHandler) *Description {
+	if errorHandler == nil {
+		errorHandler = LoggingHandler
+	}
+	files, err := filepath.Glob(glob)
+	if err != nil {
+		errorHandler(Pos{}, fmt.Sprintf("failed to find input files: %v", err))
+		return nil
+	}
+	if len(files) == 0 {
+		errorHandler(Pos{}, fmt.Sprintf("no files matched by glob %q", glob))
+		return nil
+	}
+	desc := &Description{}
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
+			return nil
+		}
+		desc1 := Parse(data, f, errorHandler)
+		if desc1 == nil {
+			desc = nil
+		}
+		if desc != nil {
+			desc.Nodes = append(desc.Nodes, desc1.Nodes...)
+		}
+	}
+	return desc
+}
+
 // Parse parses sys description into AST and returns top-level nodes.
 // If any errors are encountered, returns nil.
 func Parse(data []byte, filename string, errorHandler ErrorHandler) *Description {
@@ -46,37 +77,6 @@ func Parse(data []byte, filename string, errorHandler ErrorHandler) *Description
 		return nil
 	}
 	return &Description{top}
-}
-
-func ParseGlob(glob string, errorHandler ErrorHandler) *Description {
-	if errorHandler == nil {
-		errorHandler = LoggingHandler
-	}
-	files, err := filepath.Glob(glob)
-	if err != nil {
-		errorHandler(Pos{}, fmt.Sprintf("failed to find input files: %v", err))
-		return nil
-	}
-	if len(files) == 0 {
-		errorHandler(Pos{}, fmt.Sprintf("no files matched by glob %q", glob))
-		return nil
-	}
-	desc := &Description{}
-	for _, f := range files {
-		data, err := os.ReadFile(f)
-		if err != nil {
-			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
-			return nil
-		}
-		desc1 := Parse(data, f, errorHandler)
-		if desc1 == nil {
-			desc = nil
-		}
-		if desc != nil {
-			desc.Nodes = append(desc.Nodes, desc1.Nodes...)
-		}
-	}
-	return desc
 }
 
 type parser struct {

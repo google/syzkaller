@@ -17,17 +17,6 @@ type ProgramsList struct {
 	accPrios []int64
 }
 
-func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
-	if len(pl.progs) == 0 {
-		return nil
-	}
-	randVal := r.Int63n(pl.sumPrios + 1)
-	idx := sort.Search(len(pl.accPrios), func(i int) bool {
-		return pl.accPrios[i] >= randVal
-	})
-	return pl.progs[idx]
-}
-
 func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
 	prio := int64(len(signal))
 	if prio == 0 {
@@ -70,6 +59,17 @@ func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
 		return randArea.chooseProgram(r)
 	}
 	return corpus.chooseProgram(r)
+}
+
+func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
+	if len(pl.progs) == 0 {
+		return nil
+	}
+	randVal := r.Int63n(pl.sumPrios + 1)
+	idx := sort.Search(len(pl.accPrios), func(i int) bool {
+		return pl.accPrios[i] >= randVal
+	})
+	return pl.progs[idx]
 }
 
 func (corpus *Corpus) Programs() []*prog.Prog {

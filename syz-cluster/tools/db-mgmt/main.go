@@ -15,34 +15,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func runSQL(ctx context.Context, uri db.ParsedURI, command string) error {
-	client, err := spanner.NewClient(ctx, uri.Full)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-	stmt := spanner.Statement{SQL: command}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		cols := row.ColumnNames()
-		fmt.Println(cols)
-		for i := range len(cols) {
-			fmt.Printf("\t%s", row.ColumnValue(i))
-		}
-		fmt.Printf("\n")
-	}
-	return nil
-}
-
 func main() {
 	ctx := context.Background()
 	uri, err := app.DefaultSpannerURI()
@@ -80,4 +52,32 @@ func main() {
 		}
 	}
 	log.Printf("finished!")
+}
+
+func runSQL(ctx context.Context, uri db.ParsedURI, command string) error {
+	client, err := spanner.NewClient(ctx, uri.Full)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	stmt := spanner.Statement{SQL: command}
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	for {
+		row, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		cols := row.ColumnNames()
+		fmt.Println(cols)
+		for i := range len(cols) {
+			fmt.Printf("\t%s", row.ColumnValue(i))
+		}
+		fmt.Printf("\n")
+	}
+	return nil
 }

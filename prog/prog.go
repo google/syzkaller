@@ -64,16 +64,6 @@ func (p *Prog) countArgs() int {
 	return total
 }
 
-// These properties are parsed and serialized according to the tag and the type
-// of the corresponding fields.
-// IMPORTANT: keep the exact values of "key" tag for existing props unchanged,
-// otherwise the backwards compatibility would be broken.
-type CallProps struct {
-	FailNth int  `key:"fail_nth"`
-	Async   bool `key:"async"`
-	Rerun   int  `key:"rerun"`
-}
-
 type Call struct {
 	Meta    *Syscall
 	Args    []Arg
@@ -82,12 +72,14 @@ type Call struct {
 	Comment string
 }
 
-func MakeCall(meta *Syscall, args []Arg) *Call {
-	return &Call{
-		Meta: meta,
-		Args: args,
-		Ret:  MakeReturnArg(meta.Ret),
-	}
+// These properties are parsed and serialized according to the tag and the type
+// of the corresponding fields.
+// IMPORTANT: keep the exact values of "key" tag for existing props unchanged,
+// otherwise the backwards compatibility would be broken.
+type CallProps struct {
+	FailNth int  `key:"fail_nth"`
+	Async   bool `key:"async"`
+	Rerun   int  `key:"rerun"`
 }
 
 type Arg interface {
@@ -99,20 +91,17 @@ type Arg interface {
 	serialize(ctx *serializer)
 }
 
+func MakeCall(meta *Syscall, args []Arg) *Call {
+	return &Call{
+		Meta: meta,
+		Args: args,
+		Ret:  MakeReturnArg(meta.Ret),
+	}
+}
+
 type ArgCommon struct {
 	ref Ref
 	dir Dir
-}
-
-func (arg *ArgCommon) Type() Type {
-	if arg.ref == 0 {
-		panic("broken type ref")
-	}
-	return typeRefs.Load().([]Type)[arg.ref]
-}
-
-func (arg *ArgCommon) Dir() Dir {
-	return arg.dir
 }
 
 // Used for ConstType, IntType, FlagsType, LenType, ProcType and CsumType.
@@ -123,10 +112,6 @@ type ConstArg struct {
 
 func MakeConstArg(t Type, dir Dir, v uint64) *ConstArg {
 	return &ConstArg{ArgCommon: ArgCommon{ref: t.ref(), dir: dir}, Val: v}
-}
-
-func (arg *ConstArg) Size() uint64 {
-	return arg.Type().Size()
 }
 
 // Value returns value and pid stride.
@@ -202,15 +187,15 @@ func (arg *PointerArg) Size() uint64 {
 	return arg.Type().Size()
 }
 
-func (arg *PointerArg) IsSpecial() bool {
-	return arg.VmaSize == 0 && arg.Res == nil && -arg.Address < maxSpecialPointers
-}
-
 func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
 	if arg.IsSpecial() {
 		return target.SpecialPointers[-arg.Address]
 	}
 	return target.DataOffset + arg.Address
+}
+
+func (arg *PointerArg) IsSpecial() bool {
+	return arg.VmaSize == 0 && arg.Res == nil && -arg.Address < maxSpecialPointers
 }
 
 // Used for BufferType.
@@ -239,13 +224,6 @@ func (arg *DataArg) Size() uint64 {
 		return uint64(len(arg.data))
 	}
 	return arg.size
-}
-
-func (arg *DataArg) Data() []byte {
-	if arg.Dir() == DirOut {
-		panic("getting data of output data arg")
-	}
-	return arg.data
 }
 
 func (arg *DataArg) SetData(data []byte) {
@@ -450,21 +428,17 @@ func replaceArg(arg, arg1 Arg) {
 	}
 }
 
-func replaceResultArg(arg, arg1 *ResultArg) {
-	// Remove link from `a.Res` to `arg`.
-	if arg.Res != nil {
-		delete(arg.Res.uses, arg)
+// RemoveCall removes call idx from p.
+func (p *Prog) RemoveCall(idx int) {
+	c := p.Calls[idx]
+	for _, arg := range c.Args {
+		removeArg(arg)
 	}
-	// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
-	uses := arg.uses
-	*arg = *arg1
-	arg.uses = uses
-	// Make the link in `arg.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
-	if arg.Res != nil {
-		resUses := arg.Res.uses
-		delete(resUses, arg1)
-		resUses[arg] = true
+	if c.Ret != nil {
+		removeArg(c.Ret)
 	}
+	copy(p.Calls[idx:], p.Calls[idx+1:])
+	p.Calls = p.Calls[:len(p.Calls)-1]
 }
 
 // removeArg removes all references to/from arg0 from a program.
@@ -488,17 +462,21 @@ func removeArg(arg0 Arg) {
 	})
 }
 
-// RemoveCall removes call idx from p.
-func (p *Prog) RemoveCall(idx int) {
-	c := p.Calls[idx]
-	for _, arg := range c.Args {
-		removeArg(arg)
+func replaceResultArg(arg, arg1 *ResultArg) {
+	// Remove link from `a.Res` to `arg`.
+	if arg.Res != nil {
+		delete(arg.Res.uses, arg)
 	}
-	if c.Ret != nil {
-		removeArg(c.Ret)
+	// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
+	uses := arg.uses
+	*arg = *arg1
+	arg.uses = uses
+	// Make the link in `arg.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
+	if arg.Res != nil {
+		resUses := arg.Res.uses
+		delete(resUses, arg1)
+		resUses[arg] = true
 	}
-	copy(p.Calls[idx:], p.Calls[idx+1:])
-	p.Calls = p.Calls[:len(p.Calls)-1]
 }
 
 func (p *Prog) sanitizeFix() {
@@ -606,6 +584,28 @@ func FormatArg(arg Arg, name string) []string {
 	}
 
 	return visit(arg, name, 0)
+}
+
+func (arg *ConstArg) Size() uint64 {
+	return arg.Type().Size()
+}
+
+func (arg *ArgCommon) Type() Type {
+	if arg.ref == 0 {
+		panic("broken type ref")
+	}
+	return typeRefs.Load().([]Type)[arg.ref]
+}
+
+func (arg *DataArg) Data() []byte {
+	if arg.Dir() == DirOut {
+		panic("getting data of output data arg")
+	}
+	return arg.data
+}
+
+func (arg *ArgCommon) Dir() Dir {
+	return arg.dir
 }
 
 func (p *Prog) sanitize(fix bool) error {

@@ -35,14 +35,6 @@ type subsystemTestInput struct {
 	outName string
 }
 
-func (sti subsystemTestInput) ToSubsystem() *subsystem.Subsystem {
-	s := &subsystem.Subsystem{Name: sti.inName}
-	if sti.email != "" {
-		s.Lists = append(s.Lists, sti.email)
-	}
-	return s
-}
-
 func TestSetSubsystemNames(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -143,4 +135,12 @@ func TestSetSubsystemNames(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (sti subsystemTestInput) ToSubsystem() *subsystem.Subsystem {
+	s := &subsystem.Subsystem{Name: sti.inName}
+	if sti.email != "" {
+		s.Lists = append(s.Lists, sti.email)
+	}
+	return s
 }

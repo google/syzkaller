@@ -42,17 +42,6 @@ func initCoverageDB() {
 
 var keyCoverageDBClient = "coveragedb client key"
 
-func getCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
-	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(spannerclient.SpannerClient)
-	if ctxClient == nil && coverageDBClient == nil {
-		panic("attempt to get coverage db client before it was set in tests")
-	}
-	if ctxClient != nil {
-		return ctxClient
-	}
-	return coverageDBClient
-}
-
 type funcStyleBodyJS func(
 	ctx context.Context, client spannerclient.SpannerClient,
 	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string, dataFilters cover.Format,
@@ -69,64 +58,8 @@ type coverageHeatmapParams struct {
 }
 
 const minPeriodsOnThePage = 1
+
 const maxPeriodsOnThePage = 12
-
-func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
-	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
-	periodType := getParam[string](r, PeriodType.ParamName())
-	if !slices.Contains(coveragedb.AllPeriods, periodType) {
-		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
-			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
-	}
-	nPeriods := getParam[int](r, PeriodCount.ParamName(), 4)
-	if nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
-		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]",
-			minPeriodsOnThePage, maxPeriodsOnThePage)
-	}
-
-	return &coverageHeatmapParams{
-		manager:    getParam[string](r, ManagerName.ParamName()),
-		subsystem:  getParam[string](r, SubsystemName.ParamName()),
-		onlyUnique: onlyUnique,
-		periodType: periodType,
-		nPeriods:   nPeriods,
-		dateTo:     getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
-		Format: cover.Format{
-			DropCoveredLines0:         onlyUnique,
-			OrderByCoveredLinesDrop:   getParam[bool](r, OrderByCoverDrop.ParamName()),
-			FilterMinCoveredLinesDrop: getParam[int](r, MinCoverLinesDrop.ParamName()),
-		},
-	}, nil
-}
-
-func getParam[T int | string | bool | civil.Date](r *http.Request, name string, orDefault ...T) T {
-	var def T
-	if len(orDefault) > 0 {
-		def = orDefault[0]
-	}
-	if r.FormValue(name) == "" {
-		return def
-	}
-	var t T
-	return extractVal(t, r.FormValue(name)).(T)
-}
-
-func extractVal(t any, val string) any {
-	switch t.(type) {
-	case int:
-		res, _ := strconv.Atoi(val)
-		return res
-	case string:
-		return val
-	case bool:
-		res, _ := strconv.ParseBool(val)
-		return res
-	case civil.Date:
-		res, _ := civil.ParseDate(val)
-		return res
-	}
-	panic("unsupported type")
-}
 
 func handleCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(ctx, r, w, "")
@@ -156,6 +89,34 @@ func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter,
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
 	return handleHeatmap(ctx, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
+}
+
+func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
+	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
+	periodType := getParam[string](r, PeriodType.ParamName())
+	if !slices.Contains(coveragedb.AllPeriods, periodType) {
+		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
+			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
+	}
+	nPeriods := getParam[int](r, PeriodCount.ParamName(), 4)
+	if nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
+		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]",
+			minPeriodsOnThePage, maxPeriodsOnThePage)
+	}
+
+	return &coverageHeatmapParams{
+		manager:    getParam[string](r, ManagerName.ParamName()),
+		subsystem:  getParam[string](r, SubsystemName.ParamName()),
+		onlyUnique: onlyUnique,
+		periodType: periodType,
+		nPeriods:   nPeriods,
+		dateTo:     getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
+		Format: cover.Format{
+			DropCoveredLines0:         onlyUnique,
+			OrderByCoveredLinesDrop:   getParam[bool](r, OrderByCoverDrop.ParamName()),
+			FilterMinCoveredLinesDrop: getParam[int](r, MinCoverLinesDrop.ParamName()),
+		},
+	}, nil
 }
 
 type covPageParam string
@@ -250,15 +211,6 @@ func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p 
 	})
 }
 
-func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
-	return func(filePath, commit string) string {
-		// Parameter format=TEXT is ignored by git servers but is processed by gerrit servers.
-		// Gerrit returns base64 encoded data.
-		// Git return the plain text data.
-		return fmt.Sprintf("%s/%s/%s?format=TEXT", url, commit, filePath)
-	}
-}
-
 func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
@@ -333,6 +285,44 @@ func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	return nil
 }
 
+func getParam[T int | string | bool | civil.Date](r *http.Request, name string, orDefault ...T) T {
+	var def T
+	if len(orDefault) > 0 {
+		def = orDefault[0]
+	}
+	if r.FormValue(name) == "" {
+		return def
+	}
+	var t T
+	return extractVal(t, r.FormValue(name)).(T)
+}
+
+func extractVal(t any, val string) any {
+	switch t.(type) {
+	case int:
+		res, _ := strconv.Atoi(val)
+		return res
+	case string:
+		return val
+	case bool:
+		res, _ := strconv.ParseBool(val)
+		return res
+	case civil.Date:
+		res, _ := civil.ParseDate(val)
+		return res
+	}
+	panic("unsupported type")
+}
+
+func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
+	return func(filePath, commit string) string {
+		// Parameter format=TEXT is ignored by git servers but is processed by gerrit servers.
+		// Gerrit returns base64 encoded data.
+		// Git return the plain text data.
+		return fmt.Sprintf("%s/%s/%s?format=TEXT", url, commit, filePath)
+	}
+}
+
 var keyWebGit = "file content provider"
 
 func setWebGit(ctx context.Context, provider covermerger.FileVersProvider) context.Context {
@@ -393,6 +383,17 @@ func handleCoverageGraph(ctx context.Context, w http.ResponseWriter, r *http.Req
 		},
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
+}
+
+func getCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
+	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(spannerclient.SpannerClient)
+	if ctxClient == nil && coverageDBClient == nil {
+		panic("attempt to get coverage db client before it was set in tests")
+	}
+	if ctxClient != nil {
+		return ctxClient
+	}
+	return coverageDBClient
 }
 
 func handleUpdateCoverDBSubsystems(w http.ResponseWriter, r *http.Request) {

@@ -28,59 +28,6 @@ type TestRepo struct {
 	repo    *gitRepo
 }
 
-func (repo *TestRepo) Git(args ...string) {
-	repo.t.Helper()
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = repo.Dir
-	cmd.Env = filterEnv()
-
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
-		repo.t.Fatal(osutil.VerboseMessage(err))
-	}
-}
-
-func MakeTestRepo(t *testing.T, dir string) *TestRepo {
-	if err := osutil.MkdirAll(dir); err != nil {
-		t.Fatal(err)
-	}
-	ignoreCC := map[string]bool{
-		"stable@vger.kernel.org": true,
-	}
-	repo := &TestRepo{
-		t:       t,
-		Dir:     dir,
-		name:    filepath.Base(dir),
-		Commits: make(map[string]map[string]*Commit),
-		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
-	}
-	repo.Git("init")
-	repo.Git("config", "--add", "user.email", userEmail)
-	repo.Git("config", "--add", "user.name", userName)
-	repo.Git("config", "--add", "gc.auto", "0")
-	repo.Git("config", "--add", "gc.autoDetach", "false")
-	repo.Git("config", "--add", "maintenance.auto", "false")
-	repo.Git("config", "--add", "maintenance.autoDetach", "false")
-	return repo
-}
-
-func (repo *TestRepo) CommitFileChange(branch, change string) {
-	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
-	file := filepath.Join(repo.Dir, "file")
-	if err := osutil.WriteFile(file, []byte(id)); err != nil {
-		repo.t.Fatal(osutil.VerboseMessage(err))
-	}
-	repo.Git("add", file)
-	repo.Git("commit", "-m", id)
-	if repo.Commits[branch] == nil {
-		repo.Commits[branch] = make(map[string]*Commit)
-	}
-	com, err := repo.repo.Commit(HEAD)
-	if err != nil {
-		repo.t.Fatal(osutil.VerboseMessage(err))
-	}
-	repo.Commits[branch][change] = com
-}
-
 func (repo *TestRepo) CommitChange(description string) *Commit {
 	return repo.CommitChangeset(description)
 }
@@ -103,15 +50,6 @@ type FileContent struct {
 	Content string
 }
 
-func (fc *FileContent) Apply(repo *TestRepo) error {
-	err := os.WriteFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content), 0644)
-	if err != nil {
-		return err
-	}
-	repo.Git("add", fc.File)
-	return nil
-}
-
 func (repo *TestRepo) CommitChangeset(description string, actions ...FileContent) *Commit {
 	for i, action := range actions {
 		if err := action.Apply(repo); err != nil {
@@ -125,6 +63,15 @@ func (repo *TestRepo) CommitChangeset(description string, actions ...FileContent
 	}
 	repo.t.Logf("%q's hash is %s", description, com.Hash)
 	return com
+}
+
+func (fc *FileContent) Apply(repo *TestRepo) error {
+	err := os.WriteFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content), 0644)
+	if err != nil {
+		return err
+	}
+	repo.Git("add", fc.File)
+	return nil
 }
 
 func (repo *TestRepo) SetTag(tag string) {
@@ -151,4 +98,57 @@ func CreateTestRepo(t *testing.T, baseDir, name string) *TestRepo {
 	repo.Git("checkout", "master")
 	repo.CommitFileChange("master", "1")
 	return repo
+}
+
+func MakeTestRepo(t *testing.T, dir string) *TestRepo {
+	if err := osutil.MkdirAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	ignoreCC := map[string]bool{
+		"stable@vger.kernel.org": true,
+	}
+	repo := &TestRepo{
+		t:       t,
+		Dir:     dir,
+		name:    filepath.Base(dir),
+		Commits: make(map[string]map[string]*Commit),
+		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
+	}
+	repo.Git("init")
+	repo.Git("config", "--add", "user.email", userEmail)
+	repo.Git("config", "--add", "user.name", userName)
+	repo.Git("config", "--add", "gc.auto", "0")
+	repo.Git("config", "--add", "gc.autoDetach", "false")
+	repo.Git("config", "--add", "maintenance.auto", "false")
+	repo.Git("config", "--add", "maintenance.autoDetach", "false")
+	return repo
+}
+
+func (repo *TestRepo) Git(args ...string) {
+	repo.t.Helper()
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = repo.Dir
+	cmd.Env = filterEnv()
+
+	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+		repo.t.Fatal(osutil.VerboseMessage(err))
+	}
+}
+
+func (repo *TestRepo) CommitFileChange(branch, change string) {
+	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
+	file := filepath.Join(repo.Dir, "file")
+	if err := osutil.WriteFile(file, []byte(id)); err != nil {
+		repo.t.Fatal(osutil.VerboseMessage(err))
+	}
+	repo.Git("add", file)
+	repo.Git("commit", "-m", id)
+	if repo.Commits[branch] == nil {
+		repo.Commits[branch] = make(map[string]*Commit)
+	}
+	com, err := repo.repo.Commit(HEAD)
+	if err != nil {
+		repo.t.Fatal(osutil.VerboseMessage(err))
+	}
+	repo.Commits[branch][change] = com
 }
