@@ -73,7 +73,7 @@ You can provide either a raw signature (e.g. "void (int)") or a function name.
 `)
 
 	Tools = []aflow.Tool{ToolDirIndex, ToolReadFile, ToolFileIndex, ToolDefinitionComment,
-		ToolDefinitionSource, ToolFindReferences, ToolStructLayout, ToolIndirectTargets, ToolIndirectCallers}
+		ToolDefinitionSource, ToolFindReferences, ToolStructLayout, ToolIndirectCallers}
 )
 
 // PrepareIndex is an action that needs to run before any agents that use codesearch tools.
@@ -271,9 +271,12 @@ func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs
 }
 
 type extractFunctionArgs struct {
-	Index index
-	File  string `jsonschema:"Source file path."`
-	Line  int    `jsonschema:"Line number in the file."`
+	Index     index
+	File      string `jsonschema:"Innermost file path (fallback)."`
+	Line      int    `jsonschema:"Innermost line number (fallback)."`
+	OuterFile string `jsonschema:"Outermost file path."`
+	OuterLine int    `jsonschema:"Outermost line number (fallback)."`
+	OuterFunc string `jsonschema:"Outermost function name."`
 }
 
 type extractFunctionResult struct {
@@ -282,11 +285,32 @@ type extractFunctionResult struct {
 }
 
 func extractFunction(ctx *aflow.Context, args extractFunctionArgs) (extractFunctionResult, error) {
+	if args.OuterFile != "" && args.OuterFunc != "" {
+		info, err := args.Index.DefinitionSource(args.OuterFile, args.OuterFunc)
+		if err == nil {
+			return extractFunctionResult{
+				FunctionName:   info.Name,
+				FunctionSource: info.Body,
+			}, nil
+		}
+	}
+	if args.OuterFile != "" && args.OuterLine != 0 {
+		info, err := args.Index.FindFunctionAtLine(args.OuterFile, args.OuterLine)
+		if err == nil {
+			return extractFunctionResult{
+				FunctionName:   info.Name,
+				FunctionSource: info.Body,
+			}, nil
+		}
+	}
 	info, err := args.Index.FindFunctionAtLine(args.File, args.Line)
 	if err != nil {
 		return extractFunctionResult{}, err
 	}
-	return extractFunctionResult{FunctionName: info.Name, FunctionSource: info.Body}, nil
+	return extractFunctionResult{
+		FunctionName:   info.Name,
+		FunctionSource: info.Body,
+	}, nil
 }
 
 type extractIndirectCallersArgs struct {

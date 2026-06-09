@@ -123,6 +123,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	if _, err := verifyTemplate(t.Prompt, vars); err != nil {
 		ctx.errorf(t.Name, "invalid prompt template: %v", err)
 	}
+
 	t.agent = &LLMAgent{
 		Name:        t.Name,
 		Model:       t.Model,

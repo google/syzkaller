@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
@@ -210,6 +211,50 @@ func TestValidateFilePath(t *testing.T) {
 			err := validateFilePath(tt.path)
 			if tt.wantErr {
 				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExecuteSeed(t *testing.T) {
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		Syzkaller:  "../../../..",
+	}
+
+	tests := []struct {
+		name      string
+		program   string
+		wantError string
+	}{
+		{
+			name:      "valid program",
+			program:   "getrlimit(0x0, 0x0)",
+			wantError: "",
+		},
+		{
+			name:      "empty program",
+			program:   "",
+			wantError: "syz program cannot be empty",
+		},
+		{
+			name:      "invalid program syntax",
+			program:   "invalid_call()",
+			wantError: "unknown syscall",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := executeSeed(&aflow.Context{}, state, ExecuteSeedArgs{
+				ReproSyz: tc.program,
+			})
+			if tc.wantError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantError)
 			} else {
 				require.NoError(t, err)
 			}

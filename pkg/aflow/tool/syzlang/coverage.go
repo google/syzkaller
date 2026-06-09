@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -42,7 +43,13 @@ If the trace is too large, it will be truncated. You can use 'Offset' and 'Limit
 through trace output lines.
 `)
 
-	Coverage = []aflow.Tool{CoverageFiles, FileCoverage, ExecutionTrace}
+	VerifyPCReached = aflow.NewFuncTool("check-pc-coverage", verifyPCReached, `
+Tool evaluates whether an exact PC address was executed.
+You MUST provide the exact target PC address as a hex string (e.g., '0xffffffff81b43437').
+It automatically uses the last execution ID.
+`)
+
+	Coverage = []aflow.Tool{CoverageFiles, FileCoverage, ExecutionTrace, VerifyPCReached}
 )
 
 type CoverageFilesArgs struct {
@@ -79,7 +86,7 @@ func getCoverageFiles(ctx *aflow.Context, state reproduceState, args CoverageFil
 }
 
 type FileCoverageArgs struct {
-	ExecutionCachedID string   `jsonschema:"Cached ID returned by the reproduce-crash tool."`
+	ExecutionCachedID string   `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
 	Filename          string   `jsonschema:"Name of the source file to inspect."`
 	Functions         []string `jsonschema:"Optional list of functions. If empty, returns all."`
 }
@@ -171,6 +178,10 @@ func (f *coverageFormatter) buildSnippet(fnName string, start, end int, lines []
 func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverageArgs) (FileCoverageResult, error) {
 	if !filepath.IsLocal(args.Filename) {
 		return FileCoverageResult{}, aflow.BadCallError("filename must be a safe, local relative path")
+	}
+	if args.ExecutionCachedID == "" {
+		return FileCoverageResult{}, aflow.BadCallError(
+			"no previous execution found. You must execute a seed before requesting coverage.")
 	}
 
 	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
@@ -587,4 +598,35 @@ func truncateTrace(out []string, maxLines int) []string {
 
 	newOut = append(newOut, out[len(out)-half:]...)
 	return newOut
+}
+
+type VerifyPCReachedArgs struct {
+	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
+	PC                string `jsonschema:"The exact target PC address to verify (e.g., '0x123')."`
+}
+
+type VerifyPCReachedResult struct {
+	PCReached bool `jsonschema:"True if the target PC was reached, false otherwise."`
+}
+
+func verifyPCReached(
+	ctx *aflow.Context, state reproduceState, args VerifyPCReachedArgs) (VerifyPCReachedResult, error) {
+	if args.ExecutionCachedID == "" {
+		return VerifyPCReachedResult{}, aflow.BadCallError(
+			"no previous execution found. You must execute a seed before requesting coverage.")
+	}
+
+	raw := strings.TrimSpace(args.PC)
+	raw = strings.TrimPrefix(raw, "0x")
+	pc, err := strconv.ParseUint(raw, 16, 64)
+	if err != nil {
+		return VerifyPCReachedResult{}, aflow.BadCallError("invalid PC format: %v", err)
+	}
+
+	reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, pc)
+	if err != nil {
+		return VerifyPCReachedResult{}, aflow.BadCallError("failed to check PC in coverage: %v", err)
+	}
+
+	return VerifyPCReachedResult{PCReached: reached}, nil
 }

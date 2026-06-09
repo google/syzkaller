@@ -34,8 +34,7 @@ func DescriptionFilesPrompt(syzFS *syzspec.SyzFS) string {
 		sb.WriteByte('\n')
 	}
 	sb.WriteString("\nNote that the constant values for the descriptions are defined " +
-		"in the file suffixed with .const (e.g. sys.txt.const for sys.txt).\n" +
-		"If you need base seeds for file system image setup or other device setup, " +
+		"If you need setup code for file system image setup or other device setup, " +
 		"use read-syz-spec and syz-grepper to look up files in the test/ directory.\n")
 	return sb.String()
 }
