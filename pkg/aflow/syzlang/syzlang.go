@@ -5,19 +5,11 @@
 package syzlang
 
 import (
-	"runtime"
 	"strings"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
-
-func init() {
-	// Used externally - do not remove.
-	runtime.KeepAlive(CombineSyzPrograms)
-	runtime.KeepAlive(BaseSeedCallCount)
-	runtime.KeepAlive((*BaseTestSeed).Load)
-}
 
 type BaseTestSeed struct {
 	Path string

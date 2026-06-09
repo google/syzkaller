@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nCRITICAL: You are STRONGLY ENCOURAGED to issue MULTIPLE tool calls in a single response whenever\nyou need to gather information from multiple independent sources.\nIf you have multiple hypotheses (e.g., you want to test 3 different programs, or search 3 different files),\nissue ALL of those tool calls in parallel in the same response to save time. Do not wait for one search or execution\nto finish if you already know you need to test another alternative.\n"
 					}
 				],
 				"role": "user"
@@ -572,7 +572,7 @@
 			{
 				"parts": [
 					{
-						"text": "\u003csystem_instructions\u003e\nInstruction\nPrefer calling several tools at the same time to save round-trips.\n\n\u003c/system_instructions\u003e\n\nPrompt"
+						"text": "\u003csystem_instructions\u003e\nInstruction\nCRITICAL: You are STRONGLY ENCOURAGED to issue MULTIPLE tool calls in a single response whenever\nyou need to gather information from multiple independent sources.\nIf you have multiple hypotheses (e.g., you want to test 3 different programs, or search 3 different files),\nissue ALL of those tool calls in parallel in the same response to save time. Do not wait for one search or execution\nto finish if you already know you need to test another alternative.\n\n\u003c/system_instructions\u003e\n\nPrompt"
 					}
 				],
 				"role": "user"
@@ -677,7 +677,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instruction\nCRITICAL: You are STRONGLY ENCOURAGED to issue MULTIPLE tool calls in a single response whenever\nyou need to gather information from multiple independent sources.\nIf you have multiple hypotheses (e.g., you want to test 3 different programs, or search 3 different files),\nissue ALL of those tool calls in parallel in the same response to save time. Do not wait for one search or execution\nto finish if you already know you need to test another alternative.\n"
 					}
 				],
 				"role": "user"

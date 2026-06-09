@@ -33,6 +33,11 @@ func TestProviderResolveModels(t *testing.T) {
 			want:     []string{"gemini-3.1-pro-preview"},
 		},
 		{
+			name:     "resolves temporary 3.5 flash only pool",
+			category: backend.Temporary35FlashOnlyModel,
+			want:     []string{"gemini-3.5-flash"},
+		},
+		{
 			name:     "returns nil for unrecognized category",
 			category: "custom-model",
 			want:     nil,

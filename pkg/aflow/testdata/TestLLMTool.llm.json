@@ -530,7 +530,7 @@
 			{
 				"parts": [
 					{
-						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without calling any more tools!\n"
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without calling any more tools!\nIMPORTANT: Your tool calling ability is currently disabled to save context size.\nDo NOT attempt to output JSON to call tools. Base your response strictly on\nthe text information you have already gathered.\n"
 					}
 				],
 				"role": "user"

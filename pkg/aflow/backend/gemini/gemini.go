@@ -179,6 +179,8 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 		return []string{"gemini-3.1-pro-preview"}
 	case backend.GoodBalancedModel:
 		return []string{"gemini-3.5-flash", "gemini-3-flash-preview"}
+	case backend.Temporary35FlashOnlyModel:
+		return []string{"gemini-3.5-flash"}
 	default:
 		return nil
 	}
