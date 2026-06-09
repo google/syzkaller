@@ -3,6 +3,7 @@
 		{
 			"name": "same_name_in_several_files",
 			"type": "void ()",
+			"signature": "void ()",
 			"kind": "function",
 			"is_static": true,
 			"body": {

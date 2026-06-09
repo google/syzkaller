@@ -49,3 +49,7 @@ enum some_enum {
 };
 
 typedef enum some_enum some_enum_t;
+
+struct ops {
+	void (*do_work)(int);
+};
