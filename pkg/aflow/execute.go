@@ -11,12 +11,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	_ "time/tzdata"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"golang.org/x/sync/errgroup"
 )
 
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
@@ -171,16 +174,20 @@ var (
 )
 
 type Context struct {
-	Context     context.Context
-	Workdir     string
-	provider    backend.Provider
-	cache       *Cache
-	cachedDirs  []string
-	tempDirs    []string
-	state       map[string]any
-	onEvent     onEvent
-	spanSeq     int
-	spanNesting int
+	Context       context.Context
+	Workdir       string
+	provider      backend.Provider
+	cache         *Cache
+	cachedDirs    []string
+	tempDirs      []string
+	state         map[string]any
+	onEvent       onEvent
+	spanSeq       int
+	spanNesting   int
+	runnerMu      sync.Mutex
+	runnerManager *RunnerManager
+	runnerEg      *errgroup.Group
+	runnerCancel  context.CancelFunc
 	stubContext
 }
 
@@ -246,6 +253,18 @@ func (ctx *Context) TempDir() (string, error) {
 }
 
 func (ctx *Context) Close() {
+	ctx.runnerMu.Lock()
+	cancel := ctx.runnerCancel
+	eg := ctx.runnerEg
+	ctx.runnerManager = nil
+	ctx.runnerCancel = nil
+	ctx.runnerEg = nil
+	ctx.runnerMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+		eg.Wait()
+	}
 	for _, dir := range ctx.cachedDirs {
 		ctx.cache.Release(dir)
 	}
@@ -277,4 +296,31 @@ func (ctx *Context) finishSpan(span *trajectory.Span, spanErr error) error {
 		err = spanErr
 	}
 	return err
+}
+
+// GetRunnerManager returns the context's continuous RunnerManager, initializing it if necessary.
+func (ctx *Context) GetRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, error) {
+	ctx.runnerMu.Lock()
+	defer ctx.runnerMu.Unlock()
+	if ctx.runnerManager != nil {
+		return ctx.runnerManager, nil
+	}
+	runnerCtx, cancel := context.WithCancel(ctx.Context)
+	eg, egCtx := errgroup.WithContext(runnerCtx)
+
+	rm, err := newRunnerManager(egCtx, cfg)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
+	ctx.runnerManager = rm
+	ctx.runnerCancel = cancel
+	ctx.runnerEg = eg
+
+	eg.Go(func() error {
+		return rm.Loop()
+	})
+
+	return rm, nil
 }
