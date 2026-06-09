@@ -1,6 +1,16 @@
 {
 	"definitions": [
 		{
+			"name": "global_init_target",
+			"type": "void (void)",
+			"kind": "function",
+			"body": {
+				"file": "refs.c",
+				"start_line": 40,
+				"end_line": 42
+			}
+		},
+		{
 			"name": "long_func_with_ref",
 			"type": "void ()",
 			"kind": "function",
@@ -146,6 +156,46 @@
 					"kind": "takes-address-of",
 					"entity_kind": "function",
 					"line": 20
+				}
+			]
+		},
+		{
+			"name": "global_ops",
+			"kind": "struct",
+			"body": {
+				"file": "refs.c",
+				"start_line": 36,
+				"end_line": 38
+			},
+			"fields": [
+				{
+					"name": "prep",
+					"offset": 0,
+					"size": 64
+				}
+			]
+		},
+		{
+			"name": "my_global_ops",
+			"type": "struct global_ops[1]",
+			"kind": "global_variable",
+			"body": {
+				"file": "refs.c",
+				"start_line": 44,
+				"end_line": 45
+			},
+			"refs": [
+				{
+					"name": "global_ops",
+					"kind": "uses",
+					"entity_kind": "struct",
+					"line": 44
+				},
+				{
+					"name": "global_init_target",
+					"kind": "takes-address-of",
+					"entity_kind": "function",
+					"line": 45
 				}
 			]
 		}
