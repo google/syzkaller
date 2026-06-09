@@ -171,17 +171,23 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	}
 
 	base := api.BuildRequest{
-		TreeName:   result.Tree.Name,
-		TreeURL:    result.Tree.URL,
-		ConfigName: target.KernelConfig,
-		CommitHash: result.Commit,
-		Arch:       result.Arch,
+		TreeName:      result.Tree.Name,
+		TreeURL:       result.Tree.URL,
+		ConfigName:    target.KernelConfig,
+		CommitHash:    result.Commit,
+		Arch:          result.Arch,
+		EnableConfigs: triager.aiVerdict.EnableConfigs,
 	}
+	fuzzCfg := new(api.FuzzConfig)
+	if target.FuzzConfig != nil {
+		*fuzzCfg = *target.FuzzConfig
+	}
+	fuzzCfg.FocusSymbols = triager.aiVerdict.FocusSymbols
 	testTarget := &api.TestTarget{
 		Base:    base,
 		Patched: base,
 		Track:   target.Track,
-		Fuzz:    target.FuzzConfig,
+		Fuzz:    fuzzCfg,
 	}
 	testTarget.Patched.SeriesID = series.ID
 	retestFindings, err := triager.client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
