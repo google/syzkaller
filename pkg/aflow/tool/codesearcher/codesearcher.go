@@ -7,6 +7,7 @@ package codesearcher
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/clangtool"
@@ -61,8 +62,18 @@ a field in the output, it is NOT present in the struct definition
 You can strictly trust the response to be complete and accurate.
 `)
 
+	ToolIndirectTargets = aflow.NewFuncTool("codesearch-indirect-targets", indirectTargets, `
+Tool finds all functions that could be called by an indirect call matching a specific signature.
+You can provide either a raw signature (e.g. "void (int)") or a struct field (e.g. "struct ops::do_work").
+`)
+
+	ToolIndirectCallers = aflow.NewFuncTool("codesearch-indirect-callers", indirectCallers, `
+Tool finds all locations where an indirect call matching a specific signature is made.
+You can provide either a raw signature (e.g. "void (int)") or a function name.
+`)
+
 	Tools = []aflow.Tool{ToolDirIndex, ToolReadFile, ToolFileIndex, ToolDefinitionComment,
-		ToolDefinitionSource, ToolFindReferences, ToolStructLayout}
+		ToolDefinitionSource, ToolFindReferences, ToolStructLayout, ToolIndirectTargets, ToolIndirectCallers}
 )
 
 // PrepareIndex is an action that needs to run before any agents that use codesearch tools.
@@ -237,6 +248,8 @@ type structLayoutField struct {
 	Name       string `jsonschema:"Name of the field."`
 	OffsetBits uint64 `jsonschema:"Offset of the field in bits."`
 	SizeBits   uint64 `jsonschema:"Size of the field in bits."`
+	Type       string `jsonschema:"Type of the field." json:",omitempty"`
+	Signature  string `jsonschema:"If the field is a function pointer, its canonical signature." json:",omitempty"`
 }
 
 func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs) (structLayoutResult, error) {
@@ -250,7 +263,145 @@ func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs
 			Name:       f.Name,
 			OffsetBits: f.OffsetBits,
 			SizeBits:   f.SizeBits,
+			Type:       f.Type,
+			Signature:  f.Signature,
 		})
 	}
 	return res, nil
+}
+
+type extractFunctionArgs struct {
+	Index index
+	File  string `jsonschema:"Source file path."`
+	Line  int    `jsonschema:"Line number in the file."`
+}
+
+type extractFunctionResult struct {
+	FunctionName   string `jsonschema:"Name of the function."`
+	FunctionSource string `jsonschema:"Source code of the function."`
+}
+
+func extractFunction(ctx *aflow.Context, args extractFunctionArgs) (extractFunctionResult, error) {
+	info, err := args.Index.FindFunctionAtLine(args.File, args.Line)
+	if err != nil {
+		return extractFunctionResult{}, err
+	}
+	return extractFunctionResult{FunctionName: info.Name, FunctionSource: info.Body}, nil
+}
+
+type extractIndirectCallersArgs struct {
+	Index        index
+	FunctionName string
+}
+
+type extractIndirectCallersResult struct {
+	IndirectCallers string
+}
+
+func extractIndirectCallers(ctx *aflow.Context, args extractIndirectCallersArgs) (extractIndirectCallersResult, error) {
+	if args.FunctionName == "" {
+		return extractIndirectCallersResult{}, nil
+	}
+
+	refs, totalCount, err := getIndirectCallSites(args.Index, "", args.FunctionName, "", 2, 10)
+	if err != nil || totalCount == 0 {
+		return extractIndirectCallersResult{}, nil
+	}
+
+	b := new(strings.Builder)
+	fmt.Fprintf(b, "Function %v is called indirectly at %v locations", args.FunctionName, totalCount)
+	if totalCount > len(refs) {
+		fmt.Fprintf(b, " (showing %v)", len(refs))
+	}
+	fmt.Fprintf(b, ":\n\n")
+	for _, ref := range refs {
+		fmt.Fprintf(b, "%v %v it at %v:%v\n%v\n\n",
+			ref.ReferencingEntityKind, ref.ReferencingEntityName,
+			ref.SourceFile, ref.SourceLine, ref.SourceSnippet)
+	}
+	return extractIndirectCallersResult{IndirectCallers: strings.TrimSpace(b.String())}, nil
+}
+
+var ActionExtractFunction = aflow.NewFuncAction("codesearch-extract-function", extractFunction)
+var ActionExtractIndirectCallers = aflow.NewFuncAction("codesearch-extract-indirect-callers", extractIndirectCallers)
+
+type indirectTargetsArgs struct {
+	ContextFile string `jsonschema:"Source file path that references the entity." json:",omitempty"`
+	Name        string `jsonschema:"Name of the entity of interest. e.g. 'ops::do_work' or 'void (int)'."`
+}
+
+type indirectTargetsResult struct {
+	Targets []string `jsonschema:"List of functions that match the signature and have their address taken."`
+}
+
+func indirectTargets(ctx *aflow.Context, state prepareResult, args indirectTargetsArgs) (
+	indirectTargetsResult, error) {
+	signature := args.Name
+	if strings.Contains(args.Name, "::") {
+		parts := strings.Split(args.Name, "::")
+		if len(parts) == 2 {
+			fields, err := state.Index.GetStructLayout(args.ContextFile, parts[0], nil)
+			if err == nil {
+				for _, f := range fields {
+					if f.Name == parts[1] && f.Signature != "" {
+						signature = f.Signature
+						break
+					}
+				}
+			}
+		}
+	}
+	targets, err := state.Index.FindIndirectTargets(signature)
+	if err != nil {
+		return indirectTargetsResult{}, err
+	}
+	return indirectTargetsResult{Targets: targets}, nil
+}
+
+type indirectCallersArgs struct {
+	ContextFile         string `jsonschema:"Source file path that references the entity." json:",omitempty"`
+	Name                string `jsonschema:"Name of the entity of interest. Function name or 'void (int)'."`
+	SourceTreePrefix    string `jsonschema:"Prefix to restrict search. Empty finds all." json:",omitempty"`
+	IncludeSnippetLines uint   `jsonschema:"Number of lines of context for source code snippets." json:",omitempty"`
+}
+
+type indirectCallersResult struct {
+	TruncatedOutput bool                       `jsonschema:"Set if output was truncated."`
+	References      []codesearch.ReferenceInfo `jsonschema:"List of requested references."`
+}
+
+// getIndirectCallSites is a shared helper for retrieving indirect call sites.
+// If the provided name is a function name rather than a signature, it will
+// first query the definition source to resolve it into its function signature
+// before querying the index for indirect callers.
+func getIndirectCallSites(
+	index index, contextFile, name, srcPrefix string, contextLines, outputLimit int,
+) ([]codesearch.ReferenceInfo, int, error) {
+	signature := name
+	if !strings.Contains(name, "(") {
+		info, err := index.DefinitionSource(contextFile, name)
+		if err == nil && info != nil && info.Signature != "" {
+			signature = info.Signature
+		}
+	}
+	return index.FindIndirectCallSites(signature, srcPrefix, contextLines, outputLimit)
+}
+
+func indirectCallers(ctx *aflow.Context, state prepareResult, args indirectCallersArgs) (
+	indirectCallersResult, error) {
+	outputLimit := 20
+	if args.IncludeSnippetLines == 0 {
+		outputLimit = 1000
+	} else if args.IncludeSnippetLines < 10 {
+		outputLimit = 100
+	}
+	refs, totalCount, err := getIndirectCallSites(state.Index, args.ContextFile, args.Name,
+		args.SourceTreePrefix, int(args.IncludeSnippetLines), outputLimit)
+	if err != nil {
+		return indirectCallersResult{}, err
+	}
+	return indirectCallersResult{
+		TruncatedOutput: totalCount > len(refs),
+		References:      refs,
+	}, nil
 }

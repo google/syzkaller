@@ -25,7 +25,12 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-generator",
-		"Started": "0001-01-01T00:00:04Z"
+		"Started": "0001-01-01T00:00:04Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": ""
+		}
 	},
 	{
 		"Seq": 3,
@@ -34,6 +39,11 @@
 		"Name": "patch-generator",
 		"Started": "0001-01-01T00:00:04Z",
 		"Finished": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": ""
+		},
 		"Results": {
 			"Patch": "bad"
 		}
@@ -43,7 +53,10 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-tester",
-		"Started": "0001-01-01T00:00:06Z"
+		"Started": "0001-01-01T00:00:06Z",
+		"Args": {
+			"Patch": "bad"
+		}
 	},
 	{
 		"Seq": 4,
@@ -52,6 +65,9 @@
 		"Name": "patch-tester",
 		"Started": "0001-01-01T00:00:06Z",
 		"Finished": "0001-01-01T00:00:07Z",
+		"Args": {
+			"Patch": "bad"
+		},
 		"Results": {
 			"Diff": "",
 			"TestError": "error"
@@ -77,7 +93,12 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-generator",
-		"Started": "0001-01-01T00:00:10Z"
+		"Started": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": "error"
+		}
 	},
 	{
 		"Seq": 6,
@@ -86,6 +107,11 @@
 		"Name": "patch-generator",
 		"Started": "0001-01-01T00:00:10Z",
 		"Finished": "0001-01-01T00:00:11Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": "error"
+		},
 		"Results": {
 			"Patch": "bad"
 		}
@@ -95,7 +121,10 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-tester",
-		"Started": "0001-01-01T00:00:12Z"
+		"Started": "0001-01-01T00:00:12Z",
+		"Args": {
+			"Patch": "bad"
+		}
 	},
 	{
 		"Seq": 7,
@@ -104,6 +133,9 @@
 		"Name": "patch-tester",
 		"Started": "0001-01-01T00:00:12Z",
 		"Finished": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Patch": "bad"
+		},
 		"Results": {
 			"Diff": "",
 			"TestError": "error"
@@ -129,7 +161,12 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-generator",
-		"Started": "0001-01-01T00:00:16Z"
+		"Started": "0001-01-01T00:00:16Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": "error"
+		}
 	},
 	{
 		"Seq": 9,
@@ -138,6 +175,11 @@
 		"Name": "patch-generator",
 		"Started": "0001-01-01T00:00:16Z",
 		"Finished": "0001-01-01T00:00:17Z",
+		"Args": {
+			"Bug": "bug",
+			"Diff": "",
+			"TestError": "error"
+		},
 		"Results": {
 			"Patch": "good"
 		}
@@ -147,7 +189,10 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "patch-tester",
-		"Started": "0001-01-01T00:00:18Z"
+		"Started": "0001-01-01T00:00:18Z",
+		"Args": {
+			"Patch": "good"
+		}
 	},
 	{
 		"Seq": 10,
@@ -156,6 +201,9 @@
 		"Name": "patch-tester",
 		"Started": "0001-01-01T00:00:18Z",
 		"Finished": "0001-01-01T00:00:19Z",
+		"Args": {
+			"Patch": "good"
+		},
 		"Results": {
 			"Diff": "diff",
 			"TestError": ""

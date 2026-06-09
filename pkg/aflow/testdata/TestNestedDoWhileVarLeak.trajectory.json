@@ -25,7 +25,8 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "outer-action",
-		"Started": "0001-01-01T00:00:04Z"
+		"Started": "0001-01-01T00:00:04Z",
+		"Args": {}
 	},
 	{
 		"Seq": 3,
@@ -34,6 +35,7 @@
 		"Name": "outer-action",
 		"Started": "0001-01-01T00:00:04Z",
 		"Finished": "0001-01-01T00:00:05Z",
+		"Args": {},
 		"Results": {
 			"Continue": "yes",
 			"InnerContinue": ""
@@ -58,7 +60,8 @@
 		"Nesting": 5,
 		"Type": "action",
 		"Name": "inner-action",
-		"Started": "0001-01-01T00:00:08Z"
+		"Started": "0001-01-01T00:00:08Z",
+		"Args": {}
 	},
 	{
 		"Seq": 6,
@@ -67,6 +70,7 @@
 		"Name": "inner-action",
 		"Started": "0001-01-01T00:00:08Z",
 		"Finished": "0001-01-01T00:00:09Z",
+		"Args": {},
 		"Results": {
 			"Leaked": "val"
 		}
@@ -76,7 +80,10 @@
 		"Nesting": 5,
 		"Type": "action",
 		"Name": "consumer-action",
-		"Started": "0001-01-01T00:00:10Z"
+		"Started": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Leaked": "val"
+		}
 	},
 	{
 		"Seq": 7,
@@ -85,6 +92,9 @@
 		"Name": "consumer-action",
 		"Started": "0001-01-01T00:00:10Z",
 		"Finished": "0001-01-01T00:00:11Z",
+		"Args": {
+			"Leaked": "val"
+		},
 		"Results": {}
 	},
 	{
@@ -123,7 +133,8 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "outer-action",
-		"Started": "0001-01-01T00:00:16Z"
+		"Started": "0001-01-01T00:00:16Z",
+		"Args": {}
 	},
 	{
 		"Seq": 9,
@@ -132,6 +143,7 @@
 		"Name": "outer-action",
 		"Started": "0001-01-01T00:00:16Z",
 		"Finished": "0001-01-01T00:00:17Z",
+		"Args": {},
 		"Results": {
 			"Continue": "",
 			"InnerContinue": ""
@@ -156,7 +168,8 @@
 		"Nesting": 5,
 		"Type": "action",
 		"Name": "inner-action",
-		"Started": "0001-01-01T00:00:20Z"
+		"Started": "0001-01-01T00:00:20Z",
+		"Args": {}
 	},
 	{
 		"Seq": 12,
@@ -165,6 +178,7 @@
 		"Name": "inner-action",
 		"Started": "0001-01-01T00:00:20Z",
 		"Finished": "0001-01-01T00:00:21Z",
+		"Args": {},
 		"Results": {
 			"Leaked": "val"
 		}
@@ -174,7 +188,10 @@
 		"Nesting": 5,
 		"Type": "action",
 		"Name": "consumer-action",
-		"Started": "0001-01-01T00:00:22Z"
+		"Started": "0001-01-01T00:00:22Z",
+		"Args": {
+			"Leaked": "val"
+		}
 	},
 	{
 		"Seq": 13,
@@ -183,6 +200,9 @@
 		"Name": "consumer-action",
 		"Started": "0001-01-01T00:00:22Z",
 		"Finished": "0001-01-01T00:00:23Z",
+		"Args": {
+			"Leaked": "val"
+		},
 		"Results": {}
 	},
 	{

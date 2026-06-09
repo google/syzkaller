@@ -103,11 +103,13 @@ private:
   SourceLocation TypeRefingLocation;
 
   const Stmt* GetParent(const Stmt* S) const;
+  void CheckIndirectCall(CallExpr* CE);
   void EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind);
   void EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind);
 
   struct NamedDeclEmitter {
-    NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type, bool IsStatic);
+    NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type,
+                     const std::string& Signature, bool IsStatic);
     ~NamedDeclEmitter();
 
     Indexer* const Parent;
@@ -128,6 +130,19 @@ template <typename T> struct ScopedState {
   ScopedState(T* Var, T ScopeValue) : Var(Var), Saved(*Var) { *Var = ScopeValue; }
   ~ScopedState() { *Var = Saved; }
 };
+
+static std::string GetSignature(QualType T, ASTContext& Context) {
+  while (T->isPointerType() || T->isReferenceType()) {
+    T = T->getPointeeType();
+  }
+  QualType CanonicalT = T.getCanonicalType();
+  if (CanonicalT->isFunctionType()) {
+    PrintingPolicy Policy(Context.getPrintingPolicy());
+    Policy.SuppressTagKeyword = true;
+    return CanonicalT.getAsString(Policy);
+  }
+  return "";
+}
 
 bool Instance::handleBeginSource(CompilerInstance& CI) {
   Preprocessor& PP = CI.getPreprocessor();
@@ -150,7 +165,7 @@ static std::string normalizePath(llvm::StringRef Path) {
 }
 
 Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind,
-                                            const std::string& Type, bool IsStatic)
+                                            const std::string& Type, const std::string& Signature, bool IsStatic)
     : Parent(Parent), Context(Parent->Context), SM(Parent->SM), Decl(Decl) {
   auto Range = Decl->getSourceRange();
   const std::string SourceFile = normalizePath(SM.getFilename(SM.getExpansionLoc(Range.getBegin())));
@@ -191,6 +206,7 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
       .Kind = Kind,
       .Name = Decl->getNameAsString(),
       .Type = Type,
+      .Signature = Signature,
       .IsStatic = IsStatic,
       .Body =
           LineRange{
@@ -222,11 +238,28 @@ Indexer::NamedDeclEmitter::~NamedDeclEmitter() {
 bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
   if (!Func->doesThisDeclarationHaveABody())
     return Base::TraverseFunctionDecl(Func);
-  NamedDeclEmitter Emitter(this, Func, EntityKindFunction, Func->getType().getAsString(), Func->isStatic());
+  NamedDeclEmitter Emitter(this, Func, EntityKindFunction, Func->getType().getAsString(),
+                           GetSignature(Func->getType(), Context), Func->isStatic());
   return Base::TraverseFunctionDecl(Func);
 }
 
+void Indexer::CheckIndirectCall(CallExpr* CE) {
+  auto* Callee = CE->getCallee()->IgnoreParenImpCasts();
+  if (isa<DeclRefExpr>(Callee))
+    return;
+
+  auto* PtrT = Callee->getType()->getAs<PointerType>();
+  if (!PtrT || !PtrT->getPointeeType()->isFunctionType())
+    return;
+
+  std::string Sig = GetSignature(PtrT->getPointeeType(), Context);
+  if (!Sig.empty())
+    EmitReference(CE->getExprLoc(), Sig, EntityKindSignature, RefKindIndirectCall);
+}
+
 bool Indexer::TraverseCallExpr(CallExpr* CE) {
+  CheckIndirectCall(CE);
+
   {
     ScopedState<bool> Scoped(&InCallee, true);
     TraverseStmt(CE->getCallee());
@@ -252,7 +285,8 @@ bool Indexer::TraverseVarDecl(VarDecl* Decl) {
     // its own file, while a non-static global (external linkage) can be
     // referenced from anywhere in the kernel.
     const bool IsInternalLinkage = Decl->getStorageClass() == SC_Static;
-    NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(), IsInternalLinkage);
+    NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(), "",
+                             IsInternalLinkage);
     // We must return here to trigger the base traversal before this if-block
     // ends. Otherwise, the Emitter's destructor will run and clear the tracking
     // context, causing references to functions inside global arrays to be
@@ -372,7 +406,7 @@ void Indexer::EmitReference(SourceLocation Loc, const std::string& Name, const c
 bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
   if (!Decl->isThisDeclarationADefinition())
     return Base::TraverseRecordDecl(Decl);
-  NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", false);
+  NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", "", false);
   if (Decl->isCompleteDefinition()) {
     const auto& Layout = Context.getASTRecordLayout(Decl);
     for (const auto* Field : Decl->fields()) {
@@ -392,6 +426,8 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
           .Name = Field->getNameAsString(),
           .OffsetBits = OffsetInBits,
           .SizeBits = SizeInBits,
+          .Type = Field->getType().getAsString(),
+          .Signature = GetSignature(Field->getType(), Context),
       });
     }
   }
@@ -401,12 +437,12 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
 bool Indexer::TraverseEnumDecl(EnumDecl* Decl) {
   if (!Decl->isThisDeclarationADefinition())
     return Base::TraverseEnumDecl(Decl);
-  NamedDeclEmitter Emitter(this, Decl, EntityKindEnum, "", false);
+  NamedDeclEmitter Emitter(this, Decl, EntityKindEnum, "", "", false);
   return Base::TraverseEnumDecl(Decl);
 }
 
 bool Indexer::TraverseTypedefDecl(TypedefDecl* Decl) {
-  NamedDeclEmitter Emitter(this, Decl, EntityKindTypedef, "", false);
+  NamedDeclEmitter Emitter(this, Decl, EntityKindTypedef, "", "", false);
   return Base::TraverseTypedefDecl(Decl);
 }
 

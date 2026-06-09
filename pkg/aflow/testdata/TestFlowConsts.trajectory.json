@@ -11,7 +11,10 @@
 		"Nesting": 1,
 		"Type": "action",
 		"Name": "input-consumer",
-		"Started": "0001-01-01T00:00:02Z"
+		"Started": "0001-01-01T00:00:02Z",
+		"Args": {
+			"Const": 42
+		}
 	},
 	{
 		"Seq": 1,
@@ -20,6 +23,9 @@
 		"Name": "input-consumer",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:03Z",
+		"Args": {
+			"Const": 42
+		},
 		"Results": {}
 	},
 	{
