@@ -40,8 +40,11 @@ const (
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
-	Focus      []string `json:"focus" yaml:"focus"`
-	CorpusURLs []string `json:"corpus_urls" yaml:"corpus_urls"`
+	Focus []string `json:"focus" yaml:"focus"`
+	// TODO: this is temporarily here. We should do it at the beginning of the fuzzing step,
+	// where we do have the built binary and can extract exact symbol names / PC symbols.
+	FocusSymbols []string `json:"focus_symbols" yaml:"focus_symbols"`
+	CorpusURLs   []string `json:"corpus_urls" yaml:"corpus_urls"`
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check" yaml:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
@@ -75,13 +78,14 @@ type FuzzTriageTarget struct {
 }
 
 type BuildRequest struct {
-	Arch       string `json:"arch"`
-	TreeName   string `json:"tree_name"`
-	TreeURL    string `json:"tree_url"`
-	CommitHash string `json:"commit_hash"`
-	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
-	SeriesID   string `json:"series_id"`
-	JobID      string `json:"job_id,omitempty"`
+	Arch          string   `json:"arch"`
+	TreeName      string   `json:"tree_name"`
+	TreeURL       string   `json:"tree_url"`
+	CommitHash    string   `json:"commit_hash"`
+	ConfigName    string   `json:"config_name"` // These are known to both the triage and build steps.
+	EnableConfigs []string `json:"enable_configs,omitempty"`
+	SeriesID      string   `json:"series_id"`
+	JobID         string   `json:"job_id,omitempty"`
 }
 
 // BuildResult is returned from the build workflow step.

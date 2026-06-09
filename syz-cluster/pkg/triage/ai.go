@@ -24,9 +24,11 @@ import (
 )
 
 type AITriageResult struct {
-	WorthFuzzing bool
-	Reasoning    string
-	Trajectory   []byte
+	WorthFuzzing  bool
+	FocusSymbols  []string
+	EnableConfigs []string
+	Reasoning     string
+	Trajectory    []byte
 }
 
 const aiEvaluationTimeout = time.Hour
@@ -111,5 +113,11 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 
 	tracer.Logf("AI verdict: WorthFuzzing=%v (Reason: %s)", result.WorthFuzzing, result.Reasoning)
 
-	return &AITriageResult{WorthFuzzing: result.WorthFuzzing, Reasoning: result.Reasoning, Trajectory: htmlReport}, nil
+	return &AITriageResult{
+		WorthFuzzing:  result.WorthFuzzing,
+		FocusSymbols:  result.FocusSymbols,
+		EnableConfigs: result.EnableConfigs,
+		Reasoning:     result.Reasoning,
+		Trajectory:    htmlReport,
+	}, nil
 }
