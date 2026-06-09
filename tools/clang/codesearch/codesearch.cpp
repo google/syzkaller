@@ -232,6 +232,8 @@ bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
 }
 
 bool Indexer::TraverseVarDecl(VarDecl* Decl) {
+  ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
+
   if (Decl->isFileVarDecl() && Decl->isThisDeclarationADefinition() == VarDecl::Definition) {
     // Preserves whether this variable can be referenced from other translation
     // units. A static global (internal linkage) is only referenceable within
@@ -239,9 +241,13 @@ bool Indexer::TraverseVarDecl(VarDecl* Decl) {
     // referenced from anywhere in the kernel.
     const bool IsInternalLinkage = Decl->getStorageClass() == SC_Static;
     NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(), IsInternalLinkage);
+    // We must return here to trigger the base traversal before this if-block
+    // ends. Otherwise, the Emitter's destructor will run and clear the tracking
+    // context, causing references to functions inside global arrays to be
+    // silently dropped.
+    return Base::TraverseVarDecl(Decl);
   }
 
-  ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
   return Base::TraverseVarDecl(Decl);
 }
 

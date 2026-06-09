@@ -1,0 +1,9 @@
+find-references refs.c global_init_target "" 1 10
+
+global_init_target has 1 references:
+
+global_variable my_global_ops takes-address-of it at refs.c:45
+  44:	struct global_ops my_global_ops[] = {
+  45:	    {.prep = global_init_target}};
+
+

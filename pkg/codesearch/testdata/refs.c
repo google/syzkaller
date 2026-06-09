@@ -32,3 +32,14 @@ void long_func_with_ref()
 	refs0();
 	refs1();
 }
+
+struct global_ops {
+	void (*prep)(void);
+};
+
+void global_init_target(void)
+{
+}
+
+struct global_ops my_global_ops[] = {
+    {.prep = global_init_target}};
