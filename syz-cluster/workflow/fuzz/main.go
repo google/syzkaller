@@ -142,6 +142,20 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	}
 	diff.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
+	if len(config.FocusSymbols) > 0 {
+		var regexps []string
+		for _, name := range config.FocusSymbols {
+			regexps = append(regexps, fmt.Sprintf("^%s$", regexp.QuoteMeta(name)))
+		}
+		patched.Experimental.FocusAreas = append(patched.Experimental.FocusAreas, mgrconfig.FocusArea{
+			Name: "ai_focus",
+			Filter: mgrconfig.CovFilterCfg{
+				Functions: regexps,
+			},
+			Weight: 10.0,
+		})
+	}
+
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
 		if err != nil {

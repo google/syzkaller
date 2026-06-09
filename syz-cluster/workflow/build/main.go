@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
@@ -228,6 +229,16 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
+	}
+	if len(req.EnableConfigs) > 0 {
+		parsed, err := kconfig.ParseConfigData(kernelConfig, req.ConfigName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse kernel config: %w", err)
+		}
+		for _, cfg := range req.EnableConfigs {
+			parsed.Set(cfg, kconfig.Yes)
+		}
+		kernelConfig = parsed.Serialize()
 	}
 	if req.Arch != "amd64" {
 		// TODO: lift this restriction.
