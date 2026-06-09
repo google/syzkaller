@@ -11,6 +11,7 @@ import (
 )
 
 type RunCReproArgs struct {
+	TargetArch      string
 	Syzkaller       string
 	Image           string
 	Type            string
@@ -40,6 +41,9 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	if args.FormattedReproC == "" {
 		return RunCReproResult{}, fmt.Errorf("no C reproducer provided")
 	}
+	if args.TargetArch == "" {
+		return RunCReproResult{}, fmt.Errorf("TargetArch must not be empty")
+	}
 
 	workdir, err := ctx.TempDir()
 	if err != nil {
@@ -47,6 +51,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	reproduceArgs := ReproduceArgs{
+		TargetArch:   args.TargetArch,
 		Syzkaller:    args.Syzkaller,
 		Image:        args.Image,
 		Type:         args.Type,
