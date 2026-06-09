@@ -6,6 +6,7 @@ package syzlang
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/syzlang"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
@@ -146,4 +147,60 @@ func TestSyzGrepper(t *testing.T) {
 	})
 	require.NoError(t, errExecGrep)
 	require.Contains(t, resExecGrep.Output, "doexit_thread")
+}
+
+func TestExecuteSeed(t *testing.T) {
+	resetSyzFS()
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		Syzkaller:  "../../../..",
+	}
+
+	tests := []struct {
+		name         string
+		baseTestSeed string
+		wantError    string
+	}{
+		{
+			name:         "valid test seed without sys/linux/",
+			baseTestSeed: "test/80211_setup_ap",
+			wantError:    "",
+		},
+		{
+			name:         "valid test seed with sys/linux/",
+			baseTestSeed: "sys/linux/test/80211_setup_ap",
+			wantError:    "",
+		},
+		{
+			name:         "invalid absolute path",
+			baseTestSeed: "/syzkaller/sys/linux/test/80211_setup_ap",
+			wantError:    "invalid file path",
+		},
+		{
+			name:         "invalid path traversal",
+			baseTestSeed: "../sys/linux/test/80211_setup_ap",
+			wantError:    "invalid file path",
+		},
+		{
+			name:         "non-existent file",
+			baseTestSeed: "test/non_existent_file",
+			wantError:    "failed to read BaseTestSeed",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := executeSeed(&aflow.Context{}, state, ExecuteSeedArgs{
+				BaseTestSeed: tc.baseTestSeed,
+				ReproSyz:     "getrlimit(0x0, 0x0)",
+			})
+			if tc.wantError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }

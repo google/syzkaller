@@ -140,11 +140,9 @@ func TestSymbolize(t *testing.T) {
 		return mock
 	}
 
-	args := ReproduceArgs{
-		TargetConfig: TargetConfig{
-			TargetArch: "amd64",
-			Type:       "qemu",
-		},
+	args := TargetConfig{
+		TargetArch: "amd64",
+		Type:       "qemu",
 	}
 	// amd64 instruction length is 5.
 	// So 0x1005 should be shifted to 0x1000.

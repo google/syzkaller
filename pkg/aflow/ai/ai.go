@@ -19,6 +19,7 @@ const (
 	WorkflowRepro              = WorkflowType("repro")
 	WorkflowReproC             = WorkflowType("repro-c")
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
+	WorkflowSeedGen            = WorkflowType("seed-gen")
 )
 
 // Outputs of various workflow types.
@@ -158,4 +159,11 @@ type PatchTriageResult struct {
 	FocusSymbols  []string `jsonschema:"List of specific kernel functions to focus fuzzing on. Should avoid hot-path functions."`                                               // nolint:lll
 	EnableConfigs []string `jsonschema:"List of kernel config flags that must be explicitly enabled to compile and test the modified code. Do not include 'CONFIG_' prefixes."` // nolint:lll
 	Reasoning     string   `jsonschema:"A concise explanation of why this patch should or shouldn't be fuzzed."`
+}
+
+type SeedGenOutputs struct {
+	SeedSyz string
+	Success bool
+	GiveUp  bool
+	Reason  string
 }

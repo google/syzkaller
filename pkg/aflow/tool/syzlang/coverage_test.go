@@ -33,9 +33,9 @@ func TestCoverageFiles(t *testing.T) {
 		return map[string]any{"Coverage": dummyCov}, nil
 	})
 	require.NoError(t, err)
-	res, err := getCoverageFiles(ctx, reproduceState{TargetOS: "linux", TargetArch: "amd64"}, CoverageFilesArgs{
-		ExecutionCachedID: reproExecCachedID,
-	})
+	res, err := getCoverageFiles(ctx,
+		reproduceState{TargetOS: "linux", TargetArch: "amd64"},
+		CoverageFilesArgs{ExecutionCachedID: reproExecCachedID})
 	require.NoError(t, err)
 
 	require.Equal(t, []string{"kernel/bar.c", "kernel/foo.c"}, res.Files)
@@ -75,7 +75,8 @@ void foo(void) {
 
 	res, err := getFileCoverage(ctx, reproduceState{KernelSrc: kernelSrc}, FileCoverageArgs{
 		ExecutionCachedID: reproExecCachedID,
-		Filename:          "foo.c",
+
+		Filename: "foo.c",
 	})
 	require.NoError(t, err)
 
@@ -126,7 +127,8 @@ func TestFileCoverageNoCoverage(t *testing.T) {
 
 	_, err = getFileCoverage(ctx, reproduceState{}, FileCoverageArgs{
 		ExecutionCachedID: reproExecCachedID,
-		Filename:          "nonexistent.c",
+
+		Filename: "nonexistent.c",
 	})
 	require.IsType(t, aflow.BadCallError(""), err)
 }
@@ -163,8 +165,9 @@ void foo(void) {
 
 	res, err := getFileCoverage(ctx, reproduceState{KernelSrc: kernelSrc}, FileCoverageArgs{
 		ExecutionCachedID: reproExecCachedID,
-		Filename:          "foo.c",
-		Functions:         []string{"foo", "nonexistent_function"},
+
+		Filename:  "foo.c",
+		Functions: []string{"foo", "nonexistent_function"},
 	})
 	require.NoError(t, err)
 
@@ -210,7 +213,8 @@ func TestExecutionTrace(t *testing.T) {
 	idx := 0
 	res, err := getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      idx,
+
+		SyscallIndex: idx,
 	})
 	require.NoError(t, err)
 	require.Len(t, res.Traces, 1)
@@ -223,8 +227,9 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 2: Filtering by subsystem.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      idx,
-		FilterSubsystem:   "fs/fuse/",
+
+		SyscallIndex:    idx,
+		FilterSubsystem: "fs/fuse/",
 	})
 	require.NoError(t, err)
 	// Because MaxDepth for this trace is 4, all depths are <= 5, so all filtered calls become spine context.
@@ -236,8 +241,9 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 3: FilterSubsystem bypasses noise filter for its own path.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      idx,
-		FilterSubsystem:   "kernel/rcu",
+
+		SyscallIndex:    idx,
+		FilterSubsystem: "kernel/rcu",
 	})
 	require.NoError(t, err)
 	// rcu_read_lock is normally noise, but because it matches the subsystem, it is shown without (context).
@@ -249,8 +255,9 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 4: IncludeNoise true includes all noise everywhere.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      idx,
-		IncludeNoise:      true,
+
+		SyscallIndex: idx,
+		IncludeNoise: true,
 	})
 	require.NoError(t, err)
 	require.Equal(t, []string{
@@ -261,8 +268,9 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 5: Exponential Spine Context.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      2,
-		FilterSubsystem:   "fs/fuse/", // filter doesn't match anything in deepCov
+
+		SyscallIndex:    2,
+		FilterSubsystem: "fs/fuse/", // filter doesn't match anything in deepCov
 	})
 	require.NoError(t, err)
 	// maxDepth reached by deepCov is 56.
@@ -286,7 +294,8 @@ func TestExecutionTrace(t *testing.T) {
 	idxOut := 5
 	_, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      idxOut,
+
+		SyscallIndex: idxOut,
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "SyscallIndex 5 is out of bounds")

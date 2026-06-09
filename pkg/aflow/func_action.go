@@ -34,6 +34,7 @@ func (a *funcAction[Args, Results]) execute(ctx *Context) error {
 	span := &trajectory.Span{
 		Type: trajectory.SpanAction,
 		Name: a.name,
+		Args: convertToMap(args),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return err

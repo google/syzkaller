@@ -18,9 +18,9 @@ import (
 type StructuredLLMTool[State, Args, Results any] struct {
 	// Most fields match that of LLMAgent.
 	// The prompt is not specified here, and is provided by the parent LLM.
-	Name     string
-	Model    backend.ModelCategory
-	TaskType TaskType
+	Name        string
+	Model       backend.ModelCategory
+	TaskType    TaskType
 	// Description of the tool exposed to the parent LLM.
 	Description string
 	Instruction string
@@ -123,6 +123,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	if _, err := verifyTemplate(t.Prompt, vars); err != nil {
 		ctx.errorf(t.Name, "invalid prompt template: %v", err)
 	}
+
 	t.agent = &LLMAgent{
 		Name:        t.Name,
 		Model:       t.Model,

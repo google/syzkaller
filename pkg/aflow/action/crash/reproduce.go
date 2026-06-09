@@ -181,7 +181,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(args, firstCoverage)
+		coverage, err := symbolize(args.TargetConfig, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -211,6 +211,9 @@ type cachedExecution struct {
 	FaultInjection string
 	Error          string
 	Coverage       [][]symbolizer.Frame
+	CallErrors     []int32
+	BaseTestSeed   string
+	GeneratedSyz   string
 }
 
 func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
@@ -219,6 +222,40 @@ func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, er
 		return nil, err
 	}
 	return cached.Coverage, nil
+}
+
+func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (
+	baseTestSeed, generatedSyz string, err error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", "", err
+	}
+	return cached.BaseTestSeed, cached.GeneratedSyz, nil
+}
+
+func CheckPCInCoverage(ctx *aflow.Context, executionCachedID string, targetPC uint64) (bool, error) {
+	coverage, err := LoadCoverage(ctx, executionCachedID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, callcov := range coverage {
+		for _, frame := range callcov {
+			if frame.PC == targetPC {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]int32, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return nil, err
+	}
+	return cached.CallErrors, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
@@ -279,7 +316,7 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 
 var makeSymbolizer = symbolizer.Make
 
-func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func symbolize(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	if len(coverage) == 0 {
 		return nil, nil
 	}

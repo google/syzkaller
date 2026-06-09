@@ -282,6 +282,18 @@ func (index *Index) DefinitionSource(contextFile, name string) (*EntityInfo, err
 	return index.definitionSource(contextFile, name, false)
 }
 
+func (index *Index) FindFunctionAtLine(file string, line int) (*EntityInfo, error) {
+	for _, def := range index.db.Definitions {
+		if def.Body.File != file || def.Kind != EntityKindFunction {
+			continue
+		}
+		if int(def.Body.StartLine) <= line && int(def.Body.EndLine) >= line {
+			return index.definitionSource(file, def.Name, false)
+		}
+	}
+	return nil, fmt.Errorf("no function found at line %v in file %v", line, file)
+}
+
 func (index *Index) definitionSource(contextFile, name string, comment bool) (*EntityInfo, error) {
 	def := index.findDefinition(contextFile, name)
 	if def == nil {
@@ -560,11 +572,16 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 			// These are internal things like .git, etc.
 		} else if entry.IsDir() {
 			subdirs = append(subdirs, entry.Name())
-		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) {
+		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) || isDocumentationFile(entry.Name()) {
 			files = append(files, entry.Name())
 		}
 	}
 	return true, subdirs, files, err
+}
+
+func isDocumentationFile(file string) bool {
+	ext := filepath.Ext(file)
+	return ext == ".txt" || ext == ".rst" || ext == ".md"
 }
 
 func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {

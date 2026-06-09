@@ -87,8 +87,9 @@ const (
 	// Consts to use for LLMAgent.Model.
 	// These are aliases for the backend constants to avoid requiring users
 	// of the aflow package to import the backend package just to specify the model.
-	BestExpensiveModel = backend.BestExpensiveModel
-	GoodBalancedModel  = backend.GoodBalancedModel
+	BestExpensiveModel        = backend.BestExpensiveModel
+	GoodBalancedModel         = backend.GoodBalancedModel
+	Temporary35FlashOnlyModel = backend.Temporary35FlashOnlyModel
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
@@ -238,6 +239,9 @@ Or did you want to call some other tools, but did not actually do that?
 const llmAnswerNow = `
 Provide a best-effort answer to the original question with all of the information
 you have so far without calling any more tools!
+IMPORTANT: Your tool calling ability is currently disabled to save context size.
+Do NOT attempt to output JSON to call tools. Base your response strictly on
+the text information you have already gathered.
 `
 
 const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
