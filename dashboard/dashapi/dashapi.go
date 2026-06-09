@@ -946,9 +946,61 @@ const (
 
 const (
 	ReproLevelNone ReproLevel = iota
+	// Has syz repro only.
 	ReproLevelSyz
+	// Has both syz and C repros.
 	ReproLevelC
+	// Has C repro only.
+	ReproLevelCOnly
 )
+
+func ReproLevelFromCAndSyz(hasC, hasSyz bool) ReproLevel {
+	if hasC && hasSyz {
+		return ReproLevelC
+	}
+	if hasC {
+		return ReproLevelCOnly
+	}
+	if hasSyz {
+		return ReproLevelSyz
+	}
+	return ReproLevelNone
+}
+
+func (level ReproLevel) HasSyz() bool {
+	return level == ReproLevelSyz || level == ReproLevelC
+}
+
+func (level ReproLevel) HasC() bool {
+	return level == ReproLevelC || level == ReproLevelCOnly
+}
+
+func (level ReproLevel) Combine(other ReproLevel) ReproLevel {
+	return ReproLevelFromCAndSyz(level.HasC() || other.HasC(), level.HasSyz() || other.HasSyz())
+}
+
+func (level ReproLevel) CoveredBy(reported ReproLevel) bool {
+	if reported.HasC() {
+		return true
+	}
+	if reported.HasSyz() {
+		return !level.HasC()
+	}
+	return level == ReproLevelNone
+}
+
+func (level ReproLevel) Rank() int {
+	switch level {
+	case ReproLevelC:
+		return 3
+	case ReproLevelCOnly:
+		return 2
+	case ReproLevelSyz:
+		return 1
+	default:
+		return 0
+	}
+}
 
 const (
 	ReportNew         ReportType = iota // First report for this bug in the reporting stage.

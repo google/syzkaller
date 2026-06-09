@@ -872,12 +872,7 @@ func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, e
 
 	bugKey := bug.key(ctx)
 	now := timeNow(ctx)
-	reproLevel := ReproLevelNone
-	if len(req.ReproC) != 0 {
-		reproLevel = ReproLevelC
-	} else if len(req.ReproSyz) != 0 {
-		reproLevel = ReproLevelSyz
-	}
+	reproLevel := dashapi.ReproLevelFromCAndSyz(len(req.ReproC) != 0, len(req.ReproSyz) != 0)
 	save := reproLevel != ReproLevelNone ||
 		bug.NumCrashes < int64(maxCrashes()) ||
 		now.Sub(bug.LastSavedCrash) > time.Hour ||
@@ -922,8 +917,8 @@ func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, e
 			bug.NumRepro++
 			bug.LastReproTime = now
 		}
-		bug.ReproLevel = max(bug.ReproLevel, reproLevel)
-		bug.HeadReproLevel = max(bug.HeadReproLevel, reproLevel)
+		bug.ReproLevel = bug.ReproLevel.Combine(reproLevel)
+		bug.HeadReproLevel = bug.HeadReproLevel.Combine(reproLevel)
 		if len(req.Report) != 0 {
 			bug.HasReport = true
 		}
@@ -1598,7 +1593,14 @@ func needReproForBug(ctx context.Context, bug *Bug) bool {
 	if syzErrorTitleRe.MatchString(bug.Title) {
 		bestReproLevel = ReproLevelSyz
 	}
-	if bug.HeadReproLevel < bestReproLevel {
+	hasBest := false
+	switch bestReproLevel {
+	case ReproLevelC:
+		hasBest = bug.HeadReproLevel.HasC()
+	case ReproLevelSyz:
+		hasBest = bug.HeadReproLevel.HasSyz()
+	}
+	if !hasBest {
 		// We have not found a best-level repro yet, try until we do.
 		return bug.NumRepro < maxReproPerBug || timeSince(ctx, bug.LastReproTime) >= reproRetryPeriod
 	}

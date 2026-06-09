@@ -253,6 +253,16 @@ func TestNeedReproIsolated(t *testing.T) {
 			needRepro: false,
 		},
 		{
+			// A bug for which we have recently found a C-only repro.
+			bug: &Bug{
+				Title:          "some bug with C-only repro",
+				ReproLevel:     ReproLevelCOnly,
+				HeadReproLevel: ReproLevelCOnly,
+				LastReproTime:  nowTime.Add(-time.Hour * 24),
+			},
+			needRepro: false,
+		},
+		{
 			// A bug which has an old C repro.
 			bug: &Bug{
 				Title:          "some normal bug with old repro",
