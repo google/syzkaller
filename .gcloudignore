@@ -1,0 +1,43 @@
+# Git metadata
+.git/
+.gitignore
+.gcloudignore
+.github/
+
+# Generic binary and test files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Unused binary/tools and documentation
+bin/
+docs/
+executor/
+tools/
+syz-agent/
+syz-ci/
+syz-cluster/
+syz-hub/
+syz-kfuzztest/
+syz-manager/
+syz-verifier/
+vm/
+
+# Ignore all OS target descriptions (only keep sys/targets/ and root files in sys/)
+sys/*/
+!sys/targets/
+
+# Temporary files and logs
+*.log
+*.pprof
+syz-fix-analyzer
+.coverage.txt
+.descriptions
+
+# Exclude Go test files and test data
+**/*_test.go
+**/testdata/**
