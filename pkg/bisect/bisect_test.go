@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -92,7 +93,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 
 	fixed := false
 	if env.test.fixCommit != "" {
-		commit, err := env.r.GetCommitByTitle(env.test.fixCommit)
+		commit, err := env.r.GetCommitByTitle(env.test.fixCommit, time.Time{})
 		if err != nil {
 			return ret, err
 		}
@@ -101,7 +102,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 
 	introduced := true
 	if env.test.introduced != "" {
-		commit, err := env.r.GetCommitByTitle(env.test.introduced)
+		commit, err := env.r.GetCommitByTitle(env.test.introduced, time.Time{})
 		if err != nil {
 			return ret, err
 		}
@@ -208,7 +209,7 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 	} else {
 		r.SwitchCommit("master")
 	}
-	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
+	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit), time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}

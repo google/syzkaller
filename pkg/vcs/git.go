@@ -341,8 +341,8 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	return com, nil
 }
 
-func (git *gitRepo) GetCommitByTitle(title string) (*Commit, error) {
-	commits, _, err := git.GetCommitsByTitles([]string{title})
+func (git *gitRepo) GetCommitByTitle(title string, since time.Time) (*Commit, error) {
+	commits, _, err := git.GetCommitsByTitles([]string{title}, since)
 	if err != nil || len(commits) == 0 {
 		return nil, err
 	}
@@ -353,7 +353,7 @@ const (
 	fetchCommitsMaxAgeInYears = 5
 )
 
-func (git *gitRepo) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
+func (git *gitRepo) GetCommitsByTitles(titles []string, since time.Time) ([]*Commit, []string, error) {
 	var greps []string
 	m := make(map[string]string)
 	for _, title := range titles {
@@ -361,8 +361,11 @@ func (git *gitRepo) GetCommitsByTitles(titles []string) ([]*Commit, []string, er
 		greps = append(greps, canonical)
 		m[canonical] = title
 	}
-	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
-	commits, err := git.fetchCommits(since, HEAD, "", "", greps, true)
+	if since.IsZero() {
+		since = time.Now().AddDate(-fetchCommitsMaxAgeInYears, 0, 0)
+	}
+	sinceStr := since.Format("01-02-2006")
+	commits, err := git.fetchCommits(sinceStr, HEAD, "", "", greps, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -415,7 +418,7 @@ func (git *gitRepo) ExtractFixTagsFromCommits(baseCommit, emailStr string) ([]*C
 		return nil, fmt.Errorf("failed to parse email %q: %w", emailStr, err)
 	}
 	grep := user + "+.*" + domain
-	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
+	since := time.Now().AddDate(-fetchCommitsMaxAgeInYears, 0, 0).Format("01-02-2006")
 	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
 }
 

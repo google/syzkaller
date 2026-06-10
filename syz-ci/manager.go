@@ -714,7 +714,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 
 	var present []string
 	if len(pendingCommits) != 0 {
-		commits, _, err := mgr.repo.GetCommitsByTitles(pendingCommits)
+		commits, _, err := mgr.repo.GetCommitsByTitles(pendingCommits, time.Time{})
 		if err != nil {
 			return nil, nil, err
 		}

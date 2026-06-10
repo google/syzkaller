@@ -384,7 +384,7 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 			"commit %v not reachable in branch '%v' and no commit title available",
 			cfg.Kernel.Commit, cfg.Kernel.Branch)
 	}
-	commit, err := env.repo.GetCommitByTitle(cfg.Kernel.CommitTitle)
+	commit, err := env.repo.GetCommitByTitle(cfg.Kernel.CommitTitle, time.Time{})
 	if err != nil {
 		return cfg.Kernel.Commit, err
 	}

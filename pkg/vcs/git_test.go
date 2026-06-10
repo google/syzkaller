@@ -187,7 +187,7 @@ func TestGetCommitsByTitles(t *testing.T) {
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "abc")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	commitA, _ := repo.repo.Commit(HEAD)
-	results, missing, err := repo.repo.GetCommitsByTitles([]string{"target"})
+	results, missing, err := repo.repo.GetCommitsByTitles([]string{"target"}, time.Time{})
 	validateSuccess(commitA, results, missing, err)
 
 	// Put another commit with the title we search for in another branch.
@@ -195,12 +195,12 @@ func TestGetCommitsByTitles(t *testing.T) {
 	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	repo.Git("checkout", "branch-a")
-	results, missing, err = repo.repo.GetCommitsByTitles([]string{"target"})
+	results, missing, err = repo.repo.GetCommitsByTitles([]string{"target"}, time.Time{})
 	validateSuccess(commitA, results, missing, err)
 
 	// We expect GetCommitsByTitles to only find commits in the current branch.
 	repo.Git("checkout", "branch-b")
-	results, missing, err = repo.repo.GetCommitsByTitles([]string{"xyz"})
+	results, missing, err = repo.repo.GetCommitsByTitles([]string{"xyz"}, time.Time{})
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}

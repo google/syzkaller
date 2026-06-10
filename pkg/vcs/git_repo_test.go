@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/stretchr/testify/assert"
@@ -166,7 +167,7 @@ func TestMetadata(t *testing.T) {
 			if title == "" {
 				continue
 			}
-			com, err := repo.repo.GetCommitByTitle(title)
+			com, err := repo.repo.GetCommitByTitle(title, time.Time{})
 			if err != nil {
 				t.Error(err)
 			} else if com == nil {

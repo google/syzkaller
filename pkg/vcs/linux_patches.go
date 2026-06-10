@@ -57,7 +57,9 @@ func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) 
 		if err != nil {
 			return applied, fmt.Errorf("fix commit %s not found: %w", info.FixHash, err)
 		}
-		fixCommit, err := repo.GetCommitByTitle(fixCommitOrig.Title)
+		// The default commit date range limit in GetCommitByTitle may not be enough
+		// for old backports, so we set a custom cut-off date.
+		fixCommit, err := repo.GetCommitByTitle(fixCommitOrig.Title, fixCommitOrig.CommitDate.AddDate(-1, 0, 0))
 		if err != nil {
 			return applied, err
 		}

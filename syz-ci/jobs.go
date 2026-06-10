@@ -265,7 +265,7 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 	if _, err = repo.CheckoutBranch(URL, branch); err != nil {
 		return nil, fmt.Errorf("failed to checkout kernel repo %v/%v: %w", URL, branch, err)
 	}
-	results, missing, err := repo.GetCommitsByTitles(commits)
+	results, missing, err := repo.GetCommitsByTitles(commits, time.Time{})
 	if err != nil {
 		return nil, err
 	}
