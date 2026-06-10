@@ -64,9 +64,13 @@ type ManualWorkflowField struct {
 	DefaultValue string
 	Required     bool
 	Hidden       bool
+	Options      []string
 }
 
 func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
+	if cfg == nil || cfg.AI == nil {
+		return nil
+	}
 	defaultRepo, defaultBranch := cfg.mainRepoBranch()
 	ret := []ManualWorkflowSpec{
 		{
@@ -137,8 +141,15 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 			},
 			ManualWorkflowField{
 				ID:           "TargetArch",
+				Title:        "Target Arch",
 				DefaultValue: targets.AMD64,
-				Hidden:       true,
+				Required:     true,
+				Hidden:       ret[i].Type != ai.WorkflowReproC,
+				// syz-agent does not support other arches at the moment.
+				Options: []string{
+					targets.AMD64,
+					targets.ARM64,
+				},
 			},
 		)
 	}

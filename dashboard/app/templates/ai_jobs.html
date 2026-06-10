@@ -36,9 +36,17 @@ List of AI jobs page.
 					{{range $field := $spec.Fields}}
 						{{if not $field.Hidden}}
 							<label for="{{$spec.Name}}-{{$field.ID}}">{{$field.Title}}{{if $field.Required}}*{{end}}:</label><br>
-							<textarea name="{{$field.ID}}" id="{{$spec.Name}}-{{$field.ID}}" rows="4" cols="60"
-								placeholder="{{$field.Placeholder}}" {{if $field.Required}}required{{end}} disabled
-								>{{$field.DefaultValue}}</textarea>
+							{{if $field.Options}}
+								<select name="{{$field.ID}}" id="{{$spec.Name}}-{{$field.ID}}" {{if $field.Required}}required{{end}} disabled>
+									{{range $opt := $field.Options}}
+										<option value="{{$opt}}" {{if eq $opt $field.DefaultValue}}selected{{end}}>{{$opt}}</option>
+									{{end}}
+								</select>
+							{{else}}
+								<textarea name="{{$field.ID}}" id="{{$spec.Name}}-{{$field.ID}}" rows="4" cols="60"
+									placeholder="{{$field.Placeholder}}" {{if $field.Required}}required{{end}} disabled
+									>{{$field.DefaultValue}}</textarea>
+							{{end}}
 							<br><br>
 						{{end}}
 					{{end}}
