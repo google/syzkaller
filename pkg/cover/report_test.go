@@ -145,6 +145,9 @@ func TestReportGenerator(t *testing.T) {
 			}
 			t.Run(target.OS+"-"+target.Arch, func(t *testing.T) {
 				t.Parallel()
+				if !compilerWorks(target) {
+					t.Skipf("skipping test, compiler %s is not functional", target.CCompiler)
+				}
 				if target.BrokenCompiler != "" {
 					t.Skip("skipping the test due to broken cross-compiler:\n" + target.BrokenCompiler)
 				}
@@ -504,3 +507,19 @@ func TestCoverByFilePrefixes(t *testing.T) {
 		"PCsInCoveredFuncs": "3 / 6 / 50.00%",
 	})
 }
+
+func compilerWorks(target *targets.Target) bool {
+	dir, err := os.MkdirTemp("", "syz-compiler-check")
+	if err != nil {
+		return false
+	}
+	defer os.RemoveAll(dir)
+	src := filepath.Join(dir, "test.c")
+	if err := osutil.WriteFile(src, []byte(`int main() { return 0; }`)); err != nil {
+		return false
+	}
+	args := append(slices.Clone(target.CFlags), "-x", "c", src, "-o", filepath.Join(dir, "test.out"))
+	_, err = osutil.RunCmd(time.Minute, "", target.CCompiler, args...)
+	return err == nil
+}
+
