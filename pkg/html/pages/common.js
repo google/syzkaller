@@ -153,7 +153,7 @@ function showManualWorkflowFields(select) {
 
 	for (var i = 0; i < groups.length; i++) {
 		groups[i].style.display = "none";
-		var inputs = groups[i].querySelectorAll("input, textarea");
+		var inputs = groups[i].querySelectorAll("input, textarea, select");
 		for (var j = 0; j < inputs.length; j++) {
 			inputs[j].disabled = true;
 		}
@@ -163,7 +163,7 @@ function showManualWorkflowFields(select) {
 	var selected = document.getElementById("workflow-fields-" + workflowName);
 	if (selected) {
 		selected.style.display = "block";
-		var selectedInputs = selected.querySelectorAll("input, textarea");
+		var selectedInputs = selected.querySelectorAll("input, textarea, select");
 		for (var k = 0; k < selectedInputs.length; k++) {
 			selectedInputs[k].disabled = false;
 		}

@@ -1039,6 +1039,7 @@ func TestAIManualJobCreate(t *testing.T) {
 		"KernelCommit":   []string{"123456"},
 		"KernelConfig":   []string{".config"},
 		"BugDescription": []string{"test bug"},
+		"TargetArch":     []string{"amd64"},
 	})
 	require.NoError(t, err)
 	require.Contains(t, string(body), "Kernel repo git address is required")
@@ -1049,6 +1050,7 @@ func TestAIManualJobCreate(t *testing.T) {
 		"KernelCommit":   []string{""},
 		"KernelConfig":   []string{".config"},
 		"BugDescription": []string{"test bug"},
+		"TargetArch":     []string{"amd64"},
 	})
 	require.NoError(t, err)
 	require.Contains(t, string(body), "Kernel Commit Hash or branch name is required")
@@ -1058,6 +1060,7 @@ func TestAIManualJobCreate(t *testing.T) {
 		"KernelRepo":     []string{"https://repo.test"},
 		"KernelCommit":   []string{"123456"},
 		"BugDescription": []string{"test bug"},
+		"TargetArch":     []string{"amd64"},
 	})
 	require.NoError(t, err)
 	require.Contains(t, string(body), "either a custom kernel config or a manager is required")
@@ -1068,6 +1071,7 @@ func TestAIManualJobCreate(t *testing.T) {
 		"KernelCommit":   []string{"123456"},
 		"KernelConfig":   []string{"test config"},
 		"BugDescription": []string{"test bug"},
+		"TargetArch":     []string{"amd64"},
 	})
 	require.NoError(t, err)
 	require.Contains(t, string(body), "AI workflow repro-c is created")
@@ -1303,4 +1307,9 @@ func TestAIJobRestart(t *testing.T) {
 	require.Error(t, err)
 	c.expectBadReqest(err)
 	require.Contains(t, err.Error(), "cannot restart a patch iteration workflow")
+}
+
+func TestManualAIWorkflows(t *testing.T) {
+	assert.Nil(t, manualAIWorkflows(nil))
+	assert.Nil(t, manualAIWorkflows(&Config{}))
 }
