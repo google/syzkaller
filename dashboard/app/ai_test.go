@@ -1257,6 +1257,7 @@ func TestAIJobRestart(t *testing.T) {
 	require.Equal(t, newJobID, pollResp.ID)
 	require.Equal(t, "patching", pollResp.Workflow)
 	require.NotEmpty(t, pollResp.Args["BugTitle"])
+	require.Equal(t, "amd64", pollResp.Args["TargetArch"])
 
 	// 2. Setup patch iteration job to test it cannot be restarted.
 	// Confirm published report for job 1 (moderation stage).
