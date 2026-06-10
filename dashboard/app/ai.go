@@ -64,6 +64,7 @@ type ManualWorkflowField struct {
 	DefaultValue string
 	Required     bool
 	Hidden       bool
+	IsDBColumn   bool
 	Options      []string
 }
 
@@ -151,6 +152,12 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 					targets.ARM64,
 				},
 			},
+			ManualWorkflowField{
+				ID:          "ExternalBugID",
+				Title:       "External Bug ID",
+				Placeholder: "e.g. b/12345",
+				IsDBColumn:  true,
+			},
 		)
 	}
 	return ret
@@ -217,6 +224,7 @@ type uiAIJob struct {
 	Workflow         string
 	Description      string
 	DescriptionLink  string
+	ExternalBugID    string
 	AgentName        string
 	Created          time.Time
 	Started          time.Time
@@ -409,13 +417,19 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 		if field.Required && val == "" {
 			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
 		}
+		if field.IsDBColumn {
+			continue
+		}
 		args[field.ID] = val
 	}
+
+	externalBugID := strings.TrimSpace(r.FormValue("ExternalBugID"))
 	_, err := aidb.CreateJob(ctx, &aidb.Job{
-		Type:      spec.Type,
-		Workflow:  workflow,
-		Namespace: hdr.Namespace,
-		Args:      spanner.NullJSON{Valid: true, Value: args},
+		Type:          spec.Type,
+		Workflow:      workflow,
+		Namespace:     hdr.Namespace,
+		ExternalBugID: spanner.NullString{StringVal: externalBugID, Valid: externalBugID != ""},
+		Args:          spanner.NullJSON{Valid: true, Value: args},
 	})
 	return err
 }
@@ -985,6 +999,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		Workflow:         job.Workflow,
 		Description:      desc,
 		DescriptionLink:  job.Link,
+		ExternalBugID:    job.ExternalBugID.StringVal,
 		AgentName:        nullString(job.AgentName),
 		Created:          job.Created,
 		Started:          nullTime(job.Started),

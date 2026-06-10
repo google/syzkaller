@@ -16,7 +16,8 @@ Detailed info on a single AI job execution.
 	{{template "header" .Header}}
 	{{template "ai_job_list" .Jobs}}
 
-	<b>Agent:</b> {{if .Job.AgentName}}{{.Job.AgentName}}{{else}}---{{end}}<br><br>
+	<b>Agent:</b> {{if .Job.AgentName}}{{.Job.AgentName}}{{else}}---{{end}}<br>
+	<b>External Bug ID:</b> {{if .Job.ExternalBugID}}{{.Job.ExternalBugID}}{{else}}---{{end}}<br><br>
 
 	{{if .CanRestart}}
 	<form method="POST" class="restart-form">

@@ -46,11 +46,12 @@ type Agent struct {
 }
 
 type Job struct {
-	ID        string
-	Type      ai.WorkflowType
-	Workflow  string
-	Namespace string
-	BugID     spanner.NullString // set if the job related to some bug
+	ID            string
+	Type          ai.WorkflowType
+	Workflow      string
+	Namespace     string
+	BugID         spanner.NullString // set if the job related to some bug
+	ExternalBugID spanner.NullString // set if manually provided via UI
 	// Arbitrary description/link shown in the UI list of jobs.
 	Description       string
 	Link              string
