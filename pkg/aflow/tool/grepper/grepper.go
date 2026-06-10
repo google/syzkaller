@@ -20,6 +20,10 @@ The tool executes git grep on the kernel sources and returns the output.
 The codesearch set of tools provide more precise results,
 use them instead of this tool if they can answer your question.
 
+Important note: this tool CANNOT be used to search syzkaller syzlang descriptions (sys/*)
+or expressions containing 'syz_' since they are syzkaller pseudo-syscalls, 
+and not present in the Linux kernel. Use the {{.toolReadDescription}} tool instead.
+
 The following git grep flags are used:
 --extended-regexp: you need to provide expression in extended regexp syntax
 --line-number: line numbers are shown in the output
