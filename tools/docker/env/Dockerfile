@@ -104,18 +104,19 @@ ENV GOPATH /gopath
 ENV GOMODCACHE /syzkaller/.cache/gomod
 
 # Install clang.
+ARG CLANG_VERSION=22
 RUN apt-get install -y -q gnupg apt-transport-https
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | tee /usr/share/keyrings/llvm-snapshot.gpg
 # It uses SHA-1 signatures which are deprecated since 2026, so we have to use trusted=yes.
-RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | tee /etc/apt/sources.list.d/llvm-21.list
+RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-${CLANG_VERSION} main" | tee /etc/apt/sources.list.d/llvm-${CLANG_VERSION}.list
 RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends clang-21 clang-format-21 clang-tidy-21 lld-21 llvm-21-dev libclang-cpp21-dev libclang-21-dev
+RUN apt-get install -y -q --no-install-recommends clang-${CLANG_VERSION} clang-format-${CLANG_VERSION} clang-tidy-${CLANG_VERSION} lld-${CLANG_VERSION} llvm-${CLANG_VERSION}-dev libclang-cpp${CLANG_VERSION}-dev libclang-${CLANG_VERSION}-dev
 RUN apt-get install -y -q --no-install-recommends flatbuffers-compiler
-RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
-RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
-RUN update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100
-RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
-RUN update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-21 100
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 100
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_VERSION} 100
+RUN update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${CLANG_VERSION} 100
+RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${CLANG_VERSION} 100
+RUN update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-${CLANG_VERSION} 100
 RUN apt autoremove -y -q
 
 # Install the Spanner emulator.
