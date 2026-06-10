@@ -48,11 +48,15 @@ type Repo interface {
 	// GetCommitByTitle finds commit info by the title. If the commit is not found, nil is returned.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
 	// (e.g. do CheckoutBranch before).
-	GetCommitByTitle(title string) (*Commit, error)
+	// The search is limited to commits starting from the 'since' time. If 'since' is the zero
+	// value, a default limit of 5 years is used.
+	GetCommitByTitle(title string, since time.Time) (*Commit, error)
 
 	// GetCommitsByTitles is a batch version of GetCommitByTitle.
 	// Returns list of commits and titles of commits that are not found.
-	GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
+	// The search is limited to commits starting from the 'since' time. If 'since' is the zero
+	// value, a default limit of 5 years is used.
+	GetCommitsByTitles(titles []string, since time.Time) ([]*Commit, []string, error)
 
 	// ExtractFixTagsFromCommits extracts fixing tags for bugs from git log.
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
