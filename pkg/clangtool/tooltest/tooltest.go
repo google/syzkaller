@@ -62,11 +62,11 @@ func ForEachTestFile(t *testing.T, tool string, fn func(t *testing.T, cfg *clang
 			t.Parallel()
 			buildDir := t.TempDir()
 			commands := fmt.Sprintf(`[{
-					"file": "%s",
-					"directory": "%s",
-					"command": "clang -c %s -DKBUILD_BASENAME=foo"
+					"file": "%[1]v",
+					"directory": "%[3]v",
+					"command": "clang -c %[1]s -DKBUILD_BASENAME=foo -I %[2]v/include"
 				}]`,
-				file, buildDir, file)
+				file, filepath.Dir(file), buildDir)
 			dbFile := filepath.Join(buildDir, "compile_commands.json")
 			if err := os.WriteFile(dbFile, []byte(commands), 0600); err != nil {
 				t.Fatal(err)

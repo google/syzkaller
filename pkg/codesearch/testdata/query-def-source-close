@@ -2,7 +2,7 @@ def-source source0.c close
 
 function close is defined in source0.c:
 
-  19:	int close()
-  20:	{
-  21:		return 0;
-  22:	}
+  20:	int close()
+  21:	{
+  22:		return 0;
+  23:	}

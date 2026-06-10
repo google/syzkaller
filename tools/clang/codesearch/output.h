@@ -97,13 +97,16 @@ inline void print(JSONPrinter& Printer, const Definition& V) {
 class Output {
 public:
   void emit(Definition&& V) { Definitions.push_back(std::move(V)); }
+  void emitInclude(const std::string& File) { Includes.push_back(File); }
 
   void print() const {
     JSONPrinter Printer;
+    Printer.Field("raw_includes", Includes);
     Printer.Field("definitions", Definitions, true);
   }
 
 private:
+  std::vector<std::string> Includes;
   std::vector<Definition> Definitions;
 };
 

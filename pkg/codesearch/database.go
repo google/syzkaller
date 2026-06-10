@@ -16,7 +16,9 @@ import (
 )
 
 type Database struct {
-	Definitions []*Definition `json:"definitions,omitempty"`
+	Includes    map[string][]string `json:"includes,omitempty"`
+	RawIncludes []string            `json:"raw_includes,omitempty"`
+	Definitions []*Definition       `json:"definitions,omitempty"`
 
 	mergeCache   map[string]*Definition
 	reverseCache map[*Definition]string
@@ -172,6 +174,14 @@ func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
 		db.mergeCache = make(map[string]*Definition)
 		db.reverseCache = make(map[*Definition]string)
 		db.stringCache = make(map[string]string)
+		db.Includes = make(map[string][]string)
+	}
+	for header, srcs := range other.Includes {
+		db.intern(&header)
+		for _, src := range srcs {
+			db.intern(&src)
+			db.Includes[header] = append(db.Includes[header], src)
+		}
 	}
 	for _, def := range other.Definitions {
 		id := fmt.Sprintf("%v-%v-%v", def.Kind, def.Name, def.Body.File)
@@ -202,6 +212,10 @@ func (db *Database) Finalize(v *clangtool.Verifier) {
 	slices.SortFunc(db.Definitions, func(a, b *Definition) int {
 		return strings.Compare(db.reverseCache[a], db.reverseCache[b])
 	})
+	for hdr, srcs := range db.Includes {
+		slices.Sort(srcs)
+		db.Includes[hdr] = slices.Compact(srcs)
+	}
 	db.mergeCache = nil
 	db.reverseCache = nil
 }
@@ -209,6 +223,13 @@ func (db *Database) Finalize(v *clangtool.Verifier) {
 // SetSoureFile attaches the source file to the entities that need it.
 // The clang tool could do it, but it looks easier to do it here.
 func (db *Database) SetSourceFile(file string, updatePath func(string) string) {
+	if db.Includes == nil {
+		db.Includes = make(map[string][]string)
+	}
+	for _, inc := range db.RawIncludes {
+		db.Includes[updatePath(inc)] = []string{file}
+	}
+	db.RawIncludes = nil
 	for _, def := range db.Definitions {
 		def.Body.File = updatePath(def.Body.File)
 		def.Comment.File = updatePath(def.Comment.File)

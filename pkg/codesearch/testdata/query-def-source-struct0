@@ -2,7 +2,7 @@ def-source source0.c struct_in_c_file
 
 struct struct_in_c_file is defined in source0.c:
 
-   6:	struct struct_in_c_file {
-   7:		int X;
-   8:		struct some_struct by_value;
-   9:	};
+   7:	struct struct_in_c_file {
+   8:		int X;
+   9:		struct some_struct by_value;
+  10:	};

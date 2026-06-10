@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -33,6 +34,7 @@ Containing function/struct lines have '=' after the line number.
 
 type state struct {
 	KernelSrc string
+	Index codesearcher.Index
 }
 
 type args struct {
@@ -45,6 +47,10 @@ type results struct {
 }
 
 func grepper(ctx *aflow.Context, state state, args args) (results, error) {
+	srcDir := state.KernelSrc
+	if state.Index.ScratchDir != "" {
+		srcDir = state.Index.ScratchDir
+	}
 	cmdArgs := []string{
 		"grep", "--extended-regexp", "--line-number",
 		"--show-function", "-C1", "-e", args.Expression, "--",
@@ -52,7 +58,7 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	if args.PathPrefix != "" {
 		cmdArgs = append(cmdArgs, args.PathPrefix)
 	}
-	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", cmdArgs...)
+	output, err := osutil.RunCmd(time.Hour, srcDir, "git", cmdArgs...)
 	if err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 			if exitErr.ExitCode() == 1 && len(output) == 0 {

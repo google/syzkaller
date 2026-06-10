@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -27,6 +28,7 @@ Note: The current code snippet should reflect the previous changes.
 
 type state struct {
 	KernelScratchSrc string
+	Index codesearcher.Index
 }
 
 type args struct {
@@ -83,7 +85,10 @@ func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
 	if bytes.Equal(fileData, newFileData) {
 		return struct{}{}, aflow.BadCallError("The edit does not change the code.")
 	}
-	err = osutil.WriteFile(file, newFileData)
+	if err := osutil.WriteFile(file, newFileData); err != nil {
+		return struct{}{}, err
+	}
+	err = state.Index.UpdateScratch(state.KernelScratchSrc, args.SourceFile)
 	return struct{}{}, err
 }
 

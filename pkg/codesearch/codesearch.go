@@ -21,8 +21,9 @@ import (
 )
 
 type Index struct {
-	db      *Database
-	srcDirs []string
+	db               *Database
+	permanentSrcDirs []string
+	scratchDir       string
 }
 
 type Command struct {
@@ -179,14 +180,17 @@ func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
 		return nil, err
 	}
 	return &Index{
-		db:      db,
-		srcDirs: srcDirs,
+		db:               db,
+		permanentSrcDirs: srcDirs,
 	}, nil
 }
 
 func NewTestIndex(t *testing.T, dir string) *Index {
 	db := tooltest.LoadOutput[Database](t, dir)
-	return &Index{db, []string{dir}}
+	return &Index{
+		db:               db,
+		permanentSrcDirs: []string{dir},
+	}
 }
 
 func (index *Index) Command(cmd string, args []string) (string, error) {
@@ -202,6 +206,27 @@ func (index *Index) Command(cmd string, args []string) (string, error) {
 	return "", fmt.Errorf("unknown codesearch command %v", cmd)
 }
 
+func (index *Index) PrepareScratch(changedFiles map[string]bool) map[string]bool {
+	recompile := make(map[string]bool)
+	for file := range changedFiles {
+		recompile[file] = true
+		for _, src := range index.db.Includes[file] {
+			recompile[src] = true
+		}
+	}
+	return recompile
+}
+
+func (index *Index) UpdateScratch(scratchDir string, changedFiles map[string]bool, scratchDB *Database) {
+	index.scratchDir = scratchDir
+	// TODO: use scratchDB as an overlay over index.db.
+	// Make iteration over index.db.Definitions filter out definitions shadowed by scratchDB.
+}
+
+func (index *Index) ResetScratch() {
+	index.scratchDir = ""
+}
+
 type Entity struct {
 	Kind string
 	Name string
@@ -213,7 +238,7 @@ func (index *Index) DirIndex(dir string) ([]string, []string, error) {
 	}
 	exists := false
 	var subdirs, files []string
-	for _, root := range index.srcDirs {
+	for _, root := range index.srcDirs() {
 		exists1, subdirs1, files1, err := dirIndex(root, dir)
 		if err != nil {
 			return nil, nil, err
@@ -230,7 +255,7 @@ func (index *Index) DirIndex(dir string) ([]string, []string, error) {
 	slices.Sort(subdirs)
 	slices.Sort(files)
 	// Dedup dirs across src/build trees,
-	// also dedup files, but hopefully there are no duplicates.
+	// also dedup files, there can be dups at least from scratch dir.
 	subdirs = slices.Compact(subdirs)
 	files = slices.Compact(files)
 	return subdirs, files, nil
@@ -242,7 +267,7 @@ func (index *Index) ReadFile(file string, firstLine, lineCount int) (string, err
 	}
 	firstLine = max(1, firstLine)
 	lineCount = max(1, min(100, lineCount))
-	for _, dir := range index.srcDirs {
+	for _, dir := range index.srcDirs() {
 		path := filepath.Join(dir, file)
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -443,14 +468,21 @@ func (index *Index) formatSource(lines LineRange) (string, error) {
 	if lines.File == "" {
 		return "", nil
 	}
-	for _, dir := range index.srcDirs {
+	for _, dir := range index.srcDirs() {
 		file := filepath.Join(dir, lines.File)
 		if !osutil.IsExist(file) {
 			continue
 		}
 		return formatSourceFile(file, int(lines.StartLine), int(lines.EndLine))
 	}
-	return "", fmt.Errorf("codesearch: can't find %q file in any of %v", lines.File, index.srcDirs)
+	return "", fmt.Errorf("codesearch: can't find %q file in any of %v", lines.File, index.srcDirs())
+}
+
+func (index *Index) srcDirs() []string {
+	if index.scratchDir == "" {
+		return index.permanentSrcDirs
+	}
+	return append([]string{index.scratchDir}, index.permanentSrcDirs...)
 }
 
 func formatSourceFile(file string, start, end int) (string, error) {

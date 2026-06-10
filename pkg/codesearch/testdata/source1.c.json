@@ -1,5 +1,21 @@
 {
+	"includes": {
+		"include/common.h": [
+			"source1.c"
+		]
+	},
 	"definitions": [
+		{
+			"name": "foo",
+			"type": "void ()",
+			"kind": "function",
+			"is_static": true,
+			"body": {
+				"file": "include/common.h",
+				"start_line": 7,
+				"end_line": 7
+			}
+		},
 		{
 			"name": "same_name_in_several_files",
 			"type": "void ()",
@@ -7,13 +23,8 @@
 			"is_static": true,
 			"body": {
 				"file": "source1.c",
-				"start_line": 4,
-				"end_line": 7
-			},
-			"comment": {
-				"file": "source1.c",
-				"start_line": 1,
-				"end_line": 2
+				"start_line": 6,
+				"end_line": 9
 			}
 		}
 	]

@@ -1,6 +1,7 @@
 dir-index /mm/..
 
 directory /mm/.. subdirs:
+ - include
  - mm
 
 directory /mm/.. files:
