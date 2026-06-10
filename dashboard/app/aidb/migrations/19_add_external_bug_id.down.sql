@@ -1,0 +1,2 @@
+DROP INDEX JobExternalBugID;
+ALTER TABLE Jobs DROP COLUMN ExternalBugID;
