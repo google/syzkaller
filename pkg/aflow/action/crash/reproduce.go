@@ -57,6 +57,16 @@ type reproduceResult struct {
 	ReproducedFaultInjection string
 }
 
+func (args *ReproduceArgs) Validate() error {
+	if targets.Get(targets.Linux, args.TargetArch) == nil {
+		return fmt.Errorf("unsupported target: %v/%v", targets.Linux, args.TargetArch)
+	}
+	if args.Type != "qemu" && args.Type != "gce" {
+		return fmt.Errorf("unsupported VM type %q", args.Type)
+	}
+	return nil
+}
+
 type RunTestResult struct {
 	// Returned if the program caused a kernel crash.
 	Report *report.Report
@@ -77,59 +87,15 @@ type RunTestResult struct {
 // RunTest boots the kernel and runs a single test program.
 func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
 	res := RunTestResult{}
-	if args.Type != "qemu" && args.Type != "gce" {
-		return res, fmt.Errorf("run test: unsupported VM type %q", args.Type)
+	if err := args.Validate(); err != nil {
+		return res, fmt.Errorf("run test: %w", err)
 	}
 	if collectCoverage && args.ReproSyz == "" {
 		return res, errors.New("run test: coverage collection requires a syzkaller program")
 	}
 
-	var vmConfig map[string]any
-	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
-		return res, fmt.Errorf("failed to parse VM config: %w", err)
-	}
-
-	targetArch := args.TargetArch
-	switch args.Type {
-	case "qemu":
-		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
-	case "gce":
-		params := build.Params{
-			TargetOS:     targets.Linux,
-			TargetArch:   targetArch,
-			UserspaceDir: args.Image,
-			OutputDir:    workdir,
-		}
-		kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
-		if err := build.EmbedLinuxKernel(params, kernelPath); err != nil {
-			return res, fmt.Errorf("failed to embed kernel into image: %w", err)
-		}
-		args.Image = filepath.Join(workdir, "image")
-	}
-	vmCfg, err := json.Marshal(vmConfig)
+	cfg, err := buildConfig(args, workdir)
 	if err != nil {
-		return res, fmt.Errorf("failed to serialize VM config: %w", err)
-	}
-
-	cfg := mgrconfig.DefaultValues()
-	cfg.Name = args.AgentName
-	cfg.RawTarget = targets.Linux + "/" + targetArch
-	cfg.Workdir = workdir
-	cfg.Syzkaller = args.Syzkaller
-	cfg.KernelObj = args.KernelObj
-	cfg.KernelSrc = args.KernelSrc
-	cfg.Image = args.Image
-	cfg.Type = args.Type
-	cfg.VM = vmCfg
-	cfg.Experimental.DescriptionsMode = mgrconfig.AnyDescriptionsMode
-	if args.NeedStrace && args.StraceBin != "" {
-		cfg.StraceBin = args.StraceBin
-		cfg.StraceBinOnTarget = false
-	}
-	if err := mgrconfig.SetTargets(cfg); err != nil {
-		return res, err
-	}
-	if err := mgrconfig.Complete(cfg); err != nil {
 		return res, err
 	}
 	if args.ReproOpts == "" {
@@ -277,14 +243,74 @@ func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, er
 	return cached.Coverage, nil
 }
 
+func buildConfig(args ReproduceArgs, workdir string) (*mgrconfig.Config, error) {
+	var vmConfig map[string]any
+	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse VM config: %w", err)
+	}
+
+	targetArch := args.TargetArch
+	image := args.Image
+
+	switch args.Type {
+	case "qemu":
+		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	case "gce":
+		params := build.Params{
+			TargetOS:     targets.Linux,
+			TargetArch:   targetArch,
+			UserspaceDir: image,
+			OutputDir:    workdir,
+		}
+		kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+		if err := build.EmbedLinuxKernel(params, kernelPath); err != nil {
+			return nil, fmt.Errorf("failed to embed kernel into image: %w", err)
+		}
+		image = filepath.Join(workdir, "image")
+	}
+
+	vmCfg, err := json.Marshal(vmConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize VM config: %w", err)
+	}
+
+	cfg := mgrconfig.DefaultValues()
+	cfg.Name = args.AgentName
+	cfg.RawTarget = targets.Linux + "/" + targetArch
+	cfg.Workdir = workdir
+	cfg.Syzkaller = args.Syzkaller
+	cfg.KernelObj = args.KernelObj
+	cfg.KernelSrc = args.KernelSrc
+	cfg.Image = image
+	cfg.Type = args.Type
+	cfg.VM = vmCfg
+	cfg.Experimental.DescriptionsMode = mgrconfig.AnyDescriptionsMode
+	if args.NeedStrace && args.StraceBin != "" {
+		cfg.StraceBin = args.StraceBin
+		cfg.StraceBinOnTarget = false
+	}
+
+	if err := mgrconfig.SetTargets(cfg); err != nil {
+		return nil, err
+	}
+	if err := mgrconfig.Complete(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 	collectCoverage bool) (reproduceResult, string, error) {
+	if err := args.Validate(); err != nil {
+		return reproduceResult{}, "", err
+	}
+
 	imageData, err := os.ReadFile(args.Image)
 	if err != nil {
 		return reproduceResult{}, "", err
 	}
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 6",
+		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 7",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC),
 		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
@@ -329,21 +355,38 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 	return res, err
 }
 
+var makeSymbolizer = symbolizer.Make
+
 func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
-	pcs := make(map[uint64][]symbolizer.Frame)
+	if len(coverage) == 0 {
+		return nil, nil
+	}
+
+	target := targets.Get(targets.Linux, args.TargetArch)
+	if target == nil {
+		return nil, fmt.Errorf("unknown target: %s/%s", targets.Linux, args.TargetArch)
+	}
+
+	adjustedCoverage := make([][]uint64, 0, len(coverage))
 	for _, call := range coverage {
+		adjustedCoverage = append(adjustedCoverage, backend.PreviousInstructionPCs(target, args.Type, call))
+	}
+
+	pcs := make(map[uint64][]symbolizer.Frame)
+	for _, call := range adjustedCoverage {
 		for _, pc := range call {
 			pcs[pc] = nil
 		}
 	}
-	target := targets.Get(targets.Linux, args.TargetArch)
+
 	vmlinux := filepath.Join(args.KernelObj, target.KernelObject)
-	symb := symbolizer.Make(target)
+	symb := makeSymbolizer(target)
 	defer symb.Close()
 	frames, err := symb.Symbolize(vmlinux, slices.Collect(maps.Keys(pcs))...)
 	if err != nil {
 		return nil, err
 	}
+
 	kernelDirs := &mgrconfig.KernelDirs{
 		Src: args.KernelSrc,
 		Obj: args.KernelObj,
@@ -353,12 +396,13 @@ func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, e
 		frame.File = relPath
 		pcs[frame.PC] = append(pcs[frame.PC], frame)
 	}
+
 	var res [][]symbolizer.Frame
 	// TODO(dvyukov): figure out how we want to aggregate/deduplicate frames
 	// We may leave only the last call. We also most likely want to handle
 	// inline frames in some way. We may also want to deduplicate/aggregate
 	// the full trace in some way.
-	for _, call := range coverage {
+	for _, call := range adjustedCoverage {
 		var frames []symbolizer.Frame
 		for _, pc := range call {
 			frames = append(frames, pcs[pc]...)

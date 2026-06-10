@@ -9,6 +9,8 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,7 +86,10 @@ func TestAggregateTestResults(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := aggregateTestResults(tc.results, crashReporter, ReproduceArgs{TargetArch: "amd64"})
+			args := ReproduceArgs{
+				TargetArch: "amd64",
+			}
+			res, err := aggregateTestResults(tc.results, crashReporter, args)
 			require.NoError(t, err)
 
 			if tc.expectedReport != nil {
@@ -102,4 +107,54 @@ func TestAggregateTestResults(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mockSymbolizer struct {
+	recordedPCs []uint64
+}
+
+func (m *mockSymbolizer) Symbolize(bin string, pcs ...uint64) ([]symbolizer.Frame, error) {
+	m.recordedPCs = append(m.recordedPCs, pcs...)
+	var frames []symbolizer.Frame
+	for _, pc := range pcs {
+		frames = append(frames, symbolizer.Frame{
+			PC:   pc,
+			Func: "mockFunc",
+			File: "mock_file.c",
+			Line: 1,
+		})
+	}
+	return frames, nil
+}
+
+func (m *mockSymbolizer) Close() {}
+
+func TestSymbolize(t *testing.T) {
+	oldMakeSymbolizer := makeSymbolizer
+	defer func() { makeSymbolizer = oldMakeSymbolizer }()
+
+	mock := &mockSymbolizer{}
+	makeSymbolizer = func(target *targets.Target) symbolizer.Symbolizer {
+		return mock
+	}
+
+	args := ReproduceArgs{
+		TargetArch: "amd64",
+		Type:       "qemu",
+	}
+	// amd64 instruction length is 5.
+	// So 0x1005 should be shifted to 0x1000.
+	coverage := [][]uint64{{0x1005, 0x2005}}
+
+	res, err := symbolize(args, coverage)
+	require.NoError(t, err)
+
+	require.Len(t, mock.recordedPCs, 2)
+	require.Contains(t, mock.recordedPCs, uint64(0x1000))
+	require.Contains(t, mock.recordedPCs, uint64(0x2000))
+
+	require.Len(t, res, 1)
+	require.Len(t, res[0], 2)
+	require.Equal(t, uint64(0x1000), res[0][0].PC)
+	require.Equal(t, uint64(0x2000), res[0][1].PC)
 }
