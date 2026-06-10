@@ -163,6 +163,14 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 	return ret
 }
 
+func getManualWorkflowSpec(cfg *Config, name string) *ManualWorkflowSpec {
+	specs := manualAIWorkflows(cfg)
+	if i := slices.IndexFunc(specs, func(s ManualWorkflowSpec) bool { return s.Name == name }); i != -1 {
+		return &specs[i]
+	}
+	return nil
+}
+
 type uiAIJobArg struct {
 	Key   string
 	Value string
@@ -383,13 +391,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 	}
 
 	cfg := getNsConfig(ctx, hdr.Namespace)
-	var spec *ManualWorkflowSpec
-	for _, s := range manualAIWorkflows(cfg) {
-		if s.Name == workflow {
-			spec = &s
-			break
-		}
-	}
+	spec := getManualWorkflowSpec(cfg, workflow)
 	if spec == nil {
 		return fmt.Errorf("%w: manual workflow schema for %v not found", ErrClientBadRequest, workflow)
 	}
@@ -1171,6 +1173,13 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 		return nil, textErr
 	}
 
+	if spec := getManualWorkflowSpec(getNsConfig(ctx, job.Namespace), job.Workflow); spec != nil {
+		for _, field := range spec.Fields {
+			if args[field.ID] == nil {
+				args[field.ID] = field.DefaultValue
+			}
+		}
+	}
 	if job.Type == ai.WorkflowReproC {
 		if args["BugDescription"] == nil || args["BugDescription"] == "" {
 			args["BugDescription"] = fmt.Sprintf("%v\n\n%v", args["BugTitle"], args["CrashReport"])
