@@ -230,3 +230,27 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           make
           .github/workflows/run.sh bash -xe tools/gvisor-smoke-test.sh
+
+  deb-pkg:
+    runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
+      TERM: dumb
+    steps:
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
+      - name: build and package
+        run: |
+          apt-get update -qq && apt-get install -y -qq debhelper dpkg-dev
+          cd gopath/src/github.com/google/syzkaller
+          make
+          ./tools/create-deb-pkg.sh
