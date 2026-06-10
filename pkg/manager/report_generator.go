@@ -61,10 +61,5 @@ func (w *ReportGeneratorWrapper) Reset() {
 }
 
 func CoverToPCs(cfg *mgrconfig.Config, cov []uint64) []uint64 {
-	pcs := make([]uint64, 0, len(cov))
-	for _, pc := range cov {
-		prev := backend.PreviousInstructionPC(cfg.SysTarget, cfg.Type, pc)
-		pcs = append(pcs, prev)
-	}
-	return pcs
+	return backend.PreviousInstructionPCs(cfg.SysTarget, cfg.Type, cov)
 }

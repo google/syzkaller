@@ -24,6 +24,14 @@ func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 
 	return pc
 }
 
+func PreviousInstructionPCs(target *targets.Target, vm string, cov []uint64) []uint64 {
+	pcs := make([]uint64, 0, len(cov))
+	for _, pc := range cov {
+		pcs = append(pcs, PreviousInstructionPC(target, vm, pc))
+	}
+	return pcs
+}
+
 func NextInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
 	if vm == targets.GVisor {
 		return pc
