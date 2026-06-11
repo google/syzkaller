@@ -21,3 +21,20 @@ func TestHttpTemplates(t *testing.T) {
 		})
 	}
 }
+
+func TestLocalRedirectURL(t *testing.T) {
+	tests := map[string]string{
+		"/stats?x=1":           "/stats?x=1",
+		"/":                    "/",
+		"https://evil.example": "/",
+		"//evil.example":       "/",
+		"///evil.example":      "/",
+		"/\\evil.example":      "/",
+		"javascript:alert(1)":  "/",
+	}
+	for in, want := range tests {
+		if got := localRedirectURL(in); got != want {
+			t.Errorf("localRedirectURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
