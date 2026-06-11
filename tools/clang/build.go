@@ -28,6 +28,9 @@ package clangtoolimpl
 //// The compiler will search in all of them in order, and pick the first
 //// that is actually present and contains files.
 //
+// #cgo CXXFLAGS: -I/usr/include/llvm-22 -I/usr/lib/llvm-22/include -I/usr/include/llvm-c-22
+// #cgo LDFLAGS: -L/usr/lib/llvm-22/lib
+//
 // #cgo CXXFLAGS: -I/usr/include/llvm-21 -I/usr/lib/llvm-21/include -I/usr/include/llvm-c-21
 // #cgo LDFLAGS: -L/usr/lib/llvm-21/lib
 //
