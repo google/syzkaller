@@ -10,12 +10,14 @@ import (
 	"os"
 
 	"cloud.google.com/go/spanner"
+	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"google.golang.org/api/iterator"
 )
 
-func runSQL(ctx context.Context, uri db.ParsedURI, command string) error {
+func runSQL(ctx context.Context, uri pkgspanner.ParsedURI, command string) error {
 	client, err := spanner.NewClient(ctx, uri.Full)
 	if err != nil {
 		return err
@@ -52,13 +54,13 @@ func main() {
 	if os.Getenv("SPANNER_EMULATOR_HOST") != "" {
 		// Should only be done in the test/dev environment.
 		log.Printf("check if a Spanner instance is present")
-		err = db.CreateSpannerInstance(ctx, uri)
+		err = pkgspanner.CreateSpannerInstance(ctx, uri)
 		if err != nil {
 			app.Fatalf("failed to create Spanner instance: %v", err)
 		}
 	}
 	log.Printf("check if DB is present")
-	err = db.CreateSpannerDB(ctx, uri, nil)
+	err = pkgspanner.CreateSpannerDB(ctx, uri, databasepb.DatabaseDialect_GOOGLE_STANDARD_SQL, nil)
 	if err != nil {
 		app.Fatalf("failed to create Spanner DB: %v", err)
 	}

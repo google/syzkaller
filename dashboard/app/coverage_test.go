@@ -9,18 +9,19 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"cloud.google.com/go/civil"
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/mocks"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/google/syzkaller/pkg/coveragedb/testutil"
 	"github.com/google/syzkaller/pkg/covermerger"
 	mergermocks "github.com/google/syzkaller/pkg/covermerger/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"google.golang.org/api/iterator"
 )
 
-func setCoverageDBClient(ctx context.Context, client spannerclient.SpannerClient) context.Context {
+func setCoverageDBClient(ctx context.Context, client *spanner.Client) context.Context {
 	return context.WithValue(ctx, &keyCoverageDBClient, client)
 }
 
@@ -39,14 +40,14 @@ func TestFileCoverage_BadRequest(t *testing.T) {
 func TestFileCoverage(t *testing.T) {
 	tests := []struct {
 		name      string
-		covDB     func(t *testing.T) spannerclient.SpannerClient
+		covDB     func(t *testing.T) *spanner.Client
 		fileProv  func(t *testing.T) covermerger.FileVersProvider
 		url       string
 		wantInRes []string
 	}{
 		{
 			name:     "empty db",
-			covDB:    func(t *testing.T) spannerclient.SpannerClient { return emptyCoverageDBFixture(t, 1) },
+			covDB:    emptyCoverageDBFixture,
 			fileProv: staticFileProvider,
 			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
 				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c",
@@ -110,81 +111,83 @@ line3`
 	return m
 }
 
-func emptyCoverageDBFixture(t *testing.T, times int) spannerclient.SpannerClient {
-	mRowIterator := mocks.NewRowIterator(t)
-	mRowIterator.On("Stop").Return().Times(times)
-	mRowIterator.On("Next").
-		Return(nil, iterator.Done).Times(times)
-
-	mTran := mocks.NewReadOnlyTransaction(t)
-	mTran.On("Query", mock.Anything, mock.Anything).
-		Return(mRowIterator).Times(times)
-
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mTran).Times(times)
-	return m
+func emptyCoverageDBFixture(t *testing.T) *spanner.Client {
+	return testutil.SetupCoverageTestDB(t)
 }
 
-func coverageDBFixture(t *testing.T) spannerclient.SpannerClient {
-	mRowIt := newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
+func coverageDBFixture(t *testing.T) *spanner.Client {
+	client := testutil.SetupCoverageTestDB(t)
+	period, _ := coveragedb.MakeTimePeriod(civil.Date{Year: 2025, Month: 1, Day: 31}, "month")
+	history := &coveragedb.HistoryRecord{
+		Namespace: "test2",
+		Repo:      "repo1",
+		Commit:    "c0e75905caf368e19aab585d20151500e750de89",
+		Duration:  int64(period.Days),
+		DateTo:    period.DateTo,
+		Session:   "session1",
+		Time:      time.Now(),
+		TotalRows: 100,
+	}
+	testutil.InsertCoverageData(t, client, "*", history, []*coveragedb.FileCoverageWithLineInfo{{
+		FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+			Filepath:     "virt/kvm/kvm_main.c",
+			Instrumented: 3,
+			Covered:      3,
+			Subsystems:   []string{"sub1"},
+		},
+		LinesInstrumented: []int64{1, 2, 3},
+		HitCounts:         []int64{4, 5, 6},
+	}})
+	return client
+}
+
+func multiManagerCovDBFixture(t *testing.T) *spanner.Client {
+	client := testutil.SetupCoverageTestDB(t)
+	period, _ := coveragedb.MakeTimePeriod(civil.Date{Year: 2025, Month: 1, Day: 31}, "month")
+
+	// Full coverage.
+	historyFull := &coveragedb.HistoryRecord{
+		Namespace: "test2",
+		Repo:      "repo-full",
+		Commit:    "c0e75905caf368e19aab585d20151500e750de89",
+		Duration:  int64(period.Days),
+		DateTo:    period.DateTo,
+		Session:   "session-full",
+		Time:      time.Now(),
+		TotalRows: 100,
+	}
+	testutil.InsertCoverageData(t, client, "*", historyFull, []*coveragedb.FileCoverageWithLineInfo{{
+		FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+			Filepath:     "virt/kvm/kvm_main.c",
+			Instrumented: 3,
+			Covered:      3,
+			Subsystems:   []string{"sub1"},
+		},
 		LinesInstrumented: []int64{1, 2, 3},
 		HitCounts:         []int64{4, 5, 6},
 	}})
 
-	mTran := mocks.NewReadOnlyTransaction(t)
-	mTran.On("Query", mock.Anything, mock.Anything).
-		Return(mRowIt).Once()
-
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mTran).Once()
-	return m
-}
-
-func multiManagerCovDBFixture(t *testing.T) spannerclient.SpannerClient {
-	mReadFullCoverageTran := mocks.NewReadOnlyTransaction(t)
-	mReadFullCoverageTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
-			LinesInstrumented: []int64{1, 2, 3},
-			HitCounts:         []int64{4, 5, 6},
-		}})).Once()
-
-	mReadPartialCoverageTran := mocks.NewReadOnlyTransaction(t)
-	mReadPartialCoverageTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
-			LinesInstrumented: []int64{1, 2},
-			HitCounts:         []int64{3, 5},
-		}})).Once()
-
-	m := mocks.NewSpannerClient(t)
-	// The order matters. Full coverage is fetched second.
-	m.On("Single").
-		Return(mReadPartialCoverageTran).Once()
-	m.On("Single").
-		Return(mReadFullCoverageTran).Once()
-
-	return m
-}
-
-func newRowIteratorMock[K any](t *testing.T, cov []*K,
-) *mocks.RowIterator {
-	m := mocks.NewRowIterator(t)
-	m.On("Stop").Once().Return()
-	for _, item := range cov {
-		mRow := mocks.NewRow(t)
-		mRow.On("ToStruct", mock.Anything).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*K)
-				*arg = *item
-			}).
-			Return(nil).Once()
-
-		m.On("Next").
-			Return(mRow, nil).Once()
+	// Partial coverage.
+	historyPart := &coveragedb.HistoryRecord{
+		Namespace: "test2",
+		Repo:      "repo-part",
+		Commit:    "c0e75905caf368e19aab585d20151500e750de89",
+		Duration:  int64(period.Days),
+		DateTo:    period.DateTo,
+		Session:   "session-part",
+		Time:      time.Now(),
+		TotalRows: 100,
 	}
+	testutil.InsertCoverageData(t, client, "special-cc-manager", historyPart, []*coveragedb.FileCoverageWithLineInfo{{
+		FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+			Filepath:     "virt/kvm/kvm_main.c",
+			Instrumented: 2,
+			Covered:      2,
+			Subsystems:   []string{"sub1"},
+		},
+		LinesInstrumented: []int64{1, 2},
+		HitCounts:         []int64{3, 5},
+	}})
 
-	m.On("Next").
-		Return(nil, iterator.Done).Once()
-	return m
+	return client
 }

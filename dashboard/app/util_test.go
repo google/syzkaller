@@ -20,24 +20,20 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"slices"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/spanner/admin/database/apiv1"
+	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/pkg/subsystem"
-	spannertest "github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
@@ -110,114 +106,30 @@ func newCtx(t *testing.T, appID string) *Ctx {
 	return ctx
 }
 
-var appIDSeq = uint32(0)
-
 func NewSpannerCtx(t *testing.T) *Ctx {
 	ddlStatements, err := loadUpDDLStatements()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The code uses AppID as the spanner database URI project.
-	// So to give each test a private isolated instance of the spanner database,
-	// we give each test that uses spanner an unique AppID.
-	appID := fmt.Sprintf("testapp-%v", atomic.AddUint32(&appIDSeq, 1))
-	uri := fmt.Sprintf("projects/%s/instances/%v/databases/%v", appID, aidb.Instance, aidb.Database)
-	spannertest.NewTestDB(t, uri, ddlStatements)
-	return newCtx(t, appID)
+	uri := pkgspanner.NewTestDB(t, databasepb.DatabaseDialect_GOOGLE_STANDARD_SQL, ddlStatements)
+	parsedURI, err := pkgspanner.ParseURI(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newCtx(t, parsedURI.Project)
 }
 
 func executeSpannerDDL(ctx context.Context, statements []string) error {
-	dbAdmin, err := database.NewDatabaseAdminClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed NewDatabaseAdminClient: %w", err)
-	}
-	defer dbAdmin.Close()
-	dbOp, err := dbAdmin.UpdateDatabaseDdl(ctx, &databasepb.UpdateDatabaseDdlRequest{
-		Database: fmt.Sprintf("projects/%s/instances/%v/databases/%v",
-			appengine.AppID(ctx), aidb.Instance, aidb.Database),
-		Statements: statements,
-	})
-	if err != nil {
-		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
-	}
-	if err := dbOp.Wait(ctx); err != nil {
-		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
-	}
-	return nil
+	return pkgspanner.UpdateSpannerDDL(ctx, fmt.Sprintf("projects/%s/instances/%v/databases/%v",
+		appengine.AppID(ctx), aidb.Instance, aidb.Database), statements)
 }
 
 func loadUpDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.up.sql", true)
+	return pkgspanner.LoadDDL(os.DirFS("."), "aidb/migrations/*.up.sql", true)
 }
 
 func loadDownDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.down.sql", false)
-}
-
-func loadDDLStatements(wildcard string, forward bool) ([]string, error) {
-	files, err := filepath.Glob(filepath.Join("aidb", "migrations", wildcard))
-	if err != nil {
-		return nil, err
-	}
-	if len(files) == 0 {
-		return nil, fmt.Errorf("loadDDLStatements: wildcard did not match any files: %q", wildcard)
-	}
-	sortedFiles, err := sortMigrationFiles(files, forward)
-	if err != nil {
-		return nil, err
-	}
-	var all []string
-	for _, file := range sortedFiles {
-		data, err := os.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
-		// We need individual statements. Assume semicolon is not used in other places than statements end.
-		statements := strings.Split(string(data), ";")
-		statements = statements[:len(statements)-1]
-		all = append(all, statements...)
-	}
-	return all, nil
-}
-
-// sortMigrationFiles parses the leading number from migration filenames and sorts them.
-// If forward is true, it sorts in ascending order (e.g., for 'up' migrations).
-// If forward is false, it sorts in descending order (e.g., for 'down' migrations).
-func sortMigrationFiles(files []string, forward bool) ([]string, error) {
-	type migrationFile struct {
-		num  int
-		file string
-	}
-	var mFiles []migrationFile
-	seen := map[int]string{}
-	for _, file := range files {
-		basename := filepath.Base(file)
-		parts := strings.Split(basename, "_")
-		if len(parts) == 0 {
-			return nil, fmt.Errorf("invalid migration filename: %v", basename)
-		}
-		num, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return nil, fmt.Errorf("migration file %v must start with a number: %w", file, err)
-		}
-		if old, ok := seen[num]; ok {
-			return nil, fmt.Errorf("duplicate migration number %v: %v and %v", num, old, file)
-		}
-		seen[num] = file
-		mFiles = append(mFiles, migrationFile{num: num, file: file})
-	}
-	slices.SortFunc(mFiles, func(a, b migrationFile) int {
-		res := a.num - b.num
-		if !forward {
-			res = -res
-		}
-		return res
-	})
-	var result []string
-	for _, f := range mFiles {
-		result = append(result, f.file)
-	}
-	return result, nil
+	return pkgspanner.LoadDDL(os.DirFS("."), "aidb/migrations/*.down.sql", false)
 }
 
 func (ctx *Ctx) config() *GlobalConfig {
@@ -365,7 +277,7 @@ func (ctx *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	}
 }
 
-func (ctx *Ctx) setCoverageMocks(ns string, dbClientMock spannerclient.SpannerClient,
+func (ctx *Ctx) setCoverageMocks(ns string, dbClientMock *spanner.Client,
 	fileProvMock covermerger.FileVersProvider) {
 	ctx.transformContext = func(ctx context.Context) context.Context {
 		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {

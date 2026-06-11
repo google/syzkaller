@@ -17,11 +17,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
-	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/mocks"
+	"github.com/google/syzkaller/pkg/coveragedb/testutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -53,14 +51,7 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		assert.NoError(t, err)
 		defer gzrc.Close()
 
-		spannerMock := mocks.NewSpannerClient(t)
-		spannerMock.
-			On("Apply", mock.Anything, mock.MatchedBy(func(ms []*spanner.Mutation) bool {
-				// 1 file * (5 managers + 1 manager total) x 1 (to update files) + 1 merge_history + 18 functions
-				return len(ms) == 1*(5+1)*1+1+18
-			})).
-			Return(time.Now(), nil).
-			Once()
+		spannerClient := testutil.SetupCoverageTestDB(t)
 
 		decoder := json.NewDecoder(gzrc)
 		decoder.DisallowUnknownFields()
@@ -68,7 +59,7 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		descr := new(coveragedb.HistoryRecord)
 		assert.NoError(t, decoder.Decode(descr))
 
-		_, err = coveragedb.SaveMergeResult(context.Background(), spannerMock, descr, decoder)
+		_, err = coveragedb.SaveMergeResult(context.Background(), spannerClient, descr, decoder)
 		return err
 	})
 	assert.NoError(t, eg.Wait())

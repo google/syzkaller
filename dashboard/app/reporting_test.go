@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/mocks"
+	"github.com/google/syzkaller/pkg/coveragedb/testutil"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1371,33 +1371,58 @@ func TestCoverageRegression(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	mTran1 := mocks.NewReadOnlyTransaction(t)
-	mTran1.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
-			{
-				Filepath:     "file_name.c",
-				Instrumented: 100,
-				Covered:      100,
-			},
-		})).Once()
+	client := testutil.SetupCoverageTestDB(t)
 
-	mTran2 := mocks.NewReadOnlyTransaction(t)
-	mTran2.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
-			{
-				Filepath:     "file_name.c",
-				Instrumented: 0,
-			},
-		})).Once()
+	// Set up the two periods: November 1999 and December 1999.
+	periodNov, _ := coveragedb.MakeTimePeriod(civil.Date{Year: 1999, Month: 11, Day: 30}, "month")
+	periodDec, _ := coveragedb.MakeTimePeriod(civil.Date{Year: 1999, Month: 12, Day: 31}, "month")
 
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mTran1).Once()
-	m.On("Single").
-		Return(mTran2).Once()
+	// 1. Insert coverage for November (100% covered)
+	histNov := &coveragedb.HistoryRecord{
+		Namespace: "coverage-tests",
+		Repo:      "repo-nov",
+		Commit:    "commit1",
+		Duration:  int64(periodNov.Days),
+		DateTo:    periodNov.DateTo,
+		Session:   "session-nov",
+		Time:      time.Now(),
+		TotalRows: 100,
+	}
+	testutil.InsertCoverageData(t, client, "*", histNov, []*coveragedb.FileCoverageWithLineInfo{{
+		FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+			Filepath:     "file_name.c",
+			Instrumented: 100,
+			Covered:      100,
+			Subsystems:   []string{"sub1"},
+		},
+		LinesInstrumented: []int64{1},
+		HitCounts:         []int64{1},
+	}})
+
+	// 2. Insert coverage for December (0% covered - regression)
+	histDec := &coveragedb.HistoryRecord{
+		Namespace: "coverage-tests",
+		Repo:      "repo-dec",
+		Commit:    "commit1",
+		Duration:  int64(periodDec.Days),
+		DateTo:    periodDec.DateTo,
+		Session:   "session-dec",
+		Time:      time.Now(),
+		TotalRows: 100,
+	}
+	testutil.InsertCoverageData(t, client, "*", histDec, []*coveragedb.FileCoverageWithLineInfo{{
+		FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+			Filepath:     "file_name.c",
+			Instrumented: 100,
+			Covered:      0,
+			Subsystems:   []string{"sub1"},
+		},
+		LinesInstrumented: []int64{1},
+		HitCounts:         []int64{0},
+	}})
 
 	c.transformContext = func(ctx context.Context) context.Context {
-		return setCoverageDBClient(ctx, m)
+		return setCoverageDBClient(ctx, client)
 	}
 	_, err := c.AuthGET(AccessAdmin, "/cron/email_coverage_reports")
 	assert.NoError(t, err)

@@ -10,7 +10,6 @@ import (
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"google.golang.org/api/iterator"
 )
 
@@ -23,7 +22,7 @@ type CoverageHistory struct {
 }
 
 // MergedCoverage uses dates, not time.
-func MergedCoverage(ctx context.Context, client spannerclient.SpannerClient, ns, periodType string,
+func MergedCoverage(ctx context.Context, client *spanner.Client, ns, periodType string,
 ) (*CoverageHistory, error) {
 	minDays, maxDays, err := coveragedb.MinMaxDays(periodType)
 	if err != nil {
