@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 )
@@ -226,7 +226,7 @@ type Format struct {
 }
 
 func DoHeatMapStyleBodyJS(
-	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
+	ctx context.Context, client *spanner.Client, scope *coveragedb.SelectScope, onlyUnique bool,
 	sss, managers []string, dataFilters Format) (template.CSS, template.HTML, template.HTML, error) {
 	covAndDates, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
 	if err != nil {
@@ -241,7 +241,7 @@ func DoHeatMapStyleBodyJS(
 }
 
 func DoSubsystemsHeatMapStyleBodyJS(
-	ctx context.Context, client spannerclient.SpannerClient, scope *coveragedb.SelectScope, onlyUnique bool,
+	ctx context.Context, client *spanner.Client, scope *coveragedb.SelectScope, onlyUnique bool,
 	sss, managers []string, format Format) (template.CSS, template.HTML, template.HTML, error) {
 	covWithDetails, err := coveragedb.FilesCoverageWithDetails(ctx, client, scope, onlyUnique)
 	if err != nil {

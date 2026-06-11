@@ -15,7 +15,6 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/uuid"
@@ -84,7 +83,7 @@ type fileSubsystems struct {
 	Subsystems []string
 }
 
-func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, descr *HistoryRecord, dec *json.Decoder,
+func SaveMergeResult(ctx context.Context, client *spanner.Client, descr *HistoryRecord, dec *json.Decoder,
 ) (int, error) {
 	if client == nil {
 		return 0, fmt.Errorf("nil spannerclient")
@@ -160,7 +159,7 @@ where
 	}
 }
 
-func ReadLinesHitCount(ctx context.Context, client spannerclient.SpannerClient,
+func ReadLinesHitCount(ctx context.Context, client *spanner.Client,
 	ns, commit, file, manager string, tp TimePeriod,
 ) ([]int64, []int64, error) {
 	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
@@ -253,7 +252,7 @@ func getFileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCach
 	return sss
 }
 
-func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns string,
+func NsDataMerged(ctx context.Context, client *spanner.Client, ns string,
 ) ([]TimePeriod, []int64, error) {
 	if client == nil {
 		return nil, nil, fmt.Errorf("nil spannerclient")
@@ -308,7 +307,7 @@ func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns st
 // To avoid exceeding Spanner mutation limits, file entries are deleted in batches of 10,000.
 //
 // Returns the number of orphaned sessions and the total number of file entries successfully deleted.
-func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int64, int64, error) {
+func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, error) {
 	if client == nil {
 		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
@@ -391,7 +390,7 @@ func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int
 	return deletedSessions.Load(), deletedRows.Load(), err
 }
 
-func processGarbageSession(ctx context.Context, client spannerclient.SpannerClient, session string,
+func processGarbageSession(ctx context.Context, client *spanner.Client, session string,
 	deletedRows *atomic.Int64) error {
 	iterRows := client.Single().Query(ctx, spanner.Statement{
 		SQL:    `SELECT manager, filepath FROM files WHERE session = $1`,
@@ -438,7 +437,7 @@ func processGarbageSession(ctx context.Context, client spannerclient.SpannerClie
 	return nil
 }
 
-func deleteFilesBatch(ctx context.Context, batch []spanner.Key, client spannerclient.SpannerClient,
+func deleteFilesBatch(ctx context.Context, batch []spanner.Key, client *spanner.Client,
 	deletedRows *atomic.Int64) error {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)
@@ -487,7 +486,7 @@ type SelectScope struct {
 
 // FilesCoverageStream streams information about all the line coverage.
 // It is expensive and better to be used for time insensitive operations.
-func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient, scope *SelectScope,
+func FilesCoverageStream(ctx context.Context, client *spanner.Client, scope *SelectScope,
 ) (<-chan *FileCoverageWithLineInfo, <-chan error) {
 	iter := client.Single().Query(ctx,
 		filesCoverageWithDetailsStmt(scope, true))
@@ -507,7 +506,7 @@ func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient
 // FilesCoverageWithDetails fetches the data directly from DB. No caching.
 // Flag onlyUnique is quite expensive.
 func FilesCoverageWithDetails(
-	ctx context.Context, client spannerclient.SpannerClient, scope *SelectScope, onlyUnique bool,
+	ctx context.Context, client *spanner.Client, scope *SelectScope, onlyUnique bool,
 ) ([]*FileCoverageWithDetails, error) {
 	var res []*FileCoverageWithDetails
 	for _, timePeriod := range scope.Periods {
@@ -583,7 +582,7 @@ where
 	return stmt
 }
 
-func readCoverage(ctx context.Context, iterManager spannerclient.RowIterator) ([]*FileCoverageWithDetails, error) {
+func readCoverage(ctx context.Context, iterManager *spanner.RowIterator) ([]*FileCoverageWithDetails, error) {
 	res := []*FileCoverageWithDetails{}
 	ch := make(chan *FileCoverageWithDetails)
 	var err error
@@ -602,7 +601,7 @@ func readCoverage(ctx context.Context, iterManager spannerclient.RowIterator) ([
 
 // Unique coverage from specific manager is more expensive to get.
 // We get unique coverage comparing manager and total coverage on the AppEngine side.
-func readCoverageUniq(full, mgr spannerclient.RowIterator,
+func readCoverageUniq(full, mgr *spanner.RowIterator,
 ) ([]*FileCoverageWithDetails, error) {
 	eg, ctx := errgroup.WithContext(context.Background())
 	fullCh := make(chan *FileCoverageWithLineInfo)
@@ -657,7 +656,7 @@ func readCoverageUniq(full, mgr spannerclient.RowIterator,
 }
 
 func readIterToChan[K FileCoverageWithLineInfo | FileCoverageWithDetails](
-	ctx context.Context, iter spannerclient.RowIterator, ch chan<- *K) error {
+	ctx context.Context, iter *spanner.RowIterator, ch chan<- *K) error {
 	for {
 		row, err := iter.Next()
 		if err == iterator.Done {
@@ -707,7 +706,7 @@ func UniqCoverage(fullCov, partCov map[int]int64) map[int]int64 {
 }
 
 func RegenerateSubsystems(ctx context.Context, ns string, sss []*subsystem.Subsystem,
-	client spannerclient.SpannerClient) (int, error) {
+	client *spanner.Client) (int, error) {
 	ssMatcher := subsystem.MakePathMatcher(sss)
 	ssCache := make(map[string][]string)
 	filePaths, err := getFilePaths(ctx, ns, client)
@@ -727,7 +726,7 @@ func RegenerateSubsystems(ctx context.Context, ns string, sss []*subsystem.Subsy
 	return len(mutations), nil
 }
 
-func getFilePaths(ctx context.Context, ns string, client spannerclient.SpannerClient) ([]string, error) {
+func getFilePaths(ctx context.Context, ns string, client *spanner.Client) ([]string, error) {
 	iter := client.Single().Query(ctx, spanner.Statement{
 		// Take file names from 1 quarterly, 1 monthly and 1 daily aggregations.
 		SQL: `

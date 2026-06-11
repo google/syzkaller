@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"google.golang.org/api/iterator"
 )
 
@@ -20,7 +19,7 @@ type FuncLines struct {
 	Lines    []int64 // List of lines we know belong to this function name according to the addr2line output.
 }
 
-func MakeFuncFinder(ctx context.Context, client spannerclient.SpannerClient, ns string, timePeriod TimePeriod,
+func MakeFuncFinder(ctx context.Context, client *spanner.Client, ns string, timePeriod TimePeriod,
 ) (*FunctionFinder, error) {
 	stmt := spanner.Statement{
 		SQL: `select

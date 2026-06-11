@@ -4,248 +4,352 @@
 package coveragedb
 
 import (
-	"context"
+	"encoding/json"
+	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/coveragedb/mocks"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"cloud.google.com/go/spanner"
+	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"google.golang.org/api/iterator"
+	"github.com/stretchr/testify/require"
 )
+
+func setupTestDB(t *testing.T) *spanner.Client {
+	ddl, err := GetSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	uri := pkgspanner.NewTestDB(t, databasepb.DatabaseDialect_POSTGRESQL, ddl)
+	ctx := t.Context()
+	client, err := spanner.NewClient(ctx, uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(client.Close)
+	return client
+}
+
+func insertCoverage(t *testing.T, client *spanner.Client, manager string,
+	history *HistoryRecord, records []*FileCoverageWithLineInfo) {
+	ctx := t.Context()
+	var mutations []*spanner.Mutation
+
+	// 1. Insert merge_history row
+	mhMutation, err := spanner.InsertOrUpdateStruct("merge_history", history)
+	require.NoError(t, err)
+	mutations = append(mutations, mhMutation)
+
+	// 2. Insert files and file_subsystems rows
+	for _, rec := range records {
+		fMutation, err := spanner.InsertOrUpdateStruct("files", &filesRecord{
+			Session:           history.Session,
+			FilePath:          rec.Filepath,
+			Instrumented:      rec.Instrumented,
+			Covered:           rec.Covered,
+			LinesInstrumented: rec.LinesInstrumented,
+			HitCounts:         rec.HitCounts,
+			Manager:           manager,
+		})
+		require.NoError(t, err)
+		mutations = append(mutations, fMutation)
+
+		fsMutation, err := spanner.InsertOrUpdateStruct("file_subsystems", &fileSubsystems{
+			Namespace:  history.Namespace,
+			FilePath:   rec.Filepath,
+			Subsystems: rec.Subsystems,
+		})
+		require.NoError(t, err)
+		mutations = append(mutations, fsMutation)
+	}
+
+	_, err = client.Apply(ctx, mutations)
+	require.NoError(t, err)
+}
 
 func TestFilesCoverageWithDetails(t *testing.T) {
 	period, _ := MakeTimePeriod(
 		civil.Date{Year: 2025, Month: 1, Day: 1},
 		"day")
-	tests := []struct {
-		name       string
-		scope      *SelectScope
-		client     func() spannerclient.SpannerClient
-		onlyUnique bool
-		want       []*FileCoverageWithDetails
-		wantErr    bool
-	}{
-		{
-			name:    "empty scope",
-			scope:   &SelectScope{},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "single day, no filters, empty DB => no coverage",
-			scope: &SelectScope{
+
+	t.Run("empty scope", func(t *testing.T) {
+		client := setupTestDB(t)
+		got, err := FilesCoverageWithDetails(t.Context(), client, &SelectScope{}, false)
+		require.NoError(t, err)
+		require.Empty(t, got)
+	})
+
+	t.Run("empty DB => no coverage", func(t *testing.T) {
+		for _, onlyUnique := range []bool{false, true} {
+			client := setupTestDB(t)
+			scope := &SelectScope{
 				Ns:      "upstream",
 				Periods: []TimePeriod{period},
-			},
-			client:  func() spannerclient.SpannerClient { return emptyCoverageDBFixture(t, 1) },
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "single day, unique coverage, empty DB => no coverage",
-			scope: &SelectScope{
-				Ns:      "upstream",
-				Periods: []TimePeriod{period},
-			},
-			client:     func() spannerclient.SpannerClient { return emptyCoverageDBFixture(t, 2) },
-			onlyUnique: true,
-			want:       nil,
-			wantErr:    false,
-		},
-		{
-			name: "single day, unique coverage, empty partial result => 0/3 covered",
-			scope: &SelectScope{
-				Ns:      "upstream",
-				Periods: []TimePeriod{period},
-			},
-			client: func() spannerclient.SpannerClient {
-				return fullCoverageDBFixture(
-					t,
-					[]*FileCoverageWithLineInfo{
-						{
-							FileCoverageWithDetails: FileCoverageWithDetails{
-								Filepath:     "file1",
-								Instrumented: 3,
-								Covered:      3,
-							},
-							LinesInstrumented: []int64{1, 2, 3},
-							HitCounts:         []int64{1, 1, 1},
-						},
-					},
-					nil)
-			},
-			onlyUnique: true,
-			want: []*FileCoverageWithDetails{
-				{
-					Filepath:     "file1",
-					Instrumented: 3,
-					Covered:      0,
-					TimePeriod:   period,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "single day, unique coverage, full result match => 3/3 covered",
-			scope: &SelectScope{
-				Ns:      "upstream",
-				Periods: []TimePeriod{period},
-			},
-			client: func() spannerclient.SpannerClient {
-				return fullCoverageDBFixture(
-					t,
-					[]*FileCoverageWithLineInfo{
-						{
-							FileCoverageWithDetails: FileCoverageWithDetails{
-								Filepath:     "file1",
-								Instrumented: 3,
-								Covered:      3,
-							},
-							LinesInstrumented: []int64{1, 2, 3},
-							HitCounts:         []int64{1, 1, 1},
-						},
-					},
-					[]*FileCoverageWithLineInfo{
-						{
-							FileCoverageWithDetails: FileCoverageWithDetails{
-								Filepath:     "file1",
-								Instrumented: 3,
-								Covered:      3,
-							},
-							LinesInstrumented: []int64{1, 2, 3},
-							HitCounts:         []int64{1, 1, 1},
-						},
-					})
-			},
-			onlyUnique: true,
-			want: []*FileCoverageWithDetails{
-				{
+			}
+			got, err := FilesCoverageWithDetails(t.Context(), client, scope, onlyUnique)
+			require.NoError(t, err)
+			require.Empty(t, got)
+		}
+	})
+
+	t.Run("single day, unique coverage, empty partial result => 0/3 covered", func(t *testing.T) {
+		client := setupTestDB(t)
+		ns := "upstream"
+		scope := &SelectScope{
+			Ns:      ns,
+			Periods: []TimePeriod{period},
+			Manager: "manager1",
+		}
+		// Insert full coverage.
+		histFull := &HistoryRecord{
+			Namespace: ns,
+			Repo:      "repo-full",
+			Duration:  int64(period.Days),
+			DateTo:    period.DateTo,
+			Session:   "session-full",
+			Time:      time.Now(),
+			Commit:    "commit1",
+			TotalRows: 100,
+		}
+		insertCoverage(t, client, "*", histFull, []*FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: FileCoverageWithDetails{
 					Filepath:     "file1",
 					Instrumented: 3,
 					Covered:      3,
-					TimePeriod:   period,
+					Subsystems:   []string{"sub1"},
 				},
+				LinesInstrumented: []int64{1, 2, 3},
+				HitCounts:         []int64{1, 1, 1},
 			},
-			wantErr: false,
-		},
-		{
-			name: "single day, unique coverage, partial result match => 3/5 covered",
-			scope: &SelectScope{
-				Ns:      "upstream",
-				Periods: []TimePeriod{period},
+		})
+		// Insert partial coverage (empty partial result means no records for manager1).
+		// So we do not insert anything for manager1.
+
+		got, err := FilesCoverageWithDetails(t.Context(), client, scope, true)
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "file1", got[0].Filepath)
+		assert.Equal(t, int64(3), got[0].Instrumented)
+		assert.Equal(t, int64(0), got[0].Covered)
+		assert.Equal(t, period, got[0].TimePeriod)
+	})
+
+	t.Run("single day, unique coverage, full result match => 3/3 covered", func(t *testing.T) {
+		client := setupTestDB(t)
+		ns := "upstream"
+		scope := &SelectScope{
+			Ns:      ns,
+			Periods: []TimePeriod{period},
+			Manager: "manager1",
+		}
+		fullRec := []*FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: FileCoverageWithDetails{
+					Filepath:     "file1",
+					Instrumented: 3,
+					Covered:      3,
+					Subsystems:   []string{"sub1"},
+				},
+				LinesInstrumented: []int64{1, 2, 3},
+				HitCounts:         []int64{1, 1, 1},
 			},
-			client: func() spannerclient.SpannerClient {
-				return fullCoverageDBFixture(
-					t,
-					[]*FileCoverageWithLineInfo{
-						{
-							FileCoverageWithDetails: FileCoverageWithDetails{
-								Filepath:     "file1",
-								Instrumented: 5,
-								Covered:      5,
-							},
-							LinesInstrumented: []int64{1, 2, 3, 4, 5},
-							HitCounts:         []int64{3, 4, 5, 6, 7},
-						},
-					},
-					[]*FileCoverageWithLineInfo{
-						{
-							FileCoverageWithDetails: FileCoverageWithDetails{
-								Filepath:     "file1",
-								Instrumented: 4,
-								Covered:      3,
-							},
-							LinesInstrumented: []int64{1, 2, 3, 5},
-							HitCounts:         []int64{3, 0, 5, 7},
-						},
-					})
-			},
-			onlyUnique: true,
-			want: []*FileCoverageWithDetails{
-				{
+		}
+		// Insert full.
+		histFull := &HistoryRecord{
+			Namespace: ns,
+			Repo:      "repo-full",
+			Duration:  int64(period.Days),
+			DateTo:    period.DateTo,
+			Session:   "session-full",
+			Time:      time.Now(),
+			Commit:    "commit1",
+			TotalRows: 100,
+		}
+		insertCoverage(t, client, "*", histFull, fullRec)
+		// Insert partial (manager1 has same coverage).
+		histPart := &HistoryRecord{
+			Namespace: ns,
+			Repo:      "repo-part",
+			Duration:  int64(period.Days),
+			DateTo:    period.DateTo,
+			Session:   "session-part",
+			Time:      time.Now(),
+			Commit:    "commit1",
+			TotalRows: 100,
+		}
+		insertCoverage(t, client, "manager1", histPart, fullRec)
+
+		got, err := FilesCoverageWithDetails(t.Context(), client, scope, true)
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "file1", got[0].Filepath)
+		assert.Equal(t, int64(3), got[0].Instrumented)
+		assert.Equal(t, int64(3), got[0].Covered)
+		assert.Equal(t, period, got[0].TimePeriod)
+	})
+
+	t.Run("single day, unique coverage, partial result match => 3/5 covered", func(t *testing.T) {
+		client := setupTestDB(t)
+		ns := "upstream"
+		scope := &SelectScope{
+			Ns:      ns,
+			Periods: []TimePeriod{period},
+			Manager: "manager1",
+		}
+		fullRec := []*FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: FileCoverageWithDetails{
 					Filepath:     "file1",
 					Instrumented: 5,
-					Covered:      3,
-					TimePeriod:   period,
+					Covered:      5,
+					Subsystems:   []string{"sub1"},
 				},
+				LinesInstrumented: []int64{1, 2, 3, 4, 5},
+				HitCounts:         []int64{3, 4, 5, 6, 7},
 			},
-			wantErr: false,
+		}
+		partRec := []*FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: FileCoverageWithDetails{
+					Filepath:     "file1",
+					Instrumented: 4,
+					Covered:      3,
+					Subsystems:   []string{"sub1"},
+				},
+				LinesInstrumented: []int64{1, 2, 3, 5},
+				HitCounts:         []int64{3, 0, 5, 7},
+			},
+		}
+		// Insert full.
+		histFull := &HistoryRecord{
+			Namespace: ns,
+			Repo:      "repo-full",
+			Duration:  int64(period.Days),
+			DateTo:    period.DateTo,
+			Session:   "session-full",
+			Time:      time.Now(),
+			Commit:    "commit1",
+			TotalRows: 100,
+		}
+		insertCoverage(t, client, "*", histFull, fullRec)
+		// Insert partial.
+		histPart := &HistoryRecord{
+			Namespace: ns,
+			Repo:      "repo-part",
+			Duration:  int64(period.Days),
+			DateTo:    period.DateTo,
+			Session:   "session-part",
+			Time:      time.Now(),
+			Commit:    "commit1",
+			TotalRows: 100,
+		}
+		insertCoverage(t, client, "manager1", histPart, partRec)
+
+		got, err := FilesCoverageWithDetails(t.Context(), client, scope, true)
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "file1", got[0].Filepath)
+		assert.Equal(t, int64(5), got[0].Instrumented)
+		assert.Equal(t, int64(3), got[0].Covered)
+		assert.Equal(t, period, got[0].TimePeriod)
+	})
+}
+
+func TestSaveMergeResult(t *testing.T) {
+	tests := []struct {
+		name     string
+		jsonl    string
+		descr    *HistoryRecord
+		wantErr  bool
+		wantRows int
+	}{
+		{
+			name:    "empty jsonl",
+			jsonl:   `{}`,
+			wantErr: true,
+		},
+		{
+			name:    "wrong jsonl content",
+			jsonl:   `{a}`,
+			wantErr: true,
+		},
+		{
+			name:  "1 MCR record, Ok",
+			jsonl: `{"MCR":{"FileData":{}}}`,
+			descr: &HistoryRecord{
+				Namespace: "ns1",
+				Repo:      "repo1",
+				Duration:  1,
+				DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
+			},
+			wantRows: 2, // 1 in files and 1 in merge_history.
+		},
+		{
+			name:  "1 FL record, Ok",
+			jsonl: `{"FL":{}}`,
+			descr: &HistoryRecord{
+				Namespace: "ns1",
+				Repo:      "repo1",
+				Duration:  1,
+				DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
+			},
+			wantRows: 2, // 1 in functions and 1 in merge_history.
+		},
+		{
+			name: "2 records, Ok",
+			jsonl: `{"MCR":{"FileData":{}}}
+{"MCR":{"FileData":{}}}`,
+			descr: &HistoryRecord{
+				Namespace: "ns1",
+				Repo:      "repo1",
+				Duration:  1,
+				DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
+			},
+			wantRows: 3, // 2 in files and 1 in merge_history.
+		},
+		{
+			name:  "2k records, Ok",
+			jsonl: strings.Repeat("{\"MCR\":{\"FileData\":{}}}\n", 2000),
+			descr: &HistoryRecord{
+				Namespace: "ns1",
+				Repo:      "repo1",
+				Duration:  1,
+				DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
+			},
+			wantRows: 2001,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var testClient spannerclient.SpannerClient
-			if test.client != nil {
-				testClient = test.client()
-			}
-			got, gotErr := FilesCoverageWithDetails(
-				context.Background(),
-				testClient, test.scope, test.onlyUnique)
+			client := setupTestDB(t)
+			gotRows, err := SaveMergeResult(
+				t.Context(), client, test.descr, json.NewDecoder(strings.NewReader(test.jsonl)))
 			if test.wantErr {
-				assert.Error(t, gotErr)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, gotErr)
+				require.NoError(t, err)
 			}
-			assert.Equal(t, test.want, got)
+			assert.Equal(t, test.wantRows, gotRows)
 		})
 	}
 }
 
-func emptyCoverageDBFixture(t *testing.T, times int) spannerclient.SpannerClient {
-	mRowIterator := mocks.NewRowIterator(t)
-	mRowIterator.On("Stop").Return().Times(times)
-	mRowIterator.On("Next").
-		Return(nil, iterator.Done).Times(times)
+func TestMigrations(t *testing.T) {
+	// setupTestDB already ran the up statements, so we start with down.
+	client := setupTestDB(t)
+	uri := client.DatabaseName()
 
-	mTran := mocks.NewReadOnlyTransaction(t)
-	mTran.On("Query", mock.Anything, mock.Anything).
-		Return(mRowIterator).Times(times)
+	up, err := GetSchema()
+	require.NoError(t, err)
+	down, err := GetDownSchema()
+	require.NoError(t, err)
 
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mTran).Times(times)
-	return m
-}
-
-func fullCoverageDBFixture(
-	t *testing.T, full, partial []*FileCoverageWithLineInfo,
-) spannerclient.SpannerClient {
-	mPartialTran := mocks.NewReadOnlyTransaction(t)
-	mPartialTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, partial)).Once()
-
-	mFullTran := mocks.NewReadOnlyTransaction(t)
-	mFullTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, full)).Once()
-
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mPartialTran).Once()
-	m.On("Single").
-		Return(mFullTran).Once()
-	return m
-}
-
-func newRowIteratorMock(t *testing.T, events []*FileCoverageWithLineInfo,
-) *mocks.RowIterator {
-	m := mocks.NewRowIterator(t)
-	m.On("Stop").Once().Return()
-	for _, item := range events {
-		mRow := mocks.NewRow(t)
-		mRow.On("ToStruct", mock.Anything).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*FileCoverageWithLineInfo)
-				*arg = *item
-			}).
-			Return(nil).Once()
-
-		m.On("Next").
-			Return(mRow, nil).Once()
-	}
-
-	m.On("Next").
-		Return(nil, iterator.Done).Once()
-	return m
+	ctx := t.Context()
+	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, down))
+	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, up))
+	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, down))
+	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, up))
 }

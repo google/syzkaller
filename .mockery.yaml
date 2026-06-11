@@ -12,14 +12,7 @@ packages:
   github.com/google/syzkaller/pkg/covermerger:
     interfaces:
       FileVersProvider:
-  github.com/google/syzkaller/pkg/coveragedb/spannerclient:
-    config:
-      dir: "{{.InterfaceDir}}/../mocks"
-    interfaces:
-      SpannerClient:
-      ReadOnlyTransaction:
-      RowIterator:
-      Row:
+
   github.com/google/syzkaller/pkg/rpcserver:
     interfaces:
       Manager:

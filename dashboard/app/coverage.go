@@ -14,9 +14,9 @@ import (
 	"strings"
 
 	"cloud.google.com/go/civil"
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/html/urlutil"
 	"github.com/google/syzkaller/pkg/validator"
@@ -24,7 +24,7 @@ import (
 	"google.golang.org/appengine/v2/log"
 )
 
-var coverageDBClient spannerclient.SpannerClient
+var coverageDBClient *spanner.Client
 
 func initCoverageDB() {
 	if !appengine.IsAppEngine() {
@@ -33,8 +33,9 @@ func initCoverageDB() {
 		return
 	}
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
 	var err error
-	coverageDBClient, err = spannerclient.NewClient(context.Background(), projectID)
+	coverageDBClient, err = spanner.NewClient(context.Background(), database)
 	if err != nil {
 		panic("spanner.NewClient: " + err.Error())
 	}
@@ -42,8 +43,8 @@ func initCoverageDB() {
 
 var keyCoverageDBClient = "coveragedb client key"
 
-func getCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
-	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(spannerclient.SpannerClient)
+func getCoverageDBClient(ctx context.Context) *spanner.Client {
+	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(*spanner.Client)
 	if ctxClient == nil && coverageDBClient == nil {
 		panic("attempt to get coverage db client before it was set in tests")
 	}
@@ -54,7 +55,7 @@ func getCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
 }
 
 type funcStyleBodyJS func(
-	ctx context.Context, client spannerclient.SpannerClient,
+	ctx context.Context, client *spanner.Client,
 	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string, dataFilters cover.Format,
 ) (template.CSS, template.HTML, template.HTML, error)
 

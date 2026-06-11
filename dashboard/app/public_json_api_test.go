@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/civil"
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/mocks"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/google/syzkaller/pkg/coveragedb/testutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJSONAPIIntegration(t *testing.T) {
@@ -359,19 +360,28 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 }
 
 func fileFuncLinesDBFixture(t *testing.T, funcLines []*coveragedb.FuncLines,
-	fileCovWithLineInfo []*coveragedb.FileCoverageWithLineInfo) spannerclient.SpannerClient {
-	mPartialTran := mocks.NewReadOnlyTransaction(t)
-	mPartialTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, funcLines)).Once()
+	fileCovWithLineInfo []*coveragedb.FileCoverageWithLineInfo) *spanner.Client {
+	client := testutil.SetupCoverageTestDB(t)
 
-	mFullTran := mocks.NewReadOnlyTransaction(t)
-	mFullTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, fileCovWithLineInfo)).Once()
+	// Get target period: 31 days ago, monthly.
+	tps, err := coveragedb.GenNPeriodsTill(1, civil.DateOf(time.Now()).AddDays(-31), "month")
+	require.NoError(t, err)
+	period := tps[0]
 
-	m := mocks.NewSpannerClient(t)
-	m.On("Single").
-		Return(mPartialTran).Once()
-	m.On("Single").
-		Return(mFullTran).Once()
-	return m
+	// Functions are queried with namespace "test-ns" in TestWriteExtAPICoverageFor.
+	// Coverage files are queried with namespace "test-ns".
+	history := &coveragedb.HistoryRecord{
+		Namespace: "test-ns",
+		Repo:      "test-repo",
+		Commit:    "test-commit",
+		Duration:  int64(period.Days),
+		DateTo:    period.DateTo,
+		Session:   "session1",
+		Time:      time.Now(),
+		TotalRows: 100,
+	}
+	testutil.InsertFunctionsData(t, client, history, funcLines)
+	testutil.InsertCoverageData(t, client, "*", history, fileCovWithLineInfo)
+
+	return client
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/spanner"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
@@ -61,12 +62,12 @@ func TestEnvironment(t *testing.T) (*AppEnvironment, context.Context) {
 	}, ctx
 }
 
-func DefaultSpannerURI() (db.ParsedURI, error) {
+func DefaultSpannerURI() (pkgspanner.ParsedURI, error) {
 	rawURI := os.Getenv("SPANNER_DATABASE_URI")
 	if rawURI == "" {
-		return db.ParsedURI{}, fmt.Errorf("no SPANNER_DATABASE_URI is set")
+		return pkgspanner.ParsedURI{}, fmt.Errorf("no SPANNER_DATABASE_URI is set")
 	}
-	return db.ParseURI(rawURI)
+	return pkgspanner.ParseURI(rawURI)
 }
 
 func DefaultSpanner(ctx context.Context) (*spanner.Client, error) {
