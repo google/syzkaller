@@ -145,7 +145,23 @@ func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
 		serv.paused = !serv.paused
 		serv.TogglePause(serv.paused)
 	}
-	http.Redirect(w, r, r.FormValue("url"), http.StatusFound)
+	http.Redirect(w, r, localRedirectURL(r.FormValue("url")), http.StatusFound)
+}
+
+// localRedirectRe matches a same-site relative path with an optional query: a
+// single leading slash followed by an ordinary path, never "//" or "/\" that
+// browsers treat as a protocol-relative URL.
+var localRedirectRe = regexp.MustCompile(`^/[\w.-]*(\?.*)?$`)
+
+// localRedirectURL returns dest only if it is a same-site relative path,
+// otherwise "/". The action form always submits the current relative URL, so a
+// value carrying a scheme or host is an attempt to use /action as an open
+// redirector.
+func localRedirectURL(dest string) string {
+	if !localRedirectRe.MatchString(dest) {
+		return "/"
+	}
+	return dest
 }
 
 func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
