@@ -16,7 +16,7 @@ In the final reply, provide a reasoning for your assessment.
 Analysis dimensions:
 
 * Exploitable:
-Determine if the bug can result in memory corruption or elevated privileges.
+Determine if the bug can result in memory corruption, elevated privileges, or an information leak.
 Memory safety issues are almost always exploitable (KASAN or UBSAN reports for use-after-free, out-of-bounds;
 refcounting issues, corrupted lists, etc). When kernel is crashing on a completely wild pointer access
 (e.g. user-space address, or non-canonical address, but not on NULL or address corresponding to KASAN shadow
@@ -25,6 +25,13 @@ of exploitation. Such reports usually say "unable to handle kernel paging reques
 Uses of uninitialized values detected by KMSAN may be exploitable b/c attacker frequently can affect uninit
 values with spraying techniques. However, for these exploitability depends on how exactly the uninit value
 is used in the code, and what it affects.
+Information leaks are exploitable on their own and should be classified as such. A bug that copies kernel
+memory contents to userspace (e.g. an out-of-bounds read whose result is returned to the caller, or
+uninitialized stack/heap bytes written to a user buffer) is exploitable: it can reveal kernel pointer
+values and defeat KASLR, expose sensitive data such as cryptographic keys or other processes' memory, and
+serves as a necessary building block in most modern kernel privilege-escalation exploit chains. Do not classify
+an information leak as non-exploitable solely because it does not directly cause a memory write or control-flow
+hijack; the leak itself is the exploit primitive.
 
 Think of what happens after the bug is triggered. Some bugs cause kernel panic and halt execution,
 they are harder to exploit. For example, BUG reports halts the kernel. However, WARNING reports don't halt
