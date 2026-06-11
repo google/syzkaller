@@ -59,7 +59,7 @@
     </nav>
     {{end}}
 
-    <table class="table">
+    <table class="table table-sm table-striped table-hover mt-3 border-top">
       <thead class="thead-light">
         <tr>
           <th scope="col">Published</th>
@@ -73,7 +73,7 @@
         {{range .List}}
         <tr>
           <td>{{.Series.PublishedAt.Format "2006-01-02 15:04 MST"}}</td>
-          <td><a href="/series/{{.Series.ID}}">{{.Series.Title}}</a></td>
+          <td class="patch-subject"><a href="/series/{{.Series.ID}}">{{.Series.Title}}</a></td>
           <td>{{.Series.Version}}</td>
           <td>{{.Series.AuthorEmail}}</td>
           <td>
