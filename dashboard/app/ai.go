@@ -1175,6 +1175,16 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 
 	if spec := getManualWorkflowSpec(getNsConfig(ctx, job.Namespace), job.Workflow); spec != nil {
 		for _, field := range spec.Fields {
+			if field.IsDBColumn {
+				if field.ID == "ExternalBugID" {
+					if job.ExternalBugID.Valid {
+						args[field.ID] = job.ExternalBugID.StringVal
+					} else {
+						args[field.ID] = ""
+					}
+				}
+				continue
+			}
 			if args[field.ID] == nil {
 				args[field.ID] = field.DefaultValue
 			}
