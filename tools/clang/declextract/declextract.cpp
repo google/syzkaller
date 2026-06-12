@@ -346,16 +346,9 @@ std::string Extractor::extractEnum(QualType QT, const EnumDecl* Decl) {
   if (Name.empty()) {
     // This is an unnamed enum declared with a typedef:
     //   typedef enum {...} enum_name;
-    auto Elaborated = dyn_cast<ElaboratedType>(QT.getTypePtr());
-    if (Elaborated) {
-      auto Typedef = dyn_cast<TypedefType>(Elaborated->getNamedType().getTypePtr());
-      if (Typedef)
-        Name = Typedef->getDecl()->getNameAsString();
-    }
-    // This is the code we will need for one of future versions (past 21).
-    // auto Typedef = dyn_cast<TypedefType>(QT.getTypePtr());
-    // if (Typedef)
-    //   Name = Typedef->getDecl()->getNameAsString();
+    auto Typedef = QT->getAs<TypedefType>();
+    if (Typedef)
+      Name = Typedef->getDecl()->getNameAsString();
     if (Name.empty()) {
       QT.dump();
       llvm::report_fatal_error("enum with empty name");
