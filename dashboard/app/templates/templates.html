@@ -763,11 +763,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{formatTime $job.Finished}}</td>
 		<td class="tag">{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
 		<td class="ai_job_error_cell">
-			{{if $job.Error}}
-				<pre class="ai_job_error">{{$job.ErrorSummary}}</pre>
-				{{if lt (len $job.ErrorSummary) (len $job.Error)}}
-					<div class="ai_job_error_note">truncated to first 200 bytes; open job for full error</div>
-				{{end}}
+			<pre class="ai_job_error">{{$job.ErrorSummary}}</pre>
+			{{if lt (len $job.ErrorSummary) (len $job.Error)}}
+				<div class="ai_job_error_note">truncated to first 200 bytes; open job for full error</div>
 			{{end}}
 		</td>
 	</tr>
