@@ -359,7 +359,7 @@ func SaveReproCFunc(ctx *aflow.Context, args SaveReproCArgs) (SaveReproCResult, 
 var SaveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
 
 func init() {
-	tools := aflow.Tools(common.CodeAccessTools, toolkit.ToolGetToolkit)
+	tools := aflow.Tools(common.CodeAccessToolsWithGit(false), toolkit.ToolGetToolkit)
 	aflow.Register[ReproCInputs, ai.ReproCOutputs](
 		ai.WorkflowReproC,
 		"reproduce a kernel crash and generate a C reproducer",

@@ -9,7 +9,12 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 )
 
-var CodeAccessTools = aflow.Tools(codeexpert.Tool.Tools, codeexpert.Tool)
+var CodeAccessTools = CodeAccessToolsWithGit(true)
+
+func CodeAccessToolsWithGit(enableGit bool) []aflow.Tool {
+	expert := codeexpert.New(enableGit)
+	return aflow.Tools(expert.Tools, expert)
+}
 
 const InstructionDontMakeAssumptionsAboutSourceCode = `
 Don't make assumptions about the kernel source code (it may be different from what you assume it is).
