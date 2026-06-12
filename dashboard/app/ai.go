@@ -1178,7 +1178,8 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 			if field.IsDBColumn {
 				continue
 			}
-			if args[field.ID] == nil {
+			val := args[field.ID]
+			if val == nil || val == "" {
 				args[field.ID] = field.DefaultValue
 			}
 		}
