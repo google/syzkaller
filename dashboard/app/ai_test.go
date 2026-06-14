@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"maps"
 	"net/http"
 	"net/url"
@@ -348,9 +349,10 @@ func TestAIJobLongError(t *testing.T) {
 
 	page, err := c.GET(fmt.Sprintf("/ai_job?id=%v", resp.ID))
 	require.NoError(t, err)
-	require.Contains(t, string(page), rootCause)
-	require.Contains(t, string(page), "kernel config prompt failed")
-	require.Contains(t, string(page), "truncated to first 200 bytes")
+	pageText := html.UnescapeString(string(page))
+	require.Contains(t, pageText, rootCause)
+	require.Contains(t, pageText, "kernel config prompt failed")
+	require.Contains(t, pageText, "truncated to first 200 bytes")
 }
 
 func TestTruncateAIJobError(t *testing.T) {
