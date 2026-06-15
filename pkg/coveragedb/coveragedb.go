@@ -307,10 +307,10 @@ func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns st
 //
 // To avoid exceeding Spanner mutation limits, file entries are deleted in batches of 10,000.
 //
-// Returns the number of orphaned file entries successfully deleted.
-func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int64, error) {
+// Returns the number of orphaned sessions and the total number of file entries successfully deleted.
+func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int64, int64, error) {
 	if client == nil {
-		return 0, fmt.Errorf("nil spannerclient")
+		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
 
 	// 1. Get all valid sessions from merge_history
@@ -324,19 +324,20 @@ func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int
 			break
 		}
 		if err != nil {
-			return 0, fmt.Errorf("iterHistory.Next: %w", err)
+			return 0, 0, fmt.Errorf("iterHistory.Next: %w", err)
 		}
 		var r struct {
 			Session string
 		}
 		if err = row.ToStruct(&r); err != nil {
-			return 0, fmt.Errorf("row.ToStruct: %w", err)
+			return 0, 0, fmt.Errorf("row.ToStruct: %w", err)
 		}
 		validSessions[r.Session] = true
 	}
 
 	// 2. Stream distinct sessions from files and feed to workers.
-	var totalDeleted atomic.Int64
+	var deletedRows atomic.Int64
+	var deletedSessions atomic.Int64
 	eg, gCtx := errgroup.WithContext(ctx)
 
 	sessionCh := make(chan string)
@@ -346,9 +347,10 @@ func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int
 	for range numWorkers {
 		eg.Go(func() error {
 			for session := range sessionCh {
-				if err := processGarbageSession(gCtx, client, session, &totalDeleted); err != nil {
+				if err := processGarbageSession(gCtx, client, session, &deletedRows); err != nil {
 					return err
 				}
+				deletedSessions.Add(1)
 			}
 			return nil
 		})
@@ -385,14 +387,12 @@ func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int
 		return nil
 	})
 
-	if err := eg.Wait(); err != nil {
-		return totalDeleted.Load(), err
-	}
-	return totalDeleted.Load(), nil
+	err := eg.Wait()
+	return deletedSessions.Load(), deletedRows.Load(), err
 }
 
 func processGarbageSession(ctx context.Context, client spannerclient.SpannerClient, session string,
-	totalDeleted *atomic.Int64) error {
+	deletedRows *atomic.Int64) error {
 	iterRows := client.Single().Query(ctx, spanner.Statement{
 		SQL:    `SELECT manager, filepath FROM files WHERE session = $1`,
 		Params: map[string]any{"p1": session},
@@ -421,7 +421,7 @@ func processGarbageSession(ctx context.Context, client spannerclient.SpannerClie
 		batch = append(batch, spanner.Key{session, r.Manager, r.Filepath})
 
 		if len(batch) >= batchSize {
-			if err := deleteFilesBatch(ctx, batch, client, totalDeleted); err != nil {
+			if err := deleteFilesBatch(ctx, batch, client, deletedRows); err != nil {
 				return err
 			}
 			batch = nil
@@ -431,7 +431,7 @@ func processGarbageSession(ctx context.Context, client spannerclient.SpannerClie
 		}
 	}
 	if len(batch) > 0 {
-		if err := deleteFilesBatch(ctx, batch, client, totalDeleted); err != nil {
+		if err := deleteFilesBatch(ctx, batch, client, deletedRows); err != nil {
 			return err
 		}
 	}
@@ -439,13 +439,13 @@ func processGarbageSession(ctx context.Context, client spannerclient.SpannerClie
 }
 
 func deleteFilesBatch(ctx context.Context, batch []spanner.Key, client spannerclient.SpannerClient,
-	totalDeleted *atomic.Int64) error {
+	deletedRows *atomic.Int64) error {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)
 	mutation := spanner.Delete("files", ks)
 	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
 	if err == nil {
-		totalDeleted.Add(int64(ksSize))
+		deletedRows.Add(int64(ksSize))
 	}
 	return err
 }
