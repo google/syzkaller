@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
+	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 var (
@@ -29,7 +30,16 @@ Covered lines are prefixed with '* '.
 If the total output exceeds the maximum line limit, it will be truncated. Use 'Functions' to narrow down your request.
 `)
 
-	Coverage = []aflow.Tool{CoverageFiles, FileCoverage}
+	ExecutionTrace = aflow.NewFuncTool("get-execution-trace", getExecutionTrace, `
+Tool returns the execution trace (chain of function calls) triggered by a specific program execution.
+Because the raw trace is extremely large, it is compressed by keeping only unique functions
+in their order of appearance, and filtering out kernel infrastructure noise.
+You MUST provide 'SyscallIndex' (which corresponds to the 0-based line number in the syzlang program)
+to get the trace for one specific syscall. Use -1 to get the trace for extra (background) coverage.
+If the trace is too large, it will be truncated. You can use 'Offset' and 'Limit' to paginate through the omitted parts.
+`)
+
+	Coverage = []aflow.Tool{CoverageFiles, FileCoverage, ExecutionTrace}
 )
 
 type CoverageFilesArgs struct {
@@ -217,4 +227,188 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 	}
 
 	return res, nil
+}
+
+type ExecutionTraceArgs struct {
+	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
+	SyscallIndex      int    `jsonschema:"REQUIRED: 0-based syscall index to inspect. Use -1 for extra coverage."`
+	FilterSubsystem   string `jsonschema:"Optional: Filter output by file path prefix."`
+	IncludeNoise      bool   `jsonschema:"Optional: Include low-level noisy functions (e.g., locks, allocators)."`
+	Offset            int    `jsonschema:"Optional: Starting index for trace lines to return (0-based)."`
+	Limit             int    `jsonschema:"Optional: Maximum number of trace lines to return."`
+}
+
+type SyscallTrace struct {
+	CallIndex int      `jsonschema:"The index of the syscall in the syzkaller program. -1 for extra coverage."`
+	Trace     []string `jsonschema:"The chain of function calls for this syscall."`
+}
+
+type ExecutionTraceResult struct {
+	Traces []SyscallTrace `jsonschema:"The execution traces for the requested syscall(s)."`
+}
+
+func getExecutionTrace(
+	ctx *aflow.Context, state reproduceState, args ExecutionTraceArgs) (ExecutionTraceResult, error) {
+	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
+	if err != nil {
+		return ExecutionTraceResult{}, aflow.BadCallError("failed to read coverage: %v", err)
+	}
+
+	var res ExecutionTraceResult
+
+	idx := args.SyscallIndex
+	if idx == -1 {
+		idx = len(coverage) - 1
+	}
+	if idx < 0 || idx >= len(coverage) {
+		maxIdx := max(0, len(coverage)-2)
+		return ExecutionTraceResult{},
+			aflow.BadCallError("SyscallIndex %d is out of bounds (0-%d). Use -1 for extra coverage.", args.SyscallIndex, maxIdx)
+	}
+	res.Traces = append(res.Traces, processSyscallTrace(args.SyscallIndex, coverage[idx], args))
+	return res, nil
+}
+
+func isNoiseFunction(name string) bool {
+	prefixes := []string{
+		"trace_",
+		"printk_", "vprintk_", "console_",
+		"rcu_", "__rcu_", "srcu_",
+		"kasan_", "kcsan_", "kmsan_", "__asan_", "__msan_", "__tsan_", "__csan_",
+		"arch_",
+		"mutex_", "down_read", "up_read", "down_write", "up_write",
+		"spin_lock", "spin_unlock", "__mutex_", "__spin_", "rwsem_",
+		"lock_acquire", "lock_release",
+		"preempt_", "local_irq_", "irq_",
+		"fault_in_", "do_user_addr_fault",
+		"__mmap_lock_",
+		"kmalloc", "kfree", "kmem_cache_alloc", "kmem_cache_free", "__kmalloc",
+		"_copy_from_user", "_copy_to_user", "__arch_copy_",
+	}
+	for _, p := range prefixes {
+		if strings.HasPrefix(name, p) {
+			return true
+		}
+	}
+	return false
+}
+
+type traceLine struct {
+	Depth       int
+	Func        string
+	ShouldPrint bool
+}
+
+func processSyscallTrace(idx int, callcov []symbolizer.Frame, args ExecutionTraceArgs) SyscallTrace {
+	maxLines := 1000
+
+	trace := SyscallTrace{CallIndex: idx}
+	var stack []string
+	var lines []traceLine
+	maxDepth := 0
+
+	for _, frame := range callcov {
+		if frame.Func == "" {
+			continue
+		}
+
+		top := len(stack) - 1
+		if top >= 0 && stack[top] == frame.Func {
+			continue
+		}
+
+		if i := slices.Index(stack, frame.Func); i != -1 {
+			stack = stack[:i+1]
+			continue
+		}
+
+		stack = append(stack, frame.Func)
+		depth := len(stack)
+
+		maxDepth = max(maxDepth, depth)
+
+		matchesFilter := args.FilterSubsystem == "" || strings.HasPrefix(frame.File, args.FilterSubsystem)
+		isNoise := isNoiseFunction(frame.Func) && !args.IncludeNoise
+
+		shouldPrint := matchesFilter
+		if isNoise && args.FilterSubsystem == "" {
+			shouldPrint = false
+		}
+
+		lines = append(lines, traceLine{
+			Depth:       depth,
+			Func:        frame.Func,
+			ShouldPrint: shouldPrint,
+		})
+	}
+
+	var out []string
+	lastAppendedFunc := ""
+
+	for _, line := range lines {
+		// Provide an "exponential spine" of context and keep dense context at the
+		// start of the call chain (setup) and at the very end of the call chain
+		// (where the deepest execution / potential crash happened). We show
+		// functions whose distance from the absolute maxDepth is a power of 2
+		// (e.g., distances 0, 1, 2, 4, 8, 16, 32).
+		diff := maxDepth - line.Depth
+		isSpine := line.Depth <= 5 || (diff >= 0 && (diff&(diff-1)) == 0)
+
+		if !line.ShouldPrint && !isSpine {
+			continue
+		}
+
+		if line.Func != lastAppendedFunc {
+			suffix := ""
+			if !line.ShouldPrint {
+				suffix = " (context)"
+			}
+			out = append(out, fmt.Sprintf("[%d] %s%s", line.Depth, line.Func, suffix))
+			lastAppendedFunc = line.Func
+		}
+	}
+
+	if args.Offset > 0 || args.Limit > 0 {
+		out = paginateTrace(out, args.Offset, args.Limit, maxLines)
+	} else if len(out) > maxLines {
+		half := maxLines / 2
+		newOut := make([]string, 0, maxLines+1)
+		newOut = append(newOut, out[:half]...)
+
+		omitted := len(out) - maxLines
+		truncMsg := fmt.Sprintf("... [trace truncated. %d lines omitted (lines %d to %d). "+
+			"Use the 'get-execution-trace' tool with Offset=%d and Limit=%d to view the hidden middle section.] ...",
+			omitted, half, len(out)-half-1, half, maxLines)
+		newOut = append(newOut, truncMsg)
+
+		newOut = append(newOut, out[len(out)-half:]...)
+		out = newOut
+	}
+	trace.Trace = out
+	return trace
+}
+
+func paginateTrace(out []string, offset, limit, maxLines int) []string {
+	if limit <= 0 {
+		limit = maxLines
+	}
+	limit = min(limit, 2000)
+	start := min(len(out), max(0, offset))
+	end := min(len(out), start+limit)
+
+	newOut := make([]string, 0, end-start+2)
+	if start > 0 {
+		msg := fmt.Sprintf("... [trace started from line %d. %d lines omitted before this] ...", start, start)
+		newOut = append(newOut, msg)
+	}
+
+	newOut = append(newOut, out[start:end]...)
+
+	if end < len(out) {
+		msg := fmt.Sprintf("... [trace truncated. %d lines remaining. "+
+			"Use get-execution-trace with Offset=%d and Limit=%d to view next part] ...",
+			len(out)-end, end, limit)
+		newOut = append(newOut, msg)
+	}
+	return newOut
 }
