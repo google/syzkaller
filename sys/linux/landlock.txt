@@ -7,9 +7,9 @@ resource fd_ruleset[fd]
 
 landlock_create_ruleset(attr ptr[in, landlock_ruleset_attr], size bytesize[attr], flags flags[landlock_create_ruleset_flags]) fd_ruleset
 
-landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(ruleset_fd fd_ruleset, rule_type const[LANDLOCK_RULE_PATH_BENEATH], rule_attr ptr[in, landlock_path_beneath_attr], flags const[0])
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(ruleset_fd fd_ruleset, rule_type const[LANDLOCK_RULE_PATH_BENEATH], rule_attr ptr[in, landlock_path_beneath_attr], flags flags[landlock_add_rule_flags])
 
-landlock_add_rule$LANDLOCK_RULE_NET_PORT(ruleset_fd fd_ruleset, rule_type const[LANDLOCK_RULE_NET_PORT], rule_attr ptr[in, landlock_net_port_attr], flags const[0])
+landlock_add_rule$LANDLOCK_RULE_NET_PORT(ruleset_fd fd_ruleset, rule_type const[LANDLOCK_RULE_NET_PORT], rule_attr ptr[in, landlock_net_port_attr], flags flags[landlock_add_rule_flags])
 
 landlock_restrict_self(ruleset_fd fd_ruleset, flags flags[landlock_restrict_self_flags])
 
@@ -17,6 +17,9 @@ landlock_ruleset_attr {
 	handled_access_fs	flags[landlock_access_fs_flags, int64]
 	handled_access_net	flags[landlock_access_net_flags, int64]
 	scoped			flags[landlock_scope_flags, int64]
+	quiet_access_fs		flags[landlock_access_fs_flags, int64]
+	quiet_access_net	flags[landlock_access_net_flags, int64]
+	quiet_scoped		flags[landlock_scope_flags, int64]
 }
 
 landlock_path_beneath_attr {
@@ -35,6 +38,8 @@ define LANDLOCK_ACCESS_FS_IOCTL_DEV	(1ULL << 15)
 landlock_create_ruleset_flags = LANDLOCK_CREATE_RULESET_VERSION, LANDLOCK_CREATE_RULESET_ERRATA
 
 landlock_restrict_self_flags = LANDLOCK_RESTRICT_SELF_LOG_SAME_EXEC_OFF, LANDLOCK_RESTRICT_SELF_LOG_NEW_EXEC_ON, LANDLOCK_RESTRICT_SELF_LOG_SUBDOMAINS_OFF, LANDLOCK_RESTRICT_SELF_TSYNC
+
+landlock_add_rule_flags = LANDLOCK_ADD_RULE_QUIET
 
 landlock_access_fs_flags = LANDLOCK_ACCESS_FS_EXECUTE, LANDLOCK_ACCESS_FS_WRITE_FILE, LANDLOCK_ACCESS_FS_READ_FILE, LANDLOCK_ACCESS_FS_READ_DIR, LANDLOCK_ACCESS_FS_REMOVE_DIR, LANDLOCK_ACCESS_FS_REMOVE_FILE, LANDLOCK_ACCESS_FS_MAKE_CHAR, LANDLOCK_ACCESS_FS_MAKE_DIR, LANDLOCK_ACCESS_FS_MAKE_REG, LANDLOCK_ACCESS_FS_MAKE_SOCK, LANDLOCK_ACCESS_FS_MAKE_FIFO, LANDLOCK_ACCESS_FS_MAKE_BLOCK, LANDLOCK_ACCESS_FS_MAKE_SYM, LANDLOCK_ACCESS_FS_REFER, LANDLOCK_ACCESS_FS_TRUNCATE, LANDLOCK_ACCESS_FS_IOCTL_DEV, LANDLOCK_ACCESS_FS_RESOLVE_UNIX
 

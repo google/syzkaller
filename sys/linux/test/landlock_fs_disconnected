@@ -39,7 +39,7 @@ renameat2(0xffffffffffffff9c, &AUTO='./file0/file1/file2\x00', 0xffffffffffffff9
 
 # Creates a ruleset with read and refer restrictions.
 
-r1 = landlock_create_ruleset(&AUTO={0x2004, 0x0, 0x0}, AUTO, 0x0)
+r1 = landlock_create_ruleset(&AUTO={0x2004, 0x0, 0x0, 0x0, 0x0, 0x0}, AUTO, 0x0)
 
 # Adds a rule to allow read on one side of the rename.  This is an optional call
 # useful to extend coverage of collect_domain_accesses().
