@@ -9,6 +9,7 @@ import (
 	"iter"
 	"maps"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -131,6 +132,12 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		field.Set(reflect.ValueOf(json.RawMessage(raw)))
 		return nil
 	}
+	if num, ok := f.(json.Number); ok {
+		if err := setJSONNumberField(field, val, num, name, targetType, tool); err != nil {
+			return err
+		}
+		return nil
+	}
 	if fType.Kind() == reflect.Float64 &&
 		(reflect.Zero(targetType).CanInt() || reflect.Zero(targetType).CanUint()) {
 		// Genai will send us integers as float64 after json conversion,
@@ -203,6 +210,68 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 	}
 	return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
 		val, name, f, field.Type().String())
+}
+
+func setJSONNumberField(field reflect.Value, val any, num json.Number, name string,
+	targetType reflect.Type, tool bool) error {
+	switch {
+	case reflect.Zero(targetType).CanInt():
+		iv, err := strconv.ParseInt(num.String(), 10, targetType.Bits())
+		if err != nil {
+			if tool {
+				return BadCallError("argument %q: invalid integer %q: %v", name, num, err)
+			}
+			return fmt.Errorf("%T: field %q: invalid integer %q: %w", val, name, num, err)
+		}
+		ivVal := reflect.ValueOf(iv).Convert(targetType)
+		if field.Kind() == reflect.Ptr {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(ivVal)
+			field.Set(ptr)
+		} else {
+			field.Set(ivVal)
+		}
+	case reflect.Zero(targetType).CanUint():
+		uv, err := strconv.ParseUint(num.String(), 10, targetType.Bits())
+		if err != nil {
+			if tool {
+				return BadCallError("argument %q: invalid unsigned integer %q: %v", name, num, err)
+			}
+			return fmt.Errorf("%T: field %q: invalid unsigned integer %q: %w", val, name, num, err)
+		}
+		uvVal := reflect.ValueOf(uv).Convert(targetType)
+		if field.Kind() == reflect.Ptr {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(uvVal)
+			field.Set(ptr)
+		} else {
+			field.Set(uvVal)
+		}
+	case targetType.Kind() == reflect.Float32 || targetType.Kind() == reflect.Float64:
+		fv, err := num.Float64()
+		if err != nil {
+			if tool {
+				return BadCallError("argument %q: invalid float %q: %v", name, num, err)
+			}
+			return fmt.Errorf("%T: field %q: invalid float %q: %w", val, name, num, err)
+		}
+		fvVal := reflect.ValueOf(fv).Convert(targetType)
+		if field.Kind() == reflect.Ptr {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(fvVal)
+			field.Set(ptr)
+		} else {
+			field.Set(fvVal)
+		}
+	default:
+		if tool {
+			return BadCallError("argument %q has wrong type: got json.Number, want %v",
+				name, field.Type().String())
+		}
+		return fmt.Errorf("%T: field %q has wrong type: got json.Number, want %v",
+			val, name, field.Type().String())
+	}
+	return nil
 }
 
 func setSliceField(val any, field reflect.Value, name string, f any, targetType reflect.Type, tool bool) error {
