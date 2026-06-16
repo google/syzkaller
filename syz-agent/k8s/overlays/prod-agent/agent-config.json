@@ -15,7 +15,7 @@
         "cpu": 2,
         "mem": 8192,
         "cmdline": "root=/dev/sda1",
-        "qemu_args": "-machine q35 -enable-kvm -smp 2,sockets=2,cores=1"
+        "qemu_args": "-machine q35 -enable-kvm -cpu max,migratable=off -smp 2,sockets=2,cores=1"
       }
     },
     "linux/arm64": {
