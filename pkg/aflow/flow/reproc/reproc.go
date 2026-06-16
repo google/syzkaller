@@ -111,6 +111,9 @@ const raceToolkitInclude = `#include "race_toolkit.h"`
 const repairerInstruction = `You are an experienced C developer.
 Your goal is to repair a C program that failed to compile.
 Analyze the compiler error and provide a corrected version of the C program.
+Make the minimal necessary changes to fix the compilation error.
+Preserve the structure, logic, and intent of the original code.
+Do NOT replace the program with a dummy placeholder (e.g., an empty main function).
 Print only the C program that could be executed directly, without backticks.`
 
 const repairerPrompt = `C Program:
