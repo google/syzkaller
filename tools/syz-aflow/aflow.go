@@ -36,7 +36,8 @@ func main() {
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
-		flagHTML = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
+		flagHTML   = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
+		flagOutput = flag.String("output", "", "save final workflow output to this JSON file")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -67,24 +68,26 @@ func main() {
 		tool.Fail(err)
 	}
 	if err := run(context.Background(), RunArgs{
-		Model:     *flagModel,
-		FlowName:  *flagFlow,
-		InputFile: *flagInput,
-		Workdir:   *flagWorkdir,
-		HTMLFile:  *flagHTML,
-		CacheSize: cacheSize,
+		Model:      *flagModel,
+		FlowName:   *flagFlow,
+		InputFile:  *flagInput,
+		Workdir:    *flagWorkdir,
+		HTMLFile:   *flagHTML,
+		OutputFile: *flagOutput,
+		CacheSize:  cacheSize,
 	}); err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
 }
 
 type RunArgs struct {
-	Model     string
-	FlowName  string
-	InputFile string
-	Workdir   string
-	HTMLFile  string
-	CacheSize uint64
+	Model      string
+	FlowName   string
+	InputFile  string
+	Workdir    string
+	HTMLFile   string
+	OutputFile string
+	CacheSize  uint64
 }
 
 func run(ctx context.Context, args RunArgs) error {
@@ -130,8 +133,20 @@ func run(ctx context.Context, args RunArgs) error {
 		return nil
 	}
 
-	_, err = flow.Execute(ctx, args.Model, args.Workdir, inputs, cache, onEventFunc)
-	return err
+	output, err := flow.Execute(ctx, args.Model, args.Workdir, inputs, cache, onEventFunc)
+	if err != nil {
+		return err
+	}
+	if args.OutputFile != "" {
+		data, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			return fmt.Errorf("failed to marshal output: %w", err)
+		}
+		if err := osutil.WriteFile(args.OutputFile, data); err != nil {
+			return fmt.Errorf("failed to save output: %w", err)
+		}
+	}
+	return nil
 }
 
 func downloadBug(id, inputFile, token string) error {
