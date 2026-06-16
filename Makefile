@@ -101,7 +101,7 @@ endif
 .PHONY: all clean host target \
 	manager executor kfuzztest ci hub agent lore-relay \
 	execprog mutate prog2c trace2syz repro upgrade db \
-	usbgen symbolize cover kconf syz-build crush \
+	usbgen symbolize cover kconf syz-build crush aflow \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_rpc generate_sys \
 	format format_go format_cpp format_sys \
@@ -154,6 +154,9 @@ descriptions:
 
 go-flags:
 	@echo "${GOHOSTFLAGS}"
+
+aflow: descriptions
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-aflow github.com/google/syzkaller/tools/syz-aflow
 
 manager: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
