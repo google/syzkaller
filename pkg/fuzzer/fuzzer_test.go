@@ -19,11 +19,10 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/testutil"
-	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -157,30 +156,22 @@ func (f *testFuzzer) run() {
 	f.crashes = make(map[string]int)
 	ctx, done := context.WithCancel(context.Background())
 	f.done = done
-	var output bytes.Buffer
-	cfg := &rpcserver.LocalConfig{
-		Config: rpcserver.Config{
-			Config: vminfo.Config{
-				Debug:    true,
-				Cover:    true,
-				Target:   f.target,
-				Features: flatrpc.FeatureSandboxNone | flatrpc.FeatureCoverage,
-				Sandbox:  flatrpc.ExecEnvSandboxNone,
-			},
-			Procs:    4,
-			Slowdown: 1,
-		},
-		Executor:     f.executor,
-		Dir:          f.t.TempDir(),
-		OutputWriter: &output,
+
+	cfg := execbackend.LocalConfig{
+		Target:      f.target,
+		ExecutorBin: f.executor,
+		Dir:         f.t.TempDir(),
+		Source:      f,
 	}
-	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
-		return f
-	}
-	if err := rpcserver.RunLocal(ctx, cfg); err != nil {
-		f.t.Logf("executor output:\n%s", output.String())
+
+	reps, err := execbackend.RunLocal(ctx, cfg)
+	if err != nil && err != context.Canceled {
 		f.t.Fatal(err)
 	}
+	if len(reps) > 0 {
+		f.t.Logf("crash: %s\noutput:\n%s", reps[0].Title, reps[0].Output)
+	}
+
 	assert.Equal(f.t, len(f.expectedCrashes), len(f.crashes), "not all expected crashes were found")
 	assert.NotEmpty(f.t, f.fuzzer.Config.Corpus.StatProgs.Val(), "must have non-empty corpus")
 	assert.NotEmpty(f.t, f.fuzzer.Config.Corpus.StatSignal.Val(), "must have non-empty signal")
