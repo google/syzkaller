@@ -77,7 +77,11 @@ fi
 # Build or update docker image
 if [ ! -z "$SYZ_ENV_BUILD" ]; then
 	IMAGE_NAME="syz-$IMAGE"
-	docker build "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+	if [ "$IMAGE" == "env" ]; then
+		docker build "$SCRIPT_DIR/docker" --file "$SCRIPT_DIR/docker/Dockerfile" --target env-full --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+	else
+		docker build "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+	fi
 else
 	IMAGE_NAME="gcr.io/syzkaller/$IMAGE"
 	docker pull -q "$IMAGE_NAME"

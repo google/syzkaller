@@ -3,8 +3,10 @@
 We provide a set of Docker images that provide dev environment suitable for syzkaller development/testing.
 These images are used by CI, but can also be used for [local development](/docs/contributing.md#using-syz-env).
 
-- [env](/tools/docker/env/Dockerfile) includes Go/fuchsia/netbsd toolchains, gcloud sdk, C/C++ cross-compilers, make, git and other essential tools.
-- [old-env](/tools/docker/old-env/Dockerfile) provides essential tools but based on an older disto (ubuntu:16.04).
+- [Dockerfile](/tools/docker/Dockerfile) defines images for both `env` and `syzbot` using multi-stage builds.
+  - `env` (target `env-full`) includes Go/fuchsia/netbsd toolchains, gcloud sdk, C/C++ cross-compilers, make, git and other essential tools.
+  - `syzbot` (target `syzbot`) is used by syzbot instances.
+- [old-env](/tools/docker/old-env/Dockerfile) provides essential tools but based on an older distro (ubuntu:16.04).
 
 These images are available as `gcr.io/syzkaller/{env,old-env}`, respectively.
 
@@ -39,21 +41,31 @@ Once the builder is configured, you can build and push the images. Ensure you ar
 gcloud auth login && gcloud auth configure-docker
 ```
 
+We provide a helper script to build and push all images (including optimized CI variants):
+
+```bash
+./tools/docker/build.sh --push
+```
+
+Or you can build them manually using raw `docker buildx` commands:
+
 **Building the `syzbot` image:**
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
+  --file tools/docker/Dockerfile --target syzbot \
   -t gcr.io/syzkaller/syzbot \
-  tools/docker/syzbot \
+  tools/docker \
   --push
 ```
 
-**Building the `env` image:**
+**Building the `env` (full) image:**
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
+  --file tools/docker/Dockerfile --target env-full \
   -t gcr.io/syzkaller/env \
-  tools/docker/env \
+  tools/docker \
   --push
 ```
 

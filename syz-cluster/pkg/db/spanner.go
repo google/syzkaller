@@ -173,6 +173,9 @@ var (
 )
 
 func setupSpannerEmulator(t *testing.T) {
+	if os.Getenv("SYZ_SKIP_SPANNER_TESTS") != "" {
+		t.Skip("skipping spanner tests because SYZ_SKIP_SPANNER_TESTS is set")
+	}
 	setupSpannerOnce.Do(func() {
 		setupSpannerErr = startSpannerEmulator()
 	})
