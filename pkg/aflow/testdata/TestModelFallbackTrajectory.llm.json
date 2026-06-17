@@ -11,13 +11,8 @@
 				"role": "user"
 			},
 			"temperature": 0.3,
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{

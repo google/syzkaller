@@ -18,40 +18,40 @@
 							"description": "tool 1 description",
 							"name": "tool1",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ArgBar": {
-										"description": "bar",
-										"type": "integer"
+										"type": "integer",
+										"description": "bar"
 									},
 									"ArgFoo": {
-										"description": "foo",
-										"type": "string"
+										"type": "string",
+										"description": "foo"
 									}
 								},
 								"required": [
 									"ArgFoo",
 									"ArgBar"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ResFoo": {
-										"description": "foo",
-										"type": "integer"
+										"type": "integer",
+										"description": "foo"
 									},
 									"ResString": {
-										"description": "string",
-										"type": "string"
+										"type": "string",
+										"description": "string"
 									}
 								},
 								"required": [
 									"ResFoo",
 									"ResString"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
@@ -62,30 +62,30 @@
 							"description": "tool 2 description",
 							"name": "tool2",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ArgBaz": {
-										"description": "baz",
-										"type": "integer"
+										"type": "integer",
+										"description": "baz"
 									}
 								},
 								"required": [
 									"ArgBaz"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ResBaz": {
-										"description": "baz",
-										"type": "integer"
+										"type": "integer",
+										"description": "baz"
 									}
 								},
 								"required": [
 									"ResBaz"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
@@ -96,52 +96,47 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"AgentBar": {
-										"description": "bar",
-										"type": "string"
+										"type": "string",
+										"description": "bar"
 									},
 									"AgentFoo": {
-										"description": "foo",
-										"type": "integer"
+										"type": "integer",
+										"description": "foo"
 									}
 								},
 								"required": [
 									"AgentFoo",
 									"AgentBar"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"AgentBar": {
-										"description": "bar",
-										"type": "string"
+										"type": "string",
+										"description": "bar"
 									},
 									"AgentFoo": {
-										"description": "foo",
-										"type": "integer"
+										"type": "integer",
+										"description": "foo"
 									}
 								},
 								"required": [
 									"AgentFoo",
 									"AgentBar"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -194,27 +189,27 @@
 						"thought": true
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id0",
-							"name": "tool1",
 							"response": {
 								"ResFoo": 200,
 								"ResString": "res-string"
-							}
+							},
+							"name": "tool1"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "tool2",
 							"response": {
 								"ResBaz": 300
-							}
+							},
+							"name": "tool2"
 						}
 					}
 				],
@@ -262,27 +257,27 @@
 						"thought": true
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id0",
-							"name": "tool1",
 							"response": {
 								"ResFoo": 200,
 								"ResString": "res-string"
-							}
+							},
+							"name": "tool1"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "tool2",
 							"response": {
 								"ResBaz": 300
-							}
+							},
+							"name": "tool2"
 						}
 					}
 				],
@@ -309,18 +304,18 @@
 						"thought": true
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "set-results",
 							"response": {
 								"AgentBar": "agent-bar",
 								"AgentFoo": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -347,52 +342,47 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"SwarmInt": {
-										"description": "swarm-int",
-										"type": "integer"
+										"type": "integer",
+										"description": "swarm-int"
 									},
 									"SwarmStr": {
-										"description": "swarm-str",
-										"type": "string"
+										"type": "string",
+										"description": "swarm-str"
 									}
 								},
 								"required": [
 									"SwarmInt",
 									"SwarmStr"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"SwarmInt": {
-										"description": "swarm-int",
-										"type": "integer"
+										"type": "integer",
+										"description": "swarm-int"
 									},
 									"SwarmStr": {
-										"description": "swarm-str",
-										"type": "string"
+										"type": "string",
+										"description": "swarm-str"
 									}
 								},
 								"required": [
 									"SwarmInt",
 									"SwarmStr"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -429,18 +419,18 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "set-results",
 							"response": {
 								"SwarmInt": 1,
 								"SwarmStr": "swarm1"
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -485,18 +475,18 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "set-results",
 							"response": {
 								"SwarmInt": 2,
 								"SwarmStr": "swarm2"
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -516,13 +506,8 @@
 				"role": "user"
 			},
 			"temperature": 0.3,
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{

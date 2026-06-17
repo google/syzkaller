@@ -8,19 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net/http"
 	"reflect"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/osutil"
-	"google.golang.org/genai"
 )
 
 type LLMAgent struct {
@@ -28,7 +25,7 @@ type LLMAgent struct {
 	Name string
 	// The default Gemini model name to execute this workflow.
 	// Use the consts defined below.
-	Model ModelType
+	Model backend.ModelCategory
 	// Name of the state variable to store the final reply of the agent.
 	// These names can be used in subsequent action instructions/prompts,
 	// and as final workflow outputs.
@@ -71,11 +68,10 @@ type agentSession struct {
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
-	agentSpan *trajectory.Span
 }
 
 type llmMessage struct {
-	content    *genai.Content
+	content    *backend.Message
 	tokenCount int // tokens consumed by this message
 }
 
@@ -84,21 +80,13 @@ type toolCallRecord struct {
 	Args map[string]any
 }
 
-type ModelType string
-
 const (
-	BestExpensiveModel ModelType = "best-expensive"
-	GoodBalancedModel  ModelType = "good-balanced"
-)
+	// Consts to use for LLMAgent.Model.
+	// These are aliases for the backend constants to avoid requiring users
+	// of the aflow package to import the backend package just to specify the model.
+	BestExpensiveModel = backend.BestExpensiveModel
+	GoodBalancedModel  = backend.GoodBalancedModel
 
-const (
-	// See https://ai.google.dev/gemini-api/docs/models
-	gemini31ProPreview  = "gemini-3.1-pro-preview"
-	gemini3FlashPreview = "gemini-3-flash-preview"
-	gemini35Flash       = "gemini-3.5-flash"
-)
-
-const (
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
 	hardLoopDetectionLimit    = 6
@@ -132,7 +120,7 @@ var taskParameters = map[TaskType]float32{
 // Use NewFuncTool to create function-based tools.
 type Tool interface {
 	verify(*verifyContext)
-	declaration() *genai.FunctionDeclaration
+	declaration() *backend.FunctionDeclaration
 	execute(*Context, map[string]any) (map[string]any, error)
 }
 
@@ -302,12 +290,12 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 		Name:        a.Name,
 		Instruction: instruction,
 		Prompt:      prompt,
-		Model:       strings.Join(ctx.modelNames(a.Model), ","),
+		Model:       string(a.Model),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	s := &agentSession{LLMAgent: a, agentSpan: span}
+	s := &agentSession{LLMAgent: a}
 	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
@@ -316,17 +304,18 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
-func (a *agentSession) tryAnswerNow(cfg *genai.GenerateContentConfig, overflow bool) bool {
+func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) bool {
 	if a.Reply != llmToolReply || len(a.req) < 3 || a.answerNow {
 		return false
 	}
 	a.answerNow = true
-	cfg.ToolConfig = &genai.ToolConfig{
-		FunctionCallingConfig: &genai.FunctionCallingConfig{
-			Mode: genai.FunctionCallingConfigModeNone,
-		},
-	}
-	request := llmMessage{content: genai.NewContentFromText(llmAnswerNow, genai.RoleUser)}
+	// We clear the tools to force the model to provide a text answer instead of calling a tool.
+	cfg.Tools = nil
+
+	request := llmMessage{content: &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: []backend.Part{{Text: llmAnswerNow}},
+	}}
 	if overflow {
 		a.req[len(a.req)-1] = request
 	} else {
@@ -335,9 +324,12 @@ func (a *agentSession) tryAnswerNow(cfg *genai.GenerateContentConfig, overflow b
 	return true
 }
 
-func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
+func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
-	a.req = []llmMessage{{content: genai.NewContentFromText(prompt, genai.RoleUser)}}
+	a.req = []llmMessage{{content: &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: []backend.Part{{Text: prompt}},
+	}}}
 	var anchorTokens int
 	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
 		var currentInputTokens int
@@ -355,15 +347,16 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
 			Name:  a.Name,
-			Model: strings.Join(ctx.modelNames(a.Model), ","),
+			Model: string(a.Model),
 		}
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate, a.Model, span)
-		if a.agentSpan != nil {
-			a.agentSpan.Model = span.Model
+		var rawReq []*backend.Message
+		for _, msg := range a.req {
+			rawReq = append(rawReq, msg.content)
 		}
+		resp, respErr := a.generateContent(ctx, cfg, rawReq, candidate, a.Model, span)
 
 		if respErr != nil {
 			span.Error = respErr.Error()
@@ -406,10 +399,10 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		// tools, we got an empty response. Populate the `Part`s with `Text`
 		// before appending to the history to avoid `INVALID_ARGUMENT` errors.
 		if reply == "" && len(calls) == 0 {
-			resp.Candidates[0].Content.Parts = []*genai.Part{{Text: "empty"}}
+			resp.Parts = []backend.Part{{Text: "empty"}}
 		}
 		a.req = append(a.req, llmMessage{
-			content:    resp.Candidates[0].Content,
+			content:    &backend.Message{Role: backend.RoleModel, Parts: resp.Parts},
 			tokenCount: span.OutputTokens,
 		})
 
@@ -419,7 +412,10 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 				return "", nil, err
 			}
 			if wrong != "" {
-				a.req = append(a.req, llmMessage{content: genai.NewContentFromText(wrong, genai.RoleUser)})
+				a.req = append(a.req, llmMessage{content: &backend.Message{
+					Role:  backend.RoleUser,
+					Parts: []backend.Part{{Text: wrong}},
+				}})
 				continue
 			}
 			// This is the final reply.
@@ -488,31 +484,30 @@ sentence fragments are OK; keep technical terms/errors exact; keep code blocks u
 You MUST provide the summary in your final response text. Do not use tools.
 `
 
-const tokenCompressionPrompt = `
-Task: Provide the comprehensive summary of the above execution history now.
-Important: You must output the actual summary text in your final response.
-Do NOT use any tools.
-`
+const tokenCompressionPrompt = `Task: Provide the comprehensive summary of the above execution history now.
+Important: You must output the actual summary text in your final response. Do NOT use any tools.`
 
 // We use a very low temperature for the compressor to ensure it acts as a strict,
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
 
-func (a *agentSession) compressContext(ctx *Context, instruction string, splitIndex int) (*genai.Content, int, error) {
+func (a *agentSession) compressContext(
+	ctx *Context, instruction string, splitIndex int) (*backend.Message, int, error) {
 	// Lightweight config targeting the Flash model.
-	cfg := &genai.GenerateContentConfig{
-		Temperature:       genai.Ptr[float32](tokenCompressionTemperature),
-		SystemInstruction: genai.NewContentFromText(tokenCompressionInstruction, genai.RoleUser),
-		ThinkingConfig: &genai.ThinkingConfig{
-			IncludeThoughts: true,
-			ThinkingLevel:   genai.ThinkingLevelHigh,
+	temp := float32(tokenCompressionTemperature)
+	cfg := &backend.GenerateConfig{
+		Temperature: &temp,
+		SystemInstruction: &backend.Message{
+			Role:  backend.RoleUser,
+			Parts: []backend.Part{{Text: tokenCompressionInstruction}},
 		},
+		ThinkingLevel: backend.ThinkingLevelHigh,
 	}
 
 	span := &trajectory.Span{
 		Type:  trajectory.SpanLLM,
 		Name:  a.Name + "-compressor",
-		Model: strings.Join(ctx.modelNames(GoodBalancedModel), ","),
+		Model: string(backend.GoodBalancedModel),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return nil, 0, err
@@ -521,21 +516,30 @@ func (a *agentSession) compressContext(ctx *Context, instruction string, splitIn
 	var compressReq []llmMessage
 	compressReq = append(compressReq, a.req[:splitIndex]...)
 	if instruction != "" && len(compressReq) > 0 {
-		compressReq[0].content = osutil.JSONDeepCopy(compressReq[0].content)
+		msgCopy := *compressReq[0].content
+		msgCopy.Parts = slices.Clone(msgCopy.Parts)
+		compressReq[0].content = &msgCopy
 		if len(compressReq[0].content.Parts) > 0 {
-			compressReq[0].content.Parts[0] = &genai.Part{
-				Text: "<system_instructions>\n" + instruction + "\n</system_instructions>\n\n" +
-					compressReq[0].content.Parts[0].Text,
+			compressReq[0].content.Parts[0] = backend.Part{
+				Text: "<system_instructions>\n" + instruction +
+					"\n</system_instructions>\n\n" + compressReq[0].content.Parts[0].Text,
 			}
 		}
 	}
 
 	// We append a final prompt to ensure the model knows it must summarize now,
 	// rather than trying to continue the original conversation.
-	compressReq = append(compressReq, llmMessage{
-		content: genai.NewContentFromText(tokenCompressionPrompt, genai.RoleUser),
-	})
-	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel, span)
+	compressReq = append(compressReq, llmMessage{content: &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: []backend.Part{{Text: tokenCompressionPrompt}},
+	}})
+
+	var rawReq []*backend.Message
+	for _, msg := range compressReq {
+		rawReq = append(rawReq, msg.content)
+	}
+
+	resp, err := a.generateContent(ctx, cfg, rawReq, 0, backend.GoodBalancedModel, span)
 	if err != nil {
 		return nil, 0, ctx.finishSpan(span, err)
 	}
@@ -557,16 +561,16 @@ func (a *agentSession) compressContext(ctx *Context, instruction string, splitIn
 
 	span.Reply = reply
 
-	newSummary := genai.NewContentFromText(
-		"Here is the summary of the previous execution history:\n\n"+reply,
-		genai.RoleUser,
-	)
+	newSummary := &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: []backend.Part{{Text: "Here is the summary of the previous execution history:\n\n" + reply}},
+	}
 
+	fmt.Printf("DEBUG compressContext finish: span.Model=%q\n", span.Model)
 	return newSummary, span.OutputTokens, ctx.finishSpan(span, nil)
 }
 
-func (a *agentSession) maybeCompressContext(ctx *Context, instruction string,
-	tokensToCompress int) (bool, error) {
+func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, tokensToCompress int) (bool, error) {
 	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens {
 		// Return existing state unchanged.
 		return false, nil
@@ -583,7 +587,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string,
 			break
 		}
 		// We only want to split at a message that came from the model (an LLM reply).
-		if msg.content.Role == genai.RoleModel {
+		if msg.content.Role == backend.RoleModel {
 			splitIndex = i
 		}
 	}
@@ -615,18 +619,18 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string,
 	return true, nil
 }
 
-func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, string, map[string]Tool) {
+func (a *LLMAgent) config(ctx *Context) (*backend.GenerateConfig, string, string, map[string]Tool) {
 	toolList := a.Tools
 	if a.Outputs != nil {
 		toolList = append(toolList, a.Outputs.tool)
 	}
 	toolMap := make(map[string]Tool)
-	var tools []*genai.Tool
+	var tools []*backend.Tool
 	for _, tool := range toolList {
 		decl := tool.declaration()
 		toolMap[decl.Name] = tool
-		tools = append(tools, &genai.Tool{
-			FunctionDeclarations: []*genai.FunctionDeclaration{decl}})
+		tools = append(tools, &backend.Tool{
+			FunctionDeclarations: []*backend.FunctionDeclaration{decl}})
 	}
 	state := maps.Clone(ctx.state)
 	for name := range toolMap {
@@ -640,32 +644,32 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, s
 		instruction += llmOutputsInstruction
 	}
 	prompt := formatTemplate(a.Prompt, state)
-	return &genai.GenerateContentConfig{
-		ResponseModalities: []string{"TEXT"},
-		Temperature:        new(taskParameters[a.TaskType]),
-		SystemInstruction:  genai.NewContentFromText(instruction, genai.RoleUser),
-		Tools:              tools,
-		ThinkingConfig: &genai.ThinkingConfig{
-			// We capture them in the trajectory for analysis.
-			IncludeThoughts: true,
-			// Enable "dynamic thinking" ("the model will adjust the budget based on the complexity of the request").
-			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
-			// However, thoughts output also consumes total output token budget.
-			// We may consider adjusting ThinkingLevel parameter.
-			//
-			// Gemini says ThinkingLevel and ThinkingBudget specify the same,
-			// but in different ways. ThinkingBudget is precise token count.
-			// ThinkingLevel is an abstract level that maps to some unspecified
-			// number of tokens. Settings are mutually exclusive,
-			// we use ThinkingLevel.
-			ThinkingLevel: genai.ThinkingLevelHigh,
+	return &backend.GenerateConfig{
+		Temperature: new(taskParameters[a.TaskType]),
+		SystemInstruction: &backend.Message{
+			Role:  backend.RoleUser,
+			Parts: []backend.Part{{Text: instruction}},
 		},
+		Tools: tools,
+		// We capture them in the trajectory for analysis.
+		IncludeThoughts: true,
+		// Enable "dynamic thinking" ("the model will adjust the budget based on the complexity of the request").
+		// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
+		// However, thoughts output also consumes total output token budget.
+		// We may consider adjusting ThinkingLevel parameter.
+		//
+		// Gemini says ThinkingLevel and ThinkingBudget specify the same,
+		// but in different ways. ThinkingBudget is precise token count.
+		// ThinkingLevel is an abstract level that maps to some unspecified
+		// number of tokens. Settings are mutually exclusive,
+		// we use ThinkingLevel.
+		ThinkingLevel: backend.ThinkingLevelHigh,
 	}, instruction, prompt, toolMap
 }
 
-func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*genai.FunctionCall) error {
-	responses := &genai.Content{
-		Role: string(genai.RoleUser),
+func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*backend.FunctionCall) error {
+	responses := &backend.Message{
+		Role: backend.RoleUser,
 	}
 	for _, call := range calls {
 		span := &trajectory.Span{
@@ -702,15 +706,15 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*g
 					call.Name, toolErr, call.Args)
 			}
 		}
-		responses.Parts = append(responses.Parts, &genai.Part{
-			FunctionResponse: &genai.FunctionResponse{
+		responses.Parts = append(responses.Parts, backend.Part{
+			FunctionResponse: &backend.FunctionResponse{
 				ID:       call.ID,
 				Name:     call.Name,
 				Response: span.Results,
 			},
 		})
 		if isDuplicateErr(toolErr) {
-			responses.Parts = append(responses.Parts, &genai.Part{
+			responses.Parts = append(responses.Parts, backend.Part{
 				Text: fmt.Sprintf("SYSTEM WARNING: You are repeating tool call %q. "+
 					"Please try a different approach, search term, or proceed without it.", call.Name),
 			})
@@ -723,17 +727,14 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*g
 	return nil
 }
 
-func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *trajectory.Span) (
-	reply string, calls []*genai.FunctionCall, err error) {
-	candidate := resp.Candidates[0]
+func (a *LLMAgent) parseResponse(resp *backend.GenerateResponse, span *trajectory.Span) (
+	reply string, calls []*backend.FunctionCall, err error) {
 	if resp.UsageMetadata != nil {
-		// We add ToolUsePromptTokenCount just in case, but Gemini does not use/set it.
-		span.InputTokens = int(resp.UsageMetadata.PromptTokenCount) +
-			int(resp.UsageMetadata.ToolUsePromptTokenCount)
-		span.OutputTokens = int(resp.UsageMetadata.CandidatesTokenCount)
-		span.OutputThoughtsTokens = int(resp.UsageMetadata.ThoughtsTokenCount)
+		span.InputTokens = resp.UsageMetadata.InputTokens
+		span.OutputTokens = resp.UsageMetadata.OutputTokens
+		span.OutputThoughtsTokens = resp.UsageMetadata.OutputThoughtsTokens
 	}
-	for _, part := range candidate.Content.Parts {
+	for _, part := range resp.Parts {
 		if part.FunctionCall != nil {
 			calls = append(calls, part.FunctionCall)
 		} else if part.Thought {
@@ -753,145 +754,16 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 	return
 }
 
-func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []llmMessage, candidate int, model ModelType,
-	span *trajectory.Span) (*genai.GenerateContentResponse, error) {
-	// Copy the config in case we modify it below.
-	cfg = osutil.JSONDeepCopy(cfg)
+const (
+	maxLLMRetryIters = 100
+	maxLLMBackoff    = 3 * time.Minute
+)
 
-	var rawReq []*genai.Content
-	for _, msg := range req {
-		rawReq = append(rawReq, msg.content)
+func llmBackoffDuration(try int, baseDelay time.Duration) time.Duration {
+	if baseDelay == 0 {
+		return 0
 	}
-
-	resolvedModels := ctx.modelNames(model)
-	var lastErr error
-	for _, m := range resolvedModels {
-		if span != nil {
-			span.Model = m
-		}
-		for try := 0; ; try++ {
-			resp, err := a.generateContentCached(ctx, cfg, rawReq, candidate, try, m)
-			if retryErr := new(retryError); errors.As(err, &retryErr) {
-				time.Sleep(retryErr.delay)
-				continue
-			}
-			if isOutputTokenOverflowError(err) &&
-				cfg.ThinkingConfig.ThinkingLevel != genai.ThinkingLevelMinimal {
-				// Reduce amount of thinking and try again (thinking tokens are counted against output).
-				// For non-thinking models this is effectively just a retry,
-				// but that's fine, there is some chance that retry will succeed due to randomness,
-				// or it will just fail after few retries.
-				switch cfg.ThinkingConfig.ThinkingLevel {
-				case genai.ThinkingLevelHigh:
-					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMedium
-				case genai.ThinkingLevelMedium:
-					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelLow
-				case genai.ThinkingLevelLow:
-					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMinimal
-				default:
-					return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingConfig.ThinkingLevel)
-				}
-				continue
-			}
-			if err != nil {
-				// This model failed, fallback to next model.
-				if m != "" {
-					lastErr = fmt.Errorf("%v: %w", m, err)
-				} else {
-					lastErr = err
-				}
-				break // break retry loop, fallback to next model
-			}
-			return resp, nil
-		}
-	}
-	return nil, lastErr
-}
-
-func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate, try int, model string) (*genai.GenerateContentResponse, error) {
-	type Cached struct {
-		Config  *genai.GenerateContentConfig
-		Request []*genai.Content
-		Reply   *genai.GenerateContentResponse
-	}
-	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
-		model, hash.String(cfg), hash.String(req), candidate)
-	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
-		resp, err := ctx.generateContent(model, cfg, req)
-		err = parseLLMError(resp, err, model, try)
-		return Cached{
-			Config:  cfg,
-			Request: req,
-			Reply:   resp,
-		}, err
-	})
-	return cached.Reply, err
-}
-
-func parseLLMError(resp *genai.GenerateContentResponse, err error, model string, try int) error {
-	err = parseLLMErrorImpl(resp, err, model, try)
-	if retryErr := new(retryError); errors.As(err, &retryErr) && try >= maxLLMRetryIters {
-		// We can't retry infinity, so revert back to the original error
-		// when we reach maxLLMRetryIters.
-		return retryErr.err
-	}
-	return err
-}
-
-func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model string, try int) error {
-	if err == nil {
-		return parseLLMResp(resp)
-	}
-	var apiErr genai.APIError
-	if !errors.As(err, &apiErr) {
-		return err
-	}
-	if apiErr.Code == http.StatusServiceUnavailable ||
-		apiErr.Code == http.StatusBadGateway ||
-		apiErr.Code == http.StatusGatewayTimeout ||
-		// 499 has server-dependent meaning, but for genapi we observed these
-		// when a request was cancelled on some internal error.
-		apiErr.Code == 499 {
-		return &retryError{llmBackoffDuration(try), err}
-	}
-	if apiErr.Code == http.StatusTooManyRequests &&
-		strings.Contains(apiErr.Message, "Quota exceeded for metric") {
-		if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
-			sec, _ := strconv.Atoi(match[1])
-			return &retryError{time.Duration(sec+1) * time.Second, err}
-		}
-		if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-			return &modelQuotaError{model}
-		}
-	}
-	if apiErr.Code == http.StatusTooManyRequests &&
-		strings.Contains(apiErr.Message, "You exceeded your current quota") {
-		// Unclear what this is, the error does not contain details
-		// (see the test for exact error message). But presumably this is some per-minute quota.
-		return &retryError{time.Minute, err}
-	}
-	if apiErr.Code == http.StatusTooManyRequests &&
-		(strings.Contains(apiErr.Message, "Resource exhausted. Please try again later.") ||
-			strings.Contains(apiErr.Message, "Resource has been exhausted")) {
-		// Vertex AI specific rate limit error (e.g. RPM/TPM exhausted).
-		return &retryError{time.Minute, err}
-	}
-	if apiErr.Code == http.StatusBadRequest &&
-		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
-		return &inputTokenOverflowError{err}
-	}
-	if apiErr.Code == http.StatusInternalServerError {
-		// Let's assume ISE is just something temporal on the server side.
-		return &retryError{time.Second, err}
-	}
-	return err
-}
-
-func llmBackoffDuration(try int) time.Duration {
-	backoff := time.Second
-	// Use loop instead of math.Pow to properly handle overflow.
+	backoff := baseDelay
 	for range try {
 		backoff *= 2
 		if backoff >= maxLLMBackoff {
@@ -901,59 +773,79 @@ func llmBackoffDuration(try int) time.Duration {
 	return backoff
 }
 
-func parseLLMResp(resp *genai.GenerateContentResponse) error {
-	if len(resp.Candidates) == 0 || resp.Candidates[0] == nil {
-		if resp.PromptFeedback != nil {
-			return fmt.Errorf("request blocked: %v", resp.PromptFeedback.BlockReasonMessage)
+func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
+	req []*backend.Message, candidate int, model backend.ModelCategory,
+	span *trajectory.Span) (*backend.GenerateResponse, error) {
+	// Don't alter the original object (that may affect request caching).
+	cfgCopy := *cfg
+	cfg = &cfgCopy
+
+	resolvedModels := ctx.provider.ResolveModels(model)
+	var lastErr error
+	for _, m := range resolvedModels {
+		if span != nil {
+			span.Model = m
 		}
-		return fmt.Errorf("empty model response")
-	}
-	candidate := resp.Candidates[0]
-	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall {
-			// Let's consider this as a temp error, and that the next time it won't
-			// generate the same buggy output. In either case we have maxLLMRetryIters.
-			return &retryError{0, errors.New(string(candidate.FinishReason))}
+		for try := 0; ; try++ {
+			resp, err := a.generateContentCached(ctx, cfg, req, candidate, try, m)
+			if retryErr := new(backend.RetryError); errors.As(err, &retryErr) {
+				if try >= maxLLMRetryIters {
+					lastErr = retryErr.Err
+					break // stop retrying this model
+				}
+				delay := retryErr.Delay
+				if retryErr.IsExponential {
+					delay = llmBackoffDuration(try, retryErr.Delay)
+				}
+				ctx.sleep(delay)
+				continue
+			}
+			if isOutputTokenOverflowError(err) &&
+				cfg.ThinkingLevel != backend.ThinkingLevelMinimal {
+				// Reduce amount of thinking and try again (thinking tokens are counted against output).
+				// For non-thinking models this is effectively just a retry,
+				// but that's fine, there is some chance that retry will succeed due to randomness,
+				// or it will just fail after few retries.
+				switch cfg.ThinkingLevel {
+				case backend.ThinkingLevelHigh:
+					cfg.ThinkingLevel = backend.ThinkingLevelMedium
+				case backend.ThinkingLevelMedium:
+					cfg.ThinkingLevel = backend.ThinkingLevelLow
+				case backend.ThinkingLevelLow:
+					cfg.ThinkingLevel = backend.ThinkingLevelMinimal
+				default:
+					return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingLevel)
+				}
+				continue
+			}
+			if err != nil {
+				lastErr = err
+				break // try next model
+			}
+			return resp, nil
 		}
-		if candidate.FinishReason == genai.FinishReasonMaxTokens {
-			return &outputTokenOverflowError{errors.New(string(candidate.FinishReason))}
-		}
-		return fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
 	}
-	// We don't expect to receive these fields now.
-	// Note: CitationMetadata may be present sometimes, but we don't have uses for it.
-	if candidate.GroundingMetadata != nil || candidate.LogprobsResult != nil {
-		return fmt.Errorf("unexpected reply fields (%+v)", *candidate)
-	}
-	for _, part := range candidate.Content.Parts {
-		// We don't expect to receive these now.
-		if part.VideoMetadata != nil || part.InlineData != nil ||
-			part.FileData != nil || part.FunctionResponse != nil ||
-			part.CodeExecutionResult != nil || part.ExecutableCode != nil {
-			return fmt.Errorf("unexpected reply part (%+v)", *part)
-		}
-	}
-	return nil
+	return nil, lastErr
 }
 
-const (
-	maxLLMRetryIters = 100
-	maxLLMBackoff    = 5 * time.Minute
-)
-
-var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
-
-type retryError struct {
-	delay time.Duration
-	err   error
-}
-
-func (err *retryError) Error() string {
-	return fmt.Sprintf("%s (should be retried after %v)", err.err, err.delay)
-}
-
-func (err *retryError) Unwrap() error {
-	return err.err
+func (a *LLMAgent) generateContentCached(ctx *Context, cfg *backend.GenerateConfig,
+	req []*backend.Message, candidate, try int, model string) (*backend.GenerateResponse, error) {
+	type Cached struct {
+		Config  *backend.GenerateConfig
+		Request []*backend.Message
+		Reply   *backend.GenerateResponse
+	}
+	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
+		model, hash.String(cfg), hash.String(req), candidate)
+	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
+		resp, err := ctx.generateContent(model, cfg, req)
+		return Cached{
+			Config:  cfg,
+			Request: req,
+			Reply:   resp,
+		}, err
+	})
+	return cached.Reply, err
 }
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
@@ -968,7 +860,6 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		a.compressTokens = 150_000
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
-	ctx.requireNotEmpty(a.Name, "Model", string(a.Model))
 	if a.ValidatedReply != nil {
 		if a.Reply != "" {
 			ctx.errorf(a.Name, "both Reply and ValidatedReply are specified")
@@ -1040,7 +931,7 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	}
 }
 
-func (a *agentSession) recordAndCheckDuplicate(call *genai.FunctionCall) error {
+func (a *agentSession) recordAndCheckDuplicate(call *backend.FunctionCall) error {
 	a.toolHistory = append(a.toolHistory, toolCallRecord{Name: call.Name, Args: call.Args})
 	if len(a.toolHistory) > maxHistorySize {
 		a.toolHistory = a.toolHistory[1:] // Keep it a rolling window.

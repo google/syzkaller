@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/genai"
 )
 
 func init() {
@@ -169,9 +169,9 @@ func TestWorkflow(t *testing.T) {
 			},
 		),
 		[]any{
-			[]*genai.Part{
+			[]backend.Part{
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id0",
 						Name: "tool1",
 						Args: map[string]any{
@@ -184,7 +184,7 @@ func TestWorkflow(t *testing.T) {
 					},
 				},
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id1",
 						Name: "tool2",
 						Args: map[string]any{
@@ -200,9 +200,9 @@ func TestWorkflow(t *testing.T) {
 					Thought: true,
 				},
 			},
-			[]*genai.Part{
+			[]backend.Part{
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id2",
 						Name: "set-results",
 						Args: map[string]any{
@@ -220,9 +220,9 @@ func TestWorkflow(t *testing.T) {
 					Thought: true,
 				},
 			},
-			genai.NewPartFromText("hello, world!"),
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			backend.Part{Text: "hello, world!"},
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id1",
 					Name: "set-results",
 					Args: map[string]any{
@@ -231,9 +231,9 @@ func TestWorkflow(t *testing.T) {
 					},
 				},
 			},
-			genai.NewPartFromText("swarm candidate 1"),
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			backend.Part{Text: "swarm candidate 1"},
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id2",
 					Name: "set-results",
 					Args: map[string]any{
@@ -242,8 +242,8 @@ func TestWorkflow(t *testing.T) {
 					},
 				},
 			},
-			genai.NewPartFromText("swarm candidate 2"),
-			genai.NewPartFromText("aggregated"),
+			backend.Part{Text: "swarm candidate 2"},
+			backend.Part{Text: "aggregated"},
 		},
 		nil,
 	)
@@ -270,8 +270,8 @@ func TestNoInputs(t *testing.T) {
 	})
 	require.NoError(t, err)
 	stub := &stubContext{
-		generateContent: func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
-			*genai.GenerateContentResponse, error) {
+		generateContent: func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+			*backend.GenerateResponse, error) {
 			return nil, nil
 		},
 	}
@@ -280,7 +280,7 @@ func TestNoInputs(t *testing.T) {
 	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
 	require.NoError(t, err)
 	onEvent := func(span *trajectory.Span) error { return nil }
-	_, err = flows["test"].Execute(ctx, "", workdir, inputs, cache, onEvent)
+	_, err = flows["test"].Execute(ctx, &dummyProvider{}, workdir, inputs, cache, onEvent)
 	require.Equal(t, err.Error(), "flow inputs are missing:"+
 		" aflow.flowInputs: field \"InBar\" is not present when converting map")
 }
@@ -349,10 +349,10 @@ func TestToolMisbehavior(t *testing.T) {
 			},
 		),
 		[]any{
-			[]*genai.Part{
+			[]backend.Part{
 				// This tool call is OK, and the tool must be called.
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id1",
 						Name: "tool1",
 						Args: map[string]any{
@@ -362,7 +362,7 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 				// Incorrect argument type.
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id2",
 						Name: "tool2",
 						Args: map[string]any{
@@ -372,14 +372,14 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 				// Missing argument.
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id3",
 						Name: "tool2",
 					},
 				},
 				// Excessive argument.
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id4",
 						Name: "tool2",
 						Args: map[string]any{
@@ -390,7 +390,7 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 				// Tool that does not exist.
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id5",
 						Name: "tool3",
 						Args: map[string]any{
@@ -400,7 +400,7 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 				// Wrong arg for set-results (should not count as it was called).
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id6",
 						Name: "set-results",
 						Args: map[string]any{
@@ -410,10 +410,10 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 			},
 			// Now it tries to provide the final result w/o calling set-results (successfully).
-			genai.NewPartFromText("I am done"),
-			[]*genai.Part{
+			backend.Part{Text: "I am done"},
+			[]backend.Part{
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id1",
 						Name: "set-results",
 						Args: map[string]any{
@@ -422,7 +422,7 @@ func TestToolMisbehavior(t *testing.T) {
 					},
 				},
 				{
-					FunctionCall: &genai.FunctionCall{
+					FunctionCall: &backend.FunctionCall{
 						ID:   "id2",
 						Name: "set-results",
 						Args: map[string]any{
@@ -432,8 +432,8 @@ func TestToolMisbehavior(t *testing.T) {
 				},
 			},
 			// LLM tries to get away w/o answering anything.
-			genai.NewPartFromText(""),
-			genai.NewPartFromText("Finally done"),
+			backend.Part{Text: ""},
+			backend.Part{Text: "Finally done"},
 		},
 		nil,
 	)

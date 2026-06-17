@@ -73,7 +73,7 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z",
 		"Finished": "0001-01-01T00:00:08Z",
-		"Error": "model: MAX_TOKENS"
+		"Error": "MAX_TOKENS"
 	},
 	{
 		"Seq": 1,
@@ -83,7 +83,7 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:09Z",
-		"Error": "model: MAX_TOKENS",
+		"Error": "MAX_TOKENS",
 		"Instruction": "Instruction\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
 		"Prompt": "Prompt"
 	},
@@ -94,6 +94,6 @@
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
 		"Finished": "0001-01-01T00:00:10Z",
-		"Error": "model: MAX_TOKENS"
+		"Error": "MAX_TOKENS"
 	}
 ]

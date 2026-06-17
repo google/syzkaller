@@ -18,12 +18,12 @@
 							"description": "tool",
 							"name": "tool",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							}
 						}
 					]
@@ -34,42 +34,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Result": {
-										"description": "Result",
-										"type": "integer"
+										"type": "integer",
+										"description": "Result"
 									}
 								},
 								"required": [
 									"Result"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Result": {
-										"description": "Result",
-										"type": "integer"
+										"type": "integer",
+										"description": "Result"
 									}
 								},
 								"required": [
 									"Result"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -104,16 +99,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -143,16 +138,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -166,7 +161,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [

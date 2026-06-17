@@ -95,7 +95,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty-compressor",
-		"Model": "gemini-3-flash-preview,gemini-3.5-flash",
+		"Model": "good-balanced",
 		"Started": "0001-01-01T00:00:11Z"
 	},
 	{
@@ -103,7 +103,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty-compressor",
-		"Model": "gemini-3-flash-preview",
+		"Model": "good-balanced",
 		"Started": "0001-01-01T00:00:11Z",
 		"Finished": "0001-01-01T00:00:12Z",
 		"Reply": "compressed summary",

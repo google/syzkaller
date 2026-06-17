@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"google.golang.org/genai"
+	"github.com/google/syzkaller/pkg/aflow/backend"
 )
 
 // LLMTool acts like a tool for the parent LLM, but is itself implemented as an LLM agent.
@@ -18,7 +18,7 @@ type LLMTool struct {
 	// Most fields match that of LLMAgent.
 	// The prompt is not specified here, and is provided by the parent LLM.
 	Name     string
-	Model    ModelType
+	Model    backend.ModelCategory
 	TaskType TaskType
 	// Description of the tool exposed to the parent LLM.
 	Description string
@@ -36,12 +36,12 @@ type llmToolResults struct {
 	Answer string `jsonschema:"Answer to your question."`
 }
 
-func (t *LLMTool) declaration() *genai.FunctionDeclaration {
-	return &genai.FunctionDeclaration{
+func (t *LLMTool) declaration() *backend.FunctionDeclaration {
+	return &backend.FunctionDeclaration{
 		Name:                 t.Name,
 		Description:          t.Description,
-		ParametersJsonSchema: mustSchemaFor[llmToolArgs](),
-		ResponseJsonSchema:   mustSchemaFor[llmToolResults](),
+		ParametersJSONSchema: mustSchemaFor[llmToolArgs](),
+		ResponseJSONSchema:   mustSchemaFor[llmToolResults](),
 	}
 }
 

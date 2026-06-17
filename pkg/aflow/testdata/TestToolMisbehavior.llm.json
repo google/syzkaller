@@ -18,21 +18,21 @@
 							"description": "tool description",
 							"name": "tool1",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Tool1Arg": {
-										"description": "arg",
-										"type": "string"
+										"type": "string",
+										"description": "arg"
 									}
 								},
 								"required": [
 									"Tool1Arg"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							}
 						}
 					]
@@ -43,30 +43,30 @@
 							"description": "tool description",
 							"name": "tool2",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Tool2Arg": {
-										"description": "arg",
-										"type": "integer"
+										"type": "integer",
+										"description": "arg"
 									}
 								},
 								"required": [
 									"Tool2Arg"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Result": {
-										"description": "arg",
-										"type": "integer"
+										"type": "integer",
+										"description": "arg"
 									}
 								},
 								"required": [
 									"Result"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
@@ -77,42 +77,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"AdditionalOutput": {
-										"description": "arg",
-										"type": "integer"
+										"type": "integer",
+										"description": "arg"
 									}
 								},
 								"required": [
 									"AdditionalOutput"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"AdditionalOutput": {
-										"description": "arg",
-										"type": "integer"
+										"type": "integer",
+										"description": "arg"
 									}
 								},
 								"required": [
 									"AdditionalOutput"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -191,7 +186,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -204,46 +199,46 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tool2",
 							"response": {
 								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id3",
-							"name": "tool2",
 							"response": {
 								"error": "missing argument \"Tool2Arg\""
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id4",
-							"name": "tool2",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id5",
-							"name": "tool3",
 							"response": {
 								"error": "tool \"tool3\" does not exist, please correct the name"
-							}
+							},
+							"name": "tool3"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id6",
-							"name": "set-results",
 							"response": {
 								"error": "missing argument \"AdditionalOutput\""
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -317,7 +312,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -330,46 +325,46 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tool2",
 							"response": {
 								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id3",
-							"name": "tool2",
 							"response": {
 								"error": "missing argument \"Tool2Arg\""
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id4",
-							"name": "tool2",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id5",
-							"name": "tool3",
 							"response": {
 								"error": "tool \"tool3\" does not exist, please correct the name"
-							}
+							},
+							"name": "tool3"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id6",
-							"name": "set-results",
 							"response": {
 								"error": "missing argument \"AdditionalOutput\""
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -381,7 +376,7 @@
 						"text": "I am done"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -459,7 +454,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -472,46 +467,46 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tool2",
 							"response": {
 								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id3",
-							"name": "tool2",
 							"response": {
 								"error": "missing argument \"Tool2Arg\""
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id4",
-							"name": "tool2",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id5",
-							"name": "tool3",
 							"response": {
 								"error": "tool \"tool3\" does not exist, please correct the name"
-							}
+							},
+							"name": "tool3"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id6",
-							"name": "set-results",
 							"response": {
 								"error": "missing argument \"AdditionalOutput\""
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -523,7 +518,7 @@
 						"text": "I am done"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -554,26 +549,26 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "set-results",
 							"response": {
 								"AdditionalOutput": 1
-							}
+							},
+							"name": "set-results"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "set-results",
 							"response": {
 								"AdditionalOutput": 2
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -647,7 +642,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -660,46 +655,46 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tool2",
 							"response": {
 								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id3",
-							"name": "tool2",
 							"response": {
 								"error": "missing argument \"Tool2Arg\""
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id4",
-							"name": "tool2",
 							"response": {
 								"Result": 42
-							}
+							},
+							"name": "tool2"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id5",
-							"name": "tool3",
 							"response": {
 								"error": "tool \"tool3\" does not exist, please correct the name"
-							}
+							},
+							"name": "tool3"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id6",
-							"name": "set-results",
 							"response": {
 								"error": "missing argument \"AdditionalOutput\""
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -711,7 +706,7 @@
 						"text": "I am done"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -742,26 +737,26 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "set-results",
 							"response": {
 								"AdditionalOutput": 1
-							}
+							},
+							"name": "set-results"
 						}
 					},
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "set-results",
 							"response": {
 								"AdditionalOutput": 2
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -773,7 +768,7 @@
 						"text": "empty"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [

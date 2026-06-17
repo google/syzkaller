@@ -18,36 +18,31 @@
 							"description": "tool description",
 							"name": "swiss-knife",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Optional": {
-										"description": "An optional arg.",
 										"type": [
 											"null",
 											"integer"
-										]
+										],
+										"description": "An optional arg."
 									}
 								},
 								"required": [
 									"Optional"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -82,16 +77,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "swiss-knife",
 							"response": {
 								"error": "missing argument \"Optional\""
-							}
+							},
+							"name": "swiss-knife"
 						}
 					}
 				],

@@ -6,171 +6,60 @@ package aflow
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/genai"
 )
 
-func TestParseLLMError(t *testing.T) {
-	type Test struct {
-		resp      *genai.GenerateContentResponse
-		inputErr  error
-		outputErr error
-	}
-	tpmError1 := genai.APIError{
-		Code: 429,
-		// nolint:lll
-		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_input_token_count, limit: 1000000, model: gemini-3-flash Please retry in 24.180878813s.`,
-	}
-	tpmError2 := genai.APIError{
-		Code: 429,
-		// nolint:lll
-		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit.`,
-	}
-	vertexError1 := genai.APIError{
-		Code: 429,
-		// nolint:lll
-		Message: `Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.`,
-	}
-	vertexError2 := genai.APIError{
-		Code:    429,
-		Message: `Resource has been exhausted (e.g. check quota).`,
-	}
-	rpdError := genai.APIError{
-		Code: 429,
-		// nolint:lll
-		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model_per_day, limit: 0`,
-	}
-	tokenError := genai.APIError{
-		Code:    400,
-		Message: `The input token count exceeds the maximum number of tokens allowed 1048576.`,
-	}
-	iseError := genai.APIError{
-		Code:    500,
-		Message: `Internal error encountered.`,
-	}
-	badGatewayError := genai.APIError{
-		Code:    502,
-		Message: `Bad Gateway`,
-	}
-	gatewayError1 := genai.APIError{
-		Code:    504,
-		Message: `Cancelled while waiting for stream data; Failed to close the streaming context.`,
-	}
-	gatewayError2 := genai.APIError{
-		Code:    504,
-		Message: `Deadline expired before operation could complete.`,
-	}
-	cancelledError := genai.APIError{
-		Code:    499,
-		Message: `The operation was cancelled.`,
-	}
-	normalResp := &genai.GenerateContentResponse{
-		Candidates: []*genai.Candidate{{
-			Content: genai.NewContentFromText("repy", genai.RoleModel),
-		}},
-	}
-	tests := []Test{
-		{
-			resp:     normalResp,
-			inputErr: nil,
-		},
-		{
-			resp:      nil,
-			inputErr:  fmt.Errorf("non API error"),
-			outputErr: fmt.Errorf("non API error"),
-		},
-		{
-			resp:      nil,
-			inputErr:  tpmError1,
-			outputErr: &retryError{25 * time.Second, tpmError1},
-		},
-		{
-			resp:      nil,
-			inputErr:  tpmError2,
-			outputErr: &retryError{time.Minute, tpmError2},
-		},
-		{
-			resp:      nil,
-			inputErr:  vertexError1,
-			outputErr: &retryError{time.Minute, vertexError1},
-		},
-		{
-			resp:      nil,
-			inputErr:  vertexError2,
-			outputErr: &retryError{time.Minute, vertexError2},
-		},
-		{
-			resp:      nil,
-			inputErr:  rpdError,
-			outputErr: &modelQuotaError{"smarty"},
-		},
-		{
-			resp:      nil,
-			inputErr:  tokenError,
-			outputErr: &inputTokenOverflowError{tokenError},
-		},
-		{
-			resp:      nil,
-			inputErr:  iseError,
-			outputErr: &retryError{time.Second, iseError},
-		},
-		{
-			resp:      nil,
-			inputErr:  badGatewayError,
-			outputErr: &retryError{time.Second, badGatewayError},
-		},
-		{
-			resp:      nil,
-			inputErr:  gatewayError1,
-			outputErr: &retryError{time.Second, gatewayError1},
-		},
-		{
-			resp:      nil,
-			inputErr:  gatewayError2,
-			outputErr: &retryError{time.Second, gatewayError2},
-		},
-		{
-			resp:      nil,
-			inputErr:  cancelledError,
-			outputErr: &retryError{time.Second, cancelledError},
-		},
-		{
-			resp: &genai.GenerateContentResponse{
-				Candidates: []*genai.Candidate{
-					{
-						FinishReason: genai.FinishReasonMalformedFunctionCall,
-					},
-				},
-			},
-			outputErr: &retryError{0, errors.New(string(genai.FinishReasonMalformedFunctionCall))},
-		},
-	}
-	for i, test := range tests {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			err := parseLLMError(test.resp, test.inputErr, "smarty", 0)
-			assert.Equal(t, test.outputErr, err)
-		})
-	}
-}
+func TestLLMRetryLimit(t *testing.T) {
+	ctx := NewTestContext(t)
+	err0 := fmt.Errorf("api error")
+	retryErr := &backend.RetryError{Delay: time.Second, Err: err0, IsExponential: true}
 
-func TestParseLLMErrorBackoff(t *testing.T) {
-	var totalBackoff time.Duration
-	err0 := genai.APIError{Code: http.StatusServiceUnavailable}
-	for try := range maxLLMRetryIters {
-		wantBackoff := llmBackoffDuration(try)
-		t.Logf("iter %v: %v", try, wantBackoff)
-		err := parseLLMError(nil, err0, "model", try)
-		require.Equal(t, err, &retryError{wantBackoff, err0})
-		totalBackoff += wantBackoff
+	var delays []time.Duration
+	var tries int
+
+	ctx.stubContext = stubContext{
+		timeNow: time.Now,
+		sleep: func(d time.Duration) {
+			delays = append(delays, d)
+		},
+		generateContent: func(model string, cfg *backend.GenerateConfig,
+			req []*backend.Message) (*backend.GenerateResponse, error) {
+			tries++
+			return nil, retryErr
+		},
 	}
-	err := parseLLMError(nil, err0, "model", maxLLMRetryIters)
-	require.Equal(t, err, err0)
-	t.Logf("total backoff: %v", totalBackoff)
+	ctx.provider = &dummyProvider{}
+
+	agent := &LLMAgent{
+		Name:  "test-agent",
+		Model: "model1",
+	}
+
+	cfg := &backend.GenerateConfig{}
+	_, err := agent.generateContent(ctx, cfg, nil, 0, "model1", nil)
+
+	require.ErrorIs(t, err, err0)
+	require.Equal(t, maxLLMRetryIters+1, tries)
+
+	expected := []time.Duration{
+		1 * time.Second,
+		2 * time.Second,
+		4 * time.Second,
+		8 * time.Second,
+		16 * time.Second,
+		32 * time.Second,
+		64 * time.Second,
+		128 * time.Second,
+	}
+	for len(expected) < maxLLMRetryIters {
+		expected = append(expected, 3*time.Minute)
+	}
+	require.Equal(t, expected, delays)
 }
 
 func TestTokenCompression(t *testing.T) {
@@ -193,24 +82,21 @@ func TestTokenCompression(t *testing.T) {
 		},
 		[]any{
 			// 1. Initial request. Return a tool call and establish the anchor token count.
-			createToolCallResponse(150, "id1", "tick", nil),
+			createToolCallResponse(150, "id1", "tick"),
 			// 2. Second request. Return another tool call and report total tokens 260.
 			// This means delta = 260 - 150 = 110. Since 110 > compressTokensValue (100), compression triggers!
-			createToolCallResponse(260, "id2", "tick", nil),
+			createToolCallResponse(260, "id2", "tick"),
 			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model).
 			// We return the compressed summary.
-			&genai.GenerateContentResponse{
-				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-					PromptTokenCount:     260,
-					CandidatesTokenCount: 10,
+			&backend.GenerateResponse{
+				UsageMetadata: &backend.UsageMetadata{
+					InputTokens:  260,
+					OutputTokens: 10,
 				},
-				Candidates: []*genai.Candidate{{
-					Content: &genai.Content{
-						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
-						Role:  genai.RoleModel,
-					}}}},
+				Parts: []backend.Part{{Text: "compressed summary"}},
+			},
 			// 4. The main agent resumes with the truncated history. We finish the workflow.
-			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (*genai.GenerateContentResponse, error) {
+			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
 				// Assert that the history was correctly truncated!
 				assert.Equal(t, 2, len(req), "History should be truncated to just Anchor and Summary")
 
@@ -220,16 +106,13 @@ func TestTokenCompression(t *testing.T) {
 				// Assert Summary is correctly formatted.
 				assert.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
 					req[1].Parts[0].Text)
-				return &genai.GenerateContentResponse{
-					UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-						PromptTokenCount:     20, // tokens dropped after compression
-						CandidatesTokenCount: 10,
+				return &backend.GenerateResponse{
+					UsageMetadata: &backend.UsageMetadata{
+						InputTokens:  20, // tokens dropped after compression
+						OutputTokens: 10,
 					},
-					Candidates: []*genai.Candidate{{
-						Content: &genai.Content{
-							Parts: []*genai.Part{genai.NewPartFromText("Done")},
-							Role:  genai.RoleModel,
-						}}}}, nil
+					Parts: []backend.Part{{Text: "Done"}},
+				}, nil
 			},
 		},
 		nil,
@@ -262,137 +145,33 @@ func TestTokenCompressionResetsHistory(t *testing.T) {
 			},
 		},
 		[]any{
-			createToolCallResponse(150, "id1", "tick", nil),
-			createToolCallResponse(150, "id2", "tick", nil),
-			createToolCallResponse(260, "id3", "tick", nil),
-			&genai.GenerateContentResponse{
-				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-					PromptTokenCount:     260,
-					CandidatesTokenCount: 10,
+			createToolCallResponse(150, "id1", "tick"),
+			createToolCallResponse(150, "id2", "tick"),
+			createToolCallResponse(260, "id3", "tick"),
+			&backend.GenerateResponse{
+				UsageMetadata: &backend.UsageMetadata{
+					InputTokens:  260,
+					OutputTokens: 10,
 				},
-				Candidates: []*genai.Candidate{{
-					Content: &genai.Content{
-						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
-						Role:  genai.RoleModel,
-					}}}},
-			createToolCallResponse(50, "id4", "tick", nil),
-			genai.NewPartFromText("Done"),
+				Parts: []backend.Part{{Text: "compressed summary"}},
+			},
+			createToolCallResponse(50, "id4", "tick"),
+			backend.Part{Text: "Done"},
 		},
 		nil,
 	)
 	require.Equal(t, 4, toolExecutionCount, "toolHistory was not reset on compression!")
 }
 
-// TestTokenCompressionPreservesSuffix verifies that context compression keeps the most recent chat history
-// suffix whose token usage fits into preserveTokens.
-func TestTokenCompressionPreservesSuffix(t *testing.T) {
-	type flowOutputs struct {
-		Reply string
-	}
-	type toolResults struct {
-		ResFoo int `jsonschema:"foo"`
-	}
-	type tickArgs struct {
-		ID int `jsonschema:"id"`
-	}
-	testFlow[struct{}, flowOutputs](t, nil,
-		map[string]any{"Reply": "Done"},
-		&LLMAgent{
-			Reply: "Reply",
-			Tools: []Tool{
-				NewFuncTool("tick", func(ctx *Context, state struct{}, args tickArgs) (toolResults, error) {
-					return toolResults{123}, nil
-				}, "logic ticker"),
-			},
+func createToolCallResponse(tokens int, id, name string) *backend.GenerateResponse {
+	return &backend.GenerateResponse{
+		UsageMetadata: &backend.UsageMetadata{
+			InputTokens:  tokens,
+			OutputTokens: 10,
 		},
-		[]any{
-			// Req 0: Anchor prompt
-			// Req 1 (Tool): 10,000 tokens
-			createToolCallResponse(10000, "id1", "tick", map[string]any{"ID": 1}),
-			// Req 2 (Tool Result)
-			// Req 3 (Tool): 20,000 tokens
-			createToolCallResponse(20000, "id2", "tick", map[string]any{"ID": 2}),
-			// Req 4 (Tool Result)
-			// Req 5 (Tool): 140,000 tokens
-			createToolCallResponse(140000, "id3", "tick", map[string]any{"ID": 3}),
-			// Req 6 (Tool Result)
-			// Req 7 (Tool): 150,000 tokens
-			createToolCallResponse(150000, "id4", "tick", map[string]any{"ID": 4}),
-			// Req 8 (Tool Result)
-			// Req 9 (Tool): 159,000 tokens
-			createToolCallResponse(159000, "id5", "tick", map[string]any{"ID": 5}),
-			// Req 10 (Tool Result)
-			// Req 11 (Tool): 165,000 tokens -> Triggers compression!
-			// 165,000 - 10,000 = 155,000 > 150,000 (default compressTokens limit).
-			// We have 12 elements (0 to 11) plus the tool result for 11 (Req 12).
-			// Default preserve limit is 20,000.
-			// Req 5: 165,000 - 140,000 = 25,000 > 20,000
-			// Req 7: 165,000 - 150,000 = 15,000 <= 20,000. splitIndex = 7.
-			// The history will be: [Req 0] + [Summary of Req 1..6] + [Req 7, 8, 9, 10, 11, 12]. Length = 8.
-			createToolCallResponse(165000, "id6", "tick", map[string]any{"ID": 6}),
-
-			// Compressor response:
-			&genai.GenerateContentResponse{
-				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-					PromptTokenCount:     165000,
-					CandidatesTokenCount: 10,
-				},
-				Candidates: []*genai.Candidate{{
-					Content: &genai.Content{
-						Parts: []*genai.Part{genai.NewPartFromText("compressed summary")},
-						Role:  genai.RoleModel,
-					}}}},
-
-			// After compression, the agent executes again with the truncated history.
-			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (*genai.GenerateContentResponse, error) {
-				// We expect Anchor + Summary + Req 7..12
-				require.Equal(t, 8, len(req), "History should be truncated to Anchor, Summary, and preserved suffix")
-				assert.Equal(t, "Prompt", req[0].Parts[0].Text)
-				assert.Equal(t,
-					"Here is the summary of the previous execution history:\n\ncompressed summary",
-					req[1].Parts[0].Text)
-				// Req 7
-				assert.Equal(t, "tick", req[2].Parts[0].FunctionCall.Name)
-				// Req 8
-				assert.Equal(t, "tick", req[3].Parts[0].FunctionResponse.Name)
-				// Req 9
-				assert.Equal(t, "tick", req[4].Parts[0].FunctionCall.Name)
-				// Req 10
-				assert.Equal(t, "tick", req[5].Parts[0].FunctionResponse.Name)
-				// Req 11
-				assert.Equal(t, "tick", req[6].Parts[0].FunctionCall.Name)
-				// Req 12
-				assert.Equal(t, "tick", req[7].Parts[0].FunctionResponse.Name)
-
-				return &genai.GenerateContentResponse{
-					UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-						PromptTokenCount:     50,
-						CandidatesTokenCount: 10,
-					},
-					Candidates: []*genai.Candidate{{
-						Content: &genai.Content{
-							Parts: []*genai.Part{genai.NewPartFromText("Done")},
-							Role:  genai.RoleModel,
-						}}}}, nil
-			},
+		Parts: []backend.Part{
+			{FunctionCall: &backend.FunctionCall{ID: id, Name: name}},
 		},
-		nil,
-	)
-}
-
-func createToolCallResponse(tokens int32, id, name string, args map[string]any) *genai.GenerateContentResponse {
-	return &genai.GenerateContentResponse{
-		UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-			PromptTokenCount:     tokens,
-			CandidatesTokenCount: 10,
-		},
-		Candidates: []*genai.Candidate{{
-			Content: &genai.Content{
-				Parts: []*genai.Part{
-					{FunctionCall: &genai.FunctionCall{ID: id, Name: name, Args: args}},
-				},
-				Role: genai.RoleModel,
-			}}},
 	}
 }
 
@@ -416,9 +195,9 @@ func TestSetResultsToolIsNotLast(t *testing.T) {
 			},
 		},
 		[]any{
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool"}},
-			genai.NewPartFromText("Done"),
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "tool"}},
+			backend.Part{Text: "Done"},
 		},
 		nil,
 	)
@@ -437,7 +216,7 @@ func TestOnlyStructuredOutputs(t *testing.T) {
 			Outputs: LLMOutputs[flowResults](),
 		},
 		[]any{
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
 		},
 		nil,
 	)
@@ -463,8 +242,8 @@ func TestNilToolArg(t *testing.T) {
 			},
 		},
 		[]any{
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "swiss-knife", Args: map[string]any{"Optional": nil}}},
-			genai.NewPartFromText("Result"),
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "swiss-knife", Args: map[string]any{"Optional": nil}}},
+			backend.Part{Text: "Result"},
 		},
 		nil,
 	)
@@ -486,7 +265,7 @@ func TestToolInPrompt(t *testing.T) {
 			},
 		},
 		[]any{
-			genai.NewPartFromText("Ignored"),
+			backend.Part{Text: "Ignored"},
 		},
 		nil,
 	)
@@ -564,12 +343,8 @@ func TestOutputOverflow(t *testing.T) {
 		Result string
 		Output int
 	}
-	overflowResp := &genai.GenerateContentResponse{
-		Candidates: []*genai.Candidate{{
-			FinishReason: genai.FinishReasonMaxTokens,
-		}},
-	}
-	testFlow[struct{}, flowResults](t, nil, "model: "+string(genai.FinishReasonMaxTokens),
+	overflowErr := &backend.OutputTokenOverflowError{Err: errors.New("MAX_TOKENS")}
+	testFlow[struct{}, flowResults](t, nil, "MAX_TOKENS",
 		&LLMAgent{
 			Reply: "Result",
 			Outputs: LLMOutputs[struct {
@@ -578,17 +353,17 @@ func TestOutputOverflow(t *testing.T) {
 		},
 		[]any{
 			// First return few overflow errors. The framework should reduce amount of thinking.
-			overflowResp,
-			overflowResp,
-			overflowResp,
+			overflowErr,
+			overflowErr,
+			overflowErr,
 			// But in the end the invocation succeeds.
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Output": 42}}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "set-results", Args: map[string]any{"Output": 42}}},
 			// The framework should reset the thinking level back to HIGH for the new request.
 			// The request fails even with minimal level of thinking.
-			overflowResp,
-			overflowResp,
-			overflowResp,
-			overflowResp,
+			overflowErr,
+			overflowErr,
+			overflowErr,
+			overflowErr,
 		},
 		nil,
 	)
@@ -629,9 +404,9 @@ func TestValidatedLLMOutputs(t *testing.T) {
 		},
 		[]any{
 			// First try returns an invalid result.
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
 			// Second try returns a result that is modified by the validation function.
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 100}}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 100}}},
 		},
 		nil,
 	)
@@ -687,8 +462,8 @@ func TestValidatedLLMReply(t *testing.T) {
 			}),
 		},
 		[]any{
-			genai.NewPartFromText("reply1"),
-			genai.NewPartFromText("reply2"),
+			backend.Part{Text: "reply1"},
+			backend.Part{Text: "reply2"},
 		},
 		nil,
 	)
@@ -706,23 +481,20 @@ func TestModelFallbackTrajectory(t *testing.T) {
 		map[string]any{"Reply": "Done"},
 		&LLMAgent{
 			Name:     "smarty",
-			Model:    "model1,model2",
+			Model:    "fallback-pool",
 			Reply:    "Reply",
 			TaskType: FormalReasoningTask,
 		},
 		[]any{
-			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
-				*genai.GenerateContentResponse, error) {
+			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+				*backend.GenerateResponse, error) {
 				if model == "model1" {
 					return nil, errors.New("model1 failed (quota limit)")
 				}
 				if model == "model2" {
-					return &genai.GenerateContentResponse{
-						Candidates: []*genai.Candidate{{
-							Content: &genai.Content{
-								Parts: []*genai.Part{genai.NewPartFromText("Done")},
-								Role:  genai.RoleModel,
-							}}}}, nil
+					return &backend.GenerateResponse{
+						Parts: []backend.Part{{Text: "Done"}},
+					}, nil
 				}
 				return nil, fmt.Errorf("unexpected model %q", model)
 			},
