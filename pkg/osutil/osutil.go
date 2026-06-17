@@ -296,18 +296,6 @@ func ParseJSON[T any](data []byte) (T, error) {
 	return v, nil
 }
 
-func JSONDeepCopy[T any](obj T) T {
-	data, err := json.Marshal(obj)
-	if err != nil {
-		panic(err)
-	}
-	var copy T
-	if err := json.Unmarshal(data, &copy); err != nil {
-		panic(err)
-	}
-	return copy
-}
-
 func WriteGzipStream(filename string, reader io.Reader) error {
 	f, err := os.Create(filename)
 	if err != nil {

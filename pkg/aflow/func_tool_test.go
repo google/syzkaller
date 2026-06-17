@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/genai"
 )
 
 func TestToolErrors(t *testing.T) {
@@ -35,8 +35,8 @@ func TestToolErrors(t *testing.T) {
 			},
 		},
 		[]any{
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id0",
 					Name: "faulty",
 					Args: map[string]any{
@@ -44,8 +44,8 @@ func TestToolErrors(t *testing.T) {
 					},
 				},
 			},
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id0",
 					Name: "faulty",
 					Args: map[string]any{
@@ -64,20 +64,20 @@ func TestToolLoopDetection(t *testing.T) {
 
 	// The first 3 identical calls should be allowed.
 	for range defaultLoopDetectionLimit {
-		call := &genai.FunctionCall{Name: "test-tool", Args: args}
+		call := &backend.FunctionCall{Name: "test-tool", Args: args}
 		err := session.recordAndCheckDuplicate(call)
 		require.NoError(t, err)
 	}
 
 	// The 4th identical call should be detected as a duplicate.
-	call := &genai.FunctionCall{Name: "test-tool", Args: args}
+	call := &backend.FunctionCall{Name: "test-tool", Args: args}
 	err := session.recordAndCheckDuplicate(call)
 	var badCallErr *badCallError
 	require.ErrorAs(t, err, &badCallErr)
 	require.Contains(t, err.Error(), "repeating the same tool call")
 
 	// A different call should not be detected as a duplicate.
-	diffCall := &genai.FunctionCall{Name: "diff-tool", Args: args}
+	diffCall := &backend.FunctionCall{Name: "diff-tool", Args: args}
 	err = session.recordAndCheckDuplicate(diffCall)
 	require.NoError(t, err, "unexpected error on different call: %v", err)
 }
@@ -87,6 +87,7 @@ func TestToolHistorySequentialLeak(t *testing.T) {
 	toolExecutionCount := 0
 	agent := &LLMAgent{
 		Name:  "test-agent",
+		Model: "model",
 		Reply: "Done",
 		Tools: []Tool{
 			NewFuncTool("test-tool", func(ctx *Context, state struct{},
@@ -100,48 +101,36 @@ func TestToolHistorySequentialLeak(t *testing.T) {
 	}
 
 	// Run 1 executes 3 parallel identical tool calls (filling history to loop limit).
-	ctx1 := newTestContext(t, func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
-		*genai.GenerateContentResponse, error) {
+	ctx1 := newTestContext(t, func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+		*backend.GenerateResponse, error) {
 		if len(req) == 1 {
-			return &genai.GenerateContentResponse{
-				Candidates: []*genai.Candidate{{Content: &genai.Content{
-					Role: string(genai.RoleModel),
-					Parts: []*genai.Part{
-						{FunctionCall: &genai.FunctionCall{ID: "c1", Name: "test-tool", Args: args}},
-						{FunctionCall: &genai.FunctionCall{ID: "c2", Name: "test-tool", Args: args}},
-						{FunctionCall: &genai.FunctionCall{ID: "c3", Name: "test-tool", Args: args}},
-					},
-				}}},
+			return &backend.GenerateResponse{
+				Parts: []backend.Part{
+					{FunctionCall: &backend.FunctionCall{ID: "c1", Name: "test-tool", Args: args}},
+					{FunctionCall: &backend.FunctionCall{ID: "c2", Name: "test-tool", Args: args}},
+					{FunctionCall: &backend.FunctionCall{ID: "c3", Name: "test-tool", Args: args}},
+				},
 			}, nil
 		}
-		return &genai.GenerateContentResponse{
-			Candidates: []*genai.Candidate{{Content: &genai.Content{
-				Role:  string(genai.RoleModel),
-				Parts: []*genai.Part{{Text: "Done"}},
-			}}},
+		return &backend.GenerateResponse{
+			Parts: []backend.Part{{Text: "Done"}},
 		}, nil
 	})
 
 	require.NoError(t, agent.execute(ctx1), "run 1 failed")
 
 	// Run 2 is a completely fresh run and executes 1 tool call.
-	ctx2 := newTestContext(t, func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
-		*genai.GenerateContentResponse, error) {
+	ctx2 := newTestContext(t, func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+		*backend.GenerateResponse, error) {
 		if len(req) == 1 {
-			return &genai.GenerateContentResponse{
-				Candidates: []*genai.Candidate{{Content: &genai.Content{
-					Role: string(genai.RoleModel),
-					Parts: []*genai.Part{
-						{FunctionCall: &genai.FunctionCall{ID: "c4", Name: "test-tool", Args: args}},
-					},
-				}}},
+			return &backend.GenerateResponse{
+				Parts: []backend.Part{
+					{FunctionCall: &backend.FunctionCall{ID: "c4", Name: "test-tool", Args: args}},
+				},
 			}, nil
 		}
-		return &genai.GenerateContentResponse{
-			Candidates: []*genai.Candidate{{Content: &genai.Content{
-				Role:  string(genai.RoleModel),
-				Parts: []*genai.Part{{Text: "Done"}},
-			}}},
+		return &backend.GenerateResponse{
+			Parts: []backend.Part{{Text: "Done"}},
 		}, nil
 	})
 
@@ -153,8 +142,8 @@ func TestToolHistorySequentialLeak(t *testing.T) {
 }
 
 func newTestContext(t *testing.T,
-	generateContent func(string, *genai.GenerateContentConfig, []*genai.Content) (
-		*genai.GenerateContentResponse, error)) *Context {
+	generateContent func(string, *backend.GenerateConfig, []*backend.Message) (
+		*backend.GenerateResponse, error)) *Context {
 	stub := stubContext{
 		timeNow:         time.Now,
 		generateContent: generateContent,
@@ -164,6 +153,7 @@ func newTestContext(t *testing.T,
 	ctx := context.WithValue(context.Background(), stubContextKey, &stub)
 	return &Context{
 		Context:     ctx,
+		provider:    &dummyProvider{},
 		stubContext: stub,
 		cache:       cache,
 		state:       map[string]any{},

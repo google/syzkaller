@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
@@ -93,7 +94,12 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 		return nil, fmt.Errorf("failed to create aflow cache: %w", err)
 	}
 
-	outputs, err := workflowDesc.Execute(aiCtx, "", "/tmp/aflow-cache", initialState, cache, onEvent)
+	prov, err := gemini.NewProvider(aiCtx, gemini.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gemini provider: %w", err)
+	}
+
+	outputs, err := workflowDesc.Execute(aiCtx, prov, "/tmp/aflow-cache", initialState, cache, onEvent)
 
 	var htmlReport []byte
 	buf := new(bytes.Buffer)

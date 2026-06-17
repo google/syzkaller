@@ -18,33 +18,28 @@
 							"description": "logic ticker",
 							"name": "tick",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ResFoo": {
-										"description": "foo",
-										"type": "integer"
+										"type": "integer",
+										"description": "foo"
 									}
 								},
 								"required": [
 									"ResFoo"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -84,10 +79,10 @@
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -122,10 +117,10 @@
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -147,10 +142,10 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -159,7 +154,7 @@
 		]
 	},
 	{
-		"Model": "gemini-3-flash-preview",
+		"Model": "good-balanced",
 		"Config": {
 			"systemInstruction": {
 				"parts": [
@@ -170,10 +165,7 @@
 				"role": "user"
 			},
 			"temperature": 0.1,
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3
 		},
 		"Request": [
 			{
@@ -200,10 +192,10 @@
 					{
 						"functionResponse": {
 							"id": "id1",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -225,10 +217,10 @@
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -250,10 +242,10 @@
 					{
 						"functionResponse": {
 							"id": "id3",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],
@@ -262,7 +254,7 @@
 			{
 				"parts": [
 					{
-						"text": "\nTask: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response.\nDo NOT use any tools.\n"
+						"text": "Task: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response. Do NOT use any tools."
 					}
 				],
 				"role": "user"
@@ -288,33 +280,28 @@
 							"description": "logic ticker",
 							"name": "tick",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"ResFoo": {
-										"description": "foo",
-										"type": "integer"
+										"type": "integer",
+										"description": "foo"
 									}
 								},
 								"required": [
 									"ResFoo"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -370,10 +357,10 @@
 					{
 						"functionResponse": {
 							"id": "id4",
-							"name": "tick",
 							"response": {
 								"ResFoo": 123
-							}
+							},
+							"name": "tick"
 						}
 					}
 				],

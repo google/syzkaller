@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/genai"
 )
 
 // NewFuncTool creates a new tool based on a custom function that an LLM agent can use.
@@ -47,12 +47,12 @@ type funcTool[State, Args, Results any] struct {
 	Func        func(*Context, State, Args) (Results, error)
 }
 
-func (t *funcTool[State, Args, Results]) declaration() *genai.FunctionDeclaration {
-	return &genai.FunctionDeclaration{
+func (t *funcTool[State, Args, Results]) declaration() *backend.FunctionDeclaration {
+	return &backend.FunctionDeclaration{
 		Name:                 t.Name,
 		Description:          t.Description,
-		ParametersJsonSchema: mustSchemaFor[Args](),
-		ResponseJsonSchema:   mustSchemaFor[Results](),
+		ParametersJSONSchema: mustSchemaFor[Args](),
+		ResponseJSONSchema:   mustSchemaFor[Results](),
 	}
 }
 

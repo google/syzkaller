@@ -18,42 +18,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Result": {
-										"description": "Result",
-										"type": "integer"
+										"type": "integer",
+										"description": "Result"
 									}
 								},
 								"required": [
 									"Result"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Result": {
-										"description": "Result",
-										"type": "integer"
+										"type": "integer",
+										"description": "Result"
 									}
 								},
 								"required": [
 									"Result"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{

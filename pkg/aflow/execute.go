@@ -10,24 +10,20 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
-	"sync"
 	"time"
 	_ "time/tzdata"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/osutil"
-	"google.golang.org/genai"
 )
 
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
-// The model argument overrides Gemini models used to execute LLM agents,
-// if not set, then default models for each agent are used.
 // The workdir argument should point to a dir owned by aflow to store private data,
 // it can be shared across parallel executions in the same process, and preferably
 // preserved across process restarts for caching purposes.
-func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map[string]any,
+func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdir string, inputs map[string]any,
 	cache *Cache, onEvent onEvent) (map[string]any, error) {
 	convertedInputs, err := flow.checkInputs(inputs)
 	if err != nil {
@@ -36,10 +32,15 @@ func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map
 	inputs = convertedInputs
 	inputs = maps.Clone(inputs)
 	maps.Insert(inputs, maps.All(flow.Consts))
+	llmClient, err := provider.Client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize LLM client: %w", err)
+	}
+
 	c := &Context{
 		Context:  ctx,
 		Workdir:  osutil.Abs(workdir),
-		llmModel: model,
+		provider: provider,
 		cache:    cache,
 		state:    inputs,
 		onEvent:  onEvent,
@@ -52,8 +53,14 @@ func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map
 	if c.timeNow == nil {
 		c.timeNow = time.Now
 	}
+	if c.sleep == nil {
+		c.sleep = time.Sleep
+	}
 	if c.generateContent == nil {
-		c.generateContent = c.generateContentGemini
+		c.generateContent = func(model string, cfg *backend.GenerateConfig,
+			req []*backend.Message) (*backend.GenerateResponse, error) {
+			return llmClient.GenerateContent(c.Context, model, cfg, req)
+		}
 	}
 	span := &trajectory.Span{
 		Type: trajectory.SpanFlow,
@@ -115,21 +122,13 @@ func (err *modelQuotaError) Error() string {
 }
 
 func isInputTokenOverflowError(err error) bool {
-	var overflowErr *inputTokenOverflowError
+	var overflowErr *backend.InputTokenOverflowError
 	return errors.As(err, &overflowErr)
-}
-
-type inputTokenOverflowError struct {
-	error
 }
 
 func isOutputTokenOverflowError(err error) bool {
-	var overflowErr *outputTokenOverflowError
+	var overflowErr *backend.OutputTokenOverflowError
 	return errors.As(err, &overflowErr)
-}
-
-type outputTokenOverflowError struct {
-	error
 }
 
 // QuotaResetTime returns the time when RPD quota will be reset
@@ -168,143 +167,13 @@ type (
 )
 
 var (
-	createClientOnce sync.Once
-	createClientErr  error
-	client           *genai.Client
-	modelList        map[string]*modelInfo
-	modelPathPrefix  string
-	stubContextKey   = contextKeyType(1)
+	stubContextKey = contextKeyType(1)
 )
-
-type modelInfo struct {
-	Thinking         bool
-	MaxTemperature   float32
-	InputTokenLimit  int
-	OutputTokenLimit int
-}
-
-func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateContentConfig,
-	req []*genai.Content) (*genai.GenerateContentResponse, error) {
-	createClientOnce.Do(func() {
-		client, modelList, modelPathPrefix, createClientErr = loadModelList(ctx.Context)
-	})
-	if createClientErr != nil {
-		return nil, createClientErr
-	}
-	info := modelList[model]
-	if info == nil {
-		models := slices.Collect(maps.Keys(modelList))
-		slices.Sort(models)
-		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
-	}
-	// Don't alter the original object (that may affect request caching).
-	cfg = osutil.JSONDeepCopy(cfg)
-	*cfg.Temperature = min(*cfg.Temperature, info.MaxTemperature)
-	if !info.Thinking {
-		cfg.ThinkingConfig = nil
-	}
-	// Sometimes LLM requests just hang dead for tens of minutes,
-	// abort them after 10 minutes and retry. We don't stream reply tokens,
-	// so some large requests can take several minutes.
-	timedCtx, cancel := context.WithTimeout(ctx.Context, 10*time.Minute)
-	defer cancel()
-	resp, err := client.Models.GenerateContent(timedCtx, modelPathPrefix+model, req, cfg)
-	if err != nil && timedCtx.Err() == context.DeadlineExceeded {
-		return nil, &retryError{time.Second, err}
-	}
-	return resp, err
-}
-
-func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, string, error) {
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	cloudAPIKey := os.Getenv("GOOGLE_VERTEX_API_KEY")
-	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if (apiKey != "" && project != "") || (apiKey != "" && cloudAPIKey != "") ||
-		(cloudAPIKey != "" && project != "") {
-		return nil, nil, "", fmt.Errorf("only one of GOOGLE_API_KEY, GOOGLE_VERTEX_API_KEY, " +
-			"or GOOGLE_CLOUD_PROJECT can be set")
-	}
-
-	isVertex := cloudAPIKey != "" || project != ""
-	if isVertex {
-		cfg := &genai.ClientConfig{Backend: genai.BackendVertexAI}
-		if cloudAPIKey != "" {
-			cfg.APIKey = cloudAPIKey
-		} else {
-			cfg.Project = project
-			location := os.Getenv("GOOGLE_CLOUD_REGION")
-			if location == "" {
-				location = "global"
-			}
-			cfg.Location = location
-		}
-		client, err := genai.NewClient(ctx, cfg)
-		if err != nil {
-			return nil, nil, "", err
-		}
-		// Vertex AI's Models.All() endpoint often does not return the same detailed
-		// metadata (like InputTokenLimit or SupportedActions) as the Gemini Developer API,
-		// or requires special IAM permissions to list the catalog. Therefore, we hardcode
-		// the known capabilities for the models we actively use.
-		models := map[string]*modelInfo{
-			"gemini-3-flash-preview": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-			"gemini-3.1-pro-preview": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-
-			"gemini-3.5-flash": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-		}
-		// Vertex AI backend expects the bare model name, not prefixed with "models/".
-		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
-		return client, models, "", nil
-	} else if apiKey != "" {
-		client, err := genai.NewClient(ctx, nil)
-		if err != nil {
-			return nil, nil, "", err
-		}
-		models := make(map[string]*modelInfo)
-		for m, err := range client.Models.All(ctx) {
-			if err != nil {
-				return nil, nil, "", err
-			}
-			if !slices.Contains(m.SupportedActions, "generateContent") ||
-				strings.Contains(m.Name, "-image") ||
-				strings.Contains(m.Name, "-audio") {
-				continue
-			}
-			models[strings.TrimPrefix(m.Name, "models/")] = &modelInfo{
-				Thinking:         m.Thinking,
-				MaxTemperature:   m.MaxTemperature,
-				InputTokenLimit:  int(m.InputTokenLimit),
-				OutputTokenLimit: int(m.OutputTokenLimit),
-			}
-		}
-		// Gemini Developer API expects model names to be prefixed with "models/".
-		// E.g. "models/gemini-1.5-pro".
-		prefix := "models/"
-		return client, models, prefix, nil
-	}
-	return nil, nil, "", fmt.Errorf("set GOOGLE_API_KEY (Gemini API) " +
-		"or GOOGLE_CLOUD_PROJECT/GOOGLE_VERTEX_API_KEY (Vertex AI)")
-}
 
 type Context struct {
 	Context     context.Context
 	Workdir     string
-	llmModel    string
+	provider    backend.Provider
 	cache       *Cache
 	cachedDirs  []string
 	tempDirs    []string
@@ -317,25 +186,9 @@ type Context struct {
 
 type stubContext struct {
 	timeNow         func() time.Time
-	generateContent func(string, *genai.GenerateContentConfig, []*genai.Content) (
-		*genai.GenerateContentResponse, error)
-}
-
-// modelNames resolves the abstract ModelType configurations to a flattened slice of concrete fallback model names.
-// If a workflow-level model override is configured (via ctx.llmModel), it takes precedence.
-func (ctx *Context) modelNames(m ModelType) []string {
-	if ctx.llmModel != "" {
-		return []string{ctx.llmModel}
-	}
-	switch m {
-	case GoodBalancedModel:
-		return []string{gemini3FlashPreview, gemini35Flash}
-	case BestExpensiveModel:
-		return []string{gemini31ProPreview}
-	default:
-		// E.g. when an explicit model name or test stub is passed directly.
-		return strings.Split(string(m), ",")
-	}
+	sleep           func(time.Duration)
+	generateContent func(string, *backend.GenerateConfig, []*backend.Message) (
+		*backend.GenerateResponse, error)
 }
 
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {

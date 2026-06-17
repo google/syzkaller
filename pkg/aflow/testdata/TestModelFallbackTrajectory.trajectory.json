@@ -11,7 +11,7 @@
 		"Nesting": 1,
 		"Type": "agent",
 		"Name": "smarty",
-		"Model": "model1,model2",
+		"Model": "fallback-pool",
 		"Started": "0001-01-01T00:00:02Z",
 		"Instruction": "Instruction",
 		"Prompt": "Prompt"
@@ -21,7 +21,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
-		"Model": "model1,model2",
+		"Model": "fallback-pool",
 		"Started": "0001-01-01T00:00:03Z"
 	},
 	{
@@ -38,7 +38,7 @@
 		"Nesting": 1,
 		"Type": "agent",
 		"Name": "smarty",
-		"Model": "model2",
+		"Model": "fallback-pool",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:05Z",
 		"Instruction": "Instruction",

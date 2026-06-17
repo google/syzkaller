@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
@@ -31,6 +33,7 @@ func main() {
 		flagInput       = flag.String("input", "", "input json file with workflow arguments")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
+		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (e.g. gemini)")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid or id of a bug to download from the dashboard"+
 			" and save into -input file")
@@ -68,6 +71,7 @@ func main() {
 		tool.Fail(err)
 	}
 	if err := run(context.Background(), RunArgs{
+		Provider:   *flagProvider,
 		Model:      *flagModel,
 		FlowName:   *flagFlow,
 		InputFile:  *flagInput,
@@ -81,6 +85,7 @@ func main() {
 }
 
 type RunArgs struct {
+	Provider   string
 	Model      string
 	FlowName   string
 	InputFile  string
@@ -133,7 +138,18 @@ func run(ctx context.Context, args RunArgs) error {
 		return nil
 	}
 
-	output, err := flow.Execute(ctx, args.Model, args.Workdir, inputs, cache, onEventFunc)
+	var provider backend.Provider
+	switch args.Provider {
+	case "gemini":
+		provider, err = gemini.NewProvider(ctx, gemini.Config{ModelOverride: args.Model})
+		if err != nil {
+			return fmt.Errorf("failed to initialize Gemini provider: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown provider %q", args.Provider)
+	}
+
+	output, err := flow.Execute(ctx, provider, args.Workdir, inputs, cache, onEventFunc)
 	if err != nil {
 		return err
 	}

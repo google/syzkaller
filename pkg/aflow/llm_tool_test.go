@@ -4,12 +4,12 @@
 package aflow
 
 import (
-	"net/http"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/genai"
 )
 
 func TestLLMTool(t *testing.T) {
@@ -46,8 +46,8 @@ func TestLLMTool(t *testing.T) {
 		},
 		[]any{
 			// Main agent calls the tool sub-agent.
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id0",
 					Name: "researcher",
 					Args: map[string]any{
@@ -56,8 +56,8 @@ func TestLLMTool(t *testing.T) {
 				},
 			},
 			// Sub-agent calls own tool.
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id1",
 					Name: "researcher-tool",
 					Args: map[string]any{
@@ -66,10 +66,10 @@ func TestLLMTool(t *testing.T) {
 				},
 			},
 			// Sub-agent returns result.
-			genai.NewPartFromText("Nothing."),
+			backend.Part{Text: "Nothing."},
 			// Repeat the same one more time.
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id2",
 					Name: "researcher",
 					Args: map[string]any{
@@ -77,8 +77,8 @@ func TestLLMTool(t *testing.T) {
 					},
 				},
 			},
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id3",
 					Name: "researcher-tool",
 					Args: map[string]any{
@@ -87,8 +87,8 @@ func TestLLMTool(t *testing.T) {
 				},
 			},
 			// Now model input token overflow.
-			&genai.Part{
-				FunctionCall: &genai.FunctionCall{
+			backend.Part{
+				FunctionCall: &backend.FunctionCall{
 					ID:   "id4",
 					Name: "researcher-tool",
 					Args: map[string]any{
@@ -96,13 +96,10 @@ func TestLLMTool(t *testing.T) {
 					},
 				},
 			},
-			genai.APIError{
-				Code:    http.StatusBadRequest,
-				Message: "The input token count exceeds the maximum number of tokens allowed 1048576.",
-			},
-			genai.NewPartFromText("Still nothing."),
+			&backend.InputTokenOverflowError{Err: fmt.Errorf("the input token count exceeds the maximum")},
+			backend.Part{Text: "Still nothing."},
 			// Main returns result.
-			genai.NewPartFromText("YES"),
+			backend.Part{Text: "YES"},
 		},
 		nil,
 	)
@@ -117,8 +114,8 @@ func TestLLMToolMaxIters(t *testing.T) {
 	}
 	replies := []any{
 		// Main agent calls the tool sub-agent.
-		&genai.Part{
-			FunctionCall: &genai.FunctionCall{
+		&backend.Part{
+			FunctionCall: &backend.FunctionCall{
 				ID:   "id0",
 				Name: "researcher",
 				Args: map[string]any{
@@ -129,8 +126,8 @@ func TestLLMToolMaxIters(t *testing.T) {
 	}
 	// Sub-agent calls own tool maxLLMIterations times.
 	for i := range maxLLMIterations {
-		replies = append(replies, &genai.Part{
-			FunctionCall: &genai.FunctionCall{
+		replies = append(replies, &backend.Part{
+			FunctionCall: &backend.FunctionCall{
 				ID:   "id1",
 				Name: "researcher-tool",
 				Args: map[string]any{
@@ -141,9 +138,9 @@ func TestLLMToolMaxIters(t *testing.T) {
 	}
 	replies = append(replies,
 		// Sub-agent returns result.
-		genai.NewPartFromText("Nothing."),
+		backend.Part{Text: "Nothing."},
 		// Main returns result.
-		genai.NewPartFromText("YES"),
+		backend.Part{Text: "YES"},
 	)
 	testFlow[struct{}, outputs](t, nil, map[string]any{"Reply": "YES"},
 		&LLMAgent{

@@ -18,42 +18,37 @@
 							"description": "researcher description",
 							"name": "researcher",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Question": {
-										"description": "Question you have.",
-										"type": "string"
+										"type": "string",
+										"description": "Question you have."
 									}
 								},
 								"required": [
 									"Question"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Answer": {
-										"description": "Answer to your question.",
-										"type": "string"
+										"type": "string",
+										"description": "Answer to your question."
 									}
 								},
 								"required": [
 									"Answer"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -85,33 +80,28 @@
 							"description": "researcher-tool description",
 							"name": "researcher-tool",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Something": {
-										"description": "something",
-										"type": "string"
+										"type": "string",
+										"description": "something"
 									}
 								},
 								"required": [
 									"Something"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -147,7 +137,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -181,42 +171,37 @@
 							"description": "researcher description",
 							"name": "researcher",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Question": {
-										"description": "Question you have.",
-										"type": "string"
+										"type": "string",
+										"description": "Question you have."
 									}
 								},
 								"required": [
 									"Question"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Answer": {
-										"description": "Answer to your question.",
-										"type": "string"
+										"type": "string",
+										"description": "Answer to your question."
 									}
 								},
 								"required": [
 									"Answer"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -239,17 +224,17 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id0",
-							"name": "researcher",
 							"response": {
 								"Answer": "Nothing."
-							}
+							},
+							"name": "researcher"
 						}
 					}
 				],
@@ -276,33 +261,28 @@
 							"description": "researcher-tool description",
 							"name": "researcher-tool",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Something": {
-										"description": "something",
-										"type": "string"
+										"type": "string",
+										"description": "something"
 									}
 								},
 								"required": [
 									"Something"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
+								"type": "object",
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -338,7 +318,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -376,7 +356,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -401,7 +381,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -428,45 +408,8 @@
 				"role": "user"
 			},
 			"temperature": 0.3,
-			"tools": [
-				{
-					"functionDeclarations": [
-						{
-							"description": "researcher-tool description",
-							"name": "researcher-tool",
-							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"properties": {
-									"Something": {
-										"description": "something",
-										"type": "string"
-									}
-								},
-								"required": [
-									"Something"
-								],
-								"type": "object"
-							},
-							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
-							}
-						}
-					]
-				}
-			],
-			"toolConfig": {
-				"functionCallingConfig": {
-					"mode": "NONE"
-				}
-			},
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -489,7 +432,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -514,7 +457,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -545,42 +488,37 @@
 							"description": "researcher description",
 							"name": "researcher",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Question": {
-										"description": "Question you have.",
-										"type": "string"
+										"type": "string",
+										"description": "Question you have."
 									}
 								},
 								"required": [
 									"Question"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Answer": {
-										"description": "Answer to your question.",
-										"type": "string"
+										"type": "string",
+										"description": "Answer to your question."
 									}
 								},
 								"required": [
 									"Answer"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -603,17 +541,17 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id0",
-							"name": "researcher",
 							"response": {
 								"Answer": "Nothing."
-							}
+							},
+							"name": "researcher"
 						}
 					}
 				],
@@ -631,17 +569,17 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
 							"id": "id2",
-							"name": "researcher",
 							"response": {
 								"Answer": "Still nothing."
-							}
+							},
+							"name": "researcher"
 						}
 					}
 				],

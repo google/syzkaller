@@ -18,42 +18,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -85,42 +80,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "MEDIUM"
-			}
+			"thinkingLevel": 2,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -152,42 +142,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "LOW"
-			}
+			"thinkingLevel": 1,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -219,42 +204,36 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "MINIMAL"
-			}
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -286,42 +265,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "HIGH"
-			}
+			"thinkingLevel": 3,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -343,16 +317,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Output": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -379,42 +353,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "MEDIUM"
-			}
+			"thinkingLevel": 2,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -436,16 +405,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Output": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -472,42 +441,37 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "LOW"
-			}
+			"thinkingLevel": 1,
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -529,16 +493,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Output": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
@@ -565,42 +529,36 @@
 							"description": "Use this tool to provide results of the analysis.",
 							"name": "set-results",
 							"parametersJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							},
 							"responseJsonSchema": {
-								"additionalProperties": false,
+								"type": "object",
 								"properties": {
 									"Output": {
-										"description": "Some output.",
-										"type": "integer"
+										"type": "integer",
+										"description": "Some output."
 									}
 								},
 								"required": [
 									"Output"
 								],
-								"type": "object"
+								"additionalProperties": false
 							}
 						}
 					]
 				}
 			],
-			"responseModalities": [
-				"TEXT"
-			],
-			"thinkingConfig": {
-				"includeThoughts": true,
-				"thinkingLevel": "MINIMAL"
-			}
+			"includeThoughts": true
 		},
 		"Request": [
 			{
@@ -622,16 +580,16 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "set-results",
 							"response": {
 								"Output": 42
-							}
+							},
+							"name": "set-results"
 						}
 					}
 				],
