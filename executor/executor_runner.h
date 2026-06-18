@@ -533,7 +533,8 @@ private:
 			// to the caller for analysis. Don't print SYZFAIL in these requests,
 			// otherwise it will be detected as a bug.
 			if (msg_ && IsSet(msg_->flags, rpc::RequestFlag::ReturnError)) {
-				while (char* syzfail = strstr(output, "SYZFAIL"))
+				char* syzfail = strstr(output, "SYZFAIL");
+				if (syzfail)
 					memcpy(syzfail, "NOTFAIL", strlen("NOTFAIL"));
 			}
 			debug("proc %d: got output: %s%s", id_, output, has_nl ? "" : "\n");
