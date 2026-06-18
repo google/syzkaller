@@ -226,7 +226,16 @@ jobs:
           path: /syzkaller/.cache
           key: ${{ runner.os }}-syzenv-
       - name: run
+        env:
+          SyzCoverDir: ${{ github.workspace }}/gvisor_gocover
+          SyzCoverProfile: ${{ github.workspace }}/gvisor.coverprofile
         run: |
           cd gopath/src/github.com/google/syzkaller
-          make
+          make GO_COVER_FLAGS=-cover
           .github/workflows/run.sh bash -xe tools/gvisor-smoke-test.sh
+      - name: upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-gvisor
+          path: gvisor.coverprofile
+          include-hidden-files: true
