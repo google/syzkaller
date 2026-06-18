@@ -108,7 +108,7 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	if inputs == nil {
 		inputs = map[string]any{}
 	}
-	got, err := flows["test"].Execute(ctx, &dummyProvider{}, workdir, inputs, cache, onEvent)
+	got, err := flows["test"].Execute(ctx, &dummyProvider{}, workdir, false, inputs, cache, onEvent)
 	switch result := result.(type) {
 	case map[string]any:
 		require.NoError(t, err)

@@ -38,6 +38,7 @@ type RunnerManager struct {
 
 	reporter *report.Reporter
 
+	debug  bool
 	readyC chan struct{}
 
 	crashes []*report.Report
@@ -45,7 +46,7 @@ type RunnerManager struct {
 	ctx context.Context
 }
 
-func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config) (*RunnerManager, error) {
+func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool) (*RunnerManager, error) {
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reporter: %w", err)
@@ -54,6 +55,7 @@ func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config) (*RunnerManage
 	rm := &RunnerManager{
 		cfg:      cfg,
 		reporter: reporter,
+		debug:    debug,
 		source:   queue.Plain(),
 		readyC:   make(chan struct{}),
 		ctx:      ctx,
@@ -66,7 +68,7 @@ func (rm *RunnerManager) Loop() error {
 		Config:  rm.cfg,
 		Manager: rm,
 		Stats:   rpcserver.NewNamedStats("aflow-runner"),
-		Debug:   false,
+		Debug:   rm.debug,
 	}
 	backend, err := execbackend.New(rpcCfg)
 	if err != nil {
@@ -82,7 +84,7 @@ func (rm *RunnerManager) Loop() error {
 	rm.backend = backend
 	defer rm.backend.Close()
 
-	vmPool, err := vm.Create(rm.cfg, false)
+	vmPool, err := vm.Create(rm.cfg, rm.debug)
 	if err != nil {
 		return fmt.Errorf("failed to create vm.Pool: %w", err)
 	}
@@ -227,7 +229,7 @@ func (rm *RunnerManager) MachineChecked(
 		return nil
 	}
 
-	opts := fuzzer.DefaultExecOpts(rm.cfg, features, false)
+	opts := fuzzer.DefaultExecOpts(rm.cfg, features, rm.debug)
 	src := queue.DefaultOpts(rm.source, opts)
 	rm.backend.SetSource(src)
 

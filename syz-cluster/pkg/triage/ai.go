@@ -102,7 +102,7 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
 
-	outputs, err := workflowDesc.Execute(aiCtx, provider, "/tmp/aflow-cache", initialState, cache, onEvent)
+	outputs, err := workflowDesc.Execute(aiCtx, provider, "/tmp/aflow-cache", false, initialState, cache, onEvent)
 
 	var htmlReport []byte
 	buf := new(bytes.Buffer)
