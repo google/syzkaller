@@ -42,6 +42,7 @@ func main() {
 			" gcloud auth application-default login)")
 		flagHTML   = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
 		flagOutput = flag.String("output", "", "save final workflow output to this JSON file")
+		flagDebug  = flag.Bool("debug", false, "enable runner debug logging")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -80,6 +81,7 @@ func main() {
 		HTMLFile:   *flagHTML,
 		OutputFile: *flagOutput,
 		CacheSize:  cacheSize,
+		Debug:      *flagDebug,
 	}); err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
@@ -94,6 +96,7 @@ type RunArgs struct {
 	HTMLFile   string
 	OutputFile string
 	CacheSize  uint64
+	Debug      bool
 }
 
 func run(ctx context.Context, args RunArgs) error {
@@ -150,7 +153,7 @@ func run(ctx context.Context, args RunArgs) error {
 		return err
 	}
 
-	output, err := flow.Execute(ctx, provider, args.Workdir, inputs, cache, onEventFunc)
+	output, err := flow.Execute(ctx, provider, args.Workdir, args.Debug, inputs, cache, onEventFunc)
 	if err != nil {
 		return err
 	}

@@ -26,8 +26,8 @@ import (
 // The workdir argument should point to a dir owned by aflow to store private data,
 // it can be shared across parallel executions in the same process, and preferably
 // preserved across process restarts for caching purposes.
-func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdir string, inputs map[string]any,
-	cache *Cache, onEvent onEvent) (map[string]any, error) {
+func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdir string, debug bool,
+	inputs map[string]any, cache *Cache, onEvent onEvent) (map[string]any, error) {
 	convertedInputs, err := flow.checkInputs(inputs)
 	if err != nil {
 		return nil, fmt.Errorf("flow inputs are missing: %w", err)
@@ -41,12 +41,13 @@ func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdi
 	}
 
 	c := &Context{
-		Context:  ctx,
-		Workdir:  osutil.Abs(workdir),
-		provider: provider,
-		cache:    cache,
-		state:    inputs,
-		onEvent:  onEvent,
+		Context:     ctx,
+		Workdir:     osutil.Abs(workdir),
+		provider:    provider,
+		cache:       cache,
+		state:       inputs,
+		onEvent:     onEvent,
+		runnerDebug: debug,
 	}
 
 	defer c.Close()
@@ -188,6 +189,7 @@ type Context struct {
 	runnerManager *RunnerManager
 	runnerEg      *errgroup.Group
 	runnerCancel  context.CancelFunc
+	runnerDebug   bool
 	stubContext
 }
 
@@ -308,7 +310,7 @@ func (ctx *Context) GetRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, err
 	runnerCtx, cancel := context.WithCancel(ctx.Context)
 	eg, egCtx := errgroup.WithContext(runnerCtx)
 
-	rm, err := newRunnerManager(egCtx, cfg)
+	rm, err := newRunnerManager(egCtx, cfg, ctx.runnerDebug)
 	if err != nil {
 		cancel()
 		return nil, err
