@@ -38,25 +38,6 @@ func New(cfg *rpcserver.RemoteConfig) (Server, error) {
 func (b *rpcBackend) RunRequests(ctx context.Context, inst *vm.Instance,
 	reporter *report.Reporter, updInfo dispatcher.UpdateInfo) (
 	[]*report.Report, error) {
-	injectExec := make(chan bool, 10)
-	rpcUpdInfo := func(cb func(info *rpcserver.RunnerInfo)) {
-		if updInfo != nil {
-			updInfo(func(info *dispatcher.Info) {
-				runnerInfo := &rpcserver.RunnerInfo{
-					Status:         info.Status,
-					DetailedStatus: info.DetailedStatus,
-					MachineInfo:    info.MachineInfo,
-				}
-				cb(runnerInfo)
-				info.Status = runnerInfo.Status
-				info.DetailedStatus = runnerInfo.DetailedStatus
-				info.MachineInfo = runnerInfo.MachineInfo
-			})
-		}
-	}
-
-	b.CreateInstance(inst.Index(), injectExec, rpcUpdInfo)
-
 	var err error
 	var fwdAddr string
 	if !b.cfg.VMLess {
@@ -84,6 +65,25 @@ func (b *rpcBackend) RunRequests(ctx context.Context, inst *vm.Instance,
 		}
 		cmd = fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	}
+
+	injectExec := make(chan bool, 10)
+	rpcUpdInfo := func(cb func(info *rpcserver.RunnerInfo)) {
+		if updInfo != nil {
+			updInfo(func(info *dispatcher.Info) {
+				runnerInfo := &rpcserver.RunnerInfo{
+					Status:         info.Status,
+					DetailedStatus: info.DetailedStatus,
+					MachineInfo:    info.MachineInfo,
+				}
+				cb(runnerInfo)
+				info.Status = runnerInfo.Status
+				info.DetailedStatus = runnerInfo.DetailedStatus
+				info.MachineInfo = runnerInfo.MachineInfo
+			})
+		}
+	}
+
+	b.CreateInstance(inst.Index(), injectExec, rpcUpdInfo)
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, b.cfg.Timeouts.VMRunningTime)
 	defer cancel()
