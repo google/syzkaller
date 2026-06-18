@@ -63,6 +63,11 @@ func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool) (*
 	return rm, nil
 }
 
+// Config returns the configuration used to initialize the RunnerManager.
+func (rm *RunnerManager) Config() *mgrconfig.Config {
+	return rm.cfg
+}
+
 func (rm *RunnerManager) Loop() error {
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,
