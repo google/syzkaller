@@ -300,12 +300,17 @@ func (ctx *Context) finishSpan(span *trajectory.Span, spanErr error) error {
 	return err
 }
 
-// GetRunnerManager returns the context's continuous RunnerManager, initializing it if necessary.
-func (ctx *Context) GetRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, error) {
+var (
+	ErrRunnerNotInitialized     = errors.New("RunnerManager is not initialized (requires configure-runner)")
+	ErrRunnerAlreadyInitialized = errors.New("RunnerManager is already initialized")
+)
+
+// InitRunnerManager initializes the continuous RunnerManager. It must be called exactly once per flow.
+func (ctx *Context) InitRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, error) {
 	ctx.runnerMu.Lock()
 	defer ctx.runnerMu.Unlock()
 	if ctx.runnerManager != nil {
-		return ctx.runnerManager, nil
+		return nil, ErrRunnerAlreadyInitialized
 	}
 	runnerCtx, cancel := context.WithCancel(ctx.Context)
 	eg, egCtx := errgroup.WithContext(runnerCtx)
@@ -325,4 +330,14 @@ func (ctx *Context) GetRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, err
 	})
 
 	return rm, nil
+}
+
+// GetRunnerManager returns the initialized RunnerManager, or an error if it hasn't been configured.
+func (ctx *Context) GetRunnerManager() (*RunnerManager, error) {
+	ctx.runnerMu.Lock()
+	defer ctx.runnerMu.Unlock()
+	if ctx.runnerManager == nil {
+		return nil, ErrRunnerNotInitialized
+	}
+	return ctx.runnerManager, nil
 }
