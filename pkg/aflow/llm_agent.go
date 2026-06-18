@@ -366,7 +366,7 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 			return "", nil, err
 		}
 		addNewSummary := a.slide()
-		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate)
+		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate, a.Model)
 
 		if resp != nil && resp.UsageMetadata != nil {
 			lastInputTokens = int(resp.UsageMetadata.PromptTokenCount)
@@ -527,7 +527,7 @@ func (a *agentSession) compressContext(ctx *Context, instruction string) (*genai
 		genai.RoleUser,
 	))
 
-	resp, err := a.generateContent(ctx, cfg, compressReq, 0)
+	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel)
 	if err != nil {
 		return nil, ctx.finishSpan(span, err)
 	}
@@ -760,11 +760,11 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 }
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate int, model string) (*genai.GenerateContentResponse, error) {
 	// Copy the config in case we modify it below.
 	cfg = osutil.JSONDeepCopy(cfg)
 	for try := 0; ; try++ {
-		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try)
+		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try, model)
 		if retryErr := new(retryError); errors.As(err, &retryErr) {
 			time.Sleep(retryErr.delay)
 			continue
@@ -792,13 +792,13 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 }
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate, try int) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate, try int, model string) (*genai.GenerateContentResponse, error) {
 	type Cached struct {
 		Config  *genai.GenerateContentConfig
 		Request []*genai.Content
 		Reply   *genai.GenerateContentResponse
 	}
-	model := ctx.modelName(a.Model)
+	model = ctx.modelName(model)
 	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
 		model, hash.String(cfg), hash.String(req), candidate)
 	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {

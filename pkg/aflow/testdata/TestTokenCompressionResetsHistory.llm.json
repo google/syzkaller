@@ -159,7 +159,7 @@
 		]
 	},
 	{
-		"Model": "model",
+		"Model": "gemini-3-flash-preview",
 		"Config": {
 			"systemInstruction": {
 				"parts": [
