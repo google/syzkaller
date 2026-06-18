@@ -79,7 +79,7 @@ func setupLocal(ctx context.Context, cfg *LocalConfig) (*local, context.Context,
 		setupDone: make(chan bool),
 	}
 	serv := newImpl(&cfg.Config, localCtx)
-	if err := serv.Setup(); err != nil {
+	if err := serv.Listen(); err != nil {
 		return nil, nil, err
 	}
 	localCtx.serv = serv
@@ -110,8 +110,16 @@ func cancelOnInterrupts(ctx context.Context) context.Context {
 
 type local struct {
 	cfg       *LocalConfig
-	serv      *server
+	serv      Server
 	setupDone chan bool
+}
+
+func (l *local) SetSource(source queue.Source) {
+	l.serv.SetSource(source)
+}
+
+func (l *local) Features() flatrpc.Feature {
+	return l.serv.Features()
 }
 
 func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
