@@ -150,6 +150,8 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 		case <-ctx.Done():
 			return
 		}
+	} else if ctx.Err() != nil {
+		return
 	}
 
 	inst.status(StateRunning)
