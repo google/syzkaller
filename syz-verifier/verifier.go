@@ -472,10 +472,10 @@ func (kernel *Kernel) runInstance(ctx context.Context, inst *vm.Instance,
 }
 
 func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) error {
+	enabledSyscalls map[*prog.Syscall]bool) (queue.Source, error) {
 	if len(enabledSyscalls) == 0 {
 		log.Logf(0, "no syscalls enabled for kernel %s", kernel.cfg.Name)
-		return nil
+		return nil, nil
 	}
 	log.Logf(0, "kernel %s: sending enabled syscalls: %v", kernel.cfg.Name, enabledSyscalls)
 	kernel.enabledSyscalls <- enabledSyscalls
@@ -488,8 +488,7 @@ func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
 	kernel.mu.Lock()
 	kernel.queueConfigured = true
 	kernel.mu.Unlock()
-	kernel.serv.SetSource(kernel.source)
-	return nil
+	return kernel.source, nil
 }
 
 func (kernel *Kernel) loop(ctx context.Context) {

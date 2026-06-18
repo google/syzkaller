@@ -114,19 +114,10 @@ type local struct {
 	setupDone chan bool
 }
 
-func (l *local) SetSource(source queue.Source) {
-	l.serv.SetSource(source)
-}
-
-func (l *local) Features() flatrpc.Feature {
-	return l.serv.Features()
-}
-
-func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
+func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {
 	<-l.setupDone
 	l.serv.TriagedCorpus()
-	l.serv.SetSource(l.cfg.MachineChecked(features, syscalls))
-	return nil
+	return l.cfg.MachineChecked(features, syscalls), nil
 }
 
 func (l *local) BugFrames() ([]string, []string) {

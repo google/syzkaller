@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -159,20 +160,31 @@ func (_c *Manager_CoverageFilter_Call) RunAndReturn(run func(modules []*vminfo.K
 }
 
 // MachineChecked provides a mock function for the type Manager
-func (_mock *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
+func (_mock *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {
 	ret := _mock.Called(features, syscalls)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MachineChecked")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) error); ok {
+	var r0 queue.Source
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) (queue.Source, error)); ok {
+		return returnFunc(features, syscalls)
+	}
+	if returnFunc, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) queue.Source); ok {
 		r0 = returnFunc(features, syscalls)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(queue.Source)
+		}
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(flatrpc.Feature, map[*prog.Syscall]bool) error); ok {
+		r1 = returnFunc(features, syscalls)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // Manager_MachineChecked_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MachineChecked'
@@ -205,12 +217,12 @@ func (_c *Manager_MachineChecked_Call) Run(run func(features flatrpc.Feature, sy
 	return _c
 }
 
-func (_c *Manager_MachineChecked_Call) Return(err error) *Manager_MachineChecked_Call {
-	_c.Call.Return(err)
+func (_c *Manager_MachineChecked_Call) Return(source queue.Source, err error) *Manager_MachineChecked_Call {
+	_c.Call.Return(source, err)
 	return _c
 }
 
-func (_c *Manager_MachineChecked_Call) RunAndReturn(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error) *Manager_MachineChecked_Call {
+func (_c *Manager_MachineChecked_Call) RunAndReturn(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error)) *Manager_MachineChecked_Call {
 	_c.Call.Return(run)
 	return _c
 }
