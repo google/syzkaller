@@ -557,7 +557,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 
 	// Skip getting maintainers for Android fuzzing since the kernel source
 	// directory structure is different.
-	if ctx.config.vmType == "cuttlefish" || ctx.config.vmType == "proxyapp" {
+	if ctx.config.vmType == "cuttlefish" || ctx.config.vmType == "proxyapp:android" {
 		return nil
 	}
 
