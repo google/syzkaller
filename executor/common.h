@@ -791,32 +791,46 @@ int main(void)
 	const char* reason;
 	(void)reason;
 #if SYZ_BINFMT_MISC
-	if ((reason = setup_binfmt_misc()))
-		printf("the reproducer may not work as expected: binfmt_misc setup failed: %s\n", reason);
+	if ((reason = setup_binfmt_misc())) {
+		fprintf(stderr, "reproducer setup failed: binfmt_misc: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_LEAK
-	if ((reason = setup_leak()))
-		printf("the reproducer may not work as expected: leak checking setup failed: %s\n", reason);
+	if ((reason = setup_leak())) {
+		fprintf(stderr, "reproducer setup failed: leak checking: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_FAULT
-	if ((reason = setup_fault()))
-		printf("the reproducer may not work as expected: fault injection setup failed: %s\n", reason);
+	if ((reason = setup_fault())) {
+		fprintf(stderr, "reproducer setup failed: fault injection: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_KCSAN
-	if ((reason = setup_kcsan()))
-		printf("the reproducer may not work as expected: KCSAN setup failed: %s\n", reason);
+	if ((reason = setup_kcsan())) {
+		fprintf(stderr, "reproducer setup failed: KCSAN: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_USB
-	if ((reason = setup_usb()))
-		printf("the reproducer may not work as expected: USB injection setup failed: %s\n", reason);
+	if ((reason = setup_usb())) {
+		fprintf(stderr, "reproducer setup failed: USB injection: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_802154
-	if ((reason = setup_802154()))
-		printf("the reproducer may not work as expected: 802154 injection setup failed: %s\n", reason);
+	if ((reason = setup_802154())) {
+		fprintf(stderr, "reproducer setup failed: 802154 injection: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_SWAP
-	if ((reason = setup_swap()))
-		printf("the reproducer may not work as expected: swap setup failed: %s\n", reason);
+	if ((reason = setup_swap())) {
+		fprintf(stderr, "reproducer setup failed: swap: %s\n", reason);
+		doexit(1);
+	}
 #endif
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
