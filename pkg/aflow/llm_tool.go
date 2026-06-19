@@ -18,7 +18,7 @@ type LLMTool struct {
 	// Most fields match that of LLMAgent.
 	// The prompt is not specified here, and is provided by the parent LLM.
 	Name     string
-	Model    string
+	Model    ModelType
 	TaskType TaskType
 	// Description of the tool exposed to the parent LLM.
 	Description string
