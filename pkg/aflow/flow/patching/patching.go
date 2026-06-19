@@ -78,6 +78,15 @@ func init() {
 					Prompt:      debuggingPrompt,
 					Tools:       common.CodeAccessTools,
 				},
+				&aflow.LLMAgent{
+					Name:        "history-explorer",
+					Model:       aflow.BestExpensiveModel,
+					Reply:       "HistoricalContext",
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: historyExplorerInstruction,
+					Prompt:      historyExplorerPrompt,
+					Tools:       common.CodeAccessTools,
+				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(nil, patchInstruction, patchPrompt),
 				&aflow.LLMAgent{
@@ -134,6 +143,34 @@ it may lack the precise threading, sandboxing, and some arguments of a working r
 {{.SimplifiedCRepro}}
 ` + commonFaultInjectionPrompt
 
+const historyExplorerInstruction = `
+You are an experienced Linux kernel developer researching prior art for fixing a kernel bug.
+You are given a bug explanation. This explanation details the root cause of the bug resulting
+from debugging, but does not provide the final fix strategy. Your goal is to explore how
+similar bugs were fixed in the past in the same subsystem or files.
+
+CRITICAL: Do NOT attempt to debug the issue further or write a patch for it yourself.
+Your ONLY objective is to research and provide the necessary historical context.
+
+Use the {{.toolGitLog}} tool with the Since parameter set to "3 years" to focus on recent history.
+Search for commits that address issues with similar root causes (e.g. similar missing locks,
+incorrect refcounting, or similar error path bugs) in the affected files.
+
+Your final reply must summarize your findings: what idioms, locking rules, or common patterns
+should be followed when writing a fix for this bug based on how previous similar bugs were addressed.
+If you find no relevant past fixes, clearly state that.
+` + common.InstructionDontMakeAssumptionsAboutSourceCode
+
+const historyExplorerPrompt = `
+The crash is:
+
+{{.ReproducedCrashReport}}
+
+The explanation of the root cause of the bug is:
+
+{{.BugExplanation}}
+`
+
 // This part is shared between patching and patch-iteration.
 const commonFaultInjectionPrompt = `
 
@@ -149,8 +186,8 @@ The following fault injection report(s) show what was injected:
 
 const patchInstruction = `
 You are an experienced Linux kernel developer tasked with creating a fix for a kernel bug.
-You will be given a crash report, and an initial explanation of the root cause done by another
-kernel expert.
+You will be given a crash report, an initial explanation of the root cause done by another
+kernel expert, and a summary of how similar bugs were fixed in the past.
 
 Use the {{.toolCodeeditor}} tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
@@ -195,6 +232,12 @@ The crash that corresponds to the bug is:
 The explanation of the root cause of the bug is:
 
 {{.BugExplanation}}
+
+{{if .HistoricalContext}}
+Historical context on how similar bugs were fixed in the past:
+
+{{.HistoricalContext}}
+{{end}}
 
 {{if .TestError}}
 
