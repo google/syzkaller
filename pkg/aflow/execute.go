@@ -314,11 +314,21 @@ type stubContext struct {
 		*genai.GenerateContentResponse, error)
 }
 
-func (ctx *Context) modelName(model string) string {
+// modelName resolves the abstract ModelType enum configuration to a concrete model name.
+// If a workflow-level model override is configured (via ctx.llmModel), it takes precedence.
+func (ctx *Context) modelName(model ModelType) string {
 	if ctx.llmModel != "" {
 		return ctx.llmModel
 	}
-	return model
+	switch model {
+	case GoodBalancedModel:
+		return gemini3FlashPreview
+	case BestExpensiveModel:
+		return gemini31ProPreview
+	default:
+		// E.g. when an explicit model name or test stub is passed directly.
+		return string(model)
+	}
 }
 
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {

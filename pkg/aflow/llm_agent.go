@@ -28,7 +28,7 @@ type LLMAgent struct {
 	Name string
 	// The default Gemini model name to execute this workflow.
 	// Use the consts defined below.
-	Model string
+	Model ModelType
 	// Name of the state variable to store the final reply of the agent.
 	// These names can be used in subsequent action instructions/prompts,
 	// and as final workflow outputs.
@@ -88,11 +88,18 @@ type toolCallRecord struct {
 	Args map[string]any
 }
 
+type ModelType string
+
 const (
 	// Consts to use for LLMAgent.Model.
 	// See https://ai.google.dev/gemini-api/docs/models
-	BestExpensiveModel = "gemini-3.1-pro-preview"
-	GoodBalancedModel  = "gemini-3-flash-preview"
+	BestExpensiveModel ModelType = "best-expensive"
+	GoodBalancedModel  ModelType = "good-balanced"
+)
+
+const (
+	gemini3FlashPreview = "gemini-3-flash-preview"
+	gemini31ProPreview  = "gemini-3.1-pro-preview"
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
@@ -760,7 +767,7 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 }
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate int, model string) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate int, model ModelType) (*genai.GenerateContentResponse, error) {
 	// Copy the config in case we modify it below.
 	cfg = osutil.JSONDeepCopy(cfg)
 	for try := 0; ; try++ {
@@ -792,18 +799,18 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 }
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate, try int, model string) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate, try int, model ModelType) (*genai.GenerateContentResponse, error) {
 	type Cached struct {
 		Config  *genai.GenerateContentConfig
 		Request []*genai.Content
 		Reply   *genai.GenerateContentResponse
 	}
-	model = ctx.modelName(model)
+	modelStr := ctx.modelName(model)
 	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
-		model, hash.String(cfg), hash.String(req), candidate)
+		modelStr, hash.String(cfg), hash.String(req), candidate)
 	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
-		resp, err := ctx.generateContent(model, cfg, req)
-		err = parseLLMError(resp, err, model, try)
+		resp, err := ctx.generateContent(modelStr, cfg, req)
+		err = parseLLMError(resp, err, modelStr, try)
 		return Cached{
 			Config:  cfg,
 			Request: req,
@@ -954,7 +961,7 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		a.compressTokens = 150_000
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
-	ctx.requireNotEmpty(a.Name, "Model", a.Model)
+	ctx.requireNotEmpty(a.Name, "Model", string(a.Model))
 	if a.ValidatedReply != nil {
 		if a.Reply != "" {
 			ctx.errorf(a.Name, "both Reply and ValidatedReply are specified")
