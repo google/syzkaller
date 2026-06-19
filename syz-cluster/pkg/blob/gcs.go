@@ -4,6 +4,7 @@
 package blob
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -34,13 +35,17 @@ func (gcs *gcsDriver) Write(source io.Reader, parts ...string) (string, error) {
 		return "", fmt.Errorf("no identifiers for the object were passed to Write")
 	}
 	object := path.Join(gcs.bucket, path.Join(parts...))
-	w, err := gcs.client.FileWriter(object, "", "")
+	w, err := gcs.client.FileWriter(object, "", "gzip")
 	if err != nil {
 		return "", err
 	}
 	defer w.Close()
-	_, err = io.Copy(w, source)
-	if err != nil {
+	gz := gzip.NewWriter(w)
+	if _, err := io.Copy(gz, source); err != nil {
+		gz.Close()
+		return "", err
+	}
+	if err := gz.Close(); err != nil {
 		return "", err
 	}
 	return "gcs://" + object, nil
