@@ -72,7 +72,53 @@ fi
 if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; then
 	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
 fi
+# Git detection for worktree support.
+# We use bash arrays (e.g. VOLUME_ARGS=()) instead of string concatenation (e.g. VOLUME_ARGS+="..." )
+# because arrays safely preserve arguments containing spaces or special characters when passed
+# to the docker run command, avoiding potential bugs caused by shell word-splitting.
+VOLUME_ARGS=()
+WORKDIR_ARG=()
 
+# Check if the script is running inside a Git repository (either a standard clone or a worktree).
+# We run this check in a subshell (cd ... && git ...) to avoid changing the current directory of the host process.
+# Directing stderr and stdout to /dev/null ignores any git error messages if we are not in a git repo.
+if (cd "$SCRIPT_DIR/.." && git rev-parse --is-inside-work-tree) >/dev/null 2>&1; then
+	# TOPLEVEL resolves to the absolute root directory of the current worktree or repository.
+	TOPLEVEL=$(cd "$SCRIPT_DIR/.." && git rev-parse --show-toplevel)
+	# GIT_COMMON_DIR resolves to the path containing the actual .git objects/refs.
+	# - For standard repositories, it's just ".git".
+	# - For git worktrees, it points to the main repository's .git/worktrees/<name> folder.
+	GIT_COMMON_DIR=$(cd "$SCRIPT_DIR/.." && git rev-parse --git-common-dir)
+	
+	# Verify that both git commands successfully returned non-empty paths (using -n).
+	# This safety check prevents mounting the host root or home directories if the git calls failed.
+	if [ -n "$TOPLEVEL" ] && [ -n "$GIT_COMMON_DIR" ]; then
+		# Resolve the absolute path of the GIT_COMMON_DIR to mount it into docker.
+		COMMON_DIR=$(cd "$SCRIPT_DIR/.." && cd "$GIT_COMMON_DIR" && pwd)
+		
+		# Mount the top-level repository/worktree directory to the expected path inside the container.
+		# Note that the array syntax requires adding each argument as a separate element: ("--volume" "path")
+		VOLUME_ARGS+=("--volume" "$TOPLEVEL:/syzkaller/gopath/src/github.com/google/syzkaller:z")
+		WORKDIR_ARG=("--workdir" "/syzkaller/gopath/src/github.com/google/syzkaller")
+		
+		# Git Worktree check:
+		# In a git worktree, the local .git is a file containing a reference to the main repo's .git folder.
+		# If the common directory is not simply "$TOPLEVEL/.git", it means we are in a worktree.
+		# Containerized git commands (like linter and formatters) will fail with "not a git repository"
+		# unless we also mount the main repository's common directory into its exact absolute path inside the container.
+		if [ -n "$COMMON_DIR" ] && [ "$COMMON_DIR" != "$TOPLEVEL/.git" ]; then
+			VOLUME_ARGS+=("--volume" "$COMMON_DIR:$COMMON_DIR:z")
+		fi
+	else
+		# Fallback: if git metadata is missing or empty, mount the parent directory of the script as a fallback.
+		VOLUME_ARGS+=("--volume" "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z")
+		WORKDIR_ARG=("--workdir" "/syzkaller/gopath/src/github.com/google/syzkaller")
+	fi
+else
+	# Non-git case: Mount the parent directory of the script directly.
+	VOLUME_ARGS+=("--volume" "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z")
+	WORKDIR_ARG=("--workdir" "/syzkaller/gopath/src/github.com/google/syzkaller")
+fi
 
 # Build or update docker image
 if [ ! -z "$SYZ_ENV_BUILD" ]; then
@@ -84,12 +130,15 @@ else
 fi
 
 # Run everything as the host user, this is important for created/modified files.
+# We expand the bash arrays using the "${ARRAY_NAME[@]}" syntax (including double quotes).
+# This tells bash to pass each element of the array as a distinct argument to docker run,
+# ensuring spaces in directory names do not cause the command arguments to break.
 docker run \
 	--rm \
-	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
+	"${VOLUME_ARGS[@]}" \
 	--volume "$HOME/.cache:/syzkaller/.cache:z" \
 	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
-	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
+	"${WORKDIR_ARG[@]}" \
 	--env HOME=/syzkaller \
 	--env GOPATH=/syzkaller/gopath:/gopath \
 	--env GOPROXY \
