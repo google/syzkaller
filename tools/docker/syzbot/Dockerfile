@@ -103,10 +103,10 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
-ENV RUST_VERSION=1.91.1
+ENV RUST_VERSION=1.96.0
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $RUST_VERSION
 RUN rustup component add rust-src
-RUN apt-get install -y bindgen
+RUN cargo install --version 0.72.1 bindgen-cli && rm -rf /usr/local/cargo/registry/cache /usr/local/cargo/registry/src
 
 RUN apt-get install -y --no-install-recommends libdw-dev libelf-dev
 
