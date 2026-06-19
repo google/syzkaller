@@ -72,7 +72,32 @@ fi
 if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; then
 	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
 fi
+# Git detection for subtree/worktree support
+VOLUME_ARGS=""
+WORKDIR_ARG=""
+if (cd "$SCRIPT_DIR/.." && git rev-parse --is-inside-work-tree) >/dev/null 2>&1; then
+	TOPLEVEL=$(cd "$SCRIPT_DIR/.." && git rev-parse --show-toplevel)
+	PREFIX=$(cd "$SCRIPT_DIR/.." && git rev-parse --show-prefix)
+	COMMON_DIR=$(cd "$SCRIPT_DIR/.." && cd $(git rev-parse --git-common-dir) && pwd)
 
+	if [ -n "$PREFIX" ]; then
+		# Subtree case
+		VOLUME_ARGS+=" --volume $TOPLEVEL:/syzkaller/parent:z"
+		COMMAND="mkdir -p /syzkaller/gopath/src/github.com/google && rm -rf /syzkaller/gopath/src/github.com/google/syzkaller && ln -sf /syzkaller/parent/$PREFIX /syzkaller/gopath/src/github.com/google/syzkaller && cd /syzkaller/gopath/src/github.com/google/syzkaller && $COMMAND"
+	else
+		# Standalone or Worktree case
+		VOLUME_ARGS+=" --volume $TOPLEVEL:/syzkaller/gopath/src/github.com/google/syzkaller:z"
+		WORKDIR_ARG="--workdir /syzkaller/gopath/src/github.com/google/syzkaller"
+		if [ "$COMMON_DIR" != "$TOPLEVEL/.git" ]; then
+			# Worktree case
+			VOLUME_ARGS+=" --volume $COMMON_DIR:$COMMON_DIR:z"
+		fi
+	fi
+else
+	# Non-git case
+	VOLUME_ARGS+=" --volume $SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z"
+	WORKDIR_ARG="--workdir /syzkaller/gopath/src/github.com/google/syzkaller"
+fi
 
 # Build or update docker image
 if [ ! -z "$SYZ_ENV_BUILD" ]; then
@@ -86,10 +111,10 @@ fi
 # Run everything as the host user, this is important for created/modified files.
 docker run \
 	--rm \
-	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
+	${VOLUME_ARGS} \
 	--volume "$HOME/.cache:/syzkaller/.cache:z" \
 	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
-	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
+	${WORKDIR_ARG} \
 	--env HOME=/syzkaller \
 	--env GOPATH=/syzkaller/gopath:/gopath \
 	--env GOPROXY \
