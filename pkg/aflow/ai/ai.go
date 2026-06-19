@@ -144,7 +144,8 @@ type ReproCOutputs struct {
 }
 
 type PatchTriageArgs struct {
-	KernelSrc string
+	TargetArch string
+	KernelSrc  string
 }
 
 type PatchTriageResult struct {

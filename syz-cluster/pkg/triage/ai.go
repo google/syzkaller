@@ -68,7 +68,10 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 	}
 
 	args := ai.PatchTriageArgs{
-		KernelSrc: kernelSrcDir,
+		// TODO: Set TargetArch dynamically based on the fuzzing targets for the patch.
+		// For now it's irrelevant as we only fuzz amd64 anyway.
+		TargetArch: "amd64",
+		KernelSrc:  kernelSrcDir,
 	}
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
