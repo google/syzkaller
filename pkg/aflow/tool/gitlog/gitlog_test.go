@@ -270,4 +270,41 @@ void foo() {
 		logResult{},
 		`git log failed: fatal: invalid regex: `,
 		aflow.TestErrorPrefix(), aflow.TestWorkdir(tmpDir))
+
+	// Test git-log with valid Since parameter.
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}, Since: "3 years"},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
+			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
+		"", aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}, Since: "1 day"},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
+			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
+		"", aflow.TestWorkdir(tmpDir))
+
+	// Test git-log with invalid Since parameter.
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}, Since: "yesterday"},
+		logResult{},
+		"invalid Since parameter format, must be like '3 years', '1 month', '5 days'",
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}, Since: "3 decades"},
+		logResult{},
+		"invalid Since parameter format, must be like '3 years', '1 month', '5 days'",
+		aflow.TestWorkdir(tmpDir))
+
+	aflow.TestTool(t, ToolLog,
+		state{KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}, Since: "some years"},
+		logResult{},
+		"invalid Since parameter format, must be like '3 years', '1 month', '5 days'",
+		aflow.TestWorkdir(tmpDir))
 }

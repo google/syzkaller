@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -16,6 +17,12 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
+
+var sinceRegex = regexp.MustCompile(`^\d+\s+(years?|months?|weeks?|days?)$`)
+
+func isValidSince(since string) bool {
+	return sinceRegex.MatchString(strings.TrimSpace(since))
+}
 
 var (
 	ToolLog = aflow.NewFuncTool("git-log", gitLog, `
@@ -31,6 +38,8 @@ Supported search modes (you must provide at least one):
    The search is case-insensitive.
  - File history: use 'PathPrefix' to explore the history of a single file or directory.
    Example: PathPrefix="mm/slub.c".
+
+Use 'Since' to limit how far back to search. It accepts duration strings like "3 years", "1 month", "2 weeks", "5 days".
 `)
 	ToolShow = aflow.NewFuncTool("git-show", gitShow, `
 Tool provides full information about a specific git commit, including its title,
@@ -59,6 +68,8 @@ type logArgs struct {
 	MessageRegexps []string `jsonschema:"Regexps to search in the commit messages. All regexps must match." json:",omitempty"`
 	PathPrefix     string   `jsonschema:"Restrict search to this directory or file path." json:",omitempty"`
 	Count          int      `jsonschema:"Max number of commits to return." json:",omitempty"`
+	// nolint: lll
+	Since string `jsonschema:"Optional duration string (e.g. '3 years') to limit how far back to search." json:",omitempty"`
 }
 
 type logResult struct {
@@ -80,6 +91,13 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 	args.Count = min(args.Count, 100)
 
 	gitArgs := []string{"log", "--format=%h %s", "--abbrev=12", "--no-patch", "-n", fmt.Sprint(args.Count)}
+
+	if args.Since != "" {
+		if !isValidSince(args.Since) {
+			return logResult{}, aflow.BadCallError("invalid Since parameter format, must be like '3 years', '1 month', '5 days'")
+		}
+		gitArgs = append(gitArgs, "--since="+args.Since)
+	}
 
 	if args.CodeRegexp != "" {
 		gitArgs = append(gitArgs, "-G", args.CodeRegexp)
