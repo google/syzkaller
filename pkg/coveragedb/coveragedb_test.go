@@ -5,6 +5,7 @@ package coveragedb
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -352,4 +353,48 @@ func TestMigrations(t *testing.T) {
 	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, up))
 	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, down))
 	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, up))
+}
+
+func TestLock(t *testing.T) {
+	client := setupTestDB(t)
+	ctx := t.Context()
+
+	// 1. Acquire lock successfully
+	release1, err := Lock(ctx, client, "test-lock", 1*time.Second, 10*time.Second)
+	require.NoError(t, err)
+
+	// 2. Try to acquire the same lock (should fail/timeout)
+	_, err = Lock(ctx, client, "test-lock", 1*time.Second, 10*time.Second)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lock is held by")
+	var lockHeldErr *ErrLockHeld
+	require.True(t, errors.As(err, &lockHeldErr))
+	assert.NotEmpty(t, lockHeldErr.Owner)
+
+	// 3. Release first lock
+	err = release1()
+	require.NoError(t, err)
+
+	// 4. Try acquiring again (should succeed now)
+	release2, err := Lock(ctx, client, "test-lock", 1*time.Second, 10*time.Second)
+	require.NoError(t, err)
+	defer release2()
+
+	// 5. Test lock timeout (steal lock)
+	// We acquire a lock with a very short timeout (2 seconds)
+	release3, err := Lock(ctx, client, "test-lock-timeout", 1*time.Second, 2*time.Second)
+	require.NoError(t, err)
+	_ = release3
+
+	// If we try to acquire immediately, it should fail.
+	_, err = Lock(ctx, client, "test-lock-timeout", 500*time.Millisecond, 2*time.Second)
+	require.Error(t, err)
+
+	// Wait for the lock to timeout (2 seconds)
+	time.Sleep(2500 * time.Millisecond)
+
+	// Now trying to acquire should succeed (stealing the lock)
+	release4, err := Lock(ctx, client, "test-lock-timeout", 1*time.Second, 2*time.Second)
+	require.NoError(t, err)
+	defer release4()
 }

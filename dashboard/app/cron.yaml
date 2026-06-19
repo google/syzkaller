@@ -25,8 +25,8 @@ cron:
 - url: /cron/batch_coverage?days=true&months=true&steps=10
   schedule: every day 00:00
 # Clean up coverage db every week.
-# We're adding data w/o transactions.
-# It is important to run clean operation when there are no batch_coverage in progress.
+# This uses a global lock in Spanner to coordinate with batch coverage writers,
+# but we schedule it separately to minimize contention.
 - url: /cron/batch_coverage_clean
   schedule: every saturday 12:00
 # Export reproducers every week.

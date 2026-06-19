@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
 )
 
 type HistoryRecord struct {
@@ -88,8 +89,14 @@ func SaveMergeResult(ctx context.Context, client *spanner.Client, descr *History
 	if client == nil {
 		return 0, fmt.Errorf("nil spannerclient")
 	}
-	var rowsCreated int
 	session := uuid.New().String()
+	release, err := Lock(ctx, client, "coveragedb", 15*time.Minute, 30*time.Minute)
+	if err != nil {
+		return 0, fmt.Errorf("failed to acquire coveragedb lock: %w", err)
+	}
+	defer release()
+
+	var rowsCreated int
 	var mutations []*spanner.Mutation
 
 	for {
@@ -312,6 +319,12 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
 
+	release, err := Lock(ctx, client, "coveragedb", 15*time.Minute, 30*time.Minute)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to acquire coveragedb lock: %w", err)
+	}
+	defer release()
+
 	// 1. Get all valid sessions from merge_history
 	validSessions := make(map[string]bool)
 	iterHistory := client.Single().Query(ctx, spanner.Statement{
@@ -386,7 +399,7 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		return nil
 	})
 
-	err := eg.Wait()
+	err = eg.Wait()
 	return deletedSessions.Load(), deletedRows.Load(), err
 }
 
@@ -771,4 +784,103 @@ order by files.filepath
 		res = append(res, r.Filepath)
 	}
 	return res, nil
+}
+
+type ErrLockHeld struct {
+	Owner string
+}
+
+func (e *ErrLockHeld) Error() string {
+	return fmt.Sprintf("lock is held by %q", e.Owner)
+}
+
+// Lock acquires a global lock with the given lockID.
+// It will block and retry until it either acquires the lock or the acquireTimeout is exceeded.
+// On success, it returns a release function and no error.
+func Lock(ctx context.Context, client *spanner.Client, lockID string,
+	acquireTimeout, lockTimeout time.Duration) (func() error, error) {
+	owner := uuid.New().String()
+	deadline := time.Now().Add(acquireTimeout)
+	for {
+		err := tryAcquireLock(ctx, client, lockID, owner, lockTimeout)
+		if err == nil {
+			release := func() error {
+				return releaseLock(context.Background(), client, lockID, owner)
+			}
+			return release, nil
+		}
+		var lockHeldErr *ErrLockHeld
+		if !errors.As(err, &lockHeldErr) {
+			return nil, err
+		}
+		timeLeft := time.Until(deadline)
+		if timeLeft <= 0 {
+			return nil, fmt.Errorf("failed to acquire lock %q: %w", lockID, err)
+		}
+		sleepDur := min(10*time.Second, timeLeft)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(sleepDur):
+		}
+	}
+}
+
+func tryAcquireLock(ctx context.Context, client *spanner.Client, lockID, owner string,
+	lockTimeout time.Duration) error {
+	_, err := client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		row, err := txn.ReadRow(ctx, "locks", spanner.Key{lockID}, []string{"owner", "last_acquired"})
+		if err != nil {
+			if spanner.ErrCode(err) == codes.NotFound {
+				// Lock doesn't exist, create it.
+				return txn.BufferWrite([]*spanner.Mutation{
+					spanner.InsertOrUpdate("locks", []string{"lock_id", "owner", "last_acquired"}, []any{lockID, owner, time.Now()}),
+				})
+			}
+			return err
+		}
+		var s struct {
+			Owner        spanner.NullString `spanner:"owner"`
+			LastAcquired spanner.NullTime   `spanner:"last_acquired"`
+		}
+		if err := row.ToStruct(&s); err != nil {
+			return err
+		}
+		currentOwner := s.Owner
+		lastAcquired := s.LastAcquired
+		if currentOwner.Valid && currentOwner.StringVal != "" {
+			if !lastAcquired.Valid || time.Since(lastAcquired.Time) < lockTimeout {
+				return &ErrLockHeld{Owner: currentOwner.StringVal}
+			}
+			// Lock has timed out, we can overwrite it.
+		}
+		return txn.BufferWrite([]*spanner.Mutation{
+			spanner.InsertOrUpdate("locks", []string{"lock_id", "owner", "last_acquired"}, []any{lockID, owner, time.Now()}),
+		})
+	})
+	return err
+}
+
+func releaseLock(ctx context.Context, client *spanner.Client, lockID, owner string) error {
+	_, err := client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		row, err := txn.ReadRow(ctx, "locks", spanner.Key{lockID}, []string{"owner"})
+		if err != nil {
+			return err
+		}
+		var s struct {
+			Owner spanner.NullString `spanner:"owner"`
+		}
+		if err := row.ToStruct(&s); err != nil {
+			return err
+		}
+		currentOwner := s.Owner
+		if !currentOwner.Valid || currentOwner.StringVal != owner {
+			return fmt.Errorf("lock is not held by %q", owner)
+		}
+		// Clear the lock.
+		return txn.BufferWrite([]*spanner.Mutation{
+			spanner.InsertOrUpdate("locks", []string{"lock_id", "owner", "last_acquired"}, []any{lockID, nil, nil}),
+		})
+	})
+	return err
 }
