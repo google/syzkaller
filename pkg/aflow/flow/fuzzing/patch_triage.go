@@ -4,6 +4,8 @@
 package fuzzing
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -11,7 +13,9 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
+	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func init() {
@@ -26,15 +30,17 @@ func init() {
 					Model:    aflow.BestExpensiveModel,
 					TaskType: aflow.FormalReasoningTask,
 					Outputs: aflow.ValidatedLLMOutputs[ai.PatchTriageResult](
-						func(ctx *aflow.Context, state struct{}, args ai.PatchTriageResult) (ai.PatchTriageResult, error) {
+						func(ctx *aflow.Context, state ai.PatchTriageArgs, args ai.PatchTriageResult) (ai.PatchTriageResult, error) {
 							if args.Reasoning == "" {
 								return args, aflow.BadCallError("reasoning must be provided")
 							}
 							if !args.WorthFuzzing && len(args.FocusSymbols) > 0 {
 								return args, aflow.BadCallError("FocusSymbols must be empty if WorthFuzzing is false")
 							}
-							for i, cfg := range args.EnableConfigs {
-								args.EnableConfigs[i] = strings.TrimPrefix(cfg, "CONFIG_")
+
+							args.EnableConfigs = normalizeKernelConfigs(args.EnableConfigs)
+							if err := validateKernelConfigs(state.TargetArch, state.KernelSrc, args.EnableConfigs); err != nil {
+								return args, err
 							}
 							return args, nil
 						},
@@ -49,6 +55,38 @@ func init() {
 			),
 		},
 	)
+}
+
+func normalizeKernelConfigs(configs []string) []string {
+	var normalized []string
+	for _, cfg := range configs {
+		normalized = append(normalized, strings.TrimPrefix(cfg, "CONFIG_"))
+	}
+	return normalized
+}
+
+func validateKernelConfigs(targetArch, kernelSrc string, configs []string) error {
+	if len(configs) == 0 {
+		return nil
+	}
+	target := targets.Get("linux", targetArch)
+	if target == nil {
+		return fmt.Errorf("unknown target linux/%q", targetArch)
+	}
+	kconf, err := kconfig.Parse(target, filepath.Join(kernelSrc, "Kconfig"))
+	if err != nil {
+		return fmt.Errorf("failed to parse Kconfig: %w", err)
+	}
+	var badConfigs []string
+	for _, cfg := range configs {
+		if kconf.Configs[cfg] == nil {
+			badConfigs = append(badConfigs, cfg)
+		}
+	}
+	if len(badConfigs) > 0 {
+		return aflow.BadCallError("the following configs do not exist in the kernel tree: %v", strings.Join(badConfigs, ", "))
+	}
+	return nil
 }
 
 type readPatchDiffArgs struct {
