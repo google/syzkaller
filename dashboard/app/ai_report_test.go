@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/appengine/v2/memcache"
 )
 
 func (ctx *Ctx) setupAIPatchJob(t *testing.T) (string, string) {
@@ -1740,6 +1741,10 @@ func TestAIPatchFilter(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, bugIDs, 1)
 
+	c.advanceTime(6 * time.Minute)
+
+	memcache.Flush(c.ctx)
+
 	// Now it should be visible!
 	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")
 	c.expectOK(err)
@@ -1766,6 +1771,8 @@ func TestAIPatchFilter(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Empty(t, respCmd.Error)
+
+	memcache.Flush(c.ctx)
 
 	// Now it should no longer be visible!
 	reply, err = c.AuthGET(AccessAdmin, "/ains?with_ai_patch=true")

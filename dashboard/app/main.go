@@ -509,6 +509,19 @@ type userBugFilter struct {
 	BugsWithPendingAIPatches map[string]bool
 }
 
+func cachedBugIDsWithPendingPatch(ctx context.Context, ns string) ([]string, error) {
+	return cachedObjectList(ctx,
+		fmt.Sprintf("%s-ai-pending-patches", ns),
+		5*time.Minute,
+		func(ctx context.Context) ([]string, error) {
+			return aidb.LoadBugIDsWithPendingPatch(ctx, ns, []ai.WorkflowType{
+				ai.WorkflowPatching,
+				ai.WorkflowPatchIteration,
+			})
+		},
+	)
+}
+
 func (filter *userBugFilter) InitializeAI(ctx context.Context, ns string) error {
 	if filter == nil {
 		return nil
@@ -517,10 +530,7 @@ func (filter *userBugFilter) InitializeAI(ctx context.Context, ns string) error 
 	if !filter.WithAIPatch {
 		return nil
 	}
-	bugIDs, err := aidb.LoadBugIDsWithPendingPatch(ctx, ns, []ai.WorkflowType{
-		ai.WorkflowPatching,
-		ai.WorkflowPatchIteration,
-	})
+	bugIDs, err := cachedBugIDsWithPendingPatch(ctx, ns)
 	if err != nil {
 		return err
 	}
