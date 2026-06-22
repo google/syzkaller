@@ -1539,8 +1539,37 @@ func replyError(ctx context.Context, msg *email.Email, bugID, reply string) erro
 	return replyTo(ctx, msg, bugID, reply)
 }
 
+// Exported to use in test.
+var MaxGlobalEmailsPerHour = 60
+
+func checkEmailRateLimit(ctx context.Context, msg *aemail.Message) error {
+	tx := func(txCtx context.Context) error {
+		state, err := loadReportingState(txCtx)
+		if err != nil {
+			return err
+		}
+		now := timeNow(txCtx)
+		currentHour := now.Truncate(time.Hour)
+		lastHour := state.Emails.Time.Truncate(time.Hour)
+		if !currentHour.Equal(lastHour) {
+			state.Emails.Count = 0
+		}
+		if state.Emails.Count >= MaxGlobalEmailsPerHour {
+			return fmt.Errorf("global email rate limit exceeded (%v >= %v)",
+				state.Emails.Count, MaxGlobalEmailsPerHour)
+		}
+		state.Emails.Count++
+		state.Emails.Time = now
+		return saveReportingState(txCtx, state)
+	}
+	return runInTransaction(ctx, tx, nil)
+}
+
 // Sends email, can be stubbed for testing.
 var sendEmail = func(ctx context.Context, msg *aemail.Message) error {
+	if err := checkEmailRateLimit(ctx, msg); err != nil {
+		return fmt.Errorf("email rate limit exceeded: %w", err)
+	}
 	if err := aemail.Send(ctx, msg); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}

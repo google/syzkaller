@@ -483,6 +483,12 @@ type DiscussionMessage struct {
 // ReportingState holds dynamic info associated with reporting.
 type ReportingState struct {
 	Entries []ReportingStateEntry
+	Emails  EmailState
+}
+
+type EmailState struct {
+	Count int
+	Time  time.Time
 }
 
 type ReportingStateEntry struct {
