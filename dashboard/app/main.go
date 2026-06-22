@@ -46,6 +46,8 @@ import (
 // This file contains web UI http handlers.
 
 func initHTTPHandlers() {
+	// A pattern ending with a slash matches as a prefix.
+	// This makes it a greedy catch-all for any request that doesn't explicitly match a more specific route.
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
@@ -611,6 +613,13 @@ func handleMain(ctx context.Context, w http.ResponseWriter, r *http.Request) err
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
+	}
+	// The route "/" is a greedy catch-all. Without this check, any malformed URL
+	// that doesn't match a specific route will fall through to handleMain,
+	// which can cause massive DB queries for garbage URLs.
+	cleanPath := strings.TrimSuffix(r.URL.Path, "/")
+	if cleanPath != "/"+hdr.Namespace && cleanPath != "" {
+		return ErrClientNotFound
 	}
 	accessLevel := accessLevel(ctx, r)
 	filter, err := MakeBugFilter(r)
