@@ -39,13 +39,17 @@ func (gcs *gcsDriver) Write(source io.Reader, parts ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer w.Close()
 	gz := gzip.NewWriter(w)
 	if _, err := io.Copy(gz, source); err != nil {
 		gz.Close()
+		w.Close()
 		return "", err
 	}
 	if err := gz.Close(); err != nil {
+		w.Close()
+		return "", err
+	}
+	if err := w.Close(); err != nil {
 		return "", err
 	}
 	return "gcs://" + object, nil
