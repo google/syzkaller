@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	aemail "google.golang.org/appengine/v2/mail"
 )
 
 // nolint: funlen
@@ -1623,4 +1624,35 @@ func TestEmailIndirectCommandIgnored(t *testing.T) {
 
 	// No email should be sent back.
 	c.expectNoEmail()
+}
+
+func TestEmailRateLimit(t *testing.T) {
+	MaxGlobalEmailsPerHour = 3
+	c := NewCtx(t)
+	defer c.Close()
+
+	msg := &aemail.Message{
+		Sender:  "syzbot@testapp.appspotmail.com",
+		To:      []string{"test@syzkaller.com"},
+		Subject: "Test subject",
+		Body:    "Test body",
+	}
+
+	for i := range MaxGlobalEmailsPerHour {
+		// Calling the checker directly is easier than modifying the sender mock.
+		err := checkEmailRateLimit(c.ctx, msg)
+		require.NoError(t, err, "failed to send email %d", i)
+	}
+
+	// Max + 1 should fail.
+	err := checkEmailRateLimit(c.ctx, msg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "global email rate limit exceeded")
+
+	// Advance time by 1 hour.
+	c.advanceTime(time.Hour)
+
+	// Now we should be able to send emails again.
+	err = checkEmailRateLimit(c.ctx, msg)
+	require.NoError(t, err)
 }
