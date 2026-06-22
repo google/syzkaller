@@ -372,7 +372,7 @@ import (
 // For simplicity we embed them here for now, since go:embed patterns can't contain "..".
 // Ideally we move this to a separate package, but this will require some restructuring.
 
-//go:embed linux/*.txt
+//go:embed linux/*.txt linux/*.const linux/test
 var Files embed.FS
 
 //go:embed gen/*.gob.flate
