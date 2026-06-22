@@ -23,7 +23,7 @@ use them instead of this tool if they can answer your question.
 
 Important note: this tool CANNOT be used to search syzkaller syzlang descriptions (sys/*)
 or expressions containing 'syz_' since they are syzkaller pseudo-syscalls, 
-and not present in the Linux kernel. Use the {{.toolReadDescription}} tool instead.
+and not present in the Linux kernel. Use the read-syz-spec and syz-grepper tools instead.
 
 The following git grep flags are used:
 --extended-regexp: you need to provide expression in extended regexp syntax
