@@ -296,17 +296,18 @@ func NsDataMerged(ctx context.Context, client *spanner.Client, ns string,
 	return periods, totalRows, nil
 }
 
-// DeleteGarbage removes orphaned file entries from the database.
+// DeleteGarbage removes orphaned file and function entries from the database.
 //
-// It identifies files in the "files" table that are not referenced by any entries in the "merge_history" table,
+// It identifies files in the "files" table and functions in the "functions" table
+// that are not referenced by any entries in the "merge_history" table,
 // indicating they are no longer associated with an active merge session.
 //
 // To avoid slow anti-joins in Spanner, this function fetches all valid sessions from merge_history first,
-// then streams distinct sessions from files and performs the filtering in Go.
+// then streams distinct sessions from files and functions, performing the filtering in Go.
 //
-// To avoid exceeding Spanner mutation limits, file entries are deleted in batches of 10,000.
+// To avoid exceeding Spanner mutation limits, entries are deleted in batches of 10,000.
 //
-// Returns the number of orphaned sessions and the total number of file entries successfully deleted.
+// Returns the number of orphaned sessions and the total number of entries successfully deleted.
 func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, error) {
 	if client == nil {
 		return 0, 0, fmt.Errorf("nil spannerclient")
@@ -334,7 +335,7 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		validSessions[r.Session] = true
 	}
 
-	// 2. Stream distinct sessions from files and feed to workers.
+	// 2. Stream distinct sessions from files and functions and feed to workers.
 	var deletedRows atomic.Int64
 	var deletedSessions atomic.Int64
 	eg, gCtx := errgroup.WithContext(ctx)
@@ -357,6 +358,9 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 
 	eg.Go(func() error {
 		defer close(sessionCh)
+		sentSessions := make(map[string]bool)
+
+		// Stream from files.
 		iterFiles := client.Single().Query(gCtx, spanner.Statement{
 			SQL: `SELECT DISTINCT session FROM files`})
 		defer iterFiles.Stop()
@@ -378,6 +382,36 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 			if !validSessions[r.Session] {
 				select {
 				case sessionCh <- r.Session:
+					sentSessions[r.Session] = true
+				case <-gCtx.Done():
+					return gCtx.Err()
+				}
+			}
+		}
+
+		// Stream from functions.
+		iterFuncs := client.Single().Query(gCtx, spanner.Statement{
+			SQL: `SELECT DISTINCT session FROM functions`})
+		defer iterFuncs.Stop()
+
+		for {
+			row, err := iterFuncs.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("iterFuncs.Next: %w", err)
+			}
+			var r struct {
+				Session string
+			}
+			if err = row.ToStruct(&r); err != nil {
+				return fmt.Errorf("row.ToStruct: %w", err)
+			}
+			if !validSessions[r.Session] && !sentSessions[r.Session] {
+				select {
+				case sessionCh <- r.Session:
+					sentSessions[r.Session] = true
 				case <-gCtx.Done():
 					return gCtx.Err()
 				}
@@ -392,35 +426,49 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 
 func processGarbageSession(ctx context.Context, client *spanner.Client, session string,
 	deletedRows *atomic.Int64) error {
+	if err := deleteGarbageTable(ctx, client, session, "files",
+		`SELECT manager, filepath FROM files WHERE session = $1`, deletedRows); err != nil {
+		return err
+	}
+	if err := deleteGarbageTable(ctx, client, session, "functions",
+		`SELECT filepath, funcname FROM functions WHERE session = $1`, deletedRows); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteGarbageTable(ctx context.Context, client *spanner.Client, session, table, sql string,
+	deletedRows *atomic.Int64) error {
+	// Spanner limits mutations per transaction (currently 80,000).
+	// We delete in batches of 10,000 rows to stay well below this limit
+	// (each deleted row and its index updates count as mutations)
+	// and to keep transaction overhead low.
+	batchSize := 10000
+
 	iterRows := client.Single().Query(ctx, spanner.Statement{
-		SQL:    `SELECT manager, filepath FROM files WHERE session = $1`,
+		SQL:    sql,
 		Params: map[string]any{"p1": session},
 	})
 	defer iterRows.Stop()
 
 	var batch []spanner.Key
-	batchSize := 10000
-
 	for {
 		row, err := iterRows.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("iterRows.Next: %w", err)
+			return fmt.Errorf("iterRows.Next (%s): %w", table, err)
 		}
-		var r struct {
-			Manager  string
-			Filepath string
-		}
-		if err = row.ToStruct(&r); err != nil {
-			return fmt.Errorf("row.ToStruct: %w", err)
+		var keyPart1, keyPart2 string
+		if err = row.Columns(&keyPart1, &keyPart2); err != nil {
+			return fmt.Errorf("row.Columns (%s): %w", table, err)
 		}
 
-		batch = append(batch, spanner.Key{session, r.Manager, r.Filepath})
+		batch = append(batch, spanner.Key{session, keyPart1, keyPart2})
 
 		if len(batch) >= batchSize {
-			if err := deleteFilesBatch(ctx, batch, client, deletedRows); err != nil {
+			if err := deleteBatch(ctx, table, batch, client, deletedRows); err != nil {
 				return err
 			}
 			batch = nil
@@ -430,18 +478,19 @@ func processGarbageSession(ctx context.Context, client *spanner.Client, session 
 		}
 	}
 	if len(batch) > 0 {
-		if err := deleteFilesBatch(ctx, batch, client, deletedRows); err != nil {
+		if err := deleteBatch(ctx, table, batch, client, deletedRows); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
-func deleteFilesBatch(ctx context.Context, batch []spanner.Key, client *spanner.Client,
+func deleteBatch(ctx context.Context, table string, batch []spanner.Key, client *spanner.Client,
 	deletedRows *atomic.Int64) error {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)
-	mutation := spanner.Delete("files", ks)
+	mutation := spanner.Delete(table, ks)
 	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
 	if err == nil {
 		deletedRows.Add(int64(ksSize))
