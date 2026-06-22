@@ -353,3 +353,78 @@ func TestMigrations(t *testing.T) {
 	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, down))
 	require.NoError(t, pkgspanner.UpdateSpannerDDL(ctx, uri, up))
 }
+
+func TestDeleteGarbage(t *testing.T) {
+	client := setupTestDB(t)
+	ctx := t.Context()
+
+	// 1. Insert a valid session in merge_history, files, and functions.
+	histValid := &HistoryRecord{
+		Namespace: "upstream",
+		Repo:      "repo-valid",
+		Duration:  1,
+		DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
+		Session:   "session-valid",
+		Time:      time.Now(),
+		Commit:    "commit-valid",
+		TotalRows: 1,
+	}
+	insertCoverage(t, client, "manager1", histValid, []*FileCoverageWithLineInfo{
+		{
+			FileCoverageWithDetails: FileCoverageWithDetails{
+				Filepath:     "file-valid",
+				Instrumented: 10,
+				Covered:      5,
+			},
+			LinesInstrumented: []int64{1, 2, 3},
+			HitCounts:         []int64{1, 0, 1},
+		},
+	})
+	// Insert function for valid session.
+	_, err := client.Apply(ctx, []*spanner.Mutation{
+		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
+			[]any{"session-valid", "file-valid", "func-valid", []int64{1, 2}}),
+	})
+	require.NoError(t, err)
+
+	// 2. Insert an orphaned (garbage) session only in files and functions (not in merge_history).
+	_, err = client.Apply(ctx, []*spanner.Mutation{
+		spanner.InsertOrUpdate("files", []string{"session", "manager", "filepath", "instrumented", "covered"},
+			[]any{"session-garbage", "manager-garbage", "file-garbage", int64(10), int64(5)}),
+		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
+			[]any{"session-garbage", "file-garbage", "func-garbage", []int64{1, 2}}),
+	})
+	require.NoError(t, err)
+
+	// 3. Insert another orphaned session that only has entries in functions (not in files or merge_history).
+	_, err = client.Apply(ctx, []*spanner.Mutation{
+		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
+			[]any{"session-garbage-funcs-only", "file-garbage", "func-garbage", []int64{1, 2}}),
+	})
+	require.NoError(t, err)
+
+	// Run DeleteGarbage.
+	deletedSessions, deletedRows, err := DeleteGarbage(ctx, client)
+	require.NoError(t, err)
+
+	// Expecting 2 sessions deleted (session-garbage, session-garbage-funcs-only).
+	// Expecting 3 rows deleted (1 in files, 2 in functions).
+	assert.Equal(t, int64(2), deletedSessions)
+	assert.Equal(t, int64(3), deletedRows)
+
+	// Verify that valid session files and functions still exist.
+	var count int64
+	err = client.Single().Query(ctx, spanner.Statement{SQL: "SELECT COUNT(1) FROM files"}).
+		Do(func(row *spanner.Row) error {
+			return row.Column(0, &count)
+		})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+
+	err = client.Single().Query(ctx, spanner.Statement{SQL: "SELECT COUNT(1) FROM functions"}).
+		Do(func(row *spanner.Row) error {
+			return row.Column(0, &count)
+		})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+}
