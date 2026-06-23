@@ -4,6 +4,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"flag"
 	"fmt"
 	"net/http"
@@ -146,13 +148,17 @@ func (hub *Hub) verifyKey(key, expectedKey string) error {
 		if err != nil {
 			return err
 		}
-		if subj != expectedKey {
+		subjHash := sha256.Sum256([]byte(subj))
+		expectedHash := sha256.Sum256([]byte(expectedKey))
+		if subtle.ConstantTimeCompare(subjHash[:], expectedHash[:]) != 1 {
 			return fmt.Errorf("bad token")
 		}
 		// Success due to correct token.
 		return nil
 	}
-	if key != expectedKey {
+	keyHash := sha256.Sum256([]byte(key))
+	expectedHash := sha256.Sum256([]byte(expectedKey))
+	if subtle.ConstantTimeCompare(keyHash[:], expectedHash[:]) != 1 {
 		return fmt.Errorf("bad password")
 	}
 	// Success due to correct password.
