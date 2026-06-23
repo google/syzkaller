@@ -21,6 +21,11 @@ func TestRPCBackendLocal(t *testing.T) {
 	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
 	require.NoError(t, err)
 
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken compiler: %v", sysTarget.BrokenCompiler)
+	}
+
 	executorBin := csource.BuildExecutor(t, target, "../..")
 
 	p, err := target.Deserialize([]byte("syz_test_fuzzer1(0, 0, 0)"), prog.Strict)
