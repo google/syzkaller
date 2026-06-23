@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"net/mail"
 	"slices"
 	"strings"
@@ -352,12 +351,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	if err != nil {
 		return nil, err
 	}
-	models := make(map[string]bool)
-	for _, span := range trajectory {
-		if span.Model != "" {
-			models[span.Model] = true
-		}
-	}
+	models := extractExecutedModels(trajectory)
 	var to, cc []string
 	for _, rec := range res.Recipients {
 		addr := mail.Address{Name: rec.Name, Address: rec.Email}
@@ -377,7 +371,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		Version:    version,
 		To:         to,
 		Cc:         cc,
-		Tools:      slices.Collect(maps.Keys(models)),
+		Tools:      models,
 		Authors:    authors,
 		Fixes:      res.Fixes,
 		ReviewedBy: res.ReviewedBy,

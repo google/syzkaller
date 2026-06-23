@@ -58,7 +58,24 @@ func TestAILoreIntegration(t *testing.T) {
 
 	err = c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 		JobID: jobID,
-		Span:  &trajectory.Span{Seq: 1, Type: trajectory.SpanAgent, Name: "patch-generator", Model: "gemini-3.1-pro-preview"},
+		Span: &trajectory.Span{
+			Seq:      1,
+			Type:     trajectory.SpanAgent,
+			Name:     "patch-generator",
+			Model:    "gemini-3.0,gemini-3.1-pro-preview",
+			Finished: now,
+		},
+	})
+	require.NoError(t, err)
+	err = c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		JobID: jobID,
+		Span: &trajectory.Span{
+			Seq:      2,
+			Type:     trajectory.SpanLLM,
+			Name:     "patch-generator",
+			Model:    "gemini-3.1-pro-preview",
+			Finished: now,
+		},
 	})
 	require.NoError(t, err)
 	c.finishAIPatchJob(t, jobID, map[string]any{

@@ -4,42 +4,48 @@
 package aflow
 
 import (
+	"slices"
 	"testing"
 )
 
-func TestModelNameResolution(t *testing.T) {
+func TestContextModelNames(t *testing.T) {
 	tests := []struct {
 		name     string
 		llmModel string
 		model    ModelType
-		want     string
+		want     []string
 	}{
 		{
-			name:  "resolves good balanced model",
+			name:  "resolves good balanced model pool",
 			model: GoodBalancedModel,
-			want:  gemini3FlashPreview,
+			want:  []string{gemini3FlashPreview, gemini35Flash},
 		},
 		{
-			name:  "resolves best expensive model",
+			name:  "resolves best expensive model pool",
 			model: BestExpensiveModel,
-			want:  gemini31ProPreview,
+			want:  []string{gemini31ProPreview},
 		},
 		{
 			name:  "falls back to raw string for unrecognized model type",
 			model: "custom-model",
-			want:  "custom-model",
+			want:  []string{"custom-model"},
+		},
+		{
+			name:  "resolves comma separated mixed models",
+			model: "best-expensive,custom-model,good-balanced",
+			want:  []string{"best-expensive", "custom-model", "good-balanced"},
 		},
 		{
 			name:     "respects context level override",
 			llmModel: "override-model",
 			model:    GoodBalancedModel,
-			want:     "override-model",
+			want:     []string{"override-model"},
 		},
 		{
 			name:     "respects context level override even for unrecognized model type",
 			llmModel: "override-model",
 			model:    "custom-model",
-			want:     "override-model",
+			want:     []string{"override-model"},
 		},
 	}
 
@@ -48,9 +54,9 @@ func TestModelNameResolution(t *testing.T) {
 			ctx := &Context{
 				llmModel: tc.llmModel,
 			}
-			got := ctx.modelName(tc.model)
-			if got != tc.want {
-				t.Errorf("ctx.modelName(%q) = %q, want %q", tc.model, got, tc.want)
+			got := ctx.modelNames(tc.model)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("ctx.modelNames(%v) = %v, want %v", tc.model, got, tc.want)
 			}
 		})
 	}

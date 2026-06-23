@@ -71,6 +71,7 @@ type agentSession struct {
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
+	agentSpan *trajectory.Span
 }
 
 type llmMessage struct {
@@ -86,16 +87,18 @@ type toolCallRecord struct {
 type ModelType string
 
 const (
-	// Consts to use for LLMAgent.Model.
-	// See https://ai.google.dev/gemini-api/docs/models
 	BestExpensiveModel ModelType = "best-expensive"
 	GoodBalancedModel  ModelType = "good-balanced"
 )
 
 const (
-	gemini3FlashPreview = "gemini-3-flash-preview"
+	// See https://ai.google.dev/gemini-api/docs/models
 	gemini31ProPreview  = "gemini-3.1-pro-preview"
+	gemini3FlashPreview = "gemini-3-flash-preview"
+	gemini35Flash       = "gemini-3.5-flash"
+)
 
+const (
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
 	hardLoopDetectionLimit    = 6
@@ -299,12 +302,12 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 		Name:        a.Name,
 		Instruction: instruction,
 		Prompt:      prompt,
-		Model:       ctx.modelName(a.Model),
+		Model:       strings.Join(ctx.modelNames(a.Model), ","),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	s := &agentSession{LLMAgent: a}
+	s := &agentSession{LLMAgent: a, agentSpan: span}
 	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
@@ -352,12 +355,15 @@ func (a *agentSession) chat(ctx *Context, cfg *genai.GenerateContentConfig, tool
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
 			Name:  a.Name,
-			Model: ctx.modelName(a.Model),
+			Model: strings.Join(ctx.modelNames(a.Model), ","),
 		}
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate, a.Model)
+		resp, respErr := a.generateContent(ctx, cfg, a.req, candidate, a.Model, span)
+		if a.agentSpan != nil {
+			a.agentSpan.Model = span.Model
+		}
 
 		if respErr != nil {
 			span.Error = respErr.Error()
@@ -506,7 +512,7 @@ func (a *agentSession) compressContext(ctx *Context, instruction string, splitIn
 	span := &trajectory.Span{
 		Type:  trajectory.SpanLLM,
 		Name:  a.Name + "-compressor",
-		Model: ctx.modelName(GoodBalancedModel),
+		Model: strings.Join(ctx.modelNames(GoodBalancedModel), ","),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return nil, 0, err
@@ -529,7 +535,7 @@ func (a *agentSession) compressContext(ctx *Context, instruction string, splitIn
 	compressReq = append(compressReq, llmMessage{
 		content: genai.NewContentFromText(tokenCompressionPrompt, genai.RoleUser),
 	})
-	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel)
+	resp, err := a.generateContent(ctx, cfg, compressReq, 0, GoodBalancedModel, span)
 	if err != nil {
 		return nil, 0, ctx.finishSpan(span, err)
 	}
@@ -748,7 +754,8 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 }
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []llmMessage, candidate int, model ModelType) (*genai.GenerateContentResponse, error) {
+	req []llmMessage, candidate int, model ModelType,
+	span *trajectory.Span) (*genai.GenerateContentResponse, error) {
 	// Copy the config in case we modify it below.
 	cfg = osutil.JSONDeepCopy(cfg)
 
@@ -757,47 +764,63 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 		rawReq = append(rawReq, msg.content)
 	}
 
-	for try := 0; ; try++ {
-		resp, err := a.generateContentCached(ctx, cfg, rawReq, candidate, try, model)
-		if retryErr := new(retryError); errors.As(err, &retryErr) {
-			time.Sleep(retryErr.delay)
-			continue
+	resolvedModels := ctx.modelNames(model)
+	var lastErr error
+	for _, m := range resolvedModels {
+		if span != nil {
+			span.Model = m
 		}
-		if isOutputTokenOverflowError(err) &&
-			cfg.ThinkingConfig.ThinkingLevel != genai.ThinkingLevelMinimal {
-			// Reduce amount of thinking and try again (thinking tokens are counted against output).
-			// For non-thinking models this is effectively just a retry,
-			// but that's fine, there is some chance that retry will succeed due to randomness,
-			// or it will just fail after few retries.
-			switch cfg.ThinkingConfig.ThinkingLevel {
-			case genai.ThinkingLevelHigh:
-				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMedium
-			case genai.ThinkingLevelMedium:
-				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelLow
-			case genai.ThinkingLevelLow:
-				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMinimal
-			default:
-				return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingConfig.ThinkingLevel)
+		for try := 0; ; try++ {
+			resp, err := a.generateContentCached(ctx, cfg, rawReq, candidate, try, m)
+			if retryErr := new(retryError); errors.As(err, &retryErr) {
+				time.Sleep(retryErr.delay)
+				continue
 			}
-			continue
+			if isOutputTokenOverflowError(err) &&
+				cfg.ThinkingConfig.ThinkingLevel != genai.ThinkingLevelMinimal {
+				// Reduce amount of thinking and try again (thinking tokens are counted against output).
+				// For non-thinking models this is effectively just a retry,
+				// but that's fine, there is some chance that retry will succeed due to randomness,
+				// or it will just fail after few retries.
+				switch cfg.ThinkingConfig.ThinkingLevel {
+				case genai.ThinkingLevelHigh:
+					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMedium
+				case genai.ThinkingLevelMedium:
+					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelLow
+				case genai.ThinkingLevelLow:
+					cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMinimal
+				default:
+					return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingConfig.ThinkingLevel)
+				}
+				continue
+			}
+			if err != nil {
+				// This model failed, fallback to next model.
+				if m != "" {
+					lastErr = fmt.Errorf("%v: %w", m, err)
+				} else {
+					lastErr = err
+				}
+				break // break retry loop, fallback to next model
+			}
+			return resp, nil
 		}
-		return resp, err
 	}
+	return nil, lastErr
 }
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate, try int, model ModelType) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate, try int, model string) (*genai.GenerateContentResponse, error) {
 	type Cached struct {
 		Config  *genai.GenerateContentConfig
 		Request []*genai.Content
 		Reply   *genai.GenerateContentResponse
 	}
-	modelStr := ctx.modelName(model)
 	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
-		modelStr, hash.String(cfg), hash.String(req), candidate)
+		model, hash.String(cfg), hash.String(req), candidate)
 	cached, _, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
-		resp, err := ctx.generateContent(modelStr, cfg, req)
-		err = parseLLMError(resp, err, modelStr, try)
+		resp, err := ctx.generateContent(model, cfg, req)
+		err = parseLLMError(resp, err, model, try)
 		return Cached{
 			Config:  cfg,
 			Request: req,

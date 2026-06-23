@@ -266,7 +266,7 @@
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:27Z",
 		"Finished": "0001-01-01T00:00:28Z",
-		"Error": "Error 400, Message: The input token count exceeds the maximum number of tokens allowed 1048576., Status: , Details: []"
+		"Error": "sub-agent-model: Error 400, Message: The input token count exceeds the maximum number of tokens allowed 1048576., Status: , Details: []"
 	},
 	{
 		"Seq": 16,
