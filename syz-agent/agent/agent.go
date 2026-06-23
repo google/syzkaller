@@ -311,10 +311,18 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
+
+		// The trajectory files should contain the model fallback pool, but the dashboard
+		// should not display it for start spans, so we filter it out here.
+		sendSpan := *span
+		if span.Finished.IsZero() && span.Model != "" {
+			sendSpan.Model = ""
+		}
+
 		return s.dash.AITrajectoryLog(&dashapi.AITrajectoryReq{
 			AgentName: s.cfg.DashboardClient,
 			JobID:     req.ID,
-			Span:      span,
+			Span:      &sendSpan,
 		})
 	}
 	return flow.Execute(ctx, s.cfg.Model, s.workdir, inputs, s.cache, onEvent)

@@ -2017,12 +2017,7 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	if err != nil {
 		return err
 	}
-	models := make(map[string]bool)
-	for _, span := range trajectory {
-		if span.Model != "" {
-			models[span.Model] = true
-		}
-	}
+	models := extractExecutedModels(trajectory)
 	// Add Fixes tag if we have cause bisection, but we need to verify it with LLMs
 	// somehow since lots of them are wrong.
 	// Probably shouldn't cc stable for all patches (e.g. removing a WARNING)?
@@ -2043,7 +2038,7 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	links = append(links, fmt.Sprintf("%s/ai_job?id=%s", appURL(ctx), job.ID))
 	description := email.FormatPatchDescription(res.PatchDescription, email.PatchTemplateData{
 		Fixes:      res.Fixes,
-		Tools:      slices.Collect(maps.Keys(models)),
+		Tools:      models,
 		Recipients: res.Recipients,
 		Links:      links,
 		Closes:     closes,
@@ -2138,4 +2133,19 @@ func jobBugInfo(ctx context.Context, bugID spanner.NullString) (string, string) 
 		return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 	}
 	return appURL(ctx) + bugLink(bugID.StringVal), ""
+}
+
+func extractExecutedModels(trajectory []*aidb.TrajectorySpan) []string {
+	models := make(map[string]bool)
+	for _, span := range trajectory {
+		// We only collect models from "llm" type spans because they represent the actual
+		// successful executions of the model. "agent" type spans represent the agent
+		// configuration and contain the full model pool (including models that might have failed).
+		if span.Type == "llm" && span.Model != "" {
+			models[span.Model] = true
+		}
+	}
+	res := slices.Collect(maps.Keys(models))
+	slices.Sort(res)
+	return res
 }

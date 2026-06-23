@@ -569,7 +569,7 @@ func TestOutputOverflow(t *testing.T) {
 			FinishReason: genai.FinishReasonMaxTokens,
 		}},
 	}
-	testFlow[struct{}, flowResults](t, nil, string(genai.FinishReasonMaxTokens),
+	testFlow[struct{}, flowResults](t, nil, "model: "+string(genai.FinishReasonMaxTokens),
 		&LLMAgent{
 			Reply: "Result",
 			Outputs: LLMOutputs[struct {
@@ -689,6 +689,43 @@ func TestValidatedLLMReply(t *testing.T) {
 		[]any{
 			genai.NewPartFromText("reply1"),
 			genai.NewPartFromText("reply2"),
+		},
+		nil,
+	)
+}
+
+// TestModelFallbackTrajectory verifies that when a workflow is configured with a model pool (fallback list),
+// and the primary model fails (e.g. returns quota limit error), the workflow engine successfully falls back
+// to the backup model and executes. It also verifies that only the successful fallback model is recorded
+// in the finished LLM span of the execution trajectory.
+func TestModelFallbackTrajectory(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Name:     "smarty",
+			Model:    "model1,model2",
+			Reply:    "Reply",
+			TaskType: FormalReasoningTask,
+		},
+		[]any{
+			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
+				*genai.GenerateContentResponse, error) {
+				if model == "model1" {
+					return nil, errors.New("model1 failed (quota limit)")
+				}
+				if model == "model2" {
+					return &genai.GenerateContentResponse{
+						Candidates: []*genai.Candidate{{
+							Content: &genai.Content{
+								Parts: []*genai.Part{genai.NewPartFromText("Done")},
+								Role:  genai.RoleModel,
+							}}}}, nil
+				}
+				return nil, fmt.Errorf("unexpected model %q", model)
+			},
 		},
 		nil,
 	)

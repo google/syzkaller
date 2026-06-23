@@ -259,6 +259,13 @@ func loadModelList(ctx context.Context) (*genai.Client, map[string]*modelInfo, s
 				InputTokenLimit:  1048576,
 				OutputTokenLimit: 65536,
 			},
+
+			"gemini-3.5-flash": {
+				Thinking:         true,
+				MaxTemperature:   2.0,
+				InputTokenLimit:  1048576,
+				OutputTokenLimit: 65536,
+			},
 		}
 		// Vertex AI backend expects the bare model name, not prefixed with "models/".
 		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
@@ -314,20 +321,20 @@ type stubContext struct {
 		*genai.GenerateContentResponse, error)
 }
 
-// modelName resolves the abstract ModelType enum configuration to a concrete model name.
+// modelNames resolves the abstract ModelType configurations to a flattened slice of concrete fallback model names.
 // If a workflow-level model override is configured (via ctx.llmModel), it takes precedence.
-func (ctx *Context) modelName(model ModelType) string {
+func (ctx *Context) modelNames(m ModelType) []string {
 	if ctx.llmModel != "" {
-		return ctx.llmModel
+		return []string{ctx.llmModel}
 	}
-	switch model {
+	switch m {
 	case GoodBalancedModel:
-		return gemini3FlashPreview
+		return []string{gemini3FlashPreview, gemini35Flash}
 	case BestExpensiveModel:
-		return gemini31ProPreview
+		return []string{gemini31ProPreview}
 	default:
 		// E.g. when an explicit model name or test stub is passed directly.
-		return string(model)
+		return strings.Split(string(m), ",")
 	}
 }
 
