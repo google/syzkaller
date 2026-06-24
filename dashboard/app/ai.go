@@ -355,7 +355,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if currentWorkflow == "" {
 		currentWorkflow = aidb.WorkflowAll
 	}
-	managers, err := managerList(ctx, hdr.Namespace)
+	managers, err := CachedManagerList(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
