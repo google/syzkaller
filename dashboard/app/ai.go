@@ -284,7 +284,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	cursorIDStr := r.FormValue("cursor_id")
 	reverse := r.FormValue("reverse") != ""
-	const limit = 500
+	const limit = 300
 
 	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, &aidb.JobFilter{
 		Workflow:    currentWorkflow,
