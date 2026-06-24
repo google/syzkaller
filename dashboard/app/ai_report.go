@@ -364,7 +364,18 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}
 	models := extractExecutedModels(trajectory)
 	var to, cc []string
+	seen := make(map[string]bool)
+	for _, a := range authors {
+		to = append(to, a)
+		seen[email.CanonicalEmail(a)] = true
+	}
+
 	for _, rec := range res.Recipients {
+		if seen[email.CanonicalEmail(rec.Email)] {
+			continue
+		}
+		seen[email.CanonicalEmail(rec.Email)] = true
+
 		addr := mail.Address{Name: rec.Name, Address: rec.Email}
 		if rec.To {
 			to = append(to, addr.String())
