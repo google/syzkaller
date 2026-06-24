@@ -121,6 +121,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	cfg.Image = args.Image
 	cfg.Type = args.Type
 	cfg.VM = vmCfg
+	cfg.Experimental.DescriptionsMode = mgrconfig.AnyDescriptionsMode
 	if args.NeedStrace && args.StraceBin != "" {
 		cfg.StraceBin = args.StraceBin
 		cfg.StraceBinOnTarget = false
