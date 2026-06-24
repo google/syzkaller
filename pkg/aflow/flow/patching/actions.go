@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -78,6 +79,7 @@ var getMaintainers = aflow.NewFuncAction("get-maintainers", maintainers)
 type maintainersArgs struct {
 	KernelCommit string
 	PatchDiff    string
+	Fixes        ai.FixesTag
 }
 
 type maintainersResult struct {
@@ -106,6 +108,23 @@ func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, e
 				Email: recipient.Address.Address,
 				To:    recipient.Type == vcs.To,
 			})
+		}
+		if args.Fixes.Hash != "" && args.Fixes.AuthorEmail != "" {
+			found := false
+			canonicalFixesEmail := email.CanonicalEmail(args.Fixes.AuthorEmail)
+			for i, rec := range res.Recipients {
+				if email.CanonicalEmail(rec.Email) == canonicalFixesEmail {
+					res.Recipients[i].To = true
+					found = true
+				}
+			}
+			if !found {
+				res.Recipients = append(res.Recipients, ai.Recipient{
+					Name:  args.Fixes.AuthorName,
+					Email: args.Fixes.AuthorEmail,
+					To:    true,
+				})
+			}
 		}
 		return nil
 	})

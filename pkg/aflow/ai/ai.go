@@ -88,8 +88,10 @@ type PatchingOutputs struct {
 }
 
 type FixesTag struct {
-	Hash  string
-	Title string
+	Hash        string
+	Title       string
+	AuthorName  string
+	AuthorEmail string
 }
 
 type Recipient struct {
