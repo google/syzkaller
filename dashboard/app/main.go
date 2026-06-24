@@ -74,10 +74,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
 		http.Handle("/"+ns+"/coverage/file", handlerWrapper(handleFileCoverage))
 		http.Handle("/"+ns+"/coverage", handlerWrapper(handleCoverageHeatmap))
-		http.Handle("/"+ns+"/graph/coverage_heatmap", handleMovedPermanently("/"+ns+"/coverage"))
 		if nsConfig.Subsystems.Service != nil {
-			http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap",
-				handleMovedPermanently("/"+ns+"/coverage/subsystems"))
 			http.Handle("/"+ns+"/coverage/subsystems", handlerWrapper(handleSubsystemsCoverageHeatmap))
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
@@ -98,12 +95,6 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
 	http.HandleFunc("/cron/update_coverdb_subsystems", handleUpdateCoverDBSubsystems)
-}
-
-func handleMovedPermanently(dest string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, dest, http.StatusMovedPermanently)
-	}
 }
 
 type uiMainPage struct {
