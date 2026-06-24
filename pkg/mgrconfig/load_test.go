@@ -97,3 +97,18 @@ func TestParseEnabledSyscalls(t *testing.T) {
 		})
 	}
 }
+
+func TestCompleteDescriptionsMode(t *testing.T) {
+	data := []byte(`{
+		"target": "linux/amd64",
+		"type": "none",
+		"workdir": "/tmp",
+		"syzkaller": "testdata/syzkaller",
+		"experimental": {
+			"descriptions_mode": "invalid"
+		}
+	}`)
+	_, err := LoadData(data)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
+}

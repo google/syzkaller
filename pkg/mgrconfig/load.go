@@ -6,10 +6,12 @@ package mgrconfig
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -187,7 +189,12 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("fuzzing_vms cannot be less than 0")
 	}
 
-	descriptionsMode := strToDescriptionsMode[cfg.Experimental.DescriptionsMode]
+	descriptionsMode, ok := strToDescriptionsMode[cfg.Experimental.DescriptionsMode]
+	if !ok {
+		allowed := slices.Sorted(maps.Keys(strToDescriptionsMode))
+		return fmt.Errorf("invalid descriptions_mode %q, must be one of: %s",
+			cfg.Experimental.DescriptionsMode, strings.Join(allowed, ", "))
+	}
 	if cfg.Snapshot {
 		descriptionsMode |= SnapshotDescriptions
 	}
