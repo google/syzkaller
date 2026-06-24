@@ -91,6 +91,10 @@ func TestAIExternalReporting(t *testing.T) {
 			"Hash":  "123456789012",
 			"Title": "original bug",
 		},
+		"Recipients": []map[string]any{
+			{"Name": "Test User", "Email": "test-user", "To": true},
+			{"Name": "Reviewer", "Email": "reviewer@test.com", "To": false},
+		},
 	})
 
 	// Poll for pending reports and confirm published.
@@ -154,6 +158,8 @@ func TestAIExternalReporting(t *testing.T) {
 		BaseCommit: "commit",
 		BaseTree:   "repo",
 		Authors:    []string{"test-user"},
+		To:         []string{"test-user"},
+		Cc:         []string{`"Reviewer" <reviewer@test.com>`},
 		Closes: []string{
 			appURL(c.ctx) + "/bug?extid=" + extID,
 		},
@@ -166,7 +172,8 @@ func TestAIExternalReporting(t *testing.T) {
 		},
 		ReportedBy: []string{"syzbot+" + extID + "@" + appengine.AppID(c.ctx) + ".appspotmail.com"},
 	}, pollResp.Result.Patch)
-	require.Equal(t, []string{"public@test.com"}, pollResp.Result.To)
+	require.Equal(t, []string{"public@test.com", "test-user"}, pollResp.Result.To)
+	require.Equal(t, []string{`"Reviewer" <reviewer@test.com>`}, pollResp.Result.Cc)
 
 	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
 		ReportID:       pollResp.Result.ID,
@@ -940,6 +947,63 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	require.True(t, loadedComments[0].Processed)
 
 	testExtendedPatchIteration(t, c, resp, gotResult, pollReq)
+}
+
+func TestAIUpstreamAuthorDeduplication(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", MergePatchCc: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
+		},
+		AllowedCommandAuthors: []string{"upstreamer@example.com"},
+	})
+
+	_, jobID := c.setupAIPatchJob(t)
+
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"Fixes": map[string]any{
+			"Hash":  "123456789012",
+			"Title": "original bug",
+		},
+		"Recipients": []map[string]any{
+			{"Name": "Upstreamer", "Email": "upstreamer@example.com", "To": true},
+		},
+	})
+
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
+	require.NoError(t, err)
+	require.Equal(t, []string{"moderation@test.com", "\"Upstreamer\" <upstreamer@example.com>"}, pollResp.Result.To)
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       pollResp.Result.ID,
+		PublishedExtID: "moderation-msg-id",
+	})
+	require.NoError(t, err)
+
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "moderation-msg-id",
+		MessageExtID: "<upstream-cmd>",
+		Author:       "\"Upstreamer\" <upstreamer@example.com>",
+		DKIM:         true,
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+
+	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
+	require.NoError(t, err)
+	require.Equal(t, []string{"public@test.com", "\"Upstreamer\" <upstreamer@example.com>"}, pollResp.Result.To)
+	require.Empty(t, pollResp.Result.Cc)
 }
 
 func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollResp,

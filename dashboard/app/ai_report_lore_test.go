@@ -126,13 +126,16 @@ Cc: "New Reviewer" <newreviewer@email.com>
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
-	assert.Equal(t, []string{"public@test.com", `"Maintainer" <maintainer@email.com>`}, mockSnd.sent[1].To)
+	assert.Equal(t, []string{
+		"public@test.com",
+		"User Name <user@email>",
+		`"Maintainer" <maintainer@email.com>`,
+	}, mockSnd.sent[1].To)
 	assert.Equal(t, "[PATCH] Test Subject", mockSnd.sent[1].Subject)
 	assert.Equal(t, []string{
 		"archive@lore.com",
 		"newreviewer@email.com",
 		"reviewer@email.com",
-		"user@email",
 	}, mockSnd.sent[1].Cc)
 
 	bodyPublic := string(mockSnd.sent[1].Body)
