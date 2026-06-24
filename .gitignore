@@ -29,4 +29,21 @@ executor/syscalls.h
 
 .gemini/
 gha-creds-*.json
-.agents/
+
+.agents
+
+baseline/
+
+seedgen_input.json
+seedgen_file_line_input.json
+syz-aflow
+syz_aflow
+syz-aflow-beyond
+!tools/syz-aflow
+!syz-aflow/*
+testopt.txt
+*trajectory.html
+build-aflow.sh
+seedgen-workdir/
+kernelconfig
+rawcoverpcs
