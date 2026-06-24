@@ -461,8 +461,10 @@ func queryFixesTag(ctx *aflow.Context, hash string) (ai.FixesTag, error) {
 			return fmt.Errorf("failed to get commit %q: %w", hash, err)
 		}
 		fix = ai.FixesTag{
-			Hash:  commit.Hash,
-			Title: commit.Title,
+			Hash:        commit.Hash,
+			Title:       commit.Title,
+			AuthorName:  commit.AuthorName,
+			AuthorEmail: commit.Author,
 		}
 		return nil
 	})
