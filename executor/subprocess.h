@@ -56,9 +56,19 @@ public:
 		    "GLIBC_TUNABLES=glibc.pthread.rseq=0",
 		    nullptr};
 
-		if (posix_spawnp(&pid_, argv[0], &actions, &attr,
-				 const_cast<char**>(argv), const_cast<char**>(child_envp)))
-			fail("posix_spawnp failed");
+		int err = posix_spawnp(&pid_, argv[0], &actions, &attr,
+				 const_cast<char**>(argv), const_cast<char**>(child_envp));
+		if (err) {
+			if (err != EPERM)
+				fail("posix_spawnp failed");
+			debug("posix_spawnp failed with EPERM, retrying without SETPGROUP\n");
+			if (posix_spawnattr_setflags(&attr, 0))
+				fail("posix_spawnattr_setflags failed");
+			if (posix_spawnp(&pid_, argv[0], &actions, &attr,
+					 const_cast<char**>(argv), const_cast<char**>(child_envp)))
+				fail("posix_spawnp failed");
+			new_pgroup_ = false;
+		}
 
 		if (posix_spawn_file_actions_destroy(&actions))
 			fail("posix_spawn_file_actions_destroy failed");
@@ -101,7 +111,8 @@ public:
 			if (waitpid(pid_, &wstatus, WNOHANG | WAIT_FLAGS) == pid_)
 				break;
 			if (current_time_ms() - start > timeout_ms) {
-				kill(-pid_, SIGKILL);
+				if (new_pgroup_)
+					kill(-pid_, SIGKILL);
 				kill(pid_, SIGKILL);
 			}
 		}
@@ -111,6 +122,7 @@ public:
 
 private:
 	int pid_ = 0;
+	bool new_pgroup_ = true;
 
 	static int ExitStatus(int wstatus)
 	{
