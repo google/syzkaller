@@ -104,7 +104,7 @@ func DefaultValues() *Config {
 		Experimental: Experimental{
 			RemoteCover:      true,
 			CoverEdges:       true,
-			DescriptionsMode: manualDescriptions,
+			DescriptionsMode: ManualDescriptionsMode,
 		},
 	}
 }
@@ -119,12 +119,16 @@ const (
 	AnyDescriptions = ManualDescriptions | AutoDescriptions
 )
 
-const manualDescriptions = "manual"
+const (
+	ManualDescriptionsMode = "manual"
+	AutoDescriptionsMode   = "auto"
+	AnyDescriptionsMode    = "any"
+)
 
 var strToDescriptionsMode = map[string]DescriptionsMode{
-	manualDescriptions: ManualDescriptions,
-	"auto":             AutoDescriptions,
-	"any":              AnyDescriptions,
+	ManualDescriptionsMode: ManualDescriptions,
+	AutoDescriptionsMode:   AutoDescriptions,
+	AnyDescriptionsMode:    AnyDescriptions,
 }
 
 func SetTargets(cfg *Config) error {
