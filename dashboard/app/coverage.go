@@ -152,6 +152,9 @@ func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter,
 	if err != nil {
 		return err
 	}
+	if getNsConfig(ctx, hdr.Namespace).Subsystems.Service == nil {
+		return ErrClientNotFound
+	}
 	params, err := makeHeatmapParams(ctx, r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
