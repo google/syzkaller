@@ -259,10 +259,13 @@ type uiAIResult struct {
 }
 
 func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	t0 := time.Now()
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
+	tHeader := time.Since(t0)
+
 	if r.Method == http.MethodPost {
 		if err := handleAIJobCreate(ctx, r, hdr); err != nil {
 			hdr.Message = err.Error()
@@ -270,6 +273,8 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 			hdr.Message = fmt.Sprintf("AI workflow %v is created", r.FormValue("ai-job-create"))
 		}
 	}
+	tPost := time.Since(t0) - tHeader
+
 	currentWorkflow := r.FormValue("workflow")
 	showAborted := r.FormValue("show_aborted") != ""
 
@@ -286,6 +291,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	reverse := r.FormValue("reverse") != ""
 	const limit = 300
 
+	tSpannerStart := time.Now()
 	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, &aidb.JobFilter{
 		Workflow:    currentWorkflow,
 		ShowAborted: showAborted,
@@ -297,6 +303,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
+	tSpanner := time.Since(tSpannerStart)
 
 	hasNextPage := false
 	hasPrevPage := false
@@ -334,15 +341,21 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		nextCursorID = lastJob.ID
 	}
 
+	tAccessStart := time.Now()
 	jobs, err = filterJobsAccess(ctx, r, jobs)
 	if err != nil {
 		return err
 	}
+	tAccess := time.Since(tAccessStart)
 
+	tMappingStart := time.Now()
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
 		uiJobs = append(uiJobs, makeUIAIJob(job))
 	}
+	tMapping := time.Since(tMappingStart)
+
+	tWorkflowsStart := time.Now()
 	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {
 		return err
@@ -355,11 +368,15 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if currentWorkflow == "" {
 		currentWorkflow = aidb.WorkflowAll
 	}
+	tWorkflows := time.Since(tWorkflowsStart)
+
+	tManagersStart := time.Now()
 	managers, err := CachedManagerList(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
 	slices.Sort(managers)
+	tManagers := time.Since(tManagersStart)
 
 	cfg := getNsConfig(ctx, hdr.Namespace)
 	page := &uiAIJobsPage{
@@ -378,12 +395,20 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		PrevCursorID:    prevCursorID,
 	}
 
+	tRenderStart := time.Now()
+	var renderErr error
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, page)
+		renderErr = writeJSONVersionOf(w, page)
+	} else {
+		renderErr = serveTemplate(w, "ai_jobs.html", page)
 	}
+	tRender := time.Since(tRenderStart)
 
-	return serveTemplate(w, "ai_jobs.html", page)
+	log.Infof(ctx, "[AI_PERF] Total: %v (Jobs: %d) | Header: %v | Post: %v | Spanner: %v | Access: %v | Mapping: %v | Workflows: %v | Managers: %v | Render: %v",
+		time.Since(t0), len(jobs), tHeader, tPost, tSpanner, tAccess, tMapping, tWorkflows, tManagers, tRender)
+
+	return renderErr
 }
 
 func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) error {
