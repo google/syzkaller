@@ -765,24 +765,22 @@ func bugNeedsCommitUpdate(ctx context.Context, bug *Bug, manager string, fixComm
 
 // Note: if you do not need the latest data, prefer CachedManagersList().
 func managerList(ctx context.Context, ns string) ([]string, error) {
-	var builds []*Build
-	_, err := db.NewQuery("Build").
+	var managers []*Manager
+	_, err := db.NewQuery("Manager").
 		Filter("Namespace=", ns).
-		Project("Manager").
-		Distinct().
-		GetAll(ctx, &builds)
+		GetAll(ctx, &managers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query builds: %w", err)
+		return nil, fmt.Errorf("failed to query managers: %w", err)
 	}
 	configManagers := getNsConfig(ctx, ns).Managers
-	var managers []string
-	for _, build := range builds {
-		if configManagers[build.Manager].Decommissioned {
+	var names []string
+	for _, mgr := range managers {
+		if configManagers[mgr.Name].Decommissioned {
 			continue
 		}
-		managers = append(managers, build.Manager)
+		names = append(names, mgr.Name)
 	}
-	return managers, nil
+	return names, nil
 }
 
 func apiReportBuildError(ctx context.Context, ns string, req *dashapi.BuildErrorReq) (any, error) {
