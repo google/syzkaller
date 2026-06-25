@@ -344,8 +344,8 @@ type JobFilter struct {
 	Reverse     bool
 }
 
-func LoadNamespaceJobs(ctx context.Context, ns string, filter *JobFilter) ([]*Job, error) {
-	sql := selectJobs() + "WHERE Namespace = @ns"
+func LoadNamespaceJobsSummary(ctx context.Context, ns string, filter *JobFilter) ([]*Job, error) {
+	sql := selectJobsSummary() + "WHERE Namespace = @ns"
 	params := map[string]any{
 		"ns": ns,
 	}
@@ -565,6 +565,17 @@ func selectAgents() string {
 
 func selectJobs() string {
 	return selectAllFrom[Job]("Jobs")
+}
+
+// selectJobsSummary returns a SELECT query for the Jobs table optimized for the list page.
+// It selects all columns except the large 'Args' column (which is unused on the list page)
+// and fetches a truncated version of 'Error' to reduce payload size and unmarshalling time.
+// Note: This query must be kept in sync with the aidb.Job struct definition.
+func selectJobsSummary() string {
+	return `SELECT ID, Type, Workflow, Namespace, BugID, ExternalBugID, 
+		Description, Link, Created, Started, Finished, CodeRevision, 
+		SUBSTR(Error, 1, 201) AS Error, AgentName, Results, Correct, 
+		Aborted, ParentReportingID FROM Jobs `
 }
 
 func selectTrajectorySpans() string {

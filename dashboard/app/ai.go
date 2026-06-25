@@ -286,7 +286,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	reverse := r.FormValue("reverse") != ""
 	const limit = 300
 
-	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, &aidb.JobFilter{
+	jobs, err := aidb.LoadNamespaceJobsSummary(ctx, hdr.Namespace, &aidb.JobFilter{
 		Workflow:    currentWorkflow,
 		ShowAborted: showAborted,
 		CursorTime:  cursorTime,
