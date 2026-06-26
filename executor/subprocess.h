@@ -59,16 +59,24 @@ public:
 		int err = posix_spawnp(&pid_, argv[0], &actions, &attr,
 				 const_cast<char**>(argv), const_cast<char**>(child_envp));
 		if (err) {
-			if (err != EPERM)
+			if (err != EPERM) {
+				errno = err;
 				fail("posix_spawnp failed");
+			}
 			debug("posix_spawnp failed with EPERM, retrying without SETPGROUP\n");
-			if (posix_spawnattr_setflags(&attr, 0))
+			err = posix_spawnattr_setflags(&attr, 0);
+			if (err) {
+				errno = err;
 				fail("posix_spawnattr_setflags failed");
-			if (posix_spawnp(&pid_, argv[0], &actions, &attr,
-					 const_cast<char**>(argv), const_cast<char**>(child_envp)))
+			}
+			err = posix_spawnp(&pid_, argv[0], &actions, &attr,
+				 const_cast<char**>(argv), const_cast<char**>(child_envp));
+			if (err) {
+				errno = err;
 				fail("posix_spawnp failed");
+			}
 			new_pgroup_ = false;
-		}
+        }
 
 		if (posix_spawn_file_actions_destroy(&actions))
 			fail("posix_spawn_file_actions_destroy failed");
