@@ -1,0 +1,10 @@
+include "arch/amd64/conf/KASAN"
+
+pseudo-device kcov 1
+
+option KQUEUE_DEBUG
+option SPLASSERT_WATCH
+option VFSLCKDEBUG
+option WITNESS
+option WITNESS_LOCKTRACE
+option WITNESS_WATCH
