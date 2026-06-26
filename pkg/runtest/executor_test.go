@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
 // Find the corresponding QEMU binary for the target arch, if needed.
@@ -178,4 +179,35 @@ func TestExecutorCommonExt(t *testing.T) {
 	if call := res.Info.Calls[0]; call.Flags&flatrpc.CallFlagFinished == 0 || call.Error != 0 {
 		t.Fatalf("bad call result: flags=%x errno=%v", call.Flags, call.Error)
 	}
+}
+
+func TestExecutorZeroCalls(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget("test", "64_fork")
+	require.NoError(t, err)
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
+	}
+	executor := csource.BuildExecutor(t, target, "../..")
+
+	source := queue.Plain()
+	startRPCServer(t, target, executor, source, rpcParams{})
+
+	req := &queue.Request{
+		Type: flatrpc.RequestTypeProgram,
+		Prog: &prog.Prog{
+			Target: target,
+			Calls:  []*prog.Call{},
+		},
+		ReturnError:  true,
+		ReturnOutput: true,
+		ExecOpts: flatrpc.ExecOpts{
+			EnvFlags: flatrpc.ExecEnvSandboxNone,
+		},
+	}
+	source.Submit(req)
+	res := req.Wait(context.Background())
+	require.NoError(t, res.Err, "zero-call program execution failed:\n%s", res.Output)
+	require.Empty(t, res.Info.Calls, "expected 0 call info")
 }

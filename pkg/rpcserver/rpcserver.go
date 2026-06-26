@@ -568,6 +568,7 @@ func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo Updat
 		filterSignal:  serv.cfg.FilterSignal,
 		debug:         serv.cfg.Debug,
 		debugTimeouts: serv.cfg.DebugTimeouts,
+		progTarget:    serv.target,
 		sysTarget:     serv.sysTarget,
 		injectExec:    injectExec,
 		infoc:         make(chan chan []byte),
