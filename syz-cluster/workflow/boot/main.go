@@ -95,6 +95,7 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 	if err != nil {
 		return false, err
 	}
+	cfg.SessionID = *flagSession
 	if err := instance.OverrideVMCount(cfg, vmCount); err != nil {
 		return false, err
 	}

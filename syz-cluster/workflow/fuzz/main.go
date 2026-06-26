@@ -286,6 +286,8 @@ func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Conf
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to prepare patched config: %w", err)
 	}
+	base.SessionID = *flagSession
+	patched.SessionID = *flagSession
 	base.Workdir = filepath.Join(*flagWorkdir, "base")
 	osutil.MkdirAll(base.Workdir)
 	patched.Workdir = filepath.Join(*flagWorkdir, "patched")
