@@ -25,7 +25,7 @@
 				"procs": 8,
 				"type": "gce",
 				"vm": {
-					"count": 10,
+					"count": 7,
 					"machine_type": "e2-small",
 					"gcs_path": "syzkaller/disks"
 				}
@@ -48,7 +48,31 @@
 				"procs": 8,
 				"type": "gce",
 				"vm": {
-					"count": 10,
+					"count": 7,
+					"machine_type": "e2-highcpu-2",
+					"gcs_path": "syzkaller/disks"
+				}
+			}
+		},
+		{
+			"name": "kasan",
+			"dashboard_client": "ci-openbsd",
+			"repo": "https://github.com/blackgnezdo/openbsd-src.git",
+			"branch": "syzbot-kasan",
+			"repo_alias": "kasan",
+			"userspace": "/syzkaller/userspace-multicore",
+			"kernel_config": "/syzkaller/config/openbsd/kasan",
+			"jobs": {
+				"test_patches": true
+			},
+			"manager_config": {
+				"target": "openbsd/amd64",
+				"cover": true,
+				"reproduce": true,
+				"procs": 8,
+				"type": "gce",
+				"vm": {
+					"count": 7,
 					"machine_type": "e2-highcpu-2",
 					"gcs_path": "syzkaller/disks"
 				}
@@ -72,7 +96,7 @@
 				"procs": 8,
 				"type": "gce",
 				"vm": {
-					"count": 10,
+					"count": 7,
 					"machine_type": "e2-highcpu-2",
 					"gcs_path": "syzkaller/disks"
 				}
