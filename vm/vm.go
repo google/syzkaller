@@ -114,6 +114,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 	}
 	env := &vmimpl.Env{
 		Name:      cfg.Name,
+		SessionID: cfg.SessionID,
 		OS:        cfg.TargetOS,
 		Arch:      cfg.TargetVMArch,
 		Workdir:   cfg.Workdir,

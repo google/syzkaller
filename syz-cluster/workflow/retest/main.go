@@ -74,6 +74,7 @@ func run(ctx context.Context, client *api.Client) error {
 		if err != nil {
 			return fmt.Errorf("failed to generate base config: %w", err)
 		}
+		baseCfg.SessionID = *flagSession
 		if *flagWorkdir != "" {
 			baseCfg.Workdir = *flagWorkdir + "/base"
 		}
@@ -90,6 +91,7 @@ func run(ctx context.Context, client *api.Client) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate patched config: %w", err)
 	}
+	patchedCfg.SessionID = *flagSession
 
 	if *flagWorkdir != "" {
 		patchedCfg.Workdir = *flagWorkdir + "/patched"
