@@ -111,6 +111,10 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 
 	var emails []*lore.Email
 	idToReader := map[string]lore.EmailReader{}
+	cfg, err := app.Config()
+	if err != nil {
+		return fmt.Errorf("failed to fetch the config: %w", err)
+	}
 	for _, item := range list {
 		// TODO: this could be done in several threads.
 		rawBody, err := item.Read()
@@ -134,7 +138,7 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 		if *flagVerbose {
 			logSeries(series)
 		}
-		err := sf.handleSeries(ctx, series, idToReader)
+		err := sf.handleSeries(ctx, cfg, series, idToReader)
 		if err != nil {
 			app.Errorf("failed to save the series: %v", err)
 		}
@@ -142,7 +146,7 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 	return nil
 }
 
-func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
+func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, series *lore.Series,
 	idToReader map[string]lore.EmailReader) error {
 	if series.Corrupted != "" {
 		log.Printf("skipping %s because of %q", series.MessageID, series.Corrupted)
@@ -192,8 +196,20 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		log.Printf("series %s already exists in the DB", series.MessageID)
 		return nil
 	}
+	var directRequest bool
+	if cfg.DirectList != "" {
+		canonicalDirect := email.CanonicalEmail(cfg.DirectList)
+		for _, addr := range first.RawCc {
+			if email.CanonicalEmail(addr) == canonicalDirect {
+				directRequest = true
+				break
+			}
+		}
+	}
+
 	_, err = sf.client.UploadSession(ctx, &api.NewSession{
-		ExtID: series.MessageID,
+		ExtID:         series.MessageID,
+		DirectRequest: directRequest,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to request a fuzzing session: %w", err)

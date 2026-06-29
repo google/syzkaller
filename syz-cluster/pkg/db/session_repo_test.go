@@ -113,6 +113,36 @@ func TestPrioritizeJobSessions(t *testing.T) {
 	assert.Equal(t, session1.ID, list[1].ID)
 }
 
+func TestPrioritizeDirectSessions(t *testing.T) {
+	client, ctx := NewTransientDB(t)
+	sessionRepo := NewSessionRepository(client)
+
+	dummy := &dummyTestData{t: t, ctx: ctx, client: client}
+	series := dummy.dummySeries()
+
+	session1 := &Session{
+		SeriesID:  series.ID,
+		CreatedAt: time.Now().Add(-time.Hour),
+	}
+	err := sessionRepo.Insert(ctx, session1)
+	assert.NoError(t, err)
+
+	session2 := &Session{
+		SeriesID:  series.ID,
+		CreatedAt: time.Now(),
+		Direct:    spanner.NullBool{Bool: true, Valid: true},
+	}
+	err = sessionRepo.Insert(ctx, session2)
+	assert.NoError(t, err)
+
+	list, err := sessionRepo.ListWaiting(ctx, 2)
+	assert.NoError(t, err)
+	assert.Len(t, list, 2)
+	assert.True(t, list[0].Direct.Bool)
+	assert.Equal(t, session2.ID, list[0].ID)
+	assert.Equal(t, session1.ID, list[1].ID)
+}
+
 func TestJobSessionDoesNotUpdateLatestSession(t *testing.T) {
 	client, ctx := NewTransientDB(t)
 	sessionRepo := NewSessionRepository(client)

@@ -1,0 +1,19 @@
+{
+  "id": "abcd",
+  "series": {
+    "title": "Series title",
+    "version": 2,
+    "link": "http://link/to/series",
+    "cc": ["a@a.com", "b@b.com"],
+    "patches": [
+      {
+        "title": "first patch"
+      },
+      {
+        "title": "second patch"
+      }
+    ]
+  },
+  "findings": [],
+  "link": "http://some/link/to/report"
+}
