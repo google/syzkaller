@@ -17,6 +17,7 @@ ENV REV=${REV}
 ENV GITREVDATE=${GITREVDATE}
 
 RUN make target OS=linux TARGETARCH=amd64
+RUN make target OS=linux TARGETARCH=arm
 RUN make target OS=linux TARGETARCH=arm64
 RUN make agent
 
@@ -31,7 +32,11 @@ ADD https://storage.googleapis.com/syzkaller/images/buildroot-amd64-2025.05.gz /
 RUN gzip -d /disk-images/buildroot_amd64.gz
 ADD https://storage.googleapis.com/syzkaller/images/buildroot-arm64-img-2025.05.gz /disk-images/buildroot_arm64.gz
 RUN gzip -d /disk-images/buildroot_arm64.gz
+ADD https://storage.googleapis.com/syzkaller/images/buildroot-arm-fs-2025.05.gz /disk-images/buildroot-arm.fs.gz
+RUN gzip -d /disk-images/buildroot-arm.fs.gz
+ADD https://storage.googleapis.com/syzkaller/dtb/vexpress-v2p-ca15-tc1.dtb /dtb-files/vexpress-v2p-ca15-tc1.dtb
 ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-apparmor-kasan.config /kernel-configs/upstream-apparmor-kasan.config
+ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-arm-full.config /kernel-configs/upstream-arm-full.config
 ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-arm64-gce-kasan.config /kernel-configs/upstream-arm64-gce-kasan.config
 
 COPY --from=syz-agent-builder /syzkaller/tools/git-cookie-authdaemon /app/git-cookie-authdaemon

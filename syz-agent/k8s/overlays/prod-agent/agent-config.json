@@ -33,6 +33,17 @@
         "preemptible": false,
         "zone_id": "us-central1-f"
       }
+    },
+    "linux/arm": {
+      "image": "/disk-images/buildroot-arm.fs",
+      "kernel_config": "/kernel-configs/upstream-arm-full.config",
+      "type": "qemu",
+      "vm": {
+        "count": 5,
+        "cpu": 2,
+        "mem": 2048,
+        "qemu_args": "-machine vexpress-a15 -cpu cortex-a15 -dtb /dtb-files/vexpress-v2p-ca15-tc1.dtb -accel tcg,thread=multi"
+      }
     }
   }
 }
