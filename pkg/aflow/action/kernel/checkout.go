@@ -87,8 +87,9 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 				if ok, err := repo.Contains(badCommit); err != nil {
 					return err
 				} else if ok {
-					if _, err = osutil.RunCmd(time.Hour, kernelRepoDir,
-						"git", "revert", "--no-edit", badCommit); err != nil {
+					if _, err = runSandboxedGit(time.Minute, kernelRepoDir,
+						"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
+						"revert", "--no-edit", badCommit); err != nil {
 						return err
 					}
 				}
