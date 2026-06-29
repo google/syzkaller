@@ -13,7 +13,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync"
 	"time"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/google/syzkaller/pkg/updater"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"google.golang.org/genai"
 )
 
 func main() {
@@ -215,8 +215,7 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {
-		if len(s.cfg.Workflows) != 0 && !slices.Contains(s.cfg.Workflows, flow.Name) ||
-			s.modelOverQuota(flow) {
+		if s.modelOverQuota(flow) {
 			continue
 		}
 		req.Workflows = append(req.Workflows, dashapi.AIWorkflow{
@@ -326,7 +325,31 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 			Span:      &sendSpan,
 		})
 	}
-	provider, err := gemini.NewProvider(ctx, gemini.Config{ModelOverride: s.cfg.Model})
+	backend := s.cfg.DefaultBackend
+	if b, ok := s.cfg.WorkflowBackends[req.Workflow]; ok {
+		backend = b
+	}
+
+	geminiCfg := gemini.Config{
+		ModelOverride: s.cfg.Model,
+	}
+	switch backend {
+	case backendVertex:
+		geminiCfg.ClientConfig = &genai.ClientConfig{
+			Backend: genai.BackendVertexAI,
+			Project: s.cfg.CloudProject,
+		}
+	case backendGemini, "":
+		if s.cfg.GeminiAPIKey != "" {
+			geminiCfg.ClientConfig = &genai.ClientConfig{
+				APIKey: s.cfg.GeminiAPIKey,
+			}
+		}
+	default:
+		return nil, fmt.Errorf("unknown LLM backend %q configured for workflow %q", backend, req.Workflow)
+	}
+
+	provider, err := gemini.NewProvider(ctx, geminiCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
