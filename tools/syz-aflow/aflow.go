@@ -25,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/genai"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		flagInput       = flag.String("input", "", "input json file with workflow arguments")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
-		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (e.g. gemini)")
+		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (gemini, vertex)")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid or id of a bug to download from the dashboard"+
 			" and save into -input file")
@@ -141,12 +142,44 @@ func run(ctx context.Context, args RunArgs) error {
 	var provider backend.Provider
 	switch args.Provider {
 	case "gemini":
-		provider, err = gemini.NewProvider(ctx, gemini.Config{ModelOverride: args.Model})
+		apiKey := os.Getenv("GOOGLE_API_KEY")
+		if apiKey == "" {
+			apiKey = os.Getenv("GEMINI_API_KEY")
+		}
+		if apiKey == "" {
+			return fmt.Errorf("gemini provider requires GOOGLE_API_KEY or GEMINI_API_KEY environment variable to be set")
+		}
+		provider, err = gemini.NewProvider(ctx, gemini.Config{
+			ModelOverride: args.Model,
+			ClientConfig: &genai.ClientConfig{
+				APIKey: apiKey,
+			},
+		})
 		if err != nil {
 			return fmt.Errorf("failed to initialize Gemini provider: %w", err)
 		}
+	case "vertex":
+		project := os.Getenv("GOOGLE_CLOUD_PROJECT")
+		if project == "" {
+			return fmt.Errorf("vertex provider requires GOOGLE_CLOUD_PROJECT environment variable to be set")
+		}
+		location := os.Getenv("GOOGLE_CLOUD_REGION")
+		if location == "" {
+			location = "global"
+		}
+		provider, err = gemini.NewProvider(ctx, gemini.Config{
+			ModelOverride: args.Model,
+			ClientConfig: &genai.ClientConfig{
+				Backend:  genai.BackendVertexAI,
+				Project:  project,
+				Location: location,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to initialize Vertex provider: %w", err)
+		}
 	default:
-		return fmt.Errorf("unknown provider %q", args.Provider)
+		return fmt.Errorf("unknown provider %q (supported: gemini, vertex)", args.Provider)
 	}
 
 	output, err := flow.Execute(ctx, provider, args.Workdir, inputs, cache, onEventFunc)
