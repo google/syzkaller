@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -22,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"google.golang.org/genai"
 )
 
 type AITriageResult struct {
@@ -51,7 +51,6 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve Gemini API key: %w", err)
 	}
-	os.Setenv("GOOGLE_API_KEY", apiKey)
 
 	aiCtx, cancel := context.WithTimeout(ctx, aiEvaluationTimeout)
 	defer cancel()
@@ -94,12 +93,16 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 		return nil, fmt.Errorf("failed to create aflow cache: %w", err)
 	}
 
-	prov, err := gemini.NewProvider(aiCtx, gemini.Config{})
+	provider, err := gemini.NewProvider(aiCtx, gemini.Config{
+		ClientConfig: &genai.ClientConfig{
+			APIKey: apiKey,
+		},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gemini provider: %w", err)
+		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
 
-	outputs, err := workflowDesc.Execute(aiCtx, prov, "/tmp/aflow-cache", initialState, cache, onEvent)
+	outputs, err := workflowDesc.Execute(aiCtx, provider, "/tmp/aflow-cache", initialState, cache, onEvent)
 
 	var htmlReport []byte
 	buf := new(bytes.Buffer)

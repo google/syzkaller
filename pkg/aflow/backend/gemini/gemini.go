@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -38,54 +37,36 @@ type modelInfo struct {
 
 type Config struct {
 	ModelOverride string
+	ClientConfig  *genai.ClientConfig
 }
 
 func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
 	p := &Provider{
 		modelOverride: cfg.ModelOverride,
 	}
-	if err := p.init(ctx); err != nil {
+	if err := p.init(ctx, cfg); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (p *Provider) init(ctx context.Context) error {
+func (p *Provider) init(ctx context.Context, cfg Config) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.client != nil || p.err != nil {
 		return p.err
 	}
 
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	cloudAPIKey := os.Getenv("GOOGLE_VERTEX_API_KEY")
-	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if (apiKey != "" && project != "") || (apiKey != "" && cloudAPIKey != "") ||
-		(cloudAPIKey != "" && project != "") {
-		p.err = fmt.Errorf("only one of GOOGLE_API_KEY, GOOGLE_VERTEX_API_KEY, " +
-			"or GOOGLE_CLOUD_PROJECT can be set")
-		return p.err
+	client, err := genai.NewClient(ctx, cfg.ClientConfig)
+	if err != nil {
+		p.err = err
+		return err
 	}
+	p.client = client
 
-	isVertex := cloudAPIKey != "" || project != ""
+	isVertex := cfg.ClientConfig != nil && cfg.ClientConfig.Backend == genai.BackendVertexAI
+
 	if isVertex {
-		genaiCfg := &genai.ClientConfig{Backend: genai.BackendVertexAI}
-		if cloudAPIKey != "" {
-			genaiCfg.APIKey = cloudAPIKey
-		} else {
-			genaiCfg.Project = project
-			location := os.Getenv("GOOGLE_CLOUD_REGION")
-			if location == "" {
-				location = "global"
-			}
-			genaiCfg.Location = location
-		}
-		client, err := genai.NewClient(ctx, genaiCfg)
-		if err != nil {
-			p.err = err
-			return err
-		}
-		p.client = client
 		// Vertex AI's Models.All() endpoint often does not return the same detailed
 		// metadata (like InputTokenLimit or SupportedActions) as the Gemini Developer API,
 		// or requires special IAM permissions to list the catalog. Therefore, we hardcode
@@ -114,40 +95,33 @@ func (p *Provider) init(ctx context.Context) error {
 		}
 		p.modelPathPrefix = ""
 		return nil
-	} else if apiKey != "" {
-		client, err := genai.NewClient(ctx, nil)
+	}
+
+	// Gemini API. Unlike Vertex AI, the Gemini Developer API catalog endpoint (Models.All)
+	// successfully returns detailed metadata for all models (such as their InputTokenLimit,
+	// OutputTokenLimit, and SupportedActions) without requiring any special IAM configurations.
+	// Therefore, we query the catalog dynamically here.
+	models := make(map[string]*modelInfo)
+	for m, err := range client.Models.All(ctx) {
 		if err != nil {
 			p.err = err
 			return err
 		}
-		models := make(map[string]*modelInfo)
-		for m, err := range client.Models.All(ctx) {
-			if err != nil {
-				p.err = err
-				return err
-			}
-			if !slices.Contains(m.SupportedActions, "generateContent") ||
-				strings.Contains(m.Name, "-image") ||
-				strings.Contains(m.Name, "-audio") {
-				continue
-			}
-			models[strings.TrimPrefix(m.Name, "models/")] = &modelInfo{
-				Thinking:         m.Thinking,
-				MaxTemperature:   m.MaxTemperature,
-				InputTokenLimit:  int(m.InputTokenLimit),
-				OutputTokenLimit: int(m.OutputTokenLimit),
-			}
+		if !slices.Contains(m.SupportedActions, "generateContent") ||
+			strings.Contains(m.Name, "-image") ||
+			strings.Contains(m.Name, "-audio") {
+			continue
 		}
-		p.client = client
-		p.models = models
-		// Gemini Developer API expects model names to be prefixed with "models/".
-		// E.g. "models/gemini-1.5-pro".
-		p.modelPathPrefix = "models/"
-		return nil
+		models[strings.TrimPrefix(m.Name, "models/")] = &modelInfo{
+			Thinking:         m.Thinking,
+			MaxTemperature:   m.MaxTemperature,
+			InputTokenLimit:  int(m.InputTokenLimit),
+			OutputTokenLimit: int(m.OutputTokenLimit),
+		}
 	}
-	p.err = fmt.Errorf("set GOOGLE_API_KEY (Gemini API) " +
-		"or GOOGLE_CLOUD_PROJECT/GOOGLE_VERTEX_API_KEY (Vertex AI)")
-	return p.err
+	p.models = models
+	p.modelPathPrefix = "models/"
+	return nil
 }
 
 func (p *Provider) Client(ctx context.Context) (backend.Client, error) {
