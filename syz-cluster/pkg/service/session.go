@@ -83,6 +83,9 @@ func (s *SessionService) UploadSession(ctx context.Context, req *api.NewSession)
 		Tags:      req.Tags,
 		CreatedAt: time.Now(),
 	}
+	if req.DirectRequest {
+		session.Direct = spanner.NullBool{Bool: true, Valid: true}
+	}
 	err = s.sessionRepo.Insert(ctx, session)
 	if err != nil {
 		return nil, err
@@ -105,6 +108,7 @@ func (s *SessionService) GetSessionInfo(ctx context.Context, sessionID string) (
 
 	info := &api.SessionInfo{
 		Series:              series,
+		Direct:              session.Direct.Bool,
 		TriageLogURI:        session.TriageLogURI,
 		TriageTrajectoryURI: session.TriageTrajectoryURI.StringVal,
 	}

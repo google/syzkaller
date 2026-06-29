@@ -1,15 +1,14 @@
 # Copyright 2025 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
-
 URL: http://unknown
 parallelWorkflows: 5
 loreArchives:
   - netdev
   - linux-ext4
-
+  - syzbot
+directList: syzbot@lists.linux.dev
 aiConfig:
   geminiAPIKey: "gcp-secret:syz-cluster-gemini-key"
-
 trees:
   - name: net
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git
@@ -22,7 +21,6 @@ trees:
   - name: linux-next
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next
     branch: master
-
 fuzz_targets:
   - campaigns:
       - track: KASAN

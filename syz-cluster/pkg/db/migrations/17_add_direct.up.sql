@@ -1,0 +1,1 @@
+ALTER TABLE Sessions ADD COLUMN Direct BOOL;

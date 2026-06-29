@@ -11,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -178,6 +179,7 @@ func (s *JobService) SubmitJob(ctx context.Context, req *api.SubmitJobRequest) (
 
 	session := &db.Session{
 		SeriesID:  origSession.SeriesID,
+		Direct:    spanner.NullBool{Bool: true, Valid: true},
 		CreatedAt: time.Now(),
 	}
 	session.SetJobID(job.ID)

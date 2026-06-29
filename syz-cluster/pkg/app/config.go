@@ -23,6 +23,8 @@ type AppConfig struct {
 	ParallelWorkflows int `yaml:"parallelWorkflows"`
 	// What Lore archives are to be polled for new patch series.
 	LoreArchives []string `yaml:"loreArchives"`
+	// Explicit list to listen to for direct series.
+	DirectList string `yaml:"directList"`
 	// Parameters used for sending/generating emails.
 	EmailReporting *EmailConfig `yaml:"emailReporting"`
 	// Trees and Fuzzer configuration.

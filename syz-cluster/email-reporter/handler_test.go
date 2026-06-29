@@ -332,3 +332,41 @@ func (f *fakeSender) email() *sender.Email {
 		return nil
 	}
 }
+
+func TestDirectSeriesFlow(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	testSeries := controller.DummySeries()
+
+	client := controller.TestServer(t, env)
+	_ = controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries, controller.WithDirect())
+
+	generator := reporter.NewGenerator(env)
+	err := generator.Process(ctx, 1)
+	assert.NoError(t, err)
+
+	emailServer := makeFakeSender()
+	reporterClient := reporter.TestServer(t, env)
+	handler := &Handler{
+		reporter:       api.LKMLReporter,
+		reporterClient: reporterClient,
+		apiClient:      client,
+		emailConfig:    emailclient.TestEmailConfig(),
+		sender:         emailServer.send,
+	}
+
+	report, err := handler.PollAndReport(ctx)
+	assert.NoError(t, err)
+
+	receivedEmail := emailServer.email()
+	require.NotNil(t, receivedEmail, "an email must be sent")
+	receivedEmail.Body = nil // for now don't validate the body
+	testEmailConfig := emailclient.TestEmailConfig()
+
+	assert.Equal(t, &sender.Email{
+		To:        testSeries.Cc,
+		Cc:        append([]string{testEmailConfig.ArchiveList}, testEmailConfig.ReportCC...),
+		Subject:   "[name] Re: " + testSeries.Title,
+		InReplyTo: testSeries.ExtID,
+		BugID:     report.ID,
+	}, receivedEmail)
+}

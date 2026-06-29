@@ -23,13 +23,31 @@ type EntityIDs struct {
 	SessionID string
 }
 
+type FakeSeriesConfig struct {
+	Direct bool
+}
+
+type FakeSeriesOpt func(*FakeSeriesConfig)
+
+func WithDirect() FakeSeriesOpt {
+	return func(c *FakeSeriesConfig) {
+		c.Direct = true
+	}
+}
+
 // UploadTestSeries returns a (series ID, session ID) tuple.
 func UploadTestSeries(t *testing.T, ctx context.Context,
-	client *api.Client, series *api.Series) EntityIDs {
+	client *api.Client, series *api.Series, opts ...FakeSeriesOpt) EntityIDs {
+	var config FakeSeriesConfig
+	for _, opt := range opts {
+		opt(&config)
+	}
+
 	retSeries, err := client.UploadSeries(ctx, series)
 	assert.NoError(t, err)
 	retSession, err := client.UploadSession(ctx, &api.NewSession{
-		ExtID: series.ExtID,
+		ExtID:         series.ExtID,
+		DirectRequest: config.Direct,
 	})
 	assert.NoError(t, err)
 	return EntityIDs{
@@ -106,8 +124,8 @@ type SeriesWithFindingIDs struct {
 }
 
 func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvironment,
-	client *api.Client, series *api.Series) SeriesWithFindingIDs {
-	ids := UploadTestSeries(t, ctx, client, series)
+	client *api.Client, series *api.Series, opts ...FakeSeriesOpt) SeriesWithFindingIDs {
+	ids := UploadTestSeries(t, ctx, client, series, opts...)
 	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	err := client.UploadSessionTest(ctx, &api.SessionTest{

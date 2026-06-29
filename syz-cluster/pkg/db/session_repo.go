@@ -86,7 +86,7 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*S
 	// Otherwise, follow the FIFO order.
 	stmt := spanner.Statement{
 		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL " +
-			"ORDER BY CASE WHEN `JobID` IS NOT NULL THEN 0 ELSE 1 END, `CreatedAt`",
+			"ORDER BY CASE WHEN `JobID` IS NOT NULL OR `Direct` = TRUE THEN 0 ELSE 1 END, `CreatedAt`",
 
 		Params: map[string]any{},
 	}
@@ -112,7 +112,7 @@ func (repo *SessionRepository) MissingReportList(ctx context.Context, from time.
 		SQL: "SELECT * FROM Sessions WHERE FinishedAt IS NOT NULL " +
 			" AND NOT EXISTS (" +
 			"SELECT 1 FROM SessionReports WHERE SessionReports.SessionID = Sessions.ID" +
-			") AND (JobID IS NOT NULL OR EXISTS (" +
+			") AND (JobID IS NOT NULL OR Direct = TRUE OR EXISTS (" +
 			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID))",
 		Params: map[string]any{},
 	}

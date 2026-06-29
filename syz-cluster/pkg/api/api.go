@@ -191,8 +191,9 @@ type SeriesPatch struct {
 }
 
 type NewSession struct {
-	ExtID string   `json:"ext_id"`
-	Tags  []string `json:"tags"`
+	ExtID         string   `json:"ext_id"`
+	Tags          []string `json:"tags"`
+	DirectRequest bool     `json:"direct_request"`
 }
 
 type ReportType string
@@ -282,6 +283,7 @@ type Job struct {
 type SessionInfo struct {
 	Series              *Series `json:"series"`
 	Job                 *Job    `json:"job,omitempty"`
+	Direct              bool    `json:"direct"`
 	TriageLogURI        string  `json:"triage_log_uri,omitempty"`
 	TriageTrajectoryURI string  `json:"triage_trajectory_uri,omitempty"`
 }

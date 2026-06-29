@@ -101,7 +101,7 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	}
 	ret := &api.TriageResult{}
 	for _, campaign := range fuzzConfigs {
-		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, treesResp.Trees, campaign)
+		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, sessionInfo.Direct, treesResp.Trees, campaign)
 		if skipErr, ok := errors.AsType[*SkipTriageError](err); ok {
 			ret.SkipReason = skipErr.Reason.Error()
 			continue
@@ -120,8 +120,8 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	return ret, nil
 }
 
-func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
-	target *triage.MergedFuzzConfig) (*api.TestTarget, error) {
+func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, forceTriage bool,
+	trees []*api.Tree, target *triage.MergedFuzzConfig) (*api.TestTarget, error) {
 	var result *SelectResult
 	var err error
 	if series.BaseCommitHint != "" {
@@ -164,6 +164,11 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 				triager.aiVerdict = aiResult
 			}
 		}
+	}
+
+	if forceTriage && !triager.aiVerdict.WorthFuzzing {
+		triager.Logf("AI determined the patch has no functional impact, but fuzzing is forced")
+		triager.aiVerdict.WorthFuzzing = true
 	}
 
 	if !triager.aiVerdict.WorthFuzzing {

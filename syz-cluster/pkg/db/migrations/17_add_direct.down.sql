@@ -1,0 +1,1 @@
+ALTER TABLE Sessions DROP COLUMN Direct;

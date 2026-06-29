@@ -70,6 +70,8 @@ func (rg *ReportGenerator) Process(ctx context.Context, limit int) error {
 			}
 			report.Moderation = false
 			report.Reporter = job.Reporter
+		} else if session.Direct.Valid && session.Direct.Bool {
+			report.Moderation = false
 		}
 		err := rg.reportRepo.Insert(ctx, report)
 		if err != nil {
