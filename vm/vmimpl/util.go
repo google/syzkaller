@@ -13,7 +13,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Sleep for d.
+// SleepInterruptible sleeps for d.
 // If shutdown is in progress, return false prematurely.
 func SleepInterruptible(d time.Duration) bool {
 	select {
