@@ -98,6 +98,7 @@ const (
 	SessionStatusStepsFailed SessionStatus = "steps_failed"
 )
 
+// Status returns the session status.
 // It could have been a calculated field in Spanner, but the Go library for Spanner currently
 // does not support read-only fields.
 func (s *Session) Status() SessionStatus {

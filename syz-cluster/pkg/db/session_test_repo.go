@@ -19,6 +19,7 @@ func NewSessionTestRepository(client *spanner.Client) *SessionTestRepository {
 	}
 }
 
+// InsertOrUpdate inserts or updates a session test.
 // If the beforeSave callback is specified, it will be called before saving the entity.
 func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *SessionTest,
 	beforeSave func(*SessionTest)) error {

@@ -49,6 +49,7 @@ func NewArgoService() (*ArgoService, error) {
 	}, nil
 }
 
+// Start starts the workflow for the given session.
 // TODO: substitute the proper (non-dev) Docker image names.
 func (w *ArgoService) Start(sessionID string) error {
 	workflow := w.template.DeepCopy()
