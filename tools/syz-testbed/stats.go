@@ -21,7 +21,7 @@ type BugInfo struct {
 
 type RunResult any
 
-// The information collected from a syz-manager instance.
+// SyzManagerResult contains the information collected from a syz-manager instance.
 type SyzManagerResult struct {
 	Bugs        []BugInfo
 	StatRecords []StatRecord
@@ -35,16 +35,16 @@ type SyzReproResult struct {
 	Duration    time.Duration
 }
 
-// A snapshot of syzkaller statistics at a particular time.
+// StatRecord is a snapshot of syzkaller statistics at a particular time.
 type StatRecord map[string]uint64
 
-// The grouping of single instance results. Taken by all stat generating routines.
+// RunResultGroup is the grouping of single instance results. It is used by all stat generating routines.
 type RunResultGroup struct {
 	Name    string
 	Results []RunResult
 }
 
-// Different "views" of the statistics, e.g. only completed instances or completed + running.
+// StatView represents different "views" of the statistics, e.g. only completed instances or completed + running.
 type StatView struct {
 	Name   string
 	Groups []RunResultGroup

@@ -154,6 +154,7 @@ func (t *SyzManagerTarget) SaveStatView(view *StatView, dir string) error {
 	return err
 }
 
+// SyzReproTarget represents a reproduction target in the testbed.
 // TODO: consider other repro testing modes.
 // E.g. group different logs by title. Then we could also set different sets of inputs
 // for each checkout. It can be important if we improve executor logging.

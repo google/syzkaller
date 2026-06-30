@@ -16,8 +16,8 @@ import (
 
 type Cell = any
 
-// All tables that syz-testbed generates have named columns and rows.
-// Table type simplifies generation and processing of such tables.
+// Table represents a table with named columns and rows.
+// It simplifies the generation and processing of such tables.
 type Table struct {
 	TopLeftHeader string
 	ColumnHeaders []string
