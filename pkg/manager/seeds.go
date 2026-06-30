@@ -355,7 +355,7 @@ func (fc *FilteredCandidates) ReminimizeSubset() int {
 	return reset
 }
 
-// resmashSubset clears fuzzer.ProgSmashes for a subset of seeds.
+// ResmashSubset clears fuzzer.ProgSmashes for a subset of seeds.
 // We smash the program only once after we add it to the corpus, but it can be that
 // either it did not finish before the instance was restarted, or the fuzzing algorithms
 // have become smarter over time, or just that kernel code changed over time.

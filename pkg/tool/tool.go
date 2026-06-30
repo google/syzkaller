@@ -28,7 +28,7 @@ func Init() func() {
 	return installProfiling(*flagCPUProfile, *flagMEMProfile)
 }
 
-// ServeHTPP serves default http mux on the specified address in a separate goroutine.
+// ServeHTTP serves the default HTTP mux on the address in a separate goroutine.
 // Terminates the process on any errors.
 func ServeHTTP(addr string) {
 	ln, err := net.Listen("tcp4", addr)

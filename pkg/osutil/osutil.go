@@ -107,7 +107,7 @@ func Command(bin string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-// Command is similar to os/exec.Command, but also sets PDEATHSIG to SIGTERM on linux,
+// GraciousCommand is similar to os/exec.Command, but also sets PDEATHSIG to SIGTERM on linux,
 // i.e. the child has a chance to exit gracefully. This may be important when running
 // e.g. syz-manager. If it is killed immediately, it can leak GCE instances.
 func GraciousCommand(bin string, args ...string) *exec.Cmd {
@@ -319,7 +319,7 @@ func TempFile(prefix string) (string, error) {
 	return TempFileIn("", prefix)
 }
 
-// An extended version of TempFileIn that allows to configure
+// TempFileIn is an extended version of TempFile that allows configuring
 // the folder in which the file will be created.
 func TempFileIn(dir, prefix string) (string, error) {
 	f, err := os.CreateTemp(dir, prefix)
@@ -330,7 +330,7 @@ func TempFileIn(dir, prefix string) (string, error) {
 	return f.Name(), nil
 }
 
-// Return all files in a directory.
+// ListDir returns all files in a directory.
 func ListDir(dir string) ([]string, error) {
 	f, err := os.Open(dir)
 	if err != nil {

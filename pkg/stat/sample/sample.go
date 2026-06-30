@@ -35,7 +35,7 @@ func (s *Sample) Median() float64 {
 	return s.Percentile(0.5)
 }
 
-// Remove outliers by the Tukey's fences method.
+// RemoveOutliers removes outliers by the Tukey's fences method.
 func (s *Sample) RemoveOutliers() *Sample {
 	if len(s.Xs) < 4 {
 		// If the data set is too small, we cannot reliably detect outliers anyway.

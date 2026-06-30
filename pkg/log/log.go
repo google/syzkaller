@@ -48,7 +48,7 @@ func EnableLogCaching(maxLines, maxMem int) {
 	cachingEnabled.Store(true)
 }
 
-// Retrieves cached log output.
+// CachedLogOutput retrieves cached log output.
 func CachedLogOutput() string {
 	mu.Lock()
 	defer mu.Unlock()
@@ -64,7 +64,7 @@ func CachedLogOutput() string {
 	return buf.String()
 }
 
-// If the name is set, it will be displayed for all logs.
+// SetName sets the name to be displayed for all logs.
 func SetName(name string) {
 	instanceName = name
 }

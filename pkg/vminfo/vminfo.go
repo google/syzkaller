@@ -114,7 +114,7 @@ func (checker *Checker) Run(ctx context.Context, files []*flatrpc.FileInfo, feat
 	return enabled, disabled, features, err
 }
 
-// Implementation of the queue.Source interface.
+// Next implements the queue.Source interface.
 func (checker *Checker) Next() *queue.Request {
 	return checker.source.Next()
 }

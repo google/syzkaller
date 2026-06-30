@@ -316,6 +316,7 @@ var (
 	)
 )
 
+// GetBadges returns the list of badge definitions.
 // nolint:funlen
 func GetBadges() []BadgeDefinition {
 	return []BadgeDefinition{

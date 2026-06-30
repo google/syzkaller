@@ -23,7 +23,7 @@ func (cov *Cover) Merge(raw []uint64) {
 	}
 }
 
-// Merge merges raw into coverage and returns newly added PCs. Overwrites/mutates raw.
+// MergeDiff merges raw into coverage and returns newly added PCs. Overwrites/mutates raw.
 func (cov *Cover) MergeDiff(raw []uint64) []uint64 {
 	c := *cov
 	if c == nil {

@@ -478,6 +478,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	return opts, nil
 }
 
+// ExecprogCmd returns the command to run execprog.
 // nolint:revive
 func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
 	optionalFlags bool, slowdown int, coverFile, progFile string) string {
@@ -526,6 +527,7 @@ var MakeBin = func() string {
 	return "make"
 }()
 
+// RunnerCmd returns the command to run the runner.
 // nolint:revive
 func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, newEnv bool) string {
 	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%d -vm=%d "+

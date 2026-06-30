@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 )
 
+// MergeJSONs merges two JSON documents.
 // Unfortunately, if we want to apply a JSON patch to some configuration, we cannot just unmarshal
 // it twice - in that case json.RawMessage objects will be completely replaced, but not merged.
 func MergeJSONs(left, right []byte) ([]byte, error) {
@@ -21,7 +22,7 @@ func MergeJSONs(left, right []byte) ([]byte, error) {
 	return json.Marshal(mergeRecursive(vLeft, vRight))
 }
 
-// Recursively apply a patch to a raw JSON data.
+// PatchJSON recursively applies a patch to raw JSON data.
 // Patch is supposed to be a map, which possibly nests other map objects.
 func PatchJSON(left []byte, patch map[string]any) ([]byte, error) {
 	vLeft, err := parseFragment(left)

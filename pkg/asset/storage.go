@@ -222,7 +222,7 @@ type DeprecateStats struct {
 	Deleted  int // How many were deleted during DeprecateAssets().
 }
 
-// Best way: convert download URLs to paths.
+// DeprecateAssets deprecates assets by converting download URLs to paths.
 // We don't want to risk killing all assets after a slight domain change.
 func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 	var stats DeprecateStats

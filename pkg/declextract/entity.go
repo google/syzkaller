@@ -254,7 +254,7 @@ func (out *Output) Finalize(v *clangtool.Verifier) {
 	out.NetlinkPolicies = clangtool.SortAndDedupSlice(out.NetlinkPolicies)
 }
 
-// SetSoureFile attaches the source file to the entities that need it.
+// SetSourceFile attaches the source file to the entities that need it.
 // The clang tool could do it, but it looks easier to do it here.
 func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
 	for _, fn := range out.Functions {
