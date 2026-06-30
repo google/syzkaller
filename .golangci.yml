@@ -137,7 +137,6 @@ linters:
       checks:
       - all
       - -ST1000 # at least one file in a package should have a package comment
-      - -ST1021 # comment on exported type Foo should be of the form "Foo ..." (with optional leading article)
       - -ST1022 # comment on exported const Foo should be of the form "Foo ..."
       - -QF1008 # could remove embedded field "..." from selector
     # keep-sorted end
@@ -172,3 +171,4 @@ linters:
 
 issues:
   max-same-issues: 0
+  max-issues-per-linter: 0
