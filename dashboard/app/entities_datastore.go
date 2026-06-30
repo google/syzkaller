@@ -225,6 +225,7 @@ func (bug *Bug) hasUserSubsystems() bool {
 	return bug.HasUserLabel(SubsystemLabel)
 }
 
+// Bug202304 is a legacy struct used for bug conversion.
 // Initially, subsystem labels were stored as Tags.Subsystems, but over time
 // it turned out that we'd better store all labels together.
 // Let's keep this conversion code until "Tags" are removed from all bugs.
@@ -555,6 +556,7 @@ func (s *SubsystemReportStats) toDashapi() dashapi.BugListReportStats {
 	}
 }
 
+// SubsystemReportStage represents a subsystem report stage.
 // There can be at most two stages.
 // One has Moderation=true, the other one has Moderation=false.
 type SubsystemReportStage struct {
@@ -1040,6 +1042,7 @@ func (bug *Bug) dashapiStatus() (dashapi.BugStatus, error) {
 	return status, nil
 }
 
+// EmergencyStop represents an emergency stop entity.
 // If an entity of type EmergencyStop exists, syzbot's operation is paused until
 // a support engineer deletes it from the DB.
 type EmergencyStop struct {
