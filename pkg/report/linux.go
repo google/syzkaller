@@ -2208,7 +2208,7 @@ var linuxOopses = append([]*oops{
 				fmt:    "inconsistent lock state in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh|tasks) (?:self-)?detected(?: expedited)? stall"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				alt:   []string{"stall in %[1]v"},
 				stack: &stackFmt{

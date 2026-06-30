@@ -1,0 +1,67 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+FRAME: corrupted
+CORRUPTED: Y
+
+[ 1992.224966][   T28] INFO: rcu_tasks detected stalls on tasks:
+[ 1992.379261][   T28] ffff88802f594a80: .. nvcsw: 2/2 holdout: 1 idle_cpu: -1/1
+[ 1992.654083][   T28] task:syz.0.2297      state:R  running task     stack:24168 pid:14797 tgid:14796 ppid:5615   task_flags:0x400140 flags:0x00080005
+[ 1992.871337][   T76] netdevsim netdevsim2 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[ 1993.020301][   T28] Call Trace:
+[ 1993.141413][   T28]  <TASK>
+[ 1993.220961][   T28]  ? __schedule+0x11d7/0x6730
+[ 1993.344832][   T28]  ? __schedule+0x125c/0x6730
+[ 1993.600331][   T28]  ? rcu_is_watching+0x12/0xc0
+[ 1993.680798][   T28]  ? __pfx___schedule+0x10/0x10
+[ 1993.772455][   T28]  ? asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[ 1993.814333][   T30] audit: type=1400 audit(1782744483.667:789): avc:  denied  { write } for  pid=29603 comm="rm" name="hook-state" dev="tmpfs" ino=1776 scontext=system_u:system_r:dhcpc_t tcontext=system_u:object_r:tmpfs_t tclass=dir permissive=1
+[ 1993.847154][   T28]  ? rcu_is_watching+0x12/0xc0
+[ 1993.870232][   T28]  ? preempt_schedule_thunk+0x16/0x40
+[ 1993.886592][   T28]  ? preempt_schedule_common+0x42/0xc0
+[ 1993.911522][   T28]  ? preempt_schedule_thunk+0x16/0x40
+[ 1993.918866][   T76] netdevsim netdevsim2 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[ 1993.963992][   T28]  ? _raw_spin_unlock_irqrestore+0x61/0x80
+[ 1994.990606][   T28]  ? prepare_to_wait_event+0xbe/0x720
+[ 1995.229675][   T28]  ? p9_client_rpc+0x869/0xd60
+[ 1995.319632][   T30] audit: type=1400 audit(1782744485.507:790): avc:  denied  { append } for  pid=29607 comm="syz.4.6687" name="vga_arbiter" dev="devtmpfs" ino=3 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:xserver_misc_device_t tclass=chr_file permissive=1
+[ 1995.410084][   T28]  ? p9_client_rpc+0x48b/0xd60
+[ 1996.153682][   T28]  ? __pfx_p9_client_rpc+0x10/0x10
+[ 1996.175168][   T28]  ? __pfx_p9pdu_readf+0x10/0x10
+[ 1996.205249][   T28]  ? __pfx_autoremove_wake_function+0x10/0x10
+[ 1996.283555][   T28]  ? __lock_acquire+0x49f/0x1a40
+[ 1996.357854][   T28]  ? p9_client_flush.isra.0+0x1fe/0x420
+[ 1996.386711][   T28]  ? __pfx_p9_client_flush.isra.0+0x10/0x10
+[ 1996.410286][   T28]  ? _raw_spin_unlock+0x28/0x50
+[ 1996.423505][   T28]  ? p9_fd_cancel+0x96/0x290
+[ 1996.445049][   T28]  ? p9_client_rpc+0xb35/0xd60
+[ 1996.469102][   T28]  ? __pfx_p9_client_rpc+0x10/0x10
+[ 1996.495267][   T28]  ? __pfx_autoremove_wake_function+0x10/0x10
+[ 1996.519611][   T28]  ? __pfx_unix_poll+0x10/0x10
+[ 1996.549264][   T28]  ? sock_poll+0x16b/0x510
+[ 1996.569122][   T28]  ? p9_fd_poll+0x1db/0x2c0
+[ 1996.588278][   T28]  ? p9_conn_create+0x42f/0x550
+[ 1996.620576][   T28]  ? p9_client_create+0x7a6/0xd40
+[ 1996.633210][   T28]  ? __pfx_p9_client_create+0x10/0x10
+[ 1996.658835][   T28]  ? lockdep_init_map_type+0x5c/0x250
+[ 1996.680748][   T28]  ? __raw_spin_lock_init+0x3a/0x110
+[ 1996.703797][   T28]  ? v9fs_session_init+0x3c/0xdd0
+[ 1996.724105][   T28]  ? v9fs_get_tree+0x9c/0xb50
+[ 1996.738063][   T28]  ? v9fs_get_tree+0xb8/0xb50
+[ 1996.764139][   T28]  ? rcu_is_watching+0x12/0xc0
+[ 1996.771110][   T28]  ? __pfx_v9fs_get_tree+0x10/0x10
+[ 1996.796123][   T28]  ? bpf_lsm_capable+0x9/0x10
+[ 1996.812854][   T28]  ? security_capable+0x80/0x260
+[ 1996.830124][   T28]  ? vfs_get_tree+0x92/0x320
+[ 1996.845233][   T28]  ? path_mount+0x7d0/0x23d0
+[ 1996.860812][   T28]  ? __pfx_path_mount+0x10/0x10
+[ 1996.878204][   T28]  ? lockdep_hardirqs_on+0x78/0x100
+[ 1996.903788][   T28]  ? putname+0xb1/0x110
+[ 1996.910927][   T28]  ? kmem_cache_free+0x127/0x6b0
+[ 1996.926478][   T28]  ? __x64_sys_mount+0x293/0x310
+[ 1996.948294][   T28]  ? __x64_sys_mount+0x293/0x310
+[ 1996.973919][   T28]  ? __pfx___x64_sys_mount+0x10/0x10
+[ 1996.986293][   T28]  ? do_syscall_64+0x115/0x870
+[ 1997.001517][   T28]  ? clear_bhb_loop+0x40/0x90
+[ 1997.015514][   T28]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[ 1997.041091][   T28]  </TASK>
