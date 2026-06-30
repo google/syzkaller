@@ -132,8 +132,8 @@ func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
 	return summaries, nil
 }
 
-// For each checkout, take the union of sets of bugs found by each instance.
-// Then output these unions as a single table.
+// GenerateBugTable outputs a single table containing the union of sets of bugs
+// found by each instance for each checkout.
 func (view *StatView) GenerateBugTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
@@ -313,7 +313,7 @@ func (view *StatView) InstanceStatsTable() (*Table, error) {
 	return newView.StatsTable()
 }
 
-// How often we find a repro to each crash log.
+// GenerateReproSuccessTable returns a table showing how often we find a repro to each crash log.
 func (view *StatView) GenerateReproSuccessTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
@@ -336,7 +336,7 @@ func (view *StatView) GenerateReproSuccessTable() (*Table, error) {
 	return table, nil
 }
 
-// What share of found repros also have a C repro.
+// GenerateCReproSuccessTable returns a table showing what share of found repros also have a C repro.
 func (view *StatView) GenerateCReproSuccessTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
@@ -362,7 +362,7 @@ func (view *StatView) GenerateCReproSuccessTable() (*Table, error) {
 	return table, nil
 }
 
-// What share of found repros also have a C repro.
+// GenerateReproDurationTable returns a table showing the duration of repro attempts.
 func (view *StatView) GenerateReproDurationTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
@@ -388,7 +388,7 @@ func (view *StatView) GenerateReproDurationTable() (*Table, error) {
 	return table, nil
 }
 
-// List all repro attempts.
+// GenerateReproAttemptsTable lists all repro attempts.
 func (view *StatView) GenerateReproAttemptsTable() (*Table, error) {
 	table := NewTable("Result #", "Bug", "Checkout", "Repro found", "C repro found", "Repro title", "Duration")
 	for gid, group := range view.Groups {
@@ -407,7 +407,7 @@ func (view *StatView) GenerateReproAttemptsTable() (*Table, error) {
 	return table, nil
 }
 
-// Average bench files of several instances into a single bench file.
+// SaveAvgBenchFile averages bench files of several instances into a single bench file.
 func (group RunResultGroup) SaveAvgBenchFile(fileName string) error {
 	f, err := os.Create(fileName)
 	if err != nil {
