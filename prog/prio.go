@@ -267,7 +267,7 @@ func normalizePrios(prios [][]int32, n int) {
 	}
 }
 
-// ChooseTable allows to do a weighted choice of a syscall for a given syscall
+// ChoiceTable allows making a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled and generatable syscalls.
 type ChoiceTable struct {
 	target *Target
