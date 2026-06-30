@@ -1,0 +1,109 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/tee.h>
+
+resource fd_tee[fd]
+
+syz_open_dev$tee(dev ptr[in, string["/dev/tee#"]], id intptr, flags flags[open_flags]) fd_tee
+
+ioctl$TEE_IOC_VERSION(fd fd_tee, cmd const[TEE_IOC_VERSION], arg ptr[out, tee_ioctl_version_data])
+ioctl$TEE_IOC_SHM_ALLOC(fd fd_tee, cmd const[TEE_IOC_SHM_ALLOC], arg ptr[inout, tee_ioctl_shm_alloc_data])
+ioctl$TEE_IOC_SHM_REGISTER(fd fd_tee, cmd const[TEE_IOC_SHM_REGISTER], arg ptr[inout, tee_ioctl_shm_register_data])
+ioctl$TEE_IOC_SHM_REGISTER_FD(fd fd_tee, cmd const[TEE_IOC_SHM_REGISTER_FD], arg ptr[inout, tee_ioctl_shm_register_fd_data])
+ioctl$TEE_IOC_OPEN_SESSION(fd fd_tee, cmd const[TEE_IOC_OPEN_SESSION], arg ptr[inout, tee_ioctl_open_session_arg])
+ioctl$TEE_IOC_INVOKE(fd fd_tee, cmd const[TEE_IOC_INVOKE], arg ptr[inout, tee_ioctl_invoke_arg])
+ioctl$TEE_IOC_OBJECT_INVOKE(fd fd_tee, cmd const[TEE_IOC_OBJECT_INVOKE], arg ptr[inout, tee_ioctl_invoke_arg])
+ioctl$TEE_IOC_CANCEL(fd fd_tee, cmd const[TEE_IOC_CANCEL], arg ptr[in, tee_ioctl_cancel_arg])
+ioctl$TEE_IOC_CLOSE_SESSION(fd fd_tee, cmd const[TEE_IOC_CLOSE_SESSION], arg ptr[in, tee_ioctl_close_session_arg])
+ioctl$TEE_IOC_SUPPL_RECV(fd fd_tee, cmd const[TEE_IOC_SUPPL_RECV], arg ptr[inout, tee_ioctl_buf_data_suppl_recv])
+ioctl$TEE_IOC_SUPPL_SEND(fd fd_tee, cmd const[TEE_IOC_SUPPL_SEND], arg ptr[in, tee_ioctl_buf_data_suppl_send])
+
+tee_ioctl_login = TEE_IOCTL_LOGIN_PUBLIC, TEE_IOCTL_LOGIN_USER, TEE_IOCTL_LOGIN_GROUP, TEE_IOCTL_LOGIN_APPLICATION, TEE_IOCTL_LOGIN_USER_APPLICATION, TEE_IOCTL_LOGIN_GROUP_APPLICATION, TEE_IOCTL_LOGIN_REE_KERNEL
+tee_ioctl_param_attrs = TEE_IOCTL_PARAM_ATTR_TYPE_NONE, TEE_IOCTL_PARAM_ATTR_TYPE_VALUE_INPUT, TEE_IOCTL_PARAM_ATTR_TYPE_VALUE_OUTPUT, TEE_IOCTL_PARAM_ATTR_TYPE_VALUE_INOUT, TEE_IOCTL_PARAM_ATTR_TYPE_MEMREF_INPUT, TEE_IOCTL_PARAM_ATTR_TYPE_MEMREF_OUTPUT, TEE_IOCTL_PARAM_ATTR_TYPE_MEMREF_INOUT, TEE_IOCTL_PARAM_ATTR_TYPE_UBUF_INPUT, TEE_IOCTL_PARAM_ATTR_TYPE_UBUF_OUTPUT, TEE_IOCTL_PARAM_ATTR_TYPE_UBUF_INOUT, TEE_IOCTL_PARAM_ATTR_TYPE_OBJREF_INPUT, TEE_IOCTL_PARAM_ATTR_TYPE_OBJREF_OUTPUT, TEE_IOCTL_PARAM_ATTR_TYPE_OBJREF_INOUT, TEE_IOCTL_PARAM_ATTR_META
+
+tee_ioctl_version_data {
+	impl_id		int32	(out)
+	impl_caps	int32	(out)
+	gen_caps	int32	(out)
+}
+
+tee_ioctl_shm_alloc_data {
+	size	int64	(inout)
+	flags	bool32	(inout)
+	id	int32	(out)
+}
+
+tee_ioctl_shm_register_data {
+	addr	vma	(in)
+	length	len[addr, int64]
+	flags	bool32	(inout)
+	id	int32	(out)
+}
+
+tee_ioctl_shm_register_fd_data {
+	fd	fd	(in)
+	size	int64	(out)
+	flags	bool32	(in)
+	id	int32	(out)
+}
+
+tee_ioctl_open_session_arg {
+	uuid		array[int8, TEE_IOCTL_UUID_LEN]	(in)
+	clnt_uuid	array[int8, TEE_IOCTL_UUID_LEN]	(in)
+	clnt_login	flags[tee_ioctl_login, int32]	(in)
+	cancel_id	int32	(in)
+	session		int32	(out)
+	ret		int32	(out)
+	ret_origin	int32	(out)
+	num_params	len[params, int32]	(in)
+	params		array[tee_ioctl_param]
+}
+
+tee_ioctl_param {
+	attr	flags[tee_ioctl_param_attrs, int64]
+	a	int64
+	b	int64
+	c	int64
+}
+
+tee_ioctl_invoke_arg {
+	func		int32	(in)
+	session		int32	(in)
+	cancel_id	int32	(in)
+	ret		int32	(out)
+	ret_origin	int32	(out)
+	num_params	len[params, int32]	(in)
+	params		array[tee_ioctl_param]
+}
+
+tee_ioctl_cancel_arg {
+	cancel_id	int32
+	session		int32
+}
+
+tee_ioctl_close_session_arg {
+	session	int32
+}
+
+tee_ioctl_suppl_recv_arg {
+	func		int32	(in)
+	num_params	len[params, int32]
+	params		array[tee_ioctl_param]
+}
+
+tee_ioctl_buf_data_suppl_recv {
+	buf_ptr	ptr[in, tee_ioctl_suppl_recv_arg]
+	buf_len	len[buf_ptr, int64]	(in)
+}
+
+tee_ioctl_supp_send_arg {
+	ret		int32	(out)
+	num_params	len[params, int32]	(in)
+	params		array[tee_ioctl_param]
+}
+
+tee_ioctl_buf_data_suppl_send {
+	buf_ptr	ptr[in, tee_ioctl_supp_send_arg]
+	buf_len	len[buf_ptr, int64]	(in)
+}

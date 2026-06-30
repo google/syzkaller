@@ -1,0 +1,146 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/ioctl.h>
+include <linux/types.h>
+include <linux/fs.h>
+include <uapi/linux/mman.h>
+include <uapi/mtd/mtd-abi.h>
+
+resource fd_mtd[fd]
+
+syz_open_dev$mtd(dev ptr[in, string["/dev/mtd#"]], id intptr, flags flags[open_flags]) fd_mtd
+
+ioctl$MEMGETREGIONCOUNT(fd fd_mtd, cmd const[MEMGETREGIONCOUNT], count ptr[out, int32])
+ioctl$MEMGETREGIONINFO(fd fd_mtd, cmd const[MEMGETREGIONINFO], arg ptr[inout, region_info_user])
+ioctl$MEMGETINFO(fd fd_mtd, cmd const[MEMGETINFO], arg ptr[out, mtd_info_user])
+ioctl$MEMERASE(fd fd_mtd, cmd const[MEMERASE], arg ptr[in, erase_info_user])
+ioctl$MEMERASE64(fd fd_mtd, cmd const[MEMERASE64], arg ptr[in, erase_info_user64])
+ioctl$MEMWRITEOOB(fd fd_mtd, cmd const[MEMWRITEOOB], arg ptr[inout, mtd_oob_buf])
+ioctl$MEMREADOOB(fd fd_mtd, cmd const[MEMREADOOB], arg ptr[inout, mtd_oob_buf])
+ioctl$MEMWRITEOOB64(fd fd_mtd, cmd const[MEMWRITEOOB64], arg ptr[inout, mtd_oob_buf64])
+ioctl$MEMREADOOB64(fd fd_mtd, cmd const[MEMREADOOB64], arg ptr[inout, mtd_oob_buf64])
+ioctl$MEMWRITE(fd fd_mtd, cmd const[MEMWRITE], arg ptr[inout, mtd_write_req])
+ioctl$MEMREAD(fd fd_mtd, cmd const[MEMREAD], arg ptr[inout, mtd_read_req])
+ioctl$MEMLOCK(fd fd_mtd, cmd const[MEMLOCK], arg ptr[in, erase_info_user])
+ioctl$MEMUNLOCK(fd fd_mtd, cmd const[MEMUNLOCK], arg ptr[in, erase_info_user])
+ioctl$MEMISLOCKED(fd fd_mtd, cmd const[MEMISLOCKED], arg ptr[in, erase_info_user])
+ioctl$MEMGETOOBSEL(fd fd_mtd, cmd const[MEMGETOOBSEL], arg ptr[out, nand_oobinfo])
+ioctl$MEMGETBADBLOCK(fd fd_mtd, cmd const[MEMGETBADBLOCK], arg ptr[in, int64])
+ioctl$MEMSETBADBLOCK(fd fd_mtd, cmd const[MEMSETBADBLOCK], arg ptr[in, int64])
+ioctl$OTPSELECT(fd fd_mtd, cmd const[OTPSELECT], mode ptr[in, flags[mtd_otp_mode, int32]])
+ioctl$OTPGETREGIONCOUNT(fd fd_mtd, cmd const[OTPGETREGIONCOUNT], arg ptr[out, int32])
+ioctl$OTPGETREGIONINFO(fd fd_mtd, cmd const[OTPGETREGIONINFO], arg ptr[out, otp_info])
+ioctl$OTPLOCK(fd fd_mtd, cmd const[OTPLOCK], arg ptr[in, otp_info])
+ioctl$OTPERASE(fd fd_mtd, cmd const[OTPERASE], arg ptr[in, otp_info])
+ioctl$ECCGETLAYOUT(fd fd_mtd, cmd const[ECCGETLAYOUT], arg ptr[out, nand_ecclayout_user])
+ioctl$ECCGETSTATS(fd fd_mtd, cmd const[ECCGETSTATS], arg ptr[out, mtd_ecc_stats])
+ioctl$MTDFILEMODE(fd fd_mtd, cmd const[MTDFILEMODE], arg flags[mtd_file_mode])
+read$mtd(fd fd_mtd, buf ptr[out, array[int8]], count len[buf])
+write$mtd(fd fd_mtd, buf ptr[in, array[int8]], count len[buf])
+
+mtd_type_flags = MTD_ABSENT, MTD_RAM, MTD_ROM, MTD_NORFLASH, MTD_NANDFLASH, MTD_DATAFLASH, MTD_UBIVOLUME, MTD_MLCNANDFLASH
+mtd_flags = MTD_WRITEABLE, MTD_BIT_WRITEABLE, MTD_NO_ERASE, MTD_POWERUP_LOCK, MTD_SLC_ON_MLC_EMULATION
+mtd_oob_mode = MTD_OPS_PLACE_OOB, MTD_OPS_AUTO_OOB, MTD_OPS_RAW
+mtd_nandecc_mode = MTD_NANDECC_OFF, MTD_NANDECC_PLACE, MTD_NANDECC_AUTOPLACE, MTD_NANDECC_PLACEONLY, MTD_NANDECC_AUTOPL_USR
+mtd_otp_mode = MTD_OTP_OFF, MTD_OTP_FACTORY, MTD_OTP_USER
+mtd_file_mode = MTD_FILE_MODE_NORMAL, MTD_FILE_MODE_OTP_FACTORY, MTD_FILE_MODE_OTP_USER, MTD_FILE_MODE_RAW
+
+region_info_user {
+	offset		int32
+	erasesize	int32
+	numblocks	int32
+	regionindex	int32
+}
+
+mtd_info_user {
+	type		flags[mtd_type_flags, int8]
+	flags		flags[mtd_flags, int32]
+	size		int32
+	erasesize	int32
+	writesize	int32
+	oobsize		int32
+	padding		const[0, int64]
+}
+
+erase_info_user {
+	start	int32
+	length	int32
+}
+
+erase_info_user64 {
+	start	int64
+	length	int64
+}
+
+mtd_oob_buf {
+	start	int32
+	length	len[ptr, int32]
+	ptr	ptr[inout, array[int8]]
+}
+
+mtd_oob_buf64 {
+	start	int64
+	pad	const[0, int32]
+	length	len[usr_ptr, int32]
+	usr_ptr	ptr[inout, array[int8]]
+}
+
+mtd_write_req {
+	start		int64
+	len		len[usr_data, int64]
+	ooblen		len[usr_oob, int64]
+	usr_data	ptr[in, array[int8]]
+	usr_oob		ptr[in, array[int8]]
+	mode		flags[mtd_oob_mode, int8]
+	padding		array[const[0, int8], 7]
+}
+
+mtd_read_req {
+	start		int64
+	len		len[usr_data, int64]
+	ooblen		len[usr_oob, int64]
+	usr_data	ptr[out, array[int8]]
+	usr_oob		ptr[out, array[int8]]
+	mode		flags[mtd_oob_mode, int8]
+	padding		array[const[0, int8], 7]
+	ecc_stats	mtd_read_req_ecc_stats
+}
+
+mtd_read_req_ecc_stats {
+	uncorrectable_errors	int32
+	corrected_bitflips	int32
+	max_bitflips		int32
+}
+
+nand_oobinfo {
+	useecc		flags[mtd_nandecc_mode, int32]
+	eccbytes	int32
+	oobfree		array[array[int32, 2], 8]
+	eccpos		array[int32, 32]
+}
+
+otp_info {
+	start	int32
+	length	int32
+	locked	int32
+}
+
+nand_ecclayout_user {
+	eccbytes	int32
+	eccpos		array[int32, MTD_MAX_ECCPOS_ENTRIES]
+	oobavail	int32
+	oobfree		array[nand_oobfree, MTD_MAX_OOBFREE_ENTRIES]
+}
+
+nand_oobfree {
+	offset	int32
+	length	int32
+}
+
+mtd_ecc_stats {
+	corrected	int32
+	failed		int32
+	badblocks	int32
+	bbtblocks	int32
+}
