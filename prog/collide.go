@@ -16,7 +16,7 @@ import (
 // As an educated guess, let's use no more than 24 async calls to let executor handle everything.
 const maxAsyncPerProg = 24
 
-// Ensures that if an async call produces a resource, then
+// AssignRandomAsync ensures that if an async call produces a resource, then
 // it is distanced from a call consuming the resource at least
 // by one non-async call.
 // This does not give 100% guarantee that the async call finishes
@@ -75,7 +75,7 @@ func AssignRandomRerun(prog *Prog, rand *rand.Rand) {
 	}
 }
 
-// We append prog to itself, but let the second part only reference resource from the first one.
+// DoubleExecCollide appends prog to itself, but lets the second part only reference resource from the first one.
 // Then we execute all the duplicated calls simultaneously.
 // This somehow resembles the way the previous collide mode was implemented - a program was executed
 // normally and then one more time again, while keeping resource values from the first execution and

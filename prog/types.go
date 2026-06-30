@@ -395,7 +395,7 @@ func (t *IntTypeCommon) Format() BinaryFormat {
 	return t.ArgFormat
 }
 
-// Returns the size in bits for integers in binary format or 64 for string-formatted integers. The return
+// TypeBitSize returns the size in bits for integers in binary format or 64 for string-formatted integers. The return
 // value is used in computing limits and truncating other values.
 func (t *IntTypeCommon) TypeBitSize() uint64 {
 	if t.ArgFormat != FormatNative && t.ArgFormat != FormatBigEndian {
