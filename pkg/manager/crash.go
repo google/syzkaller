@@ -58,7 +58,7 @@ func ReadCrashStore(workdir string) *CrashStore {
 	}
 }
 
-// Returns whether it was the first crash of a kind.
+// SaveCrash returns whether it was the first crash of a kind.
 func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 	dir := cs.path(crash.Title)
 	osutil.MkdirAll(dir)

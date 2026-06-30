@@ -33,7 +33,7 @@ type DecompiledOpcode struct {
 	FullDescription string
 }
 
-// Decompiles a byte array with opcodes into human-readable descriptions.
+// DecompileOpcodes decompiles a byte array with opcodes into human-readable descriptions.
 // Target must specify the environment from which the opcodes were taken.
 func DecompileOpcodes(rawOpcodes []byte, flags DecompilerFlagMask, target *targets.Target) ([]DecompiledOpcode, error) {
 	args, err := objdumpBuildArgs(flags, target)

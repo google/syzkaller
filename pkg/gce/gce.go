@@ -335,8 +335,8 @@ func (ctx *Context) DeleteInstance(name, zone string, wait bool) error {
 	return nil
 }
 
-// Handles manager crashes: if instance i was running in zone z1, and we later recreate i in zone z2, ensure the
-// original i is deleted.
+// DeleteInstanceAcrossZones handles manager crashes: if instance i was running in zone z1,
+// and we later recreate i in zone z2, ensure the original i is deleted.
 func (ctx *Context) DeleteInstanceAcrossZones(name string, wait bool) error {
 	var zoneList []string
 	err := ctx.apiCall(func() error {

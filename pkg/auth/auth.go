@@ -108,7 +108,7 @@ func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 	return &r, nil
 }
 
-// Returns the verified subject value based on the provided header
+// DetermineAuthSubj returns the verified subject value based on the provided header
 // value or "" if it can't be determined. A valid result starts with
 // auth.OauthMagic. The now parameter is the current time to compare the
 // claims against. The authHeader is styled as is typical for HTTP headers

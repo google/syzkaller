@@ -27,9 +27,9 @@ type Config[T any] struct {
 	Logf func(string, ...any)
 }
 
-// Slice() finds a minimal subsequence of slice elements that still gives Pred() == true.
+// Slice finds a minimal subsequence of slice elements that still gives Pred() == true.
 // The algorithm works by sequentially splitting the slice into smaller-size chunks and running
-// Pred() witout those chunks. Slice() receives the original slice chunks.
+// Pred() without those chunks. Slice() receives the original slice chunks.
 // The expected number of Pred() runs is O(|result|*log2(|elements|)).
 func Slice[T any](config Config[T], slice []T) ([]T, error) {
 	if config.Logf == nil {

@@ -694,7 +694,7 @@ func IsComparable(fullLines, fullHitCounts, partialLines, partialHitCounts []int
 	return true
 }
 
-// Returns partial hitcounts that are the only source of the full hitcounts.
+// UniqCoverage returns partial hitcounts that are the only source of the full hitcounts.
 func UniqCoverage(fullCov, partCov map[int]int64) map[int]int64 {
 	res := maps.Clone(partCov)
 	for ln := range partCov {

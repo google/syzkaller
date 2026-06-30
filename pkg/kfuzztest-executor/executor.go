@@ -32,7 +32,7 @@ type KFuzzTestExecutor struct {
 	wg       sync.WaitGroup
 }
 
-// Implements the queue.Executor interface.
+// Submit implements the queue.Executor interface.
 func (kfe *KFuzzTestExecutor) Submit(req *queue.Request) {
 	kfe.jobChan <- req
 }
@@ -115,7 +115,7 @@ func execKFuzzTestCallLocal(st *kcov.KCOVState, call *prog.Call) ([]uintptr, err
 	if !ok {
 		return []uintptr{}, fmt.Errorf("second arg for syz_kfuzztest_run should be a pointer")
 	}
-	finalBlob := prog.MarshallKFuzztestArg(dataArg.Res)
+	finalBlob := prog.MarshalKFuzztestArg(dataArg.Res)
 	inputPath := kfuzztest.GetInputFilepath(testName)
 
 	res := st.Trace(func() error { return osutil.WriteFile(inputPath, finalBlob) })

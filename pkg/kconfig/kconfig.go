@@ -176,6 +176,7 @@ func (kconf *KConfig) setSelectedBy() {
 	}
 }
 
+// SelectedBy returns the set of configs that select or imply the given config.
 // NOTE: the function is ignoring the "if" part of select/imply.
 func (kconf *KConfig) SelectedBy(name string) map[string]bool {
 	ret := map[string]bool{}

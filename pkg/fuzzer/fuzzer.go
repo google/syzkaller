@@ -461,6 +461,7 @@ func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {
 	}
 }
 
+// DefaultExecOpts returns default execution options.
 // TODO: This method belongs better to pkg/flatrpc, but we currently end up
 // having a cyclic dependency error.
 func DefaultExecOpts(cfg *mgrconfig.Config, features flatrpc.Feature, debug bool) flatrpc.ExecOpts {

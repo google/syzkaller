@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
+// Encode encodes the instruction.
 // nolint: gocyclo, nestif, gocognit, funlen
 func (insn *Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	if !cfg.IsCompatible(insn) {

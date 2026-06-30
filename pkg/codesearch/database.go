@@ -206,7 +206,7 @@ func (db *Database) Finalize(v *clangtool.Verifier) {
 	db.reverseCache = nil
 }
 
-// SetSoureFile attaches the source file to the entities that need it.
+// SetSourceFile attaches the source file to the entities that need it.
 // The clang tool could do it, but it looks easier to do it here.
 func (db *Database) SetSourceFile(file string, updatePath func(string) string) {
 	for _, def := range db.Definitions {

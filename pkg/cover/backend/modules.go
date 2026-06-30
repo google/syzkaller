@@ -152,7 +152,8 @@ func getKaslrOffset(modules []*vminfo.KernelModule, pcBase uint64) uint64 {
 	return 0
 }
 
-// when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
+// FixModules adjusts module PCs.
+// When CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
 func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*vminfo.KernelModule {
 	kaslrOffset := getKaslrOffset(modules, pcBase)
 	var modules1 []*vminfo.KernelModule
