@@ -24,6 +24,7 @@ type Client struct {
 	access   string
 }
 
+// NewClient returns a new dashboard client.
 // accessToken is OAuth access token obtained with "gcloud auth print-access-token"
 // (provided your account has at least user level access to the dashboard).
 // If the token is provided, dashboard should disable API throttling.
