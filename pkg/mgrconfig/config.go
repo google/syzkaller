@@ -235,8 +235,8 @@ type Config struct {
 	Derived `json:"-"`
 }
 
-// These options are not guaranteed to be backward/forward compatible and
-// can be dropped at any moment.
+// Experimental contains options that are not guaranteed to be backward- or forward-compatible
+// and may be dropped at any moment.
 type Experimental struct {
 	// Don't let the VM state accumulate too much by restarting
 	// syz-executor before most prog executions.

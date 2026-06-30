@@ -84,8 +84,9 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 	return corpus
 }
 
-// It may happen that a single program is relevant because of several
-// sysalls. In that case, there will be several ItemUpdate entities.
+// ItemUpdate represents an update to a corpus item.
+// A single program may be relevant for multiple syscalls, resulting in multiple
+// ItemUpdate entities.
 type ItemUpdate struct {
 	Call     int
 	RawCover []uint64

@@ -43,7 +43,7 @@ type Params struct {
 	Build        json.RawMessage
 }
 
-// Information that is returned from the Image function.
+// ImageDetails contains information that is returned from the Image function.
 type ImageDetails struct {
 	Signature  string
 	CompilerID string

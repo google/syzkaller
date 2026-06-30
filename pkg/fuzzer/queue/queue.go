@@ -414,7 +414,7 @@ func (ds *DynamicSourceCtl) Next() *Request {
 	return (*ds.value.Load()).Next()
 }
 
-// Deduplicator() keeps track of the previously run requests to avoid re-running them.
+// Deduplicator keeps track of the previously run requests to avoid re-running them.
 type Deduplicator struct {
 	mu     sync.Mutex
 	source Source
