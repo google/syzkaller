@@ -22,7 +22,7 @@ type Instance interface {
 	Uptime() time.Duration
 }
 
-// The essential information about an active instance.
+// InstanceCommon contains the essential information about an active instance.
 type InstanceCommon struct {
 	Name            string
 	LogFile         string

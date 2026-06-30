@@ -158,7 +158,7 @@ func checkConfigs(instances []*Instance, unusedFeatures []string) error {
 	return nil
 }
 
-// Generation context for a single instance.
+// Context represents the generation context for a single instance.
 type Context struct {
 	Inst       *Instance
 	Target     *targets.Target
