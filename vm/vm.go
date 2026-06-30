@@ -181,6 +181,7 @@ func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
 	}, nil
 }
 
+// Close closes the pool.
 // TODO: Integration or end-to-end testing is needed.
 //
 //	https://github.com/google/syzkaller/pull/3269#discussion_r967650801

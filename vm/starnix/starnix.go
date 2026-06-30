@@ -536,7 +536,7 @@ type toolMetadata struct {
 	Path string
 }
 
-// Resolve a tool by name using tool_paths.json in the build dir.
+// GetToolPath resolves a tool by name using tool_paths.json in the build dir.
 func GetToolPath(fuchsiaDir, toolName string) (string, error) {
 	buildDir, err := getFuchsiaBuildDir(fuchsiaDir)
 	if err != nil {

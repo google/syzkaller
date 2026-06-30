@@ -64,7 +64,7 @@ func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *P
 	}
 }
 
-// UpdateDefault forces all VMs to restart.
+// SetDefault forces all VMs to restart.
 func (p *Pool[T]) SetDefault(def Runner[T]) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

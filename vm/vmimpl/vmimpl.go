@@ -291,7 +291,7 @@ func UnusedTCPPort() int {
 	}
 }
 
-// Escapes double quotes(and nested double quote escapes). Ignores any other escapes.
+// EscapeDoubleQuotes escapes double quotes (and nested double quote escapes). Ignores any other escapes.
 // Reference: https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
 func EscapeDoubleQuotes(inp string) string {
 	var ret strings.Builder

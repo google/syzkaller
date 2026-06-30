@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Tested on Suzy-Q and BeagleBone.
+// OpenConsole opens the console. Tested on Suzy-Q and BeagleBone.
 func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	fd, err := syscall.Open(con, syscall.O_RDONLY|syscall.O_NOCTTY|syscall.O_SYNC, 0)
 	if err != nil {
@@ -87,7 +87,7 @@ func OpenRemoteKernelLog(ip, console string) (rc io.ReadCloser, err error) {
 	return OpenConsoleByCmd("ssh", args)
 }
 
-// Open dmesg remotely.
+// OpenRemoteConsole opens dmesg remotely.
 func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
 	args = append(args, "dmesg -w")
 	return OpenConsoleByCmd(bin, args)
@@ -98,7 +98,7 @@ func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
 	return OpenRemoteConsole(bin, "-s", dev, "shell")
 }
 
-// Open console log by cmd.
+// OpenConsoleByCmd opens console log by cmd.
 func OpenConsoleByCmd(bin string, args []string) (rc io.ReadCloser, err error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
