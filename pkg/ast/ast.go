@@ -38,6 +38,7 @@ type FlagValue interface {
 }
 
 // Top-level AST nodes.
+
 type NewLine struct {
 	Pos Pos
 }
@@ -193,6 +194,7 @@ func (n *TypeDef) Info() (Pos, string, string) {
 }
 
 // Not top-level AST nodes.
+
 type Ident struct {
 	Pos  Pos
 	Name string

@@ -45,7 +45,7 @@ const (
 	OauthMagic = "OauthSubject:"
 )
 
-// Represent a verification backend.
+// Endpoint represents a verification backend.
 type Endpoint struct {
 	// URL supporting tokeninfo auth2 protocol.
 	url string

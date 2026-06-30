@@ -175,6 +175,8 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 
 var TruncateLog = aflow.NewFuncAction("truncate-log", TruncateLogFunc)
 
+// OracleResult represents the result of the Oracle evaluation.
+//
 // nolint: lll
 type OracleResult struct {
 	Feedback     string `jsonschema:"Detailed feedback on the reproduction attempt"`

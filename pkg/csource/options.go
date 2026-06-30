@@ -57,7 +57,7 @@ type Options struct {
 	LegacyOptions
 }
 
-// These are legacy options, they remain only for the sake of backward compatibility.
+// LegacyOptions are legacy options that remain only for the sake of backward compatibility.
 type LegacyOptions struct {
 	Collide   bool `json:"collide,omitempty"`
 	Fault     bool `json:"fault,omitempty"`

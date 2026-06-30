@@ -134,6 +134,7 @@ func (s *set) Collect(level Level) []UI {
 }
 
 // Additional options for Val metrics.
+
 // Level controls if the metric should be printed to console in periodic heartbeat logs,
 // or showed on the simple web interface, or showed in the expert interface only.
 type Level int

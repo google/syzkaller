@@ -103,6 +103,7 @@ type AssessmentKCSANOutputs struct {
 	Explanation string
 }
 
+// AssessmentSecurityOutputs holds security assessment results.
 // Note: this struct is used in dashboard config predicates.
 // Adding new fields is OK, but deleting/renaming fields is likely to require special care
 // (add new fields, update configs, remove old fields).

@@ -22,7 +22,7 @@ const (
 	kcovCoverSize = 512 << 10
 )
 
-// Holds resources for a single traced thread.
+// KCOVState holds resources for a single traced thread.
 type KCOVState struct {
 	file  *os.File
 	cover []byte

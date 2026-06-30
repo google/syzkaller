@@ -27,7 +27,7 @@ type CanonicalizerInstance struct {
 	decanonicalize *Convert
 }
 
-// Contains the current conversion maps used.
+// Convert contains the current conversion maps used.
 type Convert struct {
 	conversionHash map[uint64]*canonicalizerModule
 	moduleKeys     []uint64

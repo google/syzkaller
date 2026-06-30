@@ -3,7 +3,7 @@
 
 package kcidb
 
-// Kernel CI report data. To be submitted to/queried from the common report database.
+// Kcidb contains kernel CI report data to be submitted to/queried from the common report database.
 //
 // Objects in the data are identified and linked together using "id" and "*_id" string properties.
 // Each value of these properties must start with a non-empty string identifying the CI system which
@@ -32,7 +32,7 @@ type Kcidb struct {
 	Version   *Version    `json:"version"`
 }
 
-// A build of a checkout.
+// Build represents a build of a checkout.
 type Build struct {
 	// The last time the build was updated in the database.
 	Timestamp string `json:"_timestamp,omitempty"`
@@ -92,13 +92,13 @@ type Build struct {
 	Misc *BuildMisc `json:"misc,omitempty"`
 }
 
-// Miscellaneous extra data about the build.
+// BuildMisc contains miscellaneous extra data about the build.
 type BuildMisc struct {
 	OriginURL  string `json:"origin_url,omitempty"`
 	ReportedBy string `json:"reported_by,omitempty"`
 }
 
-// The environment the test ran in. E.g. a host, a set of hosts, or a lab;
+// Environment represents the environment the test ran in. E.g. a host, a set of hosts, or a lab;
 // amount of memory/storage/CPUs, for each host; process environment variables, etc.
 type Environment struct {
 	// The values from the root-level 'compatible' property of the system's device tree.
@@ -111,13 +111,14 @@ type Environment struct {
 	Misc *EnvironmentMisc `json:"misc,omitempty"`
 }
 
-// Miscellaneous extra data about the environment.
+// EnvironmentMisc contains miscellaneous extra data about the environment.
 type EnvironmentMisc struct {
 }
 
-// A checkout of the tested code.
+// Checkout represents a checkout of the tested code.
 //
-// Represents a way the tested source code could be obtained. E.g. checking out a particular commit from a git repo,
+// It represents a way the tested source code could be obtained.
+// E.g., checking out a particular commit from a Git repository,
 // and applying a set of patches on top.
 type Checkout struct {
 	// The last time the checkout was updated in the database.
@@ -193,13 +194,13 @@ type Checkout struct {
 	Misc *CheckoutMisc `json:"misc,omitempty"`
 }
 
-// Miscellaneous extra data about the checkout.
+// CheckoutMisc contains miscellaneous extra data about the checkout.
 type CheckoutMisc struct {
 }
 
-// A test run against a build.
+// Test represents a test run against a build.
 //
-// Could represent a result of execution of a test suite program, a result of one of the tests done by the test
+// It could represent the result of executing a test suite program, the result of one of the tests run by the test
 // suite program, as well as a summary of a collection of test suite results.
 //
 // Each test run should normally have a dot-separated test "path" specified in the "path" property,
@@ -262,7 +263,7 @@ type Test struct {
 	Misc *TestMisc `json:"misc,omitempty"`
 }
 
-// The numerical output produced by a test run.
+// TestNumber represents the numerical output produced by a test run.
 type TestNumber struct {
 	// The floating-point output value.
 	Value float64 `json:"value"`
@@ -274,7 +275,7 @@ type TestNumber struct {
 	Prefix string `json:"prefix,omitempty"`
 }
 
-// Miscellaneous extra data about the test.
+// TestMisc contains miscellaneous extra data about the test.
 type TestMisc struct {
 	OriginURL       string `json:"origin_url,omitempty"`
 	ReportedBy      string `json:"reported_by,omitempty"`
@@ -282,7 +283,7 @@ type TestMisc struct {
 	CauseRevisionID string `json:"cause_revision_id,omitempty"`
 }
 
-// A named remote resource.
+// Resource represents a named remote resource.
 type Resource struct {
 	// Resource name. Must be usable as a local file name for the downloaded resource. Cannot be empty.
 	// Should not include directories.
@@ -306,7 +307,7 @@ type Version struct {
 	Minor int `json:"minor,omitempty"`
 }
 
-// An issue found in reports.
+// Issue represents an issue found in reports.
 type Issue struct {
 	// The last time the issue was updated in the database.
 	Timestamp string `json:"_timestamp,omitempty"`
@@ -342,7 +343,7 @@ type Issue struct {
 	Misc *IssueMisc `json:"misc,omitempty"`
 }
 
-// The layers responsible for an issue.
+// IssueCulprit represents the layers responsible for an issue.
 type IssueCulprit struct {
 	// The built/tested code.
 	Code bool `json:"code,omitempty"`
@@ -354,11 +355,11 @@ type IssueCulprit struct {
 	Harness bool `json:"harness,omitempty"`
 }
 
-// Miscellaneous extra data about the issue.
+// IssueMisc contains miscellaneous extra data about the issue.
 type IssueMisc struct {
 }
 
-// An incident - an issue occurrence/absence.
+// Incident represents an incident - an issue occurrence/absence.
 type Incident struct {
 	// The last time the incident was updated in the database.
 	Timestamp string `json:"_timestamp,omitempty"`
@@ -394,6 +395,6 @@ type Incident struct {
 	Misc *IncidentMisc `json:"misc,omitempty"`
 }
 
-// Miscellaneous extra data about the incident.
+// IncidentMisc contains miscellaneous extra data about the incident.
 type IncidentMisc struct {
 }

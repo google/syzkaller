@@ -9,8 +9,7 @@ import (
 	"strings"
 )
 
-// Extractor's job is to extract all information relevant to KFuzzTest from a
-// VMlinux binary.
+// Extractor extracts all information relevant to KFuzzTest from a vmlinux binary.
 type Extractor struct {
 	// Path to the `vmlinux` being parsed.
 	vmlinuxPath string
