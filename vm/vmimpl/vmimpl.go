@@ -116,8 +116,8 @@ func (err BootError) Details() (string, []byte) {
 	return err.Title, err.Output
 }
 
-// By default, all Pool.Create() errors are related to infrastructure problems.
-// InfraError is to be used when we want to also attach output to the title.
+// InfraError is used when we want to attach console output to the error title.
+// By default, all Pool.Create() errors are treated as infrastructure problems.
 type InfraError struct {
 	Title  string
 	Output []byte
