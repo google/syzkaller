@@ -234,7 +234,7 @@ func testOne(t *testing.T, tc testCase) {
 	}
 
 	arg := tc.extractArg(p)
-	encoded := MarshallKFuzztestArg(arg)
+	encoded := MarshalKFuzztestArg(arg)
 
 	wantPrefix := createPrefix()
 	wantRegionArray := createBuffer(tc.regionArray)

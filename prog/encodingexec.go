@@ -163,7 +163,7 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) error {
 	// to some struct input. This is the data that must be flattened and sent
 	// to the fuzzing driver with a relocation table.
 	dataArg := c.Args[1].(*PointerArg)
-	finalBlob := MarshallKFuzztestArg(dataArg.Res)
+	finalBlob := MarshalKFuzztestArg(dataArg.Res)
 	if len(finalBlob) > int(KFuzzTestMaxInputSize) {
 		return fmt.Errorf("encoded blob was too large")
 	}

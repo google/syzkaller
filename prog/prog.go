@@ -367,7 +367,7 @@ func (arg *ResultArg) Size() uint64 {
 	return arg.Type().Size()
 }
 
-// Returns inner arg for pointer args.
+// InnerArg returns inner arg for pointer args.
 func InnerArg(arg Arg) Arg {
 	if _, ok := arg.Type().(*PtrType); ok {
 		res := arg.(*PointerArg).Res
@@ -617,6 +617,7 @@ func (p *Prog) sanitize(fix bool) error {
 	return nil
 }
 
+// ForeachProp executes f for each property.
 // TODO: This method might be more generic - it can be applied to any struct.
 func (props *CallProps) ForeachProp(f func(fieldName, key string, value reflect.Value)) {
 	valueObj := reflect.ValueOf(props).Elem()

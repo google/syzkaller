@@ -76,7 +76,7 @@ func (m CompMap) Len() int {
 	return count
 }
 
-// InplaceIntersect() only leaves the value pairs that are also present in other.
+// InplaceIntersect only leaves the value pairs that are also present in other.
 func (m CompMap) InplaceIntersect(other CompMap) {
 	for val1, nested := range m {
 		for val2, pcs := range nested {
@@ -95,7 +95,7 @@ func (m CompMap) InplaceIntersect(other CompMap) {
 	}
 }
 
-// Mutates the program using the comparison operands stored in compMaps.
+// MutateWithHints mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
 // The callback must return whether we should continue substitution (true)
 // or abort the process (false).

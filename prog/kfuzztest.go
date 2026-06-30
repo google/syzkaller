@@ -198,7 +198,7 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 	return encoded.Bytes(), relocations
 }
 
-// MarshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
+// MarshalKFuzztestArg serializes a syzkaller Arg into a flat binary format
 // understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
 //
 // The goal is to represent a tree-like structure of arguments (which may contain
@@ -227,7 +227,7 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 //
 // For a concrete example of the final binary layout, see the test cases for this
 // function in `prog/kfuzztest_test.go`.
-func MarshallKFuzztestArg(topLevel Arg) []byte {
+func MarshalKFuzztestArg(topLevel Arg) []byte {
 	regions := []kFuzzTestRegion{}
 	allRelocations := []kFuzzTestRelocation{}
 	visitedRegions := make(map[Arg]int)
