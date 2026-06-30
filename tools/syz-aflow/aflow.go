@@ -12,20 +12,20 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/backend"
-	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/genai"
 )
 
 func main() {
@@ -140,46 +140,14 @@ func run(ctx context.Context, args RunArgs) error {
 	}
 
 	var provider backend.Provider
-	switch args.Provider {
-	case "gemini":
-		apiKey := os.Getenv("GOOGLE_API_KEY")
-		if apiKey == "" {
-			apiKey = os.Getenv("GEMINI_API_KEY")
-		}
-		if apiKey == "" {
-			return fmt.Errorf("gemini provider requires GOOGLE_API_KEY or GEMINI_API_KEY environment variable to be set")
-		}
-		provider, err = gemini.NewProvider(ctx, gemini.Config{
-			ModelOverride: args.Model,
-			ClientConfig: &genai.ClientConfig{
-				APIKey: apiKey,
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to initialize Gemini provider: %w", err)
-		}
-	case "vertex":
-		project := os.Getenv("GOOGLE_CLOUD_PROJECT")
-		if project == "" {
-			return fmt.Errorf("vertex provider requires GOOGLE_CLOUD_PROJECT environment variable to be set")
-		}
-		location := os.Getenv("GOOGLE_CLOUD_REGION")
-		if location == "" {
-			location = "global"
-		}
-		provider, err = gemini.NewProvider(ctx, gemini.Config{
-			ModelOverride: args.Model,
-			ClientConfig: &genai.ClientConfig{
-				Backend:  genai.BackendVertexAI,
-				Project:  project,
-				Location: location,
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to initialize Vertex provider: %w", err)
-		}
-	default:
-		return fmt.Errorf("unknown provider %q (supported: gemini, vertex)", args.Provider)
+	factory, ok := providers[args.Provider]
+	if !ok {
+		supported := slices.Sorted(maps.Keys(providers))
+		return fmt.Errorf("unknown provider %q (supported: %v)", args.Provider, supported)
+	}
+	provider, err = factory(ctx, args.Model)
+	if err != nil {
+		return err
 	}
 
 	output, err := flow.Execute(ctx, provider, args.Workdir, inputs, cache, onEventFunc)
