@@ -243,7 +243,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 	}
 }
 
-// Create instances, run them, stop them, archive them, and so on...
+// Loop creates instances, runs them, stops them, archives them, and so on...
 func (ctx *TestbedContext) Loop(stop chan struct{}) {
 	stopAll := make(chan struct{})
 	errors := make(chan error)
