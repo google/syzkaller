@@ -8,7 +8,7 @@ import (
 	"math/rand"
 )
 
-// Our heatmaps are a flexible mechanism to assign a probability distribution to
+// Heatmap is a flexible mechanism to assign a probability distribution to
 // some collection of bytes. Usage:
 //  1. Choose a heatmap and initialize it: `hm := MakeXYZHeatmap(data)`.
 //     Different heatmaps implement different probability distributions
