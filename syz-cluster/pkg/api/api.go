@@ -5,7 +5,7 @@ package api
 
 import "time"
 
-// The output passed to other workflow steps.
+// TriageResult is the output passed to other workflow steps.
 type TriageResult struct {
 	// If set, ignore the patch series completely.
 	SkipReason string `json:"skip_reason"`
@@ -51,7 +51,7 @@ type FuzzConfig struct {
 	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
-// The triage step of the workflow will request these from controller.
+// Tree represents a git tree. The triage step of the workflow will request these from controller.
 type Tree struct {
 	Name       string   `json:"name" yaml:"name"` // Primary key.
 	URL        string   `json:"URL" yaml:"URL"`
