@@ -23,10 +23,10 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-// poolInfo contains kernel-specific information for spawning virtual machines
-// and reporting crashes. It also keeps track of the Runners executing on
-// spawned VMs, what programs have been sent to each Runner and what programs
-// have yet to be sent on any of the Runners.
+// Setup configures the verifier environment, including kernel-specific information
+// for spawning virtual machines and reporting crashes. It also keeps track of the
+// Runners executing on spawned VMs, what programs have been sent to each Runner
+// and what programs have yet to be sent on any of the Runners.
 func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 	kernel := &Kernel{
 		name:            name,
