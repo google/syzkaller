@@ -57,6 +57,7 @@ type (
 	RequestLogger func(msg string, args ...any)
 )
 
+// NewCustom returns a new dashboard client with custom options.
 // key == "" indicates that the ambient GCE service account authority
 // should be used as a bearer token.
 func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
@@ -415,7 +416,7 @@ type LogEntry struct {
 	Text string
 }
 
-// Centralized logging on dashboard.
+// LogError performs centralized logging on dashboard.
 func (dash *Dashboard) LogError(name, msg string, args ...any) {
 	req := &LogEntry{
 		Name: name,
