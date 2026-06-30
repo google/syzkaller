@@ -22,7 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
-// There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
+// GlobalConfig stores multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
 // The exact config is stored in a global config variable and is read-only.
 // Also see config_stub.go.
 type GlobalConfig struct {
@@ -83,7 +83,7 @@ type PerInboxConfig struct {
 	ForwardTo []string
 }
 
-// Per-namespace config.
+// Config represents a per-namespace configuration.
 type Config struct {
 	// See GlobalConfig.AccessLevel.
 	AccessLevel AccessLevel
@@ -357,7 +357,7 @@ const (
 	MaxManagerPriority = 3
 )
 
-// One reporting stage.
+// Reporting represents one reporting stage.
 type Reporting struct {
 	// See GlobalConfig.AccessLevel.
 	AccessLevel AccessLevel

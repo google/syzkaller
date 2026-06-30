@@ -125,7 +125,7 @@ func (dash *Dashboard) UploadBuild(build *Build) error {
 	return dash.Query("upload_build", build, nil)
 }
 
-// BuilderPoll request is done by kernel builder before uploading a new build
+// BuilderPollReq is sent by kernel builder before uploading a new build
 // with UploadBuild request. Response contains list of commit titles that
 // dashboard is interested in (i.e. commits that fix open bugs) and email that
 // appears in Reported-by tags for bug ID extraction. When uploading a new build
@@ -150,6 +150,9 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 	return resp, err
 }
 
+// JobResetReq is sent by syz-ci to indicate that no previously started jobs
+// are any longer in progress.
+//
 // Jobs workflow:
 //   - syz-ci sends JobResetReq to indicate that no previously started jobs
 //     are any longer in progress.
@@ -804,6 +807,8 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 	return dash.Query("manager_stats", req, nil)
 }
 
+// NewAsset describes a build asset (e.g., kernel or disk image) uploaded to cloud storage.
+//
 // Asset lifetime:
 // 1. syz-ci uploads it to GCS and reports to the dashboard via add_build_asset.
 // 2. dashboard periodically checks if the asset is still needed.
