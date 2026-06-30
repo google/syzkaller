@@ -35,6 +35,7 @@ func NewSeriesRepository(client *spanner.Client) *SeriesRepository {
 	}
 }
 
+// PatchByID returns a patch by its ID.
 // TODO: move to SeriesPatchesRepository?
 func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch, error) {
 	return readEntity[Patch](ctx, repo.client.Single(), spanner.Statement{
@@ -52,7 +53,7 @@ func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Se
 
 var ErrSeriesExists = errors.New("the series already exists")
 
-// Insert() checks whether there already exists a series with the same ExtID.
+// Insert checks whether there already exists a series with the same ExtID.
 // Since Patch content is stored elsewhere, we do not demand it be filled out before calling Insert().
 // Instead, Insert() obtains this data via a callback.
 func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
@@ -136,7 +137,7 @@ type SeriesFilter struct {
 	Name          string
 }
 
-// ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
+// ListLatest returns the list of series ordered by the decreasing PublishedAt value.
 func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilter,
 	maxPublishedAt time.Time) ([]*SeriesWithSession, error) {
 	ro := repo.client.ReadOnlyTransaction()
@@ -336,6 +337,7 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 	return nil
 }
 
+// ListPatches returns the list of patches for the given series.
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.
 func (repo *SeriesRepository) ListPatches(ctx context.Context, series *Series) ([]*Patch, error) {
 	return readEntities[Patch](ctx, repo.client.Single(), spanner.Statement{

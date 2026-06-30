@@ -152,6 +152,7 @@ func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string
 	assert.NoError(t, err)
 }
 
+// UploadTestSessionReport uploads a test session report.
 // TODO: this is temporary.
 // We need to move pkg/controller/api_test.go and pkg/reporter/api_test.go to some other
 // place, so that we can always use both API servers in the tests.

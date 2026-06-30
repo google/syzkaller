@@ -90,6 +90,7 @@ type DashapiConfig struct {
 	ContextPrefix string `yaml:"contextPrefix"`
 }
 
+// Config returns the project configuration.
 // The project configuration is expected to be mounted at /config/config.yaml.
 func Config() (*AppConfig, error) {
 	configLoadedOnce.Do(func() {

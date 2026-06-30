@@ -94,6 +94,7 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*S
 	return repo.readEntities(ctx, stmt)
 }
 
+// ListForSeries returns the list of sessions for the given series.
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.
 func (repo *SessionRepository) ListForSeries(ctx context.Context, series *Series) ([]*Session, error) {
 	return repo.readEntities(ctx, spanner.Statement{
