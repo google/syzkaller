@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -592,5 +594,59 @@ func TestParsing(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestRestrictedFiles(t *testing.T) {
+	sysTarget := targets.Get(targets.TestOS, targets.TestArch64Fork)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skip("broken compiler")
+	}
+	target, err := prog.GetTarget(sysTarget.OS, sysTarget.Arch)
+	require.NoError(t, err)
+
+	executor := csource.BuildExecutor(t, target, "../../", "-fsanitize-coverage=trace-pc")
+	calls := make(map[*prog.Syscall]bool)
+	for _, call := range target.Syscalls {
+		calls[call] = true
+	}
+	enabledCalls := map[string]map[*prog.Syscall]bool{
+		"":     calls,
+		"none": calls,
+	}
+
+	dir := filepath.Join("..", "..", "sys", target.OS, targets.TestOS)
+	files, err := progFileList(dir, "")
+	require.NoError(t, err)
+	if len(files) < 2 {
+		t.Skip("need at least 2 test files to test restriction")
+	}
+
+	restrictedFile := files[0]
+
+	ctx := &Context{
+		Dir:          dir,
+		Target:       target,
+		Files:        []string{restrictedFile},
+		Features:     0,
+		EnabledCalls: enabledCalls,
+		LogFunc: func(text string) {
+			t.Log(text)
+		},
+		Retries: 1,
+		Verbose: true,
+		Debug:   *flagDebug,
+	}
+	ctx.Init()
+
+	waitCtx := startRPCServer(t, target, executor, ctx, rpcParams{})
+
+	err = ctx.Run(waitCtx)
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, ctx.requests)
+	for _, req := range ctx.requests {
+		assert.True(t, strings.HasPrefix(req.name, restrictedFile),
+			"expected test %q to start with %q", req.name, restrictedFile)
 	}
 }

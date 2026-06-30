@@ -67,7 +67,8 @@ type Context struct {
 	Retries      int // max number of test retries to deal with flaky tests
 	Verbose      bool
 	Debug        bool
-	Tests        string // prefix to match test file names
+	Tests        string   // prefix to match test file names
+	Files        []string // specific test files to run (if empty, use Dir + Tests prefix)
 
 	executor *queue.DynamicOrderer
 	requests []*runRequest
@@ -183,9 +184,15 @@ func (rt *Context) generatePrograms() error {
 		cover = append(cover, true)
 	}
 	sandboxes := slices.Sorted(maps.Keys(rt.EnabledCalls))
-	files, err := progFileList(rt.Dir, rt.Tests)
-	if err != nil {
-		return err
+	var files []string
+	var err error
+	if len(rt.Files) != 0 {
+		files = rt.Files
+	} else {
+		files, err = progFileList(rt.Dir, rt.Tests)
+		if err != nil {
+			return err
+		}
 	}
 	for _, file := range files {
 		if err := rt.generateFile(sandboxes, cover, file); err != nil {
