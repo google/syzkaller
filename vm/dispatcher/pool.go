@@ -21,7 +21,7 @@ type UpdateInfo func(cb func(info *Info))
 type Runner[T Instance] func(ctx context.Context, inst T, updInfo UpdateInfo)
 type CreateInstance[T Instance] func(context.Context, int) (T, error)
 
-// Pool[T] provides the functionality of a generic pool of instances.
+// Pool provides the functionality of a generic pool of instances.
 // The instance is assumed to boot, be controlled by one Runner and then be re-created.
 // The pool is assumed to have one default Runner (e.g. to be used for fuzzing), while a
 // dynamically controlled sub-pool might be reserved for the arbitrary Runners.
