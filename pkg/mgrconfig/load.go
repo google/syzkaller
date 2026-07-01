@@ -218,6 +218,58 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("if config param type is none, reproduce must be false")
 	}
 
+	if err := cfg.validateBootTests(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cfg *Config) validateBootTests() error {
+	if len(cfg.BootTests) == 0 {
+		return nil
+	}
+	testDir := filepath.Join("sys", cfg.TargetOS, "test")
+	testDirFull := filepath.Join(cfg.Syzkaller, testDir)
+
+	var resolved []string
+	seen := make(map[string]bool)
+
+	for _, pattern := range cfg.BootTests {
+		if strings.ContainsAny(pattern, "/\\") {
+			return fmt.Errorf("relative paths in boot_tests are not allowed: %q (specify test names only)", pattern)
+		}
+		fullPattern := filepath.Join(testDirFull, pattern)
+
+		matches, err := filepath.Glob(fullPattern)
+		if err != nil {
+			return fmt.Errorf("bad boot_test pattern %q: %w", pattern, err)
+		}
+		matchedFiles := 0
+		for _, match := range matches {
+			rel, err := filepath.Rel(testDirFull, match)
+			if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("boot_test %q (matched by %q) is not inside %s", match, pattern, testDir)
+			}
+			fi, err := os.Stat(match)
+			if err != nil {
+				return fmt.Errorf("failed to stat %q: %w", match, err)
+			}
+			if fi.IsDir() {
+				continue
+			}
+			matchedFiles++
+
+			if !seen[rel] {
+				seen[rel] = true
+				resolved = append(resolved, rel)
+			}
+		}
+		if matchedFiles == 0 {
+			return fmt.Errorf("boot_test pattern %q matched no files (expected in %s)", pattern, testDirFull)
+		}
+	}
+	cfg.BootTests = resolved
 	return nil
 }
 

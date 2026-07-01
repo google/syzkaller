@@ -4,6 +4,8 @@
 package mgrconfig
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/prog"
@@ -111,4 +113,111 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	_, err := LoadData(data)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
+}
+
+func TestBootTestsValidation(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create dummy syzkaller structure.
+	syzDir := filepath.Join(tempDir, "syzkaller")
+	testDir := filepath.Join(syzDir, "sys", "linux", "test")
+	err := os.MkdirAll(testDir, 0755)
+	require.NoError(t, err)
+
+	// Create a dummy test file.
+	dummyTestFile := filepath.Join(testDir, "dummy_test")
+	err = os.WriteFile(dummyTestFile, []byte(""), 0644)
+	require.NoError(t, err)
+
+	// Create another dummy test file.
+	dummyTestFile2 := filepath.Join(testDir, "dummy_test2")
+	err = os.WriteFile(dummyTestFile2, []byte(""), 0644)
+	require.NoError(t, err)
+
+	// Create a dummy directory.
+	dummyDir := filepath.Join(testDir, "dummy_dir")
+	err = os.Mkdir(dummyDir, 0755)
+	require.NoError(t, err)
+
+	// Create dummy binaries so Complete doesn't fail on them.
+	binDir := filepath.Join(syzDir, "bin", "linux_amd64")
+	err = os.MkdirAll(binDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(binDir, "syz-execprog"), []byte(""), 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(binDir, "syz-executor"), []byte(""), 0755)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name        string
+		bootTests   []string
+		expectError bool
+		expectBoot  []string
+	}{
+		{
+			name:        "relative path rejected",
+			bootTests:   []string{"sys/linux/test/dummy_test"},
+			expectError: true,
+		},
+		{
+			name:        "directory traversal rejected",
+			bootTests:   []string{"../dummy_test"},
+			expectError: true,
+		},
+		{
+			name:        "valid filename only",
+			bootTests:   []string{"dummy_test"},
+			expectError: false,
+			expectBoot:  []string{"dummy_test"},
+		},
+		{
+			name:        "wildcard match",
+			bootTests:   []string{"dummy_*"},
+			expectError: false,
+			expectBoot:  []string{"dummy_test", "dummy_test2"},
+		},
+		{
+			name:        "deduplication",
+			bootTests:   []string{"dummy_*", "dummy_test"},
+			expectError: false,
+			expectBoot:  []string{"dummy_test", "dummy_test2"},
+		},
+		{
+			name:        "wildcard matches only directories",
+			bootTests:   []string{"dummy_dir"},
+			expectError: true,
+		},
+		{
+			name:        "non-existent test",
+			bootTests:   []string{"non_existent"},
+			expectError: true,
+		},
+		{
+			name:        "wildcard no match",
+			bootTests:   []string{"non_existent*"},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := DefaultValues()
+			cfg.RawTarget = "linux/amd64"
+			cfg.Type = "none"
+			cfg.Reproduce = false
+			cfg.Workdir = tempDir
+			cfg.Syzkaller = syzDir
+			cfg.BootTests = tc.bootTests
+			err := SetTargets(cfg)
+			require.NoError(t, err)
+
+			err = Complete(cfg)
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectBoot, cfg.BootTests)
+			}
+		})
+	}
 }

@@ -187,6 +187,10 @@ type Config struct {
 	// Regexps are matched against bug title, guilty file and maintainer emails.
 	Interests []string `json:"interests,omitempty"`
 
+	// List of tests to run before fuzzing (optional).
+	// Resolved relative to sys/TargetOS/test/
+	BootTests []string `json:"boot_tests,omitempty"`
+
 	// Path to the strace binary compiled for the target architecture.
 	// If set, for each reproducer syzkaller will run it once more under strace and save
 	// the output.
