@@ -1169,50 +1169,40 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 
 	switch mgr.mode {
 	case ModeFuzzing, ModeCorpusTriage:
-		corpusUpdates := make(chan corpus.NewItemEvent, 128)
-		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
-			corpusUpdates, mgr.coverFilters.Areas)
-		mgr.http.Corpus.Store(mgr.corpus)
+		if len(mgr.cfg.BootTests) != 0 {
+			runtestCtx := &runtest.Context{
+				Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
+				Target:   mgr.cfg.Target,
+				Features: features,
+				EnabledCalls: map[string]map[*prog.Syscall]bool{
+					mgr.cfg.Sandbox: enabledSyscalls,
+				},
+				LogFunc: func(text string) { log.Logf(0, "boot test: %s", text) },
+				Verbose: true,
+				Debug:   *flagDebug,
+				Files:   mgr.cfg.BootTests,
+			}
+			runtestCtx.Init()
+			mgr.serv.SetSource(runtestCtx)
 
-		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-			Corpus:         mgr.corpus,
-			Snapshot:       mgr.cfg.Snapshot,
-			Coverage:       mgr.cfg.Cover,
-			FaultInjection: features&flatrpc.FeatureFault != 0,
-			Comparisons:    features&flatrpc.FeatureComparisons != 0,
-			Collide:        true,
-			EnabledCalls:   enabledSyscalls,
-			NoMutateCalls:  mgr.cfg.NoMutateCalls,
-			FetchRawCover:  mgr.cfg.RawCover,
-			Logf: func(level int, msg string, args ...any) {
-				if level != 0 {
-					return
+			go func() {
+				log.Logf(0, "running %d boot tests...", len(mgr.cfg.BootTests))
+				err := runtestCtx.Run(vm.ShutdownCtx())
+				if err != nil {
+					if vm.ShutdownCtx().Err() != nil {
+						return
+					}
+					log.Fatalf("boot tests failed: %v", err)
 				}
-				log.Logf(level, msg, args...)
-			},
-			NewInputFilter: func(call string) bool {
+				log.Logf(0, "all boot tests passed, starting fuzzing...")
+
 				mgr.mu.Lock()
 				defer mgr.mu.Unlock()
-				return !mgr.saturatedCalls[call]
-			},
-			ModeKFuzzTest: mgr.cfg.Experimental.EnableKFuzzTest,
-		}, rnd, mgr.target)
-		fuzzerObj.AddCandidates(candidates)
-		mgr.fuzzer.Store(fuzzerObj)
-		mgr.http.Fuzzer.Store(fuzzerObj)
-
-		go mgr.corpusInputHandler(corpusUpdates)
-		go mgr.corpusMinimization()
-		go mgr.fuzzerLoop(fuzzerObj)
-		if mgr.dash != nil {
-			go mgr.dashboardReporter()
-			if mgr.cfg.Reproduce {
-				go mgr.dashboardReproTasks()
-			}
+				mgr.startFuzzing(features, enabledSyscalls, candidates, opts)
+			}()
+			return nil
 		}
-		source := queue.DefaultOpts(fuzzerObj, opts)
-		mgr.serv.SetSource(source)
+		mgr.startFuzzing(features, enabledSyscalls, candidates, opts)
 		return nil
 	case ModeCorpusRun:
 		ctx := &corpusRunner{
@@ -1261,6 +1251,54 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		return nil
 	}
 	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
+}
+
+func (mgr *Manager) startFuzzing(features flatrpc.Feature,
+	enabledSyscalls map[*prog.Syscall]bool, candidates []fuzzer.Candidate, opts flatrpc.ExecOpts) {
+	corpusUpdates := make(chan corpus.NewItemEvent, 128)
+	mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
+		corpusUpdates, mgr.coverFilters.Areas)
+	mgr.http.Corpus.Store(mgr.corpus)
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+		Corpus:         mgr.corpus,
+		Snapshot:       mgr.cfg.Snapshot,
+		Coverage:       mgr.cfg.Cover,
+		FaultInjection: features&flatrpc.FeatureFault != 0,
+		Comparisons:    features&flatrpc.FeatureComparisons != 0,
+		Collide:        true,
+		EnabledCalls:   enabledSyscalls,
+		NoMutateCalls:  mgr.cfg.NoMutateCalls,
+		FetchRawCover:  mgr.cfg.RawCover,
+		Logf: func(level int, msg string, args ...any) {
+			if level != 0 {
+				return
+			}
+			log.Logf(level, msg, args...)
+		},
+		NewInputFilter: func(call string) bool {
+			mgr.mu.Lock()
+			defer mgr.mu.Unlock()
+			return !mgr.saturatedCalls[call]
+		},
+		ModeKFuzzTest: mgr.cfg.Experimental.EnableKFuzzTest,
+	}, rnd, mgr.target)
+	fuzzerObj.AddCandidates(candidates)
+	mgr.fuzzer.Store(fuzzerObj)
+	mgr.http.Fuzzer.Store(fuzzerObj)
+
+	go mgr.corpusInputHandler(corpusUpdates)
+	go mgr.corpusMinimization()
+	go mgr.fuzzerLoop(fuzzerObj)
+	if mgr.dash != nil {
+		go mgr.dashboardReporter()
+		if mgr.cfg.Reproduce {
+			go mgr.dashboardReproTasks()
+		}
+	}
+	source := queue.DefaultOpts(fuzzerObj, opts)
+	mgr.serv.SetSource(source)
 }
 
 type corpusRunner struct {
