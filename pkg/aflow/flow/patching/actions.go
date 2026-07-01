@@ -136,7 +136,8 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	// are shallow checkouts that don't have history.
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
-		output, err := osutil.RunCmd(10*time.Minute, kernelRepoDir, "git", gitArgs...)
+		git := vcs.Git{Dir: kernelRepoDir, Sandbox: true}
+		output, err := git.Run(gitArgs...)
 		if err != nil {
 			return aflow.FlowError(err)
 		}
