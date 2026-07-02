@@ -35,7 +35,7 @@ require (
 	golang.org/x/tools v0.45.0
 	google.golang.org/api v0.287.0
 	google.golang.org/appengine/v2 v2.0.6
-	google.golang.org/genai v1.58.0
+	google.golang.org/genai v1.62.0
 	google.golang.org/genproto v0.0.0-20260519071638-aa98bba5eb94
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
