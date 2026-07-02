@@ -105,7 +105,13 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 	}
 	defer provider.Close()
 
-	outputs, err := workflowDesc.Execute(aiCtx, provider, "/tmp/aflow-cache", false, initialState, cache, onEvent)
+	outputs, err := workflowDesc.Execute(aiCtx, initialState, aflow.ExecuteOptions{
+		Provider:   provider,
+		Workdir:    "/tmp/aflow-cache",
+		Cache:      cache,
+		OnEvent:    onEvent,
+		TokenLimit: config.AI.TokenLimit,
+	})
 
 	var htmlReport []byte
 	buf := new(bytes.Buffer)

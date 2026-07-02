@@ -40,9 +40,10 @@ func main() {
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
-		flagHTML   = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
-		flagOutput = flag.String("output", "", "save final workflow output to this JSON file")
-		flagDebug  = flag.Bool("debug", false, "enable runner debug logging")
+		flagHTML       = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
+		flagOutput     = flag.String("output", "", "save final workflow output to this JSON file")
+		flagDebug      = flag.Bool("debug", false, "enable runner debug logging")
+		flagTokenLimit = flag.Int("token-limit", 0, "maximum tokens allowed for the workflow run (0 = no limit)")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -82,6 +83,7 @@ func main() {
 		OutputFile: *flagOutput,
 		CacheSize:  cacheSize,
 		Debug:      *flagDebug,
+		TokenLimit: *flagTokenLimit,
 	}); err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
@@ -97,6 +99,7 @@ type RunArgs struct {
 	OutputFile string
 	CacheSize  uint64
 	Debug      bool
+	TokenLimit int
 }
 
 func run(ctx context.Context, args RunArgs) error {
@@ -154,7 +157,14 @@ func run(ctx context.Context, args RunArgs) error {
 	}
 	defer provider.Close()
 
-	output, err := flow.Execute(ctx, provider, args.Workdir, args.Debug, inputs, cache, onEventFunc)
+	output, err := flow.Execute(ctx, inputs, aflow.ExecuteOptions{
+		Provider:   provider,
+		Workdir:    args.Workdir,
+		Cache:      cache,
+		OnEvent:    onEventFunc,
+		Debug:      args.Debug,
+		TokenLimit: args.TokenLimit,
+	})
 	if err != nil {
 		return err
 	}

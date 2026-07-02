@@ -389,6 +389,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			return "", nil, respErr
 		}
 		reply, calls, respErr := a.parseResponse(resp, span)
+		if respErr == nil {
+			respErr = ctx.ConsumeTokens(span.InputTokens + span.OutputTokens)
+		}
 		if err := ctx.finishSpan(span, respErr); err != nil {
 			return "", nil, err
 		}
@@ -567,6 +570,9 @@ func (a *agentSession) compressContext(
 	// but we don't want to clutter the trajectory UI with those thoughts.
 	span.Thoughts = ""
 
+	if respErr == nil {
+		respErr = ctx.ConsumeTokens(span.InputTokens + span.OutputTokens)
+	}
 	if respErr != nil {
 		return nil, 0, ctx.finishSpan(span, respErr)
 	}
