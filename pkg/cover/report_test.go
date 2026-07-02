@@ -99,7 +99,8 @@ func TestReportGenerator(t *testing.T) {
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					// Fails with "relocation truncated to fit: R_AARCH64_CALL26 against symbol `memcpy'".
-					target.OS == targets.Linux && target.Arch != targets.ARM64
+					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
+						target.Arch != targets.Loong64
 			},
 		},
 		{
@@ -124,7 +125,7 @@ func TestReportGenerator(t *testing.T) {
 						return target.CCompiler == "clang"
 					}
 					if target.Arch == targets.ARM64 || target.Arch == targets.ARM ||
-						target.Arch == targets.I386 {
+						target.Arch == targets.I386 || target.Arch == targets.Loong64 {
 						return false
 					}
 					return true
