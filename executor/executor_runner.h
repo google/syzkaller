@@ -937,6 +937,8 @@ static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 	pc = mctx.gregs[REG_RIP];
 #elif GOARCH_arm64
 	pc = mctx.pc;
+#elif GOARCH_loong64
+	pc = mctx.__pc;
 #endif
 #endif
 	const char* name = "unknown signal";
