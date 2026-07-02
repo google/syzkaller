@@ -150,7 +150,7 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
   std::string CommentSourceFile;
   int CommentStartLine = 0;
   int CommentEndLine = 0;
-  if (auto Comment = Context.getRawCommentForDeclNoCache(Decl)) {
+  if (auto Comment = Context.getRawCommentForAnyRedecl(Decl)) {
     const auto& begin = Comment->getBeginLoc();
     const auto& end = Comment->getEndLoc();
     CommentSourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(begin)).str());

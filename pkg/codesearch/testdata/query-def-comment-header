@@ -1,3 +1,8 @@
 def-comment source0.c function_with_comment_in_header
 
-function function_with_comment_in_header is defined in source0.c and is not commented
+function function_with_comment_in_header is defined in source0.c and commented as:
+
+   4:	/*
+   5:	 * Comment about the function in header.
+   6:	 * Multi-line just in case.
+   7:	 */
