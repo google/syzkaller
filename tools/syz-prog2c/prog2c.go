@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/kfuzztest"
+	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -40,14 +41,14 @@ var (
 func main() {
 	flag.Usage = func() {
 		flag.PrintDefaults()
-		csource.PrintAvailableFeaturesFlags()
+		pkgfeatures.PrintAvailableFlags()
 	}
 	flag.Parse()
 	if *flagProg == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
-	features, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, false)
+	features, err := pkgfeatures.ParseFlags(*flagEnable, *flagDisable, false)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

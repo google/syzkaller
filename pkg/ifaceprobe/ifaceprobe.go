@@ -14,12 +14,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -152,7 +152,7 @@ func (pr *prober) submitGlob(glob string) {
 		Type:        flatrpc.RequestTypeGlob,
 		GlobPattern: glob,
 		ExecOpts: flatrpc.ExecOpts{
-			EnvFlags: flatrpc.ExecEnvSandboxNone | csource.FeaturesToFlags(pr.features, nil),
+			EnvFlags: flatrpc.ExecEnvSandboxNone | pkgfeatures.FeaturesToFlags(pr.features, nil),
 		},
 		Important: true,
 	}
@@ -204,7 +204,7 @@ func (pr *prober) submitFile(file string) {
 			Prog: p,
 			ExecOpts: flatrpc.ExecOpts{
 				EnvFlags: flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSignal |
-					csource.FeaturesToFlags(pr.features, nil),
+					pkgfeatures.FeaturesToFlags(pr.features, nil),
 				ExecFlags: flatrpc.ExecFlagCollectCover,
 			},
 			Important: true,

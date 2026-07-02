@@ -13,8 +13,9 @@ import (
 	"sync"
 	"time"
 
+	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
+
 	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -466,7 +467,7 @@ func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {
 // TODO: This method belongs better to pkg/flatrpc, but we currently end up
 // having a cyclic dependency error.
 func DefaultExecOpts(cfg *mgrconfig.Config, features flatrpc.Feature, debug bool) flatrpc.ExecOpts {
-	env := csource.FeaturesToFlags(features, nil)
+	env := pkgfeatures.FeaturesToFlags(features, nil)
 	if debug {
 		env |= flatrpc.ExecEnvDebug
 	}

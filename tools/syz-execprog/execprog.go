@@ -18,8 +18,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
+
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -86,7 +87,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs-or-corpus.db+\n")
 		flag.PrintDefaults()
-		csource.PrintAvailableFeaturesFlags()
+		pkgfeatures.PrintAvailableFlags()
 	}
 	defer tool.Init()()
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -94,13 +95,13 @@ func main() {
 		tool.Fail(err)
 	}
 
-	featureFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
+	featureFlags, err := pkgfeatures.ParseFlags(*flagEnable, *flagDisable, true)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	features := flatrpc.AllFeatures
 	for feat := range flatrpc.EnumNamesFeature {
-		opt := csource.FlatRPCFeaturesToCSource[feat]
+		opt := pkgfeatures.FlatRPCFeaturesToCSource[feat]
 		if opt != "" && !featureFlags[opt].Enabled {
 			features &= ^feat
 		}
@@ -215,7 +216,7 @@ func (ctx *Context) machineChecked(features flatrpc.Feature, syscalls map[*prog.
 	if ctx.stress {
 		ctx.choiceTable = ctx.target.BuildChoiceTable(ctx.progs, syscalls)
 	}
-	ctx.defaultOpts.EnvFlags |= csource.FeaturesToFlags(features, nil)
+	ctx.defaultOpts.EnvFlags |= pkgfeatures.FeaturesToFlags(features, nil)
 	return queue.DefaultOpts(ctx, ctx.defaultOpts)
 }
 
