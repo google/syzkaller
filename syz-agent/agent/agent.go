@@ -354,7 +354,13 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
 	defer provider.Close()
-	return flow.Execute(ctx, provider, s.workdir, false, inputs, s.cache, onEvent)
+	return flow.Execute(ctx, inputs, aflow.ExecuteOptions{
+		Provider:   provider,
+		Workdir:    s.workdir,
+		Cache:      s.cache,
+		OnEvent:    onEvent,
+		TokenLimit: s.cfg.TokenLimit,
+	})
 }
 
 func (s *Server) modelOverQuota(flow *aflow.Flow) bool {
