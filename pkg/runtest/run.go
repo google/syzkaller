@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/manager"
+	"github.com/google/syzkaller/pkg/vminfo/features"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -429,7 +430,7 @@ func (rt *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov boo
 		opts.ExecFlags |= flatrpc.ExecFlagCollectSignal
 		opts.ExecFlags |= flatrpc.ExecFlagCollectCover
 	}
-	opts.EnvFlags |= csource.FeaturesToFlags(rt.Features, nil)
+	opts.EnvFlags |= features.FeaturesToFlags(rt.Features, nil)
 	if rt.Debug {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
