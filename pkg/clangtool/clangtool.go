@@ -64,7 +64,7 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	for range runtime.NumCPU() {
 		go func() {
 			for file := range files {
-				out, err := runTool[Output, OutputPtr](cfg, dbFile, file)
+				out, err := runTool[Output, OutputPtr](cfg, file)
 				results <- &result{out, err}
 			}
 		}()
@@ -154,7 +154,7 @@ func (v *Verifier) LineRange(file string, start, end int) {
 	}
 }
 
-func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, file string) (OutputPtr, error) {
+func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, file string) (OutputPtr, error) {
 	relFile := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(filepath.Clean(file),
 		cfg.KernelSrc), cfg.KernelObj), "/")
 	// Suppress warning since we may build the tool on a different clang
@@ -167,7 +167,7 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 	} else {
 		bin, _ = exec.LookPath(bin)
 	}
-	cmd := exec.Command(bin, "-p", dbFile,
+	cmd := exec.Command(bin, "-p", cfg.KernelObj,
 		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file)
 	cmd.Dir = cfg.KernelObj
 	// This tells the C++ clang tool to execute in a constructor.
