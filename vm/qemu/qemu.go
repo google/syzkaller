@@ -124,7 +124,10 @@ type archConfig struct {
 	RngDev    string // default rng device (optional)
 	// UseNewQemuImageOptions specifies whether the arch uses "new" QEMU image device options.
 	UseNewQemuImageOptions bool
-	CmdLine                []string
+	// BlkDev overrides the block device type used with UseNewQemuImageOptions.
+	// Defaults to "virtio-blk-device" when empty.
+	BlkDev  string
+	CmdLine []string
 }
 
 var archConfigs = map[string]*archConfig{
@@ -197,6 +200,18 @@ var archConfigs = map[string]*archConfig{
 		NetDev:                 "virtio-net-pci",
 		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
+		CmdLine: []string{
+			"root=/dev/vda",
+			"console=ttyS0",
+		},
+	},
+	"linux/loong64": {
+		Qemu:                   "qemu-system-loongarch64",
+		QemuArgs:               "-machine virt",
+		NetDev:                 "virtio-net-pci",
+		RngDev:                 "virtio-rng-pci",
+		UseNewQemuImageOptions: true,
+		BlkDev:                 "virtio-blk-pci",
 		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyS0",
@@ -537,8 +552,12 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 		)
 	} else if inst.image != "" {
 		if inst.archConfig.UseNewQemuImageOptions {
+			blkDev := inst.archConfig.BlkDev
+			if blkDev == "" {
+				blkDev = "virtio-blk-device"
+			}
 			args = append(args,
-				"-device", "virtio-blk-device,drive=hd0",
+				"-device", blkDev+",drive=hd0",
 				"-drive", fmt.Sprintf("file=%v,if=none,format=raw,id=hd0", inst.image),
 			)
 		} else {
