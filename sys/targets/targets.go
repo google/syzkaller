@@ -158,6 +158,7 @@ const (
 	PPC64LE        = "ppc64le"
 	S390x          = "s390x"
 	RiscV64        = "riscv64"
+	Loong64        = "loong64"
 	TestArch64     = "64"
 	TestArch64Fuzz = "64_fuzz"
 	TestArch64Fork = "64_fork"
@@ -347,6 +348,14 @@ var List = map[string]map[string]*Target{
 			Triple:           "riscv64-linux-gnu",
 			KernelArch:       "riscv",
 			KernelHeaderArch: "riscv",
+		},
+		Loong64: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			CFlags:           []string{"-fPIE"},
+			Triple:           "loongarch64-linux-gnu",
+			KernelArch:       "loongarch",
+			KernelHeaderArch: "loongarch",
 		},
 	},
 	FreeBSD: {
