@@ -27,3 +27,8 @@ jobs:
           days-before-pr-close: -1
           stale-pr-message: 'This PR is stale because it has been open 90 days with no activity.'
           stale-pr-label: 'stale'
+
+          # Max operations per run to cover all open PRs in a single run
+          operations-per-run: 200
+          # Fetch oldest PRs first to prioritize finding stale ones
+          ascending: true
