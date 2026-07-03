@@ -3,6 +3,7 @@
 
 //go:build !codeanalysis
 
+// Package parser parses execution traces into intermediate representations for trace conversion.
 package parser
 
 import (
