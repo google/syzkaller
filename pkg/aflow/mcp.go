@@ -15,7 +15,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Export all tools (and actions as tools) for tools/syz-mcp to serve them over MCP protocol.
+// MCPTools exports all tools (and actions as tools) for tools/syz-mcp to serve them over MCP protocol.
 var MCPTools = map[*mcp.Tool]MCPToolFunc{}
 
 type MCPToolFunc func(ctx *Context, args map[string]any) (*mcp.CallToolResult, error)

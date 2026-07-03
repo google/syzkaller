@@ -357,7 +357,7 @@ func PrintAvailableFeaturesFlags() {
 	}
 }
 
-// This is the main configuration used by executor, only for testing.
+// ExecutorOpts is the main configuration used by executor, only for testing.
 var ExecutorOpts = Options{
 	Threaded:  true,
 	Repeat:    true,

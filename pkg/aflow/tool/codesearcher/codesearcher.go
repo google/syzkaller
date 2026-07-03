@@ -64,7 +64,7 @@ You can strictly trust the response to be complete and accurate.
 		ToolDefinitionSource, ToolFindReferences, ToolStructLayout}
 )
 
-// This action needs to run before any agents that use codesearch tools.
+// PrepareIndex is an action that needs to run before any agents that use codesearch tools.
 var PrepareIndex = aflow.NewFuncAction("codesearch-prepare", prepare)
 
 type prepareArgs struct {
