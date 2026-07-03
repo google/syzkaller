@@ -254,3 +254,84 @@ func TestLLMToolValidation(t *testing.T) {
 		nil,
 	)
 }
+
+func TestStructuredLLMToolWithJudge(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	type testResult struct {
+		Answer string `jsonschema:"Answer"`
+	}
+	type toolResults struct {
+		Res int `jsonschema:"res"`
+	}
+
+	testFlow[struct{}, outputs](t, nil, map[string]any{"Reply": "RECOVERED_AFTER_JUDGE_STOP"},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				&StructuredLLMTool[struct{}, DefaultLLMArgs, testResult]{
+					Name:        "researcher",
+					Model:       "sub-agent-model",
+					TaskType:    FormalReasoningTask,
+					Description: "researcher description",
+					Instruction: "researcher instruction",
+					Prompt:      `{{.Question}}`,
+					Tools: []Tool{
+						NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+							return toolResults{42}, nil
+						}, "ticker"),
+					},
+					Judge: &LLMJudge{
+						Name:               "test-judge",
+						Model:              "judge-model",
+						MinIterations:      1,
+						EvaluationInterval: 1,
+						Instruction:        "Judge the history",
+					},
+				},
+			},
+		},
+		[]any{
+			// Turn 0: Main agent calls researcher subagent.
+			&backend.Part{
+				FunctionCall: &backend.FunctionCall{
+					ID:   "id0",
+					Name: "researcher",
+					Args: map[string]any{
+						"Question": "What is the answer?",
+					},
+				},
+			},
+			// Turn 1: Subagent calls tick tool (iteration 0).
+			createToolCallResponse(50, "tick_id1", "tick"),
+			// Handle subsequent calls: Subagent iteration 1, Judge evaluation, and Main agent final turn.
+			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
+				if cfg.SystemInstruction != nil && len(cfg.SystemInstruction.Parts) > 0 &&
+					strings.Contains(cfg.SystemInstruction.Parts[0].Text, "Judge the history") {
+					lastPart := req[len(req)-1].Parts[0]
+					if lastPart.FunctionResponse == nil || lastPart.FunctionResponse.Name != "set-results" {
+						return &backend.GenerateResponse{
+							Parts: []backend.Part{
+								{FunctionCall: &backend.FunctionCall{
+									Name: "set-results",
+									Args: map[string]any{"Stop": true, "Reason": "oscillation detected in researcher"},
+								}},
+							},
+						}, nil
+					}
+					return &backend.GenerateResponse{Parts: []backend.Part{{Text: "Done"}}}, nil
+				}
+				for _, part := range req[len(req)-1].Parts {
+					if part.FunctionResponse != nil && part.FunctionResponse.Name == "researcher" {
+						errStr, _ := part.FunctionResponse.Response["error"].(string)
+						assert.Contains(t, errStr, "subagent \"researcher\" was stopped by judge: oscillation detected in researcher")
+						return &backend.GenerateResponse{Parts: []backend.Part{{Text: "RECOVERED_AFTER_JUDGE_STOP"}}}, nil
+					}
+				}
+				return createToolCallResponse(50, "tick_id2", "tick"), nil
+			},
+		},
+		nil,
+	)
+}

@@ -6,6 +6,7 @@ package aflow
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -336,6 +337,26 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				Prompt:      "Initial Prompt",
 			},
 		})
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action smarty: Candidates > 1 is not supported with Judge",
+		&Flow{
+			Root: &LLMAgent{
+				Name:        "smarty",
+				Model:       "model",
+				Reply:       "Result",
+				TaskType:    FormalReasoningTask,
+				Instruction: "Instructions",
+				Prompt:      "Initial Prompt",
+				Candidates:  2,
+				Judge: &LLMJudge{
+					Name:               "judge",
+					Model:              "model",
+					EvaluationInterval: 1,
+					MinIterations:      1,
+					Instruction:        "Judge",
+				},
+			},
+		})
 }
 
 func TestOutputOverflow(t *testing.T) {
@@ -593,4 +614,109 @@ func TestMaxParallelToolCalls(t *testing.T) {
 		nil,
 	)
 	require.Equal(t, 0, toolExecutionCount, "tools should not be executed when maxParallelToolCalls is exceeded")
+}
+
+func TestLLMJudge(t *testing.T) {
+	type flowOutputs struct {
+		Reply         string
+		JudgeStopped  bool
+		JudgeReason   string
+		FailedHistory []*backend.Message
+	}
+	type toolResults struct {
+		Res int `jsonschema:"res"`
+	}
+
+	agent := &LLMAgent{
+		Reply: "Reply",
+		Tools: []Tool{
+			NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+				return toolResults{42}, nil
+			}, "ticker"),
+		},
+		Judge: &LLMJudge{
+			Name:               "test-judge",
+			Model:              "model1",
+			MinIterations:      2,
+			EvaluationInterval: 1,
+			Instruction:        "Judge the history",
+		},
+	}
+
+	expectedHistory := []*backend.Message{
+		{Role: "user", Parts: []backend.Part{{Text: "Prompt"}}},
+		{Role: "model", Parts: []backend.Part{{FunctionCall: &backend.FunctionCall{
+			ID:   "id1",
+			Name: "tick",
+		}}}},
+		{Role: "user", Parts: []backend.Part{{FunctionResponse: &backend.FunctionResponse{
+			ID:       "id1",
+			Name:     "tick",
+			Response: map[string]any{"Res": 42},
+		}}}},
+		{Role: "model", Parts: []backend.Part{{FunctionCall: &backend.FunctionCall{
+			ID:   "id2",
+			Name: "tick",
+		}}}},
+		{Role: "user", Parts: []backend.Part{{FunctionResponse: &backend.FunctionResponse{
+			ID:       "id2",
+			Name:     "tick",
+			Response: map[string]any{"Res": 42},
+		}}}},
+		{Role: "model", Parts: []backend.Part{{FunctionCall: &backend.FunctionCall{
+			ID:   "id3",
+			Name: "tick",
+		}}}},
+		{Role: "user", Parts: []backend.Part{{FunctionResponse: &backend.FunctionResponse{
+			ID:       "id3",
+			Name:     "tick",
+			Response: map[string]any{"Res": 42},
+		}}}},
+	}
+
+	testFlow[struct{}, flowOutputs](t, nil, convertToMap(flowOutputs{
+		Reply:         "",
+		JudgeStopped:  true,
+		JudgeReason:   "stuck in tick loop",
+		FailedHistory: expectedHistory,
+	}),
+		agent,
+		[]any{
+			// Iteration 0: LLM calls tick tool.
+			createToolCallResponse(50, "id1", "tick"),
+			// Iteration 1: LLM calls tick tool again.
+			createToolCallResponse(50, "id2", "tick"),
+			// Iteration 2: we use a single smart callback to handle both smarty's Turn 2 and the Judge's Turn.
+			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
+				if strings.Contains(cfg.SystemInstruction.Parts[0].Text, "Judge the history") {
+					// This is the judge invocation!
+					lastMsg := req[len(req)-1]
+					hasSetResultsResponse := false
+					for _, part := range lastMsg.Parts {
+						if part.FunctionResponse != nil && part.FunctionResponse.Name == "set-results" {
+							hasSetResultsResponse = true
+							break
+						}
+					}
+					if !hasSetResultsResponse {
+						return &backend.GenerateResponse{
+							Parts: []backend.Part{
+								{FunctionCall: &backend.FunctionCall{
+									Name: "set-results",
+									Args: map[string]any{"Stop": true, "Reason": "stuck in tick loop"},
+								}},
+							},
+						}, nil
+					}
+					// Turn 1 of judge: return final reply.
+					return &backend.GenerateResponse{
+						Parts: []backend.Part{{Text: "Done"}},
+					}, nil
+				}
+				// This is the parent smarty agent Turn 2. Call tick tool.
+				return createToolCallResponse(50, "id3", "tick"), nil
+			},
+		},
+		nil,
+	)
 }
