@@ -4,6 +4,7 @@
 //go:generate bash -c "TARGETARCH=amd64 go run fidlgen/main.go"
 //go:generate bash -c "TARGETARCH=arm64 go run fidlgen/main.go"
 
+// Package fuchsia contains target initialization logic.
 package fuchsia
 
 import (
