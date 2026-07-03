@@ -1,6 +1,8 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package prog implements syzkaller test program representation, parsing, mutation,
+// generation, and serialization.
 package prog
 
 import (
