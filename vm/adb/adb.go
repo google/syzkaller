@@ -3,6 +3,7 @@
 
 //go:build !ppc64le
 
+// Package adb implements Android device and instance management.
 package adb
 
 import (
