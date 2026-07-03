@@ -1539,6 +1539,7 @@ func replyError(ctx context.Context, msg *email.Email, bugID, reply string) erro
 	return replyTo(ctx, msg, bugID, reply)
 }
 
+// MaxGlobalEmailsPerHour limits the total number of outgoing emails per hour across all bugs.
 // Exported to use in test.
 var MaxGlobalEmailsPerHour = 60
 
