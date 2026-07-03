@@ -1,6 +1,8 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package blob provides storage abstractions and cloud storage implementations
+// for storing and retrieving testing artifacts such as logs and test data.
 package blob
 
 import (

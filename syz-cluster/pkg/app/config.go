@@ -1,6 +1,8 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package app provides application-level configuration loading, environment initialization,
+// and logging helpers.
 package app
 
 import (

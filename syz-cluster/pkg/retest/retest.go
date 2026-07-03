@@ -1,6 +1,8 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package retest provides execution logic for re-testing reproducers on base and patched kernel environments
+// to detect bugs and regressions.
 package retest
 
 import (

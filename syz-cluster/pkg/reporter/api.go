@@ -1,6 +1,8 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package reporter implements API handlers and background report generation processes
+// for managing and dispatching session reports and replies.
 package reporter
 
 import (
