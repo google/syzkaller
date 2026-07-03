@@ -1,6 +1,7 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package testutil provides helper functions, seed generation, and random data utilities for unit tests.
 package testutil
 
 import (

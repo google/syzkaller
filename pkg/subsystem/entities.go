@@ -1,6 +1,8 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package subsystem provides abstractions and services for defining, matching,
+// and extracting kernel subsystems and maintainers.
 package subsystem
 
 type Subsystem struct {

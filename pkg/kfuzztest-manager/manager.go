@@ -3,6 +3,7 @@
 
 //go:build linux
 
+// Package kfuzztestmanager manages KFuzzTest execution and fuzzing loops.
 package kfuzztestmanager
 
 import (

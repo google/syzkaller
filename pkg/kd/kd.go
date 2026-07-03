@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Minimal KD protocol decoder.
+// Package kd provides a minimal KD protocol decoder.
 // KD protocol is used by windows to talk to debuggers. Here are some links:
 // https://github.com/radare/radare2/issues/1246#issuecomment-135565901
 // http://articles.sysprogs.org/kdvmware/kdcom/

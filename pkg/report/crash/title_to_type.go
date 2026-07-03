@@ -1,6 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package crash defines crash categories, types, and parsing rules for kernel crash titles.
 package crash
 
 var titleToType = []struct {

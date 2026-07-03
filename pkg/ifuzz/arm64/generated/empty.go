@@ -3,4 +3,5 @@
 
 // To unbreak build with insns.go is excluded by build tags.
 
+// Package generated contains auto-generated instruction definitions for ifuzz.
 package generated

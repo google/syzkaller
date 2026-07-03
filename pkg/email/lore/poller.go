@@ -1,9 +1,6 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// The approach uses an in-memory graph of ancestors (Message-ID -> In-Reply-To)
-// to resolve the root of any email thread. This is acceptable as long as the
-// archive size is reasonable and fits in memory.
 package lore
 
 import (

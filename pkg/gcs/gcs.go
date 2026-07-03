@@ -7,7 +7,6 @@
 // See the following links for details and API reference:
 // https://cloud.google.com/go/getting-started/using-cloud-storage
 // https://godoc.org/cloud.google.com/go/storage
-
 package gcs
 
 import (

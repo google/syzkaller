@@ -1,15 +1,14 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package ifuzz allows to generate and mutate PPC64 PowerISA 3.0B machine code.
-
+// Package powerpc allows generating and mutating PPC64 PowerISA 3.0B machine code.
+//
 // The ISA for POWER9 (the latest available at the moment) is at:
 // https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0
 //
 // A script on top of pdftotext was used to produce insns.go:
 // ./powerisa30_to_syz /home/aik/Documents/ppc/power9/PowerISA_public.v3.0B.pdf > 1.go
 // .
-
 package powerpc
 
 import (

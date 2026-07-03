@@ -1,6 +1,9 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package lore provides polling and thread resolution utilities for mailing list archives.
+// The approach uses an in-memory graph of ancestors (Message-ID -> In-Reply-To)
+// to resolve the root of any email thread.
 package lore
 
 import (

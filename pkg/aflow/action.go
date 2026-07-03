@@ -1,6 +1,8 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package aflow provides an execution engine and domain-specific language for constructing
+// AI workflows to debug, triage, and patch crashes.
 package aflow
 
 type Action interface {

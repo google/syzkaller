@@ -1,6 +1,7 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package dungeon calculates gamified developer stats, XP, and badges from bug triage activity.
 package dungeon
 
 import (

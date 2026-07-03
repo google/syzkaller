@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package corpus manages syzkaller test program corpora, signal tracking, and corpus minimization.
 package corpus
 
 import (
