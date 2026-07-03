@@ -15,6 +15,7 @@ import (
 	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 )
 
 func setupTestDB(t *testing.T) *spanner.Client {
@@ -358,48 +359,60 @@ func TestDeleteGarbage(t *testing.T) {
 	client := setupTestDB(t)
 	ctx := t.Context()
 
-	// 1. Insert a valid session in merge_history, files, and functions.
-	histValid := &HistoryRecord{
-		Namespace: "upstream",
-		Repo:      "repo-valid",
-		Duration:  1,
-		DateTo:    civil.Date{Year: 2025, Month: 1, Day: 1},
-		Session:   "session-valid",
-		Time:      time.Now(),
-		Commit:    "commit-valid",
-		TotalRows: 1,
-	}
-	insertCoverage(t, client, "manager1", histValid, []*FileCoverageWithLineInfo{
-		{
-			FileCoverageWithDetails: FileCoverageWithDetails{
-				Filepath:     "file-valid",
-				Instrumented: 10,
-				Covered:      5,
-			},
-			LinesInstrumented: []int64{1, 2, 3},
-			HitCounts:         []int64{1, 0, 1},
-		},
-	})
-	// Insert function for valid session.
+	now := time.Now()
+	cutoff := now.Add(-oneWeekAgo)
+
+	// 1. Completed session (should NOT be deleted)
+	sessionCompleted := "session-completed"
 	_, err := client.Apply(ctx, []*spanner.Mutation{
+		spanner.Insert("sessions", []string{"session", "created"}, []any{sessionCompleted, now.Add(-2 * time.Hour)}),
+		spanner.Insert("merge_history",
+			[]string{"namespace", "repo", "duration", "dateto", "session", "time"},
+			[]any{"ns1", "repo1", int64(1), civil.Date{Year: 2025, Month: 1, Day: 1}, sessionCompleted, now}),
+		spanner.Insert("files",
+			[]string{"session", "manager", "filepath", "instrumented", "covered"},
+			[]any{sessionCompleted, "*", "file-completed", int64(10), int64(5)}),
 		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
-			[]any{"session-valid", "file-valid", "func-valid", []int64{1, 2}}),
+			[]any{sessionCompleted, "file-completed", "func-completed", []int64{1, 2}}),
 	})
 	require.NoError(t, err)
 
-	// 2. Insert an orphaned (garbage) session only in files and functions (not in merge_history).
+	insertIncompleteSession := func(session, suffix string, created time.Time) {
+		_, err = client.Apply(ctx, []*spanner.Mutation{
+			spanner.Insert("sessions", []string{"session", "created"}, []any{session, created}),
+			spanner.Insert("files",
+				[]string{"session", "manager", "filepath", "instrumented", "covered"},
+				[]any{session, "*", "file-" + suffix, int64(10), int64(5)}),
+			spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
+				[]any{session, "file-" + suffix, "func-" + suffix, []int64{1, 2}}),
+		})
+		require.NoError(t, err)
+	}
+
+	// 2. Active incomplete session (younger than 1 week, should NOT be deleted).
+	sessionActive := "session-active"
+	insertIncompleteSession(sessionActive, "active", now.Add(-1*time.Hour))
+
+	// 3. Failed incomplete session (older than 1 week, should BE deleted).
+	sessionFailed := "session-failed"
+	insertIncompleteSession(sessionFailed, "failed", cutoff.Add(-1*time.Hour))
+
+	// 4. Old garbage session without sessions record (should BE auto-migrated, NOT deleted yet)
+	sessionOldGarbage := "session-old-garbage"
 	_, err = client.Apply(ctx, []*spanner.Mutation{
-		spanner.InsertOrUpdate("files", []string{"session", "manager", "filepath", "instrumented", "covered"},
-			[]any{"session-garbage", "manager-garbage", "file-garbage", int64(10), int64(5)}),
+		spanner.Insert("files",
+			[]string{"session", "manager", "filepath", "instrumented", "covered"},
+			[]any{sessionOldGarbage, "*", "file-old-garbage", int64(10), int64(5)}),
 		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
-			[]any{"session-garbage", "file-garbage", "func-garbage", []int64{1, 2}}),
+			[]any{sessionOldGarbage, "file-old-garbage", "func-old-garbage", []int64{1, 2}}),
 	})
 	require.NoError(t, err)
 
-	// 3. Insert another orphaned session that only has entries in functions (not in files or merge_history).
+	// 5. Old garbage session with only functions record (should BE auto-migrated, NOT deleted yet)
+	sessionFuncsOnly := "session-funcs-only"
 	_, err = client.Apply(ctx, []*spanner.Mutation{
 		spanner.InsertOrUpdate("functions", []string{"session", "filepath", "funcname", "lines"},
-			[]any{"session-garbage-funcs-only", "file-garbage", "func-garbage", []int64{1, 2}}),
+			[]any{sessionFuncsOnly, "file-funcs-only", "func-funcs-only", []int64{1, 2}}),
 	})
 	require.NoError(t, err)
 
@@ -407,24 +420,64 @@ func TestDeleteGarbage(t *testing.T) {
 	deletedSessions, deletedRows, err := DeleteGarbage(ctx, client)
 	require.NoError(t, err)
 
-	// Expecting 2 sessions deleted (session-garbage, session-garbage-funcs-only).
-	// Expecting 3 rows deleted (1 in files, 2 in functions).
-	assert.Equal(t, int64(2), deletedSessions)
-	assert.Equal(t, int64(3), deletedRows)
+	// We expect:
+	// - sessionFailed is deleted: 1 session.
+	// - deleted rows: 1 from files + 1 from functions = 2 rows.
+	assert.Equal(t, int64(1), deletedSessions)
+	assert.Equal(t, int64(2), deletedRows)
 
-	// Verify that valid session files and functions still exist.
-	var count int64
-	err = client.Single().Query(ctx, spanner.Statement{SQL: "SELECT COUNT(1) FROM files"}).
-		Do(func(row *spanner.Row) error {
-			return row.Column(0, &count)
-		})
-	require.NoError(t, err)
-	assert.Equal(t, int64(1), count)
+	// Verify DB state.
+	assertRowExists(t, client, "sessions", spanner.Key{sessionCompleted})
+	assertRowExists(t, client, "files", spanner.Key{sessionCompleted, "*", "file-completed"})
+	assertRowExists(t, client, "functions", spanner.Key{sessionCompleted, "file-completed", "func-completed"})
 
-	err = client.Single().Query(ctx, spanner.Statement{SQL: "SELECT COUNT(1) FROM functions"}).
-		Do(func(row *spanner.Row) error {
-			return row.Column(0, &count)
-		})
+	assertRowExists(t, client, "sessions", spanner.Key{sessionActive})
+	assertRowExists(t, client, "files", spanner.Key{sessionActive, "*", "file-active"})
+	assertRowExists(t, client, "functions", spanner.Key{sessionActive, "file-active", "func-active"})
+
+	assertRowNotExists(t, client, "sessions", spanner.Key{sessionFailed})
+	assertRowNotExists(t, client, "files", spanner.Key{sessionFailed, "*", "file-failed"})
+	assertRowNotExists(t, client, "functions", spanner.Key{sessionFailed, "file-failed", "func-failed"})
+
+	assertRowExists(t, client, "sessions", spanner.Key{sessionOldGarbage})
+	assertRowExists(t, client, "files", spanner.Key{sessionOldGarbage, "*", "file-old-garbage"})
+	assertRowExists(t, client, "functions", spanner.Key{sessionOldGarbage, "file-old-garbage", "func-old-garbage"})
+
+	assertRowExists(t, client, "sessions", spanner.Key{sessionFuncsOnly})
+	assertRowExists(t, client, "functions", spanner.Key{sessionFuncsOnly, "file-funcs-only", "func-funcs-only"})
+
+	var created time.Time
+	row, err := client.Single().ReadRow(ctx, "sessions", spanner.Key{sessionOldGarbage}, []string{"created"})
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), count)
+	err = row.Column(0, &created)
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now(), created, 10*time.Second)
+}
+
+func assertRowExists(t *testing.T, client *spanner.Client, table string, key spanner.Key) {
+	ctx := t.Context()
+	row, err := client.Single().ReadRow(ctx, table, key, []string{tableColumns(table)[0]})
+	require.NoError(t, err)
+	require.NotNil(t, row)
+}
+
+func assertRowNotExists(t *testing.T, client *spanner.Client, table string, key spanner.Key) {
+	ctx := t.Context()
+	_, err := client.Single().ReadRow(ctx, table, key, []string{tableColumns(table)[0]})
+	assert.True(t, spanner.ErrCode(err) == codes.NotFound, "expected NotFound error, got %v", err)
+}
+
+func tableColumns(table string) []string {
+	switch table {
+	case "files":
+		return []string{"session", "manager", "filepath"}
+	case "functions":
+		return []string{"session", "filepath", "funcname"}
+	case "sessions":
+		return []string{"session", "created"}
+	case "merge_history":
+		return []string{"namespace", "repo", "duration", "dateto"}
+	default:
+		panic("unknown table")
+	}
 }

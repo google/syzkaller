@@ -64,6 +64,21 @@ gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
   --ddl="CREATE INDEX merge_history_session ON merge_history (session);"
 
+echo "drop table 'sessions' if exists"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+--ddl="DROP TABLE IF EXISTS sessions"
+echo "create table 'sessions'"
+create_table=$( echo -n '
+CREATE TABLE
+  sessions (
+    "session" text,
+    "created" timestamptz NOT NULL,
+  PRIMARY KEY
+    (session) );')
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+ --ddl="$create_table"
+
+
 echo "drop table 'file_subsystems' if exists"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
 --ddl="DROP TABLE IF EXISTS file_subsystems"

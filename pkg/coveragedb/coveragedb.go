@@ -16,6 +16,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/log"
 	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -23,6 +24,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"
 )
+
+const oneWeekAgo = 7 * 24 * time.Hour
 
 type HistoryRecord struct {
 	Session   string
@@ -92,6 +95,15 @@ func SaveMergeResult(ctx context.Context, client *spanner.Client, descr *History
 	}
 	var rowsCreated int
 	session := uuid.New().String()
+	// Register session. We need this Apply call for referential integrity.
+	// GC will not be touching this session records.
+	_, err := client.Apply(ctx, []*spanner.Mutation{
+		spanner.Insert("sessions", []string{"session", "created"}, []any{session, time.Now()}),
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to register session: %w", err)
+	}
+
 	var mutations []*spanner.Mutation
 
 	for {
@@ -288,26 +300,84 @@ func NsDataMerged(ctx context.Context, client *spanner.Client, ns string,
 	return periods, totalRows, nil
 }
 
-// DeleteGarbage removes orphaned file and function entries from the database.
+type sessionRow struct {
+	Session string
+}
+
+type activeSessionRow struct {
+	Session string
+	Created time.Time
+}
+
+type orphanFinder struct {
+	// client is the Spanner client used to execute queries.
+	client *spanner.Client
+	// validSessions is the set of completed session IDs present in merge_history.
+	validSessions map[string]bool
+	// sentSessions tracks session IDs already sent to sessionCh to avoid duplicates.
+	sentSessions map[string]bool
+	// activeSessions maps registered session IDs in the sessions table to their creation time.
+	activeSessions map[string]time.Time
+	// cutoff is the threshold time; sessions created before this time are considered expired.
+	cutoff time.Time
+	// sessionCh is the channel used to send expired session IDs to deletion workers.
+	sessionCh chan<- string
+	// sessionsToMigrate collects legacy sessions that are active but missing from the sessions table.
+	sessionsToMigrate []string
+}
+
+func (f *orphanFinder) stream(ctx context.Context, sql string) error {
+	iter := f.client.Single().Query(ctx, spanner.Statement{SQL: sql})
+	defer iter.Stop()
+	for {
+		r, err := pkgspanner.ReadRow[sessionRow](iter)
+		if err != nil {
+			return err
+		}
+		if r == nil {
+			break
+		}
+		if f.validSessions[r.Session] || f.sentSessions[r.Session] {
+			continue
+		}
+		if created, ok := f.activeSessions[r.Session]; ok {
+			if created.Before(f.cutoff) {
+				select {
+				case f.sessionCh <- r.Session:
+					f.sentSessions[r.Session] = true
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		} else {
+			f.sessionsToMigrate = append(f.sessionsToMigrate, r.Session)
+			f.sentSessions[r.Session] = true
+		}
+	}
+	return nil
+}
+
+// DeleteGarbage cleans up orphaned database entries that are no longer associated with active merge sessions.
 //
-// It identifies files in the "files" table and functions in the "functions" table
-// that are not referenced by any entries in the "merge_history" table,
-// indicating they are no longer associated with an active merge session.
+// It identifies sessions in "files" and "functions" tables that are:
+//  1. Not present in "merge_history" (i.e. they are not completed sessions).
+//  2. Either missing from "sessions" table (legacy active sessions, which will be auto-migrated)
+//     or present in "sessions" table but created more than 1 week ago (failed/abandoned sessions).
 //
-// To avoid slow anti-joins in Spanner, this function fetches all valid sessions from merge_history first,
+// Active incomplete sessions (present in "sessions" table and created within the last week)
+// are preserved to allow ongoing uploads to complete.
+//
+// To avoid slow anti-joins in Spanner, this function fetches all valid and active sessions first,
 // then streams distinct sessions from files and functions, performing the filtering in Go.
 //
 // To avoid exceeding Spanner mutation limits, entries are deleted in batches of 10,000.
 //
-// Returns the number of orphaned sessions and the total number of entries successfully deleted.
+// Returns the number of deleted sessions and the total number of deleted rows.
 func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, error) {
 	if client == nil {
 		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
 
-	type sessionRow struct {
-		Session string
-	}
 	// 1. Get all valid sessions from merge_history
 	validSessions := make(map[string]bool)
 	iterHistory := client.Single().Query(ctx, spanner.Statement{
@@ -321,7 +391,20 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		validSessions[r.Session] = true
 	}
 
-	// 2. Stream distinct sessions from files and functions and feed to workers.
+	// 2. Get all active sessions from sessions
+	activeSessions := make(map[string]time.Time)
+	iterSessions := client.Single().Query(ctx, spanner.Statement{
+		SQL: `SELECT session, created FROM sessions`})
+	defer iterSessions.Stop()
+	sessionRows, err := pkgspanner.ReadRows[activeSessionRow](iterSessions)
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, r := range sessionRows {
+		activeSessions[r.Session] = r.Created
+	}
+
+	// 3. Stream distinct sessions from files and functions and feed to workers.
 	var deletedRows atomic.Int64
 	var deletedSessions atomic.Int64
 	eg, gCtx := errgroup.WithContext(ctx)
@@ -342,60 +425,50 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		})
 	}
 
+	finder := &orphanFinder{
+		client:         client,
+		validSessions:  validSessions,
+		sentSessions:   make(map[string]bool),
+		activeSessions: activeSessions,
+		cutoff:         time.Now().Add(-oneWeekAgo),
+		sessionCh:      sessionCh,
+	}
+
 	eg.Go(func() error {
 		defer close(sessionCh)
-		sentSessions := make(map[string]bool)
 
-		// Stream from files.
-		iterFiles := client.Single().Query(gCtx, spanner.Statement{
-			SQL: `SELECT DISTINCT session FROM files`})
-		defer iterFiles.Stop()
-
-		for {
-			r, err := pkgspanner.ReadRow[sessionRow](iterFiles)
-			if err != nil {
-				return err
-			}
-			if r == nil {
-				break
-			}
-			if !validSessions[r.Session] {
-				select {
-				case sessionCh <- r.Session:
-					sentSessions[r.Session] = true
-				case <-gCtx.Done():
-					return gCtx.Err()
-				}
-			}
+		if err := finder.stream(gCtx, `SELECT DISTINCT session FROM files`); err != nil {
+			return err
 		}
 
-		// Stream from functions.
-		iterFuncs := client.Single().Query(gCtx, spanner.Statement{
-			SQL: `SELECT DISTINCT session FROM functions`})
-		defer iterFuncs.Stop()
-
-		for {
-			r, err := pkgspanner.ReadRow[sessionRow](iterFuncs)
-			if err != nil {
-				return err
-			}
-			if r == nil {
-				break
-			}
-			if !validSessions[r.Session] && !sentSessions[r.Session] {
-				select {
-				case sessionCh <- r.Session:
-					sentSessions[r.Session] = true
-				case <-gCtx.Done():
-					return gCtx.Err()
-				}
-			}
+		if err := finder.stream(gCtx, `SELECT DISTINCT session FROM functions`); err != nil {
+			return err
 		}
 		return nil
 	})
 
 	err = eg.Wait()
-	return deletedSessions.Load(), deletedRows.Load(), err
+	if err != nil {
+		return deletedSessions.Load(), deletedRows.Load(), err
+	}
+
+	if len(finder.sessionsToMigrate) > 0 {
+		var mutations []*spanner.Mutation
+		now := time.Now()
+		for _, s := range finder.sessionsToMigrate {
+			mutations = append(mutations, spanner.Insert("sessions",
+				[]string{"session", "created"},
+				[]any{s, now}))
+		}
+		if _, err := client.Apply(ctx, mutations); err != nil {
+			return deletedSessions.Load(), deletedRows.Load(), fmt.Errorf("failed to apply auto-migration: %w", err)
+		}
+	} else {
+		// TODO(tarasmadan): Remove this legacy migration block once we verify in logs that no legacy sessions remain.
+		log.Logf(0, "coveragedb: no legacy sessions to migrate")
+	}
+
+	return deletedSessions.Load(), deletedRows.Load(), nil
 }
 
 func processGarbageSession(ctx context.Context, client *spanner.Client, session string,
@@ -407,6 +480,11 @@ func processGarbageSession(ctx context.Context, client *spanner.Client, session 
 	if err := deleteGarbageTable(ctx, client, session, "functions",
 		`SELECT filepath, funcname FROM functions WHERE session = $1`, deletedRows); err != nil {
 		return err
+	}
+	// Delete from sessions.
+	mutation := spanner.Delete("sessions", spanner.Key{session})
+	if _, err := client.Apply(ctx, []*spanner.Mutation{mutation}); err != nil {
+		return fmt.Errorf("failed to delete session from sessions table: %w", err)
 	}
 	return nil
 }
