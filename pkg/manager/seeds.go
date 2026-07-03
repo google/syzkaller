@@ -325,6 +325,7 @@ func FilterCandidates(candidates []fuzzer.Candidate, syscalls map[*prog.Syscall]
 	return ret
 }
 
+// ReminimizeThreshold defines the system call count threshold above which programs are re-minimized.
 // Programs that do more than 15 system calls are to be treated with suspicion and re-minimized.
 const ReminimizeThreshold = 15
 

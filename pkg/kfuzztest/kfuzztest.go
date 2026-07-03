@@ -185,7 +185,7 @@ func ActivateKFuzzTargets(target *prog.Target, vmlinuxPath string) ([]*prog.Sysc
 
 const syzKfuzzTestRun string = "syz_kfuzztest_run"
 
-// Common prefix that all discriminated syz_kfuzztest_run pseudo-syscalls share.
+// KfuzzTestTargetPrefix is the common prefix that all discriminated syz_kfuzztest_run pseudo-syscalls share.
 const KfuzzTestTargetPrefix string = syzKfuzzTestRun + "$"
 
 func GetTestName(syscall *prog.Syscall) (string, bool) {

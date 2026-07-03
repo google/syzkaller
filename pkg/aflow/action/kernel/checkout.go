@@ -20,7 +20,7 @@ import (
 // outputs the source directory with the checkout.
 var Checkout = aflow.NewFuncAction("kernel-checkouter", checkout)
 
-// Checkout action checks out the Linux kernel on the given commit
+// CheckoutScratch action checks out the Linux kernel on the given commit
 // in a private temp dir that lives only for the duration of the workflow.
 // It's supposed to be used for code edits.
 var CheckoutScratch = aflow.NewFuncAction("kernel-scratch-checkouter", checkoutScratch)
