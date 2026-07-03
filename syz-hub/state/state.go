@@ -1,6 +1,7 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package state manages persistent state for syz-hub including corpus, reproducers, and connected managers.
 package state
 
 import (
