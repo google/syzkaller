@@ -1,0 +1,26 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+name: Manage PR Well-Shaped Labels
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Run once every hour
+  workflow_dispatch: # Allow running manually
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  manage-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run labeling script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/workflows/manage_well_shaped_label.sh
