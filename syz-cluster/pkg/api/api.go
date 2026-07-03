@@ -1,6 +1,8 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package api defines the core data types, client interfaces, and request/response structures
+// used for communication between components and workflow steps.
 package api
 
 import "time"

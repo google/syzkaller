@@ -1,6 +1,8 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package stats provides background workers for aggregating and maintaining statistics
+// for patch series.
 package stats
 
 import (
