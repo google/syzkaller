@@ -3,6 +3,7 @@
 
 //go:build !codeanalysis
 
+// Package proggen generates syzkaller programs from parsed execution traces.
 package proggen
 
 import (
