@@ -1,6 +1,7 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package proxyrpc defines RPC interfaces and data structures for external proxy applications.
 package proxyrpc
 
 // ProxyAppInterface is the interface you need to implement.
