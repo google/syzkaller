@@ -1,0 +1,381 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"type": "object",
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Res": {
+										"type": "integer",
+										"description": "res"
+									}
+								},
+								"required": [
+									"Res"
+								],
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Reason": {
+										"type": "string",
+										"description": "Reason for stopping or letting it continue."
+									},
+									"Stop": {
+										"type": "boolean",
+										"description": "Stop subagent if stuck in a loop, oscillating, or making no progress."
+									}
+								},
+								"required": [
+									"Stop",
+									"Reason"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Reason": {
+										"type": "string",
+										"description": "Reason for stopping or letting it continue."
+									},
+									"Stop": {
+										"type": "boolean",
+										"description": "Stop subagent if stuck in a loop, oscillating, or making no progress."
+									}
+								},
+								"required": [
+									"Stop",
+									"Reason"
+								],
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Subagent started with prompt:\nPrompt\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Analyze the subagent history above. Call set-results with Stop and Reason."
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Subagent started with prompt:\nPrompt\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Subagent called tool tick with args: map[]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Tool tick returned: [Omitted to save tokens]\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Analyze the subagent history above. Call set-results with Stop and Reason."
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"args": {
+								"Reason": "stuck in tick loop",
+								"Stop": true
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"response": {
+								"Reason": "stuck in tick loop",
+								"Stop": true
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
