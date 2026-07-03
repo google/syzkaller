@@ -85,6 +85,12 @@ func (s *SessionService) UploadSession(ctx context.Context, req *api.NewSession)
 	}
 	if req.DirectRequest {
 		session.Direct = spanner.NullBool{Bool: true, Valid: true}
+		if req.ReportLevel == "" {
+			req.ReportLevel = api.ReportLevelAll
+		}
+	}
+	if req.ReportLevel != "" {
+		session.ReportLevel = spanner.NullString{StringVal: string(req.ReportLevel), Valid: true}
 	}
 	err = s.sessionRepo.Insert(ctx, session)
 	if err != nil {

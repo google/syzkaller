@@ -82,6 +82,7 @@ type Session struct {
 	TriageTrajectoryURI spanner.NullString `spanner:"TriageTrajectoryURI"`
 	Tags                []string           `spanner:"Tags"`
 	Direct              spanner.NullBool   `spanner:"Direct"`
+	ReportLevel         spanner.NullString `spanner:"ReportLevel"`
 	JobID               spanner.NullString `spanner:"JobID"`
 	// TODO: to accept more specific fuzzing assignment,
 	// add Triager, BaseRepo, BaseCommit, Config fields.

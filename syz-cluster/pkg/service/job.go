@@ -178,9 +178,10 @@ func (s *JobService) SubmitJob(ctx context.Context, req *api.SubmitJobRequest) (
 	}
 
 	session := &db.Session{
-		SeriesID:  origSession.SeriesID,
-		Direct:    spanner.NullBool{Bool: true, Valid: true},
-		CreatedAt: time.Now(),
+		SeriesID:    origSession.SeriesID,
+		Direct:      spanner.NullBool{Bool: true, Valid: true},
+		ReportLevel: spanner.NullString{StringVal: string(api.ReportLevelAll), Valid: true},
+		CreatedAt:   time.Now(),
 	}
 	session.SetJobID(job.ID)
 
