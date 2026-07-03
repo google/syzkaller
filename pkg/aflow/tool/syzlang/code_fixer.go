@@ -52,6 +52,29 @@ var CodeFixer = &aflow.LLMTool[struct{}, CodeFixerArgs]{
 		ReadSyzSpec,
 		SyzGrepper,
 	),
+	Judge: &aflow.LLMJudge{
+		Name:               "code-fixer-judge",
+		Model:              aflow.TemporaryFlashOnlyModel,
+		MinIterations:      30,
+		EvaluationInterval: 10,
+		Instruction: "You are a Judge Agent monitoring the execution of a subagent debugging a syzlang program.\n" +
+			"Your job is to look at the history of attempts and decide if the subagent is stuck " +
+			"in a loop, oscillating between different errors without progress, or otherwise runaway.\n\n" +
+			"Analyze the history:\n" +
+			"- Look at the syzlang programs and compilation/runtime execution errors in successive turns.\n" +
+			"- Check if the subagent is oscillating (e.g. changing an argument from X to Y, " +
+			"getting an error, changing it back to X, getting the previous error).\n" +
+			"- Check if the subagent is repeating the exact same error for more than 3 turns " +
+			"without any meaningful modification to the code structure.\n" +
+			"- Check if it is making zero progress toward successful compilation/execution.\n\n" +
+			"Decision Criteria:\n" +
+			"- Set Stop = true if there is a clear loop, oscillation, or lack of progress.\n" +
+			"- If setting Stop = true, provide a clear, concise and actionable Reason summarizing " +
+			"the loop or why progress is blocked. This reason will be returned as an error to " +
+			"the parent agent, helping it try a different strategy.\n" +
+			"- Set Stop = false if the subagent is introducing new changes, trying new paths, " +
+			"or making progress towards resolving the errors.",
+	},
 	Prompt: `{{if .IgnoreCallErrors}}CRITICAL INSTRUCTION: You are debugging a program where ` +
 		`the target PC is expected to be in an error path. Thus, call errors (syscalls returning ` +
 		`an error like EINVAL, EFAULT, etc.) are expected and acceptable.

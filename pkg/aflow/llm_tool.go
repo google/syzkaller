@@ -16,8 +16,6 @@ import (
 // It can do complex multi-step research, and provide a concise answer to the parent LLM
 // without polluting its context window.
 type StructuredLLMTool[State, Args, Results any] struct {
-	// Most fields match that of LLMAgent.
-	// The prompt is not specified here, and is provided by the parent LLM.
 	Name     string
 	Model    backend.ModelCategory
 	TaskType TaskType
@@ -32,6 +30,9 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Optional structured outputs configuration for the subagent.
 	// Use LLMOutputs or ValidatedLLMOutputs/ValidatedLLMToolOutputs functions to create it.
 	Outputs *llmOutputs
+
+	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
+	Judge *LLMJudge
 
 	agent *LLMAgent
 }
@@ -132,6 +133,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
 		Tools:       t.Tools,
 		SubAgent:    true,
+		Judge:       t.Judge,
 	}
 
 	if t.Outputs != nil {
