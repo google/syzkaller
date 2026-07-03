@@ -33,6 +33,9 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Use LLMOutputs or ValidatedLLMOutputs/ValidatedLLMToolOutputs functions to create it.
 	Outputs *llmOutputs
 
+	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
+	Judge *LLMJudge
+
 	agent *LLMAgent
 }
 
@@ -132,6 +135,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
 		Tools:       t.Tools,
 		SubAgent:    true,
+		Judge:       t.Judge,
 	}
 
 	if t.Outputs != nil {
