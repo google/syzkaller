@@ -66,6 +66,36 @@ func TestModerationReportFlow(t *testing.T) {
 	}, receivedEmail)
 }
 
+func TestSilentSeriesFlow(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	testSeries := controller.DummySeries()
+
+	client := controller.TestServer(t, env)
+	_ = controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries, controller.WithReportLevel(api.ReportLevelNone))
+
+	generator := reporter.NewGenerator(env)
+	err := generator.Process(ctx, 1)
+	assert.NoError(t, err)
+
+	emailServer := makeFakeSender()
+	reporterClient := reporter.TestServer(t, env)
+	handler := &Handler{
+		reporter:       api.LKMLReporter,
+		reporterClient: reporterClient,
+		apiClient:      client,
+		emailConfig:    emailclient.TestEmailConfig(),
+		sender:         emailServer.send,
+	}
+
+	report, err := handler.PollAndReport(ctx)
+	assert.NoError(t, err)
+	assert.Nil(t, report, "report should be nil because it is silently marked as reported")
+
+	// No email should be sent.
+	receivedEmail := emailServer.email()
+	assert.Nil(t, receivedEmail, "no email must be sent for silent series")
+}
+
 func TestReportInvalidationFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()

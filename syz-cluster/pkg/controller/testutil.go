@@ -24,7 +24,8 @@ type EntityIDs struct {
 }
 
 type FakeSeriesConfig struct {
-	Direct bool
+	Direct      bool
+	ReportLevel api.ReportLevel
 }
 
 type FakeSeriesOpt func(*FakeSeriesConfig)
@@ -32,6 +33,12 @@ type FakeSeriesOpt func(*FakeSeriesConfig)
 func WithDirect() FakeSeriesOpt {
 	return func(c *FakeSeriesConfig) {
 		c.Direct = true
+	}
+}
+
+func WithReportLevel(level api.ReportLevel) FakeSeriesOpt {
+	return func(c *FakeSeriesConfig) {
+		c.ReportLevel = level
 	}
 }
 
@@ -48,6 +55,7 @@ func UploadTestSeries(t *testing.T, ctx context.Context,
 	retSession, err := client.UploadSession(ctx, &api.NewSession{
 		ExtID:         series.ExtID,
 		DirectRequest: config.Direct,
+		ReportLevel:   config.ReportLevel,
 	})
 	assert.NoError(t, err)
 	return EntityIDs{

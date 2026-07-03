@@ -153,6 +153,12 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 		return nil
 	}
 	first := series.Patches[0]
+	reportLevel := api.ReportLevelAll
+	if first.OwnEmail {
+		// If another bot instance reads the same mailing list, we don't want to
+		// spam it back. So we still fuzz the series, but don't report the results.
+		reportLevel = api.ReportLevelNone
+	}
 	date := first.Date
 	if date.IsZero() || date.After(time.Now()) {
 		// We cannot fully trust dates from the mailing list as some of them are very weird, e.g.
@@ -210,6 +216,7 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 	_, err = sf.client.UploadSession(ctx, &api.NewSession{
 		ExtID:         series.MessageID,
 		DirectRequest: directRequest,
+		ReportLevel:   reportLevel,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to request a fuzzing session: %w", err)

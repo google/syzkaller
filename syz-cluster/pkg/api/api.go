@@ -193,10 +193,19 @@ type SeriesPatch struct {
 }
 
 type NewSession struct {
-	ExtID         string   `json:"ext_id"`
-	Tags          []string `json:"tags"`
-	DirectRequest bool     `json:"direct_request"`
+	ExtID         string      `json:"ext_id"`
+	Tags          []string    `json:"tags"`
+	DirectRequest bool        `json:"direct_request"`
+	ReportLevel   ReportLevel `json:"report_level,omitempty"`
 }
+
+type ReportLevel string
+
+const (
+	ReportLevelAll  ReportLevel = "all"
+	ReportLevelBugs ReportLevel = "bugs"
+	ReportLevelNone ReportLevel = "none"
+)
 
 type ReportType string
 
