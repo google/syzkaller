@@ -19,6 +19,7 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Version.h"
 #include "clang/Frontend/CompilerInstance.h"
+#include "clang/Tooling/JSONCompilationDatabase.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/Casting.h"
@@ -379,15 +380,53 @@ bool Indexer::TraverseTypedefDecl(TypedefDecl* Decl) {
 }
 
 static int Main(int argc, const char** argv) {
+  // Manually extract -p. Standard LLVM parsers may reject it if called
+  // from a global constructor before flag registration finishes.
+  std::string BuildPath = ".";
+  for (int i = 1; i < argc; ++i) {
+    if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+      BuildPath = argv[i+1];
+      break;
+    }
+  }
+
   llvm::cl::OptionCategory Options("codesearch options");
   auto OptionsParser = tooling::CommonOptionsParser::create(argc, argv, Options);
   if (!OptionsParser) {
     llvm::errs() << OptionsParser.takeError();
     return 1;
   }
+
+  std::string DatabasePath = BuildPath;
+  std::error_code EC;
+  if (std::filesystem::is_directory(DatabasePath, EC) || !std::filesystem::exists(DatabasePath, EC)) {
+    DatabasePath += "/compile_commands.json";
+  }
+
+  std::string ErrorMessage;
+  // Fallback to hand-loaded database if standard parser fails.
+  std::unique_ptr<tooling::CompilationDatabase> Compilations =
+      tooling::JSONCompilationDatabase::loadFromFile(DatabasePath,
+                                                    ErrorMessage,
+                                                    tooling::JSONCommandLineSyntax::AutoDetect);
+
+  if (!Compilations && !ErrorMessage.empty()) {
+    llvm::errs() << "codesearch warning: fallback database load failed from " << DatabasePath << ": " << ErrorMessage << "\n";
+  }
+
+  std::unique_ptr<tooling::CompilationDatabase> FinalCompilations;
+  if (Compilations) {
+    auto AdjustingCompilations =
+        std::make_unique<tooling::ArgumentsAdjustingCompilations>(
+            std::move(Compilations));
+    AdjustingCompilations->appendArgumentsAdjuster(OptionsParser->getArgumentsAdjuster());
+    FinalCompilations = std::move(AdjustingCompilations);
+  }
+
   Output Output;
   Instance Instance(Output);
-  tooling::ClangTool Tool(OptionsParser->getCompilations(), OptionsParser->getSourcePathList());
+  tooling::ClangTool Tool(FinalCompilations ? *FinalCompilations : OptionsParser->getCompilations(),
+                          OptionsParser->getSourcePathList());
   if (Tool.run(tooling::newFrontendActionFactory(&Instance, &Instance).get()))
     return 1;
   Output.print();
@@ -395,6 +434,7 @@ static int Main(int argc, const char** argv) {
   return 0;
 }
 
+// Hijack execution before application startup to run as a standalone clang tool.
 __attribute__((constructor(1000))) static void ctor(int argc, const char** argv) {
   const char* run = getenv("SYZ_RUN_CLANGTOOL");
   if (run && !strcmp(run, "codesearch"))
