@@ -1,6 +1,7 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package linux provides Linux kernel-specific subsystem extraction, maintainer mapping, and subsystem relationships.
 package linux
 
 import "github.com/google/syzkaller/pkg/subsystem"

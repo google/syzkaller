@@ -1,6 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package ifuzz generates and mutates random instruction streams for target CPU architectures.
 package ifuzz
 
 import (

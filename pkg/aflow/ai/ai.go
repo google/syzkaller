@@ -1,7 +1,7 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// ai package contains common definitions that are used across pkg/aflow/... and dashboard/{app,dashapi}.
+// Package ai contains common workflow definitions.
 package ai
 
 import "time"

@@ -1,6 +1,7 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package backend provides coverage symbolization backends for DWARF, ELF, Mach-O, and gVisor executables.
 package backend
 
 import (

@@ -1,6 +1,7 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package email parses and structures incoming bug emails, reply threads, and patches.
 package email
 
 import "github.com/google/syzkaller/dashboard/dashapi"
