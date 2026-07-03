@@ -102,7 +102,7 @@ func (f *Field) Dir(def Dir) Dir {
 
 type ArgFinder func(path []string) Arg
 
-// Special case reply of ArgFinder.
+// SquashedArgFound is a special case reply of ArgFinder.
 var SquashedArgFound = &DataArg{}
 
 type Expression interface {
