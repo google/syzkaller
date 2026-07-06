@@ -5,17 +5,9 @@ package aflow
 
 import (
 	"reflect"
-	"runtime"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 )
-
-func init() {
-	// KeepAlive to prevent deadcode warning before Commit 7 integrates Try.
-	var t *Try
-	runtime.KeepAlive(t.execute)
-	runtime.KeepAlive(t.verify)
-}
 
 // Try representing "try { Do } catch { Catch }" action.
 type Try struct {

@@ -472,7 +472,7 @@ func verifyPCReached(
 
 	reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, pc)
 	if err != nil {
-		return VerifyPCReachedResult{}, err
+		return VerifyPCReachedResult{}, aflow.BadCallError("failed to check PC in coverage: %v", err)
 	}
 
 	return VerifyPCReachedResult{PCReached: reached}, nil
