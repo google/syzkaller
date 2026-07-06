@@ -181,36 +181,18 @@
 		}
 	},
 	{
-		"Seq": 11,
-		"Nesting": 3,
-		"Type": "llm",
-		"Name": "test-judge",
-		"Model": "model1",
-		"Started": "0001-01-01T00:00:20Z"
-	},
-	{
-		"Seq": 11,
-		"Nesting": 3,
-		"Type": "llm",
-		"Name": "test-judge",
-		"Model": "model1",
-		"Started": "0001-01-01T00:00:20Z",
-		"Finished": "0001-01-01T00:00:21Z"
-	},
-	{
 		"Seq": 8,
 		"Nesting": 2,
 		"Type": "agent",
 		"Name": "test-judge",
 		"Model": "model1",
 		"Started": "0001-01-01T00:00:15Z",
-		"Finished": "0001-01-01T00:00:22Z",
+		"Finished": "0001-01-01T00:00:20Z",
 		"Results": {
 			"Reason": "stuck in tick loop",
 			"Stop": true
 		},
-		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
-		"Reply": "Done"
+		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 	},
 	{
 		"Seq": 1,
@@ -219,7 +201,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:21Z",
 		"Error": "judge agent stopped execution: stuck in tick loop",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt"
@@ -230,7 +212,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:24Z",
+		"Finished": "0001-01-01T00:00:22Z",
 		"Error": "judge agent stopped execution: stuck in tick loop"
 	}
 ]
