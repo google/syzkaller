@@ -8,23 +8,25 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
-	"testing/fstest"
+	"unicode/utf8"
 
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/pkg/aflow/syzspec"
 )
+
+const autoTxt = "auto.txt"
 
 var ReadSyzSpec = aflow.NewFuncTool("read-syz-spec", readSyzSpec, fmt.Sprintf(`
 The tool reads the content of a syzlang description file (e.g. sys.txt), 
-a test seed file (e.g. test/syz_mount_image_btrfs_0),
+a test seed file (e.g. test/syz_mount_xxxx_0.txt),
 or specification/header files from the repository (executor/ and docs/ directories).
+
+CRITICAL INSTRUCTION: Do NOT use this tool for Linux kernel files, standard POSIX headers (like
+sys/socket.h), or runtime filesystem paths (like /sys/class/gpio/export). This tool is ONLY
+for syzkaller specification/metadata/code files (descriptions, seeds, or executor headers).
 
 Description files contain syscall definitions. Test seeds contain working examples of 
 syzkaller programs. These seeds (e.g., test/vusb_cdc_ecm) often serve as a starting point 
@@ -55,12 +57,21 @@ var SyzGrepper = aflow.NewFuncTool("syz-grepper", syzGrepper, fmt.Sprintf(`
 The tool greps across syzlang description files (e.g. sys.txt), test seed files (e.g. test/syz_mount_image_btrfs_0),
 or specification/header files (executor/ and docs/ directories).
 
+CRITICAL INSTRUCTION: Do NOT use this tool to search Linux kernel source code, POSIX headers, or virtual
+filesystem paths (like sys/class/ or /sys/class/). This tool is ONLY for syzkaller specification/metadata/code files.
+
+CRITICAL INSTRUCTION: The 'Expression' parameter is a regular expression matched against the *text content*
+inside the files. It is NOT matched against the filenames. Do NOT use it to search for filenames or paths
+(e.g. do NOT set 'Expression' to "test/.*tun").
+
 CRITICAL INSTRUCTION: When querying a file in the sys/<os> or sys/<os>/test directory, you MUST provide
 ONLY the base filename or the test/ prefix (e.g. use "vusb.txt", NOT "sys/linux/vusb.txt" 
 or "/path/to/sys/linux/vusb.txt").
 
-You can grep across a specific File or all description/prewritten seeds files by providing a regular
-expression in Expression. 
+If you want to search inside test seeds (the test/ directory) for relevant syscalls or device names,
+you MUST set 'PathPrefix' to "test". Otherwise, 'syz-grepper' will search across all description files
+excluding tests.
+
 The grep results will automatically include up to %d surrounding context lines for each match
 to help you understand the definition.
 You can grep both .txt, .const, and test seed files.
@@ -69,11 +80,11 @@ Note: Individual lines exceeding %d characters will be horizontally truncated an
 `, grepContextLines, maxLineLen))
 
 const (
-	maxGrepLines          = 500
-	maxLineLen            = 800
-	paginateLinesWindow   = 150
-	maxOutputBytes        = 128 * 1024
-	defaultScanBufferSize = 64 * 1024
+	maxGrepLines          = 300
+	maxLineLen            = 500
+	paginateLinesWindow   = 100
+	maxOutputBytes        = 32 * 1024
+	defaultScanBufferSize = 32 * 1024
 	maxScanBufferSize     = 10 * 1024 * 1024
 	grepContextLines      = 10
 )
@@ -81,7 +92,7 @@ const (
 type readSyzSpecArgs struct {
 	File      string `jsonschema:"Source file path to read, e.g. sys.txt."`
 	FirstLine int    `jsonschema:"First source line to return, 1-based."`
-	LineCount int    `jsonschema:"Number of lines to return, capped at 150." json:",omitempty"`
+	LineCount int    `jsonschema:"Number of lines to return, capped at 100." json:",omitempty"`
 }
 
 type syzGrepperArgs struct {
@@ -98,130 +109,41 @@ type syzGrepperResults struct {
 }
 
 type specToolsState struct {
-	TargetOS  string
-	Syzkaller string
-}
-
-func isLocalSyzlangFile(file string) bool {
-	return file == "executor" || strings.HasPrefix(file, "executor/") ||
-		file == "docs" || strings.HasPrefix(file, "docs/")
-}
-
-func cleanSyzlangFile(file, osTarget, syzkallerPath string) string {
-	if file == "" {
-		return ""
-	}
-	cleaned := filepath.Clean(file)
-	if filepath.IsAbs(cleaned) && syzkallerPath != "" {
-		rel, err := filepath.Rel(syzkallerPath, cleaned)
-		if err == nil && !strings.HasPrefix(rel, "..") {
-			cleaned = rel
-		}
-	}
-	cleaned = filepath.ToSlash(cleaned)
-	if isLocalSyzlangFile(cleaned) {
-		return cleaned
-	}
-	if suffix, ok := strings.CutPrefix(cleaned, "sys/"+osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, "sys/"); ok {
-		cleaned = suffix
-	}
-	return cleaned
-}
-
-var (
-	virtualFS     fstest.MapFS
-	virtualFSOnce sync.Once
-)
-
-func getVirtualFS(syzkallerDir, osTarget string) fs.FS {
-	virtualFSOnce.Do(func() {
-		virtualFS = make(fstest.MapFS)
-		if syzkallerDir == "" {
-			syzkallerDir = "."
-		}
-
-		dirsToWalk := []string{"executor", "docs", filepath.Join("sys", osTarget, "test")}
-		for _, dir := range dirsToWalk {
-			fullPath := filepath.Join(syzkallerDir, dir)
-			filepath.Walk(fullPath, func(p string, info os.FileInfo, err error) error {
-				if err != nil || info.IsDir() {
-					return nil
-				}
-				relPath, err := filepath.Rel(syzkallerDir, p)
-				if err == nil {
-					if data, err := os.ReadFile(p); err == nil {
-						virtualFS[filepath.ToSlash(relPath)] = &fstest.MapFile{
-							Data:    data,
-							Mode:    info.Mode(),
-							ModTime: info.ModTime(),
-							Sys:     info.Sys(),
-						}
-					}
-				}
-				return nil
-			})
-		}
-	})
-	return virtualFS
-}
-
-func resolveSyzlangFS(state specToolsState, file string) (fs.FS, string, string, error) {
-	osTarget := strings.ToLower(state.TargetOS)
-	if osTarget == "" {
-		osTarget = targets.Linux
-	}
-
-	cleanedFile := cleanSyzlangFile(file, osTarget, state.Syzkaller)
-
-	if isLocalSyzlangFile(cleanedFile) {
-		if strings.HasPrefix(cleanedFile, "..") || filepath.IsAbs(cleanedFile) {
-			return nil, "", "", aflow.BadCallError("invalid file path %q", file)
-		}
-		return getVirtualFS(state.Syzkaller, osTarget), "", cleanedFile, nil
-	}
-
-	if cleanedFile == "test" || strings.HasPrefix(cleanedFile, "test/") {
-		if strings.HasPrefix(cleanedFile, "..") || filepath.IsAbs(cleanedFile) {
-			return nil, "", "", aflow.BadCallError("invalid file path %q", file)
-		}
-		return getVirtualFS(state.Syzkaller, osTarget), "", path.Join("sys", osTarget, cleanedFile), nil
-	}
-
-	if _, err := sys.Files.ReadDir(osTarget); err != nil {
-		return nil, "", "", aflow.BadCallError("invalid OS %q: %v", osTarget, err)
-	}
-	return sys.Files, osTarget, cleanedFile, nil
+	SyzFS *syzspec.SyzFS
 }
 
 func readSyzSpec(ctx *aflow.Context, state specToolsState, args readSyzSpecArgs) (readSyzSpecResults, error) {
-	fileSystem, osTarget, cleanedFile, err := resolveSyzlangFS(state, args.File)
-	if err != nil {
-		return readSyzSpecResults{}, err
-	}
-	res, err := paginateSyzSpec(fileSystem, osTarget, cleanedFile, args.FirstLine, args.LineCount)
+	cleanedFile := state.SyzFS.CleanPath(args.File)
+	res, err := paginateSyzSpec(state.SyzFS, cleanedFile, args.FirstLine, args.LineCount)
 	return readSyzSpecResults{Output: res}, err
 }
 
 func syzGrepper(ctx *aflow.Context, state specToolsState, args syzGrepperArgs) (syzGrepperResults, error) {
-	fileSystem, osTarget, cleanedFile, err := resolveSyzlangFS(state, args.PathPrefix)
-	if err != nil {
-		return syzGrepperResults{}, err
-	}
-	res, err := grepSyzSpec(fileSystem, osTarget, args.Expression, cleanedFile)
+	cleanedFile := state.SyzFS.CleanPath(args.PathPrefix)
+	res, err := grepSyzSpec(state.SyzFS, args.Expression, cleanedFile)
 	return syzGrepperResults{Output: res}, err
 }
 
 func validateFilePath(file string) error {
 	if file != "" {
-		cleaned := strings.TrimPrefix(file, "test/")
-		if strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\") || strings.HasPrefix(cleaned, ".") {
+		cleaned := file
+		if suffix, ok := strings.CutPrefix(cleaned, "test/"); ok {
+			cleaned = suffix
+		} else if suffix, ok := strings.CutPrefix(cleaned, "executor/"); ok {
+			cleaned = suffix
+		} else if suffix, ok := strings.CutPrefix(cleaned, "docs/"); ok {
+			cleaned = suffix
+		}
+		if strings.Contains(cleaned, "..") || filepath.IsAbs(cleaned) {
 			return aflow.BadCallError("invalid file path %q", file)
 		}
-		if cleaned == "auto.txt" || cleaned == "auto.txt.const" {
+		if !strings.HasPrefix(file, "executor/") &&
+			!strings.HasPrefix(file, "docs/") &&
+			!strings.HasPrefix(file, "test/") &&
+			(strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\")) {
+			return aflow.BadCallError("invalid file path %q", file)
+		}
+		if cleaned == autoTxt || cleaned == autoTxt+".const" {
 			return aflow.BadCallError("access to auto.txt or auto.txt.const is disallowed")
 		}
 	}
@@ -235,29 +157,21 @@ func newScanner(f io.Reader) *bufio.Scanner {
 	return scanner
 }
 
-func resolveTargetFiles(fileSystem fs.FS, osTarget, file string) ([]string, error) {
+func resolveTargetFiles(syzFS *syzspec.SyzFS, file string) ([]string, error) {
 	if file == "" {
-		if fileSystem == sys.Files {
-			return DescriptionFiles(osTarget), nil
-		}
-		return nil, fmt.Errorf("internal error: File or PathPrefix must be provided when searching the local workspace")
+		// When file is empty, syz-grepper searches across all description files.
+		// These are target-specific description files excluding test/ subdirectory.
+		return syzFS.DescriptionFiles(), nil
 	}
 
-	statPath := file
-	if osTarget != "" && fileSystem == sys.Files {
-		statPath = path.Join(osTarget, file)
-	}
-	fileInfo, err := fs.Stat(fileSystem, statPath)
+	fileInfo, err := fs.Stat(syzFS, file)
 	if err == nil && fileInfo.IsDir() {
 		var targetFiles []string
-		err = fs.WalkDir(fileSystem, statPath, func(p string, d fs.DirEntry, err error) error {
+		err = fs.WalkDir(syzFS, file, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
 			if !d.IsDir() {
-				if osTarget != "" && fileSystem == sys.Files {
-					p = strings.TrimPrefix(p, osTarget+"/")
-				}
 				targetFiles = append(targetFiles, p)
 			}
 			return nil
@@ -270,18 +184,16 @@ func resolveTargetFiles(fileSystem fs.FS, osTarget, file string) ([]string, erro
 	return []string{file}, nil
 }
 
-func grepSyzSpec(fileSystem fs.FS, osTarget, expression, file string) (string, error) {
-	if fileSystem == sys.Files {
-		if err := validateFilePath(file); err != nil {
-			return "", err
-		}
+func grepSyzSpec(syzFS *syzspec.SyzFS, expression, file string) (string, error) {
+	if err := validateFilePath(file); err != nil {
+		return "", err
 	}
 
 	re, err := regexp.Compile(expression)
 	if err != nil {
 		return "", aflow.BadCallError("bad expression: %v", err)
 	}
-	targetFiles, err := resolveTargetFiles(fileSystem, osTarget, file)
+	targetFiles, err := resolveTargetFiles(syzFS, file)
 	if err != nil {
 		return "", err
 	}
@@ -292,34 +204,36 @@ func grepSyzSpec(fileSystem fs.FS, osTarget, expression, file string) (string, e
 	}
 
 	for _, fname := range targetFiles {
-		targetPath := fname
-		if osTarget != "" {
-			targetPath = path.Join(osTarget, fname)
-		}
-		f, err := fileSystem.Open(targetPath)
-		if err != nil {
-			return "", aflow.BadCallError("failed to read file %q: %v", fname, err)
-		}
-
-		scanner := newScanner(f)
-		state.fname = fname
-		state.beforeBuf = nil
-		state.remainingAfterCtxLines = 0
-		state.lastPrintedLineNum = 0
-		lineNum := 1
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			matched := re.MatchString(line)
-			state.processLine(line, lineNum, matched)
-			if state.truncated {
-				break
+		err := func() error {
+			f, err := syzFS.Open(fname)
+			if err != nil {
+				return aflow.BadCallError("failed to read file %q: %v", fname, err)
 			}
-			lineNum++
-		}
-		f.Close()
-		if err := scanner.Err(); err != nil {
-			return "", aflow.BadCallError("failed to scan file %q: %v", fname, err)
+			defer f.Close()
+
+			scanner := newScanner(f)
+			state.fname = fname
+			state.beforeBuf = nil
+			state.remainingAfterCtxLines = 0
+			state.lastPrintedLineNum = 0
+			lineNum := 1
+
+			for scanner.Scan() {
+				line := scanner.Text()
+				matched := re.MatchString(line)
+				state.processLine(line, lineNum, matched)
+				if state.truncated {
+					break
+				}
+				lineNum++
+			}
+			if err := scanner.Err(); err != nil {
+				return aflow.BadCallError("failed to scan file %q: %v", fname, err)
+			}
+			return nil
+		}()
+		if err != nil {
+			return "", err
 		}
 		if state.truncated {
 			break
@@ -428,22 +342,16 @@ func (s *grepState) processLine(line string, lineNum int, matched bool) {
 	}
 }
 
-func paginateSyzSpec(fileSystem fs.FS, osTarget, file string, firstLine,
+func paginateSyzSpec(syzFS *syzspec.SyzFS, file string, firstLine,
 	lineCount int) (string, error) {
 	if file == "" {
 		return "", aflow.BadCallError("File must be provided")
 	}
-	if fileSystem == sys.Files {
-		if err := validateFilePath(file); err != nil {
-			return "", err
-		}
+	if err := validateFilePath(file); err != nil {
+		return "", err
 	}
 
-	targetPath := file
-	if osTarget != "" {
-		targetPath = path.Join(osTarget, file)
-	}
-	f, err := fileSystem.Open(targetPath)
+	f, err := syzFS.Open(file)
 	if err != nil {
 		return "", aflow.BadCallError("failed to read file %q: %v", file, err)
 	}
@@ -495,8 +403,12 @@ func paginateSyzSpec(fileSystem fs.FS, osTarget, file string, firstLine,
 
 func limitOutputBytes(res string) string {
 	if len(res) > maxOutputBytes {
+		res = res[:maxOutputBytes]
+		for res != "" && !utf8.ValidString(res) {
+			res = res[:len(res)-1]
+		}
 		msg := fmt.Sprintf("\nWARNING: Output truncated as it exceeded the %dKB limit.", maxOutputBytes/1024)
-		return res[:maxOutputBytes] + msg
+		return res + msg
 	}
 	return res
 }
