@@ -6,9 +6,14 @@ package syzlang
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow/syzlang"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
 )
+
+func resetSyzFS() {
+	syzlang.ClearFSMap()
+}
 
 func TestDescriptionFiles(t *testing.T) {
 	files := DescriptionFiles(targets.Linux)
@@ -23,6 +28,7 @@ func TestDescriptionFilesPrompt(t *testing.T) {
 }
 
 func TestReadSyzSpec(t *testing.T) {
+	resetSyzFS()
 	// Test pagination.
 	res, err := readSyzSpec(nil, specToolsState{}, readSyzSpecArgs{
 		File:      "sys.txt",
@@ -60,6 +66,7 @@ func TestReadSyzSpec(t *testing.T) {
 	require.ErrorContains(t, errBound, "does not have line")
 
 	// Test reading test seed file.
+	resetSyzFS()
 	resSeed, errSeed := readSyzSpec(nil, specToolsState{Syzkaller: "../../../.."}, readSyzSpecArgs{
 		File:      "test/syz_mount_image_btrfs_0",
 		FirstLine: 1,
@@ -84,6 +91,7 @@ func TestReadSyzSpec(t *testing.T) {
 }
 
 func TestSyzGrepper(t *testing.T) {
+	resetSyzFS()
 	// Test grep with a file.
 	resGrep, errGrep := syzGrepper(nil, specToolsState{}, syzGrepperArgs{
 		PathPrefix: "sys.txt",
@@ -98,7 +106,8 @@ func TestSyzGrepper(t *testing.T) {
 		Expression: "^type ",
 	})
 	require.NoError(t, errGrepAll)
-	require.Contains(t, resGrepAll.Output, ".txt:")
+	require.Contains(t, resGrepAll.Output, "binfmt.txt:")
+	require.NotContains(t, resGrepAll.Output, "linux/binfmt.txt:")
 	require.Contains(t, resGrepAll.Output, "type")
 
 	// Test grep with no matches (should return success, not error).
@@ -110,12 +119,23 @@ func TestSyzGrepper(t *testing.T) {
 	require.Equal(t, "No matches found.", resEmpty.Output)
 
 	// Test grep across test seed file.
+	resetSyzFS()
 	resSeedGrep, errSeedGrep := syzGrepper(nil, specToolsState{Syzkaller: "../../../.."}, syzGrepperArgs{
 		PathPrefix: "test/syz_mount_image_btrfs_0",
 		Expression: "syz_mount_image",
 	})
 	require.NoError(t, errSeedGrep)
 	require.Contains(t, resSeedGrep.Output, "syz_mount_image")
+
+	// Test grep across test directory (multiple files).
+	resetSyzFS()
+	resDirGrep, errDirGrep := syzGrepper(nil, specToolsState{Syzkaller: "../../../.."}, syzGrepperArgs{
+		PathPrefix: "test",
+		Expression: "syz_mount_image",
+	})
+	require.NoError(t, errDirGrep)
+	require.Contains(t, resDirGrep.Output, "test/syz_mount_image_btrfs_0:")
+	require.NotContains(t, resDirGrep.Output, "linux/test/syz_mount_image_btrfs_0:")
 
 	state := specToolsState{Syzkaller: "../../../.."}
 
