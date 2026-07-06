@@ -56,14 +56,15 @@ func init() {
 					While:         "ContinueLoop",
 					MaxIterations: 20,
 					Do: aflow.Pipeline(
-						&aflow.If{
-							Condition: "LastFailedExecutionCachedID",
-							Do: aflow.Pipeline(
-								syzlang.ActionPrepareSummarizer,
-								syzlang.SummarizerAgent,
+						ActionPrepareFailedDetails,
+						&aflow.Try{
+							Do:       GeneratorAgent,
+							ErrorVar: "GeneratorError",
+							Catch: aflow.Pipeline(
+								ActionFormatFailedHistory,
+								HistorySummarizerAgent,
 							),
 						},
-						GeneratorAgent,
 						ActionVerifyPCAndLoopState,
 					),
 				},
@@ -131,22 +132,35 @@ func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) 
 }
 
 type VerifyPCAndLoopStateArgs struct {
-	ExecutionCachedID string
-	GeneratorGiveUp   bool
-	GeneratorReason   string
-	PC                uint64
+	ExecutionCachedID    string
+	GeneratorGiveUp      bool
+	GeneratorReason      string
+	GeneratorError       string
+	FailedHistorySummary string
+	PC                   uint64
 }
 
 type VerifyPCAndLoopStateResult struct {
 	ContinueLoop                string
 	PCReached                   bool
 	LastFailedExecutionCachedID string
-	LastFailedBaseTestSeed      string
-	LastFailedGeneratedSyz      string
+	LastFailedHistorySummary    string
 }
 
 var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop",
 	func(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
+		if args.GeneratorError != "" {
+			res := VerifyPCAndLoopStateResult{
+				ContinueLoop:             "yes",
+				PCReached:                false,
+				LastFailedHistorySummary: args.FailedHistorySummary,
+			}
+			if id, ok := ctx.StateMap()["LastFailedExecutionCachedID"].(string); ok {
+				res.LastFailedExecutionCachedID = id
+			}
+			return res, nil
+		}
+
 		if args.GeneratorGiveUp {
 			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
 		}
@@ -168,10 +182,26 @@ var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop
 			PCReached:                   false,
 			LastFailedExecutionCachedID: args.ExecutionCachedID,
 		}
-		baseSeed, generated, err := crash.LoadSeedProgramDetails(ctx, args.ExecutionCachedID)
-		if err == nil {
-			res.LastFailedBaseTestSeed = baseSeed
-			res.LastFailedGeneratedSyz = generated
-		}
 		return res, nil
+	})
+
+type PrepareFailedDetailsArgs struct {
+	LastFailedExecutionCachedID string
+}
+
+type PrepareFailedDetailsResult struct {
+	LastFailedBaseTestSeed string
+	LastFailedGeneratedSyz string
+}
+
+var ActionPrepareFailedDetails = aflow.NewFuncAction("seedgen-prepare-failed-details",
+	func(ctx *aflow.Context, args PrepareFailedDetailsArgs) (PrepareFailedDetailsResult, error) {
+		if args.LastFailedExecutionCachedID == "" {
+			return PrepareFailedDetailsResult{}, nil
+		}
+		baseSeed, generated, err := crash.LoadSeedProgramDetails(ctx, args.LastFailedExecutionCachedID)
+		return PrepareFailedDetailsResult{
+			LastFailedBaseTestSeed: baseSeed,
+			LastFailedGeneratedSyz: generated,
+		}, err
 	})
