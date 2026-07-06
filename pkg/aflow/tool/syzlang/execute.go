@@ -5,9 +5,7 @@ package syzlang
 
 import (
 	"fmt"
-	"path"
 	"regexp"
-	"runtime"
 	"strconv"
 	"syscall"
 
@@ -15,20 +13,20 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/syzlang"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func init() {
-	// Used externally - do not remove.
-	runtime.KeepAlive(GetTestSeed)
-}
-
-var ExecuteSeed = aflow.NewFuncTool("execute-seed", executeSeed, `
+var (
+	ExecuteSeed = aflow.NewFuncTool("execute-seed", executeSeed, `
 Tool executes the given syz program in a VM to collect coverage.
 It allows calls to block without hanging the execution by running in threaded mode.
 It returns an ExecutionCachedID even if the execution times out or doesn't crash.
 `)
+
+	GetExecutedProgram = aflow.NewFuncTool("get-executed-program", getExecutedProgram, `
+Tool returns the syzlang program that was executed for the given ExecutionCachedID.
+`)
+)
 
 type ExecuteSeedArgs struct {
 	BaseTestSeed string `jsonschema:"Optional path to a test seed file." json:",omitempty"`
@@ -137,6 +135,26 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 	}, nil
 }
 
-func GetTestSeed(file string) ([]byte, error) {
-	return sys.Files.ReadFile(path.Join("linux", file))
+type GetExecutedProgramArgs struct {
+	ExecutionCachedID string `jsonschema:"Cached ID of the execution."`
+}
+
+type GetExecutedProgramResult struct {
+	BaseTestSeed string `jsonschema:"Path to the base test seed, if any."`
+	SyzProgram   string `jsonschema:"The generated syzlang program."`
+}
+
+func getExecutedProgram(ctx *aflow.Context, state reproduceState,
+	args GetExecutedProgramArgs) (GetExecutedProgramResult, error) {
+	if args.ExecutionCachedID == "" {
+		return GetExecutedProgramResult{}, aflow.BadCallError("ExecutionCachedID is required")
+	}
+	baseSeed, generated, err := crash.LoadSeedProgramDetails(ctx, args.ExecutionCachedID)
+	if err != nil {
+		return GetExecutedProgramResult{}, aflow.BadCallError("failed to load program details: %v", err)
+	}
+	return GetExecutedProgramResult{
+		BaseTestSeed: baseSeed,
+		SyzProgram:   generated,
+	}, nil
 }
