@@ -82,12 +82,19 @@ var CodeFixer = &aflow.LLMTool[struct{}, CodeFixerArgs]{
 			"- Set Stop = false if the subagent is introducing new changes, trying new paths, " +
 			"or making progress towards resolving the errors.",
 	},
-	Prompt: "{{if .IgnoreCallErrors}}CRITICAL INSTRUCTION: You are debugging a program where the target PC " +
-		"is expected to be in an error path. Thus, call errors (syscalls returning an error like EINVAL, " +
-		"EFAULT, etc.) are expected and acceptable. Do NOT try to fix call errors, and do NOT fail. " +
-		"You MUST treat the execution as successful even if there are call errors, as long as it " +
-		"compiles successfully (i.e. you got an ExecutionCachedID as response). " +
-		"Immediately yield by returning the ExecutionCachedID of the run.\n\n{{end}}" +
-		"{{if .BaseTestSeed}}Base Test Seed: {{.BaseTestSeed}}\n\n{{end}}" +
-		"Generator's Syzlang Program:\n{{.SyzProgram}}",
+	Prompt: `{{if .IgnoreCallErrors}}CRITICAL INSTRUCTION: You are debugging a program where ` +
+		`the target PC is expected to be in an error path. Thus, call errors (syscalls returning ` +
+		`an error like EINVAL, EFAULT, etc.) are expected and acceptable.
+` +
+		`Do NOT try to fix call errors, and do NOT fail.
+` +
+		`You MUST treat the execution as successful even if there are call errors, as long as ` +
+		`it compiles successfully (i.e. you got an ExecutionCachedID as response).
+` +
+		`Immediately yield by returning the ExecutionCachedID of the run.
+
+{{end}}{{if .BaseTestSeed}}Base Test Seed: {{.BaseTestSeed}}
+
+{{end}}Generator's Syzlang Program:
+{{.SyzProgram}}`,
 }
