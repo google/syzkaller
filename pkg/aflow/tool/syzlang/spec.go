@@ -24,8 +24,8 @@ a test seed file (e.g. test/syz_mount_xxxx_0.txt),
 or specification/header files from the repository (executor/ and docs/ directories).
 
 CRITICAL INSTRUCTION: Do NOT use this tool for Linux kernel files, standard POSIX headers (like
-sys/socket.h), or runtime filesystem paths (like /sys/class/gpio/export). This tool is ONLY
-for syzkaller specification/metadata/code files (descriptions, seeds, or executor headers).
+sys/socket.h), or runtime filesystem paths (like /sys/class/gpio/export). This tool is ONLY for 
+syzkaller specification/metadata/docs/executor header files. It cannot be used to read Go source files.
 
 Description files contain syscall definitions. Test seeds contain working examples of 
 syzkaller programs. These seeds (e.g., test/vusb_cdc_ecm) often serve as a starting point 

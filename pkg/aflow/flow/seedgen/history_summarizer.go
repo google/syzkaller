@@ -12,7 +12,7 @@ import (
 )
 
 type HistorySummarizerOutputs struct {
-	FailedHistorySummary string `jsonschema:"Concise summary of the failed generator attempt and its loop/mistakes."`
+	FailedHistorySummary string `jsonschema:"Structured failure analysis summary."`
 }
 
 var HistorySummarizerAgent = &aflow.LLMAgent{
@@ -20,11 +20,15 @@ var HistorySummarizerAgent = &aflow.LLMAgent{
 	Model:    aflow.Temporary35FlashOnlyModel,
 	TaskType: aflow.FormalReasoningTask,
 	Outputs:  aflow.ValidatedLLMOutputs[HistorySummarizerOutputs, struct{}](nil),
-	Instruction: "You are an expert agent analyst. Your task is to analyze the conversation history " +
-		"of a failed seed generator agent that was stopped by its judge.\n" +
-		"Summarize what strategy it was trying, which tools it called, and why it got stuck " +
-		"(e.g., oscillating between error X and Y, repeating the same tool call with same arguments, etc.).\n" +
-		"Keep the summary concise and focused on high-level strategy and pitfalls.",
+	Instruction: "You are an expert agent analyst. Your task is to analyze the conversation history of a " +
+		"failed seed generator agent that was stopped by its judge or hit an execution error.\n\n" +
+		"Produce a structured, concise, and highly actionable FailedHistorySummary to guide the next " +
+		"generator attempt.\n\n" +
+		"You MUST structure your FailedHistorySummary into the following four markdown sections:\n" +
+		"1. ## FAILED STRATEGY & SYSCALL PATHS\n" +
+		"2. ## REPEATED ERRORS & STUCK LOOPS\n" +
+		"3. ## DISCARDED BASE SEEDS & SYZLANG CONSTRUCTS\n" +
+		"4. ## RECOMMENDED ALTERNATIVE DIRECTIONS & NEGATIVE CONSTRAINTS",
 	Prompt: `Failed Agent Name: seed-generator
 Failed Conversation History:
 {{.FormattedFailedHistoryText}}`,

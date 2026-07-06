@@ -51,7 +51,13 @@ func DescriptionFilesPrompt(osTarget string) string {
 	sb.WriteString("\nNote that the constant values for the descriptions are defined " +
 		"in the file suffixed with .const (e.g. sys.txt.const for sys.txt).\n" +
 		"If you need base seeds for file system image setup or other device setup, " +
-		"use read-syz-spec and syz-grepper to look up files in the test/ directory.\n")
+		"use syz-grepper (with PathPrefix set to \"test\") to search for relevant syscalls or device names " +
+		"within the test seeds in the test/ directory.\n" +
+		"If you need to use pseudo syscalls or understand their behavior (e.g. " +
+		"syz_usb_connect, syz_mount_image), look for syz_* pseudo syscalls in the executor header " +
+		"files (located under the executor/ directory, e.g. executor/common_usb_linux.h). You can " +
+		"directly use these pseudo syscalls in your syzlang program to use the syscalls of the " +
+		"same name more conveniently.\n")
 	return sb.String()
 }
 

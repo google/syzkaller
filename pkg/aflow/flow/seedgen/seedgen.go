@@ -57,7 +57,7 @@ func init() {
 				codesearcher.ActionExtractIndirectCallers,
 				&aflow.DoWhile{
 					While:         "ContinueLoop",
-					MaxIterations: 20,
+					MaxIterations: 5,
 					Do: aflow.Pipeline(
 						ActionPrepareFailedDetails,
 						&aflow.Try{
