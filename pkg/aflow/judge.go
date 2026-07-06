@@ -26,17 +26,17 @@ type JudgeOutputs struct {
 
 func (j *LLMJudge) verify() error {
 	j.agent = &LLMAgent{
-		Name:     j.Name,
-		Model:    j.Model,
-		TaskType: FormalReasoningTask,
-		Outputs:  ValidatedLLMOutputs[JudgeOutputs, struct{}](nil),
+		Name:          j.Name,
+		Model:         j.Model,
+		MaxIterations: 1,
+		TaskType:      FormalReasoningTask,
+		Outputs:       LLMOutputs[JudgeOutputs](),
 		Instruction: j.Instruction + "\n\n" +
 			"Analyze the provided history of the subagent and call set-results with Stop and Reason.",
 		InitialMessages: func(ctx *Context) ([]llmMessage, error) {
 			history, _ := ctx.state["History"].([]llmMessage)
 			return FormatHistoryMessagesForJudge(history), nil
 		},
-		Reply: "JudgeReply",
 	}
 	ctx := newVerifyContext()
 	ctx.state["History"] = &varState{
@@ -84,7 +84,8 @@ func FormatHistoryMessagesForJudge(history []llmMessage) []llmMessage {
 					parts = append(parts, backend.Part{Text: fmt.Sprintf("Tool %s returned: %+v\n",
 						part.FunctionResponse.Name, part.FunctionResponse.Response)})
 				} else {
-					parts = append(parts, backend.Part{Text: fmt.Sprintf("Tool %s returned: [Omitted to save tokens]\n",
+					parts = append(parts, backend.Part{Text: fmt.Sprintf("Tool %s returned: "+
+						"[tool call result removed from conversation history]\n",
 						part.FunctionResponse.Name)})
 				}
 			} else if part.Text != "" {

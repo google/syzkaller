@@ -234,7 +234,7 @@
 			{
 				"parts": [
 					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
+						"text": "Tool tick returned: [tool call result removed from conversation history]\n"
 					}
 				],
 				"role": "user"
@@ -250,7 +250,7 @@
 			{
 				"parts": [
 					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
+						"text": "Tool tick returned: [tool call result removed from conversation history]\n"
 					}
 				],
 				"role": "user"
@@ -266,7 +266,7 @@
 			{
 				"parts": [
 					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
+						"text": "Tool tick returned: [tool call result removed from conversation history]\n"
 					}
 				],
 				"role": "user"
@@ -275,103 +275,6 @@
 				"parts": [
 					{
 						"text": "Analyze the subagent history above. Call set-results with Stop and Reason."
-					}
-				],
-				"role": "user"
-			}
-		]
-	},
-	{
-		"Model": "model1",
-		"Request": [
-			{
-				"parts": [
-					{
-						"text": "Subagent started with prompt:\nPrompt\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Subagent called tool tick with args: map[]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Subagent called tool tick with args: map[]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Subagent called tool tick with args: map[]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Tool tick returned: [Omitted to save tokens]\n"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "Analyze the subagent history above. Call set-results with Stop and Reason."
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"functionCall": {
-							"args": {
-								"Reason": "stuck in tick loop",
-								"Stop": true
-							},
-							"name": "set-results"
-						}
-					}
-				],
-				"role": "model"
-			},
-			{
-				"parts": [
-					{
-						"functionResponse": {
-							"response": {
-								"Reason": "stuck in tick loop",
-								"Stop": true
-							},
-							"name": "set-results"
-						}
 					}
 				],
 				"role": "user"
