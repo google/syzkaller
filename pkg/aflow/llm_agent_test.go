@@ -502,3 +502,38 @@ func TestModelFallbackTrajectory(t *testing.T) {
 		nil,
 	)
 }
+
+func TestLLMAgentMaxIterations(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	type toolArgs struct {
+		Arg int `jsonschema:"something"`
+	}
+	replies := []any{}
+	for i := range 3 {
+		replies = append(replies, &backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   "id1",
+				Name: "some-tool",
+				Args: map[string]any{
+					"Arg": i,
+				},
+			},
+		})
+	}
+	testFlow[struct{}, outputs](t, nil,
+		"agent reached max iterations limit (3)",
+		&LLMAgent{
+			Reply:         "Reply",
+			MaxIterations: 3,
+			Tools: []Tool{
+				NewFuncTool("some-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+					return struct{}{}, nil
+				}, "some-tool description"),
+			},
+		},
+		replies,
+		nil,
+	)
+}

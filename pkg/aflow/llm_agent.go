@@ -58,6 +58,10 @@ type LLMAgent struct {
 	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
 	// all intermediate messages, leaving only the anchor prompt and the new summary.
 	compressTokens int
+
+	// Maximum number of iterations for the agent execution.
+	// If 0, default to defaultMaxLLMIterations (250).
+	MaxIterations int
 }
 
 type agentSession struct {
@@ -71,6 +75,8 @@ type agentSession struct {
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
+	// Resolved max iterations.
+	maxIterations int
 }
 
 type llmMessage struct {
@@ -95,7 +101,7 @@ const (
 	hardLoopDetectionLimit    = 6
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
 	// We abort execution after this many iterations to prevent infinite loops.
-	maxLLMIterations = 250
+	defaultMaxLLMIterations = 250
 )
 
 type TaskType int
@@ -303,7 +309,14 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	s := &agentSession{LLMAgent: a}
+	maxIterations := a.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = defaultMaxLLMIterations
+	}
+	s := &agentSession{
+		LLMAgent:      a,
+		maxIterations: maxIterations,
+	}
 	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
@@ -339,7 +352,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		Parts: []backend.Part{{Text: prompt}},
 	}}}
 	var anchorTokens int
-	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
+	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(cfg, false); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
 			currentInputTokens += msg.tokenCount
@@ -430,7 +443,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		}
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		maxLLMIterations)
+		a.maxIterations)
 }
 
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
