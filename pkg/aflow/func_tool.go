@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -35,6 +36,12 @@ func NewFuncTool[State, Args, Results any](name string, fn func(*Context, State,
 // instead of failing the whole workflow.
 func BadCallError(message string, args ...any) error {
 	return &badCallError{fmt.Errorf(message, args...)}
+}
+
+// IsBadCallError checks if err was created by BadCallError.
+func IsBadCallError(err error) bool {
+	var callErr *badCallError
+	return errors.As(err, &callErr)
 }
 
 type badCallError struct {
