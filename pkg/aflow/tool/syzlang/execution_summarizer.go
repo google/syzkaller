@@ -43,6 +43,14 @@ program, identifying the deepest point of execution before divergence and explai
 You must base all your claims on the execution trace, program details, and coverage information.
 If you don't have enough information, you MUST state that instead of guessing.
 
+CRITICAL CONSTRAINTS ON SPECULATION:
+1. You MUST ONLY analyze the actual executed trace provided in ExecutionCachedID.
+2. You MUST NEVER speculate about external agents (such as 'code-fixer'), previous program versions,
+   or code lines that were omitted prior to execution.
+3. If the executed program did not contain or execute a setup syscall for a target driver, simply state
+   that the trace did not execute those calls and identify the deepest point reached by the executed trace.
+   Do NOT attempt to guess why lines were deleted or modified before execution.
+
 The main agent has provided you with:
 1. The target constraint (e.g., target file, and PC address).
 2. The ExecutionCachedID of the execution to analyze.
