@@ -142,7 +142,7 @@ func TestLLMToolMaxIters(t *testing.T) {
 		},
 	}
 	// Sub-agent calls own tool maxLLMIterations times.
-	for i := range maxLLMIterations {
+	for i := range defaultMaxLLMIterations {
 		replies = append(replies, &backend.Part{
 			FunctionCall: &backend.FunctionCall{
 				ID:   "id1",

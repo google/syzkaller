@@ -1,0 +1,157 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Arg": 0
+		}
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Args": {
+			"Arg": 0
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Arg": 1
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Arg": 1
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Arg": 2
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "some-tool",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"Arg": 2
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:15Z",
+		"Error": "agent reached max iterations limit (3)",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:16Z",
+		"Error": "agent reached max iterations limit (3)"
+	}
+]
