@@ -63,6 +63,9 @@ type LLMAgent struct {
 
 	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
 	Judge *LLMJudge
+	// Maximum number of iterations for the agent execution.
+	// If 0, default to maxLLMIterations (250).
+	MaxIterations int
 }
 
 type agentSession struct {
@@ -76,6 +79,8 @@ type agentSession struct {
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
+	// Resolved max iterations.
+	maxIterations int
 }
 
 type llmMessage struct {
@@ -312,7 +317,14 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	s := &agentSession{LLMAgent: a}
+	maxIterations := a.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = maxLLMIterations
+	}
+	s := &agentSession{
+		LLMAgent:      a,
+		maxIterations: maxIterations,
+	}
 	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
@@ -356,7 +368,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		}}}
 	}
 	var anchorTokens int
-	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
+	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(cfg, false); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
 			currentInputTokens += msg.tokenCount
@@ -448,7 +460,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		}
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		maxLLMIterations)
+		a.maxIterations)
 }
 
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
