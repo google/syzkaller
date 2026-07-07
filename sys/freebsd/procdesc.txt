@@ -10,5 +10,8 @@ pdfork(fdp ptr[out, procdesc], flags flags[pdfork_flags]) pid
 pdrfork(fdp ptr[out, procdesc], flags flags[pdfork_flags], rflags flags[rfork_flags]) pid
 pdgetpid(fd procdesc, pid ptr[out, pid])
 pdwait(fd procdesc, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt], siginfo ptr[out, siginfo, opt])
+pdopenpid(pid pid, flags flags[pdfork_flags]) procdesc
+pddupfd(fd procdesc, remotefd fd, flags flags[pddupfd_flags]) fd
 
 pdfork_flags = PD_DAEMON, PD_CLOEXEC
+pddupfd_flags = 0
