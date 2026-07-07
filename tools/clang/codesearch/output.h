@@ -37,6 +37,7 @@ struct Reference {
   const char* Kind;
   const char* EntityKind;
   std::string Name;
+  std::string File;
   int Line;
 };
 
@@ -72,6 +73,8 @@ inline void print(JSONPrinter& Printer, const Reference& V) {
   Printer.Field("kind", V.Kind);
   Printer.Field("entity_kind", V.EntityKind);
   Printer.Field("name", V.Name);
+  if (!V.File.empty())
+    Printer.Field("file", V.File);
   Printer.Field("line", V.Line, true);
 }
 

@@ -97,6 +97,7 @@ private:
   SourceManager& SM;
   Output& Out;
   Definition* Current = nullptr;
+  FileID CurrentFileID;
   bool InCallee = false;
   // If set, record references to struct types as uses.
   SourceLocation TypeRefingLocation;
@@ -115,6 +116,7 @@ private:
     const NamedDecl* const Decl;
     Definition Def;
     Definition* SavedCurrent = nullptr;
+    FileID SavedCurrentFileID;
   };
 
   using Base = RecursiveASTVisitor<Indexer>;
@@ -199,10 +201,13 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
 
   SavedCurrent = Parent->Current;
   Parent->Current = &Def;
+  SavedCurrentFileID = Parent->CurrentFileID;
+  Parent->CurrentFileID = SM.getFileID(SM.getExpansionLoc(Range.getBegin()));
 }
 
 Indexer::NamedDeclEmitter::~NamedDeclEmitter() {
   Parent->Current = SavedCurrent;
+  Parent->CurrentFileID = SavedCurrentFileID;
   if (!Def.Name.empty())
     Parent->Out.emit(std::move(Def));
 }
@@ -329,10 +334,30 @@ void Indexer::EmitReference(SourceLocation Loc, const NamedDecl* Named, const ch
 void Indexer::EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind) {
   if (!Current || Name.empty())
     return;
+  SourceLocation FileLoc = SM.getFileLoc(Loc);
+  std::string File;
+  // Check if reference is in a different file from the definition (e.g. block
+  // includes). Comparing FileID is cheap and avoids calling
+  // std::filesystem::relative (which performs expensive filesystem lookups) for
+  // references in the same file.
+  if (SM.getFileID(FileLoc) != CurrentFileID) {
+    auto FilenameRef = SM.getFilename(FileLoc);
+    if (!FilenameRef.empty()) {
+      std::error_code EC;
+      std::string NormalizedFile = std::filesystem::relative(FilenameRef.str(), EC).string();
+      // If path resolution fails (EC is set), we do not set File, which safely
+      // defaults to an empty string (referencing the definition's body file)
+      // instead of throwing or crashing the compiler tool.
+      if (!EC) {
+        File = NormalizedFile;
+      }
+    }
+  }
   Current->Refs.push_back(Reference{
       .Kind = RefKind,
       .EntityKind = EntityKind,
       .Name = Name,
+      .File = File,
       .Line = static_cast<int>(SM.getExpansionLineNumber(Loc)),
   });
 }
