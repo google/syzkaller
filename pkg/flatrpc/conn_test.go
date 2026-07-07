@@ -35,6 +35,7 @@ func TestConn(t *testing.T) {
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
 		Files:      []string{"file1"},
+		Commands:   []string{"echo hello"},
 	}
 	executorMsg := &ExecutorMessage{
 		Msg: &ExecutorMessages{
@@ -130,6 +131,7 @@ func BenchmarkConn(b *testing.B) {
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
 		Files:      []string{"file1"},
+		Commands:   []string{"echo hello"},
 	}
 
 	serv, err := Listen("127.0.0.1:0")

@@ -35,6 +35,10 @@ struct InfoReplyRaw;
 struct InfoReplyRawBuilder;
 struct InfoReplyRawT;
 
+struct CommandResultRaw;
+struct CommandResultRawBuilder;
+struct CommandResultRawT;
+
 struct FileInfoRaw;
 struct FileInfoRawBuilder;
 struct FileInfoRawT;
@@ -1043,6 +1047,7 @@ struct ConnectReplyRawT : public ::flatbuffers::NativeTable {
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
   std::vector<std::string> files{};
+  std::vector<std::string> commands{};
 };
 
 struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -1060,7 +1065,8 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_LEAK_FRAMES = 20,
     VT_RACE_FRAMES = 22,
     VT_FEATURES = 24,
-    VT_FILES = 26
+    VT_FILES = 26,
+    VT_COMMANDS = 28
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
@@ -1098,6 +1104,9 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_FILES);
   }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *commands() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_COMMANDS);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
@@ -1118,6 +1127,9 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfStrings(files()) &&
+           VerifyOffset(verifier, VT_COMMANDS) &&
+           verifier.VerifyVector(commands()) &&
+           verifier.VerifyVectorOfStrings(commands()) &&
            verifier.EndTable();
   }
   ConnectReplyRawT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1165,6 +1177,9 @@ struct ConnectReplyRawBuilder {
   void add_files(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> files) {
     fbb_.AddOffset(ConnectReplyRaw::VT_FILES, files);
   }
+  void add_commands(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> commands) {
+    fbb_.AddOffset(ConnectReplyRaw::VT_COMMANDS, commands);
+  }
   explicit ConnectReplyRawBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1189,9 +1204,11 @@ inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> leak_frames = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> files = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> files = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> commands = 0) {
   ConnectReplyRawBuilder builder_(_fbb);
   builder_.add_features(features);
+  builder_.add_commands(commands);
   builder_.add_files(files);
   builder_.add_race_frames(race_frames);
   builder_.add_leak_frames(leak_frames);
@@ -1219,10 +1236,12 @@ inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *race_frames = nullptr,
     rpc::Feature features = static_cast<rpc::Feature>(0),
-    const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *files = nullptr) {
+    const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *files = nullptr,
+    const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *commands = nullptr) {
   auto leak_frames__ = leak_frames ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*leak_frames) : 0;
   auto race_frames__ = race_frames ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*race_frames) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*files) : 0;
+  auto commands__ = commands ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*commands) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
       debug,
@@ -1236,7 +1255,8 @@ inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
       leak_frames__,
       race_frames__,
       features,
-      files__);
+      files__,
+      commands__);
 }
 
 ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1246,6 +1266,7 @@ struct InfoRequestRawT : public ::flatbuffers::NativeTable {
   std::string error{};
   std::vector<std::unique_ptr<rpc::FeatureInfoRawT>> features{};
   std::vector<std::unique_ptr<rpc::FileInfoRawT>> files{};
+  std::vector<std::unique_ptr<rpc::CommandResultRawT>> command_results{};
   InfoRequestRawT() = default;
   InfoRequestRawT(const InfoRequestRawT &o);
   InfoRequestRawT(InfoRequestRawT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -1258,7 +1279,8 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ERROR = 4,
     VT_FEATURES = 6,
-    VT_FILES = 8
+    VT_FILES = 8,
+    VT_COMMAND_RESULTS = 10
   };
   const ::flatbuffers::String *error() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ERROR);
@@ -1268,6 +1290,9 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *>(VT_FILES);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::CommandResultRaw>> *command_results() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::CommandResultRaw>> *>(VT_COMMAND_RESULTS);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1279,6 +1304,9 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfTables(files()) &&
+           VerifyOffset(verifier, VT_COMMAND_RESULTS) &&
+           verifier.VerifyVector(command_results()) &&
+           verifier.VerifyVectorOfTables(command_results()) &&
            verifier.EndTable();
   }
   InfoRequestRawT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1299,6 +1327,9 @@ struct InfoRequestRawBuilder {
   void add_files(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>>> files) {
     fbb_.AddOffset(InfoRequestRaw::VT_FILES, files);
   }
+  void add_command_results(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::CommandResultRaw>>> command_results) {
+    fbb_.AddOffset(InfoRequestRaw::VT_COMMAND_RESULTS, command_results);
+  }
   explicit InfoRequestRawBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1314,8 +1345,10 @@ inline ::flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> error = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::FeatureInfoRaw>>> features = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>>> files = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>>> files = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<rpc::CommandResultRaw>>> command_results = 0) {
   InfoRequestRawBuilder builder_(_fbb);
+  builder_.add_command_results(command_results);
   builder_.add_files(files);
   builder_.add_features(features);
   builder_.add_error(error);
@@ -1326,15 +1359,18 @@ inline ::flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRawDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *error = nullptr,
     const std::vector<::flatbuffers::Offset<rpc::FeatureInfoRaw>> *features = nullptr,
-    const std::vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *files = nullptr) {
+    const std::vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *files = nullptr,
+    const std::vector<::flatbuffers::Offset<rpc::CommandResultRaw>> *command_results = nullptr) {
   auto error__ = error ? _fbb.CreateString(error) : 0;
   auto features__ = features ? _fbb.CreateVector<::flatbuffers::Offset<rpc::FeatureInfoRaw>>(*features) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<rpc::FileInfoRaw>>(*files) : 0;
+  auto command_results__ = command_results ? _fbb.CreateVector<::flatbuffers::Offset<rpc::CommandResultRaw>>(*command_results) : 0;
   return rpc::CreateInfoRequestRaw(
       _fbb,
       error__,
       features__,
-      files__);
+      files__,
+      command_results__);
 }
 
 ::flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1400,6 +1436,98 @@ inline ::flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRawDirect(
 }
 
 ::flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct CommandResultRawT : public ::flatbuffers::NativeTable {
+  typedef CommandResultRaw TableType;
+  std::string cmd{};
+  std::vector<uint8_t> output{};
+  std::string error{};
+};
+
+struct CommandResultRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef CommandResultRawT NativeTableType;
+  typedef CommandResultRawBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_CMD = 4,
+    VT_OUTPUT = 6,
+    VT_ERROR = 8
+  };
+  const ::flatbuffers::String *cmd() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_CMD);
+  }
+  const ::flatbuffers::Vector<uint8_t> *output() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_OUTPUT);
+  }
+  const ::flatbuffers::String *error() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_ERROR);
+  }
+  bool Verify(::flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_CMD) &&
+           verifier.VerifyString(cmd()) &&
+           VerifyOffset(verifier, VT_OUTPUT) &&
+           verifier.VerifyVector(output()) &&
+           VerifyOffset(verifier, VT_ERROR) &&
+           verifier.VerifyString(error()) &&
+           verifier.EndTable();
+  }
+  CommandResultRawT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(CommandResultRawT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<CommandResultRaw> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CommandResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct CommandResultRawBuilder {
+  typedef CommandResultRaw Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_cmd(::flatbuffers::Offset<::flatbuffers::String> cmd) {
+    fbb_.AddOffset(CommandResultRaw::VT_CMD, cmd);
+  }
+  void add_output(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> output) {
+    fbb_.AddOffset(CommandResultRaw::VT_OUTPUT, output);
+  }
+  void add_error(::flatbuffers::Offset<::flatbuffers::String> error) {
+    fbb_.AddOffset(CommandResultRaw::VT_ERROR, error);
+  }
+  explicit CommandResultRawBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<CommandResultRaw> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<CommandResultRaw>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<CommandResultRaw> CreateCommandResultRaw(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> cmd = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> output = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> error = 0) {
+  CommandResultRawBuilder builder_(_fbb);
+  builder_.add_error(error);
+  builder_.add_output(output);
+  builder_.add_cmd(cmd);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<CommandResultRaw> CreateCommandResultRawDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *cmd = nullptr,
+    const std::vector<uint8_t> *output = nullptr,
+    const char *error = nullptr) {
+  auto cmd__ = cmd ? _fbb.CreateString(cmd) : 0;
+  auto output__ = output ? _fbb.CreateVector<uint8_t>(*output) : 0;
+  auto error__ = error ? _fbb.CreateString(error) : 0;
+  return rpc::CreateCommandResultRaw(
+      _fbb,
+      cmd__,
+      output__,
+      error__);
+}
+
+::flatbuffers::Offset<CommandResultRaw> CreateCommandResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CommandResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct FileInfoRawT : public ::flatbuffers::NativeTable {
   typedef FileInfoRaw TableType;
@@ -3059,6 +3187,7 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const ::flatbuffers:
   { auto _e = race_frames(); if (_e) { _o->race_frames.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->race_frames[_i] = _e->Get(_i)->str(); } } else { _o->race_frames.resize(0); } }
   { auto _e = features(); _o->features = _e; }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = _e->Get(_i)->str(); } } else { _o->files.resize(0); } }
+  { auto _e = commands(); if (_e) { _o->commands.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->commands[_i] = _e->Get(_i)->str(); } } else { _o->commands.resize(0); } }
 }
 
 inline ::flatbuffers::Offset<ConnectReplyRaw> ConnectReplyRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -3081,6 +3210,7 @@ inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(::flatbuffer
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
   auto _files = _o->files.size() ? _fbb.CreateVectorOfStrings(_o->files) : 0;
+  auto _commands = _o->commands.size() ? _fbb.CreateVectorOfStrings(_o->commands) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
       _debug,
@@ -3094,7 +3224,8 @@ inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(::flatbuffer
       _leak_frames,
       _race_frames,
       _features,
-      _files);
+      _files,
+      _commands);
 }
 
 inline InfoRequestRawT::InfoRequestRawT(const InfoRequestRawT &o)
@@ -3103,12 +3234,15 @@ inline InfoRequestRawT::InfoRequestRawT(const InfoRequestRawT &o)
   for (const auto &features_ : o.features) { features.emplace_back((features_) ? new rpc::FeatureInfoRawT(*features_) : nullptr); }
   files.reserve(o.files.size());
   for (const auto &files_ : o.files) { files.emplace_back((files_) ? new rpc::FileInfoRawT(*files_) : nullptr); }
+  command_results.reserve(o.command_results.size());
+  for (const auto &command_results_ : o.command_results) { command_results.emplace_back((command_results_) ? new rpc::CommandResultRawT(*command_results_) : nullptr); }
 }
 
 inline InfoRequestRawT &InfoRequestRawT::operator=(InfoRequestRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(error, o.error);
   std::swap(features, o.features);
   std::swap(files, o.files);
+  std::swap(command_results, o.command_results);
   return *this;
 }
 
@@ -3124,6 +3258,7 @@ inline void InfoRequestRaw::UnPackTo(InfoRequestRawT *_o, const ::flatbuffers::r
   { auto _e = error(); if (_e) _o->error = _e->str(); }
   { auto _e = features(); if (_e) { _o->features.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->features[_i]) { _e->Get(_i)->UnPackTo(_o->features[_i].get(), _resolver); } else { _o->features[_i] = std::unique_ptr<rpc::FeatureInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->features.resize(0); } }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<rpc::FileInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->files.resize(0); } }
+  { auto _e = command_results(); if (_e) { _o->command_results.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->command_results[_i]) { _e->Get(_i)->UnPackTo(_o->command_results[_i].get(), _resolver); } else { _o->command_results[_i] = std::unique_ptr<rpc::CommandResultRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->command_results.resize(0); } }
 }
 
 inline ::flatbuffers::Offset<InfoRequestRaw> InfoRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -3137,11 +3272,13 @@ inline ::flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(::flatbuffers:
   auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
   auto _features = _o->features.size() ? _fbb.CreateVector<::flatbuffers::Offset<rpc::FeatureInfoRaw>> (_o->features.size(), [](size_t i, _VectorArgs *__va) { return CreateFeatureInfoRaw(*__va->__fbb, __va->__o->features[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _files = _o->files.size() ? _fbb.CreateVector<::flatbuffers::Offset<rpc::FileInfoRaw>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfoRaw(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _command_results = _o->command_results.size() ? _fbb.CreateVector<::flatbuffers::Offset<rpc::CommandResultRaw>> (_o->command_results.size(), [](size_t i, _VectorArgs *__va) { return CreateCommandResultRaw(*__va->__fbb, __va->__o->command_results[i].get(), __va->__rehasher); }, &_va ) : 0;
   return rpc::CreateInfoRequestRaw(
       _fbb,
       _error,
       _features,
-      _files);
+      _files,
+      _command_results);
 }
 
 inline InfoReplyRawT *InfoReplyRaw::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -3168,6 +3305,38 @@ inline ::flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(::flatbuffers::Fla
   return rpc::CreateInfoReplyRaw(
       _fbb,
       _cover_filter);
+}
+
+inline CommandResultRawT *CommandResultRaw::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<CommandResultRawT>(new CommandResultRawT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void CommandResultRaw::UnPackTo(CommandResultRawT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = cmd(); if (_e) _o->cmd = _e->str(); }
+  { auto _e = output(); if (_e) { _o->output.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->output.begin()); } }
+  { auto _e = error(); if (_e) _o->error = _e->str(); }
+}
+
+inline ::flatbuffers::Offset<CommandResultRaw> CommandResultRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CommandResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateCommandResultRaw(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<CommandResultRaw> CreateCommandResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CommandResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const CommandResultRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _cmd = _o->cmd.empty() ? 0 : _fbb.CreateString(_o->cmd);
+  auto _output = _o->output.size() ? _fbb.CreateVector(_o->output) : 0;
+  auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
+  return rpc::CreateCommandResultRaw(
+      _fbb,
+      _cmd,
+      _output,
+      _error);
 }
 
 inline FileInfoRawT *FileInfoRaw::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {

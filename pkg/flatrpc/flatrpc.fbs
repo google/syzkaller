@@ -64,16 +64,25 @@ table ConnectReplyRaw {
 	features		:Feature;
 	// Fuzzer reads these files inside of the VM and returns contents in InfoRequest.files.
 	files			:[string];
+	// Commands to execute on the VM. Results are returned in InfoRequest.command_results.
+	commands		:[string];
 }
 
 table InfoRequestRaw {
 	error			:string;
 	features		:[FeatureInfoRaw];
 	files			:[FileInfoRaw];
+	command_results		:[CommandResultRaw];
 }
 
 table InfoReplyRaw {
 	cover_filter		:[uint64];
+}
+
+table CommandResultRaw {
+	cmd			:string;
+	output			:[uint8];
+	error			:string;
 }
 
 table FileInfoRaw {
