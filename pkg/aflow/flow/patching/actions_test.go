@@ -72,7 +72,7 @@ func TestMaintainers(t *testing.T) {
 	require.NoError(t, osutil.MkdirAll(filepath.Join(repoDir, "scripts")))
 
 	// Write a fake get_maintainer.pl.
-	scriptContent := `#!/bin/bash
+	scriptContent := `#!/bin/sh
 echo "Maintainer 1 <m1@example.com> (maintainer:SUBSYSTEM)"
 echo "Fixes Author <fixes@example.com> (reviewer:SUBSYSTEM)"
 `
