@@ -188,8 +188,8 @@ func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
 		db.intern(&def.Type)
 		db.intern(&def.Body.File)
 		db.intern(&def.Comment.File)
-		for _, ref := range def.Refs {
-			db.intern(&ref.Name)
+		for i := range def.Refs {
+			db.intern(&def.Refs[i].Name)
 		}
 		for i := range def.Fields {
 			db.intern(&def.Fields[i].Name)
