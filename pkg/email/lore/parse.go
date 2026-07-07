@@ -158,7 +158,7 @@ type PatchSubject struct {
 }
 
 // nolint: lll
-var patchSubjectRe = regexp.MustCompile(`(?mi)^\[(?:([\w\s-]+)\s)?PATCH(?:\s([\w\s-]+))??(?:\s0*(\d+)\/(\d+))?\]\s*(.+)`)
+var patchSubjectRe = regexp.MustCompile(`(?mi)^\[(?:([\w\s-]+)\s)?PATCH(?:\s([\w\s\.-]+))??(?:\s0*(\d+)\/(\d+))?\]\s*(.+)`)
 
 func parsePatchSubject(subject string) (PatchSubject, bool) {
 	var ret PatchSubject
