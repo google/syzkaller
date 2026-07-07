@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -306,23 +307,34 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 				continue
 			}
 			snippet := ""
+			refFile := ref.File
+			if refFile == "" {
+				refFile = def.Body.File
+			}
 			if contextLines > 0 {
 				lines := LineRange{
-					File:      def.Body.File,
-					StartLine: max(def.Body.StartLine, uint32(max(0, int(ref.Line)-contextLines))),
-					EndLine:   min(def.Body.EndLine, ref.Line+uint32(contextLines)),
+					File:      refFile,
+					StartLine: uint32(max(1, int(ref.Line)-contextLines)),
+					EndLine:   ref.Line + uint32(contextLines),
 				}
-				var err error
-				snippet, err = index.formatSource(lines)
-				if err != nil {
-					return nil, 0, err
+				if refFile == def.Body.File {
+					lines.StartLine = max(def.Body.StartLine, lines.StartLine)
+					lines.EndLine = min(def.Body.EndLine, lines.EndLine)
+				}
+				if lines.StartLine <= lines.EndLine {
+					var err error
+					snippet, err = index.formatSource(lines)
+					if err != nil {
+						log.Logf(1, "codesearch: failed to format source snippet for %s:%d: %v", refFile, ref.Line, err)
+						snippet = ""
+					}
 				}
 			}
 			results = append(results, ReferenceInfo{
 				ReferencingEntityKind: def.Kind.String(),
 				ReferencingEntityName: def.Name,
 				ReferenceKind:         ref.Kind.String(),
-				SourceFile:            def.Body.File,
+				SourceFile:            refFile,
 				SourceLine:            int(ref.Line),
 				SourceSnippet:         snippet,
 			})
@@ -378,6 +390,9 @@ func (index *Index) formatSource(lines LineRange) (string, error) {
 	if lines.File == "" {
 		return "", nil
 	}
+	if err := escaping(lines.File); err != nil {
+		return "", err
+	}
 	for _, dir := range index.srcDirs {
 		file := filepath.Join(dir, lines.File)
 		if !osutil.IsExist(file) {
@@ -393,18 +408,33 @@ func formatSourceFile(file string, start, end int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	lines := bytes.Split(data, []byte{'\n'})
-	start--
-	end--
-	if start < 0 || end < start || end >= len(lines) {
+	lines := splitSourceLines(data)
+	if start < 1 || end < start {
 		return "", fmt.Errorf("codesearch: bad line range [%v-%v] for file %v with %v lines",
-			start+1, end+1, file, len(lines))
+			start, end, file, len(lines))
+	}
+	return formatSourceLines(lines, start, end), nil
+}
+
+func splitSourceLines(data []byte) [][]byte {
+	lines := bytes.Split(data, []byte{'\n'})
+	if last := len(lines) - 1; last >= 0 && len(lines[last]) == 0 {
+		return lines[:last]
+	}
+	return lines
+}
+
+func formatSourceLines(lines [][]byte, start, end int) string {
+	start = max(1, start)
+	end = min(len(lines), end)
+	if start > end {
+		return ""
 	}
 	b := new(strings.Builder)
-	for line := start; line <= end; line++ {
-		fmt.Fprintf(b, "%4v:\t%s\n", line+1, lines[line])
+	for i := start - 1; i < end; i++ {
+		fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
 	}
-	return b.String(), nil
+	return b.String()
 }
 
 func escaping(path string) error {
@@ -489,20 +519,12 @@ func ReadFile(srcDirs []string, file string, firstLine, lineCount int) (string, 
 			}
 			return "", err
 		}
-		lines := bytes.Split(data, []byte{'\n'})
-		if last := len(lines) - 1; last >= 0 && len(lines[last]) == 0 {
-			lines = lines[:last]
-		}
+		lines := splitSourceLines(data)
 		if firstLine > len(lines) {
 			return "", aflow.BadCallError("file %v does not have line %v, it has only %v lines",
 				file, firstLine, len(lines))
 		}
-		end := min(firstLine+lineCount-1, len(lines))
-		b := new(strings.Builder)
-		for i := firstLine - 1; i < end; i++ {
-			fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
-		}
-		return b.String(), nil
+		return formatSourceLines(lines, firstLine, firstLine+lineCount-1), nil
 	}
 	return "", aflow.BadCallError("the file does not exist")
 }
