@@ -1,0 +1,118 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This workflow automatically assigns a random reviewer to open pull requests.
+#
+# Rationale & Design Choices:
+# - Scheduled Execution: Instead of triggering immediately on PR events, it runs on a
+#   30-minute cron schedule to batch-process eligible PRs.
+# - 1-Hour Delay: Only PRs that have had no updates/activity in the last hour are processed.
+#   This respects reviewer time by allowing authors 1 hour to manually assign a specific,
+#   appropriate reviewer before a fallback random reviewer is assigned.
+# - 90-Day Limit: PRs older than 90 days are skipped to avoid auto-assigning reviewers to
+#   abandoned (stale) pull requests, protecting reviewers from notification spam.
+
+name: Assign Reviewer
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows manual triggering for testing
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  assign-reviewer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-assign Reviewer
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9
+        with:
+          script: |
+            const reviewers = ['a-nogikh', 'ramosian-glider', 'tarasmadan', 'pimyn-girgis', 'melver'];
+            const now = new Date();
+            // We want to give the author 1 hour to manually assign a reviewer.
+            // Any update to the PR (e.g. creating it, converting from draft to ready, pushing commits)
+            // updates 'updated_at'. We only process PRs that haven't been updated for at least 1 hour
+            // to avoid auto-assigning reviewers prematurely and wasting their time.
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+            // We only process pull requests created in the last 90 days.
+            // This prevents auto-assigning reviewers to older, potentially stale or abandoned PRs,
+            // respecting the reviewer's time.
+            const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+            // Fetch open pull requests
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            for (const pr of pullRequests) {
+              if (pr.draft) {
+                console.log(`PR #${pr.number} is a draft, skipping.`);
+                continue;
+              }
+
+              // Age check: skip if the PR is older than 90 days.
+              const createdAt = new Date(pr.created_at);
+              if (createdAt < ninetyDaysAgo) {
+                console.log(`PR #${pr.number} is older than 90 days (${pr.created_at}), skipping.`);
+                continue;
+              }
+
+              // Delay check: skip if the PR has had any activity in the last hour.
+              const updatedAt = new Date(pr.updated_at);
+              if (updatedAt > oneHourAgo) {
+                console.log(`PR #${pr.number} was updated recently (${pr.updated_at}), skipping to give the author time.`);
+                continue;
+              }
+
+              // Get requested reviewers and teams
+              const requestedReviewers = pr.requested_reviewers.map(r => r.login);
+              const requestedTeams = pr.requested_teams.map(t => t.slug);
+
+              // Fetch reviews to see if anyone has already reviewed
+              const reviews = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              });
+              const completedReviewers = reviews.data.map(r => r.user.login);
+
+              // If a reviewer was already assigned manually or has already reviewed the PR,
+              // we don't want to overwrite or add a random reviewer.
+              const hasReviewers = requestedReviewers.length > 0 ||
+                                   requestedTeams.length > 0 ||
+                                   completedReviewers.length > 0;
+
+              if (hasReviewers) {
+                console.log(`PR #${pr.number} already has reviewers assigned or reviews completed.`);
+                continue;
+              }
+
+              const prAuthor = pr.user.login;
+              // Filter candidates to exclude the PR author (self-review prevention)
+              const candidates = reviewers.filter(reviewer => reviewer !== prAuthor);
+
+              if (candidates.length === 0) {
+                console.log(`PR #${pr.number}: No eligible reviewer candidates to assign.`);
+                continue;
+              }
+
+              // Select 1 random candidate from the pool
+              const randomReviewer = candidates[Math.floor(Math.random() * candidates.length)];
+
+              console.log(`PR #${pr.number}: Assigning reviewer: ${randomReviewer}`);
+
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                reviewers: [randomReviewer]
+              });
+            }
