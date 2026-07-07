@@ -49,13 +49,16 @@ type dirIndexResult struct {
 func dirIndex(ctx *aflow.Context, state fsState, args dirIndexArgs) (dirIndexResult, error) {
 	root, err := getSrcDir(ctx, state)
 	if err != nil {
-		return dirIndexResult{}, err
+		return dirIndexResult{}, aflow.BadCallError("%v", err)
 	}
 	subdirs, files, err := codesearch.DirIndex([]string{root}, args.Dir)
+	if err != nil {
+		return dirIndexResult{}, aflow.BadCallError("%v", err)
+	}
 	return dirIndexResult{
 		Subdirs: subdirs,
 		Files:   files,
-	}, err
+	}, nil
 }
 
 type readFileArgs struct {
@@ -71,10 +74,13 @@ type readFileResult struct {
 func readFile(ctx *aflow.Context, state fsState, args readFileArgs) (readFileResult, error) {
 	root, err := getSrcDir(ctx, state)
 	if err != nil {
-		return readFileResult{}, err
+		return readFileResult{}, aflow.BadCallError("%v", err)
 	}
 	contents, err := codesearch.ReadFile([]string{root}, args.File, args.FirstLine, args.LineCount)
+	if err != nil {
+		return readFileResult{}, aflow.BadCallError("%v", err)
+	}
 	return readFileResult{
 		Contents: contents,
-	}, err
+	}, nil
 }
