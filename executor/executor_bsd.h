@@ -202,3 +202,40 @@ static void setup_cgroups(void)
 {
 }
 #endif
+
+#if GOOS_freebsd
+static void execute_remote_commands(const rpc::ConnectReplyRawT& conn_reply, rpc::InfoRequestRawT& info_req)
+{
+	for (const auto& cmd : conn_reply.commands) {
+		auto result = std::make_unique<rpc::CommandResultRawT>();
+		result->cmd = cmd;
+		const char* cmd_str = nullptr;
+		switch (cmd) {
+		case rpc::Command::ECHO_TEST:
+			cmd_str = "echo test";
+			break;
+		case rpc::Command::KLDSTAT:
+			cmd_str = "/sbin/kldstat";
+			break;
+		default:
+			break;
+		}
+		if (cmd_str == nullptr) {
+			result->error = "unknown command";
+		} else {
+			FILE* fp = popen(cmd_str, "r");
+			if (fp == nullptr) {
+				result->error = strerror(errno);
+			} else {
+				char buf[4096];
+				size_t n;
+				while ((n = fread(buf, 1, sizeof(buf), fp)) > 0)
+					result->output.insert(result->output.end(), buf, buf + n);
+				if (pclose(fp) != 0)
+					result->error = "command failed";
+			}
+		}
+		info_req.command_results.push_back(std::move(result));
+	}
+}
+#endif
