@@ -136,6 +136,25 @@
 			}
 		},
 		{
+			"name": "function_with_block_include",
+			"type": "void ()",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 60,
+				"end_line": 63
+			},
+			"refs": [
+				{
+					"name": "open",
+					"kind": "calls",
+					"entity_kind": "function",
+					"file": "block_include.h",
+					"line": 1
+				}
+			]
+		},
+		{
 			"name": "function_with_comment_in_header",
 			"type": "void ()",
 			"kind": "function",

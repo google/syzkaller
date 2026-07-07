@@ -44,6 +44,7 @@ type Reference struct {
 	Name       string     `json:"name,omitempty"`
 	Kind       RefKind    `json:"kind,omitempty"`
 	EntityKind EntityKind `json:"entity_kind,omitempty"`
+	File       string     `json:"file,omitempty"`
 	Line       uint32     `json:"line,omitempty"`
 }
 
@@ -158,8 +159,9 @@ func (v *RefKind) UnmarshalJSON(data []byte) error {
 // for caching of the database files.
 var DatabaseFormatHash = func() string {
 	// Semantic version should be bumped when the schema does not change,
-	// but stored values changes.
-	const semanticVersion = "4"
+	// but stored values change.
+	const semanticVersion = "5"
+
 	schema, err := jsonschema.For[Database](nil)
 	if err != nil {
 		panic(err)
@@ -212,6 +214,11 @@ func (db *Database) SetSourceFile(file string, updatePath func(string) string) {
 	for _, def := range db.Definitions {
 		def.Body.File = updatePath(def.Body.File)
 		def.Comment.File = updatePath(def.Comment.File)
+		for i := range def.Refs {
+			if def.Refs[i].File != "" {
+				def.Refs[i].File = updatePath(def.Refs[i].File)
+			}
+		}
 		if strings.HasSuffix(def.Body.File, ".c") && def.Body.File != file {
 			def.IsStatic = false
 		}

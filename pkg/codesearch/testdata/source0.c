@@ -56,3 +56,8 @@ void reference_to_header_static()
 #ifndef KBUILD_BASENAME
 #error "compile_commands.json is not loaded"
 #endif
+
+void function_with_block_include()
+{
+#include "block_include.h"
+}
