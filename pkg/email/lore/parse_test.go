@@ -327,6 +327,24 @@ func TestParsePatchSubject(t *testing.T) {
 				Total:   value[int](21),
 			},
 		},
+		{
+			subj: `[PATCH 6.18 00/29] 6.18.1-rc1 review`,
+			ret: PatchSubject{
+				Title: "6.18.1-rc1 review",
+				Tags:  []string{"6.18"},
+				Seq:   value[int](0),
+				Total: value[int](29),
+			},
+		},
+		{
+			subj: `[PATCH 6.1 000/451] 6.1.83-rc1 review`,
+			ret: PatchSubject{
+				Title: "6.1.83-rc1 review",
+				Tags:  []string{"6.1"},
+				Seq:   value[int](0),
+				Total: value[int](451),
+			},
+		},
 	}
 	for id, test := range tests {
 		t.Run(fmt.Sprint(id), func(t *testing.T) {
