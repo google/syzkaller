@@ -25,8 +25,8 @@ echo "${prs}" | jq -c '.[]' | while read -r row; do
   echo ""
   echo "Analyzing PR #${number}..."
 
-  # Fetch PR details including existing labels
-  detail=$(gh pr view "${number}" --json title,mergeable,labels)
+  # Fetch PR details including existing labels, reviews and commits
+  detail=$(gh pr view "${number}" --json title,mergeable,labels,reviews,commits)
   title=$(echo "${detail}" | jq -r '.title')
   mergeable=$(echo "${detail}" | jq -r '.mergeable')
 
@@ -48,6 +48,21 @@ echo "${prs}" | jq -c '.[]' | while read -r row; do
 
   if [ "${checks_status}" -ne 0 ]; then
     reasons+=("CI checks have not passed successfully (status: ${checks_status})")
+  fi
+
+  # Check if changes were requested and not addressed by a subsequent commit
+  unaddressed_changes_requested=$(echo "${detail}" | jq -r '
+    ([(.reviews // [])[] | select(.state == "CHANGES_REQUESTED") | .submittedAt] | max) as $latest_cr
+    | ([(.commits // [])[] | .authoredDate] | max) as $latest_commit
+    | if ($latest_cr != null) and ($latest_cr > $latest_commit) then
+        "true"
+      else
+        "false"
+      end
+  ')
+
+  if [ "${unaddressed_changes_requested}" = "true" ]; then
+    reasons+=("Changes were requested by a reviewer and no new commits have been pushed since")
   fi
 
   if [ ${#reasons[@]} -ne 0 ]; then
