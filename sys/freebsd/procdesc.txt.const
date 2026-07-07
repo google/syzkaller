@@ -2,7 +2,9 @@
 arches = 386, amd64, arm64, riscv64
 PD_CLOEXEC = 2
 PD_DAEMON = 1
+SYS_pddupfd = 604
 SYS_pdfork = 518
 SYS_pdgetpid = 520
+SYS_pdopenpid = 603
 SYS_pdrfork = 600
 SYS_pdwait = 601
