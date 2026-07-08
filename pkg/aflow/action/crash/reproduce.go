@@ -26,6 +26,8 @@ import (
 
 var ErrDidNotCrash = errors.New("reproducer did not crash")
 
+const vmQemu = "qemu"
+
 // Reproduce action tries to reproduce a crash with the given reproducer,
 // and outputs the resulting crash report.
 // If the reproducer does not trigger a crash, action fails.
