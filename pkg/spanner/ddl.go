@@ -58,9 +58,6 @@ func sortMigrationFiles(files []string, forward bool) ([]string, error) {
 	for _, file := range files {
 		basename := path.Base(file)
 		parts := strings.Split(basename, "_")
-		if len(parts) == 0 {
-			return nil, fmt.Errorf("invalid migration filename: %v", basename)
-		}
 		num, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return nil, fmt.Errorf("migration file %v must start with a number: %w", file, err)

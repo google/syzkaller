@@ -14,21 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 )
 
-type qmpVersion struct {
-	Package string
-	QEMU    struct {
-		Major int
-		Micro int
-		Minor int
-	}
-}
-
-type qmpBanner struct {
-	QMP struct {
-		Version qmpVersion
-	}
-}
-
 type qmpCommand struct {
 	Execute   string `json:"execute"`
 	Arguments any    `json:"arguments,omitempty"`
@@ -68,7 +53,11 @@ func (inst *instance) qmpConnCheck() error {
 	monDec := json.NewDecoder(conn)
 	monEnc := json.NewEncoder(conn)
 
-	var banner qmpBanner
+	// QEMU sends a greeting banner (containing version and capability details)
+	// immediately upon connection. We must decode and discard it from the TCP
+	// stream first, otherwise subsequent command responses (e.g. to qmp_capabilities)
+	// will be misread as the banner. We decode into an empty struct to avoid allocation.
+	var banner struct{}
 	if err := monDec.Decode(&banner); err != nil {
 		return err
 	}
