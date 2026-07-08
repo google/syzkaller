@@ -68,6 +68,47 @@ func (rm *RunnerManager) Config() *mgrconfig.Config {
 	return rm.cfg
 }
 
+// RunIsolatedManager boots a temporary, isolated RunnerManager with the specified cfg,
+// executes the provided action callback, and cleans up the manager and VMs afterwards.
+func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
+	action func(*RunnerManager) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	rm, err := newRunnerManager(ctx, cfg, debug)
+	if err != nil {
+		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
+	}
+
+	errc := make(chan error, 1)
+	go func() {
+		errc <- rm.Loop()
+	}()
+
+	// Wait for the manager to be ready or fail.
+	select {
+	case <-rm.readyC:
+	case err := <-errc:
+		if err != nil {
+			return fmt.Errorf("isolated RunnerManager loop failed: %w", err)
+		}
+		return fmt.Errorf("isolated RunnerManager loop exited prematurely")
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	// Execute the user action.
+	actionErr := action(rm)
+
+	// Cancel the manager context to trigger shutdown.
+	cancel()
+
+	// Wait for the manager loop to exit cleanly.
+	<-errc
+
+	return actionErr
+}
+
 func (rm *RunnerManager) Loop() error {
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,

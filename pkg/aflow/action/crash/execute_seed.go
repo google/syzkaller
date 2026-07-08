@@ -120,7 +120,7 @@ func extractCoverage(info *flatrpc.ProgInfo, args TargetConfig) ([][]symbolizer.
 		cov = append(cov, nil)
 	}
 	if len(cov) > 0 {
-		symbolized, err := symbolize(args, cov)
+		symbolized, err := SymbolizeCoverage(args, cov)
 		if err != nil {
 			return nil, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
