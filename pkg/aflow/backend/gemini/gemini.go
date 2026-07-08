@@ -149,6 +149,10 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 	}
 }
 
+func (p *Provider) Close() error {
+	return nil
+}
+
 type client struct {
 	p *Provider
 }
