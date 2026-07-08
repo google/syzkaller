@@ -4,12 +4,51 @@
 package triage
 
 import (
+	"fmt"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
+
+var stableVersionRe = regexp.MustCompile(`^(?:stable-)?v?(\d+\.\d+)(?:\.y|\.\d+)?$`)
+
+func StableVersion(s string) string {
+	m := stableVersionRe.FindStringSubmatch(s)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+var stableRCRe = regexp.MustCompile(`\b\d+\.\d+\.\d+-rc\d+\s+review\b`)
+
+func GetStableRCVersions(series *api.Series) []string {
+	hasStableCc := slices.ContainsFunc(series.Cc, func(cc string) bool {
+		return strings.ToLower(cc) == "stable@vger.kernel.org"
+	})
+	hasStableTitle := stableRCRe.MatchString(series.Title)
+	if !hasStableCc || !hasStableTitle {
+		return nil
+	}
+	var versions []string
+	for _, tag := range series.SubjectTags {
+		if v := StableVersion(tag); v != "" && !slices.Contains(versions, v) {
+			versions = append(versions, v)
+		}
+	}
+	return versions
+}
+
+func HasStableVersionTag(series *api.Series) bool {
+	return slices.ContainsFunc(series.SubjectTags,
+		func(s string) bool {
+			return StableVersion(s) != ""
+		},
+	)
+}
 
 // SelectTrees returns an ordered list of git trees to apply the series to.
 func SelectTrees(series *api.Series, trees []*api.Tree) []*api.Tree {
@@ -65,4 +104,39 @@ func FindTreeByName(trees []*api.Tree, name string) *api.Tree {
 		return trees[idx]
 	}
 	return nil
+}
+
+func IsStableTree(tree *api.Tree) bool {
+	if tree == nil {
+		return false
+	}
+	return tree.Type == "stable"
+}
+
+func CandidateTrees(trees []*api.Tree, series *api.Series) ([]*api.Tree, error) {
+	stableTrees, nonStableTrees := PartitionTrees(trees)
+	if stableVersions := GetStableRCVersions(series); len(stableVersions) > 0 {
+		minimizedStableTrees := slices.DeleteFunc(stableTrees, func(tree *api.Tree) bool {
+			return !slices.Contains(stableVersions, StableVersion(tree.Name))
+		})
+		if len(minimizedStableTrees) == 0 {
+			return nil, fmt.Errorf("no suitable base kernel trees found")
+		}
+		return minimizedStableTrees, nil
+	} else if HasStableVersionTag(series) {
+		return nil, fmt.Errorf("developer stable backport skipped")
+	}
+	return nonStableTrees, nil
+}
+
+// PartitionTrees splits trees into stable and non-stable tree slices.
+func PartitionTrees(trees []*api.Tree) (stableTrees, nonStableTrees []*api.Tree) {
+	for i := range trees {
+		if IsStableTree(trees[i]) {
+			stableTrees = append(stableTrees, trees[i])
+		} else {
+			nonStableTrees = append(nonStableTrees, trees[i])
+		}
+	}
+	return
 }
