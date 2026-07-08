@@ -1,0 +1,16 @@
+TITLE: starnix kernel panic in foo.rs: bar
+CORRUPTED: Y
+FRAME: foo
+
+STARNIX KERNEL PANIC
+info=panicked at foo.rs:12:34:
+bar
+[123.456] starnix line 1
+[123.456] starnix line 2
+
+REPORT:
+STARNIX KERNEL PANIC
+info=panicked at foo.rs:12:34:
+bar
+[123.456] starnix line 1
+[123.456] starnix line 2
