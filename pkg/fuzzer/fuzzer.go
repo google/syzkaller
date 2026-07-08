@@ -37,7 +37,7 @@ type Fuzzer struct {
 
 	ct           *prog.ChoiceTable
 	ctProgs      int
-	ctMu         sync.Mutex // TODO: use RWLock.
+	ctMu         sync.RWMutex
 	ctRegenerate chan struct{}
 
 	execQueues
@@ -409,8 +409,8 @@ func (fuzzer *Fuzzer) choiceTableUpdater() {
 func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
 	progs := fuzzer.Config.Corpus.Programs()
 
-	fuzzer.ctMu.Lock()
-	defer fuzzer.ctMu.Unlock()
+	fuzzer.ctMu.RLock()
+	defer fuzzer.ctMu.RUnlock()
 
 	// There were no deep ideas nor any calculations behind these numbers.
 	regenerateEveryProgs := 333
