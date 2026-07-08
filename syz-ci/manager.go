@@ -497,22 +497,44 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to create manager config: %w", err)
 	}
-	rep, err := instance.RunSmokeTest(mgrcfg)
-	if err != nil {
-		mgr.Errorf("%s", err)
-		return err
-	} else if rep == nil {
-		return nil
+	var rep *report.Report
+	if mgr.mgrcfg.Tests != "" {
+		log.Logf(0, "%v: running tests %q...", mgr.name, mgr.mgrcfg.Tests)
+		rep, err = instance.RunTests(mgrcfg, mgr.mgrcfg.Tests)
+		if err != nil {
+			mgr.Errorf("%s", err)
+			return err
+		}
+		if rep != nil {
+			// Override the title to a constant string to ensure all unit test failures
+			// are grouped under a single bug on the dashboard. The list of specific
+			// failing tests is still visible in the crash log output.
+			rep.Title = "SYZFATAL: unit test error"
+			rep.AltTitles = nil
+			if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+				mgr.Errorf("failed to report image error: %v", err)
+			}
+			return fmt.Errorf("%s", rep.Title)
+		}
+	} else {
+		rep, err = instance.RunSmokeTest(mgrcfg)
+		if err != nil {
+			mgr.Errorf("%s", err)
+			return err
+		}
+		if rep != nil {
+			rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
+			// There are usually no duplicates for boot errors, so we reset AltTitles.
+			// But if we pass them, we would need to add the same prefix as for Title
+			// in order to avoid duping boot bugs with non-boot bugs.
+			rep.AltTitles = nil
+			if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+				mgr.Errorf("failed to report image error: %v", err)
+			}
+			return fmt.Errorf("%s", rep.Title)
+		}
 	}
-	rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
-	// There are usually no duplicates for boot errors, so we reset AltTitles.
-	// But if we pass them, we would need to add the same prefix as for Title
-	// in order to avoid duping boot bugs with non-boot bugs.
-	rep.AltTitles = nil
-	if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-		mgr.Errorf("failed to report image error: %v", err)
-	}
-	return fmt.Errorf("%s", rep.Title)
+	return nil
 }
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {

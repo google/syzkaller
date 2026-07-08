@@ -87,7 +87,9 @@ func (rt *Context) log(msg string, args ...any) {
 }
 
 func (rt *Context) Run(ctx context.Context) error {
-	rt.generatePrograms()
+	if err := rt.generatePrograms(); err != nil {
+		return err
+	}
 	var ok, fail, broken, skip int
 	for _, req := range rt.requests {
 		result := ""
@@ -634,4 +636,26 @@ func parseBinOutput(req *runRequest) ([]*flatrpc.ProgInfo, error) {
 		info.Calls[call].Error = int32(errno)
 	}
 	return infos, nil
+}
+
+func (rt *Context) Failures() []string {
+	var failures []string
+	for _, req := range rt.requests {
+		if req.failing != "" {
+			failures = append(failures, fmt.Sprintf("%v: %v", req.name, req.failing))
+		} else if req.err != nil {
+			failures = append(failures, fmt.Sprintf("%v: %v", req.name, req.err))
+		}
+	}
+	return failures
+}
+
+func (rt *Context) FailingTests() []string {
+	var names []string
+	for _, req := range rt.requests {
+		if req.failing != "" || req.err != nil {
+			names = append(names, req.name)
+		}
+	}
+	return names
 }

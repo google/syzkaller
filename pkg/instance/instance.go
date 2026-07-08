@@ -189,6 +189,9 @@ func (env *env) CleanKernel(buildCfg *BuildKernelConfig) error {
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
+	if cfg.Type == "none" {
+		return nil
+	}
 	cfg.KernelObj = filepath.Join(imageDir, "obj")
 	cfg.Image = filepath.Join(imageDir, "image")
 	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
@@ -544,17 +547,51 @@ func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, new
 // The crash report, if the testing failed.
 // An error if there was a problem not related to testing the kernel.
 func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
+	return runManagerMode(cfg, "smoke-test")
+}
+
+// RunTests executes syz-manager in the run-tests mode to execute unit tests matching
+// the specified tests pattern, and returns two values:
+// The crash report, if the testing failed.
+// An error if there was a problem not related to testing the kernel.
+func RunTests(cfg *mgrconfig.Config, tests string) (*report.Report, error) {
+	var extraArgs []string
+	if tests != "" {
+		extraArgs = append(extraArgs, "-tests="+tests)
+	}
+	return runManagerMode(cfg, "run-tests", extraArgs...)
+}
+
+func runManagerModeArgs(cfg *mgrconfig.Config, mode string, extraArgs ...string) (string, []string, error) {
+	if cfg == nil {
+		return "", nil, errors.New("config is nil")
+	}
+	configFile := filepath.Join(cfg.Workdir, "manager.cfg")
+	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
+	args := append([]string{"-config", configFile, "-mode=" + mode, "-vv=2"}, extraArgs...)
+	return bin, args, nil
+}
+
+func runManagerMode(cfg *mgrconfig.Config, mode string, extraArgs ...string) (*report.Report, error) {
+	if cfg == nil {
+		return nil, errors.New("config is nil")
+	}
 	if !vm.AllowsOvercommit(cfg.Type) {
 		return nil, nil // No support for creating machines out of thin air.
+	}
+	bin, args, err := runManagerModeArgs(cfg, mode, extraArgs...)
+	if err != nil {
+		return nil, err
 	}
 	osutil.MkdirAll(cfg.Workdir)
 	configFile := filepath.Join(cfg.Workdir, "manager.cfg")
 	if err := config.SaveFile(configFile, cfg); err != nil {
 		return nil, err
 	}
+	reportFile := filepath.Join(cfg.Workdir, "report.json")
+	os.Remove(reportFile)
 	timeout := 30 * time.Minute * cfg.Timeouts.Scale
-	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
-	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test", "-vv=2")
+	output, retErr := osutil.RunCmd(timeout, "", bin, args...)
 	if retErr == nil {
 		return nil, nil
 	}
@@ -578,7 +615,7 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 	}
 	rep := new(report.Report)
 	if err := json.Unmarshal(reportData, rep); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal smoke test report: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal test report: %w", err)
 	}
 	return rep, nil
 }
