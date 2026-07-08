@@ -181,7 +181,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(args.TargetConfig, firstCoverage)
+		coverage, err := SymbolizeCoverage(args.TargetConfig, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -299,7 +299,7 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 
 var makeSymbolizer = symbolizer.Make
 
-func symbolize(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func SymbolizeCoverage(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	if len(coverage) == 0 {
 		return nil, nil
 	}

@@ -30,6 +30,7 @@ type SeedGenInputs struct {
 	Syzkaller    string
 	TargetOS     string
 	TargetArch   string
+	CorpusPath   string
 }
 
 func init() {
@@ -49,6 +50,7 @@ func init() {
 				kernel.Build,
 				crash.ActionConfigureRunner,
 				kernel.SymbolizePC,
+				ActionExecuteCorpus,
 				codesearcher.PrepareIndex,
 				codesearcher.ActionExtractFunction,
 				codesearcher.ActionExtractIndirectCallers,

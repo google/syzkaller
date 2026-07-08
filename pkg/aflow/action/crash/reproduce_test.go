@@ -148,7 +148,7 @@ func TestSymbolize(t *testing.T) {
 	// So 0x1005 should be shifted to 0x1000.
 	coverage := [][]uint64{{0x1005, 0x2005}}
 
-	res, err := symbolize(args, coverage)
+	res, err := SymbolizeCoverage(args, coverage)
 	require.NoError(t, err)
 
 	require.Len(t, mock.recordedPCs, 2)
