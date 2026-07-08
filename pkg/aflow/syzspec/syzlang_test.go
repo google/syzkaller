@@ -379,3 +379,55 @@ func TestSyzFS_SecurityAndRestrictions(t *testing.T) {
 		})
 	}
 }
+
+func TestCorpusBucketSaveAndRead(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	bucket1Progs := map[string]string{
+		"hash1": "syz_open(0x0, 0x0)",
+		"hash2": "syz_read(0x0, 0x0)",
+	}
+	bucket2Progs := map[string]string{
+		"hash3": "syz_write(0x0, 0x0)",
+	}
+
+	f1, err := SaveCorpusBucket(dir, 0, bucket1Progs)
+	require.NoError(t, err)
+	require.Equal(t, "bucket_000.json", f1)
+
+	f2, err := SaveCorpusBucket(dir, 1, bucket2Progs)
+	require.NoError(t, err)
+	require.Equal(t, "bucket_001.json", f2)
+
+	data := CorpusData{
+		FunctionMap: map[string][]string{
+			"kvm_ioctl": {"hash1", "hash2"},
+		},
+		SyscallMap: map[string][]string{
+			"openat$kvm": {"hash1"},
+			"ioctl$KVM":  {"hash2", "hash3"},
+		},
+		ProgToBucket: map[string]string{
+			"hash1": f1,
+			"hash2": f1,
+			"hash3": f2,
+		},
+	}
+
+	// Test ProgramsForFunction.
+	require.Equal(t, []string{"hash1", "hash2"}, data.ProgramsForFunction("kvm_ioctl"))
+	require.Empty(t, data.ProgramsForFunction("unknown_fn"))
+
+	// Test ProgramsForSyscall.
+	require.Equal(t, []string{"hash1", "hash2", "hash3"}, data.ProgramsForSyscall("kvm"))
+	require.Equal(t, []string{"hash1"}, data.ProgramsForSyscall("openat"))
+	require.Empty(t, data.ProgramsForSyscall("nonexistent"))
+
+	// Test ReadPrograms.
+	progs, err := data.ReadPrograms(dir, []string{"hash1", "hash3", "nonexistent"})
+	require.NoError(t, err)
+	require.Len(t, progs, 2)
+	require.Equal(t, "syz_open(0x0, 0x0)", progs["hash1"])
+	require.Equal(t, "syz_write(0x0, 0x0)", progs["hash3"])
+}

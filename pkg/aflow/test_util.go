@@ -15,6 +15,7 @@ func NewTestContext(t *testing.T) *Context {
 	require.NoError(t, err)
 
 	return &Context{
-		cache: cache,
+		Context: t.Context(),
+		cache:   cache,
 	}
 }

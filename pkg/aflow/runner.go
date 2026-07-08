@@ -68,6 +68,44 @@ func (rm *RunnerManager) Config() *mgrconfig.Config {
 	return rm.cfg
 }
 
+// RunIsolatedManager boots a temporary, isolated RunnerManager with the specified cfg,
+// executes the provided action callback, and cleans up the manager and VMs afterwards.
+func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
+	action func(context.Context, *RunnerManager) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	rm, err := newRunnerManager(ctx, cfg, debug)
+	if err != nil {
+		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
+	}
+
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		defer cancel()
+		if err := rm.Loop(); err != nil {
+			return fmt.Errorf("isolated RunnerManager loop failed: %w", err)
+		}
+		if egCtx.Err() == nil {
+			return fmt.Errorf("isolated RunnerManager loop exited prematurely")
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		select {
+		case <-rm.readyC:
+		case <-egCtx.Done():
+			return egCtx.Err()
+		}
+		defer cancel()
+		return action(egCtx, rm)
+	})
+
+	return eg.Wait()
+}
+
 func (rm *RunnerManager) Loop() error {
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,
@@ -160,6 +198,32 @@ func (rm *RunnerManager) RecentCrashes() []*report.Report {
 	return res
 }
 
+// SubmitAsync submits a Syzlang program asynchronously to the persistent syz-executor VM pool.
+// When execution completes or fails, onDone is invoked with the Result.
+func (rm *RunnerManager) SubmitAsync(p *prog.Prog, onDone func(*queue.Result)) {
+	req := &queue.Request{
+		Type: flatrpc.RequestTypeProgram,
+		Prog: p.Clone(),
+		ExecOpts: flatrpc.ExecOpts{
+			// We force threaded mode to allow blocking calls to not hang the
+			// persistent VM pool execution. Cover and signal collection are always
+			// requested for aflow seed generation.
+			ExecFlags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagThreaded,
+		},
+		ReturnError:  true,
+		ReturnOutput: true,
+	}
+
+	req.OnDone(func(r *queue.Request, res *queue.Result) bool {
+		if onDone != nil {
+			onDone(res)
+		}
+		return true
+	})
+
+	rm.source.Submit(req)
+}
+
 // Submit sends a Syzlang program to the persistent syz-executor VM pool.
 // It blocks until the execution finishes or the context is canceled.
 func (rm *RunnerManager) Submit(
@@ -186,27 +250,11 @@ func (rm *RunnerManager) SubmitBatch(
 	wg.Add(len(progs))
 
 	for i, p := range progs {
-		req := &queue.Request{
-			Type: flatrpc.RequestTypeProgram,
-			Prog: p.Clone(),
-			ExecOpts: flatrpc.ExecOpts{
-				// We force threaded mode to allow blocking calls to not hang the
-				// persistent VM pool execution. Cover and signal collection are always
-				// requested for aflow seed generation.
-				ExecFlags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagThreaded,
-			},
-			ReturnError:  true,
-			ReturnOutput: true,
-		}
-
 		idx := i
-		req.OnDone(func(r *queue.Request, res *queue.Result) bool {
+		rm.SubmitAsync(p, func(res *queue.Result) {
 			results[idx] = res
 			wg.Done()
-			return true
 		})
-
-		rm.source.Submit(req)
 	}
 
 	doneC := make(chan struct{})
@@ -230,8 +278,7 @@ func (rm *RunnerManager) MachineChecked(
 	features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
 ) error {
 	if len(enabledSyscalls) == 0 {
-		log.Logf(0, "aflow: no syscalls enabled for runner")
-		return nil
+		return fmt.Errorf("no syscalls enabled for runner")
 	}
 
 	opts := fuzzer.DefaultExecOpts(rm.cfg, features, rm.debug)
