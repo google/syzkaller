@@ -116,6 +116,8 @@ type Provider interface {
 	Models(ctx context.Context) ([]string, error)
 	// DefaultModel returns the provider-specific model name for a given category.
 	ResolveModels(category ModelCategory) []string
+	// Close cleans up the provider's resources.
+	Close() error
 }
 
 // RetryError indicates that the request failed but should be retried.

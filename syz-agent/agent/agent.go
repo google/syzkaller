@@ -353,6 +353,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
+	defer provider.Close()
 	return flow.Execute(ctx, provider, s.workdir, false, inputs, s.cache, onEvent)
 }
 

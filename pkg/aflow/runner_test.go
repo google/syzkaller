@@ -213,3 +213,7 @@ func (p *dummyProvider) ResolveModels(category backend.ModelCategory) []string {
 	}
 	return []string{string(category)}
 }
+
+func (p *dummyProvider) Close() error {
+	return nil
+}
