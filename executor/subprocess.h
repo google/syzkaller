@@ -57,7 +57,7 @@ public:
 		    nullptr};
 
 		int err = posix_spawnp(&pid_, argv[0], &actions, &attr,
-				 const_cast<char**>(argv), const_cast<char**>(child_envp));
+				       const_cast<char**>(argv), const_cast<char**>(child_envp));
 		if (err) {
 			if (err != EPERM) {
 				errno = err;
@@ -70,13 +70,13 @@ public:
 				fail("posix_spawnattr_setflags failed");
 			}
 			err = posix_spawnp(&pid_, argv[0], &actions, &attr,
-				 const_cast<char**>(argv), const_cast<char**>(child_envp));
+					   const_cast<char**>(argv), const_cast<char**>(child_envp));
 			if (err) {
 				errno = err;
 				fail("posix_spawnp failed");
 			}
 			new_pgroup_ = false;
-        }
+		}
 
 		if (posix_spawn_file_actions_destroy(&actions))
 			fail("posix_spawn_file_actions_destroy failed");
