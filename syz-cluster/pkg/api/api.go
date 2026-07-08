@@ -50,7 +50,8 @@ type FuzzConfig struct {
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check" yaml:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
-	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
+	BugTitleRe     string `json:"bug_title_re" yaml:"bug_title_re"`
+	FocusedFuzzing bool   `json:"focused_fuzzing" yaml:"focused_fuzzing"`
 }
 
 // Tree represents a git tree. The triage step of the workflow will request these from controller.
@@ -59,6 +60,7 @@ type Tree struct {
 	URL        string   `json:"URL" yaml:"URL"`
 	Branch     string   `json:"branch" yaml:"branch"`
 	EmailLists []string `json:"email_lists" yaml:"email_lists"`
+	Type       string   `json:"type" yaml:"type"`
 }
 
 // KernelFuzzConfig is a specific fuzzing assignment.

@@ -16,6 +16,7 @@ loreArchives:
   - linux-block
   - linux-fsdevel
   - syzbot
+  - stable
 directList: syzbot@lists.linux.dev
 emailReporting:
   name: "syzbot ci"
@@ -93,6 +94,43 @@ trees:
   - name: linux-next
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next
     branch: master
+  - name: stable-6.18
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-6.18.y
+    email_lists:
+      - stable@vger.kernel.org
+  - name: stable-6.12
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-6.12.y
+    email_lists:
+      - stable@vger.kernel.org
+  - name: stable-6.6
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-6.6.y
+    email_lists:
+      - stable@vger.kernel.org
+  - name: stable-6.1
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-6.1.y
+    email_lists:
+      - stable@vger.kernel.org
+  - name: stable-5.15
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-5.15.y
+    email_lists:
+      - stable@vger.kernel.org
+  - name: stable-5.10
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+    branch: linux-5.10.y
+    email_lists:
+      - stable@vger.kernel.org
+
 
 fuzz_targets:
   - email_lists:
