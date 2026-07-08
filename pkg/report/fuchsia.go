@@ -116,7 +116,11 @@ func (ctx *fuchsia) shortenStarnixPanicReport(report []byte, maxUnrelatedLines, 
 			break
 		}
 	}
-	return append(bytes.TrimRight(out.Bytes(), "\n"), '\n')
+	trimmed := bytes.TrimRight(out.Bytes(), "\n")
+	if len(trimmed) == 0 {
+		return nil
+	}
+	return append(trimmed, '\n')
 }
 
 func (ctx *fuchsia) shortenReport(report []byte) []byte {
