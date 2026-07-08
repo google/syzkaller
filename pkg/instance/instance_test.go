@@ -7,10 +7,12 @@ import (
 	"flag"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -141,5 +143,56 @@ func TestRunnerCmd(t *testing.T) {
 
 	if got, want := *flagEnv, false; got != want {
 		t.Errorf("bad new-env: %t, want: %t", got, want)
+	}
+}
+
+func TestRunManagerModeArgs(t *testing.T) {
+	// 1. Test nil config returns error.
+	_, _, err := runManagerModeArgs(nil, "run-tests")
+	if err == nil || !strings.Contains(err.Error(), "config is nil") {
+		t.Fatalf("expected 'config is nil' error, got: %v", err)
+	}
+
+	// 2. Setup environment using hardcoded paths (no disk writes).
+	cfg := &mgrconfig.Config{
+		Type:      "qemu",
+		Workdir:   "/my/fake/workdir",
+		Syzkaller: "/my/fake/syzkaller",
+	}
+
+	// 3. Test smoke-test mode.
+	bin, args, err := runManagerModeArgs(cfg, "smoke-test")
+	if err != nil {
+		t.Fatalf("runManagerModeArgs failed: %v", err)
+	}
+	expectedBin := "/my/fake/syzkaller/bin/syz-manager"
+	if bin != expectedBin {
+		t.Errorf("bad bin: got %q, want %q", bin, expectedBin)
+	}
+	expectedArgs := []string{
+		"-config", "/my/fake/workdir/manager.cfg",
+		"-mode=smoke-test",
+		"-vv=2",
+	}
+	if !slices.Equal(args, expectedArgs) {
+		t.Errorf("bad args: got %q, want %q", args, expectedArgs)
+	}
+
+	// 4. Test run-tests mode with extra args.
+	bin, args, err = runManagerModeArgs(cfg, "run-tests", "-tests=my-tests-pattern")
+	if err != nil {
+		t.Fatalf("runManagerModeArgs failed: %v", err)
+	}
+	if bin != expectedBin {
+		t.Errorf("bad bin: got %q, want %q", bin, expectedBin)
+	}
+	expectedArgs = []string{
+		"-config", "/my/fake/workdir/manager.cfg",
+		"-mode=run-tests",
+		"-vv=2",
+		"-tests=my-tests-pattern",
+	}
+	if !slices.Equal(args, expectedArgs) {
+		t.Errorf("bad args: got %q, want %q", args, expectedArgs)
 	}
 }

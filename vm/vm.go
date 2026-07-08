@@ -103,6 +103,9 @@ func vmType(fullName string) string {
 // override resource limits specified in config (e.g. can OOM). But it works and
 // makes lots of things much simpler.
 func AllowsOvercommit(typ string) bool {
+	if typ == "none" {
+		return true
+	}
 	return vmimpl.Types[vmType(typ)].Overcommit
 }
 

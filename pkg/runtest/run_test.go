@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -593,4 +594,37 @@ func TestParsing(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestContextFailures(t *testing.T) {
+	ctx := &Context{
+		requests: []*runRequest{
+			{
+				name: "test1",
+			},
+			{
+				name:    "test2",
+				failing: "parsing error",
+			},
+			{
+				name: "test3",
+				err:  errors.New("execution error"),
+			},
+			{
+				name: "test4",
+			},
+		},
+	}
+	failures := ctx.Failures()
+	expected := []string{
+		"test2: parsing error",
+		"test3: execution error",
+	}
+	assert.Equal(t, expected, failures)
+
+	expectedTests := []string{
+		"test2",
+		"test3",
+	}
+	assert.Equal(t, expectedTests, ctx.FailingTests())
 }

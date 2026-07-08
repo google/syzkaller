@@ -227,7 +227,9 @@ type ManagerConfig struct {
 	// fuzzing won't be started on this instance.
 	// By default it's 30 days.
 	MaxKernelLagDays int `json:"max_kernel_lag_days"`
-	managercfg       *mgrconfig.Config
+	// Tests to run in run-tests mode after smoke test (optional).
+	Tests      string `json:"tests"`
+	managercfg *mgrconfig.Config
 
 	// Auto-assigned ports used by test instances.
 	testRPCPort int

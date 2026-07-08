@@ -160,6 +160,7 @@ var (
 		Name: "run-tests",
 		Description: `run unit tests
 	Run sys/os/test/* tests in various modes and print results.`,
+		FailOnCrashes: true,
 	}
 	ModeIfaceProbe = &Mode{
 		Name: "iface-probe",
@@ -1222,27 +1223,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.serv.SetSource(queue.DefaultOpts(ctx, opts))
 		return nil
 	case ModeRunTests:
-		ctx := &runtest.Context{
-			Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
-			Target:   mgr.cfg.Target,
-			Features: features,
-			EnabledCalls: map[string]map[*prog.Syscall]bool{
-				mgr.cfg.Sandbox: enabledSyscalls,
-			},
-			LogFunc: func(text string) { fmt.Println(text) },
-			Verbose: true,
-			Debug:   *flagDebug,
-			Tests:   *flagTests,
-		}
-		ctx.Init()
-		go func() {
-			err := ctx.Run(context.Background())
-			if err != nil {
-				log.Fatal(err)
-			}
-			mgr.exit("tests")
-		}()
-		mgr.serv.SetSource(ctx)
+		mgr.runTestsMode(features, enabledSyscalls)
 		return nil
 	case ModeIfaceProbe:
 		exec := queue.Plain()
@@ -1261,6 +1242,52 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		return nil
 	}
 	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
+}
+
+func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
+	ctx := &runtest.Context{
+		Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
+		Target:   mgr.cfg.Target,
+		Features: features,
+		EnabledCalls: map[string]map[*prog.Syscall]bool{
+			mgr.cfg.Sandbox: enabledSyscalls,
+		},
+		LogFunc: func(text string) { fmt.Println(text) },
+		Verbose: true,
+		Debug:   *flagDebug,
+		Tests:   *flagTests,
+	}
+	ctx.Init()
+	go func() {
+		err := ctx.Run(context.Background())
+		if err != nil {
+			failures := ctx.Failures()
+			failingTests := ctx.FailingTests()
+			var title string
+			if len(failingTests) == 1 {
+				title = failingTests[0]
+			} else if len(failingTests) > 1 {
+				title = fmt.Sprintf("%v and %v others", failingTests[0], len(failingTests)-1)
+			} else {
+				title = "unit tests failed"
+			}
+			output := []byte(strings.Join(failures, "\n"))
+			if len(failures) == 0 {
+				output = []byte(err.Error())
+			}
+			rep := &report.Report{
+				Title:  title,
+				Output: output,
+			}
+			reportPath := filepath.Join(mgr.cfg.Workdir, "report.json")
+			if writeErr := osutil.WriteJSON(reportPath, rep); writeErr != nil {
+				log.Errorf("failed to write report.json: %v", writeErr)
+			}
+			log.Fatal(err)
+		}
+		mgr.exit("tests")
+	}()
+	mgr.serv.SetSource(ctx)
 }
 
 type corpusRunner struct {
