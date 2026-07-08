@@ -36,6 +36,7 @@ var GeneratorAgent = &aflow.LLMAgent{
 		CheckPCReached,
 		syzlang.ReadSyzSpec,
 		syzlang.SyzGrepper,
+		ToolCorpusCodeSearch,
 		codesearcher.Tools,
 	),
 	TaskType:      aflow.FormalReasoningTask,
@@ -86,6 +87,9 @@ You must copy their setup lines directly into your program, preserving any "$BLO
 To use syscalls or setup devices more conveniently, you should look for pseudo syscalls starting
 with ` + "`" + `long syz_*` + "`" + ` in the executor header files (under executor/ directory).
 Using these pseudo syscalls in your syzlang program can be much more convenient than using the raw syscalls.
+4. 'get-corpus-programs': Use this tool to query if any existing syzkaller corpus programs
+reach the target function. This can provide extremely valuable guidance on how to set up the kernel state or 
+invoke the correct syscalls to reach a particular function.
 
 Workflow:
 1. Read the Target details, previous attempts, and any Judge failure summaries from the prompt.

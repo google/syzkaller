@@ -31,6 +31,7 @@ type SeedGenInputs struct {
 	TargetOS     string
 	TargetArch   string
 	Snapshot     bool
+	CorpusPath   string
 }
 
 func init() {
@@ -50,6 +51,7 @@ func init() {
 				kernel.Build,
 				crash.ActionConfigureRunner,
 				kernel.SymbolizePC,
+				ActionExecuteCorpus,
 				codesearcher.PrepareIndex,
 				codesearcher.ActionExtractFunction,
 				codesearcher.ActionExtractIndirectCallers,
