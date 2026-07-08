@@ -20,8 +20,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/email"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/uuid"
-	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/grpc/codes"
 )
@@ -1490,20 +1490,7 @@ type dbQuerier interface {
 func readRow[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) (*T, error) {
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()
-
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var obj T
-	err = row.ToStruct(&obj)
-	if err != nil {
-		return nil, err
-	}
-	return &obj, nil
+	return pkgspanner.ReadRow[T](iter)
 }
 
 func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
