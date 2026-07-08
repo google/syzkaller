@@ -385,7 +385,6 @@ type uiCommit struct {
 	Link       string
 	Author     string
 	AuthorName string
-	CC         []string
 	Date       time.Time
 }
 
