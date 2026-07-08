@@ -29,15 +29,8 @@ func ReadRow[T any](iter *spanner.RowIterator) (*T, error) {
 // ReadRows reads all remaining rows from the iterator and parses them into a slice of pointers to T.
 func ReadRows[T any](iter *spanner.RowIterator) ([]*T, error) {
 	var ret []*T
-	for {
-		obj, err := ReadRow[T](iter)
-		if err != nil {
-			return nil, err
-		}
-		if obj == nil {
-			break
-		}
-		ret = append(ret, obj)
+	if err := spanner.SelectAll(iter, &ret); err != nil {
+		return nil, err
 	}
 	return ret, nil
 }
