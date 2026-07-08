@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 )
 
 // FuncLines represents the 'functions' table records.
@@ -39,19 +39,11 @@ where
 	defer iter.Stop()
 
 	ff := &FunctionFinder{}
-	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("iter.Next(): %w", err)
-		}
-		var r FuncLines
-		if err = row.ToStruct(&r); err != nil {
-			return nil, fmt.Errorf("row.ToStruct(): %w", err)
-		}
-
+	rows, err := pkgspanner.ReadRows[FuncLines](iter)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
 		for _, val := range r.Lines {
 			ff.addLine(r.FilePath, r.FuncName, int(val))
 		}

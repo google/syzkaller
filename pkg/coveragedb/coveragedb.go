@@ -16,6 +16,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/uuid"
@@ -167,16 +168,12 @@ func ReadLinesHitCount(ctx context.Context, client *spanner.Client,
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil, nil
-	}
+	r, err := pkgspanner.ReadRow[LinesCoverage](iter)
 	if err != nil {
-		return nil, nil, fmt.Errorf("iter.Next: %w", err)
+		return nil, nil, err
 	}
-	var r LinesCoverage
-	if err = row.ToStruct(&r); err != nil {
-		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+	if r == nil {
+		return nil, nil, nil
 	}
 	if _, err := iter.Next(); err != iterator.Done {
 		return nil, nil, fmt.Errorf("more than 1 line is available")
@@ -275,22 +272,16 @@ func NsDataMerged(ctx context.Context, client *spanner.Client, ns string,
 	defer iter.Stop()
 	var periods []TimePeriod
 	var totalRows []int64
-	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
-		}
-		var r struct {
-			Days      int64
-			DateTo    civil.Date
-			TotalRows int64
-		}
-		if err = row.ToStruct(&r); err != nil {
-			return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
-		}
+	type nsDataMergedRow struct {
+		Days      int64
+		DateTo    civil.Date
+		TotalRows int64
+	}
+	rows, err := pkgspanner.ReadRows[nsDataMergedRow](iter)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, r := range rows {
 		periods = append(periods, TimePeriod{DateTo: r.DateTo, Days: int(r.Days)})
 		totalRows = append(totalRows, r.TotalRows)
 	}
@@ -314,25 +305,19 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
 
+	type sessionRow struct {
+		Session string
+	}
 	// 1. Get all valid sessions from merge_history
 	validSessions := make(map[string]bool)
 	iterHistory := client.Single().Query(ctx, spanner.Statement{
 		SQL: `SELECT DISTINCT session FROM merge_history`})
 	defer iterHistory.Stop()
-	for {
-		row, err := iterHistory.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return 0, 0, fmt.Errorf("iterHistory.Next: %w", err)
-		}
-		var r struct {
-			Session string
-		}
-		if err = row.ToStruct(&r); err != nil {
-			return 0, 0, fmt.Errorf("row.ToStruct: %w", err)
-		}
+	historyRows, err := pkgspanner.ReadRows[sessionRow](iterHistory)
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, r := range historyRows {
 		validSessions[r.Session] = true
 	}
 
@@ -367,18 +352,12 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		defer iterFiles.Stop()
 
 		for {
-			row, err := iterFiles.Next()
-			if err == iterator.Done {
-				break
-			}
+			r, err := pkgspanner.ReadRow[sessionRow](iterFiles)
 			if err != nil {
-				return fmt.Errorf("iterFiles.Next: %w", err)
+				return err
 			}
-			var r struct {
-				Session string
-			}
-			if err = row.ToStruct(&r); err != nil {
-				return fmt.Errorf("row.ToStruct: %w", err)
+			if r == nil {
+				break
 			}
 			if !validSessions[r.Session] {
 				select {
@@ -396,18 +375,12 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		defer iterFuncs.Stop()
 
 		for {
-			row, err := iterFuncs.Next()
-			if err == iterator.Done {
-				break
-			}
+			r, err := pkgspanner.ReadRow[sessionRow](iterFuncs)
 			if err != nil {
-				return fmt.Errorf("iterFuncs.Next: %w", err)
+				return err
 			}
-			var r struct {
-				Session string
-			}
-			if err = row.ToStruct(&r); err != nil {
-				return fmt.Errorf("row.ToStruct: %w", err)
+			if r == nil {
+				break
 			}
 			if !validSessions[r.Session] && !sentSessions[r.Session] {
 				select {
@@ -421,7 +394,7 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 		return nil
 	})
 
-	err := eg.Wait()
+	err = eg.Wait()
 	return deletedSessions.Load(), deletedRows.Load(), err
 }
 
@@ -708,19 +681,15 @@ func readCoverageUniq(full, mgr *spanner.RowIterator,
 func readIterToChan[K FileCoverageWithLineInfo | FileCoverageWithDetails](
 	ctx context.Context, iter *spanner.RowIterator, ch chan<- *K) error {
 	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
+		r, err := pkgspanner.ReadRow[K](iter)
+		if err != nil {
+			return err
+		}
+		if r == nil {
 			break
 		}
-		if err != nil {
-			return fmt.Errorf("iter.Next: %w", err)
-		}
-		var r K
-		if err = row.ToStruct(&r); err != nil {
-			return fmt.Errorf("row.ToStruct: %w", err)
-		}
 		select {
-		case ch <- &r:
+		case ch <- r:
 		case <-ctx.Done():
 			return nil
 		}
@@ -803,21 +772,15 @@ order by files.filepath
 	})
 	defer iter.Stop()
 
+	type filepathRow struct {
+		Filepath string
+	}
+	rows, err := pkgspanner.ReadRows[filepathRow](iter)
+	if err != nil {
+		return nil, err
+	}
 	var res []string
-	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("iter.Next: %w", err)
-		}
-		var r struct {
-			Filepath string
-		}
-		if err = row.ToStruct(&r); err != nil {
-			return nil, fmt.Errorf("row.ToStruct: %w", err)
-		}
+	for _, r := range rows {
 		res = append(res, r.Filepath)
 	}
 	return res, nil

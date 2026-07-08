@@ -15,7 +15,6 @@ import (
 	migrate_spanner "github.com/golang-migrate/migrate/v4/database/spanner"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	pkgspanner "github.com/google/syzkaller/pkg/spanner"
-	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -72,47 +71,16 @@ type dbQuerier interface {
 	Query(context.Context, spanner.Statement) *spanner.RowIterator
 }
 
-func readRow[T any](iter *spanner.RowIterator) (*T, error) {
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var obj T
-	err = row.ToStruct(&obj)
-	if err != nil {
-		return nil, err
-	}
-	return &obj, nil
-}
-
-func readRows[T any](iter *spanner.RowIterator) ([]*T, error) {
-	var ret []*T
-	for {
-		obj, err := readRow[T](iter)
-		if err != nil {
-			return nil, err
-		}
-		if obj == nil {
-			break
-		}
-		ret = append(ret, obj)
-	}
-	return ret, nil
-}
-
 func readEntity[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) (*T, error) {
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()
-	return readRow[T](iter)
+	return pkgspanner.ReadRow[T](iter)
 }
 
 func readEntities[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) ([]*T, error) {
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()
-	return readRows[T](iter)
+	return pkgspanner.ReadRows[T](iter)
 }
 
 const NoLimit = 0
