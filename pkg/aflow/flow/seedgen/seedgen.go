@@ -31,6 +31,7 @@ type SeedGenInputs struct {
 	TargetOS     string
 	TargetArch   string
 	CorpusPath   string
+	Snapshot     bool
 }
 
 func init() {

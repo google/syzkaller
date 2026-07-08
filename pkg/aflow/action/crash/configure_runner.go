@@ -22,6 +22,7 @@ type ConfigureRunnerArgs struct {
 	VM         json.RawMessage
 	KernelSrc  string
 	KernelObj  string
+	Snapshot   bool
 }
 
 func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (struct{}, error) {
@@ -38,6 +39,7 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (struct
 		VM:         args.VM,
 		KernelSrc:  args.KernelSrc,
 		KernelObj:  args.KernelObj,
+		Snapshot:   args.Snapshot,
 	}
 
 	if err := targetCfg.Validate(); err != nil {
