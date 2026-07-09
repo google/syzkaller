@@ -140,11 +140,18 @@ void IndexerAstConsumer::HandleTranslationUnit(ASTContext& Context) {
   Indexer.TraverseDecl(Context.getTranslationUnitDecl());
 }
 
+static std::string normalizePath(llvm::StringRef Path) {
+  if (Path.empty())
+    return "";
+  static const std::filesystem::path Cwd = std::filesystem::current_path();
+  return std::filesystem::absolute(Path.str()).lexically_relative(Cwd).string();
+}
+
 Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind,
                                             const std::string& Type, bool IsStatic)
     : Parent(Parent), Context(Parent->Context), SM(Parent->SM), Decl(Decl) {
   auto Range = Decl->getSourceRange();
-  const std::string& SourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(Range.getBegin())).str());
+  const std::string SourceFile = normalizePath(SM.getFilename(SM.getExpansionLoc(Range.getBegin())));
   int StartLine = SM.getExpansionLineNumber(Range.getBegin());
   int EndLine = SM.getExpansionLineNumber(Range.getEnd());
   std::string CommentSourceFile;
@@ -153,7 +160,7 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
   if (auto Comment = Context.getRawCommentForAnyRedecl(Decl)) {
     const auto& begin = Comment->getBeginLoc();
     const auto& end = Comment->getEndLoc();
-    CommentSourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(begin)).str());
+    CommentSourceFile = normalizePath(SM.getFilename(SM.getExpansionLoc(begin)));
     CommentStartLine = SM.getExpansionLineNumber(begin);
     CommentEndLine = SM.getExpansionLineNumber(end);
     // Expand body range to include the comment, if they intersect.
