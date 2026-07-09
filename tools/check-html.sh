@@ -4,15 +4,12 @@
 
 FILES=0
 FAILED=""
-for F in $(find . -name "*.html"); do
+for F in $(git ls-files '*.html'); do
 	((FILES+=1))
 	TABS=`cat $F | grep "	"  | wc -l`
 	# templates.html uses several spaces to format commit info using fixed-width font.
 	SPACES=`cat $F | grep -v "Commit.Date" | grep "  "  | wc -l`
 	if [ "$TABS" -eq "0" ] || [ "$SPACES" -eq "0" ]; then continue; fi
-	# Ignore untracked files.
-	git ls-files --error-unmatch $F >/dev/null 2>&1
-	if [ $? -ne 0 ]; then continue; fi
 	echo "$F:1:1: Uses both spaces ($SPACES) and tabs ($TABS) for formatting. Use either one of these."
 	FAILED="1"
 done
