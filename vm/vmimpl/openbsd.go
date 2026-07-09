@@ -18,6 +18,7 @@ func DiagnoseOpenBSD(w io.Writer) ([]byte, bool) {
 		"set $lines = 0",    // disable pagination
 		"set $maxwidth = 0", // disable line continuation
 		"show panic",
+		"show kasan",
 		"trace",
 		"show registers",
 		"show proc",
