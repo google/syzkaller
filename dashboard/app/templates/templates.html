@@ -23,6 +23,32 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 {{end}}
 
+{{/* Common page head part with Bootstrap, invoked with *uiHeader */}}
+{{define "head_bootstrap"}}
+	{{/* Required meta tags for responsive design on mobile devices */}}
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	{{/* Bootstrap 5.3.3 CSS compiled styles from Google Hosted Libraries */}}
+	<link href="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css"
+		rel="stylesheet"
+		integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+		crossorigin="anonymous">
+	{{/* Bootstrap 5.3.3 JS Bundle from Google Hosted Libraries, deferred to load asynchronously */}}
+	<script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"
+		integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+		crossorigin="anonymous"
+		defer></script>
+	{{/* Google Analytics tracking code, injected only if AnalyticsTrackingID is configured in production */}}
+	{{if .AnalyticsTrackingID}}
+		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() { dataLayer.push(arguments); }
+			gtag('js', new Date());
+			gtag('config', '{{.AnalyticsTrackingID}}');
+		</script>
+	{{end}}
+{{end}}
+
 {{/* Common page header, invoked with *uiHeader */}}
 {{define "header"}}
 	<header id="topbar">

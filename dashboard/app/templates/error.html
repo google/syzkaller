@@ -1,14 +1,25 @@
 <!doctype html>
 <html>
 <head>
-	{{template "head" .Header}}
+	{{template "head_bootstrap" .Header}}
 	<title>syzbot</title>
 </head>
 <body>
-	traceID: {{.TraceID}}
-	<br>
-	{{.Error}}
-	<br>
-	<a href="javascript:history.back()">back</a>
+	{{/* .container: Centers content and provides responsive fixed width. mt-5: Adds top margin (level 5) */}}
+	<div class="container mt-5">
+		{{/* .alert, .alert-danger: Styles the box as a red/danger alert block */}}
+		<div class="alert alert-danger" role="alert">
+			{{/* .alert-heading: Styles the heading inside the alert */}}
+			<h4 class="alert-heading">Error</h4>
+			<p>{{.Error}}</p>
+			{{if .TraceID}}
+				<hr>
+				{{/* .mb-0: Removes bottom margin */}}
+				<p class="mb-0">Trace ID: {{.TraceID}}</p>
+			{{end}}
+		</div>
+		{{/* .btn, .btn-secondary: Styles the link as a standard gray secondary button */}}
+		<a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+	</div>
 </body>
 </html>
