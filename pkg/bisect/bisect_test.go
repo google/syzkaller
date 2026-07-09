@@ -119,6 +119,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 		}
 		return ret, nil
 	}
+	// Zero-value results represent VMs where the test completed without a crash.
 	ret = make([]instance.EnvTestResult, numVMs)
 	if env.test.injectSyzFailure {
 		ret[0] = instance.EnvTestResult{
