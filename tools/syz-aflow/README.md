@@ -40,9 +40,12 @@ If the workflow needs to perform actions that interact with VMs (like reproducin
     "qemu_args": "-machine q35 -enable-kvm -smp 2,sockets=2,cores=1"
   },
   "ReproSyz": "syz_open$dir(0x0, 0x1) ...",
-  "KernelConfig": "CONFIG_XYZ=y\nCONFIG_ABC=n"
+  "KernelConfig": "@/path/to/linux.config"
 }
 ```
+
+Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or `"@./relative/path"`) will be automatically expanded with the contents of that file. Relative paths are resolved relative to the directory of the `-input` JSON file. Literal leading `@` characters can be escaped with `@@` (e.g. `"@@literal"`).
+
 
 ### Flags
 
