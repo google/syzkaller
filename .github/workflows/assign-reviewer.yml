@@ -73,7 +73,9 @@ jobs:
               }
 
               // Get requested reviewers and teams
-              const requestedReviewers = pr.requested_reviewers.map(r => r.login);
+              const requestedReviewers = pr.requested_reviewers
+                .filter(r => r.type !== 'Bot')
+                .map(r => r.login);
               const requestedTeams = pr.requested_teams.map(t => t.slug);
 
               // Fetch reviews to see if anyone has already reviewed
@@ -82,7 +84,9 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: pr.number,
               });
-              const completedReviewers = reviews.data.map(r => r.user.login);
+              const completedReviewers = reviews.data
+                .filter(r => r.user.type !== 'Bot')
+                .map(r => r.user.login);
 
               // If a reviewer was already assigned manually or has already reviewed the PR,
               // we don't want to overwrite or add a random reviewer.
