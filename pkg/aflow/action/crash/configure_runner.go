@@ -30,7 +30,7 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (struct
 		return struct{}{}, fmt.Errorf("failed to create workdir for configure-runner: %w", err)
 	}
 
-	reproArgs := ReproduceArgs{
+	targetCfg := TargetConfig{
 		TargetArch: args.TargetArch,
 		Syzkaller:  args.Syzkaller,
 		Image:      args.Image,
@@ -40,11 +40,11 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (struct
 		KernelObj:  args.KernelObj,
 	}
 
-	if err := reproArgs.Validate(); err != nil {
+	if err := targetCfg.Validate(); err != nil {
 		return struct{}{}, aflow.FlowError(err)
 	}
 
-	cfg, err := buildConfig(reproArgs, workdir)
+	cfg, err := BuildConfig(targetCfg, workdir)
 	if err != nil {
 		return struct{}{}, fmt.Errorf("failed to build config for runner: %w", err)
 	}

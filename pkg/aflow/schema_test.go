@@ -240,6 +240,20 @@ func TestConvertFromMap(t *testing.T) {
 	}{
 		T: t1,
 	}, "", "")
+
+	type Embedded struct {
+		B string
+	}
+	testConvertFromMap(t, true, map[string]any{
+		"A": 1.0,
+		"B": "foo",
+	}, struct {
+		Embedded
+		A int
+	}{
+		Embedded: Embedded{B: "foo"},
+		A:        1,
+	}, "", "")
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {
