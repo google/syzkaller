@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/backend"
@@ -113,6 +114,9 @@ func run(ctx context.Context, args RunArgs) error {
 	}
 	var inputs map[string]any
 	if err := json.Unmarshal(inputData, &inputs); err != nil {
+		return err
+	}
+	if err := expandFileInputs(inputs, filepath.Dir(args.InputFile)); err != nil {
 		return err
 	}
 	cache, err := aflow.NewCache(filepath.Join(args.Workdir, "cache"), args.CacheSize)
@@ -298,4 +302,56 @@ func parseSize(s string) (uint64, error) {
 		return 0, fmt.Errorf("unknown size suffix %q", suffix)
 	}
 	return size, nil
+}
+
+// expandFileInputs recursively traverses workflow inputs and replaces any
+// string value prefixed with "@" with the contents of the referenced file on
+// disk. Relative file paths are resolved against baseDir (the directory
+// containing the -input JSON file). Literal leading "@" characters can be
+// escaped using "@@".
+func expandFileInputs(inputs map[string]any, baseDir string) error {
+	for key, val := range inputs {
+		expanded, err := expandValue(val, baseDir)
+		if err != nil {
+			return fmt.Errorf("failed to read input file for %q: %w", key, err)
+		}
+		inputs[key] = expanded
+	}
+	return nil
+}
+
+func expandValue(val any, baseDir string) (any, error) {
+	switch v := val.(type) {
+	case string:
+		if strings.HasPrefix(v, "@@") {
+			return v[1:], nil
+		}
+		if !strings.HasPrefix(v, "@") {
+			return v, nil
+		}
+		path := v[1:]
+		if !filepath.IsAbs(path) && baseDir != "" {
+			path = filepath.Join(baseDir, path)
+		}
+		data, err := os.ReadFile(osutil.Abs(path))
+		if err != nil {
+			return nil, fmt.Errorf("(%s): %w", v, err)
+		}
+		return string(data), nil
+	case map[string]any:
+		// Recursively traverse nested JSON objects (e.g. "VM" config object).
+		return v, expandFileInputs(v, baseDir)
+	case []any:
+		// Traverse JSON arrays of strings, nested lists, or nested objects.
+		for i, elem := range v {
+			expanded, err := expandValue(elem, baseDir)
+			if err != nil {
+				return nil, fmt.Errorf("[%d]%w", i, err)
+			}
+			v[i] = expanded
+		}
+		return v, nil
+	default:
+		return val, nil
+	}
 }
