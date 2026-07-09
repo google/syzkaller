@@ -139,7 +139,11 @@ func (db *DB) compact() error {
 	}
 	buf := new(bytes.Buffer)
 	serializeHeader(buf, db.Version)
-	for key, rec := range records {
+	// Sort the keys to make the resulting file bytes deterministic. Otherwise,
+	// the file hash would change on every compaction, breaking e.g. the cache in
+	// aflow.
+	for _, key := range slices.Sorted(maps.Keys(records)) {
+		rec := records[key]
 		serializeRecord(buf, key, rec.Val, rec.Seq)
 	}
 	f, err := os.Create(db.filename + ".tmp")
@@ -346,13 +350,13 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	if filename == "" {
 		return
 	}
-	db, err := Open(filename, false)
+	_, records, _, err := deserializeFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database file: %w", err)
 	}
-	recordKeys := slices.Sorted(maps.Keys(db.Records))
+	recordKeys := slices.Sorted(maps.Keys(records))
 	for _, key := range recordKeys {
-		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
+		p, err := target.Deserialize(records[key].Val, prog.NonStrict)
 		if err != nil {
 			return nil, fmt.Errorf("failed to deserialize corpus program: %w", err)
 		}
@@ -373,10 +377,10 @@ func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailu
 	}
 	var failed []DeserializeFailure
 	for _, add := range other {
-		addDB, err := Open(add, false)
+		_, addRecords, _, err := deserializeFile(add)
 		if err == nil {
 			// It's a DB file.
-			for key, rec := range addDB.Records {
+			for key, rec := range addRecords {
 				dstDB.Save(key, rec.Val, rec.Seq)
 			}
 			continue
