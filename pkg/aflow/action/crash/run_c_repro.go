@@ -51,17 +51,19 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	reproduceArgs := ReproduceArgs{
-		TargetArch:   args.TargetArch,
-		Syzkaller:    args.Syzkaller,
-		Image:        args.Image,
-		Type:         args.Type,
-		VM:           args.VM,
-		KernelSrc:    args.KernelSrc,
-		KernelObj:    args.KernelObj,
-		KernelCommit: args.KernelCommit,
-		KernelConfig: args.KernelConfig,
-		ReproC:       args.FormattedReproC,
-		StraceBin:    args.StraceBin,
+		TargetConfig: TargetConfig{
+			TargetArch:   args.TargetArch,
+			Syzkaller:    args.Syzkaller,
+			Image:        args.Image,
+			Type:         args.Type,
+			VM:           args.VM,
+			KernelSrc:    args.KernelSrc,
+			KernelObj:    args.KernelObj,
+			KernelCommit: args.KernelCommit,
+			KernelConfig: args.KernelConfig,
+			StraceBin:    args.StraceBin,
+		},
+		ReproC: args.FormattedReproC,
 	}
 
 	// Run 1: without strace.

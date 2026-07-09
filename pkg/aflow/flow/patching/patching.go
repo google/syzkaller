@@ -56,6 +56,7 @@ func init() {
 		&aflow.Flow{
 			Consts: map[string]any{
 				"NeedStrace": false,
+				"Sandbox":    "none",
 				// For convenience of the patch-iteration workflow.
 				"ReviewedBy": []string{},
 				"AckedBy":    []string{},

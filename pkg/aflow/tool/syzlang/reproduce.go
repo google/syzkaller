@@ -63,16 +63,18 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 	}
 
 	reproArgs := crash.ReproduceArgs{
-		TargetArch:   state.TargetArch,
-		Syzkaller:    state.Syzkaller,
-		Image:        state.Image,
-		Type:         state.Type,
-		VM:           state.VM,
-		ReproSyz:     args.ReproSyz,
-		KernelSrc:    state.KernelSrc,
-		KernelObj:    state.KernelObj,
-		KernelCommit: state.KernelCommit,
-		KernelConfig: state.KernelConfig,
+		TargetConfig: crash.TargetConfig{
+			TargetArch:   state.TargetArch,
+			Syzkaller:    state.Syzkaller,
+			Image:        state.Image,
+			Type:         state.Type,
+			VM:           state.VM,
+			KernelSrc:    state.KernelSrc,
+			KernelObj:    state.KernelObj,
+			KernelCommit: state.KernelCommit,
+			KernelConfig: state.KernelConfig,
+		},
+		ReproSyz: args.ReproSyz,
 	}
 
 	testRes, cachedID, err := crash.ReproduceFuncWithCoverage(ctx, reproArgs, true)

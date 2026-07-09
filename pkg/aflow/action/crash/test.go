@@ -107,19 +107,21 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 		return "", err
 	}
 	reproduceArgs := ReproduceArgs{
-		AgentName:    args.AgentName,
-		TargetArch:   args.TargetArch,
-		Syzkaller:    args.Syzkaller,
-		Image:        args.Image,
-		Type:         args.Type,
-		VM:           args.VM,
-		ReproOpts:    args.ReproOpts,
-		ReproSyz:     args.ReproSyz,
-		ReproC:       args.ReproC,
-		KernelSrc:    args.KernelScratchSrc,
-		KernelObj:    args.KernelScratchSrc,
-		KernelCommit: args.KernelCommit,
-		KernelConfig: args.KernelConfig,
+		TargetConfig: TargetConfig{
+			AgentName:    args.AgentName,
+			TargetArch:   args.TargetArch,
+			Syzkaller:    args.Syzkaller,
+			Image:        args.Image,
+			Type:         args.Type,
+			VM:           args.VM,
+			KernelSrc:    args.KernelScratchSrc,
+			KernelObj:    args.KernelScratchSrc,
+			KernelCommit: args.KernelCommit,
+			KernelConfig: args.KernelConfig,
+		},
+		ReproOpts: args.ReproOpts,
+		ReproSyz:  args.ReproSyz,
+		ReproC:    args.ReproC,
 	}
 	testRes, err := RunTest(reproduceArgs, workdir, false)
 	if err != nil {
