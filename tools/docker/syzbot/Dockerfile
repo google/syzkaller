@@ -24,7 +24,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Some common utilities:
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf fdisk \
 	# These are needed to build Linux kernel:
-	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 \
+	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 lz4 \
 	zlib1g-dev libncurses-dev libmpc-dev libssl-dev \
 	apt-transport-https curl gnupg python-is-python3 python3-legacy-cgi \
 	# Needed for building Cuttlefish images.
