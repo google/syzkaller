@@ -1,7 +1,14 @@
 package syzlang
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/hexops/gotextdiff/span"
 )
 
 type CodeFixerArgs struct {
@@ -10,9 +17,35 @@ type CodeFixerArgs struct {
 	IgnoreCallErrors bool   `jsonschema:"Ignore syscall execution call errors if target is in an error path."`
 }
 
-var CodeFixer = &aflow.LLMTool[struct{}, CodeFixerArgs]{
+type CodeFixerResult struct {
+	ExecutionCachedID string `jsonschema:"Cached execution ID of the successful run."`
+	Program           string `jsonschema:"Leave this empty. It will be replaced automatically."`
+	BaseTestSeed      string `jsonschema:"Leave this empty. It will be replaced automatically."`
+	ProgramDiff       string `jsonschema:"Leave this empty. It will be replaced automatically."`
+}
+
+func validateCodeFixerOutputs(
+	ctx *aflow.Context, state struct{}, args CodeFixerArgs, res CodeFixerResult,
+) (CodeFixerResult, error) {
+	res.ExecutionCachedID = strings.TrimSpace(res.ExecutionCachedID)
+	if res.ExecutionCachedID == "" {
+		return res, aflow.BadCallError("returned ExecutionCachedID cannot be empty")
+	}
+	baseSeed, finalProg, err := crash.LoadSeedProgramDetails(ctx, res.ExecutionCachedID)
+	if err != nil {
+		return res, aflow.BadCallError("invalid ExecutionCachedID %q: %v. "+
+			"You must return the ExecutionCachedID of a successful run.", res.ExecutionCachedID, err)
+	}
+	res.Program = finalProg
+	res.BaseTestSeed = baseSeed
+	res.ProgramDiff = diffPrograms(args.SyzProgram, finalProg)
+	return res, nil
+}
+
+var CodeFixer = &aflow.StructuredLLMTool[struct{}, CodeFixerArgs, CodeFixerResult]{
 	Name:     "code-fixer",
 	Model:    aflow.Temporary35FlashOnlyModel,
+	Outputs:  aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
 	TaskType: aflow.FormalReasoningTask,
 	Description: "A subagent tool that takes a syzlang program and repeatedly executes it " +
 		"until it has no compilation or runtime call errors (e.g. EINVAL). " +
@@ -97,4 +130,19 @@ var CodeFixer = &aflow.LLMTool[struct{}, CodeFixerArgs]{
 
 {{end}}Generator's Syzlang Program:
 {{.SyzProgram}}`,
+}
+
+func diffPrograms(original, fixed string) string {
+	// Ensure both strings end with a newline to avoid diffs on missing EOF.
+	original = ensureTrailingNewline(original)
+	fixed = ensureTrailingNewline(fixed)
+	edits := myers.ComputeEdits(span.URIFromPath("original"), original, fixed)
+	return fmt.Sprint(gotextdiff.ToUnified("original", "fixed", original, edits))
+}
+
+func ensureTrailingNewline(s string) string {
+	if s != "" && !strings.HasSuffix(s, "\n") {
+		return s + "\n"
+	}
+	return s
 }
