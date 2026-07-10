@@ -41,6 +41,14 @@ var openbsdOopses = append([]*oops{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
+				title: compile(`Caught invalid memory access(?Us:.*)\n(?:[^\n]* at ` +
+					`(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|memcpy|memmove|memset|memcmp|` +
+					`bcmp|bcopy|bzero|kcopy|strcmp|strncmp|strlcpy|strlcat|strlen|strnlen|` +
+					`strncmp|strncpy|copyin|copyinstr|copyout|copyoutstr)` +
+					`\+0x[0-9a-f]+[^\n]*\n)+([A-Za-z0-9_]+)`),
+				fmt: "KASAN: invalid memory access in %[1]v",
+			},
+			{
 				title: compile(`\nddb\{\d+\}> show panic(?Us:.*)[*]cpu\d+: ([^\n]+)(?Us:.*)\nddb\{\d+\}> trace`),
 				fmt:   "panic: %[1]v",
 			},
