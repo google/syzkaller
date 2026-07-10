@@ -50,7 +50,7 @@
 		"Name": "researcher",
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:06Z",
-		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
 		"Prompt": "What do you think?"
 	},
 	{
@@ -9828,9 +9828,9 @@
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:06Z",
 		"Finished": "0001-01-01T00:16:49Z",
-		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
-		"Prompt": "What do you think?",
-		"Reply": "Nothing."
+		"Error": "agent reached max iterations limit (250)",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "What do you think?"
 	},
 	{
 		"Seq": 3,
@@ -9839,29 +9839,10 @@
 		"Name": "researcher",
 		"Started": "0001-01-01T00:00:05Z",
 		"Finished": "0001-01-01T00:16:50Z",
+		"Error": "agent reached max iterations limit (250)",
 		"Args": {
 			"Question": "What do you think?"
-		},
-		"Results": {
-			"Answer": "Nothing."
 		}
-	},
-	{
-		"Seq": 506,
-		"Nesting": 2,
-		"Type": "llm",
-		"Name": "smarty",
-		"Model": "model",
-		"Started": "0001-01-01T00:16:51Z"
-	},
-	{
-		"Seq": 506,
-		"Nesting": 2,
-		"Type": "llm",
-		"Name": "smarty",
-		"Model": "model",
-		"Started": "0001-01-01T00:16:51Z",
-		"Finished": "0001-01-01T00:16:52Z"
 	},
 	{
 		"Seq": 1,
@@ -9870,10 +9851,10 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:16:53Z",
+		"Finished": "0001-01-01T00:16:51Z",
+		"Error": "tool researcher failed: error: agent reached max iterations limit (250)\nargs: map[Question:What do you think?]",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
-		"Prompt": "Prompt",
-		"Reply": "YES"
+		"Prompt": "Prompt"
 	},
 	{
 		"Seq": 0,
@@ -9881,9 +9862,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:16:54Z",
-		"Results": {
-			"Reply": "YES"
-		}
+		"Finished": "0001-01-01T00:16:52Z",
+		"Error": "tool researcher failed: error: agent reached max iterations limit (250)\nargs: map[Question:What do you think?]"
 	}
 ]

@@ -67,7 +67,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 					}
 				],
 				"role": "user"
@@ -94,6 +94,40 @@
 							},
 							"responseJsonSchema": {
 								"type": "object",
+								"additionalProperties": false
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer to your question."
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer to your question."
+									}
+								},
+								"required": [
+									"Answer"
+								],
 								"additionalProperties": false
 							}
 						}
@@ -248,7 +282,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 					}
 				],
 				"role": "user"
@@ -275,6 +309,40 @@
 							},
 							"responseJsonSchema": {
 								"type": "object",
+								"additionalProperties": false
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer to your question."
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer to your question."
+									}
+								},
+								"required": [
+									"Answer"
+								],
 								"additionalProperties": false
 							}
 						}
@@ -402,7 +470,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 					}
 				],
 				"role": "user"
