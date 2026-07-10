@@ -28,6 +28,13 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Prompt template for the subagent, formatted using both State and Args.
 	Prompt string
 
+	// PreExecute is run before prompt template execution. It returns additional variables
+	// to merge into the template formatting context.
+	PreExecute func(ctx *Context, state State, args Args) (map[string]any, error)
+
+	// ExtraVars declares the types of extra template variables returned by PreExecute (for verification).
+	ExtraVars map[string]reflect.Type
+
 	// Optional structured outputs configuration for the subagent.
 	// Use LLMOutputs or ValidatedLLMOutputs/ValidatedLLMToolOutputs functions to create it.
 	Outputs *llmOutputs
@@ -77,6 +84,14 @@ func (t *StructuredLLMTool[State, Args, Results]) execute(ctx *Context, args map
 		combined[toolTemplateName(name)] = name
 	}
 
+	if t.PreExecute != nil {
+		extras, err := t.PreExecute(ctx, s, a)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(combined, extras)
+	}
+
 	prompt := formatTemplate(t.Prompt, combined)
 
 	// Create a scoped sub-state for the sub-agent.
@@ -119,6 +134,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	vars := make(map[string]reflect.Type)
 	maps.Insert(vars, foreachFieldOf[State]())
 	maps.Insert(vars, foreachFieldOf[Args]())
+	maps.Copy(vars, t.ExtraVars)
 	for _, tool := range t.Tools {
 		vars[toolTemplateName(tool.declaration().Name)] = reflect.TypeFor[string]()
 	}
