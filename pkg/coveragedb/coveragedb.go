@@ -16,7 +16,6 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/log"
 	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -314,16 +313,14 @@ type orphanFinder struct {
 	client *spanner.Client
 	// validSessions is the set of completed session IDs present in merge_history.
 	validSessions map[string]bool
-	// sentSessions tracks session IDs already sent to sessionCh to avoid duplicates.
-	sentSessions map[string]bool
+	// processedSessions tracks session IDs already processed to avoid duplicates and redundant lookups.
+	processedSessions map[string]bool
 	// activeSessions maps registered session IDs in the sessions table to their creation time.
 	activeSessions map[string]time.Time
 	// cutoff is the threshold time; sessions created before this time are considered expired.
 	cutoff time.Time
 	// sessionCh is the channel used to send expired session IDs to deletion workers.
 	sessionCh chan<- string
-	// sessionsToMigrate collects legacy sessions that are active but missing from the sessions table.
-	sessionsToMigrate []string
 }
 
 func (f *orphanFinder) stream(ctx context.Context, sql string) error {
@@ -337,21 +334,17 @@ func (f *orphanFinder) stream(ctx context.Context, sql string) error {
 		if r == nil {
 			break
 		}
-		if f.validSessions[r.Session] || f.sentSessions[r.Session] {
+		if f.validSessions[r.Session] || f.processedSessions[r.Session] {
 			continue
 		}
-		if created, ok := f.activeSessions[r.Session]; ok {
-			if created.Before(f.cutoff) {
-				select {
-				case f.sessionCh <- r.Session:
-					f.sentSessions[r.Session] = true
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+		f.processedSessions[r.Session] = true
+		created, ok := f.activeSessions[r.Session]
+		if !ok || created.Before(f.cutoff) {
+			select {
+			case f.sessionCh <- r.Session:
+			case <-ctx.Done():
+				return ctx.Err()
 			}
-		} else {
-			f.sessionsToMigrate = append(f.sessionsToMigrate, r.Session)
-			f.sentSessions[r.Session] = true
 		}
 	}
 	return nil
@@ -361,7 +354,7 @@ func (f *orphanFinder) stream(ctx context.Context, sql string) error {
 //
 // It identifies sessions in "files" and "functions" tables that are:
 //  1. Not present in "merge_history" (i.e. they are not completed sessions).
-//  2. Either missing from "sessions" table (legacy active sessions, which will be auto-migrated)
+//  2. Either missing from "sessions" table (legacy active sessions, which are deleted immediately)
 //     or present in "sessions" table but created more than 1 week ago (failed/abandoned sessions).
 //
 // Active incomplete sessions (present in "sessions" table and created within the last week)
@@ -426,12 +419,12 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 	}
 
 	finder := &orphanFinder{
-		client:         client,
-		validSessions:  validSessions,
-		sentSessions:   make(map[string]bool),
-		activeSessions: activeSessions,
-		cutoff:         time.Now().Add(-oneWeekAgo),
-		sessionCh:      sessionCh,
+		client:            client,
+		validSessions:     validSessions,
+		processedSessions: make(map[string]bool),
+		activeSessions:    activeSessions,
+		cutoff:            time.Now().Add(-oneWeekAgo),
+		sessionCh:         sessionCh,
 	}
 
 	eg.Go(func() error {
@@ -448,27 +441,7 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 	})
 
 	err = eg.Wait()
-	if err != nil {
-		return deletedSessions.Load(), deletedRows.Load(), err
-	}
-
-	if len(finder.sessionsToMigrate) > 0 {
-		var mutations []*spanner.Mutation
-		now := time.Now()
-		for _, s := range finder.sessionsToMigrate {
-			mutations = append(mutations, spanner.Insert("sessions",
-				[]string{"session", "created"},
-				[]any{s, now}))
-		}
-		if _, err := client.Apply(ctx, mutations); err != nil {
-			return deletedSessions.Load(), deletedRows.Load(), fmt.Errorf("failed to apply auto-migration: %w", err)
-		}
-	} else {
-		// TODO(tarasmadan): Remove this legacy migration block once we verify in logs that no legacy sessions remain.
-		log.Logf(0, "coveragedb: no legacy sessions to migrate")
-	}
-
-	return deletedSessions.Load(), deletedRows.Load(), nil
+	return deletedSessions.Load(), deletedRows.Load(), err
 }
 
 func processGarbageSession(ctx context.Context, client *spanner.Client, session string,
