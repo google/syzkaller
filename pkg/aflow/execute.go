@@ -200,6 +200,24 @@ type stubContext struct {
 		*backend.GenerateResponse, error)
 }
 
+// runWithState executes the given function with the context's state temporarily
+// swapped out. This is useful for running sub-agents in an isolated state
+// scope, preventing their internal variables and tool outputs from leaking into
+// the parent state.
+//
+// WARNING: This method is NOT thread-safe. It mutates the receiver's state
+// in-place. It is safe to use only because aflow workflow execution is entirely
+// sequential and does not execute actions in parallel or spawn background
+// goroutines that access ctx.state.
+func (ctx *Context) runWithState(state map[string]any, fn func(*Context) error) error {
+	oldState := ctx.state
+	ctx.state = state
+	defer func() {
+		ctx.state = oldState
+	}()
+	return fn(ctx)
+}
+
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {
 	dir, err := ctx.cache.Create(typ, desc, populate)
 	if err != nil {

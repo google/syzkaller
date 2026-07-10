@@ -1,0 +1,207 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Question": "What do you think?"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Instruction": "researcher instruction\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "What do you think?"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Answer": "Bad reply"
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Error": "this reply is bad",
+		"Args": {
+			"Answer": "Bad reply"
+		},
+		"Results": {
+			"Answer": "Bad reply"
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Answer": "Good reply"
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Args": {
+			"Answer": "Good reply"
+		},
+		"Results": {
+			"Answer": "Good reply"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:06Z",
+		"Finished": "0001-01-01T00:00:15Z",
+		"Results": {
+			"Answer": "Good reply"
+		},
+		"Instruction": "researcher instruction\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "What do you think?"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:16Z",
+		"Args": {
+			"Question": "What do you think?"
+		},
+		"Results": {
+			"Answer": "Good reply"
+		}
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:17Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:17Z",
+		"Finished": "0001-01-01T00:00:18Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:19Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt",
+		"Reply": "YES"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:20Z",
+		"Results": {
+			"Reply": "YES"
+		}
+	}
+]

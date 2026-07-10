@@ -50,6 +50,9 @@ type LLMAgent struct {
 	Prompt string
 	// Set of tools for the agent to use.
 	Tools []Tool
+	// Whether this agent is being run as a sub-agent by another agent.
+	// Used to control truncation behavior (sub-agents can be forced to answer now).
+	SubAgent bool
 
 	// Token limit for historical messages. If > 0, when the total input tokens exceed this limit,
 	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
@@ -305,7 +308,7 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 }
 
 func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) bool {
-	if a.Reply != llmToolReply || len(a.req) < 3 || a.answerNow {
+	if !a.SubAgent || len(a.req) < 3 || a.answerNow {
 		return false
 	}
 	a.answerNow = true
@@ -381,19 +384,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			return "", nil, err
 		}
 
-		if span.InputTokens > 0 {
-			var assignedTokens int
-			for _, msg := range a.req {
-				assignedTokens += msg.tokenCount
-			}
-			newTokens := span.InputTokens - assignedTokens
-			if newTokens > 0 {
-				a.req[len(a.req)-1].tokenCount += newTokens
-			}
-			if anchorTokens == 0 {
-				anchorTokens = span.InputTokens
-			}
-		}
+		a.updateInputTokens(span.InputTokens, &anchorTokens)
 
 		// If the LLM did not provide any reply and does not want to call any
 		// tools, we got an empty response. Populate the `Part`s with `Text`
@@ -435,6 +426,23 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
 		maxLLMIterations)
+}
+
+func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
+	if inputTokens <= 0 {
+		return
+	}
+	var assignedTokens int
+	for _, msg := range a.req {
+		assignedTokens += msg.tokenCount
+	}
+	newTokens := inputTokens - assignedTokens
+	if newTokens > 0 {
+		a.req[len(a.req)-1].tokenCount += newTokens
+	}
+	if *anchorTokens == 0 {
+		*anchorTokens = inputTokens
+	}
 }
 
 func (a *agentSession) checkFinalReply(ctx *Context, reply string) (string, string, error) {
