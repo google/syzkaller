@@ -2,6 +2,7 @@ package syzlang
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -40,10 +41,14 @@ func validateCodeFixerOutputs(
 }
 
 var CodeFixer = &aflow.StructuredLLMTool[struct{}, CodeFixerArgs, CodeFixerResult]{
-	Name:     "code-fixer",
-	Model:    aflow.TemporaryFlashOnlyModel,
-	Outputs:  aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
-	TaskType: aflow.FormalReasoningTask,
+	Name:       "code-fixer",
+	Model:      aflow.TemporaryFlashOnlyModel,
+	Outputs:    aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
+	TaskType:   aflow.FormalReasoningTask,
+	PreExecute: ResolveSyzlangDependencies,
+	ExtraVars: map[string]reflect.Type{
+		"StaticDefinitions": reflect.TypeFor[string](),
+	},
 	Description: "A subagent tool that takes a syzlang program and repeatedly executes it " +
 		"until it has no compilation or runtime call errors (e.g. EINVAL). " +
 		"If IgnoreCallErrors is set to true, it will ignore execution call errors " +
@@ -116,6 +121,10 @@ var CodeFixer = &aflow.StructuredLLMTool[struct{}, CodeFixerArgs, CodeFixerResul
 		`it compiles successfully (i.e. you got an ExecutionCachedID as response).
 ` +
 		`Immediately yield by returning the ExecutionCachedID of the run.
+
+{{end}}{{if .StaticDefinitions}}Static definitions of syscalls and types referenced in the program:
+===
+{{.StaticDefinitions}}===
 
 {{end}}Generator's Syzlang Program:
 {{.SyzProgram}}`,
