@@ -67,7 +67,7 @@ LABEL homepage="https://github.com/google/syzkaller"
 RUN apt-get update --allow-releaseinfo-change && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
     python3 python-is-python3 python3-legacy-cgi \
-    make nano unzip curl ca-certificates binutils flex bison bc libelf-dev libssl-dev \
+    make nano unzip curl ca-certificates binutils flex bison bc lz4 libelf-dev libssl-dev \
     # Explicitly install git runtime dependencies since we build it from source.
     libcurl3t64-gnutls libexpat1 libpcre2-8-0 zlib1g perl liberror-perl
 
