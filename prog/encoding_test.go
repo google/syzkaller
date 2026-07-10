@@ -366,7 +366,7 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			In:  `mutate9(&(0x7f0000000000)='/escaping/filename\x00')`,
-			Err: `escaping filename`,
+			Err: `escapes sandbox`,
 		},
 		{
 			In:  "test$opt2(0x0)\r",
@@ -619,7 +619,7 @@ openat(0xffffffffffffff9c, &(0x7f0000000040)='../file2\x00', 0x0, 0x0)
 	_, err := target.Deserialize(data, Strict)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "call #0 openat")
-	assert.Contains(t, err.Error(), "escaping filename \"../file1\\x00\"")
+	assert.Contains(t, err.Error(), "filename \"../file1\\x00\" escapes sandbox")
 	assert.Contains(t, err.Error(), "call #1 openat")
-	assert.Contains(t, err.Error(), "escaping filename \"../file2\\x00\"")
+	assert.Contains(t, err.Error(), "filename \"../file2\\x00\" escapes sandbox")
 }
