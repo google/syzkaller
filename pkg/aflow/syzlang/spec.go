@@ -33,6 +33,10 @@ func (s *SyzFS) OSTarget() string {
 	return s.osTarget
 }
 
+func GetSyzFS() *SyzFS {
+	return syzFS
+}
+
 func NewSyzFS(syzkallerDir, osTarget string) *SyzFS {
 	syzFSOnce.Do(func() {
 		normalizedOS := strings.ToLower(osTarget)
