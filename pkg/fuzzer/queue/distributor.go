@@ -113,8 +113,17 @@ func (dist *Distributor) hasOtherActive(set []ExecutorID) bool {
 		if contains(set, vm) {
 			continue
 		}
+		last := active[vm].Load()
+		// A zero value means the VM has never served a request, so it is not
+		// active. Without this check the unused slots (the active slice is
+		// over-allocated in noteActive) count as recently active until seq
+		// exceeds the recency window, which starves Avoid requests on setups
+		// with a single VM (their only executor is the one being avoided).
+		if last == 0 {
+			continue
+		}
 		// 1000 is semi-random notion of recency.
-		if active[vm].Load()+1000 < seq {
+		if last+1000 < seq {
 			continue
 		}
 		return true
