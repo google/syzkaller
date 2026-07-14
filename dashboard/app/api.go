@@ -84,6 +84,7 @@ var apiHandlers = map[string]APIHandler{
 	"add_build_assets":      nsHandler(apiAddBuildAssets),
 	"log_to_repro":          nsHandler(apiLogToReproduce),
 	"repro_task_done":       nsHandler(apiReproTaskDone),
+	"client_info":           nsHandler(apiClientInfo),
 }
 
 type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
@@ -2021,4 +2022,11 @@ func apiSaveCoverage(ctx context.Context, payload io.Reader) (any, error) {
 			descr.Namespace, descr.DateTo.String(), descr.TotalRows)
 	}
 	return &rowsCreated, err
+}
+
+// apiClientInfo returns the namespace name associated with the authenticated client.
+// This allows clients (like syz-ci) to dynamically discover their namespace
+// and use it to tag uploaded coverage data.
+func apiClientInfo(ctx context.Context, ns string, req *dashapi.ClientInfoReq) (any, error) {
+	return &dashapi.ClientInfoResp{Namespace: ns}, nil
 }

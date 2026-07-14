@@ -379,3 +379,12 @@ func TestCreateUploadURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Regexp(t, "blobstorage/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.upload", url)
 }
+
+func TestClientInfo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	resp, err := c.client.ClientInfo()
+	assert.NoError(t, err)
+	assert.Equal(t, "test1", resp.Namespace)
+}

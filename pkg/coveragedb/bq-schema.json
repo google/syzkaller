@@ -12,6 +12,12 @@
     "description": "the record version to simplify future changes"
   },
   {
+    "name": "namespace",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "transient state: optional during rollout, will be required later"
+  },
+  {
     "name": "fuzzing_minutes",
     "type": "INTEGER",
     "mode": "REQUIRED",
