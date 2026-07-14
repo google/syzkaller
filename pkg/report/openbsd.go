@@ -41,10 +41,20 @@ var openbsdOopses = append([]*oops{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
+				// A KASAN fault reaches panic() through one of two frame shapes,
+				// both skipped here so the title names the real faulting function
+				// on the next frame:
+				//   - a compiler-inserted access check: __asan_{load,store}N_noabort
+				//   - the mem/str interceptors, which call kasan_shadow_check and
+				//     panic directly with NO __asan_ frame: kasan_mem{cpy,move,set,cmp}
+				// Plus the byte helpers (memcpy/strlcpy/copyin/...) that are callees,
+				// never the bug themselves.
 				title: compile(`Caught invalid memory access(?Us:.*)\n(?:[^\n]* at ` +
-					`(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|memcpy|memmove|memset|memcmp|` +
+					`(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|` +
+					`kasan_mem(?:cpy|move|set|cmp)|` +
+					`memcpy|memmove|memset|memcmp|` +
 					`bcmp|bcopy|bzero|kcopy|strcmp|strncmp|strlcpy|strlcat|strlen|strnlen|` +
-					`strncmp|strncpy|copyin|copyinstr|copyout|copyoutstr)` +
+					`strncpy|copyin|copyinstr|copyout|copyoutstr)` +
 					`\+0x[0-9a-f]+[^\n]*\n)+([A-Za-z0-9_]+)`),
 				fmt: "KASAN: invalid memory access in %[1]v",
 			},

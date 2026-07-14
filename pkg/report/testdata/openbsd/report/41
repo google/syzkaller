@@ -1,0 +1,270 @@
+TITLE: KASAN: invalid memory access in sysctl_sysvipc
+TYPE: KASAN-UNKNOWN
+
+panic: Caught invalid memory access at ffff8000018cabc0 size 36 op 1
+Stopped at      db_enter+0x17:  popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+ 285709  34373      0           0          0    1  syz-executor
+*306506  91487      0           0  0x4000000    0  syz-executor
+db_enter() at db_enter+0x17 sys/arch/amd64/amd64/db_interface.c:457
+panic(ffffffff84632841) at panic+0x270 sys/kern/subr_prf.c:198
+kasan_memcpy(ffff8000018cabc0,ffff800036b2bc00,24) at kasan_memcpy+0x1ec
+sysctl_sysvipc(ffff800036b2c2c8,1,200000000040,ffff800036b2c2a0) at sysctl_sysvipc+0x397 sys/kern/kern_sysctl.c:2712
+kern_sysctl_dirs(33,ffff800036b2c2c8,1,200000000040,ffff800036b2c2a0,0,1,1ffff00006d657d0) at kern_sysctl_dirs+0x30f sys/kern/kern_sysctl.c:429
+kern_sysctl(ffff800036b2c2c4,2,200000000040,ffff800036b2c2a0,0,0,ffff800036b2c520) at kern_sysctl+0x1ce sys/kern/kern_sysctl.c:529
+sys_sysctl(ffff800045ff7248,ffff800036b2c520,ffff800036b2c480) at sys_sysctl+0x54f sys/kern/kern_sysctl.c:309
+syscall(ffff800036b2c520) at syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+syscall(ffff800036b2c520) at syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xac70fea4e40, count: 6
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb{0}> 
+ddb{0}> set $lines = 0
+ddb{0}> set $maxwidth = 0
+ddb{0}> show panic
+*cpu0: Caught invalid memory access at ffff8000018cabc0 size 36 op 1
+ddb{0}> show kasan
+KASAN: invalid write of 36 bytes at 0xffff8000018cabc0 from pc 0xffffffff83b24217
+KASAN: first bad byte at 0xffff8000018cabc1 (+1); shadow 0x01: partial granule (out-of-bounds)
+KASAN: 0xffff8000018cabc1 is 1 bytes inside the 16-byte malloc slot [0xffff8000018cabc0..0xffff8000018cabd0)
+KASAN: allocated at:
+#0  malloc+0xda0 sys/kern/kern_malloc.c:446
+#1  sysctl_sysvipc+0x377 sys/kern/kern_sysctl.c:-1
+#2  kern_sysctl_dirs+0x30f sys/kern/kern_sysctl.c:429
+#3  kern_sysctl+0x1ce sys/kern/kern_sysctl.c:529
+#4  sys_sysctl+0x54f sys/kern/kern_sysctl.c:309
+#5  syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+#5  syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+#6  Xsyscall+0x128
+KASAN: pc: sysctl_sysvipc+0x397
+KASAN: call trace:
+#0  kasan_memcpy+0x1ca kasan_shadow_check sys/kern/subr_kasan.c:-1 [inline]
+#0  kasan_memcpy+0x1ca sys/kern/subr_kasan.c:1025
+#1  sysctl_sysvipc+0x397 sys/kern/kern_sysctl.c:2712
+#2  kern_sysctl_dirs+0x30f sys/kern/kern_sysctl.c:429
+#3  kern_sysctl+0x1ce sys/kern/kern_sysctl.c:529
+#4  sys_sysctl+0x54f sys/kern/kern_sysctl.c:309
+#5  syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+#5  syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+#6  Xsyscall+0x128
+KASAN: shadow of 0xffff8000018caa80..0xffff8000018cad00 (1 cell = 8 bytes):
+ 0xffff8000018caa80: fc 08 fc 08 fc 08 fc 08 fc 08 fc 08 fc 08 fc 08
+ 0xffff8000018cab00: fc 08 fc 08 fc 08 fc 08 fc 08 fc 08 fc 08 04 fb
+>0xffff8000018cab80: fc 08 fc 08 fc 08 fc 08[01]fb 08 08 08 08 08 08
+ 0xffff8000018cac00: 08 08 08 08 08 08 08 08 08 08 08 08 08 08 08 08
+ 0xffff8000018cac80: 08 08 08 08 08 08 08 08 08 08 08 08 08 08 08 08
+KASAN: legend: 00 valid; 01..07 partial; fb malloc redzone; fc malloc freed; fd pool freed; fe kmem; fa global; f1..f4/f8 stack/scope
+ddb{0}> trace
+db_enter() at db_enter+0x17 sys/arch/amd64/amd64/db_interface.c:457
+panic(ffffffff84632841) at panic+0x270 sys/kern/subr_prf.c:198
+kasan_memcpy(ffff8000018cabc0,ffff800036b2bc00,24) at kasan_memcpy+0x1ec
+sysctl_sysvipc(ffff800036b2c2c8,1,200000000040,ffff800036b2c2a0) at sysctl_sysvipc+0x397 sys/kern/kern_sysctl.c:2712
+kern_sysctl_dirs(33,ffff800036b2c2c8,1,200000000040,ffff800036b2c2a0,0,1,1ffff00006d657d0) at kern_sysctl_dirs+0x30f sys/kern/kern_sysctl.c:429
+kern_sysctl(ffff800036b2c2c4,2,200000000040,ffff800036b2c2a0,0,0,ffff800036b2c520) at kern_sysctl+0x1ce sys/kern/kern_sysctl.c:529
+sys_sysctl(ffff800045ff7248,ffff800036b2c520,ffff800036b2c480) at sys_sysctl+0x54f sys/kern/kern_sysctl.c:309
+syscall(ffff800036b2c520) at syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+syscall(ffff800036b2c520) at syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xac70fea4e40, count: -9
+ddb{0}> show registers
+rdi                                0
+rsi                              0x1
+rbp               0xffff800036b2ba10
+rbx               0xffff800036b2ba80
+rdx                                0
+rcx               0xffffffff84ed0ff0    cpu_info_full_primary+0x1ff0
+rax               0xffff800000170800
+r8                 0x101010101010101
+r9                0x8080808080808080
+r10               0xffff800036b2b7f8
+r11               0xffffffff82322ea0    x86_bus_space_io_read_1
+r12               0xffffffff84632841    switch.table.vce_v1_0_load_fw+0x99e41
+r13               0xffffffff84ed1c08    cpu_info_full_primary+0x2c08
+r14               0xffffffff84ed1e07    cpu_info_full_primary+0x2e07
+r15                              0x1
+rip               0xffffffff81734fa7    db_enter+0x17
+cs                               0x8
+rflags                         0x246
+rsp               0xffff800036b2ba10
+ss                              0x10
+db_enter+0x17:  popq    %rbp
+ddb{0}> show proc
+PROC (syz-executor) tid=306506 pid=91487 tcnt=3 stat=onproc
+    flags process=0 proc=4000000<THREAD>
+    runpri=32, usrpri=86, slppri=32, nice=20
+    wchan=0x0, wmesg=, ps_single=0x0 scnt=0 ecnt=0
+    forw=0xffffffffffffffff, list=0xffff800045ff6550,0xffff800045ff6030
+    process=0xffff800045ff0020 user=0xffff800036b21000, vmspace=0xffff800001c81b90
+    estcpu=36, cpticks=28, pctcpu=0.0, user=0, sys=28, intr=0
+ddb{0}> ps
+   PID     TID   PPID    UID  S       FLAGS  WAIT          COMMAND
+ 66778  128369  92647      0  2           0                syz-executor
+ 66778  331977  92647      0  3   0x4000080  fsleep        syz-executor
+ 66778  507476  92647      0  2   0x4000000                syz-executor
+ 51067  342170  71154      0  2           0                syz-executor
+ 51067  293660  71154      0  3   0x4000080  fsleep        syz-executor
+ 51067   15173  71154      0  2   0x4000000                syz-executor
+ 34373  285709  97704      0  7           0                syz-executor
+ 34373  196451  97704      0  2   0x4000000                syz-executor
+ 34373  460657  97704      0  2   0x4000000                syz-executor
+ 91487    4975  85165      0  2       0xc80                syz-executor
+*91487  306506  85165      0  7   0x4000000                syz-executor
+ 91487  445547  85165      0  3   0x4000080  fsleep        syz-executor
+ 50813  302917  11002      0  3        0x82  wait          syz-executor
+ 97704  519977  11002      0  2       0xc82                syz-executor
+ 11628  250413  11002      0  2  0x10000882                syz-executor
+ 85165  493313  11002      0  2       0xc82                syz-executor
+ 90994  255688  11002      0  3        0x82  piperd        syz-executor
+ 92647  164356  11002      0  2       0xc82                syz-executor
+ 71154  420701  11002      0  2       0xc82                syz-executor
+ 11002  399839  46602      0  2  0x10000002                syz-executor
+ 46602  178979   6754      0  3    0x10008a  sigsusp       ksh
+  6754  507739  31881      0  3        0x98  kqread        sshd-session
+ 31881  142859  65751      0  3        0x92  kqread        sshd-session
+ 51232  274908      1      0  3    0x100083  ttyin         getty
+ 65751  453150      1      0  3        0x88  kqread        sshd
+ 82243    3967   9550     74  3   0x1100092  bpf           pflogd
+  9550  196397      1      0  3        0x80  sbwait        pflogd
+  9067  448366  44681     73  2   0x1100010                syslogd
+ 44681  420839      1      0  3    0x100082  sbwait        syslogd
+ 68523  462975      1      0  3    0x100080  kqread        resolvd
+ 93061  351790  20004     77  3    0x100092  kqread        dhcpleased
+ 36411  264506  20004     77  3    0x100092  kqread        dhcpleased
+ 20004  154834      1      0  3        0x80  kqread        dhcpleased
+ 55915  303027      0      0  2  0x40014200                smr
+ 83570   85680      0      0  2     0x14200                zerothread
+ 32407  499488      0      0  3     0x14200  aiodoned      aiodoned
+ 62876  402088      0      0  3     0x14200  syncer        update
+ 59952  331066      0      0  3     0x14200  cleaner       cleaner
+ 70239  267281      0      0  3     0x14200  reaper        reaper
+ 93191   16346      0      0  3     0x14200  pgdaemon      pagedaemon
+ 45900  448981      0      0  3     0x14200  bored         viomb
+ 58052  270467      0      0  3  0x40014200  acpi0         acpi0
+ 47236  296896      0      0  3  0x40014200                idle1
+ 44731  476807      0      0  3     0x14200  bored         softnet1
+ 17993  302381      0      0  3     0x14200  bored         softnet0
+ 20446  397546      0      0  3     0x14200  bored         systqmp
+ 68649  371913      0      0  3     0x14200  bored         systq
+ 46425  450892      0      0  2     0x14200                softclockmp
+ 96866   19224      0      0  3  0x40014200  tmoslp        softclock
+ 64255  238443      0      0  3  0x40014200                idle0
+     1  471339      0      0  3        0x82  wait          init
+     0       0     -1      0  3     0x10200  scheduler     swapper
+ddb{0}> show all locks
+Process 34373 (syz-executor) thread 0xffff800045ff7ca8 (196451)
+exclusive rrwlock inode r = 0 (0xffff800001d20a08)
+#0  witness_lock+0x632 stacktrace_save sys/sys/stacktrace.h:37 [inline]
+#0  witness_lock+0x632 sys/kern/subr_witness.c:1160
+#1  rw_do_enter_write+0x53e sys/kern/kern_rwlock.c:320
+#2  rrw_enter+0xf0 sys/kern/kern_rwlock.c:621
+#3  VOP_LOCK+0x17e sys/kern/vfs_vops.c:527
+#4  ufs_ihashins+0xda sys/ufs/ufs/ufs_ihash.c:146
+#5  ffs_vget+0x2e9 sys/ufs/ffs/ffs_vfsops.c:1232
+#6  ffs_inode_alloc+0x576 sys/ufs/ffs/ffs_alloc.c:393
+#7  ufs_makeinode+0x1a1 sys/ufs/ufs/ufs_vnops.c:1759
+#8  ufs_create+0xcf sys/ufs/ufs/ufs_vnops.c:147
+#9  VOP_CREATE+0x1a2 sys/kern/vfs_vops.c:103
+#10 vn_open+0x6d9 sys/kern/vfs_vnops.c:118
+#11 doopenat+0x460 sys/kern/vfs_syscalls.c:1163
+#12 sys_open+0x86 sys/kern/vfs_syscalls.c:1065
+#13 syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+#13 syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+#14 Xsyscall+0x128
+exclusive rrwlock inode r = 0 (0xffff800001d20c58)
+#0  witness_lock+0x632 stacktrace_save sys/sys/stacktrace.h:37 [inline]
+#0  witness_lock+0x632 sys/kern/subr_witness.c:1160
+#1  rw_do_enter_write+0x53e sys/kern/kern_rwlock.c:320
+#2  rrw_enter+0xf0 sys/kern/kern_rwlock.c:621
+#3  VOP_LOCK+0x17e sys/kern/vfs_vops.c:527
+#4  vn_lock+0xca sys/kern/vfs_vnops.c:576
+#5  vfs_lookup+0x1f7 sys/kern/vfs_lookup.c:431
+#6  namei+0xe19 sys/kern/vfs_lookup.c:250
+#7  vn_open+0x319 sys/kern/vfs_vnops.c:109
+#8  doopenat+0x460 sys/kern/vfs_syscalls.c:1163
+#9  sys_open+0x86 sys/kern/vfs_syscalls.c:1065
+#10 syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+#10 syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+#11 Xsyscall+0x128
+Process 9067 (syslogd) thread 0xffff800029923768 (448366)
+exclusive rrwlock inode r = 0 (0xffff8000018a4918)
+#0  witness_lock+0x632 stacktrace_save sys/sys/stacktrace.h:37 [inline]
+#0  witness_lock+0x632 sys/kern/subr_witness.c:1160
+#1  rw_do_enter_write+0x53e sys/kern/kern_rwlock.c:320
+#2  rrw_enter+0xf0 sys/kern/kern_rwlock.c:621
+#3  VOP_LOCK+0x17e sys/kern/vfs_vops.c:527
+#4  vn_lock+0xca sys/kern/vfs_vnops.c:576
+#5  sys_fsync+0x200 sys/kern/vfs_syscalls.c:2890
+#6  syscall+0x1089 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+#6  syscall+0x1089 sys/arch/amd64/amd64/trap.c:783
+#7  Xsyscall+0x128
+ddb{0}> show malloc
+           Type InUse  MemUse  HighUse   Limit  Requests Type Lim
+         devbuf 11060  12252K   12398K 166960K     12193        0
+            pcb    18     24K      24K 166960K        27        0
+         rtable   239     12K      13K 166960K       353        0
+             pf    34     22K      24K 166960K        52        0
+         ifaddr    43     12K      12K 166960K        46        0
+        ifgroup    55      2K       2K 166960K        57        0
+         sysctl     1      1K      13K 166960K         5        0
+       counters    70     42K      43K 166960K        72        0
+       ioctlops     0      0K       4K 166960K      1499        0
+            iov     0      0K       2K 166960K         1        0
+          mount     1      1K       1K 166960K         1        0
+            log     0      0K       0K 166960K         4        0
+         vnodes  1305     84K      84K 166960K      1455        0
+      UFS quota     1     36K      36K 166960K         1        0
+      UFS mount     5     44K      44K 166960K         5        0
+            shm     2      2K       6K 166960K         4        0
+         VM map     2      1K       1K 166960K         2        0
+            sem     2      0K       0K 166960K         3        0
+        dirhash    12      2K       2K 166960K        12        0
+           ACPI  1734    201K     292K 166960K     11964        0
+      file desc    15     53K      89K 166960K       203        0
+          sigio     1      0K       0K 166960K         1        0
+           proc    70    128K     161K 166960K       561        0
+        subproc    72      9K      10K 166960K       126        0
+    NFS srvsock     1      0K       0K 166960K         1        0
+     NFS daemon     1     20K      20K 166960K         1        0
+    ip_moptions     0      0K       0K 166960K         2        0
+       in_multi    99      7K       7K 166960K        99        0
+    ether_multi     1      0K       0K 166960K         1        0
+            mrt     0      0K       0K 166960K         4        0
+    ISOFS mount     1     36K      36K 166960K         1        0
+  MSDOSFS mount     1     20K      20K 166960K         1        0
+           ttys    67    465K     465K 166960K        67        0
+           exec     0      0K       2K 166960K       391        0
+   fusefs mount     1     36K      36K 166960K         1        0
+            tdb     3      1K       1K 166960K         3        0
+        VM swap     8     62K      64K 166960K        10        0
+       UVM amap   221    208K     240K 166960K      3529        0
+       UVM aobj    39      5K       5K 166960K        39        0
+     pinsyscall  1064   1741K    1741K 166960K      1359        0
+        memdesc     1      4K       4K 166960K         1        0
+    crypto data     1      1K       1K 166960K         1        0
+            NDP    12      0K       1K 166960K        29        0
+           temp    35   9166K    9176K 166960K      4125        0
+         kqueue    13     40K      61K 166960K        38        0
+      SYN cache     2     16K      16K 166960K         2        0
+ddb{0}> show all pools
+Name      Size Requests Fail Releases Pgreq Pgrel Npage Hiwat Minpg Maxpg Idle
+plcache    128       28    0        0     1     0     1     1     0     8    0
+rtpcb      120       33    0       30     1     0     1     1     0     8    0
+rtentry    176      112    0        1     6     0     6     6     0     8    0
+unpcb      144       65    0       46     1     0     1     1     0     8    0
+syncache   336        4    0        4     2     2     0     1     0     8    0
+tcpcb      736       12    0        8     1     0     1     1     0     8    0
+arp        136       18    0        0     1     0     1     1     0     8    0
+inpcb      328       84    0       76     2     0     2     2     0     8    1
+nd6        152       25    0        0     1     0     1     1     0     8    0
+kcovpl      48       14    0        6     1     0     1     1     0     8    0
+ppxss      1192       1    0        1     1     0     1     1     0     8    1
+pfosfp      40     1428    0     1005     5     0     5     5     0     8    0
+pfosfpen   112     1428    0      714    21     0    21    21     0     8    0
+pfstitem    24       23    0        0     1     0     1     1     0     8    0
+pfstkey    128       23    0        0     1     0     1     1     0     8    0
+pfstate    448       23    0        0     3     0     3     3     0     8    0
+pfrule     1360      22    0       17     2     1     1     2     0     8    0
+art_heap8  4096       1    0        0     1     0     1     1     0     8    0
