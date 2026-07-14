@@ -86,6 +86,7 @@ type Manager struct {
 	cfg            *Config
 	repo           vcs.Repo
 	mgrcfg         *ManagerConfig
+	namespace      string
 	managercfg     *mgrconfig.Config
 	cmd            *ManagerCmd
 	dash           ManagerDashapi
@@ -101,6 +102,7 @@ type ManagerDashapi interface {
 	ReportBuildError(req *dashapi.BuildErrorReq) error
 	UploadBuild(build *dashapi.Build) error
 	BuilderPoll(manager string) (*dashapi.BuilderPollResp, error)
+	ClientInfo() (*dashapi.ClientInfoResp, error)
 	LogError(name, msg string, args ...any)
 	CommitPoll() (*dashapi.CommitPollResp, error)
 	UploadCommits(commits []dashapi.Commit) error
@@ -954,7 +956,27 @@ func (mgr *Manager) uploadCoverJSONLToGCS(ctx context.Context, gcsClient gcs.Cli
 	return eg.Wait()
 }
 
+func (mgr *Manager) getNamespace() (string, error) {
+	if mgr.namespace != "" {
+		return mgr.namespace, nil
+	}
+	if mgr.dash == nil {
+		return "", nil
+	}
+	log.Logf(0, "%s: requesting namespace from dashboard...", mgr.name)
+	info, err := mgr.dash.ClientInfo()
+	if err != nil {
+		return "", fmt.Errorf("failed to get namespace from dashboard: %w", err)
+	}
+	mgr.namespace = info.Namespace
+	return mgr.namespace, nil
+}
+
 func (mgr *Manager) uploadCoverStat(ctx context.Context, fuzzingMinutes int) error {
+	ns, err := mgr.getNamespace()
+	if err != nil {
+		return fmt.Errorf("failed to get namespace: %w", err)
+	}
 	// Coverage report generation consumes and caches lots of memory.
 	// In the syz-ci context report generation won't be used after this point,
 	// so tell manager to flush report generator.
@@ -975,6 +997,7 @@ func (mgr *Manager) uploadCoverStat(ctx context.Context, fuzzingMinutes int) err
 			if err := cover.WriteCIJSONLine(w, covInfo, cover.CIDetails{
 				Version:        1,
 				Timestamp:      curTime.Format(time.RFC3339Nano),
+				Namespace:      ns,
 				FuzzingMinutes: fuzzingMinutes,
 				Arch:           mgr.lastBuild.Arch,
 				BuildID:        mgr.lastBuild.ID,
