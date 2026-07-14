@@ -34,6 +34,11 @@ func (dm *dashapiMock) BuilderPoll(manager string) (*dashapi.BuilderPollResp, er
 	return args.Get(0).(*dashapi.BuilderPollResp), args.Error(1)
 }
 
+func (dm *dashapiMock) ClientInfo() (*dashapi.ClientInfoResp, error) {
+	args := dm.Called()
+	return args.Get(0).(*dashapi.ClientInfoResp), args.Error(1)
+}
+
 // We don't care about the methods below for now.
 func (dm *dashapiMock) ReportBuildError(req *dashapi.BuildErrorReq) error { return nil }
 func (dm *dashapiMock) UploadBuild(build *dashapi.Build) error            { return nil }
@@ -251,4 +256,19 @@ func (m *mockWriteCloser) Write(p []byte) (n int, err error) {
 func (m *mockWriteCloser) Close() error {
 	m.closedTimes++
 	return nil
+}
+
+func TestGetNamespace(t *testing.T) {
+	mockDash := new(dashapiMock)
+	mgr := Manager{
+		name: "test-manager",
+		dash: mockDash,
+	}
+
+	mockDash.On("ClientInfo").Return(&dashapi.ClientInfoResp{Namespace: "dash-namespace"}, nil).Once()
+	ns, err := mgr.getNamespace()
+	assert.NoError(t, err)
+	assert.Equal(t, "dash-namespace", ns)
+
+	mockDash.AssertExpectations(t)
 }
