@@ -45,6 +45,24 @@ func TestMultipleFocus(t *testing.T) {
 	}, filepath.Join("testdata", "mixed", "bpf_io_uring"))
 }
 
+func TestGCEKVMFocus(t *testing.T) {
+	cfg := &api.FuzzConfig{
+		SyzkallerConfig: api.SyzkallerConfig{
+			VMType: "gce",
+			Focus:  []string{api.FocusKVM},
+		},
+	}
+	runTest(t, cfg, filepath.Join("testdata", "gce", api.FocusKVM))
+}
+
+func TestGCENoFocus(t *testing.T) {
+	runTest(t, &api.FuzzConfig{
+		SyzkallerConfig: api.SyzkallerConfig{
+			VMType: "gce",
+		},
+	}, filepath.Join("testdata", "gce", "default"))
+}
+
 func TestGCSPath(t *testing.T) {
 	cfg := &api.FuzzConfig{
 		SyzkallerConfig: api.SyzkallerConfig{
