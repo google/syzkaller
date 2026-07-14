@@ -612,7 +612,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 		return "", fmt.Errorf("bad manager config: %w", err)
 	}
 	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
-	if err := config.SaveFile(configFile, mgrcfg); err != nil {
+	if err := config.SaveFileMode(configFile, mgrcfg, 0600); err != nil {
 		return "", err
 	}
 	return configFile, nil
