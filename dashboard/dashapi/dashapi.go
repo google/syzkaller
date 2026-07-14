@@ -807,6 +807,19 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 	return dash.Query("manager_stats", req, nil)
 }
 
+type ClientInfoReq struct {
+}
+
+type ClientInfoResp struct {
+	Namespace string
+}
+
+func (dash *Dashboard) ClientInfo() (*ClientInfoResp, error) {
+	resp := new(ClientInfoResp)
+	err := dash.Query("client_info", nil, resp)
+	return resp, err
+}
+
 // NewAsset describes a build asset (e.g., kernel or disk image) uploaded to cloud storage.
 //
 // Asset lifetime:

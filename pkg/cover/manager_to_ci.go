@@ -11,8 +11,11 @@ import (
 
 // CIDetails fields will be added to every CSV line.
 type CIDetails struct {
-	Version        int    `json:"version"`
-	Timestamp      string `json:"timestamp"`
+	Version   int    `json:"version"`
+	Timestamp string `json:"timestamp"`
+	// Namespace is optional (omitempty) during rollout to support old syz-ci
+	// instances and tests. It should be made required once rollout is complete.
+	Namespace      string `json:"namespace,omitempty"`
 	FuzzingMinutes int    `json:"fuzzing_minutes"`
 	Arch           string `json:"arch"`
 	BuildID        string `json:"build_id"`
