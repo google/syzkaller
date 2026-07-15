@@ -113,11 +113,22 @@ func TestAIExternalReporting(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "moderation-msg-id",
+		MessageExtID: "<comment-1>",
+		Author:       "someguy@test.com",
+		Cc:           []string{"moderation@test.com", "other@example.com"},
+		Comment:      &dashapi.CommentCommand{Body: "Looks good to me!"},
+	})
+	require.NoError(t, err)
+
 	// Upstream the result.
 	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		RootExtID: "moderation-msg-id",
 		Upstream:  &dashapi.UpstreamCommand{},
 		Author:    "test-user",
+		Cc:        []string{"moderation@test.com", "yetanother@example.com"},
 		Source:    "lore",
 	})
 	require.NoError(t, err)
@@ -173,7 +184,9 @@ func TestAIExternalReporting(t *testing.T) {
 		ReportedBy: []string{"syzbot+" + extID + "@" + appengine.AppID(c.ctx) + ".appspotmail.com"},
 	}, pollResp.Result.Patch)
 	require.Equal(t, []string{"public@test.com", "test-user"}, pollResp.Result.To)
-	require.Equal(t, []string{`"Reviewer" <reviewer@test.com>`}, pollResp.Result.Cc)
+	require.Equal(t, []string{
+		`"Reviewer" <reviewer@test.com>`, "other@example.com", "yetanother@example.com",
+	}, pollResp.Result.Cc)
 
 	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
 		ReportID:       pollResp.Result.ID,
