@@ -102,6 +102,19 @@ func formatUpstreamedBy(name, email string) string {
 	return email
 }
 
+func filterStageEmails(nsCfg *Config, emails []string) []string {
+	if nsCfg.AI == nil {
+		return emails
+	}
+	var stageEmails []string
+	for _, stage := range nsCfg.AI.Stages {
+		if stage.MailingList != "" {
+			stageEmails = append(stageEmails, stage.MailingList)
+		}
+	}
+	return email.SubtractEmailLists(emails, stageEmails)
+}
+
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
 	if err := checkActionAuthorized(ctx, job, req); err != nil {
@@ -140,6 +153,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	}
 	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
 	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
+	extraCcList = filterStageEmails(nsCfg, extraCcList)
 
 	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
 		Job: job,
@@ -555,6 +569,9 @@ func handleCommentCommand(ctx context.Context,
 	}
 
 	extraCc := email.SubtractEmailLists(req.Cc, ownEmails(ctx))
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	extraCc = filterStageEmails(nsCfg, extraCc)
+
 	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
 		ReportingID:  reporting.ID,
 		ExtID:        req.MessageExtID,
