@@ -10,13 +10,12 @@ import (
 	"fmt"
 	"html/template"
 	"slices"
-	"sort"
 	"strings"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 type templateHeatmapRow struct {
@@ -111,11 +110,14 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, na
 	for _, item := range thm.builder {
 		thm.Items = append(thm.Items, item)
 	}
-	sort.Slice(thm.Items, func(i, j int) bool {
-		if thm.Items[i].IsDir != thm.Items[j].IsDir {
-			return thm.Items[i].IsDir
+	slices.SortFunc(thm.Items, func(a, b *templateHeatmapRow) int {
+		if a.IsDir != b.IsDir {
+			if a.IsDir {
+				return -1
+			}
+			return 1
 		}
-		return thm.Items[i].Name < thm.Items[j].Name
+		return strings.Compare(a.Name, b.Name)
 	})
 	for _, pageColumn := range pageColumns {
 		var dateCoverage int64
@@ -183,9 +185,8 @@ func FilesCoverageToTemplateData(fCov []*coveragedb.FileCoverageWithDetails, nam
 			fc.TimePeriod)
 		columns[pageColumnTarget{TimePeriod: fc.TimePeriod, Commit: fc.Commit}] = struct{}{}
 	}
-	targetDateAndCommits := maps.Keys(columns)
-	sort.Slice(targetDateAndCommits, func(i, j int) bool {
-		return targetDateAndCommits[i].TimePeriod.DateTo.Before(targetDateAndCommits[j].TimePeriod.DateTo)
+	targetDateAndCommits := slices.SortedFunc(maps.Keys(columns), func(a, b pageColumnTarget) int {
+		return a.TimePeriod.DateTo.Compare(b.TimePeriod.DateTo)
 	})
 	for _, tdc := range targetDateAndCommits {
 		tp := tdc.TimePeriod

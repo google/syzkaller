@@ -20,7 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 func main() {
@@ -227,8 +227,7 @@ func print(file string) {
 	if err != nil {
 		tool.Failf("failed to open database: %v", err)
 	}
-	keys := maps.Keys(db.Records)
-	slices.Sort(keys)
+	keys := slices.Sorted(maps.Keys(db.Records))
 	for _, key := range keys {
 		rec := db.Records[key]
 		fmt.Printf("%v\n%v\n", key, string(rec.Val))

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.
@@ -109,8 +109,7 @@ func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) 
 			}
 		}
 	}
-	sorted := maps.Keys(closure)
-	slices.Sort(sorted)
+	sorted := slices.Sorted(maps.Keys(closure))
 	return sorted
 }
 

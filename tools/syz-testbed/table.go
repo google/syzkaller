@@ -6,12 +6,12 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"slices"
 
 	"github.com/google/syzkaller/pkg/stat/sample"
-	"golang.org/x/exp/maps"
 )
 
 type Cell = any
@@ -123,10 +123,9 @@ func (t *Table) AddRow(row string, cells ...Cell) {
 	}
 }
 
+// SortedRows is used by the HTML template to iterate over rows in a sorted order.
 func (t *Table) SortedRows() []string {
-	rows := maps.Keys(t.Cells)
-	slices.Sort(rows)
-	return rows
+	return slices.Sorted(maps.Keys(t.Cells))
 }
 
 func (t *Table) ToStrings() [][]string {
@@ -134,7 +133,7 @@ func (t *Table) ToStrings() [][]string {
 	headers := append([]string{t.TopLeftHeader}, t.ColumnHeaders...)
 	table = append(table, headers)
 	if t.Cells != nil {
-		rowHeaders := t.SortedRows()
+		rowHeaders := slices.Sorted(maps.Keys(t.Cells))
 		for _, row := range rowHeaders {
 			tableRow := []string{row}
 			for _, column := range t.ColumnHeaders {

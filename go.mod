@@ -26,7 +26,6 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
-	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/perf v0.0.0-20260512194132-3cf34090a3db
 	golang.org/x/sync v0.21.0
@@ -324,6 +323,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect
 	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.56.0 // indirect

@@ -17,8 +17,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/log"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
+	"maps"
 )
 
 const (
@@ -118,8 +118,7 @@ func mergedCoverageRecords(fmr *FileMergeResult) ([]*coveragedb.MergedCoverageRe
 	if !fmr.FileExists {
 		return nil, nil
 	}
-	lines := maps.Keys(fmr.HitCounts)
-	slices.Sort(lines)
+	lines := slices.Sorted(maps.Keys(fmr.HitCounts))
 	mgrStat := make(map[string]*coveragedb.Coverage)
 	mgrStat[allManagers] = &coveragedb.Coverage{}
 
@@ -158,7 +157,7 @@ func mergedCoverageRecords(fmr *FileMergeResult) ([]*coveragedb.MergedCoverageRe
 			FileData: managerCoverage,
 		})
 	}
-	return res, maps.Values(funcLines)
+	return res, slices.Collect(maps.Values(funcLines))
 }
 
 // bestFuncName selects the most frequent function from the list of candidates.
@@ -188,7 +187,7 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 		repoCommitsMap[record.RepoCommit] = true
 	}
 	repoCommitsMap[c.Base] = true
-	repoCommits := maps.Keys(repoCommitsMap)
+	repoCommits := slices.Collect(maps.Keys(repoCommitsMap))
 	fvs, err := c.FileVersProvider.GetFileVersions(targetFilePath, repoCommits...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
