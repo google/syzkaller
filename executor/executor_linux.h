@@ -269,7 +269,8 @@ static void cover_reset(cover_t* cov)
 			fail("KCOV_RESET_TRACE failed");
 	} else {
 		cover_unprotect(cov);
-		*(uint64*)cov->data = 0;
+		if (cov->data != nullptr)
+			*(uint64*)cov->data = 0;
 		cover_protect(cov);
 	}
 	cov->overflow = false;
@@ -278,6 +279,8 @@ static void cover_reset(cover_t* cov)
 template <typename cover_data_t>
 static void cover_collect_impl(cover_t* cov)
 {
+	if (cov->data == nullptr)
+		return;
 	cov->size = *(cover_data_t*)cov->data;
 	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
 }
