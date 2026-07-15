@@ -237,6 +237,11 @@ Provide a best-effort answer to the original question with all of the informatio
 you have so far without calling any more tools!
 `
 
+const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
+You already have the result of this exact tool call in your conversation history.
+Do NOT request it again. You MUST synthesize the information you already have,
+try a completely different tool, or proceed to the next step.`
+
 type llmOutputs struct {
 	tool           Tool
 	provideOutputs func(*verifyContext, string, bool)
@@ -715,8 +720,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		})
 		if isDuplicateErr(toolErr) {
 			responses.Parts = append(responses.Parts, backend.Part{
-				Text: fmt.Sprintf("SYSTEM WARNING: You are repeating tool call %q. "+
-					"Please try a different approach, search term, or proceed without it.", call.Name),
+				Text: fmt.Sprintf("SYSTEM WARNING: %s", toolErr.Error()),
 			})
 		}
 		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
@@ -955,15 +959,14 @@ func (a *agentSession) recordAndCheckDuplicate(call *backend.FunctionCall) error
 	}
 
 	if repeats == hardLoopDetectionLimit-1 {
-		return newDuplicateCallError("CRITICAL WARNING: This is your %d-th attempt to call %q with args %+v. "+
+		return newDuplicateCallError("CRITICAL: This is your %d-th attempt to call %q with args %+v. "+
 			"You are stuck in a loop. You MUST change your search query, try a different tool, or proceed "+
 			"to the next step with your current knowledge. The next duplicate attempt will force-terminate your execution.",
 			repeats, call.Name, call.Args)
 	}
 
 	if repeats > limit {
-		return newDuplicateCallError("You are repeating the same tool call with the exact same arguments. " +
-			"Please synthesize the information you already have instead of repeating queries.")
+		return newDuplicateCallError(llmDuplicateCallWarning)
 	}
 
 	return nil
