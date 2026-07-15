@@ -13,7 +13,7 @@ import (
 	"slices"
 	"strconv"
 
-	"golang.org/x/exp/maps"
+	"maps"
 	"strings"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -226,13 +226,7 @@ func (c *parseCtx) process() {
 				unique[id] = struct{}{}
 			}
 		}
-		ids := maps.Keys(unique)
-		if len(ids) == 0 {
-			ids = nil
-		} else {
-			slices.Sort(ids)
-		}
-		thread.BugIDs = ids
+		thread.BugIDs = slices.Sorted(maps.Keys(unique))
 	}
 }
 

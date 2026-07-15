@@ -12,7 +12,7 @@ import (
 	"slices"
 
 	"github.com/google/syzkaller/pkg/subsystem"
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 func ListFromRepo(repo string) ([]*subsystem.Subsystem, *subsystem.DebugInfo, error) {
@@ -233,8 +233,7 @@ func unique(list []string) []string {
 	for _, s := range list {
 		m[s] = struct{}{}
 	}
-	ret := maps.Keys(m)
-	slices.Sort(ret)
+	ret := slices.Sorted(maps.Keys(m))
 	return ret
 }
 

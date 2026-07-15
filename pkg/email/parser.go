@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -17,8 +18,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	"golang.org/x/exp/maps"
 )
 
 type Email struct {
@@ -568,8 +567,11 @@ func MergeEmailLists(lists ...[]string) []string {
 			merged[addr.Address] = true
 		}
 	}
-	result := maps.Keys(merged)
-	slices.Sort(result)
+	if len(merged) == 0 {
+		// Return non-nil empty slice because callers/tests expect it (e.g. JSON serialization).
+		return []string{}
+	}
+	result := slices.Sorted(maps.Keys(merged))
 	if len(result) > maxEmails {
 		result = result[:maxEmails]
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 type ReportGenerator struct {
@@ -202,7 +202,7 @@ func uniquePCs(progs ...Prog) []uint64 {
 			PCs[pc] = true
 		}
 	}
-	return maps.Keys(PCs)
+	return slices.Collect(maps.Keys(PCs))
 }
 
 func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
