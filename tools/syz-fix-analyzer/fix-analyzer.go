@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/dashboard/api"
@@ -157,16 +158,25 @@ func isFixable(bug api.BugSummary, repo vcs.Repo) (BugType, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	diff, errs := git_diff_parser.Parse(string(com.Patch))
-	if len(errs) != 0 {
-		return "", false, fmt.Errorf("parsing patch: %v", errs)
+	var files []*git_diff_parser.FileDiff
+	fn := func(file *git_diff_parser.FileDiff, change *git_diff_parser.ContentChange) (bool, string) {
+		if !slices.ContainsFunc(files, func(f *git_diff_parser.FileDiff) bool {
+			return f.FromFile == file.FromFile && f.ToFile == file.ToFile
+		}) {
+			files = append(files, file)
+		}
+		return false, ""
 	}
-	if len(diff.FileDiff) != 1 {
+	_, _, err = git_diff_parser.SignificantChange(string(com.Patch), fn)
+	if err != nil {
+		return "", false, fmt.Errorf("parsing patch: %w", err)
+	}
+	if len(files) != 1 {
 		return typ, false, nil
 	}
-	file := diff.FileDiff[0]
+	file := files[0]
 	if file.IsBinary || file.FromFile != file.ToFile ||
-		!strings.HasSuffix(file.FromFile, ".c") && !strings.HasSuffix(file.FromFile, ".h") {
+		(!strings.HasSuffix(file.FromFile, ".c") && !strings.HasSuffix(file.FromFile, ".h")) {
 		return typ, false, nil
 	}
 	if len(file.Hunks) != 1 {
