@@ -97,7 +97,8 @@ func convertFromMapReflect(v reflect.Value, m map[string]any, strict, tool bool)
 		field := v.FieldByIndex(fieldType.Index)
 		f, ok := m[name]
 		if !ok || f == nil {
-			if strings.Contains(fieldType.Tag.Get("json"), ",omitempty") {
+			jsonTag := fieldType.Tag.Get("json")
+			if strings.Contains(jsonTag, ",omitempty") || strings.Contains(jsonTag, ",omitzero") {
 				continue
 			}
 			if tool {

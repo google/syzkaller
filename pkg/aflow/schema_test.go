@@ -119,6 +119,14 @@ func TestConvertFromMap(t *testing.T) {
 		``)
 
 	testConvertFromMap(t, false, map[string]any{
+		"I1": 2.0,
+	}, struct {
+		I0 int `json:",omitzero"`
+	}{},
+		``,
+		``)
+
+	testConvertFromMap(t, false, map[string]any{
 		"Arr": []any{
 			map[string]any{"A": 1, "B": "foo"},
 			map[string]any{"A": 2, "B": "bar"},
