@@ -89,9 +89,9 @@ type PatchingOutputs struct {
 
 type FixesTag struct {
 	Hash        string
-	Title       string
-	AuthorName  string
-	AuthorEmail string
+	Title       string `json:",omitempty"`
+	AuthorName  string `json:",omitempty"`
+	AuthorEmail string `json:",omitempty"`
 }
 
 type Recipient struct {
