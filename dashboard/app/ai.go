@@ -412,6 +412,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 			return fmt.Errorf("%w: failed to get manager build config: %w", ErrClientBadRequest, err)
 		}
 		args["KernelConfigID"] = build.KernelConfig
+		args["KernelConfigManager"] = manager
 	} else {
 		return fmt.Errorf("%w: either a custom kernel config or a manager is required", ErrClientBadRequest)
 	}

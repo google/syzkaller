@@ -1143,6 +1143,32 @@ func TestAIManualJobCreate(t *testing.T) {
 	require.Equal(t, "https://repo.test", args["KernelRepo"])
 	require.Equal(t, "123456", args["KernelCommit"])
 
+	// Test creation with KernelConfigManager.
+	body, err = c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create":       []string{"repro-c"},
+		"KernelRepo":          []string{"https://repo.test"},
+		"KernelCommit":        []string{"123456"},
+		"KernelConfigManager": []string{"manager1"},
+		"BugDescription":      []string{"test bug 2"},
+		"TargetArch":          []string{"amd64"},
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(body), "AI workflow repro-c is created")
+
+	jobManager, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-manager",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "repro-c", Name: "repro-c"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, "", jobManager.ID)
+	require.Equal(t, "repro-c", jobManager.Workflow)
+	require.Equal(t, "test bug 2", jobManager.Args["BugDescription"])
+	require.Equal(t, "manager1", jobManager.Args["KernelConfigManager"])
+	require.Equal(t, "config1", jobManager.Args["KernelConfig"])
+
 	body, err = c.POSTForm("/ains/ai", url.Values{
 		"ai-job-create": []string{"patching"},
 		"ReproC":        []string{"int main() {}"},
