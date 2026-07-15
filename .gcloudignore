@@ -34,7 +34,6 @@ sys/*/
 # Temporary files and logs
 *.log
 *.pprof
-syz-fix-analyzer
 .coverage.txt
 .descriptions
 

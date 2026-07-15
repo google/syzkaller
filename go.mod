@@ -24,7 +24,6 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sergi/go-diff v1.4.0
-	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
