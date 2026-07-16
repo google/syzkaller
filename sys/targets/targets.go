@@ -189,6 +189,7 @@ func GetEx(OS, arch string, clang bool) *Target {
 	return target.other
 }
 
+// List contains all supported targets grouped by OS and Arch.
 var List = map[string]map[string]*Target{
 	TestOS: {
 		TestArch64: {
