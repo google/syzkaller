@@ -26,7 +26,7 @@ func isValidSince(since string) bool {
 }
 
 var (
-	ToolLog = aflow.NewFuncTool("git-log", gitLog, `
+	toolLog = aflow.NewFuncTool("git-log", gitLog, `
 The tool executes git log on the kernel sources and returns the output.
 Use it to find commits that introduced or modified specific code, symbols, or matched a message.
 
@@ -51,7 +51,7 @@ Tool provides git blame for a given file and line range.
 It helps to identify which commit last modified specific lines of code.
 `)
 
-	Tools = []aflow.Tool{ToolLog, ToolShow, ToolBlame}
+	Tools = []aflow.Tool{toolLog, ToolShow, ToolBlame}
 )
 
 const maxOutputLines = 1000
