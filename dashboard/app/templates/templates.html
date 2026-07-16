@@ -10,33 +10,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 {{/* Common page head part, invoked with *uiHeader */}}
 {{define "head"}}
-	<link rel="stylesheet" href="/static/style.css"/>
-	<script src="/static/common.js"></script>
-	{{if .AnalyticsTrackingID}}
-		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
-		<script>
-			window.dataLayer = window.dataLayer || [];
-			function gtag() { dataLayer.push(arguments); }
-			gtag('js', new Date());
-			gtag('config', '{{.AnalyticsTrackingID}}');
-		</script>
-	{{end}}
-{{end}}
-
-{{/* Common page head part with Bootstrap, invoked with *uiHeader */}}
-{{define "head_bootstrap"}}
 	{{/* Required meta tags for responsive design on mobile devices */}}
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	{{/* Bootstrap 5.3.3 CSS compiled styles from Google Hosted Libraries */}}
-	<link href="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css"
-		rel="stylesheet"
-		integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-		crossorigin="anonymous">
-	{{/* Bootstrap 5.3.3 JS Bundle from Google Hosted Libraries, deferred to load asynchronously */}}
-	<script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"
-		integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-		crossorigin="anonymous"
-		defer></script>
+	{{/* Bootstrap 5.3.3 JS Bundle loaded locally */}}
+	<script src="/static/bootstrap.bundle.min.js" defer></script>
+	<link rel="stylesheet" href="/static/style.css"/>
+	<link rel="stylesheet" href="/static/dashboard.css"/>
+	<script src="/static/common.js"></script>
 	{{/* Google Analytics tracking code, injected only if AnalyticsTrackingID is configured in production */}}
 	{{if .AnalyticsTrackingID}}
 		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
@@ -51,113 +31,118 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 {{/* Common page header, invoked with *uiHeader */}}
 {{define "header"}}
-	<header id="topbar">
-		<table class="position_table">
-			<tr>
-				<td>
-					<h1><a href="/{{$.Namespace}}">syzbot</a></h1>
-				</td>
-				<td class="namespace_td">
-					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
-						{{if .Admin}}
-							<option value="admin" {{if eq $.Namespace "admin"}}selected="1"{{end}}>Admin</option>
-						{{end}}
-						{{- range $ns := .Namespaces}}
-							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
-								{{- $ns.Caption -}}
-							</option>
-						{{- end -}}
-					</select>
-				</td>
-				<td class="search">
+	<nav id="topbar" class="navbar navbar-light">
+		<div class="container-fluid d-flex align-items-center justify-content-between p-0">
+			<div class="d-flex align-items-center">
+				<a class="navbar-brand" href="/{{$.Namespace}}">syzbot</a>
+				<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
 					{{if .Admin}}
-						<a href="/admin">admin</a> |
+						<option value="admin" {{if eq $.Namespace "admin"}}selected="1"{{end}}>Admin</option>
 					{{end}}
-					{{if .LoginLink}}
-						<a href="{{.LoginLink}}">sign-in</a> |
-					{{end}}
-					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
-					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
-					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
-					{{if eq $.Namespace "upstream"}}
-						| <a href='/upstream/syz-dungeon' title="Syzkaller Dungeon">🏰</a>
-					{{end}}
-				</td>
-			</tr>
-		</table>
-		{{if not (eq .URLPath "/admin")}}
-		<div class="navigation">
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}'><span style="color:DeepPink;">🐞 Open [{{$.BugCounts.Open}}]</span></a>
+					{{- range $ns := .Namespaces}}
+						<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
+							{{- $ns.Caption -}}
+						</option>
+					{{- end -}}
+				</select>
 			</div>
 
+			<div class="topbar-links">
+				{{if .Admin}}
+					<a href="/admin">admin</a> |
+				{{end}}
+				{{if .LoginLink}}
+					<a href="{{.LoginLink}}">sign-in</a> |
+				{{end}}
+				<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+				<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
+				<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
+				{{if eq $.Namespace "upstream"}}
+					| <a href="/upstream/syz-dungeon" title="Syzkaller Dungeon">🏰</a>
+				{{end}}
+		</div>
+
+
+	{{if not (eq .URLPath "/admin")}}
+	<div class="sub-nav">
+		<ul class="nav nav-pills">
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}">
+					<span style="color:DeepPink;">🐞 Open [{{$.BugCounts.Open}}]</span>
+				</a>
+			</li>
 			{{if .ShowSubsystems}}
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}/subsystems'><span style="color:DeepPink;">≡</span> Subsystems</a>
-			</div>
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/subsystems">
+					<span style="color:DeepPink;">≡</span> Subsystems
+				</a>
+			</li>
 			{{end}}
-
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}/fixed'><span style="color:ForestGreen;">🐞 Fixed [{{$.BugCounts.Fixed}}]</span></a>
-			</div>
-
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
-				<a href='/{{$.Namespace}}/invalid'><span style="color:RoyalBlue;">🐞 Invalid [{{$.BugCounts.Invalid}}]</span></a>
-			</div>
-
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/fixed">
+					<span style="color:ForestGreen;">🐞 Fixed [{{$.BugCounts.Fixed}}]</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/invalid">
+					<span style="color:RoyalBlue;">🐞 Invalid [{{$.BugCounts.Invalid}}]</span>
+				</a>
+			</li>
 			{{if gt .MissingBackports 0}}
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}/backports'><span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
-			</div>
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/backports" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/backports">
+					<span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]
+				</a>
+			</li>
 			{{end}}
-
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}/graph/crashes'><span style="color:ForestGreen;">≡</span> Crashes</a>
-			</div>
-
-			<div class="dropdown navigation_tab">
-				<button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
-				<div class="dropdown-content">
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}"
-						href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}"
-						href='/{{$.Namespace}}/graph/found-bugs'>Bugs/Month</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}"
-						href='/{{$.Namespace}}/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}"
-						href='/{{$.Namespace}}/graph/fuzzing'>Fuzzing</a>
-				</div>
-			</div>
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/crashes">
+					<span style="color:ForestGreen;">≡</span> Crashes
+				</a>
+			</li>
+			
+			<li class="nav-item dropdown">
+				<a class="nav-link dropdown-toggle {{if or (eq .URLPath (printf "/%v/graph/bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)) (eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace))}}active{{end}}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+					<span style="color:DarkOrange;">📈</span>Graphs
+				</a>
+				<ul class="dropdown-menu">
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/bugs">Kernel Health</a></li>
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/found-bugs">Bugs/Month</a></li>
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/lifetimes">Bug Lifetimes</a></li>
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/fuzzing">Fuzzing</a></li>
+				</ul>
+			</li>
 
 			{{if .ShowCoverageMenu}}
-			<div class="dropdown navigation_tab">
-				<button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
-				<div class="dropdown-content">
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
-						href="/{{$.Namespace}}/graph/coverage?period=quarter">Total</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/coverage" $.Namespace)}}_selected{{end}}"
-						href="/{{$.Namespace}}/coverage?period=month">Repo&nbsp;Heatmap</a>
+			<li class="nav-item dropdown">
+				<a class="nav-link dropdown-toggle {{if or (eq .URLPath (printf "/%v/graph/coverage" $.Namespace)) (eq .URLPath (printf "/%v/coverage" $.Namespace)) (eq .URLPath (printf "/%v/coverage/subsystems" $.Namespace))}}active{{end}}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+					<span style="color:DarkOrange;">📈</span>Coverage
+				</a>
+				<ul class="dropdown-menu">
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/coverage?period=quarter">Total</a></li>
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/coverage" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/coverage?period=month">Repo Heatmap</a></li>
 					{{if .ShowSubsystems}}
-						<a class="navigation_tab{{if eq .URLPath (printf "/%v/coverage/subsystems" $.Namespace)}}_selected{{end}}"
-							href="/{{$.Namespace}}/coverage/subsystems?period=month">Subsystems&nbsp;Heatmap</a>
+						<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/coverage/subsystems" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/coverage/subsystems?period=month">Subsystems Heatmap</a></li>
 					{{end}}
-				</div>
-			</div>
+				</ul>
+			</li>
 			{{end}}
+
 			{{if .AI}}
-			<div class="navigation_tab{{if eq .URLPath (printf "/%v/ai" $.Namespace)}}_selected{{end}}">
-				<a href='/{{$.Namespace}}/ai'>✨ AI</a>
-			</div>
+			<li class="nav-item">
+				<a class="nav-link {{if eq .URLPath (printf "/%v/ai" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/ai">✨ AI</a>
+			</li>
 			{{end}}
+
 			{{if .ContactEmail}}
-			<div class="navigation_tab">
-				<a href='mailto:{{.ContactEmail}}'><span style="color:ForestGreen;">💬</span> Send us feedback</a>
-			</div>
+			<li class="nav-item ms-auto">
+				<a class="nav-link" href="mailto:{{.ContactEmail}}"><span style="color:ForestGreen;">💬</span> Send us feedback</a>
+			</li>
 			{{end}}
-		</div>
-		{{end}}
-	</header>
-	<br>
+		</ul>
+	</div>
+	{{end}}
+</nav>
 	{{if .Message}}
 		<div class="flash-message">{{.Message}}</div>
 	{{end}}
