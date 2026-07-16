@@ -42,16 +42,17 @@ Supported search modes (you must provide at least one):
 
 Use 'Since' to limit how far back to search. It accepts duration strings like "3 years", "1 month", "2 weeks", "5 days".
 `)
-	ToolShow = aflow.NewFuncTool("git-show", gitShow, `
+	toolShow = aflow.NewFuncTool("git-show", gitShow, `
 Tool provides full information about a specific git commit, including its title,
 full description, and the diff.
 `)
-	ToolBlame = aflow.NewFuncTool("git-blame", gitBlame, `
+	toolBlame = aflow.NewFuncTool("git-blame", gitBlame, `
 Tool provides git blame for a given file and line range.
 It helps to identify which commit last modified specific lines of code.
 `)
 
-	Tools = []aflow.Tool{toolLog, ToolShow, ToolBlame}
+	// Tools contains all gitlog tools.
+	Tools = []aflow.Tool{toolLog, toolShow, toolBlame}
 )
 
 const maxOutputLines = 1000
