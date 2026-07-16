@@ -15,14 +15,15 @@ var (
 Tool provides list of source files and subdirectories in the given directory in the source tree.
 `)
 
-	ToolReadFile = aflow.NewFuncTool("read-file", readFile, `
+	toolReadFile = aflow.NewFuncTool("read-file", readFile, `
 Tool provides full contents of a single source file as is. Avoid using this tool if there are better
 and more specialized tools for the job. The tool returns at most 100 lines at a time.
 If you need more, you need to call the tool several times. But avoid fetching large files
 with lots of repetitive calls if possible.
 `)
 
-	FilesystemTools = []aflow.Tool{toolDirIndex, ToolReadFile}
+	// FilesystemTools contains tools for filesystem access.
+	FilesystemTools = []aflow.Tool{toolDirIndex, toolReadFile}
 )
 
 type fsState struct {

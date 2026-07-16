@@ -25,7 +25,7 @@ or to find a group of similar functions to later assess similarities/differences
 in their implementations.
 `)
 
-	ToolDefinitionComment = aflow.NewFuncTool("codesearch-definition-comment", definitionComment, `
+	toolDefinitionComment = aflow.NewFuncTool("codesearch-definition-comment", definitionComment, `
 Tool provides source code comment for an entity with the given name.
 Entity can be function, struct, or global variable.
 Use it to understand how an entity is supposed to be used.
@@ -35,14 +35,14 @@ In such case, you may consider using codesearch-definition-source tool to look
 at the full source code of the entity.
 `)
 
-	ToolDefinitionSource = aflow.NewFuncTool("codesearch-definition-source", definitionSource, `
+	toolDefinitionSource = aflow.NewFuncTool("codesearch-definition-source", definitionSource, `
 Tool provides full source code for an entity with the given name.
 Entity can be function, struct, or global variable.
 Use it to understand implementation details of an entity.
 For example, how a function works, what precondition error checks it has, etc.
 `)
 
-	ToolFindReferences = aflow.NewFuncTool("codesearch-find-references", findReferences, `
+	toolFindReferences = aflow.NewFuncTool("codesearch-find-references", findReferences, `
 Tool finds and lists all references to (uses of) the given entity.
 Entity can be function, struct, or global variable.
 If can be used to find all calls or other uses of the given function,
@@ -51,7 +51,7 @@ or all reads/writes of the given struct/union field.
 To find field references use 'struct_name::field_name' syntax.
 `)
 
-	ToolStructLayout = aflow.NewFuncTool("codesearch-struct-layout", structLayout, `
+	toolStructLayout = aflow.NewFuncTool("codesearch-struct-layout", structLayout, `
 Tool provides layout of a struct/union (fields, offsets, sizes).
 It can be used to understand the full memory layout of a struct,
 or to find which field is located at a specific offset.
@@ -61,8 +61,9 @@ a field in the output, it is NOT present in the struct definition
 You can strictly trust the response to be complete and accurate.
 `)
 
-	Tools = []aflow.Tool{toolDirIndex, ToolReadFile, toolFileIndex, ToolDefinitionComment,
-		ToolDefinitionSource, ToolFindReferences, ToolStructLayout}
+	// Tools contains all codesearcher tools.
+	Tools = []aflow.Tool{toolDirIndex, toolReadFile, toolFileIndex, toolDefinitionComment,
+		toolDefinitionSource, toolFindReferences, toolStructLayout}
 )
 
 // PrepareIndex is an action that needs to run before any agents that use codesearch tools.

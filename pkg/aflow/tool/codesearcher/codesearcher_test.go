@@ -12,7 +12,7 @@ import (
 )
 
 func TestStructLayout(t *testing.T) {
-	aflow.TestTool(t, ToolStructLayout,
+	aflow.TestTool(t, toolStructLayout,
 		createIndex(t),
 		structLayoutArgs{
 			Name: "struct_in_c_file",
@@ -28,7 +28,7 @@ func TestStructLayout(t *testing.T) {
 }
 
 func TestStructLayoutNonExistent(t *testing.T) {
-	aflow.TestTool(t, ToolStructLayout,
+	aflow.TestTool(t, toolStructLayout,
 		createIndex(t),
 		structLayoutArgs{
 			Name: "non-existent-name",
