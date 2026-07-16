@@ -102,6 +102,7 @@ func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelMod
 	return modules, info.Bytes(), nil
 }
 
+// ErrAborted is returned when check operation is aborted via context.
 var ErrAborted = errors.New("aborted through the context")
 
 func (checker *Checker) Run(ctx context.Context, files []*flatrpc.FileInfo, featureInfos []*flatrpc.FeatureInfo) (

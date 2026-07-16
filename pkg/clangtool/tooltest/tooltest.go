@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// FlagUpdate is a command line flag to update golden files in tests.
 var FlagUpdate = flag.Bool("update", false, "update golden files")
 
 func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T, tool string) {

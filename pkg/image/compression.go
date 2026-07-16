@@ -13,11 +13,13 @@ import (
 	"sync/atomic"
 )
 
+// Total amount of images in memory and consumed memory.
+// Currently maintained only by the optimized implementation.
+// Cannot import stats package due to import cycles.
 var (
-	// Total amount of images in memory and consumed memory (in bytes).
-	// Currently maintained only by the optimized implementation.
-	// Cannot import stats package due to import cycles.
+	// StatImages is the total amount of images in memory.
 	StatImages atomic.Int64
+	// StatMemory is the total consumed memory by images in bytes.
 	StatMemory atomic.Int64
 )
 

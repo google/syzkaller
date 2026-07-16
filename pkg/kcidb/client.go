@@ -103,6 +103,7 @@ func (c *Client) PublishToFile(bug *dashapi.BugReport, filename string) error {
 	return nil
 }
 
+// Validate controls whether to run kcidb validation on generated data.
 var Validate bool
 
 func kcidbValidate(data []byte) error {

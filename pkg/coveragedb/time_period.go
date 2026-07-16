@@ -41,6 +41,7 @@ const (
 	QuarterPeriod = "quarter"
 )
 
+// AllPeriods lists all supported time period types.
 var AllPeriods = []string{DayPeriod, MonthPeriod, QuarterPeriod}
 
 var errUnknownTimePeriodType = errors.New("unknown time period type")

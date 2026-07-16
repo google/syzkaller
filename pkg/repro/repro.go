@@ -98,6 +98,7 @@ func Run(ctx context.Context, log []byte, env Environment) (*Result, *Stats, err
 	})
 }
 
+// ErrEmptyCrashLog is returned when the crash log does not contain any programs.
 var ErrEmptyCrashLog = errors.New("no programs")
 
 func runInner(ctx context.Context, crashLog []byte, env Environment, exec execInterface) (*Result, *Stats, error) {
@@ -748,6 +749,7 @@ func isHighPrioReport(typ crash.Type) bool {
 	}
 }
 
+// ErrNoVMs is returned when all VMs in the pool fail to boot.
 var ErrNoVMs = errors.New("all VMs failed to boot")
 
 func encodeEntries(entries []*prog.LogEntry) []byte {

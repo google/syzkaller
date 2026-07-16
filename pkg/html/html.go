@@ -57,6 +57,7 @@ func CreateTextGlob(glob string) *texttemplate.Template {
 		texttemplate.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
 }
 
+// Funcs is a map of helper functions used in HTML templates.
 var Funcs = template.FuncMap{
 	"link":                   link,
 	"optlink":                optlink,

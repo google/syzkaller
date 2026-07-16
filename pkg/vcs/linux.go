@@ -281,6 +281,7 @@ func ParseMaintainersLinux(text []byte) Recipients {
 	return mtrs
 }
 
+// ErrBadKconfig is returned when the Kconfig file fails to parse.
 var ErrBadKconfig = errors.New("failed to parse Kconfig")
 
 const configBisectTag = "# Minimized by syzkaller"

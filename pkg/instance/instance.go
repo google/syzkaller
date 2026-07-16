@@ -520,6 +520,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 		coverArg, optionalArg, progFile)
 }
 
+// MakeBin is the name of the make binary to use (e.g., "make" or "gmake").
 var MakeBin = func() string {
 	if runtime.GOOS == targets.FreeBSD || runtime.GOOS == targets.OpenBSD {
 		return "gmake"

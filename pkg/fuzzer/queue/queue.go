@@ -95,6 +95,7 @@ func (r *Request) Done(res *Result) {
 	close(r.done)
 }
 
+// ErrRequestAborted is returned when the execution request is aborted before completion.
 var ErrRequestAborted = errors.New("context closed while waiting the result")
 
 // Wait blocks until we have the result.

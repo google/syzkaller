@@ -37,6 +37,7 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
+// ErrTimeout is returned when a command execution times out.
 var ErrTimeout = errors.New("timedout")
 
 // Run runs cmd with the specified timeout.

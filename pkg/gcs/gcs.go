@@ -134,6 +134,7 @@ func (c *client) Publish(gcsFile string) error {
 	return obj.ACL().Set(c.ctx, storage.AllUsers, storage.RoleReader)
 }
 
+// ErrFileNotFound is returned when the requested file does not exist in GCS.
 var ErrFileNotFound = errors.New("the requested files does not exist")
 
 func (c *client) DeleteFile(gcsFile string) error {

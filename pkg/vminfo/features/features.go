@@ -129,6 +129,7 @@ func FeaturesToFlags(features flatrpc.Feature, manual Features) flatrpc.ExecEnv 
 	return flags
 }
 
+// FlatRPCFeaturesToCSource maps FlatRPC features to their corresponding C source configuration flags.
 var FlatRPCFeaturesToCSource = map[flatrpc.Feature]string{
 	flatrpc.FeatureNetInjection:    "tun",
 	flatrpc.FeatureNetDevices:      "net_dev",

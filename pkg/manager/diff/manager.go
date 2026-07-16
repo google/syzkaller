@@ -333,6 +333,7 @@ func (dc *diffContext) waitCorpusTriage(ctx context.Context, threshold float64) 
 	return ret
 }
 
+// ErrPatchedAreaNotReached is returned when the fuzzer fails to reach the patched code area within the timeout.
 var ErrPatchedAreaNotReached = errors.New("fuzzer has not reached the patched area")
 
 func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {

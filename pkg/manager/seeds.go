@@ -264,6 +264,7 @@ func MatchRequirements(props, requires map[string]bool) bool {
 	return true
 }
 
+// ErrSkippedTest is returned when a test program is skipped due to configuration constraints.
 var ErrSkippedTest = errors.New("skipped test based on constraints")
 
 func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode, reqs map[string]bool) (

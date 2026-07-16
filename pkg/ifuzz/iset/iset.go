@@ -15,6 +15,7 @@ const (
 	ArchRiscv64 = "riscv64"
 )
 
+// Arches maps architecture names to their instruction sets.
 var Arches = make(map[string]InsnSet)
 
 type (
