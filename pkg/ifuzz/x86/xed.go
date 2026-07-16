@@ -36,10 +36,10 @@ import (
 
 func init() {
 	C.xed_tables_init()
-	XedDecode = xedDecode
+	xedDecode = xedDecodeImpl
 }
 
-func xedDecode(mode int, text []byte) (int, error) {
+func xedDecodeImpl(mode int, text []byte) (int, error) {
 	xedMode := 0
 	xedAddr := 0
 	switch mode {

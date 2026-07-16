@@ -214,7 +214,7 @@ nextInsn:
 	return 0, fmt.Errorf("unknown instruction")
 }
 
-var XedDecode func(mode iset.Mode, text []byte) (int, error)
+var xedDecode func(mode iset.Mode, text []byte) (int, error)
 
 var (
 	prefixes32 = map[byte]bool{
@@ -233,10 +233,10 @@ var (
 )
 
 func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
-	if XedDecode != nil && text != nil && len(text) > 0 {
-		return XedDecode(mode, text)
+	if xedDecode != nil && text != nil && len(text) > 0 {
+		return xedDecode(mode, text)
 	}
-	if XedDecode == nil {
+	if xedDecode == nil {
 		return 0, fmt.Errorf("no XED")
 	}
 	return 0, nil // tells the caller XED is enabled
