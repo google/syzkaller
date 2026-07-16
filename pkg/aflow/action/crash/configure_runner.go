@@ -11,7 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 )
 
-var ActionConfigureRunner = aflow.NewFuncAction("configure-runner", configureRunnerAction)
+var actionConfigureRunner = aflow.NewFuncAction("configure-runner", configureRunnerAction)
 
 type ConfigureRunnerArgs struct {
 	TargetOS   string
