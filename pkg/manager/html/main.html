@@ -158,4 +158,23 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 <script>
 	var textarea = document.getElementById("log_textarea");
 	textarea.scrollTop = textarea.scrollHeight;
+
+	function refreshLog() {
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", "/log", true);
+		xhr.onload = function () {
+			if (xhr.status === 200) {
+				var atBottom = textarea.scrollTop + textarea.clientHeight >= textarea.scrollHeight - 1;
+				textarea.value = xhr.responseText;
+				if (atBottom) {
+					textarea.scrollTop = textarea.scrollHeight;
+				}
+			}
+		};
+		xhr.onloadend = function () {
+			setTimeout(refreshLog, 10000);
+		};
+		xhr.send();
+	}
+	setTimeout(refreshLog, 10000);
 </script>

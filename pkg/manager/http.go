@@ -98,6 +98,7 @@ func (serv *HTTPServer) Serve(ctx context.Context) error {
 	handle("/funccover", serv.httpFuncCover)
 	handle("/input", serv.httpInput)
 	handle("/jobs", serv.httpJobs)
+	handle("/log", serv.httpLog)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/modulecover", serv.httpModuleCover)
 	handle("/modules", serv.modulesInfo)
@@ -212,6 +213,11 @@ func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
 	executeTemplate(w, mainTemplate, data)
+}
+
+func (serv *HTTPServer) httpLog(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	io.WriteString(w, log.CachedLogOutput())
 }
 
 func availableSubsystems(subsystems, filterSubsystems []string) []string {
