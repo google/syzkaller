@@ -50,7 +50,7 @@ func PanicIfNot(results ...Result) error {
 	return nil
 }
 
-var ErrValueNotAllowed = errors.New("value is not allowed")
+var errValueNotAllowed = errors.New("value is not allowed")
 
 func Allowlisted(str string, allowlist []string, valueName ...string) Result {
 	if slices.Contains(allowlist, str) {
