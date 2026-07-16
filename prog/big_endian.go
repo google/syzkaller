@@ -7,4 +7,5 @@ package prog
 
 import "encoding/binary"
 
+// HostEndian is the byte order of the host.
 var HostEndian = binary.BigEndian

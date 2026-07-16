@@ -11,9 +11,12 @@ import (
 const defaultGitRevision = "unknown"
 
 var (
+	// GitRevision is the git revision of the syzkaller build.
 	GitRevision     = defaultGitRevision // emitted by Makefile, may contain + at the end
+	// GitRevisionBase is the git revision of the syzkaller build without the "+" suffix if any.
 	GitRevisionBase string               // without +
 	gitRevisionDate string               // emitted by Makefile
+	// GitRevisionDate is the date of the git revision.
 	GitRevisionDate time.Time            // parsed from gitRevisionDate
 )
 
