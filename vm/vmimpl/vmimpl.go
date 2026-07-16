@@ -150,11 +150,14 @@ type Type struct {
 type ctorFunc func(env *Env) (Pool, error)
 
 var (
-	// Close to interrupt all pending operations in all VMs.
+	// Shutdown is closed to interrupt all pending operations in all VMs.
 	Shutdown     = make(chan struct{})
+	// ErrTimeout is returned when an operation times out.
 	ErrTimeout   = errors.New("timeout")
+	// ErrPreempted is returned when the VM instance is preempted.
 	ErrPreempted = errors.New("instance is preempted")
 
+	// Types maps VM type names to their implementations.
 	Types = make(map[string]Type)
 )
 
@@ -167,6 +170,7 @@ func (cc CmdCloser) Close() error {
 	return cc.Wait()
 }
 
+// WaitForOutputTimeout is the timeout for waiting for output from the VM.
 var WaitForOutputTimeout = 10 * time.Second
 
 type MultiplexConfig struct {

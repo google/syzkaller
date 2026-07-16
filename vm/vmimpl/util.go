@@ -66,6 +66,7 @@ func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop <-chan e
 	}
 }
 
+// ErrCantSSH is returned when we cannot establish an SSH connection to the instance.
 var ErrCantSSH = fmt.Errorf("can't ssh into the instance")
 
 func SSHArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {

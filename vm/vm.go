@@ -68,7 +68,9 @@ type Instance struct {
 }
 
 var (
+	// Shutdown is closed to interrupt all pending operations in all VMs.
 	Shutdown   = vmimpl.Shutdown
+	// ErrTimeout is returned when an operation times out.
 	ErrTimeout = vmimpl.ErrTimeout
 )
 
