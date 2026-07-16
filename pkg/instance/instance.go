@@ -475,6 +475,12 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	// Combine repro options and default options in a way that increases chances to reproduce the crash.
 	// We always enable threaded/collide as it should be [almost] strictly better.
 	opts.Repeat, opts.Threaded = true, true
+	if inst.collectCoverage {
+		opts.Repeat = false
+		opts.Procs = 1
+		opts.NetReset = false
+		opts.RepeatTimes = 0
+	}
 	return opts, nil
 }
 
