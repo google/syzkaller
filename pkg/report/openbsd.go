@@ -49,7 +49,15 @@ var openbsdOopses = append([]*oops{
 				//     panic directly with NO __asan_ frame: kasan_mem{cpy,move,set,cmp}
 				// Plus the byte helpers (memcpy/strlcpy/copyin/...) that are callees,
 				// never the bug themselves.
-				title: compile(`Caught invalid memory access(?Us:.*)\n(?:[^\n]* at ` +
+				// On MP the initial console panic line can be interleaved
+				// character-by-character with another CPU's printf, leaving the
+				// only clean "Caught invalid memory access" inside the "show
+				// panic" output. The optional prefix lets this format start its
+				// match at the same position as the generic "show panic" format
+				// below, so it wins the position tie by list order instead of
+				// losing by one line.
+				title: compile(`(?:\nddb\{\d+\}> show panic(?Us:.*)[*]cpu\d+: )?` +
+					`Caught invalid memory access(?Us:.*)\n(?:[^\n]* at ` +
 					`(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|` +
 					`kasan_mem(?:cpy|move|set|cmp)|` +
 					`memcpy|memmove|memset|memcmp|` +
