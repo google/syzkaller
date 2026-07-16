@@ -71,7 +71,7 @@ type heroClass struct {
 	FlavorText string
 }
 
-var CuratedKingdoms = map[string]string{
+var curatedKingdoms = map[string]string{
 	"google.com":          "The Google Kingdom",
 	"chromium.org":        "The Google Kingdom",
 	"redhat.com":          "The Red Hat Kingdom",
@@ -112,7 +112,7 @@ func GetKingdom(email string) string {
 		return "The Independent Mercenaries"
 	}
 	domain := parts[1]
-	if kingdom, ok := CuratedKingdoms[domain]; ok {
+	if kingdom, ok := curatedKingdoms[domain]; ok {
 		return kingdom
 	}
 	return "The Independent Mercenaries"
@@ -234,7 +234,7 @@ func init() {
 	}
 }
 
-var HeroicAdjectives = map[byte]string{
+var heroicAdjectives = map[byte]string{
 	'a': "The Arcane",
 	'b': "The Brave",
 	'c': "The Cosmic",
@@ -303,7 +303,7 @@ func GetHeroName(email string, names map[string]int) string {
 	if firstChar >= 'A' && firstChar <= 'Z' {
 		firstChar += 'a' - 'A'
 	}
-	if adj, ok := HeroicAdjectives[firstChar]; ok {
+	if adj, ok := heroicAdjectives[firstChar]; ok {
 		return name + " " + adj
 	}
 	return name + " The Adventurer"
