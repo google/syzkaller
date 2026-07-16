@@ -29,7 +29,7 @@ import (
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/tools/clang/declextract"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/declextract"
 	"golang.org/x/sync/errgroup"
 )
 

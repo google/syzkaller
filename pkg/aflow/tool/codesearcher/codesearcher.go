@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/tools/clang/codesearch"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 var (

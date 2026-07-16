@@ -155,6 +155,9 @@ func (v *Verifier) LineRange(file string, start, end int) {
 }
 
 func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, file string) (OutputPtr, error) {
+	if !plugins[cfg.Tool] {
+		return nil, fmt.Errorf("clang tool %q is not compiled in", cfg.Tool)
+	}
 	relFile := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(filepath.Clean(file),
 		cfg.KernelSrc), cfg.KernelObj), "/")
 	// Suppress warning since we may build the tool on a different clang
@@ -170,7 +173,7 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, file stri
 	cmd := exec.Command(bin, "-p", cfg.KernelObj,
 		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file)
 	cmd.Dir = cfg.KernelObj
-	// This tells the C++ clang tool to execute in a constructor.
+	// This tells the tool (via Register()) to execute as a clang plugin.
 	cmd.Env = append([]string{fmt.Sprintf("%v=%v", runToolEnv, cfg.Tool)}, os.Environ()...)
 	data, err := cmd.Output()
 	if err != nil {
@@ -197,11 +200,21 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, file stri
 
 const runToolEnv = "SYZ_RUN_CLANGTOOL"
 
+var plugins = make(map[string]bool)
+
 func init() {
-	// The C++ clang tool was supposed to intercept execution in a constructor,
-	// execute and exit. If we got here with the env var set, something is wrong.
-	if name := os.Getenv(runToolEnv); name != "" {
-		panic(fmt.Sprintf("clang tool %q is not compiled in", name))
+	// Register is used in CGO plugins that may be ignored by deadcode.
+	runtime.KeepAlive(Register)
+}
+
+// Register registers a clang tool plugin.
+// If the current process was executed to run this specific tool, Register
+// will execute it immediately and exit the process.
+func Register(name string, f func()) {
+	plugins[name] = true
+	if os.Getenv(runToolEnv) == name {
+		f()
+		os.Exit(0)
 	}
 }
 

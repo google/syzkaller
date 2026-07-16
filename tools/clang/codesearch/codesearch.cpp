@@ -402,8 +402,6 @@ static int Main(int argc, const char** argv) {
   return 0;
 }
 
-__attribute__((constructor)) static void ctor(int argc, const char** argv) {
-  const char* run = getenv("SYZ_RUN_CLANGTOOL");
-  if (run && !strcmp(run, "codesearch"))
-    exit(Main(argc, argv));
+extern "C" {
+int syz_codesearch_main(int argc, char** argv) { return Main(argc, (const char**)argv); }
 }
