@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ToolDirIndex = aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
+	toolDirIndex = aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
 Tool provides list of source files and subdirectories in the given directory in the source tree.
 `)
 
@@ -22,7 +22,7 @@ If you need more, you need to call the tool several times. But avoid fetching la
 with lots of repetitive calls if possible.
 `)
 
-	FilesystemTools = []aflow.Tool{ToolDirIndex, ToolReadFile}
+	FilesystemTools = []aflow.Tool{toolDirIndex, ToolReadFile}
 )
 
 type fsState struct {

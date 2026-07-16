@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ToolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
+	toolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
 Use it to understand what other things of interest exist in a file.
@@ -61,7 +61,7 @@ a field in the output, it is NOT present in the struct definition
 You can strictly trust the response to be complete and accurate.
 `)
 
-	Tools = []aflow.Tool{ToolDirIndex, ToolReadFile, ToolFileIndex, ToolDefinitionComment,
+	Tools = []aflow.Tool{toolDirIndex, ToolReadFile, toolFileIndex, ToolDefinitionComment,
 		ToolDefinitionSource, ToolFindReferences, ToolStructLayout}
 )
 
