@@ -55,7 +55,7 @@ func FormatCFunc(ctx *aflow.Context, args FormatCArgs) (FormatCResult, error) {
 	return FormatCResult{FormattedReproC: string(formatted)}, nil
 }
 
-var FormatC = aflow.NewFuncAction("format-c", FormatCFunc)
+var formatC = aflow.NewFuncAction("format-c", FormatCFunc)
 
 type CompileCProgArgs struct {
 	TargetOS               string
@@ -105,7 +105,7 @@ func CompileCProgFunc(ctx *aflow.Context, args CompileCProgArgs) (CompileCProgRe
 	}, nil
 }
 
-var CompileCProg = aflow.NewFuncAction("compile-c-prog", CompileCProgFunc)
+var compileCProg = aflow.NewFuncAction("compile-c-prog", CompileCProgFunc)
 
 const raceToolkitInclude = `#include "race_toolkit.h"`
 
@@ -139,7 +139,7 @@ func MergeReproCFunc(ctx *aflow.Context, args MergeReproCArgs) (MergeReproCResul
 	return MergeReproCResult{CurrentCandidateReproC: args.RawCandidateReproC}, nil
 }
 
-var MergeReproC = aflow.NewFuncAction("merge-repro-c", MergeReproCFunc)
+var mergeReproC = aflow.NewFuncAction("merge-repro-c", MergeReproCFunc)
 
 type TruncateLogArgs struct {
 	ConsoleOutput        string
@@ -174,7 +174,7 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 	}, nil
 }
 
-var TruncateLog = aflow.NewFuncAction("truncate-log", TruncateLogFunc)
+var truncateLog = aflow.NewFuncAction("truncate-log", TruncateLogFunc)
 
 // OracleResult represents the result of the Oracle evaluation.
 //
@@ -264,7 +264,7 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 	return res, nil
 }
 
-var LoopController = aflow.NewFuncAction("loop-controller", LoopControllerFunc)
+var loopController = aflow.NewFuncAction("loop-controller", LoopControllerFunc)
 
 type GeneratorValidationState struct {
 	CapabilitiesVerified bool `json:",omitempty"`
@@ -320,7 +320,7 @@ func ExpandToolkitFunc(ctx *aflow.Context, args ExpandToolkitArgs) (ExpandToolki
 	return ExpandToolkitResult{CandidateReproC: repro}, nil
 }
 
-var ExpandToolkit = aflow.NewFuncAction("expand-toolkit", ExpandToolkitFunc)
+var expandToolkit = aflow.NewFuncAction("expand-toolkit", ExpandToolkitFunc)
 
 type MergeStrategyArgs struct {
 	InitialReproStrategy string
@@ -338,7 +338,7 @@ func MergeStrategyFunc(ctx *aflow.Context, args MergeStrategyArgs) (MergeStrateg
 	return MergeStrategyResult{CurrentReproStrategy: args.InitialReproStrategy}, nil
 }
 
-var MergeStrategy = aflow.NewFuncAction("merge-strategy", MergeStrategyFunc)
+var mergeStrategy = aflow.NewFuncAction("merge-strategy", MergeStrategyFunc)
 
 type SaveReproCArgs struct {
 	Reproduced bool
@@ -362,7 +362,7 @@ func SaveReproCFunc(ctx *aflow.Context, args SaveReproCArgs) (SaveReproCResult, 
 	return SaveReproCResult{}, nil
 }
 
-var SaveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
+var saveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
 
 func init() {
 	tools := aflow.Tools(common.CodeAccessToolsWithGit(false), toolkit.ToolGetToolkit)
@@ -402,7 +402,7 @@ func init() {
 								Tools:       tools,
 							},
 						},
-						MergeStrategy,
+						mergeStrategy,
 						&aflow.LLMAgent{
 							Name:        "repro-generator",
 							Model:       aflow.BestExpensiveModel,
@@ -416,8 +416,8 @@ func init() {
 							MaxIterations: 3,
 							While:         "CompilerError",
 							Do: aflow.Pipeline(
-								MergeReproC,
-								CompileCProg,
+								mergeReproC,
+								compileCProg,
 								&aflow.If{
 									Condition: "CompilerError",
 									Do: &aflow.LLMAgent{
@@ -433,7 +433,7 @@ func init() {
 							),
 						},
 						crash.RunCRepro,
-						TruncateLog,
+						truncateLog,
 						&aflow.LLMAgent{
 							Name:        "repro-oracle",
 							Model:       aflow.BestExpensiveModel,
@@ -443,10 +443,10 @@ func init() {
 							Prompt:      oraclePrompt,
 							Tools:       tools,
 						},
-						LoopController,
+						loopController,
 					),
 				},
-				SaveReproC,
+				saveReproC,
 			),
 		},
 	)
