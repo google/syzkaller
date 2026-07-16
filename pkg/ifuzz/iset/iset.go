@@ -63,7 +63,7 @@ const (
 	TypeLast
 )
 
-var SpecialNumbers = [...]uint64{0, 1 << 15, 1 << 16, 1 << 31, 1 << 32, 1 << 47, 1 << 47, 1 << 63}
+var specialNumbers = [...]uint64{0, 1 << 15, 1 << 16, 1 << 31, 1 << 32, 1 << 47, 1 << 47, 1 << 63}
 
 type ModeInsns [ModeLast][TypeLast][]Insn
 
@@ -118,7 +118,7 @@ func GenerateInt(cfg *Config, r *rand.Rand, size int) uint64 {
 	case x < 30:
 		v = uint64(r.Int63())
 	case x < 40:
-		v = SpecialNumbers[r.Intn(len(SpecialNumbers))]
+		v = specialNumbers[r.Intn(len(specialNumbers))]
 		if r.Intn(5) == 0 {
 			v += uint64(r.Intn(33)) - 16
 		}
