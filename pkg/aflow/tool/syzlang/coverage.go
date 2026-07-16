@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	CoverageFiles = aflow.NewFuncTool("get-coverage-files", getCoverageFiles, `
+	coverageFiles = aflow.NewFuncTool("get-coverage-files", getCoverageFiles, `
 Tool returns a list of source files that were covered during a crash reproducer run.
 The list is deduplicated and sorted, presenting a high-level summary of the covered code regions.
 `)
@@ -29,7 +29,7 @@ Covered lines are prefixed with '* '.
 If the total output exceeds the maximum line limit, it will be truncated. Use 'Functions' to narrow down your request.
 `)
 
-	Coverage = []aflow.Tool{CoverageFiles, FileCoverage}
+	Coverage = []aflow.Tool{coverageFiles, FileCoverage}
 )
 
 type CoverageFilesArgs struct {
