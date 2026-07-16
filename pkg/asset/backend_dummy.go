@@ -64,7 +64,7 @@ func (be *dummyStorageBackend) downloadURL(path string, publicURL bool) (string,
 
 func (be *dummyStorageBackend) getPath(url string) (string, error) {
 	if strings.HasPrefix(url, "http://unknown-bucket/") {
-		return "", ErrUnknownBucket
+		return "", errUnknownBucket
 	}
 	if after, ok := strings.CutPrefix(url, "http://download/"); ok {
 		return after, nil
@@ -90,7 +90,7 @@ func (be *dummyStorageBackend) remove(path string) error {
 		}
 	}
 	if _, ok := be.objects[path]; !ok {
-		return ErrAssetDoesNotExist
+		return errAssetDoesNotExist
 	}
 	delete(be.objects, path)
 	return nil

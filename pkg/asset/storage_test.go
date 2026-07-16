@@ -297,7 +297,7 @@ func TestAssetStorageConfiguration(t *testing.T) {
 	htmlContent := []byte("<html><head><title>Hi!</title></head></html>")
 	err = storage.sendBuildAsset(bytes.NewReader(htmlContent), "cover_report.html",
 		dashapi.HTMLCoverageReport, build)
-	if !errors.Is(err, ErrAssetTypeDisabled) {
+	if !errors.Is(err, errAssetTypeDisabled) {
 		t.Fatalf("UploadBuildAssetStream expected to fail with ErrAssetTypeDisabled, but got %v", err)
 	}
 
@@ -361,7 +361,7 @@ func TestTwoBucketDeprecation(t *testing.T) {
 
 	// Dashboard returns two asset URLs.
 	dash.downloadURLs = map[string]bool{
-		"http://unknown-bucket/other-folder/other-file.txt": true, // will cause ErrUnknownBucket
+		"http://unknown-bucket/other-folder/other-file.txt": true, // will cause errUnknownBucket
 		url: true,
 	}
 	dummy.objectRemove = func(url string) error {

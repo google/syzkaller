@@ -82,7 +82,7 @@ type ExtraUploadArg struct {
 	SkipIfExists bool
 }
 
-var ErrAssetTypeDisabled = errors.New("uploading assets of this type is disabled")
+var errAssetTypeDisabled = errors.New("uploading assets of this type is disabled")
 
 func (storage *Storage) assetPath(name string, extra *ExtraUploadArg) string {
 	folderName := ""
@@ -112,7 +112,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 	}
 	if !storage.AssetTypeEnabled(assetType) {
 		return "", fmt.Errorf("not allowed to upload an asset of type %s: %w",
-			assetType, ErrAssetTypeDisabled)
+			assetType, errAssetTypeDisabled)
 	}
 	path := storage.assetPath(name, extra)
 	req := &uploadRequest{
@@ -201,7 +201,7 @@ func (storage *Storage) UploadCrashAsset(reader io.Reader, fileName string, asse
 	}, nil
 }
 
-var ErrAssetDoesNotExist = errors.New("the asset did not exist")
+var errAssetDoesNotExist = errors.New("the asset did not exist")
 
 type FileExistsError struct {
 	// The path gets changed by wrappers, so we need to return it back.
@@ -212,7 +212,7 @@ func (e *FileExistsError) Error() string {
 	return fmt.Sprintf("asset exists: %s", e.Path)
 }
 
-var ErrUnknownBucket = errors.New("the asset is not in the currently managed bucket")
+var errUnknownBucket = errors.New("the asset is not in the currently managed bucket")
 
 const deletionEmbargo = time.Hour * 24 * 7
 
@@ -233,7 +233,7 @@ func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 	needed := map[string]bool{}
 	for _, url := range resp.DownloadURLs {
 		path, err := storage.backend.getPath(url)
-		if err == ErrUnknownBucket {
+		if err == errUnknownBucket {
 			// The asset is not managed by the particular instance.
 			continue
 		} else if err != nil {
@@ -281,7 +281,7 @@ func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 		storage.tracer.Logf("-- deleted %v: %v", path, err)
 		// Several syz-ci's might be sharing the same storage. So let's tolerate
 		// races during file deletion.
-		if err != nil && err != ErrAssetDoesNotExist {
+		if err != nil && err != errAssetDoesNotExist {
 			return stats, fmt.Errorf("asset deletion failure: %w", err)
 		}
 	}

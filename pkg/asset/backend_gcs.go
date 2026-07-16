@@ -99,7 +99,7 @@ func (csb *cloudStorageBackend) getPath(downloadURL string) (string, error) {
 	}
 	prefix := "/" + csb.bucket + "/"
 	if !strings.HasPrefix(u.Path, prefix) {
-		return "", ErrUnknownBucket
+		return "", errUnknownBucket
 	}
 	return u.Path[len(prefix):], nil
 }
@@ -112,7 +112,7 @@ func (csb *cloudStorageBackend) remove(path string) error {
 	path = fmt.Sprintf("%s/%s", csb.bucket, path)
 	err := csb.client.DeleteFile(path)
 	if err == gcs.ErrFileNotFound {
-		return ErrAssetDoesNotExist
+		return errAssetDoesNotExist
 	}
 	return err
 }

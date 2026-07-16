@@ -43,5 +43,5 @@ func TestCloudParsePaths(t *testing.T) {
 	assert.ErrorContains(t, err, `not allowed host: unknown-host.com`)
 	// Error: unknown bucket.
 	_, err = obj.getPath(`https://storage.cloud.google.com/not_my_bucket/folder/file.txt`)
-	assert.ErrorIs(t, err, ErrUnknownBucket)
+	assert.ErrorIs(t, err, errUnknownBucket)
 }
