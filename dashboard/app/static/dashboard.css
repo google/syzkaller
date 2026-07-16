@@ -1,0 +1,196 @@
+/*
+ * Dashboard-Specific Styling & Bootstrap Integration stylesheet.
+ * 
+ * DESIGN ARCHITECTURE:
+ * This stylesheet imports Bootstrap 5 to support responsive navigation bars (such as
+ * collapsible mobile menus and interactive dropdowns) while ensuring the legacy page content
+ * (tables, logs, text blocks) remains styled exactly as it originally was.
+ */
+
+/* 
+ * CSS CASCADE LAYERS DECLARATION
+ * 
+ * Declares the layers hierarchy. CSS Cascade Layers allow us to control style specificity.
+ * Precedence Order (Lowest to Highest):
+ *   - 'bootstrap' layer: Holds all standard Bootstrap rules.
+ *   - 'reset' layer: Reverts global tag overrides set by Bootstrap Reboot.
+ *   - Unlayered styles (everything else in this file and style.css): Always overrides layered rules.
+ */
+@layer bootstrap, reset;
+
+/* 
+ * BOOTSTRAP LIBRARY IMPORT
+ * 
+ * Imports Bootstrap 5 compiled CSS locally and confines its rules 
+ * to the 'bootstrap' layer. This prevents Bootstrap's Reboot defaults (which reset
+ * global tags like body, table, h1, a) from overriding our custom styles in style.css.
+ */
+@import url("/static/bootstrap.min.css") layer(bootstrap);
+
+/*
+ * BOOTSTRAP REBOOT RESET LAYER
+ * 
+ * Bootstrap Reboot automatically overrides default browser styles for elements like 
+ * tables, headers, and inputs. Since we only want Bootstrap for the header navigation bar,
+ * this block reverts those tag changes back to their default browser values, preventing
+ * rendering differences across the rest of the dashboard pages.
+ */
+@layer reset {
+	/* Revert Bootstrap Reboot changes for global tags back to browser defaults.
+	   We use :not() to protect the new Bootstrap-based header and its sub-navigation bar. */
+	:is(h1, h2, h3, h4, h5, h6, p, ol, ul, table, caption, th, td, input, button, select, textarea, pre, code):not(#topbar *, .sub-nav *) {
+		all: revert;
+	}
+
+	/* Specifically revert layout properties for common tags that Bootstrap modifies,
+	   ensuring legacy rows (like filesystem navigation) don't become too high. */
+	:is(div, pre, span):not(#topbar *, .sub-nav *) {
+		box-sizing: content-box;
+		line-height: normal;
+	}
+
+	/* Revert global anchor link resets so default browser/legacy link styling applies */
+	:is(a, a:visited):not(#topbar *, .sub-nav *) {
+		color: revert;
+		text-decoration: revert;
+	}
+}
+/*
+ * TOPBAR CONTAINER DISPLAY
+ * 
+ * Configures the topbar container to stretch with overflowing page layouts.
+ */
+#topbar {
+	display: table;
+	width: 100%;
+	margin-bottom: 20px;
+}
+/*
+ * SUB-NAVIGATION PILLS BAR
+ * 
+ * Styles the secondary navigation tabs bar ("Open", "Fixed", "Graphs", "Coverage", etc.) 
+ * to look exactly like the original non-Bootstrap tabs while using Bootstrap's nav pills elements.
+ */
+.sub-nav {
+	padding-top: 15px;
+	padding-bottom: 6px;
+	display: table;
+	width: 100%;
+}
+
+/* Resets list margins/paddings on navigation container list */
+.sub-nav .nav-pills {
+	margin: 0;
+	padding-left: 0;
+	padding-right: 0;
+	width: 100%;
+	flex-wrap: nowrap; /* Enforce single line layout even on narrow mobile screens */
+}
+
+/* Sets default margin spacing around tab items and prevents shrinking on small screens */
+.sub-nav .nav-item {
+	margin: 4px;
+	flex-shrink: 0;
+	display: flex; /* Make the li a flex container to stretch the nested link */
+}
+
+/* Align first navigation tab with the topbar logo */
+.sub-nav .nav-item:first-child {
+	margin-left: 0;
+}
+
+/* Align last navigation tab (Send us feedback) with topbar right links */
+.sub-nav .nav-item:last-child {
+	margin-right: 0;
+}
+
+/* Styles default, unselected tab link buttons */
+.sub-nav .nav-link {
+	padding: 4px;
+	border: 1px solid black;
+	border-radius: 0; /* Keeps original rectangular borders */
+	color: #375EAB;
+	font-weight: normal;
+	display: flex; /* Change from inline-flex to flex to stretch inside the li */
+	align-items: center;
+	background-color: transparent;
+}
+
+/* Hover style for default tab links */
+.sub-nav .nav-link:hover {
+	background-color: #ddd;
+}
+
+/* Styles the currently active tab (selected tab) */
+.sub-nav .nav-link.active {
+	font-weight: bold;
+	border: 3px solid black; /* Thicker border indicates selection */
+	padding: 2px; /* Adjusted padding to compensate for thicker border */
+	background-color: transparent;
+	color: #375EAB;
+}
+
+/*
+ * TOPBAR BRAND LOGO & SYSTEM SELECT DROPDOWN
+ * 
+ * Re-applies legacy styling rules for topbar elements to preserve exact fonts 
+ * and font sizes.
+ */
+/* Brand logo ("syzbot") link styling */
+#topbar .navbar-brand, #topbar .navbar-brand:visited {
+	font-family: inherit;
+	font-weight: bold;
+	color: #375EAB;
+	font-size: 32px;
+	padding: 0;
+	margin: 0;
+}
+
+/* Target system selector dropdown list */
+#topbar select.namespace {
+	font-family: Arial, sans-serif;
+	font-size: 18px;
+	font-weight: bold;
+	color: #375EAB;
+	margin-left: 20px;
+}
+
+/*
+ * TOPBAR EXTERNAL LINKS
+ * 
+ * Align external links (mailing list, source, docs, sign-in) located in the 
+ * top-right corner.
+ */
+.topbar-links {
+	font-size: 16px;
+	color: #375EAB;
+	align-self: flex-start;
+	padding-top: 5px;
+}
+
+.topbar-links a {
+	color: #375EAB;
+	text-decoration: none;
+}
+
+/*
+ * GLOBAL BODY LAYOUT ADJUSTMENTS
+ * 
+ * Restores browser defaults for typography and margin that Bootstrap Reboot overrides.
+ * Also configures min-width to ensure the body stretches to fit wide tables, which
+ * prevents the topbar header from being cut off on narrow viewports.
+ */
+body {
+	font-family: revert;
+	font-size: revert;
+	line-height: normal; /* Restore standard vertical spacing layout */
+	margin: revert;
+	color: black;
+	min-width: fit-content; /* Ensure body stretches to fit wide tables, preventing header cutoffs */
+}
+
+/* Override legacy `#topbar a` rule to ensure active dropdown links render with white text */
+#topbar .dropdown-item.active,
+#topbar .dropdown-item:active {
+	color: #fff;
+}
