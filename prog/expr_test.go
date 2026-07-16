@@ -134,7 +134,7 @@ func TestEvaluateConditionalFields(t *testing.T) {
 			}
 			for _, bad := range test.bad {
 				_, err := target.Deserialize([]byte(bad), Strict)
-				assert.ErrorIs(tt, err, ErrViolatedConditions,
+				assert.ErrorIs(tt, err, errViolatedConditions,
 					"prog: %s", bad)
 			}
 		})

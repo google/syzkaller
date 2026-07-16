@@ -26,10 +26,10 @@ const maxBlobLen = uint64(100 << 10)
 // noMutate:    Set of IDs of syscalls which should not be mutated.
 // corpus:      The entire corpus, including original program p.
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool, corpus []*Prog) {
-	p.MutateWithOpts(rs, ncalls, ct, noMutate, corpus, DefaultMutateOpts)
+	p.MutateWithOpts(rs, ncalls, ct, noMutate, corpus, defaultMutateOpts)
 }
 
-var DefaultMutateOpts = MutateOpts{
+var defaultMutateOpts = MutateOpts{
 	ExpectedIterations: 5,
 	MutateArgCount:     3,
 

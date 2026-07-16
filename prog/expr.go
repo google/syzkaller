@@ -179,7 +179,7 @@ func (p *Prog) checkConditions() error {
 	return nil
 }
 
-var ErrViolatedConditions = errors.New("conditional fields rules violation")
+var errViolatedConditions = errors.New("conditional fields rules violation")
 
 func (c *Call) checkConditions(target *Target, ignoreTransient bool) error {
 	var ret error
@@ -189,7 +189,7 @@ func (c *Call) checkConditions(target *Target, ignoreTransient bool) error {
 				return
 			}
 			ret = fmt.Errorf("%w union %s field is #%d(%s), but %v satisfy conditions",
-				ErrViolatedConditions, t.Name(), a.Index, t.Fields[a.Index].Name,
+				errViolatedConditions, t.Name(), a.Index, t.Fields[a.Index].Name,
 				okIndices)
 		})
 	return ret

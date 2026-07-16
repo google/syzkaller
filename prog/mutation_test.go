@@ -151,7 +151,7 @@ func TestMutateArgument(t *testing.T) {
 					ncalls: 2 * len(p.Calls),
 					ct:     ct,
 					corpus: nil,
-					opts:   DefaultMutateOpts,
+					opts:   defaultMutateOpts,
 				}
 				ctx.mutateArg()
 				data1 := p1.Serialize()
@@ -178,7 +178,7 @@ func TestMutateNoSquash(t *testing.T) {
 		r:      r,
 		ncalls: 1,
 		ct:     target.DefaultChoiceTable(),
-		opts:   DefaultMutateOpts,
+		opts:   defaultMutateOpts,
 	}
 
 	// squashAny should not mutate the program.
@@ -205,7 +205,7 @@ func TestSizeMutateArg(t *testing.T) {
 				ncalls: 2 * len(p.Calls),
 				ct:     ct,
 				corpus: nil,
-				opts:   DefaultMutateOpts,
+				opts:   defaultMutateOpts,
 			}
 			ctx.mutateArg()
 			ForeachArg(p.Calls[0], func(arg Arg, ctx *ArgCtx) {
