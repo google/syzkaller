@@ -302,7 +302,7 @@ func (ctx *Context) finishSpan(span *trajectory.Span, spanErr error) error {
 
 var (
 	errRunnerNotInitialized     = errors.New("RunnerManager is not initialized (requires configure-runner)")
-	ErrRunnerAlreadyInitialized = errors.New("RunnerManager is already initialized")
+	errRunnerAlreadyInitialized = errors.New("RunnerManager is already initialized")
 )
 
 // InitRunnerManager initializes the continuous RunnerManager. It must be called exactly once per flow.
@@ -310,7 +310,7 @@ func (ctx *Context) InitRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, er
 	ctx.runnerMu.Lock()
 	defer ctx.runnerMu.Unlock()
 	if ctx.runnerManager != nil {
-		return nil, ErrRunnerAlreadyInitialized
+		return nil, errRunnerAlreadyInitialized
 	}
 	runnerCtx, cancel := context.WithCancel(ctx.Context)
 	eg, egCtx := errgroup.WithContext(runnerCtx)
