@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/tools/clang/declextract"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/declextract"
 )
 
 func TestClangTool(t *testing.T) {
