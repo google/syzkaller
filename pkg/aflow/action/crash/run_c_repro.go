@@ -35,6 +35,7 @@ type RunCReproResult struct {
 	TestError            string
 }
 
+// RunCRepro is an action that runs a C reproducer and returns the execution results.
 var RunCRepro = aflow.NewFuncAction("run-c-repro", RunCReproFunc)
 
 func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, error) {

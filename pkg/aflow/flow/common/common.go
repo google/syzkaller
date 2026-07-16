@@ -9,6 +9,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 )
 
+// CodeAccessTools is a set of tools for accessing source code.
 var CodeAccessTools = CodeAccessToolsWithGit(true)
 
 func CodeAccessToolsWithGit(enableGit bool) []aflow.Tool {

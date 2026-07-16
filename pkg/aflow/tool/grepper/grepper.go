@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+// Tool is the grepper tool.
 var Tool = aflow.NewFuncTool("grepper", grepper, `
 The tool executes git grep on the kernel sources and returns the output.
 The codesearch set of tools provide more precise results,

@@ -13,6 +13,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
+// Reproduce is a tool to verify if a syz program reproduces a crash.
 var Reproduce = aflow.NewFuncTool("reproduce-crash", reproduce, `
 Tool evaluates whether the given syz repro program crashes the kernel.
 It will compile the program and execute it in a VM.

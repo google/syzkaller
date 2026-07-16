@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	// ToolGetToolkit is a tool to retrieve specialized C helper macros and snippets.
 	ToolGetToolkit = aflow.NewFuncTool("get-toolkit", getToolkit, `
 Tool provides a specialized toolkit of C macros and snippets for a given name.
 Available toolkits:

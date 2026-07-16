@@ -23,6 +23,7 @@ func DescriptionFiles() []string {
 	return files
 }
 
+// ReadDescription is a tool to read syzlang description files.
 var ReadDescription = aflow.NewFuncTool("read-description", readDescription, `
 The tool reads the content of a syzlang description file (e.g. sys.txt, socket.txt, etc).
 Description files contain syscall definitions and related types.

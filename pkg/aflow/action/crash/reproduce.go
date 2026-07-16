@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// ErrDidNotCrash is returned when the reproducer fails to trigger a crash.
 var ErrDidNotCrash = errors.New("reproducer did not crash")
 
 // Reproduce action tries to reproduce a crash with the given reproducer,

@@ -39,6 +39,7 @@ type FlowType struct {
 	extractOutputs func(map[string]any) map[string]any
 }
 
+// Flows is a map of registered workflows.
 var Flows = make(map[string]*Flow)
 
 // Register a workflow type (characterized by Inputs and Outputs),

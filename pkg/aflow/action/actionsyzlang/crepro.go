@@ -14,6 +14,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
+// CreateSimplifiedCRepro is an action to create a simplified C reproducer from a syz program.
 var CreateSimplifiedCRepro = aflow.NewFuncAction("syz-repro-to-c-repro", createCRepro)
 
 type createCReproArgs struct {

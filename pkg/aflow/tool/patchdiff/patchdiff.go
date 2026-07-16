@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+// Tool is the patchdiff tool.
 var Tool = aflow.NewFuncTool("patch-diff", patchDiff, `
 The tool executes 'git diff' to show the changes you have made so far.
 Because other source code viewing tools only show the original code,

@@ -11,6 +11,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
+// Format is an action to format a syzlang program.
 var Format = aflow.NewFuncAction("syzlang-format", formatActionFunc)
 
 type FormatArgs struct {

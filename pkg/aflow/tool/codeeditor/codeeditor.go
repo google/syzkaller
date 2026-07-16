@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+// Tool is the codeeditor tool.
 var Tool = aflow.NewFuncTool("codeeditor", codeeditor, `
 The tool does one source code edit to form the final patch by replacing full lines
 with new provided lines. If new code is empty, current lines will be deleted.
