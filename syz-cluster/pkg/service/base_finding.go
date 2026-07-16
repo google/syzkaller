@@ -28,6 +28,7 @@ func NewBaseFindingService(env *app.AppEnvironment) *BaseFindingService {
 	}
 }
 
+// ErrBuildNotFound is returned when the specified build cannot be found.
 var ErrBuildNotFound = errors.New("build not found")
 
 func (s *BaseFindingService) Upload(ctx context.Context, info *api.BaseFindingInfo) error {

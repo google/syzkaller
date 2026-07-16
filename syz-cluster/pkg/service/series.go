@@ -103,6 +103,7 @@ func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*
 	}, nil
 }
 
+// ErrSeriesNotFound is returned when the specified series cannot be found.
 var ErrSeriesNotFound = errors.New("series not found")
 
 func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Series, error) {

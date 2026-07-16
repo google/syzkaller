@@ -42,6 +42,7 @@ func (repo *ReportReplyRepository) FindParentReportID(ctx context.Context, repor
 	return "", nil
 }
 
+// ErrReportReplyExists is returned when trying to record a reply that already exists.
 var ErrReportReplyExists = errors.New("the reply has already been recorded")
 
 func (repo *ReportReplyRepository) Insert(ctx context.Context, reply *ReportReply) error {

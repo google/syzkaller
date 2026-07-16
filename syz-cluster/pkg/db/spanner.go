@@ -106,6 +106,7 @@ func (g *genericEntityOps[EntityType, KeyType]) GetByID(ctx context.Context, key
 	return readEntity[EntityType](ctx, g.client.Single(), stmt)
 }
 
+// ErrEntityNotFound is returned when the requested entity is not found in the database.
 var ErrEntityNotFound = errors.New("entity not found")
 
 func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key KeyType,

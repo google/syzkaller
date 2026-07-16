@@ -38,6 +38,7 @@ func NewReportService(env *app.AppEnvironment) *ReportService {
 	}
 }
 
+// ErrReportNotFound is returned when the specified report cannot be found.
 var ErrReportNotFound = errors.New("report is not found")
 
 func (rs *ReportService) Confirm(ctx context.Context, id string) error {
@@ -54,6 +55,7 @@ func (rs *ReportService) Confirm(ctx context.Context, id string) error {
 	return err
 }
 
+// ErrNotOnModeration is returned when trying to upstream a report that is not on moderation.
 var ErrNotOnModeration = errors.New("the report is not on moderation")
 
 func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.UpstreamReportReq) error {

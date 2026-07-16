@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrPatchTooLarge is returned when the provided patch exceeds the size limit.
 var ErrPatchTooLarge = errors.New("patch is too large")
 
 type JobService struct {

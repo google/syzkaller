@@ -28,6 +28,7 @@ func NewSessionRepository(client *spanner.Client) *SessionRepository {
 	}
 }
 
+// ErrSessionAlreadyStarted is returned when trying to start a session that has already been started.
 var ErrSessionAlreadyStarted = errors.New("the session already started")
 
 func (repo *SessionRepository) Start(ctx context.Context, sessionID string) error {

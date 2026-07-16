@@ -12,6 +12,7 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// ErrJobExists is returned when trying to create a job that already exists.
 var ErrJobExists = errors.New("the job already exists")
 
 type JobRepository struct {

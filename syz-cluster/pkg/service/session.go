@@ -35,6 +35,7 @@ func NewSessionService(env *app.AppEnvironment) *SessionService {
 	}
 }
 
+// ErrSessionNotFound is returned when the specified session cannot be found.
 var ErrSessionNotFound = errors.New("session not found")
 
 func (s *SessionService) TriageResult(ctx context.Context, sessionID string, req *api.UploadTriageResultReq) error {

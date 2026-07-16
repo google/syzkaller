@@ -210,6 +210,7 @@ func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.List
 	return ret, nil
 }
 
+// ErrFindingNotFound is returned when the specified finding cannot be found.
 var ErrFindingNotFound = fmt.Errorf("finding not found")
 
 func (s *FindingService) Get(ctx context.Context, id string) (*api.RawFinding, error) {

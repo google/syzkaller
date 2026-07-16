@@ -51,6 +51,7 @@ func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Se
 	})
 }
 
+// ErrSeriesExists is returned when trying to insert a series that already exists.
 var ErrSeriesExists = errors.New("the series already exists")
 
 // Insert checks whether there already exists a series with the same ExtID.
