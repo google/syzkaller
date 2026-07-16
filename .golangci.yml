@@ -133,6 +133,13 @@ linters:
         disabled: true
       - name: argument-limit
         arguments: [ 7 ]
+      - name: exported
+        arguments:
+        - "disable-checks-on-types"
+        - "disable-checks-on-methods"
+        - "disable-checks-on-functions"
+        - "disable-checks-on-constants"
+        - "disableStutteringCheck"
     staticcheck:
       checks:
       - all
