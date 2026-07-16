@@ -21,7 +21,7 @@ Tool returns a list of source files that were covered during a crash reproducer 
 The list is deduplicated and sorted, presenting a high-level summary of the covered code regions.
 `)
 
-	FileCoverage = aflow.NewFuncTool("get-file-coverage", getFileCoverage, `
+	fileCoverage = aflow.NewFuncTool("get-file-coverage", getFileCoverage, `
 Tool evaluates code coverage for a specific file and returns coverage snippets highlighting the executed lines.
 By default, it will dump the executed source lines with short context for each function that had hits.
 You can use the 'Functions' argument to request snippets for a specific subset of functions.
@@ -29,7 +29,8 @@ Covered lines are prefixed with '* '.
 If the total output exceeds the maximum line limit, it will be truncated. Use 'Functions' to narrow down your request.
 `)
 
-	Coverage = []aflow.Tool{coverageFiles, FileCoverage}
+	// Coverage contains all tools related to coverage analysis.
+	Coverage = []aflow.Tool{coverageFiles, fileCoverage}
 )
 
 type CoverageFilesArgs struct {
