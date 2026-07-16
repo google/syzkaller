@@ -301,7 +301,7 @@ func (ctx *Context) finishSpan(span *trajectory.Span, spanErr error) error {
 }
 
 var (
-	ErrRunnerNotInitialized     = errors.New("RunnerManager is not initialized (requires configure-runner)")
+	errRunnerNotInitialized     = errors.New("RunnerManager is not initialized (requires configure-runner)")
 	ErrRunnerAlreadyInitialized = errors.New("RunnerManager is already initialized")
 )
 
@@ -337,7 +337,7 @@ func (ctx *Context) GetRunnerManager() (*RunnerManager, error) {
 	ctx.runnerMu.Lock()
 	defer ctx.runnerMu.Unlock()
 	if ctx.runnerManager == nil {
-		return nil, ErrRunnerNotInitialized
+		return nil, errRunnerNotInitialized
 	}
 	return ctx.runnerManager, nil
 }
