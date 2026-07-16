@@ -8,8 +8,10 @@ import (
 	_ "embed"
 )
 
+// ProgramSyntax contains the documentation for syzkaller program syntax.
 //go:embed program_syntax.md
 var ProgramSyntax string
 
+// SyscallDescriptionsSyntax contains the documentation for syzkaller syscall descriptions syntax.
 //go:embed syscall_descriptions_syntax.md
 var SyscallDescriptionsSyntax string
