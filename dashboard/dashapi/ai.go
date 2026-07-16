@@ -156,6 +156,7 @@ type ConfirmPublishedReq struct {
 	PublishedExtID string
 }
 
+// ErrReportNotFound is returned when the specified report cannot be found.
 var ErrReportNotFound = errors.New("report not found")
 
 func (dash *Dashboard) AIReportCommand(req *SendExternalCommandReq) (*SendExternalCommandResp, error) {

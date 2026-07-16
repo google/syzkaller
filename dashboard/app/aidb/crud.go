@@ -31,7 +31,10 @@ const (
 	Database = "ai"
 )
 
+// ErrNotFound is returned when a requested entity is not found in the database.
 var ErrNotFound = errors.New("entity not found")
+
+// ErrDuplicateComment is returned when trying to add a duplicate comment to a job.
 var ErrDuplicateComment = errors.New("duplicate job comment")
 
 type ErrCannotUpstream struct {
@@ -557,6 +560,7 @@ func CloseClient(ctx context.Context) {
 	}
 }
 
+// TimeNow returns the current time. It can be overridden in tests for determinism.
 var TimeNow = func(ctx context.Context) time.Time {
 	return time.Now()
 }
