@@ -421,14 +421,12 @@ func TestDeleteGarbage(t *testing.T) {
 	require.NoError(t, err)
 
 	// We expect:
-	// - sessionFailed, sessionOldGarbage, sessionFuncsOnly are deleted: 3 sessions.
+	// - Only sessionFailed is deleted: 1 session.
 	// - deleted rows:
 	//   - sessionFailed: 1 files + 1 functions = 2 rows
-	//   - sessionOldGarbage: 1 files + 1 functions = 2 rows
-	//   - sessionFuncsOnly: 1 functions = 1 row
-	//   Total: 5 rows.
-	assert.Equal(t, int64(3), deletedSessions)
-	assert.Equal(t, int64(5), deletedRows)
+	//   Total: 2 rows.
+	assert.Equal(t, int64(1), deletedSessions)
+	assert.Equal(t, int64(2), deletedRows)
 
 	// Verify DB state.
 	assertRowExists(t, client, "sessions", spanner.Key{sessionCompleted})
@@ -443,12 +441,13 @@ func TestDeleteGarbage(t *testing.T) {
 	assertRowNotExists(t, client, "files", spanner.Key{sessionFailed, "*", "file-failed"})
 	assertRowNotExists(t, client, "functions", spanner.Key{sessionFailed, "file-failed", "func-failed"})
 
-	assertRowNotExists(t, client, "sessions", spanner.Key{sessionOldGarbage})
-	assertRowNotExists(t, client, "files", spanner.Key{sessionOldGarbage, "*", "file-old-garbage"})
-	assertRowNotExists(t, client, "functions", spanner.Key{sessionOldGarbage, "file-old-garbage", "func-old-garbage"})
+	// sessionOldGarbage and sessionFuncsOnly have no sessions record, so they should NOT be deleted.
+	// We only delete sessions present in the "sessions" table to avoid race conditions where a
+	// concurrent writer is actively creating a new session and filling its files/functions.
+	assertRowExists(t, client, "files", spanner.Key{sessionOldGarbage, "*", "file-old-garbage"})
+	assertRowExists(t, client, "functions", spanner.Key{sessionOldGarbage, "file-old-garbage", "func-old-garbage"})
 
-	assertRowNotExists(t, client, "sessions", spanner.Key{sessionFuncsOnly})
-	assertRowNotExists(t, client, "functions", spanner.Key{sessionFuncsOnly, "file-funcs-only", "func-funcs-only"})
+	assertRowExists(t, client, "functions", spanner.Key{sessionFuncsOnly, "file-funcs-only", "func-funcs-only"})
 }
 
 func assertRowExists(t *testing.T, client *spanner.Client, table string, key spanner.Key) {
