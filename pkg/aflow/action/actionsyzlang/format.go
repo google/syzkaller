@@ -28,7 +28,7 @@ func formatActionFunc(ctx *aflow.Context, args FormatArgs) (FormatResult, error)
 	if err != nil {
 		return FormatResult{}, err
 	}
-	p, err := pt.Deserialize([]byte(args.CandidateReproSyz), prog.Strict)
+	p, err := pt.Deserialize([]byte(args.CandidateReproSyz), prog.NonStrict)
 	if err != nil {
 		return FormatResult{}, fmt.Errorf("failed to deserialize syzkaller program: %w", err)
 	}
