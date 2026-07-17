@@ -17,6 +17,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestMatchDKIMDomain(t *testing.T) {
+	tests := []struct {
+		dkimDomain   string
+		authorDomain string
+		match        bool
+	}{
+		{"example.com", "example.com", true},
+		{"EXAMPLE.COM", "example.com", true},
+		{"example.com", "EXAMPLE.COM", true},
+		{"example-com.20251104.gappssmtp.com", "example.com", true},
+		{"other.com", "example.com", false},
+		{"example-com.20251104.gappssmtp.com", "other.com", true},
+	}
+
+	for _, test := range tests {
+		name := fmt.Sprintf("%s_%s", test.dkimDomain, test.authorDomain)
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, test.match, matchDKIMDomain(test.dkimDomain, test.authorDomain))
+		})
+	}
+}
+
 type mockSender struct {
 	sent []*sender.Email
 	id   int
