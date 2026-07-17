@@ -135,6 +135,22 @@ func (e *RetryError) Unwrap() error {
 	return e.Err
 }
 
+const maxLLMBackoff = 3 * time.Minute
+
+func BackoffDuration(try int, baseDelay time.Duration) time.Duration {
+	if baseDelay == 0 {
+		return 0
+	}
+	backoff := baseDelay
+	for range try {
+		backoff *= 2
+		if backoff >= maxLLMBackoff {
+			return maxLLMBackoff
+		}
+	}
+	return backoff
+}
+
 // OutputTokenOverflowError indicates that the model reached its output token limit.
 type OutputTokenOverflowError struct {
 	Err error
