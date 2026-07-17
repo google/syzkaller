@@ -125,7 +125,17 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	switch result := result.(type) {
 	case map[string]any:
 		require.NoError(t, err)
-		require.Equal(t, got, result)
+		resultData, err := json.Marshal(result)
+		require.NoError(t, err)
+		var normalizedResult map[string]any
+		require.NoError(t, json.Unmarshal(resultData, &normalizedResult))
+
+		gotData, err := json.Marshal(got)
+		require.NoError(t, err)
+		var normalizedGot map[string]any
+		require.NoError(t, json.Unmarshal(gotData, &normalizedGot))
+
+		require.Equal(t, normalizedResult, normalizedGot)
 	case string:
 		require.Error(t, err)
 		require.Equal(t, err.Error(), result)

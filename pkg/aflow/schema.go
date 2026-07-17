@@ -67,12 +67,92 @@ func mustSchemaFor[T any]() *jsonschema.Schema {
 	return schema
 }
 
-func convertToMap[T any](val T) map[string]any {
+func convertToMapShallow[T any](val T) map[string]any {
 	res := make(map[string]any)
 	for name, val := range foreachField(&val) {
 		res[name] = val.Interface()
 	}
 	return res
+}
+
+func convertToMap[T any](val T) map[string]any {
+	v := reflect.ValueOf(&val).Elem()
+	res := convertToMapValue(v)
+	if m, ok := res.(map[string]any); ok {
+		return m
+	}
+	if res == nil {
+		return nil
+	}
+	panic(fmt.Errorf("convertToMap called on type %T which did not convert to a map: %T", val, res))
+}
+
+func convertToMapValue(v reflect.Value) any {
+	if !v.IsValid() {
+		return nil
+	}
+	if v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return nil
+		}
+		return convertToMapValue(v.Elem())
+	}
+	if res, ok := tryMarshalJSON(v); ok {
+		return res
+	}
+	switch v.Kind() {
+	case reflect.Struct:
+		res := make(map[string]any)
+		t := v.Type()
+		for _, fieldType := range reflect.VisibleFields(t) {
+			if !fieldType.IsExported() || fieldType.Anonymous {
+				continue
+			}
+			res[fieldType.Name] = convertToMapValue(v.FieldByIndex(fieldType.Index))
+		}
+		return res
+	case reflect.Slice, reflect.Array:
+		if v.Kind() == reflect.Slice && v.IsNil() {
+			return nil
+		}
+		res := make([]any, v.Len())
+		for i := range v.Len() {
+			res[i] = convertToMapValue(v.Index(i))
+		}
+		return res
+	case reflect.Map:
+		res := make(map[string]any)
+		iter := v.MapRange()
+		for iter.Next() {
+			keyStr := fmt.Sprintf("%v", iter.Key().Interface())
+			res[keyStr] = convertToMapValue(iter.Value())
+		}
+		return res
+	default:
+		return v.Interface()
+	}
+}
+
+func tryMarshalJSON(v reflect.Value) (any, bool) {
+	marshalerType := reflect.TypeFor[json.Marshaler]()
+	var marshaler json.Marshaler
+	if v.Type().Implements(marshalerType) {
+		marshaler = v.Interface().(json.Marshaler)
+	} else if v.CanAddr() && reflect.PointerTo(v.Type()).Implements(marshalerType) {
+		marshaler = v.Addr().Interface().(json.Marshaler)
+	}
+	if marshaler != nil {
+		raw, err := marshaler.MarshalJSON()
+		if err != nil {
+			panic(fmt.Errorf("failed to marshal JSON: %w", err))
+		}
+		var res any
+		if err := json.Unmarshal(raw, &res); err != nil {
+			panic(fmt.Errorf("failed to unmarshal JSON: %w", err))
+		}
+		return res, true
+	}
+	return nil, false
 }
 
 // convertFromMap converts an untyped map to a struct.
