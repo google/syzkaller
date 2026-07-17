@@ -763,20 +763,6 @@ const (
 	maxLLMBackoff    = 3 * time.Minute
 )
 
-func llmBackoffDuration(try int, baseDelay time.Duration) time.Duration {
-	if baseDelay == 0 {
-		return 0
-	}
-	backoff := baseDelay
-	for range try {
-		backoff *= 2
-		if backoff >= maxLLMBackoff {
-			return maxLLMBackoff
-		}
-	}
-	return backoff
-}
-
 func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
 	req []*backend.Message, candidate int, model backend.ModelCategory,
 	span *trajectory.Span) (*backend.GenerateResponse, error) {
@@ -799,7 +785,7 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
 				}
 				delay := retryErr.Delay
 				if retryErr.IsExponential {
-					delay = llmBackoffDuration(try, retryErr.Delay)
+					delay = backend.BackoffDuration(try, retryErr.Delay)
 				}
 				ctx.sleep(delay)
 				continue
