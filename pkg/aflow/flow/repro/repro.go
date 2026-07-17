@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -67,7 +66,6 @@ func init() {
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
 				},
-				actionsyzlang.Format,
 				crash.Reproduce,
 				aflow.NewFuncAction("compare", func(ctx *aflow.Context,
 					args struct {
@@ -85,8 +83,8 @@ func init() {
 }
 
 type ReproFinderResult struct {
-	ReproOpts         string `jsonschema:"The repro configuration options."`
-	CandidateReproSyz string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
+	ReproOpts string `jsonschema:"The repro configuration options."`
+	ReproSyz  string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
 }
 
 type ReproFinderState struct {
@@ -100,13 +98,14 @@ func validateReproFinderOutputs(ctx *aflow.Context, state ReproFinderState,
 	if err != nil {
 		return res, err
 	}
-	p, err := pt.Deserialize([]byte(res.CandidateReproSyz), prog.NonStrict)
+	p, err := pt.Deserialize([]byte(res.ReproSyz), prog.NonStrict)
 	if err != nil {
 		return res, aflow.BadCallError("failed to deserialize syzkaller program: %v", err)
 	}
 	if len(p.Calls) == 0 {
 		return res, aflow.BadCallError("the generated syzkaller program is empty (contains 0 system calls)")
 	}
+	res.ReproSyz = string(p.Serialize())
 	return res, nil
 }
 
