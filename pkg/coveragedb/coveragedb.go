@@ -366,7 +366,7 @@ func (f *orphanFinder) stream(ctx context.Context, sql string) error {
 // To avoid exceeding Spanner mutation limits, entries are deleted in batches of 10,000.
 //
 // Returns the number of deleted sessions and the total number of deleted rows.
-func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, error) {
+func DeleteGarbage(ctx context.Context, client *spanner.Client, workers int) (int64, int64, error) {
 	if client == nil {
 		return 0, 0, fmt.Errorf("nil spannerclient")
 	}
@@ -403,7 +403,10 @@ func DeleteGarbage(ctx context.Context, client *spanner.Client) (int64, int64, e
 	eg, gCtx := errgroup.WithContext(ctx)
 
 	sessionCh := make(chan string)
-	const numWorkers = 10
+	numWorkers := workers
+	if numWorkers <= 0 {
+		numWorkers = 10
+	}
 
 	// Spawn workers to process garbage sessions.
 	for range numWorkers {

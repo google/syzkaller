@@ -417,7 +417,7 @@ func TestDeleteGarbage(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run DeleteGarbage.
-	deletedSessions, deletedRows, err := DeleteGarbage(ctx, client)
+	deletedSessions, deletedRows, err := DeleteGarbage(ctx, client, 10)
 	require.NoError(t, err)
 
 	// We expect:
