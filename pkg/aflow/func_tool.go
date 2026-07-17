@@ -100,12 +100,12 @@ func (tool *funcTool[State, Args, Results]) testVerify(t *testing.T, ctx *verify
 	}
 	provideOutputs[State](ctx, "state")
 	tool.verify(ctx)
-	return convertToMap(state.(State)), convertToMap(args.(Args)), resultChecker
+	return convertToMapShallow(state.(State)), convertToMap(args.(Args)), resultChecker
 }
 
 func (*funcTool[State, Args, Results]) checkFuzzTypes(t *testing.T, state, args any) (
 	map[string]any, map[string]any) {
 	require.Equal(t, reflect.TypeFor[State](), reflect.TypeOf(state))
 	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))
-	return convertToMap(state.(State)), convertToMap(args.(Args))
+	return convertToMapShallow(state.(State)), convertToMap(args.(Args))
 }
