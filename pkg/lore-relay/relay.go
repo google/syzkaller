@@ -94,11 +94,25 @@ func (r *Relay) checkDKIM(raw []byte, author string) error {
 		return errors.New("no DKIM signatures found")
 	}
 	for _, v := range verifications {
-		if v.Err == nil && strings.ToLower(v.Domain) == authorDomain {
+		if v.Err == nil && matchDKIMDomain(v.Domain, authorDomain) {
 			return nil
 		}
 	}
 	return errors.New("all DKIM signatures failed or mismatched domain")
+}
+
+func matchDKIMDomain(dkimDomain, authorDomain string) bool {
+	dkimDomain = strings.ToLower(dkimDomain)
+	authorDomain = strings.ToLower(authorDomain)
+	if dkimDomain == authorDomain {
+		return true
+	}
+	// Google Workspace default DKIM signature.
+	// We trust Google Workspace's internal sender verification.
+	if strings.HasSuffix(dkimDomain, ".gappssmtp.com") {
+		return true
+	}
+	return false
 }
 
 // Run starts the relay loop.
