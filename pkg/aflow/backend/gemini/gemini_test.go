@@ -24,7 +24,7 @@ func TestProviderResolveModels(t *testing.T) {
 		{
 			name:     "resolves good balanced model pool",
 			category: backend.GoodBalancedModel,
-			want:     []string{"gemini-3-flash-preview", "gemini-3.5-flash"},
+			want:     []string{"gemini-3.5-flash", "gemini-3-flash-preview"},
 		},
 		{
 			name:     "resolves best expensive model pool",
