@@ -1,0 +1,26 @@
+void f()
+{
+	if (cond) {
+		if (!vif_is_mld(&sta->sdata) &&
+		    !rcu_access_pointer(sta->sdata->vif))
+			return -EINVAL;
+	}
+}
+======
+diff --git a/fuse.c b/fuse.c
+index 39aff42..13be81f 100644
+--- a/fuse.c
++++ b/fuse.c
+@@ -4,2 +4 @@ void f()
+-		if (!vif_is_mld(&sta->sdata) &&
+-		    !rcu_access_pointer(sta->sdata->vif))
++		if (!vif_is_mld(&sta->sdata) && !rcu_access_pointer(sta->sdata->vif))
+======
+diff --git a/fuse.c b/fuse.c
+index 39aff42..13be81f 100644
+--- a/fuse.c
++++ b/fuse.c
+@@ -4,2 +4 @@ void f()
+-		if (!vif_is_mld(&sta->sdata) &&
+-		    !rcu_access_pointer(sta->sdata->vif))
++		if (!vif_is_mld(&sta->sdata) && !rcu_access_pointer(sta->sdata->vif))

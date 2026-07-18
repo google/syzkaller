@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"time"
@@ -143,21 +142,29 @@ func currentDiff(repo string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	formatDiff, err := findClangFormatDiff()
+	err = applyClangFormatDiff(repo, diff)
 	if err != nil {
 		return "", err
-	}
-	cmd := exec.Command(formatDiff, "-p1", "-i", "-style=file")
-	cmd.Stdin = bytes.NewReader(diff)
-	cmd.Dir = repo
-	if output, err := osutil.Run(10*time.Minute, cmd); err != nil {
-		return "", fmt.Errorf("%w\n%s", err, output)
 	}
 	diff, err = osutil.RunCmd(time.Minute, repo, "git", "diff")
 	if err != nil {
 		return "", err
 	}
 	return string(diff), nil
+}
+
+func applyClangFormatDiff(repo string, diff []byte) error {
+	formatDiff, err := findClangFormatDiff()
+	if err != nil {
+		return err
+	}
+	cmd := osutil.Command(formatDiff, "-p1", "-i", "-style=file")
+	cmd.Stdin = bytes.NewReader(diff)
+	cmd.Dir = repo
+	if output, err := osutil.Run(10*time.Minute, cmd); err != nil {
+		return fmt.Errorf("%w\n%s", err, output)
+	}
+	return nil
 }
 
 func undoChanges(repo string) error {

@@ -1,0 +1,23 @@
+struct file_operations fops = {
+	.owner		= THIS_MODULE,
+	.open		= dev_open,
+	.poll		= dev_poll,
+};
+======
+diff --git a/fuse.c b/fuse.c
+index 973890f..1412d28 100644
+--- a/fuse.c
++++ b/fuse.c
+@@ -4,0 +5 @@ struct file_operations fops = {
++	.flush = dev_flush,
+======
+diff --git a/fuse.c b/fuse.c
+index 973890f..248de24 100644
+--- a/fuse.c
++++ b/fuse.c
+@@ -2,4 +2,5 @@ struct file_operations fops = {
+ 	.owner		= THIS_MODULE,
+ 	.open		= dev_open,
+ 	.poll		= dev_poll,
++	.flush		= dev_flush,
+ };
