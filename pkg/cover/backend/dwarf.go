@@ -757,6 +757,9 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 		// ffffffe000200018:       jal     ra,ffffffe0002935b0 <__sanitizer_cov_trace_pc>
 		// ffffffe0000010da:       jalr    1242(ra) # ffffffe0002935b0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tjal\t"), []byte("\tjalr\t")}, callName
+	case targets.Loong64:
+		// 900000000001234:       bl      900000000005678 <__sanitizer_cov_trace_pc>
+		return [][]byte{[]byte("\tbl\t"), []byte("\tbl ")}, callName
 	default:
 		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
