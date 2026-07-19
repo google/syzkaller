@@ -9,6 +9,7 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
+include <linux/mman.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
