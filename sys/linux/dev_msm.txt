@@ -4,6 +4,7 @@
 # See https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/drm/msm_drm.h for upstream definitions
 
 include <drm/msm_drm.h>
+include <linux/fcntl.h>
 
 resource fd_msm[fd]
 resource msm_submitqueue_id[int32]

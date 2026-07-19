@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <uapi/linux/ioctl.h>
+include <linux/fcntl.h>
 include <uapi/linux/rfkill.h>
 
 resource fd_rfkill[fd]
