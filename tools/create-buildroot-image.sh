@@ -4,7 +4,7 @@
 
 # This script builds a buildroot-based Linux image.
 # It should be run from a buildroot checkout (git://git.buildroot.net/buildroot) as:
-# TARGETARCH={amd64,arm64,arm,riscv64,s390x,mips64le,ppc64le} [NOMAKE=yes] create-buildroot-image.sh
+# TARGETARCH={amd64,arm64,arm,loong64,riscv64,s390x,mips64le,ppc64le} [NOMAKE=yes] create-buildroot-image.sh
 # If no NOMAKE=yes is specified, then it will just prepare the buildroot config,
 # but will not run the final make.
 # For amd64 and arm64 it creates a bootable image with root partition
@@ -29,6 +29,8 @@ case "$TARGETARCH" in
 		DEFCONFIG="aarch64_efi_defconfig";;
 	arm)
 		DEFCONFIG="qemu_arm_vexpress_defconfig";;
+	loong64)
+		DEFCONFIG="qemu_loongarch64_virt_efi_defconfig";;
 	riscv64)
 		DEFCONFIG="qemu_riscv64_virt_defconfig";;
 	s390x)
@@ -142,6 +144,11 @@ EOF
 # BR2_LINUX_KERNEL is not set
 BR2_cortex_a15_a7=y
 BR2_TARGET_ROOTFS_EXT2_4=y
+EOF
+;;
+	loong64)
+		cat >>.config <<EOF
+# BR2_LINUX_KERNEL is not set
 EOF
 ;;
 	s390x)
