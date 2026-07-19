@@ -100,7 +100,7 @@ func InitTarget(target *prog.Target) {
 		panic("unknown arch")
 	}
 
-	target.SpecialFileLenghts = []int{
+	target.SpecialFileLengths = []int{
 		int(target.GetConst("PATH_MAX")),
 		int(target.GetConst("UNIX_PATH_MAX")),
 		int(target.GetConst("NAME_MAX")),

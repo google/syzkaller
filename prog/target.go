@@ -64,7 +64,7 @@ type Target struct {
 	SpecialPointers []uint64
 
 	// Special file name length that can provoke bugs (e.g. PATH_MAX).
-	SpecialFileLenghts []int
+	SpecialFileLengths []int
 
 	// Filled by prog package:
 	SyscallMap map[string]*Syscall
@@ -172,11 +172,11 @@ func (target *Target) lazyInit() {
 	if len(target.SpecialPointers) > maxSpecialPointers {
 		panic("too many special pointers")
 	}
-	if len(target.SpecialFileLenghts) == 0 {
+	if len(target.SpecialFileLengths) == 0 {
 		// Just some common lengths that can be used as PATH_MAX/MAX_NAME.
-		target.SpecialFileLenghts = []int{256, 512, 4096}
+		target.SpecialFileLengths = []int{256, 512, 4096}
 	}
-	for _, ln := range target.SpecialFileLenghts {
+	for _, ln := range target.SpecialFileLengths {
 		if ln <= 0 || ln >= memAllocMaxMem {
 			panic(fmt.Sprintf("bad special file length %v", ln))
 		}
