@@ -102,11 +102,47 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 	// successfully returns detailed metadata for all models (such as their InputTokenLimit,
 	// OutputTokenLimit, and SupportedActions) without requiring any special IAM configurations.
 	// Therefore, we query the catalog dynamically here.
+	const maxInitRetries = 5
+
+	var models map[string]*modelInfo
+	for i := range maxInitRetries {
+		models, err = p.queryModelsOnce(ctx, client)
+		if err == nil {
+			break
+		}
+		parsedErr := parseLLMError(err, "")
+		var retryErr *backend.RetryError
+		if !errors.As(parsedErr, &retryErr) {
+			break
+		}
+		if i == maxInitRetries-1 {
+			break
+		}
+		delay := retryErr.Delay
+		if retryErr.IsExponential {
+			delay = backend.BackoffDuration(i, retryErr.Delay)
+		}
+		select {
+		case <-ctx.Done():
+			p.err = ctx.Err()
+			return p.err
+		case <-time.After(delay):
+		}
+	}
+	if err != nil {
+		p.err = err
+		return err
+	}
+	p.models = models
+	p.modelPathPrefix = "models/"
+	return nil
+}
+
+func (p *Provider) queryModelsOnce(ctx context.Context, client *genai.Client) (map[string]*modelInfo, error) {
 	models := make(map[string]*modelInfo)
-	for m, err := range client.Models.All(ctx) {
-		if err != nil {
-			p.err = err
-			return err
+	for m, e := range client.Models.All(ctx) {
+		if e != nil {
+			return nil, e
 		}
 		if !slices.Contains(m.SupportedActions, "generateContent") ||
 			strings.Contains(m.Name, "-image") ||
@@ -120,9 +156,7 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			OutputTokenLimit: int(m.OutputTokenLimit),
 		}
 	}
-	p.models = models
-	p.modelPathPrefix = "models/"
-	return nil
+	return models, nil
 }
 
 func (p *Provider) Client(ctx context.Context) (backend.Client, error) {
@@ -143,7 +177,7 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 	case backend.BestExpensiveModel:
 		return []string{"gemini-3.1-pro-preview"}
 	case backend.GoodBalancedModel:
-		return []string{"gemini-3-flash-preview", "gemini-3.5-flash"}
+		return []string{"gemini-3.5-flash", "gemini-3-flash-preview"}
 	default:
 		return nil
 	}

@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -54,12 +53,9 @@ func init() {
 				kernel.Build,
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
-					Name:  "crash-repro-finder",
-					Model: aflow.BestExpensiveModel,
-					Outputs: aflow.LLMOutputs[struct {
-						ReproOpts         string `jsonschema:"The repro configuration options."`
-						CandidateReproSyz string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
-					}](),
+					Name:    "crash-repro-finder",
+					Model:   aflow.BestExpensiveModel,
+					Outputs: aflow.ValidatedLLMOutputs[ReproFinderResult, ReproFinderState](validateReproFinderOutputs),
 					Tools: aflow.Tools(
 						common.CodeAccessTools,
 						syzlang.ReadDescription,
@@ -70,7 +66,6 @@ func init() {
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
 				},
-				actionsyzlang.Format,
 				crash.Reproduce,
 				aflow.NewFuncAction("compare", func(ctx *aflow.Context,
 					args struct {
@@ -85,6 +80,33 @@ func init() {
 			),
 		},
 	)
+}
+
+type ReproFinderResult struct {
+	ReproOpts string `jsonschema:"The repro configuration options."`
+	ReproSyz  string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
+}
+
+type ReproFinderState struct {
+	TargetOS   string
+	TargetArch string
+}
+
+func validateReproFinderOutputs(ctx *aflow.Context, state ReproFinderState,
+	res ReproFinderResult) (ReproFinderResult, error) {
+	pt, err := prog.GetTarget(state.TargetOS, state.TargetArch)
+	if err != nil {
+		return res, err
+	}
+	p, err := pt.Deserialize([]byte(res.ReproSyz), prog.NonStrict)
+	if err != nil {
+		return res, aflow.BadCallError("failed to deserialize syzkaller program: %v", err)
+	}
+	if len(p.Calls) == 0 {
+		return res, aflow.BadCallError("the generated syzkaller program is empty (contains 0 system calls)")
+	}
+	res.ReproSyz = string(p.Serialize())
+	return res, nil
 }
 
 const reproInstruction = `
