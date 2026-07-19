@@ -34,6 +34,7 @@ func qemuBinary(arch string) (string, error) {
 		"amd64":    "x86_64",
 		"arm64":    "aarch64",
 		"arm":      "arm",
+		"loong64":  "loongarch64",
 		"mips64le": "mips64el",
 		"ppc64le":  "ppc64le",
 		"riscv64":  "riscv64",
