@@ -313,7 +313,7 @@ func (r *randGen) filenameImpl(s *state) string {
 		for i := 0; ; i++ {
 			f := fmt.Sprintf("%v/file%v", dir, i)
 			if r.oneOf(100) {
-				// Make file name very long using target.SpecialFileLenghts consts.
+				// Make file name very long using target.SpecialFileLengths consts.
 				// Add/subtract some small const to account for our file name prefix
 				// and potential kernel off-by-one's.
 				fileLen := r.randFilenameLength()
@@ -334,7 +334,7 @@ func (r *randGen) randFilenameLength() int {
 	if r.bin() {
 		off = -off
 	}
-	lens := r.target.SpecialFileLenghts
+	lens := r.target.SpecialFileLengths
 	return max(lens[r.Intn(len(lens))]+off, 0)
 }
 

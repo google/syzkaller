@@ -253,7 +253,7 @@ func TestMinimize(t *testing.T) {
 			"pipe2(0x0, 0x0) (rerun: 100)\n",
 			-1,
 		},
-		// Undo target.SpecialFileLenghts mutation (reduce file name length).
+		// Undo target.SpecialFileLengths mutation (reduce file name length).
 		{
 			"test",
 			"64",

@@ -1443,7 +1443,7 @@ clone3_flags = CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP, clone_flags
 ptrace_peeksiginfo_flags = PTRACE_PEEKSIGINFO_SHARED
 close_range_flags = CLOSE_RANGE_UNSHARE
 
-# Consts for target.SpecialFileLenghts.
+# Consts for target.SpecialFileLengths.
 _ = SMB_PATH_MAX, XT_CGROUP_PATH_MAX, XENSTORE_REL_PATH_MAX
 
 # misc
