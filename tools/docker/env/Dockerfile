@@ -78,7 +78,7 @@ COPY --from=git-builder /opt/git /opt/git
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
     g++ \
     g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
-    g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
+    g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu g++-loongarch64-linux-gnu
 
 # Install architecture-specific packages (only for amd64).
 RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
