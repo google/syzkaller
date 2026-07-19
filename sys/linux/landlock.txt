@@ -34,6 +34,7 @@ landlock_net_port_attr {
 
 # TODO(glider): remove this line once LANDLOCK_ACCESS_FS_IOCTL_DEV hits upstream.
 define LANDLOCK_ACCESS_FS_IOCTL_DEV	(1ULL << 15)
+define LANDLOCK_ACCESS_FS_RESOLVE_UNIX	(1ULL << 16)
 
 landlock_create_ruleset_flags = LANDLOCK_CREATE_RULESET_VERSION, LANDLOCK_CREATE_RULESET_ERRATA
 
