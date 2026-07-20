@@ -27,6 +27,10 @@ import (
 // and resets source code state to HEAD (removes all local edits).
 var TestPatch = aflow.NewFuncAction("test-patch", testPatch)
 
+// TestPatchInplace is like TestPatch, but it leaves the local edits applied
+// to the source tree instead of resetting it to HEAD.
+var TestPatchInplace = aflow.NewFuncAction("test-patch-inplace", testPatchInplace)
+
 type testArgs struct {
 	AgentName        string
 	TargetOS         string
@@ -49,8 +53,12 @@ type testResult struct {
 }
 
 func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
-	res := testResult{}
 	defer undoChanges(args.KernelScratchSrc)
+	return testPatchInplace(ctx, args)
+}
+
+func testPatchInplace(ctx *aflow.Context, args testArgs) (testResult, error) {
+	res := testResult{}
 
 	diff, err := currentDiff(args.KernelScratchSrc)
 	if err != nil {
