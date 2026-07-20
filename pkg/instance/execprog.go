@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -52,6 +53,25 @@ type RunResult struct {
 	// It's populated after a crash if MemoryDump was enabled in RunOptions.
 	// Empty if no dump was extracted.
 	MemoryDump string
+}
+
+var crashKernelCmdlineRe = regexp.MustCompile(`(?i)command line:.*elfcorehdr=`)
+
+// CanExtractMemoryDump returns true if /proc/vmcore may be available in the VM.
+func CanExtractMemoryDump(rep *report.Report) bool {
+	return rep != nil && (rep.Panicked || crashKernelCmdlineAfterReport(rep))
+}
+
+func crashKernelCmdlineAfterReport(rep *report.Report) bool {
+	if rep.EndPos < 0 || rep.EndPos > len(rep.Output) {
+		return false
+	}
+	for _, line := range bytes.Split(rep.Output[rep.EndPos:], []byte{'\n'}) {
+		if crashKernelCmdlineRe.Match(line) {
+			return true
+		}
+	}
+	return false
 }
 
 const (
@@ -176,7 +196,7 @@ func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunR
 
 func (inst *ExecProgInstance) extractDump(rep *report.Report,
 	opts RunOptions) (string, error) {
-	if rep == nil || !rep.Panicked {
+	if !CanExtractMemoryDump(rep) {
 		return "", nil
 	}
 	dumpPath, err := osutil.TempFileIn(opts.MemoryDumpDir, "syz-dump-*")

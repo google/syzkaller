@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -141,5 +142,42 @@ func TestRunnerCmd(t *testing.T) {
 
 	if got, want := *flagEnv, false; got != want {
 		t.Errorf("bad new-env: %t, want: %t", got, want)
+	}
+}
+
+func TestCanExtractMemoryDump(t *testing.T) {
+	tests := []struct {
+		name string
+		rep  *report.Report
+		want bool
+	}{
+		{
+			name: "no report",
+		},
+		{
+			name: "no panic",
+			rep:  &report.Report{},
+		},
+		{
+			name: "panic",
+			rep:  &report.Report{Panicked: true},
+			want: true,
+		},
+		{
+			name: "crash kernel command line",
+			rep: &report.Report{
+				Output: []byte("general protection fault\n" +
+					"Kernel command line: BOOT_IMAGE=/vmlinux elfcorehdr=123K"),
+				EndPos: len("general protection fault\n"),
+			},
+			want: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := CanExtractMemoryDump(test.rep); got != test.want {
+				t.Fatalf("CanExtractMemoryDump() = %v, want %v", got, test.want)
+			}
+		})
 	}
 }

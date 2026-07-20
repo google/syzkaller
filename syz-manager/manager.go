@@ -964,8 +964,9 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 }
 
 func (mgr *Manager) extractMemoryDump(inst *vm.Instance, rep *report.Report) string {
-	if !rep.Panicked {
-		// We can only collect a memory dump from a kernel that panicked.
+	if !instance.CanExtractMemoryDump(rep) {
+		// We can only collect a memory dump after a panic, or after the crash
+		// kernel has booted far enough to expose /proc/vmcore.
 		return ""
 	}
 	if mgr.crashStore.HasMemoryDump(rep.Title) {
