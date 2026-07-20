@@ -67,7 +67,7 @@ var Funcs = template.FuncMap{
 	"formatClock":            formatClock,
 	"formatDuration":         formatDuration,
 	"formatLateness":         formatLateness,
-	"formatReproLevel":       formatReproLevel,
+	"formatRepro":            formatRepro,
 	"formatStat":             formatStat,
 	"formatShortHash":        formatShortHash,
 	"formatTagHash":          formatTagHash,
@@ -161,15 +161,17 @@ func formatLateness(now, t time.Time) string {
 	return formatDuration(d)
 }
 
-func formatReproLevel(l dashapi.ReproLevel) string {
-	switch l {
-	case dashapi.ReproLevelSyz:
-		return "syz"
-	case dashapi.ReproLevelC:
-		return "C"
-	default:
-		return ""
+func formatRepro(hasC, hasSyz bool) string {
+	if hasC && hasSyz {
+		return "syz, C"
 	}
+	if hasC {
+		return "C"
+	}
+	if hasSyz {
+		return "syz"
+	}
+	return ""
 }
 
 func formatStat(v int64) string {

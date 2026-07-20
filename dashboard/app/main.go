@@ -51,6 +51,7 @@ func initHTTPHandlers() {
 	http.Handle("/text", handlerWrapper(handleText))
 	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
+	http.Handle("/admin/migrate_repro_bools", handlerWrapper(handleMigrateReproBools))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
@@ -401,7 +402,8 @@ type uiBug struct {
 	ReportedTime   time.Time
 	FixTime        time.Time
 	ClosedTime     time.Time
-	ReproLevel     dashapi.ReproLevel
+	HasCRepro      bool
+	HasSyzRepro    bool
 	ReportingIndex int
 	Status         string
 	Link           string
@@ -560,7 +562,7 @@ func (filter *userBugFilter) MatchBug(ctx context.Context, bug *Bug) bool {
 	if filter == nil {
 		return true
 	}
-	if filter.WithRepro && bug.ReproLevel == dashapi.ReproLevelNone {
+	if filter.WithRepro && !bug.HasRepro() {
 		return false
 	}
 	if filter.WithAIPatch && !filter.BugsWithPendingAIPatches[bug.keyHash(ctx)] {
@@ -2184,7 +2186,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 		ReportedTime:   reported,
 		ClosedTime:     bug.Closed,
 		FixTime:        bug.FixTime,
-		ReproLevel:     bug.ReproLevel,
+		HasCRepro:      bug.GetReproLevelHasC(),
+		HasSyzRepro:    bug.GetReproLevelHasSyz(),
 		ReportingIndex: reportingIdx,
 		Status:         status,
 		Link:           bugExtLink(ctx, bug),
@@ -2235,7 +2238,8 @@ func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
-	bug.ReproLevel = max(bug.ReproLevel, dup.ReproLevel)
+	bug.HasCRepro = bug.HasCRepro || dup.GetReproLevelHasC()
+	bug.HasSyzRepro = bug.HasSyzRepro || dup.GetReproLevelHasSyz()
 	updateBugBadness(ctx, bug)
 }
 
