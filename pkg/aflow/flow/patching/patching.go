@@ -174,6 +174,14 @@ The explanation of the root cause of the bug is:
 `
 
 // This part is shared between patching and patch-iteration.
+const commonFailedAttemptsPrompt = `
+{{if gt (len .FailedAttempts) 1}}
+There are older failed attempts to fix this bug.
+Use the {{.toolViewFailedAttempts}} tool to view their strategies, diffs, and resulting errors.
+Learn from them and DO NOT repeat the same mistakes.
+{{end}}
+`
+
 const commonFaultInjectionPrompt = `
 
 {{if .ReproducedFaultInjection}}
@@ -268,7 +276,7 @@ in its entirety from scratch using the {{.toolCodeeditor}} tool).
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
 {{end}}
-`
+` + commonFailedAttemptsPrompt
 
 const descriptionInstruction = `
 You are an experienced Linux kernel developer tasked with writing a commit description for
@@ -364,9 +372,11 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, ex
 				TaskType:    aflow.FormalReasoningTask,
 				Instruction: instruction,
 				Prompt:      prompt,
-				Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, extraTools),
+				Tools: aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool,
+					viewFailedAttemptsTool, extraTools),
 			},
 			crash.TestPatch, // -> PatchDiff or TestError
+			recordFailedAttempt,
 		)...),
 	}
 }
