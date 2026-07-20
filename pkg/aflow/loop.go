@@ -21,6 +21,9 @@ type DoWhile struct {
 	// Max interations for the loop.
 	// Must be specified to avoid unintended effectively infinite loops.
 	MaxIterations int
+	// MapOutputs renames or overrides variables produced inside the loop
+	// before exposing them to the parent context upon loop completion.
+	MapOutputs map[string]string
 
 	loopVars map[string]reflect.Type
 }
@@ -58,6 +61,11 @@ func (dw *DoWhile) loop(ctx *Context) error {
 			return err
 		}
 		if ctx.state[dw.While].(string) == "" {
+			for from, to := range dw.MapOutputs {
+				if val, ok := ctx.state[from]; ok {
+					ctx.state[to] = val
+				}
+			}
 			return nil
 		}
 	}
@@ -86,11 +94,26 @@ func (dw *DoWhile) verify(ctx *verifyContext) {
 	if outputs {
 		ctx.inputs, ctx.outputs = false, true
 		origState := maps.Clone(ctx.state)
+		for from := range dw.MapOutputs {
+			delete(ctx.state, from)
+		}
 		dw.Do.verify(ctx)
 		dw.loopVars = make(map[string]reflect.Type)
 		for name, desc := range ctx.state {
 			if origState[name] == nil {
 				dw.loopVars[name] = desc.typ
+			}
+		}
+		maps.Copy(ctx.state, origState)
+		for from, to := range dw.MapOutputs {
+			desc := ctx.state[from]
+			if desc == nil {
+				ctx.errorf("DoWhile", "MapOutputs source %v is not produced in loop", from)
+				continue
+			}
+			ctx.state[to] = &varState{
+				action: "DoWhile",
+				typ:    desc.typ,
 			}
 		}
 	}
