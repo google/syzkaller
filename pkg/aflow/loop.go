@@ -60,7 +60,15 @@ func (dw *DoWhile) loop(ctx *Context) error {
 		if err := ctx.finishSpan(span, err); err != nil {
 			return err
 		}
-		if ctx.state[dw.While].(string) == "" {
+		val := ctx.state[dw.While]
+		cond := false
+		switch v := val.(type) {
+		case string:
+			cond = v != ""
+		case bool:
+			cond = v
+		}
+		if !cond {
 			for from, to := range dw.MapOutputs {
 				if val, ok := ctx.state[from]; ok {
 					ctx.state[to] = val
@@ -121,7 +129,14 @@ func (dw *DoWhile) verify(ctx *verifyContext) {
 		ctx.inputs, ctx.outputs = true, false
 		dw.Do.verify(ctx)
 		ctx.requireNotEmpty("DoWhile", "While", dw.While)
-		ctx.requireInput("DoWhile", dw.While, reflect.TypeFor[string]())
+		state := ctx.state[dw.While]
+		if state == nil {
+			ctx.errorf("DoWhile", "no input %v", dw.While)
+		} else if state.typ.Kind() != reflect.String && state.typ.Kind() != reflect.Bool {
+			ctx.errorf("DoWhile", "input %v has wrong type: want string or bool, has %v", dw.While, state.typ)
+		} else {
+			state.used = true
+		}
 	}
 }
 

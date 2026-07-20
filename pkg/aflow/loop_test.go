@@ -103,6 +103,19 @@ func TestDoWhileErrors(t *testing.T) {
 			}),
 			While: "Output1",
 		}})
+
+	type invalidOutput struct {
+		Output1 int
+	}
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action DoWhile: input Output1 has wrong type: want string or bool, has int",
+		&Flow{Root: &DoWhile{
+			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (invalidOutput, error) {
+				return invalidOutput{}, nil
+			}),
+			While:         "Output1",
+			MaxIterations: 10,
+		}})
 }
 
 func TestDoWhileMaxIters(t *testing.T) {
@@ -350,6 +363,27 @@ func TestDoWhileMapOutputs(t *testing.T) {
 				}
 				return struct{}{}, nil
 			}),
+		),
+		nil,
+		nil,
+	)
+}
+
+func TestDoWhileBool(t *testing.T) {
+	type loopActionResults struct {
+		KeepGoing bool
+	}
+	iter := 0
+	testFlow[struct{}, struct{}](t, nil, map[string]any{},
+		Pipeline(
+			&DoWhile{
+				While:         "KeepGoing",
+				MaxIterations: 5,
+				Do: NewFuncAction("step", func(ctx *Context, args struct{}) (loopActionResults, error) {
+					iter++
+					return loopActionResults{KeepGoing: iter < 3}, nil
+				}),
+			},
 		),
 		nil,
 		nil,
