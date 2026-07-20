@@ -2,6 +2,7 @@ package seedgen
 
 import (
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
@@ -19,6 +20,7 @@ var SeedgenAnalyzer = aflow.LLMTool[struct{}, AnalyzerQuery]{
 	Model:    aflow.Temporary35FlashOnlyModel,
 	TaskType: aflow.FormalReasoningTask,
 	Tools: aflow.Tools(
+		crash.GetEnvironment,
 		codesearcher.Tools,
 		grepper.Tool,
 		syzlang.ReadSyzSpec,

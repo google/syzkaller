@@ -33,6 +33,7 @@ var GeneratorAgent = &aflow.LLMAgent{
 			return outputs, nil
 		}),
 	Tools: aflow.Tools(
+		crash.GetEnvironment,
 		&SeedgenAnalyzer,
 		syzlang.CodeFixer,
 		syzlang.ExecutionSummarizer,
