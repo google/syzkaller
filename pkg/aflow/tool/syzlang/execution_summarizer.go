@@ -5,6 +5,7 @@ package syzlang
 
 import (
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
 
@@ -27,7 +28,8 @@ var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSumm
 	Instruction: summarizerInstruction,
 	Tools: aflow.Tools(
 		CoverageFiles, FileCoverage, ExecutionTrace, DisassembleContext,
-		codesearcher.Tools, GetExecutedProgram, ReadSyzSpec, SyzGrepper,
+		codesearcher.Tools, GetExecutedProgram, crash.GetEnvironment,
+		ReadSyzSpec, SyzGrepper,
 	),
 	Prompt: `Please analyze the execution of program ` +
 		`{{if .ExecutionCachedID}}{{.ExecutionCachedID}}{{else}}{{.LastFailedExecutionCachedID}}{{end}} ` +
