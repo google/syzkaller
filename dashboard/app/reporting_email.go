@@ -296,13 +296,8 @@ func emailSendBugReport(ctx context.Context, rep *dashapi.BugReport) error {
 	cmd := &dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
-		ReproLevel: dashapi.ReproLevelNone,
+		ReproLevel: dashapi.ReproLevelFromCAndSyz(len(rep.ReproC) != 0, len(rep.ReproSyz) != 0),
 		CrashID:    rep.CrashID,
-	}
-	if len(rep.ReproC) != 0 {
-		cmd.ReproLevel = dashapi.ReproLevelC
-	} else if len(rep.ReproSyz) != 0 {
-		cmd.ReproLevel = dashapi.ReproLevelSyz
 	}
 	for label := range rep.LabelMessages {
 		cmd.Labels = append(cmd.Labels, label)

@@ -953,7 +953,7 @@ func TestBisectFixExternal(t *testing.T) {
 		// because the namespace has FixBisectionAutoClose set.
 		dbBug, _, _ := c.loadBug(rep.ID)
 		c.expectEQ(dbBug.Commits, []string{"kernel: add a fix"})
-		c.expectEQ(dbBug.HeadReproLevel, ReproLevelNone)
+		c.expectEQ(dbBug.HeadReproLevelVal(), ReproLevelNone)
 	}
 }
 
@@ -1237,4 +1237,28 @@ func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dasha
 	dbBug, _, _ := c.loadBug(extBugID)
 	c.expectTrue(len(dbBug.Commits) == 0)
 	return resp, done, jobID
+}
+
+func TestBisectCauseReproC(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.ReproSyz = nil // C-only repro
+	c.client2.ReportCrash(crash)
+
+	msg := c.client2.pollEmailBug()
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	c.expectOK(err)
+	bug, _, _ := c.loadBug(extBugID)
+	c.expectEQ(bug.HasCRepro, true)
+	c.expectEQ(bug.HasSyzRepro, false)
+
+	// Poll bisection job. It should succeed since we now allow C-only bisection.
+	pollResp := c.globalClient.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
+	c.expectEQ(pollResp.ReproC, []byte("int main() { return 1; }"))
+	c.expectEQ(pollResp.ReproSyz, []byte(nil))
 }
