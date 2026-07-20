@@ -61,3 +61,15 @@ func TestParsePC(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveLineToPCAction(t *testing.T) {
+	// Test missing parameters error.
+	_, err := resolveLineToPCAction(nil, ResolveLineToPCArgs{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
+
+	// Test invalid line number error.
+	_, err = resolveLineToPCAction(nil, ResolveLineToPCArgs{FilePath: "fs/ext4/super.c", LineNumber: 0})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
+}

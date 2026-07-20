@@ -34,6 +34,35 @@ type SeedGenInputs struct {
 	Snapshot     bool
 }
 
+func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
+	steps := append([]aflow.Action(nil), prefix...)
+	steps = append(steps,
+		kernel.SymbolizePC,
+		ActionExecuteCorpus,
+		codesearcher.PrepareIndex,
+		codesearcher.ActionExtractFunction,
+		codesearcher.ActionExtractIndirectCallers,
+		&aflow.DoWhile{
+			While:         "ContinueLoop",
+			MaxIterations: 5,
+			Do: aflow.Pipeline(
+				ActionPrepareFailedDetails,
+				&aflow.Try{
+					Do:       GeneratorAgent,
+					ErrorVar: "GeneratorError",
+					Catch: aflow.Pipeline(
+						ActionFormatFailedHistory,
+						HistorySummarizerAgent,
+					),
+				},
+				ActionVerifyPCAndLoopState,
+			),
+		},
+		ActionFormatOutput,
+	)
+	return aflow.Pipeline(steps...)
+}
+
 func init() {
 	aflow.Register[SeedGenInputs, ai.SeedGenOutputs](
 		ai.WorkflowSeedGen,
@@ -45,33 +74,11 @@ func init() {
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
 			},
-			Root: aflow.Pipeline(
+			Root: seedGenPipeline(
 				ActionParsePC,
 				kernel.Checkout,
 				kernel.Build,
 				crash.ActionConfigureRunner,
-				kernel.SymbolizePC,
-				ActionExecuteCorpus,
-				codesearcher.PrepareIndex,
-				codesearcher.ActionExtractFunction,
-				codesearcher.ActionExtractIndirectCallers,
-				&aflow.DoWhile{
-					While:         "ContinueLoop",
-					MaxIterations: 5,
-					Do: aflow.Pipeline(
-						ActionPrepareFailedDetails,
-						&aflow.Try{
-							Do:       GeneratorAgent,
-							ErrorVar: "GeneratorError",
-							Catch: aflow.Pipeline(
-								ActionFormatFailedHistory,
-								HistorySummarizerAgent,
-							),
-						},
-						ActionVerifyPCAndLoopState,
-					),
-				},
-				ActionFormatOutput,
 			),
 		},
 	)
