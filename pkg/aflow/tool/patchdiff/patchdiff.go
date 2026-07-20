@@ -33,21 +33,33 @@ type result struct {
 	Output string `jsonschema:"Output of the git diff command."`
 }
 
+// Diff runs a sandboxed git diff command in the specified repository.
+func Diff(repo string, args ...string) (string, error) {
+	gitDiffArgs := append([]string{"diff"}, args...)
+	cmd := osutil.Command("git", gitDiffArgs...)
+	cmd.Dir = repo
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return "", err
+	}
+	output, err := osutil.Run(1*time.Minute, cmd)
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
 func patchDiff(ctx *aflow.Context, state state, args args) (result, error) {
 	if state.KernelScratchSrc == "" {
 		return result{}, aflow.BadCallError("KernelScratchSrc is not set")
 	}
 
 	// Compare working tree to HEAD with expanded context.
-	gitArgs := []string{"diff", "HEAD", "--function-context", "-U10"}
+	gitArgs := []string{"HEAD", "--function-context", "-U10"}
 	if args.File != "" {
 		gitArgs = append(gitArgs, "--", args.File)
 	}
 
-	cmd := osutil.Command("git", gitArgs...)
-	cmd.Dir = state.KernelScratchSrc
-
-	output, err := osutil.Run(1*time.Minute, cmd)
+	output, err := Diff(state.KernelScratchSrc, gitArgs...)
 	if err != nil {
 		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
 			if bytes.Contains(verr.Output, []byte("outside repository")) {
@@ -60,5 +72,5 @@ func patchDiff(ctx *aflow.Context, state state, args args) (result, error) {
 		return result{}, err
 	}
 
-	return result{Output: string(output)}, nil
+	return result{Output: output}, nil
 }

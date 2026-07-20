@@ -91,6 +91,7 @@ func init() {
 				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(nil, patchInstruction, patchPrompt),
+				patchRefinementLoop(true),
 				&aflow.LLMAgent{
 					Name:        "fixes-finder",
 					Model:       aflow.BestExpensiveModel,

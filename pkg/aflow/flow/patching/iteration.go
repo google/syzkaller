@@ -54,7 +54,8 @@ type PatchIterationInputs struct {
 }
 
 type verdictAgentOutputs struct {
-	CodeItems         []string `jsonschema:"Clean list of changes explicitly requested for the code itself."`
+	CodeItems         []string `jsonschema:"Clean list of changes explicitly requested for the code logic itself."`
+	StyleItems        []string `jsonschema:"Clean list of changes requested for code style and formatting."`
 	DescriptionItems  []string `jsonschema:"Clean list of changes requested to the commit description/changelog."`
 	FixesItems        []string `jsonschema:"Clean list of comments suggesting Fixes tag is incorrect or needs update."`
 	UpdateFixesReason string   `jsonschema:"Explanation of why Fixes tag needs update, and any hints by reviewers."`
@@ -62,7 +63,8 @@ type verdictAgentOutputs struct {
 }
 
 func validateVerdictOutputs(ctx *aflow.Context, state struct{}, args verdictAgentOutputs) (verdictAgentOutputs, error) {
-	hasItems := len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
+	hasItems := len(args.CodeItems) > 0 || len(args.StyleItems) > 0 ||
+		len(args.DescriptionItems) > 0 || len(args.FixesItems) > 0
 	hasResend := args.ResendReason != ""
 	if hasItems && hasResend {
 		return args, aflow.BadCallError("cannot provide both Items arrays and a ResendReason; " +
@@ -128,8 +130,9 @@ func init() {
 							Condition: "CodeItems",
 							Do: patchGenerationLoop(
 								applyGitPatch, patchIterationInstruction, patchIterationPrompt, viewPatchHistoryTool),
-							Else: aflow.Pipeline(applyGitPatch, forwardPatchDiff),
+							Else: forwardPatchDiff,
 						},
+						patchRefinementLoop(false),
 						&aflow.If{
 							Condition: "FixesItems",
 							Do: aflow.Pipeline(
@@ -223,6 +226,7 @@ var viewPatchHistoryTool = aflow.NewFuncTool("view-patch-history", func(ctx *afl
 
 var extractTriageResults = aflow.NewFuncAction("extract-triage-results", func(ctx *aflow.Context, args struct {
 	CodeItems        []string
+	StyleItems       []string
 	DescriptionItems []string
 	FixesItems       []string
 	ResendReason     string
@@ -232,7 +236,7 @@ var extractTriageResults = aflow.NewFuncAction("extract-triage-results", func(ct
 	return struct {
 		NeedNewVersion bool
 	}{
-		NeedNewVersion: len(args.CodeItems) > 0 || len(args.DescriptionItems) > 0 ||
+		NeedNewVersion: len(args.CodeItems) > 0 || len(args.StyleItems) > 0 || len(args.DescriptionItems) > 0 ||
 			len(args.FixesItems) > 0 || args.ResendReason != "",
 	}, nil
 })
@@ -434,10 +438,11 @@ Your task is to determine if a new version of the patch needs to be generated ba
 You must also distill the messy email feedback into clean lists of requirements for downstream agents.
 CRITICAL: You must extract actionable items ONLY from the new comments provided in the current iteration.
 Do not extract items from previous historical comments.
-Separate the actionable items into three strictly divided categories:
-1. CodeActionItems: Changes requested to the C/header source code.
-2. DescriptionActionItems: Changes requested to the commit description or changelog.
-3. FixesActionItems: Feedback regarding the Fixes tag.
+Separate the actionable items into four strictly divided categories:
+1. CodeActionItems: Changes requested to the C/header source code logic.
+2. StyleActionItems: Changes requested for code style and formatting.
+3. DescriptionActionItems: Changes requested to the commit description or changelog.
+4. FixesActionItems: Feedback regarding the Fixes tag.
 Watch out for citations (lines starting with >) which often contain previous messages or context, not new requirements.
 Note: You shouldn't fully debug the issue right now. Just do a cautious check if the V+1 patch is necessary.
 

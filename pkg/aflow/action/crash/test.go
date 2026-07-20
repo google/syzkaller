@@ -4,17 +4,14 @@
 package crash
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
+	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
@@ -147,25 +144,7 @@ func currentDiff(repo string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	diff, err := osutil.RunCmd(time.Minute, repo, "git", "diff", "-U0")
-	if err != nil {
-		return "", err
-	}
-	formatDiff, err := findClangFormatDiff()
-	if err != nil {
-		return "", err
-	}
-	cmd := exec.Command(formatDiff, "-p1", "-i", "-style=file")
-	cmd.Stdin = bytes.NewReader(diff)
-	cmd.Dir = repo
-	if output, err := osutil.Run(10*time.Minute, cmd); err != nil {
-		return "", fmt.Errorf("%w\n%s", err, output)
-	}
-	diff, err = osutil.RunCmd(time.Minute, repo, "git", "diff")
-	if err != nil {
-		return "", err
-	}
-	return string(diff), nil
+	return patchdiff.Diff(repo)
 }
 
 func undoChanges(repo string) error {
@@ -181,22 +160,4 @@ func undoChanges(repo string) error {
 	// We do not use -fdx to keep object files around and make the next tool call faster.
 	_, err = osutil.RunCmd(time.Minute, repo, "git", "clean", "-fd")
 	return err
-}
-
-func findClangFormatDiff() (string, error) {
-	// It may be installed at different paths, and there may or may not be the version number.
-	paths := []string{
-		"/usr/lib/clang-format*/clang-format-diff.py",
-		"/usr/share/clang/clang-format*/clang-format-diff.py",
-	}
-	for _, path := range paths {
-		files, _ := filepath.Glob(path)
-		if len(files) == 0 {
-			continue
-		}
-		// If there are version numbers, we want to find the latest one.
-		slices.Sort(files)
-		return files[len(files)-1], nil
-	}
-	return "", fmt.Errorf("can't find clang-format-diff.py, install clang-format package")
 }
