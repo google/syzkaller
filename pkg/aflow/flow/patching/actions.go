@@ -181,22 +181,29 @@ type applyGitPatchArgs struct {
 	PatchHistory     []ai.PatchHistoryEntry
 }
 
+func applyGitDiff(dir, diff string) error {
+	if diff == "" {
+		return nil
+	}
+	cmd := osutil.Command("git", "apply", "-")
+	cmd.Dir = dir
+	cmd.Stdin = strings.NewReader(diff)
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return err
+	}
+	if output, err := osutil.Run(time.Minute, cmd); err != nil {
+		return fmt.Errorf("failed to apply patch: %w\n%s", err, output)
+	}
+	return nil
+}
+
 func applyGitPatchFunc(ctx *aflow.Context, args applyGitPatchArgs) (struct{}, error) {
 	if len(args.PatchHistory) == 0 {
 		return struct{}{}, aflow.FlowError(fmt.Errorf("PatchHistory is empty"))
 	}
 	latest := args.PatchHistory[len(args.PatchHistory)-1]
-	if latest.Diff == "" {
-		return struct{}{}, nil
+	if err := applyGitDiff(args.KernelScratchSrc, latest.Diff); err != nil {
+		return struct{}{}, aflow.FlowError(err)
 	}
-
-	// Apply the diff.
-	cmd := exec.Command("git", "apply")
-	cmd.Dir = args.KernelScratchSrc
-	cmd.Stdin = strings.NewReader(latest.Diff)
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
-		return struct{}{}, aflow.FlowError(fmt.Errorf("failed to apply previous patch: %w", err))
-	}
-
 	return struct{}{}, nil
 }
