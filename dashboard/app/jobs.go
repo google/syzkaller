@@ -436,8 +436,6 @@ func jobFromBugSample(ctx context.Context, managers map[string]dashapi.ManagerJo
 		return nil, nil, nil
 	}
 
-	// TODO: delete loadBugsWithHeadRepro and use direct datastore query on migrated booleans
-	// after the database migration to HasCRepro/HasSyzRepro is complete.
 	allBugsWithRepro, err := loadBugsWithHeadRepro(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -1967,60 +1965,40 @@ func fullBackportInfo(ctx context.Context, list []*backportInfo) error {
 
 // TODO: delete this function after database migration to HasCRepro/HasSyzRepro is complete.
 func loadBugsWithHeadRepro(ctx context.Context) ([]bugItem, error) {
-	// Query 1: Unmigrated bugs with HeadReproLevel > 0.
-	allUnmigrated, keysAll, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+	// Query 1: Bugs with HeadHasCRepro = true.
+	bugs1, keys1, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen).
-			Filter("HeadReproLevel>", 0)
-	})
-	if err != nil {
-		return nil, err
-	}
-	var bugs1 []*Bug
-	var keys1 []*db.Key
-	for i, bug := range allUnmigrated {
-		if !bug.MigratedToBools {
-			bugs1 = append(bugs1, bug)
-			keys1 = append(keys1, keysAll[i])
-		}
-	}
-
-	// Query 2: Migrated bugs with HeadHasCRepro = true.
-	bugs2, keys2, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
-		return query.Filter("Status=", BugStatusOpen).
-			Filter("MigratedToBools=", true).
 			Filter("HeadHasCRepro=", true)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Query 3: Migrated bugs with HeadHasSyzRepro = true.
-	bugs3, keys3, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+	// Query 2: Bugs with HeadHasSyzRepro = true.
+	bugs2, keys2, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen).
-			Filter("MigratedToBools=", true).
 			Filter("HeadHasSyzRepro=", true)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Merge and deduplicate the three query results.
+	// Merge and deduplicate the query results.
 	var merged []bugItem
 	seen := make(map[string]bool)
 
 	add := func(bugs []*Bug, keys []*db.Key) {
-		for i, bug := range bugs {
-			h := bug.keyHash(ctx)
+		for i := range bugs {
+			h := keys[i].StringID()
 			if seen[h] {
 				continue
 			}
 			seen[h] = true
-			merged = append(merged, bugItem{bug, keys[i]})
+			merged = append(merged, bugItem{bugs[i], keys[i]})
 		}
 	}
 	add(bugs1, keys1)
 	add(bugs2, keys2)
-	add(bugs3, keys3)
 
 	return merged, nil
 }

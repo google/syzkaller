@@ -273,7 +273,7 @@ func querySubsystemReport(ctx context.Context, subsystem *Subsystem, reporting *
 			// The bug was intentionally excluded from monthly reminders.
 			continue
 		}
-		if bug.ReproLevel == dashapi.ReproLevelNone {
+		if !bug.HasRepro() {
 			noRepro = append(noRepro, bug)
 		} else {
 			withRepro = append(withRepro, bug)
@@ -467,7 +467,7 @@ func reportingBugListReport(ctx context.Context, subsystemReport *SubsystemRepor
 			ret.Bugs = append(ret.Bugs, dashapi.BugListItem{
 				Title:      bug.displayTitle(),
 				Link:       fmt.Sprintf("%v/bug?extid=%v", appURL(ctx), bugReporting.ID),
-				ReproLevel: bug.ReproLevel,
+				ReproLevel: bug.ReproLevelVal(),
 				Hits:       bug.NumCrashes,
 			})
 		}

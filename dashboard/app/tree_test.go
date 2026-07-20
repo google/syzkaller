@@ -1060,7 +1060,7 @@ func (ctx *treeTestCtx) uploadBuildCrash(build *dashapi.Build, lvl dashapi.Repro
 		crash.ReproC = []byte("getpid()")
 	}
 	ctx.client.ReportCrash(crash)
-	if ctx.bug == nil || ctx.bug.ReproLevel < lvl {
+	if ctx.bug == nil || ctx.bug.ReproLevelVal() < lvl {
 		ctx.bugReport = ctx.globalClient.pollBug()
 		if ctx.bug == nil {
 			bug, _, err := findBugByReportingID(ctx.ctx.ctx, ctx.bugReport.ID)

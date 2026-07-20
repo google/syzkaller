@@ -1991,7 +1991,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		workflows[ai.WorkflowAssessmentKCSAN] = true
 	}
 	// A reproducer increases chances of a correct assessment, so wait for it for a day.
-	if manual || bug.ReproLevel > dashapi.ReproLevelNone ||
+	if manual || bug.HasRepro() ||
 		timeSince(ctx, bug.FirstTime) > 24*time.Hour {
 		workflows[ai.WorkflowAssessmentSecurity] = true
 	}
@@ -2000,7 +2000,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		if typ.IsUAF() {
 			workflows[ai.WorkflowModeration] = true
 		}
-		if bug.HeadReproLevel > dashapi.ReproLevelNone {
+		if bug.HasHeadRepro() {
 			workflows[ai.WorkflowPatching] = true
 		}
 		workflows[ai.WorkflowRepro] = true

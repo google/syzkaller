@@ -346,16 +346,16 @@ func updateHeadReproLevel(ctx context.Context, w http.ResponseWriter, r *http.Re
 		mismatch := (actualC != dbHasC) || (actualSyz != dbHasSyz)
 		if mismatch {
 			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual C/Syz=%t/%t, db C/Syz=%t/%t\n",
-				bugLink(bug.keyHash(ctx)), actualC, actualSyz, dbHasC, dbHasSyz)
-			newLevels[bug.keyHash(ctx)] = reproState{hasC: actualC, hasSyz: actualSyz}
+				bugLink(key.StringID()), actualC, actualSyz, dbHasC, dbHasSyz)
+			newLevels[key.StringID()] = reproState{hasC: actualC, hasSyz: actualSyz}
 			keys = append(keys, key)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
-		state, ok := newLevels[bug.keyHash(ctx)]
+	return updateBatch(ctx, keys, func(key *db.Key, bug *Bug) {
+		state, ok := newLevels[key.StringID()]
 		if !ok {
 			panic("fetched unknown bug")
 		}
