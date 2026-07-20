@@ -502,7 +502,7 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 		if ctx.mode == MinimizeCorpus {
 			return false
 		}
-		// Try to undo target.SpecialFileLenghts mutation
+		// Try to undo target.SpecialFileLengths mutation
 		// and reduce file name length.
 		if !typ.Varlen() {
 			return false

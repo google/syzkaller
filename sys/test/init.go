@@ -11,5 +11,5 @@ import (
 
 func InitTarget(target *prog.Target) {
 	target.MakeDataMmap = targets.MakeSyzMmap(target)
-	target.SpecialFileLenghts = []int{3, 256}
+	target.SpecialFileLengths = []int{3, 256}
 }
