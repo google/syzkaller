@@ -82,3 +82,15 @@ func TestGetEnvironment(t *testing.T) {
 	require.Contains(t, res.Output, "VM Cmdline: root=/dev/sda1 dummy_hcd.num=1")
 	require.Contains(t, res.Output, "VM Qemu Args: -enable-kvm -m 4096M")
 }
+
+func TestResolveLineToPCAction(t *testing.T) {
+	// Test missing parameters error.
+	_, err := resolveLineToPCAction(nil, ResolveLineToPCArgs{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
+
+	// Test invalid line number error.
+	_, err = resolveLineToPCAction(nil, ResolveLineToPCArgs{FilePath: "fs/ext4/super.c", LineNumber: 0})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
+}

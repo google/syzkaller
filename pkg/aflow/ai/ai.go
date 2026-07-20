@@ -20,6 +20,7 @@ const (
 	WorkflowReproC             = WorkflowType("repro-c")
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
 	WorkflowSeedGen            = WorkflowType("seed-gen")
+	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
 )
 
 // Outputs of various workflow types.
