@@ -282,3 +282,20 @@ indexes:
   - name: Status
   - name: AIJobCheck
   - name: AIPendingWorkflows
+
+- kind: Bug
+  properties:
+  - name: Status
+  - name: HasCRepro
+  - name: HasSyzRepro
+  - name: BisectCause
+  - name: FirstTime
+    direction: desc
+
+- kind: Bug
+  properties:
+  - name: Status
+  - name: HasCRepro
+  - name: HasSyzRepro
+  - name: BisectFix
+  - name: LastTime

@@ -259,12 +259,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			}
 			if !isFixed {
 				t.Logf("acknowledging bug %q without fixing it", rep.Title)
-				reproLevel := dashapi.ReproLevelNone
-				if len(rep.ReproC) != 0 {
-					reproLevel = dashapi.ReproLevelC
-				} else if len(rep.ReproSyz) != 0 {
-					reproLevel = dashapi.ReproLevelSyz
-				}
+				reproLevel := dashapi.ReproLevelFromCAndSyz(len(rep.ReproC) != 0, len(rep.ReproSyz) != 0)
 				_, err := globalClient.ReportingUpdate(&dashapi.BugUpdate{
 					ID:         rep.ID,
 					Status:     dashapi.BugStatusOpen,

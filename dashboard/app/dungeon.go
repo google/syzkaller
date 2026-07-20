@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/dungeon"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/image"
@@ -438,7 +437,7 @@ func fetchDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDu
 		in1Y := !bug.FixTime.IsZero() && !bug.FixTime.Before(cutoff)
 		bugInfo := dungeon.BugInfo{
 			NumCrashes:      int(bug.NumCrashes),
-			LacksReproducer: bug.ReproLevel == dashapi.ReproLevelNone,
+			LacksReproducer: !bug.HasRepro(),
 			FirstTime:       bug.FirstTime,
 			FixTime:         bug.FixTime,
 		}
@@ -548,7 +547,7 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 				LowerCommitTitles: lowerCommitTitles,
 				DaysOpen:          daysOpen,
 				NumCrashes:        int(bug.NumCrashes),
-				LacksReproducer:   bug.ReproLevel == dashapi.ReproLevelNone,
+				LacksReproducer:   !bug.HasRepro(),
 				HoursToFix:        -1,
 			}
 			if !bug.FixTime.IsZero() && !bug.FirstTime.IsZero() {
@@ -565,7 +564,7 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 			// Str: Max Crashes.
 			p.Str = max(p.Str, int(bug.NumCrashes))
 			// Int: Blind Fixes Count.
-			if bug.ReproLevel == dashapi.ReproLevelNone {
+			if !bug.HasRepro() {
 				p.Int++
 			}
 			// Wis: Max Days Open.
