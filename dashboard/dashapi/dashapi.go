@@ -930,8 +930,10 @@ type (
 	BugStatus       int
 	BugStatusReason string
 	BugNotif        int
-	ReproLevel      int
-	ReportType      int
+	// ReproLevel represents reproduction level.
+	// TODO: delete once the transition to boolean fields (MigratedToBools) is complete.
+	ReproLevel int
+	ReportType int
 )
 
 const (
@@ -963,11 +965,22 @@ const (
 	BugNotifLabel
 )
 
+// ReproLevel represents the reproduction level of a bug, used primarily in reporting APIs.
 const (
 	ReproLevelNone ReproLevel = iota
 	ReproLevelSyz
 	ReproLevelC
 )
+
+func ReproLevelFromCAndSyz(hasC, hasSyz bool) ReproLevel {
+	if hasC {
+		return ReproLevelC
+	}
+	if hasSyz {
+		return ReproLevelSyz
+	}
+	return ReproLevelNone
+}
 
 const (
 	ReportNew         ReportType = iota // First report for this bug in the reporting stage.
