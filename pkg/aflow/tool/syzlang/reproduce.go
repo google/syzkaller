@@ -21,6 +21,7 @@ You MUST use this tool to verify your generated syz repro program.
 
 type ReproduceArgs struct {
 	ReproSyz string `jsonschema:"Syz program to verify and execute."`
+	Sandbox  string `jsonschema:"Sandbox to use for execution (none/setuid/namespace/android)."`
 }
 
 type ReproduceResult struct {
@@ -73,8 +74,13 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 			KernelObj:    state.KernelObj,
 			KernelCommit: state.KernelCommit,
 			KernelConfig: state.KernelConfig,
+			Sandbox:      args.Sandbox,
 		},
 		ReproSyz: args.ReproSyz,
+	}
+
+	if err := reproArgs.Validate(); err != nil {
+		return ReproduceResult{}, aflow.BadCallError("invalid configuration: %v", err)
 	}
 
 	testRes, cachedID, err := crash.ReproduceFuncWithCoverage(ctx, reproArgs, true)
