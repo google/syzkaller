@@ -319,3 +319,39 @@ func TestLoopVarDefinedOutside(t *testing.T) {
 		)},
 	)
 }
+
+func TestDoWhileMapOutputs(t *testing.T) {
+	type outerInitResults struct {
+		PatchDiff string
+	}
+	type loopActionResults struct {
+		Continue  string
+		PatchDiff string
+	}
+	type consumerArgs struct {
+		RefinedDiff string
+	}
+	testFlow[struct{}, struct{}](t, nil, map[string]any{},
+		Pipeline(
+			NewFuncAction("init-action", func(ctx *Context, args struct{}) (outerInitResults, error) {
+				return outerInitResults{PatchDiff: "initial"}, nil
+			}),
+			&DoWhile{
+				MaxIterations: 1,
+				While:         "Continue",
+				MapOutputs:    map[string]string{"PatchDiff": "RefinedDiff"},
+				Do: NewFuncAction("loop-action", func(ctx *Context, args struct{ PatchDiff string }) (loopActionResults, error) {
+					return loopActionResults{Continue: "", PatchDiff: args.PatchDiff + "+refined"}, nil
+				}),
+			},
+			NewFuncAction("consumer", func(ctx *Context, args consumerArgs) (struct{}, error) {
+				if args.RefinedDiff != "initial+refined" {
+					return struct{}{}, fmt.Errorf("expected 'initial+refined', got %q", args.RefinedDiff)
+				}
+				return struct{}{}, nil
+			}),
+		),
+		nil,
+		nil,
+	)
+}
