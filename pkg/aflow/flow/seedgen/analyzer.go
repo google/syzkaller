@@ -19,6 +19,7 @@ var SeedgenAnalyzer = aflow.LLMTool[struct{}, AnalyzerQuery]{
 	Model:    aflow.Temporary35FlashOnlyModel,
 	TaskType: aflow.FormalReasoningTask,
 	Tools: aflow.Tools(
+		ToolGetEnvironment,
 		codesearcher.Tools,
 		grepper.Tool,
 		syzlang.ReadSyzSpec,
