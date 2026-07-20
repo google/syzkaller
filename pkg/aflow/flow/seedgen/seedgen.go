@@ -34,6 +34,35 @@ type SeedGenInputs struct {
 	CorpusPath   string
 }
 
+func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
+	steps := append([]aflow.Action{actionsyzlang.PrepareSyzFS}, prefix...)
+	steps = append(steps,
+		kernel.SymbolizePC,
+		ActionExecuteCorpus,
+		codesearcher.PrepareIndex,
+		codesearcher.ActionExtractFunction,
+		codesearcher.ActionExtractIndirectCallers,
+		&aflow.DoWhile{
+			While:         "ContinueLoop",
+			MaxIterations: 5,
+			Do: aflow.Pipeline(
+				ActionPrepareFailedDetails,
+				&aflow.Try{
+					Do:       GeneratorAgent,
+					ErrorVar: "GeneratorError",
+					Catch: aflow.Pipeline(
+						ActionFormatFailedHistory,
+						HistorySummarizerAgent,
+					),
+				},
+				ActionVerifyPCAndLoopState,
+			),
+		},
+		ActionFormatOutput,
+	)
+	return aflow.Pipeline(steps...)
+}
+
 func init() {
 	aflow.Register[SeedGenInputs, ai.SeedGenOutputs](
 		ai.WorkflowSeedGen,
@@ -45,34 +74,11 @@ func init() {
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
 				"DocSyzOS":                     docs.SyzOS,
 			},
-			Root: aflow.Pipeline(
-				actionsyzlang.PrepareSyzFS,
+			Root: seedGenPipeline(
 				ActionParsePC,
 				kernel.Checkout,
 				kernel.Build,
 				crash.ActionConfigureRunner,
-				kernel.SymbolizePC,
-				ActionExecuteCorpus,
-				codesearcher.PrepareIndex,
-				codesearcher.ActionExtractFunction,
-				codesearcher.ActionExtractIndirectCallers,
-				&aflow.DoWhile{
-					While:         "ContinueLoop",
-					MaxIterations: 5,
-					Do: aflow.Pipeline(
-						&aflow.If{
-							Condition: "LastFailedExecutionCachedID",
-							Do: aflow.Pipeline(
-								ActionPrepareFailedDetails,
-								ActionFormatFailedHistory,
-								HistorySummarizerAgent,
-							),
-						},
-						GeneratorAgent,
-						ActionVerifyPCAndLoopState,
-					),
-				},
-				ActionFormatOutput,
 			),
 		},
 	)
@@ -135,6 +141,7 @@ type VerifyPCAndLoopStateArgs struct {
 	ExecutionCachedID    string
 	GeneratorGiveUp      bool
 	GeneratorReason      string
+	GeneratorError       string
 	PC                   uint64
 	FailedHistorySummary string
 }
@@ -148,6 +155,18 @@ type VerifyPCAndLoopStateResult struct {
 
 var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop",
 	func(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
+		if args.GeneratorError != "" {
+			res := VerifyPCAndLoopStateResult{
+				ContinueLoop:             "yes",
+				PCReached:                false,
+				LastFailedHistorySummary: args.FailedHistorySummary,
+			}
+			if id, ok := ctx.StateMap()["LastFailedExecutionCachedID"].(string); ok {
+				res.LastFailedExecutionCachedID = id
+			}
+			return res, nil
+		}
+
 		if args.GeneratorGiveUp {
 			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
 		}

@@ -157,7 +157,8 @@ Workflow:
         (e.g. dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs), core POSIX syscalls, or platform driver
         sysfs rebinding.
         NOTE: Platform drivers (under /sys/bus/platform/drivers/) do NOT require physical hardware or DeviceTree entries
-        to probe. Userspace can rebind existing platform devices (e.g. 'pcspkr', 'alarmtimer', 'serial8250') to the target
+        to probe. Userspace can rebind existing platform devices (e.g. 'pcspkr',
+        'alarmtimer', 'serial8250') to the target
         platform driver using sysfs 'driver_override' and 'bind' attributes. Never mark a platform driver as unreachable
         without attempting this rebinding setup.
       NOTE: Do NOT rely on 'get-corpus-programs' when evaluating target reachability. A lack of corpus programs

@@ -19,4 +19,3 @@ var PseudoSyscalls string
 
 //go:embed syzos.md
 var SyzOS string
-
