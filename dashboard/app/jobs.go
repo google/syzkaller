@@ -22,6 +22,11 @@ import (
 	"google.golang.org/appengine/v2/user"
 )
 
+type bugItem struct {
+	bug *Bug
+	key *db.Key
+}
+
 type testReqArgs struct {
 	bug             *Bug
 	bugKey          *db.Key
@@ -427,35 +432,46 @@ func jobFromBugSample(ctx context.Context, managers map[string]dashapi.ManagerJo
 		managersList = append(managersList, decommissionedInto(ctx, name)...)
 	}
 	managersList = unique(managersList)
+	if len(managersList) == 0 {
+		return nil, nil, nil
+	}
+
+	// TODO: delete loadBugsWithHeadRepro and use direct datastore query on migrated booleans
+	// after the database migration to HasCRepro/HasSyzRepro is complete.
+	allBugsWithRepro, err := loadBugsWithHeadRepro(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var allBugs []*Bug
 	var allBugKeys []*db.Key
-	for _, mgrName := range managersList {
-		bugs, bugKeys, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
-			return query.Filter("Status=", BugStatusOpen).
-				Filter("HappenedOn=", mgrName).
-				Filter("HeadReproLevel>", 0)
-		})
-		if err != nil {
-			return nil, nil, err
+	for _, item := range allBugsWithRepro {
+		hasMgr := false
+		for _, mgr := range item.bug.HappenedOn {
+			if slices.Contains(managersList, mgr) {
+				hasMgr = true
+				break
+			}
 		}
-		bugs, bugKeys = filterBugs(bugs, bugKeys, func(bug *Bug) bool {
-			if len(bug.Commits) > 0 {
-				// Let's save resources -- there's no point in doing analysis for bugs
-				// for which we were already given fixing commits.
-				return false
-			}
-			if getNsConfig(ctx, bug.Namespace).Decommissioned {
-				return false
-			}
-			return true
-		})
-		allBugs = append(allBugs, bugs...)
-		allBugKeys = append(allBugKeys, bugKeys...)
+		if !hasMgr {
+			continue
+		}
+		allBugs = append(allBugs, item.bug)
+		allBugKeys = append(allBugKeys, item.key)
 	}
+
+	allBugs, allBugKeys = filterBugs(allBugs, allBugKeys, func(bug *Bug) bool {
+		if len(bug.Commits) > 0 {
+			// Let's save resources -- there's no point in doing analysis for bugs
+			// for which we were already given fixing commits.
+			return false
+		}
+		if getNsConfig(ctx, bug.Namespace).Decommissioned {
+			return false
+		}
+		return true
+	})
 	r := rand.New(rand.NewSource(timeNow(ctx).UnixNano()))
-	// Bugs often happen on multiple instances, so let's filter out duplicates.
-	allBugs, allBugKeys = uniqueBugs(ctx, allBugs, allBugKeys)
 	r.Shuffle(len(allBugs), func(i, j int) {
 		allBugs[i], allBugs[j] = allBugs[j], allBugs[i]
 		allBugKeys[i], allBugKeys[j] = allBugKeys[j], allBugKeys[i]
@@ -643,18 +659,22 @@ func handleRetestForBug(ctx context.Context, bug *Bug, bugKey *db.Key,
 }
 
 func createBisectJob(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
-	// We need both C and syz repros, but the crazy datastore query restrictions
-	// do not allow to use ReproLevel>ReproLevelNone in the query. So we do 2 separate queries.
-	// C repros tend to be of higher reliability so maybe it's not bad.
-	job, jobKey, err := createBisectJobRepro(ctx, managers, ReproLevelC)
+	// 1. Both C and Syz
+	job, jobKey, err := createBisectJobRepro(ctx, managers, true, true, ReproLevelC)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	return createBisectJobRepro(ctx, managers, ReproLevelSyz)
+	// 2. C-only
+	job, jobKey, err = createBisectJobRepro(ctx, managers, true, false, ReproLevelNone)
+	if job != nil || err != nil {
+		return job, jobKey, err
+	}
+	// 3. Syz-only
+	return createBisectJobRepro(ctx, managers, false, true, ReproLevelSyz)
 }
 
 func createBisectJobRepro(ctx context.Context, managers map[string]dashapi.ManagerJobs,
-	reproLevel dashapi.ReproLevel) (*Job, *db.Key, error) {
+	hasC, hasSyz bool, reproLevel dashapi.ReproLevel) (*Job, *db.Key, error) {
 	causeManagers := make(map[string]bool)
 	fixManagers := make(map[string]bool)
 	for mgr, jobs := range managers {
@@ -665,56 +685,132 @@ func createBisectJobRepro(ctx context.Context, managers map[string]dashapi.Manag
 			fixManagers[mgr] = true
 		}
 	}
-	job, jobKey, err := findBugsForBisection(ctx, causeManagers, reproLevel, JobBisectCause)
+	job, jobKey, err := findBugsForBisection(ctx, causeManagers, hasC, hasSyz, reproLevel, JobBisectCause)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	return findBugsForBisection(ctx, fixManagers, reproLevel, JobBisectFix)
+	return findBugsForBisection(ctx, fixManagers, hasC, hasSyz, reproLevel, JobBisectFix)
 }
 
 func findBugsForBisection(ctx context.Context, managers map[string]bool,
-	reproLevel dashapi.ReproLevel, jobType JobType) (*Job, *db.Key, error) {
+	hasC, hasSyz bool, reproLevel dashapi.ReproLevel, jobType JobType) (*Job, *db.Key, error) {
 	if len(managers) == 0 {
 		return nil, nil, nil
 	}
-	// Note: we could also include len(Commits)==0 but datastore does not work this way.
-	// So we would need an additional HasCommits field or something.
-	// Note: For JobBisectCause, order the bugs from newest to oldest. For JobBisectFix,
-	// order the bugs from oldest to newest.
-	// Sort property should be the same as property used in the inequality filter.
-	// We only need 1 job, but we skip some because the query is not precise.
-	bugs, keys, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
-		query = query.Filter("Status=", BugStatusOpen)
+
+	// 1. Query migrated bugs
+	bugsMigrated, keysMigrated, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+		query = query.Filter("Status=", BugStatusOpen).
+			Filter("StructVersion=", 1).
+			Filter("HasCRepro=", hasC).
+			Filter("HasSyzRepro=", hasSyz)
 		if jobType == JobBisectCause {
 			query = query.Filter("FirstTime>", time.Time{}).
-				Filter("ReproLevel=", reproLevel).
 				Filter("BisectCause=", BisectNot).
 				Order("-FirstTime")
 		} else {
 			query = query.Filter("LastTime>", time.Time{}).
-				Filter("ReproLevel=", reproLevel).
 				Filter("BisectFix=", BisectNot).
 				Order("LastTime")
 		}
 		return query
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to query bugs: %w", err)
+		return nil, nil, fmt.Errorf("failed to query migrated bugs: %w", err)
 	}
-	for bi, bug := range bugs {
+
+	// TODO: delete step 2 (unmigrated bugs query) and merging logic below after
+	// the database migration to HasCRepro/HasSyzRepro is complete.
+	// 2. Query unmigrated bugs (if reproLevel != ReproLevelNone)
+	var bugsUnmigrated []*Bug
+	var keysUnmigrated []*db.Key
+	if reproLevel != ReproLevelNone {
+		allUnmigrated, keysAll, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+			query = query.Filter("Status=", BugStatusOpen).
+				Filter("ReproLevel=", reproLevel)
+			if jobType == JobBisectCause {
+				query = query.Filter("FirstTime>", time.Time{}).
+					Filter("BisectCause=", BisectNot).
+					Order("-FirstTime")
+			} else {
+				query = query.Filter("LastTime>", time.Time{}).
+					Filter("BisectFix=", BisectNot).
+					Order("LastTime")
+			}
+			return query
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to query unmigrated bugs: %w", err)
+		}
+		for i, bug := range allUnmigrated {
+			if bug.StructVersion == 0 {
+				bugsUnmigrated = append(bugsUnmigrated, bug)
+				keysUnmigrated = append(keysUnmigrated, keysAll[i])
+			}
+		}
+	}
+
+	// 3. Merge both slices, maintaining the sort order!
+	merged := mergeBugsByTime(bugsMigrated, keysMigrated, bugsUnmigrated, keysUnmigrated, jobType)
+
+	// 4. Find the first eligible bug from the sorted list
+	for _, item := range merged {
+		bug := item.bug
+		key := item.key
 		if !shouldBisectBug(ctx, bug, managers, jobType) {
 			continue
 		}
-		crash, crashKey, err := bisectCrashForBug(ctx, bug, keys[bi], managers, jobType)
+		crash, crashKey, err := bisectCrashForBug(ctx, bug, key, managers, jobType)
 		if err != nil {
 			return nil, nil, err
 		}
 		if crash == nil {
 			continue
 		}
-		return createBisectJobForBug(ctx, bug, crash, keys[bi], crashKey, jobType)
+		return createBisectJobForBug(ctx, bug, crash, key, crashKey, jobType)
 	}
 	return nil, nil, nil
+}
+
+func mergeBugsByTime(migrated []*Bug, keysMigrated []*db.Key,
+	unmigrated []*Bug, keysUnmigrated []*db.Key, jobType JobType) []bugItem {
+	var merged []bugItem
+	i, j := 0, 0
+	for i < len(migrated) || j < len(unmigrated) {
+		if i >= len(migrated) {
+			merged = append(merged, bugItem{unmigrated[j], keysUnmigrated[j]})
+			j++
+			continue
+		}
+		if j >= len(unmigrated) {
+			merged = append(merged, bugItem{migrated[i], keysMigrated[i]})
+			i++
+			continue
+		}
+
+		migratedVal := migrated[i].FirstTime
+		unmigratedVal := unmigrated[j].FirstTime
+		if jobType == JobBisectFix {
+			migratedVal = migrated[i].LastTime
+			unmigratedVal = unmigrated[j].LastTime
+		}
+
+		takeMigrated := false
+		if jobType == JobBisectCause {
+			takeMigrated = migratedVal.After(unmigratedVal)
+		} else {
+			takeMigrated = migratedVal.Before(unmigratedVal)
+		}
+
+		if takeMigrated {
+			merged = append(merged, bugItem{migrated[i], keysMigrated[i]})
+			i++
+		} else {
+			merged = append(merged, bugItem{unmigrated[j], keysUnmigrated[j]})
+			j++
+		}
+	}
+	return merged
 }
 
 func shouldBisectBug(ctx context.Context, bug *Bug, managers map[string]bool, jobType JobType) bool {
@@ -754,7 +850,7 @@ func bisectCrashForBug(ctx context.Context, bug *Bug, bugKey *db.Key, managers m
 		return nil, nil, err
 	}
 	for ci, crash := range crashes {
-		if crash.ReproSyz == 0 || !managers[crash.Manager] {
+		if (crash.ReproSyz == 0 && crash.ReproC == 0) || !managers[crash.Manager] {
 			continue
 		}
 		if jobType == JobBisectFix &&
@@ -958,7 +1054,8 @@ func handleRetestedRepro(ctx context.Context, now time.Time, job *Job, jobKey *d
 		return nil, fmt.Errorf("failed to fetch crashes with repro: %w", err)
 	}
 	// Now we can update the bug.
-	bug.HeadReproLevel = ReproLevelNone
+	hasC := false
+	hasSyz := false
 	for id, bestCrash := range reproCrashes {
 		if crashKeys[id].Equal(crashKey) {
 			// In Datastore, we don't see previous writes in a transaction...
@@ -968,11 +1065,13 @@ func handleRetestedRepro(ctx context.Context, now time.Time, job *Job, jobKey *d
 			continue
 		}
 		if bestCrash.ReproC > 0 {
-			bug.HeadReproLevel = ReproLevelC
-		} else if bug.HeadReproLevel != ReproLevelC && bestCrash.ReproSyz > 0 {
-			bug.HeadReproLevel = ReproLevelSyz
+			hasC = true
+		}
+		if bestCrash.ReproSyz > 0 {
+			hasSyz = true
 		}
 	}
+	bug.SetHeadReproLevel(hasC, hasSyz)
 	if stringInList(allTitles, bug.Title) || stringListsIntersect(bug.AltTitles, allTitles) {
 		// We don't want to confuse users, so only update LastTime if the generated crash
 		// really relates to the existing bug.
@@ -1612,23 +1711,6 @@ func makeJobInfo(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, build 
 	return info
 }
 
-func uniqueBugs(ctx context.Context, inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*db.Key) {
-	var bugs []*Bug
-	var keys []*db.Key
-
-	dups := map[string]bool{}
-	for i, bug := range inBugs {
-		hash := bug.keyHash(ctx)
-		if dups[hash] {
-			continue
-		}
-		dups[hash] = true
-		bugs = append(bugs, bug)
-		keys = append(keys, inKeys[i])
-	}
-	return bugs, keys
-}
-
 type backportInfo struct {
 	bug    *Bug
 	job    *Job
@@ -1881,4 +1963,64 @@ func fullBackportInfo(ctx context.Context, list []*backportInfo) error {
 		return fmt.Errorf("failed to load builds: %w", err)
 	}
 	return nil
+}
+
+// TODO: delete this function after database migration to HasCRepro/HasSyzRepro is complete.
+func loadBugsWithHeadRepro(ctx context.Context) ([]bugItem, error) {
+	// Query 1: Unmigrated bugs with HeadReproLevel > 0.
+	allUnmigrated, keysAll, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).
+			Filter("HeadReproLevel>", 0)
+	})
+	if err != nil {
+		return nil, err
+	}
+	var bugs1 []*Bug
+	var keys1 []*db.Key
+	for i, bug := range allUnmigrated {
+		if !bug.MigratedToBools {
+			bugs1 = append(bugs1, bug)
+			keys1 = append(keys1, keysAll[i])
+		}
+	}
+
+	// Query 2: Migrated bugs with HeadHasCRepro = true.
+	bugs2, keys2, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).
+			Filter("MigratedToBools=", true).
+			Filter("HeadHasCRepro=", true)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Query 3: Migrated bugs with HeadHasSyzRepro = true.
+	bugs3, keys3, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).
+			Filter("MigratedToBools=", true).
+			Filter("HeadHasSyzRepro=", true)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge and deduplicate the three query results.
+	var merged []bugItem
+	seen := make(map[string]bool)
+
+	add := func(bugs []*Bug, keys []*db.Key) {
+		for i, bug := range bugs {
+			h := bug.keyHash(ctx)
+			if seen[h] {
+				continue
+			}
+			seen[h] = true
+			merged = append(merged, bugItem{bug, keys[i]})
+		}
+	}
+	add(bugs1, keys1)
+	add(bugs2, keys2)
+	add(bugs3, keys3)
+
+	return merged, nil
 }
