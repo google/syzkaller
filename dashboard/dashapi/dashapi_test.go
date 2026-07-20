@@ -6,6 +6,8 @@ package dashapi
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewOpts(t *testing.T) {
@@ -43,5 +45,22 @@ func TestNewOpts(t *testing.T) {
 				t.Errorf("created request has unexpected header. got: %s, want: 'Custom Agent/2.3'", got)
 			}
 		})
+	}
+}
+
+func TestReproLevelFromCAndSyz(t *testing.T) {
+	tests := []struct {
+		hasC   bool
+		hasSyz bool
+		want   ReproLevel
+	}{
+		{false, false, ReproLevelNone},
+		{false, true, ReproLevelSyz},
+		{true, false, ReproLevelC},
+		{true, true, ReproLevelC},
+	}
+	for _, test := range tests {
+		got := ReproLevelFromCAndSyz(test.hasC, test.hasSyz)
+		require.Equal(t, test.want, got, "reproLevelFromCAndSyz(%t, %t)", test.hasC, test.hasSyz)
 	}
 }
