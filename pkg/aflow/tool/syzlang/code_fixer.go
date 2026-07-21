@@ -32,6 +32,7 @@ func validateCodeFixerOutputs(
 	ctx *aflow.Context, state struct{}, args CodeFixerArgs, res CodeFixerResult,
 ) (CodeFixerResult, error) {
 	if res.CodeFixerGiveUp {
+		res.ExecutionCachedID = ""
 		if res.CodeFixerReason == "" {
 			return res, aflow.BadCallError("must provide CodeFixerReason if giving up")
 		}
