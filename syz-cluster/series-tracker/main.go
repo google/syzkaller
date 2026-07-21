@@ -156,12 +156,9 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 	var directRequest bool
 	if cfg.DirectList != "" {
 		canonicalDirect := email.CanonicalEmail(cfg.DirectList)
-		for _, addr := range first.RawCc {
-			if email.CanonicalEmail(addr) == canonicalDirect {
-				directRequest = true
-				break
-			}
-		}
+		directRequest = slices.ContainsFunc(first.RawCc, func(addr string) bool {
+			return email.CanonicalEmail(addr) == canonicalDirect
+		})
 	}
 	reportLevel := api.ReportLevelBugs
 	if directRequest {
