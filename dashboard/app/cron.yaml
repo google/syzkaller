@@ -28,7 +28,7 @@ cron:
 # We're adding data w/o transactions.
 # It is important to run clean operation when there are no batch_coverage in progress.
 - url: /cron/batch_coverage_clean
-  schedule: every saturday 12:00
+  schedule: every day 12:00
 # Export reproducers every week.
 - url: /cron/batch_db_export
   schedule: every saturday 00:00
