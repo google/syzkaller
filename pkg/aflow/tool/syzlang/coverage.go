@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,6 +39,7 @@ Because the raw trace is extremely large, it is compressed by keeping only uniqu
 in their order of appearance, and filtering out kernel infrastructure noise.
 You MUST provide 'SyscallIndex' (which corresponds to the 0-based line number in the syzlang program)
 to get the trace for one specific syscall. Use -1 to get the trace for extra (background) coverage.
+You can use 'GrepPattern' to filter trace lines matching a regular expression or substring pattern.
 If the trace is too large, it will be truncated. You can use 'Offset' and 'Limit' to paginate through the omitted parts.
 `)
 
@@ -249,6 +251,7 @@ type ExecutionTraceArgs struct {
 	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
 	SyscallIndex      int    `jsonschema:"REQUIRED: 0-based syscall index to inspect. Use -1 for extra coverage."`
 	FilterSubsystem   string `jsonschema:"Optional: Filter output by file path prefix."`
+	GrepPattern       string `jsonschema:"Optional: Regex or substring pattern to filter trace lines."`
 	IncludeNoise      bool   `jsonschema:"Optional: Include low-level noisy functions (e.g., locks, allocators)."`
 	Offset            int    `jsonschema:"Optional: Starting index for trace lines to return (0-based)."`
 	Limit             int    `jsonschema:"Optional: Maximum number of trace lines to return."`
@@ -265,6 +268,12 @@ type ExecutionTraceResult struct {
 
 func getExecutionTrace(
 	ctx *aflow.Context, state reproduceState, args ExecutionTraceArgs) (ExecutionTraceResult, error) {
+	if args.GrepPattern != "" {
+		if _, err := regexp.Compile("(?i)" + args.GrepPattern); err != nil {
+			return ExecutionTraceResult{}, aflow.BadCallError("invalid GrepPattern regex: %v", err)
+		}
+	}
+
 	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
 	if err != nil {
 		return ExecutionTraceResult{}, aflow.BadCallError("failed to read coverage: %v", err)
@@ -330,6 +339,7 @@ func isNoiseFunction(name string) bool {
 type traceLine struct {
 	Depth       int
 	Func        string
+	File        string
 	ShouldPrint bool
 }
 
@@ -372,14 +382,27 @@ func processSyscallTrace(idx int, callcov []symbolizer.Frame, args ExecutionTrac
 		lines = append(lines, traceLine{
 			Depth:       depth,
 			Func:        frame.Func,
+			File:        frame.File,
 			ShouldPrint: shouldPrint,
 		})
 	}
 
+	var grepRe *regexp.Regexp
+	if args.GrepPattern != "" {
+		grepRe = regexp.MustCompile("(?i)" + args.GrepPattern)
+	}
+
 	var out []string
-	lastAppendedFunc := ""
+	lastSeenFunc := ""
 
 	for _, line := range lines {
+		isConsecutiveDuplicate := (line.Func == lastSeenFunc)
+		lastSeenFunc = line.Func
+
+		if isConsecutiveDuplicate {
+			continue
+		}
+
 		// Provide an "exponential spine" of context and keep dense context at the
 		// start of the call chain (setup) and at the very end of the call chain
 		// (where the deepest execution / potential crash happened). We show
@@ -392,14 +415,15 @@ func processSyscallTrace(idx int, callcov []symbolizer.Frame, args ExecutionTrac
 			continue
 		}
 
-		if line.Func != lastAppendedFunc {
-			suffix := ""
-			if !line.ShouldPrint {
-				suffix = " (context)"
-			}
-			out = append(out, fmt.Sprintf("[%d] %s%s", line.Depth, line.Func, suffix))
-			lastAppendedFunc = line.Func
+		if grepRe != nil && !grepRe.MatchString(line.Func) && !grepRe.MatchString(line.File) {
+			continue
 		}
+
+		suffix := ""
+		if !line.ShouldPrint {
+			suffix = " (context)"
+		}
+		out = append(out, fmt.Sprintf("[%d] %s%s", line.Depth, line.Func, suffix))
 	}
 
 	if args.Offset > 0 || args.Limit > 0 {

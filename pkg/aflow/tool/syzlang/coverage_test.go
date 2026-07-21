@@ -299,4 +299,40 @@ func TestExecutionTrace(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "SyscallIndex 5 is out of bounds")
+
+	// Test 7: GrepPattern substring match on function name.
+	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
+		ExecutionCachedID: reproExecCachedID,
+		SyscallIndex:      idx,
+		GrepPattern:       "fuse_",
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"[4] fuse_read"}, res.Traces[0].Trace)
+
+	// Test 8: GrepPattern regex match.
+	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
+		ExecutionCachedID: reproExecCachedID,
+		SyscallIndex:      idx,
+		GrepPattern:       "vfs_.*",
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"[3] vfs_read", "[2] vfs_read"}, res.Traces[0].Trace)
+
+	// Test 9: GrepPattern match on file path.
+	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
+		ExecutionCachedID: reproExecCachedID,
+		SyscallIndex:      idx,
+		GrepPattern:       "fs/read_write.c",
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"[1] sys_read", "[3] vfs_read", "[2] vfs_read"}, res.Traces[0].Trace)
+
+	// Test 10: Invalid GrepPattern regex error.
+	_, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
+		ExecutionCachedID: reproExecCachedID,
+		SyscallIndex:      idx,
+		GrepPattern:       "[invalid(",
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid GrepPattern regex")
 }
