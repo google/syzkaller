@@ -153,7 +153,20 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 		return nil
 	}
 	first := series.Patches[0]
-	reportLevel := api.ReportLevelAll
+	var directRequest bool
+	if cfg.DirectList != "" {
+		canonicalDirect := email.CanonicalEmail(cfg.DirectList)
+		for _, addr := range first.RawCc {
+			if email.CanonicalEmail(addr) == canonicalDirect {
+				directRequest = true
+				break
+			}
+		}
+	}
+	reportLevel := api.ReportLevelBugs
+	if directRequest {
+		reportLevel = api.ReportLevelAll
+	}
 	if first.OwnEmail {
 		// If another bot instance reads the same mailing list, we don't want to
 		// spam it back. So we still fuzz the series, but don't report the results.
@@ -201,16 +214,6 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 	} else if !ret.Saved {
 		log.Printf("series %s already exists in the DB", series.MessageID)
 		return nil
-	}
-	var directRequest bool
-	if cfg.DirectList != "" {
-		canonicalDirect := email.CanonicalEmail(cfg.DirectList)
-		for _, addr := range first.RawCc {
-			if email.CanonicalEmail(addr) == canonicalDirect {
-				directRequest = true
-				break
-			}
-		}
 	}
 
 	_, err = sf.client.UploadSession(ctx, &api.NewSession{
