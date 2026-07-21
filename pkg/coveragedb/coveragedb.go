@@ -487,6 +487,7 @@ type SelectScope struct {
 	Subsystem string
 	Manager   string
 	Periods   []TimePeriod
+	FilePath  string
 }
 
 // FilesCoverageStream streams information about all the line coverage.
@@ -582,6 +583,10 @@ where
 	if scope.Subsystem != "" {
 		stmt.SQL += " and $5=ANY(subsystems)"
 		stmt.Params["p5"] = scope.Subsystem
+	}
+	if scope.FilePath != "" {
+		stmt.SQL += " and starts_with(files.filepath, $6)"
+		stmt.Params["p6"] = scope.FilePath
 	}
 	stmt.SQL += "\norder by files.filepath"
 	return stmt

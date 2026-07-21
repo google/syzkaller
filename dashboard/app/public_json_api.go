@@ -208,6 +208,8 @@ func GetJSONDescrFor(page any) ([]byte, error) {
 }
 
 func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p *coverageHeatmapParams) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	// By default, return the previous month coverage. It guarantees the good numbers.
 	//
 	// The alternative is to return the current month.
@@ -224,9 +226,15 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p
 	}
 	subsystem := ""
 	manager := ""
+	filepath := ""
+	withCovered := true
+	withUncovered := true
 	if p != nil {
 		subsystem = p.subsystem
 		manager = p.manager
+		filepath = p.filepath
+		withCovered = p.withCovered
+		withUncovered = p.withUncovered
 	}
 	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient,
 		&coveragedb.SelectScope{
@@ -234,8 +242,9 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p
 			Subsystem: subsystem,
 			Manager:   manager,
 			Periods:   tps,
+			FilePath:  filepath,
 		})
-	if err := writeFileCoverage(ctx, w, repo, ff, covCh); err != nil {
+	if err := writeFileCoverage(ctx, w, repo, ff, covCh, withCovered, withUncovered); err != nil {
 		return fmt.Errorf("populateFileCoverage: %w", err)
 	}
 	if err := <-errCh; err != nil {
@@ -245,7 +254,7 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p
 }
 
 func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *coveragedb.FunctionFinder,
-	covCh <-chan *coveragedb.FileCoverageWithLineInfo) error {
+	covCh <-chan *coveragedb.FileCoverageWithLineInfo, withCovered, withUncovered bool) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "\t")
 	for {
@@ -254,7 +263,7 @@ func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *covera
 			if fileCov == nil {
 				return nil
 			}
-			funcsCov, err := genFuncsCov(fileCov, ff)
+			funcsCov, err := genFuncsCov(fileCov, ff, withCovered, withUncovered)
 			if err != nil {
 				return fmt.Errorf("genFuncsCov: %w", err)
 			}
@@ -273,9 +282,15 @@ func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *covera
 }
 
 func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.FunctionFinder,
-) ([]*cover.FuncCoverage, error) {
+	withCovered, withUncovered bool) ([]*cover.FuncCoverage, error) {
 	nameToLines := map[string][]*cover.Block{}
 	for i, hitCount := range fc.HitCounts {
+		if hitCount > 0 && !withCovered {
+			continue
+		}
+		if hitCount == 0 && !withUncovered {
+			continue
+		}
 		lineNum := int(fc.LinesInstrumented[i])
 		funcName, err := ff.FileLineToFuncName(fc.Filepath, lineNum)
 		if err != nil {
