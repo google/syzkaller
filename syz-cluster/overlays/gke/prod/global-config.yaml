@@ -22,6 +22,9 @@ emailReporting:
   sender: dashapi
   supportEmail: syzkaller@googlegroups.com
   creditEmail: syzbot@syzkaller.appspotmail.com
+  # Additional bot addresses not in Dashapi or SMTP From fields.
+  extraOwnEmails:
+    - syzbot@kernel.org
   archiveList: syzbot@lists.linux.dev
   moderationList: syzkaller-upstream-moderation@googlegroups.com
   reportCc:

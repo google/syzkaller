@@ -106,17 +106,10 @@ func runConsumerLoop(ctx context.Context, msgCh <-chan *lore.PolledEmail, handle
 }
 
 func MakeLorePoller(repoDir string, emailCfg *app.EmailConfig, msgCh chan *lore.PolledEmail) (*lore.Poller, error) {
-	var ownEmails []string
-	if emailCfg.Dashapi != nil {
-		ownEmails = append(ownEmails, emailCfg.Dashapi.From)
-	}
-	if emailCfg.SMTP != nil {
-		ownEmails = append(ownEmails, emailCfg.SMTP.From)
-	}
 	return lore.NewPoller(lore.PollerConfig{
 		RepoDir:        repoDir,
 		URL:            emailCfg.LoreArchiveURL,
-		OwnEmails:      ownEmails,
+		OwnEmails:      emailCfg.OwnEmails(),
 		LookbackPeriod: 48 * time.Hour,
 		Tracer:         &debugtracer.GenericTracer{TraceWriter: os.Stdout, WithTime: true},
 	})

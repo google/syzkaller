@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"gopkg.in/yaml.v3"
 )
@@ -59,6 +60,8 @@ type EmailConfig struct {
 	SupportEmail string `yaml:"supportEmail"`
 	// The address will be suggested for the Tested-by tag.
 	CreditEmail string `yaml:"creditEmail"`
+	// Extra own email addresses to recognize.
+	ExtraOwnEmails []string `yaml:"extraOwnEmails"`
 	// The means to send the emails ("smtp", "dashapi").
 	Sender string `yaml:"sender"`
 	// Will be used if Sender is "smtp".
@@ -75,6 +78,18 @@ type EmailConfig struct {
 	LoreArchiveURL string `yaml:"loreArchiveURL"`
 	// The prefix which will be added to all reports' titles.
 	SubjectPrefix string `yaml:"subjectPrefix"`
+}
+
+func (c EmailConfig) OwnEmails() []string {
+	var own []string
+	if c.Dashapi != nil && c.Dashapi.From != "" {
+		own = append(own, c.Dashapi.From)
+	}
+	if c.SMTP != nil && c.SMTP.From != "" {
+		own = append(own, c.SMTP.From)
+	}
+	own = append(own, c.ExtraOwnEmails...)
+	return email.MergeEmailLists(own)
 }
 
 type SMTPConfig struct {
