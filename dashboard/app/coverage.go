@@ -60,12 +60,15 @@ type funcStyleBodyJS func(
 ) (template.CSS, template.HTML, template.HTML, error)
 
 type coverageHeatmapParams struct {
-	manager    string
-	subsystem  string
-	onlyUnique bool
-	periodType string
-	nPeriods   int
-	dateTo     civil.Date
+	manager       string
+	subsystem     string
+	onlyUnique    bool
+	periodType    string
+	nPeriods      int
+	dateTo        civil.Date
+	filepath      string
+	withCovered   bool
+	withUncovered bool
 	cover.Format
 }
 
@@ -86,12 +89,15 @@ func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapPa
 	}
 
 	return &coverageHeatmapParams{
-		manager:    getParam[string](r, ManagerName.ParamName()),
-		subsystem:  getParam[string](r, SubsystemName.ParamName()),
-		onlyUnique: onlyUnique,
-		periodType: periodType,
-		nPeriods:   nPeriods,
-		dateTo:     getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
+		manager:       getParam[string](r, ManagerName.ParamName()),
+		subsystem:     getParam[string](r, SubsystemName.ParamName()),
+		onlyUnique:    onlyUnique,
+		periodType:    periodType,
+		nPeriods:      nPeriods,
+		dateTo:        getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
+		filepath:      getParam[string](r, FilePath.ParamName()),
+		withCovered:   getParam[bool](r, WithCovered.ParamName(), true),
+		withUncovered: getParam[bool](r, WithUncovered.ParamName(), true),
 		Format: cover.Format{
 			DropCoveredLines0:         onlyUnique,
 			OrderByCoveredLinesDrop:   getParam[bool](r, OrderByCoverDrop.ParamName()),
@@ -180,6 +186,8 @@ const (
 	PeriodType        = covPageParam("period")
 	SubsystemName     = covPageParam("subsystem")
 	UniqueOnly        = covPageParam("unique-only")
+	WithCovered       = covPageParam("with-covered")
+	WithUncovered     = covPageParam("with-uncovered")
 	// keep-sorted end
 )
 
@@ -236,6 +244,7 @@ func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p 
 			Subsystem: p.subsystem,
 			Manager:   p.manager,
 			Periods:   periods,
+			FilePath:  p.filepath,
 		},
 		p.onlyUnique, subsystems, managers, p.Format,
 	); err != nil {

@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/coveragedb/testutil"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -316,8 +315,8 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo", nil)
-	assert.NoError(t, err)
-	assert.Equal(t, `{
+	require.NoError(t, err)
+	require.Equal(t, `{
 	"repo": "test-repo",
 	"commit": "test-commit",
 	"file_path": "/file",
@@ -350,6 +349,194 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 					"from_line": 4,
 					"from_column": 0,
 					"to_line": 4,
+					"to_column": -1
+				}
+			]
+		}
+	]
+}
+`, buf.String())
+}
+
+func TestWriteExtAPICoverageFor_Flags(t *testing.T) {
+	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+		[]*coveragedb.FuncLines{
+			{
+				FilePath: "/file",
+				FuncName: "func_name",
+				Lines:    []int64{1, 2, 3, 4},
+			},
+		},
+		[]*coveragedb.FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+					Filepath: "/file",
+					Commit:   "test-commit",
+				},
+				LinesInstrumented: []int64{1, 2, 3, 4},
+				HitCounts:         []int64{10, 20, 30, 0},
+			},
+		},
+	))
+
+	tests := []struct {
+		name          string
+		withCovered   bool
+		withUncovered bool
+		wantJSON      string
+	}{
+		{
+			name:          "both",
+			withCovered:   true,
+			withUncovered: true,
+			wantJSON: `{
+	"repo": "test-repo",
+	"commit": "test-commit",
+	"file_path": "/file",
+	"functions": [
+		{
+			"func_name": "func_name",
+			"blocks": [
+				{
+					"hit_count": 10,
+					"from_line": 1,
+					"from_column": 0,
+					"to_line": 1,
+					"to_column": -1
+				},
+				{
+					"hit_count": 20,
+					"from_line": 2,
+					"from_column": 0,
+					"to_line": 2,
+					"to_column": -1
+				},
+				{
+					"hit_count": 30,
+					"from_line": 3,
+					"from_column": 0,
+					"to_line": 3,
+					"to_column": -1
+				},
+				{
+					"from_line": 4,
+					"from_column": 0,
+					"to_line": 4,
+					"to_column": -1
+				}
+			]
+		}
+	]
+}
+`,
+		},
+		{
+			name:          "only uncovered",
+			withCovered:   false,
+			withUncovered: true,
+			wantJSON: `{
+	"repo": "test-repo",
+	"commit": "test-commit",
+	"file_path": "/file",
+	"functions": [
+		{
+			"func_name": "func_name",
+			"blocks": [
+				{
+					"from_line": 4,
+					"from_column": 0,
+					"to_line": 4,
+					"to_column": -1
+				}
+			]
+		}
+	]
+}
+`,
+		},
+		{
+			name:          "none",
+			withCovered:   false,
+			withUncovered: false,
+			wantJSON: `{
+	"repo": "test-repo",
+	"commit": "test-commit",
+	"file_path": "/file",
+	"functions": null
+}
+`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			params := &coverageHeatmapParams{
+				withCovered:   tc.withCovered,
+				withUncovered: tc.withUncovered,
+			}
+			err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo", params)
+			require.NoError(t, err)
+			require.Equal(t, tc.wantJSON, buf.String())
+		})
+	}
+}
+
+func TestWriteExtAPICoverageFor_FilePath(t *testing.T) {
+	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+		[]*coveragedb.FuncLines{
+			{
+				FilePath: "/dir/file1",
+				FuncName: "func1",
+				Lines:    []int64{1},
+			},
+			{
+				FilePath: "/other/file2",
+				FuncName: "func2",
+				Lines:    []int64{1},
+			},
+		},
+		[]*coveragedb.FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+					Filepath: "/dir/file1",
+					Commit:   "test-commit",
+				},
+				LinesInstrumented: []int64{1},
+				HitCounts:         []int64{10},
+			},
+			{
+				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+					Filepath: "/other/file2",
+					Commit:   "test-commit",
+				},
+				LinesInstrumented: []int64{1},
+				HitCounts:         []int64{20},
+			},
+		},
+	))
+
+	// Query for "/dir" prefix.
+	var buf bytes.Buffer
+	params := &coverageHeatmapParams{
+		filepath:    "/dir",
+		withCovered: true,
+	}
+	err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo", params)
+	require.NoError(t, err)
+	require.Equal(t, `{
+	"repo": "test-repo",
+	"commit": "test-commit",
+	"file_path": "/dir/file1",
+	"functions": [
+		{
+			"func_name": "func1",
+			"blocks": [
+				{
+					"hit_count": 10,
+					"from_line": 1,
+					"from_column": 0,
+					"to_line": 1,
 					"to_column": -1
 				}
 			]
