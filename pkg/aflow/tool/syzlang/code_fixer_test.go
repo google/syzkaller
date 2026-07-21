@@ -95,3 +95,21 @@ func TestCodeFixerValidatedOutputs_NoDiff(t *testing.T) {
 		})
 	}
 }
+
+func TestCodeFixerValidatedOutputs_GiveUpWithExecutionID(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	args := CodeFixerArgs{
+		SyzProgram: "line 1\n",
+	}
+	res := CodeFixerResult{
+		CodeFixerGiveUp:   true,
+		CodeFixerReason:   "unfixable error",
+		ExecutionCachedID: "some_cached_id",
+	}
+
+	gotRes, err := validateCodeFixerOutputs(ctx, struct{}{}, args, res)
+	require.NoError(t, err)
+	require.True(t, gotRes.CodeFixerGiveUp)
+	require.Equal(t, "unfixable error", gotRes.CodeFixerReason)
+	require.Empty(t, gotRes.ExecutionCachedID)
+}
