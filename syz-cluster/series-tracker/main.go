@@ -115,13 +115,14 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch the config: %w", err)
 	}
+	ownEmails := cfg.EmailReporting.OwnEmails()
 	for _, item := range list {
 		// TODO: this could be done in several threads.
 		rawBody, err := item.Read()
 		if err != nil {
 			return fmt.Errorf("failed to read email %s: %w", item.Hash, err)
 		}
-		email, err := lore.Parse(rawBody, nil, nil)
+		email, err := lore.Parse(rawBody, ownEmails, nil)
 		if err != nil {
 			log.Printf("failed to parse email: %v", err)
 			continue
