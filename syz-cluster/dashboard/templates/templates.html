@@ -7,3 +7,30 @@
 <a href="/builds/{{.ID}}/log" class="modal-link-raw">[Log]</a>
 {{end}}
 {{end}}
+
+{{define "findings_list"}}
+<div class="findings-list">
+  {{range .}}
+  <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary-subtle">
+    <div class="me-2">
+      {{if not .InvalidatedAt.IsNull}}
+        <span class="badge bg-secondary me-1">[invalidated]</span>
+      {{else}}
+        <span class="badge bg-danger me-1">finding</span>
+      {{end}}
+      {{if .ReportURI}}
+        <a href="/findings/{{.ID}}/report" class="modal-link-raw fw-bold text-dark">{{.Title}}</a>
+      {{else}}
+        <span class="fw-bold">{{.Title}}</span>
+      {{end}}
+    </div>
+    <div class="text-nowrap ms-2">
+      {{if .LogURI}}<a href="/findings/{{.ID}}/log" class="btn btn-sm btn-outline-secondary modal-link-raw py-0 px-1">Log</a>{{end}}
+      {{if .SyzReproURI}}<a href="/findings/{{.ID}}/syz_repro" class="btn btn-sm btn-outline-danger modal-link-raw py-0 px-1 ms-1">Syz Repro</a>{{end}}
+      {{if .CReproURI}}<a href="/findings/{{.ID}}/c_repro" class="btn btn-sm btn-outline-danger modal-link-raw py-0 px-1 ms-1">C Repro</a>{{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+
