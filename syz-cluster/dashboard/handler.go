@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/html/urlutil"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
@@ -192,6 +193,68 @@ type uiSeriesData struct {
 	Sessions     []uiSessionData
 	Versions     []*db.Series
 	TotalPatches int
+}
+
+func (s uiSessionData) ActiveFindings() []*db.Finding {
+	var res []*db.Finding
+	for _, t := range s.Tests {
+		for _, f := range t.Findings {
+			if f.InvalidatedAt.IsNull() {
+				res = append(res, f)
+			}
+		}
+	}
+	return res
+}
+
+func (s uiSessionData) StatusBadgeClass() string {
+	if len(s.ActiveFindings()) > 0 {
+		return "bg-danger"
+	}
+	switch s.Status() {
+	case db.SessionStatusInProgress:
+		return "bg-info text-dark"
+	case db.SessionStatusFinished:
+		for _, t := range s.Tests {
+			if t.Result == api.TestFailed || t.Result == api.TestError {
+				return "bg-warning text-dark"
+			}
+		}
+		return "bg-success"
+	default:
+		return "bg-secondary"
+	}
+}
+
+func (s uiSessionData) StatusText() string {
+	if count := len(s.ActiveFindings()); count > 0 {
+		return fmt.Sprintf("%d Findings", count)
+	}
+	if s.Status() == db.SessionStatusFinished {
+		for _, t := range s.Tests {
+			if t.Result == api.TestFailed || t.Result == api.TestError {
+				return "Steps Failed"
+			}
+		}
+		return "Passed"
+	}
+	return string(s.Status())
+}
+
+func (s uiSeriesData) MainSession() *uiSessionData {
+	for i := range s.Sessions {
+		if s.Sessions[i].JobID.IsNull() {
+			return &s.Sessions[i]
+		}
+	}
+	return nil
+}
+
+func (s uiSeriesData) MainFindings() []*db.Finding {
+	if sess := s.MainSession(); sess != nil {
+		return sess.ActiveFindings()
+	}
+	return nil
 }
 
 func (h *dashboardHandler) fetchSessionData(ctx context.Context, session *db.Session) (uiSessionData, error) {
