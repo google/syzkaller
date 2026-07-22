@@ -230,16 +230,18 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
 	}
-	if len(req.EnableConfigs) > 0 {
-		parsed, err := kconfig.ParseConfigData(kernelConfig, req.ConfigName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse kernel config: %w", err)
-		}
-		for _, cfg := range req.EnableConfigs {
-			parsed.Set(cfg, kconfig.Yes)
-		}
-		kernelConfig = parsed.Serialize()
+	parsed, err := kconfig.ParseConfigData(kernelConfig, req.ConfigName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse kernel config: %w", err)
 	}
+	for _, cfg := range req.EnableConfigs {
+		parsed.Set(cfg, kconfig.Yes)
+	}
+	// Syzkaller builds bzImage/vmlinux and does not build or load .ko modules.
+	// Convert all module (=m) configs to built-in (=y) so tristate dependencies
+	// do not downgrade required configs back to =m during make oldconfig.
+	parsed.ModToYes()
+	kernelConfig = parsed.Serialize()
 	if req.Arch != "amd64" {
 		// TODO: lift this restriction.
 		return nil, fmt.Errorf("only amd64 builds are supported now")
