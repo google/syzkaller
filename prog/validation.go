@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -51,22 +52,27 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 		args:     make(map[Arg]bool),
 		uses:     make(map[Arg]Arg),
 	}
+	var errs []error
 	for i, c := range p.Calls {
 		if c.Meta == nil {
-			return fmt.Errorf("call does not have meta information")
+			errs = append(errs, fmt.Errorf("call #%d: does not have meta information", i))
+			continue
 		}
 		ctx.currentCall = c
 		if err := ctx.validateCall(c); err != nil {
-			return fmt.Errorf("call #%d %v: %w", i, c.Meta.Name, err)
+			errs = append(errs, fmt.Errorf("call #%d %v: %w", i, c.Meta.Name, err))
 		}
 	}
 	ctx.currentCall = nil
 	for u, orig := range ctx.uses {
 		if !ctx.args[u] {
-			return fmt.Errorf("use of %+v referes to an out-of-tree arg\narg: %#v", orig, u)
+			errs = append(errs, fmt.Errorf("use of %+v referes to an out-of-tree arg\narg: %#v", orig, u))
 		}
 	}
-	return nil
+	if len(errs) == 0 {
+		return nil
+	}
+	return errors.Join(errs...)
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
