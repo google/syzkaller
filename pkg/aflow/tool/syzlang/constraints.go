@@ -19,11 +19,14 @@ const SandboxConstraints = `SANDBOX AND FILESYSTEM CONSTRAINTS:
     './config/usb_gadget/g1/functions/midi.usb0') rather than using '..' (e.g. '../../functions/...')
     or absolute paths ('/sys/kernel/config/...'). This avoids '..' and leading '/',
     satisfying both Syzkaller's sandbox validator and the kernel's VFS resolution.
-  * Dynamic Device Instantiation via Sysfs: When a driver is unprobed or a device node is missing,
-    mount sysfs locally at './sys' or './sys_mnt' and write to attribute files (e.g.,
-    './sys/class/i2c-dev/i2c-0/device/new_device', './sys/bus/pci/drivers/.../bind',
-    './sys/bus/pci/devices/.../driver_override') to dynamically instantiate/bind devices without
-    needing physical hardware.
+  * Dynamic Device Instantiation & Rebinding via Sysfs: When a driver is unprobed or a device node is missing,
+    mount sysfs locally at './sys' or './sys_mnt' and write to attribute files to dynamically instantiate or
+    rebind devices without physical hardware:
+    - For platform drivers: Rebind an existing platform device (such as 'pcspkr', 'alarmtimer', or 'serial8250') to
+      the target platform driver by writing the target driver name to './sys/bus/platform/devices/<existing_device>/driver_override'
+      and writing the existing device name to './sys/bus/platform/drivers/<target_driver>/bind'.
+    - For I2C / PCI drivers: Use sysfs interface attributes (e.g., './sys/class/i2c-dev/i2c-0/device/new_device',
+      './sys/bus/pci/drivers/.../bind', './sys/bus/pci/devices/.../driver_override').
 - Device & Sysfs access: You MAY NOT open /sys or /dev files with generic 'openat' and absolute paths starting
   with '/' (like '/sys/...' or '/dev/kvm') in filename arguments, as they escape the sandbox.
   * What you CAN do instead:
@@ -42,9 +45,13 @@ const SandboxConstraints = `SANDBOX AND FILESYSTEM CONSTRAINTS:
     * Cause A (Missing Setup in Same Program): You forgot to invoke the emulated hardware setup pseudo-syscall
       (e.g., 'syz_usb_connect', 'syz_mount_image', or virtual interface setup) in the SAME execution program.
       Executions are isolated; hardware connections do NOT persist across executions.
-    * Cause B (Unprobed Physical Hardware): The driver requires physical PCI hardware, SoC DeviceTree nodes, or
-      un-emulated platform hardware missing in standard QEMU x86_64. No userspace syscall can trigger probe.
-      Treat this as a terminal hardware blocker and give up with a factual reason.
+    * Cause B (Unprobed Physical Hardware): The driver requires non-emulated physical PCI hardware or missing hardware
+      architecture structures that cannot be probed via sysfs rebinding or pseudo-syscalls.
+      CRITICAL: You MUST NOT assume hardware or features are missing based on parametric memory; verify build config
+      via 'get-environment' and check sysfs/specs.
+      Note that platform drivers under /sys/bus/platform/ can be probed via sysfs driver_override + bind on existing
+      platform devices (e.g. 'pcspkr') and are NOT hardware blockers.
+      Treat as a terminal hardware blocker only if empirical verification proves the target cannot be probed.
 - Built-in Kernel Driver Verification:
   - DO NOT assume a kernel driver is uncompiled or missing (CONFIG_FOO=n) simply because /sys/module/<driver_name>
     returns -ENOENT. Built-in drivers (CONFIG_FOO=y) that export no module parameters omit /sys/module/ entries.

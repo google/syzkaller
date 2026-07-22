@@ -139,18 +139,26 @@ Workflow:
    Before generating syzlang programs or invoking 'code-fixer':
    a. Use 'get-environment' to verify if the required kernel driver is compiled (.config) or if target features
       are available.
+      CRITICAL: You MUST NOT rely on your static memory, parametric knowledge, or unverified assumptions to claim
+      that a driver, device, or feature is unavailable or unprobed in the QEMU environment. Any claim of unreachability
+      MUST be empirically verified and proven using available tools (e.g., checking .config via 'get-environment',
+      syzlang specs via 'syz-grepper', or kernel source/sysfs paths).
    b. Trace the target function's caller graph to see if execution depends on a driver '.probe()' callback.
    c. Classify target reachability:
-      - UNREACHABLE HARDWARE TARGETS (Give Up Immediately): Drivers requiring physical PCI hardware, SoC DeviceTree
-        nodes, or un-emulated platform hardware missing in standard QEMU x86_64 VMs cannot be probed via userspace
-        syscalls.
+      - UNREACHABLE HARDWARE TARGETS (Give Up Immediately): Only drivers that strictly require physical non-emulated
+        PCI devices or missing hardware architecture structures AND cannot be probed via any userspace mechanism.
       - SOLVABLE USERSPACE TARGETS (Proceed with Generation): Drivers instantiable via software/pseudo-syscalls
-        (e.g. dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs) or standard core POSIX syscalls.
+        (e.g. dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs), core POSIX syscalls, or platform driver
+        sysfs rebinding.
+        NOTE: Platform drivers (under /sys/bus/platform/drivers/) do NOT require physical hardware or DeviceTree entries
+        to probe. Userspace can rebind existing platform devices (e.g. 'pcspkr', 'alarmtimer', 'serial8250') to the target
+        platform driver using sysfs 'driver_override' and 'bind' attributes. Never mark a platform driver as unreachable
+        without attempting this rebinding setup.
       NOTE: Do NOT rely on 'get-corpus-programs' when evaluating target reachability. A lack of corpus programs
       reflects missing prior coverage, NOT hardware unreachability.
-   d. If classified as an UNREACHABLE HARDWARE TARGET:
+   d. If classified as an UNREACHABLE HARDWARE TARGET (after empirical verification):
       Call 'set-results' IMMEDIATELY with GeneratorGiveUp=true. Do NOT burn iterations running 'code-fixer'.
-      Your GeneratorReason MUST cite the specific driver probe callback and the missing hardware/DT binding.
+      Your GeneratorReason MUST cite the specific driver probe callback and the empirically verified blocker.
 
 3. Loop internally to find a program that reaches the target PC:
    a. Formulate a syzlang program. You may try out you ideas by formulating a plausible program.
