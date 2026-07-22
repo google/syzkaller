@@ -98,8 +98,9 @@ call errors match AcceptableCallErrorsDescription), you MUST immediately yield b
 ExecutionCachedID as your final reply. DO NOT call any other tool to double check or verify.
 It is NOT your job to reason, verify, or simplify the program.
 If you encounter unacceptable call errors (such as ENOSYS/Function not implemented, or unexpected errors)
-that cannot be fixed (e.g. due to VM/environment limits), you MUST set CodeFixerGiveUp = true and provide
-a detailed reason in CodeFixerReason.
+that cannot be fixed (e.g. due to VM/environment limits) or if execute-seed returns a kernel crash error
+("kernel crashed: ..."), you MUST set CodeFixerGiveUp = true (if there is no other way to reach the target location)
+and provide a detailed reason in CodeFixerReason.
 If execute-seed returns a sandbox escape error ("filename ... escapes sandbox") on a 'symlink', 'symlinkat', or 'openat'
 call (e.g. attempting to use '..', '/sys/...', or generic 'openat' on '/dev/...'):
 1. For device nodes (e.g. '/dev/kvm', '/dev/fuse'), check if a specialized variant (e.g., 'openat$kvm',
