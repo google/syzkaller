@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -127,4 +128,28 @@ func getTarget(t *testing.T, os, arch string) *prog.Target {
 		t.Fatal(err)
 	}
 	return target
+}
+
+func TestFocusedCorpusReSave(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+
+	area := FocusArea{
+		Name:     "area1",
+		CoverPCs: map[uint64]struct{}{10: {}},
+		Weight:   1.0,
+	}
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{area})
+
+	inp := generateRangedInput(target, rs, 1, 1)
+	inp.Cover = []uint64{10}
+	corpus.Save(inp)
+	assert.Len(t, corpus.focusAreas[0].progs, 1)
+
+	// Re-save the same input with additional coverage that includes the focus area PC again.
+	inp.Cover = []uint64{10, 20}
+	corpus.Save(inp)
+
+	// Verify that the program is not double-counted in the focus area.
+	assert.Len(t, corpus.focusAreas[0].progs, 1)
 }

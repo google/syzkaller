@@ -193,6 +193,9 @@ func (corpus *Corpus) Save(inp NewInput) {
 
 func (corpus *Corpus) applyFocusAreas(item *Item, coverDelta []uint64) {
 	for _, area := range corpus.focusAreas {
+		if _, ok := item.areas[area]; ok {
+			continue
+		}
 		matches := false
 		for _, pc := range coverDelta {
 			if _, ok := area.CoverPCs[pc]; ok {
@@ -206,8 +209,8 @@ func (corpus *Corpus) applyFocusAreas(item *Item, coverDelta []uint64) {
 		area.saveProgram(item.Prog, item.Signal)
 		if item.areas == nil {
 			item.areas = make(map[*focusAreaState]struct{})
-			item.areas[area] = struct{}{}
 		}
+		item.areas[area] = struct{}{}
 	}
 }
 
