@@ -184,6 +184,12 @@ const PseudoSyscallConstraints = `SYZKALLER PSEUDO-SYSCALLS USAGE & REFERENCE:
 - Virtualization (KVM):
   * Use 'syz_kvm_setup_syzos_vm', 'syz_kvm_setup_cpu', 'syz_kvm_add_vcpu', 'syz_kvm_vgic_v3_setup', and
     'syz_kvm_assert_*' for guest VM setup and assertions.
+  * KVM Execution Timeouts & Hangs: Calls to KVM (such as 'ioctl$KVM_RUN' or other $kvm commands) frequently
+    time out or hang during guest VM execution, returning CallErrors with
+    'Error': 'call execution timed out or hung' (Errno 38).
+    When executing KVM programs, the generator should determine whether 'call execution timed out or hung'
+    (or 'ioctl$KVM_RUN') is an acceptable error and specify it in 'AcceptableCallErrorsDescription'
+    when calling 'code-fixer'.
 - BPF & Utility Helpers:
   * BTF ID Lookup: Use 'syz_btf_id_by_name(name)' to obtain BTF IDs for kernel hooks/structs.
   * Process Control: Use 'syz_clone', 'syz_clone3', 'syz_pidfd_open', and 'syz_pkey_set'.`

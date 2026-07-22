@@ -99,8 +99,11 @@ When calling this tool, ALWAYS provide a concise description of what your progra
 to set up or reach in 'ProgramIntentDescription'.
 If you have chosen a test seed to use, you MUST pass it to this tool via BaseTestSeed.
 IMPORTANT: If the target PC is inside an error path (e.g. if the path to the PC requires
-a syscall to fail or return an error), you must describe which call errors are expected/acceptable
-in 'AcceptableCallErrorsDescription' when calling code-fixer, so that it doesn't try to fix them.
+a syscall to fail or return an error), or if executing $kvm commands (such as 'ioctl$KVM_RUN') that might hang
+or time out (returning 'call execution timed out or hung' / Errno 38), you must determine whether this is an
+acceptable error. Describe any expected/acceptable call errors in 'AcceptableCallErrorsDescription' when calling
+code-fixer (e.g., "ioctl$KVM_RUN hanging/timing out is expected" or "call execution timed out or hung"), so that
+code-fixer does not try to fix them.
 Unacceptable errors (such as ENOSYS/Function not implemented on critical paths) will not be ignored.
 4. 'read-syz-spec' and 'syz-grepper': Use these tools to search and read syzlang specifications
 (xxx.txt) and test seeds (test/).
