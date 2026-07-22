@@ -60,19 +60,21 @@ type runRequest struct {
 }
 
 type Context struct {
-	Dir          string
-	Target       *prog.Target
-	Features     flatrpc.Feature
-	EnabledCalls map[string]map[*prog.Syscall]bool
-	LogFunc      func(text string)
-	Retries      int // max number of test retries to deal with flaky tests
-	Verbose      bool
-	Debug        bool
-	Tests        string // prefix to match test file names
+	Dir                  string
+	Target               *prog.Target
+	Features             flatrpc.Feature
+	EnabledCalls         map[string]map[*prog.Syscall]bool
+	LogFunc              func(text string)
+	Retries              int // max number of test retries to deal with flaky tests
+	Verbose              bool
+	Debug                bool
+	Tests                string // prefix to match test file names
+	BootTestCapabilities map[string]string
 
-	executor *queue.DynamicOrderer
-	requests []*runRequest
-	buildSem chan bool
+	capabilitiesMap map[string]bool
+	executor        *queue.DynamicOrderer
+	requests        []*runRequest
+	buildSem        chan bool
 }
 
 func (rt *Context) Init() {
@@ -80,6 +82,18 @@ func (rt *Context) Init() {
 	// so at least executor needs to be initialized before Run.
 	rt.executor = queue.DynamicOrder()
 	rt.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
+	// MatchRequirements expects properties as map[string]bool.
+	// We flatten the capabilities map[string]string config to map[string]bool here:
+	// - boolean capability "foo": "true" -> "foo": true
+	// - string capability "bar": "baz" -> "bar=baz": true
+	rt.capabilitiesMap = make(map[string]bool)
+	for k, v := range rt.BootTestCapabilities {
+		if v == "true" {
+			rt.capabilitiesMap[k] = true
+		} else if v != "false" {
+			rt.capabilitiesMap[k+"="+v] = true
+		}
+	}
 }
 
 func (rt *Context) log(msg string, args ...any) {
@@ -247,6 +261,7 @@ nextSandbox:
 			"bigendian":              sysTarget.BigEndian,
 			"arch=" + rt.Target.Arch: true,
 		}
+		maps.Copy(properties, rt.capabilitiesMap)
 		for _, threaded := range []bool{false, true} {
 			if threaded {
 				name += "/thr"

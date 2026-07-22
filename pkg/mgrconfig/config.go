@@ -133,6 +133,11 @@ type Config struct {
 	// "android": emulate permissions of an untrusted Android app (supported only on Linux)
 	Sandbox string `json:"sandbox"`
 
+	// Capabilities of the boot test environment (e.g. {"vendor": "intel", "nested": "true"}).
+	// Used to filter unit tests running during boot/image testing.
+	// These values override the automatically detected capabilities.
+	BootTestCapabilities map[string]string `json:"boot_test_capabilities"`
+
 	// This value is passed as an argument to executor and allows to adjust sandbox behavior
 	// via manager config. For example you can switch between system and user accounts based
 	// on this value.
