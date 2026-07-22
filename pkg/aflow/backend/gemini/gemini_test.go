@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
 )
 
@@ -144,4 +145,24 @@ func TestParseLLMErrorBackoff(t *testing.T) {
 	if !errors.As(err, &rErr) || rErr.Delay != time.Second || !rErr.IsExponential {
 		t.Errorf("expected RetryError with 1s exponential delay, got %v", err)
 	}
+}
+
+func TestToGenaiContentEmptyTextParts(t *testing.T) {
+	msg := &backend.Message{
+		Role: backend.RoleModel,
+		Parts: []backend.Part{
+			{Text: ""},                // Completely empty part -> skipped.
+			{Text: "", Thought: true}, // Thought part with empty text -> replaced with fallback.
+			{Text: "hello"},           // Normal text part -> kept as "hello".
+			{FunctionCall: &backend.FunctionCall{Name: "test_tool"}}, // Tool call -> kept.
+		},
+	}
+	got := toGenaiContent(msg)
+	require.Equal(t, "model", got.Role)
+	require.Len(t, got.Parts, 3)
+	require.Equal(t, "<no text generated>", got.Parts[0].Text)
+	require.True(t, got.Parts[0].Thought)
+	require.Equal(t, "hello", got.Parts[1].Text)
+	require.NotNil(t, got.Parts[2].FunctionCall)
+	require.Equal(t, "test_tool", got.Parts[2].FunctionCall.Name)
 }
