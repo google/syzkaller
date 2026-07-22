@@ -69,6 +69,7 @@ type Context struct {
 	Verbose      bool
 	Debug        bool
 	Tests        string // prefix to match test file names
+	Capabilities map[string]bool
 
 	executor *queue.DynamicOrderer
 	requests []*runRequest
@@ -80,6 +81,21 @@ func (rt *Context) Init() {
 	// so at least executor needs to be initialized before Run.
 	rt.executor = queue.DynamicOrder()
 	rt.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
+	if rt.Capabilities == nil {
+		rt.Capabilities = make(map[string]bool)
+	}
+}
+
+func FlattenCapabilities(caps map[string]string) map[string]bool {
+	flat := make(map[string]bool)
+	for k, v := range caps {
+		if v == "true" {
+			flat[k] = true
+		} else if v != "false" {
+			flat[k+"="+v] = true
+		}
+	}
+	return flat
 }
 
 func (rt *Context) log(msg string, args ...any) {
@@ -247,6 +263,7 @@ nextSandbox:
 			"bigendian":              sysTarget.BigEndian,
 			"arch=" + rt.Target.Arch: true,
 		}
+		maps.Copy(properties, rt.Capabilities)
 		for _, threaded := range []bool{false, true} {
 			if threaded {
 				name += "/thr"
