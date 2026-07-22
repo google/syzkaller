@@ -188,7 +188,7 @@ func applyGitDiff(dir, diff string) error {
 	cmd := osutil.Command("git", "apply", "-")
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(diff)
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
 	if output, err := osutil.Run(time.Minute, cmd); err != nil {

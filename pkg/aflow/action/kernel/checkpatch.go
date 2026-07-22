@@ -22,7 +22,7 @@ func Checkpatch(repo string) (string, bool, error) {
 
 	cmd := osutil.Command("scripts/checkpatch.pl", "--no-tree", "-")
 	cmd.Dir = repo
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return "", false, err
 	}
 	cmd.Stdin = strings.NewReader(diff)
