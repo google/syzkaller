@@ -40,8 +40,17 @@ func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimite
 		path = strings.TrimPrefix(abs, kernelDirs.BuildSrc)
 		absPath = filepath.Join(kernelDirs.Src, path)
 	default:
-		// Assume this is relative path.
-		if filepath.IsAbs(path) {
+		if rel, apath, ok := findRelativeInSrc(abs, kernelDirs.Src, osutil.IsExist); ok {
+			path = rel
+			absPath = apath
+		} else if rel, ok := findCacheRelativePath(abs); ok {
+			path = rel
+			if kernelDirs.Src != "" {
+				absPath = filepath.Join(kernelDirs.Src, rel)
+			} else {
+				absPath = path
+			}
+		} else if filepath.IsAbs(path) {
 			absPath = path
 		} else {
 			absPath = filepath.Join(kernelDirs.Src, path)
@@ -49,6 +58,35 @@ func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimite
 	}
 	relPath = strings.TrimLeft(filepath.Clean(path), "/\\")
 	return relPath, absPath
+}
+
+var cacheSrcRe = regexp.MustCompile(`/cache/src/[^/]+/(.+)`)
+
+// findCacheRelativePath extracts the relative source path from a syzkaller
+// /cache/src/<hash>/ path.
+func findCacheRelativePath(absPath string) (string, bool) {
+	match := cacheSrcRe.FindStringSubmatch(filepath.ToSlash(absPath))
+	if len(match) > 1 {
+		return match[1], true
+	}
+	return "", false
+}
+
+// findRelativeInSrc finds the relative path of an absolute file path within
+// srcDir by checking for subpath existence.
+func findRelativeInSrc(absPath, srcDir string, existFn func(string) bool) (string, string, bool) {
+	if srcDir == "" || !filepath.IsAbs(absPath) {
+		return "", "", false
+	}
+	parts := strings.Split(filepath.ToSlash(absPath), "/")
+	for i := 1; i < len(parts); i++ {
+		rel := strings.Join(parts[i:], "/")
+		targetAbs := filepath.Join(srcDir, rel)
+		if existFn(targetAbs) {
+			return rel, targetAbs, true
+		}
+	}
+	return "", "", false
 }
 
 // Source files for Android may be split between two subdirectories: the common AOSP kernel
