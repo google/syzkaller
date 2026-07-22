@@ -609,3 +609,17 @@ syz_mount_image$ext4(&(0x7f0000000080)='ext4\x00', &(0x7f00000000c0)='./file0\x0
 `,
 		string(p.Serialize(SkipImages)))
 }
+
+func TestValidateMultipleErrors(t *testing.T) {
+	target := initTargetTest(t, "linux", "amd64")
+	data := []byte(`
+openat(0xffffffffffffff9c, &(0x7f0000000000)='../file1\x00', 0x0, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000040)='../file2\x00', 0x0, 0x0)
+`)
+	_, err := target.Deserialize(data, Strict)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "call #0 openat")
+	assert.Contains(t, err.Error(), "escaping filename \"../file1\\x00\"")
+	assert.Contains(t, err.Error(), "call #1 openat")
+	assert.Contains(t, err.Error(), "escaping filename \"../file2\\x00\"")
+}
