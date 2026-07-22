@@ -38,7 +38,7 @@ func Diff(repo string, args ...string) (string, error) {
 	gitDiffArgs := append([]string{"diff"}, args...)
 	cmd := osutil.Command("git", gitDiffArgs...)
 	cmd.Dir = repo
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return "", err
 	}
 	output, err := osutil.Run(1*time.Minute, cmd)

@@ -53,10 +53,13 @@ func clangFormat(ctx *aflow.Context, state state, args args) (result, error) {
 	if err := tmpFile.Close(); err != nil {
 		return result{}, err
 	}
+	if err := osutil.SandboxChown(tmpFile.Name()); err != nil {
+		return result{}, err
+	}
 
 	cmd := osutil.Command("clang-format", "-style=file:"+tmpFile.Name(), "-i", args.File)
 	cmd.Dir = state.KernelScratchSrc
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return result{}, err
 	}
 
