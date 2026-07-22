@@ -130,6 +130,62 @@ func getTarget(t *testing.T, os, arch string) *prog.Target {
 	return target
 }
 
+func TestFocusedCorpusMinimization(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+
+	area1 := FocusArea{
+		Name:     "area1",
+		CoverPCs: map[uint64]struct{}{10: {}},
+		Weight:   1.0,
+	}
+	area2 := FocusArea{
+		Name:     "area2",
+		CoverPCs: map[uint64]struct{}{20: {}},
+		Weight:   1.0,
+	}
+
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{area1, area2})
+
+	// Save two inputs with same coverage and signal, but different program content.
+	inp1 := generateRangedInput(target, rs, 1, 1)
+	inp1.Cover = []uint64{10, 20}
+	corpus.Save(inp1)
+
+	inp2 := generateRangedInput(target, rs, 1, 1)
+	inp2.Cover = []uint64{10, 20}
+	corpus.Save(inp2)
+
+	// Verify both areas have both programs.
+	assert.Len(t, corpus.focusAreas[0].progs, 2)
+	assert.Len(t, corpus.focusAreas[1].progs, 2)
+
+	getStatVal := func(name string) int {
+		for _, ui := range stat.Collect(stat.All) {
+			if ui.Name == name {
+				return ui.V
+			}
+		}
+		t.Fatalf("stat %q not found", name)
+		return 0
+	}
+
+	// Verify stats before minimization.
+	assert.Equal(t, 2, getStatVal("corpus [area1]"))
+	assert.Equal(t, 2, getStatVal("corpus [area2]"))
+
+	// Minimize the corpus. One program should be discarded.
+	corpus.Minimize(true)
+
+	// Verify both areas now have only 1 program.
+	assert.Len(t, corpus.focusAreas[0].progs, 1)
+	assert.Len(t, corpus.focusAreas[1].progs, 1)
+
+	// Verify stats after minimization (should update to 1, not be stuck at 2).
+	assert.Equal(t, 1, getStatVal("corpus [area1]"))
+	assert.Equal(t, 1, getStatVal("corpus [area2]"))
+}
+
 func TestFocusedCorpusReSave(t *testing.T) {
 	target := getTarget(t, targets.TestOS, targets.TestArch64)
 	rs := rand.NewSource(0)
