@@ -108,6 +108,9 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 	if cached.Error != "" {
 		return "", errors.New(cached.Error)
 	}
+	if cached.BugTitle != "" {
+		return "", fmt.Errorf("kernel crashed: %s", cached.BugTitle)
+	}
 
 	return cachedID, nil
 }
