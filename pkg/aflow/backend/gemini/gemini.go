@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/google/syzkaller/pkg/log"
 	"google.golang.org/genai"
 )
 
@@ -366,7 +367,20 @@ func toGenaiContent(msg *backend.Message) *genai.Content {
 				},
 			})
 		} else {
-			c.Parts = append(c.Parts, &genai.Part{Text: p.Text, Thought: p.Thought, ThoughtSignature: p.ThoughtSignature})
+			if p.Text == "" && !p.Thought && len(p.ThoughtSignature) == 0 {
+				log.Logf(2, "aflow/gemini: skipping empty text part without thought metadata")
+				continue
+			}
+			text := p.Text
+			if text == "" {
+				log.Logf(2, "aflow/gemini: replacing empty text part with fallback to initialize proto oneof field")
+				text = "<no text generated>"
+			}
+			c.Parts = append(c.Parts, &genai.Part{
+				Text:             text,
+				Thought:          p.Thought,
+				ThoughtSignature: p.ThoughtSignature,
+			})
 		}
 	}
 	return c
