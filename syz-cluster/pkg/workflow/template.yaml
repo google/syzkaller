@@ -163,7 +163,7 @@ spec:
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
-                  value: "{{=steps['base-build'].outputs.parameters.result ? jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id') : ''}}"
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != '' ? jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id') : ''}}"
                 - name: track
                   value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
               artifacts:
