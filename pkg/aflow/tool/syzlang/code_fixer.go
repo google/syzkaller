@@ -55,7 +55,7 @@ func validateCodeFixerOutputs(
 
 var CodeFixer = &aflow.StructuredLLMTool[struct{}, CodeFixerArgs, CodeFixerResult]{
 	Name:       "code-fixer",
-	Model:      aflow.Temporary35FlashOnlyModel,
+	Model:      aflow.TemporaryFlashOnlyModel,
 	Outputs:    aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
 	TaskType:   aflow.FormalReasoningTask,
 	PreExecute: ResolveSyzlangDependencies,
@@ -157,7 +157,7 @@ Document about pseudo-syscalls:
 	),
 	Judge: &aflow.LLMJudge{
 		Name:               "code-fixer-judge",
-		Model:              aflow.Temporary35FlashOnlyModel,
+		Model:              aflow.TemporaryFlashOnlyModel,
 		MinIterations:      50,
 		EvaluationInterval: 20,
 		Instruction: "You are a Judge Agent monitoring the execution of a subagent debugging a syzlang program.\n" +

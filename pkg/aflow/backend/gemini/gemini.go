@@ -88,6 +88,12 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 				InputTokenLimit:  1048576,
 				OutputTokenLimit: 65536,
 			},
+			"gemini-3.6-flash": {
+				Thinking:         true,
+				MaxTemperature:   2.0,
+				InputTokenLimit:  1048576,
+				OutputTokenLimit: 65536,
+			},
 			"gemini-3.1-pro-preview": {
 				Thinking:         true,
 				MaxTemperature:   2.0,
@@ -179,8 +185,8 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 		return []string{"gemini-3.1-pro-preview"}
 	case backend.GoodBalancedModel:
 		return []string{"gemini-3.5-flash", "gemini-3-flash-preview"}
-	case backend.Temporary35FlashOnlyModel:
-		return []string{"gemini-3.5-flash"}
+	case backend.TemporaryFlashOnlyModel:
+		return []string{"gemini-3.6-flash", "gemini-3.5-flash"}
 	default:
 		return nil
 	}

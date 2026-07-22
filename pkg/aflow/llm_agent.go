@@ -99,9 +99,9 @@ const (
 	// Consts to use for LLMAgent.Model.
 	// These are aliases for the backend constants to avoid requiring users
 	// of the aflow package to import the backend package just to specify the model.
-	BestExpensiveModel        = backend.BestExpensiveModel
-	GoodBalancedModel         = backend.GoodBalancedModel
-	Temporary35FlashOnlyModel = backend.Temporary35FlashOnlyModel
+	BestExpensiveModel      = backend.BestExpensiveModel
+	GoodBalancedModel       = backend.GoodBalancedModel
+	TemporaryFlashOnlyModel = backend.TemporaryFlashOnlyModel
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3

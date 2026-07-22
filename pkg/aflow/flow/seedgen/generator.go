@@ -18,7 +18,7 @@ type GeneratorOutputs struct {
 
 var GeneratorAgent = &aflow.LLMAgent{
 	Name:  "seed-generator",
-	Model: aflow.Temporary35FlashOnlyModel,
+	Model: aflow.TemporaryFlashOnlyModel,
 	Outputs: aflow.ValidatedLLMOutputs(
 		func(ctx *aflow.Context, state struct{}, outputs GeneratorOutputs) (GeneratorOutputs, error) {
 			if !outputs.GeneratorGiveUp {
@@ -47,7 +47,7 @@ var GeneratorAgent = &aflow.LLMAgent{
 	MaxIterations: 500,
 	Judge: &aflow.LLMJudge{
 		Name:               "generator-judge",
-		Model:              aflow.Temporary35FlashOnlyModel,
+		Model:              aflow.TemporaryFlashOnlyModel,
 		MinIterations:      100,
 		EvaluationInterval: 30,
 		Instruction: `You are a Judge Agent monitoring the Generator Agent during seed generation.
