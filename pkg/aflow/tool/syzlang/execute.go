@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/syzlang"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -93,33 +94,51 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 		return ExecuteSeedResult{}, aflow.BadCallError("failed to get base test seed calls: %v", err)
 	}
 
-	var structuredErrors []CallError
-	for i, errCode := range callErrors {
-		if errCode != 0 {
-			if i < baseCallsCount {
-				return ExecuteSeedResult{}, aflow.BadCallError(
-					"base test seed failed at syscall index %d with errno %d (%s). "+
-						"This usually indicates an environment setup failure, the target is likely unreachable "+
-						"with this base seed.", i, errCode, syscall.Errno(errCode).Error())
-			}
-
-			callName := "unknown"
-			if i < len(p.Calls) {
-				callName = p.Calls[i].Meta.Name
-			}
-			structuredErrors = append(structuredErrors, CallError{
-				Index:    i - baseCallsCount,
-				CallName: callName,
-				Errno:    errCode,
-				Error:    syscall.Errno(errCode).Error(),
-			})
-		}
+	structuredErrors, err := formatCallErrors(callErrors, baseCallsCount, p.Calls)
+	if err != nil {
+		return ExecuteSeedResult{}, err
 	}
 
 	return ExecuteSeedResult{
 		ExecutionCachedID: executionCachedID,
 		CallErrors:        structuredErrors,
 	}, nil
+}
+
+func formatCallErrors(callErrors []crash.CallError, baseCallsCount int, calls []*prog.Call) ([]CallError, error) {
+	var structuredErrors []CallError
+	for i, callErr := range callErrors {
+		if callErr.Errno != 0 || callErr.Flags&flatrpc.CallFlagFinished == 0 {
+			if i < baseCallsCount {
+				return nil, aflow.BadCallError(
+					"base test seed failed at syscall index %d with errno %d (%s). "+
+						"This usually indicates an environment setup failure, the target is likely unreachable "+
+						"with this base seed.", i, callErr.Errno, syscall.Errno(callErr.Errno).Error())
+			}
+
+			callName := "unknown"
+			if i < len(calls) {
+				callName = calls[i].Meta.Name
+			}
+
+			var errStr string
+			if callErr.Flags&flatrpc.CallFlagExecuted == 0 {
+				errStr = "call unexecuted (executor halted on an earlier call)"
+			} else if callErr.Flags&flatrpc.CallFlagFinished == 0 {
+				errStr = "call execution timed out or hung"
+			} else {
+				errStr = syscall.Errno(callErr.Errno).Error()
+			}
+
+			structuredErrors = append(structuredErrors, CallError{
+				Index:    i - baseCallsCount,
+				CallName: callName,
+				Errno:    callErr.Errno,
+				Error:    errStr,
+			})
+		}
+	}
+	return structuredErrors, nil
 }
 
 type GetExecutedProgramArgs struct {

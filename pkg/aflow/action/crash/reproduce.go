@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -206,6 +207,11 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
+type CallError struct {
+	Flags flatrpc.CallFlag
+	Errno int32
+}
+
 type cachedExecution struct {
 	BugTitle       string
 	Report         string
@@ -213,7 +219,7 @@ type cachedExecution struct {
 	FaultInjection string
 	Error          string
 	Coverage       [][]symbolizer.Frame
-	CallErrors     []int32
+	CallErrors     []CallError
 	BaseTestSeed   string
 	GeneratedSyz   string
 }
@@ -235,7 +241,7 @@ func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (
 	return cached.BaseTestSeed, cached.GeneratedSyz, nil
 }
 
-func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]int32, error) {
+func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
 	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
 	if err != nil {
 		return nil, err

@@ -86,7 +86,10 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 
 		if runRes.Info != nil {
 			for _, call := range runRes.Info.Calls {
-				res.CallErrors = append(res.CallErrors, call.Error)
+				res.CallErrors = append(res.CallErrors, CallError{
+					Flags: call.Flags,
+					Errno: call.Error,
+				})
 			}
 			var err error
 			res.Coverage, err = extractCoverage(runRes.Info, args.TargetConfig)
