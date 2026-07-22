@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -75,7 +74,7 @@ func (repo *SeriesStatsRepository) BulkUpdate(ctx context.Context, ids []string,
 		for _, id := range ids {
 			stat, ok := existingMap[id]
 			if !ok {
-				return fmt.Errorf("stats for series %q not found", id)
+				continue
 			}
 			cb(stat)
 			stat.UpdatedAt = time.Now()

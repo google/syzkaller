@@ -6,7 +6,7 @@ package db
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSeriesStatsOutdated(t *testing.T) {
@@ -18,7 +18,7 @@ func TestSeriesStatsOutdated(t *testing.T) {
 
 	series2 := &Series{ExtID: "series-ext-id-2"}
 	err := seriesRepo.Insert(ctx, series2, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	session2 := dtd.dummySession(series2)
 	dtd.setLatestSession(series2, session2)
@@ -30,8 +30,35 @@ func TestSeriesStatsOutdated(t *testing.T) {
 	dtd.finishSession(session1)
 
 	list, err := repo.ListOutdated(ctx, ListOutdatedFilter{Limit: 10, CurrentVersion: "v2"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Session2 is not yet finished.
-	assert.Len(t, list, 1)
-	assert.Equal(t, series1.ID, list[0].ID)
+	require.Len(t, list, 1)
+	require.Equal(t, series1.ID, list[0].ID)
+}
+
+func TestSeriesStatsBulkUpdateMissing(t *testing.T) {
+	client, ctx := NewTransientDB(t)
+	repo := NewSeriesStatsRepository(client)
+	seriesRepo := NewSeriesRepository(client)
+	series1 := &Series{ExtID: "ext-missing-1"}
+	series2 := &Series{ExtID: "ext-missing-2"}
+	require.NoError(t, seriesRepo.Insert(ctx, series1, nil))
+	require.NoError(t, seriesRepo.Insert(ctx, series2, nil))
+
+	require.NoError(t, repo.Upsert(ctx, &SeriesStats{ID: series1.ID, PreventedBugs: 1}))
+
+	ids := []string{series1.ID, series2.ID}
+	err := repo.BulkUpdate(ctx, ids, func(s *SeriesStats) {
+		s.PreventedBugs = 5
+	})
+	require.NoError(t, err)
+
+	stat1, err := repo.GetByID(ctx, series1.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stat1)
+	require.Equal(t, int64(5), stat1.PreventedBugs)
+
+	stat2, err := repo.GetByID(ctx, series2.ID)
+	require.NoError(t, err)
+	require.Nil(t, stat2)
 }
