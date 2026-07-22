@@ -123,3 +123,18 @@ func TestPathCleanerKernelSrcPath(t *testing.T) {
 		t.Errorf("expected rel=relative/path, abs=/some_src_dir/relative/path, got %q, %q", rel, abs)
 	}
 }
+
+func TestPathCleanerCacheSrcPath(t *testing.T) {
+	// Test that a DWARF path with a cache/src/<hash>/ prefix is normalized.
+	kernelDirs := &mgrconfig.KernelDirs{
+		Src: "/syzkaller-seedgen/worker_12/cache/src/hash2222",
+		Obj: "/syzkaller-seedgen/worker_12/cache/src/hash2222",
+	}
+	dwarfPath := "/syzkaller/workdir/cache/src/hash1111/drivers/usb/core/devio.c"
+	rel, abs := CleanPath(dwarfPath, kernelDirs, nil)
+	expectedRel := "drivers/usb/core/devio.c"
+	expectedAbs := "/syzkaller-seedgen/worker_12/cache/src/hash2222/drivers/usb/core/devio.c"
+	if rel != expectedRel || abs != expectedAbs {
+		t.Errorf("expected rel=%q, abs=%q, got rel=%q, abs=%q", expectedRel, expectedAbs, rel, abs)
+	}
+}
