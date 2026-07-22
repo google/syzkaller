@@ -90,6 +90,22 @@ trees:
     branch: next
     email_lists:
       - linux-media@vger.kernel.org
+  - name: axboe
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/axboe/linux.git
+    branch: for-next
+    email_lists:
+      - linux-block@vger.kernel.org
+      - io-uring@vger.kernel.org
+  - name: wireless-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/wireless/wireless-next.git
+    branch: main
+    email_lists:
+      - linux-wireless@vger.kernel.org
+  - name: vfs
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/vfs/vfs.git
+    branch: vfs.all
+    email_lists:
+      - linux-fsdevel@vger.kernel.org
   - name: torvalds
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
     branch: master
