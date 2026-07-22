@@ -16,7 +16,7 @@ var SeedgenAnalyzer = aflow.LLMTool[struct{}, AnalyzerQuery]{
 	Name: "seedgen-analyzer",
 	Description: "Use this tool to explore the codebase. Provide a specific query, " +
 		"and it will search the codebase and return a concise summary of the findings.",
-	Model:    aflow.Temporary35FlashOnlyModel,
+	Model:    aflow.TemporaryFlashOnlyModel,
 	TaskType: aflow.FormalReasoningTask,
 	Tools: aflow.Tools(
 		ToolGetEnvironment,

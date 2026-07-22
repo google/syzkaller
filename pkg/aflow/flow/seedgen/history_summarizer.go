@@ -17,7 +17,7 @@ type HistorySummarizerOutputs struct {
 
 var HistorySummarizerAgent = &aflow.LLMAgent{
 	Name:     "generator-history-summarizer",
-	Model:    aflow.Temporary35FlashOnlyModel,
+	Model:    aflow.TemporaryFlashOnlyModel,
 	TaskType: aflow.FormalReasoningTask,
 	Outputs:  aflow.ValidatedLLMOutputs[HistorySummarizerOutputs, struct{}](nil),
 	Instruction: "You are an expert agent analyst. Your task is to analyze the conversation history of a " +

@@ -106,8 +106,8 @@ const (
 	BestExpensiveModel ModelCategory = "best-expensive"
 	// GoodBalancedModel is a fast, cost-effective model with good capabilities.
 	GoodBalancedModel ModelCategory = "good-balanced"
-	// Temporary35FlashOnlyModel is a temporary model category to restrict to Gemini 3.5 flash.
-	Temporary35FlashOnlyModel ModelCategory = "temp-3.5-flash-only"
+	// TemporaryFlashOnlyModel is a model category for Gemini Flash models.
+	TemporaryFlashOnlyModel ModelCategory = "flash"
 )
 
 // Provider represents an LLM provider (e.g., Gemini, Claude).
