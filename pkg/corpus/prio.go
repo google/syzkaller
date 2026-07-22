@@ -77,3 +77,10 @@ func (corpus *Corpus) Programs() []*prog.Prog {
 	defer corpus.mu.RUnlock()
 	return corpus.progs
 }
+
+func (pl *ProgramsList) clear() {
+	clear(pl.progs)
+	pl.progs = pl.progs[:0]
+	pl.accPrios = pl.accPrios[:0]
+	pl.sumPrios = 0
+}
