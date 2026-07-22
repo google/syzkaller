@@ -56,3 +56,23 @@ void reference_to_header_static()
 #ifndef KBUILD_BASENAME
 #error "compile_commands.json is not loaded"
 #endif
+
+void my_work(int x)
+{
+}
+
+void call_work(struct ops* o)
+{
+	o->do_work(1);
+}
+
+void register_ops()
+{
+	struct ops o;
+	o.do_work = my_work;
+}
+
+void function_with_block_include()
+{
+#include "block_include.h"
+}

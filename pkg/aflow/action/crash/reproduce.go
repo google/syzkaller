@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -25,6 +26,8 @@ import (
 )
 
 var ErrDidNotCrash = errors.New("reproducer did not crash")
+
+const vmQemu = "qemu"
 
 // Reproduce action tries to reproduce a crash with the given reproducer,
 // and outputs the resulting crash report.
@@ -181,7 +184,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(args, firstCoverage)
+		coverage, err := SymbolizeCoverage(args.TargetConfig, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -204,6 +207,11 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
+type CallError struct {
+	Flags flatrpc.CallFlag
+	Errno int32
+}
+
 type cachedExecution struct {
 	BugTitle       string
 	Report         string
@@ -211,6 +219,9 @@ type cachedExecution struct {
 	FaultInjection string
 	Error          string
 	Coverage       [][]symbolizer.Frame
+	CallErrors     []CallError
+	BaseTestSeed   string
+	GeneratedSyz   string
 }
 
 func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
@@ -219,6 +230,23 @@ func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, er
 		return nil, err
 	}
 	return cached.Coverage, nil
+}
+
+func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (
+	baseTestSeed, generatedSyz string, err error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", "", err
+	}
+	return cached.BaseTestSeed, cached.GeneratedSyz, nil
+}
+
+func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return nil, err
+	}
+	return cached.CallErrors, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
@@ -279,7 +307,7 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 
 var makeSymbolizer = symbolizer.Make
 
-func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func SymbolizeCoverage(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	if len(coverage) == 0 {
 		return nil, nil
 	}

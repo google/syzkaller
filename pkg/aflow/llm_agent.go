@@ -53,11 +53,19 @@ type LLMAgent struct {
 	// Whether this agent is being run as a sub-agent by another agent.
 	// Used to control truncation behavior (sub-agents can be forced to answer now).
 	SubAgent bool
+	// InitialMessages overrides the default single-prompt initialization of a.req.
+	InitialMessages func(*Context) ([]llmMessage, error)
 
 	// Token limit for historical messages. If > 0, when the total input tokens exceed this limit,
 	// the agent will pause, call a cheaper model to summarize the entire history, and then drop
 	// all intermediate messages, leaving only the anchor prompt and the new summary.
 	compressTokens int
+
+	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
+	Judge *LLMJudge
+	// Maximum number of iterations for the agent execution.
+	// If 0, default to maxLLMIterations (250).
+	MaxIterations int
 }
 
 type agentSession struct {
@@ -66,11 +74,15 @@ type agentSession struct {
 	toolHistory []toolCallRecord
 	// req stores the active conversation history slice in this execution.
 	req []llmMessage
+	// fullReq stores the complete, uncompressed conversation history.
+	fullReq []llmMessage
 	// outputs stores the results returned by the final set-results tool call, if any.
 	outputs map[string]any
 	// answerNow is set to true when the input overflows and the agent must
 	// immediately respond.
 	answerNow bool
+	// Resolved max iterations.
+	maxIterations int
 }
 
 type llmMessage struct {
@@ -87,8 +99,9 @@ const (
 	// Consts to use for LLMAgent.Model.
 	// These are aliases for the backend constants to avoid requiring users
 	// of the aflow package to import the backend package just to specify the model.
-	BestExpensiveModel = backend.BestExpensiveModel
-	GoodBalancedModel  = backend.GoodBalancedModel
+	BestExpensiveModel      = backend.BestExpensiveModel
+	GoodBalancedModel       = backend.GoodBalancedModel
+	TemporaryFlashOnlyModel = backend.TemporaryFlashOnlyModel
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
@@ -238,6 +251,9 @@ Or did you want to call some other tools, but did not actually do that?
 const llmAnswerNow = `
 Provide a best-effort answer to the original question with all of the information
 you have so far without calling any more tools!
+IMPORTANT: Your tool calling ability is currently disabled to save context size.
+Do NOT attempt to output JSON to call tools. Base your response strictly on
+the text information you have already gathered.
 `
 
 const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
@@ -303,7 +319,14 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	s := &agentSession{LLMAgent: a}
+	maxIterations := a.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = maxLLMIterations
+	}
+	s := &agentSession{
+		LLMAgent:      a,
+		maxIterations: maxIterations,
+	}
 	reply, outputs, err := s.chat(ctx, cfg, tools, instruction, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
@@ -326,20 +349,31 @@ func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) 
 	}}
 	if overflow {
 		a.req[len(a.req)-1] = request
+		a.fullReq[len(a.fullReq)-1] = request
 	} else {
 		a.req = append(a.req, request)
+		a.fullReq = append(a.fullReq, request)
 	}
 	return true
 }
 
 func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
-	a.req = []llmMessage{{content: &backend.Message{
-		Role:  backend.RoleUser,
-		Parts: []backend.Part{{Text: prompt}},
-	}}}
+	if a.InitialMessages != nil {
+		var err error
+		a.req, err = a.InitialMessages(ctx)
+		if err != nil {
+			return "", nil, err
+		}
+	} else {
+		a.req = []llmMessage{{content: &backend.Message{
+			Role:  backend.RoleUser,
+			Parts: []backend.Part{{Text: prompt}},
+		}}}
+	}
+	a.fullReq = append([]llmMessage(nil), a.req...)
 	var anchorTokens int
-	for iter := 0; iter < maxLLMIterations || a.tryAnswerNow(cfg, false); iter++ {
+	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(cfg, false); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
 			currentInputTokens += msg.tokenCount
@@ -385,6 +419,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			return "", nil, respErr
 		}
 		reply, calls, respErr := a.parseResponse(resp, span)
+		if respErr == nil {
+			respErr = ctx.ConsumeTokens(span.InputTokens + span.OutputTokens)
+		}
 		if err := ctx.finishSpan(span, respErr); err != nil {
 			return "", nil, err
 		}
@@ -397,30 +434,30 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		if reply == "" && len(calls) == 0 {
 			resp.Parts = []backend.Part{{Text: "empty"}}
 		}
-		a.req = append(a.req, llmMessage{
+		msg := llmMessage{
 			content:    &backend.Message{Role: backend.RoleModel, Parts: resp.Parts},
 			tokenCount: span.OutputTokens,
-		})
+		}
+		a.req = append(a.req, msg)
+		a.fullReq = append(a.fullReq, msg)
 
 		if len(calls) == 0 {
-			reply, wrong, err := a.checkFinalReply(ctx, reply)
+			reply, outputs, ok, err := a.handleFinalReply(ctx, reply)
 			if err != nil {
 				return "", nil, err
 			}
-			if wrong != "" {
-				a.req = append(a.req, llmMessage{content: &backend.Message{
-					Role:  backend.RoleUser,
-					Parts: []backend.Part{{Text: wrong}},
-				}})
+			if ok {
 				continue
 			}
-			// This is the final reply.
-			return reply, a.outputs, nil
+			return reply, outputs, nil
 		}
 		// This is not the final reply, LLM asked to execute some tools.
 		// Append the current reply, and tool responses to the next request.
 		err = a.callTools(ctx, tools, calls)
 		if err != nil {
+			return "", nil, err
+		}
+		if err := a.evaluateJudge(ctx, iter); err != nil {
 			return "", nil, err
 		}
 		if a.outputs != nil {
@@ -430,7 +467,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		}
 	}
 	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		maxLLMIterations)
+		a.maxIterations)
 }
 
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
@@ -448,6 +485,49 @@ func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
 	if *anchorTokens == 0 {
 		*anchorTokens = inputTokens
 	}
+}
+
+func (a *agentSession) handleFinalReply(ctx *Context, reply string) (string, map[string]any, bool, error) {
+	reply, wrong, err := a.checkFinalReply(ctx, reply)
+	if err != nil {
+		return "", nil, false, err
+	}
+	if wrong != "" {
+		msg := llmMessage{content: &backend.Message{
+			Role:  backend.RoleUser,
+			Parts: []backend.Part{{Text: wrong}},
+		}}
+		a.req = append(a.req, msg)
+		a.fullReq = append(a.fullReq, msg)
+		return "", nil, true, nil
+	}
+	return reply, a.outputs, false, nil
+}
+
+func (a *agentSession) evaluateJudge(ctx *Context, iter int) error {
+	if a.Judge == nil {
+		return nil
+	}
+	if iter < a.Judge.MinIterations || (iter-a.Judge.MinIterations)%a.Judge.EvaluationInterval != 0 {
+		return nil
+	}
+	decision, err := a.Judge.Evaluate(ctx, a.fullReq)
+	if err != nil {
+		return fmt.Errorf("judge agent failed: %w", err)
+	}
+	if decision.Stop {
+		ctx.state[a.Name+"_FailedHistory"] = extractHistoryMessages(a.fullReq)
+		return BadCallError("judge agent stopped execution: %s", decision.Reason)
+	}
+	return nil
+}
+
+func extractHistoryMessages(history []llmMessage) []*backend.Message {
+	var messages []*backend.Message
+	for _, msg := range history {
+		messages = append(messages, msg.content)
+	}
+	return messages
 }
 
 func (a *agentSession) checkFinalReply(ctx *Context, reply string) (string, string, error) {
@@ -563,6 +643,9 @@ func (a *agentSession) compressContext(
 	// but we don't want to clutter the trajectory UI with those thoughts.
 	span.Thoughts = ""
 
+	if respErr == nil {
+		respErr = ctx.ConsumeTokens(span.InputTokens + span.OutputTokens)
+	}
 	if respErr != nil {
 		return nil, 0, ctx.finishSpan(span, respErr)
 	}
@@ -735,7 +818,9 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 			a.outputs = span.Results
 		}
 	}
-	a.req = append(a.req, llmMessage{content: responses})
+	msg := llmMessage{content: responses}
+	a.req = append(a.req, msg)
+	a.fullReq = append(a.fullReq, msg)
 	return nil
 }
 
@@ -877,7 +962,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	// Verify dataflow. All dynamic variables must be provided by inputs,
 	// or preceding actions.
 	a.verifyTemplate(ctx, "Instruction", a.Instruction)
-	a.verifyTemplate(ctx, "Prompt", a.Prompt)
+	if a.InitialMessages == nil {
+		a.verifyTemplate(ctx, "Prompt", a.Prompt)
+	}
 	for _, tool := range a.Tools {
 		name := tool.declaration().Name
 		if !toolNameRe.MatchString(name) {
@@ -896,6 +983,11 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if a.Outputs != nil {
 			a.Outputs.tool.verify(ctx)
 			a.Outputs.provideOutputs(ctx, a.Name, a.Candidates > 1)
+		}
+	}
+	if a.Judge != nil {
+		if err := a.Judge.verify(); err != nil {
+			ctx.errorf(a.Name, "judge verification failed: %v", err)
 		}
 	}
 }

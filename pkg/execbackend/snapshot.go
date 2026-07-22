@@ -105,13 +105,15 @@ func (serv *snapshotServer) RunRequests(ctx context.Context, inst *vm.Instance,
 		defer serv.cfg.Stats.StatNumFuzzing.Add(-1)
 	}
 
-	for first := true; ctx.Err() == nil; first = false {
-		if serv.cfg.Stats.StatExecs != nil {
-			serv.cfg.Stats.StatExecs.Add(1)
-		}
+	first := true
+	for ctx.Err() == nil {
 		req := serv.dist.Next(inst.Index())
 		if req == nil {
-			return nil, nil
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		if serv.cfg.Stats.StatExecs != nil {
+			serv.cfg.Stats.StatExecs.Add(1)
 		}
 		if first {
 			envFlags = req.ExecOpts.EnvFlags
@@ -119,6 +121,7 @@ func (serv *snapshotServer) RunRequests(ctx context.Context, inst *vm.Instance,
 				req.Done(&queue.Result{Status: queue.Crashed})
 				return nil, err
 			}
+			first = false
 		}
 		if envFlags != req.ExecOpts.EnvFlags {
 			panic(fmt.Sprintf("request env flags has changed: 0x%x -> 0x%x",

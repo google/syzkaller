@@ -25,7 +25,11 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "process-item",
-		"Started": "0001-01-01T00:00:04Z"
+		"Started": "0001-01-01T00:00:04Z",
+		"Args": {
+			"Item": "a",
+			"Result": null
+		}
 	},
 	{
 		"Seq": 3,
@@ -34,6 +38,10 @@
 		"Name": "process-item",
 		"Started": "0001-01-01T00:00:04Z",
 		"Finished": "0001-01-01T00:00:05Z",
+		"Args": {
+			"Item": "a",
+			"Result": null
+		},
 		"Results": {
 			"Result": [
 				"A"
@@ -60,7 +68,13 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "process-item",
-		"Started": "0001-01-01T00:00:08Z"
+		"Started": "0001-01-01T00:00:08Z",
+		"Args": {
+			"Item": "b",
+			"Result": [
+				"A"
+			]
+		}
 	},
 	{
 		"Seq": 5,
@@ -69,6 +83,12 @@
 		"Name": "process-item",
 		"Started": "0001-01-01T00:00:08Z",
 		"Finished": "0001-01-01T00:00:09Z",
+		"Args": {
+			"Item": "b",
+			"Result": [
+				"A"
+			]
+		},
 		"Results": {
 			"Result": [
 				"A",
@@ -96,7 +116,14 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "process-item",
-		"Started": "0001-01-01T00:00:12Z"
+		"Started": "0001-01-01T00:00:12Z",
+		"Args": {
+			"Item": "c",
+			"Result": [
+				"A",
+				"B"
+			]
+		}
 	},
 	{
 		"Seq": 7,
@@ -105,6 +132,13 @@
 		"Name": "process-item",
 		"Started": "0001-01-01T00:00:12Z",
 		"Finished": "0001-01-01T00:00:13Z",
+		"Args": {
+			"Item": "c",
+			"Result": [
+				"A",
+				"B"
+			]
+		},
 		"Results": {
 			"Result": [
 				"A",

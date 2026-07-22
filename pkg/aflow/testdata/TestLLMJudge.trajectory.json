@@ -1,0 +1,218 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z",
+		"InputTokens": 50,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:05Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Results": {
+			"Res": 42
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z",
+		"InputTokens": 50,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:09Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Results": {
+			"Res": 42
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z",
+		"InputTokens": 50,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:13Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Results": {
+			"Res": 42
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "test-judge",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:15Z",
+		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "test-judge",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 3,
+		"Type": "llm",
+		"Name": "test-judge",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:16Z",
+		"Finished": "0001-01-01T00:00:17Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:18Z",
+		"Args": {
+			"Reason": "stuck in tick loop",
+			"Stop": true
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "tool",
+		"Name": "set-results",
+		"Started": "0001-01-01T00:00:18Z",
+		"Finished": "0001-01-01T00:00:19Z",
+		"Args": {
+			"Reason": "stuck in tick loop",
+			"Stop": true
+		},
+		"Results": {
+			"Reason": "stuck in tick loop",
+			"Stop": true
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "agent",
+		"Name": "test-judge",
+		"Model": "model1",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:20Z",
+		"Results": {
+			"Reason": "stuck in tick loop",
+			"Stop": true
+		},
+		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:21Z",
+		"Error": "judge agent stopped execution: stuck in tick loop",
+		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Prompt"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Error": "judge agent stopped execution: stuck in tick loop"
+	}
+]

@@ -1,10 +1,3 @@
-find-references "" func_in_header "" 1 10
+find-references func_in_header 1 10
 
-func_in_header has 1 references:
-
-function reference_to_header_static calls it at source0.c:50
-  49:	{
-  50:		func_in_header();
-  51:	}
-
-
+codesearch command find-references requires 5 args, but 3 provided

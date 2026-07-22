@@ -1,3 +1,3 @@
 read-file source0.c 100 1
 
-file source0.c does not have line 100, it has only 58 lines
+file source0.c does not have line 100, it has only 78 lines

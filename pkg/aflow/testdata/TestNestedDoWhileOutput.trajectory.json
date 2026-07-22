@@ -39,7 +39,8 @@
 		"Nesting": 5,
 		"Type": "action",
 		"Name": "inner-action",
-		"Started": "0001-01-01T00:00:06Z"
+		"Started": "0001-01-01T00:00:06Z",
+		"Args": {}
 	},
 	{
 		"Seq": 5,
@@ -48,6 +49,7 @@
 		"Name": "inner-action",
 		"Started": "0001-01-01T00:00:06Z",
 		"Finished": "0001-01-01T00:00:07Z",
+		"Args": {},
 		"Results": {
 			"InnerContinue": "",
 			"Leaked": "val"
@@ -74,7 +76,10 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "outer-consumer",
-		"Started": "0001-01-01T00:00:10Z"
+		"Started": "0001-01-01T00:00:10Z",
+		"Args": {
+			"Leaked": "val"
+		}
 	},
 	{
 		"Seq": 6,
@@ -83,6 +88,9 @@
 		"Name": "outer-consumer",
 		"Started": "0001-01-01T00:00:10Z",
 		"Finished": "0001-01-01T00:00:11Z",
+		"Args": {
+			"Leaked": "val"
+		},
 		"Results": {
 			"Continue": ""
 		}

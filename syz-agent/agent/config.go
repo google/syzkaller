@@ -54,6 +54,7 @@ type Config struct {
 	// The default LLM backend to use if not specified in WorkflowBackends. Defaults to "gemini".
 	DefaultBackend string `json:"default_backend"`
 	GeminiAPIKey   string `json:"gemini_api_key"`
+	TokenLimit     int    `json:"token_limit"`
 	CloudProject   string `json:"-"`
 }
 

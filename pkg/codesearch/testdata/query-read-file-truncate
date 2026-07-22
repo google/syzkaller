@@ -4,3 +4,23 @@ read-file source0.c 55 50
   56:	#ifndef KBUILD_BASENAME
   57:	#error "compile_commands.json is not loaded"
   58:	#endif
+  59:	
+  60:	void my_work(int x)
+  61:	{
+  62:	}
+  63:	
+  64:	void call_work(struct ops* o)
+  65:	{
+  66:		o->do_work(1);
+  67:	}
+  68:	
+  69:	void register_ops()
+  70:	{
+  71:		struct ops o;
+  72:		o.do_work = my_work;
+  73:	}
+  74:	
+  75:	void function_with_block_include()
+  76:	{
+  77:	#include "block_include.h"
+  78:	}

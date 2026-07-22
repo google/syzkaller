@@ -20,10 +20,13 @@ var Tool = aflow.NewFuncTool("grepper", grepper, `
 The tool executes git grep on the kernel sources and returns the output.
 The codesearch set of tools provide more precise results,
 use them instead of this tool if they can answer your question.
-
-Important note: this tool CANNOT be used to search syzkaller syzlang descriptions (sys/*)
-or expressions containing 'syz_' since they are syzkaller pseudo-syscalls, 
-and not present in the Linux kernel. Use the {{.toolReadDescription}} tool instead.
+CRITICAL INSTRUCTION: this tool CANNOT be used to search syzkaller syzlang descriptions
+(e.g. 'dev_*.txt', 'socket_*.txt', etc.)
+or expressions containing 'long syz_'. Those pseudo-syscalls are not present in the Linux kernel.
+Use the read-syz-spec and syz-grepper tools instead.
+Conversely, any Linux kernel files, POSIX headers (e.g. sys/socket.h, sys/ioctl.h),
+or sysfs/procfs paths (e.g. sys/class, sys/devices) MUST be searched using this tool
+(or codesearch-* tools), NOT syz-grepper or read-syz-spec.
 
 The following git grep flags are used:
 --extended-regexp: you need to provide expression in extended regexp syntax

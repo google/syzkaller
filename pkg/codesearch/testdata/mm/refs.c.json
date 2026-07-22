@@ -3,6 +3,7 @@
 		{
 			"name": "ref_in_mm",
 			"type": "void ()",
+			"signature": "void ()",
 			"kind": "function",
 			"body": {
 				"file": "mm/refs.c",

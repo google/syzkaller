@@ -1,8 +1,40 @@
 {
 	"definitions": [
 		{
+			"name": "call_work",
+			"type": "void (struct ops *)",
+			"signature": "void (ops *)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 64,
+				"end_line": 67
+			},
+			"refs": [
+				{
+					"name": "ops",
+					"kind": "uses",
+					"entity_kind": "struct",
+					"line": 64
+				},
+				{
+					"name": "void (int)",
+					"kind": "indirectly-calls",
+					"entity_kind": "signature",
+					"line": 66
+				},
+				{
+					"name": "ops::do_work",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 66
+				}
+			]
+		},
+		{
 			"name": "close",
 			"type": "int ()",
+			"signature": "int ()",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -13,6 +45,7 @@
 		{
 			"name": "field_refs",
 			"type": "int (struct some_struct *, union some_union *)",
+			"signature": "int (some_struct *, some_union *)",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -79,6 +112,7 @@
 		{
 			"name": "func_accepting_a_struct",
 			"type": "int (struct some_struct *)",
+			"signature": "int (some_struct *)",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -127,6 +161,7 @@
 		{
 			"name": "func_in_header",
 			"type": "int ()",
+			"signature": "int ()",
 			"kind": "function",
 			"is_static": true,
 			"body": {
@@ -136,8 +171,29 @@
 			}
 		},
 		{
+			"name": "function_with_block_include",
+			"type": "void ()",
+			"signature": "void ()",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 75,
+				"end_line": 78
+			},
+			"refs": [
+				{
+					"name": "open",
+					"kind": "calls",
+					"entity_kind": "function",
+					"file": "block_include.h",
+					"line": 1
+				}
+			]
+		},
+		{
 			"name": "function_with_comment_in_header",
 			"type": "void ()",
+			"signature": "void ()",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -161,6 +217,7 @@
 		{
 			"name": "function_with_quotes_in_type",
 			"type": "void (void  __attribute__((btf_type_tag(\"user\")))*)",
+			"signature": "void (void *)",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -169,8 +226,20 @@
 			}
 		},
 		{
+			"name": "my_work",
+			"type": "void (int)",
+			"signature": "void (int)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 60,
+				"end_line": 62
+			}
+		},
+		{
 			"name": "open",
 			"type": "int ()",
+			"signature": "int ()",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -186,6 +255,7 @@
 		{
 			"name": "reference_to_header_static",
 			"type": "void ()",
+			"signature": "void ()",
 			"kind": "function",
 			"body": {
 				"file": "source0.c",
@@ -202,6 +272,37 @@
 			]
 		},
 		{
+			"name": "register_ops",
+			"type": "void ()",
+			"signature": "void ()",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 69,
+				"end_line": 73
+			},
+			"refs": [
+				{
+					"name": "ops",
+					"kind": "uses",
+					"entity_kind": "struct",
+					"line": 71
+				},
+				{
+					"name": "ops::do_work",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 72
+				},
+				{
+					"name": "my_work",
+					"kind": "takes-address-of",
+					"entity_kind": "function",
+					"line": 72
+				}
+			]
+		},
+		{
 			"name": "another_struct",
 			"kind": "struct",
 			"body": {
@@ -213,7 +314,26 @@
 				{
 					"name": "x",
 					"offset": 0,
-					"size": 32
+					"size": 32,
+					"type": "int"
+				}
+			]
+		},
+		{
+			"name": "ops",
+			"kind": "struct",
+			"body": {
+				"file": "source0.h",
+				"start_line": 53,
+				"end_line": 55
+			},
+			"fields": [
+				{
+					"name": "do_work",
+					"offset": 0,
+					"size": 64,
+					"type": "void (*)(int)",
+					"signature": "void (int)"
 				}
 			]
 		},
@@ -229,12 +349,14 @@
 				{
 					"name": "x",
 					"offset": 0,
-					"size": 32
+					"size": 32,
+					"type": "int"
 				},
 				{
 					"name": "y",
 					"offset": 32,
-					"size": 32
+					"size": 32,
+					"type": "int"
 				}
 			]
 		},
@@ -255,12 +377,14 @@
 				{
 					"name": "x",
 					"offset": 0,
-					"size": 32
+					"size": 32,
+					"type": "int"
 				},
 				{
 					"name": "other_struct",
 					"offset": 64,
-					"size": 64
+					"size": 64,
+					"type": "struct some_struct *"
 				}
 			]
 		},
@@ -276,12 +400,14 @@
 				{
 					"name": "X",
 					"offset": 0,
-					"size": 32
+					"size": 32,
+					"type": "int"
 				},
 				{
 					"name": "by_value",
 					"offset": 32,
-					"size": 64
+					"size": 64,
+					"type": "struct some_struct"
 				}
 			]
 		},
@@ -297,17 +423,20 @@
 				{
 					"name": "x",
 					"offset": 0,
-					"size": 32
+					"size": 32,
+					"type": "int"
 				},
 				{
 					"name": "p",
 					"offset": 0,
-					"size": 64
+					"size": 64,
+					"type": "void *"
 				},
 				{
 					"name": "s",
 					"offset": 0,
-					"size": 64
+					"size": 64,
+					"type": "struct some_struct"
 				}
 			]
 		},
