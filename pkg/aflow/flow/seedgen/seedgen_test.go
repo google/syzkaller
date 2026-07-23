@@ -67,30 +67,6 @@ func TestParsePC(t *testing.T) {
 	}
 }
 
-func TestGeneratorAgentPromptRendering(t *testing.T) {
-	tmpl, err := template.New("prompt").Parse(GeneratorAgent.Prompt)
-	require.NoError(t, err)
-
-	var buf bytes.Buffer
-	data := map[string]any{
-		"File":                   "arch/x86/kvm/vmx/vmx.c",
-		"Line":                   1234,
-		"FunctionName":           "vmx_vcpu_run",
-		"PC":                     "0xffffffff81001234",
-		"FunctionSource":         "void vmx_vcpu_run() { ... }",
-		"DescriptionFilesPrompt": "Description files available: dev_kvm.txt, dev_kvm_amd64.txt",
-		"DocSyzOS":               docs.SyzOS,
-	}
-
-	err = tmpl.Execute(&buf, data)
-	require.NoError(t, err)
-	rendered := buf.String()
-
-	require.Contains(t, rendered, "Target File: arch/x86/kvm/vmx/vmx.c")
-	require.Contains(t, rendered, "Document about SyzOS setup:")
-	require.Contains(t, rendered, "SYZOS Technical Documentation")
-}
-
 func TestResolveLineToPCAction(t *testing.T) {
 	// Test missing parameters error.
 	_, err := resolveLineToPCAction(nil, ResolveLineToPCArgs{})
@@ -151,4 +127,28 @@ func TestMatchCandidatePCs(t *testing.T) {
 	pcs, err = matchCandidatePCs(pcToFrames, lineTable, cleanTargetFile, kd, 5320)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []uint64{0x100, 0x120}, pcs)
+}
+
+func TestGeneratorAgentPromptRendering(t *testing.T) {
+	tmpl, err := template.New("prompt").Parse(GeneratorAgent.Prompt)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	data := map[string]any{
+		"File":                   "arch/x86/kvm/vmx/vmx.c",
+		"Line":                   1234,
+		"FunctionName":           "vmx_vcpu_run",
+		"PC":                     "0xffffffff81001234",
+		"FunctionSource":         "void vmx_vcpu_run() { ... }",
+		"DescriptionFilesPrompt": "Description files available: dev_kvm.txt, dev_kvm_amd64.txt",
+		"DocSyzOS":               docs.SyzOS,
+	}
+
+	err = tmpl.Execute(&buf, data)
+	require.NoError(t, err)
+	rendered := buf.String()
+
+	require.Contains(t, rendered, "Target File: arch/x86/kvm/vmx/vmx.c")
+	require.Contains(t, rendered, "Document about SyzOS setup:")
+	require.Contains(t, rendered, "SYZOS Technical Documentation")
 }

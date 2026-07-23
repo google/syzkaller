@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -14,15 +15,15 @@ import (
 )
 
 var DisassembleContext = aflow.NewFuncTool("disassemble-context", disassembleContext, `
-Tool returns the source-interleaved disassembly around a given PC.
-Use this to understand the compiler-injected instrumentations (e.g. KCOV, ASAN)
-and low-level execution context of a specific code point.
-Returns +/- 50 lines of objdump output around the target PC.
-If you need to scroll, call the tool again with the first or last PC visible in the snippet.
+Tool returns the source-interleaved disassembly around candidate target PC addresses.
+Use this to understand compiler-injected instrumentation (e.g., KCOV, ASAN)
+and low-level execution context of target code points.
+Returns +/- 50 lines of objdump output centered around the first target PC, with candidate target PCs marked.
+If you need to scroll, call the tool again with the first or last PC visible in the snippet in the PCs list.
 `)
 
 type DisassembleContextArgs struct {
-	PC string `jsonschema:"The raw un-relocated PC address (hex format, e.g., '0xffffffff817b73a0')."`
+	PCs []string `jsonschema:"List of candidate target raw un-relocated PC addresses (hex format)."`
 }
 
 type DisassembleContextResult struct {
@@ -32,14 +33,29 @@ type DisassembleContextResult struct {
 func disassembleContext(
 	ctx *aflow.Context, state reproduceState, args DisassembleContextArgs,
 ) (DisassembleContextResult, error) {
-	raw := strings.TrimSpace(args.PC)
-	raw = strings.TrimPrefix(raw, "0x")
-	pc, err := strconv.ParseUint(raw, 16, 64)
-	if err != nil {
-		return DisassembleContextResult{}, aflow.BadCallError("invalid pc format: %v", err)
+	var rawPCs []string
+	for _, p := range args.PCs {
+		p = strings.TrimSpace(p)
+		if p != "" && !slices.Contains(rawPCs, p) {
+			rawPCs = append(rawPCs, p)
+		}
+	}
+	if len(rawPCs) == 0 {
+		return DisassembleContextResult{}, aflow.BadCallError("no PC provided")
 	}
 
-	snippet, err := doDisassembleContext(pc, state.KernelObj, state.KernelSrc)
+	var pcs []uint64
+	for _, raw := range rawPCs {
+		raw = strings.TrimSpace(raw)
+		raw = strings.TrimPrefix(raw, "0x")
+		pc, err := strconv.ParseUint(raw, 16, 64)
+		if err != nil {
+			return DisassembleContextResult{}, aflow.BadCallError("invalid pc format: %v", err)
+		}
+		pcs = append(pcs, pc)
+	}
+
+	snippet, err := doDisassembleContext(pcs[0], pcs, state.KernelObj, state.KernelSrc)
 	if err != nil {
 		return DisassembleContextResult{}, aflow.BadCallError("%v", err)
 	}
@@ -47,7 +63,10 @@ func disassembleContext(
 	return DisassembleContextResult{Output: snippet}, nil
 }
 
-func doDisassembleContext(pc uint64, kernelObj, kernelSrc string) (string, error) {
+func doDisassembleContext(pc uint64, pcs []uint64, kernelObj, kernelSrc string) (string, error) {
+	if len(pcs) == 0 {
+		pcs = []uint64{pc}
+	}
 	vmlinux := filepath.Join(kernelObj, "vmlinux")
 	startAddr := pc - 0x200
 	stopAddr := pc + 0x200
@@ -77,9 +96,11 @@ func doDisassembleContext(pc uint64, kernelObj, kernelSrc string) (string, error
 		addr, err := strconv.ParseUint(addrStr, 16, 64)
 		if err == nil {
 			if addr == pc {
+				lines[i] = lines[i] + "  <-- TARGET PC"
 				targetIdx = i
-				break
-			} else if addr < pc {
+			} else if slices.Contains(pcs, addr) {
+				lines[i] = lines[i] + "  <-- CANDIDATE TARGET PC"
+			} else if targetIdx == -1 && addr < pc {
 				dist := pc - addr
 				if dist < closestDist {
 					closestDist = dist
@@ -111,6 +132,15 @@ func doDisassembleContext(pc uint64, kernelObj, kernelSrc string) (string, error
 		warn := "WARNING: Missing debug symbols or source code not found. " +
 			"Returning raw assembly without interleaved C source lines.\n\n"
 		snippet = warn + snippet
+	}
+
+	if len(pcs) > 1 {
+		var candidateStrs []string
+		for _, p := range pcs {
+			candidateStrs = append(candidateStrs, fmt.Sprintf("0x%x", p))
+		}
+		header := fmt.Sprintf("Candidate Target PCs: %s\n\n", strings.Join(candidateStrs, ", "))
+		snippet = header + snippet
 	}
 
 	return snippet, nil

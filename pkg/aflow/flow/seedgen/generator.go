@@ -45,11 +45,11 @@ var GeneratorAgent = &aflow.LLMAgent{
 	Judge: &aflow.LLMJudge{
 		Name:               "generator-judge",
 		Model:              aflow.TemporaryFlashOnlyModel,
-		MinIterations:      100,
-		EvaluationInterval: 30,
+		MinIterations:      50,
+		EvaluationInterval: 20,
 		Instruction: `You are a Judge Agent monitoring the Generator Agent during seed generation.
 Your role is to detect when the Generator is stuck, oscillating, repeating unproductive tool calls, or making no
-progress towards reaching the target PC.
+progress towards reaching any of the target PCs.
 
 Analyze the conversation history for the following stall patterns:
 1. TOOL CALL REPETITION & SEARCH LOOPS:
@@ -76,9 +76,9 @@ DECISION RULES:
   progressing.`,
 	},
 	Instruction: `You are the Generator orchestrating the generation of a syzkaller seed.
-Your goal is to reach a specific target PC.
+Your goal is to reach any of the candidate target PCs.
 
-Your job is to generate a syzlang program that reaches the target PC.
+Your job is to generate a syzlang program that reaches any of the candidate target PCs.
 You have these powerful tools:
 1. 'get-environment': Use this tool to inspect the VM target architecture, OS, and search the kernel build
 configuration (.config) for specific drivers or features (e.g., query 'CONFIG_USB' or 'CONFIG_NET').
@@ -167,14 +167,14 @@ Workflow:
       Call 'set-results' IMMEDIATELY with GeneratorGiveUp=true. Do NOT burn iterations running 'code-fixer'.
       Your GeneratorReason MUST cite the specific driver probe callback and the empirically verified blocker.
 
-3. Loop internally to find a program that reaches the target PC:
+3. Loop internally to find a program that reaches any of the target PCs:
    a. Formulate a syzlang program. You may try out you ideas by formulating a plausible program.
    b. Call 'code-fixer' to debug and execute it (passing 'ProgramIntentDescription').
       - If code-fixer returns CodeFixerGiveUp = true, read its CodeFixerReason. If it gave up due to environment
         or setup failure (e.g. ENOSYS or unsupported subsystem setup in environment), you must NOT loop/retry. You must
         either try a completely different strategy, or give up by calling 'set-results' with GeneratorGiveUp=true.
       - Otherwise, obtain the ExecutionCachedID.
-   c. Call 'check-pc-reached' with the ExecutionCachedID to verify if the target PC was reached.
+   c. Call 'check-pc-reached' with the ExecutionCachedID to verify if any of the target PCs were reached.
    d. If reached is true:
       - Success! Call 'set-results' with this ExecutionCachedID and end your execution.
    e. If reached is false:
@@ -220,12 +220,14 @@ Workflow:
 	Prompt: `Target File: {{.File}}
 Target Line: {{.Line}}
 Target Function: {{.FunctionName}}
-Target PC: {{printf "0x%x" .PC}}
+{{if .PCs}}Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}
+{{else if .PC}}Target PC: {{.PC}}{{end}}
 {{if .Frames}}
-PC corresponds to the following inline call chain:
+Candidate PC(s) correspond to the following inline call chain:
 {{range $i, $f := .Frames}}{{$i}}. {{$f.Func}} ({{$f.File}}:{{$f.Line}})
 {{end}}{{else if .InnerFunc}}
-Note: The exact PC is located inside the inlined function '{{.InnerFunc}}' which is called within the target function.
+Note: The exact PC(s) are located inside the inlined function '{{.InnerFunc}}'
+which is called within the target function.
 {{end}}
 
 Function Context:
@@ -261,7 +263,7 @@ Use this info to avoid repeating the same loops or strategies.
 ---
 {{end}}
 
-Formulate a plausible syzlang program quickly based on the context. \
-Use 'code-fixer' to execute and debug it. Output the resulting \
-ExecutionCachedID using set-results to yield control back to the pipeline.`,
+Formulate a plausible syzlang program to reach any of the target PCs.
+Use 'code-fixer', 'check-pc-reached', and 'execution-summarizer' to \
+iterate internally until you reach any of the target PCs or decide to give up.`,
 }

@@ -27,7 +27,7 @@ var HistorySummarizerAgent = &aflow.LLMAgent{
 		"You MUST structure your FailedHistorySummary into the following four markdown sections:\n" +
 		"1. ## FAILED STRATEGY & SYSCALL PATHS\n" +
 		"2. ## REPEATED ERRORS & STUCK LOOPS\n" +
-		"3. ## DISCARDED BASE SEEDS & SYZLANG CONSTRUCTS\n" +
+		"3. ## DISCARDED TEST SEEDS & SYZLANG CONSTRUCTS\n" +
 		"4. ## RECOMMENDED ALTERNATIVE DIRECTIONS & NEGATIVE CONSTRAINTS",
 	Prompt: `Failed Agent Name: seed-generator
 Failed Conversation History:
@@ -35,6 +35,7 @@ Failed Conversation History:
 }
 
 type FormatFailedHistoryArgs struct {
+	FailedHistory []*backend.Message
 }
 
 type FormatFailedHistoryResult struct {
@@ -43,12 +44,11 @@ type FormatFailedHistoryResult struct {
 
 var ActionFormatFailedHistory = aflow.NewFuncAction("seedgen-format-failed-history",
 	func(ctx *aflow.Context, args FormatFailedHistoryArgs) (FormatFailedHistoryResult, error) {
-		val := ctx.StateMap()["seed-generator_FailedHistory"]
-		history, ok := val.([]*backend.Message)
-		if !ok {
+		if len(args.FailedHistory) == 0 {
 			return FormatFailedHistoryResult{},
-				fmt.Errorf("failed history 'seed-generator_FailedHistory' not found in state context")
+				fmt.Errorf("failed history not found in state context")
 		}
+		history := args.FailedHistory
 		var sb strings.Builder
 		for _, msg := range history {
 			role := msg.Role

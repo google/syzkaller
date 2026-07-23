@@ -48,10 +48,10 @@ func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
 			MaxIterations: 5,
 			Do: aflow.Pipeline(
 				ActionPrepareFailedDetails,
-				&aflow.Try{
-					Do:       GeneratorAgent,
-					ErrorVar: "GeneratorError",
-					Catch: aflow.Pipeline(
+				GeneratorAgent,
+				&aflow.If{
+					Condition: "JudgeStopped",
+					Do: aflow.Pipeline(
 						ActionFormatFailedHistory,
 						HistorySummarizerAgent,
 					),
@@ -156,7 +156,8 @@ type VerifyPCAndLoopStateArgs struct {
 	ExecutionCachedID    string
 	GeneratorGiveUp      bool
 	GeneratorReason      string
-	GeneratorError       string
+	JudgeStopped         bool
+	JudgeReason          string
 	FailedHistorySummary string
 	PC                   string
 	PCs                  []string
@@ -171,7 +172,7 @@ type VerifyPCAndLoopStateResult struct {
 
 var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop",
 	func(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
-		if args.GeneratorError != "" {
+		if args.JudgeStopped {
 			res := VerifyPCAndLoopStateResult{
 				ContinueLoop:             "yes",
 				PCReached:                false,

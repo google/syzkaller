@@ -70,8 +70,8 @@ type ResolveLineToPCArgs struct {
 }
 
 type ResolveLineToPCResult struct {
-	PC  string
-	PCs []string
+	PC  string   `jsonschema:"Primary target PC (hex format)."`
+	PCs []string `jsonschema:"All candidate KCOV PCs corresponding to this file and line (hex format)."`
 }
 
 var ActionResolveLineToPC = aflow.NewFuncAction("resolve-line-to-pc", resolveLineToPCAction)
@@ -81,21 +81,28 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 		return ResolveLineToPCResult{}, fmt.Errorf("both FilePath and LineNumber must be provided")
 	}
 
-	pcs, err := resolveLineToPC(args.KernelSrc, args.KernelObj, args.FilePath, args.LineNumber)
+	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, args.FilePath, args.LineNumber)
 	if err != nil {
 		return ResolveLineToPCResult{}, err
 	}
-	if len(pcs) == 0 {
-		return ResolveLineToPCResult{}, fmt.Errorf("no KCOV coverage PC found for %s:%d", args.FilePath, args.LineNumber)
-	}
+
 	hexPCs := make([]string, len(pcs))
 	for i, pc := range pcs {
 		hexPCs[i] = fmt.Sprintf("0x%x", pc)
 	}
-	return ResolveLineToPCResult{PC: hexPCs[0], PCs: hexPCs}, nil
+
+	primaryPC := ""
+	if len(hexPCs) > 0 {
+		primaryPC = hexPCs[0]
+	}
+
+	return ResolveLineToPCResult{
+		PC:  primaryPC,
+		PCs: hexPCs,
+	}, nil
 }
 
-func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) ([]uint64, error) {
+func resolveLineToPCs(kernelSrc, kernelObj, filePath string, line int) ([]uint64, error) {
 	target := targets.Get(targets.Linux, targets.AMD64)
 	vmlinux := filepath.Join(kernelObj, target.KernelObject)
 
@@ -122,14 +129,15 @@ func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) ([]uint64,
 		cleanTargetFile = filepath.Clean(filePath)
 	}
 
-	var targetUnit *backend.CompileUnit
+	// Step 1: Collect KCOV PCs across ALL matching compile units (supports .h header files)
+	var candidateKcovPCs []uint64
 	for _, unit := range impl.Units {
 		if matchDwarfFile(unit.Path, cleanTargetFile, kernelDirs) {
-			targetUnit = unit
-			break
+			candidateKcovPCs = append(candidateKcovPCs, unit.PCs...)
 		}
 	}
-	if targetUnit == nil || len(targetUnit.PCs) == 0 {
+
+	if len(candidateKcovPCs) == 0 {
 		return nil, fmt.Errorf("file %q not found or has no KCOV coverage points", filePath)
 	}
 
@@ -138,10 +146,11 @@ func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) ([]uint64,
 		return nil, err
 	}
 
+	// Step 2: Symbolize all collected candidate PCs.
 	symb := symbolizer.Make(target)
 	defer symb.Close()
 
-	frames, err := symb.Symbolize(vmlinux, targetUnit.PCs...)
+	frames, err := symb.Symbolize(vmlinux, candidateKcovPCs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to symbolize KCOV PCs for %s: %w", filePath, err)
 	}
