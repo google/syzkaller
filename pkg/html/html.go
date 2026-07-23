@@ -166,6 +166,8 @@ func formatReproLevel(l dashapi.ReproLevel) string {
 	case dashapi.ReproLevelSyz:
 		return "syz"
 	case dashapi.ReproLevelC:
+		return "syz, C"
+	case dashapi.ReproLevelCOnly:
 		return "C"
 	default:
 		return ""

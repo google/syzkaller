@@ -644,9 +644,13 @@ func handleRetestForBug(ctx context.Context, bug *Bug, bugKey *db.Key,
 
 func createBisectJob(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	// We need both C and syz repros, but the crazy datastore query restrictions
-	// do not allow to use ReproLevel>ReproLevelNone in the query. So we do 2 separate queries.
+	// do not allow to use ReproLevel>ReproLevelNone in the query. So we do 3 separate queries.
 	// C repros tend to be of higher reliability so maybe it's not bad.
 	job, jobKey, err := createBisectJobRepro(ctx, managers, ReproLevelC)
+	if job != nil || err != nil {
+		return job, jobKey, err
+	}
+	job, jobKey, err = createBisectJobRepro(ctx, managers, ReproLevelCOnly)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
@@ -754,7 +758,7 @@ func bisectCrashForBug(ctx context.Context, bug *Bug, bugKey *db.Key, managers m
 		return nil, nil, err
 	}
 	for ci, crash := range crashes {
-		if crash.ReproSyz == 0 || !managers[crash.Manager] {
+		if (crash.ReproSyz == 0 && crash.ReproC == 0) || !managers[crash.Manager] {
 			continue
 		}
 		if jobType == JobBisectFix &&
@@ -967,11 +971,8 @@ func handleRetestedRepro(ctx context.Context, now time.Time, job *Job, jobKey *d
 		if bestCrash.ReproIsRevoked {
 			continue
 		}
-		if bestCrash.ReproC > 0 {
-			bug.HeadReproLevel = ReproLevelC
-		} else if bug.HeadReproLevel != ReproLevelC && bestCrash.ReproSyz > 0 {
-			bug.HeadReproLevel = ReproLevelSyz
-		}
+		bug.HeadReproLevel = bug.HeadReproLevel.Combine(
+			dashapi.ReproLevelFromCAndSyz(bestCrash.ReproC > 0, bestCrash.ReproSyz > 0))
 	}
 	if stringInList(allTitles, bug.Title) || stringListsIntersect(bug.AltTitles, allTitles) {
 		// We don't want to confuse users, so only update LastTime if the generated crash
