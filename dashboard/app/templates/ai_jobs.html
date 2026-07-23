@@ -81,32 +81,8 @@ List of AI jobs page.
 			<label for="show_aborted" style="margin-left: 20px;">Display aborted jobs:</label>
 			<input type="checkbox" id="show_aborted" name="show_aborted" onchange="this.form.submit()" {{if .ShowAborted}}checked{{end}}> YES
 	</form>
-	<div class="pagination">
-		{{if .HasPrevPage}}
-			<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&reverse=1&cursor_time={{.PrevCursorTime}}&cursor_id={{.PrevCursorID}}">Prev</a>
-		{{else}}
-			<span class="disabled-link">Prev</span>
-		{{end}}
-		|
-		{{if .HasNextPage}}
-			<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&cursor_time={{.NextCursorTime}}&cursor_id={{.NextCursorID}}">Next</a>
-		{{else}}
-			<span class="disabled-link">Next</span>
-		{{end}}
-	</div>
+	{{template "ai_pagination" .}}
 	{{template "ai_job_list" .Jobs}}
-	<div class="pagination">
-		{{if .HasPrevPage}}
-			<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&reverse=1&cursor_time={{.PrevCursorTime}}&cursor_id={{.PrevCursorID}}">Prev</a>
-		{{else}}
-			<span class="disabled-link">Prev</span>
-		{{end}}
-		|
-		{{if .HasNextPage}}
-			<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&cursor_time={{.NextCursorTime}}&cursor_id={{.NextCursorID}}">Next</a>
-		{{else}}
-			<span class="disabled-link">Next</span>
-		{{end}}
-	</div>
+	{{template "ai_pagination" .}}
 </body>
 </html>
