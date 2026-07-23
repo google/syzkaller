@@ -83,6 +83,15 @@ verifying their existence first using content search or directory listing tools.
 If a file, symbol, or directory is not found via content search ('grepper') or
 directory listing ('codesearch-dir-index'), treat it as completely absent.
 Do not attempt to guess alternative names, extensions, or directories.
+
+Tool Selection Guidelines:
+1. For C functions, structs, and variables: Prefer 'codesearch-definition-source'
+   or 'codesearch-struct-layout' FIRST to retrieve clean, exact definitions
+   without line-number guessing.
+2. If symbol lookup fails (e.g., preprocessor macros, macro-generated code, or
+   disabled #ifdef branches), fall back to 'read-file' or 'grepper'.
+3. For file headers, #include directives, preprocessor macro definitions, and
+   non-C files (Kconfig, Makefiles, docs): Use 'read-file' or 'grepper' directly.
 `
 
 const instructionGitRestrictions = `Do NOT use 'git-log' to search for the presence or existence of files in the
