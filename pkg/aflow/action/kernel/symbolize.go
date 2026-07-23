@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -19,7 +21,7 @@ import (
 var SymbolizePC = aflow.NewFuncAction("kernel-symbolize-pc", symbolizePC)
 
 type symbolizePCArgs struct {
-	PC        uint64
+	PC        string
 	KernelSrc string
 	KernelObj string
 }
@@ -41,19 +43,27 @@ type symbolizePCResult struct {
 }
 
 func symbolizePC(ctx *aflow.Context, args symbolizePCArgs) (symbolizePCResult, error) {
-	if args.PC == 0 {
-		return symbolizePCResult{}, fmt.Errorf("invalid PC address: 0")
+	if args.PC == "" {
+		return symbolizePCResult{}, fmt.Errorf("invalid PC address: empty")
+	}
+	s := strings.TrimSpace(args.PC)
+	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
+		return symbolizePCResult{}, fmt.Errorf("PC address must be hex and start with 0x: %q", args.PC)
+	}
+	pc, err := strconv.ParseUint(s[2:], 16, 64)
+	if err != nil {
+		return symbolizePCResult{}, fmt.Errorf("invalid PC address %q: %w", args.PC, err)
 	}
 	target := targets.Get(targets.Linux, targets.AMD64)
 	vmlinux := filepath.Join(args.KernelObj, target.KernelObject)
 	symb := symbolizer.Make(target)
 	defer symb.Close()
-	frames, err := symb.Symbolize(vmlinux, args.PC)
+	frames, err := symb.Symbolize(vmlinux, pc)
 	if err != nil {
-		return symbolizePCResult{}, fmt.Errorf("failed to symbolize PC 0x%x: %w", args.PC, err)
+		return symbolizePCResult{}, fmt.Errorf("failed to symbolize PC 0x%x: %w", pc, err)
 	}
 	if len(frames) == 0 {
-		return symbolizePCResult{}, fmt.Errorf("failed to symbolize PC 0x%x: no frames found", args.PC)
+		return symbolizePCResult{}, fmt.Errorf("failed to symbolize PC 0x%x: no frames found", pc)
 	}
 
 	// frames[0] corresponds to the innermost inline or regular function frame.
