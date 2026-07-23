@@ -758,7 +758,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tbody>
 	{{range $job := .}}
 	<tr {{if $job.IsCurrent}}class="ai_current_job"{{end}}>
-		<td class="tag">{{link $job.Link $job.ID}}</td>
+		<td class="stat">{{link $job.Link (formatShortHash $job.ID)}}</td>
 		<td>{{$job.Workflow}}</td>
 		<td class="ai_result">
 			{{range $res := $job.Results}}
@@ -772,7 +772,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{formatTime $job.Created}}</td>
 		<td>{{formatTime $job.Started}}</td>
 		<td>{{formatTime $job.Finished}}</td>
-		<td class="tag">{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
+		<td class="stat">{{link $job.CodeRevisionLink (formatShortHash $job.CodeRevision)}}</td>
 		<td class="ai_job_error_cell">
 			<pre class="ai_job_error">{{$job.ErrorSummary}}</pre>
 			{{if lt (len $job.ErrorSummary) (len $job.Error)}}
@@ -783,4 +783,21 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 	</tbody>
 </table>
+{{end}}
+
+{{/* AI jobs pagination, invoked with *uiAIJobsPage */}}
+{{define "ai_pagination"}}
+<div class="ai_pagination">
+	{{if .HasPrevPage}}
+		<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&reverse=1&cursor_time={{.PrevCursorTime}}&cursor_id={{.PrevCursorID}}">Prev</a>
+	{{else}}
+		<span class="disabled-link">Prev</span>
+	{{end -}}
+	&nbsp;|&nbsp;
+	{{- if .HasNextPage}}
+		<a href="?workflow={{.CurrentWorkflow}}&show_aborted={{if .ShowAborted}}1{{end}}&cursor_time={{.NextCursorTime}}&cursor_id={{.NextCursorID}}">Next</a>
+	{{else}}
+		<span class="disabled-link">Next</span>
+	{{end}}
+</div>
 {{end}}
