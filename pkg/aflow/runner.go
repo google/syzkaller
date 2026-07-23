@@ -227,7 +227,7 @@ func (rm *RunnerManager) SubmitBatch(
 
 // MachineChecked implements the fuzzer.Manager interface.
 func (rm *RunnerManager) MachineChecked(
-	features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
+	features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool, capabilities map[string]string,
 ) error {
 	if len(enabledSyscalls) == 0 {
 		log.Logf(0, "aflow: no syscalls enabled for runner")

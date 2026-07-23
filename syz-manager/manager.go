@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net"
 	"os"
@@ -86,6 +87,7 @@ type Manager struct {
 	reportGenerator *manager.ReportGeneratorWrapper
 	fresh           bool
 	coverFilters    manager.CoverageFilters
+	capabilities    map[string]string
 
 	dash *dashapi.Dashboard
 	// This is specifically separated from dash, so that we can keep dash = nil when
@@ -1126,7 +1128,7 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 }
 
 func (mgr *Manager) MachineChecked(features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) error {
+	enabledSyscalls map[*prog.Syscall]bool, capabilities map[string]string) error {
 	if len(enabledSyscalls) == 0 {
 		return fmt.Errorf("all system calls are disabled")
 	}
@@ -1159,6 +1161,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		panic("MachineChecked called twice")
 	}
 	mgr.enabledFeatures = features
+	mgr.capabilities = capabilities
 	mgr.http.EnabledSyscalls.Store(enabledSyscalls)
 	mgr.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stat.New("syscalls", "Number of enabled syscalls",
@@ -1245,6 +1248,10 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 }
 
 func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
+	capabilities := make(map[string]string)
+	maps.Copy(capabilities, mgr.capabilities)
+	maps.Copy(capabilities, mgr.cfg.BootTestCapabilities)
+
 	ctx := &runtest.Context{
 		Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
 		Target:   mgr.cfg.Target,
@@ -1252,10 +1259,11 @@ func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*
 		EnabledCalls: map[string]map[*prog.Syscall]bool{
 			mgr.cfg.Sandbox: enabledSyscalls,
 		},
-		LogFunc: func(text string) { fmt.Println(text) },
-		Verbose: true,
-		Debug:   *flagDebug,
-		Tests:   *flagTests,
+		LogFunc:              func(text string) { fmt.Println(text) },
+		Verbose:              true,
+		Debug:                *flagDebug,
+		Tests:                *flagTests,
+		BootTestCapabilities: capabilities,
 	}
 	ctx.Init()
 	go func() {

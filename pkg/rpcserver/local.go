@@ -114,7 +114,8 @@ type local struct {
 	setupDone chan bool
 }
 
-func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
+func (l *local) MachineChecked(features flatrpc.Feature,
+	syscalls map[*prog.Syscall]bool, capabilities map[string]string) error {
 	<-l.setupDone
 	l.serv.TriagedCorpus()
 	l.serv.SetSource(l.cfg.MachineChecked(features, syscalls))

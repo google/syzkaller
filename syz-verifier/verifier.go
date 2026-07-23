@@ -443,7 +443,7 @@ func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, upd
 }
 
 func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) error {
+	enabledSyscalls map[*prog.Syscall]bool, capabilities map[string]string) error {
 	if len(enabledSyscalls) == 0 {
 		log.Logf(0, "no syscalls enabled for kernel %s", kernel.cfg.Name)
 		return nil
