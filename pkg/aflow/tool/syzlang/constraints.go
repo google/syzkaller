@@ -22,8 +22,9 @@ const SandboxConstraints = `SANDBOX AND FILESYSTEM CONSTRAINTS:
   * Dynamic Device Instantiation & Rebinding via Sysfs: When a driver is unprobed or a device node is missing,
     mount sysfs locally at './sys' or './sys_mnt' and write to attribute files to dynamically instantiate or
     rebind devices without physical hardware:
-    - For platform drivers: Rebind an existing platform device (such as 'pcspkr', 'alarmtimer', or 'serial8250') to
-      the target platform driver by writing the target driver name to './sys/bus/platform/devices/<existing_device>/driver_override'
+    - For platform drivers: Rebind an existing platform device (such as 'pcspkr',
+      'alarmtimer', or 'serial8250') to the target platform driver by writing
+      the target driver name to './sys/bus/platform/devices/<existing_device>/driver_override'
       and writing the existing device name to './sys/bus/platform/drivers/<target_driver>/bind'.
     - For I2C / PCI drivers: Use sysfs interface attributes (e.g., './sys/class/i2c-dev/i2c-0/device/new_device',
       './sys/bus/pci/drivers/.../bind', './sys/bus/pci/devices/.../driver_override').

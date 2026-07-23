@@ -150,6 +150,12 @@ Document about pseudo-syscalls:
 ===
 {{.DocPseudoSyscalls}}
 ===
+
+Document about SyzOS setup:
+===
+{{.DocSyzOS}}
+===
+
 `,
 	Tools: aflow.Tools(
 		ExecuteSeed,
