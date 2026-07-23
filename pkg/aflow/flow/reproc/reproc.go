@@ -457,7 +457,10 @@ Your goal is to analyze a Linux kernel bug description and propose a strategy to
 with a minimal, standalone C program.
 This is for the strictly defensive purpose of verifying a bugfix in an isolated environment.
 Do NOT propose an exploit. Focus on minimal technical reproduction of the bug state.
-Keep your analysis and strategy proposal concise. Do not write long explanations.`
+Keep your analysis and strategy proposal concise. Do not write long explanations.
+When looking up C function or struct definitions, prefer 'codesearch-definition-source'
+and 'codesearch-struct-layout' first. Fall back to 'read-file' or 'grepper' if symbol lookup fails
+or when inspecting macros, headers, or non-C files.`
 
 const initialResearcherPrompt = `Bug Description: {{.BugDescription}}`
 
@@ -468,6 +471,8 @@ Analyze the technical diagnosis provided in the oracle feedback and translate it
 into concrete, step-by-step instructions for the repro-generator on how to modify
 the code structure, alignments, offsets, or parameters of the candidate program.
 Do NOT repeat searches for the same symbols or files. Use the information you have already gathered.
+When looking up function/struct definitions, prefer 'codesearch-definition-source' and 'codesearch-struct-layout' first.
+Fall back to 'read-file' or 'grepper' for macros, headers, or if symbol lookup fails.
 If you are stuck, try a different approach or proceed to generate a candidate reproducer.`
 
 const refinerPrompt = `Bug Description: {{.BugDescription}}
@@ -501,6 +506,10 @@ you MUST include detailed logging and error checking in the generated C program:
    'execve()'). All environment checks, capability probings, and reproduction
    steps must be performed directly using standard Linux system calls (such
    as 'open', 'socket', 'ioctl', 'stat', etc.).
+8. When reproducing asynchronous kernel timeouts or warnings, always
+   include a sufficient delay (using sleep or similar) after deleting
+   or unregistering the device to allow the kernel's asynchronous
+   timeout to trigger before program exit.
 
 {{if not .CapabilitiesVerified}}
 === PHASE 1: CAPABILITY PROBING (GENERATION) ===
