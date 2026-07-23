@@ -6,6 +6,7 @@ package seedgen
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -73,6 +74,7 @@ func init() {
 				"DocProgramSyntax":             docs.ProgramSyntax,
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
+				"DocSyzOS":                     docs.SyzOS,
 			},
 			Root: seedGenPipeline(
 				ActionParsePC,
@@ -120,25 +122,39 @@ type ParsePCArgs struct {
 }
 
 type ParsePCResult struct {
-	PC uint64
+	PC  string
+	PCs []string
 }
 
 var ActionParsePC = aflow.NewFuncAction("parse-pc", parsePCAction)
 
 func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) {
-	raw := strings.TrimSpace(args.RawPC)
-	if strings.HasPrefix(raw, "0x") {
-		pc, err := strconv.ParseUint(raw[2:], 16, 64)
-		return ParsePCResult{PC: pc}, err
+	pc, err := parseFlexPC(args.RawPC)
+	if err != nil {
+		return ParsePCResult{}, err
 	}
+	hexPC := fmt.Sprintf("0x%x", pc)
+	return ParsePCResult{PC: hexPC, PCs: []string{hexPC}}, nil
+}
 
-	pc, err := strconv.ParseUint(raw, 0, 64)
+func parseFlexPC(raw string) (uint64, error) {
+	s := strings.TrimSpace(raw)
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		return strconv.ParseUint(s[2:], 16, 64)
+	}
+	pc, err := strconv.ParseUint(s, 0, 64)
 	if err == nil {
-		return ParsePCResult{PC: pc}, nil
+		return pc, nil
 	}
+	return strconv.ParseUint(s, 16, 64)
+}
 
-	pc, err = strconv.ParseUint(raw, 16, 64)
-	return ParsePCResult{PC: pc}, err
+func parseHexPC(raw string) (uint64, error) {
+	s := strings.TrimSpace(raw)
+	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
+		return 0, fmt.Errorf("PC address must be hex and start with 0x: %q", raw)
+	}
+	return strconv.ParseUint(s[2:], 16, 64)
 }
 
 type VerifyPCAndLoopStateArgs struct {
@@ -147,7 +163,8 @@ type VerifyPCAndLoopStateArgs struct {
 	GeneratorReason      string
 	GeneratorError       string
 	FailedHistorySummary string
-	PC                   uint64
+	PC                   string
+	PCs                  []string
 }
 
 type VerifyPCAndLoopStateResult struct {
@@ -179,9 +196,25 @@ var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop
 			return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
 		}
 
-		reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, args.PC)
-		if err != nil {
-			return VerifyPCAndLoopStateResult{}, err
+		candidatePCs := args.PCs
+		if len(candidatePCs) == 0 && args.PC != "" {
+			candidatePCs = []string{args.PC}
+		}
+
+		reached := false
+		for _, pcStr := range candidatePCs {
+			targetPC, err := parseHexPC(pcStr)
+			if err != nil {
+				continue
+			}
+			r, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, targetPC)
+			if err != nil {
+				continue
+			}
+			if r {
+				reached = true
+				break
+			}
 		}
 
 		if reached {

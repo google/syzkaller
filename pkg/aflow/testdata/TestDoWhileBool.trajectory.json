@@ -25,7 +25,8 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "step",
-		"Started": "0001-01-01T00:00:04Z"
+		"Started": "0001-01-01T00:00:04Z",
+		"Args": {}
 	},
 	{
 		"Seq": 3,
@@ -34,6 +35,7 @@
 		"Name": "step",
 		"Started": "0001-01-01T00:00:04Z",
 		"Finished": "0001-01-01T00:00:05Z",
+		"Args": {},
 		"Results": {
 			"KeepGoing": true
 		}
@@ -58,7 +60,8 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "step",
-		"Started": "0001-01-01T00:00:08Z"
+		"Started": "0001-01-01T00:00:08Z",
+		"Args": {}
 	},
 	{
 		"Seq": 5,
@@ -67,6 +70,7 @@
 		"Name": "step",
 		"Started": "0001-01-01T00:00:08Z",
 		"Finished": "0001-01-01T00:00:09Z",
+		"Args": {},
 		"Results": {
 			"KeepGoing": true
 		}
@@ -91,7 +95,8 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "step",
-		"Started": "0001-01-01T00:00:12Z"
+		"Started": "0001-01-01T00:00:12Z",
+		"Args": {}
 	},
 	{
 		"Seq": 7,
@@ -100,6 +105,7 @@
 		"Name": "step",
 		"Started": "0001-01-01T00:00:12Z",
 		"Finished": "0001-01-01T00:00:13Z",
+		"Args": {},
 		"Results": {
 			"KeepGoing": false
 		}

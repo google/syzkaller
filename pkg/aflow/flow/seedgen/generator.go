@@ -48,11 +48,11 @@ var GeneratorAgent = &aflow.LLMAgent{
 	Judge: &aflow.LLMJudge{
 		Name:               "generator-judge",
 		Model:              aflow.TemporaryFlashOnlyModel,
-		MinIterations:      100,
-		EvaluationInterval: 30,
+		MinIterations:      50,
+		EvaluationInterval: 20,
 		Instruction: `You are a Judge Agent monitoring the Generator Agent during seed generation.
 Your role is to detect when the Generator is stuck, oscillating, repeating unproductive tool calls, or making no
-progress towards reaching the target PC.
+progress towards reaching any of the target PCs.
 
 Analyze the conversation history for the following stall patterns:
 1. TOOL CALL REPETITION & SEARCH LOOPS:
@@ -79,9 +79,9 @@ DECISION RULES:
   progressing.`,
 	},
 	Instruction: `You are the Generator orchestrating the generation of a syzkaller seed.
-Your goal is to reach a specific target PC.
+Your goal is to reach any of the candidate target PCs.
 
-Your job is to generate a syzlang program that reaches the target PC.
+Your job is to generate a syzlang program that reaches any of the candidate target PCs.
 You have these powerful tools:
 1. 'get-environment': Use this tool to inspect the VM target architecture, OS, and search the kernel build
 configuration (.config) for specific drivers or features (e.g., query 'CONFIG_USB' or 'CONFIG_NET').
@@ -113,7 +113,9 @@ or initialize devices. These base seeds are for environment, file system, or dev
 Do NOT try to understand exactly each parameter in the tests/files.
 You only need to know what they set up, for which you can utilize the 'seedgen-analyzer'.
 These test seeds will then be prepended to the program you generated to provide you with
-the necessary setups.
+the necessary setups. If the base seed program is relatively small and does not
+contain large filesystem images (e.g. 'syz_mount_image'), prefer copying its
+setup lines directly into your program instead of building on top of it via BaseTestSeed.
 5. 'get-corpus-programs': Use this tool to query if any existing syzkaller corpus programs
 reach a specified kernel function (e.g. intermediate callers along the target call graph, or probe/init
 functions of peer drivers within the same subsystem directory or driver family).
@@ -150,9 +152,10 @@ Workflow:
       - SOLVABLE USERSPACE TARGETS (Proceed with Generation): Drivers instantiable via software/pseudo-syscalls
         (e.g. dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs), core POSIX syscalls, or platform driver
         sysfs rebinding.
-        NOTE: Platform drivers (under /sys/bus/platform/drivers/) do NOT require physical hardware or DeviceTree entries
-        to probe. Userspace can rebind existing platform devices (e.g. 'pcspkr', 'alarmtimer', 'serial8250') to the target
-        platform driver using sysfs 'driver_override' and 'bind' attributes. Never mark a platform driver as unreachable
+        NOTE: Platform drivers (under /sys/bus/platform/drivers/) do NOT require physical hardware
+        or DeviceTree entries to probe. Userspace can rebind existing platform devices (such as
+        'pcspkr', 'alarmtimer', 'serial8250') to the target platform driver using sysfs
+        'driver_override' and 'bind' attributes. Never mark a platform driver as unreachable
         without attempting this rebinding setup.
       NOTE: Do NOT rely on 'get-corpus-programs' when evaluating target reachability. A lack of corpus programs
       reflects missing prior coverage, NOT hardware unreachability.
@@ -160,14 +163,14 @@ Workflow:
       Call 'set-results' IMMEDIATELY with GeneratorGiveUp=true. Do NOT burn iterations running 'code-fixer'.
       Your GeneratorReason MUST cite the specific driver probe callback and the empirically verified blocker.
 
-3. Loop internally to find a program that reaches the target PC:
+3. Loop internally to find a program that reaches any of the target PCs:
    a. Formulate a syzlang program. You may try out you ideas by formulating a plausible program.
    b. Call 'code-fixer' to debug and execute it (passing 'ProgramIntentDescription').
       - If code-fixer returns CodeFixerGiveUp = true, read its CodeFixerReason. If it gave up due to environment
         or setup failure (e.g. ENOSYS or unsupported subsystem setup in environment), you must NOT loop/retry. You must
         either try a completely different strategy, or give up by calling 'set-results' with GeneratorGiveUp=true.
       - Otherwise, obtain the ExecutionCachedID.
-   c. Call 'check-pc-reached' with the ExecutionCachedID to verify if the target PC was reached.
+   c. Call 'check-pc-reached' with the ExecutionCachedID to verify if any of the target PCs were reached.
    d. If reached is true:
       - Success! Call 'set-results' with this ExecutionCachedID and end your execution.
    e. If reached is false:
@@ -190,16 +193,33 @@ Workflow:
       - Use the insights (from ProgramDiff or execution-summarizer) to formulate a new program,
         and repeat from step (a).
 4. If you decide to give up entirely (e.g., after multiple attempts or if target is unreachable),
-   call 'set-results' with GeneratorGiveUp=true and a reason.`,
+   call 'set-results' with GeneratorGiveUp=true and a reason.
+
+## SEED GENERATION GUIDELINES
+1. PSEUDO-SYSCALL DISCOVERY:
+   Before constructing complex subsystem environments (KVM VMs, USB devices, Netlink), check
+   'DocPseudoSyscalls' and 'DocSyzOS'. Use 'syz-grepper' to search for specialized setup
+   helpers (e.g. 'syz_kvm_setup_syzos_vm', 'syz_usb_connect').
+   If the base seed program is relatively small and does not contain large filesystem images,
+   prefer copying its setup lines directly into your program instead of building on top of it via
+   BaseTestSeed.
+2. PRECONDITION RESEARCH:
+   Instruct 'seedgen-analyzer' to find caller ` + "`if`" + ` conditions and required subsystem state
+   flags leading directly to the target line before writing new program logic.
+3. DISASSEMBLY INSPECTION:
+   When calling 'disassemble-context', pass any of the Candidate PCs provided in your target
+   summary to inspect assembly and interleaved C source.`,
 	Prompt: `Target File: {{.File}}
 Target Line: {{.Line}}
 Target Function: {{.FunctionName}}
-Target PC: {{printf "0x%x" .PC}}
+{{if .PCs}}Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}
+{{else if .PC}}Target PC: {{.PC}}{{end}}
 {{if .Frames}}
-PC corresponds to the following inline call chain:
+Candidate PC(s) correspond to the following inline call chain:
 {{range $i, $f := .Frames}}{{$i}}. {{$f.Func}} ({{$f.File}}:{{$f.Line}})
 {{end}}{{else if .InnerFunc}}
-Note: The exact PC is located inside the inlined function '{{.InnerFunc}}' which is called within the target function.
+Note: The exact PC(s) are located inside the inlined function '{{.InnerFunc}}'
+which is called within the target function.
 {{end}}
 
 Function Context:
@@ -234,7 +254,7 @@ Use this info to avoid repeating the same loops or strategies.
 ---
 {{end}}
 
-Formulate a plausible syzlang program to reach the target PC.
+Formulate a plausible syzlang program to reach any of the target PCs.
 Use 'code-fixer', 'check-pc-reached', and 'execution-summarizer' to \
-iterate internally until you reach the target PC or decide to give up.`,
+iterate internally until you reach any of the target PCs or decide to give up.`,
 }

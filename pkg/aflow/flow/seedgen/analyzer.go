@@ -44,6 +44,11 @@ driver glue code unless the target PC itself resides within that specific driver
 Focus on identifying the immediate userspace-facing interface (e.g., the syscall, ioctl, or file operation
 handler) that initiates the path.
 
+## RESEARCH CONSTRAINTS
+- Focus STRICTLY on caller branch conditions, ` + "`if`" + ` statements, and
+  ioctl prerequisites leading directly to the target line.
+- DO NOT read deep low-level library helpers (printk, vsprintf, alloc_page, mutex locks).
+
 ` + syzlang.SandboxConstraints + `
 
 ` + syzlang.PseudoSyscallConstraints + `

@@ -19,19 +19,35 @@ type CheckPCReachedResult struct {
 }
 
 type checkPCState struct {
-	PC uint64
+	PC  string   `json:",omitempty"`
+	PCs []string `json:",omitempty"`
 }
 
 var CheckPCReached = aflow.NewFuncTool[checkPCState, CheckPCReachedArgs, CheckPCReachedResult](
 	"check-pc-reached",
 	func(ctx *aflow.Context, state checkPCState, args CheckPCReachedArgs) (CheckPCReachedResult, error) {
-		if state.PC == 0 {
-			return CheckPCReachedResult{}, fmt.Errorf("target PC not found in state")
+		candidatePCs := state.PCs
+		if len(candidatePCs) == 0 && state.PC != "" {
+			candidatePCs = []string{state.PC}
 		}
-		reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, state.PC)
-		if err != nil {
-			return CheckPCReachedResult{}, aflow.BadCallError("failed to check PC in coverage: %v", err)
+		if len(candidatePCs) == 0 {
+			return CheckPCReachedResult{}, fmt.Errorf("no target PC(s) found in state")
 		}
-		return CheckPCReachedResult{Reached: reached}, nil
+
+		for _, pcStr := range candidatePCs {
+			targetPC, err := parseHexPC(pcStr)
+			if err != nil {
+				continue
+			}
+			reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, targetPC)
+			if err != nil {
+				continue
+			}
+			if reached {
+				return CheckPCReachedResult{Reached: true}, nil
+			}
+		}
+
+		return CheckPCReachedResult{Reached: false}, nil
 	},
-	"Checks if the target PC was reached during the execution attempt.")
+	"Checks if any of the target PCs were reached during the execution attempt.")

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/docs"
@@ -48,6 +49,7 @@ func init() {
 				"DocProgramSyntax":             docs.ProgramSyntax,
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
+				"DocSyzOS":                     docs.SyzOS,
 			},
 			Root: seedGenPipeline(
 				kernel.Checkout,
@@ -67,7 +69,8 @@ type ResolveLineToPCArgs struct {
 }
 
 type ResolveLineToPCResult struct {
-	PC uint64
+	PC  string   `jsonschema:"Primary target PC (hex format)."`
+	PCs []string `jsonschema:"All candidate KCOV PCs corresponding to this file and line (hex format)."`
 }
 
 var ActionResolveLineToPC = aflow.NewFuncAction("resolve-line-to-pc", resolveLineToPCAction)
@@ -77,14 +80,28 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 		return ResolveLineToPCResult{}, fmt.Errorf("both FilePath and LineNumber must be provided")
 	}
 
-	pc, err := resolveLineToPC(args.KernelSrc, args.KernelObj, args.FilePath, args.LineNumber)
+	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, args.FilePath, args.LineNumber)
 	if err != nil {
 		return ResolveLineToPCResult{}, err
 	}
-	return ResolveLineToPCResult{PC: pc}, nil
+
+	hexPCs := make([]string, len(pcs))
+	for i, pc := range pcs {
+		hexPCs[i] = fmt.Sprintf("0x%x", pc)
+	}
+
+	primaryPC := ""
+	if len(hexPCs) > 0 {
+		primaryPC = hexPCs[0]
+	}
+
+	return ResolveLineToPCResult{
+		PC:  primaryPC,
+		PCs: hexPCs,
+	}, nil
 }
 
-func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) (uint64, error) {
+func resolveLineToPCs(kernelSrc, kernelObj, filePath string, line int) ([]uint64, error) {
 	target := targets.Get(targets.Linux, targets.AMD64)
 	vmlinux := filepath.Join(kernelObj, target.KernelObject)
 
@@ -103,7 +120,7 @@ func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) (uint64, e
 
 	impl, err := backend.Make(cfg, modules)
 	if err != nil {
-		return 0, fmt.Errorf("failed to build coverage backend: %w", err)
+		return nil, fmt.Errorf("failed to build coverage backend: %w", err)
 	}
 
 	cleanTargetFile, _ := backend.CleanPath(filePath, kernelDirs, nil)
@@ -111,44 +128,51 @@ func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) (uint64, e
 		cleanTargetFile = filepath.Clean(filePath)
 	}
 
-	var targetUnit *backend.CompileUnit
+	// Step 1: Collect KCOV PCs across ALL matching compile units (supports .h header files)
+	var candidateKcovPCs []uint64
 	for _, unit := range impl.Units {
 		if matchDwarfFile(unit.Path, cleanTargetFile, kernelDirs) {
-			targetUnit = unit
-			break
+			candidateKcovPCs = append(candidateKcovPCs, unit.PCs...)
 		}
 	}
-	if targetUnit == nil || len(targetUnit.PCs) == 0 {
-		return 0, fmt.Errorf("file %q not found or has no KCOV coverage points", filePath)
+
+	if len(candidateKcovPCs) == 0 {
+		return nil, fmt.Errorf("file %q not found or has no KCOV coverage points", filePath)
 	}
 
+	// Step 2: Symbolize all collected candidate PCs.
 	symb := symbolizer.Make(target)
 	defer symb.Close()
 
-	frames, err := symb.Symbolize(vmlinux, targetUnit.PCs...)
+	frames, err := symb.Symbolize(vmlinux, candidateKcovPCs...)
 	if err != nil {
-		return 0, fmt.Errorf("failed to symbolize KCOV PCs for %s: %w", filePath, err)
+		return nil, fmt.Errorf("failed to symbolize KCOV PCs for %s: %w", filePath, err)
 	}
 
+	// Step 3: Collect ALL matching PCs for the target line.
 	var (
-		bestPC   uint64
-		bestLine int
+		matchedPCs []uint64
+		bestPCs    []uint64
+		bestLine   int
 	)
 
 	for _, frame := range frames {
 		if frame.Line == line {
-			return frame.PC, nil
-		}
-		if frame.Line <= line && frame.Line > bestLine {
+			matchedPCs = append(matchedPCs, frame.PC)
+		} else if frame.Line <= line && frame.Line > bestLine {
 			bestLine = frame.Line
-			bestPC = frame.PC
+			bestPCs = []uint64{frame.PC}
 		}
 	}
 
-	if bestPC != 0 {
-		return bestPC, nil
+	if len(matchedPCs) > 0 {
+		return slices.Compact(matchedPCs), nil
 	}
-	return 0, fmt.Errorf("no KCOV coverage PC found for %s:%d", filePath, line)
+	if len(bestPCs) > 0 {
+		return slices.Compact(bestPCs), nil
+	}
+
+	return nil, fmt.Errorf("no KCOV coverage PC found for %s:%d", filePath, line)
 }
 
 func matchDwarfFile(fileName, cleanTargetFile string, kernelDirs *mgrconfig.KernelDirs) bool {

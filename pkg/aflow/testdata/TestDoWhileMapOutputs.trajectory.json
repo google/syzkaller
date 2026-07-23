@@ -11,7 +11,8 @@
 		"Nesting": 1,
 		"Type": "action",
 		"Name": "init-action",
-		"Started": "0001-01-01T00:00:02Z"
+		"Started": "0001-01-01T00:00:02Z",
+		"Args": {}
 	},
 	{
 		"Seq": 1,
@@ -20,6 +21,7 @@
 		"Name": "init-action",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:03Z",
+		"Args": {},
 		"Results": {
 			"PatchDiff": "initial"
 		}
@@ -43,7 +45,10 @@
 		"Nesting": 3,
 		"Type": "action",
 		"Name": "loop-action",
-		"Started": "0001-01-01T00:00:06Z"
+		"Started": "0001-01-01T00:00:06Z",
+		"Args": {
+			"PatchDiff": "initial"
+		}
 	},
 	{
 		"Seq": 4,
@@ -52,6 +57,9 @@
 		"Name": "loop-action",
 		"Started": "0001-01-01T00:00:06Z",
 		"Finished": "0001-01-01T00:00:07Z",
+		"Args": {
+			"PatchDiff": "initial"
+		},
 		"Results": {
 			"Continue": "",
 			"PatchDiff": "initial+refined"
@@ -78,7 +86,10 @@
 		"Nesting": 1,
 		"Type": "action",
 		"Name": "consumer",
-		"Started": "0001-01-01T00:00:10Z"
+		"Started": "0001-01-01T00:00:10Z",
+		"Args": {
+			"RefinedDiff": "initial+refined"
+		}
 	},
 	{
 		"Seq": 5,
@@ -87,6 +98,9 @@
 		"Name": "consumer",
 		"Started": "0001-01-01T00:00:10Z",
 		"Finished": "0001-01-01T00:00:11Z",
+		"Args": {
+			"RefinedDiff": "initial+refined"
+		},
 		"Results": {}
 	},
 	{
