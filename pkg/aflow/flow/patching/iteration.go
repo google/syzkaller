@@ -395,6 +395,9 @@ A previous version of a patch (v{{.PreviousPatchVersion}}) was generated to fix 
 
 {{.PreviousPatchDiff}}
 
+There are previous versions of this patch and reviewer comments.
+Use the {{.toolViewPatchHistory}} tool to view them.
+
 The triage agent has extracted the following required changes from the reviewers' emails:
 
 {{range $item := .CodeItems}}
@@ -430,7 +433,7 @@ from scratch using the {{.toolCodeeditor}} tool.
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
 {{end}}
-` + commonFaultInjectionPrompt
+` + commonFaultInjectionPrompt + commonFailedAttemptsPrompt
 
 const verdictInstruction = `
 You are an expert Linux kernel developer. You are reviewing comments on a proposed patch for a kernel bug.
