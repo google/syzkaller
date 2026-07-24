@@ -28,12 +28,13 @@ var (
 	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
 	flagOutput       = flag.String("output", "", "where to store the result")
 	flagFindings     = flag.Bool("findings", false, "report failur as findings")
+	flagConfig       = flag.String("config", "", "path to the fuzz config")
 )
 
 func main() {
 	flag.Parse()
-	if *flagSession == "" || *flagTestName == "" {
-		app.Fatalf("--session and --test_name must be set")
+	if *flagSession == "" || *flagTestName == "" || *flagConfig == "" {
+		app.Fatalf("--session, --test_name and --config must be set")
 	}
 
 	ctx := context.Background()
@@ -57,7 +58,8 @@ func main() {
 		WithTime:    true,
 		TraceWriter: io.MultiWriter(os.Stderr, output),
 	}
-	bootedFine, err := runTest(ctx, client, tracer)
+	config := fuzzconfig.ReadFromFile(*flagConfig)
+	bootedFine, err := runTest(ctx, client, tracer, config)
 	if err != nil {
 		app.Fatalf("failed to run the boot test: %v", err)
 	}
@@ -87,11 +89,14 @@ const retryCount = 3
 // The base config may have more VMs, but we don't need that many.
 const vmCount = 3
 
-func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTracer) (bool, error) {
-	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
+func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTracer,
+	config *api.FuzzConfig) (bool, error) {
+	cfg, err := fuzzconfig.GenerateBase(config)
 	if err != nil {
 		return false, err
 	}
+	cfg.SessionID = *flagSession
+	cfg.Name = fmt.Sprintf("%s-%s", cfg.Name, *flagSession)
 	if err := instance.OverrideVMCount(cfg, vmCount); err != nil {
 		return false, err
 	}

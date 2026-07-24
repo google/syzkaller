@@ -55,7 +55,7 @@ func main() {
 		log.Fatalf("the binary is built without the git revision information")
 	}
 
-	config := readFuzzConfig()
+	config := fuzzconfig.ReadFromFile(*flagConfig)
 	ctx := context.Background()
 	if err := reportStatus(ctx, config, client, api.TestRunning, nil); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
@@ -82,21 +82,6 @@ func main() {
 	if err := reportStatus(ctx, config, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
-}
-
-func readFuzzConfig() *api.FuzzConfig {
-	raw, err := os.ReadFile(*flagConfig)
-	if err != nil {
-		app.Fatalf("failed to read config: %v", err)
-		return nil
-	}
-	var req api.FuzzConfig
-	err = json.Unmarshal(raw, &req)
-	if err != nil {
-		app.Fatalf("failed to unmarshal request: %v, %s", err, raw)
-		return nil
-	}
-	return &req
 }
 
 func logFinalState(store *manager.DiffFuzzerStore) {
@@ -301,6 +286,10 @@ func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Conf
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to prepare patched config: %w", err)
 	}
+	base.SessionID = *flagSession
+	patched.SessionID = *flagSession
+	base.Name = fmt.Sprintf("%s-%s", base.Name, *flagSession)
+	patched.Name = fmt.Sprintf("%s-%s", patched.Name, *flagSession)
 	base.Workdir = filepath.Join(*flagWorkdir, "base")
 	osutil.MkdirAll(base.Workdir)
 	patched.Workdir = filepath.Join(*flagWorkdir, "patched")

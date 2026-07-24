@@ -42,7 +42,6 @@ const (
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
-	Focus []string `json:"focus" yaml:"focus"`
 	// TODO: this is temporarily here. We should do it at the beginning of the fuzzing step,
 	// where we do have the built binary and can extract exact symbol names / PC symbols.
 	FocusSymbols []string `json:"focus_symbols" yaml:"focus_symbols"`
@@ -51,6 +50,14 @@ type FuzzConfig struct {
 	SkipCoverCheck bool `json:"skip_cover_check" yaml:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
 	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
+	SyzkallerConfig
+}
+
+type SyzkallerConfig struct {
+	Focus   []string `json:"focus" yaml:"focus"`
+	VMType  string   `json:"vm_type"`
+	GCSPath string   `json:"gcs_path,omitempty" yaml:"gcs_path,omitempty"`
+	Arch    string   `json:"arch,omitempty" yaml:"arch,omitempty"`
 }
 
 // Tree represents a git tree. The triage step of the workflow will request these from controller.
@@ -71,6 +78,9 @@ type KernelFuzzConfig struct {
 	CorpusURL      string   `json:"corpus_url" yaml:"corpus_url"`
 	SkipCoverCheck bool     `json:"skip_cover_check" yaml:"skip_cover_check"`
 	BugTitleRe     string   `json:"bug_title_re" yaml:"bug_title_re"`
+	GCSPath        string   `json:"gcs_path,omitempty" yaml:"gcs_path,omitempty"`
+	VMType         string   `json:"vm_type,omitempty" yaml:"vm_type,omitempty"`
+	Arch           string   `json:"arch,omitempty" yaml:"arch,omitempty"`
 }
 
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
@@ -88,6 +98,7 @@ type BuildRequest struct {
 	EnableConfigs []string `json:"enable_configs,omitempty"`
 	SeriesID      string   `json:"series_id"`
 	JobID         string   `json:"job_id,omitempty"`
+	VMType        string   `json:"vm_type"`
 }
 
 // BuildResult is returned from the build workflow step.
@@ -98,6 +109,7 @@ type BuildResult struct {
 
 type Build struct {
 	Arch         string    `json:"arch"`
+	VMType       string    `json:"vm_type"`
 	TreeName     string    `json:"tree_name"`
 	TreeURL      string    `json:"tree_url"`
 	CommitHash   string    `json:"commit_hash"`

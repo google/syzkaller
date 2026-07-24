@@ -59,6 +59,12 @@ spec:
               parameters:
                 - name: data
                   value: "{{=jsonpath(inputs.parameters.element, '$.base')}}"
+          - name: save-fuzz-config
+            template: convert-artifact
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.fuzz')}}"
         - - name: base-build
             templateRef:
               name: build-action-template
@@ -91,7 +97,11 @@ spec:
               artifacts:
                 - name: kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                - name: config
+                  from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
@@ -125,7 +135,11 @@ spec:
               artifacts:
                 - name: kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+                - name: config
+                  from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.element, '$.patched.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: report-findings
@@ -160,6 +174,8 @@ spec:
               parameters:
                 - name: retest-data
                   value: "{{=jsonpath(inputs.parameters.element, '$.retest')}}"
+                - name: vm-type
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base.vm_type')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
@@ -172,6 +188,8 @@ spec:
                   optional: true
                 - name: patched-kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+                - name: config
+                  from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
 
     - name: fuzz-campaign
       inputs:
@@ -196,6 +214,8 @@ spec:
               template: fuzz-action
             arguments:
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.config, '$.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{inputs.parameters.patched-build-id}}"
                 - name: base-build-id
@@ -214,6 +234,7 @@ spec:
       inputs:
         parameters:
           - name: retest-data
+          - name: vm-type
           - name: base-build-id
           - name: patched-build-id
           - name: track
@@ -221,6 +242,7 @@ spec:
           - name: base-kernel
             optional: true
           - name: patched-kernel
+          - name: config
       steps:
         - - name: save-retest-task
             template: convert-artifact
@@ -234,6 +256,8 @@ spec:
               template: retest-action
             arguments:
               parameters:
+                - name: profile
+                  value: "{{=inputs.parameters.vm-type == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{inputs.parameters.patched-build-id}}"
                 - name: base-build-id
@@ -248,6 +272,8 @@ spec:
                   from: "{{inputs.artifacts.patched-kernel}}"
                 - name: retest-task
                   from: "{{steps.save-retest-task.outputs.artifacts.artifact}}"
+                - name: config
+                  from: "{{inputs.artifacts.config}}"
     - name: convert-artifact
       inputs:
         parameters:
