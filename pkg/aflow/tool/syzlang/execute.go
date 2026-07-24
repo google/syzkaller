@@ -4,6 +4,9 @@
 package syzlang
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 )
@@ -20,6 +23,8 @@ Tool returns the syzlang program that was executed for the given ExecutionCached
 `)
 )
 
+const maxConsoleOutputLines = 200
+
 type ExecuteSeedArgs struct {
 	ReproSyz string `jsonschema:"Syz program to execute."`
 }
@@ -27,6 +32,7 @@ type ExecuteSeedArgs struct {
 type ExecuteSeedResult struct {
 	ExecutionCachedID string            `jsonschema:"Cached ID. Pass to coverage tools to explore executed code."`
 	CallErrors        []crash.CallError `jsonschema:"List of calls that failed. Empty if all succeeded."`
+	VMConsoleOutput   string            `jsonschema:"The raw VM console (kernel dmesg) output captured during execution."`
 }
 
 func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs) (ExecuteSeedResult, error) {
@@ -48,10 +54,27 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 		return ExecuteSeedResult{}, err
 	}
 
+	vmConsoleOutput, err := crash.LoadVMConsoleOutput(ctx, executionCachedID)
+	if err != nil {
+		return ExecuteSeedResult{}, err
+	}
+	vmConsoleOutput = truncateConsoleOutput(vmConsoleOutput, maxConsoleOutputLines)
+
 	return ExecuteSeedResult{
 		ExecutionCachedID: executionCachedID,
 		CallErrors:        callErrors,
+		VMConsoleOutput:   vmConsoleOutput,
 	}, nil
+}
+
+func truncateConsoleOutput(output string, maxLines int) string {
+	lines := strings.Split(output, "\n")
+	if len(lines) <= maxLines {
+		return output
+	}
+	truncated := lines[len(lines)-maxLines:]
+	banner := fmt.Sprintf("... [VM console output truncated, showing last %d of %d lines] ...\n", maxLines, len(lines))
+	return banner + strings.Join(truncated, "\n")
 }
 
 type GetExecutedProgramArgs struct {

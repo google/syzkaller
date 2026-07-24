@@ -214,14 +214,15 @@ type CallError struct {
 }
 
 type cachedExecution struct {
-	BugTitle       string
-	Report         string
-	OtherReports   []string
-	FaultInjection string
-	Error          string
-	Coverage       [][]symbolizer.Frame
-	CallErrors     []CallError
-	GeneratedSyz   string
+	BugTitle        string
+	Report          string
+	OtherReports    []string
+	FaultInjection  string
+	Error           string
+	Coverage        [][]symbolizer.Frame
+	CallErrors      []CallError
+	GeneratedSyz    string
+	VMConsoleOutput string
 }
 
 // LoadCoverage retrieves the symbolized coverage frames from a cached execution.
@@ -249,6 +250,15 @@ func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
 		return nil, err
 	}
 	return cached.CallErrors, nil
+}
+
+// LoadVMConsoleOutput retrieves raw VM console logs from a cached execution.
+func LoadVMConsoleOutput(ctx *aflow.Context, cachedID string) (string, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", err
+	}
+	return cached.VMConsoleOutput, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,

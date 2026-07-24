@@ -215,6 +215,9 @@ func (rm *RunnerManager) SubmitAsync(p *prog.Prog, onDone func(*queue.Result)) {
 	}
 
 	req.OnDone(func(r *queue.Request, res *queue.Result) bool {
+		if !rm.cfg.Snapshot {
+			res.Output = append([]byte("WARNING: only executor output\n"), res.Output...)
+		}
 		if onDone != nil {
 			onDone(res)
 		}
