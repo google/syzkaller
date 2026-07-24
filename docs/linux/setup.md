@@ -51,6 +51,26 @@ make
 
 As the result compiled binaries should appear in the `bin/` dir.
 
+Alternatively, you can build a `.deb` package:
+
+``` bash
+git clone https://github.com/google/syzkaller
+cd syzkaller
+tools/syz-env make
+make deb-pkg
+sudo dpkg -i ../syzkaller_*.deb
+```
+
+Or without the container (requires Go and cross-compilers on host):
+
+``` bash
+git clone https://github.com/google/syzkaller
+cd syzkaller
+make
+./tools/create-deb-pkg.sh
+sudo dpkg -i ../syzkaller_*.deb
+```
+
 Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
 `TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
 
