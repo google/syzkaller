@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"regexp"
 	"slices"
 	"strconv"
@@ -261,6 +262,8 @@ func (bug *Bug) Load(origProps []db.Property) error {
 		if err := db.LoadStruct(&old, tags); err != nil {
 			return err
 		}
+		log.Printf("INFO: Bug %q (namespace %q) has legacy Tags (len %d, subsystems %d)",
+			bug.Title, bug.Namespace, len(tags), len(old.Tags.Subsystems))
 		for _, entry := range old.Tags.Subsystems {
 			bug.Labels = append(bug.Labels, BugLabel{
 				Label: SubsystemLabel,
