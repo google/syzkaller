@@ -120,7 +120,11 @@ Return WorthFuzzing=false if the patch only contains:
 - Purely decorative changes, such as logging (e.g., pr_err, printk) or tracepoints.
 - Changes to numeric constants or macros that do not functionally alter execution flow.
 - Code paths that are impossible to reach in virtualized environments like GCE or QEMU,
-even when utilizing software-emulated hardware (e.g., usb gadget, mac80211_hwsim).
+  even when utilizing software-emulated hardware (e.g., usb gadget, mac80211_hwsim).
+- Code in vendor-specific PCIe switch, SmartNIC, or GPU drivers (e.g., mlxsw, pds_core, qed,
+  ionic, amdgpu) that require physical PCIe hardware cards not emulated in standard QEMU.
+- Driver .remove, .shutdown, or pci_unregister_driver teardown callbacks (e.g., igb_remove)
+  that are executed only during PCI hot-unplug or sysfs driver unbind operations.
 
 If it modifies reachable core kernel logic, drivers, or architectures, use your code search
 tools to verify the code can be executed, then return WorthFuzzing=true.
@@ -128,11 +132,13 @@ tools to verify the code can be executed, then return WorthFuzzing=true.
 When returning WorthFuzzing=true, you MUST ALSO:
 1. Extract any specific kernel functions that should be heavily fuzzed into FocusSymbols.
    Avoid listing generic hot-path functions to prevent skewed test distributions.
+   Prefer non-static, non-inlined API entrypoint functions over internal static helper functions
+   (which are inlined by the compiler and do not have distinct symbol addresses).
 2. Identify any specific CONFIG_ options required to properly test this new/modified feature.
    Go and look into the Kconfig files and check for ifdefs around the code, do not make assumptions.
-   Do not list too generic configs (we already have them enabled). Only list those that
-   specifically cover the modified code. List them in the EnableConfigs output array,
-   and DO NOT add a 'CONFIG_' prefix (e.g., return "NET_IPV4" instead of "CONFIG_NET_IPV4").`
+   Also check "depends on" lines in Kconfig to include any non-standard parent subsystem configs
+   needed for Kbuild to compile the code statically into vmlinux. List them in the EnableConfigs
+   output array, and DO NOT add a 'CONFIG_' prefix (e.g., return "NET_IPV4" instead of "CONFIG_NET_IPV4").`
 
 const patchTriagePrompt = `For your convenience, here is the diff of the changes:
 {{.PatchDiff}}`
