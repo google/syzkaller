@@ -40,7 +40,7 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 	  libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-14-dev lib32stdc++-14-dev \
 	  # Cross-compilation:
 	  g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
-	  g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
+	  g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu g++-loongarch64-linux-gnu
 
 # Since go 1.21 the toolchain required by go.mod is automatically downloaded.
 # There is no need to version up golang here after go.mod changes.

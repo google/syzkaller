@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/ioctl.h>
+include <linux/fcntl.h>
 include <uapi/linux/filter.h>
 include <uapi/linux/ppp-ioctl.h>
 include <uapi/linux/ppp_defs.h>

@@ -1,6 +1,8 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/fcntl.h>
+
 resource fd_apparmor_current[fd]
 
 openat$apparmor_task_current(fd const[AT_FDCWD], file ptr[in, string["/proc/self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_apparmor_current

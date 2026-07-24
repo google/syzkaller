@@ -246,6 +246,8 @@ func LinuxKernelImage(arch string) string {
 		return "arch/riscv/boot/Image"
 	case targets.MIPS64LE:
 		return "vmlinux"
+	case targets.Loong64:
+		return "arch/loongarch/boot/vmlinux.efi"
 	default:
 		panic(fmt.Sprintf("pkg/build: unsupported arch %v", arch))
 	}

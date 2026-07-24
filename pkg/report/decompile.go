@@ -117,6 +117,8 @@ func objdumpBuildArgs(flags DecompilerFlagMask, target *targets.Target) ([]strin
 		ret = append(ret, "-m", "s390:64-bit")
 	case targets.RiscV64:
 		ret = append(ret, "-mriscv")
+	case targets.Loong64:
+		ret = append(ret, "-mloongarch")
 	default:
 		return nil, fmt.Errorf("cannot build objdump args for %#v", target.Arch)
 	}

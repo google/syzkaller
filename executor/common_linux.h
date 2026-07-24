@@ -3635,7 +3635,7 @@ error_clear_loop:
 #elif GOARCH_riscv64
 #include "common_kvm_riscv64.h"
 #elif SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
-static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+__attribute__((unused)) static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
 }

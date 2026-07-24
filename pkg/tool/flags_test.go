@@ -103,7 +103,7 @@ func TestParseArchList(t *testing.T) {
 		{
 			OS:  "linux",
 			In:  "",
-			Out: []string{"386", "amd64", "arm", "arm64", "mips64le", "ppc64le", "riscv64", "s390x"},
+			Out: []string{"386", "amd64", "arm", "arm64", "loong64", "mips64le", "ppc64le", "riscv64", "s390x"},
 		},
 		{
 			OS:  "linux",
