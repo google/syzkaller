@@ -110,8 +110,12 @@
       </div>
       <hr class="my-4">
 
+      {{if .ShowPreventedBugs}}
       <div class="chart-wrapper mb-4" id="prevented-bugs">
         <h2 class="h4"><a href="#prevented-bugs" class="text-decoration-none text-reset">Prevented Bugs Statistics (monthly)</a></h2>
+        <div class="alert alert-warning" role="alert">
+          Warning: Prevented bugs statistics are broken for data collected between March and July 2026.
+        </div>
         <p class="text-muted small">
           How many bugs were found in the early series versions, but not in the final one. Data is aggregated by the month the patch series was published.
         </p>
@@ -138,6 +142,7 @@
         <p>No data available yet.</p>
         {{end}}
       </div>
+      {{end}}
     </main>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">

@@ -29,6 +29,7 @@ func TestURLs(t *testing.T) {
 	urls := []string{
 		baseURL,
 		baseURL + "/stats",
+		baseURL + "/stats?unstable_stats=true",
 		urlGen.Series(ids.SeriesID),
 		baseURL + "/session/" + ids.SessionID,
 	}

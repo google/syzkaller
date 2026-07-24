@@ -380,14 +380,15 @@ func (h *dashboardHandler) sessionInfo(w http.ResponseWriter, r *http.Request) e
 
 func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) error {
 	type StatsPageData struct {
-		Processed     []*db.CountPerWeek
-		Findings      []*db.CountPerWeek
-		Reports       []*db.CountPerWeek
-		Delay         []*db.DelayPerWeek
-		Distribution  []*db.StatusPerWeek
-		PreventedBugs []*db.PreventedBugsStats
-		MonthlyStats  MonthlyStats
-		JobsServed    []*db.JobsPerMonth
+		Processed         []*db.CountPerWeek
+		Findings          []*db.CountPerWeek
+		Reports           []*db.CountPerWeek
+		Delay             []*db.DelayPerWeek
+		Distribution      []*db.StatusPerWeek
+		PreventedBugs     []*db.PreventedBugsStats
+		ShowPreventedBugs bool
+		MonthlyStats      MonthlyStats
+		JobsServed        []*db.JobsPerMonth
 	}
 	var data StatsPageData
 	var err error
@@ -411,9 +412,12 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return fmt.Errorf("failed to query distribution data: %w", err)
 	}
-	data.PreventedBugs, err = h.statsRepo.PreventedBugsPerMonth(r.Context())
-	if err != nil {
-		return fmt.Errorf("failed to query prevented bugs data: %w", err)
+	data.ShowPreventedBugs = r.FormValue("unstable_stats") != ""
+	if data.ShowPreventedBugs {
+		data.PreventedBugs, err = h.statsRepo.PreventedBugsPerMonth(r.Context())
+		if err != nil {
+			return fmt.Errorf("failed to query prevented bugs data: %w", err)
+		}
 	}
 
 	reportsPerMonth, err := h.statsRepo.ReportsPerMonth(r.Context())
