@@ -80,6 +80,7 @@ config:
  - KVM_SW_PROTECTED_VM: [x86_64, v6.8]
  - KVM_HYPERV: [x86_64, v6.8]
  - KVM_IOAPIC: [x86_64, v6.17]
+ - KVM_SMM: [x86_64, v6.2]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
