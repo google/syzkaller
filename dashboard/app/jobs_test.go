@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -431,7 +432,7 @@ func TestReproRetestJob(t *testing.T) {
 
 	c.advanceTime(time.Hour)
 	bug, _, _ := c.loadBug(extBugID)
-	c.expectEQ(bug.ReproLevel, ReproLevelC)
+	c.expectEQ(bug.ReproLevelVal(), ReproLevelC)
 
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
@@ -462,7 +463,7 @@ func TestReproRetestJob(t *testing.T) {
 	// Expect that the repro level is no longer ReproLevelC.
 	c.expectNoEmail()
 	bug, _, _ = c.loadBug(extBugID)
-	c.expectEQ(bug.HeadReproLevel, ReproLevelSyz)
+	c.expectEQ(bug.HeadReproLevelVal(), ReproLevelSyz)
 	// Let's also deprecate the syz repro.
 	c.advanceTime(c.config().Obsoleting.ReproRetestPeriod + time.Hour)
 
@@ -477,13 +478,81 @@ func TestReproRetestJob(t *testing.T) {
 	client.expectOK(c.globalClient.JobDone(done))
 	// Expect that the repro level is no longer ReproLevelC.
 	bug, _, _ = c.loadBug(extBugID)
-	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
-	c.expectEQ(bug.ReproLevel, ReproLevelC)
+	c.expectEQ(bug.HeadReproLevelVal(), ReproLevelNone)
+	c.expectEQ(bug.ReproLevelVal(), ReproLevelC)
 	// Expect that the bug gets deprecated.
 	notif := c.pollEmailBug()
-	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
-		t.Fatalf("bad notification text: %q", notif.Body)
+	require.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
+	// Expect that the right obsoletion reason was set.
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.StatusReason, dashapi.InvalidatedByRevokedRepro)
+}
+
+func TestCOnlyReproRetestJob(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.publicClient
+	oldBuild := testBuild(1)
+	oldBuild.KernelRepo = "git://mygit.com/git.git"
+	oldBuild.KernelBranch = "main"
+	client.UploadBuild(oldBuild)
+
+	crash := testCrash(oldBuild, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproC = []byte("repro C")
+	client.ReportCrash(crash)
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	c.advanceTime(time.Minute)
+	build := testBuild(1)
+	build.ID = "new-build"
+	build.KernelRepo = "git://mygit.com/new-git.git"
+	build.KernelBranch = "new-main"
+	build.KernelConfig = []byte{0xAB, 0xCD, 0xEF}
+	client.UploadBuild(build)
+
+	c.advanceTime(time.Hour)
+	bug, _, _ := c.loadBug(extBugID)
+	c.expectEQ(bug.ReproLevelVal(), ReproLevelC)
+	c.expectEQ(bug.HeadReproLevelVal(), ReproLevelC)
+	c.expectEQ(bug.HasCRepro, true)
+	c.expectEQ(bug.HasSyzRepro, false)
+	c.expectEQ(bug.HeadHasCRepro, true)
+	c.expectEQ(bug.HeadHasSyzRepro, false)
+
+	// Let's say that the C repro testing has failed.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	c.expectEQ(resp.Type, dashapi.JobTestPatch)
+	c.expectEQ(resp.KernelRepo, build.KernelRepo)
+	c.expectEQ(resp.KernelBranch, build.KernelBranch)
+	c.expectEQ(resp.KernelConfig, build.KernelConfig)
+	c.expectEQ(resp.Patch, []uint8(nil))
+	c.expectNE(resp.ReproC, []uint8(nil))
+	c.expectEQ(resp.ReproSyz, []uint8(nil))
+
+	// Pretend that the C repro fails.
+	done := &dashapi.JobDoneReq{
+		ID: resp.ID,
 	}
+	client.expectOK(c.globalClient.JobDone(done))
+
+	// Expect that the repro level is now ReproLevelNone.
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.HeadReproLevelVal(), ReproLevelNone)
+	c.expectEQ(bug.ReproLevelVal(), ReproLevelC)
+	c.expectEQ(bug.HasCRepro, true)
+	c.expectEQ(bug.HasSyzRepro, false)
+	c.expectEQ(bug.HeadHasCRepro, false)
+	c.expectEQ(bug.HeadHasSyzRepro, false)
+
+	// Expect that the bug gets deprecated.
+	c.advanceTime(c.config().Obsoleting.MaxPeriod + time.Hour)
+	notif := c.pollEmailBug()
+	require.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
 	// Expect that the right obsoletion reason was set.
 	bug, _, _ = c.loadBug(extBugID)
 	c.expectEQ(bug.StatusReason, dashapi.InvalidatedByRevokedRepro)
@@ -550,7 +619,7 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 	// If it has worked, the repro is revoked and the bug is obsoleted.
 	c.pollEmailBug()
 	bug, _, _ := c.loadBug(extBugID)
-	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
+	c.expectEQ(bug.HeadReproLevelVal(), ReproLevelNone)
 }
 
 // Test on a restricted manager.

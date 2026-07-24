@@ -235,7 +235,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{- end}}
 			</td>
 			<td class="stat">{{$b.ImpactScore}}</td>
-			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+			<td class="stat">{{formatRepro $b.HasCRepro $b.HasSyzRepro}}</td>
 			<td class="bisect_status">{{print $b.BisectCause}}</td>
 			<td class="bisect_status">{{print $b.BisectFix}}</td>
 			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>

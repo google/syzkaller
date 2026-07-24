@@ -102,6 +102,11 @@ type Bug struct {
 	// HeadReproLevel is best known repro level that still works on the HEAD commit.
 	ReproLevel      dashapi.ReproLevel
 	HeadReproLevel  dashapi.ReproLevel `datastore:"HeadReproLevel"`
+	HasCRepro       bool
+	HasSyzRepro     bool
+	HeadHasCRepro   bool
+	HeadHasSyzRepro bool
+	StructVersion   int
 	BisectCause     BisectStatus
 	BisectFix       BisectStatus
 	HasReport       bool
@@ -1224,4 +1229,91 @@ func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOption
 		return err
 	}
 	return fmt.Errorf("failed after %v dev server retries: %w", maxDevAppServerRetries, err)
+}
+
+func (bug *Bug) GetReproLevelHasC() bool {
+	if bug.StructVersion > 0 {
+		return bug.HasCRepro
+	}
+	return bug.ReproLevel == ReproLevelC
+}
+
+func (bug *Bug) GetReproLevelHasSyz() bool {
+	if bug.StructVersion > 0 {
+		return bug.HasSyzRepro
+	}
+	return bug.ReproLevel == ReproLevelSyz || bug.ReproLevel == ReproLevelC
+}
+
+func (bug *Bug) GetHeadReproLevelHasC() bool {
+	if bug.StructVersion > 0 {
+		return bug.HeadHasCRepro
+	}
+	return bug.HeadReproLevel == ReproLevelC
+}
+
+func (bug *Bug) GetHeadReproLevelHasSyz() bool {
+	if bug.StructVersion > 0 {
+		return bug.HeadHasSyzRepro
+	}
+	return bug.HeadReproLevel == ReproLevelSyz || bug.HeadReproLevel == ReproLevelC
+}
+
+func (bug *Bug) ReproLevelVal() dashapi.ReproLevel {
+	return dashapi.ReproLevelFromCAndSyz(bug.GetReproLevelHasC(), bug.GetReproLevelHasSyz())
+}
+
+func (bug *Bug) HeadReproLevelVal() dashapi.ReproLevel {
+	return dashapi.ReproLevelFromCAndSyz(bug.GetHeadReproLevelHasC(), bug.GetHeadReproLevelHasSyz())
+}
+
+func (bug *Bug) UpdateReproLevel(hasC, hasSyz bool) {
+	bug.HasCRepro, bug.HasSyzRepro, bug.ReproLevel =
+		bug.accumulateReproLevel(bug.StructVersion > 0, hasC, hasSyz,
+			bug.GetReproLevelHasC(), bug.GetReproLevelHasSyz())
+}
+
+// UpdateHeadReproLevel updates the bug head repro level.
+func (bug *Bug) UpdateHeadReproLevel(hasC, hasSyz bool) {
+	bug.HeadHasCRepro, bug.HeadHasSyzRepro, bug.HeadReproLevel =
+		bug.accumulateReproLevel(bug.StructVersion > 0, hasC, hasSyz,
+			bug.GetHeadReproLevelHasC(), bug.GetHeadReproLevelHasSyz())
+}
+
+func (bug *Bug) accumulateReproLevel(migrated, hasC, hasSyz, curC, curSyz bool) (
+	bool, bool, dashapi.ReproLevel) {
+	newC := curC || hasC
+	newSyz := curSyz || hasSyz
+	if migrated {
+		return newC, newSyz, dashapi.ReproLevelNone
+	}
+	return false, false, dashapi.ReproLevelFromCAndSyz(newC, newSyz)
+}
+
+func (bug *Bug) HasRepro() bool {
+	return bug.GetReproLevelHasC() || bug.GetReproLevelHasSyz()
+}
+
+func (bug *Bug) HasHeadRepro() bool {
+	return bug.GetHeadReproLevelHasC() || bug.GetHeadReproLevelHasSyz()
+}
+
+func (r *BugReporting) HasRepro(bug *Bug) bool {
+	return r.ReproLevel > dashapi.ReproLevelNone
+}
+
+func (r *BugReporting) UpdateReproLevel(bug *Bug, level dashapi.ReproLevel) {
+	r.ReproLevel = max(r.ReproLevel, level)
+}
+
+func (bug *Bug) SetHeadReproLevel(hasC, hasSyz bool) {
+	bug.HeadHasCRepro, bug.HeadHasSyzRepro, bug.HeadReproLevel =
+		bug.setReproLevel(bug.StructVersion > 0, hasC, hasSyz)
+}
+
+func (bug *Bug) setReproLevel(migrated, hasC, hasSyz bool) (bool, bool, dashapi.ReproLevel) {
+	if migrated {
+		return hasC, hasSyz, dashapi.ReproLevelNone
+	}
+	return false, false, dashapi.ReproLevelFromCAndSyz(hasC, hasSyz)
 }
