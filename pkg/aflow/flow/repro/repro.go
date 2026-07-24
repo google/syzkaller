@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -44,7 +45,6 @@ func init() {
 		&aflow.Flow{
 			Consts: map[string]any{
 				"SyzkallerCommit":              prog.GitRevisionBase,
-				"DescriptionFiles":             syzlang.DescriptionFiles(),
 				"DocProgramSyntax":             docs.ProgramSyntax,
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"ReproC":                       "", // is needed by crash.Reproduce
@@ -54,13 +54,15 @@ func init() {
 				kernel.Checkout,
 				kernel.Build,
 				codesearcher.PrepareIndex,
+				actionsyzlang.PrepareSyzFS,
 				&aflow.LLMAgent{
 					Name:    "crash-repro-finder",
 					Model:   aflow.BestExpensiveModel,
 					Outputs: aflow.ValidatedLLMOutputs[ReproFinderResult, ReproFinderState](formatReproFinderOutputs),
 					Tools: aflow.Tools(
 						common.CodeAccessTools,
-						syzlang.ReadDescription,
+						syzlang.ReadSyzSpec,
+						syzlang.SyzGrepper,
 						syzlang.Reproduce,
 						syzlang.Coverage,
 					),
@@ -163,7 +165,5 @@ Bug title: {{.BugTitle}}
 The bug report to reproduce:
 {{.CrashReport}}
 
-The list of existing description files:
-{{range $file := .DescriptionFiles}}{{$file}}
-{{end}}
+{{.DescriptionFilesPrompt}}
 `
