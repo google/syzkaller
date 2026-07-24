@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"syscall"
@@ -101,6 +102,17 @@ func (inst *instance) snapshotEnable() ([]string, error) {
 	inst.eventFD = eventFD
 
 	sockPath := filepath.Join(inst.workdir, "ivs.sock")
+	if wd, err := os.Getwd(); err == nil {
+		wdAbs, err1 := filepath.EvalSymlinks(wd)
+		workdirAbs, err2 := filepath.EvalSymlinks(inst.workdir)
+		if err1 == nil && err2 == nil {
+			if rel, err := filepath.Rel(wdAbs, filepath.Join(workdirAbs, "ivs.sock")); err == nil && len(rel) < len(sockPath) {
+				sockPath = rel
+			}
+		} else if rel, err := filepath.Rel(wd, sockPath); err == nil && len(rel) < len(sockPath) {
+			sockPath = rel
+		}
+	}
 	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
 	if err != nil {
 		return nil, fmt.Errorf("qemu: unix listen on %v failed: %w", sockPath, err)
