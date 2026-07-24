@@ -25,7 +25,7 @@ coverage:
 
 comment:
   layout: "files"
-  after_n_builds: 2
+  after_n_builds: 3
 
 github_checks:
   annotations: false

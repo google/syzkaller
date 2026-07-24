@@ -45,7 +45,8 @@ ifeq ("$(DEBUG)", "true")
 else
 	GLFLAGS := -s -w
 endif
-GOFLAGS := -ldflags="$(GLFLAGS) -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)" $(GGFLAGS)
+GO_COVER_FLAGS ?=
+GOFLAGS := -ldflags="$(GLFLAGS) -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)" $(GGFLAGS) $(GO_COVER_FLAGS)
 ifneq ("$(GOTAGS)", "")
 	GOFLAGS += " -tags=$(GOTAGS)"
 endif
