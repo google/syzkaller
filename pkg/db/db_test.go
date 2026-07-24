@@ -12,7 +12,11 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -320,5 +324,60 @@ func TestOversizeKeyLen(t *testing.T) {
 	// No records should have been recovered — the first record was malformed.
 	if len(db.Records) != 0 {
 		t.Fatalf("expected 0 records, got %d", len(db.Records))
+	}
+}
+
+func TestDeterministic(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcFn := tempFile(t)
+	defer os.Remove(srcFn)
+	db, err := Open(srcFn, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ct := target.DefaultChoiceTable()
+	rs := rand.NewSource(0)
+	for i := range 50 {
+		p := target.Generate(rand.New(rs), 5, ct)
+		data := p.Serialize()
+		db.Save(hash.String(data), data, uint64(i))
+	}
+	if err := db.Flush(); err != nil {
+		t.Fatal(err)
+	}
+
+	mergeAndRead := func() ([]byte, [][]byte) {
+		dstFn := tempFile(t)
+		defer os.Remove(dstFn)
+		if _, err := Merge(dstFn, []string{srcFn}, target); err != nil {
+			t.Fatal(err)
+		}
+		rawBytes, err := os.ReadFile(dstFn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		progs, err := ReadCorpus(dstFn, target)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var serializedProgs [][]byte
+		for _, p := range progs {
+			serializedProgs = append(serializedProgs, p.Serialize())
+		}
+		return rawBytes, serializedProgs
+	}
+
+	firstBytes, firstProgs := mergeAndRead()
+	for range 10 {
+		gotBytes, gotProgs := mergeAndRead()
+		if !bytes.Equal(firstBytes, gotBytes) {
+			t.Fatal("Merge output file bytes are non-deterministic")
+		}
+		if !reflect.DeepEqual(firstProgs, gotProgs) {
+			t.Fatal("ReadCorpus output program order is non-deterministic")
+		}
 	}
 }
