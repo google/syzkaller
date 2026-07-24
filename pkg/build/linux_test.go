@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,6 +40,35 @@ func TestQueryLinuxCompiler(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error, got none")
 	}
+}
+
+func TestBuildEnvFiltersUnexpectedVariables(t *testing.T) {
+	t.Setenv("CARGO_HOME", "/tmp/cargo")
+	t.Setenv("CCACHE_COMPILERCHECK", "content")
+	t.Setenv("LANGUAGE", "en_US")
+	t.Setenv("LC_SYZ_TEST", "C")
+	t.Setenv("NOT_FOR_TEST", "1")
+	t.Setenv("RUSTUP_HOME", "/tmp/rustup")
+	t.Setenv("SOURCE_DATE_EPOCH", "1")
+	t.Setenv("TMPDIR", "/tmp/syzkaller")
+	t.Setenv("CARGO_HOME_TOKEN", "secret")
+	t.Setenv("SYZ_BUILD_ENV_SECRET", "secret")
+	t.Setenv("USER_TOKEN", "secret")
+
+	env := buildEnv("SYZ_VM_TYPE=qemu")
+
+	require.Contains(t, env, "CARGO_HOME=/tmp/cargo")
+	require.Contains(t, env, "CCACHE_COMPILERCHECK=content")
+	require.Contains(t, env, "LANGUAGE=en_US")
+	require.Contains(t, env, "LC_SYZ_TEST=C")
+	require.Contains(t, env, "NOT_FOR_TEST=1")
+	require.Contains(t, env, "RUSTUP_HOME=/tmp/rustup")
+	require.Contains(t, env, "SOURCE_DATE_EPOCH=1")
+	require.Contains(t, env, "TMPDIR=/tmp/syzkaller")
+	require.Contains(t, env, "SYZ_VM_TYPE=qemu")
+	require.NotContains(t, env, "CARGO_HOME_TOKEN=secret")
+	require.NotContains(t, env, "SYZ_BUILD_ENV_SECRET=secret")
+	require.NotContains(t, env, "USER_TOKEN=secret")
 }
 
 func enumerateFlags(t *testing.T, flags, allFlags []string) {
