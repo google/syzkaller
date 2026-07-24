@@ -92,6 +92,9 @@ ALWAYS provide DETAILED and specific questions and explicitly explain
 WHY you need this information, so the subagent can understand your intent
 and work more efficiently. Do NOT ask it to perform trivial lookup tasks
 that you can execute directly (e.g. single syzlang spec reads or basic identifier greps).
+Instruct the analyzer to actively read the kernel documentation under the 'Documentation/'
+directory in the kernel source tree (using 'grepper' or codesearch tools) to understand the target
+component's requirements, parameters, and initialization/setup sequence.
 3. 'code-fixer': Once you have a syzlang program, use this tool to debug it.
 The tool will repeatedly execute the program until it has no compilation or unacceptable call errors,
 and will return the ExecutionCachedID or report that it gave up.
@@ -134,6 +137,8 @@ a target/function is unreachable or that hardware/drivers are not instantiated i
 
 ` + syzlang.PseudoSyscallConstraints + `
 
+` + syzlang.KVMConstraints + `
+
 
 Workflow:
 1. Read the Target details, previous attempts, and any Judge failure summaries from the prompt.
@@ -141,10 +146,15 @@ Workflow:
    Before generating syzlang programs or invoking 'code-fixer':
    a. Use 'get-environment' to verify if the required kernel driver is compiled (.config) or if target features
       are available.
-      CRITICAL: You MUST NOT rely on your static memory, parametric knowledge, or unverified assumptions to claim
-      that a driver, device, or feature is unavailable or unprobed in the QEMU environment. Any claim of unreachability
-      MUST be empirically verified and proven using available tools (e.g., checking .config via 'get-environment',
-      syzlang specs via 'syz-grepper', or kernel source/sysfs paths).
+      CRITICAL: You MUST NOT assume the hardware or software capabilities of the target VM / QEMU environment.
+      Do NOT rely on your static memory, parametric knowledge, or unverified assumptions to claim that a driver,
+      device, or feature is unavailable or unprobed.
+      Any claim of unreachability MUST be empirically verified and proven using available tools (e.g., checking
+      .config via 'get-environment', syzlang specs via 'syz-grepper', or kernel source/sysfs paths).
+      You MUST TRY; if one approach or device connection method fails, you must actively reason for alternative
+      ways to reach the target location. This includes considering software emulation/virtual drivers
+      (e.g., dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs), platform driver rebinding, or alternative
+      syscall/ioctl pathways.
    b. Trace the target function's caller graph to see if execution depends on a driver '.probe()' callback.
    c. Classify target reachability:
       - UNREACHABLE HARDWARE TARGETS (Give Up Immediately): Only drivers that strictly require physical non-emulated
@@ -190,6 +200,9 @@ Workflow:
         * PRESERVED DIFF (Call 'execution-summarizer'): If 'ProgramDiff' shows the core setup and target syscalls
           were preserved (only argument types, flags, or syntax were tuned), call 'execution-summarizer' with
           the ExecutionCachedID to obtain a detailed failure summary of why kernel execution diverged.
+          CRITICAL: You MUST carefully investigate this diff to identify any type, argument, or syntax workarounds
+          introduced by 'code-fixer' to achieve successful compilation. If those workarounds make sense and do not
+          conflict with your target setup or intent, you MUST preserve them in subsequent program formulations.
       - Use the insights (from ProgramDiff or execution-summarizer) to formulate a new program,
         and repeat from step (a).
 4. If you decide to give up entirely (e.g., after multiple attempts or if target is unreachable),
@@ -208,7 +221,11 @@ Workflow:
    flags leading directly to the target line before writing new program logic.
 3. DISASSEMBLY INSPECTION:
    When calling 'disassemble-context', pass any of the Candidate PCs provided in your target
-   summary to inspect assembly and interleaved C source.`,
+   summary to inspect assembly and interleaved C source.
+4. SYSCALL NAME VERIFICATION:
+   Always verify that any specialized syscall variant name you use actually exists in the syzkaller specification
+   (using 'syz-grepper'). Do not hallucinate variants (like 'openat$kvm_param').
+   If you receive an 'unknown syscall' compilation error, check the name first before editing the arguments.`,
 	Prompt: `Target File: {{.File}}
 Target Line: {{.Line}}
 Target Function: {{.FunctionName}}

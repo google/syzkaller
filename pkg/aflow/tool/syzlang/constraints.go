@@ -127,7 +127,10 @@ const SyzlangSyntaxConstraints = `SYZLANG SYNTAX AND STRUCTURAL CONSTRAINTS:
     devices or files.
 - Go Source Files: Do NOT attempt to read Go source files (e.g. *.go files in prog/ or pkg/)
   to reverse-engineer validation rules or syscall syntax. This consumes tokens and causes goal distraction.
-  Consult docs/syscall_descriptions_syntax.md instead using 'read-syz-spec'.`
+  Consult docs/syscall_descriptions_syntax.md instead using 'read-syz-spec'.
+- Syscall Name Verification: Always verify that any specialized syscall variant name you use actually exists
+  in the syzkaller specification (using 'syz-grepper' or 'read-syz-spec'). Do not hallucinate variants
+  (like 'openat$kvm_param').`
 
 const DomainBoundaryConstraints = `TOOL AND SEARCH DOMAIN BOUNDARIES:
 - Syzkaller Specification vs Linux Kernel Domain:
@@ -135,7 +138,7 @@ const DomainBoundaryConstraints = `TOOL AND SEARCH DOMAIN BOUNDARIES:
     specification/metadata files (e.g., 'sys/*.txt', 'sys/*.txt.const'), test seeds ('test/*'),
     documentation ('docs/*'), and executor C++ header files ('executor/*').
   - Linux Kernel Domain: Use 'codesearch-*' and 'grepper' tools EXCLUSIVELY for Linux kernel source tree files
-    ('include/', 'kernel/', 'drivers/', 'fs/', 'net/', '*.c', etc.).
+    ('include/', 'kernel/', 'drivers/', 'fs/', 'net/', 'Documentation/', '*.c', etc.).
 - Special Path Distinctions:
   - POSIX / C Headers and VFS Paths: Standard headers starting with 'sys/' (e.g. 'sys/socket.h', 'sys/mount.h')
     and virtual filesystem runtime paths (e.g. '/sys/class/...', '/sys/devices/...') belong to the Linux Kernel
@@ -220,3 +223,31 @@ const TestSeedConstraints = `ENVIRONMENT SETUP & BASE TEST SEED CONSTRAINTS:
   on related setup functions—such as direct callers along the target call path, or probe/init functions of
   peer drivers within the same subsystem directory or driver family—to discover existing corpus program
   setup sequences.`
+
+const KVMConstraints = `KVM VIRTUALIZATION AND GUEST CONSTRAINTS:
+- Sandbox Bypass: You MUST NOT open '/dev/kvm' with generic 'openat'. Always use the specialized variant
+  'openat$kvm' to get the system KVM fd.
+- Guest Clock Calibration Livelock (tsc_khz == 0): If ioctl$KVM_RUN hangs or times out during execution,
+  it is often because host clock calibration fails (tsc_khz == 0) and the guest vCPU thread enters
+  an infinite loop inside vcpu_run re-queuing KVM_REQ_CLOCK_UPDATE.
+  To prevent this, you MUST initialize guest clock frequency by invoking 'ioctl$KVM_SET_TSC_KHZ_cpu' on the vCPU fd
+  or 'ioctl$KVM_SET_TSC_KHZ_vm' on the VM fd (passing a stable clock rate frequency, e.g. 2000000 KHz, in its arguments)
+  BEFORE executing 'ioctl$KVM_RUN'.
+- Reference Discovery via Corpus:
+  To configure KVM VMs, vCPUs, or nested SYZOS VMs correctly, do NOT guess the syscall sequences or struct arguments.
+  Instead, use 'get-corpus-programs' targeting KVM entry-point functions (such as 'kvm_vcpu_ioctl' or 'kvm_vm_ioctl')
+  to retrieve successful working examples of VM/vCPU configurations and SYZOS VM setups from the corpus database.
+- Nested Virtualization Requirements (L2 Guest Booting):
+  To test nested virtualization (L2 guest VMCS execution), you must boot guest L1 with Hyper-V capability:
+  1. Set guest CPUID via 'ioctl$KVM_SET_CPUID2' containing leaf HYPERV_CPUID_INTERFACE (0x40000001)
+     with signature 'Hv#1' (0x31237648) in EAX.
+  2. Enable enlightened VMCS capability on the vCPU fd via 'ioctl$KVM_CAP_HYPERV_ENLIGHTENED_VMCS'
+     (using KVM_ENABLE_CAP).
+  Once both CPUID and capability are enabled, guest nested entries (VMLAUNCH/VMRESUME or KVM_SET_NESTED_STATE)
+  will be fully validated.
+- Simplification Heuristics:
+  When generating programs targeting generic shadow MMU or page-track paths, prefer simple non-nested
+  paging configurations using a single vCPU (configured via 'ioctl$KVM_SET_SREGS' / 'ioctl$KVM_SET_REGS')
+  first, rather than immediately jumping to nested VMX ('vmlaunch' / 'vmresume' / 'ioctl$KVM_SET_NESTED_STATE').
+  Nested virtualization introduces hundreds of extra VMCS validation constraints and failure paths that
+  make reaching the target PC significantly harder.`

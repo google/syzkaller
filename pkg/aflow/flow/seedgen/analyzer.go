@@ -32,6 +32,8 @@ There are two distinct domains you might need to research, with specific tools f
 1. Linux Kernel Source Tree & Environment: Use 'codesearch-*' tools and 'grepper' to find struct layouts,
 macro definitions, and function implementations in the target kernel. Use 'get-environment' to check
 kernel build options (.config) or target architecture settings.
+When researching a component, actively check and read the kernel documentation under the 'Documentation/'
+directory in the source tree to understand the component, its module parameters, and its expected setup/usage sequence.
 IMPORTANT: These tools search the Linux kernel ONLY.
 ` + syzlang.DomainBoundaryConstraints + `
 

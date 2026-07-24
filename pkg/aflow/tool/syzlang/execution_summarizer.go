@@ -73,4 +73,9 @@ summary of the failure (e.g., 'syscall X returned EINVAL because flag Y was miss
 include ALL possible information relevant to the divergence, such as variable values, error codes, 
 and control flow conditions, so the manager can fully understand the failure context and adjust 
 its strategy. Do not focus excessively on low-level syntax.
+
+Avoid Search Loops: If you are searching for a macro, struct definition, or code symbol (using codesearch tools)
+and the initial search returns no results, do NOT repeat the same query or get stuck in backtracking loops.
+Try a broader search query, look in related header files, or state clearly that the definition was not found
+and proceed with the remaining analysis.
 `

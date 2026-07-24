@@ -112,24 +112,29 @@ call (e.g. attempting to use '..', '/sys/...', or generic 'openat' on '/dev/...'
    '/sys/kernel/config/...' to './config/usb_gadget/.../functions/name').
 Do NOT attempt tricks like './dir/../../path'; filepath.Clean() normalizes them to '../path' which is rejected.
 Do NOT give up on sandbox-escape errors for ConfigFS or sysfs; rewrite them using the CWD-relative Local Mount Pattern.
-You MUST:
-1. Execute the syzlang program using '{{.toolExecuteSeed}}'. (CRITICAL INSTRUCTION) You must pass the
-   BaseTestSeed to the tool if one was provided in your prompt. You should prefer keeping it, but you are
-   allowed to change, swap, or remove it. If the base test seed itself fails or conflicts with your program,
-   you are explicitly allowed and encouraged to clear/remove the base test seed (by setting BaseTestSeed to
-   an empty string in the results or omitting it) or swap it for a different seed. Do not assume the
-   base seed is an immutable constraint if it causes runtime failures.
-   Any errors in the base test seed indicate environment setup issues. If the base seed fails and you
-   cannot resolve it, set CodeFixerGiveUp = true and report it.
+You MUST strictly follow this execution and debugging workflow:
+1. Run First, Edit Later (CRITICAL INSTRUCTION): You MUST execute the syzlang program using '{{.toolExecuteSeed}}'
+   first, exactly as provided in your prompt, before making any modifications. Pass the BaseTestSeed if one
+   was provided. You should prefer keeping it, but if it fails or conflicts with your program, you are allowed
+   to clear it (set BaseTestSeed to "") or swap it.
    * Handling EEXIST / EBUSY: If execution fails with EEXIST ('File exists') or EBUSY ('Device or resource busy'),
-     check if the syzlang program duplicates environment setup calls (e.g. 'syz_mount_image', 'syz_usb_connect',
-     'mkdirat') already executed in 'BaseTestSeed'. Either remove the redundant setup calls from the syzlang
-     program OR clear 'BaseTestSeed' (set to "") so setup calls are not executed twice.
-2. If there are syntax errors or unacceptable call errors, fix them using '{{.toolReadSyzSpec}}' and
-   '{{.toolSyzGrepper}}' to ensure arguments match expected descriptions.
-3. Execute again until you get a successful execution or decide to give up.
-4. If successful, provide the ExecutionCachedID as your final text reply. If giving up, set CodeFixerGiveUp = true
-   and provide CodeFixerReason.
+     check if the syzlang program duplicates setup calls already in 'BaseTestSeed'. Either remove the duplicate
+     setup calls from the program OR clear 'BaseTestSeed' (set to "") so setup calls are not executed twice.
+2. Yield on Success: If the initial execution compiles successfully (no syntax/compilation errors) and all
+   returned call errors match 'AcceptableCallErrorsDescription' (or there are no errors), you MUST immediately
+   return the ExecutionCachedID as your final reply. Do NOT modify the program or attempt to "correct" or align
+   it with the syzlang spec if it already executes successfully.
+3. Targeted Edits: If compilation or execution fails, analyze the returned errors:
+   - Unknown Syscall Errors: If compilation fails stating a syscall is unknown (e.g., 'unknown syscall:
+     openat$kvm_param'), verify if the syscall variant name exists in the syzlang spec (using '{{.toolReadSyzSpec}}'
+     or '{{.toolSyzGrepper}}') before attempting to fix its arguments. If the variant name is hallucinated
+     or incorrect, replace it with the correct name.
+   - Focus your edits strictly on the lines and arguments associated with the reported errors. Do NOT proactively
+     modify or refactor other parts of the program (such as array sizes, padding, or struct fields) that did not
+     produce errors, even if they appear to deviate from the raw syzlang spec.
+4. Verify Fixes: Execute the program again using '{{.toolExecuteSeed}}' and repeat the loop until it compiles
+   and runs cleanly, or you decide to give up (by setting CodeFixerGiveUp = true and reporting the reason
+   in CodeFixerReason).
 Do NOT attempt to verify PC coverage, diagnose divergence, or simplify the program.
 That will be handled by the pipeline.
 
@@ -137,6 +142,7 @@ That will be handled by the pipeline.
 ` + SyzlangSyntaxConstraints + "\n\n" + `
 ` + SandboxConstraints + "\n\n" + `
 ` + PseudoSyscallConstraints + "\n\n" + `
+` + KVMConstraints + "\n\n" + `
 ===
 {{.DocProgramSyntax}}
 ===
