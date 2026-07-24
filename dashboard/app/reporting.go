@@ -107,7 +107,7 @@ func needReport(ctx context.Context, typ string, state *ReportingState, bug *Bug
 		return
 	}
 	link = bugReporting.Link
-	if !bugReporting.Reported.IsZero() && bugReporting.ReproLevel >= bug.HeadReproLevel {
+	if !bugReporting.Reported.IsZero() && bug.HeadReproLevel.CoveredBy(bugReporting.ReproLevel) {
 		status = fmt.Sprintf("%v: reported%v on %v",
 			reporting.DisplayTitle, reproStr(bugReporting.ReproLevel),
 			html.FormatTime(bugReporting.Reported))
@@ -121,7 +121,7 @@ func needReport(ctx context.Context, typ string, state *ReportingState, bug *Bug
 		reporting, bugReporting = nil, nil
 		return
 	}
-	if crashNeedsRepro(bug.Title) && bug.ReproLevel < ReproLevelC &&
+	if crashNeedsRepro(bug.Title) && !bug.ReproLevel.HasC() &&
 		timeSince(ctx, bug.FirstTime) < cfg.WaitForRepro {
 		status = fmt.Sprintf("%v: waiting for C repro", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
@@ -481,7 +481,7 @@ func reproStr(level dashapi.ReproLevel) string {
 	switch level {
 	case ReproLevelSyz:
 		return " syz repro"
-	case ReproLevelC:
+	case ReproLevelC, ReproLevelCOnly:
 		return " C repro"
 	default:
 		return ""
@@ -1049,7 +1049,7 @@ func incomingCommandUpdate(ctx context.Context, now time.Time, cmd *dashapi.BugU
 		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
 		bugReporting.CC = strings.Join(merged, "|")
 	}
-	bugReporting.ReproLevel = max(bugReporting.ReproLevel, cmd.ReproLevel)
+	bugReporting.ReproLevel = bugReporting.ReproLevel.Combine(cmd.ReproLevel)
 	if bug.Status != BugStatusDup {
 		bug.DupOf = ""
 	}
@@ -1088,7 +1088,7 @@ func incomingCommandCmd(ctx context.Context, now time.Time, cmd *dashapi.BugUpda
 				bug.Reporting[i].Closed = now
 			}
 		}
-		if bug.ReproLevel < cmd.ReproLevel {
+		if !cmd.ReproLevel.CoveredBy(bug.ReproLevel) {
 			return false, internalError,
 				fmt.Errorf("bug update with invalid repro level: %v/%v",
 					bug.ReproLevel, cmd.ReproLevel)
@@ -1300,15 +1300,11 @@ func findCrashForBug(ctx context.Context, bug *Bug) (*Crash, *db.Key, error) {
 		return nil, nil, fmt.Errorf("no crashes")
 	}
 	crash, key := crashes[0], keys[0]
-	switch bug.HeadReproLevel {
-	case ReproLevelC:
-		if crash.ReproC == 0 {
-			log.Errorf(ctx, "bug '%v': has C repro, but crash without C repro", bug.Title)
-		}
-	case ReproLevelSyz:
-		if crash.ReproSyz == 0 {
-			log.Errorf(ctx, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
-		}
+	if bug.HeadReproLevel.HasC() && crash.ReproC == 0 {
+		log.Errorf(ctx, "bug '%v': has C repro, but crash without C repro", bug.Title)
+	}
+	if bug.HeadReproLevel.HasSyz() && crash.ReproSyz == 0 {
+		log.Errorf(ctx, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
 	}
 	return crash, key, nil
 }
@@ -1528,7 +1524,7 @@ func (a bugReportSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func (a bugReportSorter) Less(i, j int) bool {
 	if a[i].ReproLevel != a[j].ReproLevel {
-		return a[i].ReproLevel > a[j].ReproLevel
+		return a[i].ReproLevel.Rank() > a[j].ReproLevel.Rank()
 	}
 	if a[i].HasReport != a[j].HasReport {
 		return a[i].HasReport

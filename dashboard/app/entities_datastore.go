@@ -700,9 +700,10 @@ const (
 )
 
 const (
-	ReproLevelNone = dashapi.ReproLevelNone
-	ReproLevelSyz  = dashapi.ReproLevelSyz
-	ReproLevelC    = dashapi.ReproLevelC
+	ReproLevelNone  = dashapi.ReproLevelNone
+	ReproLevelSyz   = dashapi.ReproLevelSyz
+	ReproLevelC     = dashapi.ReproLevelC
+	ReproLevelCOnly = dashapi.ReproLevelCOnly
 )
 
 type BuildType int

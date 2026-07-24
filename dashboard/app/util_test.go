@@ -609,12 +609,7 @@ func (client *apiClient) pollBugs(expect int) []*dashapi.BugReport {
 		client.t.Fatalf("want %v reports, got %v", expect, len(resp.Reports))
 	}
 	for _, rep := range resp.Reports {
-		reproLevel := dashapi.ReproLevelNone
-		if len(rep.ReproC) != 0 {
-			reproLevel = dashapi.ReproLevelC
-		} else if len(rep.ReproSyz) != 0 {
-			reproLevel = dashapi.ReproLevelSyz
-		}
+		reproLevel := dashapi.ReproLevelFromCAndSyz(len(rep.ReproC) != 0, len(rep.ReproSyz) != 0)
 		reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
 			ID:         rep.ID,
 			JobID:      rep.JobID,

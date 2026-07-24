@@ -409,12 +409,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		{"kernel branch", req.KernelBranch != "" || req.Type != dashapi.JobTestPatch},
 		{"kernel config", len(req.KernelConfig) != 0},
 		{"syzkaller commit", req.SyzkallerCommit != ""},
-		// We either want a normal repro (with options and syz repro text)
-		// or it's a boot time bug, in which case both are empty.
+		// We either want a normal repro (with options and syz/C repro text)
+		// or it's a boot time bug, in which case all are empty.
 		{
 			name: "reproducer consistency",
-			ok: (len(req.ReproOpts) != 0 && len(req.ReproSyz) != 0) ||
-				(len(req.ReproOpts) == 0 && len(req.ReproSyz) == 0),
+			ok:   (len(req.ReproOpts) != 0) == (len(req.ReproSyz) != 0 || len(req.ReproC) != 0),
 		},
 	}
 	for _, req := range required {

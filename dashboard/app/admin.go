@@ -318,22 +318,16 @@ func updateHeadReproLevel(ctx context.Context, w http.ResponseWriter, r *http.Re
 		if len(bug.Commits) > 0 {
 			return nil
 		}
-		actual := ReproLevelNone
 		reproCrashes, _, err := queryCrashesForBug(ctx, key, 2)
 		if err != nil {
 			return fmt.Errorf("failed to fetch crashes with repro: %w", err)
 		}
+		actual := ReproLevelNone
 		for _, crash := range reproCrashes {
 			if crash.ReproIsRevoked {
 				continue
 			}
-			if crash.ReproC > 0 {
-				actual = ReproLevelC
-				break
-			}
-			if crash.ReproSyz > 0 {
-				actual = ReproLevelSyz
-			}
+			actual = actual.Combine(dashapi.ReproLevelFromCAndSyz(crash.ReproC > 0, crash.ReproSyz > 0))
 		}
 		if actual != bug.HeadReproLevel {
 			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n",

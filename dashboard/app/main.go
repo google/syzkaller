@@ -2235,7 +2235,7 @@ func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
-	bug.ReproLevel = max(bug.ReproLevel, dup.ReproLevel)
+	bug.ReproLevel = bug.ReproLevel.Combine(dup.ReproLevel)
 	updateBugBadness(ctx, bug)
 }
 
