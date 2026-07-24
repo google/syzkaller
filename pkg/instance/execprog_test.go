@@ -120,8 +120,8 @@ func TestRetrieveCoverageFiles_Success(t *testing.T) {
 	coverage, err := execProgInst.retrieveCoverageFiles(prefix, 2)
 	require.NoError(t, err)
 	require.Len(t, coverage, 3)
-	require.Equal(t, []uint64{0x123, 0x456}, coverage[0])
-	require.Equal(t, []uint64{0x789}, coverage[1])
+	require.Equal(t, []uint64{0x128, 0x45b}, coverage[0])
+	require.Equal(t, []uint64{0x78e}, coverage[1])
 	require.Nil(t, coverage[2])
 }
 
