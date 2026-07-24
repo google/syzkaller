@@ -124,6 +124,10 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	trees []*api.Tree, target *triage.MergedFuzzConfig) (*api.TestTarget, error) {
 	var result *SelectResult
 	var err error
+	trees, err = triage.CandidateTrees(trees, series)
+	if err != nil {
+		return nil, SkipError(err.Error())
+	}
 	if series.BaseCommitHint != "" {
 		result, err = triager.selectFromBaseCommitHint(series.BaseCommitHint, trees)
 		if err != nil {
@@ -152,9 +156,10 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		return nil, fmt.Errorf("failed to apply series to base commit: %w", err)
 	}
 
+	isFocusedFuzzing := !triage.IsStableTree(result.Tree)
 	if triager.aiVerdict == nil {
 		triager.aiVerdict = &triage.AITriageResult{WorthFuzzing: true}
-		if !triager.config.AI.Empty() {
+		if isFocusedFuzzing && !triager.config.AI.Empty() {
 			if err := triage.CommitPatchForAflow(triager.ops); err != nil {
 				return nil, fmt.Errorf("failed to commit patch for aflow: %w", err)
 			}
@@ -188,6 +193,7 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		*fuzzCfg = *target.FuzzConfig
 	}
 	fuzzCfg.FocusSymbols = triager.aiVerdict.FocusSymbols
+	fuzzCfg.FocusedFuzzing = isFocusedFuzzing
 	testTarget := &api.TestTarget{
 		Base:    base,
 		Patched: base,

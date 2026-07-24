@@ -571,3 +571,16 @@ func TestLink(t *testing.T) {
 		})
 	}
 }
+
+func TestParsePatchSubjectStableRC(t *testing.T) {
+	subjects := []string{
+		"[PATCH 6.18 00/29] 6.18.1-rc1 review",
+		"[PATCH 6.1 000/451] 6.1.83-rc1 review",
+	}
+	for _, subj := range subjects {
+		t.Run(subj, func(t *testing.T) {
+			_, ok := parsePatchSubject(subj)
+			assert.True(t, ok, "Should match stable RC subject with dot in version")
+		})
+	}
+}
