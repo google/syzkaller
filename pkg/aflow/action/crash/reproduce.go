@@ -213,14 +213,15 @@ type CallError struct {
 }
 
 type cachedExecution struct {
-	BugTitle       string
-	Report         string
-	OtherReports   []string
-	FaultInjection string
-	Error          string
-	Coverage       [][]symbolizer.Frame
-	CallErrors     []CallError
-	GeneratedSyz   string
+	BugTitle        string
+	Report          string
+	OtherReports    []string
+	FaultInjection  string
+	Error           string
+	Coverage        [][]symbolizer.Frame
+	CallErrors      []CallError
+	GeneratedSyz    string
+	VMConsoleOutput string
 }
 
 func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
@@ -245,6 +246,14 @@ func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
 		return nil, err
 	}
 	return cached.CallErrors, nil
+}
+
+func LoadVMConsoleOutput(ctx *aflow.Context, cachedID string) (string, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", err
+	}
+	return cached.VMConsoleOutput, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,

@@ -243,6 +243,9 @@ func (rm *RunnerManager) SubmitBatch(
 		idx := i
 		req.OnDone(func(r *queue.Request, res *queue.Result) bool {
 			results[idx] = res
+			if !rm.cfg.Snapshot {
+				res.Output = append([]byte("WARNING: only executor output\n"), res.Output...)
+			}
 			wg.Done()
 			return true
 		})

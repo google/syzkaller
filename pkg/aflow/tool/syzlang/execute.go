@@ -30,6 +30,8 @@ Tool returns the syzlang program that was executed for the given ExecutionCached
 `)
 )
 
+const maxConsoleOutputLines = 200
+
 type ExecuteSeedArgs struct {
 	ReproSyz string `jsonschema:"Syz program to execute."`
 }
@@ -41,11 +43,10 @@ type CallError struct {
 	Error    string `jsonschema:"String representation of the error."`
 }
 
-const maxConsoleOutputLines = 200
-
 type ExecuteSeedResult struct {
 	ExecutionCachedID string      `jsonschema:"Cached ID. Pass to coverage tools to explore executed code."`
 	CallErrors        []CallError `jsonschema:"List of calls that failed. Empty if all succeeded."`
+	VMConsoleOutput   string      `jsonschema:"The raw VM console (kernel dmesg) output captured during execution."`
 }
 
 func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs) (ExecuteSeedResult, error) {
@@ -91,9 +92,16 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 		return ExecuteSeedResult{}, err
 	}
 
+	vmConsoleOutput, err := crash.LoadVMConsoleOutput(ctx, executionCachedID)
+	if err != nil {
+		return ExecuteSeedResult{}, err
+	}
+	vmConsoleOutput = truncateConsoleOutput(vmConsoleOutput, maxConsoleOutputLines)
+
 	return ExecuteSeedResult{
 		ExecutionCachedID: executionCachedID,
 		CallErrors:        structuredErrors,
+		VMConsoleOutput:   vmConsoleOutput,
 	}, nil
 }
 
