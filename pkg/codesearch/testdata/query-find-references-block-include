@@ -1,0 +1,8 @@
+find-references source0.c open source 5 10
+
+open has 1 references:
+
+function function_with_block_include calls it at block_include.h:1
+   1:	open();
+
+

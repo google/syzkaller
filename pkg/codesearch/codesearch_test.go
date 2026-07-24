@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/tools/clang/codesearch"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClangTool(t *testing.T) {
@@ -67,4 +68,43 @@ func testCommand(t *testing.T, index *Index, covered map[string]bool, file strin
 	got := append([]byte(strings.Join(fields, " ")+"\n\n"), result...)
 	tooltest.CompareGoldenData(t, file, got)
 	covered[cmd] = true
+}
+
+func TestFindReferencesInvalidRange(t *testing.T) {
+	index := &Index{
+		db: &Database{
+			Definitions: []*Definition{
+				{
+					Name: "dummy",
+					Kind: EntityKindFunction,
+					Body: LineRange{
+						File:      "source0.c",
+						StartLine: 10,
+						EndLine:   20,
+					},
+					Refs: []Reference{
+						{
+							Name:       "dummy",
+							EntityKind: EntityKindFunction,
+							Line:       100,
+						},
+						{
+							Name:       "dummy",
+							EntityKind: EntityKindFunction,
+							File:       "refs.c",
+							Line:       1000,
+						},
+					},
+				},
+			},
+		},
+		srcDirs: []string{osutil.Abs("testdata")},
+	}
+
+	info, count, err := index.FindReferences("source0.c", "dummy", "", 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, 2, count)
+	require.Len(t, info, 2)
+	require.Empty(t, info[0].SourceSnippet)
+	require.Empty(t, info[1].SourceSnippet)
 }
