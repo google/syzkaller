@@ -44,6 +44,7 @@ type CallError struct {
 type ExecuteSeedResult struct {
 	ExecutionCachedID string      `jsonschema:"Cached ID. Pass to coverage tools to explore executed code."`
 	CallErrors        []CallError `jsonschema:"List of calls that failed. Empty if all succeeded."`
+	VMConsoleOutput   string      `jsonschema:"The raw VM console (kernel dmesg) output captured during execution."`
 }
 
 func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs) (ExecuteSeedResult, error) {
@@ -99,9 +100,15 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 		return ExecuteSeedResult{}, err
 	}
 
+	vmConsoleOutput, err := crash.LoadVMConsoleOutput(ctx, executionCachedID)
+	if err != nil {
+		return ExecuteSeedResult{}, err
+	}
+
 	return ExecuteSeedResult{
 		ExecutionCachedID: executionCachedID,
 		CallErrors:        structuredErrors,
+		VMConsoleOutput:   vmConsoleOutput,
 	}, nil
 }
 

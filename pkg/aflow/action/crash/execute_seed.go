@@ -73,6 +73,7 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 		}
 
 		log.Logf(1, "VM Console Output:\n%s", runRes.Output)
+		res.VMConsoleOutput = string(runRes.Output)
 
 		crashes := rm.RecentCrashes()
 		if len(crashes) > 0 {
