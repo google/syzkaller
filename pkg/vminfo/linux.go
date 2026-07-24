@@ -47,7 +47,11 @@ func (linux) machineInfos() []machineInfoFunc {
 	}
 }
 
-func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
+func (linux) RequiredCommands() []string {
+	return nil
+}
+
+func (linux linux) parseModules(files filesystem, cmdResults map[string][]byte) ([]*KernelModule, error) {
 	if linux.vmType == targets.GVisor || linux.vmType == targets.Starnix {
 		return nil, nil
 	}

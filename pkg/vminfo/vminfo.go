@@ -65,6 +65,8 @@ func New(cfg *Config) *Checker {
 		impl = new(netbsd)
 	case targets.OpenBSD:
 		impl = new(openbsd)
+	case targets.FreeBSD:
+		impl = new(freebsd)
 	default:
 		impl = new(nopChecker)
 	}
@@ -77,9 +79,10 @@ func New(cfg *Config) *Checker {
 	}
 }
 
-func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelModule, []byte, error) {
+func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo, cmdResults map[string][]byte) (
+	[]*KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
-	modules, err := checker.parseModules(files)
+	modules, err := checker.parseModules(files, cmdResults)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,7 +129,8 @@ type machineInfoFunc func(files filesystem, w io.Writer) (string, error)
 type checker interface {
 	RequiredFiles() []string
 	CheckFiles() []string
-	parseModules(files filesystem) ([]*KernelModule, error)
+	RequiredCommands() []string
+	parseModules(files filesystem, cmdResults map[string][]byte) ([]*KernelModule, error)
 	machineInfos() []machineInfoFunc
 	syscallCheck(*checkContext, *prog.Syscall) string
 }
@@ -184,7 +188,11 @@ func (nopChecker) CheckFiles() []string {
 	return nil
 }
 
-func (nopChecker) parseModules(files filesystem) ([]*KernelModule, error) {
+func (nopChecker) RequiredCommands() []string {
+	return nil
+}
+
+func (nopChecker) parseModules(files filesystem, cmdResults map[string][]byte) ([]*KernelModule, error) {
 	return nil, nil
 }
 

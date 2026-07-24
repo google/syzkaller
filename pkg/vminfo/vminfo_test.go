@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHostMachineInfo(t *testing.T) {
@@ -35,7 +36,7 @@ func TestHostMachineInfo(t *testing.T) {
 			t.Logf("failed to read %q: %s", file.Name, file.Error)
 		}
 	}
-	modules, info, err := checker.MachineInfo(files)
+	modules, info, err := checker.MachineInfo(files, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,6 +44,39 @@ func TestHostMachineInfo(t *testing.T) {
 	for _, module := range modules {
 		t.Logf("module %q: addr 0x%x size %v", module.Name, module.Addr, module.Size)
 	}
+}
+
+func TestFreeBSDParseModules(t *testing.T) {
+	kldstatOutput := []byte(`Id Refs Address                Size Name
+ 1   97 0xffffffff80200000  25166b0 kernel
+ 2    1 0xffffffff82717000   673a88 zfs.ko
+ 3    1 0xffffffff82d8c000   3835e8 vmm.ko
+ 4    1 0xffffffff83a20000     36f8 fdescfs.ko
+ 5    1 0xffffffff83a24000     3160 amdtemp.ko
+`)
+	f := freebsd{}
+	cmdResults := map[string][]byte{
+		"kldstat": kldstatOutput,
+	}
+	modules, err := f.parseModules(nil, cmdResults)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []*KernelModule{
+		{Name: "", Addr: 0xffffffff80200000, Size: 0x25166b0},
+		{Name: "zfs", Addr: 0xffffffff82717000, Size: 0x673a88},
+		{Name: "vmm", Addr: 0xffffffff82d8c000, Size: 0x3835e8},
+		{Name: "fdescfs", Addr: 0xffffffff83a20000, Size: 0x36f8},
+		{Name: "amdtemp", Addr: 0xffffffff83a24000, Size: 0x3160},
+	}
+	require.Equal(t, expected, modules)
+}
+
+func TestFreeBSDParseModulesEmpty(t *testing.T) {
+	f := freebsd{}
+	modules, err := f.parseModules(nil, nil)
+	require.NoError(t, err)
+	require.Nil(t, modules)
 }
 
 func TestSyscalls(t *testing.T) {

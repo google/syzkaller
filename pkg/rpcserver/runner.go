@@ -72,6 +72,8 @@ type handshakeConfig struct {
 	Files      []string
 	Features   flatrpc.Feature
 
+	Commands []string
+
 	// Callback() is called in the middle of the handshake process.
 	// The return arguments are the coverage filter and the (possible) error.
 	Callback func(*flatrpc.InfoRequestRawT) (handshakeResult, error)
@@ -105,6 +107,7 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (hands
 		RaceFrames:       cfg.RaceFrames,
 		Files:            cfg.Files,
 		Features:         cfg.Features,
+		Commands:         cfg.Commands,
 	}
 	if err := flatrpc.Send(conn, connectReply); err != nil {
 		return handshakeResult{}, err

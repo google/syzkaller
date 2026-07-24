@@ -772,6 +772,24 @@ private:
 		setup_kcsan_filter(conn_reply.race_frames);
 #endif
 
+		// Execute commands requested by the manager.
+		for (const auto& cmd : conn_reply.commands) {
+			auto result = std::make_unique<rpc::CommandResultRawT>();
+			result->cmd = cmd;
+			FILE* fp = popen(cmd.c_str(), "r");
+			if (fp == nullptr) {
+				result->error = strerror(errno);
+			} else {
+				uint8_t buf[4096];
+				size_t n;
+				while ((n = fread(buf, 1, sizeof(buf), fp)) > 0)
+					result->output.insert(result->output.end(), buf, buf + n);
+				if (pclose(fp) != 0 && result->output.empty())
+					result->error = "command failed";
+			}
+			info_req.command_results.push_back(std::move(result));
+		}
+
 		conn_.Send(info_req);
 
 		rpc::InfoReplyRawT info_reply;
