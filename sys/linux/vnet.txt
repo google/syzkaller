@@ -404,6 +404,7 @@ ipv4_packet [
 	dccp	ipv4_packet_t[const[IPPROTO_DCCP, int8], dccp_packet]
 	igmp	ipv4_packet_t[const[IPPROTO_IGMP, int8], igmp_packet]
 	gre	ipv4_packet_t[const[IPPROTO_GRE, int8], gre_packet]
+	esp	ipv4_packet_t[const[IPPROTO_ESP, int8], esp_aggfrag_packet]
 # TODO: what proto do we need for tipc (there is no IPPROTO_TIPC)?
 	tipc	ipv4_packet_t[const[IPPROTO_TCP, int8], tipc_packet]
 ] [varlen]
@@ -648,6 +649,7 @@ ipv6_packet [
 	icmpv6		ipv6_packet_t[const[IPPROTO_ICMPV6, int8], icmpv6_packet]
 	dccp_packet	ipv6_packet_t[const[IPPROTO_DCCP, int8], dccp_packet]
 	gre_packet	ipv6_packet_t[const[IPPROTO_GRE, int8], gre_packet]
+	esp		ipv6_packet_t[const[IPPROTO_ESP, int8], esp_aggfrag_packet]
 # TODO: what proto do we need for tipc (there is no IPPROTO_TIPC)?
 	tipc_packet	ipv6_packet_t[const[IPPROTO_TCP, int8], tipc_packet]
 ] [varlen]
@@ -1567,3 +1569,54 @@ tipc_name_publication {
 tipc_importance = TIPC_LOW_IMPORTANCE, TIPC_MEDIUM_IMPORTANCE, TIPC_HIGH_IMPORTANCE, TIPC_CRITICAL_IMPORTANCE
 tipc_error = TIPC_OK, TIPC_ERR_NO_NAME, TIPC_ERR_NO_PORT, TIPC_ERR_NO_NODE, TIPC_ERR_OVERLOAD, TIPC_CONN_SHUTDOWN
 tipc_scope = TIPC_CFG_SRV, TIPC_ZONE_SCOPE, TIPC_CLUSTER_SCOPE, TIPC_NODE_SCOPE
+
+# IPsec ESP carrying an AGGFRAG payload (IP-TFS, RFC 9347).
+# The SPI comes from xfrm_spi, so a packet emitted here can match a state
+# created over the XFRM netlink interface in the same program. With
+# ecb(cipher_null)/digest_null the payload reaches the IP-TFS mode handler
+# unchanged, which is what makes the decapsulation path reachable.
+esp_aggfrag_packet {
+	spi		xfrm_spi
+	seq		int32be
+	payload		aggfrag_payload
+# ESP trailer, RFC 4303. The ICV is empty with digest_null.
+	pad		array[int8, 0:8]
+	pad_len		len[pad, int8]
+	next_hdr	const[IPPROTO_AGGFRAG, int8]
+} [packed]
+
+aggfrag_payload [
+	basic	aggfrag_basic
+	cc	aggfrag_cc
+] [varlen]
+
+# struct ip_iptfs_hdr. A non-zero block_offset makes the leading bytes a
+# continuation of the previous packet and drives the reassembly path. An
+# offset that reaches past the end of the payload makes the whole payload a
+# continuation, so the field is left unbounded.
+aggfrag_basic {
+	subtype		const[0, int8]
+	flags		const[0, int8]
+	block_offset	int16be
+	blocks		array[aggfrag_inner]
+} [packed]
+
+# struct ip_iptfs_cc_hdr, the congestion control subtype.
+aggfrag_cc {
+	subtype		const[1, int8]
+	flags		const[0, int8]
+	block_offset	int16be
+	loss_rate	int32be
+	rtt		int64be
+	tval		int32be
+	techo		int32be
+	blocks		array[aggfrag_inner]
+} [packed]
+
+# Inner packets are aggregated whole, their length is read from their own IP
+# header. A trailing runt exercises the saved partial packet path.
+aggfrag_inner [
+	ipv4	ipv4_packet
+	ipv6	ipv6_packet
+	runt	array[int8, 1:64]
+] [varlen]
