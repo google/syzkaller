@@ -11,6 +11,40 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#ifndef __GLIBC__
+// musl (and other non-glibc libcs) don't declare the pkey_* wrappers or the
+// PKEY_DISABLE_WRITE flag, even though the kernel syscalls exist on any
+// modern Linux. Provide minimal equivalents so the executor keeps building there.
+// pkey_set() has no matching syscall (glibc implements it by writing the
+// PKRU register directly), so it's stubbed to report the feature as
+// unavailable; the callers below already treat that as "protection disabled",
+// same as when the kernel itself lacks pkey support.
+#ifndef PKEY_DISABLE_WRITE
+#define PKEY_DISABLE_WRITE 0x2
+#endif
+
+static int pkey_alloc(unsigned int flags, unsigned int access_rights)
+{
+	return syscall(__NR_pkey_alloc, flags, access_rights);
+}
+
+static int pkey_free(int pkey)
+{
+	return syscall(__NR_pkey_free, pkey);
+}
+
+static int pkey_mprotect(void* addr, size_t len, int prot, int pkey)
+{
+	return syscall(__NR_pkey_mprotect, addr, len, prot, pkey);
+}
+
+static int pkey_set(int pkey, unsigned int rights)
+{
+	errno = ENOSYS;
+	return -1;
+}
+#endif
+
 static bool pkeys_enabled;
 
 // The coverage buffer can realistically overflow. In the non-snapshot mode we cannot afford
