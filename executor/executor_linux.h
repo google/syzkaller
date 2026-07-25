@@ -1,6 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -25,17 +26,32 @@
 
 static int pkey_alloc(unsigned int flags, unsigned int access_rights)
 {
+#ifdef __NR_pkey_alloc
 	return syscall(__NR_pkey_alloc, flags, access_rights);
+#else
+	errno = ENOSYS;
+	return -1;
+#endif
 }
 
 static int pkey_free(int pkey)
 {
+#ifdef __NR_pkey_free
 	return syscall(__NR_pkey_free, pkey);
+#else
+	errno = ENOSYS;
+	return -1;
+#endif
 }
 
 static int pkey_mprotect(void* addr, size_t len, int prot, int pkey)
 {
+#ifdef __NR_pkey_mprotect
 	return syscall(__NR_pkey_mprotect, addr, len, prot, pkey);
+#else
+	errno = ENOSYS;
+	return -1;
+#endif
 }
 
 static int pkey_set(int pkey, unsigned int rights)
