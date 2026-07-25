@@ -149,7 +149,10 @@ xfrma_policy [
 	XFRMA_SET_MARK		nlattr[XFRMA_SET_MARK, int32]
 	XFRMA_SET_MARK_MASK	nlattr[XFRMA_SET_MARK_MASK, int32]
 	XFRMA_IF_ID		nlattr[XFRMA_IF_ID, xfrm_if_id]
+	sa_dir			nlattr[XFRMA_SA_DIR, flags[xfrm_sa_dir, int8]]
 ] [varlen]
+
+xfrm_sa_dir = XFRM_SA_DIR_IN, XFRM_SA_DIR_OUT
 
 define XFRM_MAX_DEPTH	6
 
