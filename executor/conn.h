@@ -213,8 +213,16 @@ public:
 			if (pselect(max_fd_ + 1, &rdset_, nullptr, nullptr, &timeout, nullptr) >= 0)
 				break;
 
-			if (errno != EINTR && errno != EAGAIN)
-				fail("pselect failed");
+			if (errno == EINTR)
+				continue;
+			// In a fuzzing context (e.g. under memory pressure or kernel fault injection
+			// like failslab), pselect can fail with ENOMEM. Treat it as a transient
+			// condition alongside EAGAIN and retry after a short delay.
+			if (errno == EAGAIN || errno == ENOMEM) {
+				sleep_ms(1);
+				continue;
+			}
+			fail("pselect failed");
 		}
 	}
 
