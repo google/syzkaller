@@ -38,6 +38,44 @@ func TestStructLayoutNonExistent(t *testing.T) {
 	)
 }
 
+func TestDefinitionSourceOmitContextFile(t *testing.T) {
+	aflow.TestTool(t, ToolDefinitionSource,
+		createIndex(t),
+		defSourceArgs{
+			Name: "open",
+		},
+		defSourceResult{
+			SourceFile: "source0.c",
+			SourceCode: `  11:	/*
+  12:	 * Comment about open.
+  13:	 */
+  14:	int open()
+  15:	{
+  16:		return 0;
+  17:	}
+`,
+		},
+		``,
+	)
+}
+
+func TestDefinitionCommentOmitContextFile(t *testing.T) {
+	aflow.TestTool(t, ToolDefinitionComment,
+		createIndex(t),
+		defCommentArgs{
+			Name: "open",
+		},
+		defCommentResult{
+			Kind: "function",
+			Comment: `  11:	/*
+  12:	 * Comment about open.
+  13:	 */
+`,
+		},
+		``,
+	)
+}
+
 func createIndex(t *testing.T) prepareResult {
 	return prepareResult{
 		Index: index{codesearch.NewTestIndex(t, filepath.FromSlash("../../../codesearch/testdata"))},
