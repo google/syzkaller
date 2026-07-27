@@ -94,7 +94,7 @@ type indexEntity struct {
 
 // nolint: lll
 type defCommentArgs struct {
-	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
+	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files." json:",omitempty"`
 	Name        string `jsonschema:"Name of the entity of interest."`
 }
 
@@ -105,7 +105,7 @@ type defCommentResult struct {
 
 // nolint: lll
 type defSourceArgs struct {
-	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
+	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files." json:",omitempty"`
 	Name        string `jsonschema:"Name of the entity of interest."`
 }
 
