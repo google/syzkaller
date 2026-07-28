@@ -80,7 +80,10 @@ type EmailConfig struct {
 	SubjectPrefix string `yaml:"subjectPrefix"`
 }
 
-func (c EmailConfig) OwnEmails() []string {
+func (c *EmailConfig) OwnEmails() []string {
+	if c == nil {
+		return nil
+	}
 	var own []string
 	if c.Dashapi != nil && c.Dashapi.From != "" {
 		own = append(own, c.Dashapi.From)
