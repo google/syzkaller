@@ -86,7 +86,7 @@ linters:
     goconst:
       min-len: 3
       min-occurrences: 3
-      ignore-string-values: ['\.html|^true$']
+      ignore-string-values: ['\.html|^true$|^qemu$']
     gocritic:
       disable-all: true
       enabled-checks:

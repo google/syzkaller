@@ -42,6 +42,8 @@ type TargetConfig struct {
 	NeedStrace bool
 	// Isolation sandbox type (e.g., "none", "namespace", "setuid", "android").
 	Sandbox string
+	// Whether to run VM in snapshot mode (only supported with qemu VM type).
+	Snapshot bool
 }
 
 // Validate checks if the target configuration is valid.
@@ -111,6 +113,10 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 	if args.Sandbox != "" {
 		cfg.Sandbox = args.Sandbox
 	}
+	if args.Snapshot && args.Type != "qemu" {
+		return nil, fmt.Errorf("snapshot mode is only supported with qemu VM type")
+	}
+	cfg.Snapshot = args.Snapshot
 	cfg.Experimental.DescriptionsMode = mgrconfig.AnyDescriptionsMode
 	if args.NeedStrace && args.StraceBin != "" {
 		cfg.StraceBin = args.StraceBin
