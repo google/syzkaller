@@ -80,7 +80,10 @@ type EmailConfig struct {
 	SubjectPrefix string `yaml:"subjectPrefix"`
 }
 
-func (c EmailConfig) OwnEmails() []string {
+func (c *EmailConfig) OwnEmails() []string {
+	if c == nil {
+		return nil
+	}
 	var own []string
 	if c.Dashapi != nil && c.Dashapi.From != "" {
 		own = append(own, c.Dashapi.From)
@@ -160,7 +163,7 @@ func (c AppConfig) Validate() error {
 	return nil
 }
 
-func (c EmailConfig) Validate() error {
+func (c *EmailConfig) Validate() error {
 	for _, err := range []error{
 		ensureNonEmpty("name", c.Name),
 		ensureEmail("supportEmail", c.SupportEmail),
