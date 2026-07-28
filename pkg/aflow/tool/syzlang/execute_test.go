@@ -5,11 +5,15 @@ package syzlang
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	aflow_syzlang "github.com/google/syzkaller/pkg/aflow/syzspec"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/image"
+	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,6 +52,87 @@ func TestExecuteSeed_DeserializeErrors(t *testing.T) {
 			require.Contains(t, err.Error(), deserializationErrorHelp)
 		})
 	}
+}
+
+func TestFormatCallErrors(t *testing.T) {
+	calls := []*prog.Call{
+		{Meta: &prog.Syscall{Name: "syz_usb_connect"}},
+		{Meta: &prog.Syscall{Name: "openat"}},
+		{Meta: &prog.Syscall{Name: "read"}},
+	}
+
+	execFinished := flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished
+	execStarted := flatrpc.CallFlagExecuted
+	unexec := flatrpc.CallFlag(0)
+
+	tests := []struct {
+		name       string
+		callErrors []crash.CallError
+		want       []CallError
+	}{
+		{
+			name: "normal errno formatting",
+			callErrors: []crash.CallError{
+				{Flags: execFinished, Errno: 0},
+				{Flags: execFinished, Errno: 22},
+				{Flags: execFinished, Errno: 0},
+			},
+			want: []CallError{
+				{Index: 1, CallName: "openat", Errno: 22, Error: "invalid argument"},
+			},
+		},
+		{
+			name: "unexecuted and timed out calls",
+			callErrors: []crash.CallError{
+				{Flags: execStarted, Errno: 998},
+				{Flags: unexec, Errno: 998},
+			},
+			want: []CallError{
+				{Index: 0, CallName: "syz_usb_connect", Errno: 998, Error: "call execution timed out or hung"},
+				{Index: 1, CallName: "openat", Errno: 998, Error: "call unexecuted (executor halted on an earlier call)"},
+			},
+		},
+		{
+			name: "mix of finished errno, timed out, and unexecuted",
+			callErrors: []crash.CallError{
+				{Flags: execFinished, Errno: 22},
+				{Flags: execStarted, Errno: 998},
+				{Flags: unexec, Errno: 998},
+			},
+			want: []CallError{
+				{Index: 0, CallName: "syz_usb_connect", Errno: 22, Error: "invalid argument"},
+				{Index: 1, CallName: "openat", Errno: 998, Error: "call execution timed out or hung"},
+				{Index: 2, CallName: "read", Errno: 998, Error: "call unexecuted (executor halted on an earlier call)"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := formatCallErrors(tt.callErrors, 0, calls)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestTruncateConsoleOutput(t *testing.T) {
+	shortLog := "line1\nline2\nline3"
+	gotShort := truncateConsoleOutput(shortLog, 5)
+	require.Equal(t, shortLog, gotShort)
+
+	lines := make([]string, 300)
+	for i := range 300 {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	longLog := strings.Join(lines, "\n")
+
+	gotTruncated := truncateConsoleOutput(longLog, 200)
+	require.Contains(t, gotTruncated, "... [VM console output truncated, showing last 200 of 300 lines] ...")
+	require.NotContains(t, gotTruncated, "line 1\n")
+	require.NotContains(t, gotTruncated, "line 100\n")
+	require.Contains(t, gotTruncated, "line 101")
+	require.Contains(t, gotTruncated, "line 300")
 }
 
 func TestExecuteSeed_BlobPlaceholder(t *testing.T) {

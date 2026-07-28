@@ -70,7 +70,8 @@ type ResolveLineToPCArgs struct {
 }
 
 type ResolveLineToPCResult struct {
-	PC uint64
+	PC  string
+	PCs []string
 }
 
 var ActionResolveLineToPC = aflow.NewFuncAction("resolve-line-to-pc", resolveLineToPCAction)
@@ -87,7 +88,11 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 	if len(pcs) == 0 {
 		return ResolveLineToPCResult{}, fmt.Errorf("no KCOV coverage PC found for %s:%d", args.FilePath, args.LineNumber)
 	}
-	return ResolveLineToPCResult{PC: pcs[0]}, nil
+	hexPCs := make([]string, len(pcs))
+	for i, pc := range pcs {
+		hexPCs[i] = fmt.Sprintf("0x%x", pc)
+	}
+	return ResolveLineToPCResult{PC: hexPCs[0], PCs: hexPCs}, nil
 }
 
 func resolveLineToPC(kernelSrc, kernelObj, filePath string, line int) ([]uint64, error) {

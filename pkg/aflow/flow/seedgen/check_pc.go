@@ -19,16 +19,20 @@ type CheckPCReachedResult struct {
 }
 
 type checkPCState struct {
-	PC uint64
+	PC string
 }
 
 var CheckPCReached = aflow.NewFuncTool[checkPCState, CheckPCReachedArgs, CheckPCReachedResult](
 	"check-pc-reached",
 	func(ctx *aflow.Context, state checkPCState, args CheckPCReachedArgs) (CheckPCReachedResult, error) {
-		if state.PC == 0 {
+		if state.PC == "" {
 			return CheckPCReachedResult{}, fmt.Errorf("target PC not found in state")
 		}
-		reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, state.PC)
+		pc, err := parseFlexPC(state.PC)
+		if err != nil {
+			return CheckPCReachedResult{}, fmt.Errorf("invalid PC in state: %w", err)
+		}
+		reached, err := crash.CheckPCInCoverage(ctx, args.ExecutionCachedID, pc)
 		if err != nil {
 			return CheckPCReachedResult{}, aflow.BadCallError("failed to check PC in coverage: %v", err)
 		}
