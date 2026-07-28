@@ -15,6 +15,7 @@ spec:
       securityContext:
         runAsUser: 10000
         fsGroup: 10000
+        fsGroupChangePolicy: "OnRootMismatch"
       initContainers:
         - name: setup-repo
           image: ${IMAGE_PREFIX}triage-action:${IMAGE_TAG}
