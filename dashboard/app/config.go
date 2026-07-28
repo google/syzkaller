@@ -169,6 +169,7 @@ type AIPatchStageConfig struct {
 	NoParallelReports  bool
 	MergePatchCc       bool          // If true, CC people mentioned in the patch report (authors, reviewers).
 	AddressComments    bool          // If true, automatically trigger a patch iteration on new comments.
+	ReplyToComments    bool          // If true, allow AI to generate and post conversational text replies to comments.
 	IterationDebounce  time.Duration // Wait time before creating a new iteration. Defaults to 30m.
 }
 

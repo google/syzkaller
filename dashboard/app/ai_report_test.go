@@ -1441,7 +1441,13 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 
 	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				ReplyToComments:    true,
+			},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
 	})
@@ -1494,6 +1500,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	resp, err := c.agentClient.AIJobPoll(pollReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.ID)
+	require.Equal(t, true, resp.Args["ReplyToComments"])
 
 	// Simulate a second comment arriving WHILE the job is running (or polled).
 	// This represents the race condition.
@@ -1563,6 +1570,90 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp2.ID)
 	require.NotEqual(t, resp.ID, resp2.ID) // Must be a new job.
+}
+
+func TestAIPatchIterationReplyDisabled(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				ReplyToComments:    false,
+			},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+	})
+
+	// 1. Setup bug and job.
+	_, jobID := c.setupAIPatchJob(t)
+
+	// Poll to mark the job as started.
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	c.finishAIPatchJob(t, jobID, nil)
+
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+	reporting := reportings[0]
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       reporting.ID,
+		PublishedExtID: "<message-id-1>",
+	})
+	require.NoError(t, err)
+
+	// 2. Simulate comment arrival.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-1>",
+		MessageExtID: "<comment-id-1>",
+		Author:       "reviewer@email.com",
+		Comment:      &dashapi.CommentCommand{Subject: "Re: [PATCH RFC] Test Subject", Body: "This is a comment"},
+	})
+	require.NoError(t, err)
+
+	// 3. Advance time to pass debounce (30 mins).
+	c.advanceTime(31 * time.Minute)
+
+	// 4. Poll should return the job.
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+	require.Equal(t, false, resp.Args["ReplyToComments"])
+
+	// 5. Complete the job with REPLIES only.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"Replies": []map[string]any{
+				{"ReplyTo": "<comment-id-1>", "Text": "I will fix it."},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// 6. Verify AIPollReport returns nil result because ReplyToComments is false.
+	pollRepResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
+	require.NoError(t, err)
+	require.Nil(t, pollRepResp.Result)
 }
 
 func TestAIManualPushToReporting(t *testing.T) {

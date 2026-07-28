@@ -375,6 +375,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 				ServingIntegration: "lore",
 				MailingList:        "moderation@test.com",
 				AddressComments:    true,
+				ReplyToComments:    true,
 				IterationDebounce:  10 * time.Minute,
 			},
 		},

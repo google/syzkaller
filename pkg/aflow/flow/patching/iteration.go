@@ -38,6 +38,9 @@ type PatchIterationInputs struct {
 	// Discussion history grouped by patch version.
 	PatchHistory []ai.PatchHistoryEntry
 
+	// Whether textual comment replies are enabled for this stage.
+	ReplyToComments bool `json:",omitzero"`
+
 	// Base fixes tag from previous version.
 	BaseFixes ai.FixesTag `json:",omitzero"`
 
@@ -161,27 +164,31 @@ func init() {
 					),
 				},
 
-				// Evaluate each new thread comment individually to decide if it needs a direct reply.
-				&aflow.ForEach{
-					List: "NewComments",
-					Item: "CurrentComment",
-					Do: aflow.Pipeline(
-						&aflow.LLMAgent{
-							Name:  "comment-reply-agent",
-							Model: aflow.BestExpensiveModel,
-							// nolint: lll
-							Outputs: aflow.LLMOutputs[struct {
-								Action    string `jsonschema:"Either 'reply' or 'ignore'"`
-								Reason    string `jsonschema:"Explanation of why you chose to reply or ignore"`
-								Quote     string `jsonschema:"A brief, relevant verbatim excerpt (1-3 lines) cut directly from the original comment being replied to."`
-								ReplyText string `jsonschema:"The final text of your reply."`
-							}](),
-							TaskType:    aflow.FormalReasoningTask,
-							Instruction: commentProcessInstruction,
-							Prompt:      commentProcessPrompt,
-						},
-						appendCommentReply,
-					),
+				// Evaluate each new thread comment individually to decide if it needs a direct reply,
+				// provided that replying to comments is enabled for this stage.
+				&aflow.If{
+					Condition: "ReplyToComments",
+					Do: &aflow.ForEach{
+						List: "NewComments",
+						Item: "CurrentComment",
+						Do: aflow.Pipeline(
+							&aflow.LLMAgent{
+								Name:  "comment-reply-agent",
+								Model: aflow.BestExpensiveModel,
+								// nolint: lll
+								Outputs: aflow.LLMOutputs[struct {
+									Action    string `jsonschema:"Either 'reply' or 'ignore'"`
+									Reason    string `jsonschema:"Explanation of why you chose to reply or ignore"`
+									Quote     string `jsonschema:"A brief, relevant verbatim excerpt (1-3 lines) cut directly from the original comment being replied to."`
+									ReplyText string `jsonschema:"The final text of your reply."`
+								}](),
+								TaskType:    aflow.FormalReasoningTask,
+								Instruction: commentProcessInstruction,
+								Prompt:      commentProcessPrompt,
+							},
+							appendCommentReply,
+						),
+					},
 				},
 			),
 		})
@@ -475,6 +482,11 @@ with standard JSON escapes (like \n for newlines and \" for quotes), but are oth
 `
 
 const verdictPrompt = `
+{{if not .ReplyToComments}}
+Note: Sending textual comment replies is disabled for this stage. The bot cannot reply to comments
+or ask clarifying questions; it can only generate and send a new patch version if actionable
+changes are requested.
+{{end}}
 Bug title: {{jsonMarshal .BugTitle}}
 Crash report:
 {{jsonMarshal .CrashReport}}

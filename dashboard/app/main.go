@@ -1288,7 +1288,7 @@ func handleManualIterationJob(ctx context.Context, r *http.Request,
 	if r.Method != http.MethodPost {
 		return ErrAccess
 	}
-	job, err := aidb.CreatePatchIterationJob(ctx, reportingID)
+	job, err := aidb.CreatePatchIterationJob(ctx, reportingID, true)
 	if err != nil {
 		return fmt.Errorf("failed to create patch iteration job for %v: %w", reportingID, err)
 	} else if job == nil {

@@ -958,8 +958,9 @@ func LoadJobCommentsByReporting(ctx context.Context, reportingID string) ([]*Job
 }
 
 type PendingCommentGroup struct {
-	ReportingID   string
-	LatestComment time.Time
+	ReportingID     string
+	LatestComment   time.Time
+	ReplyToComments bool
 }
 
 func LoadPendingCommentGroups(ctx context.Context, namespace, stage string) ([]*PendingCommentGroup, error) {
@@ -982,7 +983,7 @@ func LoadJobReporting(ctx context.Context, id string) (*JobReporting, error) {
 	})
 }
 
-func CreatePatchIterationJob(ctx context.Context, reportingID string) (*Job, error) {
+func CreatePatchIterationJob(ctx context.Context, reportingID string, replyToComments bool) (*Job, error) {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return nil, err
@@ -1062,6 +1063,7 @@ func CreatePatchIterationJob(ctx context.Context, reportingID string) (*Job, err
 
 		extractBaseCommitArgs(parentJob, argsMap)
 		argsMap["TargetCommentIDs"] = commentIDs
+		argsMap["ReplyToComments"] = replyToComments
 
 		job = &Job{
 			ID:                uuid.NewString(),
@@ -1219,8 +1221,11 @@ func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) er
 	return txn.BufferWrite(mutations)
 }
 
+// IterationJobDone finalizes an iteration job and creates a new reporting row if needed.
+// TODO: We pass isReplyAllowed callback to avoid a circular package dependency between aidb and package main.
 func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
-	parentReportingID string, hasPatch, hasReplies bool) error {
+	parentReportingID string, hasPatch, hasReplies bool,
+	isReplyAllowed func(ns, stage string) bool) error {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return err
@@ -1277,8 +1282,13 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 			return err
 		}
 
-		// If the job didn't generate a patch or replies, we don't need to report it externally.
-		if !hasPatch && !hasReplies {
+		// If the job didn't generate a patch or replies (or replying is disabled for this stage),
+		// we don't need to report it externally.
+		replyAllowed := true
+		if isReplyAllowed != nil {
+			replyAllowed = isReplyAllowed(parentJob.Namespace, parentRep.Stage)
+		}
+		if !hasPatch && (!hasReplies || !replyAllowed) {
 			return nil
 		}
 
