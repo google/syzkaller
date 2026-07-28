@@ -52,6 +52,7 @@ func initHTTPHandlers() {
 	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
 	http.Handle("/admin/migrate_repro_bools", handlerWrapper(handleMigrateReproBools))
+	http.Handle("/debug_bug", handlerWrapper(handleDebugBug))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
@@ -648,6 +649,29 @@ func handleMain(ctx context.Context, w http.ResponseWriter, r *http.Request) err
 	}
 
 	return serveTemplate(w, "main.html", data)
+}
+
+func handleDebugBug(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").Filter("NumRepro >", 0).Limit(10).GetAll(ctx, &bugs)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "text/plain")
+	if len(bugs) == 0 {
+		fmt.Fprintf(w, "No bugs with NumRepro > 0 found in query\n")
+		return nil
+	}
+	for _, bug := range bugs {
+		fmt.Fprintf(w, "Title: %q\n", bug.Title)
+		fmt.Fprintf(w, "  NumRepro: %d\n", bug.NumRepro)
+		fmt.Fprintf(w, "  ReproLevel: %d\n", bug.ReproLevel)
+		fmt.Fprintf(w, "  StructVersion: %d\n", bug.StructVersion)
+		fmt.Fprintf(w, "  GetReproLevelHasC: %t\n", bug.GetReproLevelHasC())
+		fmt.Fprintf(w, "  GetReproLevelHasSyz: %t\n", bug.GetReproLevelHasSyz())
+		fmt.Fprintf(w, "-----------------\n")
+	}
+	return nil
 }
 
 func handleFixed(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
