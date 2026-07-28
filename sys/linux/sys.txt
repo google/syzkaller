@@ -719,6 +719,22 @@ write$proc_reclaim(fd fd_proc_reclaim, val ptr[in, string[proc_reclaim_vals]], l
 
 proc_reclaim_vals = "file", "anon", "all"
 
+resource fd_make_it_fail[fd]
+
+openat$make_it_fail(fd const[AT_FDCWD], file ptr[in, string[make_it_fail_files]], flags const[O_WRONLY], mode const[0]) fd_make_it_fail
+write$make_it_fail(fd fd_make_it_fail, val ptr[in, string[make_it_fail_vals]], len len[val])
+
+make_it_fail_files = "/proc/self/make-it-fail", "/proc/thread-self/make-it-fail"
+make_it_fail_vals = "0", "1", "Y", "N"
+
+resource fd_fault_inject[fd]
+
+openat$fault_inject(fd const[AT_FDCWD], file ptr[in, string[fault_inject_files]], flags const[O_WRONLY], mode const[0]) fd_fault_inject
+write$fault_inject(fd fd_fault_inject, val ptr[in, string[fault_inject_vals]], len len[val])
+
+fault_inject_files = "/sys/kernel/debug/failslab/probability", "/sys/kernel/debug/failslab/interval", "/sys/kernel/debug/failslab/times", "/sys/kernel/debug/failslab/space", "/sys/kernel/debug/failslab/verbose", "/sys/kernel/debug/fail_page_alloc/probability", "/sys/kernel/debug/fail_page_alloc/interval", "/sys/kernel/debug/fail_page_alloc/times", "/sys/kernel/debug/fail_futex/probability", "/sys/kernel/debug/fail_usercopy/probability", "/sys/kernel/debug/fail_make_request/probability", "/sys/kernel/debug/fail_make_request/interval", "/sys/kernel/debug/fail_make_request/times", "/sys/kernel/debug/fail_io_timeout/probability", "/sys/kernel/debug/fail_io_timeout/interval", "/sys/kernel/debug/fail_io_timeout/times", "/sys/kernel/debug/fail_iommufd/probability", "/sys/kernel/debug/fail_iommufd/interval", "/sys/kernel/debug/fail_iommufd/times"
+fault_inject_vals = "0", "1", "10", "100", "N", "Y"
+
 resource fd_pidfd[fd]
 
 openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags[open_flags], mode const[0]) fd_pidfd
