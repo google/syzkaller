@@ -1296,7 +1296,18 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 	hasPatch := res.PatchDiff != ""
 	hasReplies := len(res.Replies) > 0
 
-	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal, hasPatch, hasReplies)
+	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal,
+		hasPatch, hasReplies, func(ns, stage string) bool {
+			nsCfg := getNsConfig(ctx, ns)
+			if nsCfg == nil || nsCfg.AI == nil {
+				return false
+			}
+			idx := nsCfg.AI.StageIndexByName(stage)
+			if idx == -1 {
+				return false
+			}
+			return nsCfg.AI.Stages[idx].ReplyToComments
+		})
 	if err != nil {
 		log.Errorf(ctx, "failed to finalize iteration job %v: %v", job.ID, err)
 	}
@@ -1622,6 +1633,7 @@ func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, 
 				return false, fmt.Errorf("failed to load pending comment groups for %v/%v: %w", ns, stage.Name, err)
 			}
 			for _, g := range grp {
+				g.ReplyToComments = stage.ReplyToComments
 				if timeNow(ctx).Sub(g.LatestComment) < stage.IterationDebounce {
 					continue
 				}
@@ -1637,7 +1649,7 @@ func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, 
 	})
 	const maxGroupsPerPoll = 5
 	for _, g := range groups[:min(len(groups), maxGroupsPerPoll)] {
-		job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID)
+		job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID, g.ReplyToComments)
 		if err != nil {
 			log.Errorf(ctx, "failed to create patch iteration job for %v: %v", g.ReportingID, err)
 		} else if job != nil {

@@ -314,7 +314,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 				return nil, err
 			}
 		case ai.WorkflowPatchIteration:
-			err = populateIterationReportResult(ctx, job, version, r.Stage, result, authors)
+			err = populateIterationReportResult(ctx, job, version, r.Stage, stageCfg.ReplyToComments, result, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -418,7 +418,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 }
 
 func populateIterationReportResult(ctx context.Context, job *aidb.Job, version int,
-	currentStage string, result *dashapi.ReportPollResult, authors []string) error {
+	currentStage string, replyToComments bool, result *dashapi.ReportPollResult, authors []string) error {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
 	if err != nil {
 		return fmt.Errorf("failed to cast job results: %w", err)
@@ -442,7 +442,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 			return err
 		}
 		result.Patch.Changelog = collectChangelog(ctx, job.ID, currentStage)
-	} else if len(res.Replies) > 0 {
+	} else if replyToComments && len(res.Replies) > 0 {
 		var comments []*aidb.JobComment
 		if job.ParentReportingID.Valid {
 			comments, _ = aidb.LoadJobCommentsByReporting(ctx, job.ParentReportingID.StringVal)
