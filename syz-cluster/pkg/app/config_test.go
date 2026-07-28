@@ -47,6 +47,9 @@ func TestConfigs(t *testing.T) {
 }
 
 func TestOwnEmails(t *testing.T) {
+	var nilCfg *EmailConfig
+	require.Nil(t, nilCfg.OwnEmails())
+
 	cfg := &EmailConfig{
 		Dashapi: &DashapiConfig{
 			From: "bot@dashapi.com",
