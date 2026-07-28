@@ -4,6 +4,9 @@
 package syzlang
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
 	"syscall"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -53,7 +56,7 @@ func executeSeed(ctx *aflow.Context, state reproduceState, args ExecuteSeedArgs)
 	args.ReproSyz = syzspec.RestoreBlobs(args.ReproSyz)
 	p, err := pt.Deserialize([]byte(args.ReproSyz), prog.Strict)
 	if err != nil {
-		return ExecuteSeedResult{}, aflow.BadCallError("%v", err)
+		return ExecuteSeedResult{}, formatDeserializeError(err, 0)
 	}
 	if len(p.Calls) > 64 {
 		return ExecuteSeedResult{}, aflow.BadCallError("program has %d calls, exceeding the limit of 64", len(p.Calls))
@@ -125,4 +128,31 @@ func getExecutedProgram(ctx *aflow.Context, state reproduceState,
 	return GetExecutedProgramResult{
 		SyzProgram: generated,
 	}, nil
+}
+
+const deserializationErrorHelp = `
+
+Syzlang Syntax Reminders:
+- Multi-line statements are not supported. Each syscall must be on a single line.
+- Inline comments (inside syscalls) are not supported. Put comments on their own lines.
+- Double quotes ("...") are only for hex sequences. Use single quotes ('...') for strings and paths.`
+
+// formatDeserializeError adjusts the line numbers in the deserialization error message
+// if a base test seed was prepended, and appends a standard cheat sheet of syzlang syntax
+// constraints to help LLM agents recover from syntax errors.
+func formatDeserializeError(err error, baseLines int) error {
+	errStr := syzspec.ReplaceBlobs(err.Error())
+	if baseLines > 0 {
+		re := regexp.MustCompile(`(?m)line #(\d+):`)
+		errStr = re.ReplaceAllStringFunc(errStr, func(match string) string {
+			parts := re.FindStringSubmatch(match)
+			if len(parts) > 1 {
+				if lineNum, err := strconv.Atoi(parts[1]); err == nil && lineNum > baseLines {
+					return fmt.Sprintf("line #%d:", lineNum-baseLines)
+				}
+			}
+			return match
+		})
+	}
+	return aflow.BadCallError("%v%s", errStr, deserializationErrorHelp)
 }

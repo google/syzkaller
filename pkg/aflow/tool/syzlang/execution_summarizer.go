@@ -26,7 +26,8 @@ var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSumm
 	Description: "Analyzes the execution of a syzkaller program to explain why it behaved the way it did.",
 	Instruction: summarizerInstruction,
 	Tools: aflow.Tools(
-		CoverageFiles, FileCoverage, ExecutionTrace, DisassembleContext, codesearcher.Tools, GetExecutedProgram,
+		CoverageFiles, FileCoverage, ExecutionTrace, DisassembleContext,
+		codesearcher.Tools, GetExecutedProgram, ReadSyzSpec, SyzGrepper,
 	),
 	Prompt: `Please analyze the execution of program ` +
 		`{{if .ExecutionCachedID}}{{.ExecutionCachedID}}{{else}}{{.LastFailedExecutionCachedID}}{{end}} ` +
@@ -43,23 +44,43 @@ program, identifying the deepest point of execution before divergence and explai
 You must base all your claims on the execution trace, program details, and coverage information.
 If you don't have enough information, you MUST state that instead of guessing.
 
+CRITICAL CONSTRAINTS ON SPECULATION:
+1. You MUST ONLY analyze the actual executed trace provided in ExecutionCachedID.
+2. You MUST NEVER speculate about external agents (such as 'code-fixer'), previous program versions,
+   or code lines that were omitted prior to execution.
+3. If the executed program did not contain or execute a setup syscall for a target driver, simply state
+   that the trace did not execute those calls and identify the deepest point reached by the executed trace.
+   Do NOT attempt to guess why lines were deleted or modified before execution.
+
 The main agent has provided you with:
 1. The target constraint (e.g., target file, and PC address).
 2. The ExecutionCachedID of the execution to analyze.
 
 Instructions:
 1. Use the 'get-executed-program' tool to load the syzlang program that was executed.
-2. Use the 'get-execution-trace' tool with 'SyscallIndex' set to the 0-based index of the call statement
-   in the program (e.g. 0 for 1st call, -1 for background coverage).
-3. Use the 'get-coverage-files' tool to explore other files hit during execution. After you see the list
+2. HYPOTHESIS-DRIVEN TRACING (CRITICAL):
+   - Do NOT blindly invoke 'get-execution-trace' across every syscall index in sequence (SyscallIndex: 0, 1, 2...).
+   - First formulate a specific hypothesis about which syscall(s) are relevant to the target PC or failure
+     (e.g., the primary syscall expected to trigger the PC, or prerequisite VM/device setup syscalls).
+   - Only query the execution traces of those relevant syscalls.
+3. EXECUTOR & PSEUDO-SYSCALL INSPECTION:
+   - If the program uses pseudo-syscalls (names starting with 'syz_', such as 'syz_kvm_add_vcpu') or complex syzlang
+     structs/instructions (e.g. '@wrmsr', 'kvm_text'), use 'syz-grepper' and 'read-syz-spec' to inspect their
+     syzlang descriptions and their C/C++ implementations in 'executor/' (e.g. 'executor/common_kvm*.h').
+     Knowing how the executor translates syzlang structs to actual kernel/VM operations is critical to diagnosing why
+     the kernel did not behave as expected.
+4. Use the 'get-coverage-files' tool to explore other files hit during execution. After you see the list
    of covered files, if there are multiple interesting files, you MUST use the 'get-file-coverage' tool
    simultaneously for ALL of those files in the same response. Do not fetch coverage one by one.
-4. Find the deepest point or the exact divergence point in the trace.
-5. Provide a highly detailed and comprehensive summary back to the main agent.
+5. STOP EARLY WHEN DIVERGENCE IS IDENTIFIED:
+   - As soon as you discover the C/C++ condition or kernel check where the execution diverged from the target PC,
+     you have enough information. Do NOT continue making tool calls to query additional syscall traces.
+6. Provide a highly detailed and comprehensive semantic summary back to the main agent explaining *why* execution
+   diverged (e.g., 'syscall X returned EINVAL because flag Y was missing' or 'wrmsr 0x40000082 was not executed
+   by the guest because kvm_text size was 0').
 
-CRITICAL: You MUST reason about *why* the execution diverged and provide a high-level, semantic 
-summary of the failure (e.g., 'syscall X returned EINVAL because flag Y was missing'). You MUST 
-include ALL possible information relevant to the divergence, such as variable values, error codes, 
-and control flow conditions, so the manager can fully understand the failure context and adjust 
-its strategy. Do not focus excessively on low-level syntax.
+Avoid Search Loops: If you are searching for a macro, struct definition, or code symbol (using codesearch tools)
+and the initial search returns no results, do NOT repeat the same query or get stuck in backtracking loops.
+Try a broader search query, look in related header files, or state clearly that the definition was not found
+and proceed with the remaining analysis.
 `

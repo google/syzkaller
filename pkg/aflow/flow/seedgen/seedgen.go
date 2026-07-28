@@ -43,6 +43,7 @@ func init() {
 				"DocProgramSyntax":             docs.ProgramSyntax,
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
+				"DocSyzOS":                     docs.SyzOS,
 			},
 			Root: aflow.Pipeline(
 				actionsyzlang.PrepareSyzFS,
@@ -57,12 +58,13 @@ func init() {
 				codesearcher.ActionExtractIndirectCallers,
 				&aflow.DoWhile{
 					While:         "ContinueLoop",
-					MaxIterations: 20,
+					MaxIterations: 5,
 					Do: aflow.Pipeline(
 						&aflow.If{
 							Condition: "LastFailedExecutionCachedID",
 							Do: aflow.Pipeline(
 								ActionPrepareFailedDetails,
+								ActionFormatFailedHistory,
 								HistorySummarizerAgent,
 							),
 						},
@@ -130,10 +132,11 @@ func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) 
 }
 
 type VerifyPCAndLoopStateArgs struct {
-	ExecutionCachedID string
-	GeneratorGiveUp   bool
-	GeneratorReason   string
-	PC                uint64
+	ExecutionCachedID    string
+	GeneratorGiveUp      bool
+	GeneratorReason      string
+	PC                   uint64
+	FailedHistorySummary string
 }
 
 type VerifyPCAndLoopStateResult struct {
@@ -165,6 +168,7 @@ var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop
 			ContinueLoop:                "yes",
 			PCReached:                   false,
 			LastFailedExecutionCachedID: args.ExecutionCachedID,
+			LastFailedHistorySummary:    args.FailedHistorySummary,
 		}
 		return res, nil
 	})
