@@ -57,6 +57,7 @@ func init() {
 			Consts: map[string]any{
 				"NeedStrace": false,
 				"Sandbox":    "none",
+				"Snapshot":   false,
 				// For convenience of the patch-iteration workflow.
 				"ReviewedBy": []string{},
 				"AckedBy":    []string{},
