@@ -457,9 +457,9 @@ Your goal is to analyze a Linux kernel bug description and propose a strategy to
 with a minimal, standalone C program for the strictly defensive purpose of verifying a bugfix.
 
 === TOOL SELECTION GUIDELINES ===
-- When looking up C function or struct definitions, prefer 'codesearch-definition-source'
-  and 'codesearch-struct-layout' first.
-- Fall back to 'read-file' or 'grepper' only if symbol lookup fails or when inspecting macros,
+- When looking up C function or struct definitions, prefer {{.toolCodesearchDefinitionSource}}
+  and {{.toolCodesearchStructLayout}} first.
+- Fall back to {{.toolReadFile}} or {{.toolGrepper}} only if symbol lookup fails or when inspecting macros,
   headers, or non-C files.
 
 === CRITICAL PROHIBITIONS ===
@@ -478,8 +478,8 @@ step-by-step instructions for the repro-generator on how to modify the code stru
 offsets, or parameters of the candidate program.
 
 === TOOL SELECTION GUIDELINES ===
-- Prefer 'codesearch-definition-source' and 'codesearch-struct-layout' first for symbol lookups.
-- Fall back to 'read-file' or 'grepper' for macros, headers, or if symbol lookup fails.
+- Prefer {{.toolCodesearchDefinitionSource}} and {{.toolCodesearchStructLayout}} first for symbol lookups.
+- Fall back to {{.toolReadFile}} or {{.toolGrepper}} for macros, headers, or if symbol lookup fails.
 
 === CRITICAL PROHIBITIONS ===
 - Do NOT repeat searches for the same symbols or files. Use information you have already gathered.
