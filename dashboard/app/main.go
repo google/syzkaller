@@ -51,7 +51,6 @@ func initHTTPHandlers() {
 	http.Handle("/text", handlerWrapper(handleText))
 	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
-	http.Handle("/admin/migrate_repro_bools", handlerWrapper(handleMigrateReproBools))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
@@ -2186,8 +2185,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 		ReportedTime:   reported,
 		ClosedTime:     bug.Closed,
 		FixTime:        bug.FixTime,
-		HasCRepro:      bug.GetReproLevelHasC(),
-		HasSyzRepro:    bug.GetReproLevelHasSyz(),
+		HasCRepro:      bug.HasCRepro,
+		HasSyzRepro:    bug.HasSyzRepro,
 		ReportingIndex: reportingIdx,
 		Status:         status,
 		Link:           bugExtLink(ctx, bug),
@@ -2238,8 +2237,8 @@ func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
-	bug.HasCRepro = bug.HasCRepro || dup.GetReproLevelHasC()
-	bug.HasSyzRepro = bug.HasSyzRepro || dup.GetReproLevelHasSyz()
+	bug.HasCRepro = bug.HasCRepro || dup.HasCRepro
+	bug.HasSyzRepro = bug.HasSyzRepro || dup.HasSyzRepro
 	updateBugBadness(ctx, bug)
 }
 
