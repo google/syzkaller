@@ -537,3 +537,60 @@ func TestLLMAgentMaxIterations(t *testing.T) {
 		nil,
 	)
 }
+
+func TestMaxParallelToolCalls(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	type toolArgs struct {
+		Arg int `jsonschema:"something"`
+	}
+	var parts []backend.Part
+	for i := range maxParallelToolCalls + 1 {
+		parts = append(parts, backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   fmt.Sprintf("id%d", i),
+				Name: "some-tool",
+				Args: map[string]any{
+					"Arg": i,
+				},
+			},
+		})
+	}
+	toolExecutionCount := 0
+	replies := []any{
+		&backend.GenerateResponse{
+			Parts: parts,
+		},
+		func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
+			require.GreaterOrEqual(t, len(req), 2)
+			lastMsg := req[len(req)-1]
+			require.Equal(t, backend.RoleUser, lastMsg.Role)
+			require.Len(t, lastMsg.Parts, 1)
+			expectedErr := fmt.Sprintf(
+				"too many parallel tool calls (%d), maximum allowed is %d; "+
+					"please reduce the number of tool calls per turn",
+				maxParallelToolCalls+1, maxParallelToolCalls,
+			)
+			require.Equal(t, expectedErr, lastMsg.Parts[0].Text)
+			return &backend.GenerateResponse{
+				Parts: []backend.Part{{Text: "Done"}},
+			}, nil
+		},
+	}
+	testFlow[struct{}, outputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				NewFuncTool("some-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+					toolExecutionCount++
+					return struct{}{}, nil
+				}, "some-tool description"),
+			},
+		},
+		replies,
+		nil,
+	)
+	require.Equal(t, 0, toolExecutionCount, "tools should not be executed when maxParallelToolCalls is exceeded")
+}

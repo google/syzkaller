@@ -1,0 +1,180 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "some-tool description",
+							"name": "some-tool",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Arg": {
+										"type": "integer",
+										"description": "something"
+									}
+								},
+								"required": [
+									"Arg"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"Arg": 0
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"Arg": 2
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Arg": 3
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Arg": 4
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id5",
+							"args": {
+								"Arg": 5
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id6",
+							"args": {
+								"Arg": 6
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id7",
+							"args": {
+								"Arg": 7
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id8",
+							"args": {
+								"Arg": 8
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id9",
+							"args": {
+								"Arg": 9
+							},
+							"name": "some-tool"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id10",
+							"args": {
+								"Arg": 10
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "too many parallel tool calls (11), maximum allowed is 10; please reduce the number of tool calls per turn"
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
