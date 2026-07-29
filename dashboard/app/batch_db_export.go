@@ -40,7 +40,7 @@ func exportDBScript(srcNamespace, archivePath string) string {
 		"echo \"Running syz-db-export inside syz-env...\"\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
 		"echo 'Starting export process inside container...' && " +
-		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
+		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token '$token' -j 10 && " +
 		"echo 'Export finished. Creating tarball...' && " +
 		"tar -czf export.tar.gz ./export/ && " +
 		"echo 'Tarball created. Copying to GCS...' && " +
