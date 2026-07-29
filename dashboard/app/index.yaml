@@ -41,12 +41,6 @@ indexes:
 
 - kind: Bug
   properties:
-  - name: Status
-  - name: HappenedOn
-  - name: HeadReproLevel
-
-- kind: Bug
-  properties:
   - name: HappenedOn
   - name: Status
 
@@ -77,28 +71,6 @@ indexes:
   - name: Namespace
   - name: NeedCommitInfo
   - name: Commits
-
-- kind: Bug
-  properties:
-  - name: BisectCause
-  - name: ReproLevel
-  - name: FirstTime
-    direction: desc
-
-- kind: Bug
-  properties:
-  - name: BisectCause
-  - name: ReproLevel
-  - name: Status
-  - name: FirstTime
-    direction: desc
-
-- kind: Bug
-  properties:
-  - name: BisectFix
-  - name: ReproLevel
-  - name: Status
-  - name: LastTime
 
 - kind: Bug
   properties:

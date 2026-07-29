@@ -1530,7 +1530,6 @@ func createBugForCrash(ctx context.Context, ns string, req *dashapi.Crash) (*Bug
 					Status:         BugStatusOpen,
 					NumCrashes:     0,
 					NumRepro:       0,
-					ReproLevel:     ReproLevelNone,
 					StructVersion:  bugStructVersion,
 					HasReport:      false,
 					FirstTime:      now,
@@ -1611,9 +1610,9 @@ func needReproForBug(ctx context.Context, bug *Bug) bool {
 	hasBest := false
 	switch bestReproLevel {
 	case ReproLevelC:
-		hasBest = bug.GetHeadReproLevelHasC()
+		hasBest = bug.HeadHasCRepro
 	case ReproLevelSyz:
-		hasBest = bug.GetHeadReproLevelHasSyz()
+		hasBest = bug.HeadHasSyzRepro
 	}
 	if !hasBest {
 		// We have not found a best-level repro yet, try until we do.

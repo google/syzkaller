@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,18 +31,18 @@ func TestProcessPlayers(t *testing.T) {
 	now := time.Now()
 
 	bug1 := &Bug{
-		NumCrashes: 1500,                   // Dragon Slayer.
-		ReproLevel: dashapi.ReproLevelNone, // Diviner.
+		NumCrashes: 1500, // Dragon Slayer.
 		FirstTime:  now,
 		FixTime:    now.Add(24 * 400 * time.Hour), // 400 days -> Necromancer
 	}
 
 	bug2 := &Bug{
-		Title:      "memory-leak in fs", // Sealer.
-		NumCrashes: 10,
-		ReproLevel: dashapi.ReproLevelC,
-		FirstTime:  now,
-		FixTime:    now.Add(24 * 2 * time.Hour), // 2 days -> Windwalker
+		Title:       "memory-leak in fs", // Sealer.
+		NumCrashes:  10,
+		HasCRepro:   true,
+		HasSyzRepro: true,
+		FirstTime:   now,
+		FixTime:     now.Add(24 * 2 * time.Hour), // 2 days -> Windwalker
 	}
 
 	bugDays := map[*Bug]int{
@@ -217,7 +216,7 @@ func TestIntegrationBadges(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		dummyBug := &Bug{Title: tc.title, ReproLevel: dashapi.ReproLevelC}
+		dummyBug := &Bug{Title: tc.title, HasCRepro: true, HasSyzRepro: true}
 		playerMap := map[string]*uiDungeonPlayer{
 			"a@test.com": {Email: "a@test.com", Bugs: []*Bug{dummyBug}},
 		}
@@ -243,7 +242,7 @@ func TestIntegrationBadges(t *testing.T) {
 
 func TestTrophyLadderBadges(t *testing.T) {
 	// Create a dummy bug to assign to players.
-	dummyBug := &Bug{NumCrashes: 1, Title: "foo", ReproLevel: dashapi.ReproLevelC}
+	dummyBug := &Bug{NumCrashes: 1, Title: "foo", HasCRepro: true, HasSyzRepro: true}
 
 	tests := []struct {
 		numBugs        int

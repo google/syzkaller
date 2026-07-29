@@ -123,7 +123,7 @@ func needReport(ctx context.Context, typ string, state *ReportingState, bug *Bug
 		reporting, bugReporting = nil, nil
 		return
 	}
-	if crashNeedsRepro(bug.Title) && !bug.GetReproLevelHasC() &&
+	if crashNeedsRepro(bug.Title) && !bug.HasCRepro &&
 		timeSince(ctx, bug.FirstTime) < cfg.WaitForRepro {
 		status = fmt.Sprintf("%v: waiting for C repro", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
@@ -1308,10 +1308,10 @@ func findCrashForBug(ctx context.Context, bug *Bug) (*Crash, *db.Key, error) {
 		return nil, nil, fmt.Errorf("no crashes")
 	}
 	crash, key := crashes[0], keys[0]
-	if bug.GetHeadReproLevelHasC() && crash.ReproC == 0 {
+	if bug.HeadHasCRepro && crash.ReproC == 0 {
 		log.Errorf(ctx, "bug '%v': has C repro, but crash without C repro", bug.Title)
 	}
-	hasSyz := bug.GetHeadReproLevelHasSyz() && !bug.GetHeadReproLevelHasC()
+	hasSyz := bug.HeadHasSyzRepro && !bug.HeadHasCRepro
 	if hasSyz && crash.ReproSyz == 0 {
 		log.Errorf(ctx, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
 	}

@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -15,8 +14,6 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
-
-	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -341,8 +338,8 @@ func updateHeadReproLevel(ctx context.Context, w http.ResponseWriter, r *http.Re
 				actualSyz = true
 			}
 		}
-		dbHasC := bug.GetHeadReproLevelHasC()
-		dbHasSyz := bug.GetHeadReproLevelHasSyz()
+		dbHasC := bug.HeadHasCRepro
+		dbHasSyz := bug.HeadHasSyzRepro
 		mismatch := (actualC != dbHasC) || (actualSyz != dbHasSyz)
 		if mismatch {
 			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual C/Syz=%t/%t, db C/Syz=%t/%t\n",
@@ -422,69 +419,6 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	})
 }
 
-func handleMigrateReproBools(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(ctx, r) != AccessAdmin {
-		return ErrAccess
-	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	limit := 1000
-	if val := r.FormValue("limit"); val != "" {
-		l, err := strconv.Atoi(val)
-		if err != nil || l <= 0 {
-			return fmt.Errorf("limit parameter must be a positive integer")
-		}
-		limit = l
-	}
-
-	var unmigratedKeys []*db.Key
-	errStop := errors.New("stop")
-	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
-		if bug.StructVersion < bugStructVersion {
-			unmigratedKeys = append(unmigratedKeys, key)
-			if len(unmigratedKeys) >= limit {
-				return errStop
-			}
-		}
-		return nil
-	})
-	if err != nil && !errors.Is(err, errStop) {
-		return err
-	}
-
-	if len(unmigratedKeys) == 0 {
-		fmt.Fprintf(w, "All bugs already migrated!\n")
-		return nil
-	}
-
-	err = updateBatch(ctx, unmigratedKeys, func(key *db.Key, bug *Bug) {
-		if bug.StructVersion >= bugStructVersion {
-			return
-		}
-		bug.HasCRepro, bug.HasSyzRepro = reproLevelToCAndSyz(bug.ReproLevel)
-		bug.HeadHasCRepro, bug.HeadHasSyzRepro = reproLevelToCAndSyz(bug.HeadReproLevel)
-
-		bug.StructVersion = bugStructVersion
-	})
-	if err != nil {
-		return fmt.Errorf("migration batch failed: %w", err)
-	}
-
-	fmt.Fprintf(w, "Successfully migrated %d bugs.\n", len(unmigratedKeys))
-	return nil
-}
-
-func reproLevelToCAndSyz(l dashapi.ReproLevel) (hasC, hasSyz bool) {
-	switch l {
-	case dashapi.ReproLevelC:
-		return true, true
-	case dashapi.ReproLevelSyz:
-		return false, true
-	default:
-		return false, false
-	}
-}
-
 func init() {
 	// Prevent warnings about dead code.
 	runtime.KeepAlive(dropNamespace)
@@ -492,5 +426,4 @@ func init() {
 	runtime.KeepAlive(adminSendEmail)
 	runtime.KeepAlive(updateHeadReproLevel)
 	runtime.KeepAlive(updateCrashPriorities)
-	runtime.KeepAlive(handleMigrateReproBools)
 }
