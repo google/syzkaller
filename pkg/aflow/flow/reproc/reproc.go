@@ -189,7 +189,7 @@ type OracleResult struct {
 	// blocker (which must be reported via a non-empty TerminalError). This logical consistency
 	// is strictly enforced by validateOracleOutputs.
 	ProbePassed   bool   `jsonschema:"True if the executed program was a minimal capability probe and all checks succeeded, false otherwise."`
-	TerminalError string `jsonschema:"If a terminal environmental or hardware blocker is encountered (e.g., missing /dev/kvm or other required hardware, missing critical kernel modules/files, or sandbox restrictions that cannot be bypassed by C code edits), specify a descriptive error message explaining the missing dependency. Otherwise, leave this empty."`
+	TerminalError string `jsonschema:"If a terminal environmental or hardware blocker is encountered (e.g., missing /dev/kvm or other required hardware, missing critical kernel modules/files, or sandbox restrictions that cannot be bypassed by C code edits), specify a descriptive error message explaining the missing dependency. Do NOT set this based on git commits mentioning bug titles or fixes. Otherwise, leave this empty."`
 }
 
 type GeneratorResult struct {
@@ -458,6 +458,9 @@ with a minimal, standalone C program.
 This is for the strictly defensive purpose of verifying a bugfix in an isolated environment.
 Do NOT propose an exploit. Focus on minimal technical reproduction of the bug state.
 Keep your analysis and strategy proposal concise. Do not write long explanations.
+Do NOT assume that the target bug has already been fixed just because a git commit title
+or description mentions a similar bug or fix. Commit messages often reference related issues
+or partial fixes. Proceed with proposing a reproduction strategy regardless of historical fix commits.
 When looking up C function or struct definitions, prefer 'codesearch-definition-source'
 and 'codesearch-struct-layout' first. Fall back to 'read-file' or 'grepper' if symbol lookup fails
 or when inspecting macros, headers, or non-C files.`
@@ -560,6 +563,10 @@ You MUST classify the run as a terminal failure and set the field 'TerminalError
    the VM guest.
 2. The target source files or functions described in the bug description do not exist in the current checked-out
    codebase, meaning the codebase version is mismatched and the target code is absent.
+
+Do NOT classify a run as a terminal failure or assume a bug is fixed based on git log entries, commit titles,
+or commit messages. A commit referencing a bug title does NOT mean the bug is fixed in the current test kernel.
+Reproducibility can ONLY be determined by executing reproducer candidates in the VM environment.
 
 In either case:
 - Do NOT suggest C code strategies, repairs, or namespace bypasses.
