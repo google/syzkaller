@@ -102,6 +102,8 @@ const (
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
 	// We abort execution after this many iterations to prevent infinite loops.
 	defaultMaxLLMIterations = 250
+	// Maximum number of parallel tool calls allowed per model turn.
+	maxParallelToolCalls = 10
 )
 
 type TaskType int
@@ -694,6 +696,17 @@ func (a *LLMAgent) config(ctx *Context) (*backend.GenerateConfig, string, string
 }
 
 func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*backend.FunctionCall) error {
+	if len(calls) > maxParallelToolCalls {
+		a.req = append(a.req, llmMessage{content: &backend.Message{
+			Role: backend.RoleUser,
+			Parts: []backend.Part{{
+				Text: fmt.Sprintf("too many parallel tool calls (%d), maximum allowed is %d; "+
+					"please reduce the number of tool calls per turn",
+					len(calls), maxParallelToolCalls),
+			}},
+		}})
+		return nil
+	}
 	responses := &backend.Message{
 		Role: backend.RoleUser,
 	}
