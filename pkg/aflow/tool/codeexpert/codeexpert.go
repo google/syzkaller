@@ -80,28 +80,28 @@ const instructionGitSources = ` - git commits descriptions, git blame
 const instructionBody = `
 Do not guess file names or file paths and attempt to read them without
 verifying their existence first using content search or directory listing tools.
-If a file, symbol, or directory is not found via content search ('grepper') or
-directory listing ('codesearch-dir-index'), treat it as completely absent.
+If a file, symbol, or directory is not found via content search ({{.toolGrepper}}) or
+directory listing ({{.toolCodesearchDirIndex}}), treat it as completely absent.
 Do not attempt to guess alternative names, extensions, or directories.
 
 Tool Selection Guidelines:
-1. For C functions, structs, and variables: Prefer 'codesearch-definition-source'
-   or 'codesearch-struct-layout' FIRST to retrieve clean, exact definitions
+1. For C functions, structs, and variables: Prefer {{.toolCodesearchDefinitionSource}}
+   or {{.toolCodesearchStructLayout}} FIRST to retrieve clean, exact definitions
    without line-number guessing.
 2. If symbol lookup fails (e.g., preprocessor macros, macro-generated code, or
-   disabled #ifdef branches), fall back to 'read-file' or 'grepper'.
+   disabled #ifdef branches), fall back to {{.toolReadFile}} or {{.toolGrepper}}.
 3. For file headers, #include directives, preprocessor macro definitions, and
-   non-C files (Kconfig, Makefiles, docs): Use 'read-file' or 'grepper' directly.
+   non-C files (Kconfig, Makefiles, docs): Use {{.toolReadFile}} or {{.toolGrepper}} directly.
 `
 
-const instructionGitRestrictions = `Do NOT use 'git-log' to search for the presence or existence of files in the
-repository. 'git-log' is only for tracing commit history of files that are
+const instructionGitRestrictions = `Do NOT use {{.toolGitLog}} to search for the presence or existence of files in the
+repository. {{.toolGitLog}} is only for tracing commit history of files that are
 already present in the current checkout. If a file does not exist in the
 current checkout, it cannot be used for reproduction.
 
-Avoid running broad 'git-log' queries (such as searches on the entire repo)
+Avoid running broad {{.toolGitLog}} queries (such as searches on the entire repo)
 without a specific 'PathPrefix' to restrict the scope, as these are very
 expensive and will time out.
-If a 'git-log' tool call times out, do not retry the query with the same broad
+If a {{.toolGitLog}} tool call times out, do not retry the query with the same broad
 scope. You must specify a tighter, narrower 'PathPrefix' for subsequent queries.
 `
