@@ -273,6 +273,7 @@ static bool flag_nic_vf;
 static bool flag_vhci_injection;
 static bool flag_wifi;
 static bool flag_delay_kcov_mmap;
+static bool flag_return_error;
 
 static bool flag_collect_cover;
 static bool flag_collect_signal;
@@ -427,6 +428,7 @@ struct handshake_req {
 	uint64 syscall_timeout_ms;
 	uint64 program_timeout_ms;
 	uint64 slowdown_scale;
+	bool return_error;
 };
 
 struct execute_req {
@@ -436,6 +438,7 @@ struct execute_req {
 	uint64 exec_flags;
 	uint64 all_call_signal;
 	bool all_extra_signal;
+	bool return_error;
 };
 
 struct execute_reply {
@@ -848,6 +851,7 @@ void parse_handshake(const handshake_req& req)
 	flag_wifi = (bool)(req.flags & rpc::ExecEnv::EnableWifi);
 	flag_delay_kcov_mmap = (bool)(req.flags & rpc::ExecEnv::DelayKcovMmap);
 	flag_nic_vf = (bool)(req.flags & rpc::ExecEnv::EnableNicVF);
+	flag_return_error = req.return_error;
 }
 
 void receive_execute()
@@ -872,6 +876,7 @@ void parse_execute(const execute_req& req)
 	flag_threaded = req.exec_flags & (uint64)rpc::ExecFlag::Threaded;
 	all_call_signal = req.all_call_signal;
 	all_extra_signal = req.all_extra_signal;
+	flag_return_error = req.return_error;
 
 	debug("[%llums] exec opts: reqid=%llu type=%llu procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
 	      " sandbox=%d/%d/%d/%d timeouts=%llu/%llu/%llu kernel_64_bit=%d\n",
@@ -1878,7 +1883,7 @@ rpc::ComparisonRaw convert(const kcov_comparison_t& cmp)
 void failmsg(const char* err, const char* msg, ...)
 {
 	int e = errno;
-	fprintf(stderr, "SYZFAIL: %s\n", err);
+	fprintf(stderr, "%s: %s\n", flag_return_error ? "NOTFAIL" : "SYZFAIL", err);
 	if (msg) {
 		va_list args;
 		va_start(args, msg);
