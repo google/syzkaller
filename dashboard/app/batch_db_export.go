@@ -30,12 +30,20 @@ func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
 
 func exportDBScript(srcNamespace, archivePath string) string {
 	return "\n" +
+		"set -e\n" +
+		"echo \"Cloning syzkaller...\"\n" +
 		"git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
+		"echo \"Getting auth token...\"\n" +
 		"token=$(gcloud auth print-access-token)\n" +
+		"if [ -z \"$token\" ]; then echo \"WARNING: gcloud auth token is empty\"; fi\n" +
+		"echo \"Running syz-db-export inside syz-env...\"\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
+		"echo 'Starting export process inside container...' && " +
 		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
+		"echo 'Export finished. Creating tarball...' && " +
 		"tar -czf export.tar.gz ./export/ && " +
+		"echo 'Tarball created. Copying to GCS...' && " +
 		"gcloud storage cp export.tar.gz " + archivePath +
 		"\""
 }
