@@ -102,13 +102,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</li>
 			
 			<li class="nav-item dropdown">
-				<a class="nav-link dropdown-toggle {{if or (eq .URLPath (printf "/%v/graph/bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)) (eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace))}}active{{end}}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+				<a class="nav-link dropdown-toggle {{if or (eq .URLPath (printf "/%v/graph/bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)) (eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)) (eq .URLPath (printf "/%v/graph/resolution" $.Namespace)) (eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace))}}active{{end}}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
 					<span style="color:DarkOrange;">📈</span>Graphs
 				</a>
 				<ul class="dropdown-menu">
 					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/bugs">Kernel Health</a></li>
 					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/found-bugs">Bugs/Month</a></li>
 					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/lifetimes">Bug Lifetimes</a></li>
+					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/resolution" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/resolution">Bug Resolution Rate</a></li>
 					<li><a class="dropdown-item {{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}active{{end}}" href="/{{$.Namespace}}/graph/fuzzing">Fuzzing</a></li>
 				</ul>
 			</li>

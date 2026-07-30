@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestManagersGraphs(t *testing.T) {
@@ -144,4 +146,115 @@ func TestManagersGraph_FuzzingMetric_BadRequest_OnMalformedInput(t *testing.T) {
 	c := managersGraphFixture(t)
 	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus'%2F*%22ZYLQ%22*%2F+AND+'0'%3D'0&Months=27")
 	c.expectBadReqest(err)
+}
+
+func TestResolutionGraph(t *testing.T) {
+	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
+	type testBug struct {
+		reportedMonthsAgo int
+		closedMonthsAgo   int
+		fixedMonthsAgo    int
+		status            int
+		auto              bool
+	}
+	makeBug := func(tb testBug) *Bug {
+		b := &Bug{
+			FirstTime: now.AddDate(0, -tb.reportedMonthsAgo, 0),
+			Reporting: []BugReporting{
+				{Name: "stage0", Reported: now.AddDate(0, -tb.reportedMonthsAgo, 0)},
+				{Name: "stage1", Reported: now.AddDate(0, -tb.reportedMonthsAgo, 0), Auto: tb.auto},
+			},
+			Status: tb.status,
+		}
+		if tb.closedMonthsAgo > 0 {
+			b.Closed = now.AddDate(0, -tb.closedMonthsAgo, 0)
+		}
+		if tb.fixedMonthsAgo > 0 {
+			b.CommitInfo = append(b.CommitInfo, Commit{Date: now.AddDate(0, -tb.fixedMonthsAgo, 0)})
+		}
+		return b
+	}
+
+	testBugs := []testBug{
+		// Included in cohort (reported 6-24 months ago):
+		{
+			// Fixed 1m after report.
+			reportedMonthsAgo: 6,
+			fixedMonthsAgo:    5,
+			status:            BugStatusFixed,
+		},
+		{
+			// Fixed 3m after report.
+			reportedMonthsAgo: 7,
+			closedMonthsAgo:   4,
+			status:            BugStatusFixed,
+		},
+		{
+			// Auto-obsoleted 3m after report.
+			reportedMonthsAgo: 8,
+			closedMonthsAgo:   5,
+			status:            BugStatusInvalid,
+			auto:              true,
+		},
+		{
+			// Manually closed 2m after report.
+			reportedMonthsAgo: 9,
+			closedMonthsAgo:   7,
+			status:            BugStatusInvalid,
+		},
+		// Excluded from cohort:
+		{
+			// Too recent (< 6m).
+			reportedMonthsAgo: 0,
+			status:            BugStatusOpen,
+		},
+		{
+			// Too old (> 24m).
+			reportedMonthsAgo: 36,
+			closedMonthsAgo:   36,
+			status:            BugStatusFixed,
+		},
+		{
+			// Duplicate.
+			reportedMonthsAgo: 6,
+			closedMonthsAgo:   1,
+			status:            BugStatusDup,
+		},
+	}
+
+	var bugs []*Bug
+	for _, tb := range testBugs {
+		bugs = append(bugs, makeBug(tb))
+	}
+
+	graph := createResolutionGraph(now, bugs, 1)
+	require.Len(t, graph.Columns, 6)
+
+	expected := []struct {
+		val  float32
+		hint string
+	}{
+		{val: 25.0, hint: "1/4 bugs (25.0%)"}, // Month 1: bug1 fixed (1m).
+		{val: 50.0, hint: "2/4 bugs (50.0%)"}, // Month 2: bug1, bugManualInvalid (2m).
+		{val: 75.0, hint: "3/4 bugs (75.0%)"}, // Month 3: bug1, bug2 (3m), bugManualInvalid.
+		{val: 75.0, hint: "3/4 bugs (75.0%)"}, // Month 4.
+		{val: 75.0, hint: "3/4 bugs (75.0%)"}, // Month 5.
+		{val: 75.0, hint: "3/4 bugs (75.0%)"}, // Month 6.
+	}
+
+	for i, tt := range expected {
+		require.Equal(t, tt.val, graph.Columns[i].Annotation)
+		require.Len(t, graph.Columns[i].Vals, 1)
+		require.Equal(t, tt.val, graph.Columns[i].Vals[0].Val)
+		require.Equal(t, tt.hint, graph.Columns[i].Vals[0].Hint)
+	}
+}
+
+func TestResolutionGraphEndpoint(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	reply, err := c.AuthGET(AccessAdmin, "/test2/graph/resolution")
+	require.NoError(t, err)
+	assert.Contains(t, string(reply), "bug resolution rates")
 }
