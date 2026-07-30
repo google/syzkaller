@@ -54,7 +54,10 @@ func TestPatchIterationInputsBackwardCompatibility(t *testing.T) {
 	}
 
 	onEvent := func(span *trajectory.Span) error { return nil }
-	_, err := flow.Execute(context.Background(), &dummyProvider{}, "", false, inputs, nil, onEvent)
+	_, err := flow.Execute(context.Background(), inputs, aflow.ExecuteOptions{
+		Provider: &dummyProvider{},
+		OnEvent:  onEvent,
+	})
 	if err != nil {
 		require.False(t, strings.Contains(err.Error(), "flow inputs are missing"),
 			"expected checkInputs to succeed without ReplyToComments, got: %v", err)

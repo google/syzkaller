@@ -154,7 +154,13 @@ func run(ctx context.Context, args RunArgs) error {
 	}
 	defer provider.Close()
 
-	output, err := flow.Execute(ctx, provider, args.Workdir, args.Debug, inputs, cache, onEventFunc)
+	output, err := flow.Execute(ctx, inputs, aflow.ExecuteOptions{
+		Provider: provider,
+		Workdir:  args.Workdir,
+		Cache:    cache,
+		OnEvent:  onEventFunc,
+		Debug:    args.Debug,
+	})
 	if err != nil {
 		return err
 	}

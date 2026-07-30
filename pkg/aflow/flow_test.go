@@ -280,7 +280,12 @@ func TestNoInputs(t *testing.T) {
 	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
 	require.NoError(t, err)
 	onEvent := func(span *trajectory.Span) error { return nil }
-	_, err = flows["test"].Execute(ctx, &dummyProvider{}, workdir, false, inputs, cache, onEvent)
+	_, err = flows["test"].Execute(ctx, inputs, ExecuteOptions{
+		Provider: &dummyProvider{},
+		Workdir:  workdir,
+		Cache:    cache,
+		OnEvent:  onEvent,
+	})
 	require.Equal(t, err.Error(), "flow inputs are missing:"+
 		" aflow.flowInputs: field \"InBar\" is not present when converting map")
 }
