@@ -139,8 +139,10 @@ That will be handled by the pipeline.
 ` + VMAAndMemoryPointerConstraints + "\n\n" + `
 ` + SandboxConstraints + "\n\n" + `
 ` + PseudoSyscallConstraints + "\n\n" + `
-` + KVMConstraints + "\n\n" + `
+{{.SkillsPrompt}}
+
 ===
+
 {{.DocProgramSyntax}}
 ===
 

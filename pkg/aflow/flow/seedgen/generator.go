@@ -1,3 +1,6 @@
+// Copyright 2026 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 package seedgen
 
 import (
@@ -132,9 +135,9 @@ a target/function is unreachable or that hardware/drivers are not instantiated i
 
 ` + syzlang.PseudoSyscallConstraints + `
 
-` + syzlang.KVMConstraints + `
-
+{{.SkillsPrompt}}
 Workflow:
+
 1. Read the Target details, previous attempts, and any Judge failure summaries from the prompt.
 2. PRE-GENERATION HARDWARE REACHABILITY & ENVIRONMENT CHECK:
    Before generating syzlang programs or invoking 'code-fixer':
@@ -242,6 +245,8 @@ Indirect Callers of Target Function:
 {{.IndirectCallers}}
 {{end}}
 {{.DescriptionFilesPrompt}}
+
+{{.SkillsPrompt}}
 
 {{if .DocSyzOS}}
 Document about SyzOS setup:

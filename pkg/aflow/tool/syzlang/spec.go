@@ -35,7 +35,8 @@ for understanding syz_* pseudo-syscalls (e.g. syz_usb_connect or syz_mount_image
 these pseudo-syscalls do not exist in the Linux kernel, their actual C/C++ implementations are
 defined in the syzkaller executor. Reading these headers allows you to see exactly how
 complex arguments or opaque pointers are parsed and mapped to real kernel interactions.
-Kernel docs from the docs/ directory can also be read.
+Kernel docs from the docs/ directory can also be read, as well as subsystem skills like skills/kvm.md.
+
 
 CRITICAL INSTRUCTION: When querying files, you MUST
 provide ONLY the base filename (e.g. use "vusb.txt") or the test/ prefix.
@@ -123,21 +124,20 @@ func syzGrepper(ctx *aflow.Context, state specToolsState, args syzGrepperArgs) (
 func validateFilePath(file string) error {
 	if file != "" {
 		cleaned := file
-		if suffix, ok := strings.CutPrefix(cleaned, "test/"); ok {
-			cleaned = suffix
-		} else if suffix, ok := strings.CutPrefix(cleaned, "executor/"); ok {
-			cleaned = suffix
-		} else if suffix, ok := strings.CutPrefix(cleaned, "docs/"); ok {
-			cleaned = suffix
+		for _, prefix := range []string{"test/", "executor/", "docs/", "skills/"} {
+			if suffix, ok := strings.CutPrefix(cleaned, prefix); ok {
+				cleaned = suffix
+				break
+			}
 		}
 		if strings.Contains(cleaned, "..") || filepath.IsAbs(cleaned) {
 			return aflow.BadCallError("invalid file path %q", file)
 		}
-		if !strings.HasPrefix(file, "executor/") &&
-			!strings.HasPrefix(file, "docs/") &&
-			!strings.HasPrefix(file, "test/") &&
-			(strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\")) {
-			return aflow.BadCallError("invalid file path %q", file)
+		if !strings.HasPrefix(file, "executor/") && !strings.HasPrefix(file, "docs/") &&
+			!strings.HasPrefix(file, "test/") && !strings.HasPrefix(file, "skills/") {
+			if strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\") {
+				return aflow.BadCallError("invalid file path %q", file)
+			}
 		}
 		if syzspec.IsAutoTxt(cleaned) {
 			return aflow.BadCallError("access to auto.txt or auto.txt.const is disallowed")

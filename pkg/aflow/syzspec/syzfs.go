@@ -291,5 +291,6 @@ func (s *SyzFS) TestSeeds() []string {
 
 func isLocalSyzFile(file string) bool {
 	return file == "executor" || strings.HasPrefix(file, "executor/") ||
-		file == "docs" || strings.HasPrefix(file, "docs/")
+		file == "docs" || strings.HasPrefix(file, "docs/") ||
+		file == "skills" || strings.HasPrefix(file, "skills/")
 }

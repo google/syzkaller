@@ -56,6 +56,12 @@ func TestTestSeeds(t *testing.T) {
 	require.Equal(t, seeds, legacySeeds)
 }
 
+func TestSkillsPrompt(t *testing.T) {
+	syzFS := syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)
+	prompt := SkillsPrompt(syzFS)
+	require.Contains(t, prompt, "- skills/kvm.md: KVM Virtualization and Guest Constraints (x86/amd64 Focus)")
+}
+
 func TestReadSyzSpec(t *testing.T) {
 	state := specToolsState{SyzFS: syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)}
 	// Test pagination.
@@ -65,6 +71,14 @@ func TestReadSyzSpec(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Contains(t, res.Output, "Copyright")
+
+	// Test reading a skill.
+	resSkill, errSkill := readSyzSpec(nil, state, readSyzSpecArgs{
+		File:      "skills/kvm.md",
+		FirstLine: 1,
+	})
+	require.NoError(t, errSkill)
+	require.Contains(t, resSkill.Output, "KVM Virtualization and Guest Constraints")
 
 	// Test missing file.
 	_, err2 := readSyzSpec(nil, state, readSyzSpecArgs{File: "non_existent_file.txt"})

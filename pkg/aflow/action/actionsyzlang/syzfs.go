@@ -21,6 +21,7 @@ type PrepareSyzFSArgs struct {
 type PrepareSyzFSResult struct {
 	SyzFS                  *syzspec.SyzFS
 	DescriptionFilesPrompt string
+	SkillsPrompt           string
 }
 
 func prepareSyzFSFunc(ctx *aflow.Context, args PrepareSyzFSArgs) (PrepareSyzFSResult, error) {
@@ -31,5 +32,6 @@ func prepareSyzFSFunc(ctx *aflow.Context, args PrepareSyzFSArgs) (PrepareSyzFSRe
 	return PrepareSyzFSResult{
 		SyzFS:                  syzFS,
 		DescriptionFilesPrompt: syzlang.DescriptionFilesPrompt(syzFS),
+		SkillsPrompt:           syzlang.SkillsPrompt(syzFS),
 	}, nil
 }

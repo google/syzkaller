@@ -177,55 +177,18 @@ const PseudoSyscallConstraints = `SYZKALLER PSEUDO-SYSCALLS USAGE & REFERENCE:
   manage filesystem mounts, bypass sandbox restrictions, and interact with complex kernel subsystems.
   Working syzlang seed examples demonstrating how to use these pseudo-syscalls
   can be located using 'syz-grepper' with PathPrefix='test'.
-- USB Device Emulation (raw-gadget / dummy_hcd):
-  * Connect Device: Use 'syz_usb_connect(speed, dev_len, dev, conn)' (or 'syz_usb_connect_ath9k').
-    - 'speed': 0x0 (Full), 0x1 (High), 0x2 (Super).
-    - 'dev': USB descriptors. Pass complex nested structs using ANY squashing:
-      &(0x7f0000000040)=ANY=[@ANYBLOB="120100..."].
-    - Asynchronous Driver Probe Rule: Device enumeration runs asynchronously in background kernel threads (hub_wq).
-      To prevent race conditions, you MUST insert a sleep delay (e.g. 'nanosleep(&(0x7f0000000300)={0, 50000000}, 0)')
-      immediately after 'syz_usb_connect' before calling openat or ioctl on the device node.
-  * Disconnect: Use 'syz_usb_disconnect(conn)'.
-  * Control Transfer: Use 'syz_usb_control_io(conn, req, res)'.
-  * Endpoint I/O: Use 'syz_usb_ep_write(conn, ep, len, data)' or 'syz_usb_ep_read(conn, ep, len, data)'
-    (e.g. ep 0x81 IN / 0x02 OUT).
-- Network & Wireless (802.11 Wi-Fi, TUN/TAP, Netlink):
-  * Packet Injection: Use 'syz_emit_ethernet(len, packet, frags)' to inject raw L2 frames into
-    the executor TUN/TAP interface.
-  * 802.11 Wi-Fi Injection: Use 'syz_80211_inject_frame(mac, frame, len)' to send 802.11 management/data frames
-    to mac80211_hwsim. Always insert nanosleep delays between successive auth, assoc, and probe response frames.
-  * 802.11 Ad-Hoc: Use 'syz_80211_join_ibss(ifname, ssid, len, freq)' to join IBSS networks.
-  * Generic Netlink Family ID: Use 'syz_genetlink_get_family_id(name, fd)' to look up Netlink IDs
-    (e.g. for 'nl80211', 'wireguard', 'team').
-  * TCP State Tracking: Use 'syz_extract_tcp_res(res, seq_inc, ack_inc)' to extract TCP sequence/ACK numbers.
-- Filesystems, Mounts & Sandbox Bypass:
-  * Mount Image: Use 'syz_mount_image(fs, dir, flags, opts, chdir, size, img)'. Preferred method for mounting
-    disk images ('ext4', 'btrfs', 'xfs', 'squashfs', 'f2fs', 'erofs', 'fuse'). If 'chdir' is 1, changes executor
-    working directory into mount point 'dir'.
-  * FUSE Handling: Use 'syz_fuse_handle_req(fd, buf, len, res)' to emulate a FUSE daemon replying to kernel
-    requests on '/dev/fuse' ('fd').
+- General Sandbox Bypass & Path Utility Helpers:
   * Sandbox Device Node Opening: Use 'syz_open_dev$char(0xc, major, minor)' or 'syz_open_dev$block(0xb, major, minor)'
     to open device nodes by major/minor numbers, bypassing absolute path sandbox restrictions.
     Use 'syz_open_dev(dev, id, flags)' for paths with '#' markers (e.g. '/dev/tty#').
   * Procfs Opening: Use 'syz_open_procfs(pid, file)' to open '/proc/<pid>/<file>' (or '/proc/self/<file>' if pid==0).
-  * Partition Tables: Use 'syz_read_part_table(size, img)' to parse GPT/MBR partition tables on loop devices.
-- High-Performance Ring I/O & Block Devices (io_uring & ublk):
-  * io_uring: Use 'syz_io_uring_setup', 'syz_io_uring_submit', 'syz_io_uring_complete', and
-    'syz_io_uring_modify_offsets' for ring operations.
-  * ublk Devices: Use 'syz_ublk_setup_io_uring', 'syz_ublk_add_dev', 'syz_ublk_setup_queues', and
-    'syz_ublk_process_io' for userspace block device emulation.
-- Virtualization (KVM):
-  * Use 'syz_kvm_setup_syzos_vm', 'syz_kvm_setup_cpu', 'syz_kvm_add_vcpu', 'syz_kvm_vgic_v3_setup', and
-    'syz_kvm_assert_*' for guest VM setup and assertions.
-  * KVM Execution Timeouts & Hangs: Calls to KVM (such as 'ioctl$KVM_RUN' or other $kvm commands) frequently
-    time out or hang during guest VM execution, returning CallErrors with
-    'Error': 'call execution timed out or hung' (Errno 38).
-    When executing KVM programs, the generator should determine whether 'call execution timed out or hung'
-    (or 'ioctl$KVM_RUN') is an acceptable error and specify it in 'AcceptableCallErrorsDescription'
-    when calling 'code-fixer'.
-- BPF & Utility Helpers:
-  * BTF ID Lookup: Use 'syz_btf_id_by_name(name)' to obtain BTF IDs for kernel hooks/structs.
-  * Process Control: Use 'syz_clone', 'syz_clone3', 'syz_pidfd_open', and 'syz_pkey_set'.`
+- Process & Utility Helpers:
+  * Process Control: Use 'syz_clone', 'syz_clone3', 'syz_pidfd_open', and 'syz_pkey_set'.
+- Subsystem-Specific Emulation (USB, Network/Wi-Fi, Filesystems, FUSE, Virtualization, io_uring, BPF):
+  * Do NOT guess pseudo-syscall arguments or rules for complex driver subsystems.
+  * You MUST check 'Available Subsystem Skills' in your instructions and read the corresponding subsystem skill
+    (e.g., 'skills/usb.md', 'skills/wifi.md', 'skills/fs.md', 'skills/kvm.md', 'skills/io_uring.md', 'skills/bpf.md')
+    using 'read-syz-spec' before writing code.`
 
 const TestSeedConstraints = `ENVIRONMENT SETUP & TEST SEED TEMPLATE CONSTRAINTS:
 - Entire Setup Prepend: All setup syscalls (such as 'syz_mount_image', 'syz_usb_connect', 'mkdirat',
@@ -234,82 +197,19 @@ const TestSeedConstraints = `ENVIRONMENT SETUP & TEST SEED TEMPLATE CONSTRAINTS:
 - Subsystem Setup & Precondition Search:
   When targeting complex subsystems (networking, USB, FUSE, storage, bpf, crypto), do NOT guess complex setup
   sequences or raw payload descriptors. Use 'syz-grepper' (with PathPrefix='test') to search Syzkaller's test seeds
-  for complete working setup patterns and payload blobs (@ANYBLOB="..."). Additionally, use 'get-corpus-programs'
-  on related setup functions—such as direct callers along the target call path, or probe/init functions of
-  peer drivers within the same subsystem directory or driver family—to discover existing corpus program
-  setup sequences.`
-
-const KVMConstraints = `KVM VIRTUALIZATION AND GUEST CONSTRAINTS (x86/amd64 Focus):
-- Syzkaller Description File Locations:
-  * Generic/Architecture-Independent KVM Ioctls (e.g. 'openat$kvm', 'ioctl$KVM_CREATE_VM',
-    'ioctl$KVM_RUN', 'ioctl$KVM_GET_VCPU_MMAP_SIZE') reside in 'sys/linux/dev_kvm.txt'.
-  * Architecture-Specific SYZOS Pseudo-Syscalls for x86/amd64 (e.g. 'syz_kvm_setup_syzos_vm$x86',
-    'syz_kvm_add_vcpu$x86') reside in 'sys/linux/dev_kvm_amd64.txt'.
-- Sandbox Bypass: You MUST NOT open '/dev/kvm' with generic 'openat'. Always use the specialized variant
-  'openat$kvm' to obtain the system KVM fd.
-- SYZOS VM & VCPU Setup:
-  * Use 'syz_kvm_setup_syzos_vm$x86' to allocate guest memory and load the SYZOS guest library.
-  * Use 'syz_kvm_add_vcpu$x86' to initialize the vCPU and define the sequence of guest instructions/commands
-    (the SYZOS payload array) that the guest vCPU will execute inside the VM context when 'ioctl$KVM_RUN' is called.
-- Strict KVM ioctl Sequence Order (CRITICAL INSTRUCTION):
-  When configuring a VM and vCPUs, you MUST follow this exact sequence:
-  1) Create VM ('ioctl$KVM_CREATE_VM')
-  2) Set VM-wide capabilities and CPUID leaves ('ioctl$KVM_SET_CPUID2', 'ioctl$KVM_SET_CAP')
-  3) Create vCPU ('syz_kvm_add_vcpu$x86'), passing the guest execution code payload as its 'text' argument
-  4) Set vCPU state/registers or MSRs ('ioctl$KVM_SET_MSRS', 'ioctl$KVM_SET_LAPIC', 'ioctl$KVM_SET_REGS')
-  5) Execute VM run loop ('ioctl$KVM_RUN').
-  Calling 'ioctl$KVM_SET_CPUID2' after adding a vCPU invalidates vCPU segment/register setups and causes
-  'ioctl$KVM_RUN' to abort with 'vmx_unhandleable_emulation_required'.
-- Hyper-V VP Index & Multi-vCPU Target Path Testing:
-  When targeting Hyper-V TLB flush, IPI, or sparse vCPU bank set checks (e.g., 'hv_is_vp_in_sparse_set',
-  'valid_bit_nr > 0'), do NOT declare the target unreachable on a single-vCPU VM. You can set the vCPU's Hyper-V
-  VP index to any value (e.g., 'vp_index = 64') via 'ioctl$KVM_SET_MSRS' targeting 'HV_X64_MSR_VP_INDEX'
-  (0x40000002). This allows testing high VP indices without creating 64 physical vCPUs.
-- SYZOS Payload Array Construction (Read 'sys/linux/dev_kvm_amd64.txt'):
-  * Purpose: The SYZOS payload array defines the sequence of guest operations (e.g. CPUID queries, MSR reads/writes,
-    PIO/MMIO accesses, or nested VMX/SVM hypercalls) executed inside the guest VM to trigger target KVM VM exits
-    and guest execution paths in the host kernel.
-  * Do NOT guess payload array argument structures. Use 'read-syz-spec' on 'sys/linux/dev_kvm_amd64.txt'
-    (starting around line 20) to inspect the exact type definitions:
-    1. 'syz_kvm_add_vcpu$x86' accepts 'text' pointing to 'kvm_text$x86'.
-    2. 'kvm_text$x86' contains 'text ptr[in, array[syzos_api_call$x86, 1:32]]'.
-    3. Each element in the array is an option from the 'syzos_api_call$x86' union,
-       defined using the generic 'syzos_api$x86[NUM, PAYLOAD]' template.
-- Struct Protection Rules (no_squash):
-  * 'syz_kvm_add_vcpu$x86' and key KVM ioctls are marked '(no_squash)'. You MUST NOT squash or replace
-    struct fields with generic 'ANY' byte arrays or raw blobs.
-- Test Assertion Exclusions (no_generate):
-  * Assertions such as 'syz_kvm_assert_syzos_uexit$x86' and 'syz_kvm_assert_syzos_kvm_exit$x86' are marked
-    '(no_generate)'. They are unit test verification routines and MUST NOT be included in generated fuzzing programs.
-- Unrolled KVM_RUN Execution Resumption Loop:
-  * Guest execution yields to Host L0 via 'uexit', 'hlt', or hypervisor exits. You MUST generate multiple
-    unrolled 'ioctl$KVM_RUN(r3, AUTO, 0x0)' calls to resume guest execution after each yield/exit step.
-- Reference Discovery via Test Seeds and Corpus:
-  * Test Seeds: ALWAYS set 'PathPrefix' to 'test' when using 'syz-grepper' to find test seeds in 'sys/linux/test/'.
-  * Corpus DB: Use 'get-corpus-programs' targeting KVM entry points (such as 'kvm_vcpu_ioctl' or 'kvm_vm_ioctl')
-    to retrieve working examples from the corpus database.
-- Target Subsystem to SYZOS Primitive Guidance (x86/amd64):
-  * Nested Virtualization ('arch/x86/kvm/vmx/', 'arch/x86/kvm/svm/'): Use 'read-syz-spec' on 'dev_kvm_amd64.txt'
-    to inspect '@enable_nested', '@nested_create_vm', '@nested_load_code', '@nested_vmlaunch',
-    '@nested_intel_vmwrite_mask', '@nested_amd_vmcb_write_mask', '@nested_vmresume'.
-    Search test seeds with PathPrefix='test' and Query='amd64-syz_kvm_nested'.
-  * x86 Core & Privileged Ops ('arch/x86/kvm/x86.c', 'mmu/', 'cpuid.c', 'emulate.c', 'virt/kvm/kvm_main.c'): Inspect
-    '@cpuid', '@wrmsr', '@rdmsr', '@wr_crn', '@wr_drn', '@in_dx', '@out_dx', '@set_irq_handler' in 'dev_kvm_amd64.txt'.
-    Search test seeds with PathPrefix='test' and Query='wrmsr'.
-- Simplification Heuristics:
-  * When targeting generic shadow MMU or page-track paths, prefer simple non-nested paging configurations first,
-    rather than immediately jumping to nested VMX. Nested virtualization introduces extra validation constraints
-    that make reaching the target PC harder.
-- Anti-Hallucination & Clock Request Guardrails:
-  * Do NOT claim KVM execution is blocked by 'KVM_REQ_CLOCK_UPDATE' or 'get_cpu_tsc_khz'. SYZOS guests do not
-    initialize pvclock, so kvm_guest_time_update is a non-blocking no-op.
-  * To reach KVM I/O bus handlers ('kvm_io_bus_read', 'kvm_io_bus_write'), use guest PIO instructions
-    ('@in_dx', '@out_dx'), guest MMIO accesses, or register in-kernel devices ('ioctl$KVM_CREATE_IRQCHIP',
-    'ioctl$KVM_CREATE_PIT2').
-- KVM Guest Memory (usermem) & VCPU Mmap Rules:
-  * 'syz_kvm_setup_syzos_vm$x86': Requires 1024 pages (4MB) of VMA memory for guest RAM.
-    Pass: '&(0x7f0000c00000/0x400000)' as the 2nd argument ('usermem').
-  * 'syz_kvm_setup_cpu$x86': Requires 24 pages (96KB) of VMA memory.
-    Pass: '&(0x7f0000000000/0x18000)' as the 3rd argument ('usermem').
-  * 'mmap$KVM_VCPU': Maps the kvm_run structure for a VCPU.
-    Pass 1 page VMA: 'mmap$KVM_VCPU(&(0x7f0000009000/0x1000), r4, 0x3, 0x1, r3, 0x0)'`
+  for complete working setup patterns. Copy and adapt those setup sequences directly into your program.
+- Blob Placeholders: Test seeds and corpus programs contain large data payloads
+  (such as filesystem images or USB device descriptors) represented by placeholders starting
+  with "$BLOB_" (e.g. "$BLOB_a1b2c3d4e5f6").
+  - You MUST preserve these placeholder strings exactly as-is when copying setup sequences.
+  - Do NOT decode, modify, or replace these placeholders with hex or other string contents.
+  - The runtime execution engine will automatically restore these placeholders back to their original
+    data bytes at runtime.
+  - Additionally, use 'get-corpus-programs' on related setup functions—such as direct callers along
+    the target call path, or probe/init functions of peer drivers within the same subsystem directory
+    or driver family—to discover existing corpus program setup sequences.
+  - Subsystem Skills & Specialized Guidance:
+    When targeting specific kernel subsystems (such as KVM, networking, USB, BPF, FUSE, etc.),
+    check the 'Available Subsystem Skills' listed in your instructions.
+    If a relevant skill exists (e.g. 'skills/kvm.md'), read its guidance using 'read-syz-spec'
+    before generating or fixing the program.`

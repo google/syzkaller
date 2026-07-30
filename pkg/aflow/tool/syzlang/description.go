@@ -4,6 +4,7 @@
 package syzlang
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 
@@ -50,4 +51,21 @@ func DescriptionFilesPrompt(syzFS *syzspec.SyzFS) string {
 // the given syzkaller directory and target OS.
 func TestSeeds(syzkallerDir, osTarget string) []string {
 	return syzspec.NewSyzFS(syzkallerDir, osTarget).TestSeeds()
+}
+
+func SkillsPrompt(syzFS *syzspec.SyzFS) string {
+	skills, err := syzFS.ListSkills()
+	if err != nil || len(skills) == 0 {
+		return ""
+	}
+	sb := new(strings.Builder)
+	sb.WriteString("Available Subsystem Skills (read with read-syz-spec, e.g. 'read-syz-spec skills/kvm.md'):\n")
+	for _, sk := range skills {
+		fmt.Fprintf(sb, "- skills/%s.md: %s\n", sk.Name, sk.Description)
+	}
+	sb.WriteString("\nCRITICAL INSTRUCTION: If you target a subsystem listed above, " +
+		"you MUST read the corresponding skill file (e.g. 'read-syz-spec skills/kvm.md') before writing any code. " +
+		"Do NOT guess or assume the setup requirements; the skill files contain mandatory initialization sequences, " +
+		"pseudo-syscall usage rules, and layout constraints required to successfully reach the target.\n")
+	return sb.String()
 }
