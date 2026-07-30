@@ -51,11 +51,12 @@ func validateCodeFixerOutputs(
 }
 
 var CodeFixer = &aflow.StructuredLLMTool[struct{}, CodeFixerArgs, CodeFixerResult]{
-	Name:       "code-fixer",
-	Model:      aflow.TemporaryFlashOnlyModel,
-	Outputs:    aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
-	TaskType:   aflow.FormalReasoningTask,
-	PreExecute: ResolveSyzlangDependencies,
+	Name:          "code-fixer",
+	Model:         aflow.TemporaryFlashOnlyModel,
+	MaxIterations: 40,
+	Outputs:       aflow.ValidatedLLMToolOutputs[CodeFixerResult, struct{}, CodeFixerArgs](validateCodeFixerOutputs),
+	TaskType:      aflow.FormalReasoningTask,
+	PreExecute:    ResolveSyzlangDependencies,
 	ExtraVars: map[string]reflect.Type{
 		"StaticDefinitions": reflect.TypeFor[string](),
 	},

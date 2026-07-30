@@ -363,19 +363,33 @@ func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) 
 	return true
 }
 
-func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
-	instruction, prompt string, candidate int) (string, map[string]any, error) {
+// initRequests populates initial request messages from InitialMessages or prompt text.
+func (a *agentSession) initRequests(ctx *Context, prompt string) error {
 	if a.InitialMessages != nil {
 		var err error
 		a.req, err = a.InitialMessages(ctx)
-		if err != nil {
-			return "", nil, err
-		}
-	} else {
-		a.req = []llmMessage{{content: &backend.Message{
-			Role:  backend.RoleUser,
-			Parts: []backend.Part{{Text: prompt}},
-		}}}
+		return err
+	}
+	a.req = []llmMessage{{content: &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: []backend.Part{{Text: prompt}},
+	}}}
+	return nil
+}
+
+// maxIterationsError returns a recoverable BadCallError for subagents, or a
+// hard error for main agents.
+func (a *agentSession) maxIterationsError() error {
+	if a.SubAgent {
+		return BadCallError("agent reached max iterations limit (%v)", a.maxIterations)
+	}
+	return fmt.Errorf("agent reached max iterations limit (%v)", a.maxIterations)
+}
+
+func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
+	instruction, prompt string, candidate int) (string, map[string]any, error) {
+	if err := a.initRequests(ctx, prompt); err != nil {
+		return "", nil, err
 	}
 	a.fullReq = append([]llmMessage(nil), a.req...)
 	var anchorTokens int
@@ -476,8 +490,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			}
 		}
 	}
-	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		a.maxIterations)
+	return "", nil, a.maxIterationsError()
 }
 
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {

@@ -251,6 +251,20 @@ const KVMConstraints = `KVM VIRTUALIZATION AND GUEST CONSTRAINTS (x86/amd64 Focu
   * Use 'syz_kvm_setup_syzos_vm$x86' to allocate guest memory and load the SYZOS guest library.
   * Use 'syz_kvm_add_vcpu$x86' to initialize the vCPU and define the sequence of guest instructions/commands
     (the SYZOS payload array) that the guest vCPU will execute inside the VM context when 'ioctl$KVM_RUN' is called.
+- Strict KVM ioctl Sequence Order (CRITICAL INSTRUCTION):
+  When configuring a VM and vCPUs, you MUST follow this exact sequence:
+  1) Create VM ('ioctl$KVM_CREATE_VM')
+  2) Set VM-wide capabilities and CPUID leaves ('ioctl$KVM_SET_CPUID2', 'ioctl$KVM_SET_CAP')
+  3) Create vCPU ('syz_kvm_add_vcpu$x86'), passing the guest execution code payload as its 'text' argument
+  4) Set vCPU state/registers or MSRs ('ioctl$KVM_SET_MSRS', 'ioctl$KVM_SET_LAPIC', 'ioctl$KVM_SET_REGS')
+  5) Execute VM run loop ('ioctl$KVM_RUN').
+  Calling 'ioctl$KVM_SET_CPUID2' after adding a vCPU invalidates vCPU segment/register setups and causes
+  'ioctl$KVM_RUN' to abort with 'vmx_unhandleable_emulation_required'.
+- Hyper-V VP Index & Multi-vCPU Target Path Testing:
+  When targeting Hyper-V TLB flush, IPI, or sparse vCPU bank set checks (e.g., 'hv_is_vp_in_sparse_set',
+  'valid_bit_nr > 0'), do NOT declare the target unreachable on a single-vCPU VM. You can set the vCPU's Hyper-V
+  VP index to any value (e.g., 'vp_index = 64') via 'ioctl$KVM_SET_MSRS' targeting 'HV_X64_MSR_VP_INDEX'
+  (0x40000002). This allows testing high VP indices without creating 64 physical vCPUs.
 - SYZOS Payload Array Construction (Read 'sys/linux/dev_kvm_amd64.txt'):
   * Purpose: The SYZOS payload array defines the sequence of guest operations (e.g. CPUID queries, MSR reads/writes,
     PIO/MMIO accesses, or nested VMX/SVM hypercalls) executed inside the guest VM to trigger target KVM VM exits

@@ -41,6 +41,10 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
 	Judge *LLMJudge
 
+	// Maximum number of iterations for the tool execution.
+	// If 0, default to defaultMaxLLMIterations (250).
+	MaxIterations int
+
 	agent *LLMAgent
 }
 
@@ -142,14 +146,15 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	}
 
 	t.agent = &LLMAgent{
-		Name:        t.Name,
-		Model:       t.Model,
-		TaskType:    t.TaskType,
-		Instruction: t.Instruction,
-		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
-		Tools:       t.Tools,
-		SubAgent:    true,
-		Judge:       t.Judge,
+		Name:          t.Name,
+		Model:         t.Model,
+		TaskType:      t.TaskType,
+		Instruction:   t.Instruction,
+		Prompt:        fmt.Sprintf("{{.%v}}", llmToolPrompt),
+		Tools:         t.Tools,
+		SubAgent:      true,
+		Judge:         t.Judge,
+		MaxIterations: t.MaxIterations,
 	}
 
 	if t.Outputs != nil {

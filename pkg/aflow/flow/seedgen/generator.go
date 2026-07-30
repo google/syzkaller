@@ -168,6 +168,10 @@ Workflow:
       Your GeneratorReason MUST cite the specific driver probe callback and the empirically verified blocker.
 
 3. Loop internally to find a program that reaches any of the target PCs:
+   - Avoid Non-Converging Loops: Do NOT repeat near-identical syzlang programs or retry the same failing ioctl
+     sequence indefinitely. If a strategy consistently fails to reach the target PC across multiple attempts,
+     you MUST either change your setup approach (e.g., testing different MSRs or specialized setup helpers) or call
+     'set-results' with GeneratorGiveUp=true explaining the blocker.
    a. Formulate a syzlang program. You may try out you ideas by formulating a plausible program.
    b. Call 'code-fixer' to debug and execute it (passing 'ProgramIntentDescription').
       - If code-fixer returns CodeFixerGiveUp = true, read its CodeFixerReason. If it gave up due to environment

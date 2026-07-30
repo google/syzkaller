@@ -22,11 +22,12 @@ type executionSummarizerState struct {
 }
 
 var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSummarizerArgs]{
-	Name:        "execution-summarizer",
-	Model:       aflow.TemporaryFlashOnlyModel,
-	TaskType:    aflow.FormalReasoningTask,
-	Description: "Analyzes the execution of a syzkaller program to explain why it behaved the way it did.",
-	Instruction: summarizerInstruction,
+	Name:          "execution-summarizer",
+	Model:         aflow.TemporaryFlashOnlyModel,
+	TaskType:      aflow.FormalReasoningTask,
+	MaxIterations: 50,
+	Description:   "Analyzes the execution of a syzkaller program to explain why it behaved the way it did.",
+	Instruction:   summarizerInstruction,
 	Tools: aflow.Tools(
 		CoverageFiles, FileCoverage, ExecutionTrace, DisassembleContext,
 		codesearcher.Tools, GetExecutedProgram, crash.GetEnvironment,
@@ -83,8 +84,16 @@ Instructions:
    diverged (e.g., 'syscall X returned EINVAL because flag Y was missing' or 'wrmsr 0x40000082 was not executed
    by the guest because kvm_text size was 0').
 
-Avoid Search Loops: If you are searching for a macro, struct definition, or code symbol (using codesearch tools)
-and the initial search returns no results, do NOT repeat the same query or get stuck in backtracking loops.
-Try a broader search query, look in related header files, or state clearly that the definition was not found
-and proceed with the remaining analysis.
+CRITICAL TRACE INSPECTION, SEARCH & ADAPTIVE SYNTHESIS RULES:
+1. Prioritize Early Synthesis: Once you have identified the deepest point of execution in the trace and inspected
+   the immediate failing condition or error return, prioritize synthesizing your explanation rather than continuing
+   open-ended code exploration.
+2. Avoid Search & Exploration Loops: Do NOT re-read or re-search symbols, header files, or trace indices
+   you have already inspected. If searching for a macro, struct definition, or code symbol yields no results
+   or diminishing returns, do NOT repeat the same query or get stuck in backtracking loops. Try a broader
+   query, look in related header files, or state clearly that the definition was not found, synthesize
+   your current evidence, and proceed.
+3. Targeted Trace Retrieval: Do NOT invoke 'get-execution-trace' in bulk for every syscall index simultaneously.
+   Only inspect the trace for the specific syscall index expected to trigger the target kernel path.
+   Summarize key call frames concisely; NEVER dump large raw trace excerpts into your final response.
 `
