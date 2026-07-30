@@ -22,12 +22,20 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ExecuteOptions groups the execution environment and infrastructure limits for a workflow run.
+type ExecuteOptions struct {
+	Provider backend.Provider
+	Workdir  string
+	Cache    *Cache
+	OnEvent  onEvent
+	Debug    bool
+}
+
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
 // The workdir argument should point to a dir owned by aflow to store private data,
 // it can be shared across parallel executions in the same process, and preferably
 // preserved across process restarts for caching purposes.
-func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdir string, debug bool,
-	inputs map[string]any, cache *Cache, onEvent onEvent) (map[string]any, error) {
+func (flow *Flow) Execute(ctx context.Context, inputs map[string]any, opts ExecuteOptions) (map[string]any, error) {
 	convertedInputs, err := flow.checkInputs(inputs)
 	if err != nil {
 		return nil, fmt.Errorf("flow inputs are missing: %w", err)
@@ -35,19 +43,19 @@ func (flow *Flow) Execute(ctx context.Context, provider backend.Provider, workdi
 	inputs = convertedInputs
 	inputs = maps.Clone(inputs)
 	maps.Insert(inputs, maps.All(flow.Consts))
-	llmClient, err := provider.Client(ctx)
+	llmClient, err := opts.Provider.Client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize LLM client: %w", err)
 	}
 
 	c := &Context{
 		Context:     ctx,
-		Workdir:     osutil.Abs(workdir),
-		provider:    provider,
-		cache:       cache,
+		Workdir:     osutil.Abs(opts.Workdir),
+		provider:    opts.Provider,
+		cache:       opts.Cache,
 		state:       inputs,
-		onEvent:     onEvent,
-		runnerDebug: debug,
+		onEvent:     opts.OnEvent,
+		runnerDebug: opts.Debug,
 	}
 
 	defer c.Close()
