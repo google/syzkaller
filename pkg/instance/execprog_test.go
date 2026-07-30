@@ -120,8 +120,10 @@ func TestRetrieveCoverageFiles_Success(t *testing.T) {
 	coverage, err := execProgInst.retrieveCoverageFiles(prefix, 2)
 	require.NoError(t, err)
 	require.Len(t, coverage, 3)
-	require.Equal(t, []uint64{0x123, 0x456}, coverage[0])
-	require.Equal(t, []uint64{0x789}, coverage[1])
+	// Expected PCs reflect NextInstructionPC adjustment (+5 on AMD64) applied by retrieveCoverageFiles
+	// to reconstruct original raw PCs from syz-execprog shifted output (0x123 -> 0x128, 0x456 -> 0x45b, 0x789 -> 0x78e).
+	require.Equal(t, []uint64{0x128, 0x45b}, coverage[0])
+	require.Equal(t, []uint64{0x78e}, coverage[1])
 	require.Nil(t, coverage[2])
 }
 

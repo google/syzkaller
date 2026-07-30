@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -408,6 +409,18 @@ func (inst *ExecProgInstance) retrieveCoverageFiles(vmCoverFilePrefix string, nc
 		cover, err := parseCoverageData(catOutput)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse cover data from %s: %w", file, err)
+		}
+		// syz-execprog (running inside the VM) shifts the PCs using
+		// PreviousInstructionPC before writing them to the coverage files. However,
+		// the host-side symbolizer expects raw PCs and performs its own VM-aware PC
+		// adjustment. To prevent double-adjustment of PCs on the host, we apply
+		// NextInstructionPC to reconstruct the original raw PCs retrieved from the
+		// VM.
+		target := inst.mgrCfg.SysTarget
+		for i, pc := range cover {
+			// syz-execprog hardcodes "" inside the VM; we must match it here to undo
+			// the shift.
+			cover[i] = backend.NextInstructionPC(target, "", pc)
 		}
 		coverage = append(coverage, cover)
 	}
