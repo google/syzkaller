@@ -21,6 +21,7 @@ func TestRouterExactMatch(t *testing.T) {
 	}{
 		{"/", http.StatusFound},
 		{"/upstream", http.StatusOK},
+		{"/upstream/graph/resolution", http.StatusOK},
 		{"/upstream/bug-summaries", http.StatusInternalServerError},
 		{"/upstream/graph/coverage/invalid", http.StatusNotFound},
 		{"/upstream/invalid_route", http.StatusNotFound},

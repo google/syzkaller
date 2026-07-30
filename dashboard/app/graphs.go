@@ -28,6 +28,11 @@ type uiBugLifetimesPage struct {
 	Lifetimes []uiBugLifetime
 }
 
+type uiResolutionPage struct {
+	Header *uiHeader
+	Graph  *uiGraph
+}
+
 type uiHistogramPage struct {
 	Title  string
 	Header *uiHeader
@@ -203,6 +208,125 @@ func handleFoundBugsGraph(ctx context.Context, w http.ResponseWriter, r *http.Re
 		Graph:  graph,
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
+}
+
+func handleResolutionGraph(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
+	if err != nil {
+		return err
+	}
+	bugs, err := loadGraphBugs(ctx, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	lastReporting := getNsConfig(ctx, hdr.Namespace).lastActiveReporting()
+	data := &uiResolutionPage{
+		Header: hdr,
+		Graph:  createResolutionGraph(timeNow(ctx), bugs, lastReporting),
+	}
+	return serveTemplate(w, "graph_resolution.html", data)
+}
+
+const resolutionRateMonths = 6
+
+// createResolutionGraph computes the percentage of bugs addressed within X months (X=1..resolutionRateMonths).
+// To prevent population shift in the denominator across horizons (which would cause the cumulative
+// resolution curve to decrease), we evaluate a fixed mature cohort of bugs reported between 2 years
+// and resolutionRateMonths ago (T_reported in [now - 2 years, now - resolutionRateMonths]).
+// This guarantees every bug in the cohort has at least resolutionRateMonths of observation history, producing a
+// constant denominator and a strictly non-decreasing resolution curve across all months.
+func createResolutionGraph(now time.Time, bugs []*Bug, lastReporting int) *uiGraph {
+	twoYearsAgo := now.AddDate(-2, 0, 0)
+	cohortCutoff := now.AddDate(0, -resolutionRateMonths, 0)
+	var columns []uiGraphColumn
+
+	for month := 1; month <= resolutionRateMonths; month++ {
+		total := 0
+		fixed := 0
+
+		for _, bug := range bugs {
+			// Duplicate bugs are resolved via their canonical bug (which is counted separately).
+			if bug.Status == BugStatusDup {
+				continue
+			}
+			repDate := bugReportedDate(bug, lastReporting)
+			// Restrict dataset to bugs in the fixed mature cohort (reported between 2 years ago and resolutionRateMonths ago).
+			if repDate.Before(twoYearsAgo) || repDate.After(cohortCutoff) {
+				continue
+			}
+			// Auto-obsoleted bugs (where syzbot stopped hitting the bug after 90 days without a fix)
+			// remain in the denominator for all mature horizons as unfixed bugs. They are not skipped or dropped,
+			// which prevents an artificial 90-day resolution rate spike.
+			// Manually obsoleted bugs are treated as resolved at their closure date via bugFixDate.
+			total++
+			fixDate := bugFixDate(bug)
+			if !fixDate.IsZero() && !fixDate.After(repDate.AddDate(0, month, 0)) {
+				fixed++
+			}
+		}
+
+		var pct float32
+		if total > 0 {
+			pct = float32(fixed) / float32(total) * 100
+		}
+
+		columns = append(columns, uiGraphColumn{
+			Hint:       fmt.Sprintf("%dm", month),
+			Annotation: pct,
+			Vals:       []uiGraphValue{{Val: pct, Hint: fmt.Sprintf("%d/%d bugs (%.1f%%)", fixed, total, pct)}},
+		})
+	}
+
+	return &uiGraph{
+		Headers: []uiGraphHeader{{Name: "% Addressed Within X Months", Color: "#26ba1c"}},
+		Columns: columns,
+	}
+}
+
+// bugReportedDate determines the timestamp when a bug became publicly reported.
+// Bugs that reached the final reporting stage (e.g., LKML) use that stage's exact report timestamp.
+// Bugs fixed or closed before reaching the final stage use their initial report timestamp or first seen time.
+func bugReportedDate(bug *Bug, lastReporting int) time.Time {
+	if len(bug.Reporting) > lastReporting && !bug.Reporting[lastReporting].Reported.IsZero() {
+		return bug.Reporting[lastReporting].Reported
+	}
+	for _, r := range bug.Reporting {
+		if !r.Reported.IsZero() {
+			return r.Reported
+		}
+	}
+	return bug.FirstTime
+}
+
+// bugFixDate determines the true resolution timestamp for a bug.
+// Developers often fix bugs in git commits before syzbot detects and closes the bug in Datastore.
+// We prefer the earliest commit date from CommitInfo to measure real-world time-to-fix accurately,
+// falling back to Bug.Closed or Bug.FixTime if commit metadata is unavailable.
+func bugFixDate(bug *Bug) time.Time {
+	var earliestCommit time.Time
+	for _, com := range bug.CommitInfo {
+		if !com.Date.IsZero() && (earliestCommit.IsZero() || com.Date.Before(earliestCommit)) {
+			earliestCommit = com.Date
+		}
+	}
+	if !earliestCommit.IsZero() {
+		return earliestCommit
+	}
+	if bug.Status == BugStatusFixed && !bug.Closed.IsZero() {
+		return bug.Closed
+	}
+	if !bug.FixTime.IsZero() {
+		return bug.FixTime
+	}
+	// If a maintainer manually invalidates/obsoletes a bug, consider manual obsoletion
+	// as resolution (resolved/addressed), using the bug closure timestamp as the resolution date.
+	if bug.Status == BugStatusInvalid {
+		rep := lastReportedReporting(bug)
+		if rep != nil && !rep.Auto && !bug.Closed.IsZero() {
+			return bug.Closed
+		}
+	}
+	return time.Time{}
 }
 
 func loadGraphBugs(ctx context.Context, ns string) ([]*Bug, error) {
