@@ -354,8 +354,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	req, mgr := job.req, job.mgr
 
 	dir := filepath.Join(jp.baseDir, mgr.managercfg.TargetOS)
-	mgrcfg := new(mgrconfig.Config)
-	*mgrcfg = *mgr.managercfg
+	mgrcfg := mgr.jobConfig()
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
 	repoDir := filepath.Join(dir, "kernel")
 	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
