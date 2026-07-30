@@ -75,6 +75,11 @@ trees:
     branch: next
     email_lists:
       - kvm@vger.kernel.org
+  - name: kvm-x86
+    URL: https://github.com/kvm-x86/linux.git
+    branch: next
+    email_lists:
+      - kvm@vger.kernel.org
   - name: drm-next
     URL: https://gitlab.freedesktop.org/drm/kernel.git
     branch: drm-next
