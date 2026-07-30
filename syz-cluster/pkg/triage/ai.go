@@ -34,7 +34,10 @@ type AITriageResult struct {
 	Trajectory    []byte
 }
 
-const aiEvaluationTimeout = time.Hour
+const (
+	aiEvaluationTimeout = time.Hour
+	defaultTokenLimit   = 5 * 1000 * 1000 // 5M tokens
+)
 
 func CommitPatchForAflow(ops *GitTreeOps) error {
 	if _, err := ops.Run("add", "-A"); err != nil {
@@ -106,10 +109,11 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 	defer provider.Close()
 
 	outputs, err := workflowDesc.Execute(aiCtx, initialState, aflow.ExecuteOptions{
-		Provider: provider,
-		Workdir:  "/tmp/aflow-cache",
-		Cache:    cache,
-		OnEvent:  onEvent,
+		Provider:   provider,
+		Workdir:    "/tmp/aflow-cache",
+		Cache:      cache,
+		OnEvent:    onEvent,
+		TokenLimit: defaultTokenLimit,
 	})
 
 	var htmlReport []byte

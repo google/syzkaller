@@ -47,7 +47,10 @@ func main() {
 	}
 }
 
-const workdir = "workdir"
+const (
+	workdir           = "workdir"
+	defaultTokenLimit = 100 * 1000 * 1000 // 100M tokens
+)
 
 func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name string) error {
 	cfg, err := loadConfig(configFile)
@@ -355,10 +358,11 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	}
 	defer provider.Close()
 	return flow.Execute(ctx, inputs, aflow.ExecuteOptions{
-		Provider: provider,
-		Workdir:  s.workdir,
-		Cache:    s.cache,
-		OnEvent:  onEvent,
+		Provider:   provider,
+		Workdir:    s.workdir,
+		Cache:      s.cache,
+		OnEvent:    onEvent,
+		TokenLimit: defaultTokenLimit,
 	})
 }
 
