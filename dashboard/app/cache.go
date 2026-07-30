@@ -77,6 +77,10 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
+		graph := createFoundBugs(c, filterStableGraphBugs(c, bugs, ns))
+		if err := setCachedObject(c, foundBugsGraphKey(ns), 6*time.Hour, graph); err != nil {
+			log.Errorf(c, "failed to store found bugs graph for ns=%v: %v", ns, err)
+		}
 	}
 }
 
@@ -112,12 +116,7 @@ func buildAndStoreCached(ctx context.Context, bugs []*Bug, backports []*rawBackp
 		}
 	}
 
-	item := &memcache.Item{
-		Key:        cacheKey(ns, accessLevel),
-		Object:     v,
-		Expiration: 4 * time.Hour, // supposed to be updated by cron every hour
-	}
-	if err := memcache.Gob.Set(ctx, item); err != nil {
+	if err := setCachedObject(ctx, cacheKey(ns, accessLevel), 4*time.Hour, v); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -211,7 +210,7 @@ func minuteCacheNsUpdate(ctx context.Context, ns string) error {
 }
 
 func CachedManagerList(ctx context.Context, ns string) ([]string, error) {
-	return cachedObjectList(ctx,
+	return cachedObject(ctx,
 		fmt.Sprintf("%s-managers-list", ns),
 		time.Minute,
 		func(ctx context.Context) ([]string, error) {
@@ -222,7 +221,7 @@ func CachedManagerList(ctx context.Context, ns string) ([]string, error) {
 
 func CachedUIManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 	filter *userBugFilter) ([]*uiManager, error) {
-	return cachedObjectList(ctx,
+	return cachedObject(ctx,
 		fmt.Sprintf("%s-%v-%v-ui-managers", ns, accessLevel, filter.Hash()),
 		5*time.Minute,
 		func(ctx context.Context) ([]*uiManager, error) {
@@ -231,29 +230,36 @@ func CachedUIManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 	)
 }
 
-func cachedObjectList[T any](ctx context.Context, key string, period time.Duration,
-	load func(context.Context) ([]T, error)) ([]T, error) {
-	// Check if the object is in cache.
-	var obj []T
-	_, err := memcache.Gob.Get(ctx, key, &obj)
-	if err == nil {
-		return obj, nil
-	} else if err != memcache.ErrCacheMiss {
-		return nil, err
-	}
-
-	// Load the object.
-	obj, err = load(ctx)
-	if err != nil {
-		return nil, err
-	}
+func setCachedObject[T any](ctx context.Context, key string, period time.Duration, obj T) error {
 	item := &memcache.Item{
 		Key:        key,
 		Object:     obj,
 		Expiration: period,
 	}
-	if err := memcache.Gob.Set(ctx, item); err != nil {
-		return nil, err
+	return memcache.Gob.Set(ctx, item)
+}
+
+func cachedObject[T any](ctx context.Context, key string, period time.Duration,
+	load func(context.Context) (T, error)) (T, error) {
+	// Check if the object is in cache.
+	var obj T
+	_, err := memcache.Gob.Get(ctx, key, &obj)
+	if err == nil {
+		return obj, nil
+	} else if err != memcache.ErrCacheMiss {
+		var zero T
+		return zero, err
+	}
+
+	// Load the object.
+	obj, err = load(ctx)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	if err := setCachedObject(ctx, key, period, obj); err != nil {
+		var zero T
+		return zero, err
 	}
 	return obj, nil
 }

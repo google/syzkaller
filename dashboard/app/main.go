@@ -497,7 +497,7 @@ type userBugFilter struct {
 }
 
 func cachedBugIDsWithPendingPatch(ctx context.Context, ns string) ([]string, error) {
-	return cachedObjectList(ctx,
+	return cachedObject(ctx,
 		fmt.Sprintf("%s-ai-pending-patches", ns),
 		5*time.Minute,
 		func(ctx context.Context) ([]string, error) {

@@ -170,19 +170,37 @@ func handleGraphLifetimes(ctx context.Context, w http.ResponseWriter, r *http.Re
 	return serveTemplate(w, "graph_lifetimes.html", data)
 }
 
+func foundBugsGraphKey(ns string) string {
+	return fmt.Sprintf("%s-found-bugs-graph", ns)
+}
+
+func CachedFoundBugsGraph(ctx context.Context, ns string) (*uiGraph, error) {
+	return cachedObject(ctx,
+		foundBugsGraphKey(ns),
+		6*time.Hour,
+		func(ctx context.Context) (*uiGraph, error) {
+			bugs, err := loadStableGraphBugs(ctx, ns)
+			if err != nil {
+				return nil, err
+			}
+			return createFoundBugs(ctx, bugs), nil
+		},
+	)
+}
+
 func handleFoundBugsGraph(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	bugs, err := loadStableGraphBugs(ctx, hdr.Namespace)
+	graph, err := CachedFoundBugsGraph(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
 	data := &uiHistogramPage{
 		Title:  hdr.Namespace + " bugs found per month",
 		Header: hdr,
-		Graph:  createFoundBugs(ctx, bugs),
+		Graph:  graph,
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
 }
@@ -230,22 +248,22 @@ func loadGraphBugs(ctx context.Context, ns string) ([]*Bug, error) {
 // loadStableGraphBugs is similar to loadGraphBugs, but it does not remove duplicates and auto-invalidated bugs.
 // This ensures that the set of bugs does not change much over time.
 func loadStableGraphBugs(ctx context.Context, ns string) ([]*Bug, error) {
-	filter := func(query *db.Query) *db.Query {
-		return query.Filter("Namespace=", ns)
-	}
-	bugs, _, err := loadAllBugs(ctx, filter)
+	bugs, _, err := loadNamespaceBugs(ctx, ns)
 	if err != nil {
 		return nil, err
 	}
-	n := 0
+	return filterStableGraphBugs(ctx, bugs, ns), nil
+}
+
+func filterStableGraphBugs(ctx context.Context, bugs []*Bug, ns string) []*Bug {
+	var res []*Bug
 	lastReporting := getNsConfig(ctx, ns).lastActiveReporting()
 	for _, bug := range bugs {
 		if isStableBug(ctx, bug, lastReporting) {
-			bugs[n] = bug
-			n++
+			res = append(res, bug)
 		}
 	}
-	return bugs[:n], nil
+	return res
 }
 
 func isStableBug(ctx context.Context, bug *Bug, lastReporting int) bool {
