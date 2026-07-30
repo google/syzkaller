@@ -265,7 +265,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (
 	if err != nil {
 		return nil, err
 	}
-	if coverFile != "" {
+	if coverFile != "" && res.Report == nil {
 		coverage, err := inst.retrieveCoverageFiles(coverFile, ncalls)
 		if err != nil {
 			return nil, err
