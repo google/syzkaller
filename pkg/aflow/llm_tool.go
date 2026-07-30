@@ -33,6 +33,10 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Use LLMOutputs or ValidatedLLMOutputs/ValidatedLLMToolOutputs functions to create it.
 	Outputs *llmOutputs
 
+	// Maximum number of iterations for the tool execution.
+	// If 0, default to defaultMaxLLMIterations (250).
+	MaxIterations int
+
 	agent *LLMAgent
 }
 
@@ -124,13 +128,14 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 		ctx.errorf(t.Name, "invalid prompt template: %v", err)
 	}
 	t.agent = &LLMAgent{
-		Name:        t.Name,
-		Model:       t.Model,
-		TaskType:    t.TaskType,
-		Instruction: t.Instruction,
-		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
-		Tools:       t.Tools,
-		SubAgent:    true,
+		Name:          t.Name,
+		Model:         t.Model,
+		TaskType:      t.TaskType,
+		Instruction:   t.Instruction,
+		Prompt:        fmt.Sprintf("{{.%v}}", llmToolPrompt),
+		Tools:         t.Tools,
+		SubAgent:      true,
+		MaxIterations: t.MaxIterations,
 	}
 
 	if t.Outputs != nil {

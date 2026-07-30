@@ -347,12 +347,22 @@ func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) 
 	return true
 }
 
+// maxIterationsError returns a recoverable BadCallError for subagents, or a
+// hard error for main agents.
+func (a *agentSession) maxIterationsError() error {
+	if a.SubAgent {
+		return BadCallError("agent reached max iterations limit (%v)", a.maxIterations)
+	}
+	return fmt.Errorf("agent reached max iterations limit (%v)", a.maxIterations)
+}
+
 func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
 	a.req = []llmMessage{{content: &backend.Message{
 		Role:  backend.RoleUser,
 		Parts: []backend.Part{{Text: prompt}},
 	}}}
+
 	var anchorTokens int
 	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(cfg, false); iter++ {
 		var currentInputTokens int
@@ -447,8 +457,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			}
 		}
 	}
-	return "", nil, fmt.Errorf("agent reached max iterations limit (%v)",
-		a.maxIterations)
+	return "", nil, a.maxIterationsError()
 }
 
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {

@@ -787793,5 +787793,95 @@
 				"role": "user"
 			}
 		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher description",
+							"name": "researcher",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Question": {
+										"type": "string",
+										"description": "Question you have."
+									}
+								},
+								"required": [
+									"Question"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer to your question."
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"Question": "What do you think?"
+							},
+							"name": "researcher"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"response": {
+								"error": "agent reached max iterations limit (250)"
+							},
+							"name": "researcher"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
 	}
 ]
