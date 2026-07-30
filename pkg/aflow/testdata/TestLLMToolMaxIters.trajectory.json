@@ -9845,16 +9845,33 @@
 		}
 	},
 	{
+		"Seq": 506,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:16:51Z"
+	},
+	{
+		"Seq": 506,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:16:51Z",
+		"Finished": "0001-01-01T00:16:52Z"
+	},
+	{
 		"Seq": 1,
 		"Nesting": 1,
 		"Type": "agent",
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:16:51Z",
-		"Error": "tool researcher failed: error: agent reached max iterations limit (250)\nargs: map[Question:What do you think?]",
+		"Finished": "0001-01-01T00:16:53Z",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
-		"Prompt": "Prompt"
+		"Prompt": "Prompt",
+		"Reply": "Sub-agent reached limit, but flow continues!"
 	},
 	{
 		"Seq": 0,
@@ -9862,7 +9879,9 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:16:52Z",
-		"Error": "tool researcher failed: error: agent reached max iterations limit (250)\nargs: map[Question:What do you think?]"
+		"Finished": "0001-01-01T00:16:54Z",
+		"Results": {
+			"Reply": "Sub-agent reached limit, but flow continues!"
+		}
 	}
 ]

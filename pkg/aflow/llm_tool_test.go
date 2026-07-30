@@ -153,13 +153,15 @@ func TestLLMToolMaxIters(t *testing.T) {
 			},
 		})
 	}
-	// The agent hits maxLLMIterations and attempts to answer now.
+	// The sub-agent hits maxLLMIterations and attempts to answer now.
 	// We provide an invalid reply so that it fails to produce structured output,
-	// terminating the loop and returning the max iterations limit error.
+	// causing the sub-agent loop to end and return BadCallError.
 	replies = append(replies, &backend.Part{Text: "I give up!"})
+	// The main agent receives the BadCallError as a tool error response and continues,
+	// providing its final reply without terminating the flow.
+	replies = append(replies, &backend.Part{Text: "Sub-agent reached limit, but flow continues!"})
 	testFlow[struct{}, outputs](t, nil,
-		"tool researcher failed: error: agent reached max iterations limit (250)\n"+
-			"args: map[Question:What do you think?]",
+		map[string]any{"Reply": "Sub-agent reached limit, but flow continues!"},
 		&LLMAgent{
 			Reply: "Reply",
 			Tools: []Tool{
