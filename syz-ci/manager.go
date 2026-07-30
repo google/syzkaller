@@ -578,8 +578,7 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 }
 
 func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconfig.Config, error) {
-	mgrcfg := new(mgrconfig.Config)
-	*mgrcfg = *mgr.managercfg
+	mgrcfg := mgr.jobConfig()
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.HTTP = "" // Don't start the HTTP server.
@@ -597,6 +596,15 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
 	return mgrcfg, nil
+}
+
+// disable strace on all syz-ci jobs.
+func (mgr *Manager) jobConfig() *mgrconfig.Config {
+	mgrcfg := new(mgrconfig.Config)
+	*mgrcfg = *mgr.managercfg
+	mgrcfg.StraceBin = ""
+	mgrcfg.StraceBinOnTarget = false
+	return mgrcfg
 }
 
 func (mgr *Manager) writeConfig(buildTag string) (string, error) {
