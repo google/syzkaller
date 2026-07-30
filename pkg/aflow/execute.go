@@ -24,11 +24,12 @@ import (
 
 // ExecuteOptions groups the execution environment and infrastructure limits for a workflow run.
 type ExecuteOptions struct {
-	Provider backend.Provider
-	Workdir  string
-	Cache    *Cache
-	OnEvent  onEvent
-	Debug    bool
+	Provider   backend.Provider
+	Workdir    string
+	Cache      *Cache
+	OnEvent    onEvent
+	Debug      bool
+	TokenLimit int
 }
 
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
@@ -56,6 +57,7 @@ func (flow *Flow) Execute(ctx context.Context, inputs map[string]any, opts Execu
 		state:       inputs,
 		onEvent:     opts.OnEvent,
 		runnerDebug: opts.Debug,
+		tokenLimit:  opts.TokenLimit,
 	}
 
 	defer c.Close()
@@ -183,21 +185,23 @@ var (
 )
 
 type Context struct {
-	Context       context.Context
-	Workdir       string
-	provider      backend.Provider
-	cache         *Cache
-	cachedDirs    []string
-	tempDirs      []string
-	state         map[string]any
-	onEvent       onEvent
-	spanSeq       int
-	spanNesting   int
-	runnerMu      sync.Mutex
-	runnerManager *RunnerManager
-	runnerEg      *errgroup.Group
-	runnerCancel  context.CancelFunc
-	runnerDebug   bool
+	Context        context.Context
+	Workdir        string
+	provider       backend.Provider
+	cache          *Cache
+	cachedDirs     []string
+	tempDirs       []string
+	state          map[string]any
+	onEvent        onEvent
+	spanSeq        int
+	spanNesting    int
+	runnerMu       sync.Mutex
+	runnerManager  *RunnerManager
+	runnerEg       *errgroup.Group
+	runnerCancel   context.CancelFunc
+	runnerDebug    bool
+	tokenLimit     int
+	consumedTokens int64
 	stubContext
 }
 
@@ -224,6 +228,17 @@ func (ctx *Context) runWithState(state map[string]any, fn func(*Context) error) 
 		ctx.state = oldState
 	}()
 	return fn(ctx)
+}
+
+func (ctx *Context) ConsumeTokens(tokens int) error {
+	if ctx.tokenLimit == 0 {
+		return nil
+	}
+	ctx.consumedTokens += int64(tokens)
+	if ctx.consumedTokens > int64(ctx.tokenLimit) {
+		return FlowError(fmt.Errorf("workflow reached token limit (%v)", ctx.tokenLimit))
+	}
+	return nil
 }
 
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {

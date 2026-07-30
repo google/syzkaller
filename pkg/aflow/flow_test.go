@@ -472,3 +472,26 @@ func TestFlowRegistrationErrors(t *testing.T) {
 			Root: Pipeline(),
 		})
 }
+
+func TestConsumeTokens(t *testing.T) {
+	t.Run("disabled when zero limit", func(t *testing.T) {
+		ctx := &Context{tokenLimit: 0}
+		require.NoError(t, ctx.ConsumeTokens(100))
+		require.NoError(t, ctx.ConsumeTokens(1000000))
+	})
+
+	t.Run("within limit", func(t *testing.T) {
+		ctx := &Context{tokenLimit: 100}
+		require.NoError(t, ctx.ConsumeTokens(50))
+		require.NoError(t, ctx.ConsumeTokens(50))
+	})
+
+	t.Run("exceed limit", func(t *testing.T) {
+		ctx := &Context{tokenLimit: 100}
+		require.NoError(t, ctx.ConsumeTokens(50))
+		err := ctx.ConsumeTokens(51)
+		require.Error(t, err)
+		require.True(t, IsFlowError(err))
+		require.Contains(t, err.Error(), "workflow reached token limit (100)")
+	})
+}
