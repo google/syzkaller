@@ -30,7 +30,7 @@ func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
 
 func exportDBScript(srcNamespace, archivePath string) string {
 	return "\n" +
-		"set -e\n" +
+		"set -ue\n" +
 		"echo \"Cloning syzkaller...\"\n" +
 		"git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
