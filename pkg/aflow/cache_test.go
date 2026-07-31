@@ -226,3 +226,26 @@ func TestRetrieveObject_InvalidID(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid cached ID (not local)")
 }
+
+func TestCacheInMemoryObject(t *testing.T) {
+	ctx := NewTestContext(t)
+	type X struct {
+		Val int
+		Str string
+	}
+
+	x, id, err := CacheObject(ctx, "inmem", "1", func() (X, error) {
+		return X{100, "in-memory"}, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, X{100, "in-memory"}, x)
+
+	// RetrieveObject should return the in-memory object even if on-disk object file is deleted.
+	dir := filepath.Join(ctx.cache.dir, "inmem", filepath.Base(id))
+	err = os.Remove(filepath.Join(dir, "object"))
+	require.NoError(t, err)
+
+	x2, err := RetrieveObject[X](ctx, id)
+	require.NoError(t, err)
+	require.Equal(t, X{100, "in-memory"}, x2)
+}

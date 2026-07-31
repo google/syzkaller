@@ -36,6 +36,7 @@ type cacheEntry struct {
 	size       uint64
 	usageCount int
 	lastUsed   time.Time
+	memObject  any
 }
 
 func NewCache(dir string, maxSize uint64) (*Cache, error) {
@@ -122,18 +123,33 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 
 func cacheCreateObject[T any](c *Cache, typ, desc string, populate func() (T, error)) (string, T, error) {
 	const filename = "object"
+	var createdObj T
+	var created bool
 	dir, err := c.Create(typ, desc, func(dir string) error {
 		v, err := populate()
 		if err != nil {
 			return err
 		}
-		return osutil.WriteJSON(filepath.Join(dir, filename), v)
+		if err := osutil.WriteJSON(filepath.Join(dir, filename), v); err != nil {
+			return err
+		}
+		createdObj = v
+		created = true
+		return nil
 	})
 	if err != nil {
 		var res T
 		return "", res, err
 	}
-	res, err := osutil.ReadJSON[T](filepath.Join(dir, filename))
+	if created {
+		c.mu.Lock()
+		if entry := c.entries[dir]; entry != nil {
+			entry.memObject = createdObj
+		}
+		c.mu.Unlock()
+		return dir, createdObj, nil
+	}
+	res, err := cacheReadObject[T](c, typ, filepath.Base(dir), filename)
 	return dir, res, err
 }
 
@@ -151,7 +167,16 @@ func cacheReadObject[T any](c *Cache, typ, id, filename string) (T, error) {
 	// If we can't update time, just proceed with reading.
 	_ = os.Chtimes(metaFile, now, now)
 	entry.lastUsed = now
-	return osutil.ReadJSON[T](filepath.Join(dir, filename))
+	if entry.memObject != nil {
+		if obj, ok := entry.memObject.(T); ok {
+			return obj, nil
+		}
+	}
+	res, err := osutil.ReadJSON[T](filepath.Join(dir, filename))
+	if err == nil {
+		entry.memObject = res
+	}
+	return res, err
 }
 
 // Release must be called for every directory returned by Create method when the directory is not used anymore.
