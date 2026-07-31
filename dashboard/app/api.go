@@ -931,7 +931,7 @@ func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, e
 			bug.NumRepro++
 			bug.LastReproTime = now
 		}
-		bug.UpdateReproLevel(hasC, hasSyz)
+		bug.UpdateReproLevel(hasC, hasSyz, now)
 		bug.UpdateHeadReproLevel(hasC, hasSyz)
 		if len(req.Report) != 0 {
 			bug.HasReport = true
