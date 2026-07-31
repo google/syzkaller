@@ -11,6 +11,11 @@ indexes:
 - kind: Bug
   properties:
   - name: Namespace
+  - name: StructVersion
+
+- kind: Bug
+  properties:
+  - name: Namespace
   - name: HappenedOn
 
 - kind: Bug

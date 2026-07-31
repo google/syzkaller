@@ -1076,6 +1076,9 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		return setMissingBugFields(ctx, w, r)
 	case "force_commit_info_update":
 		return forceCommitInfoUpdate(ctx, w, r)
+	case "populateReproTime":
+		// TODO: remove this case after migration.
+		return populateReproTime(ctx, w, r)
 	case "emergency_stop":
 		if err := recordEmergencyStop(ctx); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)

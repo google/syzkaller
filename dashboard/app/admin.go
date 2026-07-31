@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -419,6 +420,117 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	})
 }
 
+func findOldestReproTimes(crashes []*Crash) (oldestC, oldestSyz time.Time) {
+	for _, crash := range crashes {
+		if crash.Time.IsZero() {
+			continue
+		}
+		if crash.ReproC > 0 && (oldestC.IsZero() || crash.Time.Before(oldestC)) {
+			oldestC = crash.Time
+		}
+		if crash.ReproSyz > 0 && (oldestSyz.IsZero() || crash.Time.Before(oldestSyz)) {
+			oldestSyz = crash.Time
+		}
+	}
+	return oldestC, oldestSyz
+}
+
+func computeNewReproTimes(bug *Bug, oldestC, oldestSyz time.Time) (newC, newSyz time.Time) {
+	newC = bug.FirstCReproTime
+	if bug.HasCRepro && bug.FirstCReproTime.IsZero() {
+		if oldestC.IsZero() {
+			// If all crashes with reproducers have been purged, fallback to bug.FirstTime.
+			newC = bug.FirstTime
+		} else {
+			newC = oldestC
+		}
+	}
+	newSyz = bug.FirstSyzReproTime
+	if bug.HasSyzRepro && bug.FirstSyzReproTime.IsZero() {
+		if oldestSyz.IsZero() {
+			// If all crashes with reproducers have been purged, fallback to bug.FirstTime.
+			newSyz = bug.FirstTime
+		} else {
+			newSyz = oldestSyz
+		}
+	}
+	return newC, newSyz
+}
+
+// populateReproTime populates FirstCReproTime and FirstSyzReproTime fields for historical bugs
+// based on the oldest crash associated with a reproducer.
+// TODO: remove this function and the corresponding admin action after migration.
+func populateReproTime(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	limit := 0
+	if limitStr := r.FormValue("limit"); limitStr != "" {
+		parsed, err := strconv.Atoi(limitStr)
+		if err != nil || parsed <= 0 {
+			return fmt.Errorf("invalid limit parameter %q", limitStr)
+		}
+		limit = parsed
+	}
+	ns := r.FormValue("ns")
+	var keys []*db.Key
+	type reproTimes struct {
+		cReproTime   time.Time
+		syzReproTime time.Time
+	}
+	updates := map[string]reproTimes{}
+	filter := func(query *db.Query) *db.Query {
+		if ns != "" {
+			query = query.Filter("Namespace=", ns)
+		}
+		return query.Filter("StructVersion <", bugStructVersion)
+	}
+	errStop := errors.New("stop")
+	err := foreachBug(ctx, filter, func(bug *Bug, key *db.Key) error {
+		if limit > 0 && len(keys) >= limit {
+			return errStop
+		}
+		var oldestC, oldestSyz time.Time
+		if bug.HasCRepro || bug.HasSyzRepro {
+			var crashes []*Crash
+			_, err := db.NewQuery("Crash").Ancestor(key).GetAll(ctx, &crashes)
+			if err != nil {
+				return fmt.Errorf("failed to fetch crashes for bug %v: %w", key.StringID(), err)
+			}
+			oldestC, oldestSyz = findOldestReproTimes(crashes)
+		}
+		newC, newSyz := computeNewReproTimes(bug, oldestC, oldestSyz)
+		updates[key.Encode()] = reproTimes{cReproTime: newC, syzReproTime: newSyz}
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil && !errors.Is(err, errStop) {
+		return err
+	}
+	fmt.Fprintf(w, "fetched %d bugs to update repro times\n", len(keys))
+	err = updateBatch(ctx, keys, func(key *db.Key, bug *Bug) {
+		times, ok := updates[key.Encode()]
+		if !ok {
+			panic("unknown bug key in updateBatch")
+		}
+		if !times.cReproTime.IsZero() &&
+			(bug.FirstCReproTime.IsZero() || times.cReproTime.Before(bug.FirstCReproTime)) {
+			bug.FirstCReproTime = times.cReproTime
+		}
+		if !times.syzReproTime.IsZero() &&
+			(bug.FirstSyzReproTime.IsZero() || times.syzReproTime.Before(bug.FirstSyzReproTime)) {
+			bug.FirstSyzReproTime = times.syzReproTime
+		}
+		bug.StructVersion = bugStructVersion
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "successfully updated repro times for %d bugs\n", len(keys))
+	return nil
+}
+
 func init() {
 	// Prevent warnings about dead code.
 	runtime.KeepAlive(dropNamespace)
@@ -426,4 +538,5 @@ func init() {
 	runtime.KeepAlive(adminSendEmail)
 	runtime.KeepAlive(updateHeadReproLevel)
 	runtime.KeepAlive(updateCrashPriorities)
+	runtime.KeepAlive(populateReproTime)
 }

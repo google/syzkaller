@@ -90,7 +90,7 @@ type Build struct {
 // bugStructVersion is the current version of the Bug entity schema in Datastore.
 // Bump this version when making backwards-incompatible changes to the Bug entity
 // that require a schema migration handler.
-const bugStructVersion = 1
+const bugStructVersion = 2
 
 type Bug struct {
 	Namespace       string
@@ -109,27 +109,31 @@ type Bug struct {
 	HeadHasSyzRepro bool
 	// StructVersion is the version of the Bug entity schema in Datastore.
 	// Used to select batches of bugs during schema migrations.
-	StructVersion   int
-	BisectCause     BisectStatus
-	BisectFix       BisectStatus
-	HasReport       bool
-	NeedCommitInfo  bool
-	FirstTime       time.Time
-	LastTime        time.Time
-	LastSavedCrash  time.Time
-	LastReproTime   time.Time
-	LastCauseBisect time.Time
-	FixTime         time.Time // when we become aware of the fixing commit
-	LastActivity    time.Time // last time we observed any activity related to the bug
-	Closed          time.Time
-	SubsystemsTime  time.Time // when we have updated subsystems last time
-	SubsystemsRev   int
-	Reporting       []BugReporting
-	Commits         []string // titles of fixing commmits
-	CommitInfo      []Commit // additional info for commits (for historical reasons parallel array to Commits)
-	HappenedOn      []string // list of managers
-	PatchedOn       []string `datastore:",noindex"` // list of managers
-	UNCC            []string // don't CC these emails on this bug
+	StructVersion  int
+	BisectCause    BisectStatus
+	BisectFix      BisectStatus
+	HasReport      bool
+	NeedCommitInfo bool
+	FirstTime      time.Time
+	LastTime       time.Time
+	LastSavedCrash time.Time
+	LastReproTime  time.Time
+	// FirstCReproTime is the timestamp when the first C reproducer was found for the bug.
+	FirstCReproTime time.Time `datastore:",noindex"`
+	// FirstSyzReproTime is the timestamp when the first Syz reproducer was found for the bug.
+	FirstSyzReproTime time.Time `datastore:",noindex"`
+	LastCauseBisect   time.Time
+	FixTime           time.Time // when we become aware of the fixing commit
+	LastActivity      time.Time // last time we observed any activity related to the bug
+	Closed            time.Time
+	SubsystemsTime    time.Time // when we have updated subsystems last time
+	SubsystemsRev     int
+	Reporting         []BugReporting
+	Commits           []string // titles of fixing commmits
+	CommitInfo        []Commit // additional info for commits (for historical reasons parallel array to Commits)
+	HappenedOn        []string // list of managers
+	PatchedOn         []string `datastore:",noindex"` // list of managers
+	UNCC              []string // don't CC these emails on this bug
 	// Kcidb publishing status bitmask:
 	// bit 0 - the bug is published
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
@@ -1233,7 +1237,14 @@ func (bug *Bug) HeadReproLevelVal() dashapi.ReproLevel {
 	return dashapi.ReproLevelFromCAndSyz(bug.HeadHasCRepro, bug.HeadHasSyzRepro)
 }
 
-func (bug *Bug) UpdateReproLevel(hasC, hasSyz bool) {
+// UpdateReproLevel updates the bug reproducer levels and records FirstCReproTime / FirstSyzReproTime.
+func (bug *Bug) UpdateReproLevel(hasC, hasSyz bool, now time.Time) {
+	if hasC && !bug.HasCRepro && bug.FirstCReproTime.IsZero() {
+		bug.FirstCReproTime = now
+	}
+	if hasSyz && !bug.HasSyzRepro && bug.FirstSyzReproTime.IsZero() {
+		bug.FirstSyzReproTime = now
+	}
 	bug.HasCRepro = bug.HasCRepro || hasC
 	bug.HasSyzRepro = bug.HasSyzRepro || hasSyz
 }
