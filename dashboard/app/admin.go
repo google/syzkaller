@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -219,11 +220,8 @@ func updateBugReporting(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		}
 		update = append(update, keys[i])
 	}
-	return updateBatch(ctx, update, func(_ *db.Key, bug *Bug) {
-		err := bug.updateReportings(ctx, cfg, timeNow(ctx))
-		if err != nil {
-			panic(err)
-		}
+	return updateBatch(ctx, update, func(_ *db.Key, bug *Bug) error {
+		return bug.updateReportings(ctx, cfg, timeNow(ctx))
 	})
 }
 
@@ -259,14 +257,18 @@ func updateCrashPriorities(ctx context.Context, w http.ResponseWriter, r *http.R
 		return err
 	}
 	log.Warningf(ctx, "fetched %d bugs and %v crash keys to update", bugsCount, len(crashKeys))
-	return updateBatch(ctx, crashKeys, func(key *db.Key, crash *Crash) {
+	return updateBatch(ctx, crashKeys, func(key *db.Key, crash *Crash) error {
 		bugKey := key.Parent()
 		bug := bugPerKey[bugKey.String()]
 		build, err := loadBuild(ctx, ns, crash.BuildID)
-		if build == nil || err != nil {
-			panic(fmt.Sprintf("err: %s, build: %v", err, build))
+		if err != nil {
+			return err
+		}
+		if build == nil {
+			return fmt.Errorf("failed to load build %v", crash.BuildID)
 		}
 		crash.UpdateReportingPriority(ctx, build, bug)
+		return nil
 	})
 }
 
@@ -288,7 +290,7 @@ func setMissingBugFields(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 	log.Warningf(ctx, "fetched %v bugs for update", len(keys))
 	// Save everything unchanged.
-	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {})
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) error { return nil })
 }
 
 // adminSendEmail can be used to send an arbitrary message from the bot.
@@ -351,16 +353,17 @@ func updateHeadReproLevel(ctx context.Context, w http.ResponseWriter, r *http.Re
 	}); err != nil {
 		return err
 	}
-	return updateBatch(ctx, keys, func(key *db.Key, bug *Bug) {
+	return updateBatch(ctx, keys, func(key *db.Key, bug *Bug) error {
 		state, ok := newLevels[key.StringID()]
 		if !ok {
-			panic("fetched unknown bug")
+			return fmt.Errorf("fetched unknown bug %v", key.StringID())
 		}
 		bug.SetHeadReproLevel(state.hasC, state.hasSyz)
+		return nil
 	})
 }
 
-func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key *db.Key, item *T)) error {
+func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key *db.Key, item *T) error) error {
 	for len(keys) != 0 {
 		batchSize := min(len(keys), 20)
 		batchKeys := keys[:batchSize]
@@ -372,7 +375,9 @@ func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key 
 				return err
 			}
 			for i, item := range items {
-				transform(batchKeys[i], item)
+				if err := transform(batchKeys[i], item); err != nil {
+					return err
+				}
 			}
 			_, err := db.PutMulti(ctx, batchKeys, items)
 			return err
@@ -414,9 +419,90 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 
 	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
-	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) error {
 		bug.NeedCommitInfo = true
+		return nil
 	})
+}
+
+func findOldestReproTimes(crashes []*Crash) (oldestC, oldestSyz time.Time) {
+	for _, crash := range crashes {
+		if crash.Time.IsZero() {
+			continue
+		}
+		if crash.ReproC > 0 && (oldestC.IsZero() || crash.Time.Before(oldestC)) {
+			oldestC = crash.Time
+		}
+		if crash.ReproSyz > 0 && (oldestSyz.IsZero() || crash.Time.Before(oldestSyz)) {
+			oldestSyz = crash.Time
+		}
+	}
+	return oldestC, oldestSyz
+}
+
+func updateReproTimesForBug(ctx context.Context, key *db.Key, bug *Bug) error {
+	if !bug.HasCRepro && !bug.HasSyzRepro {
+		bug.StructVersion = bugStructVersion
+		return nil
+	}
+	var crashes []*Crash
+	_, err := db.NewQuery("Crash").Ancestor(key).GetAll(ctx, &crashes)
+	if err != nil {
+		return fmt.Errorf("failed to fetch crashes for bug %v: %w", key.StringID(), err)
+	}
+	oldestC, oldestSyz := findOldestReproTimes(crashes)
+	if bug.HasCRepro && !oldestC.IsZero() &&
+		(bug.FirstCReproTime.IsZero() || oldestC.Before(bug.FirstCReproTime)) {
+		bug.FirstCReproTime = oldestC
+	}
+	if bug.HasSyzRepro && !oldestSyz.IsZero() &&
+		(bug.FirstSyzReproTime.IsZero() || oldestSyz.Before(bug.FirstSyzReproTime)) {
+		bug.FirstSyzReproTime = oldestSyz
+	}
+	bug.StructVersion = bugStructVersion
+	return nil
+}
+
+// populateReproTime populates FirstCReproTime and FirstSyzReproTime fields for historical bugs
+// based on the oldest crash associated with a reproducer.
+// TODO: remove this function and the corresponding admin action after migration.
+func populateReproTime(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	limit := 0
+	if limitStr := r.FormValue("limit"); limitStr != "" {
+		parsed, err := strconv.Atoi(limitStr)
+		if err != nil || parsed <= 0 {
+			return fmt.Errorf("invalid limit parameter %q", limitStr)
+		}
+		limit = parsed
+	}
+	var keys []*db.Key
+	filter := func(query *db.Query) *db.Query {
+		return query.Filter("StructVersion <", bugStructVersion)
+	}
+	errStop := errors.New("stop")
+	err := foreachBug(ctx, filter, func(bug *Bug, key *db.Key) error {
+		if limit > 0 && len(keys) >= limit {
+			return errStop
+		}
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil && !errors.Is(err, errStop) {
+		return err
+	}
+	fmt.Fprintf(w, "fetched %d bugs to update repro times\n", len(keys))
+	err = updateBatch(ctx, keys, func(key *db.Key, bug *Bug) error {
+		return updateReproTimesForBug(ctx, key, bug)
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "successfully updated repro times for %d bugs\n", len(keys))
+	return nil
 }
 
 func init() {
@@ -426,4 +512,5 @@ func init() {
 	runtime.KeepAlive(adminSendEmail)
 	runtime.KeepAlive(updateHeadReproLevel)
 	runtime.KeepAlive(updateCrashPriorities)
+	runtime.KeepAlive(populateReproTime)
 }
