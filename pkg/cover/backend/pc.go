@@ -14,14 +14,7 @@ func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 
 		// gVisor coverage returns real PCs that don't need adjustment.
 		return pc
 	}
-	offset := instructionLen(target.Arch)
-	pc -= offset
-	// THUMB instructions are 2 or 4 bytes with low bit set.
-	// ARM instructions are always 4 bytes.
-	if target.Arch == targets.ARM {
-		return pc & ^uint64(1)
-	}
-	return pc
+	return pc - instructionLen(target.Arch)
 }
 
 func PreviousInstructionPCs(target *targets.Target, vm string, cov []uint64) []uint64 {
@@ -36,14 +29,7 @@ func NextInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
 	if vm == targets.GVisor {
 		return pc
 	}
-	offset := instructionLen(target.Arch)
-	pc += offset
-	// THUMB instructions are 2 or 4 bytes with low bit set.
-	// ARM instructions are always 4 bytes.
-	if target.Arch == targets.ARM {
-		return pc & ^uint64(1)
-	}
-	return pc
+	return pc + instructionLen(target.Arch)
 }
 
 func instructionLen(arch string) uint64 {
@@ -55,7 +41,7 @@ func instructionLen(arch string) uint64 {
 	case targets.ARM64:
 		return 4
 	case targets.ARM:
-		return 3
+		return 4
 	case targets.PPC64LE:
 		return 4
 	case targets.MIPS64LE:
