@@ -85,28 +85,30 @@ func (s sysDirFS) resolvePath(name string) string {
 	return filepath.Join(s.syzkallerDir, "sys", s.osTarget, name)
 }
 
-func (s sysDirFS) Open(name string) (fs.File, error) {
+func runOS[T any](s sysDirFS, name, op string, fn func(string) (T, error)) (T, error) {
 	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
+		var zero T
+		return zero, &fs.PathError{Op: op, Path: name, Err: fs.ErrInvalid}
 	}
-	fullPath := s.resolvePath(name)
-	return os.Open(fullPath)
+	res, err := fn(s.resolvePath(name))
+	if pathErr, ok := errors.AsType[*os.PathError](err); ok {
+		pathErr.Path = name
+	}
+	return res, err
+}
+
+func (s sysDirFS) Open(name string) (fs.File, error) {
+	return runOS(s, name, "open", func(p string) (fs.File, error) {
+		return os.Open(p)
+	})
 }
 
 func (s sysDirFS) ReadFile(name string) ([]byte, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "readfile", Path: name, Err: fs.ErrInvalid}
-	}
-	fullPath := s.resolvePath(name)
-	return os.ReadFile(fullPath)
+	return runOS[[]byte](s, name, "readfile", os.ReadFile)
 }
 
 func (s sysDirFS) ReadDir(name string) ([]fs.DirEntry, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrInvalid}
-	}
-	fullPath := s.resolvePath(name)
-	return os.ReadDir(fullPath)
+	return runOS[[]fs.DirEntry](s, name, "readdir", os.ReadDir)
 }
 
 // CleanPath normalizes the given file path by removing redundant elements,
@@ -127,12 +129,14 @@ func (s *SyzFS) CleanPath(file string) string {
 	if isLocalSyzFile(cleaned) {
 		return cleaned
 	}
-	if suffix, ok := strings.CutPrefix(cleaned, "sys/"+s.osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, s.osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, "sys/"); ok {
-		cleaned = suffix
+	for _, prefix := range []string{"sys/" + s.osTarget, s.osTarget, "sys"} {
+		if suffix, ok := strings.CutPrefix(cleaned, prefix+"/"); ok {
+			cleaned = suffix
+			break
+		} else if cleaned == prefix {
+			cleaned = ""
+			break
+		}
 	}
 	return cleaned
 }

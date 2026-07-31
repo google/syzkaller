@@ -275,3 +275,29 @@ func TestExecuteSeed(t *testing.T) {
 		})
 	}
 }
+
+func TestCleanPath_TrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	syzFS := syzspec.NewSyzFS(syzkallerRepoRoot(t), "linux")
+
+	require.Equal(t, "", syzFS.CleanPath("sys/linux/"))
+	require.Equal(t, "", syzFS.CleanPath("sys/linux"))
+	require.Equal(t, "vusb.txt", syzFS.CleanPath("sys/linux/vusb.txt"))
+	require.Equal(t, "test/vusb_hid", syzFS.CleanPath("sys/linux/test/vusb_hid"))
+}
+
+func TestSanitizeError_NoHostPathLeak(t *testing.T) {
+	t.Parallel()
+
+	state := specToolsState{
+		SyzFS: syzspec.NewSyzFS(syzkallerRepoRoot(t), "linux"),
+	}
+
+	_, err := syzGrepper(nil, state, syzGrepperArgs{
+		PathPrefix: "non_existent_dir/",
+		Expression: "SECONDARY_EXEC_SHADOW_VMCS",
+	})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), syzkallerRepoRoot(t))
+}
