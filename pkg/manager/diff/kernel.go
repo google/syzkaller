@@ -141,7 +141,7 @@ func (kc *kernelContext) BugFrames() (leaks, races []string) {
 }
 
 func (kc *kernelContext) MachineChecked(features flatrpc.Feature,
-	syscalls map[*prog.Syscall]bool) error {
+	syscalls map[*prog.Syscall]bool, capabilities map[string]string) error {
 	if len(syscalls) == 0 {
 		return fmt.Errorf("all system calls are disabled")
 	}

@@ -91,7 +91,7 @@ type RemoteConfig struct {
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
-	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error
+	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool, capabilities map[string]string) error
 	CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error)
 }
 
@@ -502,7 +502,8 @@ func (serv *server) runCheck(ctx context.Context, info *handshakeResult) error {
 	enabledFeatures := features.Enabled()
 	serv.enabledFeatures = enabledFeatures
 	serv.setupFeatures = features.NeedSetup()
-	err := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
+	capabilities := serv.checker.Capabilities(info.Files)
+	err := serv.mgr.MachineChecked(enabledFeatures, enabledCalls, capabilities)
 	if err != nil {
 		return err
 	}
