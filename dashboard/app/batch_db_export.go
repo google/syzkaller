@@ -41,11 +41,13 @@ func exportDBScript(srcNamespace, archivePath string) string {
 		"if [ -z \"$token\" ]; then echo \"WARNING: gcloud auth token is empty\"; fi\n" +
 		"echo \"Running syz-db-export inside syz-env...\"\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
-		"echo 'Starting export process inside container...' && " +
-		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token '$token' -j 10 && " +
+		"echo 'Building syz-db-export...' && " +
+		"go build -o ./syz-db-export-bin ./tools/syz-db-export/... 2>&1 && " +
+		"echo 'Starting export process...' && " +
+		"./syz-db-export-bin -namespace " + srcNamespace + " -output export -token '$token' -j 10 && " +
 		"echo 'Export finished. Creating tarball...' && " +
 		"tar -czf export.tar.gz ./export/ && " +
 		"echo 'Tarball created. Copying to GCS...' && " +
-		"gcloud storage cp export.tar.gz " + archivePath +
+		"gcloud storage cp export.tar.gz " + archivePath + " 2>&1" +
 		"\""
 }
