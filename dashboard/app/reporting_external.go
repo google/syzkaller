@@ -83,8 +83,7 @@ func apiNewTestJob(ctx context.Context, req *dashapi.TestPatchRequest) (any, err
 	err := handleExternalTestRequest(ctx, req)
 	if err != nil {
 		resp.ErrorText = err.Error()
-		var badTest *BadTestRequestError
-		if !errors.As(err, &badTest) {
+		if _, ok := errors.AsType[*BadTestRequestError](err); !ok {
 			// Log errors that are not related to the invalid input.
 			log.Errorf(ctx, "external patch posting error: %v", err)
 		}
