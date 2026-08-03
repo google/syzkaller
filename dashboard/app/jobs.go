@@ -1090,31 +1090,10 @@ func doneJob(ctx context.Context, req *dashapi.JobDoneReq) error {
 				log.Errorf(ctx, "job %v: duplicate build %v", jobID, req.Build.ID)
 			}
 		}
-		if job.Log, err = putText(ctx, ns, textLog, req.Log); err != nil {
+		if err := saveJobTexts(ctx, ns, job, req); err != nil {
 			return err
 		}
-		if job.Error, err = putText(ctx, ns, textError, req.Error); err != nil {
-			return err
-		}
-		if job.CrashLog, err = putText(ctx, ns, textCrashLog, req.CrashLog); err != nil {
-			return err
-		}
-		if job.CrashReport, err = putText(ctx, ns, textCrashReport, req.CrashReport); err != nil {
-			return err
-		}
-		for _, com := range req.Commits {
-			cc := email.MergeEmailLists(com.CC,
-				GetEmails(com.Recipients, dashapi.To),
-				GetEmails(com.Recipients, dashapi.Cc))
-			job.Commits = append(job.Commits, Commit{
-				Hash:       com.Hash,
-				Title:      com.Title,
-				Author:     com.Author,
-				AuthorName: com.AuthorName,
-				CC:         strings.Join(sanitizeCC(ctx, cc), "|"),
-				Date:       com.Date,
-			})
-		}
+		saveJobCommits(ctx, job, req.Commits)
 		job.BuildID = req.Build.ID
 		job.CrashTitle = req.CrashTitle
 		job.Finished = now
@@ -1143,6 +1122,39 @@ func doneJob(ctx context.Context, req *dashapi.JobDoneReq) error {
 		return err
 	}
 	return postJob(ctx, jobKey, job)
+}
+
+func saveJobTexts(ctx context.Context, ns string, job *Job, req *dashapi.JobDoneReq) error {
+	var err error
+	if job.Log, err = putText(ctx, ns, textLog, req.Log); err != nil {
+		return err
+	}
+	if job.Error, err = putText(ctx, ns, textError, req.Error); err != nil {
+		return err
+	}
+	if job.CrashLog, err = putText(ctx, ns, textCrashLog, req.CrashLog); err != nil {
+		return err
+	}
+	if job.CrashReport, err = putText(ctx, ns, textCrashReport, req.CrashReport); err != nil {
+		return err
+	}
+	return nil
+}
+
+func saveJobCommits(ctx context.Context, job *Job, commits []dashapi.Commit) {
+	for _, com := range commits {
+		cc := email.MergeEmailLists(com.CC,
+			GetEmails(com.Recipients, dashapi.To),
+			GetEmails(com.Recipients, dashapi.Cc))
+		job.Commits = append(job.Commits, Commit{
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.Author,
+			AuthorName: com.AuthorName,
+			CC:         strings.Join(sanitizeCC(ctx, cc), "|"),
+			Date:       com.Date,
+		})
+	}
 }
 
 func postJob(ctx context.Context, jobKey *db.Key, job *Job) error {
