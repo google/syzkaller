@@ -100,3 +100,16 @@ jobs:
           override_pr: ${{ steps.pr.outputs.number }}
           verbose: true
           disable_search: true
+
+      - name: upload gvisor coverage
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
+        with:
+          codecov_yml_path: base-repo/.github/codecov.yml
+          files: coverage-reports/coverage-gvisor/gvisor.coverprofile
+          flags: gvisor
+          slug: ${{ github.event.workflow_run.repository.full_name }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          override_commit: ${{ github.event.workflow_run.head_sha }}
+          override_pr: ${{ steps.pr.outputs.number }}
+          verbose: true
+          disable_search: true

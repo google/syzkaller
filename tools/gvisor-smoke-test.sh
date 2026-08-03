@@ -7,10 +7,16 @@ set -xeuo pipefail
 workdir="$(mktemp -d /tmp/syzkaller-gvisor-test.XXXXXX)"
 
 cleanup() {
-  sudo -E rm -rf "$workdir"
+  rm -rf "$workdir"
 }
 
 trap cleanup EXIT
+
+# Setup coverage directory if requested
+if [[ -n "${SyzCoverDir:-}" ]]; then
+  mkdir -p "${SyzCoverDir}"
+  export GOCOVERDIR="$(cd "${SyzCoverDir}" && pwd)"
+fi
 
 syzdir="$(pwd)"
 cat > "$workdir/config" <<EOF
@@ -18,7 +24,7 @@ cat > "$workdir/config" <<EOF
         "name": "gvisor",
         "target": "linux/amd64",
         "http": ":54321",
-        "workdir": "/$workdir/workdir/",
+        "workdir": "$workdir/workdir",
         "image": "$workdir/kernel/vmlinux",
         "kernel_obj": "$workdir/kernel/",
         "syzkaller": "$syzdir",
@@ -27,7 +33,7 @@ cat > "$workdir/config" <<EOF
         "type": "gvisor",
         "vm": {
                 "count": 1,
-                "runsc_args": "--ignore-cgroups --network none"
+                "runsc_args": "--ignore-cgroups --network none --rootless"
         }
 }
 EOF
@@ -42,4 +48,14 @@ else
   install -m555 "$GVISOR_VMLINUX_PATH" "$workdir/kernel/vmlinux"
 fi
 
-sudo -E ./bin/syz-manager -config "$workdir/config" --mode smoke-test
+./bin/syz-manager -config "$workdir/config" --mode smoke-test
+
+if [[ -n "${GOCOVERDIR:-}" ]]; then
+  if [[ -n "${SyzCoverProfile:-}" ]]; then
+    if ls "${GOCOVERDIR}"/covmeta.* >/dev/null 2>&1; then
+      go tool covdata textfmt -i="${GOCOVERDIR}" -o="${SyzCoverProfile}"
+    else
+      echo "No coverage data found in ${GOCOVERDIR}"
+    fi
+  fi
+fi
