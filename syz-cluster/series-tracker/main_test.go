@@ -76,6 +76,14 @@ func TestHandleSeriesReportLevel(t *testing.T) {
 			wantReportLevel: "all",
 		},
 		{
+			name:            "direct request series with many cc",
+			directList:      "direct@syzkaller.com",
+			rawCc:           []string{"user1@test.com", "user2@test.com", "user3@test.com", "direct@syzkaller.com"},
+			ownEmail:        false,
+			wantDirect:      true,
+			wantReportLevel: "bugs",
+		},
+		{
 			name:            "own email series",
 			directList:      "direct@syzkaller.com",
 			rawCc:           []string{"user@test.com"},
@@ -105,6 +113,7 @@ func TestHandleSeriesReportLevel(t *testing.T) {
 							Email: &email.Email{
 								MessageID: msgID,
 								Author:    "author@test.com",
+								Cc:        tt.rawCc,
 								RawCc:     tt.rawCc,
 								OwnEmail:  tt.ownEmail,
 							},

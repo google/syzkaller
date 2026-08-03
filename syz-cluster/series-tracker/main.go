@@ -147,6 +147,8 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 	return nil
 }
 
+const maxDirectReportAllCc = 4
+
 func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, series *lore.Series,
 	idToReader map[string]lore.EmailReader) error {
 	if series.Corrupted != "" {
@@ -162,7 +164,7 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 		})
 	}
 	reportLevel := api.ReportLevelBugs
-	if directRequest {
+	if directRequest && len(first.Cc) < maxDirectReportAllCc {
 		reportLevel = api.ReportLevelAll
 	}
 	if first.OwnEmail {
