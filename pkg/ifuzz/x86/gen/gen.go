@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/tool"
 )
 
-// nolint: gocyclo, gocognit, funlen, dupl
+// nolint: gocyclo, gocognit, funlen
 func main() {
 	if len(os.Args) != 3 {
 		tool.Failf("usage: gen instructions.txt output.file")
@@ -115,9 +115,8 @@ func main() {
 			insn1 = new(x86.Insn)
 			*insn1 = *insn
 			if err := parsePattern(insn1, vals); err != nil {
-				var errSkip errSkip
-				if !errors.As(err, &errSkip) {
-					reportError(errSkip.Error())
+				if _, ok := errors.AsType[errSkip](err); !ok {
+					reportError(err.Error())
 				}
 				if err.Error() != "" {
 					fmt.Fprintf(os.Stderr, "skipping %v on line %v (%v)\n", insn.Name, i, err)
@@ -130,9 +129,8 @@ func main() {
 				break
 			}
 			if err := parseOperands(insn1, vals); err != nil {
-				var errSkip errSkip
-				if !errors.As(err, &errSkip) {
-					reportError(errSkip.Error())
+				if _, ok := errors.AsType[errSkip](err); !ok {
+					reportError(err.Error())
 				}
 				if err.Error() != "" {
 					fmt.Fprintf(os.Stderr, "skipping %v on line %v (%v)\n", insn.Name, i, err)

@@ -54,8 +54,7 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 		require.Equal(t, wantError, gotError)
 	}
 	if wantError != "" {
-		var badCallErr *badCallError
-		if !errors.As(err, &badCallErr) {
+		if _, ok := errors.AsType[*badCallError](err); !ok {
 			t.Errorf("expected BadCallError, got %T: %v", err, err)
 		}
 	}
