@@ -116,6 +116,9 @@ RUN apt-get install -y -q ca-certificates \
     && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
 RUN apt-get update && apt-get install -y google-cloud-cli
 RUN git config --system credential.'https://*.*.sourcemanager.dev'.helper gcloud.sh
+# Prevent git from detaching background maintenance processes which can leave stranded lock
+# files (e.g., HEAD.lock) if the container is SIGKILLed.
+RUN git config --system gc.autoDetach false
 
 # Copy the custom strace build.
 COPY --from=strace-builder /opt/bin/strace /opt/bin/strace
