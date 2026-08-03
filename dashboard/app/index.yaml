@@ -223,6 +223,14 @@ indexes:
     direction: desc
 
 - kind: Job
+  ancestor: yes
+  properties:
+  - name: Type
+  - name: Manager
+  - name: Finished
+
+
+- kind: Job
   properties:
   - name: Type
   - name: Finished

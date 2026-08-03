@@ -588,10 +588,11 @@ type Job struct {
 	CrashID   int64
 
 	// Provided by user:
-	KernelRepo   string
-	KernelBranch string
-	Patch        int64 // reference to Patch text entity
-	KernelConfig int64 // reference to the kernel config entity
+	KernelRepo      string
+	KernelBranch    string
+	Patch           int64 // reference to Patch text entity
+	KernelConfig    int64 // reference to the kernel config entity
+	CandidateReproC int64 // reference to ReproC text entity (for C reproducer testing)
 
 	Attempts    int       // number of times we tried to execute this job
 	IsRunning   bool      // the job might have been started, but never finished

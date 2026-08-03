@@ -113,11 +113,14 @@ func checkTextAccess(ctx context.Context, r *http.Request, tag string, id int64)
 	default:
 		return nil, nil, checkAccessLevel(ctx, r, AccessAdmin)
 	case textPatch:
-		return nil, nil, checkJobTextAccess(ctx, r, "Patch", id)
+		bug, err := checkJobTextAccess(ctx, r, "Patch", id)
+		return bug, nil, err
 	case textLog:
-		return nil, nil, checkJobTextAccess(ctx, r, "Log", id)
+		bug, err := checkJobTextAccess(ctx, r, "Log", id)
+		return bug, nil, err
 	case textError:
-		return nil, nil, checkJobTextAccess(ctx, r, "Error", id)
+		bug, err := checkJobTextAccess(ctx, r, "Error", id)
+		return bug, nil, err
 	case textKernelConfig:
 		// This is checked based on text namespace.
 		return nil, nil, nil
@@ -127,17 +130,24 @@ func checkTextAccess(ctx context.Context, r *http.Request, tag string, id int64)
 		if err == nil || err == ErrAccess {
 			return bug, crash, err
 		}
-		return nil, nil, checkJobTextAccess(ctx, r, "CrashLog", id)
+		bug, err = checkJobTextAccess(ctx, r, "CrashLog", id)
+		return bug, nil, err
 	case textCrashReport:
 		bug, crash, err := checkCrashTextAccess(ctx, r, "Report", id)
 		if err == nil || err == ErrAccess {
 			return bug, crash, err
 		}
-		return nil, nil, checkJobTextAccess(ctx, r, "CrashReport", id)
+		bug, err = checkJobTextAccess(ctx, r, "CrashReport", id)
+		return bug, nil, err
 	case textReproSyz:
 		return checkCrashTextAccess(ctx, r, "ReproSyz", id)
 	case textReproC:
-		return checkCrashTextAccess(ctx, r, "ReproC", id)
+		bug, crash, err := checkCrashTextAccess(ctx, r, "ReproC", id)
+		if err == nil || err == ErrAccess {
+			return bug, crash, err
+		}
+		bug, err = checkJobTextAccess(ctx, r, "CandidateReproC", id)
+		return bug, nil, err
 	case textReproLog:
 		bug, crash, err := checkCrashTextAccess(ctx, r, "ReproLog", id)
 		if err == nil || err == ErrAccess {
@@ -181,13 +191,13 @@ func checkCrashTextAccess(ctx context.Context, r *http.Request, field string, id
 	return bug, crash, checkAccessLevel(ctx, r, bugLevel)
 }
 
-func checkJobTextAccess(ctx context.Context, r *http.Request, field string, id int64) error {
+func checkJobTextAccess(ctx context.Context, r *http.Request, field string, id int64) (*Bug, error) {
 	keys, err := db.NewQuery("Job").
 		Filter(field+"=", id).
 		KeysOnly().
 		GetAll(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to query jobs: %w", err)
+		return nil, fmt.Errorf("failed to query jobs: %w", err)
 	}
 	if len(keys) != 1 {
 		err := fmt.Errorf("checkJobTextAccess: found %v jobs for %v=%v", len(keys), field, id)
@@ -195,14 +205,14 @@ func checkJobTextAccess(ctx context.Context, r *http.Request, field string, id i
 			// This can be triggered by bad user requests, so don't log the error.
 			err = fmt.Errorf("%w: %w", ErrClientNotFound, err)
 		}
-		return err
+		return nil, err
 	}
 	bug := new(Bug)
 	if err := db.Get(ctx, keys[0].Parent(), bug); err != nil {
-		return fmt.Errorf("failed to get bug: %w", err)
+		return nil, fmt.Errorf("failed to get bug: %w", err)
 	}
 	bugLevel := bug.sanitizeAccess(ctx, accessLevel(ctx, r))
-	return checkAccessLevel(ctx, r, bugLevel)
+	return bug, checkAccessLevel(ctx, r, bugLevel)
 }
 
 func (bug *Bug) sanitizeAccess(ctx context.Context, currentLevel AccessLevel) AccessLevel {

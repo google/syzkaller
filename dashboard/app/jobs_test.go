@@ -1373,3 +1373,107 @@ func TestAliasPatchTestingJob(t *testing.T) {
 	c.expectEQ(pollResp.KernelRepo, "git://syzkaller.org")
 	c.expectEQ(pollResp.KernelBranch, "some-branch")
 }
+
+func TestReproCJob(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	build.KernelRepo = "git://syzkaller.org"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	rep := c.globalClient.pollBug()
+
+	bug, _, _ := c.loadBug(rep.ID)
+	reproC := []byte("void main() { *(int*)0 = 0; }")
+	job, err := handleTestReproCRequest(c.ctx, &testReproCReqArgs{
+		bug:     bug,
+		bugKey:  bug.key(c.ctx),
+		user:    "test@user.com",
+		manager: build.Manager,
+		reproC:  reproC,
+	})
+	c.expectOK(err)
+	c.expectNE(job, nil)
+	c.expectEQ(job.Type, JobTestPatch)
+
+	// Manager polls job with TestPatches = true.
+	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	c.expectOK(err)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(string(pollResp.ReproC), string(reproC))
+
+	// Job succeeds with crash matching the bug title.
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:         pollResp.ID,
+		Build:      *testBuild(2),
+		CrashTitle: rep.Title,
+	}
+	c.expectOK(c.globalClient.JobDone(jobDoneReq))
+
+	// The newly added repro must cause a new report via pollBug().
+	rep2 := c.globalClient.pollBug()
+	c.expectEQ(rep2.Type, dashapi.ReportRepro)
+	c.expectEQ(string(rep2.ReproC), string(reproC))
+	c.expectNE(rep2.ReproCLink, "")
+}
+
+func TestReproCJobError(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.publicClient
+
+	build := testBuild(1)
+	build.KernelRepo = "git://syzkaller.org"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	bug, _, _ := c.loadBug(extBugID)
+	bugKey := bug.key(c.ctx)
+	c.expectEQ(bug.HasCRepro, false)
+
+	reproC := []byte("void main() { *(int*)0 = 0; }")
+	_, err = handleTestReproCRequest(c.ctx, &testReproCReqArgs{
+		bug:     bug,
+		bugKey:  bugKey,
+		user:    "test@user.com",
+		manager: build.Manager,
+		reproC:  reproC,
+	})
+	c.expectOK(err)
+
+	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	c.expectOK(err)
+
+	// Job finishes with req.Error and a CrashTitle.
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:         pollResp.ID,
+		Build:      *testBuild(2),
+		CrashTitle: bug.Title,
+		Error:      []byte("infrastructure error"),
+	}
+	c.expectOK(c.globalClient.JobDone(jobDoneReq))
+
+	// No reproducer reporting should occur, and HasCRepro should remain false.
+	c.expectNoEmail()
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.HasCRepro, false)
+}

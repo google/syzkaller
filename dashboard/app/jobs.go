@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,9 +33,11 @@ type testReqArgs struct {
 	bugKey          *db.Key
 	bugReporting    *BugReporting
 	user            string
+	manager         string
 	extID           string
 	link            string
 	patch           []byte
+	reproC          []byte
 	repo            string
 	branch          string
 	jobCC           []string
@@ -101,6 +104,33 @@ type testJobArgs struct {
 	testReqArgs
 }
 
+func saveTestJobPayloads(ctx context.Context, ns string, args *testJobArgs) (
+	patchID, reproCID, configRef int64, err error) {
+	if len(args.patch) > 0 {
+		if patchID, err = putText(ctx, ns, textPatch, args.patch); err != nil {
+			return 0, 0, 0, err
+		}
+	}
+	if len(args.reproC) > 0 {
+		if reproCID, err = putText(ctx, ns, textReproC, args.reproC); err != nil {
+			return 0, 0, 0, err
+		}
+	}
+	configRef = args.configRef
+	if args.configAppend != "" {
+		kernelConfig, _, err := getText(ctx, textKernelConfig, configRef)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		configRef, err = putText(ctx, ns, textKernelConfig,
+			append(kernelConfig, []byte(args.configAppend)...))
+		if err != nil {
+			return 0, 0, 0, err
+		}
+	}
+	return patchID, reproCID, configRef, nil
+}
+
 func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	now := timeNow(ctx)
 	if err := patchTestJobArgs(ctx, args); err != nil {
@@ -109,26 +139,18 @@ func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	if reason := checkTestJob(args); reason != "" {
 		return nil, nil, &BadTestRequestError{reason}
 	}
-	manager, mgrConfig := activeManager(ctx, args.crash.Manager, args.bug.Namespace)
+	targetMgr := args.manager
+	if targetMgr == "" {
+		targetMgr = args.crash.Manager
+	}
+	manager, mgrConfig := activeManager(ctx, targetMgr, args.bug.Namespace)
 	if mgrConfig != nil && mgrConfig.RestrictedTestingRepo != "" &&
 		args.repo != mgrConfig.RestrictedTestingRepo {
 		return nil, nil, &BadTestRequestError{mgrConfig.RestrictedTestingReason}
 	}
-	patchID, err := putText(ctx, args.bug.Namespace, textPatch, args.patch)
+	patchID, reproCID, configRef, err := saveTestJobPayloads(ctx, args.bug.Namespace, args)
 	if err != nil {
 		return nil, nil, err
-	}
-	configRef := args.configRef
-	if args.configAppend != "" {
-		kernelConfig, _, err := getText(ctx, textKernelConfig, configRef)
-		if err != nil {
-			return nil, nil, err
-		}
-		configRef, err = putText(ctx, args.bug.Namespace, textKernelConfig,
-			append(kernelConfig, []byte(args.configAppend)...))
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 	reportingName := ""
 	if args.bugReporting != nil {
@@ -151,14 +173,15 @@ func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		MergeBaseRepo:   args.mergeBaseRepo,
 		MergeBaseBranch: args.mergeBaseBranch,
 		Patch:           patchID,
+		CandidateReproC: reproCID,
 		KernelConfig:    configRef,
 		TreeOrigin:      args.treeOrigin,
 	}
 
 	var jobKey *db.Key
-	deletePatch := false
+	deletePayloads := false
 	tx := func(ctx context.Context) error {
-		deletePatch = false
+		deletePayloads = false
 		// We can get 2 emails for the same request: one direct and one from a mailing list.
 		// Filter out such duplicates (for dup we only need link update).
 		var jobs []*Job
@@ -175,7 +198,7 @@ func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		}
 		if len(jobs) != 0 {
 			// The job is already present, update link.
-			deletePatch = true
+			deletePayloads = true
 			job, jobKey = jobs[0], keys[0]
 			if job.Link != "" || args.link == "" {
 				return nil
@@ -194,9 +217,16 @@ func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	} else {
 		err = runInTransaction(ctx, tx, &db.TransactionOptions{XG: true})
 	}
-	if patchID != 0 && (deletePatch || err != nil) {
-		if err := db.Delete(ctx, db.NewKey(ctx, textPatch, "", patchID, nil)); err != nil {
-			log.Errorf(ctx, "failed to delete patch for dup job: %v", err)
+	if deletePayloads || err != nil {
+		if patchID != 0 {
+			if err := db.Delete(ctx, db.NewKey(ctx, textPatch, "", patchID, nil)); err != nil {
+				log.Errorf(ctx, "failed to delete patch for dup job: %v", err)
+			}
+		}
+		if reproCID != 0 {
+			if err := db.Delete(ctx, db.NewKey(ctx, textReproC, "", reproCID, nil)); err != nil {
+				log.Errorf(ctx, "failed to delete reproC for dup job: %v", err)
+			}
 		}
 	}
 	if err != nil {
@@ -245,7 +275,9 @@ func checkTestJob(args *testJobArgs) string {
 	crash, bug := args.crash, args.bug
 	needRepro := crashNeedsRepro(crash.Title)
 	switch {
-	case needRepro && crash.ReproC == 0 && crash.ReproSyz == 0:
+	case len(args.patch) > 0 && len(args.reproC) > 0:
+		return "cannot test both patch and C reproducer"
+	case len(args.reproC) == 0 && needRepro && crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it."
 	case !vcs.CheckRepoAddress(args.repo):
 		return fmt.Sprintf("%q does not look like a valid git repo address.", args.repo)
@@ -857,7 +889,11 @@ func createJobResp(ctx context.Context, job *Job, jobKey *db.Key) (*dashapi.JobP
 		return nil, false, err
 	}
 
-	reproC, _, err := getText(ctx, textReproC, crash.ReproC)
+	reproCRef := crash.ReproC
+	if job.CandidateReproC != 0 {
+		reproCRef = job.CandidateReproC
+	}
+	reproC, _, err := getText(ctx, textReproC, reproCRef)
 	if err != nil {
 		return nil, false, err
 	}
@@ -931,6 +967,7 @@ func createJobResp(ctx context.Context, job *Job, jobKey *db.Key) (*dashapi.JobP
 func isRetestReproJob(job *Job, build *Build) bool {
 	return (job.Type == JobTestPatch || job.Type == JobBisectFix) &&
 		job.Patch == 0 &&
+		job.CandidateReproC == 0 &&
 		job.KernelRepo == build.KernelRepo &&
 		job.KernelBranch == build.KernelBranch
 }
@@ -1121,7 +1158,33 @@ func doneJob(ctx context.Context, req *dashapi.JobDoneReq) error {
 	if err = runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
+	reportCandidateReproCrash(ctx, job, req)
 	return postJob(ctx, jobKey, job)
+}
+
+func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDoneReq) {
+	if job.Type != JobTestPatch || job.CandidateReproC == 0 || req.CrashTitle == "" ||
+		len(req.Error) > 0 || req.Build.ID == "" {
+		return
+	}
+	reproC, _, err := getText(ctx, textReproC, job.CandidateReproC)
+	if err != nil || len(reproC) == 0 {
+		return
+	}
+	build, err := loadBuild(ctx, job.Namespace, req.Build.ID)
+	if err != nil {
+		return
+	}
+	crashReq := &dashapi.Crash{
+		BuildID: req.Build.ID,
+		Title:   req.CrashTitle,
+		Log:     req.CrashLog,
+		Report:  req.CrashReport,
+		ReproC:  reproC,
+	}
+	if _, err := reportCrash(ctx, build, crashReq); err != nil {
+		log.Errorf(ctx, "job %v: failed to report candidate repro crash: %v", req.ID, err)
+	}
 }
 
 func saveJobTexts(ctx context.Context, ns string, job *Job, req *dashapi.JobDoneReq) error {
@@ -1638,6 +1701,9 @@ func makeJobInfo(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, build 
 		info.ReproCLink = externalLink(ctx, textReproC, crash.ReproC)
 		info.ReproSyzLink = externalLink(ctx, textReproSyz, crash.ReproSyz)
 	}
+	if job.CandidateReproC != 0 {
+		info.ReproCLink = externalLink(ctx, textReproC, job.CandidateReproC)
+	}
 	return info
 }
 
@@ -1932,4 +1998,72 @@ func loadBugsWithHeadRepro(ctx context.Context) ([]bugItem, error) {
 	add(bugs2, keys2)
 
 	return merged, nil
+}
+
+type testReproCReqArgs struct {
+	bug     *Bug
+	bugKey  *db.Key
+	user    string
+	manager string
+	reproC  []byte
+}
+
+// handleTestReproCRequest creates a JobTestPatch job to test a C reproducer on a manager.
+func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job, error) {
+	if len(args.reproC) == 0 {
+		return nil, &BadTestRequestError{"C reproducer is empty"}
+	}
+	crash, crashKey, err := findCrashForBug(ctx, args.bug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find a crash for bug: %w", err)
+	}
+	targetMgr := args.manager
+	if targetMgr == "" {
+		targetMgr = crash.Manager
+	}
+	manager, _ := activeManager(ctx, targetMgr, args.bug.Namespace)
+	if existing := findDuplicateTestReproCJob(ctx, args.bugKey, manager, args.reproC); existing != nil {
+		return existing, nil
+	}
+	build, err := loadBuild(ctx, args.bug.Namespace, crash.BuildID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load build: %w", err)
+	}
+	job, _, err := addTestJob(ctx, &testJobArgs{
+		crash:     crash,
+		crashKey:  crashKey,
+		configRef: build.KernelConfig,
+		testReqArgs: testReqArgs{
+			bug:     args.bug,
+			bugKey:  args.bugKey,
+			user:    args.user,
+			manager: targetMgr,
+			repo:    build.KernelRepo,
+			branch:  build.KernelBranch,
+			reproC:  args.reproC,
+		},
+	})
+	return job, err
+}
+
+func findDuplicateTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) *Job {
+	var existingJobs []*Job
+	_, err := db.NewQuery("Job").
+		Ancestor(bugKey).
+		Filter("Type=", JobTestPatch).
+		Filter("Manager=", manager).
+		Filter("Finished=", time.Time{}).
+		GetAll(ctx, &existingJobs)
+	if err != nil {
+		return nil
+	}
+	for _, j := range existingJobs {
+		if j.CandidateReproC != 0 {
+			existingReproC, _, err := getText(ctx, textReproC, j.CandidateReproC)
+			if err == nil && bytes.Equal(existingReproC, reproC) {
+				return j
+			}
+		}
+	}
+	return nil
 }
