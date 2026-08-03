@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/logging v1.18.0
 	cloud.google.com/go/profiler v0.6.0
 	cloud.google.com/go/secretmanager v1.20.0
-	cloud.google.com/go/spanner v1.93.0
+	cloud.google.com/go/spanner v1.94.0
 	cloud.google.com/go/storage v1.64.0
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.7.14
@@ -35,7 +35,7 @@ require (
 	google.golang.org/appengine/v2 v2.0.6
 	google.golang.org/genai v1.62.0
 	google.golang.org/genproto v0.0.0-20260519071638-aa98bba5eb94
-	google.golang.org/grpc v1.82.0
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.36.3
