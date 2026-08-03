@@ -1391,3 +1391,98 @@ func TestManualAIWorkflows(t *testing.T) {
 	assert.Nil(t, manualAIWorkflows(nil))
 	assert.Nil(t, manualAIWorkflows(&Config{}))
 }
+
+func TestAITestReproC(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.KernelRepo = "git://syzkaller.org"
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+	bug, _, _ := c.loadBug(extID)
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)},
+		},
+	}
+	_, err := c.globalClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	values := url.Values{}
+	values.Set("ai-job-create", string(ai.WorkflowReproC))
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL, values)
+	require.NoError(t, err)
+
+	aiJobResp, err := c.globalClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, aiJobResp.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: aiJobResp.ID,
+		Results: map[string]any{
+			"ReproC":              "int main() { return 0; }",
+			"KernelConfigManager": build.Manager,
+		},
+	})
+	require.NoError(t, err)
+
+	testValues := url.Values{}
+	testValues.Set("id", aiJobResp.ID)
+	testValues.Set("action", "test_repro_c")
+	_, err = c.AuthPOSTForm(AccessUser, "/ai_job", testValues)
+	require.NoError(t, err)
+
+	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, dashapi.JobTestPatch, pollResp.Type)
+	require.Equal(t, "int main() { return 0; }", string(pollResp.ReproC))
+
+	// Complete the test job with a crash matching the bug title.
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:         pollResp.ID,
+		Build:      *testBuild(2),
+		CrashTitle: bug.Title,
+	}
+	require.NoError(t, c.globalClient.JobDone(jobDoneReq))
+
+	// The newly added repro must have caused reporting of a reproducer.
+	msg := c.pollEmailBug()
+	require.NotNil(t, msg)
+
+	bug, dbCrash, _ := c.loadBug(extID)
+	require.True(t, bug.HasCRepro)
+	require.True(t, bug.HeadHasCRepro)
+
+	// Verify that the reproducer link is reported in the email and serves the augmented C reproducer via HTTP.
+	reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
+	require.Contains(t, msg.Body, reproCLink)
+	wantReproC := []byte(fmt.Sprintf("// %v/bug?id=%v\nint main() { return 0; }",
+		appURL(c.ctx), bug.keyHash(c.ctx)))
+	c.checkURLContents(reproCLink, wantReproC)
+}
+
+func TestAITestReproCErrors(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// Invalid action.
+	values := url.Values{}
+	values.Set("id", "non-existent-id")
+	values.Set("action", "invalid_action")
+	_, err := c.AuthPOSTForm(AccessUser, "/ai_job", values)
+	var httpErr *HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	require.Equal(t, http.StatusNotFound, httpErr.Code)
+}

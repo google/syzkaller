@@ -250,6 +250,7 @@ type uiAIJob struct {
 	CorrectTitle     string
 	Results          []*uiAIResult
 	IsCurrent        bool
+	CanTestOnManager bool
 }
 
 type uiAIResult struct {
@@ -514,6 +515,12 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 		}
 		correct := r.FormValue("correct")
 		return "", handleAIJobPageCorrectness(ctx, job, correct, "", user.Email)
+
+	case "test_repro_c":
+		if job.Workflow != string(ai.WorkflowReproC) {
+			return "", fmt.Errorf("%w: only C reproducer jobs can be tested", ErrClientBadRequest)
+		}
+		return "", handleAITestReproCJob(ctx, job, r)
 
 	default:
 		return "", fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
@@ -1002,6 +1009,14 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	if desc == "" {
 		desc = "---"
 	}
+	canTestOnManager := false
+	if job.Workflow == string(ai.WorkflowReproC) && job.Error == "" && job.Finished.Valid {
+		if resMap, ok := job.Results.Value.(map[string]any); ok {
+			if reproC, _ := resMap[textReproC].(string); reproC != "" {
+				canTestOnManager = true
+			}
+		}
+	}
 	return &uiAIJob{
 		ID:               job.ID,
 		Link:             fmt.Sprintf("/ai_job?id=%v", job.ID),
@@ -1020,6 +1035,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		CorrectTitle:     title,
 		Results:          results,
 		ErrorSummary:     summarizeAIJobError(job.Error),
+		CanTestOnManager: canTestOnManager,
 	}
 }
 
@@ -2161,4 +2177,51 @@ func extractExecutedModels(trajectory []*aidb.TrajectorySpan) []string {
 	res := slices.Collect(maps.Keys(models))
 	slices.Sort(res)
 	return res
+}
+
+// handleAITestReproCJob launches a C reproducer test job for a given AI job.
+func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request) error {
+	user := currentUser(ctx)
+	if user == nil {
+		return ErrAccess
+	}
+	resultsMap, ok := aiJob.Results.Value.(map[string]any)
+	if !ok {
+		return fmt.Errorf("%w: invalid AI job results format", ErrClientBadRequest)
+	}
+	reproCStr, _ := resultsMap[textReproC].(string)
+	if reproCStr == "" {
+		return fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
+	}
+	if !aiJob.BugID.Valid || aiJob.BugID.StringVal == "" {
+		return fmt.Errorf("%w: AI job has no associated Bug ID", ErrClientBadRequest)
+	}
+	bugKey := db.NewKey(ctx, "Bug", aiJob.BugID.StringVal, 0, nil)
+	bug := new(Bug)
+	if err := db.Get(ctx, bugKey, bug); err != nil {
+		return fmt.Errorf("failed to get bug %v: %w", aiJob.BugID.StringVal, err)
+	}
+	if err := checkAccessLevel(ctx, r, bug.sanitizeAccess(ctx, accessLevel(ctx, r))); err != nil {
+		return err
+	}
+	manager, _ := resultsMap["KernelConfigManager"].(string)
+	if manager == "" {
+		if argsMap, ok := aiJob.Args.Value.(map[string]any); ok {
+			manager, _ = argsMap["KernelConfigManager"].(string)
+		}
+	}
+	if manager == "" && len(bug.HappenedOn) > 0 {
+		manager = bug.HappenedOn[0]
+	}
+	if manager == "" {
+		return fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
+	}
+	_, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
+		bug:     bug,
+		bugKey:  bugKey,
+		user:    user.Email,
+		manager: manager,
+		reproC:  []byte(reproCStr),
+	})
+	return err
 }
