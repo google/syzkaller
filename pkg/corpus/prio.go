@@ -79,8 +79,7 @@ func (corpus *Corpus) Programs() []*prog.Prog {
 }
 
 func (pl *ProgramsList) clear() {
-	clear(pl.progs)
-	pl.progs = pl.progs[:0]
-	pl.accPrios = pl.accPrios[:0]
+	pl.progs = nil
+	pl.accPrios = nil
 	pl.sumPrios = 0
 }
