@@ -72,7 +72,7 @@ const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
 const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
-const int kCoverSize = 512 << 10;
+const int kCoverSize = 1024 << 10;
 const int kFailStatus = 67;
 
 // Two approaches of dealing with kcov memory.
@@ -118,8 +118,8 @@ static void SnapshotPrepareParent();
 // Allocating (and forking) virtual memory for each executed process is expensive, so we only mmap
 // the amount we might possibly need for the specific received prog.
 const int kMaxOutputComparisons = 14 << 20; // executions with comparsions enabled are usually < 1% of all executions
-const int kMaxOutputCoverage = 6 << 20; // coverage is needed in ~ up to 1/3 of all executions (depending on corpus rotation)
-const int kMaxOutputSignal = 4 << 20;
+const int kMaxOutputCoverage = 12 << 20; // coverage is needed in ~ up to 1/3 of all executions (depending on corpus rotation)
+const int kMaxOutputSignal = 8 << 20;
 const int kMinOutput = 256 << 10; // if we don't need to send signal, the output is rather short.
 const int kInitialOutput = kMinOutput; // the minimal size to be allocated in the parent process
 const int kMaxOutput = kMaxOutputComparisons;
