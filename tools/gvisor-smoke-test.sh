@@ -7,6 +7,7 @@ set -xeuo pipefail
 workdir="$(mktemp -d /tmp/syzkaller-gvisor-test.XXXXXX)"
 
 cleanup() {
+  while sudo -E umount "$workdir/workdir/gvisor_root/null-netns" 2>/dev/null; do true; done
   sudo -E rm -rf "$workdir"
 }
 
