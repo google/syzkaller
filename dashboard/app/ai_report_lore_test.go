@@ -316,15 +316,7 @@ Here is another comment after rejection.
 
 	c.advanceTime(31 * time.Minute)
 
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	assert.Empty(t, resp.ID) // No job should be created.
 }
 
@@ -492,15 +484,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	// Advance time to pass the debounce logic so the iteration job gets created.
 	c.advanceTime(11 * time.Minute)
 
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	// Verify that the original fixes hash was passed down.
@@ -622,15 +606,7 @@ func TestAILoreIteration(t *testing.T) {
 	// Advance time to pass the debounce logic so the iteration job gets created.
 	c.advanceTime(11 * time.Minute)
 
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	// Verify that the original fixes hash was passed down.
@@ -701,15 +677,7 @@ In-Reply-To: <mock@msgid-2>
 
 	c.advanceTime(31 * time.Minute)
 
-	pollReq = &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err = c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp = c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
