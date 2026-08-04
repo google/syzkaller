@@ -1279,7 +1279,10 @@ func TestAITestReproC(t *testing.T) {
 	testValues.Set("id", aiJobResp.ID)
 	testValues.Set("action", "test_repro_c")
 	_, err = c.AuthPOSTForm(AccessUser, "/ai_job", testValues)
-	require.NoError(t, err)
+	var httpErr *HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	require.Equal(t, http.StatusFound, httpErr.Code)
+	require.Equal(t, fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)), httpErr.Headers.Get("Location"))
 
 	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
 		Managers: map[string]dashapi.ManagerJobs{
