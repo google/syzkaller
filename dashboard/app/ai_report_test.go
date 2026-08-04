@@ -32,12 +32,7 @@ func (ctx *Ctx) setupAIPatchJob(t *testing.T) (string, string) {
 	ctx.aiClient.ReportCrash(crash)
 	extID := ctx.aiClient.pollEmailExtID()
 
-	_, err := ctx.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	ctx.pollAIWorkflow(t, ai.WorkflowPatching)
 	jobID := ctx.createAIJob(extID, string(ai.WorkflowPatching), "")
 	return extID, jobID
 }
@@ -56,6 +51,45 @@ func (ctx *Ctx) finishAIPatchJob(t *testing.T, jobID string, customResults map[s
 		Results: results,
 	})
 	require.NoError(t, err)
+}
+
+func (ctx *Ctx) pollAIJob(t *testing.T, agentName string, workflows ...dashapi.AIWorkflow) *dashapi.AIJobPollResp {
+	t.Helper()
+	resp, err := ctx.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    agentName,
+		CodeRevision: "test-rev",
+		Workflows:    workflows,
+	})
+	require.NoError(t, err)
+	return resp
+}
+
+func (ctx *Ctx) pollAIWorkflow(t *testing.T, workflowType ai.WorkflowType) *dashapi.AIJobPollResp {
+	t.Helper()
+	return ctx.pollAIJob(t, "test-agent", dashapi.AIWorkflow{Type: workflowType, Name: string(workflowType)})
+}
+
+func (ctx *Ctx) pollAndConfirmReport(t *testing.T, source dashapi.AIJobSource,
+	publishedExtID string) *dashapi.PollExternalReportResp {
+	t.Helper()
+	pollResp, err := ctx.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: source})
+	require.NoError(t, err)
+	require.NotNil(t, pollResp.Result)
+	if publishedExtID != "" {
+		err = ctx.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+			ReportID:       pollResp.Result.ID,
+			PublishedExtID: publishedExtID,
+		})
+		require.NoError(t, err)
+	}
+	return pollResp
+}
+
+func (ctx *Ctx) assertNoPendingReport(t *testing.T, source dashapi.AIJobSource) {
+	t.Helper()
+	pollResp, err := ctx.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: source})
+	require.NoError(t, err)
+	require.Nil(t, pollResp.Result)
 }
 
 func TestAIExternalReporting(t *testing.T) {
@@ -84,22 +118,12 @@ func TestAIExternalReporting(t *testing.T) {
 	})
 
 	// Poll for pending reports and confirm published.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp := c.pollAndConfirmReport(t, "lore", "moderation-msg-id")
 	require.True(t, pollResp.Result.CanUpstream)
 	require.Equal(t, "123456789012", pollResp.Result.Patch.Fixes.Hash)
 	require.Equal(t, "original bug", pollResp.Result.Patch.Fixes.Title)
 
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "moderation-msg-id",
-	})
-	require.NoError(t, err)
-
-	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+	_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		Source:       dashapi.AIJobSourceLore,
 		RootExtID:    "moderation-msg-id",
 		MessageExtID: "<comment-1>",
@@ -141,11 +165,7 @@ func TestAIExternalReporting(t *testing.T) {
 	c.advanceTime(time.Second)
 
 	// "Report" to the public lists.
-	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp = c.pollAndConfirmReport(t, "lore", "msg-id-123")
 	require.False(t, pollResp.Result.CanUpstream)
 	require.Equal(t, &dashapi.NewReportResult{
 		Subject:    "Test Subject",
@@ -174,18 +194,7 @@ func TestAIExternalReporting(t *testing.T) {
 		`"Reviewer" <reviewer@test.com>`, "other@example.com", "yetanother@example.com",
 	}, pollResp.Result.Cc)
 
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-123",
-	})
-	require.NoError(t, err)
-
-	// Verify no more pending.
-	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.Nil(t, pollResp.Result)
+	c.assertNoPendingReport(t, "lore")
 
 	tReject := c.mockedTime
 
@@ -318,18 +327,13 @@ func TestAINoFailedJobReported(t *testing.T) {
 	_, jobID := c.setupAIPatchJob(t)
 
 	// Mark job as failed.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:    jobID,
 		Error: "Something went wrong",
 	})
 	require.NoError(t, err)
 
-	// Nothing is reported.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.Nil(t, pollResp.Result)
+	c.assertNoPendingReport(t, "lore")
 }
 
 func TestAINoParallelReports(t *testing.T) {
@@ -366,35 +370,13 @@ func TestAINoParallelReports(t *testing.T) {
 
 	// Poll for pending reports.
 	// Stage 0 ("review") allows parallel reports.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp := c.pollAndConfirmReport(t, "lore", "msg-id-1")
 	id1 := pollResp.Result.ID
 
-	// Confirm first report.
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       id1,
-		PublishedExtID: "msg-id-1",
-	})
-	require.NoError(t, err)
-
 	// Poll again. Should return the second report.
-	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp = c.pollAndConfirmReport(t, "lore", "msg-id-2")
 	id2 := pollResp.Result.ID
 	require.NotEqual(t, id1, id2)
-
-	// Confirm second report.
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       id2,
-		PublishedExtID: "msg-id-2",
-	})
-	require.NoError(t, err)
 
 	// Upstream job 1's result.
 	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
@@ -442,22 +424,11 @@ func TestAIUpstreamTwice(t *testing.T) {
 	})
 
 	_, jobID := c.setupAIPatchJob(t)
-
 	c.finishAIPatchJob(t, jobID, nil)
 
 	// Poll and confirm report for "moderation" stage.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp := c.pollAndConfirmReport(t, "lore", "msg-id-moderation")
 	require.Equal(t, "moderation@test.com", pollResp.Result.To[0])
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-moderation",
-	})
-	require.NoError(t, err)
 
 	// Upstream the result (moves to "public").
 	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
@@ -468,18 +439,8 @@ func TestAIUpstreamTwice(t *testing.T) {
 	require.Empty(t, resp.Error)
 
 	// Poll and confirm report for "public" stage.
-	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp = c.pollAndConfirmReport(t, "lore", "msg-id-public")
 	require.Equal(t, "public@test.com", pollResp.Result.To[0])
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-public",
-	})
-	require.NoError(t, err)
 
 	// Try to upstream again. Should fail at determineNextStage level.
 	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
@@ -503,21 +464,10 @@ func TestAIUpstreamIdempotency(t *testing.T) {
 	})
 
 	_, jobID := c.setupAIPatchJob(t)
-
 	c.finishAIPatchJob(t, jobID, nil)
 
 	// Poll and confirm report for "moderation" stage.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-moderation",
-	})
-	require.NoError(t, err)
+	c.pollAndConfirmReport(t, "lore", "msg-id-moderation")
 
 	// Upstream the result.
 	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
@@ -579,11 +529,7 @@ func TestAINoStages(t *testing.T) {
 	require.Len(t, journal, 1)
 	require.Equal(t, aidb.ActionApprove, journal[0].Action)
 
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.Nil(t, pollResp.Result)
+	c.assertNoPendingReport(t, "lore")
 }
 
 func TestAIUpstreamConcurrent(t *testing.T) {
@@ -599,21 +545,12 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 
 	// 1. Setup bug and job.
 	_, jobID1 := c.setupAIPatchJob(t)
-
 	c.finishAIPatchJob(t, jobID1, nil)
 
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-moderation",
-	})
-	require.NoError(t, err)
+	c.pollAndConfirmReport(t, "lore", "msg-id-moderation")
 
 	// 2. Simulate comment arrival.
-	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+	_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		Source:       dashapi.AIJobSourceLore,
 		RootExtID:    "msg-id-moderation",
 		MessageExtID: "<comment-1>",
@@ -625,15 +562,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	c.advanceTime(31 * time.Minute)
 
 	// 3. Poll for iteration job.
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID) // This is job2 (iteration job)
 
 	// 4. While job2 is "running", someone upstreams the report!
@@ -661,21 +590,10 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 
 	// Poll for reports. It should return the report for "public" stage (triggered by upstream)!
 	// NOT the iteration result!
-	pollResp2, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp2.Result)
+	pollResp2 := c.pollAndConfirmReport(t, "lore", "msg-id-public")
 	require.Equal(t, "public@test.com", pollResp2.Result.To[0])
 
-	// Confirm and verify no more pending.
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp2.Result.ID,
-		PublishedExtID: "msg-id-public",
-	})
-	require.NoError(t, err)
-
-	pollResp3, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
-	require.NoError(t, err)
-	require.Nil(t, pollResp3.Result) // Should be nil!
+	c.assertNoPendingReport(t, "lore")
 }
 
 func TestAIPatchIterationSuccess(t *testing.T) {
@@ -692,13 +610,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	// 1. Setup bug and job.
 	extID, jobID := c.setupAIPatchJob(t)
 
-	// Poll to mark the job as started.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	c.finishAIPatchJob(t, jobID, map[string]any{
 		"KernelRepo":   "exact-repo",
@@ -736,23 +648,14 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3. Poll before debounce should return nothing.
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.Equal(t, "", resp.ID)
 
 	// 4. Advance time to pass debounce (30 mins).
 	c.advanceTime(31 * time.Minute)
 
 	// 5. Poll again should return the job.
-	resp, err = c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp = c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, "patch-iteration", resp.Workflow)
 	require.Equal(t, "exact-commit", resp.Args["BaseCommit"])
@@ -850,7 +753,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	require.Len(t, loadedComments, 1)
 	require.True(t, loadedComments[0].Processed)
 
-	testExtendedPatchIteration(t, c, resp, gotResult, pollReq)
+	testExtendedPatchIteration(t, c, resp, gotResult)
 }
 
 func TestAIUpstreamAuthorDeduplication(t *testing.T) {
@@ -911,7 +814,7 @@ func TestAIUpstreamAuthorDeduplication(t *testing.T) {
 }
 
 func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollResp,
-	gotResult *dashapi.ReportPollResult, pollReq *dashapi.AIJobPollReq) {
+	gotResult *dashapi.ReportPollResult) {
 	// 8. Confirm the V2 patch report.
 	err := c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
 		ReportID:       gotResult.ID,
@@ -939,8 +842,7 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	c.advanceTime(31 * time.Minute)
 
 	// 11. Poll again should return the job with VERSION 3!
-	resp, err = c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp = c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, "patch-iteration", resp.Workflow)
 
@@ -1069,13 +971,7 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	// 1. Setup bug and initial patching job.
 	_, jobID := c.setupAIPatchJob(t)
 
-	// Poll to mark the job as started.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	// Complete the initial patching job successfully.
 	c.finishAIPatchJob(t, jobID, map[string]any{
@@ -1108,17 +1004,8 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	// Advance time to pass the debounce period (30 mins).
 	c.advanceTime(31 * time.Minute)
 
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-
 	// 3. Poll for jobs. A new iteration job should be created.
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	// Verify that the iteration job accurately copied the BaseCommit overrides from the parent!
@@ -1147,16 +1034,14 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	c.advanceTime(6 * time.Minute)
 
 	// 6. Poll again. Should NOT get a new job because we are in backoff.
-	resp2, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp2 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.Equal(t, "", resp2.ID)
 
 	// 7. Advance time past the backoff period.
 	c.advanceTime(1 * time.Hour)
 
 	// 8. Poll again. Now we should get a new job.
-	resp3, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp3 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp3.ID)
 }
 
@@ -1177,13 +1062,7 @@ func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
 	// 1. Setup bug and patching job.
 	_, jobID := c.setupAIPatchJob(t)
 
-	// Poll to mark job as started.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	c.finishAIPatchJob(t, jobID, map[string]any{
 		"PatchDescription": "Desc1 Subject\n\nDesc1 Body",
@@ -1243,7 +1122,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	extID, jobID1 := c.setupAIPatchJob(t)
 
 	// Poll to mark job1 as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "test-agent",
 		CodeRevision: "test-rev",
 		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
@@ -1529,9 +1408,7 @@ func TestAIPatchIterationReplyDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// 6. Verify AIPollReport returns nil result because ReplyToComments is false.
-	pollRepResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
-	require.NoError(t, err)
-	require.Nil(t, pollRepResp.Result)
+	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
 }
 
 func TestAIManualPushToReporting(t *testing.T) {
@@ -1542,7 +1419,7 @@ func TestAIManualPushToReporting(t *testing.T) {
 	c.SetAIConfig("ains", &AIConfig{})
 
 	_, jobID := c.setupAIPatchJob(t)
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
 			"PatchDiff":        "diff",
@@ -1567,9 +1444,7 @@ func TestAIManualPushToReporting(t *testing.T) {
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
 	require.NoError(t, err)
 
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
+	pollResp := c.pollAndConfirmReport(t, "lore", "")
 	// Make sure the poll returns our manually pushed job.
 	require.Equal(t, "Subject", pollResp.Result.Patch.Subject)
 }
@@ -1592,30 +1467,16 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	c.aiClient.ReportCrash(crash)
 	extID := c.aiClient.pollEmailExtID()
 	// Register the workflow first.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
-		},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 
 	// Manually create the job since it's not automatically created for generic bugs.
 	jobID := c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
 
 	// Poll again to pick up the job and assign it to the agent.
-	pollResp2, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
-		},
-	})
-	require.NoError(t, err)
+	pollResp2 := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 	require.Equal(t, jobID, pollResp2.ID)
 
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
 			"Explanation": "Test",
@@ -1630,11 +1491,7 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
 	require.NoError(t, err)
 
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.Nil(t, pollResp.Result)
+	c.assertNoPendingReport(t, "lore")
 }
 
 func TestAIPatchIterationEmptyResult(t *testing.T) {
@@ -1650,13 +1507,7 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	// 1. Setup bug and job.
 	_, jobID := c.setupAIPatchJob(t)
 
-	// Poll to mark the job as started.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	c.finishAIPatchJob(t, jobID, nil)
 
@@ -1685,15 +1536,7 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	c.advanceTime(31 * time.Minute)
 
 	// 4. Poll should return the job.
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	// 5. Complete the job with no output (empty diff, no replies).
@@ -1707,14 +1550,11 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	require.NoError(t, err)
 
 	// 6. Verify AIPollReport returns nothing because the job had no output.
-	pollRepResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
-	require.NoError(t, err)
-	require.Nil(t, pollRepResp.Result)
+	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
 
 	// 7. Advance time again to ensure the comment doesn't re-trigger a job (it should be marked as processed).
 	c.advanceTime(31 * time.Minute)
-	resp2, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp2 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.Empty(t, resp2.ID)
 }
 
@@ -1746,22 +1586,12 @@ func TestAIPatchFilter(t *testing.T) {
 	c.expectOK(err)
 	require.NotContains(t, string(reply), crash.Title)
 
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	jobID := c.createAIJob(extID, "patching", "")
 
 	// Poll to mark the job as started.
-	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
 
 	c.finishAIPatchJob(t, jobID, map[string]any{
 		"KernelRepo":   "exact-repo",
@@ -1785,17 +1615,7 @@ func TestAIPatchFilter(t *testing.T) {
 	require.Contains(t, string(reply), crash.Title)
 
 	// Poll and confirm report for "moderation" stage.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg-id-moderation",
-	})
-	require.NoError(t, err)
+	c.pollAndConfirmReport(t, "lore", "msg-id-moderation")
 
 	// Issue an upstream command.
 	respCmd, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
@@ -1835,20 +1655,10 @@ func TestAIManualIteration(t *testing.T) {
 	c.finishAIPatchJob(t, jobID, nil)
 
 	// Confirm report published.
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "moderation-msg-id",
-	})
-	require.NoError(t, err)
+	c.pollAndConfirmReport(t, "lore", "moderation-msg-id")
 
 	// Simulate a comment.
-	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+	_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		Source:       dashapi.AIJobSourceLore,
 		RootExtID:    "moderation-msg-id",
 		MessageExtID: "<comment-1>",
@@ -1876,15 +1686,7 @@ func TestAIManualIteration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Poll the job and verify the comment text is passed in PatchHistory.
-	pollReq := &dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
-		},
-	}
-	resp, err := c.agentClient.AIJobPoll(pollReq)
-	require.NoError(t, err)
+	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
 
 	var gotPatchHistory []ai.PatchHistoryEntry
@@ -1915,18 +1717,7 @@ func TestAIActionEmailsAuth(t *testing.T) {
 
 	_, jobID := c.setupAIPatchJob(t)
 	c.finishAIPatchJob(t, jobID, map[string]any{})
-
-	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
-		Source: "lore",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, pollResp.Result)
-
-	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
-		ReportID:       pollResp.Result.ID,
-		PublishedExtID: "msg_ext_id",
-	})
-	require.NoError(t, err)
+	c.pollAndConfirmReport(t, "lore", "msg_ext_id")
 
 	testCases := []struct {
 		name   string
