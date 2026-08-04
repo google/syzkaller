@@ -520,7 +520,7 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 		if job.Workflow != string(ai.WorkflowReproC) {
 			return "", fmt.Errorf("%w: only C reproducer jobs can be tested", ErrClientBadRequest)
 		}
-		return "", handleAITestReproCJob(ctx, job, r)
+		return handleAITestReproCJob(ctx, job, r)
 
 	default:
 		return "", fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
@@ -717,7 +717,11 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 	if newJobID != "" {
-		http.Redirect(w, r, "/ai_job?id="+newJobID, http.StatusFound)
+		redirectURL := newJobID
+		if !strings.HasPrefix(redirectURL, "/") {
+			redirectURL = "/ai_job?id=" + newJobID
+		}
+		http.Redirect(w, r, redirectURL, http.StatusFound)
 		return nil
 	}
 
@@ -2180,29 +2184,29 @@ func extractExecutedModels(trajectory []*aidb.TrajectorySpan) []string {
 }
 
 // handleAITestReproCJob launches a C reproducer test job for a given AI job.
-func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request) error {
+func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request) (string, error) {
 	user := currentUser(ctx)
 	if user == nil {
-		return ErrAccess
+		return "", ErrAccess
 	}
 	resultsMap, ok := aiJob.Results.Value.(map[string]any)
 	if !ok {
-		return fmt.Errorf("%w: invalid AI job results format", ErrClientBadRequest)
+		return "", fmt.Errorf("%w: invalid AI job results format", ErrClientBadRequest)
 	}
 	reproCStr, _ := resultsMap[textReproC].(string)
 	if reproCStr == "" {
-		return fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
+		return "", fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
 	}
 	if !aiJob.BugID.Valid || aiJob.BugID.StringVal == "" {
-		return fmt.Errorf("%w: AI job has no associated Bug ID", ErrClientBadRequest)
+		return "", fmt.Errorf("%w: AI job has no associated Bug ID", ErrClientBadRequest)
 	}
 	bugKey := db.NewKey(ctx, "Bug", aiJob.BugID.StringVal, 0, nil)
 	bug := new(Bug)
 	if err := db.Get(ctx, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to get bug %v: %w", aiJob.BugID.StringVal, err)
+		return "", fmt.Errorf("failed to get bug %v: %w", aiJob.BugID.StringVal, err)
 	}
 	if err := checkAccessLevel(ctx, r, bug.sanitizeAccess(ctx, accessLevel(ctx, r))); err != nil {
-		return err
+		return "", err
 	}
 	manager, _ := resultsMap["KernelConfigManager"].(string)
 	if manager == "" {
@@ -2214,7 +2218,7 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 		manager = bug.HappenedOn[0]
 	}
 	if manager == "" {
-		return fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
+		return "", fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
 	}
 	_, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
 		bug:     bug,
@@ -2223,5 +2227,13 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 		manager: manager,
 		reproC:  []byte(reproCStr),
 	})
-	return err
+	if err != nil {
+		return "", err
+	}
+	if redirect := r.FormValue("redirect"); redirect != "" {
+		if strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") {
+			return redirect, nil
+		}
+	}
+	return fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)), nil
 }
