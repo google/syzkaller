@@ -389,3 +389,26 @@ func TestPatchTestReportingFailedStep(t *testing.T) {
 	assert.Equal(t, "Testing failed due to an infrastructure error.", failedReport.Error)
 	assert.Len(t, failedReport.Tests, 2)
 }
+
+func TestReportLevelAllNoFindings(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+
+	testSeries := controller.DummySeries()
+	testSeries.AuthorEmail = "author@user.com"
+	ids := controller.UploadTestSeries(t, ctx, client, testSeries, controller.WithReportLevel(api.ReportLevelAll))
+	controller.StartSession(t, env, ids.SessionID)
+	controller.MarkSessionFinished(t, env, ids.SessionID)
+
+	generator := NewGenerator(env)
+	err := generator.Process(ctx, 1)
+	require.NoError(t, err)
+
+	reportClient := TestServer(t, env)
+	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
+	require.NoError(t, err)
+	require.NotNil(t, nextResp.Report)
+
+	assert.Empty(t, nextResp.Report.Findings)
+	assert.Equal(t, []string{"author@user.com"}, nextResp.Report.Cc)
+}
