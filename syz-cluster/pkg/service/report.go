@@ -125,7 +125,18 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 	} else {
 		reportObj.Type = api.ReportTypeBug
 		reportObj.InReplyTo = series.ExtID
-		reportObj.Cc = series.Cc
+		// For ReportLevelAll with no findings, limit recipients to just the patch author
+		// to avoid spamming subsystem mailing lists with clean test reports.
+		// If AuthorEmail is empty, keep Cc empty so the report is only sent to the archive list.
+		if session.ReportLevel.StringVal == string(api.ReportLevelAll) && len(findings) == 0 {
+			if series.AuthorEmail != "" {
+				reportObj.Cc = []string{series.AuthorEmail}
+			} else {
+				reportObj.Cc = nil
+			}
+		} else {
+			reportObj.Cc = series.Cc
+		}
 	}
 
 	return &api.NextReportResp{
