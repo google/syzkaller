@@ -443,15 +443,7 @@ func TestAIUpstreamTwice(t *testing.T) {
 
 	_, jobID := c.setupAIPatchJob(t)
 
-	// Mark job as done.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID, nil)
 
 	// Poll and confirm report for "moderation" stage.
 	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
@@ -512,15 +504,7 @@ func TestAIUpstreamIdempotency(t *testing.T) {
 
 	_, jobID := c.setupAIPatchJob(t)
 
-	// Mark job as done.
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID, nil)
 
 	// Poll and confirm report for "moderation" stage.
 	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
@@ -616,16 +600,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	// 1. Setup bug and job.
 	_, jobID1 := c.setupAIPatchJob(t)
 
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID1,
-		Results: map[string]any{
-			"PatchDescription": "Test Subject\n\nTest Body",
-			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
-		},
-	})
-	require.NoError(t, err)
+	c.finishAIPatchJob(t, jobID1, nil)
 
 	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
 	require.NoError(t, err)
