@@ -69,21 +69,7 @@ func TestAIExternalReporting(t *testing.T) {
 		},
 	})
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow and create a job.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	extID, jobID := c.setupAIPatchJob(t)
 
 	// Mark job as done with results.
 	c.finishAIPatchJob(t, jobID, map[string]any{
@@ -329,21 +315,7 @@ func TestAINoFailedJobReported(t *testing.T) {
 		},
 	})
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	_, jobID := c.setupAIPatchJob(t)
 
 	// Mark job as failed.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
@@ -378,23 +350,7 @@ func TestAINoParallelReports(t *testing.T) {
 	}
 	c.SetAIConfig("ains", aiCfg)
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
-	// Create two jobs for the same bug.
-	jobID1 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	extID, jobID1 := c.setupAIPatchJob(t)
 	jobID2 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 
 	c.finishAIPatchJob(t, jobID1, map[string]any{
@@ -485,21 +441,7 @@ func TestAIUpstreamTwice(t *testing.T) {
 		},
 	})
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow and create a job.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	_, jobID := c.setupAIPatchJob(t)
 
 	// Mark job as done.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
@@ -568,21 +510,7 @@ func TestAIUpstreamIdempotency(t *testing.T) {
 		},
 	})
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow and create a job.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	_, jobID := c.setupAIPatchJob(t)
 
 	// Mark job as done.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
@@ -686,19 +614,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 	})
 
 	// 1. Setup bug and job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID1 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	_, jobID1 := c.setupAIPatchJob(t)
 
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID1,
@@ -1349,20 +1265,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 	})
 
 	// 1. Setup bug and V1 patching job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
-	jobID1 := c.createAIJob(extID, "patching", "")
+	extID, jobID1 := c.setupAIPatchJob(t)
 
 	// Poll to mark job1 as started.
 	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
@@ -1660,22 +1563,10 @@ func TestAIManualPushToReporting(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
 	// 1. Finish a job with no AI stages configured (no reporting generated).
 	c.SetAIConfig("ains", &AIConfig{})
 
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, "patching", "")
+	_, jobID := c.setupAIPatchJob(t)
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
@@ -1964,20 +1855,7 @@ func TestAIManualIteration(t *testing.T) {
 	})
 
 	// Create a bug and AI job.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow and create a job.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	extID, jobID := c.setupAIPatchJob(t)
 
 	c.finishAIPatchJob(t, jobID, nil)
 
@@ -2060,23 +1938,7 @@ func TestAIActionEmailsAuth(t *testing.T) {
 		},
 	})
 
-	// Report a crash to create a bug.
-	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-
-	// Register workflow and create a job.
-	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "test-agent",
-		CodeRevision: "test-rev",
-		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
-	})
-	require.NoError(t, err)
-
-	// Create and finish a job.
-	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	_, jobID := c.setupAIPatchJob(t)
 	c.finishAIPatchJob(t, jobID, map[string]any{})
 
 	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
