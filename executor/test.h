@@ -223,6 +223,10 @@ static int test_cover_filter()
 	    100ull << 30,
 	    (100ull << 30) + 100,
 	    200ull << 30,
+	    300ull << 30,
+	    400ull << 30,
+	    500ull << 30,
+	    600ull << 30,
 	    (1ull << 62) + 100,
 	};
 

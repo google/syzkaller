@@ -3,7 +3,7 @@
 
 // CoverFilter is PC hash set that can be placed in shared memory.
 //
-// The set can cover up to 4 distinct 1GB regions of PCs.
+// The set can cover up to 8 distinct 1GB regions of PCs.
 // This restriction allows for efficient, simple and shared memory compatible representation,
 // but should be enough to cover any reasonable combination of kernel/modules mapping.
 //
@@ -17,7 +17,7 @@
 // For gVisor with dense coverage IDs special care must be taken to avoid collisions.
 //
 // The set is organized as a 3 level table.
-// The top "region" level is linear lookup, but contains at most 4 entries, each covering 1GB.
+// The top "region" level is linear lookup, but contains at most 8 entries, each covering 1GB.
 // Most likely the first entry is the right one. This level allows to cover unconnected regions of PCs.
 // The next "L1" level splits 1GB chunks into 1MB chunks, and allows to allocate memory only
 // for a subset of these 1MB chunks.
@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	static constexpr size_t kNumRegions = 4;
+	static constexpr size_t kNumRegions = 8;
 	static constexpr size_t kL1Size = 1 << 30;
 	static constexpr size_t kL2Size = 1 << 20;
 	static constexpr size_t kPCDivider = 8;
@@ -124,8 +124,10 @@ private:
 
 	NORETURN void Overflow(uint64 pc)
 	{
-		failmsg("coverage filter is full", "pc=0x%llx regions=[0x%llx 0x%llx 0x%llx 0x%llx] alloc=%u",
-			pc, tab_->regions[0], tab_->regions[1], tab_->regions[2], tab_->regions[3], alloc_);
+		failmsg("coverage filter is full",
+			"pc=0x%llx regions=[0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx] alloc=%u",
+			pc, tab_->regions[0], tab_->regions[1], tab_->regions[2], tab_->regions[3],
+			tab_->regions[4], tab_->regions[5], tab_->regions[6], tab_->regions[7], alloc_);
 	}
 
 	CoverFilter(const CoverFilter&) = delete;
