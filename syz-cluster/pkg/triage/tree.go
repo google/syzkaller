@@ -66,3 +66,9 @@ func FindTreeByName(trees []*api.Tree, name string) *api.Tree {
 	}
 	return nil
 }
+func IsStableTree(tree *api.Tree) bool {
+	if tree == nil {
+		return false
+	}
+	return tree.Type == api.TreeTypeStable
+}
