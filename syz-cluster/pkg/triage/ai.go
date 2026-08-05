@@ -27,11 +27,13 @@ import (
 )
 
 type AITriageResult struct {
-	WorthFuzzing  bool
-	FocusSymbols  []string
-	EnableConfigs []string
-	Reasoning     string
-	Trajectory    []byte
+	WorthFuzzing   bool
+	NeedsKMSAN     bool
+	KMSANReasoning string
+	FocusSymbols   []string
+	EnableConfigs  []string
+	Reasoning      string
+	Trajectory     []byte
 }
 
 const (
@@ -140,10 +142,12 @@ func EvaluatePatch(ctx context.Context, config *app.AppConfig, series *api.Serie
 	tracer.Logf("AI verdict: WorthFuzzing=%v (Reason: %s)", result.WorthFuzzing, result.Reasoning)
 
 	return &AITriageResult{
-		WorthFuzzing:  result.WorthFuzzing,
-		FocusSymbols:  result.FocusSymbols,
-		EnableConfigs: result.EnableConfigs,
-		Reasoning:     result.Reasoning,
-		Trajectory:    htmlReport,
+		WorthFuzzing:   result.WorthFuzzing,
+		NeedsKMSAN:     result.NeedsKMSAN,
+		KMSANReasoning: result.KMSANReasoning,
+		FocusSymbols:   result.FocusSymbols,
+		EnableConfigs:  result.EnableConfigs,
+		Reasoning:      result.Reasoning,
+		Trajectory:     htmlReport,
 	}, nil
 }

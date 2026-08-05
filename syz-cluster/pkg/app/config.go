@@ -160,6 +160,14 @@ func (c AppConfig) Validate() error {
 			return fmt.Errorf("emailReporting: %w", err)
 		}
 	}
+	for _, target := range c.FuzzTargets {
+		for _, campaign := range target.Campaigns {
+			if campaign.Track != string(api.TrackKASAN) && campaign.Track != string(api.TrackKMSAN) {
+				return fmt.Errorf("unsupported fuzzing track %q, must be %q or %q",
+					campaign.Track, api.TrackKASAN, api.TrackKMSAN)
+			}
+		}
+	}
 	return nil
 }
 
