@@ -57,14 +57,15 @@ func ParsePatch(message []byte) (diff string) {
 }
 
 type PatchTemplateData struct {
-	BaseCommit string
-	Fixes      ai.FixesTag
-	Tools      []string
-	Authors    []string
-	Recipients []ai.Recipient
-	Links      []string
-	Closes     []string
-	ReportedBy []string
+	BaseCommit  string
+	Fixes       ai.FixesTag
+	Tools       []string
+	Authors     []string
+	Recipients  []ai.Recipient
+	Links       []string
+	Closes      []string
+	ReportedBy  []string
+	SuggestedBy []string
 
 	ReviewedBy []string
 	AckedBy    []string
@@ -100,6 +101,7 @@ func FormatPatchDescription(description string, data PatchTemplateData) string {
 		"links":       data.Links,
 		"closes":      data.Closes,
 		"reportedBy":  data.ReportedBy,
+		"suggestedBy": data.SuggestedBy,
 		"reviewedBy":  data.ReviewedBy,
 		"ackedBy":     data.AckedBy,
 		"testedBy":    data.TestedBy,
@@ -129,6 +131,8 @@ Acked-by: {{$addr}}{{end}}
 Tested-by: {{$addr}}{{end}}
 {{- range $addr := .reportedBy}}
 Reported-by: {{$addr}}{{end}}
+{{- range $addr := .suggestedBy}}
+Suggested-by: {{$addr}}{{end}}
 {{- range $link := .closes}}
 Closes: {{$link}}{{end}}
 {{- range $link := .links}}

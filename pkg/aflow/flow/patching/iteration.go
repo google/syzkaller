@@ -44,10 +44,11 @@ type PatchIterationInputs struct {
 	// Base fixes tag from previous version.
 	BaseFixes ai.FixesTag `json:",omitzero"`
 
-	BaseReviewedBy []string `json:",omitempty"`
-	BaseAckedBy    []string `json:",omitempty"`
-	BaseTestedBy   []string `json:",omitempty"`
-	BaseReportedBy []string `json:",omitempty"`
+	BaseReviewedBy  []string `json:",omitempty"`
+	BaseAckedBy     []string `json:",omitempty"`
+	BaseTestedBy    []string `json:",omitempty"`
+	BaseReportedBy  []string `json:",omitempty"`
+	BaseSuggestedBy []string `json:",omitempty"`
 
 	// See patching workflow.
 	BaseRepository string
@@ -613,7 +614,7 @@ e.g. "as I already told you", "as explained in the commit message", etc.
 
 
 If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by, etc) that is NOT in the supported
-list: "Reviewed-by", "Acked-by", "Tested-by", "Reported-by", you MUST reply and explain that the
+list: "Reviewed-by", "Acked-by", "Tested-by", "Reported-by", "Suggested-by", you MUST reply and explain that the
 automated system currently only supports processing this specific list of tags, so you cannot apply
 their tag automatically.
 

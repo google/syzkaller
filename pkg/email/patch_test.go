@@ -533,6 +533,7 @@ func TestFormatPatch(t *testing.T) {
 		recipients  []ai.Recipient
 		links       []string
 		reportedBy  []string
+		suggestedBy []string
 		reviewedBy  []string
 		ackedBy     []string
 		testedBy    []string
@@ -561,10 +562,11 @@ Something was broken. This fixes it.
 				"https://syzkaller.appspot.com/bug?id=123",
 				"https://syzkaller.appspot.com/syzbot/ai?job_id=456",
 			},
-			reportedBy: []string{"syzbot+12345@testapp.appspotmail.com"},
-			reviewedBy: []string{"Alice <alice@test.com>", "Bob <bob@test.com>"},
-			ackedBy:    []string{"Charlie <charley@test.com>"},
-			testedBy:   []string{"Dave <dave@test.com>"},
+			reportedBy:  []string{"syzbot+12345@testapp.appspotmail.com"},
+			suggestedBy: []string{"Suggester <suggester@syzbot.org>"},
+			reviewedBy:  []string{"Alice <alice@test.com>", "Bob <bob@test.com>"},
+			ackedBy:     []string{"Charlie <charley@test.com>"},
+			testedBy:    []string{"Dave <dave@test.com>"},
 			want: `mm: fix something
 
 Something was broken. This fixes it.
@@ -576,6 +578,7 @@ Reviewed-by: Bob <bob@test.com>
 Acked-by: Charlie <charley@test.com>
 Tested-by: Dave <dave@test.com>
 Reported-by: syzbot+12345@testapp.appspotmail.com
+Suggested-by: Suggester <suggester@syzbot.org>
 Link: https://syzkaller.appspot.com/bug?id=123
 Link: https://syzkaller.appspot.com/syzbot/ai?job_id=456
 Signed-off-by: syzbot@kernel.org
@@ -648,16 +651,17 @@ base-commit: f5e343a447510a663fbf6215584a9bf8e03bfd5c
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			got := FormatPatch(test.description, test.diff, PatchTemplateData{
-				BaseCommit: test.baseCommit,
-				Fixes:      test.fixes,
-				Tools:      test.tools,
-				Authors:    test.authors,
-				Recipients: test.recipients,
-				Links:      test.links,
-				ReportedBy: test.reportedBy,
-				ReviewedBy: test.reviewedBy,
-				AckedBy:    test.ackedBy,
-				TestedBy:   test.testedBy,
+				BaseCommit:  test.baseCommit,
+				Fixes:       test.fixes,
+				Tools:       test.tools,
+				Authors:     test.authors,
+				Recipients:  test.recipients,
+				Links:       test.links,
+				ReportedBy:  test.reportedBy,
+				SuggestedBy: test.suggestedBy,
+				ReviewedBy:  test.reviewedBy,
+				AckedBy:     test.ackedBy,
+				TestedBy:    test.testedBy,
 			})
 			assert.Equal(t, test.want, got)
 		})

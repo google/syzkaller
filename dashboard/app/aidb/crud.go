@@ -1532,5 +1532,8 @@ func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
 		if tags, ok := m["ReportedBy"].([]any); ok && tags != nil {
 			argsMap["BaseReportedBy"] = tags
 		}
+		if tags, ok := m["SuggestedBy"].([]any); ok && tags != nil {
+			argsMap["BaseSuggestedBy"] = tags
+		}
 	}
 }
