@@ -548,7 +548,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{else if and $job.CrashTitle (eq $job.Type 0)}}
 						{{optlink $job.CrashReportLink "report"}}
 					{{else if formatTime $job.Finished}}
-						OK
+						{{if and (eq $job.Type 0) (not $job.PatchLink)}}no crash{{else}}OK{{end}}
 						{{if ne $job.Type 0}}
 							({{if $job.Commit}}1{{else}}{{len $job.Commits}}{{end}})
 						{{end}}
