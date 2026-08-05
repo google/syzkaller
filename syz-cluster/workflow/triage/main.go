@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/triage"
+	"github.com/google/syzkaller/syz-cluster/pkg/workspace"
 )
 
 var (
@@ -31,13 +32,14 @@ func main() {
 		app.Fatalf("--session and --repo must be set")
 	}
 	client := app.DefaultClient()
-	repo, err := triage.NewGitTreeOps(*flagRepo, true)
-	if err != nil {
-		app.Fatalf("failed to initialize the repository: %v", err)
-	}
 	ctx := context.Background()
 	output := new(bytes.Buffer)
 	tracer := &debugtracer.GenericTracer{WithTime: true, TraceWriter: output}
+
+	ws, err := workspace.New(*flagRepo, tracer)
+	if err != nil {
+		app.Fatalf("failed to initialize workspace: %v", err)
+	}
 
 	cfg, err := app.Config()
 	if err != nil {
@@ -47,7 +49,7 @@ func main() {
 	triager := &seriesTriager{
 		DebugTracer: tracer,
 		client:      client,
-		ops:         repo,
+		ws:          ws,
 		config:      cfg,
 	}
 	verdict, err := triager.GetVerdict(ctx, *flagSession)
@@ -74,7 +76,7 @@ func main() {
 type seriesTriager struct {
 	debugtracer.DebugTracer
 	client    *api.Client
-	ops       *triage.GitTreeOps
+	ws        *workspace.Workspace
 	config    *app.AppConfig
 	aiVerdict *triage.AITriageResult
 }
@@ -148,15 +150,15 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 
 	triager.Logf("continuing with %v in %v", result.Commit, result.Tree.Name)
 
-	if err := triager.ops.ApplySeries(result.Commit, series.PatchBodies()); err != nil {
-		return nil, fmt.Errorf("failed to apply series to base commit: %w", err)
+	if _, err := triager.ws.Checkout(result.Tree.Name, result.Commit, series.PatchBodies()); err != nil {
+		return nil, fmt.Errorf("failed to checkout and apply patches: %w", err)
 	}
 
 	if triager.aiVerdict == nil {
 		triager.aiVerdict = &triage.AITriageResult{WorthFuzzing: true}
 		if !triager.config.AI.Empty() {
-			if err := triage.CommitPatchForAflow(triager.ops); err != nil {
-				return nil, fmt.Errorf("failed to commit patch for aflow: %w", err)
+			if err := triager.ws.CommitPatches(); err != nil {
+				return nil, fmt.Errorf("failed to commit patches for aflow: %w", err)
 			}
 			if aiResult, err := triage.EvaluatePatch(ctx, triager.config, series, triager.DebugTracer, "/workdir"); err != nil {
 				triager.Logf("AI evaluation failed: %v", err)
@@ -273,7 +275,7 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 		diff = append(diff, patch.Body...)
 		diff = append(diff, '\n')
 	}
-	baseList, err := triager.ops.BaseForDiff(diff, triager.DebugTracer)
+	baseList, err := triager.ws.BaseForDiff(diff, triager.DebugTracer)
 	if err != nil {
 		return nil, err
 	}
@@ -291,13 +293,13 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 
 func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*api.Tree) (*SelectResult, error) {
 	triager.Logf("attempting to use the base commit %s provided by author", commit)
-	commitExists, _ := triager.ops.Git.CommitExists(commit)
+	commitExists, _ := triager.ws.Git.CommitExists(commit)
 	if !commitExists {
 		triager.Logf("commit doesn't exist")
 		return nil, nil
 	}
 	const cutOffDays = 60
-	branchList, err := triager.ops.BranchesThatContain(commit, time.Now().Add(-time.Hour*24*cutOffDays))
+	branchList, err := triager.ws.BranchesThatContain(commit, time.Now().Add(-time.Hour*24*cutOffDays))
 	if err != nil {
 		return nil, fmt.Errorf("failed to query branches: %w", err)
 	}
@@ -334,7 +336,7 @@ func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Se
 			return nil, fmt.Errorf("failed to query the last build for %q: %w", tree.Name, err)
 		}
 		triager.Logf("%q's last build: %q", tree.Name, lastBuild)
-		selector := triage.NewCommitSelector(triager.ops, triager.DebugTracer)
+		selector := triage.NewCommitSelector(triager.ws.GitTreeOps, triager.DebugTracer)
 		result, err := selector.Select(series, tree, lastBuild)
 		if err != nil {
 			// TODO: the workflow step must be retried.

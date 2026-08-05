@@ -18,11 +18,10 @@ import (
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"github.com/google/syzkaller/syz-cluster/pkg/triage"
+	"github.com/google/syzkaller/syz-cluster/pkg/workspace"
 )
 
 var (
@@ -84,7 +83,13 @@ func main() {
 		TraceWriter: output,
 		OutDir:      "",
 	}
-	commit, err := checkoutKernel(tracer, req, patches)
+	ws, err := workspace.New(*flagRepository, tracer)
+	if err != nil {
+		log.Printf("failed to initialize workspace: %v", err)
+		reportResults(ctx, client, nil, nil, []byte(err.Error()))
+		return
+	}
+	commit, err := ws.Checkout(req.TreeName, req.CommitHash, patches)
 	if commit != nil {
 		uploadReq.CommitHash = commit.Hash
 		uploadReq.CommitDate = commit.CommitDate
@@ -200,23 +205,6 @@ func readRequest() *api.BuildRequest {
 		return nil
 	}
 	return &req
-}
-
-func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, patches [][]byte) (*vcs.Commit, error) {
-	tracer.Logf("checking out %q", req.CommitHash)
-	ops, err := triage.NewGitTreeOps(*flagRepository, true)
-	if err != nil {
-		return nil, err
-	}
-	commit, err := ops.Commit(req.TreeName, req.CommitHash)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit info: %w", err)
-	}
-	if len(patches) > 0 {
-		tracer.Logf("applying %d patches", len(patches))
-	}
-	err = ops.ApplySeries(commit.Hash, patches)
-	return commit, err
 }
 
 type BuildResult struct {
