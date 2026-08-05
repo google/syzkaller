@@ -239,7 +239,7 @@ func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
 	}
 	// Flip rand bits. Do this for non-bitmask sometimes
 	// because we may have detected bitmask incorrectly for complex cases
-	// (e.g. part of the vlaue is bitmask and another is not).
+	// (e.g. part of the value is bitmask and another is not).
 	v := oldVal
 	if v != 0 && r.oneOf(10) {
 		v = 0 // Ignore the old value sometimes.

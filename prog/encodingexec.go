@@ -5,7 +5,7 @@
 // The format aims at simple parsing: binary and irreversible.
 
 // Exec format is an sequence of uint64's which encodes a sequence of calls.
-// The sequence is terminated by a speciall call execInstrEOF.
+// The sequence is terminated by a special call execInstrEOF.
 // Each call is (call ID, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
 // There are the following types of arguments:
@@ -93,7 +93,7 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 func (w *execContext) serializeCall(c *Call) error {
 	// We introduce special serialization logic for kfuzztest targets, which
 	// require special handling due to their use of relocation tables to copy
-	// entire blobs of data into the kenrel.
+	// entire blobs of data into the kernel.
 	if c.Meta.Attrs.KFuzzTest {
 		return w.serializeKFuzzTestCall(c)
 	}

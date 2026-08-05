@@ -709,7 +709,7 @@ func extractValues(c *Call) map[uint64]bool {
 			}
 		}
 	})
-	delete(vals, 0) // replacing 0 can yield too many condidates
+	delete(vals, 0) // replacing 0 can yield too many candidates
 	return vals
 }
 

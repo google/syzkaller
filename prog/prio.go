@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// Calulation of call-to-call priorities.
+// Calculation of call-to-call priorities.
 // For a given pair of calls X and Y, the priority is our guess as to whether
 // additional of call Y into a program containing call X is likely to give
 // new coverage or not.

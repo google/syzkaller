@@ -92,7 +92,7 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 					s.strings[val] = true
 				case BufferFilename:
 					if len(val) < 3 || escapingFilename(val) {
-						// This is not our file, probalby one of specialFiles.
+						// This is not our file, probably one of specialFiles.
 						return
 					}
 					if val[len(val)-1] == 0 {
