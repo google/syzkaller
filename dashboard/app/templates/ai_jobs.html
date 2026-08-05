@@ -82,7 +82,7 @@ List of AI jobs page.
 			<input type="checkbox" id="show_aborted" name="show_aborted" onchange="this.form.submit()" {{if .ShowAborted}}checked{{end}}> YES
 	</form>
 	{{template "ai_pagination" .}}
-	{{template "ai_job_list" .Jobs}}
+	{{template "ai_job_list" .}}
 	{{template "ai_pagination" .}}
 </body>
 </html>
