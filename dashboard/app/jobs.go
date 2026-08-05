@@ -1310,10 +1310,10 @@ func pollCompletedJobs(ctx context.Context, typ string) ([]*dashapi.BugReport, e
 	var reports []*dashapi.BugReport
 	for i, job := range jobs {
 		if job.Reporting == "" {
-			if job.User != "" {
+			if job.User != "" && job.CandidateReproC == 0 {
 				log.Criticalf(ctx, "no reporting for job %v", extJobID(keys[i]))
 			}
-			// In some cases (e.g. repro retesting), it's ok not to have a reporting.
+			// In some cases (e.g. repro retesting, candidate repro testing), it's ok not to have a reporting.
 			continue
 		}
 		reporting := getNsConfig(ctx, job.Namespace).ReportingByName(job.Reporting)
