@@ -65,12 +65,20 @@ type FuzzConfig struct {
 	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
+type TreeType string
+
+const (
+	TreeTypeUpstream TreeType = "upstream"
+	TreeTypeStable   TreeType = "stable"
+)
+
 // Tree represents a git tree. The triage step of the workflow will request these from controller.
 type Tree struct {
 	Name       string   `json:"name" yaml:"name"` // Primary key.
 	URL        string   `json:"URL" yaml:"URL"`
 	Branch     string   `json:"branch" yaml:"branch"`
 	EmailLists []string `json:"email_lists" yaml:"email_lists"`
+	Type       TreeType `json:"type" yaml:"type"`
 }
 
 // KernelFuzzConfig is a specific fuzzing assignment.
