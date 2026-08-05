@@ -121,52 +121,52 @@ trees:
 fuzz_targets:
   - email_lists:
       - kvm@vger.kernel.org
+    focus: kvm
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        focus: kvm
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   - email_lists:
       - io-uring@vger.kernel.org
+    focus: io_uring
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        focus: io_uring
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   - email_lists:
       - bpf@vger.kernel.org
+    focus: bpf
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        focus: bpf
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db
   - email_lists:
       - netdev@vger.kernel.org
       - netfilter-devel@vger.kernel.org
       - linux-wireless@vger.kernel.org
+    focus: net
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        focus: net
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
   - email_lists:
       - linux-fsdevel@vger.kernel.org
       - linux-block@vger.kernel.org
       - linux-unionfs@vger.kernel.org
       - linux-ext4@vger.kernel.org
+    focus: fs
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        focus: fs
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db
   - email_lists:
       - linux-mm@kvack.org
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
         skip_cover_check: true
-  - campaigns:
+  - corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
+    campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
