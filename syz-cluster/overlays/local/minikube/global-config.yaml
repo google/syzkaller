@@ -31,6 +31,8 @@ fuzz_targets:
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
+      - track: KMSAN
+        kernel_config: upstream-kmsan.config
   - corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN

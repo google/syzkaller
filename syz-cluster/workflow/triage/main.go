@@ -175,6 +175,10 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		return nil, SkipError("AI determined the patch has no functional impact")
 	}
 
+	if target.Track == string(api.TrackKMSAN) && !triager.aiVerdict.NeedsKMSAN {
+		return nil, SkipError("AI determined a dedicated KMSAN fuzzing session is not justified for this patch")
+	}
+
 	base := api.BuildRequest{
 		TreeName:      result.Tree.Name,
 		TreeURL:       result.Tree.URL,

@@ -17,6 +17,13 @@ type TriageResult struct {
 	Trajectory []byte `json:"trajectory,omitempty"`
 }
 
+type TrackType string
+
+const (
+	TrackKASAN TrackType = "KASAN"
+	TrackKMSAN TrackType = "KMSAN"
+)
+
 // TestTarget groups the testing tasks that share the same base/patched builds.
 type TestTarget struct {
 	Base    BuildRequest `json:"base"`
