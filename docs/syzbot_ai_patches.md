@@ -88,7 +88,7 @@ Once rejected, the system clears the conflict, and you can successfully
 ### What happens to my tags (Reviewed-by, Acked-by)?
 
 During the review process, reviewers often provide standard tags like
-`Reviewed-by:`, `Acked-by:`, `Tested-by:`, or `Reported-by:`.
+`Reviewed-by:`, `Acked-by:`, `Tested-by:`, `Reported-by:`, or `Suggested-by:`.
 
 `syzbot` automatically parses and accumulates these tags from review comments.
 When a newer iteration of the patch is generated, these tags are reliably

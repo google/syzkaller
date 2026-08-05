@@ -25,6 +25,7 @@ func TestMergeTags(t *testing.T) {
 			// Duplicate tag with different name to check email-based deduplication.
 			{Tag: "Tested-by", Value: "test@test.com"},
 			{Tag: "Reviewed-by", Value: "old@rev.com"},
+			{Tag: "Suggested-by", Value: "Suggester <suggester@syzbot.org>"},
 		},
 		RemoveTags: []ai.EmailTag{
 			{Tag: "Reviewed-by", Value: "Drop Me <drop@me.com>"},
@@ -37,6 +38,7 @@ func TestMergeTags(t *testing.T) {
 	require.Equal(t, []string{"Old Reviewer <old@rev.com>", "New Reviewer <new@rev.com>"}, result.ReviewedBy)
 	require.Equal(t, []string{"New Acker <ack@ack.com>"}, result.AckedBy)
 	require.Equal(t, []string{"Existing Tester <test@test.com>"}, result.TestedBy)
+	require.Equal(t, []string{"Suggester <suggester@syzbot.org>"}, result.SuggestedBy)
 	require.Empty(t, result.ReportedBy)
 }
 
@@ -60,6 +62,7 @@ func TestValidateTagExtractorOutputs(t *testing.T) {
 					{Tag: "Reviewed-by", Value: "Valid Name <valid@email.com>"},
 					{Tag: "Tested-by", Value: "Valid Tester <test@email.com>"},
 					{Tag: "Reported-by", Value: "syzbot+12345@testapp.appspotmail.com"},
+					{Tag: "Suggested-by", Value: "Suggester <suggester@syzbot.org>"},
 				},
 				RemoveTags: []ai.EmailTag{
 					{Tag: "Acked-by", Value: "Drop <drop@email.com>"},
@@ -70,6 +73,7 @@ func TestValidateTagExtractorOutputs(t *testing.T) {
 					{Tag: "Reviewed-by", Value: "Valid Name <valid@email.com>"},
 					{Tag: "Tested-by", Value: "Valid Tester <test@email.com>"},
 					{Tag: "Reported-by", Value: "syzbot+12345@testapp.appspotmail.com"},
+					{Tag: "Suggested-by", Value: "Suggester <suggester@syzbot.org>"},
 				},
 				RemoveTags: []ai.EmailTag{
 					{Tag: "Acked-by", Value: "Drop <drop@email.com>"},
@@ -94,10 +98,10 @@ func TestValidateTagExtractorOutputs(t *testing.T) {
 			name: "Unsupported tag type",
 			args: tagExtractorArgs{
 				AddTags: []ai.EmailTag{
-					{Tag: "Suggested-by", Value: "Valid <valid@email.com>"},
+					{Tag: "Foo-by", Value: "Valid <valid@email.com>"},
 				},
 			},
-			wantErr: "tag \"Suggested-by\" is not one of the accepted tags",
+			wantErr: "tag \"Foo-by\" is not one of the accepted tags",
 		},
 		{
 			name: "Invalid email",

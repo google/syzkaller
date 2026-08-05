@@ -399,21 +399,22 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}
 
 	return &dashapi.NewReportResult{
-		Subject:    subject,
-		Body:       body,
-		GitDiff:    res.PatchDiff,
-		BaseCommit: res.KernelCommit,
-		BaseTree:   res.KernelRepo,
-		Version:    version,
-		To:         to,
-		Cc:         cc,
-		Tools:      models,
-		Authors:    authors,
-		Fixes:      res.Fixes,
-		ReviewedBy: res.ReviewedBy,
-		AckedBy:    res.AckedBy,
-		TestedBy:   res.TestedBy,
-		ReportedBy: res.ReportedBy,
+		Subject:     subject,
+		Body:        body,
+		GitDiff:     res.PatchDiff,
+		BaseCommit:  res.KernelCommit,
+		BaseTree:    res.KernelRepo,
+		Version:     version,
+		To:          to,
+		Cc:          cc,
+		Tools:       models,
+		Authors:     authors,
+		Fixes:       res.Fixes,
+		ReviewedBy:  res.ReviewedBy,
+		AckedBy:     res.AckedBy,
+		TestedBy:    res.TestedBy,
+		ReportedBy:  res.ReportedBy,
+		SuggestedBy: res.SuggestedBy,
 	}, nil
 }
 
@@ -437,6 +438,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 			AckedBy:          res.AckedBy,
 			TestedBy:         res.TestedBy,
 			ReportedBy:       res.ReportedBy,
+			SuggestedBy:      res.SuggestedBy,
 		}, version, authors)
 		if err != nil {
 			return err

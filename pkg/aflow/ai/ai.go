@@ -34,10 +34,11 @@ type PatchIterationOutputs struct {
 	Recipients       []Recipient
 	Fixes            FixesTag
 
-	ReviewedBy []string
-	AckedBy    []string
-	TestedBy   []string
-	ReportedBy []string
+	ReviewedBy  []string
+	AckedBy     []string
+	TestedBy    []string
+	ReportedBy  []string
+	SuggestedBy []string
 
 	NewChangeLog string
 	Replies      []CommentReply
@@ -81,10 +82,11 @@ type PatchingOutputs struct {
 	Recipients       []Recipient
 	Fixes            FixesTag
 
-	ReviewedBy []string
-	AckedBy    []string
-	TestedBy   []string
-	ReportedBy []string
+	ReviewedBy  []string
+	AckedBy     []string
+	TestedBy    []string
+	ReportedBy  []string
+	SuggestedBy []string
 }
 
 type FixesTag struct {

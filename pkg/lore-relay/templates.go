@@ -68,16 +68,17 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 		// TODO: Figure out what Authors we want to use here.
 		res.Patch.Body = strings.TrimSpace(email.FormatPatchDescription(
 			res.Patch.Body, email.PatchTemplateData{
-				Fixes:      res.Patch.Fixes,
-				Tools:      res.Patch.Tools,
-				Authors:    res.Patch.Authors,
-				Recipients: recipients,
-				Links:      res.Patch.Links,
-				Closes:     res.Patch.Closes,
-				ReportedBy: res.Patch.ReportedBy,
-				ReviewedBy: res.Patch.ReviewedBy,
-				AckedBy:    res.Patch.AckedBy,
-				TestedBy:   res.Patch.TestedBy,
+				Fixes:       res.Patch.Fixes,
+				Tools:       res.Patch.Tools,
+				Authors:     res.Patch.Authors,
+				Recipients:  recipients,
+				Links:       res.Patch.Links,
+				Closes:      res.Patch.Closes,
+				ReportedBy:  res.Patch.ReportedBy,
+				SuggestedBy: res.Patch.SuggestedBy,
+				ReviewedBy:  res.Patch.ReviewedBy,
+				AckedBy:     res.Patch.AckedBy,
+				TestedBy:    res.Patch.TestedBy,
 			}))
 		data.Patch = res.Patch
 		tmpl, err := templatesFS.ReadFile("templates/new_patch.txt")

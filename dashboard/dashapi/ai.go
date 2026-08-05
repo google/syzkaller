@@ -116,21 +116,22 @@ type ReportPollResult struct {
 }
 
 type NewReportResult struct {
-	Subject    string
-	Body       string
-	Version    int
-	GitDiff    string
-	Changelog  []ChangelogEntry
-	To         []string
-	Cc         []string
-	Tools      []string
-	Authors    []string
-	BaseCommit string
-	BaseTree   string
-	Fixes      ai.FixesTag
-	Links      []string
-	Closes     []string
-	ReportedBy []string
+	Subject     string
+	Body        string
+	Version     int
+	GitDiff     string
+	Changelog   []ChangelogEntry
+	To          []string
+	Cc          []string
+	Tools       []string
+	Authors     []string
+	BaseCommit  string
+	BaseTree    string
+	Fixes       ai.FixesTag
+	Links       []string
+	Closes      []string
+	ReportedBy  []string
+	SuggestedBy []string
 
 	ReviewedBy []string
 	AckedBy    []string

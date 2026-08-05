@@ -59,10 +59,11 @@ func init() {
 				"Sandbox":    "none",
 				"Snapshot":   false,
 				// For convenience of the patch-iteration workflow.
-				"ReviewedBy": []string{},
-				"AckedBy":    []string{},
-				"TestedBy":   []string{},
-				"ReportedBy": []string{},
+				"ReviewedBy":  []string{},
+				"AckedBy":     []string{},
+				"TestedBy":    []string{},
+				"ReportedBy":  []string{},
+				"SuggestedBy": []string{},
 			},
 			Root: aflow.Pipeline(
 				baseCommitPicker,
