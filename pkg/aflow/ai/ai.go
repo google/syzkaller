@@ -154,10 +154,12 @@ type PatchTriageArgs struct {
 }
 
 type PatchTriageResult struct {
-	WorthFuzzing bool `jsonschema:"True if functional. False if only docs/comments/unreachable."`
+	WorthFuzzing   bool
+	NeedsKMSAN     bool
+	KMSANReasoning string
 	// TODO: this is temporarily here. We should do it at the beginning of the fuzzing step,
 	// where we do have the built binary and can extract exact symbol names / KCOV coverage points.
-	FocusSymbols  []string `jsonschema:"List of specific kernel functions to focus fuzzing on. Should avoid hot-path functions."`                                               // nolint:lll
-	EnableConfigs []string `jsonschema:"List of kernel config flags that must be explicitly enabled to compile and test the modified code. Do not include 'CONFIG_' prefixes."` // nolint:lll
-	Reasoning     string   `jsonschema:"A concise explanation of why this patch should or shouldn't be fuzzed."`
+	FocusSymbols  []string
+	EnableConfigs []string
+	Reasoning     string
 }

@@ -30,8 +30,8 @@ func init() {
 					Name:     "patch-evaluator",
 					Model:    aflow.BestExpensiveModel,
 					TaskType: aflow.FormalReasoningTask,
-					Outputs: aflow.ValidatedLLMOutputs[ai.PatchTriageResult](
-						func(ctx *aflow.Context, state ai.PatchTriageArgs, args ai.PatchTriageResult) (ai.PatchTriageResult, error) {
+					Outputs: aflow.ValidatedLLMOutputs[patchEvalOutput](
+						func(ctx *aflow.Context, state ai.PatchTriageArgs, args patchEvalOutput) (patchEvalOutput, error) {
 							if args.Reasoning == "" {
 								return args, aflow.BadCallError("reasoning must be provided")
 							}
@@ -52,6 +52,21 @@ func init() {
 					),
 					Instruction: patchTriageInstruction,
 					Prompt:      patchTriagePrompt,
+				},
+				&aflow.If{
+					Condition: "WorthFuzzing",
+					Do: &aflow.LLMAgent{
+						Name:     "kmsan-evaluator",
+						Model:    aflow.BestExpensiveModel,
+						TaskType: aflow.FormalReasoningTask,
+						Outputs:  aflow.LLMOutputs[kmsanEvalOutput](),
+						Tools: aflow.Tools(
+							grepper.Tool,
+							codesearcher.FilesystemTools,
+						),
+						Instruction: kmsanTriageInstruction,
+						Prompt:      patchTriagePrompt,
+					},
 				},
 			),
 		},
@@ -142,3 +157,64 @@ When returning WorthFuzzing=true, you MUST ALSO:
 
 const patchTriagePrompt = `For your convenience, here is the diff of the changes:
 {{.PatchDiff}}`
+
+type patchEvalOutput struct {
+	WorthFuzzing  bool     `jsonschema:"True if changes have functional impact worth fuzzing."`
+	FocusSymbols  []string `jsonschema:"Specific non-hot-path kernel functions to focus fuzzing on."`
+	EnableConfigs []string `jsonschema:"Kernel config flags required without CONFIG_ prefix."`
+	Reasoning     string   `jsonschema:"Concise explanation of the fuzzing verdict."`
+}
+
+type kmsanEvalOutput struct {
+	NeedsKMSAN     bool   `jsonschema:"True only if changes expose uninitialized memory risks."`
+	KMSANReasoning string `jsonschema:"Reasoning contrasting KMSAN vs KASAN applicability."`
+}
+
+const kmsanTriageInstruction = `You are an expert Linux kernel security engineer specializing in kernel memory
+error detectors (KASAN and KMSAN). Your job is to review the provided patch series and
+determine if the code changes justify spawning a dedicated KMSAN (KernelMemorySanitizer)
+fuzzing session in addition to standard KASAN fuzzing.
+
+CRITICAL DISTINCTION BETWEEN KASAN AND KMSAN:
+- Standard KASAN kernel builds (upstream-apparmor-kasan.config) already enable
+  a comprehensive suite of debugging tools and sanitizers, including KASAN
+  (out-of-bounds accesses, use-after-free, double free, invalid free), LOCKDEP
+  (locking bugs and deadlocks), UB-sanitizers, and memory corruption checks.
+- KMSAN (KernelMemorySanitizer) detects reads of UNINITIALIZED memory (stack, heap,
+  or page allocations) and kernel-to-user memory info-leaks.
+
+Rule: THERE IS NO SENSE IN RUNNING A KMSAN SESSION IF A BUG CAN BE CAUGHT BY KASAN,
+LOCKDEP, OR OTHER STANDARD BUG DETECTORS.
+A dedicated KMSAN fuzzing session incurs significant resource costs. You must ONLY
+set NeedsKMSAN=true if the code changes introduce or expose UNINITIALIZED MEMORY risks
+that are detected ONLY by KMSAN.
+
+Look holistically at the patch series and surrounding code. Even if no direct
+uninitialized field accesses or new buffer allocations are added in the diff itself,
+a patch may alter control flow, bounds checking, or data length calculations in ways
+that change how the rest of the code operates on existing buffers (e.g. allowing
+uninitialized stack/heap memory to be read, copied to user space, or used in control
+flow). Do not hesitate to use your code access tools to inspect the surrounding code,
+called functions, and callers.
+
+Set NeedsKMSAN=true ONLY IF the patch introduces or modifies:
+1. Kernel structures sent to user space (via copy_to_user, put_user, netlink skb
+   attributes, ioctl output arguments, socket options, or BPF buffers) where fields
+   or structure padding might not be fully initialized/zeroed.
+2. Conditional logic or branching that depends on potentially uninitialized variables
+   or struct fields.
+3. Allocation or initialization of complex data structures where uninitialized fields
+   could be read later in reachable code paths.
+4. Bounds checks, lengths, or logic in a way that allows surrounding code to access
+   uninitialized bytes of existing buffers.
+
+Set NeedsKMSAN=false IF:
+- The code changes primarily risk out-of-bounds access, array overflows, NULL pointer
+  dereferences, locking deadlocks, or use-after-free bugs (these are already caught
+  by KASAN, LOCKDEP, or standard bug detectors).
+- All stack/heap structures touched or introduced by the patch are fully zeroed
+  or initialized (e.g. using = {0}, memset, kzalloc) before being read or copied.
+- The patch does not introduce any risk of uninitialized memory usage or info-leaks.
+
+Use your code access tools to inspect the surrounding code if necessary, then provide
+detailed KMSANReasoning contrasting KASAN vs KMSAN applicability for this patch.`
