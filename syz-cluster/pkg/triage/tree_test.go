@@ -32,6 +32,11 @@ func TestSelectTrees(t *testing.T) {
 			Name:       "mainline",
 			EmailLists: nil,
 		},
+		{
+			Name:       "stable-5.15",
+			EmailLists: []string{"stable@vger.kernel.org"},
+			Type:       api.TreeTypeStable,
+		},
 	}
 	tests := []struct {
 		testName string
