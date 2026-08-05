@@ -76,6 +76,8 @@ type KernelFuzzConfig struct {
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
 type FuzzTriageTarget struct {
 	EmailLists []string            `json:"email_lists" yaml:"email_lists"`
+	Focus      string              `json:"focus" yaml:"focus"`
+	CorpusURL  string              `json:"corpus_url" yaml:"corpus_url"`
 	Campaigns  []*KernelFuzzConfig `json:"campaigns" yaml:"campaigns"`
 }
 

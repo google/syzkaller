@@ -23,9 +23,9 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 			intersects = intersects || seriesCc[cc]
 		}
 		if intersects {
-			ret = append(ret, config.Campaigns...)
+			ret = append(ret, expandCampaigns(config)...)
 		} else if len(config.EmailLists) == 0 {
-			defaultRet = append(defaultRet, config.Campaigns...)
+			defaultRet = append(defaultRet, expandCampaigns(config)...)
 		}
 	}
 	// We want to return the fallback option only if no element matched exactly.
@@ -33,6 +33,21 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 		return ret
 	}
 	return defaultRet
+}
+
+func expandCampaigns(config *api.FuzzTriageTarget) []*api.KernelFuzzConfig {
+	var ret []*api.KernelFuzzConfig
+	for _, campaign := range config.Campaigns {
+		c := *campaign
+		if c.Focus == "" {
+			c.Focus = config.Focus
+		}
+		if c.CorpusURL == "" {
+			c.CorpusURL = config.CorpusURL
+		}
+		ret = append(ret, &c)
+	}
+	return ret
 }
 
 type MergedFuzzConfig struct {
