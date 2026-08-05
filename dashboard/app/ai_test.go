@@ -1330,3 +1330,110 @@ func TestAITestReproCErrors(t *testing.T) {
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, http.StatusNotFound, httpErr.Code)
 }
+
+func TestAIJobsErrorVisibility(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Poll to make workflow active.
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
+
+	// Create a job.
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+
+	// Fail the job with an error.
+	errText := "Some sensitive error message: password=123"
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    jobID,
+		Error: errText,
+	}))
+
+	// Log a command error to create a history entry with an error.
+	historyErrText := "Some sensitive history error: password=456"
+	require.NoError(t, aidb.LogCommandError(c.ctx, aidb.LogCommandErrorArgs{
+		JobID:         jobID,
+		CommandSource: "email",
+		CommandExtID:  "msg-id",
+		User:          "reviewer@google.com",
+		Action:        "upstream",
+		Error:         historyErrText,
+	}))
+
+	// Upload a trajectory span with an error.
+	trajectoryErrText := "Some sensitive trajectory error: password=789"
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: "test-agent",
+		JobID:     jobID,
+		Span: &trajectory.Span{
+			Seq:      0,
+			Type:     trajectory.SpanFlow,
+			Name:     string(ai.WorkflowPatching),
+			Started:  c.mockedTime,
+			Finished: c.mockedTime.Add(time.Minute),
+			Error:    trajectoryErrText,
+		},
+	}))
+
+	// 1. Check via GET /ai_job as Admin (should see all errors and Error column).
+	respAdmin, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/ai_job?id=%v", jobID))
+	require.NoError(t, err)
+	require.Contains(t, string(respAdmin), errText)
+	require.Contains(t, string(respAdmin), historyErrText)
+	require.Contains(t, string(respAdmin), trajectoryErrText)
+	require.Contains(t, string(respAdmin), ">Error</a></th>")
+
+	// 2. Check via GET /ai_job as User (should NOT see errors, but see placeholder, and NO Error column).
+	respUser, err := c.AuthGET(AccessUser, fmt.Sprintf("/ai_job?id=%v", jobID))
+	require.NoError(t, err)
+	require.NotContains(t, string(respUser), errText)
+	require.NotContains(t, string(respUser), historyErrText)
+	require.NotContains(t, string(respUser), trajectoryErrText)
+	require.Contains(t, string(respUser), aiErrorPlaceholder)
+	require.NotContains(t, string(respUser), ">Error</a></th>")
+
+	// 3. Check JSON output as Admin.
+	respAdminJSON, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/ai_job?id=%v&json=1", jobID))
+	require.NoError(t, err)
+	require.Contains(t, string(respAdminJSON), errText)
+
+	// 4. Check JSON output as User (should NOT see error, but see placeholder).
+	respUserJSON, err := c.AuthGET(AccessUser, fmt.Sprintf("/ai_job?id=%v&json=1", jobID))
+	require.NoError(t, err)
+	require.NotContains(t, string(respUserJSON), errText)
+	require.Contains(t, string(respUserJSON), aiErrorPlaceholder)
+
+	// 5. Check via GET /ains/ai (summary page) as Admin (should see error and Error column).
+	respSummaryAdmin, err := c.AuthGET(AccessAdmin, "/ains/ai")
+	require.NoError(t, err)
+	require.Contains(t, string(respSummaryAdmin), errText)
+	require.Contains(t, string(respSummaryAdmin), ">Error</a></th>")
+
+	// 6. Check via GET /ains/ai (summary page) as User (should NOT see error or
+	// placeholder, and NO Error column).
+	respSummaryUser, err := c.AuthGET(AccessUser, "/ains/ai")
+	require.NoError(t, err)
+	require.NotContains(t, string(respSummaryUser), errText)
+	require.NotContains(t, string(respSummaryUser), aiErrorPlaceholder)
+	require.NotContains(t, string(respSummaryUser), ">Error</a></th>")
+	// 7. Check bug page as Admin (should see error and Error column).
+	bug, _, _ := c.loadBug(extID)
+	bugURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	respBugAdmin, err := c.AuthGET(AccessAdmin, bugURL)
+	require.NoError(t, err)
+	require.Contains(t, string(respBugAdmin), errText)
+	require.Contains(t, string(respBugAdmin), ">Error</a></th>")
+
+	// 8. Check bug page as User (should NOT see error or placeholder, and NO Error column).
+	respBugUser, err := c.AuthGET(AccessUser, bugURL)
+	require.NoError(t, err)
+	require.NotContains(t, string(respBugUser), errText)
+	require.NotContains(t, string(respBugUser), aiErrorPlaceholder)
+	require.NotContains(t, string(respBugUser), ">Error</a></th>")
+}

@@ -14,7 +14,7 @@ Detailed info on a single AI job execution.
 </head>
 <body>
 	{{template "header" .Header}}
-	{{template "ai_job_list" .Jobs}}
+	{{template "ai_job_list" .}}
 
 	<b>Agent:</b> {{if .Job.AgentName}}{{.Job.AgentName}}{{else}}---{{end}}<br>
 	<b>External Bug ID:</b> {{if .Job.ExternalBugID}}{{.Job.ExternalBugID}}{{else}}---{{end}}<br><br>

@@ -50,6 +50,14 @@ type uiAIJobsPage struct {
 	PrevCursorID    string
 }
 
+func (p *uiAIJobsPage) GetJobs() []*uiAIJob {
+	return p.Jobs
+}
+
+func (p *uiAIJobsPage) IsAdmin() bool {
+	return p.Header.Admin
+}
+
 type ManualWorkflowSpec struct {
 	Name        string
 	Type        ai.WorkflowType
@@ -71,6 +79,7 @@ type ManualWorkflowField struct {
 const (
 	maxAIJobDoneErrorLen     = 1 << 20
 	maxAIJobListErrorSummary = 200
+	aiErrorPlaceholder       = "log-in to see details"
 )
 
 func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
@@ -197,6 +206,14 @@ type uiAIJobPage struct {
 	CanSetCorrectness  bool
 	Reportings         []*uiJobReporting
 	CanRestart         bool
+}
+
+func (p *uiAIJobPage) GetJobs() []*uiAIJob {
+	return p.Jobs
+}
+
+func (p *uiAIJobPage) IsAdmin() bool {
+	return p.Header.Admin
 }
 
 type uiAIJobDetails struct {
@@ -343,6 +360,9 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
 		uiJobs = append(uiJobs, makeUIAIJob(job))
+	}
+	if !hdr.Admin {
+		sanitizeUIJobs(uiJobs...)
 	}
 	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {
@@ -759,16 +779,31 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 
 	uiJob := makeUIAIJob(job)
 	uiTrajectory := makeUIAITrajectory(trajectory)
-	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
-	if err != nil {
-		return err
-	}
 	uiReportings, err := loadJobReportingsWithComments(ctx, job.ID)
 	if err != nil {
 		return err
 	}
 
 	uiJobs, err := buildUIJobChain(ctx, r, job, uiJob)
+	if err != nil {
+		return err
+	}
+
+	if !hdr.Admin {
+		sanitizeUIJobs(uiJobs...)
+		for _, h := range uiHistory {
+			if h.Error != "" {
+				h.Error = aiErrorPlaceholder
+			}
+		}
+		for _, span := range uiTrajectory {
+			if span.Error != "" {
+				span.Error = aiErrorPlaceholder
+			}
+		}
+	}
+
+	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
 	if err != nil {
 		return err
 	}
@@ -966,6 +1001,15 @@ func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([
 		return accessLevel < bugAccess[job.BugID.StringVal]
 	})
 	return jobs, nil
+}
+
+func sanitizeUIJobs(jobs ...*uiAIJob) {
+	for _, job := range jobs {
+		if job != nil && job.Error != "" {
+			job.Error = aiErrorPlaceholder
+			job.ErrorSummary = ""
+		}
+	}
 }
 
 func makeUIAIJob(job *aidb.Job) *uiAIJob {

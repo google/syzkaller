@@ -307,6 +307,14 @@ type uiBugPage struct {
 	AIJobs          []*uiAIJob
 }
 
+func (p *uiBugPage) GetJobs() []*uiAIJob {
+	return p.AIJobs
+}
+
+func (p *uiBugPage) IsAdmin() bool {
+	return p.Header.Admin
+}
+
 type uiBugDetails struct {
 	*uiBug
 	// If DupOf is not nil, uiBug is a duplicate of DupOf.
@@ -1222,6 +1230,9 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		jobs = compactAIJobs(jobs)
 		for _, job := range jobs {
 			aiJobs = append(aiJobs, makeUIAIJob(job))
+		}
+		if !hdr.Admin {
+			sanitizeUIJobs(aiJobs...)
 		}
 
 		patchVersions, err = getPatchVersions(ctx, bug, jobs, hdr.AIActions)

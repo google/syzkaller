@@ -753,10 +753,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'Started', textSort)" href="#">Started</a></th>
 		<th><a onclick="return sortTable(this, 'Finished', textSort)" href="#">Finished</a></th>
 		<th><a onclick="return sortTable(this, 'Revision', textSort)" href="#">Revision</a></th>
+		{{if .IsAdmin}}
 		<th><a onclick="return sortTable(this, 'Error', textSort)" href="#">Error</a></th>
+		{{end}}
 	</tr></thead>
 	<tbody>
-	{{range $job := .}}
+	{{range $job := .GetJobs}}
 	<tr {{if $job.IsCurrent}}class="ai_current_job"{{end}}>
 		<td class="stat">{{link $job.Link (formatShortHash $job.ID)}}</td>
 		<td>{{$job.Workflow}}</td>
@@ -780,12 +782,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{formatTime $job.Started}}</td>
 		<td>{{formatTime $job.Finished}}</td>
 		<td class="stat">{{link $job.CodeRevisionLink (formatShortHash $job.CodeRevision)}}</td>
+		{{if $.IsAdmin}}
 		<td class="ai_job_error_cell">
 			<pre class="ai_job_error">{{$job.ErrorSummary}}</pre>
 			{{if lt (len $job.ErrorSummary) (len $job.Error)}}
 				<div class="ai_job_error_note">truncated to first 200 bytes; open job for full error</div>
 			{{end}}
 		</td>
+		{{end}}
 	</tr>
 	{{end}}
 	</tbody>
