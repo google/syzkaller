@@ -66,7 +66,7 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 	ctx.currentCall = nil
 	for u, orig := range ctx.uses {
 		if !ctx.args[u] {
-			errs = append(errs, fmt.Errorf("use of %+v referes to an out-of-tree arg\narg: %#v", orig, u))
+			errs = append(errs, fmt.Errorf("use of %+v refers to an out-of-tree arg\narg: %#v", orig, u))
 		}
 	}
 	if len(errs) == 0 {
