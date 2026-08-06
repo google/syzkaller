@@ -141,20 +141,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 		return errSkipFuzzing
 	}
 	diff.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
-
-	if len(config.FocusSymbols) > 0 {
-		var regexps []string
-		for _, name := range config.FocusSymbols {
-			regexps = append(regexps, fmt.Sprintf("^%s$", regexp.QuoteMeta(name)))
-		}
-		patched.Experimental.FocusAreas = append(patched.Experimental.FocusAreas, mgrconfig.FocusArea{
-			Name: "ai_focus",
-			Filter: mgrconfig.CovFilterCfg{
-				Functions: regexps,
-			},
-			Weight: 10.0,
-		})
-	}
+	setupFocusAreas(config, patched, series, baseSymbols, patchedSymbols)
 
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
@@ -483,4 +470,24 @@ func (lw *LimitedWriter) Write(p []byte) (n int, err error) {
 	n, err = lw.writer.Write(p)
 	lw.written += n
 	return
+}
+
+func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config, series *api.Series,
+	baseSymbols, patchedSymbols build.SectionHashes) {
+	isEmptySeries := series == nil || len(series.Patches) == 0
+	hasNoFocusSymobls := len(config.FocusSymbols) == 0
+	if isEmptySeries || hasNoFocusSymobls {
+		return
+	}
+	var regexps []string
+	for _, name := range config.FocusSymbols {
+		regexps = append(regexps, fmt.Sprintf("^%s$", regexp.QuoteMeta(name)))
+	}
+	patched.Experimental.FocusAreas = append(patched.Experimental.FocusAreas, mgrconfig.FocusArea{
+		Name: "ai_focus",
+		Filter: mgrconfig.CovFilterCfg{
+			Functions: regexps,
+		},
+		Weight: 10.0,
+	})
 }
