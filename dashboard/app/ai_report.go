@@ -350,6 +350,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		if result.Patch == nil {
 			result.CanUpstream = false
 		}
+		result.AddressComments = stageCfg.AddressComments
 
 		return &dashapi.PollExternalReportResp{
 			Result: result,

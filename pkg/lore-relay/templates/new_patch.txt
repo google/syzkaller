@@ -18,6 +18,8 @@ and send it to the upstream kernel mailing lists.
 Reply with '#syz reject' to reject it ('#syz unreject' to undo).
 
 {{ end }}See {{.DocsLink}} for information about AI-generated patches.
-You can comment on the patch as usual, syzbot will try to address
+{{ if .AddressComments }}You can comment on the patch as usual, syzbot will try to address
 the comments and send a new version of the patch if necessary.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+{{ else }}The person who has signed off on the patch is responsible for
+addressing comments.
+{{ end }}syzbot engineers can be reached at syzkaller@googlegroups.com.
