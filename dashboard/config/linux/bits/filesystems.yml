@@ -21,12 +21,12 @@ config:
  - HFSPLUS_FS
  - BFS_FS
  - MINIX_FS
- - VXFS_FS
+ - VXFS_FS: [-v7.2]
  - OMFS_FS
  - HPFS_FS
  - NILFS2_FS
  - ORANGEFS_FS
- - EFS_FS
+ - EFS_FS: [-v7.2]
 
  - JFFS2_FS
  - JFFS2_FS_DEBUG: 0

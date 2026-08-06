@@ -11,7 +11,7 @@ config:
  - UNIX_DIAG
  - TLS
  - TLS_DEVICE
- - TLS_TOE: [v5.6]
+ - TLS_TOE: [v5.6, -v7.2]
  - XFRM_USER
  - XFRM_INTERFACE
  - XFRM_SUB_POLICY
