@@ -476,7 +476,8 @@ func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config, series *
 	baseSymbols, patchedSymbols build.SectionHashes) {
 	isEmptySeries := series == nil || len(series.Patches) == 0
 	hasNoFocusSymobls := len(config.FocusSymbols) == 0
-	if isEmptySeries || hasNoFocusSymobls {
+	exceedsPatchLimit := len(series.Patches) > api.MaxRCFocusedPatches
+	if isEmptySeries || hasNoFocusSymobls || exceedsPatchLimit {
 		return
 	}
 	var regexps []string

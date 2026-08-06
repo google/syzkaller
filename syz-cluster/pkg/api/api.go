@@ -46,6 +46,8 @@ const (
 	FocusFS      = "fs"
 )
 
+const MaxRCFocusedPatches = 35
+
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {

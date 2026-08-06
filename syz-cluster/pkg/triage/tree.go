@@ -4,12 +4,31 @@
 package triage
 
 import (
+	"fmt"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
+
+func GetStableRCVersion(series *api.Series) string {
+	if series == nil || series.XStable != "review" {
+		return ""
+	}
+	hasStableCc := slices.ContainsFunc(series.Cc, func(cc string) bool {
+		return strings.EqualFold(cc, stableEmail)
+	})
+	if !hasStableCc {
+		return ""
+	}
+	return stableVersion(series.XKernelTestBranch)
+}
+
+func IsStableRC(series *api.Series) bool {
+	return GetStableRCVersion(series) != ""
+}
 
 // SelectTrees returns an ordered list of git trees to apply the series to.
 func SelectTrees(series *api.Series, trees []*api.Tree) []*api.Tree {
@@ -66,9 +85,41 @@ func FindTreeByName(trees []*api.Tree, name string) *api.Tree {
 	}
 	return nil
 }
+
 func IsStableTree(tree *api.Tree) bool {
 	if tree == nil {
 		return false
 	}
 	return tree.Type == api.TreeTypeStable
 }
+
+func CandidateTrees(trees []*api.Tree, series *api.Series) ([]*api.Tree, error) {
+	if version := GetStableRCVersion(series); version != "" {
+		if tree := FindTreeByName(trees, "stable-"+version); tree != nil {
+			return []*api.Tree{tree}, nil
+		}
+		return nil, fmt.Errorf("stable tree %v not found in global-config.yaml", version)
+	}
+	if hasStableVersionTag(series) {
+		return nil, fmt.Errorf("developer stable backport skipped")
+	}
+	return slices.DeleteFunc(slices.Clone(trees), IsStableTree), nil
+}
+
+func hasStableVersionTag(series *api.Series) bool {
+	return slices.ContainsFunc(series.SubjectTags, func(s string) bool {
+		return stableVersion(s) != ""
+	})
+}
+
+var stableVersionRe = regexp.MustCompile(`^(?:linux-|stable-)?v?(\d+\.\d+)(?:\.y|\.\d+)?$`)
+
+func stableVersion(s string) string {
+	m := stableVersionRe.FindStringSubmatch(s)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+const stableEmail = "stable@vger.kernel.org"
