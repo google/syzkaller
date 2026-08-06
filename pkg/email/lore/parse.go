@@ -31,13 +31,15 @@ type Thread struct {
 
 // Series represents a single patch series sent over email.
 type Series struct {
-	Subject        string
-	MessageID      string
-	Version        int
-	Corrupted      string // If non-empty, contains a reason why the series better be ignored.
-	Tags           []string
-	Patches        []Patch
-	BaseCommitHint string
+	Subject           string
+	MessageID         string
+	Version           int
+	Corrupted         string // If non-empty, contains a reason why the series better be ignored.
+	Tags              []string
+	Patches           []Patch
+	BaseCommitHint    string
+	XStable           string
+	XKernelTestBranch string
 }
 
 type Patch struct {
@@ -97,6 +99,12 @@ func PatchSeries(emails []*Email) []*Series {
 			}
 			if series.BaseCommitHint == "" { // Usually base-commit is in patch 0 or 1. Check them all to be safe.
 				series.BaseCommitHint = email.BaseCommitHint
+			}
+			if series.XStable == "" {
+				series.XStable = email.XStable
+			}
+			if series.XKernelTestBranch == "" {
+				series.XKernelTestBranch = email.XKernelTestBranch
 			}
 			seq := patch.Seq.ValueOr(1)
 			if seq == 0 {
