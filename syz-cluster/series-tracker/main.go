@@ -177,14 +177,16 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 		date = time.Now()
 	}
 	apiSeries := &api.Series{
-		ExtID:          series.MessageID,
-		AuthorEmail:    first.Author,
-		Title:          series.Subject,
-		Version:        series.Version,
-		SubjectTags:    series.Tags,
-		Link:           lore.LinkToMessage(series.MessageID),
-		PublishedAt:    date,
-		BaseCommitHint: series.BaseCommitHint,
+		ExtID:             series.MessageID,
+		AuthorEmail:       first.Author,
+		Title:             series.Subject,
+		Version:           series.Version,
+		SubjectTags:       series.Tags,
+		Link:              lore.LinkToMessage(series.MessageID),
+		PublishedAt:       date,
+		BaseCommitHint:    series.BaseCommitHint,
+		XStable:           series.XStable,
+		XKernelTestBranch: series.XKernelTestBranch,
 	}
 	sp := seriesProcessor{}
 	for i, patch := range series.Patches {
