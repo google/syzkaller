@@ -83,6 +83,11 @@ type InstanceConfig struct {
 
 var metadataURL = "http://metadata.google.internal/computeMetadata/v1/"
 
+const (
+	LabelUpdateInterval = 30 * time.Minute
+	TimeFormat          = "20060102-150405"
+)
+
 func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate:    time.NewTicker(time.Second).C,
@@ -303,6 +308,41 @@ retry:
 	return ip, zone, err
 }
 
+// UpdateLastActive updates an image's last-active label.
+func (ctx *Context) UpdateLastActive(imageName string) error {
+	image, err := ctx.getImage(imageName)
+	if err != nil {
+		return err
+	}
+	return ctx.updateLastActive(image)
+}
+
+func (ctx *Context) getImage(imageName string) (*compute.Image, error) {
+	var image *compute.Image
+	err := ctx.apiCall(func() (err error) {
+		image, err = ctx.computeService.Images.Get(ctx.ProjectID, imageName).Do()
+		return
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting image %s details: %w", imageName, err)
+	}
+	return image, nil
+}
+
+func (ctx *Context) updateLastActive(image *compute.Image) error {
+	if image.Labels == nil {
+		return fmt.Errorf("attempting to update last-active for an image without labels %s", image.Name)
+	}
+	image.Labels["last-active"] = time.Now().UTC().Format(TimeFormat)
+	return ctx.apiCall(func() (err error) {
+		_, err = ctx.computeService.Images.SetLabels(ctx.ProjectID, image.Name, &compute.GlobalSetLabelsRequest{
+			LabelFingerprint: image.LabelFingerprint,
+			Labels:           image.Labels,
+		}).Do()
+		return
+	})
+}
+
 func diskSizeGB(machineType string) int {
 	if strings.HasPrefix(machineType, "c4a-") {
 		// For C4A machines, the only available disk type is "Hyperdisk Balanced",
@@ -377,7 +417,7 @@ func (ctx *Context) IsInstanceRunning(name, zone string) bool {
 	return inst.Status == "RUNNING"
 }
 
-func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
+func (ctx *Context) CreateImage(imageName, gcsFile, OS string, autoDelete bool) error {
 	var features []*compute.GuestOsFeature
 	if OS == targets.Linux {
 		features = []*compute.GuestOsFeature{
@@ -395,6 +435,14 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 			"https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx",
 		},
 		GuestOsFeatures: features,
+	}
+
+	if autoDelete {
+		image.Labels = map[string]string{
+			// Should be updated every 30 minutes. Images that exist for over 12 hours are deleted by a cron job.
+			"last-active": time.Now().UTC().Format(TimeFormat),
+			"auto-delete": "",
+		}
 	}
 	var op *compute.Operation
 	err := ctx.apiCall(func() (err error) {

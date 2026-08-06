@@ -18,9 +18,13 @@ spec:
             value: "Boot"
           - name: report-findings
             value: "false"
+          - name: profile
+            value: "qemu"
         artifacts:
           - name: kernel
             path: /base
+          - name: config
+            path: /tmp/config.json
       container:
         image: ${IMAGE_PREFIX}boot-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
@@ -31,15 +35,16 @@ spec:
           "--test_name", "{{inputs.parameters.test-name}}",
           "--base_build", "{{inputs.parameters.base-build-id}}",
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
-          "-findings={{inputs.parameters.report-findings}}"
+          "-findings={{inputs.parameters.report-findings}}",
+          "--config", "/tmp/config.json"
           ]
         resources:
           requests:
-            cpu: 6
-            memory: 24G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '6'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '24G'}}"
           limits:
-            cpu: 8
-            memory: 32G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '8'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '32G'}}"
         volumeMounts:
         - name: workdir
           mountPath: /workdir

@@ -59,7 +59,8 @@ type Config struct {
 	//	]
 	KernelSubsystem []Subsystem `json:"kernel_subsystem,omitempty"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
-	Tag string `json:"tag,omitempty"`
+	Tag       string `json:"tag,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 	// Location of the disk image file.
 	Image string `json:"image,omitempty"`
 	// Location (on the host machine) of a root SSH identity to use for communicating with

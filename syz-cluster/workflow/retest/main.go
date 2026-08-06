@@ -26,6 +26,7 @@ var (
 	flagSession      = flag.String("session", "", "session ID")
 	flagWorkdir      = flag.String("workdir", "", "workdir")
 	flagTestName     = flag.String("test_name", "", "test name")
+	flagConfig       = flag.String("config", "", "path to the fuzz config")
 )
 
 const (
@@ -36,8 +37,8 @@ const (
 
 func main() {
 	flag.Parse()
-	if *flagRetestTask == "" || *flagSession == "" || *flagWorkdir == "" || *flagTestName == "" {
-		app.Fatalf("retest_task, session, test_name and workdir flags are required")
+	if *flagRetestTask == "" || *flagSession == "" || *flagWorkdir == "" || *flagTestName == "" || *flagConfig == "" {
+		app.Fatalf("retest_task, session, test_name, workdir and config flags are required")
 	}
 	log.EnableLogCaching(maxLogLines, maxLogSize)
 	ctx := context.Background()
@@ -67,11 +68,14 @@ func run(ctx context.Context, client *api.Client) error {
 	}
 
 	var baseEnv instance.Env
+	fuzzConfig := fuzzconfig.ReadFromFile(*flagConfig)
 	if *flagBaseBuild != "" {
-		baseCfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
+		baseCfg, err := fuzzconfig.GenerateBase(fuzzConfig)
 		if err != nil {
 			return fmt.Errorf("failed to generate base config: %w", err)
 		}
+		baseCfg.SessionID = *flagSession
+		baseCfg.Name = fmt.Sprintf("%s-%s", baseCfg.Name, *flagSession)
 		if *flagWorkdir != "" {
 			baseCfg.Workdir = *flagWorkdir + "/base"
 		}
@@ -84,10 +88,12 @@ func run(ctx context.Context, client *api.Client) error {
 		}
 	}
 
-	patchedCfg, err := fuzzconfig.GeneratePatched(&api.FuzzConfig{})
+	patchedCfg, err := fuzzconfig.GeneratePatched(fuzzConfig)
 	if err != nil {
 		return fmt.Errorf("failed to generate patched config: %w", err)
 	}
+	patchedCfg.SessionID = *flagSession
+	patchedCfg.Name = fmt.Sprintf("%s-%s", patchedCfg.Name, *flagSession)
 
 	if *flagWorkdir != "" {
 		patchedCfg.Workdir = *flagWorkdir + "/patched"

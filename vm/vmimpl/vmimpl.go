@@ -75,6 +75,7 @@ type Env struct {
 	// Unique name
 	// Can be used for VM name collision resolution if several pools share global name space.
 	Name      string
+	SessionID string
 	OS        string // target OS
 	Arch      string // target arch
 	Workdir   string

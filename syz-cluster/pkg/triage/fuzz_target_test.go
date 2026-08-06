@@ -66,14 +66,18 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 				KernelConfig: "kasan_config",
 				Track:        "KASAN",
 				FuzzConfig: &api.FuzzConfig{
-					Focus: []string{"net"},
+					SyzkallerConfig: api.SyzkallerConfig{
+						Focus: []string{"net"},
+					},
 				},
 			},
 			{
 				KernelConfig: "kmsan_config",
 				Track:        "KMSAN",
 				FuzzConfig: &api.FuzzConfig{
-					Focus: []string{"net"},
+					SyzkallerConfig: api.SyzkallerConfig{
+						Focus: []string{"net"},
+					},
 				},
 			},
 		}, MergeKernelFuzzConfigs([]*api.KernelFuzzConfig{
@@ -95,7 +99,9 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 				KernelConfig: "kasan_config",
 				Track:        "KASAN",
 				FuzzConfig: &api.FuzzConfig{
-					Focus: []string{"bpf", "net"},
+					SyzkallerConfig: api.SyzkallerConfig{
+						Focus: []string{"bpf", "net"},
+					},
 				},
 			},
 		}, MergeKernelFuzzConfigs([]*api.KernelFuzzConfig{
@@ -115,7 +121,9 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 
 func TestMergeFuzzConfigs(t *testing.T) {
 	assert.Equal(t, &api.FuzzConfig{
-		Focus:          []string{"bpf", "net"},
+		SyzkallerConfig: api.SyzkallerConfig{
+			Focus: []string{"bpf", "net"},
+		},
 		CorpusURLs:     []string{"url1", "url2"},
 		SkipCoverCheck: true,
 		BugTitleRe:     "regexp",

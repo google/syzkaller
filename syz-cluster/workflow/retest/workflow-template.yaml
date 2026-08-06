@@ -13,6 +13,8 @@ spec:
           - name: base-build-id
           - name: patched-build-id
           - name: test-name
+          - name: profile
+            value: "qemu"
         artifacts:
           - name: base-kernel
             optional: true
@@ -21,6 +23,8 @@ spec:
             path: /patched
           - name: retest-task
             path: /data/retest.json
+          - name: config
+            path: /tmp/config.json
       timeout: 4h
       container:
         image: ${IMAGE_PREFIX}retest-action:${IMAGE_TAG}
@@ -32,15 +36,16 @@ spec:
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
           "--session", "{{workflow.parameters.session-id}}",
           "--test_name", "{{inputs.parameters.test-name}}",
-          "--workdir", "/workdir"
+          "--workdir", "/workdir",
+          "--config", "/tmp/config.json"
           ]
         resources:
           requests:
-            cpu: 6
-            memory: 24G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '6'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '24G'}}"
           limits:
-            cpu: 8
-            memory: 32G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '8'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '32G'}}"
         volumeMounts:
         - name: workdir
           mountPath: /workdir
