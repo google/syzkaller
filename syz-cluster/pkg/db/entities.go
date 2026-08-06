@@ -22,8 +22,10 @@ type Series struct {
 	SubjectTags []string  `spanner:"SubjectTags"`
 	PublishedAt time.Time `spanner:"PublishedAt"`
 	// TODO: we could ger rid of the field by using slightly more complicated SQL queries.
-	LatestSessionID spanner.NullString `spanner:"LatestSessionID"`
-	Cc              []string           `spanner:"Cc"`
+	LatestSessionID   spanner.NullString `spanner:"LatestSessionID"`
+	Cc                []string           `spanner:"Cc"`
+	XStable           spanner.NullString `spanner:"XStable"`
+	XKernelTestBranch spanner.NullString `spanner:"XKernelTestBranch"`
 }
 
 func (s *Series) SetLatestSession(session *Session) {
