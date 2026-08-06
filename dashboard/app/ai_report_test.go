@@ -120,6 +120,7 @@ func TestAIExternalReporting(t *testing.T) {
 	// Poll for pending reports and confirm published.
 	pollResp := c.pollAndConfirmReport(t, "lore", "moderation-msg-id")
 	require.True(t, pollResp.Result.CanUpstream)
+	require.True(t, pollResp.Result.AddressComments)
 	require.Equal(t, "123456789012", pollResp.Result.Patch.Fixes.Hash)
 	require.Equal(t, "original bug", pollResp.Result.Patch.Fixes.Title)
 
@@ -167,6 +168,7 @@ func TestAIExternalReporting(t *testing.T) {
 	// "Report" to the public lists.
 	pollResp = c.pollAndConfirmReport(t, "lore", "msg-id-123")
 	require.False(t, pollResp.Result.CanUpstream)
+	require.False(t, pollResp.Result.AddressComments)
 	require.Equal(t, &dashapi.NewReportResult{
 		Subject:    "Test Subject",
 		Body:       "Test Body",
@@ -715,9 +717,10 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 
 	gotResult := pollRepResp.Result
 	wantResult := &dashapi.ReportPollResult{
-		ID:          gotResult.ID,
-		CanUpstream: true,
-		To:          []string{"moderation@test.com"},
+		ID:              gotResult.ID,
+		CanUpstream:     true,
+		AddressComments: true,
+		To:              []string{"moderation@test.com"},
 		Patch: &dashapi.NewReportResult{
 			Subject:    "New Subject",
 			Body:       "New Body",
@@ -1288,9 +1291,10 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 
 	gotResult := pollRepResp.Result
 	wantResult := &dashapi.ReportPollResult{
-		ID:          gotResult.ID,
-		CanUpstream: false,
-		To:          []string{"moderation@test.com"},
+		ID:              gotResult.ID,
+		CanUpstream:     false,
+		AddressComments: true,
+		To:              []string{"moderation@test.com"},
 		Replies: []*dashapi.ReplyResult{
 			{Body: "I will fix it.", ReplyExtID: "<comment-id-1>", ReplyAuthor: "reviewer@email.com"},
 		},

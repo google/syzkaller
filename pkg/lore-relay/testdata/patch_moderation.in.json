@@ -1,5 +1,6 @@
 {
   "CanUpstream": true,
+  "AddressComments": true,
   "Patch": {
     "Subject": "Fix a bug in subsystem",
     "Body": "This patch fixes a bug by doing X and Y.",
