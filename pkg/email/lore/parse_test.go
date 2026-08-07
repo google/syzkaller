@@ -478,6 +478,26 @@ Content-Type: text/plain
 In-Reply-To: <Something>
 
 No patch, just text`,
+		// A stable review series.
+		`Date: Fri, 24 Apr 2026 15:30:39 +0200
+Subject: [PATCH 6.18 00/01] 6.18.25-rc1 review
+Message-ID: <Fifth>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To: stable@vger.kernel.org
+X-stable: review
+X-KernelTest-Branch: linux-6.18.y
+Content-Type: text/plain
+
+This is the start of the stable review cycle.`,
+		`Date: Fri, 24 Apr 2026 15:31:00 +0200
+Subject: [PATCH 6.18 01/01] rxrpc: Fix missing validation
+Message-ID: <Fifth-1>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To: stable@vger.kernel.org
+Content-Type: text/plain
+In-Reply-To: <Fifth>
+
+` + dummyPatch,
 	}
 
 	var emails []*Email
@@ -490,7 +510,7 @@ No patch, just text`,
 	}
 
 	series := PatchSeries(emails)
-	assert.Len(t, series, 4)
+	assert.Len(t, series, 5)
 
 	expectPerID := map[string]*Series{
 		"<First>": {
@@ -535,6 +555,19 @@ No patch, just text`,
 			Corrupted: "the subject mentions 1 patches, 0 are found",
 			Patches:   nil,
 		},
+		"<Fifth>": {
+			Subject:           "6.18.25-rc1 review",
+			Version:           1,
+			Tags:              []string{"6.18"},
+			XStable:           "review",
+			XKernelTestBranch: "linux-6.18.y",
+			Patches: []Patch{
+				{
+					Seq:   1,
+					Email: &Email{Email: &email.Email{Subject: "[PATCH 6.18 01/01] rxrpc: Fix missing validation"}},
+				},
+			},
+		},
 	}
 	for _, s := range series {
 		expect := expectPerID[s.MessageID]
@@ -546,6 +579,8 @@ No patch, just text`,
 			assert.Equal(t, expect.Corrupted, s.Corrupted, "corrupted differs")
 			assert.Equal(t, expect.Subject, s.Subject, "subject differs")
 			assert.Equal(t, expect.Version, s.Version, "version differs")
+			assert.Equal(t, expect.XStable, s.XStable, "XStable differs")
+			assert.Equal(t, expect.XKernelTestBranch, s.XKernelTestBranch, "XKernelTestBranch differs")
 			require.Len(t, s.Patches, len(expect.Patches), "patch count differs")
 			for i, expectPatch := range expect.Patches {
 				got := s.Patches[i]
