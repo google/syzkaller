@@ -340,6 +340,7 @@ presubmit_arch_linux: descriptions
 	TARGETOS=linux TARGETARCH=386 TARGETVMARCH=386 $(MAKE) target
 	TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) target
 	TARGETOS=linux TARGETARCH=arm TARGETVMARCH=arm $(MAKE) target
+	TARGETOS=linux TARGETARCH=loong64 TARGETVMARCH=loong64 $(MAKE) target
 	TARGETOS=linux TARGETARCH=mips64le TARGETVMARCH=mips64le $(MAKE) target
 	TARGETOS=linux TARGETARCH=ppc64le TARGETVMARCH=ppc64le $(MAKE) target
 	TARGETOS=linux TARGETARCH=riscv64 TARGETVMARCH=riscv64 $(MAKE) target
@@ -423,6 +424,7 @@ install_prerequisites: act
 	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
 	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
+	sudo apt-get install -y -q g++-loongarch64-linux-gnu || true
 	sudo apt-get install -y -q g++ || true
 	[ -z "$(shell which python)" -a -n "$(shell which python3)" ] && sudo apt-get install -y -q python-is-python3 || true
 	sudo apt-get install -y -q clang-tidy || true

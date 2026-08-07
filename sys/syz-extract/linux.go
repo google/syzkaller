@@ -50,8 +50,8 @@ func (*linux) prepareArch(arch *Arch) error {
 	// So we create empty stubs in buildDir/syzkaller and add -IbuildDir/syzkaller
 	// as the last flag so it won't override real kernel headers.
 	for hdr, data := range map[string]string{
-		// This is the only compiler header kernel uses,
-		// need to provide it since we use -nostdinc below.
+		// Compiler headers used by kernel code need local replacements since
+		// constant extraction uses -nostdinc below.
 		"stdarg.h": `
 #pragma once
 #define va_list __builtin_va_list
@@ -61,6 +61,8 @@ func (*linux) prepareArch(arch *Arch) error {
 #define va_copy __builtin_va_copy
 #define __va_copy __builtin_va_copy
 `,
+		// LoongArch constants do not need the compiler intrinsics themselves.
+		"larchintrin.h": "",
 		"asm/kvm.h": `
 struct kvm_debug_exit_arch {};
 struct kvm_guest_debug_arch {};

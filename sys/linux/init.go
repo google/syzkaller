@@ -95,7 +95,7 @@ func InitTarget(target *prog.Target) {
 			0xffffffe000000000, // PAGE_OFFSET
 			0xffffff0000000000, // somewhere in VMEMMAP range
 		}
-	case targets.I386, targets.ARM64, targets.ARM, targets.PPC64LE, targets.MIPS64LE, targets.S390x:
+	case targets.I386, targets.ARM64, targets.ARM, targets.PPC64LE, targets.MIPS64LE, targets.S390x, targets.Loong64:
 	default:
 		panic("unknown arch")
 	}

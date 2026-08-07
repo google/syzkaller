@@ -3615,7 +3615,7 @@ error_clear_loop:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_vgic_v3_setup || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_assert_syzos_uexit || __NR_syz_kvm_assert_reg || __NR_syz_kvm_assert_syzos_kvm_exit
-#if !GOARCH_arm
+#if !GOARCH_arm && !GOARCH_loong64
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kvm.h>

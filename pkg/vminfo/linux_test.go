@@ -176,6 +176,7 @@ func checkCPUInfo(t *testing.T, data []byte, arch string) {
 		targets.ARM64:    {"CPU implementer", "CPU part", "Features"},
 		targets.ARM:      {"CPU implementer", "CPU part", "Features"},
 		targets.MIPS64LE: {"system type", "cpu model", "ASEs implemented"},
+		targets.Loong64:  {"system type", "CPU Family", "Model Name", "ISA", "Features"},
 		targets.RiscV64:  {"processor", "isa", "mmu"},
 	}
 	archKeys := importantKeys[arch]
