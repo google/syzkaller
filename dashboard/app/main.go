@@ -67,6 +67,7 @@ func initHTTPHandlers() {
 	http.Handle("/{ns}/invalid", handlerWrapper(handleInvalid))
 	http.Handle("/{ns}/graph/bugs", handlerWrapper(handleKernelHealthGraph))
 	http.Handle("/{ns}/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
+	http.Handle("/{ns}/graph/resolution", handlerWrapper(handleResolutionGraph))
 	http.Handle("/{ns}/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 	http.Handle("/{ns}/graph/crashes", handlerWrapper(handleGraphCrashes))
 	http.Handle("/{ns}/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))

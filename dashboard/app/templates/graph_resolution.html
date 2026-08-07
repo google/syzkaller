@@ -1,0 +1,89 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Bug resolution rates graph and statistics.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} bug resolution rates</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var data = new google.visualization.DataTable();
+			data.addColumn({type: 'string', label: 'Horizon'});
+			{{range $.Graph.Headers}}
+				data.addColumn({type: 'number', label: "{{.Name}}"});
+			{{end}}
+			data.addColumn({type: 'number', role: 'annotation'});
+			data.addRows([
+				{{range $.Graph.Columns}}
+					["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+				{{end}}
+			]);
+			new google.visualization.ColumnChart(document.getElementById('graph_div')).
+				draw(data, {
+					width: "100%",
+					height: 400,
+					chartArea: {width: '90%', height: '80%'},
+					legend: {position: 'none'},
+					focusTarget: "category",
+					vAxis: {
+						title: '% Addressed',
+						minValue: 0,
+						maxValue: 100,
+						gridlines: {multiple: 10},
+					},
+					hAxis: {
+						title: 'Time Window (Months After Reporting)',
+						maxAlternation: 1,
+					},
+					series: {
+						0: {color: "#26ba1c"}
+					},
+					annotations: { textStyle: { color: 'black', bold: true }}
+				});
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div id="graph_div"></div>
+
+	{{if len $.Rates}}
+		<table class="list_table" style="margin: 20px auto; width: 90%; max-width: 800px;">
+			<caption>
+				Bug resolution rate within X months for bugs reported between 2 years ago and 6 months ago.
+				{{if ge (len $.Rates) 3}}
+					{{$rate3 := index $.Rates 2}}
+					(3-Month Resolution Rate: <b>{{printf "%.1f" $rate3.FixedPercent}}%</b> — {{$rate3.FixedCount}} out of {{$rate3.TotalBugs}} mature bugs addressed).
+				{{end}}
+			</caption>
+			<thead>
+				<tr>
+					<th>Horizon</th>
+					<th>Addressed Bugs</th>
+					<th>Total Mature Bugs</th>
+					<th>% Addressed</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range $.Rates}}
+					<tr>
+						<td>Within {{.Months}} Month{{if gt .Months 1}}s{{end}}</td>
+						<td>{{.FixedCount}}</td>
+						<td>{{.TotalBugs}}</td>
+						<td><b>{{printf "%.1f" .FixedPercent}}%</b></td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	{{end}}
+</body>
+</html>
