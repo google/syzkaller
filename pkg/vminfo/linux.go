@@ -204,3 +204,50 @@ func linuxReadKVMInfo(files filesystem, w io.Writer) (string, error) {
 	}
 	return "KVM", nil
 }
+
+func (linux linux) capabilities(files filesystem) map[string]string {
+	capabilities := make(map[string]string)
+	if cpuinfo, err := files.ReadFile("/proc/cpuinfo"); err == nil {
+		if vendor := parseCPUVendor(cpuinfo); vendor != "" {
+			capabilities["vendor"] = vendor
+		}
+	}
+	if nested := parseKVMNested(files); nested != "" {
+		capabilities["nested"] = nested
+	}
+	return capabilities
+}
+
+func parseCPUVendor(data []byte) string {
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		key, val, ok := strings.Cut(s.Text(), ":")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		val = strings.TrimSpace(val)
+		if key == "vendor_id" {
+			if strings.Contains(val, "Intel") {
+				return "intel"
+			}
+			if strings.Contains(val, "AMD") {
+				return "amd"
+			}
+		}
+	}
+	return ""
+}
+
+func parseKVMNested(files filesystem) string {
+	for _, mod := range []string{"kvm_intel", "kvm_amd"} {
+		data, err := files.ReadFile(path.Join("/sys/module", mod, "parameters/nested"))
+		if err != nil {
+			continue
+		}
+		val := strings.TrimSpace(string(data))
+		if val == "Y" || val == "1" {
+			return "true"
+		}
+	}
+	return "false"
+}

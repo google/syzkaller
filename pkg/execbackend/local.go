@@ -46,7 +46,8 @@ func (m *localManager) CoverageFilter([]*vminfo.KernelModule) ([]uint64, error) 
 	return nil, nil
 }
 
-func (m *localManager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
+func (m *localManager) MachineChecked(features flatrpc.Feature,
+	syscalls map[*prog.Syscall]bool, capabilities map[string]string) error {
 	if m.source != nil {
 		m.backend.SetSource(m.source)
 	}

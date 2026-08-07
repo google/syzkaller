@@ -426,3 +426,114 @@ D                   : d
 `,
 	},
 }
+
+func TestParseCPUVendor(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want string
+	}{
+		{
+			name: "Intel CPU",
+			data: "processor\t: 0\nvendor_id\t: GenuineIntel\ncpu family\t: 6\n",
+			want: "intel",
+		},
+		{
+			name: "AMD CPU",
+			data: "processor\t: 0\nvendor_id\t: AuthenticAMD\ncpu family\t: 23\n",
+			want: "amd",
+		},
+		{
+			name: "Unknown CPU",
+			data: "processor\t: 0\nvendor_id\t: UnknownVendor\ncpu family\t: 1\n",
+			want: "",
+		},
+		{
+			name: "Empty data",
+			data: "",
+			want: "",
+		},
+		{
+			name: "Multiple colons in value",
+			data: "processor\t: 0\nvendor_id\t: GenuineIntel:with:extra:colons\n",
+			want: "intel",
+		},
+		{
+			name: "No vendor_id line",
+			data: "processor\t: 0\ncpu family\t: 6\n",
+			want: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseCPUVendor([]byte(tc.data))
+			if got != tc.want {
+				t.Errorf("parseCPUVendor() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseKVMNested(t *testing.T) {
+	tests := []struct {
+		name  string
+		files filesystem
+		want  string
+	}{
+		{
+			name: "Intel Nested Enabled Y",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("Y\n"),
+				},
+			},
+			want: "true",
+		},
+		{
+			name: "Intel Nested Enabled 1",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("1\n"),
+				},
+			},
+			want: "true",
+		},
+		{
+			name: "Intel Nested Disabled N",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("N\n"),
+				},
+			},
+			want: "false",
+		},
+		{
+			name: "AMD Nested Enabled 1",
+			files: filesystem{
+				"/sys/module/kvm_amd/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("1\n"),
+				},
+			},
+			want: "true",
+		},
+		{
+			name:  "No KVM modules",
+			files: filesystem{},
+			want:  "false",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseKVMNested(tc.files)
+			if got != tc.want {
+				t.Errorf("parseKVMNested() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
