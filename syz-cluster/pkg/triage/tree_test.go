@@ -32,6 +32,11 @@ func TestSelectTrees(t *testing.T) {
 			Name:       "mainline",
 			EmailLists: nil,
 		},
+		{
+			Name:       "stable-5.15",
+			EmailLists: []string{"stable@vger.kernel.org"},
+			Type:       api.TreeTypeStable,
+		},
 	}
 	tests := []struct {
 		testName string
@@ -61,16 +66,73 @@ func TestSelectTrees(t *testing.T) {
 				SubjectTags: []string{"test"},
 			},
 		},
+		{
+			testName: "lts-rc-5.15-review",
+			result:   []string{"stable-5.15"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				SubjectTags:       []string{"5.15"},
+				Title:             "5.15.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "lts-rc-5.15-review-no-subject-tag",
+			result:   []string{"stable-5.15"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				Title:             "5.15.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "lts-rc-via-headers",
+			result:   []string{"stable-5.15"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				Title:             "Patch review for stable release",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "developer-stable-backport-should-skip",
+			result:   nil,
+			series: &api.Series{
+				Cc:          []string{"stable@vger.kernel.org"},
+				SubjectTags: []string{"5.15"},
+				Title:       "net: fix foo",
+			},
+		},
+		{
+			testName: "lts-rc-no-matching-tree",
+			result:   nil,
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				SubjectTags:       []string{"5.16"},
+				Title:             "5.16.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.16.y",
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			ret := SelectTrees(test.series, trees)
-			var retNames []string
-			for _, tree := range ret {
-				retNames = append(retNames, tree.Name)
+			candidateTrees, err := CandidateTrees(trees, test.series)
+			if test.result == nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				selectedTrees := SelectTrees(test.series, candidateTrees)
+				var retNames []string
+				for _, tree := range selectedTrees {
+					retNames = append(retNames, tree.Name)
+				}
+				assert.Equal(t, test.result, retNames)
 			}
-			assert.Equal(t, test.result, retNames)
 		})
 	}
 }

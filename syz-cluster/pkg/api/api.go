@@ -46,6 +46,8 @@ const (
 	FocusFS      = "fs"
 )
 
+const MaxRCFocusedPatches = 35
+
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
@@ -60,12 +62,20 @@ type FuzzConfig struct {
 	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
+type TreeType string
+
+const (
+	TreeTypeUpstream TreeType = "upstream"
+	TreeTypeStable   TreeType = "stable"
+)
+
 // Tree represents a git tree. The triage step of the workflow will request these from controller.
 type Tree struct {
 	Name       string   `json:"name" yaml:"name"` // Primary key.
 	URL        string   `json:"URL" yaml:"URL"`
 	Branch     string   `json:"branch" yaml:"branch"`
 	EmailLists []string `json:"email_lists" yaml:"email_lists"`
+	Type       TreeType `json:"type" yaml:"type"`
 }
 
 // KernelFuzzConfig is a specific fuzzing assignment.
@@ -173,17 +183,19 @@ type RawFinding struct {
 }
 
 type Series struct {
-	ID             string        `json:"id"` // Only included in the reply.
-	ExtID          string        `json:"ext_id"`
-	Title          string        `json:"title"`
-	AuthorEmail    string        `json:"author_email"`
-	Cc             []string      `json:"cc"`
-	Version        int           `json:"version"`
-	Link           string        `json:"link"`
-	SubjectTags    []string      `json:"subject_tags"`
-	PublishedAt    time.Time     `json:"published_at"`
-	Patches        []SeriesPatch `json:"patches"`
-	BaseCommitHint string        `json:"base_commit_hint"`
+	ID                string        `json:"id"` // Only included in the reply.
+	ExtID             string        `json:"ext_id"`
+	Title             string        `json:"title"`
+	AuthorEmail       string        `json:"author_email"`
+	Cc                []string      `json:"cc"`
+	Version           int           `json:"version"`
+	Link              string        `json:"link"`
+	SubjectTags       []string      `json:"subject_tags"`
+	PublishedAt       time.Time     `json:"published_at"`
+	Patches           []SeriesPatch `json:"patches"`
+	BaseCommitHint    string        `json:"base_commit_hint"`
+	XStable           string        `json:"x_stable,omitempty"`
+	XKernelTestBranch string        `json:"x_kernel_test_branch,omitempty"`
 }
 
 func (s *Series) PatchBodies() [][]byte {
