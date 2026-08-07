@@ -20,7 +20,7 @@ spec:
         args:
         - "-repo=https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
         - "-branch=master"
-        - "-config=tinyconfig"
+        - "-config=/syzkaller/tools/syz-kube/kernel.config"
         - "-gcs-bucket=syzkaller-builds"
         - "-gcs-endpoint=http://fake-gcs-server.syzkube.svc.cluster.local:4443"
         volumeMounts:

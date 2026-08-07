@@ -1,0 +1,32 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: syz-manager-config
+  namespace: syzkube
+data:
+  manager.cfg: |
+    {
+      "name": "syz-k8s-manager",
+      "target": "linux/amd64",
+      "http": "0.0.0.0:50002",
+      "workdir": "/workdir",
+      "syzkaller": "/syzkaller",
+      "kernel_obj": "/tmp/kernel",
+      "image": "/syzkaller/disk.raw",
+      "sshkey": "/syzkaller/assets/id_rsa",
+      "sandbox": "none",
+      "type": "qemu",
+      "procs": 2,
+      "cover": true,
+      "vm": {
+        "count": 2,
+        "kernel": "/tmp/kernel/bzImage",
+        "cpu": 1,
+        "mem": 2048,
+        "qemu_args": "-enable-kvm",
+        "cmdline": "root=/dev/sda1 console=ttyS0"
+      }
+    }
