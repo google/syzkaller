@@ -1,0 +1,27 @@
+{
+  "compiler": "/usr/bin/gcc",
+  "compiler_type": "gcc",
+  "make": "make",
+  "bin_dir": "/usr/bin",
+  "kernel_repo": "https://github.com/torvalds/linux.git",
+  "kernel_branch": "master",
+  "syzkaller_repo": "https://github.com/google/syzkaller.git",
+  "userspace": "/syzkaller/disk.raw",
+  "kernel_config": "/syzkaller/tools/syz-kube/kernel.config",
+  "manager": {
+    "target": "linux/amd64",
+    "workdir": "/tmp/syz-bisect-workdir",
+    "kernel_src": "/git-cache/linux",
+    "syzkaller": "/go/src/github.com/google/syzkaller",
+    "image": "/syzkaller/disk.raw",
+    "sshkey": "/syzkaller/assets/id_rsa",
+    "type": "qemu",
+    "procs": 1,
+    "cover": true,
+    "vm": {
+      "count": 1,
+      "cmdline": "root=/dev/sda1 console=ttyS0",
+      "qemu_args": "-enable-kvm"
+    }
+  }
+}

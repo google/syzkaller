@@ -76,8 +76,8 @@ echo "Cleaning up existing Minikube profile '${PROFILE}'..."
 minikube delete -p "${PROFILE}" || true
 
 echo "Starting Minikube with profile '${PROFILE}'..."
-# Start with qemu driver and mount workspace
-minikube start -p "${PROFILE}" --driver=qemu --mount --mount-string="${REPO_ROOT}:/syzkaller"
+# Start with qemu driver, larger disk, and mount workspace
+minikube start -p "${PROFILE}" --driver=qemu --disk-size=80g --memory=16384 --cpus=8 --mount --mount-string="${REPO_ROOT}:/syzkaller"
 
 # Set default profile for convenience
 minikube profile "${PROFILE}"

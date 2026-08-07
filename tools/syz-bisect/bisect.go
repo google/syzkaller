@@ -145,7 +145,7 @@ func main() {
 
 	result, err := bisect.Run(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", osutil.VerboseMessage(err))
 		os.Exit(1)
 	}
 
