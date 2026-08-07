@@ -15,8 +15,7 @@
 typedef enum {
 	SYZOS_API_UEXIT = 0,
 	SYZOS_API_CODE = 10,
-	SYZOS_API_CSRR = 100,
-	SYZOS_API_CSRW = 101,
+	SYZOS_API_CSROP = 100,
 	SYZOS_API_MEMOP = 110,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
@@ -28,8 +27,7 @@ struct api_call_code {
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
-GUEST_CODE static void guest_handle_csrr(uint32 csr);
-GUEST_CODE static void guest_handle_csrw(uint32 csr, uint64 val);
+GUEST_CODE static void guest_handle_csrop(uint32 csr, uint32 rs1_val, uint32 funct3, uint32 rd);
 GUEST_CODE static void guest_handle_memop(struct api_call_5* cmd);
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
@@ -58,14 +56,10 @@ guest_main(uint64 size, uint64 cpu)
 			// Execute an instruction blob.
 			struct api_call_code* ccmd = (struct api_call_code*)cmd;
 			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
-		} else if (call == SYZOS_API_CSRR) {
-			// Execute a csrr instruction.
-			struct api_call_1* ccmd = (struct api_call_1*)cmd;
-			guest_handle_csrr(ccmd->arg);
-		} else if (call == SYZOS_API_CSRW) {
-			// Execute a csrw instruction.
-			struct api_call_2* ccmd = (struct api_call_2*)cmd;
-			guest_handle_csrw(ccmd->args[0], ccmd->args[1]);
+		} else if (call == SYZOS_API_CSROP) {
+			// Execute a CSR operation.
+			struct api_call_4* ccmd = (struct api_call_4*)cmd;
+			guest_handle_csrop(ccmd->args[0], ccmd->args[1], ccmd->args[2], ccmd->args[3]);
 		} else if (call == SYZOS_API_MEMOP) {
 			// Execute a memory operation.
 			struct api_call_5* ccmd = (struct api_call_5*)cmd;
@@ -105,50 +99,27 @@ GUEST_CODE static uint32 get_cpu_id()
 
 #define MAX_CACHE_LINE_SIZE 256
 #define RISCV_OPCODE_SYSTEM 0x73
-#define FUNCT3_CSRRW 0x1
-#define FUNCT3_CSRRS 0x2
-#define REG_ZERO 0
-#define REG_A0 10
 #define ENCODE_CSR_INSN(csr, rs1, funct3, rd) \
 	(((csr) << 20) | ((rs1) << 15) | ((funct3) << 12) | ((rd) << 7) | RISCV_OPCODE_SYSTEM)
 
 GUEST_CODE static noinline void
-guest_handle_csrr(uint32 csr)
+guest_handle_csrop(uint32 csr, uint32 rs1_val, uint32 funct3, uint32 rd)
 {
 	uint32 cpu_id = get_cpu_id();
 	// Make sure CPUs use different cache lines for scratch code.
 	uint32* insn = (uint32*)((uint64)RISCV64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
-	// insn[0] - csrr a0, csr
-	// insn[1] - ret
-	insn[0] = ENCODE_CSR_INSN(csr, REG_ZERO, FUNCT3_CSRRS, REG_A0);
+
+	// Encode the CSR instruction.
+	insn[0] = ENCODE_CSR_INSN(csr, rs1_val, funct3, rd);
 	insn[1] = 0x00008067;
+
 	asm volatile("fence.i" ::
 			 : "memory");
 	asm volatile(
 	    "jalr ra, 0(%0)"
 	    :
 	    : "r"(insn)
-	    : "ra", "a0", "memory");
-}
-
-GUEST_CODE static noinline void
-guest_handle_csrw(uint32 csr, uint64 val)
-{
-	uint32 cpu_id = get_cpu_id();
-	// Make sure CPUs use different cache lines for scratch code.
-	uint32* insn = (uint32*)((uint64)RISCV64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
-	// insn[0] - csrw csr, a0
-	// insn[1] - ret
-	insn[0] = ENCODE_CSR_INSN(csr, REG_A0, FUNCT3_CSRRW, REG_ZERO);
-	insn[1] = 0x00008067;
-	asm volatile("fence.i" ::
-			 : "memory");
-	asm volatile(
-	    "mv a0, %0\n"
-	    "jalr ra, 0(%1)"
-	    :
-	    : "r"(val), "r"(insn)
-	    : "a0", "ra", "memory");
+	    : "ra", "memory");
 }
 
 // Execute a memory operation.
