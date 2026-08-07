@@ -65,3 +65,10 @@ func BaseSeedCallCount(baseTestSeedData []byte, targetArch string) (int, error) 
 	}
 	return len(p.Calls), nil
 }
+
+// CorpusData represents indexed syzlang corpus programs and their reachability mappings.
+type CorpusData struct {
+	Programs    map[string]string   `json:"Programs"`
+	FunctionMap map[string][]string `json:"FunctionMap"`
+	SyscallMap  map[string][]string `json:"SyscallMap"`
+}

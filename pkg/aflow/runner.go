@@ -68,6 +68,43 @@ func (rm *RunnerManager) Config() *mgrconfig.Config {
 	return rm.cfg
 }
 
+// RunIsolatedManager boots a temporary, isolated RunnerManager with the specified cfg,
+// executes the provided action callback, and cleans up the manager and VMs afterwards.
+func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
+	action func(*RunnerManager) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	rm, err := newRunnerManager(ctx, cfg, debug)
+	if err != nil {
+		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
+	}
+
+	errc := make(chan error, 1)
+	go func() {
+		errc <- rm.Loop()
+		close(errc)
+	}()
+	defer func() {
+		cancel()
+		<-errc
+	}()
+
+	// Wait for the manager to be ready or fail.
+	select {
+	case <-rm.readyC:
+	case err := <-errc:
+		if err != nil {
+			return fmt.Errorf("isolated RunnerManager loop failed: %w", err)
+		}
+		return fmt.Errorf("isolated RunnerManager loop exited prematurely")
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return action(rm)
+}
+
 func (rm *RunnerManager) Loop() error {
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,
@@ -230,8 +267,7 @@ func (rm *RunnerManager) MachineChecked(
 	features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
 ) error {
 	if len(enabledSyscalls) == 0 {
-		log.Logf(0, "aflow: no syscalls enabled for runner")
-		return nil
+		return fmt.Errorf("no syscalls enabled for runner")
 	}
 
 	opts := fuzzer.DefaultExecOpts(rm.cfg, features, rm.debug)
