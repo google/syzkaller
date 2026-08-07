@@ -6,6 +6,9 @@
 package syzspec
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"io/fs"
 	"os"
 	"path"
@@ -72,34 +75,40 @@ type sysDirFS struct {
 
 func (s sysDirFS) resolvePath(name string) string {
 	name = filepath.ToSlash(filepath.Clean(name))
+	if name == "skills" || strings.HasPrefix(name, "skills/") {
+		suffix := strings.TrimPrefix(name, "skills")
+		return filepath.Join(s.syzkallerDir, "docs", s.osTarget, "skills", suffix)
+	}
 	if isLocalSyzFile(name) {
 		return filepath.Join(s.syzkallerDir, name)
 	}
 	return filepath.Join(s.syzkallerDir, "sys", s.osTarget, name)
 }
 
-func (s sysDirFS) Open(name string) (fs.File, error) {
+func runOS[T any](s sysDirFS, name, op string, fn func(string) (T, error)) (T, error) {
 	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
+		var zero T
+		return zero, &fs.PathError{Op: op, Path: name, Err: fs.ErrInvalid}
 	}
-	fullPath := s.resolvePath(name)
-	return os.Open(fullPath)
+	res, err := fn(s.resolvePath(name))
+	if pathErr, ok := errors.AsType[*os.PathError](err); ok {
+		pathErr.Path = name
+	}
+	return res, err
+}
+
+func (s sysDirFS) Open(name string) (fs.File, error) {
+	return runOS(s, name, "open", func(p string) (fs.File, error) {
+		return os.Open(p)
+	})
 }
 
 func (s sysDirFS) ReadFile(name string) ([]byte, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "readfile", Path: name, Err: fs.ErrInvalid}
-	}
-	fullPath := s.resolvePath(name)
-	return os.ReadFile(fullPath)
+	return runOS[[]byte](s, name, "readfile", os.ReadFile)
 }
 
 func (s sysDirFS) ReadDir(name string) ([]fs.DirEntry, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrInvalid}
-	}
-	fullPath := s.resolvePath(name)
-	return os.ReadDir(fullPath)
+	return runOS[[]fs.DirEntry](s, name, "readdir", os.ReadDir)
 }
 
 // CleanPath normalizes the given file path by removing redundant elements,
@@ -120,19 +129,54 @@ func (s *SyzFS) CleanPath(file string) string {
 	if isLocalSyzFile(cleaned) {
 		return cleaned
 	}
-	if suffix, ok := strings.CutPrefix(cleaned, "sys/"+s.osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, s.osTarget+"/"); ok {
-		cleaned = suffix
-	} else if suffix, ok := strings.CutPrefix(cleaned, "sys/"); ok {
-		cleaned = suffix
+	for _, prefix := range []string{"sys/" + s.osTarget, s.osTarget, "sys"} {
+		if suffix, ok := strings.CutPrefix(cleaned, prefix+"/"); ok {
+			cleaned = suffix
+			break
+		} else if cleaned == prefix {
+			cleaned = ""
+			break
+		}
 	}
 	return cleaned
+}
+
+func (s *SyzFS) resolveSkillPath(file string) (string, bool) {
+	cleaned := filepath.ToSlash(filepath.Clean(file))
+	for _, prefix := range []string{"docs/" + s.osTarget + "/skills/", s.osTarget + "/skills/", "skills/"} {
+		if suffix, ok := strings.CutPrefix(cleaned, prefix); ok {
+			cleaned = suffix
+			break
+		}
+	}
+	if strings.Contains(cleaned, "/") || strings.Contains(cleaned, "..") || !strings.HasSuffix(cleaned, ".md") {
+		return "", false
+	}
+	if s.syzkallerPath == "" {
+		return "", false
+	}
+	fullPath := path.Join("docs", s.osTarget, "skills", cleaned)
+	diskPath := filepath.Join(s.syzkallerPath, fullPath)
+	if _, err := os.Stat(diskPath); err == nil {
+		return fullPath, true
+	}
+	return "", false
+}
+
+// Open opens the named file from the SyzFS filesystem.
+func (s *SyzFS) Open(name string) (fs.File, error) {
+	if skillRel, ok := s.resolveSkillPath(name); ok {
+		return os.Open(filepath.Join(s.syzkallerPath, skillRel))
+	}
+	return s.FS.Open(name)
 }
 
 // ReadFile reads and returns the contents of the file at the specified path from the SyzFS filesystem.
 // It validates and cleans the path before reading.
 func (s *SyzFS) ReadFile(file string) ([]byte, error) {
+	if skillRel, ok := s.resolveSkillPath(file); ok {
+		return os.ReadFile(filepath.Join(s.syzkallerPath, skillRel))
+	}
 	cleanedFile := s.CleanPath(file)
 
 	if strings.HasPrefix(cleanedFile, "..") || filepath.IsAbs(cleanedFile) {
@@ -148,6 +192,70 @@ func (s *SyzFS) ReadFile(file string) ([]byte, error) {
 		return nil, nil
 	}
 	return fs.ReadFile(s.FS, cleanedFile)
+}
+
+type SkillInfo struct {
+	Name        string
+	Description string
+}
+
+func (s *SyzFS) ListSkills() ([]SkillInfo, error) {
+	entries, err := s.ReadDir("skills")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var skills []SkillInfo
+	for _, ent := range entries {
+		if ent.IsDir() || ent.Name() == "README.md" || !strings.HasSuffix(ent.Name(), ".md") {
+			continue
+		}
+		name := strings.TrimSuffix(ent.Name(), ".md")
+		desc := name
+		if data, err := s.ReadFile(ent.Name()); err == nil {
+			if n, d, ok := parseYAMLFrontmatter(data); ok {
+				if n != "" {
+					name = n
+				}
+				if d != "" {
+					desc = d
+				}
+			}
+		}
+		skills = append(skills, SkillInfo{
+			Name:        name,
+			Description: desc,
+		})
+	}
+	slices.SortFunc(skills, func(a, b SkillInfo) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return skills, nil
+}
+
+func parseYAMLFrontmatter(data []byte) (name, desc string, ok bool) {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	inFrontmatter := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				continue
+			}
+			return name, desc, true
+		}
+		if inFrontmatter {
+			if val, found := strings.CutPrefix(line, "name:"); found {
+				name = strings.TrimSpace(val)
+			} else if val, found := strings.CutPrefix(line, "description:"); found {
+				desc = strings.TrimSpace(val)
+			}
+		}
+	}
+	return "", "", false
 }
 
 // DescriptionFiles returns the list of syzlang description files (e.g. sys.txt)
@@ -187,5 +295,6 @@ func (s *SyzFS) TestSeeds() []string {
 
 func isLocalSyzFile(file string) bool {
 	return file == "executor" || strings.HasPrefix(file, "executor/") ||
-		file == "docs" || strings.HasPrefix(file, "docs/")
+		file == "docs" || strings.HasPrefix(file, "docs/") ||
+		file == "skills" || strings.HasPrefix(file, "skills/")
 }

@@ -11,7 +11,11 @@
 		"Nesting": 1,
 		"Type": "action",
 		"Name": "func-action",
-		"Started": "0001-01-01T00:00:02Z"
+		"Started": "0001-01-01T00:00:02Z",
+		"Args": {
+			"InBar": "bar",
+			"InFoo": 10
+		}
 	},
 	{
 		"Seq": 1,
@@ -20,6 +24,10 @@
 		"Name": "func-action",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:03Z",
+		"Args": {
+			"InBar": "bar",
+			"InFoo": 10
+		},
 		"Results": {
 			"OutBar": 142,
 			"TmpFuncOutput": "func-output"
@@ -187,7 +195,12 @@
 		"Nesting": 1,
 		"Type": "action",
 		"Name": "another-action",
-		"Started": "0001-01-01T00:00:18Z"
+		"Started": "0001-01-01T00:00:18Z",
+		"Args": {
+			"AgentBar": "agent-bar",
+			"InFoo": 10,
+			"TmpFuncOutput": "func-output"
+		}
 	},
 	{
 		"Seq": 9,
@@ -196,6 +209,11 @@
 		"Name": "another-action",
 		"Started": "0001-01-01T00:00:18Z",
 		"Finished": "0001-01-01T00:00:19Z",
+		"Args": {
+			"AgentBar": "agent-bar",
+			"InFoo": 10,
+			"TmpFuncOutput": "func-output"
+		},
 		"Results": {
 			"OutBaz": "baz"
 		}

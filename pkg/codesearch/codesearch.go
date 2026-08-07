@@ -161,6 +161,46 @@ var Commands = []Command{
 			}
 			return b.String(), nil
 		}},
+	{
+		Name:  "indirect-targets",
+		NArgs: 1,
+		Func: func(index *Index, args []string) (string, error) {
+			targets, err := index.FindIndirectTargets(args[0])
+			if err != nil {
+				return "", err
+			}
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "signature %v has %v targets:\n", args[0], len(targets))
+			for _, target := range targets {
+				fmt.Fprintf(b, " - %v\n", target)
+			}
+			return b.String(), nil
+		}},
+	{
+		Name:  "indirect-callers",
+		NArgs: 4,
+		Func: func(index *Index, args []string) (string, error) {
+			contextLines, err := strconv.Atoi(args[2])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse number of context lines %q: %w", args[2], err)
+			}
+			outputLimit, err := strconv.Atoi(args[3])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse output limit %q: %w", args[3], err)
+			}
+			refs, totalCount, err := index.FindIndirectCallSites(args[0], args[1], contextLines, outputLimit)
+			if err != nil {
+				return "", err
+			}
+			b := new(strings.Builder)
+			fmt.Fprintf(b, "signature %v is called at %v locations:\n\n", args[0], totalCount)
+			for _, ref := range refs {
+				fmt.Fprintf(b, "%v %v %v it at %v:%v\n%v\n\n",
+					ref.ReferencingEntityKind, ref.ReferencingEntityName, ref.ReferenceKind,
+					ref.SourceFile, ref.SourceLine, ref.SourceSnippet)
+			}
+			return b.String(), nil
+		}},
 }
 
 func IsSourceFile(file string) bool {
@@ -228,9 +268,11 @@ func (index *Index) FileIndex(file string) ([]Entity, error) {
 }
 
 type EntityInfo struct {
-	File string
-	Kind string
-	Body string
+	Name      string
+	File      string
+	Kind      string
+	Body      string
+	Signature string
 }
 
 func (index *Index) DefinitionComment(contextFile, name string) (*EntityInfo, error) {
@@ -239,6 +281,18 @@ func (index *Index) DefinitionComment(contextFile, name string) (*EntityInfo, er
 
 func (index *Index) DefinitionSource(contextFile, name string) (*EntityInfo, error) {
 	return index.definitionSource(contextFile, name, false)
+}
+
+func (index *Index) FindFunctionAtLine(file string, line int) (*EntityInfo, error) {
+	for _, def := range index.db.Definitions {
+		if def.Body.File != file || def.Kind != EntityKindFunction {
+			continue
+		}
+		if int(def.Body.StartLine) <= line && int(def.Body.EndLine) >= line {
+			return index.definitionSource(file, def.Name, false)
+		}
+	}
+	return nil, fmt.Errorf("no function found at line %v in file %v", line, file)
 }
 
 func (index *Index) definitionSource(contextFile, name string, comment bool) (*EntityInfo, error) {
@@ -255,9 +309,11 @@ func (index *Index) definitionSource(contextFile, name string, comment bool) (*E
 		return nil, err
 	}
 	return &EntityInfo{
-		File: def.Body.File,
-		Kind: def.Kind.String(),
-		Body: src,
+		Name:      def.Name,
+		File:      def.Body.File,
+		Kind:      def.Kind.String(),
+		Body:      src,
+		Signature: def.Signature,
 	}, nil
 }
 
@@ -306,38 +362,100 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 			if totalCount > outputLimit {
 				continue
 			}
-			snippet := ""
-			refFile := ref.File
-			if refFile == "" {
-				refFile = def.Body.File
+			info, err := index.formatReferenceInfo(def, ref, contextLines)
+			if err != nil {
+				return nil, 0, err
 			}
-			if contextLines > 0 {
-				lines := LineRange{
-					File:      refFile,
-					StartLine: uint32(max(1, int(ref.Line)-contextLines)),
-					EndLine:   ref.Line + uint32(contextLines),
-				}
-				if refFile == def.Body.File {
-					lines.StartLine = max(def.Body.StartLine, lines.StartLine)
-					lines.EndLine = min(def.Body.EndLine, lines.EndLine)
-				}
-				if lines.StartLine <= lines.EndLine {
-					var err error
-					snippet, err = index.formatSource(lines)
-					if err != nil {
-						log.Logf(1, "codesearch: failed to format source snippet for %s:%d: %v", refFile, ref.Line, err)
-						snippet = ""
+			results = append(results, info)
+		}
+	}
+	return results, totalCount, nil
+}
+
+func (index *Index) formatReferenceInfo(def *Definition, ref Reference, contextLines int) (ReferenceInfo, error) {
+	snippet := ""
+	refFile := ref.File
+	if refFile == "" {
+		refFile = def.Body.File
+	}
+	if contextLines > 0 {
+		lines := LineRange{
+			File:      refFile,
+			StartLine: uint32(max(1, int(ref.Line)-contextLines)),
+			EndLine:   ref.Line + uint32(contextLines),
+		}
+		if refFile == def.Body.File {
+			lines.StartLine = max(def.Body.StartLine, lines.StartLine)
+			lines.EndLine = min(def.Body.EndLine, lines.EndLine)
+		}
+		if lines.StartLine <= lines.EndLine {
+			var err error
+			snippet, err = index.formatSource(lines)
+			if err != nil {
+				log.Logf(1, "codesearch: failed to format source snippet for %s:%d: %v", refFile, ref.Line, err)
+				snippet = ""
+			}
+		}
+	}
+	return ReferenceInfo{
+		ReferencingEntityKind: def.Kind.String(),
+		ReferencingEntityName: def.Name,
+		ReferenceKind:         ref.Kind.String(),
+		SourceFile:            refFile,
+		SourceLine:            int(ref.Line),
+		SourceSnippet:         snippet,
+	}, nil
+}
+
+func (index *Index) FindIndirectTargets(signature string) ([]string, error) {
+	var targets []string
+	for _, def := range index.db.Definitions {
+		if def.Kind == EntityKindFunction && def.Signature == signature {
+			addressTaken := false
+			for _, scanDef := range index.db.Definitions {
+				for _, ref := range scanDef.Refs {
+					if ref.Name == def.Name && ref.Kind == RefKindTakesAddr {
+						addressTaken = true
+						break
 					}
 				}
+				if addressTaken {
+					break
+				}
 			}
-			results = append(results, ReferenceInfo{
-				ReferencingEntityKind: def.Kind.String(),
-				ReferencingEntityName: def.Name,
-				ReferenceKind:         ref.Kind.String(),
-				SourceFile:            refFile,
-				SourceLine:            int(ref.Line),
-				SourceSnippet:         snippet,
-			})
+			if addressTaken {
+				targets = append(targets, def.Name)
+			}
+		}
+	}
+	slices.Sort(targets)
+	return slices.Compact(targets), nil
+}
+
+func (index *Index) FindIndirectCallSites(signature, srcPrefix string,
+	contextLines, outputLimit int) ([]ReferenceInfo, int, error) {
+	if srcPrefix != "" {
+		srcPrefix = filepath.Clean(srcPrefix)
+	}
+	contextLines = min(contextLines, 10000)
+	totalCount := 0
+	var results []ReferenceInfo
+	for _, def := range index.db.Definitions {
+		if !strings.HasPrefix(def.Body.File, srcPrefix) {
+			continue
+		}
+		for _, ref := range def.Refs {
+			if ref.EntityKind == EntityKindSignature && ref.Kind == RefKindIndirectCall && ref.Name == signature {
+				totalCount++
+				if totalCount > outputLimit {
+					continue
+				}
+				info, err := index.formatReferenceInfo(def, ref, contextLines)
+				if err != nil {
+					return nil, 0, err
+				}
+				results = append(results, info)
+			}
 		}
 	}
 	return results, totalCount, nil
@@ -430,6 +548,13 @@ func formatSourceLines(lines [][]byte, start, end int) string {
 	if start > end {
 		return ""
 	}
+	if start >= len(lines) {
+		return ""
+	}
+	if end >= len(lines) {
+		end = len(lines) - 1
+	}
+
 	b := new(strings.Builder)
 	for i := start - 1; i < end; i++ {
 		fmt.Fprintf(b, "%4v:\t%s\n", i+1, lines[i])
@@ -464,11 +589,16 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 			// These are internal things like .git, etc.
 		} else if entry.IsDir() {
 			subdirs = append(subdirs, entry.Name())
-		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) {
+		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) || isDocumentationFile(entry.Name()) {
 			files = append(files, entry.Name())
 		}
 	}
 	return true, subdirs, files, err
+}
+
+func isDocumentationFile(file string) bool {
+	ext := filepath.Ext(file)
+	return ext == ".txt" || ext == ".rst" || ext == ".md"
 }
 
 func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {

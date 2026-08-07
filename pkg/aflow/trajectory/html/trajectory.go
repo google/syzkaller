@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -142,5 +143,27 @@ func marshalJSON(v any) string {
 	if err != nil {
 		return err.Error()
 	}
-	return string(b)
+	s := string(b)
+
+	// Add an actual newline after every literal \n in JSON string values.
+	// This makes it visually split into lines in the UI <pre> blocks,
+	// while retaining the \n marker. We parse character-by-character to
+	// avoid matching \n when the backslash itself is escaped (e.g. C:\\new_folder).
+	var sb strings.Builder
+	for i := 0; i < len(s); {
+		if s[i] == '\\' && i+1 < len(s) {
+			if s[i+1] == 'n' {
+				sb.WriteString("\\n\n")
+				i += 2
+				continue
+			} else if s[i+1] == '\\' {
+				sb.WriteString("\\\\")
+				i += 2
+				continue
+			}
+		}
+		sb.WriteByte(s[i])
+		i++
+	}
+	return sb.String()
 }

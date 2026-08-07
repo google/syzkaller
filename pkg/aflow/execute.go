@@ -43,6 +43,9 @@ func (flow *Flow) Execute(ctx context.Context, inputs map[string]any, opts Execu
 	}
 	inputs = convertedInputs
 	inputs = maps.Clone(inputs)
+	if err := resolveKernelConfigPath(inputs); err != nil {
+		return nil, err
+	}
 	maps.Insert(inputs, maps.All(flow.Consts))
 	llmClient, err := opts.Provider.Client(ctx)
 	if err != nil {
@@ -241,6 +244,10 @@ func (ctx *Context) ConsumeTokens(tokens int) error {
 	return nil
 }
 
+func (ctx *Context) StateMap() map[string]any {
+	return ctx.state
+}
+
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {
 	dir, err := ctx.cache.Create(typ, desc, populate)
 	if err != nil {
@@ -381,4 +388,35 @@ func (ctx *Context) GetRunnerManager() (*RunnerManager, error) {
 		return nil, ErrRunnerNotInitialized
 	}
 	return ctx.runnerManager, nil
+}
+
+func resolveKernelConfigPath(inputs map[string]any) error {
+	configVal, ok := inputs["KernelConfig"].(string)
+	if !ok || configVal == "" {
+		return nil
+	}
+	if strings.Contains(configVal, "\n") {
+		return nil // contains newlines, must be the config content itself
+	}
+
+	// Determine if it should be treated as a path.
+	// If it doesn't contain '=', or if a file exists at that path, we treat it as a path.
+	isPath := false
+	if !strings.Contains(configVal, "=") {
+		isPath = true
+	} else if osutil.IsExist(osutil.Abs(configVal)) {
+		isPath = true
+	}
+
+	if !isPath {
+		return nil
+	}
+
+	path := osutil.Abs(configVal)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read KernelConfig file %q: %w", path, err)
+	}
+	inputs["KernelConfig"] = string(data)
+	return nil
 }

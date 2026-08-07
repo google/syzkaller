@@ -366,7 +366,7 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			In:  `mutate9(&(0x7f0000000000)='/escaping/filename\x00')`,
-			Err: `escaping filename`,
+			Err: `escapes sandbox`,
 		},
 		{
 			In:  "test$opt2(0x0)\r",

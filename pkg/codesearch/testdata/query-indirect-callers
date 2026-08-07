@@ -1,0 +1,11 @@
+indirect-callers "void (int)" "source0.c" 3 10
+
+signature void (int) is called at 1 locations:
+
+function call_work indirectly-calls it at source0.c:66
+  64:	void call_work(struct ops* o)
+  65:	{
+  66:		o->do_work(1);
+  67:	}
+
+

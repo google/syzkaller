@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,12 @@ func TestTestSeeds(t *testing.T) {
 	require.Equal(t, seeds, legacySeeds)
 }
 
+func TestSkillsPrompt(t *testing.T) {
+	syzFS := syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)
+	prompt := SkillsPrompt(syzFS)
+	require.Contains(t, prompt, "- skills/kvm.md: KVM Virtualization and Guest Constraints (x86/amd64 Focus)")
+}
+
 func TestReadSyzSpec(t *testing.T) {
 	state := specToolsState{SyzFS: syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)}
 	// Test pagination.
@@ -64,6 +71,14 @@ func TestReadSyzSpec(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Contains(t, res.Output, "Copyright")
+
+	// Test reading a skill.
+	resSkill, errSkill := readSyzSpec(nil, state, readSyzSpecArgs{
+		File:      "skills/kvm.md",
+		FirstLine: 1,
+	})
+	require.NoError(t, errSkill)
+	require.Contains(t, resSkill.Output, "KVM Virtualization and Guest Constraints")
 
 	// Test missing file.
 	_, err2 := readSyzSpec(nil, state, readSyzSpecArgs{File: "non_existent_file.txt"})
@@ -215,4 +230,74 @@ func TestValidateFilePath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExecuteSeed(t *testing.T) {
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		Syzkaller:  "../../../..",
+	}
+
+	tests := []struct {
+		name      string
+		program   string
+		wantError string
+	}{
+		{
+			name:      "valid program",
+			program:   "getrlimit(0x0, 0x0)",
+			wantError: "",
+		},
+		{
+			name:      "empty program",
+			program:   "",
+			wantError: "syz program cannot be empty",
+		},
+		{
+			name:      "invalid program syntax",
+			program:   "invalid_call()",
+			wantError: "unknown syscall",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := executeSeed(&aflow.Context{}, state, ExecuteSeedArgs{
+				ReproSyz: tc.program,
+			})
+			if tc.wantError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCleanPath_TrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	syzFS := syzspec.NewSyzFS(syzkallerRepoRoot(t), "linux")
+
+	require.Equal(t, "", syzFS.CleanPath("sys/linux/"))
+	require.Equal(t, "", syzFS.CleanPath("sys/linux"))
+	require.Equal(t, "vusb.txt", syzFS.CleanPath("sys/linux/vusb.txt"))
+	require.Equal(t, "test/vusb_hid", syzFS.CleanPath("sys/linux/test/vusb_hid"))
+}
+
+func TestSanitizeError_NoHostPathLeak(t *testing.T) {
+	t.Parallel()
+
+	state := specToolsState{
+		SyzFS: syzspec.NewSyzFS(syzkallerRepoRoot(t), "linux"),
+	}
+
+	_, err := syzGrepper(nil, state, syzGrepperArgs{
+		PathPrefix: "non_existent_dir/",
+		Expression: "SECONDARY_EXEC_SHADOW_VMCS",
+	})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), syzkallerRepoRoot(t))
 }

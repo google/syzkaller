@@ -14,8 +14,10 @@ import (
 	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -65,6 +67,7 @@ type RunTestResult struct {
 // RunTest boots the kernel and runs a single test program.
 func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
 	res := RunTestResult{}
+	args.ReproSyz = syzspec.RestoreBlobs(args.ReproSyz)
 	if err := args.Validate(); err != nil {
 		return res, fmt.Errorf("run test: %w", err)
 	}
@@ -181,7 +184,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(args, firstCoverage)
+		coverage, err := SymbolizeCoverage(args.TargetConfig, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -204,13 +207,21 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
+type CallError struct {
+	Flags flatrpc.CallFlag
+	Errno int32
+}
+
 type cachedExecution struct {
-	BugTitle       string
-	Report         string
-	OtherReports   []string
-	FaultInjection string
-	Error          string
-	Coverage       [][]symbolizer.Frame
+	BugTitle        string
+	Report          string
+	OtherReports    []string
+	FaultInjection  string
+	Error           string
+	Coverage        [][]symbolizer.Frame
+	CallErrors      []CallError
+	GeneratedSyz    string
+	VMConsoleOutput string
 }
 
 func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
@@ -219,6 +230,30 @@ func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, er
 		return nil, err
 	}
 	return cached.Coverage, nil
+}
+
+func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (string, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", err
+	}
+	return syzspec.ReplaceBlobs(cached.GeneratedSyz), nil
+}
+
+func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return nil, err
+	}
+	return cached.CallErrors, nil
+}
+
+func LoadVMConsoleOutput(ctx *aflow.Context, cachedID string) (string, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", err
+	}
+	return cached.VMConsoleOutput, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
@@ -254,6 +289,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		res.FaultInjection = testRes.FaultInjection
 		res.Error = testRes.BootError
 		res.Coverage = testRes.Coverage
+		res.GeneratedSyz = args.ReproSyz
 		return res, err
 	})
 	if err != nil {
@@ -279,7 +315,7 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 
 var makeSymbolizer = symbolizer.Make
 
-func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func SymbolizeCoverage(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	if len(coverage) == 0 {
 		return nil, nil
 	}

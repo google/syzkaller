@@ -23,7 +23,8 @@
 		"Nesting": 2,
 		"Type": "action",
 		"Name": "if-body",
-		"Started": "0001-01-01T00:00:03Z"
+		"Started": "0001-01-01T00:00:03Z",
+		"Args": {}
 	},
 	{
 		"Seq": 2,
@@ -32,6 +33,7 @@
 		"Name": "if-body",
 		"Started": "0001-01-01T00:00:03Z",
 		"Finished": "0001-01-01T00:00:04Z",
+		"Args": {},
 		"Results": {
 			"Done": "done"
 		}

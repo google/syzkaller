@@ -16,8 +16,6 @@ import (
 // It can do complex multi-step research, and provide a concise answer to the parent LLM
 // without polluting its context window.
 type StructuredLLMTool[State, Args, Results any] struct {
-	// Most fields match that of LLMAgent.
-	// The prompt is not specified here, and is provided by the parent LLM.
 	Name     string
 	Model    backend.ModelCategory
 	TaskType TaskType
@@ -29,9 +27,23 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Prompt template for the subagent, formatted using both State and Args.
 	Prompt string
 
+	// PreExecute is run before prompt template execution. It returns additional variables
+	// to merge into the template formatting context.
+	PreExecute func(ctx *Context, state State, args Args) (map[string]any, error)
+
+	// ExtraVars declares the types of extra template variables returned by PreExecute (for verification).
+	ExtraVars map[string]reflect.Type
+
 	// Optional structured outputs configuration for the subagent.
 	// Use LLMOutputs or ValidatedLLMOutputs/ValidatedLLMToolOutputs functions to create it.
 	Outputs *llmOutputs
+
+	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
+	Judge *LLMJudge
+
+	// Maximum number of iterations for the tool execution.
+	// If 0, default to defaultMaxLLMIterations (250).
+	MaxIterations int
 
 	agent *LLMAgent
 }
@@ -73,6 +85,14 @@ func (t *StructuredLLMTool[State, Args, Results]) execute(ctx *Context, args map
 	for _, tool := range t.Tools {
 		name := tool.declaration().Name
 		combined[toolTemplateName(name)] = name
+	}
+
+	if t.PreExecute != nil {
+		extras, err := t.PreExecute(ctx, s, a)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(combined, extras)
 	}
 
 	prompt := formatTemplate(t.Prompt, combined)
@@ -117,20 +137,24 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	vars := make(map[string]reflect.Type)
 	maps.Insert(vars, foreachFieldOf[State]())
 	maps.Insert(vars, foreachFieldOf[Args]())
+	maps.Copy(vars, t.ExtraVars)
 	for _, tool := range t.Tools {
 		vars[toolTemplateName(tool.declaration().Name)] = reflect.TypeFor[string]()
 	}
 	if _, err := verifyTemplate(t.Prompt, vars); err != nil {
 		ctx.errorf(t.Name, "invalid prompt template: %v", err)
 	}
+
 	t.agent = &LLMAgent{
-		Name:        t.Name,
-		Model:       t.Model,
-		TaskType:    t.TaskType,
-		Instruction: t.Instruction,
-		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
-		Tools:       t.Tools,
-		SubAgent:    true,
+		Name:          t.Name,
+		Model:         t.Model,
+		TaskType:      t.TaskType,
+		Instruction:   t.Instruction,
+		Prompt:        fmt.Sprintf("{{.%v}}", llmToolPrompt),
+		Tools:         t.Tools,
+		SubAgent:      true,
+		Judge:         t.Judge,
+		MaxIterations: t.MaxIterations,
 	}
 
 	if t.Outputs != nil {

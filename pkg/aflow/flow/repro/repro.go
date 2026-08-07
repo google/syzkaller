@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/flow/common"
+	aflow_syzlang "github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/syzlang"
 	"github.com/google/syzkaller/pkg/csource"
@@ -109,6 +110,7 @@ func formatReproFinderOutputs(ctx *aflow.Context, state ReproFinderState,
 	if err != nil {
 		return res, err
 	}
+	res.ReproSyz = aflow_syzlang.RestoreBlobs(res.ReproSyz)
 	p, err := pt.Deserialize([]byte(res.ReproSyz), prog.NonStrict)
 	if err != nil {
 		return res, aflow.BadCallError("failed to deserialize syzkaller program: %v", err)
@@ -167,4 +169,6 @@ The bug report to reproduce:
 {{.CrashReport}}
 
 {{.DescriptionFilesPrompt}}
+
+{{.SkillsPrompt}}
 `

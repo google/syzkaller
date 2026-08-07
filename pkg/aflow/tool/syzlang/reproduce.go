@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
+	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -43,18 +44,47 @@ type reproduceState struct {
 	Syzkaller    string
 }
 
+func (s reproduceState) targetConfig() crash.TargetConfig {
+	return crash.TargetConfig{
+		TargetArch:   s.TargetArch,
+		Syzkaller:    s.Syzkaller,
+		Image:        s.Image,
+		Type:         s.Type,
+		VM:           s.VM,
+		KernelSrc:    s.KernelSrc,
+		KernelObj:    s.KernelObj,
+		KernelCommit: s.KernelCommit,
+		KernelConfig: s.KernelConfig,
+	}
+}
+
+func (s reproduceState) toReproduceArgs(reproSyz string) crash.ReproduceArgs {
+	return crash.ReproduceArgs{
+		TargetConfig: s.targetConfig(),
+		ReproSyz:     reproSyz,
+	}
+}
+
+func (s reproduceState) toExecuteSeedArgs(reproSyz string) crash.ExecuteSeedArgs {
+	return crash.ExecuteSeedArgs{
+		TargetConfig: s.targetConfig(),
+		ReproSyz:     reproSyz,
+	}
+}
+
 func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (ReproduceResult, error) {
 	if args.ReproSyz == "" {
 		return ReproduceResult{}, aflow.BadCallError("syz program cannot be empty")
 	}
 
+	args.ReproSyz = syzspec.RestoreBlobs(args.ReproSyz)
 	pt, err := prog.GetTarget(state.TargetOS, state.TargetArch)
 	if err != nil {
 		return ReproduceResult{}, err
 	}
 	_, err = pt.Deserialize([]byte(args.ReproSyz), prog.Strict)
 	if err != nil {
-		return ReproduceResult{}, aflow.BadCallError("%v", err)
+		return ReproduceResult{}, aflow.BadCallError("%v", syzspec.ReplaceBlobs(err.Error()))
 	}
 
 	if state.Image == "" || state.VM == nil {
@@ -63,21 +93,8 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 		return ReproduceResult{}, nil
 	}
 
-	reproArgs := crash.ReproduceArgs{
-		TargetConfig: crash.TargetConfig{
-			TargetArch:   state.TargetArch,
-			Syzkaller:    state.Syzkaller,
-			Image:        state.Image,
-			Type:         state.Type,
-			VM:           state.VM,
-			KernelSrc:    state.KernelSrc,
-			KernelObj:    state.KernelObj,
-			KernelCommit: state.KernelCommit,
-			KernelConfig: state.KernelConfig,
-			Sandbox:      args.Sandbox,
-		},
-		ReproSyz: args.ReproSyz,
-	}
+	reproArgs := state.toReproduceArgs(args.ReproSyz)
+	reproArgs.TargetConfig.Sandbox = args.Sandbox
 
 	if err := reproArgs.Validate(); err != nil {
 		return ReproduceResult{}, aflow.BadCallError("invalid configuration: %v", err)

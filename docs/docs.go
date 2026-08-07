@@ -13,3 +13,9 @@ var ProgramSyntax string
 
 //go:embed syscall_descriptions_syntax.md
 var SyscallDescriptionsSyntax string
+
+//go:embed pseudo_syscalls.md
+var PseudoSyscalls string
+
+//go:embed syzos.md
+var SyzOS string

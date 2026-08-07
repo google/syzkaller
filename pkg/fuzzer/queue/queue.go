@@ -181,9 +181,12 @@ func (r *Request) initChannel() {
 type Result struct {
 	Info     *flatrpc.ProgInfo
 	Executor ExecutorID
-	Output   []byte
-	Status   Status
-	Err      error // More details in case of ExecFailure.
+	// Output contains the execution output. In non-snapshot mode, this only
+	// contains executor output. TODO: We might want to include VM console as well
+	// later.
+	Output []byte
+	Status Status
+	Err    error // More details in case of ExecFailure.
 }
 
 func (r *Result) clone() *Result {

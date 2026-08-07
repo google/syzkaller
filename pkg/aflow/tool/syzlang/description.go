@@ -4,6 +4,7 @@
 package syzlang
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 
@@ -35,8 +36,14 @@ func DescriptionFilesPrompt(syzFS *syzspec.SyzFS) string {
 	}
 	sb.WriteString("\nNote that the constant values for the descriptions are defined " +
 		"in the file suffixed with .const (e.g. sys.txt.const for sys.txt).\n" +
-		"If you need base seeds for file system image setup or other device setup, " +
-		"use read-syz-spec and syz-grepper to look up files in the test/ directory.\n")
+		"If you need setup code for file system image setup or other device setup, " +
+		"use syz-grepper (with PathPrefix set to \"test\") to search for relevant syscalls or device names " +
+		"within the test seeds in the test/ directory.\n" +
+		"If you need to use pseudo syscalls or understand their behavior (e.g. " +
+		"syz_usb_connect, syz_mount_image), look for syz_* pseudo syscalls in the executor header " +
+		"files (located under the executor/ directory, e.g. executor/common_usb_linux.h). You can " +
+		"directly use these pseudo syscalls in your syzlang program to use the syscalls of the " +
+		"same name more conveniently.\n")
 	return sb.String()
 }
 
@@ -44,4 +51,21 @@ func DescriptionFilesPrompt(syzFS *syzspec.SyzFS) string {
 // the given syzkaller directory and target OS.
 func TestSeeds(syzkallerDir, osTarget string) []string {
 	return syzspec.NewSyzFS(syzkallerDir, osTarget).TestSeeds()
+}
+
+func SkillsPrompt(syzFS *syzspec.SyzFS) string {
+	skills, err := syzFS.ListSkills()
+	if err != nil || len(skills) == 0 {
+		return ""
+	}
+	sb := new(strings.Builder)
+	sb.WriteString("Available Subsystem Skills (read with read-syz-spec, e.g. 'read-syz-spec skills/kvm.md'):\n")
+	for _, sk := range skills {
+		fmt.Fprintf(sb, "- skills/%s.md: %s\n", sk.Name, sk.Description)
+	}
+	sb.WriteString("\nCRITICAL INSTRUCTION: If you target a subsystem listed above, " +
+		"you MUST read the corresponding skill file (e.g. 'read-syz-spec skills/kvm.md') before writing any code. " +
+		"Do NOT guess or assume the setup requirements; the skill files contain mandatory initialization sequences, " +
+		"pseudo-syscall usage rules, and layout constraints required to successfully reach the target.\n")
+	return sb.String()
 }

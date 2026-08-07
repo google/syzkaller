@@ -66,3 +66,44 @@ func TestPopulateToolCalls_NestedAgents(t *testing.T) {
 	assert.Equal(t, []string{"researcher-tool"}, spans[4].ToolCalls)
 	assert.Equal(t, []string{"researcher"}, spans[5].ToolCalls)
 }
+
+func TestMarshalJSON(t *testing.T) {
+	tests := []struct {
+		name string
+		val  any
+		want string
+	}{
+		{
+			name: "nil input",
+			val:  nil,
+			want: "",
+		},
+		{
+			name: "simple string",
+			val:  "hello",
+			want: `"hello"`,
+		},
+		{
+			name: "string with newline",
+			val:  "hello\nworld",
+			want: `"hello\n` + "\n" + `world"`,
+		},
+		{
+			name: "string with literal escaped backslash and n",
+			val:  `hello\nworld`,
+			want: `"hello\\nworld"`,
+		},
+		{
+			name: "string with escaped backslash",
+			val:  `C:\new_folder`,
+			want: `"C:\\new_folder"`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := marshalJSON(tc.val)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

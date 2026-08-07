@@ -4,7 +4,6 @@
 package aflow
 
 import (
-	"maps"
 	"reflect"
 	"testing"
 
@@ -34,13 +33,16 @@ func (a *funcAction[Args, Results]) execute(ctx *Context) error {
 	span := &trajectory.Span{
 		Type: trajectory.SpanAction,
 		Name: a.name,
+		Args: convertToMap(args),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return err
 	}
 	res, fnErr := a.fn(ctx, args)
+	for name, val := range foreachField(&res) {
+		ctx.state[name] = val.Interface()
+	}
 	span.Results = convertToMap(res)
-	maps.Insert(ctx.state, maps.All(span.Results))
 	return ctx.finishSpan(span, fnErr)
 }
 
@@ -57,5 +59,5 @@ func (a *funcAction[Args, Results]) testVerify(t *testing.T, ctx *verifyContext,
 	provideOutputs[Args](ctx, "args")
 	a.verify(ctx)
 	requireInputs[Results](ctx, "results")
-	return convertToMap(args.(Args)), convertToMap(results.(Results)), extractOutputs[Results]
+	return convertToMapShallow(args.(Args)), convertToMap(results.(Results)), extractOutputs[Results]
 }
