@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"slices"
@@ -2050,7 +2051,8 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 	})
 }
 
-func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) ([]byte, string) {
+// extractAIJobReproC extracts raw C reproducer bytes and target manager from an AI job.
+func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) (reproC []byte, manager string) {
 	resultsMap, ok := aiJob.Results.Value.(map[string]any)
 	if !ok {
 		return nil, ""
@@ -2059,7 +2061,7 @@ func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) ([]byte, string) {
 	if reproCStr == "" {
 		return nil, ""
 	}
-	manager, _ := resultsMap["KernelConfigManager"].(string)
+	manager, _ = resultsMap["KernelConfigManager"].(string)
 	if manager == "" {
 		if argsMap, ok := aiJob.Args.Value.(map[string]any); ok {
 			manager, _ = argsMap["KernelConfigManager"].(string)
@@ -2071,6 +2073,7 @@ func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) ([]byte, string) {
 	return []byte(reproCStr), manager
 }
 
+// findTestReproCJob queries Datastore for an existing JobTestPatch job matching reproC under bugKey.
 func findTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte,
 	onlyUnfinished bool) (*Job, *db.Key, error) {
 	query := db.NewQuery("Job").
@@ -2088,7 +2091,13 @@ func findTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, repr
 	for i, j := range existingJobs {
 		if j.CandidateReproC != 0 {
 			existingReproC, _, err := getText(ctx, textReproC, j.CandidateReproC)
-			if err == nil && bytes.Equal(existingReproC, reproC) {
+			if err != nil {
+				if errors.Is(err, db.ErrNoSuchEntity) {
+					continue
+				}
+				return nil, nil, err
+			}
+			if bytes.Equal(existingReproC, reproC) {
 				return j, keys[i], nil
 			}
 		}
@@ -2096,21 +2105,27 @@ func findTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, repr
 	return nil, nil, nil
 }
 
+// findDuplicateTestReproCJob checks for an unfinished JobTestPatch job matching reproC on manager.
 func findDuplicateTestReproCJob(ctx context.Context, bugKey *db.Key, manager string,
 	reproC []byte) (*Job, *db.Key, error) {
 	return findTestReproCJob(ctx, bugKey, manager, reproC, true)
 }
 
+// hasTestReproCJob checks if any JobTestPatch job (pending or finished) exists for reproC on manager.
 func hasTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) (bool, error) {
 	job, _, err := findTestReproCJob(ctx, bugKey, manager, reproC, false)
 	return job != nil, err
 }
 
+const reproCJobWindow = 14 * 24 * time.Hour
+
+// createCReproTestJobs polls finished repro-c AI jobs and queues JobTestPatch jobs for active managers.
 func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	if len(managers) == 0 {
 		return nil, nil, nil
 	}
-	aiJobs, err := aidb.LoadFinishedReproCJobs(ctx)
+	since := timeNow(ctx).Add(-reproCJobWindow)
+	aiJobs, err := aidb.LoadFinishedReproCJobs(ctx, since)
 	if err != nil {
 		log.Errorf(ctx, "failed to LoadFinishedReproCJobs: %v", err)
 		return nil, nil, nil
@@ -2122,9 +2137,12 @@ func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.Manag
 		bugKey := db.NewKey(ctx, "Bug", aiJob.BugID.StringVal, 0, nil)
 		bug := new(Bug)
 		if err := db.Get(ctx, bugKey, bug); err != nil {
+			log.Errorf(ctx, "failed to get bug %v: %v", aiJob.BugID.StringVal, err)
 			continue
 		}
-		if bug.Status != BugStatusOpen || len(bug.Commits) > 0 || getNsConfig(ctx, bug.Namespace).Decommissioned {
+		if bug.Status != BugStatusOpen || len(bug.Commits) > 0 ||
+			getNsConfig(ctx, bug.Namespace).Decommissioned ||
+			bug.sanitizeAccess(ctx, AccessPublic) != AccessPublic {
 			continue
 		}
 		reproC, manager := extractAIJobReproC(aiJob, bug)
@@ -2135,7 +2153,13 @@ func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.Manag
 		if activeMgr == "" || !managers[activeMgr].TestPatches {
 			continue
 		}
-		if hasTestReproCJob(ctx, bugKey, activeMgr, reproC) {
+		hasJob, err := hasTestReproCJob(ctx, bugKey, activeMgr, reproC)
+		if err != nil {
+			log.Errorf(ctx, "failed to check for existing c repro job for bug %v: %v",
+				bugKey.StringID(), err)
+			continue
+		}
+		if hasJob {
 			continue
 		}
 		job, jobKey, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
