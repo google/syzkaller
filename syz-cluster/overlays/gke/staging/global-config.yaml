@@ -26,5 +26,3 @@ fuzz_targets:
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
-      - track: KMSAN
-        kernel_config: upstream-kmsan.config
