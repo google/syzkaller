@@ -194,6 +194,7 @@ test$syz_union4(a0 union_arg)
 test$array0(a0 ptr[in, syz_array_struct])
 test$array1(a0 ptr[in, syz_array_trailing])
 test$array2(a0 ptr[in, syz_array_blob])
+test$array_int(a ptr[in, array[int32]])
 
 # Struct with a variable-length array or variable-length unions.
 syz_array_struct {
