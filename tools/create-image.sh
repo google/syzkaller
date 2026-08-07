@@ -20,6 +20,7 @@ RELEASE=trixie
 FEATURE=minimal
 SEEK=2047
 PERF=false
+KSMBD=false
 
 # Display help function
 display_help() {
@@ -31,6 +32,7 @@ display_help() {
     echo "   -h, --help                 Display help message"
     echo "   -o, --output               Set output prefix (default: value of --distribution)"
     echo "   -p, --add-perf             Add perf support. Requires environment variable \$KERNEL pointing to kernel source tree"
+    echo "   -k, --add-ksmbd            Add ksmbd (SMB3 server) fuzzing support: install ksmbd-tools + deps and the self-contained ksmbd_setup.sh, started on every boot via a systemd service."
     echo "   -s, --seek                 Image size in MB (default: $(($SEEK + 1)))"
     echo
     echo "The chroot will be created in ./<output>, the final image will be created in ./<output>.img, and SSH keys will be named"
@@ -70,6 +72,10 @@ while true; do
             ;;
         -p | --add-perf)
             PERF=true
+            shift 1
+            ;;
+        -k | --add-ksmbd)
+            KSMBD=true
             shift 1
             ;;
         -s | --seek)
@@ -200,6 +206,44 @@ if [ $PERF = "true" ]; then
     sudo chroot $DIR /bin/bash -c "cd /tmp/$BASENAME/tools/perf/; make"
     sudo chroot $DIR /bin/bash -c "cp /tmp/$BASENAME/tools/perf/perf /usr/bin/"
     rm -r $DIR/tmp/$BASENAME
+fi
+
+# Add ksmbd (in-kernel SMB3 server) fuzzing support: install ksmbd-tools, drop
+# in the config, and enable a boot service that runs tools/ksmbd_setup.sh so the
+# server is up and configured before syzkaller connects. The kernel itself must
+# be built with CONFIG_SMB_SERVER for `modprobe ksmbd` to succeed.
+if [ $KSMBD = "true" ]; then
+    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+    if [ ! -r "$SCRIPT_DIR/ksmbd_setup.sh" ]; then
+        echo "Error: $SCRIPT_DIR/ksmbd_setup.sh not found"
+        exit 1
+    fi
+    # ksmbd-tools: the mountd/adduser userspace. rdma-core + iproute2: SMB Direct
+    # transport setup (SIW/RXE). krb5-*: the Kerberos session-setup auth path.
+    # DEBIAN_FRONTEND=noninteractive: krb5-* otherwise prompt for a realm and
+    # hang the non-interactive image build.
+    sudo chroot $DIR /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get update; apt-get install -y ksmbd-tools rdma-core iproute2 krb5-kdc krb5-admin-server krb5-user"
+    # ksmbd_setup.sh is self-contained -- it writes the config itself, so there is
+    # no separate config file to install. Stage it and bring it up on every boot
+    # via a systemd oneshot, enabled with systemctl inside the chroot the same way
+    # create-ec2-rootfs.sh enables its boot services. The mountd daemon it starts
+    # then persists independently of syzkaller's executor restarts.
+    sudo cp "$SCRIPT_DIR/ksmbd_setup.sh" $DIR/usr/bin/ksmbd_setup.sh
+    sudo chmod 0755 $DIR/usr/bin/ksmbd_setup.sh
+    cat <<'EOF' | sudo tee $DIR/etc/systemd/system/ksmbd-for-fuzzing.service >/dev/null
+[Unit]
+Description=Bring up ksmbd for syzkaller fuzzing
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ksmbd_setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo chroot $DIR systemctl enable ksmbd-for-fuzzing.service
 fi
 
 # Add udev rules for custom drivers.
