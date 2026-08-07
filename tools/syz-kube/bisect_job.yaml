@@ -1,0 +1,65 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: syz-bisect
+  namespace: syzkube
+spec:
+  template:
+    spec:
+      containers:
+      - name: bisect
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command:
+        - sh
+        - -c
+        - |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86
+          git config --global --add safe.directory '*'
+          echo "Setting up GOPATH workspace..."
+          mkdir -p /go/src/github.com/google/syzkaller
+          # Copy everything except potentially huge files if any, but our workspace is clean.
+          cp -r /syzkaller/. /go/src/github.com/google/syzkaller/
+          cd /go/src/github.com/google/syzkaller
+          git init
+          git config user.email "test@test.com"
+          git config user.name "Test"
+          git add -A
+          git commit -m "initial"
+
+          SYZ_COMMIT=$(git rev-parse HEAD)
+          echo "Local syzkaller commit: ${SYZ_COMMIT}"
+          echo "Starting bisection job..."
+          # Run syz-bisect from the GOPATH workspace
+          ./bin/syz-bisect -config ./tools/syz-kube/bisect_config.json -crash /syzkaller/tools/syz-kube/test-crash -syzkaller_commit=${SYZ_COMMIT}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: git-cache
+          mountPath: /git-cache
+        - name: ccache-volume
+          mountPath: /ccache
+      restartPolicy: Never
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /syzkaller
+          type: Directory
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+      - name: git-cache
+        persistentVolumeClaim:
+          claimName: git-cache
+      - name: ccache-volume
+        persistentVolumeClaim:
+          claimName: ccache-pvc
+  backoffLimit: 0

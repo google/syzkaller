@@ -1,0 +1,70 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: syz-manager
+  namespace: syzkube
+spec:
+  serviceName: syz-manager
+  replicas: 1
+  selector:
+    matchLabels:
+      app: syz-manager
+  template:
+    metadata:
+      labels:
+        app: syz-manager
+    spec:
+      containers:
+      - name: manager
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command:
+        - sh
+        - -c
+        - |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86 curl
+          mkdir -p /tmp/kernel
+          echo "Downloading kernel artifacts from fake-gcs-server..."
+          curl -s -o /tmp/kernel/bzImage "http://fake-gcs-server.syzkube.svc.cluster.local:4443/storage/v1/b/syzkaller-builds/o/builds%2Flatest%2FbzImage?alt=media"
+          curl -s -o /tmp/kernel/vmlinux "http://fake-gcs-server.syzkube.svc.cluster.local:4443/storage/v1/b/syzkaller-builds/o/builds%2Flatest%2Fvmlinux?alt=media"
+          chmod +x /tmp/kernel/bzImage
+          echo "Starting syz-manager..."
+          /syzkaller/bin/syz-manager -config /etc/syzkaller/manager.cfg
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 50002
+          name: http
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: config
+          mountPath: /etc/syzkaller
+        - name: workdir
+          mountPath: /workdir
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /syzkaller
+          type: Directory
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+          type: CharDevice
+      - name: config
+        configMap:
+          name: syz-manager-config
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
