@@ -1,0 +1,77 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: syz-hub
+  namespace: syzkube
+spec:
+  ports:
+  - name: http
+    port: 50003
+    targetPort: 50003
+  - name: rpc
+    port: 50004
+    targetPort: 50004
+  selector:
+    app: syz-hub
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: syz-hub
+  namespace: syzkube
+spec:
+  serviceName: syz-hub
+  replicas: 1
+  selector:
+    matchLabels:
+      app: syz-hub
+  template:
+    metadata:
+      labels:
+        app: syz-hub
+    spec:
+      containers:
+      - name: syz-hub
+        image: gcr.io/syzkaller/env
+        command:
+        - sh
+        - -c
+        - |
+          # Wait for workspace mount to be ready
+          until [ -f /syzkaller/bin/syz-hub ]; do
+            echo "Waiting for /syzkaller/bin/syz-hub to be available..."
+            sleep 2
+          done
+          /syzkaller/bin/syz-hub -config /etc/syzkaller/hub.cfg
+        ports:
+        - containerPort: 50003
+          name: http
+        - containerPort: 50004
+          name: rpc
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+        - name: hub-config
+          mountPath: /etc/syzkaller
+        - name: hub-workdir
+          mountPath: /workdir
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /syzkaller
+          type: Directory
+      - name: hub-config
+        configMap:
+          name: syz-hub-config
+  volumeClaimTemplates:
+  - metadata:
+      name: hub-workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
