@@ -1,0 +1,21 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: syz-hub-config
+  namespace: syzkube
+data:
+  hub.cfg: |
+    {
+      "http": "0.0.0.0:50003",
+      "rpc": "0.0.0.0:50004",
+      "workdir": "/workdir",
+      "clients": [
+        {
+          "name": "syz-k8s-manager",
+          "key": "secretkey123"
+        }
+      ]
+    }

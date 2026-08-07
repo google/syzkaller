@@ -21,6 +21,9 @@ data:
       "type": "qemu",
       "procs": 2,
       "cover": true,
+      "hub_addr": "syz-hub.syzkube.svc.cluster.local:50004",
+      "hub_client": "syz-k8s-manager",
+      "hub_key": "secretkey123",
       "vm": {
         "count": 2,
         "kernel": "/tmp/kernel/bzImage",
