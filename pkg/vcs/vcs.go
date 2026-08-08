@@ -266,7 +266,7 @@ func Patch(dir string, patch []byte) error {
 		if _, err := cmd.CombinedOutput(); err == nil {
 			return fmt.Errorf("patch is already applied")
 		}
-		return fmt.Errorf("failed to apply patch:\n%s", output)
+		return fmt.Errorf("failed to apply patch (%w):\n%s", err, output)
 	}
 	// Now apply for real.
 	args = []string{"apply", "-p1", "--ignore-whitespace", "-"}
@@ -277,7 +277,7 @@ func Patch(dir string, patch []byte) error {
 	cmd.Stdin = bytes.NewReader(patch)
 	cmd.Dir = dir
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to apply patch after dry run:\n%s", output)
+		return fmt.Errorf("failed to apply patch after dry run (%w):\n%s", err, output)
 	}
 	return nil
 }
