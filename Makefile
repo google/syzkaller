@@ -279,7 +279,7 @@ format_cpp:
 |pkg/flatrpc/flatrpc.h\
 |pkg/covermerger/testdata/integration/\
 |executor/android/.*_policy.h" \
-	| xargs -I {} -P 0 clang-format --style=file -i {}
+	| xargs -I {} -P 100 clang-format --style=file -i {}
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all
