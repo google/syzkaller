@@ -1,0 +1,34 @@
+TITLE: uvm_fault: dovutimens
+
+login: uvm_fault(0xfffff3006cf11200, 0x98, 0, 1) -> e
+fatal page fault in supervisor mode
+trap type 6 code 0 rip ffffffff824bd3d8 cs 8 rflags 10246 cr2 98 cpl 0 rsp ffff80002a2299a0
+gsbase 0xffff80002999dff0  kgsbase 0x0
+panic: trap type 6, code=0, pc=ffffffff824bd3d8
+Starting stack trace...
+panic(ffffffff834f3c73) at panic+0x1d0 sys/kern/subr_prf.c:229
+kerntrap(ffff80002a2298f0) at kerntrap+0x30b
+alltraps_kern_meltdown() at alltraps_kern_meltdown+0x7b
+dovutimens(ffff80002a221a20,fffff3006c8d1480,ffff80002a229ab0) at dovutimens+0x368 sys/kern/vfs_syscalls.c:2691
+sys_futimens(ffff80002a221a20,ffff80002a229c00,ffff80002a229b50) at sys_futimens+0xb3 sys/kern/vfs_syscalls.c:2767
+syscall(ffff80002a229c00) at syscall+0xb17 mi_syscall sys/sys/syscall_mi.h:176 [inline]
+syscall(ffff80002a229c00) at syscall+0xb17 sys/arch/amd64/amd64/trap.c:783
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xe0c05f898d0, count: 250
+End of stack trace.
+WARNING: SPL NOT LOWERED ON SYSCALL 83 460082144 EXIT 0 4
+Stopped at      savectx+0xae:   movl    $0,%gs:0x688
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+*433514  11164      0           0          0    1  syz-executor
+ 242412  56099      0           0          0    0  syz-executor
+savectx() at savectx+0xae
+end of kernel
+end trace frame: 0x71af181d2b90, count: 14
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb{1}> set $lines = 0
+ddb{1}> set $maxwidth = 0
+ddb{1}> show panic
+*cpu1: uvm_fault(0xfffff3006cf11200, 0x98, 0, 1) -> e
+ddb{1}> 
