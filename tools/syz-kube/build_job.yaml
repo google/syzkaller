@@ -1,0 +1,40 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: syz-build
+  namespace: syzkube
+spec:
+  template:
+    spec:
+      containers:
+      - name: builder
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command: ["sh", "-c", "apt-get update && apt-get install -y xz-utils ccache && ln -sf /usr/bin/ccache /usr/local/bin/gcc && ln -sf /usr/bin/ccache /usr/local/bin/g++ && ln -sf /usr/bin/ccache /usr/local/bin/clang && ln -sf /usr/bin/ccache /usr/local/bin/clang++ && go run /syzkaller/tools/syz-kube/build-wrapper/main.go \"$@\" && ccache -s", "--"]
+        env:
+        - name: CCACHE_DIR
+          value: /ccache
+        args:
+        - "-repo=https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+        - "-branch=master"
+        - "-config=/syzkaller/dashboard/config/linux/upstream-apparmor-kasan.config"
+        - "-gcs-bucket=syzkaller-builds"
+        - "-gcs-endpoint=http://fake-gcs-server.syzkube.svc.cluster.local:4443"
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+        - name: ccache-volume
+          mountPath: /ccache
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /syzkaller
+          type: Directory
+      - name: ccache-volume
+        persistentVolumeClaim:
+          claimName: ccache-pvc
+      restartPolicy: Never
+  backoffLimit: 0
