@@ -247,7 +247,10 @@ func (serv *server) Close() error {
 	serv.baseSource.Store(queue.Callback(func() *queue.Request {
 		return nil
 	}))
-	return serv.serv.Close()
+	if serv.serv != nil {
+		return serv.serv.Close()
+	}
+	return nil
 }
 
 func (serv *server) Setup() error {
