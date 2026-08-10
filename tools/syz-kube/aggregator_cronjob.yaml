@@ -1,0 +1,50 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: coverage-aggregator
+  namespace: syzkube
+  labels:
+    app.kubernetes.io/name: coverage-aggregator
+    app.kubernetes.io/component: aggregator
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: aggregator
+            image: gcr.io/syzkaller/env
+            workingDir: /syzkaller
+            command:
+            - sh
+            - -c
+            - |
+              export SPANNER_EMULATOR_HOST=cloud-spanner-emulator.syzkube.svc.cluster.local:9010
+              export STORAGE_EMULATOR_HOST=http://fake-gcs-server.syzkube.svc.cluster.local:4443
+              echo "Starting coverage aggregation run..."
+              go run /syzkaller/tools/syz-covermerger \
+                -workdir=/tmp/cover-workdir \
+                -repo=/git-cache \
+                -commit=HEAD \
+                -namespace=upstream
+            volumeMounts:
+            - name: workspace
+              mountPath: /syzkaller
+            - name: git-cache
+              mountPath: /git-cache
+          volumes:
+          - name: workspace
+            hostPath:
+              path: /projects/syzkaller
+              type: Directory
+          - name: git-cache
+            hostPath:
+              path: /projects/linux
+              type: Directory
