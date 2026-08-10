@@ -114,22 +114,44 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 }
 
 func TestMergeFuzzConfigs(t *testing.T) {
-	assert.Equal(t, &api.FuzzConfig{
-		Focus:          []string{"bpf", "net"},
-		CorpusURLs:     []string{"url1", "url2"},
-		SkipCoverCheck: true,
-		BugTitleRe:     "regexp",
-	}, mergeFuzzConfigs([]*api.KernelFuzzConfig{
-		{
-			Focus:      "net",
-			CorpusURL:  "url2",
-			BugTitleRe: "regexp",
-		},
-		{
-			Focus:          "bpf",
-			CorpusURL:      "url1",
-			BugTitleRe:     "regexp",
+	t.Run("all-focused", func(t *testing.T) {
+		assert.Equal(t, &api.FuzzConfig{
+			Focus:          []string{"bpf", "net"},
+			CorpusURLs:     []string{"url1", "url2"},
 			SkipCoverCheck: true,
-		},
-	}))
+			BugTitleRe:     "regexp",
+		}, mergeFuzzConfigs([]*api.KernelFuzzConfig{
+			{
+				Focus:      "net",
+				CorpusURL:  "url2",
+				BugTitleRe: "regexp",
+			},
+			{
+				Focus:          "bpf",
+				CorpusURL:      "url1",
+				BugTitleRe:     "regexp",
+				SkipCoverCheck: true,
+			},
+		}))
+	})
+	t.Run("with-unfocused", func(t *testing.T) {
+		assert.Equal(t, &api.FuzzConfig{
+			Focus:          nil,
+			CorpusURLs:     []string{"url1", "url2"},
+			SkipCoverCheck: true,
+			BugTitleRe:     "regexp",
+		}, mergeFuzzConfigs([]*api.KernelFuzzConfig{
+			{
+				Focus:      "fs",
+				CorpusURL:  "url2",
+				BugTitleRe: "regexp",
+			},
+			{
+				Focus:          "",
+				CorpusURL:      "url1",
+				BugTitleRe:     "regexp",
+				SkipCoverCheck: true,
+			},
+		}))
+	})
 }
