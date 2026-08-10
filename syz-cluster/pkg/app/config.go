@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -161,6 +162,11 @@ func (c AppConfig) Validate() error {
 		}
 	}
 	for _, target := range c.FuzzTargets {
+		for _, r := range target.PathRegexps {
+			if _, err := regexp.Compile(r); err != nil {
+				return fmt.Errorf("invalid path regexp %q: %w", r, err)
+			}
+		}
 		for _, campaign := range target.Campaigns {
 			if campaign.Track != string(api.TrackKASAN) && campaign.Track != string(api.TrackKMSAN) {
 				return fmt.Errorf("unsupported fuzzing track %q, must be %q or %q",

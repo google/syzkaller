@@ -4,7 +4,7 @@
 package triage
 
 import (
-	"maps"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -16,15 +16,16 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 	for _, cc := range series.Cc {
 		seriesCc[strings.ToLower(cc)] = true
 	}
+	modifiedFiles := series.ModifiedFiles()
 	var ret, defaultRet []*api.KernelFuzzConfig
 	for _, config := range fuzzConfigs {
-		intersects := false
-		for _, cc := range config.EmailLists {
-			intersects = intersects || seriesCc[cc]
-		}
-		if intersects {
+		matched := slices.ContainsFunc(config.EmailLists, func(cc string) bool {
+			return seriesCc[cc]
+		})
+		matched = matched || matchesPaths(config.PathRegexps, modifiedFiles)
+		if matched {
 			ret = append(ret, expandCampaigns(config)...)
-		} else if len(config.EmailLists) == 0 {
+		} else if len(config.EmailLists) == 0 && len(config.PathRegexps) == 0 {
 			defaultRet = append(defaultRet, expandCampaigns(config)...)
 		}
 	}
@@ -33,6 +34,22 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 		return ret
 	}
 	return defaultRet
+}
+
+func matchesPaths(regexps, modifiedFiles []string) bool {
+	if len(regexps) == 0 || len(modifiedFiles) == 0 {
+		return false
+	}
+	for _, r := range regexps {
+		re, err := regexp.Compile(r)
+		if err != nil {
+			continue
+		}
+		if slices.ContainsFunc(modifiedFiles, re.MatchString) {
+			return true
+		}
+	}
+	return false
 }
 
 func expandCampaigns(config *api.FuzzTriageTarget) []*api.KernelFuzzConfig {
@@ -108,10 +125,7 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 }
 
 func unique(list []string) []string {
-	seen := make(map[string]struct{}, len(list))
-	for _, s := range list {
-		seen[s] = struct{}{}
-	}
-	unique := slices.Sorted(maps.Keys(seen))
-	return unique
+	list = slices.Clone(list)
+	slices.Sort(list)
+	return slices.Compact(list)
 }
