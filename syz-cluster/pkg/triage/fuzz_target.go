@@ -88,9 +88,7 @@ func MergeKernelFuzzConfigs(configs []*api.KernelFuzzConfig) []*MergedFuzzConfig
 func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 	var ret api.FuzzConfig
 	for _, config := range configs {
-		if config.Focus != "" {
-			ret.Focus = append(ret.Focus, config.Focus)
-		}
+		ret.Focus = append(ret.Focus, config.Focus)
 		if config.CorpusURL != "" {
 			ret.CorpusURLs = append(ret.CorpusURLs, config.CorpusURL)
 		}
@@ -98,7 +96,13 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 		// Must be the same.
 		ret.BugTitleRe = config.BugTitleRe
 	}
-	ret.Focus = unique(ret.Focus)
+	if slices.Contains(ret.Focus, "") {
+		// If there's at least one unfocused target,
+		// we fuzz everything this way.
+		ret.Focus = nil
+	} else {
+		ret.Focus = unique(ret.Focus)
+	}
 	ret.CorpusURLs = unique(ret.CorpusURLs)
 	return &ret
 }
