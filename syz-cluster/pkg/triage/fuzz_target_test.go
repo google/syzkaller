@@ -11,7 +11,8 @@ import (
 )
 
 func TestSelectFuzzConfigs(t *testing.T) {
-	bpf, bpfKmsan, net, mainline := &api.KernelFuzzConfig{},
+	bpf, bpfKmsan, net, fs, mainline := &api.KernelFuzzConfig{},
+		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{}
@@ -25,6 +26,11 @@ func TestSelectFuzzConfigs(t *testing.T) {
 			Campaigns:  []*api.KernelFuzzConfig{net},
 		},
 		{
+			EmailLists:  []string{"fs@list"},
+			PathRegexps: []string{"^fs/|include/linux/fs"},
+			Campaigns:   []*api.KernelFuzzConfig{fs},
+		},
+		{
 			EmailLists: nil,
 			Campaigns:  []*api.KernelFuzzConfig{mainline},
 		},
@@ -35,19 +41,44 @@ func TestSelectFuzzConfigs(t *testing.T) {
 		series   *api.Series
 	}{
 		{
-			testName: "select-one",
+			testName: "select-by-email",
 			result:   []*api.KernelFuzzConfig{net},
 			series:   &api.Series{Cc: []string{"net@list"}},
 		},
 		{
-			testName: "select-both",
+			testName: "select-both-by-email",
 			result:   []*api.KernelFuzzConfig{bpf, bpfKmsan, net},
 			series:   &api.Series{Cc: []string{"bpf@list", "net@list"}},
 		},
 		{
-			testName: "fallback",
+			testName: "select-by-path-only",
+			result:   []*api.KernelFuzzConfig{fs},
+			series: &api.Series{
+				Cc: []string{"unknown@list"},
+				Patches: []api.SeriesPatch{
+					{Body: []byte("diff --git a/fs/ext4/super.c b/fs/ext4/super.c\n--- a/fs/ext4/super.c\n+++ b/fs/ext4/super.c\n")},
+				},
+			},
+		},
+		{
+			testName: "select-by-email-and-path",
+			result:   []*api.KernelFuzzConfig{net, fs},
+			series: &api.Series{
+				Cc: []string{"net@list"},
+				Patches: []api.SeriesPatch{
+					{Body: []byte("diff --git a/fs/ext4/super.c b/fs/ext4/super.c\n--- a/fs/ext4/super.c\n+++ b/fs/ext4/super.c\n")},
+				},
+			},
+		},
+		{
+			testName: "fallback-when-neither-matches",
 			result:   []*api.KernelFuzzConfig{mainline},
-			series:   &api.Series{Cc: []string{"unknown@list"}},
+			series: &api.Series{
+				Cc: []string{"unknown@list"},
+				Patches: []api.SeriesPatch{
+					{Body: []byte("diff --git a/mm/vma.c b/mm/vma.c\n--- a/mm/vma.c\n+++ b/mm/vma.c\n")},
+				},
+			},
 		},
 	}
 

@@ -5,7 +5,12 @@
 // used for communication between components and workflow steps.
 package api
 
-import "time"
+import (
+	"slices"
+	"time"
+
+	"github.com/google/syzkaller/pkg/vcs"
+)
 
 // TriageResult is the output passed to other workflow steps.
 type TriageResult struct {
@@ -82,10 +87,11 @@ type KernelFuzzConfig struct {
 
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
 type FuzzTriageTarget struct {
-	EmailLists []string            `json:"email_lists" yaml:"email_lists"`
-	Focus      string              `json:"focus" yaml:"focus"`
-	CorpusURL  string              `json:"corpus_url" yaml:"corpus_url"`
-	Campaigns  []*KernelFuzzConfig `json:"campaigns" yaml:"campaigns"`
+	EmailLists  []string            `json:"email_lists" yaml:"email_lists"`
+	PathRegexps []string            `json:"path_regexps" yaml:"path_regexps"`
+	Focus       string              `json:"focus" yaml:"focus"`
+	CorpusURL   string              `json:"corpus_url" yaml:"corpus_url"`
+	Campaigns   []*KernelFuzzConfig `json:"campaigns" yaml:"campaigns"`
 }
 
 type BuildRequest struct {
@@ -192,6 +198,20 @@ func (s *Series) PatchBodies() [][]byte {
 		ret = append(ret, patch.Body)
 	}
 	return ret
+}
+
+func (s *Series) ModifiedFiles() []string {
+	if s == nil {
+		return nil
+	}
+	var files []string
+	for _, patch := range s.PatchBodies() {
+		for _, diff := range vcs.ParseGitDiff(patch) {
+			files = append(files, diff.Name)
+		}
+	}
+	slices.Sort(files)
+	return slices.Compact(files)
 }
 
 type SeriesPatch struct {

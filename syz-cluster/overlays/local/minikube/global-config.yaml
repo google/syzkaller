@@ -26,6 +26,8 @@ fuzz_targets:
       - netdev@vger.kernel.org
       - netfilter-devel@vger.kernel.org
       - linux-wireless@vger.kernel.org
+    path_regexps:
+      - "^net/|^drivers/net/|include/net/"
     focus: net
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
     campaigns:

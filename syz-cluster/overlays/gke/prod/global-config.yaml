@@ -121,6 +121,8 @@ trees:
 fuzz_targets:
   - email_lists:
       - kvm@vger.kernel.org
+    path_regexps:
+      - "kvm|virt"
     focus: kvm
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
@@ -128,6 +130,8 @@ fuzz_targets:
         kernel_config: upstream-apparmor-kasan.config
   - email_lists:
       - io-uring@vger.kernel.org
+    path_regexps:
+      - "io_uring"
     focus: io_uring
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
@@ -135,6 +139,8 @@ fuzz_targets:
         kernel_config: upstream-apparmor-kasan.config
   - email_lists:
       - bpf@vger.kernel.org
+    path_regexps:
+      - "bpf"
     focus: bpf
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db
     campaigns:
@@ -144,6 +150,8 @@ fuzz_targets:
       - netdev@vger.kernel.org
       - netfilter-devel@vger.kernel.org
       - linux-wireless@vger.kernel.org
+    path_regexps:
+      - "^net/|^drivers/net/|include/net/"
     focus: net
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
     campaigns:
@@ -154,6 +162,8 @@ fuzz_targets:
       - linux-block@vger.kernel.org
       - linux-unionfs@vger.kernel.org
       - linux-ext4@vger.kernel.org
+    path_regexps:
+      - "^fs/|^block/|drivers/block"
     focus: fs
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db
     campaigns:
