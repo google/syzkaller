@@ -38,6 +38,7 @@ import (
 var (
 	flagOS         = flag.String("os", runtime.GOOS, "target os")
 	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
+	flagVMArch     = flag.String("vmarch", "", "target VM arch (if different from -arch)")
 	flagType       = flag.String("type", "", "target VM type")
 	flagCoverFile  = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat     = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
@@ -164,6 +165,11 @@ func main() {
 		},
 	}
 
+	vmArch := *flagVMArch
+	if vmArch == "" {
+		vmArch = target.Arch
+	}
+
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
@@ -176,6 +182,7 @@ func main() {
 				Sandbox:    sandbox,
 				SandboxArg: int64(*flagSandboxArg),
 			},
+			VMArch:   vmArch,
 			Procs:    *flagProcs,
 			Slowdown: *flagSlowdown,
 		},
