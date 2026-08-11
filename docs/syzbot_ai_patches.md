@@ -1,17 +1,21 @@
 # AI-generated patches
 
-`syzbot` tries to automatically generate and send patches for found bugs using AI.
+`syzbot` investigates kernel bugs and tries to generate fix patches using AI.
 
-Patches mailed to the kernel mailing lists were reviewed and `Signed-off-by`
-by at least one human developer in accordance with
-[AI Coding Assistants](https://docs.kernel.org/process/coding-assistants.html)
-guidelines.
+To ensure patch quality and adhere to kernel community standards, the AI
+patching process follows a two-stage workflow:
 
-You can comment on the patches as usual, and ask for changes to the code and/or
-description, ask to include tags, or ask clarifying questions.
-`syzbot` will try to address the comments and send a new version of the patch
-if necessary. Comments may be batched, so the reply may take up to
-several hours.
+1. **Moderation**: Newly generated patches are first posted to an internal moderation
+   list, where human reviewers can collaborate with the AI, provide feedback, and
+   trigger automated revisions.
+2. **Upstream submission**: Once reviewed and signed off by a human developer
+   (in accordance with the kernel's [AI Coding Assistants](https://docs.kernel.org/process/coding-assistants.html)
+   guidelines), the patch is sent to the Linux Kernel Mailing List (LKML) and
+   relevant subsystem lists.
+
+Once sent upstream, patches follow the standard kernel review process: the developer
+who signed off on the patch acts as the submitter and handles reviewer feedback,
+discussion, and any follow-up revisions.
 
 ## The Intended Workflow
 
@@ -40,21 +44,24 @@ Once a patch is rejected, the AI will stop reacting to further comments on this 
 #syz unreject
 ```
 
-* Approve a patch and send it to the public list:
+* Approve a patch and send it to the public mailing lists:
 ```
 #syz upstream
 ```
 
 ### 2. Linux Kernel Mailing List (LKML)
 
-Once a patch is upstreamed from the moderation list, it is sent to the public
-LKML.
+Once a patch is approved and upstreamed from the moderation list, it is sent to
+the public mailing lists (LKML / subsystem lists).
 
-**Note**: in this stage, the syzbot AI's automatic reaction to code review
-comments is currently disabled to avoid spamming the public mailing
-list. However, syzbot administrators actively monitor these patches and can
-manually force the agent to incorporate mailing list feedback and send newer
-versions.
+**Important**: `syzbot` does not automatically reply to review comments or send
+patch iterations on LKML. The developer who signed off on the patch is
+responsible for addressing review feedback, answering questions, and submitting
+any necessary follow-up versions.
+
+While syzbot administrators actively monitor upstream patches and can manually
+trigger AI iterations internally if appropriate, all interactions and patch
+submissions on LKML remain human-driven.
 
 ## System Invariants and Rules
 
@@ -100,18 +107,18 @@ When you approve a patch by replying with `#syz upstream`, `syzbot` incorporates
 your email and name into a standard `Signed-off-by:` tag and appends it to the
 commit message when sending the patch to the next stage (e.g., LKML).
 
-If the patch goes through further iterations on the public list, this
+If the patch goes through further iterations on public mailing lists, this
 `Signed-off-by:` tag is preserved.
 
 ### What happens if I reply without a command?
 
-If you reply to the patch without `#syz upstream` or `#syz reject`, your reply
-is simply recorded as a comment on that specific AI patch job in the dashboard.
-It does not advance or reject the patch on its own.
-
-**Note**: AI will evaluate your comment to decide if a new version is needed.
-Simply providing a tag (like `Reviewed-by`) will not trigger the generation of
-a new patch version on its own.
+* **On the moderation mailing list**: Your reply is recorded as review feedback
+  on the AI patch job. `syzbot` triggers an iteration job where the AI evaluates
+  your comments, addresses questions or change requests, and sends a new version
+  of the patch if appropriate (accumulating any provided tags like `Reviewed-by`).
+  A plain reply does not advance (`#syz upstream`) or reject (`#syz reject`) the patch.
+* **On LKML / public lists**: `syzbot` does not automatically reply or iterate;
+  feedback is handled directly by the developer who signed off on the patch.
 
 ### What are the requirements for upstreaming?
 
