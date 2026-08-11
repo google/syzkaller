@@ -26,14 +26,12 @@ spec:
         - -c
         - |
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86 curl
-          mkdir -p /tmp/kernel
-          echo "Downloading kernel artifacts from fake-gcs-server..."
-          curl -s -o /tmp/kernel/bzImage "http://fake-gcs-server.syzkube.svc.cluster.local:4443/storage/v1/b/syzkaller-builds/o/builds%2Flatest%2FbzImage?alt=media"
-          curl -s -o /tmp/kernel/vmlinux "http://fake-gcs-server.syzkube.svc.cluster.local:4443/storage/v1/b/syzkaller-builds/o/builds%2Flatest%2Fvmlinux?alt=media"
-          chmod +x /tmp/kernel/bzImage
-          echo "Starting syz-manager..."
+          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86
+          echo "Starting real syz-manager fuzzing instance..."
           /syzkaller/bin/syz-manager -config /etc/syzkaller/manager.cfg
+        env:
+        - name: SYZ_PUBLIC_WEB_ADDR
+          value: "localhost:50002"
         securityContext:
           privileged: true
         ports:
@@ -44,6 +42,8 @@ spec:
           mountPath: /syzkaller
         - name: dev-kvm
           mountPath: /dev/kvm
+        - name: disk-image
+          mountPath: /disk.raw
         - name: config
           mountPath: /etc/syzkaller
         - name: workdir
@@ -51,12 +51,16 @@ spec:
       volumes:
       - name: workspace
         hostPath:
-          path: /syzkaller
+          path: /projects/syzkaller
           type: Directory
       - name: dev-kvm
         hostPath:
           path: /dev/kvm
           type: CharDevice
+      - name: disk-image
+        hostPath:
+          path: /projects/disk.raw
+          type: File
       - name: config
         configMap:
           name: syz-manager-config

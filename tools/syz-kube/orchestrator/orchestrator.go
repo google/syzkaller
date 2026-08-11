@@ -28,12 +28,17 @@ type Orchestrator struct {
 
 // BuildConfig holds parameters for launching a kernel build job.
 type BuildConfig struct {
-	Repo        string
-	Branch      string
-	Commit      string
-	ConfigPath  string
-	GCSBucket   string
-	GCSEndpoint string
+	Repo            string
+	Branch          string
+	Commit          string
+	ConfigPath      string
+	GCSBucket       string
+	GCSEndpoint     string
+	DashboardAddr   string
+	DashboardClient string
+	DashboardKey    string
+	ManagerName     string
+	Tag             string
 }
 
 // BisectConfig holds parameters for launching a kernel bisection job.
@@ -100,6 +105,21 @@ func (o *Orchestrator) ScheduleBuildJob(ctx context.Context, cfg BuildConfig) (*
 	}
 	if cfg.GCSEndpoint != "" {
 		args = append(args, fmt.Sprintf("-gcs-endpoint=%s", cfg.GCSEndpoint))
+	}
+	if cfg.DashboardAddr != "" {
+		args = append(args, fmt.Sprintf("-dashboard-addr=%s", cfg.DashboardAddr))
+	}
+	if cfg.DashboardClient != "" {
+		args = append(args, fmt.Sprintf("-dashboard-client=%s", cfg.DashboardClient))
+	}
+	if cfg.DashboardKey != "" {
+		args = append(args, fmt.Sprintf("-dashboard-key=%s", cfg.DashboardKey))
+	}
+	if cfg.ManagerName != "" {
+		args = append(args, fmt.Sprintf("-manager-name=%s", cfg.ManagerName))
+	}
+	if cfg.Tag != "" {
+		args = append(args, fmt.Sprintf("-tag=%s", cfg.Tag))
 	}
 
 	backoffLimit := int32(0)

@@ -23,6 +23,10 @@ spec:
         - "-config=/syzkaller/dashboard/config/linux/upstream-apparmor-kasan.config"
         - "-gcs-bucket=syzkaller-builds"
         - "-gcs-endpoint=http://fake-gcs-server.syzkube.svc.cluster.local:4443"
+        - "-dashboard-addr=http://syz-dashboard.syzkube.svc.cluster.local:8080"
+        - "-dashboard-client=local_ui_client"
+        - "-dashboard-key=localuipasswordlocaluipasswordlocaluipassword"
+        - "-manager-name=syz-k8s-manager"
         volumeMounts:
         - name: workspace
           mountPath: /syzkaller

@@ -12,8 +12,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/prog"
 	"google.golang.org/api/option"
 )
 
@@ -24,6 +28,11 @@ var (
 	flagConfig      = flag.String("config", "", "path to kernel config file")
 	flagBucket      = flag.String("gcs-bucket", "syzkaller-builds", "GCS bucket name")
 	flagGcsEndpoint = flag.String("gcs-endpoint", "", "GCS endpoint (for emulator)")
+	flagDashAddr    = flag.String("dashboard-addr", "", "dashboard address")
+	flagDashClient  = flag.String("dashboard-client", "local_ui_client", "dashboard client name")
+	flagDashKey     = flag.String("dashboard-key", "localuipasswordlocaluipasswordlocaluipassword", "dashboard client key")
+	flagManagerName = flag.String("manager-name", "syz-k8s-manager", "manager name to register build for")
+	flagTag         = flag.String("tag", "", "custom build ID tag (defaults to commit hash)")
 )
 
 func main() {
@@ -37,21 +46,12 @@ func main() {
 	}
 
 	ctx := context.Background()
-
-	// 1. Setup GCS client
-	var clientOpts []option.ClientOption
-	if *flagGcsEndpoint != "" {
-		clientOpts = append(clientOpts, option.WithEndpoint(*flagGcsEndpoint), option.WithoutAuthentication())
-		// For fake-gcs-server we might need this env var as well if using default client.
-		os.Setenv("STORAGE_EMULATOR_HOST", *flagGcsEndpoint)
-	}
-	gcsClient, err := storage.NewClient(ctx, clientOpts...)
+	gcsClient, err := createGCSClient(ctx, *flagGcsEndpoint)
 	if err != nil {
 		log.Fatalf("failed to create GCS client: %v", err)
 	}
 	defer gcsClient.Close()
 
-	// 2. Clone repo
 	tmpDir := "/tmp/kernel-build"
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		log.Fatalf("failed to create temp dir: %v", err)
@@ -59,6 +59,25 @@ func main() {
 	defer os.RemoveAll(tmpDir)
 
 	kernelDir := filepath.Join(tmpDir, "kernel")
+	cloneAndCheckoutKernel(kernelDir)
+	applyKernelConfig(kernelDir)
+	buildKernel(kernelDir)
+	uploadArtifactsToGCS(ctx, gcsClient, kernelDir)
+	uploadBuildToDashboard(kernelDir)
+
+	log.Println("build and upload complete!")
+}
+
+func createGCSClient(ctx context.Context, endpoint string) (*storage.Client, error) {
+	var clientOpts []option.ClientOption
+	if endpoint != "" {
+		clientOpts = append(clientOpts, option.WithEndpoint(endpoint), option.WithoutAuthentication())
+		os.Setenv("STORAGE_EMULATOR_HOST", endpoint)
+	}
+	return storage.NewClient(ctx, clientOpts...)
+}
+
+func cloneAndCheckoutKernel(kernelDir string) {
 	log.Printf("cloning %s into %s...", *flagRepo, kernelDir)
 	var cloneArgs []string
 	if *flagCommit == "" && *flagBranch != "" {
@@ -72,7 +91,6 @@ func main() {
 		log.Fatalf("git clone failed: %v", err)
 	}
 
-	// 3. Checkout commit/branch
 	if *flagCommit != "" {
 		log.Printf("checking out commit %s...", *flagCommit)
 		if err := runCmdInDir(kernelDir, "git", "checkout", *flagCommit); err != nil {
@@ -84,37 +102,40 @@ func main() {
 			log.Fatalf("git checkout branch failed: %v", err)
 		}
 	}
+}
 
-	// 4. Apply config
+func applyKernelConfig(kernelDir string) {
 	if *flagConfig == "tinyconfig" || *flagConfig == "defconfig" {
 		log.Printf("running make %s...", *flagConfig)
 		if err := runCmdInDir(kernelDir, "make", *flagConfig); err != nil {
 			log.Fatalf("make %s failed: %v", *flagConfig, err)
 		}
-	} else {
-		log.Printf("applying config from %s...", *flagConfig)
-		configContent, err := os.ReadFile(*flagConfig)
-		if err != nil {
-			log.Fatalf("failed to read config file: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(kernelDir, ".config"), configContent, 0644); err != nil {
-			log.Fatalf("failed to write .config: %v", err)
-		}
-
-		log.Printf("running make olddefconfig...")
-		if err := runCmdInDir(kernelDir, "make", "olddefconfig"); err != nil {
-			log.Fatalf("make olddefconfig failed: %v", err)
-		}
+		return
 	}
 
-	// 5. Build kernel
-	// For now assume x86_64 and build bzImage + vmlinux
+	log.Printf("applying config from %s...", *flagConfig)
+	configContent, err := os.ReadFile(*flagConfig)
+	if err != nil {
+		log.Fatalf("failed to read config file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(kernelDir, ".config"), configContent, 0644); err != nil {
+		log.Fatalf("failed to write .config: %v", err)
+	}
+
+	log.Printf("running make olddefconfig...")
+	if err := runCmdInDir(kernelDir, "make", "olddefconfig"); err != nil {
+		log.Fatalf("make olddefconfig failed: %v", err)
+	}
+}
+
+func buildKernel(kernelDir string) {
 	log.Printf("building kernel (bzImage)...")
 	if err := runCmdInDir(kernelDir, "make", "-j", "8", "bzImage"); err != nil {
 		log.Fatalf("make bzImage failed: %v", err)
 	}
+}
 
-	// 6. Upload artifacts
+func uploadArtifactsToGCS(ctx context.Context, client *storage.Client, kernelDir string) {
 	artifacts := []string{
 		"vmlinux",
 		"arch/x86/boot/bzImage",
@@ -122,7 +143,7 @@ func main() {
 
 	for _, art := range artifacts {
 		localPath := filepath.Join(kernelDir, art)
-		objectName := filepath.Base(art) // e.g. "vmlinux" or "bzImage"
+		objectName := filepath.Base(art)
 		if *flagCommit != "" {
 			objectName = fmt.Sprintf("builds/%s/%s", *flagCommit, objectName)
 		} else {
@@ -130,12 +151,77 @@ func main() {
 		}
 
 		log.Printf("uploading %s to gs://%s/%s...", localPath, *flagBucket, objectName)
-		if err := uploadFile(ctx, gcsClient, *flagBucket, objectName, localPath); err != nil {
+		if err := uploadFile(ctx, client, *flagBucket, objectName, localPath); err != nil {
 			log.Fatalf("failed to upload %s: %v", art, err)
 		}
 	}
+}
 
-	log.Println("Build and upload complete!")
+func uploadBuildToDashboard(kernelDir string) {
+	if *flagDashAddr == "" {
+		return
+	}
+
+	log.Printf("uploading build metadata to dashboard at %s...", *flagDashAddr)
+	dash, err := dashapi.New(*flagDashClient, *flagDashAddr, *flagDashKey)
+	if err != nil {
+		log.Fatalf("failed to connect to dashapi: %v", err)
+	}
+
+	commitHash, err := runCmdOutInDir(kernelDir, "git", "rev-parse", "HEAD")
+	if err != nil {
+		log.Fatalf("failed to get commit hash: %v", err)
+	}
+	commitTitle, err := runCmdOutInDir(kernelDir, "git", "log", "-1", "--format=%s")
+	if err != nil {
+		log.Fatalf("failed to get commit title: %v", err)
+	}
+	commitDateStr, err := runCmdOutInDir(kernelDir, "git", "log", "-1", "--format=%cI")
+	if err != nil {
+		log.Fatalf("failed to get commit date: %v", err)
+	}
+	commitDate, err := time.Parse(time.RFC3339, strings.TrimSpace(commitDateStr))
+	if err != nil {
+		commitDate = time.Now()
+	}
+
+	compilerOut, _ := exec.Command("gcc", "--version").Output()
+	compilerID, _, _ := strings.Cut(string(compilerOut), "\n")
+	if compilerID == "" {
+		compilerID = "gcc"
+	}
+
+	kernelConfig, err := os.ReadFile(filepath.Join(kernelDir, ".config"))
+	if err != nil {
+		log.Fatalf("failed to read generated .config: %v", err)
+	}
+
+	buildID := *flagTag
+	if buildID == "" {
+		buildID = strings.TrimSpace(commitHash)
+	}
+
+	build := &dashapi.Build{
+		Manager:             *flagManagerName,
+		ID:                  buildID,
+		OS:                  "linux",
+		Arch:                "amd64",
+		VMArch:              "amd64",
+		SyzkallerCommit:     prog.GitRevision,
+		SyzkallerCommitDate: time.Now(),
+		CompilerID:          compilerID,
+		KernelRepo:          *flagRepo,
+		KernelBranch:        *flagBranch,
+		KernelCommit:        strings.TrimSpace(commitHash),
+		KernelCommitTitle:   strings.TrimSpace(commitTitle),
+		KernelCommitDate:    commitDate,
+		KernelConfig:        kernelConfig,
+	}
+
+	if err := dash.UploadBuild(build); err != nil {
+		log.Fatalf("failed to upload build to dashboard: %v", err)
+	}
+	log.Printf("build %s registered with dashboard successfully!", buildID)
 }
 
 func runCmd(name string, args ...string) error {
@@ -151,6 +237,13 @@ func runCmdInDir(dir, name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func runCmdOutInDir(dir, name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	return string(out), err
 }
 
 func uploadFile(ctx context.Context, client *storage.Client, bucket, object, localPath string) error {
