@@ -9,6 +9,9 @@ Patch: {{.Report.PatchLink}}
 
 The patch testing request could not be completed:
 {{.Report.Error}}
+
+Note: `#syz test` expects an incremental fix patch to be applied on top
+of the tested series.
 {{- end}}
 
 {{- if .Report.Tests}}

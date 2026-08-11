@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/emailclient"
+	"github.com/google/syzkaller/syz-cluster/pkg/report"
 	"github.com/google/syzkaller/syz-cluster/pkg/reporter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,7 +84,7 @@ func TestSilentSeriesFlow(t *testing.T) {
 		reporter:       api.LKMLReporter,
 		reporterClient: reporterClient,
 		apiClient:      client,
-		emailConfig:    emailclient.TestEmailConfig(),
+		emailConfig:    testReportConfig(),
 		sender:         emailServer.send,
 	}
 
@@ -332,7 +333,7 @@ func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment
 		reporter:       api.LKMLReporter,
 		reporterClient: reporterClient,
 		apiClient:      client,
-		emailConfig:    emailclient.TestEmailConfig(),
+		emailConfig:    testReportConfig(),
 		sender:         emailServer.send,
 	}
 
@@ -363,6 +364,13 @@ func (f *fakeSender) email() *sender.Email {
 	}
 }
 
+func testReportConfig() *report.Config {
+	return &report.Config{
+		EmailConfig: emailclient.TestEmailConfig(),
+		DirectList:  "direct@list.com",
+	}
+}
+
 func TestDirectSeriesFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
@@ -380,7 +388,7 @@ func TestDirectSeriesFlow(t *testing.T) {
 		reporter:       api.LKMLReporter,
 		reporterClient: reporterClient,
 		apiClient:      client,
-		emailConfig:    emailclient.TestEmailConfig(),
+		emailConfig:    testReportConfig(),
 		sender:         emailServer.send,
 	}
 

@@ -40,6 +40,8 @@ func NewReportService(env *app.AppEnvironment) *ReportService {
 
 var ErrReportNotFound = errors.New("report is not found")
 
+const PatchTestError = "Testing failed due to an error."
+
 func (rs *ReportService) Confirm(ctx context.Context, id string) error {
 	err := rs.reportRepo.Update(ctx, id, func(rep *db.SessionReport) error {
 		if rep.ReportedAt.IsNull() {
@@ -172,7 +174,7 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 			Status: t.Result,
 		}
 		if t.Result == api.TestError && reportObj.Error == "" {
-			reportObj.Error = "Testing failed due to an infrastructure error."
+			reportObj.Error = PatchTestError
 		}
 		steps, err := rs.testStepRepo.ListForSession(ctx, session.ID, t.TestName)
 		if err != nil {
@@ -188,7 +190,7 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 				Status: step.Result,
 			})
 			if step.Result == api.StepResultError && reportObj.Error == "" {
-				reportObj.Error = "Testing failed due to an infrastructure error."
+				reportObj.Error = PatchTestError
 			}
 		}
 		apiTests = append(apiTests, rt)

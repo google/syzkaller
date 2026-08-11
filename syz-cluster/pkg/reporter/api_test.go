@@ -386,7 +386,7 @@ func TestPatchTestReportingFailedStep(t *testing.T) {
 
 	failedReport := nextRespFailed.Report
 	assert.Equal(t, api.ReportTypePatchTest, failedReport.Type)
-	assert.Equal(t, "Testing failed due to an infrastructure error.", failedReport.Error)
+	assert.Equal(t, service.PatchTestError, failedReport.Error)
 	assert.Len(t, failedReport.Tests, 2)
 }
 

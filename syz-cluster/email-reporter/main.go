@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/emailclient"
+	"github.com/google/syzkaller/syz-cluster/pkg/report"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,8 +49,11 @@ func main() {
 		reporter:       api.LKMLReporter,
 		reporterClient: reporterClient,
 		apiClient:      app.DefaultClient(),
-		emailConfig:    cfg.EmailReporting,
-		sender:         sender,
+		emailConfig: &report.Config{
+			EmailConfig: cfg.EmailReporting,
+			DirectList:  cfg.DirectList,
+		},
+		sender: sender,
 	}
 	msgCh := make(chan *lore.PolledEmail, 16)
 	eg, loopCtx := errgroup.WithContext(ctx)

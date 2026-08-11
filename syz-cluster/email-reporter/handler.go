@@ -30,7 +30,7 @@ type Handler struct {
 	reporter       string
 	reporterClient *api.ReporterClient
 	apiClient      *api.Client
-	emailConfig    *app.EmailConfig
+	emailConfig    *report.Config
 	sender         emailclient.Sender
 }
 
