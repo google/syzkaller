@@ -167,4 +167,6 @@ The bug report to reproduce:
 {{.CrashReport}}
 
 {{.DescriptionFilesPrompt}}
+
+{{.SkillsPrompt}}
 `

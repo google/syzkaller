@@ -39,4 +39,6 @@ func TestPrepareSyzFS(t *testing.T) {
 	require.Contains(t, res.DescriptionFilesPrompt, "Available Syscall Description Files:\n")
 	require.Contains(t, res.DescriptionFilesPrompt, "sys.txt\n")
 	require.NotContains(t, res.DescriptionFilesPrompt, "sys.txt.const\n")
+	require.Contains(t, res.SkillsPrompt, "Available Subsystem Skills")
+	require.Contains(t, res.SkillsPrompt, "- skills/kvm.md:")
 }

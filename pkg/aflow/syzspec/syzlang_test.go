@@ -244,7 +244,6 @@ func TestSyzFS_VirtualFileSystem(t *testing.T) {
 	require.NoError(t, os.MkdirAll(sysLinuxTest, 0755))
 	require.NoError(t, os.MkdirAll(skillsDir, 0755))
 	require.NoError(t, os.MkdirAll(executorDir, 0755))
-	require.NoError(t, os.MkdirAll(docsDir, 0755))
 
 	// Setup mock files across virtual locations.
 	require.NoError(t, os.WriteFile(filepath.Join(sysLinux, "sys.txt"), []byte("sys content"), 0644))

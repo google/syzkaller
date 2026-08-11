@@ -55,6 +55,15 @@ func TestTestSeeds(t *testing.T) {
 	require.Equal(t, seeds, legacySeeds)
 }
 
+func TestSkillsPrompt(t *testing.T) {
+	syzFS := syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)
+	prompt := SkillsPrompt(syzFS)
+	require.Contains(t, prompt, "- skills/kvm.md: KVM Virtualization and Guest Constraints (x86/amd64 Focus)")
+
+	emptyFS := syzspec.NewSyzFS(t.TempDir(), targets.Linux)
+	require.Empty(t, SkillsPrompt(emptyFS))
+}
+
 func TestReadSyzSpec(t *testing.T) {
 	state := specToolsState{SyzFS: syzspec.NewSyzFS(syzkallerRepoRoot(t), targets.Linux)}
 	// Test pagination.
@@ -185,6 +194,22 @@ func TestSyzGrepper(t *testing.T) {
 	require.NoError(t, errDotGrep)
 	require.NotContains(t, resDotGrep.Output, "meta automatic")
 	require.Equal(t, "No matches found.", resDotGrep.Output)
+
+	// Test grepping across a specific skill file.
+	resSkillGrep, errSkillGrep := syzGrepper(nil, testRepoState, syzGrepperArgs{
+		PathPrefix: "skills/kvm.md",
+		Expression: "KVM",
+	})
+	require.NoError(t, errSkillGrep)
+	require.Contains(t, resSkillGrep.Output, "KVM")
+
+	// Test grepping across the entire skills directory.
+	resSkillsDirGrep, errSkillsDirGrep := syzGrepper(nil, testRepoState, syzGrepperArgs{
+		PathPrefix: "skills",
+		Expression: "KVM",
+	})
+	require.NoError(t, errSkillsDirGrep)
+	require.Contains(t, resSkillsDirGrep.Output, "skills/kvm.md:")
 }
 
 func TestCleanPath_TrailingSlash(t *testing.T) {
