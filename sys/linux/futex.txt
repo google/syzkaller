@@ -4,6 +4,10 @@
 include <linux/futex.h>
 
 futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
+futex$unlock_wake_list64(addr ptr[inout, int32], op flags[futex_unlock_wake_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
+futex$unlock_wake_list32(addr ptr[inout, int32], op flags[futex_unlock_wake_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
+futex$unlock_pi_list64(addr ptr[inout, int32], op flags[futex_unlock_pi_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
+futex$unlock_pi_list32(addr ptr[inout, int32], op flags[futex_unlock_pi_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
 set_robust_list(head ptr[in, robust_list_head], len len[head])
 get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
 
@@ -27,6 +31,10 @@ futex_waitv {
 }
 
 futex_op = FUTEX_WAIT, FUTEX_WAKE, FUTEX_FD, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAKE_OP, FUTEX_LOCK_PI, FUTEX_UNLOCK_PI, FUTEX_TRYLOCK_PI, FUTEX_WAIT_BITSET, FUTEX_WAKE_BITSET, FUTEX_WAIT_REQUEUE_PI, FUTEX_CMP_REQUEUE_PI, FUTEX_LOCK_PI2, FUTEX_PRIVATE_FLAG, FUTEX_CLOCK_REALTIME
+futex_unlock_wake_list64_op = FUTEX_UNLOCK_WAKE_LIST64, FUTEX_UNLOCK_WAKE_LIST64_PRIVATE, FUTEX_UNLOCK_BITSET_LIST64, FUTEX_UNLOCK_BITSET_LIST64_PRIVATE
+futex_unlock_wake_list32_op = FUTEX_UNLOCK_WAKE_LIST32, FUTEX_UNLOCK_WAKE_LIST32_PRIVATE, FUTEX_UNLOCK_BITSET_LIST32, FUTEX_UNLOCK_BITSET_LIST32_PRIVATE
+futex_unlock_pi_list64_op = FUTEX_UNLOCK_PI_LIST64, FUTEX_UNLOCK_PI_LIST64_PRIVATE
+futex_unlock_pi_list32_op = FUTEX_UNLOCK_PI_LIST32, FUTEX_UNLOCK_PI_LIST32_PRIVATE
 
 futex_clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC
 struct_flags_op = FUTEX_32, FUTEX_PRIVATE_32
