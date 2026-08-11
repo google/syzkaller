@@ -24,6 +24,7 @@ import (
 )
 
 type ReproCInputs struct {
+	AgentName      string
 	TargetOS       string
 	TargetArch     string
 	BugDescription string
