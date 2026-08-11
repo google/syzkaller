@@ -34,7 +34,7 @@ for understanding syz_* pseudo-syscalls (e.g. syz_usb_connect or syz_mount_image
 these pseudo-syscalls do not exist in the Linux kernel, their actual C/C++ implementations are
 defined in the syzkaller executor. Reading these headers allows you to see exactly how
 complex arguments or opaque pointers are parsed and mapped to real kernel interactions.
-Kernel docs from the docs/ directory can also be read.
+Kernel docs from the docs/ directory can also be read, as well as subsystem skills like skills/kvm.md.
 
 CRITICAL INSTRUCTION: When querying a file in the sys/<os> or sys/<os>/test directory, you MUST
 provide ONLY the base filename or the test/ prefix (e.g. use "vusb.txt", NOT "sys/linux/vusb.txt" 

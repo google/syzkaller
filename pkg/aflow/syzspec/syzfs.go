@@ -6,6 +6,8 @@
 package syzspec
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"io/fs"
 	"os"
@@ -57,6 +59,12 @@ func NewSyzFS(syzkallerDir, osTarget string) *SyzFS {
 
 func (s *SyzFS) resolvePath(name string) string {
 	name = filepath.ToSlash(filepath.Clean(name))
+	if name == "skills" {
+		return filepath.Join(s.syzkallerDir, "docs", s.osTarget, "syzlang", "skills")
+	}
+	if suffix, ok := strings.CutPrefix(name, "skills/"); ok {
+		return filepath.Join(s.syzkallerDir, "docs", s.osTarget, "syzlang", "skills", suffix)
+	}
 	if isLocalSyzFile(name) {
 		return filepath.Join(s.syzkallerDir, name)
 	}
@@ -133,6 +141,69 @@ func (s *SyzFS) CleanPath(file string) string {
 	return cleaned
 }
 
+type SkillInfo struct {
+	Name        string
+	Description string
+}
+
+func (s *SyzFS) ListSkills() ([]SkillInfo, error) {
+	entries, err := s.ReadDir("skills")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var skills []SkillInfo
+	for _, ent := range entries {
+		if ent.IsDir() || ent.Name() == "README.md" || !strings.HasSuffix(ent.Name(), ".md") {
+			continue
+		}
+		name := strings.TrimSuffix(ent.Name(), ".md")
+		desc := name
+		if data, err := s.ReadFile(path.Join("skills", ent.Name())); err == nil {
+			if n, d, ok := parseYAMLFrontmatter(data); ok {
+				if n != "" {
+					name = n
+				}
+				if d != "" {
+					desc = d
+				}
+			}
+		}
+		skills = append(skills, SkillInfo{
+			Name:        name,
+			Description: desc,
+		})
+	}
+	slices.SortFunc(skills, func(a, b SkillInfo) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return skills, nil
+}
+
+func parseYAMLFrontmatter(data []byte) (name, desc string, ok bool) {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	if !scanner.Scan() {
+		return "", "", false
+	}
+	if strings.TrimSpace(scanner.Text()) != "---" {
+		return "", "", false
+	}
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "---" {
+			return name, desc, true
+		}
+		if val, found := strings.CutPrefix(line, "name:"); found {
+			name = strings.TrimSpace(val)
+		} else if val, found := strings.CutPrefix(line, "description:"); found {
+			desc = strings.TrimSpace(val)
+		}
+	}
+	return "", "", false
+}
+
 // DescriptionFiles returns the list of syzlang description files (e.g. sys.txt)
 // for this SyzFS instance.
 func (s *SyzFS) DescriptionFiles() []string {
@@ -168,7 +239,7 @@ func (s *SyzFS) TestSeeds() []string {
 	return files
 }
 
-var localSyzDirs = []string{"executor", "docs"}
+var localSyzDirs = []string{"executor", "docs", "skills"}
 
 func isLocalSyzFile(file string) bool {
 	for _, dir := range localSyzDirs {
