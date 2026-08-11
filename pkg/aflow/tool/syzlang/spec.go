@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -122,32 +121,6 @@ func syzGrepper(ctx *aflow.Context, state specToolsState, args syzGrepperArgs) (
 	return syzGrepperResults{Output: res}, err
 }
 
-func validateFilePath(file string) error {
-	if file != "" {
-		cleaned := file
-		if suffix, ok := strings.CutPrefix(cleaned, "test/"); ok {
-			cleaned = suffix
-		} else if suffix, ok := strings.CutPrefix(cleaned, "executor/"); ok {
-			cleaned = suffix
-		} else if suffix, ok := strings.CutPrefix(cleaned, "docs/"); ok {
-			cleaned = suffix
-		}
-		if strings.Contains(cleaned, "..") || filepath.IsAbs(cleaned) {
-			return aflow.BadCallError("invalid file path %q", file)
-		}
-		if !strings.HasPrefix(file, "executor/") &&
-			!strings.HasPrefix(file, "docs/") &&
-			!strings.HasPrefix(file, "test/") &&
-			(strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\")) {
-			return aflow.BadCallError("invalid file path %q", file)
-		}
-		if syzspec.IsAutoTxt(cleaned) {
-			return aflow.BadCallError("access to auto.txt or auto.txt.const is disallowed")
-		}
-	}
-	return nil
-}
-
 func newScanner(f io.Reader) *bufio.Scanner {
 	scanner := bufio.NewScanner(f)
 	buf := make([]byte, 0, defaultScanBufferSize)
@@ -169,10 +142,8 @@ func resolveTargetFiles(syzFS *syzspec.SyzFS, file string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			if !d.IsDir() {
-				if err := validateFilePath(p); err == nil {
-					targetFiles = append(targetFiles, p)
-				}
+			if !d.IsDir() && !syzspec.IsAutoTxt(d.Name()) {
+				targetFiles = append(targetFiles, p)
 			}
 			return nil
 		})
@@ -185,10 +156,6 @@ func resolveTargetFiles(syzFS *syzspec.SyzFS, file string) ([]string, error) {
 }
 
 func grepSyzSpec(syzFS *syzspec.SyzFS, expression, file string) (string, error) {
-	if err := validateFilePath(file); err != nil {
-		return "", err
-	}
-
 	re, err := regexp.Compile(expression)
 	if err != nil {
 		return "", aflow.BadCallError("bad expression: %v", err)
@@ -346,9 +313,6 @@ func paginateSyzSpec(syzFS *syzspec.SyzFS, file string, firstLine,
 	lineCount int) (string, error) {
 	if file == "" {
 		return "", aflow.BadCallError("File must be provided")
-	}
-	if err := validateFilePath(file); err != nil {
-		return "", err
 	}
 
 	f, err := syzFS.Open(file)
