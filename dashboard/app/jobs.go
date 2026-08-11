@@ -2025,7 +2025,12 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 	if existing := findDuplicateTestReproCJob(ctx, args.bugKey, manager, args.reproC); existing != nil {
 		return existing, nil
 	}
-	build, err := loadBuild(ctx, args.bug.Namespace, crash.BuildID)
+	var build *Build
+	if manager != "" {
+		build, err = lastManagerBuild(ctx, args.bug.Namespace, manager)
+	} else {
+		build, err = loadBuild(ctx, args.bug.Namespace, crash.BuildID)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to load build: %w", err)
 	}
@@ -2037,7 +2042,7 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 			bug:     args.bug,
 			bugKey:  args.bugKey,
 			user:    args.user,
-			manager: targetMgr,
+			manager: manager,
 			repo:    build.KernelRepo,
 			branch:  build.KernelBranch,
 			reproC:  args.reproC,

@@ -121,10 +121,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function displayAICreateJobArgs(select) {
 	if (!select) select = document.querySelector('select[name="ai-job-create"]');
-	var args = document.getElementById('ai-set-base-commit');
-	if (!select || !args) return;
+	if (!select) return;
 
-	args.style.display = select.options[select.selectedIndex].getAttribute('data-custom-base-commit') ? 'inline' : 'none';
+	var opt = select.options[select.selectedIndex];
+	var args = document.getElementById('ai-set-base-commit');
+	if (args) {
+		args.style.display = opt && opt.getAttribute('data-custom-base-commit') ? 'inline' : 'none';
+	}
+	var mgr = document.getElementById('ai-set-manager');
+	if (mgr) {
+		mgr.style.display = opt && opt.getAttribute('data-select-manager') ? 'inline' : 'none';
+	}
 
 	var custom = document.getElementById('base_commit_custom');
 	var input = document.getElementById('base_commit_input');

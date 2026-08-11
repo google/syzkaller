@@ -1109,6 +1109,10 @@ func TestAIReproCJobCreateFromBugPage(t *testing.T) {
 
 	build := testBuild(1)
 	c.aiClient.UploadBuild(build)
+	build2 := testBuild(2)
+	build2.Manager = "manager2"
+	build2.Arch = "arm64"
+	c.aiClient.UploadBuild(build2)
 	crash := testCrashWithRepro(build, 1)
 	c.aiClient.ReportCrash(crash)
 	extID := c.aiClient.pollEmailExtID()
@@ -1119,6 +1123,7 @@ func TestAIReproCJobCreateFromBugPage(t *testing.T) {
 	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
 	values := url.Values{}
 	values.Set("ai-job-create", "repro-c")
+	values.Set("KernelConfigManager", "manager2")
 	_, err := c.AuthPOSTForm(AccessUser, jobCreateURL, values)
 	require.NoError(t, err)
 
@@ -1127,6 +1132,9 @@ func TestAIReproCJobCreateFromBugPage(t *testing.T) {
 	require.Equal(t, "repro-c", resp.Workflow)
 
 	require.Equal(t, "title1\n\nreport1", resp.Args["BugDescription"])
+	require.Equal(t, "manager2", resp.Args["KernelConfigManager"])
+	require.Equal(t, "config2", resp.Args["KernelConfig"])
+	require.Equal(t, "arm64", resp.Args["TargetArch"])
 }
 
 func TestAIJobRestart(t *testing.T) {

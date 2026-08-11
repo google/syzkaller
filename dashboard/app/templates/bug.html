@@ -50,7 +50,9 @@ Page with details about a single bug.
 		<form method="POST">
 			<select name="ai-job-create" onchange="displayAICreateJobArgs(this)">
 				{{range $flow := .AIWorkflows}}
-					<option value="{{$flow.Name}}" {{if $flow.CustomBaseCommit}}data-custom-base-commit="true" {{end}}>{{$flow.Name}}
+					<option value="{{$flow.Name}}"
+						{{if $flow.CustomBaseCommit}}data-custom-base-commit="true" {{end}}
+						{{if $flow.SelectManager}}data-select-manager="true" {{end}}>{{$flow.Name}}
 					</option>
 				{{end}}
 			</select>
@@ -64,6 +66,14 @@ Page with details about a single bug.
 				<input type="text" name="base_commit" id="base_commit_input" style="display: none" size="40"
 					placeholder="Base commit hash"
 					value="{{with index .Crashes.Crashes 0}}{{.KernelCommit}}{{end}}">
+			</span>
+			<span id="ai-set-manager" class="ai-create-job-args" style="display: none">
+				<label for="ai-manager-select">Manager:</label>
+				<select name="KernelConfigManager" id="ai-manager-select">
+					{{range $m := .Managers}}
+						<option value="{{$m}}" {{if eq $m $.DefaultManager}}selected{{end}}>{{$m}}</option>
+					{{end}}
+				</select>
 			</span>
 			<input type="submit" value="✨ Create"/>
 		</form>

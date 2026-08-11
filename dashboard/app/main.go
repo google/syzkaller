@@ -306,6 +306,8 @@ type uiBugPage struct {
 	PatchVersions   []*uiPatchVersion
 	AIWorkflows     []*uiWorkflow
 	AIJobs          []*uiAIJob
+	Managers        []string
+	DefaultManager  string
 }
 
 func (p *uiBugPage) GetJobs() []*uiAIJob {
@@ -1245,16 +1247,24 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 			return err
 		}
 	}
+	managers, err := CachedManagerList(ctx, bug.Namespace)
+	if err != nil {
+		return err
+	}
+	slices.Sort(managers)
+
 	data := &uiBugPage{
-		Header:        hdr,
-		Now:           timeNow(ctx),
-		Sections:      sections,
-		LabelGroups:   getLabelGroups(ctx, bug),
-		Crashes:       crashesTable,
-		Bug:           bugDetails,
-		PatchVersions: patchVersions,
-		AIWorkflows:   aiWorkflows,
-		AIJobs:        aiJobs,
+		Header:         hdr,
+		Now:            timeNow(ctx),
+		Sections:       sections,
+		LabelGroups:    getLabelGroups(ctx, bug),
+		Crashes:        crashesTable,
+		Bug:            bugDetails,
+		PatchVersions:  patchVersions,
+		AIWorkflows:    aiWorkflows,
+		AIJobs:         aiJobs,
+		Managers:       managers,
+		DefaultManager: bugDefaultManager(ctx, bug, bugDetails),
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
@@ -1275,6 +1285,17 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func bugDefaultManager(ctx context.Context, bug *Bug, bugDetails *uiBugDetails) string {
+	defaultManager := ""
+	if len(bugDetails.Crashes) > 0 {
+		defaultManager = bugDetails.Crashes[0].Manager
+	} else if len(bug.HappenedOn) > 0 {
+		defaultManager = bug.HappenedOn[0]
+	}
+	manager, _ := activeManager(ctx, defaultManager, bug.Namespace)
+	return manager
 }
 
 func handleBugJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader,
@@ -1330,6 +1351,9 @@ func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow)
 			return nil, fmt.Errorf("custom base commit is empty")
 		}
 		args["BaseCommit"] = r.FormValue("base_commit")
+	}
+	if selected != nil && selected.SelectManager && r.FormValue("KernelConfigManager") != "" {
+		args["KernelConfigManager"] = r.FormValue("KernelConfigManager")
 	}
 	return args, nil
 }
