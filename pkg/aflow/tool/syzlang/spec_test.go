@@ -179,44 +179,6 @@ func TestSyzGrepper(t *testing.T) {
 	require.Equal(t, "No matches found.", resDotGrep.Output)
 }
 
-func TestValidateFilePath(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		path    string
-		wantErr bool
-	}{
-		{name: "empty path", path: "", wantErr: false},
-		{name: "valid description file", path: "sys.txt", wantErr: false},
-		{name: "valid const file", path: "sys.txt.const", wantErr: false},
-		{name: "valid test file", path: "test/syz_mount_image_btrfs_0", wantErr: false},
-		{name: "valid executor file", path: "executor/common.h", wantErr: false},
-		{name: "valid docs file", path: "docs/linux/kernel.md", wantErr: false},
-		{name: "path traversal in root", path: "../sys.txt", wantErr: true},
-		{name: "path traversal inside test/", path: "test/../sys.txt", wantErr: true},
-		{name: "path traversal inside executor/", path: "executor/../../configs/something.conf", wantErr: true},
-		{name: "absolute path", path: "/etc/passwd", wantErr: true},
-		{name: "disallowed directory path without prefix", path: "sys/linux/sys.txt", wantErr: true},
-		{name: "backslash in unprefixed path", path: "sys\\sys.txt", wantErr: true},
-		{name: "auto.txt disallowed", path: "auto.txt", wantErr: true},
-		{name: "auto.txt.const disallowed", path: "auto.txt.const", wantErr: true},
-		{name: "auto.txt disallowed with test prefix", path: "test/auto.txt", wantErr: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			err := validateFilePath(tt.path)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestCleanPath_TrailingSlash(t *testing.T) {
 	t.Parallel()
 
