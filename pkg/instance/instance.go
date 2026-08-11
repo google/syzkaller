@@ -489,7 +489,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 
 // ExecprogCmd returns the command to run execprog.
 // nolint:revive
-func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
+func ExecprogCmd(execprog, executor, OS, arch, vmArch, vmType string, opts csource.Options,
 	optionalFlags bool, slowdown int, coverFile, progFile string) string {
 	repeatCount := 1
 	if opts.Repeat {
@@ -512,11 +512,15 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 			opts.FaultCall, opts.FaultNth)
 	}
 	if optionalFlags {
-		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
+		optFlags := []tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
 			{Name: "sandbox_arg", Value: fmt.Sprint(opts.SandboxArg)},
 			{Name: "type", Value: fmt.Sprint(vmType)},
-		})
+		}
+		if vmArch != "" && vmArch != arch {
+			optFlags = append(optFlags, tool.Flag{Name: "vmarch", Value: vmArch})
+		}
+		optionalArg += " " + tool.OptionalFlags(optFlags)
 	}
 	coverArg := ""
 	if coverFile != "" {

@@ -39,7 +39,7 @@ func TestExecprogCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagSlowdown := flags.Int("slowdown", 1, "")
 	flagSandboxArg := flags.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
-	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386, "vmtype",
+	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386, targets.AMD64, "vmtype",
 		csource.Options{
 			Sandbox:    "namespace",
 			SandboxArg: 3,
