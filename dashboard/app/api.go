@@ -1844,9 +1844,12 @@ func apiReproTaskDone(ctx context.Context, ns string, req *dashapi.ReproTaskDone
 }
 
 func apiLogToReproduce(ctx context.Context, ns string, req *dashapi.LogToReproReq) (any, error) {
+	if req.BuildID == "" {
+		return nil, fmt.Errorf("%w: build id is empty", ErrClientBadRequest)
+	}
 	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrClientBadRequest, err)
 	}
 	// First check if there have been any manual requests.
 	taskID, log, err := takeReproTask(ctx, ns, build.Manager)
