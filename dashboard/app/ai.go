@@ -58,6 +58,10 @@ func (p *uiAIJobsPage) IsAdmin() bool {
 	return p.Header.Admin
 }
 
+func (p *uiAIJobsPage) ShowTestOnManager() bool {
+	return false
+}
+
 type ManualWorkflowSpec struct {
 	Name        string
 	Type        ai.WorkflowType
@@ -214,6 +218,10 @@ func (p *uiAIJobPage) GetJobs() []*uiAIJob {
 
 func (p *uiAIJobPage) IsAdmin() bool {
 	return p.Header.Admin
+}
+
+func (p *uiAIJobPage) ShowTestOnManager() bool {
+	return p.Header.AIActions
 }
 
 type uiAIJobDetails struct {

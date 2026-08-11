@@ -316,6 +316,10 @@ func (p *uiBugPage) IsAdmin() bool {
 	return p.Header.Admin
 }
 
+func (p *uiBugPage) ShowTestOnManager() bool {
+	return p.Header.AIActions
+}
+
 type uiBugDetails struct {
 	*uiBug
 	// If DupOf is not nil, uiBug is a duplicate of DupOf.
