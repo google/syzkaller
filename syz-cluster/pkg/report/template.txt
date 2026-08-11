@@ -72,11 +72,17 @@ See {{.Config.DocsLink}} for more information about {{.Config.Name}}.
 {{.Config.Name}} engineers can be reached at {{.Config.SupportEmail}}.
 {{- if gt (len .Report.Findings) 0 }}
 
-To test a patch for this bug, please reply with `#syz test`
-(should be on a separate line).
+To test a fix for this bug, please reply with `#syz test`
+(on a separate line) and attach the patch to the email.
 
-The patch should be attached to the email.
-Note: arguments like custom git repos and branches are not supported.
+Notes:
+- The patch will be applied on top of the tested series (as an
+  incremental fix).
+{{- if .Config.DirectList}}
+- To test a new version of the whole series, please send it directly
+  to {{.Config.DirectList}}.
+{{- end}}
+- Arguments like custom git repos and branches are not supported.
 {{- end }}
 
 {{- if .Report.Moderation}}

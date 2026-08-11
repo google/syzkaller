@@ -19,11 +19,14 @@ import (
 var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
 
 func TestRender(t *testing.T) {
-	config := &app.EmailConfig{
-		Name:         "syzbot",
-		DocsLink:     "http://docs/link",
-		CreditEmail:  "credit@email.com",
-		SupportEmail: "support@email.com",
+	config := &Config{
+		EmailConfig: &app.EmailConfig{
+			Name:         "syzbot",
+			DocsLink:     "http://docs/link",
+			CreditEmail:  "credit@email.com",
+			SupportEmail: "support@email.com",
+		},
+		DirectList: "direct@email.com",
 	}
 	flag.Parse()
 	basePath := "testdata"

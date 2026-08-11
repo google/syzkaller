@@ -6,7 +6,10 @@ https://lore.kernel.org/all/msg-id
 Patch: https://dashboard/jobs/patch-test-job-id/patch
 
 The patch testing request could not be completed:
-Testing failed due to an infrastructure error.
+Testing failed due to an error.
+
+Note: `#syz test` expects an incremental fix patch to be applied on top
+of the tested series.
 
 Full report is available here:
 https://dashboard/report/patch-test-report-id

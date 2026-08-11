@@ -16,7 +16,13 @@ import (
 //go:embed template.txt test_reply_template.txt
 var templateFS embed.FS
 
-func Render(rep *api.SessionReport, config *app.EmailConfig) ([]byte, error) {
+// Config represents configuration parameters used for rendering email reports.
+type Config struct {
+	*app.EmailConfig
+	DirectList string
+}
+
+func Render(rep *api.SessionReport, config *Config) ([]byte, error) {
 	tmplName := "template.txt"
 	if rep.Type == api.ReportTypePatchTest {
 		tmplName = "test_reply_template.txt"
@@ -27,7 +33,7 @@ func Render(rep *api.SessionReport, config *app.EmailConfig) ([]byte, error) {
 	}
 	data := struct {
 		Report *api.SessionReport
-		Config *app.EmailConfig
+		Config *Config
 	}{
 		Report: rep,
 		Config: config,
