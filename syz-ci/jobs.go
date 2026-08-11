@@ -690,11 +690,11 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 		if err := osutil.Sandbox(cmd, true, false); err != nil {
 			return fmt.Errorf("failed to sandbox clone: %w", err)
 		}
-		output, err := osutil.Run(time.Hour, cmd)
+		_, err := osutil.Run(time.Hour, cmd)
 		if err == nil {
 			return nil
 		}
-		jp.Logf(0, "failed to clone with reference from %v: %v\n%s", mgr.kernelBuildDir, err, output)
+		jp.Logf(0, "failed to clone with reference from %v: %v", mgr.kernelBuildDir, osutil.VerboseMessage(err))
 		os.RemoveAll(repoDir)
 	}
 	jp.Logf(0, "job repo will be fetched from scratch")
