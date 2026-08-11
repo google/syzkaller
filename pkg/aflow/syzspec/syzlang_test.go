@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -191,6 +192,7 @@ func TestCleanPath(t *testing.T) {
 		{name: "bare description file", input: "sys.txt", expected: "sys.txt"},
 		{name: "bare const file", input: "sys.txt.const", expected: "sys.txt.const"},
 		{name: "virtual seed path", input: "test/syz_mount_0", expected: "test/syz_mount_0"},
+		{name: "virtual skill path", input: "skills/kvm.md", expected: "skills/kvm.md"},
 		{name: "local executor file", input: "executor/common.h", expected: "executor/common.h"},
 		{name: "local docs file", input: "docs/linux/kernel.md", expected: "docs/linux/kernel.md"},
 		{name: "sys/linux prefix", input: "sys/linux/sys.txt", expected: "sys.txt"},
@@ -209,8 +211,8 @@ func TestCleanPath(t *testing.T) {
 		},
 		{
 			name:     "absolute path under repo root for docs",
-			input:    filepath.Join(syzDir, "docs", "guide.md"),
-			expected: "docs/guide.md",
+			input:    filepath.Join(syzDir, "docs", "linux", "syzlang", "skills", "kvm.md"),
+			expected: "docs/linux/syzlang/skills/kvm.md",
 		},
 		{
 			name:     "absolute path under repo root for executor",
@@ -235,10 +237,12 @@ func TestSyzFS_VirtualFileSystem(t *testing.T) {
 	tmpDir := t.TempDir()
 	sysLinux := filepath.Join(tmpDir, "sys", "linux")
 	sysLinuxTest := filepath.Join(sysLinux, "test")
+	skillsDir := filepath.Join(tmpDir, "docs", "linux", "syzlang", "skills")
 	executorDir := filepath.Join(tmpDir, "executor")
 	docsDir := filepath.Join(tmpDir, "docs")
 
 	require.NoError(t, os.MkdirAll(sysLinuxTest, 0755))
+	require.NoError(t, os.MkdirAll(skillsDir, 0755))
 	require.NoError(t, os.MkdirAll(executorDir, 0755))
 	require.NoError(t, os.MkdirAll(docsDir, 0755))
 
@@ -246,6 +250,9 @@ func TestSyzFS_VirtualFileSystem(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(sysLinux, "sys.txt"), []byte("sys content"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(sysLinux, "sys.txt.const"), []byte("SYS_CONST = 1"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(sysLinuxTest, "seed1.txt"), []byte("seed data"), 0644))
+	kvmDoc := "---\nname: kvm\ndescription: KVM Skill\n---\nKVM Body"
+	require.NoError(t, os.WriteFile(filepath.Join(skillsDir, "kvm.md"), []byte(kvmDoc), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillsDir, "README.md"), []byte("# Skills README"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(executorDir, "common.h"), []byte("common header"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(docsDir, "guide.md"), []byte("guide doc"), 0644))
 
@@ -267,17 +274,26 @@ func TestSyzFS_VirtualFileSystem(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "seed data", string(dataSeed))
 
-	// 3. Executor headers.
+	// 3. Subsystem skills.
+	dataSkill, err := syzFS.ReadFile("skills/kvm.md")
+	require.NoError(t, err)
+	require.Contains(t, string(dataSkill), "KVM Body")
+
+	dataSkillDirect, err := syzFS.ReadFile("docs/linux/syzlang/skills/kvm.md")
+	require.NoError(t, err)
+	require.Equal(t, dataSkill, dataSkillDirect)
+
+	// 4. Executor headers.
 	dataExec, err := syzFS.ReadFile("executor/common.h")
 	require.NoError(t, err)
 	require.Equal(t, "common header", string(dataExec))
 
-	// 4. Docs.
+	// 5. Docs.
 	dataDoc, err := syzFS.ReadFile("docs/guide.md")
 	require.NoError(t, err)
 	require.Equal(t, "guide doc", string(dataDoc))
 
-	// 5. Directory listings.
+	// 6. Directory listings.
 	entries, err := syzFS.ReadDir(".")
 	require.NoError(t, err)
 	names := make([]string, 0, len(entries))
@@ -293,14 +309,37 @@ func TestSyzFS_VirtualFileSystem(t *testing.T) {
 	require.Len(t, testEntries, 1)
 	require.Equal(t, "seed1.txt", testEntries[0].Name())
 
-	// 6. fs.Stat and fs.WalkDir compatibility.
+	skillEntries, err := syzFS.ReadDir("skills")
+	require.NoError(t, err)
+	require.Len(t, skillEntries, 2)
+
+	// 7. fs.Stat and fs.WalkDir compatibility.
+	skillStat, err := fs.Stat(syzFS, "skills")
+	require.NoError(t, err)
+	require.True(t, skillStat.IsDir())
+
 	testStat, err := fs.Stat(syzFS, "test")
 	require.NoError(t, err)
 	require.True(t, testStat.IsDir())
 
-	// 7. Non-existent files.
+	var walked []string
+	err = fs.WalkDir(syzFS, "skills", func(path string, d fs.DirEntry, err error) error {
+		require.NoError(t, err)
+		if !d.IsDir() {
+			walked = append(walked, path)
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	slices.Sort(walked)
+	require.Equal(t, []string{"skills/README.md", "skills/kvm.md"}, walked)
+
+	// 8. Non-existent files.
 	_, errMissing := syzFS.ReadFile("nonexistent.txt")
 	require.Error(t, errMissing)
+
+	_, errMissingSkill := syzFS.ReadFile("skills/nonexistent.md")
+	require.Error(t, errMissingSkill)
 }
 
 func TestSyzFS_SecurityAndRestrictions(t *testing.T) {

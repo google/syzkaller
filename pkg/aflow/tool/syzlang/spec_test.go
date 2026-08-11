@@ -65,6 +65,14 @@ func TestReadSyzSpec(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, res.Output, "Copyright")
 
+	// Test reading a skill.
+	resSkill, errSkill := readSyzSpec(nil, state, readSyzSpecArgs{
+		File:      "skills/kvm.md",
+		FirstLine: 1,
+	})
+	require.NoError(t, errSkill)
+	require.Contains(t, resSkill.Output, "KVM Virtualization and Guest Constraints")
+
 	// Test missing file.
 	_, err2 := readSyzSpec(nil, state, readSyzSpecArgs{File: "non_existent_file.txt"})
 	require.Error(t, err2)
