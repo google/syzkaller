@@ -1596,6 +1596,7 @@ func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any,
 type uiWorkflow struct {
 	Name             string
 	CustomBaseCommit bool
+	SelectManager    bool
 }
 
 // aiBugWorkflows returns active workflows that are applicable for the bug.
@@ -1612,6 +1613,7 @@ func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 			result = append(result, &uiWorkflow{
 				Name:             flow.Name,
 				CustomBaseCommit: flow.Type == ai.WorkflowPatching,
+				SelectManager:    flow.Type == ai.WorkflowReproC || flow.Type == ai.WorkflowRepro,
 			})
 		}
 	}
@@ -1675,6 +1677,16 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
+	}
+	if manager, ok := extraArgs["KernelConfigManager"].(string); ok && manager != "" {
+		manager, _ = activeManager(ctx, manager, bug.Namespace)
+		mgrBuild, err := lastManagerBuild(ctx, bug.Namespace, manager)
+		if err != nil {
+			return "", fmt.Errorf("failed to get manager build config: %w", err)
+		}
+		args["KernelConfigID"] = mgrBuild.KernelConfig
+		args["KernelConfigManager"] = manager
+		args["TargetArch"] = mgrBuild.Arch
 	}
 	maps.Copy(args, extraArgs)
 	return aidb.CreateJob(ctx, &aidb.Job{
