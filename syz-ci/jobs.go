@@ -714,6 +714,12 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 		return fmt.Errorf("failed to remove job repo dir: %w", err)
 	}
 	if osutil.IsExist(mgr.kernelBuildDir) {
+		if err := osutil.MkdirAll(repoDir); err != nil {
+			return fmt.Errorf("failed to create job repo dir: %w", err)
+		}
+		if err := osutil.SandboxChown(repoDir); err != nil {
+			return fmt.Errorf("failed to chown job repo dir: %w", err)
+		}
 		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
 		cmd := exec.Command("git", "clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
 		if err := osutil.Sandbox(cmd, true, false); err != nil {
