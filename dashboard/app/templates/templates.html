@@ -769,7 +769,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<span>{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}</span>
 				{{end}}
 			{{end}}
-			{{if $job.CanTestOnManager}}
+			{{if and $.ShowTestOnManager $job.CanTestOnManager}}
 				<form action="/ai_job" method="POST" style="display:inline-block; margin-left: 5px;">
 					<input type="hidden" name="id" value="{{$job.ID}}">
 					<input type="hidden" name="action" value="test_repro_c">
