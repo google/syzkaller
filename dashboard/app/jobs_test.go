@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1411,11 +1412,12 @@ func TestReproCJob(t *testing.T) {
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(string(pollResp.ReproC), string(reproC))
 
-	// Job succeeds with crash matching the bug title.
+	// Job succeeds with a different crash title that matches the bug via AltTitles.
 	jobDoneReq := &dashapi.JobDoneReq{
-		ID:         pollResp.ID,
-		Build:      *testBuild(2),
-		CrashTitle: rep.Title,
+		ID:             pollResp.ID,
+		Build:          *testBuild(2),
+		CrashTitle:     "different crash title",
+		CrashAltTitles: []string{rep.Title},
 	}
 	c.expectOK(c.globalClient.JobDone(jobDoneReq))
 
@@ -1424,6 +1426,10 @@ func TestReproCJob(t *testing.T) {
 	c.expectEQ(rep2.Type, dashapi.ReportRepro)
 	c.expectEQ(string(rep2.ReproC), string(reproC))
 	c.expectNE(rep2.ReproCLink, "")
+
+	bug, _, _ = c.loadBug(rep.ID)
+	c.expectEQ(bug.HasCRepro, true)
+	c.expectTrue(slices.Contains(bug.AltTitles, "different crash title"))
 }
 
 func TestReproCJobError(t *testing.T) {
