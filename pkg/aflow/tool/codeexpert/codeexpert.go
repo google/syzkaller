@@ -47,6 +47,7 @@ at lots of data, and have a concrete concise answer.
 DO NOT use this tool for simple file reading, searching, or extracting line numbers.
 Use other tools provided to you for those purposes.
 Only use this tool for complex architectural or behavioral reasoning.
+DO NOT use this tool for asking questions about syzkaller or syzlang, it does not have any syzlang-specific knowledge.
 
 Formulate your question as concretly as possible, include concrete
 function/struct/field/variable names, line numbers, etc.
