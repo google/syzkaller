@@ -27,17 +27,23 @@ import (
 var coverageDBClient *spanner.Client
 
 func initCoverageDB() {
-	if !appengine.IsAppEngine() {
+	if !appengine.IsAppEngine() && !appengine.IsDevAppServer() && os.Getenv("SPANNER_EMULATOR_HOST") == "" {
 		// It is a test environment.
 		// Use setCoverageDBClient to specify the coveragedb mock or emulator in every test.
 		return
 	}
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		projectID = appengine.AppID(context.Background())
+	}
+	if projectID == "" {
+		projectID = "syzkaller"
+	}
 	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
 	var err error
 	coverageDBClient, err = spanner.NewClient(context.Background(), database)
 	if err != nil {
-		panic("spanner.NewClient: " + err.Error())
+		log.Errorf(context.Background(), "spanner.NewClient: %v", err)
 	}
 }
 
@@ -45,11 +51,14 @@ var keyCoverageDBClient = "coveragedb client key"
 
 func getCoverageDBClient(ctx context.Context) *spanner.Client {
 	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(*spanner.Client)
-	if ctxClient == nil && coverageDBClient == nil {
-		panic("attempt to get coverage db client before it was set in tests")
-	}
 	if ctxClient != nil {
 		return ctxClient
+	}
+	if coverageDBClient == nil {
+		initCoverageDB()
+	}
+	if coverageDBClient == nil {
+		panic("attempt to get coverage db client before it was set in tests")
 	}
 	return coverageDBClient
 }
@@ -78,6 +87,9 @@ const maxPeriodsOnThePage = 12
 func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
 	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
 	periodType := getParam[string](r, PeriodType.ParamName())
+	if periodType == "" {
+		periodType = coveragedb.MonthPeriod
+	}
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
 		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
 			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)

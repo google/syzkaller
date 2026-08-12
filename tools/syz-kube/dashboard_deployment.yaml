@@ -31,8 +31,10 @@ spec:
           export SPANNER_EMULATOR_HOST=cloud-spanner-emulator.syzkube.svc.cluster.local:9010
           export STORAGE_EMULATOR_HOST=http://fake-gcs-server.syzkube.svc.cluster.local:4443
           export GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS=false
+          export GOOGLE_CLOUD_PROJECT=syzkaller
           git config --global --add safe.directory '*'
           export GOFLAGS="-buildvcs=false"
+          mkdir -p /syzkaller/.datastore
           echo "Starting Syzkaller Dashboard via dev_appserver..."
           /usr/local/google-cloud-sdk/bin/dev_appserver.py \
             --application=syzkaller \

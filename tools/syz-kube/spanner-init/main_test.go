@@ -12,11 +12,11 @@ import (
 )
 
 func TestSpannerInitSchema(t *testing.T) {
-	uri := "projects/syzkaller/instances/syzkaller/databases/coverage"
+	uri := "projects/syzkaller/instances/syzbot/databases/coverage"
 	parsedURI, err := pkgspanner.ParseURI(uri)
 	require.NoError(t, err)
 	require.Equal(t, "syzkaller", parsedURI.Project)
-	require.Equal(t, "syzkaller", parsedURI.Instance)
+	require.Equal(t, "syzbot", parsedURI.Instance)
 	require.Equal(t, "coverage", parsedURI.Database)
 
 	schema, err := coveragedb.GetSchema()
