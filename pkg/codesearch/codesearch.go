@@ -161,6 +161,20 @@ var Commands = []Command{
 			}
 			return b.String(), nil
 		}},
+	{
+		Name:  "find-function-at-line",
+		NArgs: 2,
+		Func: func(index *Index, args []string) (string, error) {
+			line, err := strconv.Atoi(args[1])
+			if err != nil {
+				return "", fmt.Errorf("failed to parse line number %q: %w", args[1], err)
+			}
+			info, err := index.FindFunctionAtLine(args[0], line)
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("%v %v is defined in %v:\n\n%v", info.Kind, info.Name, info.File, info.Body), nil
+		}},
 }
 
 func IsSourceFile(file string) bool {
@@ -228,6 +242,7 @@ func (index *Index) FileIndex(file string) ([]Entity, error) {
 }
 
 type EntityInfo struct {
+	Name string
 	File string
 	Kind string
 	Body string
@@ -239,6 +254,18 @@ func (index *Index) DefinitionComment(contextFile, name string) (*EntityInfo, er
 
 func (index *Index) DefinitionSource(contextFile, name string) (*EntityInfo, error) {
 	return index.definitionSource(contextFile, name, false)
+}
+
+func (index *Index) FindFunctionAtLine(file string, line int) (*EntityInfo, error) {
+	for _, def := range index.db.Definitions {
+		if def.Body.File != file || def.Kind != EntityKindFunction {
+			continue
+		}
+		if int(def.Body.StartLine) <= line && int(def.Body.EndLine) >= line {
+			return index.definitionSource(file, def.Name, false)
+		}
+	}
+	return nil, aflow.BadCallError("no function found at line %v in file %v", line, file)
 }
 
 func (index *Index) definitionSource(contextFile, name string, comment bool) (*EntityInfo, error) {
@@ -255,6 +282,7 @@ func (index *Index) definitionSource(contextFile, name string, comment bool) (*E
 		return nil, err
 	}
 	return &EntityInfo{
+		Name: def.Name,
 		File: def.Body.File,
 		Kind: def.Kind.String(),
 		Body: src,

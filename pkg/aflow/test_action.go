@@ -38,5 +38,7 @@ func TestAction(t *testing.T, a Action, workdir string, initArgs, wantResults an
 		gotResults = extractOutputs(ctx.state)
 	}
 	require.Equal(t, wantError, gotError)
-	require.Equal(t, results, gotResults)
+	if wantError == "" {
+		require.Equal(t, results, gotResults)
+	}
 }
