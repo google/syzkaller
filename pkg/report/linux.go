@@ -115,7 +115,12 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		// Crashes in these files are almost always caused by the calling code.
 		regexp.MustCompile(`^arch/.*/lib/crc.*`),
 	}
-	ctx.guiltyLineIgnore = regexp.MustCompile(`(hardirqs|softirqs)\s+last\s+(enabled|disabled)|^Register r\d+ information`)
+	ctx.guiltyLineIgnore = regexp.MustCompile(
+		`(hardirqs|softirqs)\s+last\s+(enabled|disabled)|` +
+			`,\s+at:\s+|` +
+			`^\s*#\d+:|` +
+			`^Register r\d+ information`,
+	)
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
 	ctx.reportStartIgnores = []*regexp.Regexp{
 		compile(`invalid opcode: 0000`),
