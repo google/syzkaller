@@ -4,13 +4,16 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -637,14 +640,70 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		case <-time.After(cfg.FuzzDuration):
 		}
 
-		// 6. Trigger coverage aggregation.
-		log.Printf("fuzzing session finished. triggering coverage aggregation...")
+		// 6. Save session coverage from syz-manager (/cover?jsonl=1) before restarting.
+		log.Printf("fuzzing session finished. saving session coverage from manager (/cover?jsonl=1)...")
+		if err := o.SaveSessionCoverage(ctx, sampled.Tag); err != nil {
+			log.Printf("failed to save session coverage: %v", err)
+		}
+
+		// 7. Trigger coverage aggregation.
+		log.Printf("triggering coverage aggregation...")
 		if _, err := o.ScheduleCoverageAggregationJob(ctx, sampled.Tag); err != nil {
 			log.Printf("failed to schedule coverage aggregation job: %v", err)
 		}
 
 		iteration++
 	}
+}
+
+// SaveSessionCoverage downloads raw coverage JSONL from the syz-manager HTTP API (/cover?jsonl=1)
+// and stores the compressed .jsonl.gz archive in shared export storage.
+func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, tag string) error {
+	managerAddr := fmt.Sprintf("http://syz-manager.%s.svc.cluster.local:50002", o.namespace)
+	url := managerAddr + "/cover?jsonl=1"
+	log.Printf("fetching coverage jsonl from %s for tag %s...", url, tag)
+
+	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to manager HTTP: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("manager HTTP returned %s", resp.Status)
+	}
+
+	exportDir := "/syzkaller/export/coverage"
+	if _, err := os.Stat("/syzkaller"); os.IsNotExist(err) {
+		exportDir = "export/coverage"
+	}
+	if err := os.MkdirAll(exportDir, 0755); err != nil {
+		return fmt.Errorf("failed to create export dir: %w", err)
+	}
+
+	filePath := filepath.Join(exportDir, fmt.Sprintf("%s-%d.jsonl.gz", tag, time.Now().Unix()))
+	f, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+
+	written, err := io.Copy(gw, resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to stream coverage gzip data: %w", err)
+	}
+	log.Printf("successfully saved %d bytes of raw coverage data to %s", written, filePath)
+	return nil
 }
 
 // ListJobs returns all active or completed jobs managed in the namespace.
