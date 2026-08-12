@@ -1176,11 +1176,12 @@ func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDo
 		return
 	}
 	crashReq := &dashapi.Crash{
-		BuildID: req.Build.ID,
-		Title:   req.CrashTitle,
-		Log:     req.CrashLog,
-		Report:  req.CrashReport,
-		ReproC:  reproC,
+		BuildID:   req.Build.ID,
+		Title:     req.CrashTitle,
+		AltTitles: req.CrashAltTitles,
+		Log:       req.CrashLog,
+		Report:    req.CrashReport,
+		ReproC:    reproC,
 	}
 	if _, err := reportCrash(ctx, build, crashReq); err != nil {
 		log.Errorf(ctx, "job %v: failed to report candidate repro crash: %v", req.ID, err)
