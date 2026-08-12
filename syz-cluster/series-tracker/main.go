@@ -188,6 +188,12 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 		XStable:           series.XStable,
 		XKernelTestBranch: series.XKernelTestBranch,
 	}
+	// Only developer backports with an explicit stable version in the subject/tags are skipped here.
+	// Upstream bug fixes that just Cc stable@vger.kernel.org are processed as normal upstream series.
+	if apiSeries.IsStableBackport() {
+		log.Printf("skipping stable backport %s (%s)", series.MessageID, series.Subject)
+		return nil
+	}
 	sp := seriesProcessor{}
 	for i, patch := range series.Patches {
 		raw, err := idToReader[patch.MessageID].Read()

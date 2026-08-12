@@ -148,7 +148,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 		return errSkipFuzzing
 	}
 	diff.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
-	setupFocusAreas(config, patched)
+	setupAIFocusAreas(config, patched, series)
 
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
@@ -485,8 +485,11 @@ func (lw *LimitedWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config) {
-	if len(config.FocusSymbols) == 0 {
+func setupAIFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config, series *api.Series) {
+	isEmptySeries := len(series.Patches) == 0
+	hasNoFocusSymbols := len(config.FocusSymbols) == 0
+	exceedsPatchLimit := series.IsStableRC() && len(series.Patches) > api.MaxRCFocusedPatches
+	if isEmptySeries || hasNoFocusSymbols || exceedsPatchLimit {
 		return
 	}
 	var regexps []string
@@ -521,6 +524,16 @@ func triageUnreproducedFindings(ctx context.Context, config *api.FuzzConfig, cli
 		return
 	}
 
+	series, err := client.GetSessionSeries(ctx, *flagSession)
+	if err != nil || series == nil {
+		log.Logf(0, "failed to query series for AI triage: %v", err)
+		return
+	}
+	if series.IsStableRC() {
+		log.Logf(0, "skipping AI finding triage for stable RC series")
+		return
+	}
+
 	tracer := &debugtracer.GenericTracer{TraceWriter: log.VerboseWriter(0)}
 	aiClient, err := triage.NewAIClient(ctx, appConfig, tracer)
 	if err != nil {
@@ -528,12 +541,6 @@ func triageUnreproducedFindings(ctx context.Context, config *api.FuzzConfig, cli
 		return
 	}
 	defer aiClient.Close()
-
-	series, err := client.GetSessionSeries(ctx, *flagSession)
-	if err != nil || series == nil {
-		log.Logf(0, "failed to query series for AI triage: %v", err)
-		return
-	}
 
 	err = setupTriageWorkspace(config, series, tracer)
 	if err != nil {
