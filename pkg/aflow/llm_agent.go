@@ -246,6 +246,9 @@ Or did you want to call some other tools, but did not actually do that?
 const llmAnswerNow = `
 Provide a best-effort answer to the original question with all of the information
 you have so far without calling any more tools!
+IMPORTANT: Your tool calling ability is currently disabled.
+Do NOT attempt to output JSON to call tools. Base your response strictly on
+the text information you have already gathered.
 `
 
 const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
