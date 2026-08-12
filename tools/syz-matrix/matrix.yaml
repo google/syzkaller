@@ -143,4 +143,3 @@ overlays:
     platforms:
       - qemu_x86_64
     cmdline: "numa=fake=4"
-    qemu_args: "-smp 4,sockets=2,cores=2 -numa node,nodeid=0,cpus=0-1 -numa node,nodeid=1,cpus=2-3"
