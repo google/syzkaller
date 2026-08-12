@@ -198,7 +198,7 @@ func (o *Orchestrator) ScheduleBuildJob(ctx context.Context, cfg BuildConfig) (*
 							Name: "workspace",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/syzkaller",
+									Path: "/projects/syzkaller",
 									Type: &hostPathDir,
 								},
 							},
