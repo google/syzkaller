@@ -13,19 +13,23 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/syzkaller/pkg/matrix"
 )
 
 func main() {
 	var (
 		flagMatrix   = flag.String("matrix", "tools/syz-matrix/matrix.yaml", "path to matrix.yaml")
 		flagSample   = flag.Bool("sample", false, "sample a single config and print summary")
+		flagPlatform = flag.String("platform", "", "filter platform prefix (e.g. qemu, gce)")
+		flagCompiler = flag.String("compiler", "", "filter compiler (e.g. clang, gcc)")
 		flagGenerate = flag.Int("generate", 0, "number of diverse configs to generate")
 		flagOutDir   = flag.String("out-dir", "generated_configs", "output directory for generated configs")
 		flagSeed     = flag.Int64("seed", 0, "random seed (0 for current timestamp)")
 	)
 	flag.Parse()
 
-	matrix, err := LoadMatrix(*flagMatrix)
+	m, err := matrix.LoadMatrix(*flagMatrix)
 	if err != nil {
 		log.Fatalf("failed to load matrix: %v", err)
 	}
@@ -36,8 +40,13 @@ func main() {
 	}
 	rng := rand.New(rand.NewSource(seed))
 
+	filter := matrix.Filter{
+		PlatformPrefix: *flagPlatform,
+		Compiler:       *flagCompiler,
+	}
+
 	if *flagSample {
-		sampled, err := matrix.Sample(rng)
+		sampled, err := m.SampleFiltered(rng, filter)
 		if err != nil {
 			log.Fatalf("failed to sample: %v", err)
 		}
@@ -46,7 +55,7 @@ func main() {
 	}
 
 	if *flagGenerate > 0 {
-		if err := generateBatch(matrix, *flagGenerate, rng, *flagOutDir); err != nil {
+		if err := generateBatch(m, *flagGenerate, rng, filter, *flagOutDir); err != nil {
 			log.Fatalf("failed to generate batch: %v", err)
 		}
 		return
@@ -55,7 +64,7 @@ func main() {
 	flag.Usage()
 }
 
-func printSampleSummary(sc *SampledConfig) {
+func printSampleSummary(sc *matrix.SampledConfig) {
 	fmt.Printf("=== sampled configuration: %s ===\n", sc.Tag)
 	fmt.Printf("platform:       %s\n", sc.Platform)
 	fmt.Println("selected axes:")
@@ -77,28 +86,28 @@ func printSampleSummary(sc *SampledConfig) {
 	}
 }
 
-func generateBatch(matrix *Matrix, count int, rng *rand.Rand, outDir string) error {
+func generateBatch(m *matrix.Matrix, count int, rng *rand.Rand, filter matrix.Filter, outDir string) error {
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	var baseData []byte
-	if matrix.Base.Config != "" {
+	if m.Base.Config != "" {
 		var err error
-		baseData, err = os.ReadFile(matrix.Base.Config)
+		baseData, err = os.ReadFile(m.Base.Config)
 		if err != nil {
-			return fmt.Errorf("failed to read base config (%s): %w", matrix.Base.Config, err)
+			return fmt.Errorf("failed to read base config (%s): %w", m.Base.Config, err)
 		}
 	}
 
 	seenTags := make(map[string]bool)
-	var sampledList []*SampledConfig
+	var sampledList []*matrix.SampledConfig
 
 	fmt.Printf("generating %d configurations into %s...\n", count, outDir)
 
 	maxAttempts := count * 20
 	for attempts := 0; len(sampledList) < count && attempts < maxAttempts; attempts++ {
-		sampled, err := matrix.Sample(rng)
+		sampled, err := m.SampleFiltered(rng, filter)
 		if err != nil {
 			return fmt.Errorf("sample #%d failed: %w", len(sampledList), err)
 		}
@@ -114,7 +123,7 @@ func generateBatch(matrix *Matrix, count int, rng *rand.Rand, outDir string) err
 		}
 
 		if len(baseData) > 0 {
-			mergedKconfig, err := matrix.MergeKconfig(baseData, sampled)
+			mergedKconfig, err := m.MergeKconfig(baseData, sampled)
 			if err != nil {
 				return fmt.Errorf("failed to merge kconfig for %s: %w", sampled.Tag, err)
 			}
@@ -142,7 +151,7 @@ func generateBatch(matrix *Matrix, count int, rng *rand.Rand, outDir string) err
 		return err
 	}
 
-	kconfYAML, err := FormatKconfInstancesYAML(sampledList)
+	kconfYAML, err := matrix.FormatKconfInstancesYAML(sampledList)
 	if err != nil {
 		return fmt.Errorf("failed to format kconf YAML: %w", err)
 	}

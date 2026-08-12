@@ -1,7 +1,8 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+// Package matrix provides probabilistic kernel configuration and execution environment sampling.
+package matrix
 
 import (
 	"crypto/sha256"
@@ -16,6 +17,8 @@ import (
 	"github.com/google/syzkaller/pkg/kconfig"
 	"gopkg.in/yaml.v3"
 )
+
+const platformAxis = "platform"
 
 type Matrix struct {
 	Base     BaseConfig               `yaml:"base"`
@@ -60,6 +63,11 @@ type SampledConfig struct {
 	QemuArgs         string            `json:"qemu_args"`
 }
 
+type Filter struct {
+	PlatformPrefix string
+	Compiler       string
+}
+
 func LoadMatrix(filename string) (*Matrix, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -75,6 +83,10 @@ func LoadMatrix(filename string) (*Matrix, error) {
 }
 
 func (m *Matrix) Sample(rng *rand.Rand) (*SampledConfig, error) {
+	return m.SampleFiltered(rng, Filter{})
+}
+
+func (m *Matrix) SampleFiltered(rng *rand.Rand, filter Filter) (*SampledConfig, error) {
 	sampled := &SampledConfig{
 		SelectedAxes:     make(map[string]string),
 		SelectedOverlays: []string{},
@@ -96,7 +108,19 @@ func (m *Matrix) Sample(rng *rand.Rand) (*SampledConfig, error) {
 		qemuParts = append(qemuParts, m.Base.QemuArgs)
 	}
 
-	// 1. Sample mutually exclusive axes (sorted for determinism)
+	cmdlineParts, qemuParts = m.sampleAxes(rng, filter, sampled, featureSet, cmdlineParts, qemuParts)
+	cmdlineParts, qemuParts = m.sampleOverlays(rng, sampled, featureSet, cmdlineParts, qemuParts)
+
+	sampled.Features = slices.Sorted(maps.Keys(featureSet))
+	sampled.Cmdline = strings.Join(cmdlineParts, " ")
+	sampled.QemuArgs = strings.Join(qemuParts, " ")
+	sampled.Tag = generateConfigTag(sampled)
+
+	return sampled, nil
+}
+
+func (m *Matrix) sampleAxes(rng *rand.Rand, filter Filter, sampled *SampledConfig,
+	featureSet map[string]bool, cmdlineParts, qemuParts []string) ([]string, []string) {
 	axisNames := slices.Sorted(maps.Keys(m.Axes))
 	for _, axisName := range axisNames {
 		options := m.Axes[axisName]
@@ -104,9 +128,10 @@ func (m *Matrix) Sample(rng *rand.Rand) (*SampledConfig, error) {
 			continue
 		}
 
-		chosen := sampleAxisOption(options, rng)
+		filteredOptions := filterAxisOptions(axisName, options, filter)
+		chosen := sampleAxisOption(filteredOptions, rng)
 		sampled.SelectedAxes[axisName] = chosen.Name
-		if axisName == "platform" {
+		if axisName == platformAxis {
 			sampled.Platform = chosen.Name
 		}
 
@@ -122,7 +147,44 @@ func (m *Matrix) Sample(rng *rand.Rand) (*SampledConfig, error) {
 		}
 	}
 
-	// 2. Sample probabilistic overlays (sorted for determinism)
+	if filter.Compiler != "" {
+		featureSet[filter.Compiler] = true
+		switch filter.Compiler {
+		case "clang":
+			delete(featureSet, "gcc")
+		case "gcc":
+			delete(featureSet, "clang")
+		}
+	}
+
+	return cmdlineParts, qemuParts
+}
+
+func filterAxisOptions(axisName string, options []AxisOption, filter Filter) []AxisOption {
+	var filtered []AxisOption
+	for _, opt := range options {
+		if axisName == platformAxis && filter.PlatformPrefix != "" {
+			if !strings.HasPrefix(opt.Name, filter.PlatformPrefix) {
+				continue
+			}
+		}
+		if filter.Compiler != "" && axisName == platformAxis {
+			hasCompiler := slices.Contains(opt.Features, filter.Compiler)
+			if !hasCompiler && (slices.Contains(opt.Features, "gcc") || slices.Contains(opt.Features, "clang")) {
+				continue
+			}
+		}
+		filtered = append(filtered, opt)
+	}
+
+	if len(filtered) == 0 {
+		return options
+	}
+	return filtered
+}
+
+func (m *Matrix) sampleOverlays(rng *rand.Rand, sampled *SampledConfig,
+	featureSet map[string]bool, cmdlineParts, qemuParts []string) ([]string, []string) {
 	overlayNames := slices.Sorted(maps.Keys(m.Overlays))
 	for _, overlayName := range overlayNames {
 		overlay := m.Overlays[overlayName]
@@ -148,13 +210,7 @@ func (m *Matrix) Sample(rng *rand.Rand) (*SampledConfig, error) {
 			}
 		}
 	}
-
-	sampled.Features = slices.Sorted(maps.Keys(featureSet))
-	sampled.Cmdline = strings.Join(cmdlineParts, " ")
-	sampled.QemuArgs = strings.Join(qemuParts, " ")
-	sampled.Tag = generateConfigTag(sampled)
-
-	return sampled, nil
+	return cmdlineParts, qemuParts
 }
 
 func sampleAxisOption(options []AxisOption, rng *rand.Rand) AxisOption {
