@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -70,4 +72,48 @@ func TestScheduleBisectionJob(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, jobs.Items, 1)
 	require.Equal(t, job.Name, jobs.Items[0].Name)
+}
+
+func TestUpdateManagerConfigAndRestart(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset()
+	orch := &Orchestrator{
+		client:    fakeClient,
+		namespace: "syzkube",
+	}
+
+	ctx := context.Background()
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "syz-manager-config",
+			Namespace: "syzkube",
+		},
+		Data: map[string]string{
+			"manager.cfg": `{"name":"test","tag":"old-tag"}`,
+		},
+	}
+	_, err := fakeClient.CoreV1().ConfigMaps("syzkube").Create(ctx, cm, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = orch.UpdateManagerConfigAndRestart(ctx, "new-tag-123", "console=ttyS0", "-enable-kvm")
+	require.NoError(t, err)
+
+	updatedCM, err := fakeClient.CoreV1().ConfigMaps("syzkube").Get(ctx, "syz-manager-config", metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Contains(t, updatedCM.Data["manager.cfg"], "new-tag-123")
+	require.Contains(t, updatedCM.Data["manager.cfg"], "console=ttyS0")
+}
+
+func TestScheduleCoverageAggregationJob(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset()
+	orch := &Orchestrator{
+		client:    fakeClient,
+		namespace: "syzkube",
+	}
+
+	ctx := context.Background()
+	job, err := orch.ScheduleCoverageAggregationJob(ctx, "test-tag")
+	require.NoError(t, err)
+	require.NotEmpty(t, job.Name)
+	require.Equal(t, "syzkube", job.Namespace)
+	require.Equal(t, "coverage-aggregator", job.Labels["app.kubernetes.io/name"])
 }

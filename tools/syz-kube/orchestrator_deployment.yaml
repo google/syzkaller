@@ -29,10 +29,13 @@ spec:
         - sh
         - -c
         - |
-          echo "Starting Syzkaller Kubernetes Orchestrator..."
-          go run /syzkaller/tools/syz-kube/orchestrator -namespace=syzkube -action=list
-          # Keep container running in daemon mode
-          exec sleep infinity
+          echo "Starting Syzkaller Kubernetes Orchestrator in continuous fuzz loop mode..."
+          exec go run /syzkaller/tools/syz-kube/orchestrator \
+            -namespace=syzkube \
+            -action=fuzz-loop \
+            -platform=qemu \
+            -compiler=clang \
+            -fuzz-duration=1h
         volumeMounts:
         - name: workspace
           mountPath: /syzkaller

@@ -8,27 +8,43 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 const (
 	defaultConfigPath   = "/syzkaller/dashboard/config/linux/upstream-apparmor-kasan.config"
 	defaultGCSEndpoint  = "http://fake-gcs-server.syzkube.svc.cluster.local:4443"
 	defaultBisectConfig = "/config/tools/syz-kube/bisect_config.json"
+	defaultDashboard    = "http://syz-dashboard.syzkube.svc.cluster.local:8080"
+	defaultClient       = "local_ui_client"
+	defaultKey          = "localuipasswordlocaluipasswordlocaluipassword"
+	defaultManagerName  = "syz-k8s-manager"
 )
 
 func main() {
 	var (
 		flagKubeconfig = flag.String("kubeconfig", "", "path to kubeconfig file (optional)")
 		flagNamespace  = flag.String("namespace", "syzkube", "target kubernetes namespace")
-		flagAction     = flag.String("action", "list", "action to perform: build, bisect, list, delete")
+		flagAction     = flag.String("action", "list", "action: build, bisect, fuzz-loop, list, delete")
+
+		// Fuzz loop flags.
+		flagMatrix       = flag.String("matrix", "/syzkaller/tools/syz-matrix/matrix.yaml", "path to matrix.yaml")
+		flagPlatform     = flag.String("platform", "qemu", "platform filter prefix (e.g. qemu, gce)")
+		flagCompiler     = flag.String("compiler", "clang", "compiler filter (e.g. clang, gcc)")
+		flagFuzzDuration = flag.Duration("fuzz-duration", 1*time.Hour, "fuzzing duration per config")
 
 		// Build flags.
-		flagRepo        = flag.String("repo", "https://github.com/torvalds/linux.git", "kernel repository URL")
-		flagBranch      = flag.String("branch", "master", "kernel branch")
-		flagCommit      = flag.String("commit", "", "kernel commit hash")
-		flagConfig      = flag.String("config", defaultConfigPath, "kernel config path")
-		flagGCSBucket   = flag.String("gcs-bucket", "syzkaller-builds", "GCS bucket for build artifacts")
-		flagGCSEndpoint = flag.String("gcs-endpoint", defaultGCSEndpoint, "GCS API endpoint")
+		flagRepo            = flag.String("repo", "https://github.com/torvalds/linux.git", "kernel repository URL")
+		flagBranch          = flag.String("branch", "master", "kernel branch")
+		flagCommit          = flag.String("commit", "", "kernel commit hash")
+		flagConfig          = flag.String("config", defaultConfigPath, "kernel config path")
+		flagGCSBucket       = flag.String("gcs-bucket", "syzkaller-builds", "GCS bucket for build artifacts")
+		flagGCSEndpoint     = flag.String("gcs-endpoint", defaultGCSEndpoint, "GCS API endpoint")
+		flagDashboardAddr   = flag.String("dashboard-addr", defaultDashboard, "dashboard HTTP address")
+		flagDashboardClient = flag.String("dashboard-client", defaultClient, "dashboard client name")
+		flagDashboardKey    = flag.String("dashboard-key", defaultKey, "dashboard client key")
+		flagManagerName     = flag.String("manager-name", defaultManagerName, "syz-manager name")
+		flagTag             = flag.String("tag", "", "kernel build tag")
 
 		// Bisect flags.
 		flagBisectConfig = flag.String("bisect-config", defaultBisectConfig, "path to bisection config JSON")
@@ -47,14 +63,40 @@ func main() {
 	}
 
 	switch *flagAction {
+	case "fuzz-loop":
+		err := orch.RunFuzzLoop(ctx, LoopConfig{
+			MatrixPath:      *flagMatrix,
+			PlatformPrefix:  *flagPlatform,
+			Compiler:        *flagCompiler,
+			FuzzDuration:    *flagFuzzDuration,
+			Repo:            *flagRepo,
+			Branch:          *flagBranch,
+			Commit:          *flagCommit,
+			GCSBucket:       *flagGCSBucket,
+			GCSEndpoint:     *flagGCSEndpoint,
+			DashboardAddr:   *flagDashboardAddr,
+			DashboardClient: *flagDashboardClient,
+			DashboardKey:    *flagDashboardKey,
+			ManagerName:     *flagManagerName,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fuzz loop failed: %v\n", err)
+			os.Exit(1)
+		}
+
 	case "build":
 		job, err := orch.ScheduleBuildJob(ctx, BuildConfig{
-			Repo:        *flagRepo,
-			Branch:      *flagBranch,
-			Commit:      *flagCommit,
-			ConfigPath:  *flagConfig,
-			GCSBucket:   *flagGCSBucket,
-			GCSEndpoint: *flagGCSEndpoint,
+			Repo:            *flagRepo,
+			Branch:          *flagBranch,
+			Commit:          *flagCommit,
+			ConfigPath:      *flagConfig,
+			GCSBucket:       *flagGCSBucket,
+			GCSEndpoint:     *flagGCSEndpoint,
+			DashboardAddr:   *flagDashboardAddr,
+			DashboardClient: *flagDashboardClient,
+			DashboardKey:    *flagDashboardKey,
+			ManagerName:     *flagManagerName,
+			Tag:             *flagTag,
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to schedule build job: %v\n", err)
@@ -102,7 +144,7 @@ func main() {
 		fmt.Printf("deleted job: %s\n", *flagJobName)
 
 	default:
-		fmt.Fprintf(os.Stderr, "unknown action %q (supported: build, bisect, list, delete)\n", *flagAction)
+		fmt.Fprintf(os.Stderr, "unknown action: %s\n", *flagAction)
 		os.Exit(1)
 	}
 }
