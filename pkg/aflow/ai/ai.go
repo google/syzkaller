@@ -19,6 +19,7 @@ const (
 	WorkflowRepro              = WorkflowType("repro")
 	WorkflowReproC             = WorkflowType("repro-c")
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
+	WorkflowFindingTriage      = WorkflowType("finding-triage")
 )
 
 // Outputs of various workflow types.
@@ -162,4 +163,23 @@ type PatchTriageResult struct {
 	FocusSymbols  []string
 	EnableConfigs []string
 	Reasoning     string
+}
+
+type SeriesPatch struct {
+	Seq   int    `json:"seq"`
+	Title string `json:"title"`
+	Body  []byte `json:"body,omitempty"`
+}
+
+type FindingTriageArgs struct {
+	TargetArch  string
+	KernelSrc   string
+	BaseCommit  string        `json:",omitempty"`
+	Patches     []SeriesPatch `json:",omitempty"`
+	CrashReport string
+}
+
+type FindingTriageResult struct {
+	Introduced bool   `jsonschema:"True only if crash was introduced by the tested patch series."`
+	Reasoning  string `jsonschema:"Detailed explanation analyzing crash report against patch diffs."`
 }
