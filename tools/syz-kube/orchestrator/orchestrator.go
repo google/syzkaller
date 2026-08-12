@@ -516,12 +516,15 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 	}
 
 	baseConfigPath := m.Base.Config
+	if baseConfigPath == "" {
+		baseConfigPath = "dashboard/config/linux/upstream-apparmor-kasan.config"
+	}
 	baseData, err := os.ReadFile(baseConfigPath)
 	if err != nil && !filepath.IsAbs(baseConfigPath) {
 		baseData, err = os.ReadFile(filepath.Join("/syzkaller", baseConfigPath))
 	}
 	if err != nil {
-		return fmt.Errorf("failed to read base config: %w", err)
+		return fmt.Errorf("failed to read base config (%s): %w", baseConfigPath, err)
 	}
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
