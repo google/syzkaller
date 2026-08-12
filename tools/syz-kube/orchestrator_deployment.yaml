@@ -35,6 +35,7 @@ spec:
             -action=fuzz-loop \
             -platform=qemu_x86_64 \
             -compiler=clang \
+            -parallel-managers=5 \
             -fuzz-duration=1h
         volumeMounts:
         - name: workspace

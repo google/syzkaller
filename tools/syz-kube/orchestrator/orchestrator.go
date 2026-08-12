@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/matrix"
@@ -61,6 +62,7 @@ type LoopConfig struct {
 	PlatformPrefix  string
 	Compiler        string
 	FuzzDuration    time.Duration
+	NumManagers     int
 	Repo            string
 	Branch          string
 	Commit          string
@@ -359,8 +361,10 @@ func (o *Orchestrator) WaitForJob(ctx context.Context, jobName string, timeout t
 	return fmt.Errorf("timed out waiting for job %s to finish", jobName)
 }
 
-// UpdateManagerConfigAndRestart updates the syz-manager ConfigMap with new execution parameters and restarts the pod.
-func (o *Orchestrator) UpdateManagerConfigAndRestart(ctx context.Context, tag, cmdline, qemuArgs string) error {
+// UpdateManagerConfigAndRestart updates the syz-manager ConfigMap for the given worker index and restarts the pod.
+func (o *Orchestrator) UpdateManagerConfigAndRestart(
+	ctx context.Context, workerIndex int, tag, cmdline, qemuArgs string,
+) error {
 	configMapName := "syz-manager-config"
 	cm, err := o.client.CoreV1().ConfigMaps(o.namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -396,18 +400,28 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(ctx context.Context, tag, c
 		VM              ManagerVMConfig `json:"vm"`
 	}
 
+	cfgKey := fmt.Sprintf("manager-%d.cfg", workerIndex)
 	var mcfg ManagerConfigJSON
-	if raw, ok := cm.Data["manager.cfg"]; ok {
+	if raw, ok := cm.Data[cfgKey]; ok {
+		_ = json.Unmarshal([]byte(raw), &mcfg)
+	} else if raw, ok := cm.Data["manager.cfg"]; ok {
 		_ = json.Unmarshal([]byte(raw), &mcfg)
 	}
 
 	// Update targeted fields.
-	mcfg.Name = "syz-k8s-manager"
+	mcfg.Name = fmt.Sprintf("syz-k8s-manager-%d", workerIndex)
 	mcfg.Target = "linux/amd64"
 	mcfg.HTTP = "0.0.0.0:50002"
 	mcfg.Workdir = "/workdir"
 	mcfg.Syzkaller = "/syzkaller"
-	mcfg.KernelObj = "/syzkaller/assets"
+
+	kernelObj := fmt.Sprintf("/syzkaller/assets/%s", tag)
+	kernelImage := fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)
+	if _, err := os.Stat(fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)); os.IsNotExist(err) {
+		kernelObj = "/syzkaller/assets"
+		kernelImage = "/syzkaller/assets/bzImage"
+	}
+	mcfg.KernelObj = kernelObj
 	mcfg.Image = "/disk.raw"
 	mcfg.SSHKey = "/syzkaller/assets/id_rsa"
 	mcfg.Sandbox = "none"
@@ -419,7 +433,7 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(ctx context.Context, tag, c
 	mcfg.DashboardKey = "localuipasswordlocaluipasswordlocaluipassword"
 	mcfg.Tag = tag
 	mcfg.VM.Count = 2
-	mcfg.VM.Kernel = "/syzkaller/assets/bzImage"
+	mcfg.VM.Kernel = kernelImage
 	mcfg.VM.CPU = 1
 	mcfg.VM.Mem = 2048
 	mcfg.VM.Cmdline = cmdline
@@ -430,13 +444,22 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(ctx context.Context, tag, c
 		return err
 	}
 
-	cm.Data["manager.cfg"] = string(updatedBytes)
+	if cm.Data == nil {
+		cm.Data = make(map[string]string)
+	}
+	cm.Data[cfgKey] = string(updatedBytes)
+	if workerIndex == 0 {
+		cm.Data["manager.cfg"] = string(updatedBytes)
+	}
+
 	if _, err := o.client.CoreV1().ConfigMaps(o.namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to update configmap: %w", err)
 	}
 
-	// Restart manager pod so new configuration and assets take effect.
-	_ = o.client.CoreV1().Pods(o.namespace).Delete(ctx, "syz-manager-0", metav1.DeleteOptions{})
+	// Restart specific manager pod so new configuration and assets take effect.
+	podName := fmt.Sprintf("syz-manager-%d", workerIndex)
+	log.Printf("restarting pod %s...", podName)
+	_ = o.client.CoreV1().Pods(o.namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 	return nil
 }
 
@@ -520,8 +543,15 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 	return o.client.BatchV1().Jobs(o.namespace).Create(ctx, job, metav1.CreateOptions{})
 }
 
-// RunFuzzLoop runs the continuous hourly fuzzing loop.
+// RunFuzzLoop runs continuous fuzzing with the specified number of parallel managers.
 func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
+	numManagers := cfg.NumManagers
+	if numManagers <= 0 {
+		numManagers = 5
+	}
+
+	log.Printf("starting continuous fuzzing orchestrator with %d parallel managers...", numManagers)
+
 	m, err := matrix.LoadMatrix(cfg.MatrixPath)
 	if err != nil {
 		return fmt.Errorf("failed to load matrix: %w", err)
@@ -539,7 +569,6 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		return fmt.Errorf("failed to read base config (%s): %w", baseConfigPath, err)
 	}
 
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	platformPrefix := cfg.PlatformPrefix
 	if platformPrefix == "" || platformPrefix == "qemu" {
 		platformPrefix = "qemu_x86_64"
@@ -553,26 +582,60 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		Compiler:       compiler,
 	}
 
+	var wg sync.WaitGroup
+	for workerIdx := range numManagers {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			o.runManagerWorkerLoop(ctx, idx, m, baseData, filter, cfg)
+		}(workerIdx)
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (o *Orchestrator) runManagerWorkerLoop(
+	ctx context.Context,
+	workerIndex int,
+	m *matrix.Matrix,
+	baseData []byte,
+	filter matrix.Filter,
+	cfg LoopConfig,
+) {
+	// Stagger worker starts to prevent build resource collision.
+	staggerDelay := time.Duration(workerIndex) * 90 * time.Second
+	if staggerDelay > 0 {
+		log.Printf("[worker-%d] waiting %v before first iteration to stagger initial builds...",
+			workerIndex, staggerDelay)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(staggerDelay):
+		}
+	}
+
+	rng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(workerIndex*1000)))
 	iteration := 1
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return
 		default:
 		}
 
-		log.Printf("=== starting fuzz loop iteration #%d ===", iteration)
+		log.Printf("[worker-%d] === starting fuzz loop iteration #%d ===", workerIndex, iteration)
 
 		// 1. Sample a random configuration matching the requested filter.
 		sampled, err := m.SampleFiltered(rng, filter)
 		if err != nil {
-			log.Printf("error sampling matrix config: %v", err)
+			log.Printf("[worker-%d] error sampling matrix config: %v", workerIndex, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		log.Printf("sampled config: tag=%s, platform=%s, features=%v",
-			sampled.Tag, sampled.Platform, sampled.Features)
+		log.Printf("[worker-%d] sampled config: tag=%s, platform=%s, features=%v",
+			workerIndex, sampled.Tag, sampled.Platform, sampled.Features)
 
 		// 2. Generate temporary .config file in shared workspace directory.
 		genDir := "/syzkaller/generated_configs"
@@ -583,12 +646,12 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		_ = os.MkdirAll(tmpDir, 0755)
 		mergedConfig, err := m.MergeKconfig(baseData, sampled)
 		if err != nil {
-			log.Printf("error merging kconfig: %v", err)
+			log.Printf("[worker-%d] error merging kconfig: %v", workerIndex, err)
 			continue
 		}
 		configPath := filepath.Join(tmpDir, "kernel.config")
 		if err := os.WriteFile(configPath, mergedConfig, 0644); err != nil {
-			log.Printf("error writing generated config: %v", err)
+			log.Printf("[worker-%d] error writing generated config: %v", workerIndex, err)
 			continue
 		}
 
@@ -597,7 +660,9 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		if compilerChoice == "" {
 			compilerChoice = filter.Compiler
 		}
-		log.Printf("scheduling kernel build job for tag %s (compiler: %s)...", sampled.Tag, compilerChoice)
+		managerName := fmt.Sprintf("syz-k8s-manager-%d", workerIndex)
+		log.Printf("[worker-%d] scheduling kernel build job for tag %s (compiler: %s)...",
+			workerIndex, sampled.Tag, compilerChoice)
 		buildJob, err := o.ScheduleBuildJob(ctx, BuildConfig{
 			Repo:            cfg.Repo,
 			Branch:          cfg.Branch,
@@ -609,47 +674,52 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 			DashboardAddr:   cfg.DashboardAddr,
 			DashboardClient: cfg.DashboardClient,
 			DashboardKey:    cfg.DashboardKey,
-			ManagerName:     cfg.ManagerName,
+			ManagerName:     managerName,
 			Tag:             sampled.Tag,
 		})
 		if err != nil {
-			log.Printf("error scheduling build job: %v", err)
+			log.Printf("[worker-%d] error scheduling build job: %v", workerIndex, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		log.Printf("waiting for build job %s to complete...", buildJob.Name)
+		log.Printf("[worker-%d] waiting for build job %s to complete...", workerIndex, buildJob.Name)
 		if err := o.WaitForJob(ctx, buildJob.Name, 45*time.Minute); err != nil {
-			log.Printf("build job %s failed: %v", buildJob.Name, err)
+			log.Printf("[worker-%d] build job %s failed: %v", workerIndex, buildJob.Name, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		log.Printf("build job %s succeeded! artifacts uploaded and build registered", buildJob.Name)
+		log.Printf("[worker-%d] build job %s succeeded! artifacts uploaded and build registered",
+			workerIndex, buildJob.Name)
 
-		// 4. Update manager configuration and restart fuzzing pod.
-		log.Printf("updating syz-manager with tag %s and restarting fuzzing...", sampled.Tag)
-		if err := o.UpdateManagerConfigAndRestart(ctx, sampled.Tag, sampled.Cmdline, sampled.QemuArgs); err != nil {
-			log.Printf("failed to update manager config: %v", err)
+		// 4. Update manager configuration and restart fuzzing pod for this worker.
+		log.Printf("[worker-%d] updating syz-manager-%d with tag %s and restarting fuzzing...",
+			workerIndex, workerIndex, sampled.Tag)
+		if err := o.UpdateManagerConfigAndRestart(
+			ctx, workerIndex, sampled.Tag, sampled.Cmdline, sampled.QemuArgs,
+		); err != nil {
+			log.Printf("[worker-%d] failed to update manager config: %v", workerIndex, err)
 		}
 
 		// 5. Fuzz for requested duration (e.g. 1 hour).
-		log.Printf("fuzzing session in progress for %v...", cfg.FuzzDuration)
+		log.Printf("[worker-%d] fuzzing session in progress for %v...", workerIndex, cfg.FuzzDuration)
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return
 		case <-time.After(cfg.FuzzDuration):
 		}
 
 		// 6. Save session coverage from syz-manager (/cover?jsonl=1) before restarting.
-		log.Printf("fuzzing session finished. saving session coverage from manager (/cover?jsonl=1)...")
-		if err := o.SaveSessionCoverage(ctx, sampled.Tag); err != nil {
-			log.Printf("failed to save session coverage: %v", err)
+		log.Printf("[worker-%d] fuzzing session finished. saving session coverage (/cover?jsonl=1)...",
+			workerIndex)
+		if err := o.SaveSessionCoverage(ctx, workerIndex, sampled.Tag); err != nil {
+			log.Printf("[worker-%d] failed to save session coverage: %v", workerIndex, err)
 		}
 
 		// 7. Trigger coverage aggregation.
-		log.Printf("triggering coverage aggregation...")
+		log.Printf("[worker-%d] triggering coverage aggregation...", workerIndex)
 		if _, err := o.ScheduleCoverageAggregationJob(ctx, sampled.Tag); err != nil {
-			log.Printf("failed to schedule coverage aggregation job: %v", err)
+			log.Printf("[worker-%d] failed to schedule coverage aggregation job: %v", workerIndex, err)
 		}
 
 		iteration++
@@ -658,10 +728,10 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 
 // SaveSessionCoverage downloads raw coverage JSONL from the syz-manager HTTP API (/cover?jsonl=1)
 // and stores the compressed .jsonl.gz archive in shared export storage.
-func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, tag string) error {
-	managerAddr := fmt.Sprintf("http://syz-manager.%s.svc.cluster.local:50002", o.namespace)
-	url := managerAddr + "/cover?jsonl=1"
-	log.Printf("fetching coverage jsonl from %s for tag %s...", url, tag)
+func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, workerIndex int, tag string) error {
+	managerHost := fmt.Sprintf("syz-manager-%d.syz-manager.%s.svc.cluster.local", workerIndex, o.namespace)
+	url := fmt.Sprintf("http://%s:50002/cover?jsonl=1", managerHost)
+	log.Printf("[worker-%d] fetching coverage jsonl from %s for tag %s...", workerIndex, url, tag)
 
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
@@ -672,7 +742,18 @@ func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, tag string) erro
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to connect to manager HTTP: %w", err)
+		// Fallback to pod IP directly if headless DNS resolution is not ready.
+		pod, podErr := o.client.CoreV1().Pods(o.namespace).Get(
+			reqCtx, fmt.Sprintf("syz-manager-%d", workerIndex), metav1.GetOptions{},
+		)
+		if podErr == nil && pod.Status.PodIP != "" {
+			fallbackURL := fmt.Sprintf("http://%s:50002/cover?jsonl=1", pod.Status.PodIP)
+			fallbackReq, _ := http.NewRequestWithContext(reqCtx, http.MethodGet, fallbackURL, nil)
+			resp, err = http.DefaultClient.Do(fallbackReq)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("failed to connect to manager HTTP for worker-%d: %w", workerIndex, err)
 	}
 	defer resp.Body.Close()
 
@@ -688,7 +769,8 @@ func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, tag string) erro
 		return fmt.Errorf("failed to create export dir: %w", err)
 	}
 
-	filePath := filepath.Join(exportDir, fmt.Sprintf("%s-%d.jsonl.gz", tag, time.Now().Unix()))
+	fileName := fmt.Sprintf("%s-manager-%d-%d.jsonl.gz", tag, workerIndex, time.Now().Unix())
+	filePath := filepath.Join(exportDir, fileName)
 	f, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
@@ -702,7 +784,8 @@ func (o *Orchestrator) SaveSessionCoverage(ctx context.Context, tag string) erro
 	if err != nil {
 		return fmt.Errorf("failed to stream coverage gzip data: %w", err)
 	}
-	log.Printf("successfully saved %d bytes of raw coverage data to %s", written, filePath)
+	log.Printf("[worker-%d] successfully saved %d bytes of raw coverage data to %s",
+		workerIndex, written, filePath)
 	return nil
 }
 

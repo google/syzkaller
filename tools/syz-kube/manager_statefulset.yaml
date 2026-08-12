@@ -8,7 +8,7 @@ metadata:
   namespace: syzkube
 spec:
   serviceName: syz-manager
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       app: syz-manager
@@ -27,8 +27,14 @@ spec:
         - |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update && apt-get install -y --no-install-recommends qemu-system-x86
-          echo "Starting real syz-manager fuzzing instance..."
-          /syzkaller/bin/syz-manager -config /etc/syzkaller/manager.cfg
+          POD_INDEX=$(echo $HOSTNAME | rev | cut -d'-' -f1 | rev)
+          echo "Starting real syz-manager fuzzing instance for pod index $POD_INDEX ($HOSTNAME)..."
+          if [ -f "/etc/syzkaller/manager-${POD_INDEX}.cfg" ]; then
+            CFG="/etc/syzkaller/manager-${POD_INDEX}.cfg"
+          else
+            CFG="/etc/syzkaller/manager.cfg"
+          fi
+          /syzkaller/bin/syz-manager -config "$CFG"
         env:
         - name: SYZ_PUBLIC_WEB_ADDR
           value: "localhost:50002"

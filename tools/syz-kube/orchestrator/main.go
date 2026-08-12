@@ -28,10 +28,11 @@ func main() {
 		flagAction     = flag.String("action", "list", "action: build, bisect, fuzz-loop, list, delete")
 
 		// Fuzz loop flags.
-		flagMatrix       = flag.String("matrix", "/syzkaller/tools/syz-matrix/matrix.yaml", "path to matrix.yaml")
-		flagPlatform     = flag.String("platform", "qemu_x86_64", "platform filter prefix (e.g. qemu_x86_64, gce)")
-		flagCompiler     = flag.String("compiler", "clang", "compiler filter (e.g. clang, gcc)")
-		flagFuzzDuration = flag.Duration("fuzz-duration", 1*time.Hour, "fuzzing duration per config")
+		flagMatrix           = flag.String("matrix", "/syzkaller/tools/syz-matrix/matrix.yaml", "path to matrix.yaml")
+		flagPlatform         = flag.String("platform", "qemu_x86_64", "platform filter prefix (e.g. qemu_x86_64, gce)")
+		flagCompiler         = flag.String("compiler", "clang", "compiler filter (e.g. clang, gcc)")
+		flagFuzzDuration     = flag.Duration("fuzz-duration", 1*time.Hour, "fuzzing duration per config")
+		flagParallelManagers = flag.Int("parallel-managers", 5, "number of parallel syz-manager instances to orchestrate")
 
 		// Build flags.
 		flagRepo            = flag.String("repo", "https://github.com/torvalds/linux.git", "kernel repository URL")
@@ -69,6 +70,7 @@ func main() {
 			PlatformPrefix:  *flagPlatform,
 			Compiler:        *flagCompiler,
 			FuzzDuration:    *flagFuzzDuration,
+			NumManagers:     *flagParallelManagers,
 			Repo:            *flagRepo,
 			Branch:          *flagBranch,
 			Commit:          *flagCommit,

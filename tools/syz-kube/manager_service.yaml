@@ -7,10 +7,10 @@ metadata:
   name: syz-manager
   namespace: syzkube
 spec:
+  clusterIP: None
   selector:
     app: syz-manager
   ports:
   - name: http
     port: 50002
     targetPort: 50002
-  type: ClusterIP

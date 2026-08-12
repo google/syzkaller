@@ -94,13 +94,14 @@ func TestUpdateManagerConfigAndRestart(t *testing.T) {
 	_, err := fakeClient.CoreV1().ConfigMaps("syzkube").Create(ctx, cm, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	err = orch.UpdateManagerConfigAndRestart(ctx, "new-tag-123", "console=ttyS0", "-enable-kvm")
+	err = orch.UpdateManagerConfigAndRestart(ctx, 0, "new-tag-123", "console=ttyS0", "-enable-kvm")
 	require.NoError(t, err)
 
 	updatedCM, err := fakeClient.CoreV1().ConfigMaps("syzkube").Get(ctx, "syz-manager-config", metav1.GetOptions{})
 	require.NoError(t, err)
+	require.Contains(t, updatedCM.Data["manager-0.cfg"], "new-tag-123")
+	require.Contains(t, updatedCM.Data["manager-0.cfg"], "console=ttyS0")
 	require.Contains(t, updatedCM.Data["manager.cfg"], "new-tag-123")
-	require.Contains(t, updatedCM.Data["manager.cfg"], "console=ttyS0")
 }
 
 func TestScheduleCoverageAggregationJob(t *testing.T) {

@@ -67,10 +67,48 @@ func main() {
 	cloneAndCheckoutKernel(kernelDir)
 	applyKernelConfig(kernelDir)
 	buildKernel(kernelDir)
+	copyArtifactsToLocalAssets(kernelDir)
 	uploadArtifactsToGCS(ctx, gcsClient, kernelDir)
 	uploadBuildToDashboard(kernelDir)
 
 	log.Println("build and upload complete!")
+}
+
+func copyArtifactsToLocalAssets(kernelDir string) {
+	assetsDir := "/syzkaller/assets"
+	if _, err := os.Stat(assetsDir); os.IsNotExist(err) {
+		assetsDir = "assets"
+	}
+	_ = os.MkdirAll(assetsDir, 0755)
+
+	bzImageSrc := filepath.Join(kernelDir, "arch/x86/boot/bzImage")
+	vmlinuxSrc := filepath.Join(kernelDir, "vmlinux")
+	configSrc := filepath.Join(kernelDir, ".config")
+
+	if *flagTag != "" {
+		tagDir := filepath.Join(assetsDir, *flagTag)
+		_ = os.MkdirAll(tagDir, 0755)
+		_ = copyLocalFile(bzImageSrc, filepath.Join(tagDir, "bzImage"))
+		_ = copyLocalFile(vmlinuxSrc, filepath.Join(tagDir, "vmlinux"))
+		_ = copyLocalFile(configSrc, filepath.Join(tagDir, ".config"))
+	}
+	_ = copyLocalFile(bzImageSrc, filepath.Join(assetsDir, "bzImage"))
+	_ = copyLocalFile(vmlinuxSrc, filepath.Join(assetsDir, "vmlinux"))
+}
+
+func copyLocalFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
 }
 
 func createGCSClient(ctx context.Context, endpoint string) (*storage.Client, error) {
