@@ -21,11 +21,16 @@ import (
 	"google.golang.org/api/option"
 )
 
+const (
+	compilerClang = "clang"
+)
+
 var (
 	flagRepo        = flag.String("repo", "", "kernel git repository URL")
 	flagBranch      = flag.String("branch", "", "branch to checkout")
 	flagCommit      = flag.String("commit", "", "commit hash to checkout")
 	flagConfig      = flag.String("config", "", "path to kernel config file")
+	flagCompiler    = flag.String("compiler", compilerClang, "compiler to build kernel with (clang or gcc)")
 	flagBucket      = flag.String("gcs-bucket", "syzkaller-builds", "GCS bucket name")
 	flagGcsEndpoint = flag.String("gcs-endpoint", "", "GCS endpoint (for emulator)")
 	flagDashAddr    = flag.String("dashboard-addr", "", "dashboard address")
@@ -105,9 +110,18 @@ func cloneAndCheckoutKernel(kernelDir string) {
 }
 
 func applyKernelConfig(kernelDir string) {
+	makeArgs := []string{"olddefconfig"}
+	if *flagCompiler == compilerClang {
+		makeArgs = []string{"CC=clang", "olddefconfig"}
+	}
+
 	if *flagConfig == "tinyconfig" || *flagConfig == "defconfig" {
 		log.Printf("running make %s...", *flagConfig)
-		if err := runCmdInDir(kernelDir, "make", *flagConfig); err != nil {
+		args := []string{*flagConfig}
+		if *flagCompiler == compilerClang {
+			args = []string{"CC=clang", *flagConfig}
+		}
+		if err := runCmdInDir(kernelDir, "make", args...); err != nil {
 			log.Fatalf("make %s failed: %v", *flagConfig, err)
 		}
 		return
@@ -122,15 +136,19 @@ func applyKernelConfig(kernelDir string) {
 		log.Fatalf("failed to write .config: %v", err)
 	}
 
-	log.Printf("running make olddefconfig...")
-	if err := runCmdInDir(kernelDir, "make", "olddefconfig"); err != nil {
+	log.Printf("running make %s...", strings.Join(makeArgs, " "))
+	if err := runCmdInDir(kernelDir, "make", makeArgs...); err != nil {
 		log.Fatalf("make olddefconfig failed: %v", err)
 	}
 }
 
 func buildKernel(kernelDir string) {
-	log.Printf("building kernel (bzImage)...")
-	if err := runCmdInDir(kernelDir, "make", "-j", "8", "bzImage"); err != nil {
+	log.Printf("building kernel (bzImage) with %s...", *flagCompiler)
+	makeArgs := []string{"-j", "8", "bzImage"}
+	if *flagCompiler == compilerClang {
+		makeArgs = []string{"CC=clang", "-j", "8", "bzImage"}
+	}
+	if err := runCmdInDir(kernelDir, "make", makeArgs...); err != nil {
 		log.Fatalf("make bzImage failed: %v", err)
 	}
 }
@@ -185,10 +203,15 @@ func uploadBuildToDashboard(kernelDir string) {
 		commitDate = time.Now()
 	}
 
-	compilerOut, _ := exec.Command("gcc", "--version").Output()
+	var compilerOut []byte
+	if *flagCompiler == compilerClang {
+		compilerOut, _ = exec.Command("clang", "--version").Output()
+	} else {
+		compilerOut, _ = exec.Command("gcc", "--version").Output()
+	}
 	compilerID, _, _ := strings.Cut(string(compilerOut), "\n")
 	if compilerID == "" {
-		compilerID = "gcc"
+		compilerID = *flagCompiler
 	}
 
 	kernelConfig, err := os.ReadFile(filepath.Join(kernelDir, ".config"))

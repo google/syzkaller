@@ -36,6 +36,7 @@ type BuildConfig struct {
 	Branch          string
 	Commit          string
 	ConfigPath      string
+	Compiler        string
 	GCSBucket       string
 	GCSEndpoint     string
 	DashboardAddr   string
@@ -138,6 +139,9 @@ func (o *Orchestrator) ScheduleBuildJob(ctx context.Context, cfg BuildConfig) (*
 	}
 	if cfg.ManagerName != "" {
 		args = append(args, fmt.Sprintf("-manager-name=%s", cfg.ManagerName))
+	}
+	if cfg.Compiler != "" {
+		args = append(args, fmt.Sprintf("-compiler=%s", cfg.Compiler))
 	}
 	if cfg.Tag != "" {
 		args = append(args, fmt.Sprintf("-tag=%s", cfg.Tag))
@@ -581,12 +585,17 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		}
 
 		// 3. Schedule kernel compilation job.
-		log.Printf("scheduling kernel build job for tag %s...", sampled.Tag)
+		compilerChoice := sampled.SelectedAxes["compiler"]
+		if compilerChoice == "" {
+			compilerChoice = filter.Compiler
+		}
+		log.Printf("scheduling kernel build job for tag %s (compiler: %s)...", sampled.Tag, compilerChoice)
 		buildJob, err := o.ScheduleBuildJob(ctx, BuildConfig{
 			Repo:            cfg.Repo,
 			Branch:          cfg.Branch,
 			Commit:          cfg.Commit,
 			ConfigPath:      configPath,
+			Compiler:        compilerChoice,
 			GCSBucket:       cfg.GCSBucket,
 			GCSEndpoint:     cfg.GCSEndpoint,
 			DashboardAddr:   cfg.DashboardAddr,
