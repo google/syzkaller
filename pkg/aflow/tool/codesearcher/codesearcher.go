@@ -254,3 +254,48 @@ func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs
 	}
 	return res, nil
 }
+
+type extractFunctionArgs struct {
+	Index     index
+	File      string `jsonschema:"Innermost file path (fallback)."`
+	Line      int    `jsonschema:"Innermost line number (fallback)."`
+	OuterFile string `jsonschema:"Outermost file path."`
+	OuterLine int    `jsonschema:"Outermost line number (fallback)."`
+	OuterFunc string `jsonschema:"Outermost function name."`
+}
+
+type extractFunctionResult struct {
+	FunctionName   string `jsonschema:"Name of the function."`
+	FunctionSource string `jsonschema:"Source code of the function."`
+}
+
+func extractFunction(ctx *aflow.Context, args extractFunctionArgs) (extractFunctionResult, error) {
+	if args.OuterFile != "" && args.OuterFunc != "" {
+		info, err := args.Index.DefinitionSource(args.OuterFile, args.OuterFunc)
+		if err == nil {
+			return extractFunctionResult{
+				FunctionName:   info.Name,
+				FunctionSource: info.Body,
+			}, nil
+		}
+	}
+	if args.OuterFile != "" && args.OuterLine != 0 {
+		info, err := args.Index.FindFunctionAtLine(args.OuterFile, args.OuterLine)
+		if err == nil {
+			return extractFunctionResult{
+				FunctionName:   info.Name,
+				FunctionSource: info.Body,
+			}, nil
+		}
+	}
+	info, err := args.Index.FindFunctionAtLine(args.File, args.Line)
+	if err != nil {
+		return extractFunctionResult{}, err
+	}
+	return extractFunctionResult{
+		FunctionName:   info.Name,
+		FunctionSource: info.Body,
+	}, nil
+}
+
+var ActionExtractFunction = aflow.NewFuncAction("codesearch-extract-function", extractFunction)

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
 	clangtoolimpl "github.com/google/syzkaller/tools/clang/codesearch"
@@ -129,6 +130,96 @@ func TestIsDocumentationFile(t *testing.T) {
 	for _, file := range nonDocFiles {
 		t.Run(file, func(t *testing.T) {
 			require.False(t, isDocumentationFile(file))
+		})
+	}
+}
+
+func TestFindFunctionAtLine(t *testing.T) {
+	index := &Index{
+		db: &Database{
+			Definitions: []*Definition{
+				{
+					Name: "target_func",
+					Kind: EntityKindFunction,
+					Body: LineRange{
+						File:      "source.c",
+						StartLine: 10,
+						EndLine:   20,
+					},
+				},
+				{
+					Name: "some_struct",
+					Kind: EntityKindStruct,
+					Body: LineRange{
+						File:      "source.c",
+						StartLine: 25,
+						EndLine:   35,
+					},
+				},
+			},
+		},
+		srcDirs: []string{t.TempDir()},
+	}
+	src := "void target_func(void) {\n\treturn;\n}\n"
+	err := os.WriteFile(filepath.Join(index.srcDirs[0], "source.c"), []byte(strings.Repeat("\n", 9)+src), 0644)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		file     string
+		line     int
+		wantName string
+		wantErr  bool
+	}{
+		{
+			name:     "start line match",
+			file:     "source.c",
+			line:     10,
+			wantName: "target_func",
+		},
+		{
+			name:     "middle line match",
+			file:     "source.c",
+			line:     15,
+			wantName: "target_func",
+		},
+		{
+			name:     "end line match",
+			file:     "source.c",
+			line:     20,
+			wantName: "target_func",
+		},
+		{
+			name:    "before start line",
+			file:    "source.c",
+			line:    9,
+			wantErr: true,
+		},
+		{
+			name:    "non-function entity at line",
+			file:    "source.c",
+			line:    30,
+			wantErr: true,
+		},
+		{
+			name:    "nonexistent file",
+			file:    "nonexistent.c",
+			line:    15,
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			info, err := index.FindFunctionAtLine(test.file, test.line)
+			if test.wantErr {
+				require.Error(t, err)
+				require.IsType(t, aflow.BadCallError(""), err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, test.wantName, info.Name)
+			require.Equal(t, test.file, info.File)
 		})
 	}
 }
