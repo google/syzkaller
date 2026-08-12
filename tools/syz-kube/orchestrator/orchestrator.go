@@ -528,9 +528,17 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 	}
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	platformPrefix := cfg.PlatformPrefix
+	if platformPrefix == "" || platformPrefix == "qemu" {
+		platformPrefix = "qemu_x86_64"
+	}
+	compiler := cfg.Compiler
+	if compiler == "" {
+		compiler = "clang"
+	}
 	filter := matrix.Filter{
-		PlatformPrefix: cfg.PlatformPrefix,
-		Compiler:       cfg.Compiler,
+		PlatformPrefix: platformPrefix,
+		Compiler:       compiler,
 	}
 
 	iteration := 1
