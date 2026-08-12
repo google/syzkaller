@@ -141,7 +141,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 		return errSkipFuzzing
 	}
 	diff.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
-	setupFocusAreas(config, patched)
+	setupFocusAreas(config, patched, series)
 
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
@@ -472,8 +472,11 @@ func (lw *LimitedWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config) {
-	if len(config.FocusSymbols) == 0 {
+func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config, series *api.Series) {
+	isEmptySeries := len(series.Patches) == 0
+	hasNoFocusSymobls := len(config.FocusSymbols) == 0
+	exceedsPatchLimit := series.IsStableRC() && len(series.Patches) > api.MaxRCFocusedPatches
+	if isEmptySeries || hasNoFocusSymobls || exceedsPatchLimit {
 		return
 	}
 	var regexps []string

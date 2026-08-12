@@ -6,6 +6,7 @@
 package api
 
 import (
+	"regexp"
 	"slices"
 	"time"
 
@@ -50,6 +51,8 @@ const (
 	FocusBPF     = "bpf"
 	FocusFS      = "fs"
 )
+
+const MaxRCFocusedPatches = 35
 
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 // The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
@@ -222,6 +225,41 @@ func (s *Series) ModifiedFiles() []string {
 	}
 	slices.Sort(files)
 	return slices.Compact(files)
+}
+
+var stableTitleRe = regexp.MustCompile(`^(?:\[\s*|(?:\b))(?:linux-|stable-)?v?\d+\.\d+(?:\.y|\.\d+)?(?:\s*\]|:|\s)`)
+
+func (s *Series) IsStableBackport() bool {
+	if s == nil || s.IsStableRC() {
+		return false
+	}
+	if slices.ContainsFunc(s.SubjectTags, func(tag string) bool {
+		return StableVersion(tag) != ""
+	}) {
+		return true
+	}
+	return stableTitleRe.MatchString(s.Title)
+}
+
+func (s *Series) GetStableRCVersion() string {
+	if s == nil || s.XStable != "review" {
+		return ""
+	}
+	return StableVersion(s.XKernelTestBranch)
+}
+
+func (s *Series) IsStableRC() bool {
+	return s.GetStableRCVersion() != ""
+}
+
+var stableVersionRe = regexp.MustCompile(`^(?:linux-|stable-)?v?(\d+\.\d+)(?:\.y|\.\d+)?$`)
+
+func StableVersion(str string) string {
+	m := stableVersionRe.FindStringSubmatch(str)
+	if m == nil {
+		return ""
+	}
+	return m[1]
 }
 
 type SeriesPatch struct {
