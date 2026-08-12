@@ -515,7 +515,11 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		return fmt.Errorf("failed to load matrix: %w", err)
 	}
 
-	baseData, err := os.ReadFile(m.Base.Config)
+	baseConfigPath := m.Base.Config
+	baseData, err := os.ReadFile(baseConfigPath)
+	if err != nil && !filepath.IsAbs(baseConfigPath) {
+		baseData, err = os.ReadFile(filepath.Join("/syzkaller", baseConfigPath))
+	}
 	if err != nil {
 		return fmt.Errorf("failed to read base config: %w", err)
 	}
@@ -547,8 +551,12 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		log.Printf("sampled config: tag=%s, platform=%s, features=%v",
 			sampled.Tag, sampled.Platform, sampled.Features)
 
-		// 2. Generate temporary .config file.
-		tmpDir := filepath.Join("/tmp/fuzz_configs", sampled.Tag)
+		// 2. Generate temporary .config file in shared workspace directory.
+		genDir := "/syzkaller/generated_configs"
+		if _, err := os.Stat("/syzkaller"); os.IsNotExist(err) {
+			genDir = "generated_configs"
+		}
+		tmpDir := filepath.Join(genDir, sampled.Tag)
 		_ = os.MkdirAll(tmpDir, 0755)
 		mergedConfig, err := m.MergeKconfig(baseData, sampled)
 		if err != nil {
