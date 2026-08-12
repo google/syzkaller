@@ -11,7 +11,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -24,12 +23,6 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
-
-func init() {
-	// TODO: remove once callers in downstream packages use these helpers.
-	runtime.KeepAlive(LoadSeedProgramDetails)
-	runtime.KeepAlive(LoadCallErrors)
-}
 
 var ErrDidNotCrash = errors.New("reproducer did not crash")
 
@@ -70,8 +63,9 @@ type RunTestResult struct {
 }
 
 // RunTest boots the kernel and runs a single test program.
-func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
+func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
 	res := RunTestResult{}
+	args.ReproSyz = ctx.RestoreBlobs(args.ReproSyz)
 	if err := args.Validate(); err != nil {
 		return res, fmt.Errorf("run test: %w", err)
 	}
@@ -239,13 +233,13 @@ func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, er
 	return cached.Coverage, nil
 }
 
-// LoadSeedProgramDetails retrieves the generated syzkaller program from a cached execution.
+// LoadSeedProgramDetails retrieves the generated syzkaller program from a cached execution with blob payloads replaced.
 func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (string, error) {
 	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
 	if err != nil {
 		return "", err
 	}
-	return cached.GeneratedSyz, nil
+	return ctx.ReplaceBlobs(cached.GeneratedSyz), nil
 }
 
 // LoadCallErrors retrieves the list of syscall error details from a cached execution.
@@ -279,7 +273,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		if err != nil {
 			return res, err
 		}
-		testRes, err := RunTest(args, workdir, collectCoverage)
+		testRes, err := RunTest(ctx, args, workdir, collectCoverage)
 		if testRes.Report != nil {
 			res.BugTitle = testRes.Report.Title
 			res.Report = string(testRes.Report.Report)

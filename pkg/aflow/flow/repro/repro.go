@@ -109,6 +109,7 @@ func formatReproFinderOutputs(ctx *aflow.Context, state ReproFinderState,
 	if err != nil {
 		return res, err
 	}
+	res.ReproSyz = ctx.RestoreBlobs(res.ReproSyz)
 	p, err := pt.Deserialize([]byte(res.ReproSyz), prog.NonStrict)
 	if err != nil {
 		return res, aflow.BadCallError("failed to deserialize syzkaller program: %v", err)

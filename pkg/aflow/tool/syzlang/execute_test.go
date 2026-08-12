@@ -4,9 +4,11 @@
 package syzlang
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/image"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,6 +47,61 @@ func TestExecuteSeed_DeserializeErrors(t *testing.T) {
 			require.Contains(t, err.Error(), "Syzlang Syntax Reminders:")
 		})
 	}
+}
+
+func TestExecuteSeed_BlobPlaceholder(t *testing.T) {
+	data := make([]byte, 1024)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	compressed := image.Compress(data)
+	b64 := image.EncodeB64(compressed)
+	input := fmt.Sprintf(
+		`syz_mount_image$btrfs(&AUTO='btrfs\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$%s")`,
+		b64,
+	)
+
+	ctx := &aflow.Context{}
+	programWithPlaceholder := ctx.ReplaceBlobs(input)
+	require.Contains(t, programWithPlaceholder, "$BLOB_")
+
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+	}
+	args := ExecuteSeedArgs{
+		ReproSyz: programWithPlaceholder,
+	}
+
+	_, err := executeSeed(ctx, state, args)
+	require.ErrorContains(t, err, "VM configuration is missing")
+}
+
+func TestExecuteSeed_BlobPlaceholderError(t *testing.T) {
+	data := make([]byte, 1024)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	compressed := image.Compress(data)
+	b64 := image.EncodeB64(compressed)
+
+	input := fmt.Sprintf(`syz_mount_image$btrfs(invalid_arg, &AUTO="$%s")`, b64)
+	ctx := &aflow.Context{}
+	programWithPlaceholder := ctx.ReplaceBlobs(input)
+	require.Contains(t, programWithPlaceholder, "$BLOB_")
+
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+	}
+	args := ExecuteSeedArgs{
+		ReproSyz: programWithPlaceholder,
+	}
+
+	_, err := executeSeed(ctx, state, args)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "$BLOB_")
+	require.NotContains(t, err.Error(), fmt.Sprintf("$%s", b64))
 }
 
 func TestExecuteSeed(t *testing.T) {

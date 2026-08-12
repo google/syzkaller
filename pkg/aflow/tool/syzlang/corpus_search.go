@@ -81,7 +81,7 @@ func corpusCodeSearch(ctx *aflow.Context, state CorpusCodeSearchState,
 		if !ok {
 			continue
 		}
-		fmt.Fprintf(&b, "=== Program %d ===\n%s\n", i+1, strings.TrimSpace(progStr))
+		fmt.Fprintf(&b, "=== Program %d ===\n%s\n", i+1, strings.TrimSpace(ctx.ReplaceBlobs(progStr)))
 	}
 
 	return CorpusCodeSearchResult{Output: b.String()}, nil

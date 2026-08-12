@@ -43,11 +43,11 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 		return "", err
 	}
 
-	fullSyz := args.ReproSyz
+	fullSyz := ctx.RestoreBlobs(args.ReproSyz)
 	// We perform normalization so that the cache key is calculated correctly.
 	p, err := target.Deserialize([]byte(fullSyz), prog.Strict)
 	if err != nil {
-		return "", aflow.BadCallError("%v%s", err.Error(), deserializationErrorHelp)
+		return "", aflow.BadCallError("%v%s", ctx.ReplaceBlobs(err.Error()), deserializationErrorHelp)
 	}
 	if len(p.Calls) > prog.MaxCalls {
 		return "", aflow.BadCallError("program has %d calls, exceeding the limit of %d", len(p.Calls), prog.MaxCalls)
