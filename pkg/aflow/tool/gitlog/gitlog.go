@@ -43,6 +43,9 @@ Use 'Since' to limit how far back to search. It accepts duration strings like "3
 	ToolShow = aflow.NewFuncTool("git-show", gitShow, `
 Tool provides full information about a specific git commit, including its title,
 full description, and the diff.
+Defaults to 'HEAD' if Commit is omitted.
+Use the 'File' parameter to restrict the diff to a specific file or directory path.
+Use the 'Stat' parameter to see a diffstat summary of modified files and line counts.
 `)
 	ToolBlame = aflow.NewFuncTool("git-blame", gitBlame, `
 Tool provides git blame for a given file and line range.
@@ -136,7 +139,9 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 }
 
 type showArgs struct {
-	Commit string `jsonschema:"Commit hash or reference (hash:file/name.c)."`
+	Commit string `jsonschema:"Commit hash or reference (e.g. 'HEAD'). Defaults to 'HEAD' if omitted." json:",omitempty"`
+	File   string `jsonschema:"Optional: restrict the commit diff to a specific file or directory." json:",omitempty"`
+	Stat   bool   `jsonschema:"Optional: if true, show diffstat summary of modified files." json:",omitempty"`
 }
 
 type showResult struct {
@@ -144,10 +149,10 @@ type showResult struct {
 }
 
 func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error) {
-	commitHash, filePath, _ := strings.Cut(args.Commit, ":")
-	if commitHash == "" {
-		return showResult{}, aflow.BadCallError("commit hash is required")
+	if args.Commit == "" {
+		args.Commit = headCommit
 	}
+	commitHash, filePath, _ := strings.Cut(args.Commit, ":")
 
 	if _, err := runGit(state.KernelSrc, time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
 		return showResult{}, gitBadCallError(err, "git show", fmt.Sprintf("commit %v does not exist", commitHash))
@@ -163,7 +168,16 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 		}
 	}
 
-	output, err := runGit(state.KernelSrc, 5*time.Minute, "show", "--no-color", args.Commit)
+	gitArgs := []string{"show", "--no-color"}
+	if args.Stat {
+		gitArgs = append(gitArgs, "--stat")
+	}
+	gitArgs = append(gitArgs, args.Commit)
+	if args.File != "" {
+		gitArgs = append(gitArgs, "--", args.File)
+	}
+
+	output, err := runGit(state.KernelSrc, 5*time.Minute, gitArgs...)
 	if err != nil {
 		return showResult{}, gitBadCallError(err, "git show", "Consider specifying a different commit.")
 	}

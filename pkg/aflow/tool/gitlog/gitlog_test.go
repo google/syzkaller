@@ -70,20 +70,40 @@ diff --git a/foo\.c b/foo\.c
 		fmt.Sprintf(`file "missing.c" is not present on commit "%s"`, c1.Hash),
 		aflow.TestWorkdir(tmpDir))
 
-	// Test git-show with empty commit.
+	// Test git-show defaults to HEAD.
 	aflow.TestTool(t, ToolShow,
 		state{KernelSrc: repoDir},
 		showArgs{},
-		showResult{},
-		`commit hash is required`,
-		aflow.TestWorkdir(tmpDir))
+		func(res showResult) {
+			assert.Contains(t, res.Output, "initial commit")
+			assert.Contains(t, res.Output, "+void foo() {")
+		},
+		"", aflow.TestWorkdir(tmpDir))
 
+	// Test git-show with Stat=true.
 	aflow.TestTool(t, ToolShow,
 		state{KernelSrc: repoDir},
-		showArgs{Commit: ":mm/mmap.c"},
-		showResult{},
-		`commit hash is required`,
-		aflow.TestWorkdir(tmpDir))
+		showArgs{Stat: true},
+		func(res showResult) {
+			assert.Contains(t, res.Output, "initial commit")
+			assert.Contains(t, res.Output, "foo.c | 4 ++++")
+		},
+		"", aflow.TestWorkdir(tmpDir))
+
+	// Test git-show with File filter.
+	c2 := repo.CommitChangeset("second commit",
+		vcs.FileContent{File: "foo.c", Content: "void foo() { int x = 1; }\n"},
+		vcs.FileContent{File: "bar.c", Content: "void bar() {}\n"},
+	)
+	aflow.TestTool(t, ToolShow,
+		state{KernelSrc: repoDir},
+		showArgs{Commit: c2.Hash, File: "bar.c"},
+		func(res showResult) {
+			assert.Contains(t, res.Output, "second commit")
+			assert.Contains(t, res.Output, "+void bar() {}")
+			assert.NotContains(t, res.Output, "int x = 1;")
+		},
+		"", aflow.TestWorkdir(tmpDir))
 }
 
 func TestGitBlame(t *testing.T) {
