@@ -29,7 +29,7 @@ func main() {
 
 		// Fuzz loop flags.
 		flagMatrix       = flag.String("matrix", "/syzkaller/tools/syz-matrix/matrix.yaml", "path to matrix.yaml")
-		flagPlatform     = flag.String("platform", "qemu", "platform filter prefix (e.g. qemu, gce)")
+		flagPlatform     = flag.String("platform", "qemu_x86_64", "platform filter prefix (e.g. qemu_x86_64, gce)")
 		flagCompiler     = flag.String("compiler", "clang", "compiler filter (e.g. clang, gcc)")
 		flagFuzzDuration = flag.Duration("fuzz-duration", 1*time.Hour, "fuzzing duration per config")
 

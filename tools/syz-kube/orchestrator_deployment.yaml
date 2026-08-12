@@ -33,7 +33,7 @@ spec:
           exec go run /syzkaller/tools/syz-kube/orchestrator \
             -namespace=syzkube \
             -action=fuzz-loop \
-            -platform=qemu \
+            -platform=qemu_x86_64 \
             -compiler=clang \
             -fuzz-duration=1h
         volumeMounts:
