@@ -6,13 +6,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEmailNotifUpstreamEmbargo(t *testing.T) {
@@ -41,6 +44,128 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 	c.expectEQ(upstreamReport.Subject, "[syzbot] "+crash.Title)
 	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
+}
+
+func TestEmailNotifUpstreamSubsystemEmbargo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(ctx context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(ctx, "test2", func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Subsystems.Service = subsystem.MustMakeService(testSubsystems, 0)
+			ret.Reporting = slices.Clone(ret.Reporting)
+			ret.Reporting[0].SubsystemEmbargo = map[string]time.Duration{
+				"subsystemA": 21 * 24 * time.Hour,
+			}
+			return &ret
+		})
+		return contextWithConfig(ctx, newConfig)
+	}
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	c.incomingEmail(report.Sender, "#syz set subsystems: subsystemA\n")
+
+	// Upstreaming for subsystemA happens after 21 days (higher than the default 14 days).
+	// After 15 days, the default 14-day embargo has passed, but subsystemA is still embargoed.
+	c.advanceTime(15 * 24 * time.Hour)
+	c.expectNoEmail()
+
+	// After 22 days total, it should be upstreamed.
+	c.advanceTime(7 * 24 * time.Hour)
+	notif := c.pollEmailBug()
+	upstream := c.pollEmailBug()
+	c.expectEQ(notif.Subject, crash.Title)
+	c.expectEQ(upstream.Subject, "[syzbot] [subsystemA] "+crash.Title)
+}
+
+func TestReportingEmbargoForBug(t *testing.T) {
+	rep := &Reporting{
+		Embargo: 14 * 24 * time.Hour,
+		SubsystemEmbargo: map[string]time.Duration{
+			"subA": 7 * 24 * time.Hour,
+			"subB": 21 * 24 * time.Hour,
+		},
+	}
+
+	tests := []struct {
+		name      string
+		reporting *Reporting
+		bug       *Bug
+		want      time.Duration
+	}{
+		{
+			name:      "no SubsystemEmbargo configured -> default embargo",
+			reporting: &Reporting{Embargo: 10 * 24 * time.Hour},
+			bug: &Bug{
+				Labels: []BugLabel{{Label: SubsystemLabel, Value: "subA"}},
+			},
+			want: 10 * 24 * time.Hour,
+		},
+		{
+			name:      "no subsystems -> default embargo",
+			reporting: rep,
+			bug:       &Bug{},
+			want:      14 * 24 * time.Hour,
+		},
+		{
+			name:      "single matching subsystem (lower)",
+			reporting: rep,
+			bug: &Bug{
+				Labels: []BugLabel{{Label: SubsystemLabel, Value: "subA"}},
+			},
+			want: 7 * 24 * time.Hour,
+		},
+		{
+			name:      "single matching subsystem (higher)",
+			reporting: rep,
+			bug: &Bug{
+				Labels: []BugLabel{{Label: SubsystemLabel, Value: "subB"}},
+			},
+			want: 21 * 24 * time.Hour,
+		},
+		{
+			name:      "single unconfigured subsystem -> default embargo",
+			reporting: rep,
+			bug: &Bug{
+				Labels: []BugLabel{{Label: SubsystemLabel, Value: "subOther"}},
+			},
+			want: 14 * 24 * time.Hour,
+		},
+		{
+			name:      "multiple matching subsystems -> longest embargo",
+			reporting: rep,
+			bug: &Bug{
+				Labels: []BugLabel{
+					{Label: SubsystemLabel, Value: "subA"},
+					{Label: SubsystemLabel, Value: "subB"},
+				},
+			},
+			want: 21 * 24 * time.Hour,
+		},
+		{
+			name:      "matching and unconfigured subsystems -> max with default",
+			reporting: rep,
+			bug: &Bug{
+				Labels: []BugLabel{
+					{Label: SubsystemLabel, Value: "subA"},
+					{Label: SubsystemLabel, Value: "subOther"},
+				},
+			},
+			want: 14 * 24 * time.Hour,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, tt.reporting.EmbargoForBug(tt.bug))
+		})
+	}
 }
 
 func TestEmailNotifUpstreamSkip(t *testing.T) {

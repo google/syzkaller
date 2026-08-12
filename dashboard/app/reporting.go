@@ -213,12 +213,13 @@ var notificationGenerators = []func(context.Context, *Bug, *Reporting,
 	// Embargo upstreaming.
 	func(ctx context.Context, bug *Bug, reporting *Reporting,
 		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		embargo := reporting.EmbargoForBug(bug)
 		if reporting.moderation &&
-			reporting.Embargo != 0 &&
+			embargo != 0 &&
 			len(bug.Commits) == 0 &&
 			bugReporting.OnHold.IsZero() &&
-			timeSince(ctx, bugReporting.Reported) > reporting.Embargo {
-			log.Infof(ctx, "%v: upstreaming (embargo): %v", bug.Namespace, bug.Title)
+			timeSince(ctx, bugReporting.Reported) > embargo {
+			log.Infof(ctx, "%v: upstreaming (embargo %v): %v", bug.Namespace, embargo, bug.Title)
 			return createNotification(ctx, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
 		}
 		return nil, nil

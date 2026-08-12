@@ -410,7 +410,7 @@ func isStableBug(ctx context.Context, bug *Bug, lastReporting int) bool {
 			continue
 		}
 		reporting := getNsConfig(ctx, bug.Namespace).ReportingByName(bug.Reporting[i].Name)
-		if !bug.Reporting[i].Reported.IsZero() && reporting.Embargo != 0 {
+		if !bug.Reporting[i].Reported.IsZero() && reporting.EmbargoForBug(bug) != 0 {
 			continue
 		}
 		if reporting.Filter(bug) == FilterSkip {
