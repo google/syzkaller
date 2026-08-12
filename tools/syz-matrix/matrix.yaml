@@ -18,7 +18,6 @@ axes:
       weight: 0.60
       features:
         - x86_64
-        - gcc
       qemu_args: "-enable-kvm -m 2048 -smp 2"
 
     - name: "qemu_arm64"
@@ -26,7 +25,6 @@ axes:
       features:
         - arm64
         - arm64_emu
-        - clang
         - reduced
       qemu_args: "-machine virt -cpu max -m 2048 -smp 2"
 
@@ -34,7 +32,6 @@ axes:
       weight: 0.10
       features:
         - x86_64
-        - clang
         - gce
 
     - name: "gce_arm64"
@@ -42,7 +39,17 @@ axes:
       features:
         - arm64
         - arm64_gce
+
+  compiler:
+    - name: "clang"
+      weight: 0.70
+      features:
         - clang
+
+    - name: "gcc"
+      weight: 0.30
+      features:
+        - gcc
 
   sanitizer:
     - name: "kasan"
@@ -110,7 +117,7 @@ overlays:
     platforms:
       - qemu_x86_64
       - qemu_arm64
-    qemu_args: "-device nvme,serial=deadbeef,drive=nvm0 -drive file=/tmp/nvme.raw,if=none,id=nvm0,format=raw"
+    qemu_args: "-drive file=null-co://,if=none,id=nvm0 -device nvme,serial=deadbeef,drive=nvm0"
 
   usb_sound:
     prob: 0.25

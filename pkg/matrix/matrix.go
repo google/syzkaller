@@ -168,9 +168,8 @@ func filterAxisOptions(axisName string, options []AxisOption, filter Filter) []A
 				continue
 			}
 		}
-		if filter.Compiler != "" && axisName == platformAxis {
-			hasCompiler := slices.Contains(opt.Features, filter.Compiler)
-			if !hasCompiler && (slices.Contains(opt.Features, "gcc") || slices.Contains(opt.Features, "clang")) {
+		if axisName == "compiler" && filter.Compiler != "" {
+			if opt.Name != filter.Compiler {
 				continue
 			}
 		}
