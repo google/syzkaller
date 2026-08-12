@@ -21,6 +21,7 @@ const (
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
 	WorkflowSeedGen            = WorkflowType("seed-gen")
 	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
+	WorkflowFindingTriage      = WorkflowType("finding-triage")
 )
 
 // Outputs of various workflow types.
@@ -171,4 +172,22 @@ type SeedGenOutputs struct {
 	Success bool
 	GiveUp  bool
 	Reason  string
+}
+
+type SeriesPatch struct {
+	Seq   int
+	Title string
+	Body  string
+}
+
+type FindingTriageArgs struct {
+	TargetArch  string
+	KernelSrc   string
+	Patches     []SeriesPatch `json:",omitempty"`
+	CrashReport string
+}
+
+type FindingTriageResult struct {
+	Introduced bool   `jsonschema:"True only if crash was introduced by the tested patch series."`
+	Reasoning  string `jsonschema:"Detailed explanation analyzing crash report against patch diffs."`
 }
