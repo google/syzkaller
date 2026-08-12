@@ -1,0 +1,44 @@
+FILE: arch/x86/kvm/xen.c
+
+BUG: sleeping function called from invalid context at kernel/locking/spinlock_rt.c:248
+in_atomic(): 1, irqs_disabled(): 1, non_block: 0, pid: 5622, name: syz-executor363
+preempt_count: 10000, expected: 0
+RCU nest depth: 1, expected: 1
+locks held by syz-executor363/5622: 4, last CPU#0:
+ #0: ffff88804093d380 (&sb->s_type->i_mutex_key#8/2){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
+ #0: ffff88804093d380 (&sb->s_type->i_mutex_key#8/2){+.+.}-{4:4}, at: __simple_recursive_removal+0x19a/0x520 fs/libfs.c:619
+ #1: ffffffff8e53c398 (pin_fs_lock){+.+.}-{3:3}, at: spin_lock include/linux/spinlock_rt.h:45 [inline]
+ #1: ffffffff8e53c398 (pin_fs_lock){+.+.}-{3:3}, at: simple_release_fs+0x2f/0xd0 fs/libfs.c:1120
+ #2: ffffffff8e3c3880 (rcu_read_lock){....}-{1:3}, at: rtlock_slowlock_locked+0x2ab/0x3c20 kernel/locking/rtmutex.c:1874
+ #3: ffff888038241b48 (&kvm->srcu){.?.+}-{0:0}, at: srcu_lock_acquire include/linux/srcu.h:187 [inline]
+ #3: ffff888038241b48 (&kvm->srcu){.?.+}-{0:0}, at: srcu_read_lock include/linux/srcu.h:294 [inline]
+ #3: ffff888038241b48 (&kvm->srcu){.?.+}-{0:0}, at: kvm_xen_set_evtchn_fast+0x1be/0x990 arch/x86/kvm/xen.c:1827
+irq event stamp: 13272
+hardirqs last  enabled at (13271): [<ffffffff8b53b4b3>] __raw_spin_unlock_irq include/linux/spinlock_api_smp.h:187 [inline]
+hardirqs last  enabled at (13271): [<ffffffff8b53b4b3>] _raw_spin_unlock_irq+0x23/0x50 kernel/locking/spinlock.c:206
+hardirqs last disabled at (13272): [<ffffffff8b501aee>] sysvec_apic_timer_interrupt+0xe/0xc0 arch/x86/kernel/apic/apic.c:1062
+softirqs last  enabled at (6940): [<ffffffff81882fe0>] __local_bh_enable_ip+0x1a0/0x2b0 kernel/softirq.c:305
+softirqs last disabled at (6932): [<ffffffff891cda09>] local_bh_disable include/linux/bottom_half.h:20 [inline]
+softirqs last disabled at (6932): [<ffffffff891cda09>] __alloc_skb+0x189/0x7a0 net/core/skbuff.c:697
+Preemption disabled at:
+[<ffffffff81883b8e>] irq_enter_rcu+0x1e/0x1f0 kernel/softirq.c:668
+CPU: 0 UID: 0 PID: 5622 Comm: syz-executor363 Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+Call Trace:
+ <IRQ>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ __might_resched+0x329/0x480 kernel/sched/core.c:9194
+ rt_read_lock+0xa9/0x4b0 kernel/locking/spinlock_rt.c:248
+ kvm_xen_set_evtchn_fast+0x1f4/0x990 arch/x86/kvm/xen.c:1829
+ xen_timer_callback+0x109/0x220 arch/x86/kvm/xen.c:141
+ __run_hrtimer kernel/time/hrtimer.c:2065 [inline]
+ __hrtimer_run_queues+0x3a0/0xaf0 kernel/time/hrtimer.c:2122
+ hrtimer_interrupt+0x44a/0x900 kernel/time/hrtimer.c:2241
+ local_apic_timer_interrupt arch/x86/kernel/apic/apic.c:1051 [inline]
+ __sysvec_apic_timer_interrupt+0x102/0x430 arch/x86/kernel/apic/apic.c:1068
+ instr_sysvec_apic_timer_interrupt arch/x86/kernel/apic/apic.c:1062 [inline]
+ sysvec_apic_timer_interrupt+0xa1/0xc0 arch/x86/kernel/apic/apic.c:1062
+ </IRQ>
+ <TASK>
+ debugfs_remove+0x5b/0x70 fs/debugfs/inode.c:781
+ </TASK>
