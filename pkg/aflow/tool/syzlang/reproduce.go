@@ -31,6 +31,7 @@ type ReproduceResult struct {
 }
 
 type reproduceState struct {
+	AgentName    string
 	TargetOS     string
 	TargetArch   string
 	KernelSrc    string
@@ -41,6 +42,22 @@ type reproduceState struct {
 	Type         string
 	VM           json.RawMessage
 	Syzkaller    string
+}
+
+func (s reproduceState) targetConfig(sandbox string) crash.TargetConfig {
+	return crash.TargetConfig{
+		AgentName:    s.AgentName,
+		TargetArch:   s.TargetArch,
+		Syzkaller:    s.Syzkaller,
+		Image:        s.Image,
+		Type:         s.Type,
+		VM:           s.VM,
+		KernelSrc:    s.KernelSrc,
+		KernelObj:    s.KernelObj,
+		KernelCommit: s.KernelCommit,
+		KernelConfig: s.KernelConfig,
+		Sandbox:      sandbox,
+	}
 }
 
 func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (ReproduceResult, error) {
@@ -64,19 +81,8 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 	}
 
 	reproArgs := crash.ReproduceArgs{
-		TargetConfig: crash.TargetConfig{
-			TargetArch:   state.TargetArch,
-			Syzkaller:    state.Syzkaller,
-			Image:        state.Image,
-			Type:         state.Type,
-			VM:           state.VM,
-			KernelSrc:    state.KernelSrc,
-			KernelObj:    state.KernelObj,
-			KernelCommit: state.KernelCommit,
-			KernelConfig: state.KernelConfig,
-			Sandbox:      args.Sandbox,
-		},
-		ReproSyz: args.ReproSyz,
+		TargetConfig: state.targetConfig(args.Sandbox),
+		ReproSyz:     args.ReproSyz,
 	}
 
 	if err := reproArgs.Validate(); err != nil {

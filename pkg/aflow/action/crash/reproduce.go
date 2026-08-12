@@ -11,6 +11,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -23,6 +24,12 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+func init() {
+	// TODO: remove once callers in downstream packages use these helpers.
+	runtime.KeepAlive(LoadSeedProgramDetails)
+	runtime.KeepAlive(LoadCallErrors)
+}
 
 var ErrDidNotCrash = errors.New("reproducer did not crash")
 
@@ -181,7 +188,7 @@ func aggregateTestResults(validResults []instance.EnvTestResult,
 	}
 
 	if res.Report == nil && res.BootError == "" && firstCoverage != nil {
-		coverage, err := symbolize(args, firstCoverage)
+		coverage, err := symbolize(args.TargetConfig, firstCoverage)
 		if err != nil {
 			return res, fmt.Errorf("failed to symbolize coverage: %w", err)
 		}
@@ -204,6 +211,14 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
+// CallError represents execution error details for a single syscall in a program.
+type CallError struct {
+	Index    int    `jsonschema:"0-based index of the failed syscall."`
+	CallName string `jsonschema:"Name of the syscall that failed."`
+	Errno    int32  `jsonschema:"The raw error code (errno) returned."`
+	Error    string `jsonschema:"String representation of the error."`
+}
+
 type cachedExecution struct {
 	BugTitle       string
 	Report         string
@@ -211,14 +226,35 @@ type cachedExecution struct {
 	FaultInjection string
 	Error          string
 	Coverage       [][]symbolizer.Frame
+	CallErrors     []CallError
+	GeneratedSyz   string
 }
 
+// LoadCoverage retrieves the symbolized coverage frames from a cached execution.
 func LoadCoverage(ctx *aflow.Context, cachedID string) ([][]symbolizer.Frame, error) {
 	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
 	if err != nil {
 		return nil, err
 	}
 	return cached.Coverage, nil
+}
+
+// LoadSeedProgramDetails retrieves the generated syzkaller program from a cached execution.
+func LoadSeedProgramDetails(ctx *aflow.Context, cachedID string) (string, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return "", err
+	}
+	return cached.GeneratedSyz, nil
+}
+
+// LoadCallErrors retrieves the list of syscall error details from a cached execution.
+func LoadCallErrors(ctx *aflow.Context, cachedID string) ([]CallError, error) {
+	cached, err := aflow.RetrieveObject[cachedExecution](ctx, cachedID)
+	if err != nil {
+		return nil, err
+	}
+	return cached.CallErrors, nil
 }
 
 func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
@@ -254,6 +290,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		res.FaultInjection = testRes.FaultInjection
 		res.Error = testRes.BootError
 		res.Coverage = testRes.Coverage
+		res.GeneratedSyz = args.ReproSyz
 		return res, err
 	})
 	if err != nil {
@@ -279,7 +316,7 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 
 var makeSymbolizer = symbolizer.Make
 
-func symbolize(args ReproduceArgs, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+func symbolize(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, error) {
 	if len(coverage) == 0 {
 		return nil, nil
 	}
