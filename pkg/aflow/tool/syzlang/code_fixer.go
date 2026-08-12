@@ -5,6 +5,7 @@ package syzlang
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -62,6 +63,10 @@ var CodeFixer = &aflow.StructuredLLMTool[codeFixerState, CodeFixerArgs, CodeFixe
 	MaxIterations: 60,
 	Outputs:       aflow.ValidatedLLMToolOutputs[CodeFixerResult, codeFixerState, CodeFixerArgs](validateCodeFixerOutputs),
 	TaskType:      aflow.FormalReasoningTask,
+	PreExecute:    ResolveSyzlangDependencies,
+	ExtraVars: map[string]reflect.Type{
+		"StaticDefinitions": reflect.TypeFor[string](),
+	},
 	Description: "A subagent tool that takes a syzlang program and repeatedly executes it " +
 		"until it has no compilation or unacceptable runtime call errors. " +
 		"It can handle expected call errors described by the parent, but will fail/give up on unexpected/unfixable errors.",
@@ -203,6 +208,10 @@ All other call errors NOT matching this description are unacceptable, and you MU
 {{.ProgramIntentDescription}}
 Do NOT alter, remove, or swap core setup calls or subsystem types that would violate this intent.
 If fixing a call error requires violating this intent, set CodeFixerGiveUp = true.
+
+{{end}}{{if .StaticDefinitions}}Static definitions of syscalls and types referenced in the program:
+===
+{{.StaticDefinitions}}===
 
 {{end}}Generator's Syzlang Program:
 {{.SyzProgram}}`,
