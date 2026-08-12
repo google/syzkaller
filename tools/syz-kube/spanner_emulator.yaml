@@ -43,7 +43,7 @@ spec:
           echo "Waiting for Spanner emulator to become ready..."
           sleep 5
           export SPANNER_EMULATOR_HOST=localhost:9010
-          go run /syzkaller/tools/syz-kube/spanner-init -spanner-uri=projects/syzkaller/instances/syzbot/databases/coverage
+          go run /syzkaller/tools/syz-kube/spanner-init -spanner-uri=projects/syzkaller/instances/syzkaller/databases/coverage
           echo "Spanner database initialized. Initializer entering standby..."
           exec sleep infinity
         volumeMounts:

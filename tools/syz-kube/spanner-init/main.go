@@ -17,7 +17,7 @@ import (
 
 func main() {
 	var (
-		flagURI = flag.String("spanner-uri", "projects/syzkaller/instances/syzbot/databases/coverage",
+		flagURI = flag.String("spanner-uri", "projects/syzkaller/instances/syzkaller/databases/coverage",
 			"full Spanner database URI")
 	)
 	flag.Parse()

@@ -32,14 +32,24 @@ func initCoverageDB() {
 		// Use setCoverageDBClient to specify the coveragedb mock or emulator in every test.
 		return
 	}
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
-		projectID = appengine.AppID(context.Background())
+	database := os.Getenv("SPANNER_DATABASE_URI")
+	if database == "" {
+		projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+		if projectID == "" {
+			projectID = appengine.AppID(context.Background())
+		}
+		if projectID == "" {
+			projectID = "syzkaller"
+		}
+		instanceName := "syzbot"
+		if os.Getenv("SPANNER_EMULATOR_HOST") != "" || appengine.IsDevAppServer() {
+			instanceName = "syzkaller"
+		}
+		if envInstance := os.Getenv("SPANNER_INSTANCE"); envInstance != "" {
+			instanceName = envInstance
+		}
+		database = "projects/" + projectID + "/instances/" + instanceName + "/databases/coverage"
 	}
-	if projectID == "" {
-		projectID = "syzkaller"
-	}
-	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
 	var err error
 	coverageDBClient, err = spanner.NewClient(context.Background(), database)
 	if err != nil {
@@ -87,9 +97,6 @@ const maxPeriodsOnThePage = 12
 func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
 	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
 	periodType := getParam[string](r, PeriodType.ParamName())
-	if periodType == "" {
-		periodType = coveragedb.MonthPeriod
-	}
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
 		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
 			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
