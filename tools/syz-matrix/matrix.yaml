@@ -1,0 +1,139 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+base:
+  features:
+    - upstream
+    - timeouts_native
+    - lsm
+    - apparmor
+    - bpfjit
+  cmdline: "root=/dev/sda1 console=ttyS0 earlyprintk=serial net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1"
+  qemu_args: "-enable-kvm -m 2048 -smp 2"
+
+# 1. Mutually exclusive axes (Pick exactly 1 per axis according to weights)
+axes:
+  platform:
+    - name: "qemu_x86_64"
+      weight: 0.60
+      features:
+        - x86_64
+        - gcc
+      qemu_args: "-enable-kvm -m 2048 -smp 2"
+
+    - name: "qemu_arm64"
+      weight: 0.20
+      features:
+        - arm64
+        - arm64_emu
+        - clang
+        - reduced
+      qemu_args: "-machine virt -cpu max -m 2048 -smp 2"
+
+    - name: "gce_x86_64"
+      weight: 0.10
+      features:
+        - x86_64
+        - clang
+        - gce
+
+    - name: "gce_arm64"
+      weight: 0.10
+      features:
+        - arm64
+        - arm64_gce
+        - clang
+
+  sanitizer:
+    - name: "kasan"
+      weight: 0.50
+      features:
+        - kasan
+        - kfence
+      cmdline: "kasan_multi_shot kfence.sample_interval=1"
+
+    - name: "kcsan"
+      weight: 0.20
+      features:
+        - kcsan
+        - nonoise
+        - onlynet
+      cmdline: "kcsan.skip_watch=0"
+
+    - name: "kmsan"
+      weight: 0.20
+      features:
+        - kmsan
+        - nonoise
+      cmdline: "kmsan.panic=1"
+
+    - name: "baseline"
+      weight: 0.10
+      features:
+        - baseline
+
+  preemption:
+    - name: "preempt_rt"
+      weight: 0.40
+      features:
+        - preempt_rt
+      cmdline: "threadirqs"
+
+    - name: "preempt_dynamic"
+      weight: 0.40
+      features: []
+
+    - name: "preempt_none"
+      weight: 0.20
+      features: []
+
+# 2. Independent probabilistic overlays (Evaluated independently with probability [0.0, 1.0])
+overlays:
+  lockdep:
+    prob: 0.40
+    description: "Lock dependency engine and atomic sleep validation"
+    features:
+      - lockdep
+
+  memory_debug:
+    prob: 0.35
+    description: "Aggressive slab/pagealloc and kmemleak debugging"
+    features:
+      - debug
+    cmdline: "slub_debug=FZP page_owner=on"
+
+  storage_filesystems:
+    prob: 0.35
+    description: "Deep filesystems (Btrfs/XFS/Bcachefs/ext4/F2FS) and NVMe controller"
+    features:
+      - filesystems
+    platforms:
+      - qemu_x86_64
+      - qemu_arm64
+    qemu_args: "-device nvme,serial=deadbeef,drive=nvm0 -drive file=/tmp/nvme.raw,if=none,id=nvm0,format=raw"
+
+  usb_sound:
+    prob: 0.25
+    description: "Emulated USB host controllers and Intel HDA sound architecture"
+    features:
+      - sound
+      - usb
+    platforms:
+      - qemu_x86_64
+    qemu_args: "-device qemu-xhci -device intel-hda -device hda-duplex"
+
+  net_advanced:
+    prob: 0.30
+    description: "Advanced networking protocols (SCTP, CAN, TIPC, BPF, Netfilter)"
+    features:
+      - net
+      - net-extra
+      - bpf
+
+  numa_topology:
+    prob: 0.25
+    description: "Multi-node NUMA memory topology emulation"
+    platforms:
+      - qemu_x86_64
+    cmdline: "numa=fake=4"
+    qemu_args: "-smp 4,sockets=2,cores=2 -numa node,nodeid=0,cpus=0-1 -numa node,nodeid=1,cpus=2-3"
