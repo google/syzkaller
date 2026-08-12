@@ -464,11 +464,16 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 			// These are internal things like .git, etc.
 		} else if entry.IsDir() {
 			subdirs = append(subdirs, entry.Name())
-		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) {
+		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) || isDocumentationFile(entry.Name()) {
 			files = append(files, entry.Name())
 		}
 	}
 	return true, subdirs, files, err
+}
+
+func isDocumentationFile(file string) bool {
+	ext := filepath.Ext(file)
+	return ext == ".txt" || ext == ".rst" || ext == ".md"
 }
 
 func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {
