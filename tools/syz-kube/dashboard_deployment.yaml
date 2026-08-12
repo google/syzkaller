@@ -41,7 +41,7 @@ spec:
             --admin_host=0.0.0.0 \
             --admin_port=8000 \
             --enable_host_checking=false \
-            --clear_datastore=true \
+            --datastore_path=/syzkaller/.datastore/datastore.db \
             --datastore_consistency_policy=consistent \
             /syzkaller/dashboard/app/app.yaml
         ports:
