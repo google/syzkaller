@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/tools/clang/codesearch"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/codesearch"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,4 +107,28 @@ func TestFindReferencesInvalidRange(t *testing.T) {
 	require.Len(t, info, 2)
 	require.Empty(t, info[0].SourceSnippet)
 	require.Empty(t, info[1].SourceSnippet)
+}
+
+func TestIsDocumentationFile(t *testing.T) {
+	docFiles := []string{
+		"Documentation/admin-guide/index.rst",
+		"README.md",
+		"notes.txt",
+	}
+	for _, file := range docFiles {
+		t.Run(file, func(t *testing.T) {
+			require.True(t, isDocumentationFile(file))
+		})
+	}
+
+	nonDocFiles := []string{
+		"source.c",
+		"header.h",
+		"Makefile",
+	}
+	for _, file := range nonDocFiles {
+		t.Run(file, func(t *testing.T) {
+			require.False(t, isDocumentationFile(file))
+		})
+	}
 }
