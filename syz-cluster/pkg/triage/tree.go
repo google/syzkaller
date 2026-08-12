@@ -4,6 +4,7 @@
 package triage
 
 import (
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -66,9 +67,19 @@ func FindTreeByName(trees []*api.Tree, name string) *api.Tree {
 	}
 	return nil
 }
-func IsStableTree(tree *api.Tree) bool {
+
+func StableTree(trees []*api.Tree, series *api.Series) (*api.Tree, error) {
+	tree := FindTreeByName(trees, "stable")
 	if tree == nil {
-		return false
+		return nil, fmt.Errorf("stable tree not found")
 	}
-	return tree.Type == api.TreeTypeStable
+	retTree := *tree
+	retTree.Branch = series.XKernelTestBranch
+	return &retTree, nil
+}
+
+func NonStableTrees(trees []*api.Tree, series *api.Series) []*api.Tree {
+	return slices.DeleteFunc(slices.Clone(trees), func(tree *api.Tree) bool {
+		return tree.Type == api.TreeTypeStable
+	})
 }
