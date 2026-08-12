@@ -600,6 +600,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	trace := new(bytes.Buffer)
 	dt := &debugtracer.GenericTracer{
 		TraceWriter: io.MultiWriter(trace, log.VerboseWriter(1)),
+		WithTime:    true,
 	}
 	defer func() {
 		resp.Log = trace.Bytes()
