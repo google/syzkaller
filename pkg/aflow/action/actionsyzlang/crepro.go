@@ -6,9 +6,9 @@ package actionsyzlang
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -26,8 +26,6 @@ type createCReproArgs struct {
 type createCReproResult struct {
 	SimplifiedCRepro string
 }
-
-var stringLiteralSeq = regexp.MustCompile(`"(?:[^"\\]|\\.)*"(?:\s*"(?:[^"\\]|\\.)*")*`)
 
 func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult, error) {
 	if args.ReproSyz == "" {
@@ -53,7 +51,7 @@ func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult
 const maxStringLiteralSeqLen = 128
 
 func truncateLargeData(cRepro string) string {
-	return stringLiteralSeq.ReplaceAllStringFunc(cRepro, func(match string) string {
+	return syzspec.StringLiteralSeq.ReplaceAllStringFunc(cRepro, func(match string) string {
 		if len(match) > maxStringLiteralSeqLen {
 			return `"... [truncated large byte array] ..."`
 		}

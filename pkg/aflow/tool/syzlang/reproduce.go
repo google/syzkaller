@@ -65,13 +65,14 @@ func reproduce(ctx *aflow.Context, state reproduceState, args ReproduceArgs) (Re
 		return ReproduceResult{}, aflow.BadCallError("syz program cannot be empty")
 	}
 
+	args.ReproSyz = ctx.RestoreBlobs(args.ReproSyz)
 	pt, err := prog.GetTarget(state.TargetOS, state.TargetArch)
 	if err != nil {
 		return ReproduceResult{}, err
 	}
 	_, err = pt.Deserialize([]byte(args.ReproSyz), prog.Strict)
 	if err != nil {
-		return ReproduceResult{}, aflow.BadCallError("%v", err)
+		return ReproduceResult{}, aflow.BadCallError("%v", ctx.ReplaceBlobs(err.Error()))
 	}
 
 	if state.Image == "" || state.VM == nil {

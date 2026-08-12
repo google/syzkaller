@@ -69,7 +69,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	// Run 1: without strace.
-	res1, err1 := RunTest(reproduceArgs, workdir, false)
+	res1, err1 := RunTest(ctx, reproduceArgs, workdir, false)
 	if err1 != nil {
 		return RunCReproResult{}, err1
 	}
@@ -90,7 +90,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	// Run 2: with strace (only if first run didn't crash and didn't have boot error)
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
-		res2, err2 := RunTest(reproduceArgs, workdir, false)
+		res2, err2 := RunTest(ctx, reproduceArgs, workdir, false)
 		if err2 != nil {
 			return result, err2 // Return what we had from Run 1, plus the error.
 		}

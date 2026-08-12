@@ -16,6 +16,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -202,6 +203,7 @@ type Context struct {
 	runnerDebug    bool
 	tokenLimit     int
 	consumedTokens int64
+	blobs          syzspec.BlobStore
 	stubContext
 }
 
@@ -210,6 +212,16 @@ type stubContext struct {
 	sleep           func(time.Duration)
 	generateContent func(string, *backend.GenerateConfig, []*backend.Message) (
 		*backend.GenerateResponse, error)
+}
+
+// ReplaceBlobs replaces large string literal blobs in content with short placeholders.
+func (ctx *Context) ReplaceBlobs(content string) string {
+	return ctx.blobs.ReplaceBlobs(content)
+}
+
+// RestoreBlobs restores all placeholders in content back to their original blobs.
+func (ctx *Context) RestoreBlobs(content string) string {
+	return ctx.blobs.RestoreBlobs(content)
 }
 
 // runWithState executes the given function with the context's state temporarily
