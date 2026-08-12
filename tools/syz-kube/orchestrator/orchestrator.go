@@ -443,14 +443,19 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 	backoffLimit := int32(0)
 	hostPathDir := corev1.HostPathDirectory
 
+	today := time.Now().UTC().Format("2006-01-02")
 	cmd := "export SPANNER_EMULATOR_HOST=cloud-spanner-emulator.syzkube.svc.cluster.local:9010\n" +
 		"export STORAGE_EMULATOR_HOST=http://fake-gcs-server.syzkube.svc.cluster.local:4443\n" +
+		"export GOOGLE_CLOUD_PROJECT=syzkaller\n" +
 		"echo \"Running coverage aggregation for tag: " + tag + "\"\n" +
 		"go run /syzkaller/tools/syz-covermerger " +
 		"-workdir=/tmp/cover-workdir " +
 		"-repo=/projects/linux " +
 		"-commit=HEAD " +
-		"-namespace=upstream\n"
+		"-namespace=upstream " +
+		"-date-to=" + today + " " +
+		"-duration=30 " +
+		"-to-dashapi=http://syz-dashboard.syzkube.svc.cluster.local:8080\n"
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
