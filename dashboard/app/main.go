@@ -2475,6 +2475,8 @@ func loadManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 			coverURL = asset.DownloadURL
 		} else if getConfig(ctx).CoverPath != "" {
 			coverURL = getConfig(ctx).CoverPath + mgr.Name + ".html"
+		} else if link != "" {
+			coverURL = link + "/cover"
 		}
 		ui := &uiManager{
 			Now:                   timeNow(ctx),

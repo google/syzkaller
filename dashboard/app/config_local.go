@@ -21,8 +21,13 @@ var localConfig = &GlobalConfig{
 			DisplayTitle: "Linux",
 			AccessLevel:  AccessPublic,
 			Key:          "upstreamkey12345678901234567890",
+			Coverage: &CoverageConfig{
+				DashboardClientName: "coverage-merger",
+				WebGitURI:           "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+			},
 			Clients: map[string]APIClient{
 				"local_ui_client": {Key: "localuipasswordlocaluipasswordlocaluipassword"},
+				"coverage-merger": {Key: "coveragemergerkey1234567890123456"},
 			},
 			Repos: []KernelRepo{
 				{
