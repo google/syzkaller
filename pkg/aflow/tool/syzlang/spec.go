@@ -22,8 +22,8 @@ a test seed file (e.g. test/syz_mount_xxxx_0.txt),
 or specification/header files from the repository (executor/ and docs/ directories).
 
 CRITICAL INSTRUCTION: Do NOT use this tool for Linux kernel files, standard POSIX headers (like
-sys/socket.h), or runtime filesystem paths (like /sys/class/gpio/export). This tool is ONLY
-for syzkaller specification/metadata/code files (descriptions, seeds, or executor headers).
+sys/socket.h), or runtime filesystem paths (like /sys/class/gpio/export). This tool is ONLY for 
+syzkaller specification/metadata/docs/executor header files. It cannot be used to read Go source files.
 
 Description files contain syscall definitions. Test seeds contain working examples of 
 syzkaller programs. These seeds (e.g., test/vusb_cdc_ecm) often serve as a starting point 
@@ -36,9 +36,8 @@ defined in the syzkaller executor. Reading these headers allows you to see exact
 complex arguments or opaque pointers are parsed and mapped to real kernel interactions.
 Kernel docs from the docs/ directory can also be read, as well as subsystem skills like skills/kvm.md.
 
-CRITICAL INSTRUCTION: When querying a file in the sys/<os> or sys/<os>/test directory, you MUST
-provide ONLY the base filename or the test/ prefix (e.g. use "vusb.txt", NOT "sys/linux/vusb.txt" 
-or "/path/to/sys/linux/vusb.txt").
+CRITICAL INSTRUCTION: When querying files, you MUST
+provide ONLY the base filename (e.g. use "vusb.txt") or the test/ prefix.
 
 You can read a specific file sequentially by providing File and FirstLine. The tool returns at most %d lines at a time.
 If you need more, you need to call the tool several times.
@@ -61,9 +60,8 @@ CRITICAL INSTRUCTION: The 'Expression' parameter is a regular expression matched
 inside the files. It is NOT matched against the filenames. Do NOT use it to search for filenames or paths
 (e.g. do NOT set 'Expression' to "test/.*tun").
 
-CRITICAL INSTRUCTION: When querying a file in the sys/<os> or sys/<os>/test directory, you MUST provide
-ONLY the base filename or the test/ prefix (e.g. use "vusb.txt", NOT "sys/linux/vusb.txt" 
-or "/path/to/sys/linux/vusb.txt").
+CRITICAL INSTRUCTION: When querying a file, you MUST provide
+ONLY the base filename (e.g. use "vusb.txt") or the test/ prefix.
 
 If you want to search inside test seeds (the test/ directory) for relevant syscalls or device names,
 you MUST set 'PathPrefix' to "test". Otherwise, 'syz-grepper' will search across all description files
