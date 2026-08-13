@@ -76,7 +76,7 @@ func MakeMonoRepo(workdir string) FileVersProvider {
 		repoCommits: map[RepoCommit]struct{}{},
 	}
 	var err error
-	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", repoPath); err != nil {
+	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", repoPath, vcs.OptDontSandbox); err != nil {
 		panic(fmt.Sprintf("failed to create/open repo at %s: %s", repoPath, err.Error()))
 	}
 	return mr

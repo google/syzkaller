@@ -466,6 +466,7 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 	cmd := "export SPANNER_EMULATOR_HOST=cloud-spanner-emulator.syzkube.svc.cluster.local:9010\n" +
 		"export STORAGE_EMULATOR_HOST=http://fake-gcs-server.syzkube.svc.cluster.local:4443\n" +
 		"export GOOGLE_CLOUD_PROJECT=syzkaller\n" +
+		"export SYZ_DISABLE_SANDBOXING=yes\n" +
 		"echo \"Running coverage aggregation for tag: " + tag + "\"\n" +
 		"go run /syzkaller/tools/syz-covermerger " +
 		"-workdir=/tmp/cover-workdir " +
