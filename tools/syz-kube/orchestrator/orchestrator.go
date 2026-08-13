@@ -400,16 +400,13 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 		VM              ManagerVMConfig `json:"vm"`
 	}
 
-	cfgKey := fmt.Sprintf("manager-%d.cfg", workerIndex)
 	var mcfg ManagerConfigJSON
-	if raw, ok := cm.Data[cfgKey]; ok {
-		_ = json.Unmarshal([]byte(raw), &mcfg)
-	} else if raw, ok := cm.Data["manager.cfg"]; ok {
+	if raw, ok := cm.Data["manager.cfg"]; ok {
 		_ = json.Unmarshal([]byte(raw), &mcfg)
 	}
 
-	// Update targeted fields.
-	mcfg.Name = fmt.Sprintf("syz-k8s-manager-%d", workerIndex)
+	// Update targeted fields. Base name is dynamically overridden per-pod by $HOSTNAME at startup.
+	mcfg.Name = "syz-k8s-manager"
 	mcfg.Target = "linux/amd64"
 	mcfg.HTTP = "0.0.0.0:50002"
 	mcfg.Workdir = "/workdir"
@@ -444,12 +441,8 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 		return err
 	}
 
-	if cm.Data == nil {
-		cm.Data = make(map[string]string)
-	}
-	cm.Data[cfgKey] = string(updatedBytes)
-	if workerIndex == 0 {
-		cm.Data["manager.cfg"] = string(updatedBytes)
+	cm.Data = map[string]string{
+		"manager.cfg": string(updatedBytes),
 	}
 
 	if _, err := o.client.CoreV1().ConfigMaps(o.namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {

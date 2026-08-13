@@ -99,9 +99,8 @@ func TestUpdateManagerConfigAndRestart(t *testing.T) {
 
 	updatedCM, err := fakeClient.CoreV1().ConfigMaps("syzkube").Get(ctx, "syz-manager-config", metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Contains(t, updatedCM.Data["manager-0.cfg"], "new-tag-123")
-	require.Contains(t, updatedCM.Data["manager-0.cfg"], "console=ttyS0")
 	require.Contains(t, updatedCM.Data["manager.cfg"], "new-tag-123")
+	require.Contains(t, updatedCM.Data["manager.cfg"], "console=ttyS0")
 }
 
 func TestScheduleCoverageAggregationJob(t *testing.T) {

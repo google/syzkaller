@@ -27,14 +27,9 @@ spec:
         - |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update && apt-get install -y --no-install-recommends qemu-system-x86
-          POD_INDEX=$(echo $HOSTNAME | rev | cut -d'-' -f1 | rev)
-          echo "Starting real syz-manager fuzzing instance for pod index $POD_INDEX ($HOSTNAME)..."
-          if [ -f "/etc/syzkaller/manager-${POD_INDEX}.cfg" ]; then
-            CFG="/etc/syzkaller/manager-${POD_INDEX}.cfg"
-          else
-            CFG="/etc/syzkaller/manager.cfg"
-          fi
-          /syzkaller/bin/syz-manager -config "$CFG"
+          echo "Starting real syz-manager fuzzing instance for pod $HOSTNAME..."
+          sed "s/\"name\": \"[^\"]*\"/\"name\": \"$HOSTNAME\"/" /etc/syzkaller/manager.cfg > /tmp/manager.cfg
+          /syzkaller/bin/syz-manager -config /tmp/manager.cfg
         env:
         - name: SYZ_PUBLIC_WEB_ADDR
           value: "localhost:50002"
