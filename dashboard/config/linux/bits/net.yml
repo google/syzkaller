@@ -16,6 +16,9 @@ config:
  - XFRM_INTERFACE
  - XFRM_SUB_POLICY
  - XFRM_STATISTICS
+ - XFRM_IPTFS: [v6.14]
+ # Null crypto lets the fuzzer construct plaintext ESP payloads for IP-TFS.
+ - CRYPTO_NULL: [v6.14]
  - XFRM_USER_COMPAT: [v5.10, x86_64]
  - NET_KEY
  - NET_KEY_MIGRATE
