@@ -1,0 +1,2 @@
+ALTER TABLE Findings ADD COLUMN ConfirmedByAI BOOL;
+ALTER TABLE Findings ADD COLUMN TriageTrajectoryURI STRING(512);

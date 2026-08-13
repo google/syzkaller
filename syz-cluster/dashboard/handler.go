@@ -575,6 +575,9 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) e
 		return err
 	case "c_repro":
 		return h.streamBlob(w, finding.CReproURI)
+	case "triage_trajectory":
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return h.streamBlob(w, finding.TriageTrajectoryURI)
 	default:
 		return fmt.Errorf("%w: unknown key value", errBadRequest)
 	}
