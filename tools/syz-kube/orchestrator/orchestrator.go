@@ -474,6 +474,7 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 		"-namespace=upstream " +
 		"-date-to=" + today + " " +
 		"-duration=30 " +
+		"-raw-coverage-dir=/syzkaller/export/coverage " +
 		"-to-dashapi=http://syz-dashboard.syzkube.svc.cluster.local:8080\n"
 
 	job := &batchv1.Job{

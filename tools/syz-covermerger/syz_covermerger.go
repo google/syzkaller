@@ -4,11 +4,17 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"cloud.google.com/go/civil"
@@ -35,6 +41,8 @@ var (
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
 	flagToGCS               = flag.String("to-gcs", "", "[optional] gcs destination to save jsonl to")
+	flagRawCoverageDir      = flag.String("raw-coverage-dir", "",
+		"[optional] directory containing local *.jsonl.gz raw coverage files")
 )
 
 func makeProvider() covermerger.FileVersProvider {
@@ -54,6 +62,83 @@ func main() {
 	}
 }
 
+func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.jsonl.gz"))
+	if err != nil || len(files) == 0 {
+		return nil, fmt.Errorf("no coverage files found in %s: %w", dir, err)
+	}
+
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		cw := csv.NewWriter(pw)
+		defer cw.Flush()
+
+		_ = cw.Write([]string{
+			covermerger.KeyKernelRepo,
+			covermerger.KeyKernelCommit,
+			covermerger.KeyFilePath,
+			covermerger.KeyFuncName,
+			covermerger.KeyStartLine,
+			covermerger.KeyHitCount,
+			covermerger.KeyManager,
+		})
+
+		type rawRecord struct {
+			FilePath string `json:"file_path"`
+			FuncName string `json:"func_name"`
+			SL       int    `json:"sl"`
+			HitCount int    `json:"hit_count"`
+		}
+
+		for _, file := range files {
+			f, err := os.Open(file)
+			if err != nil {
+				continue
+			}
+			gz, err := gzip.NewReader(f)
+			if err != nil {
+				f.Close()
+				continue
+			}
+
+			manager := "syz-manager-0"
+			base := filepath.Base(file)
+			if _, rest, ok := strings.Cut(base, "-manager-"); ok {
+				idxPart, _, _ := strings.Cut(rest, "-")
+				manager = fmt.Sprintf("syz-manager-%s", idxPart)
+			}
+
+			dec := json.NewDecoder(gz)
+			for {
+				var r rawRecord
+				if err := dec.Decode(&r); err != nil {
+					break
+				}
+				cleanPath := r.FilePath
+				if _, after, ok := strings.Cut(cleanPath, "tmp/kernel-build/kernel/"); ok {
+					cleanPath = after
+				} else if _, after, ok := strings.Cut(cleanPath, "/kernel/"); ok {
+					cleanPath = after
+				}
+				_ = cw.Write([]string{
+					repo,
+					commit,
+					cleanPath,
+					r.FuncName,
+					strconv.Itoa(r.SL),
+					strconv.Itoa(r.HitCount),
+					manager,
+				})
+			}
+			gz.Close()
+			f.Close()
+		}
+	}()
+
+	return pr, nil
+}
+
 func do() error {
 	defer tool.Init()()
 	config := &covermerger.Config{
@@ -71,15 +156,23 @@ func do() error {
 		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 	}
 	dateFrom = dateTo.AddDays(-int(*flagDuration))
-	csvReader, err := covermerger.InitNsRecords(context.Background(),
-		*flagNamespace,
-		*flagFilePathPrefix,
-		"",
-		dateFrom,
-		dateTo,
-	)
-	if err != nil {
-		panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
+	var csvReader io.ReadCloser
+	if *flagRawCoverageDir != "" {
+		csvReader, err = initLocalRecords(*flagRawCoverageDir, *flagRepo, *flagCommit)
+		if err != nil {
+			panic(fmt.Sprintf("failed to initLocalRecords: %v", err.Error()))
+		}
+	} else {
+		csvReader, err = covermerger.InitNsRecords(context.Background(),
+			*flagNamespace,
+			*flagFilePathPrefix,
+			"",
+			dateFrom,
+			dateTo,
+		)
+		if err != nil {
+			panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
+		}
 	}
 	defer csvReader.Close()
 	var wc io.WriteCloser
