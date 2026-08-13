@@ -33,9 +33,9 @@ func TestCoverageFiles(t *testing.T) {
 		return map[string]any{"Coverage": dummyCov}, nil
 	})
 	require.NoError(t, err)
-	res, err := getCoverageFiles(ctx, reproduceState{TargetOS: "linux", TargetArch: "amd64"}, CoverageFilesArgs{
-		ExecutionCachedID: reproExecCachedID,
-	})
+	res, err := getCoverageFiles(ctx,
+		reproduceState{TargetOS: "linux", TargetArch: "amd64"},
+		CoverageFilesArgs{ExecutionCachedID: reproExecCachedID})
 	require.NoError(t, err)
 
 	require.Equal(t, []string{"kernel/bar.c", "kernel/foo.c"}, res.Files)
@@ -468,4 +468,44 @@ func TestIsNoiseFunction(t *testing.T) {
 			require.Equal(t, tt.want, isNoiseFunction(tt.name))
 		})
 	}
+}
+
+func TestCheckPCReached(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+
+	dummyCov := [][]symbolizer.Frame{
+		{
+			{PC: 0x100, Func: "foo", File: "kernel/foo.c", Line: 10},
+			{PC: 0x200, Func: "bar", File: "kernel/bar.c", Line: 20},
+		},
+	}
+
+	_, reproExecCachedID, err := aflow.CacheObject(ctx, "repro", "check-pc-desc", func() (map[string]any, error) {
+		return map[string]any{"Coverage": dummyCov}, nil
+	})
+	require.NoError(t, err)
+
+	// Test 1: PCs in state matched.
+	res, err := checkPCReached(ctx, checkPCState{PCs: []string{"0x200"}}, CheckPCReachedArgs{
+		ExecutionCachedID: reproExecCachedID,
+	})
+	require.NoError(t, err)
+	require.True(t, res.Reached)
+
+	// Test 2: PC not reached.
+	res, err = checkPCReached(ctx, checkPCState{PCs: []string{"0x999"}}, CheckPCReachedArgs{
+		ExecutionCachedID: reproExecCachedID,
+	})
+	require.NoError(t, err)
+	require.False(t, res.Reached)
+
+	// Test 3: Missing ExecutionCachedID.
+	_, err = checkPCReached(ctx, checkPCState{PCs: []string{"0x100"}}, CheckPCReachedArgs{})
+	require.Error(t, err)
+
+	// Test 4: Missing target PCs in state.
+	_, err = checkPCReached(ctx, checkPCState{}, CheckPCReachedArgs{
+		ExecutionCachedID: reproExecCachedID,
+	})
+	require.Error(t, err)
 }
