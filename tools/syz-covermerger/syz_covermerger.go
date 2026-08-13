@@ -72,7 +72,7 @@ func main() {
 }
 
 func getGitHead(dir string) string {
-	cmd := exec.Command("git", "-C", dir, "rev-parse", "HEAD")
+	cmd := exec.Command("git", "-c", "safe.directory=*", "-C", dir, "rev-parse", "HEAD")
 	out, err := cmd.Output()
 	if err != nil {
 		return ""
