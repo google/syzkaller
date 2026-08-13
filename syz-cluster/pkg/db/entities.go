@@ -171,17 +171,19 @@ type SessionTestStep struct {
 }
 
 type Finding struct {
-	ID              string           `spanner:"ID"`
-	SessionID       string           `spanner:"SessionID"`
-	TestName        string           `spanner:"TestName"`
-	Title           string           `spanner:"Title"`
-	ReportURI       string           `spanner:"ReportURI"`
-	LogURI          string           `spanner:"LogURI"`
-	SyzReproURI     string           `spanner:"SyzReproURI"`
-	SyzReproOptsURI string           `spanner:"SyzReproOptsURI"`
-	CReproURI       string           `spanner:"CReproURI"`
-	InvalidatedAt   spanner.NullTime `spanner:"InvalidatedAt"`
-	CreatedAt       spanner.NullTime `spanner:"CreatedAt"`
+	ID                  string           `spanner:"ID"`
+	SessionID           string           `spanner:"SessionID"`
+	TestName            string           `spanner:"TestName"`
+	Title               string           `spanner:"Title"`
+	ReportURI           string           `spanner:"ReportURI"`
+	LogURI              string           `spanner:"LogURI"`
+	SyzReproURI         string           `spanner:"SyzReproURI"`
+	SyzReproOptsURI     string           `spanner:"SyzReproOptsURI"`
+	CReproURI           string           `spanner:"CReproURI"`
+	InvalidatedAt       spanner.NullTime `spanner:"InvalidatedAt"`
+	CreatedAt           spanner.NullTime `spanner:"CreatedAt"`
+	ConfirmedByAI       spanner.NullBool `spanner:"ConfirmedByAI"`
+	TriageTrajectoryURI string           `spanner:"TriageTrajectoryURI"`
 }
 
 func (f *Finding) SetInvalidatedAt(t time.Time) {
