@@ -11,6 +11,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 )
 
 type Sig [sha1.Size]byte
@@ -40,6 +42,22 @@ func Hash(pieces ...any) Sig {
 func String(pieces ...any) string {
 	sig := Hash(pieces...)
 	return sig.String()
+}
+
+// File computes the SHA-1 hash of a file by streaming its contents.
+func File(path string) (Sig, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return Sig{}, err
+	}
+	defer f.Close()
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return Sig{}, err
+	}
+	var sig Sig
+	copy(sig[:], h.Sum(nil))
+	return sig, nil
 }
 
 func (sig *Sig) String() string {
