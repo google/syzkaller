@@ -19,6 +19,8 @@ const (
 	WorkflowRepro              = WorkflowType("repro")
 	WorkflowReproC             = WorkflowType("repro-c")
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
+	WorkflowSeedGen            = WorkflowType("seed-gen")
+	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
 )
 
 // Outputs of various workflow types.
@@ -162,4 +164,11 @@ type PatchTriageResult struct {
 	FocusSymbols  []string
 	EnableConfigs []string
 	Reasoning     string
+}
+
+type SeedGenOutputs struct {
+	SeedSyz string
+	Success bool
+	GiveUp  bool
+	Reason  string
 }
