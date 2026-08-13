@@ -462,21 +462,38 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 	backoffLimit := int32(0)
 	hostPathDir := corev1.HostPathDirectory
 
-	today := time.Now().UTC().Format("2006-01-02")
+	now := time.Now().UTC()
+	today := now.Format("2006-01-02")
+	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC)
+	monthTo := lastDayOfMonth.Format("2006-01-02")
+	monthDays := lastDayOfMonth.Day()
+
 	cmd := "export SPANNER_EMULATOR_HOST=cloud-spanner-emulator.syzkube.svc.cluster.local:9010\n" +
 		"export STORAGE_EMULATOR_HOST=http://fake-gcs-server.syzkube.svc.cluster.local:4443\n" +
 		"export GOOGLE_CLOUD_PROJECT=syzkaller\n" +
 		"export SYZ_DISABLE_SANDBOXING=yes\n" +
 		"export PATH=/opt/git/bin:/usr/local/go/bin:$PATH\n" +
 		"git config --global --add safe.directory '*'\n" +
-		"echo \"Running coverage aggregation for tag: " + tag + "\"\n" +
+		"echo \"Running daily coverage aggregation for tag: " + tag + "\"\n" +
 		"go run /syzkaller/tools/syz-covermerger " +
 		"-workdir=/tmp/cover-workdir " +
 		"-repo=/projects/linux " +
 		"-commit=HEAD " +
 		"-namespace=upstream " +
 		"-date-to=" + today + " " +
-		"-duration=30 " +
+		"-duration=1 " +
+		"-raw-coverage-dir=/syzkaller/export/coverage " +
+		"-dashboard-client-name=coverage-merger " +
+		"-dashboard-key=coveragemergerkey1234567890123456 " +
+		"-to-dashapi=http://syz-dashboard.syzkube.svc.cluster.local:8080\n" +
+		"echo \"Running monthly coverage aggregation for tag: " + tag + "\"\n" +
+		"go run /syzkaller/tools/syz-covermerger " +
+		"-workdir=/tmp/cover-workdir " +
+		"-repo=/projects/linux " +
+		"-commit=HEAD " +
+		"-namespace=upstream " +
+		"-date-to=" + monthTo + " " +
+		fmt.Sprintf("-duration=%d ", monthDays) +
 		"-raw-coverage-dir=/syzkaller/export/coverage " +
 		"-dashboard-client-name=coverage-merger " +
 		"-dashboard-key=coveragemergerkey1234567890123456 " +
