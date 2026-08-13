@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,12 +27,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 )
 
 // Orchestrator coordinates kernel builds, bisections, and manager deployments on Kubernetes.
 type Orchestrator struct {
-	client    kubernetes.Interface
-	namespace string
+	client       kubernetes.Interface
+	namespace    string
+	activeTags   map[int]string
+	activeTagsMu sync.Mutex
 }
 
 // BuildConfig holds parameters for launching a kernel build job.
@@ -90,8 +94,9 @@ func NewOrchestrator(kubeconfigPath, namespace string) (*Orchestrator, error) {
 	}
 
 	return &Orchestrator{
-		client:    clientset,
-		namespace: namespace,
+		client:     clientset,
+		namespace:  namespace,
+		activeTags: make(map[int]string),
 	}, nil
 }
 
@@ -366,10 +371,6 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 	ctx context.Context, workerIndex int, tag, cmdline, qemuArgs string,
 ) error {
 	configMapName := "syz-manager-config"
-	cm, err := o.client.CoreV1().ConfigMaps(o.namespace).Get(ctx, configMapName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get configmap %s: %w", configMapName, err)
-	}
 
 	type ManagerVMConfig struct {
 		Count    int    `json:"count"`
@@ -400,53 +401,63 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 		VM              ManagerVMConfig `json:"vm"`
 	}
 
-	var mcfg ManagerConfigJSON
-	if raw, ok := cm.Data["manager.cfg"]; ok {
-		_ = json.Unmarshal([]byte(raw), &mcfg)
-	}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cm, getErr := o.client.CoreV1().ConfigMaps(o.namespace).Get(ctx, configMapName, metav1.GetOptions{})
+		if getErr != nil {
+			return getErr
+		}
 
-	// Update targeted fields. Base name is dynamically overridden per-pod by $HOSTNAME at startup.
-	mcfg.Name = "syz-k8s-manager"
-	mcfg.Target = "linux/amd64"
-	mcfg.HTTP = "0.0.0.0:50002"
-	mcfg.Workdir = "/workdir"
-	mcfg.Syzkaller = "/syzkaller"
+		var mcfg ManagerConfigJSON
+		if raw, ok := cm.Data["manager.cfg"]; ok {
+			_ = json.Unmarshal([]byte(raw), &mcfg)
+		}
 
-	kernelObj := fmt.Sprintf("/syzkaller/assets/%s", tag)
-	kernelImage := fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)
-	if _, err := os.Stat(fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)); os.IsNotExist(err) {
-		kernelObj = "/syzkaller/assets"
-		kernelImage = "/syzkaller/assets/bzImage"
-	}
-	mcfg.KernelObj = kernelObj
-	mcfg.Image = "/disk.raw"
-	mcfg.SSHKey = "/syzkaller/assets/id_rsa"
-	mcfg.Sandbox = "none"
-	mcfg.Type = "qemu"
-	mcfg.Procs = 2
-	mcfg.Cover = true
-	mcfg.DashboardClient = "local_ui_client"
-	mcfg.DashboardAddr = "http://syz-dashboard.syzkube.svc.cluster.local:8080"
-	mcfg.DashboardKey = "localuipasswordlocaluipasswordlocaluipassword"
-	mcfg.Tag = tag
-	mcfg.VM.Count = 2
-	mcfg.VM.Kernel = kernelImage
-	mcfg.VM.CPU = 1
-	mcfg.VM.Mem = 2048
-	mcfg.VM.Cmdline = cmdline
-	mcfg.VM.QemuArgs = qemuArgs
+		// Update targeted fields. Base name is dynamically overridden per-pod by $HOSTNAME at startup.
+		mcfg.Name = "syz-k8s-manager"
+		mcfg.Target = "linux/amd64"
+		mcfg.HTTP = "0.0.0.0:50002"
+		mcfg.Workdir = "/workdir"
+		mcfg.Syzkaller = "/syzkaller"
 
-	updatedBytes, err := json.MarshalIndent(mcfg, "", "  ")
+		kernelObj := fmt.Sprintf("/syzkaller/assets/%s", tag)
+		kernelImage := fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)
+		if _, statErr := os.Stat(fmt.Sprintf("/syzkaller/assets/%s/bzImage", tag)); os.IsNotExist(statErr) {
+			kernelObj = "/syzkaller/assets"
+			kernelImage = "/syzkaller/assets/bzImage"
+		}
+		mcfg.KernelObj = kernelObj
+		mcfg.Image = "/disk.raw"
+		mcfg.SSHKey = "/syzkaller/assets/id_rsa"
+		mcfg.Sandbox = "none"
+		mcfg.Type = "qemu"
+		mcfg.Procs = 2
+		mcfg.Cover = true
+		mcfg.DashboardClient = "local_ui_client"
+		mcfg.DashboardAddr = "http://syz-dashboard.syzkube.svc.cluster.local:8080"
+		mcfg.DashboardKey = "localuipasswordlocaluipasswordlocaluipassword"
+		mcfg.Tag = tag
+		mcfg.VM.Count = 2
+		mcfg.VM.Kernel = kernelImage
+		mcfg.VM.CPU = 1
+		mcfg.VM.Mem = 2048
+		mcfg.VM.Cmdline = cmdline
+		mcfg.VM.QemuArgs = qemuArgs
+
+		updatedBytes, marshalErr := json.MarshalIndent(mcfg, "", "  ")
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
+		}
+		cm.Data["manager.cfg"] = string(updatedBytes)
+
+		_, updateErr := o.client.CoreV1().ConfigMaps(o.namespace).Update(ctx, cm, metav1.UpdateOptions{})
+		return updateErr
+	})
 	if err != nil {
-		return err
-	}
-
-	cm.Data = map[string]string{
-		"manager.cfg": string(updatedBytes),
-	}
-
-	if _, err := o.client.CoreV1().ConfigMaps(o.namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("failed to update configmap: %w", err)
+		return fmt.Errorf("failed to update configmap %s: %w", configMapName, err)
 	}
 
 	// Restart specific manager pod so new configuration and assets take effect.
@@ -598,6 +609,9 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 		Compiler:       compiler,
 	}
 
+	o.PruneUnusedAssets()
+	o.PruneCompletedBuildJobs(ctx)
+
 	var wg sync.WaitGroup
 	for workerIdx := range numManagers {
 		wg.Add(1)
@@ -717,6 +731,13 @@ func (o *Orchestrator) runManagerWorkerLoop(
 			log.Printf("[worker-%d] failed to update manager config: %v", workerIndex, err)
 		}
 
+		// Update active tag for this worker and prune build assets no longer in use.
+		o.activeTagsMu.Lock()
+		o.activeTags[workerIndex] = sampled.Tag
+		o.activeTagsMu.Unlock()
+		o.PruneUnusedAssets()
+		o.PruneCompletedBuildJobs(ctx)
+
 		// 5. Fuzz for requested duration (e.g. 1 hour).
 		log.Printf("[worker-%d] fuzzing session in progress for %v...", workerIndex, cfg.FuzzDuration)
 		select {
@@ -820,4 +841,68 @@ func (o *Orchestrator) DeleteJob(ctx context.Context, name string) error {
 	return o.client.BatchV1().Jobs(o.namespace).Delete(ctx, name, metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	})
+}
+
+// PruneUnusedAssets removes kernel build directories from /syzkaller/assets and
+// configuration directories from /syzkaller/generated_configs that are not actively in use.
+func (o *Orchestrator) PruneUnusedAssets() {
+	o.activeTagsMu.Lock()
+	inUse := make(map[string]bool)
+	for _, tag := range o.activeTags {
+		if tag != "" {
+			inUse[tag] = true
+		}
+	}
+	o.activeTagsMu.Unlock()
+
+	assetsDir := "/syzkaller/assets"
+	if _, err := os.Stat(assetsDir); os.IsNotExist(err) {
+		assetsDir = "assets"
+	}
+
+	entries, err := os.ReadDir(assetsDir)
+	if err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+			if !strings.HasPrefix(name, "matrix-") {
+				continue
+			}
+			if !inUse[name] {
+				log.Printf("[cleanup] removing unused kernel build asset: %s", name)
+				_ = os.RemoveAll(filepath.Join(assetsDir, name))
+			}
+		}
+	}
+
+	genDir := "/syzkaller/generated_configs"
+	if _, err := os.Stat(genDir); os.IsNotExist(err) {
+		genDir = "generated_configs"
+	}
+	if genEntries, err := os.ReadDir(genDir); err == nil {
+		for _, entry := range genEntries {
+			if !entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+			if !inUse[name] {
+				_ = os.RemoveAll(filepath.Join(genDir, name))
+			}
+		}
+	}
+}
+
+// PruneCompletedBuildJobs deletes finished (succeeded or failed) syz-build jobs to keep Kubernetes clean.
+func (o *Orchestrator) PruneCompletedBuildJobs(ctx context.Context) {
+	jobs, err := o.ListJobs(ctx, "app.kubernetes.io/name=syz-build")
+	if err != nil {
+		return
+	}
+	for _, job := range jobs.Items {
+		if job.Status.Succeeded > 0 || job.Status.Failed > 0 {
+			_ = o.DeleteJob(ctx, job.Name)
+		}
+	}
 }

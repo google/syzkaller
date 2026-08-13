@@ -91,9 +91,10 @@ func copyArtifactsToLocalAssets(kernelDir string) {
 		_ = copyLocalFile(bzImageSrc, filepath.Join(tagDir, "bzImage"))
 		_ = copyLocalFile(vmlinuxSrc, filepath.Join(tagDir, "vmlinux"))
 		_ = copyLocalFile(configSrc, filepath.Join(tagDir, ".config"))
+	} else {
+		_ = copyLocalFile(bzImageSrc, filepath.Join(assetsDir, "bzImage"))
+		_ = copyLocalFile(vmlinuxSrc, filepath.Join(assetsDir, "vmlinux"))
 	}
-	_ = copyLocalFile(bzImageSrc, filepath.Join(assetsDir, "bzImage"))
-	_ = copyLocalFile(vmlinuxSrc, filepath.Join(assetsDir, "vmlinux"))
 }
 
 func copyLocalFile(src, dst string) error {

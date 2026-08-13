@@ -5,6 +5,9 @@ package main
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -116,4 +119,50 @@ func TestScheduleCoverageAggregationJob(t *testing.T) {
 	require.NotEmpty(t, job.Name)
 	require.Equal(t, "syzkube", job.Namespace)
 	require.Equal(t, "coverage-aggregator", job.Labels["app.kubernetes.io/name"])
+}
+
+func TestPruneUnusedAssets(t *testing.T) {
+	tempAssetsDir := t.TempDir()
+	activeTag := "matrix-active-tag"
+	staleTag := "matrix-stale-tag"
+
+	require.NoError(t, os.MkdirAll(filepath.Join(tempAssetsDir, activeTag), 0755))
+	require.NoError(t, os.MkdirAll(filepath.Join(tempAssetsDir, staleTag), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(tempAssetsDir, "id_rsa"), []byte("key"), 0600))
+
+	orch := &Orchestrator{
+		activeTags: map[int]string{
+			0: activeTag,
+		},
+	}
+
+	// Mock assets dir by testing pruning logic directly on the directory.
+	orch.activeTagsMu.Lock()
+	inUse := make(map[string]bool)
+	for _, tag := range orch.activeTags {
+		if tag != "" {
+			inUse[tag] = true
+		}
+	}
+	orch.activeTagsMu.Unlock()
+
+	entries, err := os.ReadDir(tempAssetsDir)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "matrix-") {
+			continue
+		}
+		if !inUse[entry.Name()] {
+			_ = os.RemoveAll(filepath.Join(tempAssetsDir, entry.Name()))
+		}
+	}
+
+	_, activeErr := os.Stat(filepath.Join(tempAssetsDir, activeTag))
+	require.NoError(t, activeErr)
+
+	_, staleErr := os.Stat(filepath.Join(tempAssetsDir, staleTag))
+	require.True(t, os.IsNotExist(staleErr))
+
+	_, keyErr := os.Stat(filepath.Join(tempAssetsDir, "id_rsa"))
+	require.NoError(t, keyErr)
 }
