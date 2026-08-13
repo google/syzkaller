@@ -23,7 +23,7 @@ type CorpusCodeSearchResult struct {
 }
 
 type CorpusCodeSearchState struct {
-	CorpusDir string
+	CorpusDir string `json:",omitempty"`
 }
 
 var CorpusCodeSearch = aflow.NewFuncTool("get-corpus-programs", corpusCodeSearch,
