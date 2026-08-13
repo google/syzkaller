@@ -52,6 +52,11 @@ var (
 func makeProvider() covermerger.FileVersProvider {
 	switch *flagSrcProvider {
 	case "git-clone":
+		if *flagRepo != "" {
+			if _, err := os.Stat(filepath.Join(*flagRepo, ".git")); err == nil {
+				return covermerger.MakeExistingRepo(*flagRepo)
+			}
+		}
 		return covermerger.MakeMonoRepo(*flagWorkdir)
 	case "web-git":
 		return covermerger.MakeWebGit(nil)

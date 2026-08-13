@@ -70,6 +70,17 @@ func (mr *monoRepo) addRepoCommit(repoCommit RepoCommit) {
 	}
 }
 
+func MakeExistingRepo(repoPath string) FileVersProvider {
+	mr := &monoRepo{
+		repoCommits: map[RepoCommit]struct{}{},
+	}
+	var err error
+	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", repoPath, vcs.OptPrecious, vcs.OptDontSandbox); err != nil {
+		panic(fmt.Sprintf("failed to open repo at %s: %s", repoPath, err.Error()))
+	}
+	return mr
+}
+
 func MakeMonoRepo(workdir string) FileVersProvider {
 	repoPath := filepath.Join(workdir, "repos", "linux_kernels")
 	mr := &monoRepo{
