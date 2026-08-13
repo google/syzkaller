@@ -44,5 +44,8 @@ type LineToLineMatcher struct {
 }
 
 func (lm *LineToLineMatcher) SameLinePos(line int) int {
+	if line < 0 || line >= len(lm.lineToLine) {
+		return -1
+	}
 	return lm.lineToLine[line]
 }

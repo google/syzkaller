@@ -61,6 +61,20 @@ func TestMatching(t *testing.T) {
 			lineFrom: 0,
 			lineTo:   -1,
 		},
+		{
+			name:     "out of bounds lineFrom positive",
+			textFrom: textBase,
+			textTo:   textBase,
+			lineFrom: 100,
+			lineTo:   -1,
+		},
+		{
+			name:     "out of bounds lineFrom negative",
+			textFrom: textBase,
+			textTo:   textBase,
+			lineFrom: -5,
+			lineTo:   -1,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
