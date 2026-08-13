@@ -42,6 +42,10 @@ If the trace is too large, it will be truncated. You can use 'Offset' and 'Limit
 through trace output lines.
 `)
 
+	CheckPCReached = aflow.NewFuncTool("check-pc-reached", checkPCReached, `
+Checks if any of the target PCs were reached during the execution attempt.
+`)
+
 	Coverage = []aflow.Tool{CoverageFiles, FileCoverage, ExecutionTrace}
 )
 
@@ -79,7 +83,7 @@ func getCoverageFiles(ctx *aflow.Context, state reproduceState, args CoverageFil
 }
 
 type FileCoverageArgs struct {
-	ExecutionCachedID string   `jsonschema:"Cached ID returned by the reproduce-crash tool."`
+	ExecutionCachedID string   `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
 	Filename          string   `jsonschema:"Name of the source file to inspect."`
 	Functions         []string `jsonschema:"Optional list of functions. If empty, returns all."`
 }
@@ -171,6 +175,10 @@ func (f *coverageFormatter) buildSnippet(fnName string, start, end int, lines []
 func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverageArgs) (FileCoverageResult, error) {
 	if !filepath.IsLocal(args.Filename) {
 		return FileCoverageResult{}, aflow.BadCallError("filename must be a safe, local relative path")
+	}
+	if args.ExecutionCachedID == "" {
+		return FileCoverageResult{}, aflow.BadCallError(
+			"no previous execution found. You must execute a seed before requesting coverage.")
 	}
 
 	coverage, err := crash.LoadCoverage(ctx, args.ExecutionCachedID)
@@ -587,4 +595,34 @@ func truncateTrace(out []string, maxLines int) []string {
 
 	newOut = append(newOut, out[len(out)-half:]...)
 	return newOut
+}
+
+type CheckPCReachedArgs struct {
+	ExecutionCachedID string `jsonschema:"The cached execution ID of the attempt."`
+}
+
+type CheckPCReachedResult struct {
+	Reached bool `jsonschema:"True if the target PC was reached during execution."`
+}
+
+type checkPCState struct {
+	PCs []string `json:",omitempty"`
+}
+
+func checkPCReached(
+	ctx *aflow.Context, state checkPCState, args CheckPCReachedArgs) (CheckPCReachedResult, error) {
+	if args.ExecutionCachedID == "" {
+		return CheckPCReachedResult{}, aflow.BadCallError("no ExecutionCachedID provided")
+	}
+
+	if len(state.PCs) == 0 {
+		return CheckPCReachedResult{}, fmt.Errorf("no target PC(s) found in state")
+	}
+
+	reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, state.PCs...)
+	if err != nil {
+		return CheckPCReachedResult{}, aflow.BadCallError("failed to check PC in coverage: %v", err)
+	}
+
+	return CheckPCReachedResult{Reached: reached}, nil
 }
