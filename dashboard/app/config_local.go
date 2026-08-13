@@ -15,6 +15,7 @@ var localConfig = &GlobalConfig{
 	DungeonNamespace: "upstream",
 	Clients: map[string]APIClient{
 		"local_ui_global_client": {Key: "localuipasswordlocaluipasswordlocaluipassword"},
+		"coverage-merger":        {Key: "coveragemergerkey1234567890123456"},
 	},
 	Namespaces: map[string]*Config{
 		"upstream": {

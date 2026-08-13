@@ -11,9 +11,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -63,11 +66,87 @@ func main() {
 	}
 }
 
+func getGitHead(dir string) string {
+	cmd := exec.Command("git", "-C", dir, "rev-parse", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.jsonl.gz"))
 	if err != nil || len(files) == 0 {
 		return nil, fmt.Errorf("no coverage files found in %s: %w", dir, err)
 	}
+
+	type recordKey struct {
+		filePath string
+		funcName string
+		sl       int
+		manager  string
+	}
+
+	hits := make(map[recordKey]int)
+
+	type rawRecord struct {
+		FilePath string `json:"file_path"`
+		FuncName string `json:"func_name"`
+		SL       int    `json:"sl"`
+		HitCount int    `json:"hit_count"`
+	}
+
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			continue
+		}
+		gz, err := gzip.NewReader(f)
+		if err != nil {
+			f.Close()
+			continue
+		}
+
+		manager := "syz-manager-0"
+		base := filepath.Base(file)
+		if _, rest, ok := strings.Cut(base, "-manager-"); ok {
+			idxPart, _, _ := strings.Cut(rest, "-")
+			manager = fmt.Sprintf("syz-manager-%s", idxPart)
+		}
+
+		dec := json.NewDecoder(gz)
+		for {
+			var r rawRecord
+			if err := dec.Decode(&r); err != nil {
+				break
+			}
+			if r.HitCount <= 0 {
+				continue
+			}
+			cleanPath := r.FilePath
+			if _, after, ok := strings.Cut(cleanPath, "tmp/kernel-build/kernel/"); ok {
+				cleanPath = after
+			} else if _, after, ok := strings.Cut(cleanPath, "/kernel/"); ok {
+				cleanPath = after
+			}
+			key := recordKey{
+				filePath: cleanPath,
+				funcName: r.FuncName,
+				sl:       r.SL,
+				manager:  manager,
+			}
+			hits[key] += r.HitCount
+		}
+		gz.Close()
+		f.Close()
+	}
+
+	fileKeys := make(map[string][]recordKey)
+	for k := range hits {
+		fileKeys[k.filePath] = append(fileKeys[k.filePath], k)
+	}
+	sortedFiles := slices.Sorted(maps.Keys(fileKeys))
 
 	pr, pw := io.Pipe()
 	go func() {
@@ -85,58 +164,18 @@ func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
 			covermerger.KeyManager,
 		})
 
-		type rawRecord struct {
-			FilePath string `json:"file_path"`
-			FuncName string `json:"func_name"`
-			SL       int    `json:"sl"`
-			HitCount int    `json:"hit_count"`
-		}
-
-		for _, file := range files {
-			f, err := os.Open(file)
-			if err != nil {
-				continue
-			}
-			gz, err := gzip.NewReader(f)
-			if err != nil {
-				f.Close()
-				continue
-			}
-
-			manager := "syz-manager-0"
-			base := filepath.Base(file)
-			if _, rest, ok := strings.Cut(base, "-manager-"); ok {
-				idxPart, _, _ := strings.Cut(rest, "-")
-				manager = fmt.Sprintf("syz-manager-%s", idxPart)
-			}
-
-			dec := json.NewDecoder(gz)
-			for {
-				var r rawRecord
-				if err := dec.Decode(&r); err != nil {
-					break
-				}
-				if r.HitCount <= 0 {
-					continue
-				}
-				cleanPath := r.FilePath
-				if _, after, ok := strings.Cut(cleanPath, "tmp/kernel-build/kernel/"); ok {
-					cleanPath = after
-				} else if _, after, ok := strings.Cut(cleanPath, "/kernel/"); ok {
-					cleanPath = after
-				}
+		for _, file := range sortedFiles {
+			for _, k := range fileKeys[file] {
 				_ = cw.Write([]string{
 					repo,
 					commit,
-					cleanPath,
-					r.FuncName,
-					strconv.Itoa(r.SL),
-					strconv.Itoa(r.HitCount),
-					manager,
+					k.filePath,
+					k.funcName,
+					strconv.Itoa(k.sl),
+					strconv.Itoa(hits[k]),
+					k.manager,
 				})
 			}
-			gz.Close()
-			f.Close()
 		}
 	}()
 
@@ -145,6 +184,11 @@ func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
 
 func do() error {
 	defer tool.Init()()
+	if *flagCommit == "HEAD" && *flagRepo != "" {
+		if head := getGitHead(*flagRepo); head != "" {
+			*flagCommit = head
+		}
+	}
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
