@@ -15,72 +15,6 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-func TestCombineSyzPrograms(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name         string
-		baseSeed     string
-		generatedSyz string
-		wantCombined string
-		wantBaseLen  int
-	}{
-		{
-			name:         "empty base seed",
-			baseSeed:     "",
-			generatedSyz: "r0 = openat(0x0, 0x0, 0x0)",
-			wantCombined: "r0 = openat(0x0, 0x0, 0x0)",
-			wantBaseLen:  0,
-		},
-		{
-			name:         "single line base seed",
-			baseSeed:     "syz_mount_image(0x0, 0x0)",
-			generatedSyz: "r0 = openat(0x0, 0x0, 0x0)",
-			wantCombined: "syz_mount_image(0x0, 0x0)\nr0 = openat(0x0, 0x0, 0x0)",
-			wantBaseLen:  1,
-		},
-		{
-			name:         "multiline base seed",
-			baseSeed:     "line1\nline2\nline3",
-			generatedSyz: "generated_call()",
-			wantCombined: "line1\nline2\nline3\ngenerated_call()",
-			wantBaseLen:  3,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			gotCombined, gotBaseLen := CombineSyzPrograms(tc.baseSeed, tc.generatedSyz)
-			require.Equal(t, tc.wantCombined, gotCombined)
-			require.Equal(t, tc.wantBaseLen, gotBaseLen)
-		})
-	}
-}
-
-func TestBaseSeedCallCount(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		progData []byte
-		want     int
-	}{
-		{name: "nil data", progData: nil, want: 0},
-		{name: "empty data", progData: []byte(""), want: 0},
-		{name: "single call", progData: []byte("getpid()\n"), want: 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			count, err := BaseSeedCallCount(tt.progData, "amd64")
-			require.NoError(t, err)
-			require.Equal(t, tt.want, count)
-		})
-	}
-}
-
 func TestSyzFS(t *testing.T) {
 	t.Parallel()
 
@@ -112,43 +46,6 @@ func TestSyzFS(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, testEntries, 1)
 	require.Equal(t, "seed1.txt", testEntries[0].Name())
-}
-
-func TestBaseTestSeedLoad(t *testing.T) {
-	t.Parallel()
-
-	tmpDir := t.TempDir()
-	sysLinux := filepath.Join(tmpDir, "sys", "linux")
-	require.NoError(t, os.MkdirAll(sysLinux, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sysLinux, "seed.txt"), []byte("seed content"), 0644))
-
-	syzFS := NewSyzFS(tmpDir, "linux")
-
-	t.Run("empty path", func(t *testing.T) {
-		seed := BaseTestSeed{Path: ""}
-		err := seed.Load(syzFS)
-		require.NoError(t, err)
-		require.Equal(t, "", seed.Data)
-	})
-
-	t.Run("nil syzFS", func(t *testing.T) {
-		seed := BaseTestSeed{Path: "seed.txt"}
-		err := seed.Load(nil)
-		require.Error(t, err)
-	})
-
-	t.Run("successful load", func(t *testing.T) {
-		seed := BaseTestSeed{Path: "seed.txt"}
-		err := seed.Load(syzFS)
-		require.NoError(t, err)
-		require.Equal(t, "seed content", seed.Data)
-	})
-
-	t.Run("file not found", func(t *testing.T) {
-		seed := BaseTestSeed{Path: "nonexistent.txt"}
-		err := seed.Load(syzFS)
-		require.Error(t, err)
-	})
 }
 
 func TestIsAutoTxt(t *testing.T) {
