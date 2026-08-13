@@ -58,6 +58,8 @@ type FuzzConfig struct {
 	SkipCoverCheck bool `json:"skip_cover_check" yaml:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
 	BugTitleRe string `json:"bug_title_re" yaml:"bug_title_re"`
+	BaseCommit string `json:"base_commit,omitempty" yaml:"base_commit,omitempty"`
+	BaseTree   string `json:"base_tree,omitempty" yaml:"base_tree,omitempty"`
 }
 
 // Tree represents a git tree. The triage step of the workflow will request these from controller.
@@ -162,14 +164,16 @@ type BootResult struct {
 // RawFinding is a kernel crash, boot error, etc. found during a test.
 // It's reported as RawFinding, but for the report purposes it's converted to Finding.
 type RawFinding struct {
-	SessionID    string `json:"session_id"`
-	TestName     string `json:"test_name"`
-	Title        string `json:"title"`
-	Report       []byte `json:"report"`
-	Log          []byte `json:"log"`
-	SyzRepro     []byte `json:"syz_repro"`
-	SyzReproOpts []byte `json:"syz_repro_opts"`
-	CRepro       []byte `json:"c_repro"`
+	SessionID        string `json:"session_id"`
+	TestName         string `json:"test_name"`
+	Title            string `json:"title"`
+	Report           []byte `json:"report"`
+	Log              []byte `json:"log"`
+	SyzRepro         []byte `json:"syz_repro"`
+	SyzReproOpts     []byte `json:"syz_repro_opts"`
+	CRepro           []byte `json:"c_repro"`
+	ConfirmedByAI    bool   `json:"confirmed_by_ai,omitempty"`
+	TriageTrajectory []byte `json:"triage_trajectory,omitempty"`
 }
 
 type Series struct {
@@ -249,13 +253,15 @@ type SessionReport struct {
 }
 
 type Finding struct {
-	Title        string    `json:"title"`
-	Report       string    `json:"report"`
-	LogURL       string    `json:"log_url"`
-	Build        BuildInfo `json:"build"`
-	LinkCRepro   string    `json:"c_repro"`
-	LinkSyzRepro string    `json:"syz_repro"`
-	Invalidated  bool      `json:"invalidated"`
+	Title                string    `json:"title"`
+	Report               string    `json:"report"`
+	LogURL               string    `json:"log_url"`
+	Build                BuildInfo `json:"build"`
+	LinkCRepro           string    `json:"c_repro"`
+	LinkSyzRepro         string    `json:"syz_repro"`
+	LinkTriageTrajectory string    `json:"triage_trajectory,omitempty"`
+	Invalidated          bool      `json:"invalidated"`
+	ConfirmedByAI        bool      `json:"confirmed_by_ai,omitempty"`
 }
 
 type BuildInfo struct {

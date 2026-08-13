@@ -17,6 +17,9 @@
         <span class="badge bg-secondary me-1">[invalidated]</span>
       {{else}}
         <span class="badge bg-danger me-1">finding</span>
+        {{if and .ConfirmedByAI.Valid .ConfirmedByAI.Bool}}
+          <span class="badge bg-info text-dark me-1">AI confirmed</span>
+        {{end}}
       {{end}}
       {{if .ReportURI}}
         <a href="/findings/{{.ID}}/report" class="modal-link-raw fw-bold text-dark">{{.Title}}</a>
@@ -28,6 +31,7 @@
       {{if .LogURI}}<a href="/findings/{{.ID}}/log" class="btn btn-sm btn-outline-secondary modal-link-raw py-0 px-1">Log</a>{{end}}
       {{if .SyzReproURI}}<a href="/findings/{{.ID}}/syz_repro" class="btn btn-sm btn-outline-danger modal-link-raw py-0 px-1 ms-1">Syz Repro</a>{{end}}
       {{if .CReproURI}}<a href="/findings/{{.ID}}/c_repro" class="btn btn-sm btn-outline-danger modal-link-raw py-0 px-1 ms-1">C Repro</a>{{end}}
+      {{if .TriageTrajectoryURI}}<a href="/findings/{{.ID}}/triage_trajectory" class="btn btn-sm btn-outline-info py-0 px-1 ms-1" target="_blank">AI Trajectory</a>{{end}}
     </div>
   </div>
   {{end}}
