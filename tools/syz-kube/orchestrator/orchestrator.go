@@ -455,6 +455,7 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 		if cm.Data == nil {
 			cm.Data = make(map[string]string)
 		}
+		cm.Data[fmt.Sprintf("manager-%d.cfg", workerIndex)] = string(updatedBytes)
 		cm.Data["manager.cfg"] = string(updatedBytes)
 
 		_, updateErr := o.client.CoreV1().ConfigMaps(o.namespace).Update(ctx, cm, metav1.UpdateOptions{})
@@ -672,6 +673,11 @@ func (o *Orchestrator) runManagerWorkerLoop(
 
 		log.Printf("[worker-%d] sampled config: tag=%s, platform=%s, features=%v",
 			workerIndex, sampled.Tag, sampled.Platform, sampled.Features)
+
+		// Register active tag immediately so concurrent workers won't prune it while building or fuzzing.
+		o.activeTagsMu.Lock()
+		o.activeTags[workerIndex] = sampled.Tag
+		o.activeTagsMu.Unlock()
 
 		// 2. Generate temporary .config file in shared workspace directory.
 		genDir := "/syzkaller/generated_configs"
