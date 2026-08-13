@@ -38,6 +38,7 @@ var (
 	flagTotalRows           = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
 	flagToDashAPI           = flag.String("to-dashapi", "", "[optional] dashapi address")
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
+	flagDashboardKey        = flag.String("dashboard-key", "", "[optional] dashboard key for dashapi auth")
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
 	flagToGCS               = flag.String("to-gcs", "", "[optional] gcs destination to save jsonl to")
@@ -178,7 +179,7 @@ func do() error {
 	var wc io.WriteCloser
 	url := *flagToGCS
 	if *flagToDashAPI != "" {
-		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, *flagDashboardKey)
 		if err != nil {
 			return fmt.Errorf("dashapi.New: %w", err)
 		}
@@ -221,7 +222,7 @@ func do() error {
 	printCoverage(totalInstrumentedLines, totalCoveredLines)
 	if *flagToDashAPI != "" {
 		// Merging may take hours. It is better to create new connection instead of reuse.
-		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, *flagDashboardKey)
 		if err != nil {
 			return fmt.Errorf("dashapi.New: %w", err)
 		}
