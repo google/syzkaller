@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/stretchr/testify/require"
 )
 
 type CleanPathAndroidTest struct {
@@ -122,4 +123,17 @@ func TestPathCleanerKernelSrcPath(t *testing.T) {
 	if rel != "relative/path" || abs != "/some_src_dir/relative/path" {
 		t.Errorf("expected rel=relative/path, abs=/some_src_dir/relative/path, got %q, %q", rel, abs)
 	}
+}
+
+func TestPathCleanerModulePath(t *testing.T) {
+	// Test that an absolute path pointing to an out-of-tree module is properly normalized.
+	kernelDirs := &mgrconfig.KernelDirs{
+		ModuleObj: []string{"/some/module/dir", "/another/module/src"},
+	}
+	rel, abs := CleanPath("/some/module/dir/relative/path", kernelDirs, nil)
+	require.Equal(t, rel, "some/module/dir/relative/path")
+	require.Equal(t, abs, "/some/module/dir/relative/path")
+	rel, abs = CleanPath("/another/module/src/relative/path", kernelDirs, nil)
+	require.Equal(t, rel, "another/module/src/relative/path")
+	require.Equal(t, abs, "/another/module/src/relative/path")
 }

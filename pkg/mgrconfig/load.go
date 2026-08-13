@@ -298,19 +298,27 @@ func (cfg *Config) CompleteKernelDirs() {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
 	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
+
+	moduleObj := make([]string, len(cfg.ModuleObj))
+	for idx, dir := range cfg.ModuleObj {
+		moduleObj[idx] = osutil.Abs(dir)
+	}
+	cfg.ModuleObj = moduleObj
 }
 
 type KernelDirs struct {
-	Src      string
-	Obj      string
-	BuildSrc string
+	Src       string
+	Obj       string
+	BuildSrc  string
+	ModuleObj []string
 }
 
 func (cfg *Config) KernelDirs() *KernelDirs {
 	return &KernelDirs{
-		Src:      cfg.KernelSrc,
-		Obj:      cfg.KernelObj,
-		BuildSrc: cfg.KernelBuildSrc,
+		Src:       cfg.KernelSrc,
+		Obj:       cfg.KernelObj,
+		BuildSrc:  cfg.KernelBuildSrc,
+		ModuleObj: cfg.ModuleObj,
 	}
 }
 

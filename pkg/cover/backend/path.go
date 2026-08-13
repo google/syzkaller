@@ -40,11 +40,25 @@ func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimite
 		path = strings.TrimPrefix(abs, kernelDirs.BuildSrc)
 		absPath = filepath.Join(kernelDirs.Src, path)
 	default:
-		// Assume this is relative path.
-		if filepath.IsAbs(path) {
-			absPath = path
-		} else {
-			absPath = filepath.Join(kernelDirs.Src, path)
+		ok := false
+		// Further check out-of-tree modules.
+		for _, mDir := range kernelDirs.ModuleObj {
+			if strings.HasPrefix(abs, mDir+string(filepath.Separator)) {
+				// Display absolute paths for out-of-tree modules to
+				// avoid confusing with kernel modules.
+				path = abs
+				absPath = abs
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			// Assume this is relative path.
+			if filepath.IsAbs(path) {
+				absPath = path
+			} else {
+				absPath = filepath.Join(kernelDirs.Src, path)
+			}
 		}
 	}
 	relPath = strings.TrimLeft(filepath.Clean(path), "/\\")
