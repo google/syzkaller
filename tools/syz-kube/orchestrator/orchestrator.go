@@ -158,6 +158,7 @@ func (o *Orchestrator) ScheduleBuildJob(ctx context.Context, cfg BuildConfig) (*
 	}
 
 	backoffLimit := int32(0)
+	ttlSeconds := int32(300)
 	hostPathDir := corev1.HostPathDirectory
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -169,7 +170,8 @@ func (o *Orchestrator) ScheduleBuildJob(ctx context.Context, cfg BuildConfig) (*
 			},
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoffLimit,
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSeconds,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -241,6 +243,7 @@ func (o *Orchestrator) ScheduleBisectionJob(ctx context.Context, cfg BisectConfi
 	jobName := fmt.Sprintf("syz-bisect-%s", hex.EncodeToString(hash[:])[:8])
 
 	backoffLimit := int32(0)
+	ttlSeconds := int32(300)
 	privileged := true
 	hostPathDir := corev1.HostPathDirectory
 	hostPathFile := corev1.HostPathFile
@@ -271,7 +274,8 @@ func (o *Orchestrator) ScheduleBisectionJob(ctx context.Context, cfg BisectConfi
 			},
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoffLimit,
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSeconds,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -471,6 +475,7 @@ func (o *Orchestrator) UpdateManagerConfigAndRestart(
 func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag string) (*batchv1.Job, error) {
 	jobName := fmt.Sprintf("coverage-aggregator-%d", time.Now().UnixNano()/1e6)
 	backoffLimit := int32(0)
+	ttlSeconds := int32(300)
 	hostPathDir := corev1.HostPathDirectory
 
 	now := time.Now().UTC()
@@ -520,7 +525,8 @@ func (o *Orchestrator) ScheduleCoverageAggregationJob(ctx context.Context, tag s
 			},
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoffLimit,
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSeconds,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -610,7 +616,7 @@ func (o *Orchestrator) RunFuzzLoop(ctx context.Context, cfg LoopConfig) error {
 	}
 
 	o.PruneUnusedAssets()
-	o.PruneCompletedBuildJobs(ctx)
+	o.PruneCompletedJobs(ctx)
 
 	var wg sync.WaitGroup
 	for workerIdx := range numManagers {
@@ -736,7 +742,7 @@ func (o *Orchestrator) runManagerWorkerLoop(
 		o.activeTags[workerIndex] = sampled.Tag
 		o.activeTagsMu.Unlock()
 		o.PruneUnusedAssets()
-		o.PruneCompletedBuildJobs(ctx)
+		o.PruneCompletedJobs(ctx)
 
 		// 5. Fuzz for requested duration (e.g. 1 hour).
 		log.Printf("[worker-%d] fuzzing session in progress for %v...", workerIndex, cfg.FuzzDuration)
@@ -894,15 +900,21 @@ func (o *Orchestrator) PruneUnusedAssets() {
 	}
 }
 
-// PruneCompletedBuildJobs deletes finished (succeeded or failed) syz-build jobs to keep Kubernetes clean.
-func (o *Orchestrator) PruneCompletedBuildJobs(ctx context.Context) {
-	jobs, err := o.ListJobs(ctx, "app.kubernetes.io/name=syz-build")
-	if err != nil {
-		return
-	}
-	for _, job := range jobs.Items {
-		if job.Status.Succeeded > 0 || job.Status.Failed > 0 {
-			_ = o.DeleteJob(ctx, job.Name)
+// PruneCompletedJobs deletes finished (succeeded or failed) ephemeral jobs to keep Kubernetes clean.
+func (o *Orchestrator) PruneCompletedJobs(ctx context.Context) {
+	for _, label := range []string{
+		"app.kubernetes.io/name=syz-build",
+		"app.kubernetes.io/name=syz-bisect",
+		"app.kubernetes.io/name=coverage-aggregator",
+	} {
+		jobs, err := o.ListJobs(ctx, label)
+		if err != nil {
+			continue
+		}
+		for _, job := range jobs.Items {
+			if job.Status.Succeeded > 0 || job.Status.Failed > 0 {
+				_ = o.DeleteJob(ctx, job.Name)
+			}
 		}
 	}
 }
