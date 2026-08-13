@@ -116,6 +116,9 @@ func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
 				if err := dec.Decode(&r); err != nil {
 					break
 				}
+				if r.HitCount <= 0 {
+					continue
+				}
 				cleanPath := r.FilePath
 				if _, after, ok := strings.Cut(cleanPath, "tmp/kernel-build/kernel/"); ok {
 					cleanPath = after
