@@ -13,6 +13,7 @@ var localConfig = &GlobalConfig{
 	AccessLevel:      AccessPublic,
 	DefaultNamespace: "upstream",
 	DungeonNamespace: "upstream",
+	UploadBucket:     "gs://syzkaller-coverage",
 	Clients: map[string]APIClient{
 		"local_ui_global_client": {Key: "localuipasswordlocaluipasswordlocaluipassword"},
 		"coverage-merger":        {Key: "coveragemergerkey1234567890123456"},
@@ -28,7 +29,6 @@ var localConfig = &GlobalConfig{
 			},
 			Clients: map[string]APIClient{
 				"local_ui_client": {Key: "localuipasswordlocaluipasswordlocaluipassword"},
-				"coverage-merger": {Key: "coveragemergerkey1234567890123456"},
 			},
 			Repos: []KernelRepo{
 				{
