@@ -5,6 +5,7 @@ Syzkaller can be instructed to execute programs under
 
 If the `strace_bin` is set to an `strace` binary, syzkaller will automatically
 run each reproducer it managed to find under the `strace` binary.
+
 * If a syz-manager is attached to a `dashboard`, syzkaller will upload the
   resulting output as a normal log file if the generated reproducer still
   managed to produce the same crash.

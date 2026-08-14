@@ -12,9 +12,10 @@ red labels indicate corresponding configuration options.
 ![Process structure for syzkaller](process_structure.png?raw=true)
 
 `syz-manager` is responsible for:
-* Starting/restarting/monitoring VM instances.
-* The actual fuzzing process (input generation, mutation, minimization, etc.).
-* Persistent corpus and crash storage.
+
+- Starting/restarting/monitoring VM instances.
+- The actual fuzzing process (input generation, mutation, minimization, etc.).
+- Persistent corpus and crash storage.
 
 It runs on a host with a stable kernel which does not experience white-noise fuzzer load.
 
@@ -42,6 +43,7 @@ When `syzkaller` finds a crasher, it saves information about it into `workdir/cr
 The directory contains one subdirectory per unique crash type.
 Each subdirectory contains a `description` file with a unique string identifying the crash (intended for bug identification and deduplication);
 and up to 100 `logN` and `reportN` files, one pair per test machine crash:
+
 ```
  - crashes/
    - 6e512290efa36515a7a27e53623304d20d1c3e
@@ -69,9 +71,10 @@ Normally you need just 1 pair of these files (i.e. `log0` and `report0`), becaus
 However, `syzkaller` saves up to 100 of them for the case when the crash is poorly reproducible, or if you just want to look at a set of crash reports to infer some similarities or differences.
 
 There are 3 special types of crashes:
- - `no output from test machine`: the test machine produces no output whatsoever
- - `lost connection to test machine`: the ssh connection to the machine was unexpectedly closed
- - `test machine is not executing programs`: the machine looks alive, but no test programs were executed for long period of time
+
+- `no output from test machine`: the test machine produces no output whatsoever
+- `lost connection to test machine`: the ssh connection to the machine was unexpectedly closed
+- `test machine is not executing programs`: the machine looks alive, but no test programs were executed for long period of time
 
 Most likely you won't see `reportN` files for these crashes (e.g. if there is no output from the test machine, there is nothing to put into report).
 Sometimes these crashes indicate a bug in `syzkaller` itself (especially if you see a Go panic message in the logs).

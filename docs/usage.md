@@ -3,7 +3,8 @@
 ## Running
 
 Start the `syz-manager` process as:
-```
+
+```bash
 ./bin/syz-manager -config my.cfg
 ```
 

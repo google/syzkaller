@@ -1,6 +1,7 @@
 # How to set up syzbot
 
 This doc will be useful to you:
+
 - should you wish to hack on user interface bits like the dashboard / mailing list integration or
 - should you wish to continuously run a separate syzbot dashboard for your own kernels
 
@@ -9,6 +10,7 @@ in syz-manager and syz-executor. You can run syz-manager directly which is usual
 fuzzer development. [See this documentation for syz-manager setup instructions](setup.md).
 
 This doc assumes that you:
+
 - have a GCP account and billing setup
 - created a GCP project for running syzbot in
 - are running a reasonably modern linux distro
@@ -22,7 +24,6 @@ While most syzkaller bits happily run on various operating systems, the syzbot d
 We will also deploy a syz-ci instance. syz-ci keeps track of the syzkaller and kernel repositories and continuously rebuilds the kernel under test, itself and other syzkaller components when new commits land in the upstream repositories. syz-ci also takes care of (re)starting syz-manager instances, which in turn (re)start VMs fuzzing the target kernel. For simplicity we will run everything in this doc on GCP even though syz-ci could run elsewhere.
 
 ![Overall picture of syzbot setup](/docs/syzbot_architecture.png)
-
 
 ## Deploying Syz-ci
 
@@ -365,7 +366,9 @@ sudo journalctl -fu syz-ci
 ```
 
 [locally] Open the dashboard in your browser:
-```
+
+```sh
 gcloud app browse --project=$PROJECT
 ```
+
 Once syzkaller finds the first crashes they should show up here. This might take a while.

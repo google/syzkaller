@@ -4,6 +4,7 @@
 
 We preserve linear history and have merge commits disabled in repository settings.
 Pull requests (PR) have only 2 options:
+
 - **Rebase and merge**\
   This is preferred if all commits in the PR are properly squashed/fixed already,
   as it preserves commits in the PR (takes all commits in the PR as is and adds them
