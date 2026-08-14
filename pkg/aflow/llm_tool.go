@@ -16,8 +16,6 @@ import (
 // It can do complex multi-step research, and provide a concise answer to the parent LLM
 // without polluting its context window.
 type StructuredLLMTool[State, Args, Results any] struct {
-	// Most fields match that of LLMAgent.
-	// The prompt is not specified here, and is provided by the parent LLM.
 	Name     string
 	Model    backend.ModelCategory
 	TaskType TaskType
@@ -36,6 +34,9 @@ type StructuredLLMTool[State, Args, Results any] struct {
 	// Maximum number of iterations for the tool execution.
 	// If 0, default to defaultMaxLLMIterations (250).
 	MaxIterations int
+
+	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
+	Judge *LLMJudge
 
 	agent *LLMAgent
 }
@@ -97,10 +98,19 @@ func (t *StructuredLLMTool[State, Args, Results]) execute(ctx *Context, args map
 		return nil, err
 	}
 
+	// Emit BadCallError to inform caller if the subagent was stopped by the judge.
+	if stopped, _ := subState[judgeStateStopped].(bool); stopped {
+		reason, _ := subState[judgeStateReason].(string)
+		if reason != "" {
+			return nil, BadCallError("subagent %q was stopped by judge: %s", t.Name, reason)
+		}
+		return nil, BadCallError("subagent %q was stopped by judge", t.Name)
+	}
+
 	// Extract the generated results cleanly using type conversion.
-	res, err := convertFromMap[Results](subState, false, true)
+	res, err := convertFromMap[Results](subState, false, false)
 	if err != nil {
-		return nil, err
+		return nil, BadCallError("subagent %q failed to produce results: %v", t.Name, err)
 	}
 	return convertToMap(res), nil
 }
@@ -136,6 +146,7 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 		Tools:         t.Tools,
 		SubAgent:      true,
 		MaxIterations: t.MaxIterations,
+		Judge:         t.Judge,
 	}
 
 	if t.Outputs != nil {
