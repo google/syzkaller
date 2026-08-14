@@ -171,6 +171,10 @@ func (s *DiffFuzzerStore) PlainTextDump() []byte {
 	return buf.Bytes()
 }
 
+func (s *DiffFuzzerStore) SaveFile(title, name string, data []byte) string {
+	return s.saveFile(title, name, data)
+}
+
 func (s *DiffFuzzerStore) saveFile(title, name string, data []byte) string {
 	hash := crashHash(title)
 	path := filepath.Join(s.BasePath, "crashes", hash)
