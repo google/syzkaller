@@ -24,6 +24,28 @@ spec:
           - name: config
             path: /tmp/config.json
       timeout: 4h
+      initContainers:
+        - name: setup-repo
+          image: ${IMAGE_PREFIX}fuzz-action:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              git clone --shared -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo /workdir/repo
+              chown -R syzkaller:syzkaller /workdir/repo
+              git -C /workdir/repo commit-graph write --reachable
+          env:
+            - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+              value: "1"
+            - name: HOME
+              value: "/home/syzkaller"
+          volumeMounts:
+            - name: base-kernel-repo
+              mountPath: /kernel-repo
+              readOnly: true
+            - name: workdir
+              mountPath: /workdir
       container:
         image: ${IMAGE_PREFIX}fuzz-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
@@ -36,6 +58,7 @@ spec:
           "--test_name", "{{inputs.parameters.test-name}}",
           "--time", "3h",
           "--workdir", "/workdir",
+          "--repository", "/workdir/repo",
           "--vv", "1"
           ]
         resources:
@@ -45,11 +68,23 @@ spec:
           limits:
             cpu: 30
             memory: 96G
+        env:
+          - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+            value: "1"
+          - name: HOME
+            value: "/home/syzkaller"
         volumeMounts:
         - name: workdir
           mountPath: /workdir
         - name: dev-kvm
           mountPath: /dev/kvm
+        - name: base-kernel-repo
+          mountPath: /kernel-repo
+          readOnly: true
+        - name: aflow-cache
+          mountPath: /tmp/aflow-cache
+        - name: config-volume
+          mountPath: /config
         # Needed for /dev/kvm.
         # TODO: there's a "device plugin" mechanism in k8s that can share it more safely.
         securityContext:
@@ -63,3 +98,11 @@ spec:
           hostPath:
             path: /dev/kvm
             type: CharDevice
+        - name: base-kernel-repo
+          persistentVolumeClaim:
+            claimName: base-kernel-repo-pv-claim
+        - name: aflow-cache
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: global-config
