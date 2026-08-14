@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
@@ -107,4 +108,36 @@ func TestBugTitleRe(t *testing.T) {
 	assert.False(t, titleMatchesFilter(&api.FuzzConfig{
 		BugTitleRe: `^Prefix:`,
 	}, "Without prefix"))
+}
+
+func TestFilterFindingCandidates(t *testing.T) {
+	bugs := []manager.DiffBug{
+		{
+			Title:   "candidate crash 1",
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report1"},
+		},
+		{
+			Title:   "reproduced crash",
+			Base:    manager.DiffBugInfo{NotCrashed: true},
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report_repro"},
+		},
+		{
+			Title:   "crash on base too",
+			Base:    manager.DiffBugInfo{Crashes: 2},
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report2"},
+		},
+		{
+			Title:   "crash without report",
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: ""},
+		},
+		{
+			Title:   "ignored status crash",
+			Status:  manager.DiffBugStatusIgnored,
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report3"},
+		},
+	}
+
+	candidates := filterFindingCandidates(bugs)
+	require.Len(t, candidates, 1)
+	assert.Equal(t, "candidate crash 1", candidates[0].Title)
 }
