@@ -18,7 +18,7 @@ Create user-space (chroot) using [create-image.sh](../tools/create-image.sh)
 
 Create a config file with following lines adjusted for your environment:
 
-```
+```json
 {
 	"bin_dir": "/home/syzkaller/bisect_bin",
 	"ccache": "/usr/bin/ccache",
@@ -29,8 +29,8 @@ Create a config file with following lines adjusted for your environment:
 	"userspace": "/home/syzkaller/image/chroot",
 	"kernel_config": "/home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream-apparmor-kasan.config",
 	"kernel_baseline_config": "/home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream-apparmor-kasan-base.config",
-	"syzctl": /home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream.sysctl,
-	"cmdline": /home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream.cmdline,
+	"syzctl": "/home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream.sysctl",
+	"cmdline": "/home/syzkaller/go/src/github.com/google/syzkaller/dashboard/config/linux/upstream.cmdline",
 	"manager":
 	{
 		"name" : "bisect",
