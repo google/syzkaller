@@ -194,6 +194,8 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		*fuzzCfg = *target.FuzzConfig
 	}
 	fuzzCfg.FocusSymbols = triager.aiVerdict.FocusSymbols
+	fuzzCfg.BaseCommit = result.Commit
+	fuzzCfg.BaseTree = result.Tree.Name
 	testTarget := &api.TestTarget{
 		Base:    base,
 		Patched: base,

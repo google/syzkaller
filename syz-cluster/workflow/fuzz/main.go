@@ -19,15 +19,20 @@ import (
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/manager/diff"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/fuzzconfig"
+	"github.com/google/syzkaller/syz-cluster/pkg/triage"
+	"github.com/google/syzkaller/syz-cluster/pkg/workspace"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,6 +44,7 @@ var (
 	flagTime         = flag.String("time", "1h", "how long to fuzz")
 	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
 	flagTestName     = flag.String("test_name", "", "test name")
+	flagRepository   = flag.String("repository", "", "path to a kernel checkout")
 )
 
 func main() {
@@ -79,6 +85,7 @@ func main() {
 	}
 	log.Logf(0, "fuzzing is finished")
 	logFinalState(store)
+	triageUnreproducedFindings(ctx, config, client, store)
 	if err := reportStatus(ctx, config, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
@@ -166,7 +173,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 					app.Errorf("failed to report a base kernel crash %q: %v", title, err)
 				}
 			case bug := <-bugs:
-				err := reportFinding(groupCtx, config, client, bug)
+				err := reportFinding(groupCtx, client, bug.Report, bug.Repro, nil)
 				if err != nil {
 					app.Errorf("failed to report a finding %q: %v", bug.Report.Title, err)
 				}
@@ -334,26 +341,32 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 	return nil
 }
 
-func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *diff.Bug) error {
+func reportFinding(ctx context.Context, client *api.Client,
+	rep *report.Report, reproResult *repro.Result,
+	aiResult *triage.AIFindingTriageResult) error {
 	finding := &api.RawFinding{
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
-		Title:     bug.Report.Title,
-		Report:    bug.Report.Report,
-		Log:       bug.Report.Output,
+		Title:     rep.Title,
+		Report:    rep.Report,
+		Log:       rep.Output,
 	}
-	if repro := bug.Repro; repro != nil {
-		if repro.Prog != nil {
-			finding.SyzRepro = repro.Prog.Serialize()
-			finding.SyzReproOpts = repro.Opts.Serialize()
+	if reproResult != nil {
+		if reproResult.Prog != nil {
+			finding.SyzRepro = reproResult.Prog.Serialize()
+			finding.SyzReproOpts = reproResult.Opts.Serialize()
 		}
-		if repro.CRepro {
+		if reproResult.CRepro {
 			var err error
-			finding.CRepro, err = repro.CProgram()
+			finding.CRepro, err = reproResult.CProgram()
 			if err != nil {
 				app.Errorf("failed to generate C program: %v", err)
 			}
 		}
+	}
+	if aiResult != nil {
+		finding.ConfirmedByAI = true
+		finding.TriageTrajectory = aiResult.Trajectory
 	}
 	return client.UploadFinding(ctx, finding)
 }
@@ -487,4 +500,159 @@ func setupFocusAreas(config *api.FuzzConfig, patched *mgrconfig.Config) {
 		},
 		Weight: 10.0,
 	})
+}
+
+func triageUnreproducedFindings(ctx context.Context, config *api.FuzzConfig, client *api.Client,
+	store *manager.DiffFuzzerStore) {
+	if *flagRepository == "" {
+		return
+	}
+	appConfig, err := app.Config()
+	if err != nil {
+		app.Errorf("failed to load app config for finding triage: %v", err)
+		return
+	}
+	if appConfig.AI.Empty() {
+		return
+	}
+
+	bugs := store.List()
+	if len(bugs) == 0 {
+		return
+	}
+
+	candidates := filterFindingCandidates(bugs)
+	if len(candidates) == 0 {
+		return
+	}
+
+	tracer := &debugtracer.GenericTracer{TraceWriter: log.VerboseWriter(0)}
+	aiClient, err := triage.NewAIClient(ctx, appConfig, tracer)
+	if err != nil {
+		app.Errorf("failed to initialize AI client for finding triage: %v", err)
+		return
+	}
+	defer aiClient.Close()
+
+	series, err := client.GetSessionSeries(ctx, *flagSession)
+	if err != nil {
+		app.Errorf("failed to query series for AI triage: %v", err)
+		return
+	}
+
+	baseCommit, err := setupTriageWorkspace(config, series, tracer)
+	if err != nil {
+		app.Errorf("failed to prepare workspace for AI triage: %v", err)
+		return
+	}
+
+	reporter := &unreproducedReporter{
+		aiClient:   aiClient,
+		store:      store,
+		series:     series,
+		baseCommit: baseCommit,
+	}
+
+	for _, bug := range candidates {
+		aiResult, err := reporter.triage(ctx, bug)
+		if err != nil {
+			app.Errorf("%v", err)
+			continue
+		}
+		reportBytes, err := os.ReadFile(filepath.Join(store.BasePath, bug.Patched.Report))
+		if err != nil {
+			app.Errorf("failed to read report for %q: %v", bug.Title, err)
+			continue
+		}
+		var logBytes []byte
+		if bug.Patched.CrashLog != "" {
+			logBytes, _ = os.ReadFile(filepath.Join(store.BasePath, bug.Patched.CrashLog))
+		}
+		if aiResult.Introduced {
+			log.Logf(0, "AI confirmed unreproduced finding %q was introduced by patch series (reason: %s)",
+				bug.Title, aiResult.Reasoning)
+			err = reportFinding(ctx, client, &report.Report{
+				Title:  bug.Title,
+				Report: reportBytes,
+				Output: logBytes,
+			}, nil, aiResult)
+			if err != nil {
+				app.Errorf("failed to upload AI-confirmed finding %q: %v", bug.Title, err)
+			}
+		} else {
+			log.Logf(0, "AI rejected unreproduced finding %q (reason: %s)", bug.Title, aiResult.Reasoning)
+			if *flagBaseBuild != "" {
+				if bErr := client.UploadBaseFinding(ctx, &api.BaseFindingInfo{
+					BuildID: *flagBaseBuild,
+					Title:   bug.Title,
+				}); bErr != nil {
+					app.Errorf("failed to upload base finding %q: %v", bug.Title, bErr)
+				}
+			}
+		}
+	}
+}
+
+func setupTriageWorkspace(config *api.FuzzConfig, series *api.Series, tracer debugtracer.DebugTracer) (string, error) {
+	ws, err := workspace.New(*flagRepository, tracer)
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize workspace: %w", err)
+	}
+
+	baseCommit := config.BaseCommit
+	if baseCommit == "" {
+		baseCommit = series.BaseCommitHint
+	}
+
+	if _, err := ws.Checkout(config.BaseTree, baseCommit, series.PatchBodies()); err != nil {
+		return "", fmt.Errorf("failed to checkout and apply patches: %w", err)
+	}
+	if err := ws.CommitPatches(); err != nil {
+		return "", fmt.Errorf("failed to commit patches: %w", err)
+	}
+	return baseCommit, nil
+}
+
+type unreproducedReporter struct {
+	aiClient   *triage.AIClient
+	store      *manager.DiffFuzzerStore
+	series     *api.Series
+	baseCommit string
+}
+
+func (r *unreproducedReporter) triage(ctx context.Context, bug manager.DiffBug) (*triage.AIFindingTriageResult, error) {
+	reportBytes, err := os.ReadFile(filepath.Join(r.store.BasePath, bug.Patched.Report))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read report for %q: %w", bug.Title, err)
+	}
+
+	log.Logf(0, "evaluating unreproduced finding %q with AI", bug.Title)
+	aiResult, err := r.aiClient.EvaluateFinding(
+		ctx, r.series, r.baseCommit, string(reportBytes), *flagRepository,
+	)
+	if aiResult != nil && len(aiResult.Trajectory) > 0 {
+		reportDir := filepath.Dir(filepath.Join(r.store.BasePath, bug.Patched.Report))
+		osutil.MkdirAll(reportDir)
+		if writeErr := os.WriteFile(filepath.Join(reportDir, "triage.html"), aiResult.Trajectory, 0644); writeErr != nil {
+			app.Errorf("failed to save triage trajectory for %q: %v", bug.Title, writeErr)
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("AI evaluation failed for finding %q: %w", bug.Title, err)
+	}
+	return aiResult, nil
+}
+
+func filterFindingCandidates(bugs []manager.DiffBug) []manager.DiffBug {
+	var candidates []manager.DiffBug
+	for _, bug := range bugs {
+		if bug.Status == manager.DiffBugStatusIgnored || bug.Base.Crashes > 0 || bug.Base.NotCrashed {
+			continue
+		}
+		if bug.Patched.Crashes == 0 || bug.Patched.Report == "" {
+			continue
+		}
+		candidates = append(candidates, bug)
+	}
+	return candidates
 }
