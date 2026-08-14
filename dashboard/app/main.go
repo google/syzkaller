@@ -72,6 +72,7 @@ func initHTTPHandlers() {
 	http.Handle("/{ns}/graph/crashes", handlerWrapper(handleGraphCrashes))
 	http.Handle("/{ns}/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
 	http.Handle("/{ns}/graph/coverage", handlerWrapper(handleCoverageGraph))
+	http.Handle("/{ns}/graph/ai", handlerWrapper(handleAIGraphs))
 	http.Handle("/{ns}/coverage/file", handlerWrapper(handleFileCoverage))
 	http.Handle("/{ns}/coverage", handlerWrapper(handleCoverageHeatmap))
 	http.Handle("/{ns}/coverage/subsystems", handlerWrapper(handleSubsystemsCoverageHeatmap))
