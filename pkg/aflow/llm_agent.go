@@ -537,7 +537,7 @@ func (a *agentSession) evaluateJudge(ctx *Context, iter int) (bool, error) {
 		return false, fmt.Errorf("judge agent failed: %w", err)
 	}
 	if decision.Stop {
-		maps.Insert(ctx.state, maps.All(convertToMap(JudgeExecutionResults{
+		maps.Insert(ctx.state, maps.All(convertToMapShallow(JudgeExecutionResults{
 			JudgeStopped:  true,
 			JudgeReason:   decision.Reason,
 			FailedHistory: extractHistoryMessages(a.req),
