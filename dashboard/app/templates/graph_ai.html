@@ -1,0 +1,161 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+AI jobs statistics graphs.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} AI Jobs Stats</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+
+		function drawCharts() {
+			{{if .TokenGraph.Columns}}
+			(function() {
+				var data = new google.visualization.DataTable();
+				data.addColumn({type: 'string'});
+				{{range $.TokenGraph.Headers}}
+					data.addColumn({type: 'number', label: "{{.Name}}"});
+				{{end}}
+				data.addColumn({type: 'number', role: 'annotation'});
+				data.addRows([
+					{{range $.TokenGraph.Columns}}
+						["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+					{{end}}
+				]);
+				new google.visualization.ColumnChart(document.getElementById('token_graph_div')).
+					draw(data, {
+						width: "100%",
+						chartArea: {width: '80%', height: '75%', left: 80, top: 35},
+						legend: {position: 'right'},
+						focusTarget: "category",
+						isStacked: true,
+						vAxis: {title: 'Tokens', minValue: 0, textPosition: 'out'},
+						hAxis: {title: 'Month', textPosition: 'out', maxAlternation: 1},
+						annotations: { textStyle: { color: 'black', bold: true }}
+					});
+			})();
+			{{end}}
+
+			{{if .JobTypeTokenGraph.Columns}}
+			(function() {
+				var data = new google.visualization.DataTable();
+				data.addColumn({type: 'string'});
+				{{range $.JobTypeTokenGraph.Headers}}
+					data.addColumn({type: 'number', label: "{{.Name}}"});
+				{{end}}
+				data.addColumn({type: 'number', role: 'annotation'});
+				data.addRows([
+					{{range $.JobTypeTokenGraph.Columns}}
+						["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+					{{end}}
+				]);
+				new google.visualization.ColumnChart(document.getElementById('job_type_token_graph_div')).
+					draw(data, {
+						width: "100%",
+						chartArea: {width: '80%', height: '75%', left: 80, top: 35},
+						legend: {position: 'right'},
+						focusTarget: "category",
+						isStacked: true,
+						vAxis: {title: 'Tokens', minValue: 0, textPosition: 'out'},
+						hAxis: {title: 'Month', textPosition: 'out', maxAlternation: 1},
+						annotations: { textStyle: { color: 'black', bold: true }}
+					});
+			})();
+			{{end}}
+
+			{{if .FinishedJobsGraph.Columns}}
+			(function() {
+				var data = new google.visualization.DataTable();
+				data.addColumn({type: 'string'});
+				{{range $.FinishedJobsGraph.Headers}}
+					data.addColumn({type: 'number', label: "{{.Name}}"});
+				{{end}}
+				data.addColumn({type: 'number', role: 'annotation'});
+				data.addRows([
+					{{range $.FinishedJobsGraph.Columns}}
+						["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+					{{end}}
+				]);
+				new google.visualization.ColumnChart(document.getElementById('finished_jobs_graph_div')).
+					draw(data, {
+						width: "100%",
+						chartArea: {width: '85%', height: '75%', left: 80, top: 35},
+						legend: {position: 'none'},
+						focusTarget: "category",
+						isStacked: false,
+						vAxis: {title: 'Finished Jobs', minValue: 0, textPosition: 'out'},
+						hAxis: {title: 'Month', textPosition: 'out', maxAlternation: 1},
+						annotations: { textStyle: { color: 'black', bold: true }},
+						colors: ['#4285F4']
+					});
+			})();
+			{{end}}
+
+			{{if .JobTypesGraph.Columns}}
+			(function() {
+				var data = new google.visualization.DataTable();
+				data.addColumn({type: 'string'});
+				{{range $.JobTypesGraph.Headers}}
+					data.addColumn({type: 'number', label: "{{.Name}}"});
+				{{end}}
+				data.addColumn({type: 'number', role: 'annotation'});
+				data.addRows([
+					{{range $.JobTypesGraph.Columns}}
+						["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+					{{end}}
+				]);
+				new google.visualization.ColumnChart(document.getElementById('job_types_graph_div')).
+					draw(data, {
+						width: "100%",
+						chartArea: {width: '80%', height: '75%', left: 80, top: 35},
+						legend: {position: 'right'},
+						focusTarget: "category",
+						isStacked: true,
+						vAxis: {title: 'Jobs', minValue: 0, textPosition: 'out'},
+						hAxis: {title: 'Month', textPosition: 'out', maxAlternation: 1},
+						annotations: { textStyle: { color: 'black', bold: true }}
+					});
+			})();
+			{{end}}
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<h3 style="margin: 20px 20px 10px 20px;">Total Token Consumption (Per Model)</h3>
+	{{if .TokenGraph.Columns}}
+		<div id="token_graph_div" style="height: 400px; margin-bottom: 30px;"></div>
+	{{else}}
+		<p style="margin: 20px;">No token consumption data available.</p>
+	{{end}}
+
+	<h3 style="margin: 20px 20px 10px 20px;">Total Token Consumption (Per Job Type)</h3>
+	{{if .JobTypeTokenGraph.Columns}}
+		<div id="job_type_token_graph_div" style="height: 400px; margin-bottom: 30px;"></div>
+	{{else}}
+		<p style="margin: 20px;">No token consumption data available.</p>
+	{{end}}
+
+	<h3 style="margin: 20px 20px 10px 20px;">Total Finished Jobs</h3>
+	{{if .FinishedJobsGraph.Columns}}
+		<div id="finished_jobs_graph_div" style="height: 400px; margin-bottom: 30px;"></div>
+	{{else}}
+		<p style="margin: 20px;">No finished jobs data available.</p>
+	{{end}}
+
+	<h3 style="margin: 20px 20px 10px 20px;">Job Type Distribution</h3>
+	{{if .JobTypesGraph.Columns}}
+		<div id="job_types_graph_div" style="height: 400px; margin-bottom: 30px;"></div>
+	{{else}}
+		<p style="margin: 20px;">No job type distribution data available.</p>
+	{{end}}
+</body>
+</html>
