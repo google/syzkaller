@@ -133,8 +133,11 @@ func init() {
 						kernel.CheckoutScratch,
 						&aflow.If{
 							Condition: "CodeItems",
+							// In patch-iteration, human reviewer feedback is the sole ground truth,
+							// so we do not run an automated architectural reviewer agent.
 							Do: patchGenerationLoop(
-								applyGitPatch, patchIterationInstruction, patchIterationPrompt, viewPatchHistoryTool),
+								applyGitPatch, patchIterationInstruction, patchIterationPrompt,
+								"", viewPatchHistoryTool),
 							Else: forwardPatchDiff,
 						},
 						patchRefinementLoop(false),

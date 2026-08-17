@@ -7,6 +7,8 @@ package patching
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
@@ -92,7 +94,7 @@ func init() {
 					Tools:       common.CodeAccessTools,
 				},
 				kernel.CheckoutScratch,
-				patchGenerationLoop(nil, patchInstruction, patchPrompt),
+				patchGenerationLoop(nil, patchInstruction, patchPrompt, reviewerPrompt),
 				patchRefinementLoop(true),
 				&aflow.LLMAgent{
 					Name:        "fixes-finder",
@@ -261,7 +263,7 @@ However, the patch testing failed with the following error:
 {{.TestError}}
 
 If the error is fixable, and the fix patch is correct overall,
-the create a new fixed patch based on the provided one with the errors fixed.
+then create a new fixed patch based on the provided one with the errors fixed.
 If the error points to a fundamental issue with the approach in the patch,
 then create a new patch from scratch.
 Note: in both cases the source tree does not contain the patch yet
@@ -270,6 +272,24 @@ in its entirety from scratch using the {{.toolCodeeditor}} tool).
 {{else}}
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
+{{else if .ReviewFeedback}}
+
+Another developer tried to fix this bug with the following strategy:
+
+{{.PatchExplanation}}
+
+and the following patch:
+
+{{.PatchDiff}}
+
+However, a senior maintainer reviewed the patch and requested architectural/design revisions:
+
+{{.ReviewFeedback}}
+
+Revise the patch to eliminate these architectural flaws, satisfy maintainer invariants,
+and address all reviewer feedback.
+Note: the source tree does not contain the patch yet (so you need to recreate the complete,
+revised patch from scratch using the {{.toolCodeeditor}} tool).
 {{end}}
 `
 
@@ -350,27 +370,127 @@ are specified, letter capitalization, style, etc.
 // https://docs.kernel.org/process/submitting-patches.html
 const patchDescriptionLineLength = 75
 
-func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt string, extraTools ...aflow.Tool) aflow.Action {
-	actions := []aflow.Action{}
+const reviewerPrompt = `
+Bug title:
+{{.ReproducedBugTitle}}
+
+The crash report:
+{{.ReproducedCrashReport}}
+
+The root cause explanation:
+{{.BugExplanation}}
+
+The proposed patch diff:
+{{.PatchDiff}}
+
+Review this patch diff against the crash report, root cause explanation, and kernel architectural design guidelines.
+`
+
+// nolint: lll
+type patchReviewerOutputs struct {
+	ReviewApproved bool     `jsonschema:"True if the patch solves the root cause cleanly without band-aids or architectural violations."`
+	ReviewComments []string `jsonschema:"List of actionable feedback items addressing architectural flaws, invariant violations, or memory/concurrency bugs."`
+}
+
+func validatePatchReviewerOutputs(ctx *aflow.Context, state struct{}, args patchReviewerOutputs) (
+	patchReviewerOutputs, error) {
+	if !args.ReviewApproved && !slices.ContainsFunc(args.ReviewComments, func(c string) bool {
+		return strings.TrimSpace(c) != ""
+	}) {
+		return args, aflow.BadCallError("ReviewComments cannot be empty when ReviewApproved is false")
+	}
+	return args, nil
+}
+
+type testFailureOutputs struct {
+	NeedsIteration bool
+	ReviewFeedback string
+	ReviewApproved bool
+	ReviewComments []string
+}
+
+type reviewEvaluation struct {
+	NeedsIteration bool
+	ReviewFeedback string
+}
+
+var evaluatePatchReview = aflow.NewFuncAction("evaluate-patch-review",
+	func(ctx *aflow.Context, args patchReviewerOutputs) (reviewEvaluation, error) {
+		if args.ReviewApproved {
+			return reviewEvaluation{}, nil
+		}
+		var comments []string
+		for _, c := range args.ReviewComments {
+			c = strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(c), "-*"))
+			if c == "" {
+				continue
+			}
+			comments = append(comments, "- "+c)
+		}
+		if len(comments) == 0 {
+			return reviewEvaluation{}, nil
+		}
+		return reviewEvaluation{
+			NeedsIteration: true,
+			ReviewFeedback: strings.Join(comments, "\n"),
+		}, nil
+	})
+
+var setTestFailure = aflow.NewFuncAction("set-test-failure",
+	func(ctx *aflow.Context, args struct{}) (testFailureOutputs, error) {
+		return testFailureOutputs{
+			NeedsIteration: true,
+		}, nil
+	})
+
+// patchGenerationLoop creates an iterative patch generation loop.
+// If reviewerPrompt is non-empty, the loop invokes patch-reviewer to evaluate architectural guidelines.
+// When reviewerPrompt is empty (e.g., in patch-iteration where human reviewer feedback is the sole
+// source of truth), the loop iterates strictly on test/build failures.
+func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerPrompt string,
+	extraTools ...aflow.Tool) aflow.Action {
+	var actions []aflow.Action
 	if beforeEach != nil {
 		actions = append(actions, beforeEach)
 	}
+	actions = append(actions,
+		&aflow.LLMAgent{
+			Name:        "patch-generator",
+			Model:       aflow.BestExpensiveModel,
+			Reply:       "PatchExplanation",
+			TaskType:    aflow.FormalReasoningTask,
+			Instruction: instruction,
+			Prompt:      prompt,
+			Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, extraTools),
+		},
+		crash.TestPatch,
+	)
+
+	while := "TestError"
+	if reviewerPrompt != "" {
+		while = "NeedsIteration"
+		actions = append(actions, &aflow.If{
+			Condition: "TestError",
+			Do:        setTestFailure,
+			Else: aflow.Pipeline(
+				&aflow.LLMAgent{
+					Name:        "patch-reviewer",
+					Model:       aflow.BestExpensiveModel,
+					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),
+					Prompt:      reviewerPrompt,
+					Tools:       common.CodeAccessTools,
+				},
+				evaluatePatchReview,
+			),
+		})
+	}
 
 	return &aflow.DoWhile{
-		While:         "TestError",
+		While:         while,
 		MaxIterations: 10,
-		Do: aflow.Pipeline(append(actions,
-			&aflow.LLMAgent{
-				Name:        "patch-generator",
-				Model:       aflow.BestExpensiveModel,
-				Reply:       "PatchExplanation",
-				TaskType:    aflow.FormalReasoningTask,
-				Instruction: instruction,
-				Prompt:      prompt,
-				Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, extraTools),
-			},
-			crash.TestPatch, // -> PatchDiff or TestError
-		)...),
+		Do:            aflow.Pipeline(actions...),
 	}
 }
 
