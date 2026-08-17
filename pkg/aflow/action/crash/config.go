@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -44,6 +45,14 @@ type TargetConfig struct {
 	Sandbox string
 	// Whether to run VM in snapshot mode (only supported with qemu VM type).
 	Snapshot bool
+	// Custom timeout for detecting when a VM is hung without console output (overrides default sysTarget NoOutput).
+	noOutputTimeout time.Duration
+}
+
+// WithNoOutputTimeout returns a copy of TargetConfig with a custom hang timeout.
+func (args TargetConfig) WithNoOutputTimeout(d time.Duration) TargetConfig {
+	args.noOutputTimeout = d
+	return args
 }
 
 // Validate checks if the target configuration is valid.
@@ -128,6 +137,10 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
 		return nil, err
+	}
+	if args.noOutputTimeout > 0 {
+		cfg.Timeouts.NoOutput = args.noOutputTimeout
+		cfg.Timeouts.NoOutputRunningTime = args.noOutputTimeout + time.Minute
 	}
 	return cfg, nil
 }
