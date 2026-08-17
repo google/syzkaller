@@ -27,9 +27,10 @@ import (
 )
 
 var (
-	flagLocalUI     = flag.Bool("local-ui", false, "start local web server in the TestLocalUI test")
-	flagLocalUIAddr = flag.String("local-ui-addr", "127.0.0.1:0", "run the web server on this network address")
-	flagLocalUIUser = flag.String("local-ui-user", "admin", "authenticate requests as admin/user/none")
+	flagLocalUI         = flag.Bool("local-ui", false, "start local web server in the TestLocalUI test")
+	flagLocalUIAddr     = flag.String("local-ui-addr", "127.0.0.1:0", "run the web server on this network address")
+	flagLocalUIUser     = flag.String("local-ui-user", "admin", "authenticate requests as admin/user/none")
+	flagLocalUIPopulate = flag.Bool("local-ui-populate", false, "populate mock data in the TestLocalUI test")
 )
 
 // Run the test with:
@@ -49,7 +50,9 @@ func TestLocalUI(t *testing.T) {
 	c.transformContext = func(ctx context.Context) context.Context {
 		return contextWithConfig(ctx, localUIConfig)
 	}
-	populateLocalUIDB(t, c)
+	if *flagLocalUIPopulate {
+		populateLocalUIDB(t, c)
+	}
 	if !*flagLocalUI {
 		return
 	}

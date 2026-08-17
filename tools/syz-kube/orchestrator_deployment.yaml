@@ -1,0 +1,47 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syz-orchestrator
+  namespace: syzkube
+  labels:
+    app.kubernetes.io/name: syz-orchestrator
+    app.kubernetes.io/component: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: syz-orchestrator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: syz-orchestrator
+        app.kubernetes.io/component: orchestrator
+    spec:
+      serviceAccountName: syz-orchestrator
+      containers:
+      - name: orchestrator
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command:
+        - sh
+        - -c
+        - |
+          echo "Starting Syzkaller Kubernetes Orchestrator in continuous fuzz loop mode..."
+          exec go run /syzkaller/tools/syz-kube/orchestrator \
+            -namespace=syzkube \
+            -action=fuzz-loop \
+            -platform=qemu_x86_64 \
+            -compiler=clang \
+            -parallel-managers=5 \
+            -fuzz-duration=1h
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /projects/syzkaller
+          type: Directory

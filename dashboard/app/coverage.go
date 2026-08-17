@@ -27,17 +27,33 @@ import (
 var coverageDBClient *spanner.Client
 
 func initCoverageDB() {
-	if !appengine.IsAppEngine() {
+	if !appengine.IsAppEngine() && !appengine.IsDevAppServer() && os.Getenv("SPANNER_EMULATOR_HOST") == "" {
 		// It is a test environment.
 		// Use setCoverageDBClient to specify the coveragedb mock or emulator in every test.
 		return
 	}
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
+	database := os.Getenv("SPANNER_DATABASE_URI")
+	if database == "" {
+		projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+		if projectID == "" {
+			projectID = appengine.AppID(context.Background())
+		}
+		if projectID == "" {
+			projectID = "syzkaller"
+		}
+		instanceName := "syzbot"
+		if os.Getenv("SPANNER_EMULATOR_HOST") != "" || appengine.IsDevAppServer() {
+			instanceName = "syzkaller"
+		}
+		if envInstance := os.Getenv("SPANNER_INSTANCE"); envInstance != "" {
+			instanceName = envInstance
+		}
+		database = "projects/" + projectID + "/instances/" + instanceName + "/databases/coverage"
+	}
 	var err error
 	coverageDBClient, err = spanner.NewClient(context.Background(), database)
 	if err != nil {
-		panic("spanner.NewClient: " + err.Error())
+		log.Errorf(context.Background(), "spanner.NewClient: %v", err)
 	}
 }
 
@@ -45,11 +61,14 @@ var keyCoverageDBClient = "coveragedb client key"
 
 func getCoverageDBClient(ctx context.Context) *spanner.Client {
 	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(*spanner.Client)
-	if ctxClient == nil && coverageDBClient == nil {
-		panic("attempt to get coverage db client before it was set in tests")
-	}
 	if ctxClient != nil {
 		return ctxClient
+	}
+	if coverageDBClient == nil {
+		initCoverageDB()
+	}
+	if coverageDBClient == nil {
+		panic("attempt to get coverage db client before it was set in tests")
 	}
 	return coverageDBClient
 }

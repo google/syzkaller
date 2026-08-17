@@ -1,0 +1,80 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: syz-manager
+  namespace: syzkube
+spec:
+  serviceName: syz-manager
+  replicas: 5
+  selector:
+    matchLabels:
+      app: syz-manager
+  template:
+    metadata:
+      labels:
+        app: syz-manager
+    spec:
+      containers:
+      - name: manager
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command:
+        - sh
+        - -c
+        - |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86
+          echo "Starting real syz-manager fuzzing instance for pod $HOSTNAME..."
+          POD_INDEX=$(echo "$HOSTNAME" | grep -o '[0-9]*$')
+          CFG_FILE="/etc/syzkaller/manager-$POD_INDEX.cfg"
+          if [ ! -f "$CFG_FILE" ]; then
+            CFG_FILE="/etc/syzkaller/manager.cfg"
+          fi
+          sed "s/\"name\": \"[^\"]*\"/\"name\": \"$HOSTNAME\"/" "$CFG_FILE" > /tmp/manager.cfg
+          /syzkaller/bin/syz-manager -config /tmp/manager.cfg
+        env:
+        - name: SYZ_PUBLIC_WEB_ADDR
+          value: "localhost:50002"
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 50002
+          name: http
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: disk-image
+          mountPath: /disk.raw
+        - name: config
+          mountPath: /etc/syzkaller
+        - name: workdir
+          mountPath: /workdir
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /projects/syzkaller
+          type: Directory
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+          type: CharDevice
+      - name: disk-image
+        hostPath:
+          path: /projects/disk.raw
+          type: File
+      - name: config
+        configMap:
+          name: syz-manager-config
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi

@@ -1,0 +1,41 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: syz-orchestrator
+  namespace: syzkube
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: syz-orchestrator-role
+  namespace: syzkube
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: syz-orchestrator-binding
+  namespace: syzkube
+subjects:
+  - kind: ServiceAccount
+    name: syz-orchestrator
+    namespace: syzkube
+roleRef:
+  kind: Role
+  name: syz-orchestrator-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,74 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-spanner-emulator
+  namespace: syzkube
+  labels:
+    app.kubernetes.io/name: cloud-spanner-emulator
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloud-spanner-emulator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloud-spanner-emulator
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+      - name: emulator
+        image: gcr.io/cloud-spanner-emulator/emulator:latest
+        ports:
+        - containerPort: 9010
+          name: grpc
+        - containerPort: 9020
+          name: rest
+        readinessProbe:
+          tcpSocket:
+            port: 9010
+          initialDelaySeconds: 2
+          periodSeconds: 5
+      - name: initializer
+        image: gcr.io/syzkaller/env
+        workingDir: /syzkaller
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Spanner emulator to become ready..."
+          sleep 5
+          export SPANNER_EMULATOR_HOST=localhost:9010
+          go run /syzkaller/tools/syz-kube/spanner-init -spanner-uri=projects/syzkaller/instances/syzkaller/databases/coverage
+          echo "Spanner database initialized. Initializer entering standby..."
+          exec sleep infinity
+        volumeMounts:
+        - name: workspace
+          mountPath: /syzkaller
+      volumes:
+      - name: workspace
+        hostPath:
+          path: /projects/syzkaller
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-spanner-emulator
+  namespace: syzkube
+  labels:
+    app.kubernetes.io/name: cloud-spanner-emulator
+spec:
+  selector:
+    app.kubernetes.io/name: cloud-spanner-emulator
+  ports:
+  - name: grpc
+    port: 9010
+    targetPort: 9010
+  - name: rest
+    port: 9020
+    targetPort: 9020

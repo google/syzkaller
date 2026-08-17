@@ -1,13 +1,5 @@
 {{ define "js" }}
-<script>
-    var domain = window.location.hostname;
-    var scriptUrl = 'https://' + domain + '/static/coverage.js';
-
-    var script = document.createElement('script');
-    script.src = scriptUrl;
-
-    document.head.appendChild(script);
-</script>
+<script src="/static/coverage.js"></script>
 {{ end }}
 
 {{ define "style" }}

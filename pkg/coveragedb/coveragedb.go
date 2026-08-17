@@ -569,7 +569,7 @@ func filesCoverageWithDetailsStmt(scope *SelectScope, withLines bool) spanner.St
 from merge_history
   join files
     on merge_history.session = files.session
-  join file_subsystems
+  left join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
   merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=$4`,
