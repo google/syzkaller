@@ -1,0 +1,30 @@
+FILE: security/landlock/tsync.c
+
+==================================================================
+Oops: general protection fault, probably for non-canonical address 0xdffffc000000013c: 0000 [#1] SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x00000000000009e0-0x00000000000009e7]
+CPU: 1 UID: 0 PID: 8400 Comm: syz.0.629 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 02/12/2026
+RIP: 0010:task_work_pending include/linux/task_work.h:26 [inline]
+RIP: 0010:task_work_cancel_match kernel/task_work.c:124 [inline]
+RIP: 0010:task_work_cancel+0x8a/0x220 kernel/task_work.c:187
+Code: b8 f1 f1 f1 f1 f8 f3 f3 f3 4b 89 44 25 00 e8 bd b6 35 00 43 c6 44 25 04 00 49 89 de 48 81 c3 e0 09 00 00 49 89 df 49 c1 ef 03 <43> 80 3c 27 00 74 08 48 89 df e8 17 f5 9f 00 48 83 3b 00 75 51 e8
+RSP: 0018:ffffc9001eadfb20 EFLAGS: 00010216
+RAX: ffffffff818fdf23 RBX: 00000000000009e0 RCX: 0000000000080000
+RDX: ffffc9000e905000 RSI: 00000000000099dd RDI: 00000000000099de
+RBP: ffffc9001eadfbd0 R08: ffffc9001eadfc97 R09: 1ffff92003d5bf92
+R10: dffffc0000000000 R11: fffff52003d5bf93 R12: dffffc0000000000
+R13: 1ffff92003d5bf68 R14: 0000000000000000 R15: 000000000000013c
+FS:  00007f83f86a96c0(0000) GS:ffff888125564000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007ff8027ea4b8 CR3: 0000000021f07000 CR4: 0000000000350ef0
+Call Trace:
+ <TASK>
+ cancel_tsync_works security/landlock/tsync.c:415 [inline]
+ landlock_restrict_sibling_threads+0xdc4/0x11f0 security/landlock/tsync.c:533
+ __do_sys_landlock_restrict_self security/landlock/syscalls.c:574 [inline]
+ __se_sys_landlock_restrict_self+0x540/0x810 security/landlock/syscalls.c:482
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x14d/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f83f779c799

@@ -1,0 +1,33 @@
+FILE: security/landlock/tsync.c
+
+==================================================================
+INFO: task syz.0.2812:14643 blocked for more than 143 seconds.
+      Not tainted syzkaller #0
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+task:syz.0.2812      state:D stack:25600 pid:14643 tgid:14643 ppid:13375  task_flags:0x400040 flags:0x00080002
+Call Trace:
+ <TASK>
+ context_switch kernel/sched/core.c:5295 [inline]
+ __schedule+0x1585/0x5340 kernel/sched/core.c:6907
+ __schedule_loop kernel/sched/core.c:6989 [inline]
+ schedule+0x164/0x360 kernel/sched/core.c:7004
+ schedule_timeout+0xc3/0x2c0 kernel/time/sleep_timeout.c:75
+ do_wait_for_common kernel/sched/completion.c:100 [inline]
+ __wait_for_common kernel/sched/completion.c:121 [inline]
+ wait_for_common kernel/sched/completion.c:132 [inline]
+ wait_for_completion+0x2cc/0x5e0 kernel/sched/completion.c:153
+ restrict_one_thread security/landlock/tsync.c:128 [inline]
+ restrict_one_thread_callback+0x320/0x570 security/landlock/tsync.c:162
+ task_work_run+0x1d9/0x270 kernel/task_work.c:233
+ get_signal+0x11eb/0x1330 kernel/signal.c:2807
+ arch_do_signal_or_restart+0xbc/0x830 arch/x86/kernel/signal.c:337
+ __exit_to_user_mode_loop kernel/entry/common.c:64 [inline]
+ exit_to_user_mode_loop+0x86/0x480 kernel/entry/common.c:98
+ __exit_to_user_mode_prepare include/linux/irq-entry-common.h:226 [inline]
+ syscall_exit_to_user_mode_prepare include/linux/irq-entry-common.h:256 [inline]
+ syscall_exit_to_user_mode include/linux/entry-common.h:325 [inline]
+ do_syscall_64+0x32d/0xf80 arch/x86/entry/syscall_64.c:100
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f8d7f19bf79
+RSP: 002b:00007ffe0b192a38 EFLAGS: 00000246 ORIG_RAX: 00000000000000db
+RAX: fffffffffffffdfc RBX: 00000000000389f1 RCX: 00007f8d7f19bf79
