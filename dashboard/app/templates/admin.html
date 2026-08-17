@@ -56,6 +56,7 @@ Main page.
 	{{if $.FixBisectionsLink}}<a href="{{$.FixBisectionsLink}}">[Fix Bisections]</a>{{end}}
 	{{if $.CauseBisectionsLink}}<a href="{{$.CauseBisectionsLink}}">[Cause Bisections]</a>{{end}}
 	{{if $.JobOverviewLink}}<a href="{{$.JobOverviewLink}}">[Jobs Overview]</a>{{end}}
+	{{if $.AIStatsLink}}<a href="{{$.AIStatsLink}}">[AI Stats]</a>{{end}}
 	{{template "job_list" $.RunningJobs}}
 	{{template "job_list" $.PendingJobs}}
 	{{template "job_list" $.RecentJobs}}

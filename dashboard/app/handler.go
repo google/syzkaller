@@ -229,6 +229,19 @@ type uiHeader struct {
 	Message             string // Show message box with this message when the page loads.
 }
 
+func (h *uiHeader) ActiveGraphMenu() bool {
+	switch h.URLPath {
+	case "/" + h.Namespace + "/graph/bugs",
+		"/" + h.Namespace + "/graph/found-bugs",
+		"/" + h.Namespace + "/graph/lifetimes",
+		"/" + h.Namespace + "/graph/resolution",
+		"/" + h.Namespace + "/graph/fuzzing",
+		"/" + h.Namespace + "/graph/ai":
+		return true
+	}
+	return false
+}
+
 type uiNamespace struct {
 	Name    string
 	Caption string

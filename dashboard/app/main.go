@@ -72,6 +72,7 @@ func initHTTPHandlers() {
 	http.Handle("/{ns}/graph/crashes", handlerWrapper(handleGraphCrashes))
 	http.Handle("/{ns}/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
 	http.Handle("/{ns}/graph/coverage", handlerWrapper(handleCoverageGraph))
+	http.Handle("/{ns}/graph/ai", handlerWrapper(handleAIGraphs))
 	http.Handle("/{ns}/coverage/file", handlerWrapper(handleFileCoverage))
 	http.Handle("/{ns}/coverage", handlerWrapper(handleCoverageHeatmap))
 	http.Handle("/{ns}/coverage/subsystems", handlerWrapper(handleSubsystemsCoverageHeatmap))
@@ -223,6 +224,7 @@ type uiAdminPage struct {
 	FixBisectionsLink   string
 	CauseBisectionsLink string
 	JobOverviewLink     string
+	AIStatsLink         string
 	MemcacheStats       *memcache.Statistics
 	Stopped             bool
 	StopLink            string
@@ -1172,6 +1174,7 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		Stopped:        alreadyStopped,
 		MoreStopClicks: 2,
 		StopLink:       urlutil.SetParam("/admin", "stop_clicked", "1"),
+		AIStatsLink:    fmt.Sprintf("/%s/graph/ai", getConfig(ctx).DefaultNamespace),
 	}
 	if r.FormValue("stop_clicked") != "" {
 		data.MoreStopClicks = 1
