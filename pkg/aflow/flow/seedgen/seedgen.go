@@ -1,0 +1,226 @@
+// Copyright 2026 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+// Package seedgen implements the AI-guided seed generation workflow.
+package seedgen
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/google/syzkaller/docs"
+	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
+	"github.com/google/syzkaller/pkg/aflow/action/kernel"
+	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+)
+
+type SeedGenInputs struct {
+	AgentName     string
+	RawPC         string
+	KernelRepo    string
+	KernelCommit  string
+	KernelConfig  string
+	Image         string
+	Type          string
+	VM            json.RawMessage
+	CorpusVMCount int
+	Syzkaller     string
+	TargetOS      string
+	TargetArch    string
+	Snapshot      bool
+	CorpusPath    string
+}
+
+func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
+	steps := append([]aflow.Action{actionsyzlang.PrepareSyzFS}, prefix...)
+	steps = append(steps,
+		kernel.SymbolizePC,
+		actionsyzlang.ActionExecuteCorpus,
+		codesearcher.PrepareIndex,
+		codesearcher.ActionExtractFunction,
+		&aflow.DoWhile{
+			While:         "ContinueLoop",
+			MaxIterations: 5,
+			Do: aflow.Pipeline(
+				ActionPrepareFailedDetails,
+				GeneratorAgent,
+				&aflow.If{
+					Condition: "JudgeStopped",
+					Do: aflow.Pipeline(
+						ActionFormatFailedHistory,
+						HistorySummarizerAgent,
+					),
+				},
+				ActionVerifyPCAndLoopState,
+			),
+		},
+		ActionFormatOutput,
+	)
+	return aflow.Pipeline(steps...)
+}
+
+func init() {
+	aflow.Register[SeedGenInputs, ai.SeedGenOutputs](
+		ai.WorkflowSeedGen,
+		"generate a syzlang program to reach a specific code position",
+		&aflow.Flow{
+			Consts: map[string]any{
+				"DocProgramSyntax":             docs.ProgramSyntax,
+				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
+				"DocPseudoSyscalls":            docs.PseudoSyscalls,
+				"DocSyzOS":                     docs.SyzOS,
+			},
+			Root: seedGenPipeline(
+				ActionParsePC,
+				kernel.Checkout,
+				kernel.Build,
+				crash.ActionConfigureRunner,
+			),
+		},
+	)
+}
+
+type FormatOutputArgs struct {
+	ExecutionCachedID string
+	GeneratorGiveUp   bool
+	GeneratorReason   string
+	PCReached         bool
+}
+
+var ActionFormatOutput = aflow.NewFuncAction("format-output",
+	func(ctx *aflow.Context, args FormatOutputArgs) (ai.SeedGenOutputs, error) {
+		seedSyz := ""
+		if args.ExecutionCachedID != "" {
+			var err error
+			generated, err := crash.LoadSeedProgramDetails(ctx, args.ExecutionCachedID)
+			if err != nil {
+				return ai.SeedGenOutputs{}, aflow.BadCallError("failed to read program from cache: %v", err)
+			}
+			seedSyz = ctx.RestoreBlobs(generated)
+		}
+
+		return ai.SeedGenOutputs{
+			SeedSyz: seedSyz,
+			Success: args.PCReached,
+			GiveUp:  args.GeneratorGiveUp,
+			Reason:  args.GeneratorReason,
+		}, nil
+	})
+
+type ParsePCArgs struct {
+	RawPC string
+}
+
+type ParsePCResult struct {
+	PC  string
+	PCs []string
+}
+
+var ActionParsePC = aflow.NewFuncAction("parse-pc", parsePCAction)
+
+func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) {
+	pc, err := parseFlexPC(args.RawPC)
+	if err != nil {
+		return ParsePCResult{}, err
+	}
+	hexPC := fmt.Sprintf("0x%x", pc)
+	return ParsePCResult{PC: hexPC, PCs: []string{hexPC}}, nil
+}
+
+func parseFlexPC(raw string) (uint64, error) {
+	s := strings.TrimSpace(raw)
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		return strconv.ParseUint(s[2:], 16, 64)
+	}
+	pc, err := strconv.ParseUint(s, 0, 64)
+	if err == nil {
+		return pc, nil
+	}
+	return strconv.ParseUint(s, 16, 64)
+}
+
+type VerifyPCAndLoopStateArgs struct {
+	ExecutionCachedID    string
+	GeneratorGiveUp      bool
+	GeneratorReason      string
+	JudgeStopped         bool
+	JudgeReason          string
+	FailedHistorySummary string
+	PC                   string
+	PCs                  []string
+}
+
+type VerifyPCAndLoopStateResult struct {
+	ContinueLoop                string
+	PCReached                   bool
+	LastFailedExecutionCachedID string
+	LastFailedHistorySummary    string
+}
+
+var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop",
+	func(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
+		if args.JudgeStopped {
+			res := VerifyPCAndLoopStateResult{
+				ContinueLoop:             "yes",
+				PCReached:                false,
+				LastFailedHistorySummary: args.FailedHistorySummary,
+			}
+			if id, ok := ctx.StateMap()["LastFailedExecutionCachedID"].(string); ok {
+				res.LastFailedExecutionCachedID = id
+			}
+			return res, nil
+		}
+
+		if args.GeneratorGiveUp {
+			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
+		}
+		if args.ExecutionCachedID == "" {
+			// This shouldn't happen due to GeneratorAgent output validation, but handle it safely.
+			return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
+		}
+
+		candidatePCs := args.PCs
+		if len(candidatePCs) == 0 && args.PC != "" {
+			candidatePCs = []string{args.PC}
+		}
+
+		reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, candidatePCs...)
+		if err != nil {
+			reached = false
+		}
+
+		if reached {
+			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: true}, nil
+		}
+		res := VerifyPCAndLoopStateResult{
+			ContinueLoop:                "yes",
+			PCReached:                   false,
+			LastFailedExecutionCachedID: args.ExecutionCachedID,
+			LastFailedHistorySummary:    args.FailedHistorySummary,
+		}
+		return res, nil
+	})
+
+type PrepareFailedDetailsArgs struct {
+	LastFailedExecutionCachedID string
+}
+
+type PrepareFailedDetailsResult struct {
+	LastFailedGeneratedSyz string
+}
+
+var ActionPrepareFailedDetails = aflow.NewFuncAction("seedgen-prepare-failed-details",
+	func(ctx *aflow.Context, args PrepareFailedDetailsArgs) (PrepareFailedDetailsResult, error) {
+		if args.LastFailedExecutionCachedID == "" {
+			return PrepareFailedDetailsResult{}, nil
+		}
+		generated, err := crash.LoadSeedProgramDetails(ctx, args.LastFailedExecutionCachedID)
+		return PrepareFailedDetailsResult{
+			LastFailedGeneratedSyz: generated,
+		}, err
+	})

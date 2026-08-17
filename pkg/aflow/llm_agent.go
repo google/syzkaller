@@ -384,6 +384,13 @@ func (a *agentSession) initReq(ctx *Context, prompt string) error {
 	return nil
 }
 
+func (a *agentSession) handleTokenOverflow(cfg *backend.GenerateConfig, respErr error) bool {
+	if isInputTokenOverflowError(respErr) {
+		return a.tryAnswerNow(cfg, true)
+	}
+	return false
+}
+
 func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map[string]Tool,
 	instruction, prompt string, candidate int) (string, map[string]any, error) {
 	if err := a.initReq(ctx, prompt); err != nil {
@@ -425,13 +432,11 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			// Input overflows maximum number of tokens.
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
-			if isInputTokenOverflowError(respErr) {
-				if a.tryAnswerNow(cfg, true) {
-					// This avoids a corner case when we overflowed the context
-					// on the very last iteration before maxLLMIterations.
-					iter--
-					continue
-				}
+			if a.handleTokenOverflow(cfg, respErr) {
+				// This avoids a corner case when we overflowed the context
+				// on the very last iteration before maxLLMIterations.
+				iter--
+				continue
 			}
 			return "", nil, respErr
 		}
