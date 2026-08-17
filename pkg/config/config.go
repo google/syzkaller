@@ -37,9 +37,13 @@ func LoadData(data []byte, cfg any) error {
 }
 
 func SaveFile(filename string, cfg any) error {
+	return SaveFileMode(filename, cfg, osutil.DefaultFilePerm)
+}
+
+func SaveFileMode(filename string, cfg any, perm os.FileMode) error {
 	data, err := json.MarshalIndent(cfg, "", "\t")
 	if err != nil {
 		return err
 	}
-	return osutil.WriteFile(filename, data)
+	return osutil.WriteFileMode(filename, data, perm)
 }
