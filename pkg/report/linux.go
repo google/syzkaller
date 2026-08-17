@@ -104,6 +104,8 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		regexp.MustCompile(`^kernel/kthread.c`),
 		regexp.MustCompile(`^kernel/sched/.*.c`),
 		regexp.MustCompile(`^kernel/stacktrace.c`),
+		regexp.MustCompile(`^kernel/task_work\.c`),
+		regexp.MustCompile(`^kernel/time/sleep_timeout\.c`),
 		regexp.MustCompile(`^kernel/time/timer.c`),
 		regexp.MustCompile(`^kernel/workqueue.c`),
 		regexp.MustCompile(`^net/core/dev.c`),
