@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
+  - CMDLINE: [append, "binder.impl=rust"]
   - RUST: [override]
   - GENDWARFKSYMS: [-baseline]
   - RUST_FW_LOADER_ABSTRACTIONS
@@ -11,3 +12,4 @@ config:
   - RUST_OVERFLOW_CHECKS
   - RUST_BITMAP_HARDENED: [v6.18]
   - RUST_BUILD_ASSERT_ALLOW: [v6.18]
+  - RUST_SERIAL_DEV_BUS_ABSTRACTIONS: [linux-next]
