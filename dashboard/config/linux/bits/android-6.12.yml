@@ -11,6 +11,3 @@ kernel:
 
 shell:
  - make gki_defconfig
-
-config:
- - CMDLINE: [append, "binder.impl=rust"]
