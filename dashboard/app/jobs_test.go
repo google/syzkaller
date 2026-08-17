@@ -1391,7 +1391,7 @@ func TestReproCJob(t *testing.T) {
 
 	bug, _, _ := c.loadBug(rep.ID)
 	reproC := []byte("void main() { *(int*)0 = 0; }")
-	job, err := handleTestReproCRequest(c.ctx, &testReproCReqArgs{
+	job, _, err := handleTestReproCRequest(c.ctx, &testReproCReqArgs{
 		bug:     bug,
 		bugKey:  bug.key(c.ctx),
 		user:    "test@user.com",
@@ -1453,7 +1453,7 @@ func TestReproCJobError(t *testing.T) {
 	c.expectEQ(bug.HasCRepro, false)
 
 	reproC := []byte("void main() { *(int*)0 = 0; }")
-	_, err = handleTestReproCRequest(c.ctx, &testReproCReqArgs{
+	_, _, err = handleTestReproCRequest(c.ctx, &testReproCReqArgs{
 		bug:     bug,
 		bugKey:  bugKey,
 		user:    "test@user.com",

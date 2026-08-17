@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	db "google.golang.org/appengine/v2/datastore"
 )
 
 func TestAIMigrations(t *testing.T) {
@@ -1323,6 +1324,135 @@ func TestAITestReproC(t *testing.T) {
 	wantReproC := []byte(fmt.Sprintf("// %v/bug?id=%v\nint main() { return 0; }",
 		appURL(c.ctx), bug.keyHash(c.ctx)))
 	c.checkURLContents(reproCLink, wantReproC)
+}
+
+func TestAutoTestReproC(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.KernelRepo = "git://syzkaller.org"
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+	bug, _, _ := c.loadBug(extID)
+
+	c.pollAIWorkflow(t, ai.WorkflowReproC)
+
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	values := url.Values{}
+	values.Set("ai-job-create", string(ai.WorkflowReproC))
+	_, err := c.AuthPOSTForm(AccessUser, jobCreateURL, values)
+	require.NoError(t, err)
+
+	aiJobResp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, aiJobResp.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: aiJobResp.ID,
+		Results: map[string]any{
+			"ReproC":              "int main() { return 0; }",
+			"KernelConfigManager": build.Manager,
+		},
+	})
+	require.NoError(t, err)
+
+	// Manager polls job with TestPatches = true -> should automatically get the JobTestPatch job.
+	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, dashapi.JobTestPatch, pollResp.Type)
+	require.Equal(t, "int main() { return 0; }", string(pollResp.ReproC))
+
+	// Complete the test job.
+	require.NoError(t, c.globalClient.JobDone(&dashapi.JobDoneReq{
+		ID:         pollResp.ID,
+		Build:      *testBuild(2),
+		CrashTitle: bug.Title,
+	}))
+
+	// Subsequent poll should not re-trigger testing for already finished repro job.
+	pollResp2, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	require.NoError(t, err)
+	require.Empty(t, pollResp2.ID)
+
+	// Test edge case: AI job with empty ReproC result should not trigger a test job.
+	crash2 := testCrash(build, 2)
+	c.aiClient.ReportCrash(crash2)
+	extID2 := c.aiClient.pollEmailExtID()
+	bug2, _, _ := c.loadBug(extID2)
+
+	jobCreateURL2 := fmt.Sprintf("/bug?id=%v", bug2.keyHash(c.ctx))
+	values2 := url.Values{}
+	values2.Set("ai-job-create", string(ai.WorkflowReproC))
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL2, values2)
+	require.NoError(t, err)
+
+	aiJobResp2 := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, aiJobResp2.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: aiJobResp2.ID,
+		Results: map[string]any{
+			"ReproC": "",
+		},
+	})
+	require.NoError(t, err)
+
+	pollResp3, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	require.NoError(t, err)
+	require.Empty(t, pollResp3.ID)
+
+	// Test edge case: Closed bug should not trigger a test job.
+	crash3 := testCrash(build, 3)
+	c.aiClient.ReportCrash(crash3)
+	extID3 := c.aiClient.pollEmailExtID()
+	bug3, _, _ := c.loadBug(extID3)
+	bugKey3 := bug3.key(c.ctx)
+
+	jobCreateURL3 := fmt.Sprintf("/bug?id=%v", bug3.keyHash(c.ctx))
+	values3 := url.Values{}
+	values3.Set("ai-job-create", string(ai.WorkflowReproC))
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL3, values3)
+	require.NoError(t, err)
+
+	aiJobResp3 := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, aiJobResp3.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: aiJobResp3.ID,
+		Results: map[string]any{
+			"ReproC":              "int main() { return 0; }",
+			"KernelConfigManager": build.Manager,
+		},
+	})
+	require.NoError(t, err)
+
+	// Close the bug before manager polls.
+	bug3.Status = BugStatusFixed
+	_, err = db.Put(c.ctx, bugKey3, bug3)
+	require.NoError(t, err)
+
+	pollResp4, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			build.Manager: {TestPatches: true},
+		},
+	})
+	require.NoError(t, err)
+	require.Empty(t, pollResp4.ID)
 }
 
 func TestAITestReproCErrors(t *testing.T) {

@@ -2253,14 +2253,6 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 	if user == nil {
 		return "", ErrAccess
 	}
-	resultsMap, ok := aiJob.Results.Value.(map[string]any)
-	if !ok {
-		return "", fmt.Errorf("%w: invalid AI job results format", ErrClientBadRequest)
-	}
-	reproCStr, _ := resultsMap[textReproC].(string)
-	if reproCStr == "" {
-		return "", fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
-	}
 	if !aiJob.BugID.Valid || aiJob.BugID.StringVal == "" {
 		return "", fmt.Errorf("%w: AI job has no associated Bug ID", ErrClientBadRequest)
 	}
@@ -2272,24 +2264,19 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 	if err := checkAccessLevel(ctx, r, bug.sanitizeAccess(ctx, accessLevel(ctx, r))); err != nil {
 		return "", err
 	}
-	manager, _ := resultsMap["KernelConfigManager"].(string)
-	if manager == "" {
-		if argsMap, ok := aiJob.Args.Value.(map[string]any); ok {
-			manager, _ = argsMap["KernelConfigManager"].(string)
-		}
-	}
-	if manager == "" && len(bug.HappenedOn) > 0 {
-		manager = bug.HappenedOn[0]
+	reproC, manager := extractAIJobReproC(aiJob, bug)
+	if len(reproC) == 0 {
+		return "", fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
 	}
 	if manager == "" {
 		return "", fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
 	}
-	_, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
+	_, _, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
 		bug:     bug,
 		bugKey:  bugKey,
 		user:    user.Email,
 		manager: manager,
-		reproC:  []byte(reproCStr),
+		reproC:  reproC,
 	})
 	if err != nil {
 		return "", err
