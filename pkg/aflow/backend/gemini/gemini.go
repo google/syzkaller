@@ -59,111 +59,47 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 		return p.err
 	}
 
+	p.models = map[string]*modelInfo{
+		"gemini-3-flash-preview": {
+			Thinking:         true,
+			MaxTemperature:   2.0,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
+		"gemini-3.6-flash": {
+			Thinking:         true,
+			MaxTemperature:   2.0,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
+		"gemini-3.5-flash": {
+			Thinking:         true,
+			MaxTemperature:   2.0,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
+		"gemini-3.1-pro-preview": {
+			Thinking:         true,
+			MaxTemperature:   2.0,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
+	}
+	if cfg.ClientConfig != nil && cfg.ClientConfig.Backend == genai.BackendVertexAI {
+		// Vertex AI backend expects the bare model name, not prefixed with "models/".
+		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
+		p.modelPathPrefix = ""
+	} else {
+		p.modelPathPrefix = "models/"
+	}
+
 	client, err := genai.NewClient(ctx, cfg.ClientConfig)
 	if err != nil {
 		p.err = err
 		return err
 	}
 	p.client = client
-
-	isVertex := cfg.ClientConfig != nil && cfg.ClientConfig.Backend == genai.BackendVertexAI
-
-	if isVertex {
-		// Vertex AI's Models.All() endpoint often does not return the same detailed
-		// metadata (like InputTokenLimit or SupportedActions) as the Gemini Developer API,
-		// or requires special IAM permissions to list the catalog. Therefore, we hardcode
-		// the known capabilities for the models we actively use.
-		// Vertex AI backend expects the bare model name, not prefixed with "models/".
-		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
-		p.models = map[string]*modelInfo{
-			"gemini-3-flash-preview": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-			"gemini-3.5-flash": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-			"gemini-3.6-flash": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-			"gemini-3.1-pro-preview": {
-				Thinking:         true,
-				MaxTemperature:   2.0,
-				InputTokenLimit:  1048576,
-				OutputTokenLimit: 65536,
-			},
-		}
-		p.modelPathPrefix = ""
-		return nil
-	}
-
-	// Gemini API. Unlike Vertex AI, the Gemini Developer API catalog endpoint (Models.All)
-	// successfully returns detailed metadata for all models (such as their InputTokenLimit,
-	// OutputTokenLimit, and SupportedActions) without requiring any special IAM configurations.
-	// Therefore, we query the catalog dynamically here.
-	const maxInitRetries = 5
-
-	var models map[string]*modelInfo
-	for i := range maxInitRetries {
-		models, err = p.queryModelsOnce(ctx, client)
-		if err == nil {
-			break
-		}
-		parsedErr := parseLLMError(err, "")
-		var retryErr *backend.RetryError
-		if !errors.As(parsedErr, &retryErr) {
-			break
-		}
-		if i == maxInitRetries-1 {
-			break
-		}
-		delay := retryErr.Delay
-		if retryErr.IsExponential {
-			delay = backend.BackoffDuration(i, retryErr.Delay)
-		}
-		select {
-		case <-ctx.Done():
-			p.err = ctx.Err()
-			return p.err
-		case <-time.After(delay):
-		}
-	}
-	if err != nil {
-		p.err = err
-		return err
-	}
-	p.models = models
-	p.modelPathPrefix = "models/"
 	return nil
-}
-
-func (p *Provider) queryModelsOnce(ctx context.Context, client *genai.Client) (map[string]*modelInfo, error) {
-	models := make(map[string]*modelInfo)
-	for m, e := range client.Models.All(ctx) {
-		if e != nil {
-			return nil, e
-		}
-		if !slices.Contains(m.SupportedActions, "generateContent") ||
-			strings.Contains(m.Name, "-image") ||
-			strings.Contains(m.Name, "-audio") {
-			continue
-		}
-		models[strings.TrimPrefix(m.Name, "models/")] = &modelInfo{
-			Thinking:         m.Thinking,
-			MaxTemperature:   m.MaxTemperature,
-			InputTokenLimit:  int(m.InputTokenLimit),
-			OutputTokenLimit: int(m.OutputTokenLimit),
-		}
-	}
-	return models, nil
 }
 
 func (p *Provider) Client(ctx context.Context) (backend.Client, error) {
