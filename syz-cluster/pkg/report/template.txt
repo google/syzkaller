@@ -52,6 +52,9 @@ C repro:   {{.LinkCRepro}}
 {{- if .LinkSyzRepro}}
 syz repro: {{.LinkSyzRepro}}
 {{- end}}
+{{- if and $.Report.Moderation .LinkTriageTrajectory}}
+AI triage: {{.LinkTriageTrajectory}}
+{{- end}}
 
 {{.Report -}}
 {{end}}

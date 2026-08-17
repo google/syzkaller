@@ -106,6 +106,54 @@ func TestAPISaveFinding(t *testing.T) {
 		assert.NotEmpty(t, findings[0].CReproURI)
 	})
 
+	t.Run("save AI confirmed finding", func(t *testing.T) {
+		finding := &api.RawFinding{
+			SessionID:        ids.SessionID,
+			TestName:         "test",
+			Title:            "ai-confirmed crash",
+			Report:           []byte("ai confirmed report"),
+			Log:              []byte("ai confirmed log"),
+			ConfirmedByAI:    true,
+			TriageTrajectory: []byte("<html>trajectory</html>"),
+		}
+		err = client.UploadFinding(ctx, finding)
+		assert.NoError(t, err)
+
+		findingRepo := db.NewFindingRepository(env.Spanner)
+		findings, err := findingRepo.ListForSession(ctx, ids.SessionID, db.NoLimit)
+		require.NoError(t, err)
+		require.Len(t, findings, 2)
+
+		var targetFinding *db.Finding
+		for _, f := range findings {
+			if f.Title == "ai-confirmed crash" {
+				targetFinding = f
+			}
+		}
+		require.NotNil(t, targetFinding)
+		assert.True(t, targetFinding.ConfirmedByAI.Bool)
+		assert.NotEmpty(t, targetFinding.TriageTrajectoryURI)
+	})
+
+	t.Run("save unreproduced AI confirmed finding", func(t *testing.T) {
+		finding := &api.RawFinding{
+			SessionID:        ids.SessionID,
+			TestName:         "test",
+			Title:            "unreproduced crash",
+			Report:           []byte("unreproduced report"),
+			Log:              []byte("unreproduced log"),
+			ConfirmedByAI:    true,
+			TriageTrajectory: []byte("<html>unreproduced trajectory</html>"),
+		}
+		err = client.UploadFinding(ctx, finding)
+		assert.NoError(t, err)
+
+		findingRepo := db.NewFindingRepository(env.Spanner)
+		findings, err := findingRepo.ListForSession(ctx, ids.SessionID, db.NoLimit)
+		require.NoError(t, err)
+		require.Len(t, findings, 3)
+	})
+
 	t.Run("session stopped", func(t *testing.T) {
 		MarkSessionFinished(t, env, ids.SessionID)
 		finding := &api.RawFinding{

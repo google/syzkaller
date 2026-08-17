@@ -57,13 +57,14 @@ func (s *FindingService) Save(ctx context.Context, req *api.RawFinding) error {
 			return nil, nil
 		}
 		finding := &db.Finding{
-			ID:        uuid.NewString(),
-			SessionID: req.SessionID,
-			TestName:  req.TestName,
-			Title:     req.Title,
-			CreatedAt: spanner.NullTime{Time: time.Now(), Valid: true},
+			ID:            uuid.NewString(),
+			SessionID:     req.SessionID,
+			TestName:      req.TestName,
+			Title:         req.Title,
+			CreatedAt:     spanner.NullTime{Time: time.Now(), Valid: true},
+			ConfirmedByAI: spanner.NullBool{Bool: req.ConfirmedByAI, Valid: req.ConfirmedByAI},
 		}
-		// TODO: if it's not actually addded, these blobs will be orphaned.
+		// TODO: if it's not actually added, these blobs will be orphaned.
 		err := s.saveAssets(finding, req)
 		if err != nil {
 			return nil, err
@@ -84,6 +85,7 @@ func (s *FindingService) saveAssets(finding *db.Finding, req *api.RawFinding) er
 		{&finding.SyzReproURI, req.SyzRepro, "syz_repro"},
 		{&finding.SyzReproOptsURI, req.SyzReproOpts, "syz_repro_opts"},
 		{&finding.CReproURI, req.CRepro, "c_repro"},
+		{&finding.TriageTrajectoryURI, req.TriageTrajectory, "triage_trajectory"},
 	} {
 		if len(asset.value) == 0 {
 			continue
@@ -131,14 +133,18 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 	var ret []*api.Finding
 	for _, item := range list {
 		finding := &api.Finding{
-			Title:  item.Title,
-			LogURL: s.urls.FindingLog(item.ID),
+			Title:         item.Title,
+			LogURL:        s.urls.FindingLog(item.ID),
+			ConfirmedByAI: item.ConfirmedByAI.Bool,
 		}
 		if item.SyzReproURI != "" {
 			finding.LinkSyzRepro = s.urls.FindingSyzRepro(item.ID)
 		}
 		if item.CReproURI != "" {
 			finding.LinkCRepro = s.urls.FindingCRepro(item.ID)
+		}
+		if item.TriageTrajectoryURI != "" {
+			finding.LinkTriageTrajectory = s.urls.FindingTriageTrajectory(item.ID)
 		}
 		if !item.InvalidatedAt.IsNull() {
 			finding.Invalidated = true
