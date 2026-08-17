@@ -32,6 +32,7 @@ type Provider struct {
 
 type modelInfo struct {
 	Thinking         bool
+	MinThinkingLevel backend.ThinkingLevel
 	MaxTemperature   float32
 	InputTokenLimit  int
 	OutputTokenLimit int
@@ -60,8 +61,10 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 	}
 
 	p.models = map[string]*modelInfo{
-		"gemini-3-flash-preview": {
-			Thinking:         true,
+		"gemini-3.7-flash": {
+			Thinking: true,
+			// Gemini 3.7 Flash does not support MINIMAL thinking.
+			MinThinkingLevel: backend.ThinkingLevelLow,
 			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
@@ -120,7 +123,7 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 	case backend.BestExpensiveModel:
 		return []string{"gemini-3.1-pro-preview"}
 	case backend.GoodBalancedModel:
-		return []string{"gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview"}
+		return []string{"gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"}
 	default:
 		return nil
 	}
@@ -166,10 +169,11 @@ func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend
 				genaiCfg.Tools = append(genaiCfg.Tools, genaiTool)
 			}
 		}
-		if info.Thinking && cfg.ThinkingLevel != backend.ThinkingLevelMinimal {
+		thinkingLevel := max(cfg.ThinkingLevel, info.MinThinkingLevel)
+		if info.Thinking && thinkingLevel != backend.ThinkingLevelMinimal {
 			genaiCfg.ThinkingConfig = &genai.ThinkingConfig{}
 			genaiCfg.ThinkingConfig.IncludeThoughts = cfg.IncludeThoughts
-			switch cfg.ThinkingLevel {
+			switch thinkingLevel {
 			case backend.ThinkingLevelLow:
 				genaiCfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelLow
 			case backend.ThinkingLevelMedium:
