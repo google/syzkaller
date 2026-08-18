@@ -5,6 +5,7 @@ package syzlang
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -47,6 +48,25 @@ func TestExecuteSeed_DeserializeErrors(t *testing.T) {
 			require.Contains(t, err.Error(), "Syzlang Syntax Reminders:")
 		})
 	}
+}
+
+func TestTruncateConsoleOutput(t *testing.T) {
+	shortLog := "line1\nline2\nline3"
+	gotShort := truncateConsoleOutput(shortLog, 5)
+	require.Equal(t, shortLog, gotShort)
+
+	lines := make([]string, 300)
+	for i := range 300 {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	longLog := strings.Join(lines, "\n")
+
+	gotTruncated := truncateConsoleOutput(longLog, 200)
+	require.Contains(t, gotTruncated, "... [VM console output truncated, showing last 200 of 300 lines] ...")
+	require.NotContains(t, gotTruncated, "line 1\n")
+	require.NotContains(t, gotTruncated, "line 100\n")
+	require.Contains(t, gotTruncated, "line 101")
+	require.Contains(t, gotTruncated, "line 300")
 }
 
 func TestExecuteSeed_BlobPlaceholder(t *testing.T) {
