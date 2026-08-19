@@ -16,6 +16,7 @@ loreArchives:
   - linux-block
   - linux-fsdevel
   - syzbot
+  - stable
 directList: syzbot@lists.linux.dev
 emailReporting:
   name: "syzbot ci"
@@ -117,6 +118,12 @@ trees:
   - name: linux-next
     URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next
     branch: master
+  - name: stable
+    type: stable
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable-rc.git
+    email_lists:
+      - stable@vger.kernel.org
+
 
 fuzz_targets:
   - email_lists:
