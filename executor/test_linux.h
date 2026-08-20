@@ -215,6 +215,12 @@ static int test_kvm()
 		if (res)
 			return res;
 	}
+#elif GOARCH_loong64
+	// LoongArch: lu12i.w $t0, 0x200; st.d $zero, $t0, 0.
+	// This stores zero to 0x200000 and should trigger KVM_EXIT_MMIO.
+	const char text[] = "\x0c\x40\x00\x14\x80\x01\xc0\x29";
+	if ((res = test_one(0, text, sizeof(text) - 1, 0, KVM_EXIT_MMIO, false)))
+		return res;
 #else
 	// Keeping gcc happy
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
@@ -249,11 +255,13 @@ static void dump_seg(const char* name, struct kvm_segment* seg)
 
 static void dump_cpu_state(int cpufd, char* vm_mem)
 {
+#ifndef GOARCH_loong64
 	struct kvm_sregs sregs;
 	if (ioctl(cpufd, KVM_GET_SREGS, &sregs)) {
 		printf("KVM_GET_SREGS failed (%d)\n", errno);
 		return;
 	}
+#endif
 	struct kvm_regs regs;
 	if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
 		printf("KVM_GET_REGS failed (%d)\n", errno);
@@ -294,6 +302,11 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 	printf("GPR24 %016lx %016lx %016lx %016lx\n", regs.gpr[24], regs.gpr[25], regs.gpr[26], regs.gpr[27]);
 	printf("GPR28 %016lx %016lx %016lx %016lx\n", regs.gpr[28], regs.gpr[29], regs.gpr[30], regs.gpr[31]);
 	printf(" SRR0 %016lx  SRR1 %016lx\n", regs.srr0, regs.srr1);
+#elif GOARCH_loong64
+	printf("PC %016llx\n", (unsigned long long)regs.pc);
+	printf("GPR00 %016llx %016llx %016llx %016llx\n",
+	       (unsigned long long)regs.gpr[0], (unsigned long long)regs.gpr[1],
+	       (unsigned long long)regs.gpr[2], (unsigned long long)regs.gpr[3]);
 #endif
 }
 
