@@ -1,0 +1,31 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Loong64-specific KVM syscall declarations.
+
+meta arches["loong64"]
+
+include <uapi/linux/kvm.h>
+include <asm/kvm.h>
+
+ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[void]])
+
+syz_kvm_assert_syzos_kvm_exit$loong64(run kvm_run_ptr, exitcode int64) (no_generate)
+syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
+
+kvm_setup_opt_loong64 [
+# unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extension
+	featur1	kvm_setup_opt_loong64_feature
+	featur2	kvm_setup_opt_loong64_feature
+]
+
+kvm_setup_opt_loong64_feature {
+	typ	const[1, int64]
+	val	int64
+}
+
+kvm_text_loong64 {
+	typ	const[0, intptr]
+	text	ptr[in, text[target]]
+	size	len[text, intptr]
+}
