@@ -148,7 +148,7 @@ being emitted.
 
 In contrast with `syz-manager`, `syz-kfuzztest` is designed to perform coverage
 guided fuzzing from within a VM directly rather than orchestrating a fleet of
-VMs. It is primarily targetted at development-time fuzzing, rather than longterm
+VMs. It is primarily targeted at development-time fuzzing, rather than long-term
 continuous fuzzing.
 
 For more information, consult [the `syz-kfuzztest` documentation](syz-kfuzztest.md).
