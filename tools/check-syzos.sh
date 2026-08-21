@@ -11,6 +11,7 @@
 #
 
 set -e
+export LC_ALL=C
 
 SECTION_TO_CHECK="guest"
 
@@ -65,6 +66,11 @@ elif [ "$TARGETARCH" = "riscv64" ]; then
     if command -v riscv64-linux-gnu-objdump > /dev/null; then
         OBJDUMP_CMD="riscv64-linux-gnu-objdump"
     fi
+elif [ "$TARGETARCH" = "loong64" ]; then
+    ARCH="loongarch64"
+    if command -v loongarch64-linux-gnu-objdump > /dev/null; then
+        OBJDUMP_CMD="loongarch64-linux-gnu-objdump"
+    fi
 else
     echo "[INFO] Unsupported architecture '$TARGETARCH', skipping check."
     exit 0
@@ -85,7 +91,33 @@ fi
 echoerr "--> Using objdump: $OBJDUMP_CMD"
 
 echoerr "--> Verifying existence of section '$SECTION_TO_CHECK' in '$BINARY'..."
-if ! "$OBJDUMP_CMD" -h --section="$SECTION_TO_CHECK" "$BINARY" >/dev/null 2>&1; then
+if ! SECTION_TABLE=$("$OBJDUMP_CMD" -h "$BINARY" 2>&1); then
+    echoerr "Error: '$OBJDUMP_CMD' failed to read section headers from '$BINARY'."
+    echoerr "$SECTION_TABLE"
+    exit 1
+fi
+
+# Parse the section table once. An empty result means the binary has no guest
+# section; malformed entries or awk failures remain errors.
+if ! SECTION_INFO=$(printf '%s\n' "$SECTION_TABLE" | $AWK_CMD -v section="$SECTION_TO_CHECK" '
+    $1 == "Idx" && $2 == "Name" && $3 == "Size" && $4 == "VMA" {
+        table_found = 1
+    }
+    $2 == section {
+        if (found || NF < 5 || $3 !~ /^[[:xdigit:]]+$/ || $4 !~ /^[[:xdigit:]]+$/)
+            exit 2
+        print $0
+        found = 1
+    }
+    END {
+        if (!table_found)
+            exit 2
+    }
+'); then
+    echoerr "Error: Could not parse section '$SECTION_TO_CHECK' from '$OBJDUMP_CMD' output."
+    exit 1
+fi
+if [ -z "$SECTION_INFO" ]; then
     echo
     echo "[INFO] Section '$SECTION_TO_CHECK' not found in '$BINARY'. Skipping check."
     exit 0
@@ -94,53 +126,84 @@ fi
 echoerr "--> Disassembling section '$SECTION_TO_CHECK' and scanning for problematic instructions..."
 
 DISASSEMBLY_STATUS=0
-DISASSEMBLY_OUTPUT=$("$OBJDUMP_CMD" -d --section="$SECTION_TO_CHECK" "$BINARY" 2>/dev/null) || DISASSEMBLY_STATUS=$?
+DISASSEMBLY_OUTPUT=$("$OBJDUMP_CMD" -d --section="$SECTION_TO_CHECK" "$BINARY") || DISASSEMBLY_STATUS=$?
 
-if [ $DISASSEMBLY_STATUS -ne 0 ]; then
+if [ "$DISASSEMBLY_STATUS" -ne 0 ]; then
     echoerr "Error: '$OBJDUMP_CMD' failed to disassemble the '$SECTION_TO_CHECK' section."
-    # Attempt to show the actual error to the user
-    "$OBJDUMP_CMD" -d --section="$SECTION_TO_CHECK" "$BINARY" >/dev/null
     exit 1
 fi
 
-if [ "$TARGETARCH" = "amd64" ]; then
+case "$TARGETARCH" in
+amd64|loong64)
     echoerr "--> Getting guest section boundaries..."
-    SECTION_INFO=$("$OBJDUMP_CMD" -h "$BINARY" | grep " $SECTION_TO_CHECK ")
-    if [ -z "$SECTION_INFO" ]; then
-        echoerr "Error: Could not get section info for '$SECTION_TO_CHECK'"
-        exit 1
-    fi
-    GUEST_VMA=$(echo "$SECTION_INFO" | $AWK_CMD '{print "0x"$4}')
-    GUEST_SIZE=$(echo "$SECTION_INFO" | $AWK_CMD '{print "0x"$3}')
+    GUEST_VMA=$(printf '%s\n' "$SECTION_INFO" | $AWK_CMD '{print "0x"$4}')
+    GUEST_SIZE=$(printf '%s\n' "$SECTION_INFO" | $AWK_CMD '{print "0x"$3}')
     GUEST_START=$(printf "%d" "$GUEST_VMA")
     GUEST_END=$((GUEST_START + $(printf "%d" "$GUEST_SIZE")))
     echoerr "--> Guest section range (hex): [$(printf "0x%x" "$GUEST_START"), $(printf "0x%x" "$GUEST_END"))"
-
-    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
-        current_func=""
-        problematic_lines=""
-        while IFS= read -r line; do
-            if echo "$line" | grep -q -E '^[0-9a-f]+ <.*>:$'; then
-                current_func=$(echo "$line" | sed -n 's/.*<\(.*\)>:/\1/p')
-                continue
-            fi
-            if echo "$line" | grep -q '(%rip)'; then
-                target_addr_hex=$(echo "$line" | sed -n 's/.*# \([0-9a-f]\+\).*/\1/p')
-                if [ -z "$target_addr_hex" ]; then
-                    continue
-                fi
-                target_addr_dec=$(printf "%d" "0x$target_addr_hex")
-                if [ "$target_addr_dec" -lt "$GUEST_START" ] || [ "$target_addr_dec" -gt "$GUEST_END" ]; then
-                    if [ -n "$current_func" ]; then
-                        problematic_lines="${problematic_lines}In function <${current_func}>:\n"
-                    fi
-                    problematic_lines="${problematic_lines}\t${line}\n"
-                fi
-            fi
-        done
-        printf "%b" "$problematic_lines"
-    })
-else
+    FOUND_INSTRUCTIONS=$(printf '%s\n' "$DISASSEMBLY_OUTPUT" | $AWK_CMD \
+        -v arch="$TARGETARCH" \
+        -v guest_start="$GUEST_START" \
+        -v guest_end="$GUEST_END" '
+    # POSIX awk has no portable hexadecimal conversion function.
+    function hex2dec(hex, value, i, digit) {
+        if (hex == "")
+            return -1
+        value = 0
+        hex = tolower(hex)
+        for (i = 1; i <= length(hex); i++) {
+            digit = index("0123456789abcdef", substr(hex, i, 1)) - 1
+            if (digit < 0)
+                return -1
+            value = value * 16 + digit
+        }
+        return value
+    }
+    function report(clear_context) {
+        if (current_func)
+            print "In function <" current_func ">:"
+        print "\t" $0
+        if (clear_context)
+            current_func = ""
+    }
+    /^[0-9a-f]+ <.*>:$/ {
+        current_func = $0
+        sub(/^[^<]*</, "", current_func)
+        sub(/>:$/, "", current_func)
+        next
+    }
+    arch == "amd64" && /\(%rip\)/ {
+        target_hex = $0
+        if (!sub(/^.*#[[:space:]]*/, "", target_hex))
+            next
+        sub(/[[:space:]].*$/, "", target_hex)
+        target = hex2dec(target_hex)
+        if (target < 0 || target < guest_start || target >= guest_end)
+            report(0)
+        next
+    }
+    # Match the address and mnemonic fields, not symbol names in comments.
+    arch == "loong64" && $1 ~ /^[[:xdigit:]]+:$/ &&
+        $3 ~ /^(pcaddi|pcalau12i|pcaddu12i|pcaddu18i)$/ {
+        insn_addr_hex = $1
+        sub(/:$/, "", insn_addr_hex)
+        insn_addr = hex2dec(insn_addr_hex)
+        insn = hex2dec($2)
+        if ($3 == "pcaddi" && length($2) == 8 && insn_addr >= 0 && insn >= 0) {
+            # PCADDI encodes a signed 20-bit word offset in bits 24:5.
+            imm = int(insn / 32) % 1048576
+            if (imm >= 524288)
+                imm -= 1048576
+            target = insn_addr + imm * 4
+            if (target >= guest_start && target < guest_end)
+                next
+        }
+        # Reject other PC-relative forms and malformed PCADDI encodings.
+        report(1)
+    }
+')
+    ;;
+*)
     # The original logic for other architectures (e.g. arm64)
     FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | $AWK_CMD -v pattern="$PATTERNS_TO_FIND" '
     # Match a function header, e.g., "0000000000401136 <my_func>:"
@@ -155,8 +218,9 @@ else
         }
         print "\t" $0
     }
-' || true)
-fi
+')
+    ;;
+esac
 
 if [ -n "$FOUND_INSTRUCTIONS" ]; then
     echo
