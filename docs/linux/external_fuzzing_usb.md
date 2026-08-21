@@ -134,7 +134,7 @@ There are two proposed ways to handle such drivers:
 Unlike `syz_usb_connect`, `syz_usb_connect_ath9k` also handles the post-`SET_CONFIGURATION` firmware download requests expected by `ath9k`.
 
     If this approach is to be used for other drivers, the proper implementation should rework and extend `syz_usb_connect_ath9k` instead of adding more similar pseudo-syscalls.
-For example, add a new argument to `syz_usb_connect` that allows specifiying (in syzlang) the responses to post-`SET_CONFIGURATION` control requests and which one them is the last one (i.e., the condition for exiting the pseudo-syscall).
+For example, add a new argument to `syz_usb_connect` that allows specifying (in syzlang) the responses to post-`SET_CONFIGURATION` control requests and which one of them is the last one (i.e., the condition for exiting the pseudo-syscall).
 And then port the hardcoded responses from the C implementation of `syz_usb_connect_ath9k` into syzlang and extend the functionality based on the specific new encountered cases.
 
 Note: There is also a way to describe unusual pre-`SET_CONFIGURATION` `GET_DESCRIPTOR` requests via the `conn_descs` argument of `syz_usb_connect`, but none of the class/driver-specific descriptions use this feature at the moment.
@@ -144,15 +144,15 @@ However, this approach does not allow specifying the order of the responses if t
 ## USB IDs patching
 
 Many USB drivers implement various quirks depending of which device is connected.
-Such quirks are either defined in the mathing rule table for the driver (a table of `usb_device_id` structures; [see](https://elixir.bootlin.com/linux/v6.16/source/sound/usb/card.c#L1263) e.g. `usb_audio_ids`) or hardcoded in the drivers code (by manually checking e.g. the Vendor and Product IDs against certain values; [see](https://elixir.bootlin.com/linux/v6.16/source/drivers/usb/class/usblp.c#L213) e.g. `quirk_printers`).
+Such quirks are either defined in the matching rule table for the driver (a table of `usb_device_id` structures; [see](https://elixir.bootlin.com/linux/v6.16/source/sound/usb/card.c#L1263) e.g. `usb_audio_ids`) or hardcoded in the driver code (by manually checking e.g. the Vendor and Product IDs against certain values; [see](https://elixir.bootlin.com/linux/v6.16/source/drivers/usb/class/usblp.c#L213) e.g. `quirk_printers`).
 
 To exercise these driver quirks, syzkaller has to provide certain values (aka IDs) within the USB descriptors for the emulated device.
 Listing these USB IDs manually in syzlang descriptions is inefficient (there are too many), so syzkaller employs the way of automatically [extracting the IDs](#updating-usb-ids) before building and then [patching them in](/sys/linux/init_vusb.go) during the program generation.
 
 The IDs defined in the driver matching rules can be extracted (and patched in) automatically; see [Updating USB IDs](#updating-usb-ids).
 
-However, the hardcoded IDs need to be specified manually (extacting them automatically is hard, as they are often embedded into the drivers code in non-standard ways).
-The proposed approach is to read the driver code to find out the hardcoded IDs and then modify the program generation code to embed them into the appropriate USB decriptors ([see](/sys/linux/init_vusb.go) e.g. `generateUsbPrinterDeviceDescriptor`).
+However, the hardcoded IDs need to be specified manually (extracting them automatically is hard, as they are often embedded into the driver code in non-standard ways).
+The proposed approach is to read the driver code to find out the hardcoded IDs and then modify the program generation code to embed them into the appropriate USB descriptors ([see](/sys/linux/init_vusb.go) e.g. `generateUsbPrinterDeviceDescriptor`).
 
 
 ## Updating USB IDs
@@ -186,7 +186,7 @@ These seed programs serve two purposes:
 
 1. Allow syzkaller to [go](#dealing-with-complicated-descriptors) [deeper](#handling-post-enumeration-control-requests) into the driver code without having to write detailed syzlang descriptions;
 
-2. Allow veryfing the USB fuzzing functionality and catching potential descriptions breaking changes by running the seed programs as runtests:
+2. Allow verifying the USB fuzzing functionality and catching potential description-breaking changes by running the seed programs as runtests:
 
     ``` bash
     ./bin/syz-manager -config usb-manager.cfg -mode run-tests -tests vusb

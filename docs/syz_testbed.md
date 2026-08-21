@@ -46,6 +46,7 @@ other. The tool automates checking out syzkaller repos, building them, running
 ```
 
 Given such a configuration file, `syz-testbed` will do the following:
+
 1. Check out the `master` branch of `https://github.com/google/syzkaller.git`
    into `/tmp/syz-testbed-workdir/checkouts/first/` and build it.
 2. Check out the `some-dev-branch` of `https://github.com/google/syzkaller.git`
@@ -105,6 +106,7 @@ port to which `syz-testbed` should bind. E.g. `"http": "0.0.0.0:50000"`.
 ## Statistics
 
 `syz-testbed` provides two "views" of the statistics:
+
 1. `complete` - only includes data from the finished instances (i.e. those that
    have been running for `run_hours`).
 2. `all` - also includes the data from the currently active instances. The
@@ -150,13 +152,13 @@ The statics is updated once every 90 seconds.
 
 First, checkout the most recent version of syzkaller itself:
 
-```
+```shell
 $ git clone https://github.com/google/syzkaller.git
 ```
 
 Then, build `syz-testbed`:
 
-```
+```shell
 $ cd syzkaller/tools/syz-testbed/
 $ go build
 ```
@@ -164,7 +166,7 @@ $ go build
 Write and save the configuration file (e.g. into the `config.json` file). Then,
 `syz-testbed` can be run using the following command:
 
-```
+```shell
 $ ./syz-testbed -config config.json
 ```
 
@@ -177,10 +179,11 @@ so, set the `target` property in the `syz-testbed`'s config file to `syz-repro`.
 
 One can also specify the source of the crash log files. This is either just a folder,
 whose files will be treated accordingly or it can be a syzkaller's workdir.
-`input_logs` must point to the folde with crash logs - `syz-testbed` will traverse
+`input_logs` must point to the folder with crash logs - `syz-testbed` will traverse
 it and treat each file as an input. Otherwise, `input_workdir` must be used.
 
 For example:
+
 ```json
   "repro_config": {
     "input_workdir": "/tmp/some-syzkaller-workdir",

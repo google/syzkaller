@@ -66,7 +66,7 @@ You must first run the following tools in the following order to prepare the env
  * codesearch-prepare
 
 Then you can use any of the other codesearch-* tools, and grepper, and read-file tools
-to nagivate the source code related to the crash.
+to navigate the source code related to the crash.
 
 The crash you need to debug is:
 
