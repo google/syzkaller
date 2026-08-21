@@ -95,6 +95,7 @@ func TestLinuxSyzKvmSupportedLoong64(t *testing.T) {
 	ctx := &checkContext{target: cfg.Target}
 	for _, call := range []string{
 		"syz_kvm_setup_cpu$loong64",
+		"syz_kvm_assert_reg$loong64",
 		"syz_kvm_assert_syzos_kvm_exit$loong64",
 	} {
 		reason := linuxSyzKvmSupported(ctx, &prog.Syscall{Name: call})

@@ -10,6 +10,7 @@ include <asm/kvm.h>
 
 ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[void]])
 
+syz_kvm_assert_reg$loong64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
 syz_kvm_assert_syzos_kvm_exit$loong64(run kvm_run_ptr, exitcode int64) (no_generate)
 syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
 
