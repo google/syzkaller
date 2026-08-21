@@ -3,7 +3,7 @@
 If you want to contribute to the project, feel free to send a pull request following the [guidelines](contributing.md#guidelines) below.
 
 In case this is your first pull request to syzkaller, you will need to [sign Google CLA](https://cla.developers.google.com/)
-and add yourself to [AUTHORS](/AUTHORS)/[CONTRIBUTORS](/CONTRIBUTORS) files in the first commit.
+and add yourself to [AUTHORS](/AUTHORS) _AND_ [CONTRIBUTORS](/CONTRIBUTORS) files in the first commit.
 
 ## What to work on
 
