@@ -23,6 +23,30 @@ struct kvm_opt {
 	uint64 val;
 };
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_assert_reg
+static long syz_kvm_assert_reg(volatile long a0, volatile long a1, volatile long a2)
+{
+	int vcpu_fd = (int)a0;
+	uint64 id = (uint64)a1;
+	uint64 expect = a2, val = 0;
+
+	// KVM_REG_SIZE is not present in all installed UAPI headers.
+	if ((id & KVM_REG_SIZE_MASK) > KVM_REG_SIZE_U64) {
+		errno = EINVAL;
+		return -1;
+	}
+	struct kvm_one_reg reg = {.id = id, .addr = (uint64)&val};
+	int ret = ioctl(vcpu_fd, KVM_GET_ONE_REG, &reg);
+	if (ret)
+		return ret;
+	if (val != expect) {
+		errno = EDOM;
+		return -1;
+	}
+	return 0;
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_kvm_exit
 static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 {
