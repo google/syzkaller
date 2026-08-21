@@ -9,10 +9,30 @@ include <uapi/linux/kvm.h>
 include <asm/kvm.h>
 
 ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[void]])
+ioctl$KVM_SET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+ioctl$KVM_GET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+ioctl$KVM_HAS_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
 
 syz_kvm_assert_reg$loong64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
 syz_kvm_assert_syzos_kvm_exit$loong64(run kvm_run_ptr, exitcode int64) (no_generate)
 syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
+
+kvm_device_attr_vcpu_loong64 [
+	cpucfg_feature	kvm_vcpu_attr_loong64_cpucfg_feature
+]
+
+kvm_vcpu_attr_loong64_cpucfg_feature {
+	flags	const[0, int32]
+	# KVM_LOONGARCH_VCPU_CPUCFG from arch/loongarch/include/uapi/asm/kvm.h.
+	group	const[0, int32]
+	# CPUCFG_KVM_FEATURE from arch/loongarch/include/uapi/asm/kvm_para.h.
+	attr	const[0x40000004, int64]
+	addr	ptr64[inout, flags[kvm_loong64_cpucfg_features, int64]]
+}
+
+# KVM_FEATURE_* values are feature indexes in the UAPI; the device attribute
+# takes the corresponding bitmask.
+kvm_loong64_cpucfg_features = 0x2, 0x4, 0x8, 0x1000000, 0x2000000
 
 kvm_setup_opt_loong64 [
 # unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extension
