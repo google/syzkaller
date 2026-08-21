@@ -65,6 +65,12 @@ elif [ "$TARGETARCH" = "riscv64" ]; then
     if command -v riscv64-linux-gnu-objdump > /dev/null; then
         OBJDUMP_CMD="riscv64-linux-gnu-objdump"
     fi
+elif [ "$TARGETARCH" = "loong64" ]; then
+    ARCH="loongarch64"
+    PATTERNS_TO_FIND='pcaddi|pcalau12i|pcaddu12i|pcaddu18i'
+    if command -v loongarch64-linux-gnu-objdump > /dev/null; then
+        OBJDUMP_CMD="loongarch64-linux-gnu-objdump"
+    fi
 else
     echo "[INFO] Unsupported architecture '$TARGETARCH', skipping check."
     exit 0
@@ -103,7 +109,7 @@ if [ $DISASSEMBLY_STATUS -ne 0 ]; then
     exit 1
 fi
 
-if [ "$TARGETARCH" = "amd64" ]; then
+if [ "$TARGETARCH" = "amd64" ] || [ "$TARGETARCH" = "loong64" ]; then
     echoerr "--> Getting guest section boundaries..."
     SECTION_INFO=$("$OBJDUMP_CMD" -h "$BINARY" | grep " $SECTION_TO_CHECK ")
     if [ -z "$SECTION_INFO" ]; then
@@ -116,6 +122,9 @@ if [ "$TARGETARCH" = "amd64" ]; then
     GUEST_END=$((GUEST_START + $(printf "%d" "$GUEST_SIZE")))
     echoerr "--> Guest section range (hex): [$(printf "0x%x" "$GUEST_START"), $(printf "0x%x" "$GUEST_END"))"
 
+fi
+
+if [ "$TARGETARCH" = "amd64" ]; then
     FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
         current_func=""
         problematic_lines=""
@@ -137,6 +146,42 @@ if [ "$TARGETARCH" = "amd64" ]; then
                     problematic_lines="${problematic_lines}\t${line}\n"
                 fi
             fi
+        done
+        printf "%b" "$problematic_lines"
+    })
+elif [ "$TARGETARCH" = "loong64" ]; then
+    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
+        current_func=""
+        problematic_lines=""
+        while IFS= read -r line; do
+            if echo "$line" | grep -q -E '^[0-9a-f]+ <.*>:$'; then
+                current_func=$(echo "$line" | sed -n 's/.*<\(.*\)>:/\1/p')
+                continue
+            fi
+            if ! echo "$line" | grep -q -E "$PATTERNS_TO_FIND"; then
+                continue
+            fi
+            if echo "$line" | grep -q -E '[[:space:]]pcaddi[[:space:]]'; then
+                insn_addr_hex=$(echo "$line" | sed -n 's/^[[:space:]]*\([0-9a-f]\+\):.*/\1/p')
+                insn_hex=$(echo "$line" | sed -n 's/^[[:space:]]*[0-9a-f]\+:[[:space:]]*\([0-9a-f]\{8\}\)[[:space:]].*/\1/p')
+                if [ -n "$insn_addr_hex" ] && [ -n "$insn_hex" ]; then
+                    insn_addr=$(printf "%d" "0x$insn_addr_hex")
+                    insn=$(printf "%d" "0x$insn_hex")
+                    imm=$(( (insn >> 5) & 1048575 ))
+                    if [ "$imm" -ge 524288 ]; then
+                        imm=$((imm - 1048576))
+                    fi
+                    target=$((insn_addr + imm * 4))
+                    if [ "$target" -ge "$GUEST_START" ] && [ "$target" -lt "$GUEST_END" ]; then
+                        continue
+                    fi
+                fi
+            fi
+            if [ -n "$current_func" ]; then
+                problematic_lines="${problematic_lines}In function <${current_func}>:\n"
+                current_func=""
+            fi
+            problematic_lines="${problematic_lines}\t${line}\n"
         done
         printf "%b" "$problematic_lines"
     })
