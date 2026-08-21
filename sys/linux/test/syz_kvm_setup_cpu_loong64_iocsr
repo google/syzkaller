@@ -1,0 +1,13 @@
+#
+# requires: arch=loong64
+#
+
+r0 = openat$kvm(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+r3 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r4 = mmap$KVM_VCPU(&(0x7f0000010000/0x4000)=nil, r3, 0x3, 0x1, r2, 0x0)
+
+syz_kvm_setup_cpu$loong64(r1, r2, &(0x7f0000fe8000/0x180000)=nil, &(0x7f0000000000)=[{0x0, &(0x7f0000001000)="0c8c8403801d4806", 0x8}], 0x1, 0x0, 0x0, 0x0)
+ioctl$KVM_RUN(r2, AUTO, 0x0)
+syz_kvm_assert_syzos_kvm_exit$loong64(r4, 0x26)
