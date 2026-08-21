@@ -1,0 +1,16 @@
+TITLE: WARNING in iommu_map_sg
+TYPE: WARNING
+FRAME: iommu_map_sg
+
+date-utmp-runlev[  288.557819][T21583] ------------[ cut here ]------------
+el.service [0m.[  288.564375][T21583] WARNING: CPU: 72 PID: 21583 at ./include/linux/scatterlist.h:412 iommu_map_sg+0x496/0xa40
+[  288.575609][T21583] Modules linked in:
+[  288.604937][T21583] RIP: 0010:iommu_map_sg+0x496/0xa40
+[  288.690351][T21583] Call Trace:
+[  288.690355][T21583]  <TASK>
+0m] Started  [0;[  288.690374][T21583]  [<ffffffff8361b960>] ? __pfx_iommu_map_sg+0x10/0x10
+1;39mconsole-get[  288.720331][T21583]  [<ffffffff836321cd>] ? iommu_dma_alloc_iova+0x2ed/0x520
+ty.service [0m.[  288.720353][T21583]  [<ffffffff83630ad8>] iommu_dma_map_sg+0xb58/0x1020
+[  288.777909][T21583]  [<ffffffff8447fe9d>] dma_map_all_memory+0xb5d/0xf70
+[  288.976911][T21583]  </TASK>
+[  289.021597][T21583] ---[ end trace 0000000000000000 ]---
