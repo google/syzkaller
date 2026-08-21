@@ -97,6 +97,9 @@ func TestLinuxSyzKvmSupportedLoong64(t *testing.T) {
 		"syz_kvm_setup_cpu$loong64",
 		"syz_kvm_assert_reg$loong64",
 		"syz_kvm_assert_syzos_kvm_exit$loong64",
+		"syz_kvm_setup_syzos_vm$loong64",
+		"syz_kvm_add_vcpu$loong64",
+		"syz_kvm_assert_syzos_uexit$loong64",
 	} {
 		reason := linuxSyzKvmSupported(ctx, &prog.Syscall{Name: call})
 		require.Empty(t, reason, "%s is disabled", call)
