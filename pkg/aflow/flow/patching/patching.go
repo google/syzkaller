@@ -77,7 +77,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:        "debugger",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.DeepReasoningModel,
 					Reply:       "BugExplanation",
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: debuggingInstruction,
@@ -86,7 +86,7 @@ func init() {
 				},
 				&aflow.LLMAgent{
 					Name:        "history-explorer",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.DeepReasoningModel,
 					Reply:       "HistoricalContext",
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: historyExplorerInstruction,
@@ -98,7 +98,7 @@ func init() {
 				patchRefinementLoop(true),
 				&aflow.LLMAgent{
 					Name:        "fixes-finder",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.CoreModel,
 					Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: fixesInstruction,
@@ -110,7 +110,7 @@ func init() {
 				getRecentCommits,
 				&aflow.LLMAgent{
 					Name:  "description-generator",
-					Model: aflow.BestExpensiveModel,
+					Model: aflow.CoreModel,
 					ValidatedReply: aflow.LLMReply("PatchDescription",
 						func(ctx *aflow.Context, state struct{}, reply string) (string, error) {
 							return email.WordWrap(reply, patchDescriptionLineLength), nil
@@ -456,7 +456,7 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerP
 	actions = append(actions,
 		&aflow.LLMAgent{
 			Name:        "patch-generator",
-			Model:       aflow.BestExpensiveModel,
+			Model:       aflow.CoreModel,
 			Reply:       "PatchExplanation",
 			TaskType:    aflow.FormalReasoningTask,
 			Instruction: instruction,
@@ -475,7 +475,7 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerP
 			Else: aflow.Pipeline(
 				&aflow.LLMAgent{
 					Name:        "patch-reviewer",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.CoreModel,
 					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),

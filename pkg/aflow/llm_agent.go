@@ -99,8 +99,9 @@ const (
 	// Consts to use for LLMAgent.Model.
 	// These are aliases for the backend constants to avoid requiring users
 	// of the aflow package to import the backend package just to specify the model.
-	BestExpensiveModel = backend.BestExpensiveModel
-	GoodBalancedModel  = backend.GoodBalancedModel
+	DeepReasoningModel = backend.DeepReasoningModel
+	CoreModel          = backend.CoreModel
+	LightweightModel   = backend.LightweightModel
 
 	// Default limit for consecutive identical tool calls.
 	defaultLoopDetectionLimit = 3
@@ -620,7 +621,7 @@ func (a *agentSession) compressContext(
 	span := &trajectory.Span{
 		Type:  trajectory.SpanLLM,
 		Name:  a.Name + "-compressor",
-		Model: string(backend.GoodBalancedModel),
+		Model: string(backend.LightweightModel),
 	}
 	if err := ctx.startSpan(span); err != nil {
 		return nil, 0, err
@@ -652,7 +653,7 @@ func (a *agentSession) compressContext(
 		rawReq = append(rawReq, msg.content)
 	}
 
-	resp, err := a.generateContent(ctx, cfg, rawReq, 0, backend.GoodBalancedModel, span)
+	resp, err := a.generateContent(ctx, cfg, rawReq, 0, backend.LightweightModel, span)
 	if err != nil {
 		return nil, 0, ctx.finishSpan(span, err)
 	}

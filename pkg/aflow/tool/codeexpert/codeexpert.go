@@ -27,7 +27,7 @@ func New(enableGit bool) *aflow.LLMTool[struct{}, aflow.DefaultLLMArgs] {
 
 	return &aflow.LLMTool[struct{}, aflow.DefaultLLMArgs]{
 		Name:        "codeexpert",
-		Model:       aflow.GoodBalancedModel,
+		Model:       aflow.CoreModel,
 		TaskType:    aflow.FormalReasoningTask,
 		Description: description,
 		Instruction: inst,

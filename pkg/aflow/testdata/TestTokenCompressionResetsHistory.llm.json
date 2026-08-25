@@ -154,7 +154,7 @@
 		]
 	},
 	{
-		"Model": "good-balanced",
+		"Model": "lightweight",
 		"Config": {
 			"systemInstruction": {
 				"parts": [

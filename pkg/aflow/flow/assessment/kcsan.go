@@ -38,7 +38,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:  "expert",
-					Model: aflow.GoodBalancedModel,
+					Model: aflow.CoreModel,
 					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
 						Benign bool `jsonschema:"If the data race is benign or not."`

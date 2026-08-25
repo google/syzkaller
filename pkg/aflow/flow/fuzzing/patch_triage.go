@@ -28,7 +28,7 @@ func init() {
 				readPatchDiff,
 				&aflow.LLMAgent{
 					Name:     "patch-evaluator",
-					Model:    aflow.BestExpensiveModel,
+					Model:    aflow.CoreModel,
 					TaskType: aflow.FormalReasoningTask,
 					Outputs: aflow.ValidatedLLMOutputs[patchEvalOutput](
 						func(ctx *aflow.Context, state ai.PatchTriageArgs, args patchEvalOutput) (patchEvalOutput, error) {
@@ -57,7 +57,7 @@ func init() {
 					Condition: "WorthFuzzing",
 					Do: &aflow.LLMAgent{
 						Name:     "kmsan-evaluator",
-						Model:    aflow.BestExpensiveModel,
+						Model:    aflow.CoreModel,
 						TaskType: aflow.FormalReasoningTask,
 						Outputs:  aflow.LLMOutputs[kmsanEvalOutput](),
 						Tools: aflow.Tools(

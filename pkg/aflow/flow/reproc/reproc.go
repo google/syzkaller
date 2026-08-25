@@ -380,7 +380,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:        "initial-researcher",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.DeepReasoningModel,
 					Reply:       "InitialReproStrategy",
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: initialResearcherInstruction,
@@ -395,7 +395,7 @@ func init() {
 							Condition: "OracleFeedback",
 							Do: &aflow.LLMAgent{
 								Name:        "strategy-refiner",
-								Model:       aflow.BestExpensiveModel,
+								Model:       aflow.DeepReasoningModel,
 								Reply:       "RefinedReproStrategy",
 								TaskType:    aflow.FormalReasoningTask,
 								Instruction: refinerInstruction,
@@ -406,7 +406,7 @@ func init() {
 						MergeStrategy,
 						&aflow.LLMAgent{
 							Name:        "repro-generator",
-							Model:       aflow.BestExpensiveModel,
+							Model:       aflow.DeepReasoningModel,
 							Outputs:     aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](validateGeneratorOutputs),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: generatorInstruction,
@@ -423,7 +423,7 @@ func init() {
 									Condition: "CompilerError",
 									Do: &aflow.LLMAgent{
 										Name:        "repro-repairer",
-										Model:       aflow.BestExpensiveModel,
+										Model:       aflow.DeepReasoningModel,
 										Reply:       "RepairedCandidateReproC",
 										TaskType:    aflow.FormalReasoningTask,
 										Instruction: repairerInstruction,
@@ -437,7 +437,7 @@ func init() {
 						TruncateLog,
 						&aflow.LLMAgent{
 							Name:        "repro-oracle",
-							Model:       aflow.BestExpensiveModel,
+							Model:       aflow.DeepReasoningModel,
 							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: oracleInstruction,

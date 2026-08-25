@@ -132,7 +132,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty-compressor",
-		"Model": "good-balanced",
+		"Model": "lightweight",
 		"Started": "0001-01-01T00:00:15Z"
 	},
 	{
@@ -140,7 +140,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty-compressor",
-		"Model": "good-balanced",
+		"Model": "lightweight",
 		"Started": "0001-01-01T00:00:15Z",
 		"Finished": "0001-01-01T00:00:16Z",
 		"Reply": "compressed summary",
