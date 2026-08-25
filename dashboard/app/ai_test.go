@@ -1299,6 +1299,7 @@ func TestAITestReproC(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, dashapi.JobTestPatch, pollResp.Type)
+	require.Equal(t, build.KernelCommit, pollResp.KernelBranch)
 	require.Equal(t, "int main() { return 0; }", string(pollResp.ReproC))
 
 	// Complete the test job with a crash matching the bug title.

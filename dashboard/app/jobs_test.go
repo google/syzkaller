@@ -1389,6 +1389,20 @@ func TestReproCJob(t *testing.T) {
 	client.ReportCrash(crash)
 	rep := c.globalClient.pollBug()
 
+	// Upload a more recent failed build on the manager to ensure
+	// handleTestReproCRequest still selects the last successful build.
+	c.advanceTime(time.Hour)
+	failedBuild := testBuild(2)
+	failedBuild.Manager = build.Manager
+	failedBuild.KernelRepo = build.KernelRepo
+	failedBuild.KernelCommitDate = failedBuild.KernelCommitDate.Add(time.Hour)
+	c.expectOK(client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *failedBuild,
+		Crash: dashapi.Crash{
+			Title: "kernel build failed",
+		},
+	}))
+
 	bug, _, _ := c.loadBug(rep.ID)
 	reproC := []byte("void main() { *(int*)0 = 0; }")
 	job, err := handleTestReproCRequest(c.ctx, &testReproCReqArgs{
@@ -1410,6 +1424,7 @@ func TestReproCJob(t *testing.T) {
 	})
 	c.expectOK(err)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelBranch, build.KernelCommit)
 	c.expectEQ(string(pollResp.ReproC), string(reproC))
 
 	// Job succeeds with a different crash title that matches the bug via AltTitles.
