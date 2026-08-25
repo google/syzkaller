@@ -2045,7 +2045,7 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 			user:    args.user,
 			manager: manager,
 			repo:    build.KernelRepo,
-			branch:  build.KernelBranch,
+			branch:  build.KernelCommit,
 			reproC:  args.reproC,
 		},
 	})
