@@ -135,7 +135,7 @@ var tagsMergerAction = aflow.NewFuncAction("tags-merger", mergeTags)
 
 var tagExtractor = &aflow.LLMAgent{
 	Name:        "tag-extractor",
-	Model:       aflow.GoodBalancedModel,
+	Model:       aflow.LightweightModel,
 	Outputs:     aflow.ValidatedLLMOutputs[tagExtractorArgs](validateTagExtractorOutputs),
 	TaskType:    aflow.FormalReasoningTask,
 	Instruction: tagExtractorInstruction,

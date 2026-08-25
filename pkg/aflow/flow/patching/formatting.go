@@ -36,7 +36,7 @@ func patchRefinementLoop(initStyleItems bool) aflow.Action {
 			Do: aflow.Pipeline(
 				&aflow.LLMAgent{
 					Name:        "patch-formatter",
-					Model:       aflow.GoodBalancedModel,
+					Model:       aflow.CoreModel,
 					Reply:       "FormatterExplanation",
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: formatterInstruction,

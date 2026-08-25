@@ -58,7 +58,7 @@ func init() {
 				actionsyzlang.PrepareSyzFS,
 				&aflow.LLMAgent{
 					Name:    "crash-repro-finder",
-					Model:   aflow.BestExpensiveModel,
+					Model:   aflow.DeepReasoningModel,
 					Outputs: aflow.ValidatedLLMOutputs[ReproFinderResult, ReproFinderState](formatReproFinderOutputs),
 					Tools: aflow.Tools(
 						common.CodeAccessTools,

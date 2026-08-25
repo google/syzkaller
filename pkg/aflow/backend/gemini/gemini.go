@@ -120,9 +120,11 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 		return []string{p.modelOverride}
 	}
 	switch category {
-	case backend.BestExpensiveModel:
+	case backend.DeepReasoningModel:
 		return []string{"gemini-3.1-pro-preview"}
-	case backend.GoodBalancedModel:
+	case backend.CoreModel:
+		return []string{"gemini-3.7-flash"}
+	case backend.LightweightModel:
 		return []string{"gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"}
 	default:
 		return nil

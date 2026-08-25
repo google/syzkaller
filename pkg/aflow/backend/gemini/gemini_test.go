@@ -23,13 +23,18 @@ func TestProviderResolveModels(t *testing.T) {
 		want          []string
 	}{
 		{
-			name:     "resolves good balanced model pool",
-			category: backend.GoodBalancedModel,
+			name:     "resolves core model pool",
+			category: backend.CoreModel,
+			want:     []string{"gemini-3.7-flash"},
+		},
+		{
+			name:     "resolves lightweight model pool",
+			category: backend.LightweightModel,
 			want:     []string{"gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"},
 		},
 		{
-			name:     "resolves best expensive model pool",
-			category: backend.BestExpensiveModel,
+			name:     "resolves deep reasoning model pool",
+			category: backend.DeepReasoningModel,
 			want:     []string{"gemini-3.1-pro-preview"},
 		},
 		{
@@ -40,7 +45,7 @@ func TestProviderResolveModels(t *testing.T) {
 		{
 			name:          "respects provider level override",
 			modelOverride: "override-model",
-			category:      backend.GoodBalancedModel,
+			category:      backend.CoreModel,
 			want:          []string{"override-model"},
 		},
 		{

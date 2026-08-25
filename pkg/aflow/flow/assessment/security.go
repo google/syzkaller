@@ -48,7 +48,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:        "expert",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.DeepReasoningModel,
 					Reply:       "ExplanationRaw",
 					Outputs:     aflow.LLMOutputs[securityOutputs](),
 					TaskType:    aflow.FormalReasoningTask,

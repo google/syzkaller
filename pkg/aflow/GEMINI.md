@@ -91,8 +91,9 @@ Workflows are typically registered using `aflow.Register`.
 
 ### LLM Integration
 
-- **Models**: Prefer `aflow.GoodBalancedModel` (Flash) for simple tasks and `aflow.BestExpensiveModel` (Pro)
-    for complex reasoning.
+- **Models**: Use `aflow.DeepReasoningModel` (Pro) for complex causal reasoning, architectural planning, and security impact analysis.
+    Use `aflow.CoreModel` (Flash 3.7+ thinking) as the primary workhorse for agentic execution, C coding, review loops, and sub-agents.
+    Use `aflow.LightweightModel` (Flash) for low-overhead text/tag extraction and context compression.
 - **Context Compression**: For agents processing very large contexts (e.g., `patching` or
     `reproc`), set `CompressTokens` to establish a threshold. The system establishes an anchor
     token baseline from the first prompt and calculates a delta for subsequent turns. When the

@@ -33,7 +33,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:  "expert",
-					Model: aflow.GoodBalancedModel,
+					Model: aflow.CoreModel,
 					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
 						Actionable bool `jsonschema:"If the report is actionable or not."`

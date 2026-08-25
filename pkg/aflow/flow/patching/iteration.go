@@ -115,7 +115,7 @@ func init() {
 				// Analyze comments to decide whether we need to generate a new patch version.
 				&aflow.LLMAgent{
 					Name:        "verdict-agent",
-					Model:       aflow.BestExpensiveModel,
+					Model:       aflow.CoreModel,
 					Outputs:     aflow.ValidatedLLMOutputs[verdictAgentOutputs](validateVerdictOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: verdictInstruction,
@@ -146,7 +146,7 @@ func init() {
 							Do: aflow.Pipeline(
 								&aflow.LLMAgent{
 									Name:        "fixes-finder",
-									Model:       aflow.BestExpensiveModel,
+									Model:       aflow.CoreModel,
 									Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 									TaskType:    aflow.FormalReasoningTask,
 									Instruction: fixesIterationInstruction,
@@ -159,7 +159,7 @@ func init() {
 						getRecentCommits,
 						&aflow.LLMAgent{
 							Name:        "changelog-generator",
-							Model:       aflow.GoodBalancedModel,
+							Model:       aflow.CoreModel,
 							Outputs:     aflow.ValidatedLLMOutputs[changelogGeneratorOutputs](validateChangelogOutputs),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: changelogInstruction,
@@ -179,7 +179,7 @@ func init() {
 						Do: aflow.Pipeline(
 							&aflow.LLMAgent{
 								Name:  "comment-reply-agent",
-								Model: aflow.BestExpensiveModel,
+								Model: aflow.CoreModel,
 								// nolint: lll
 								Outputs: aflow.LLMOutputs[struct {
 									Action    string `jsonschema:"Either 'reply' or 'ignore'"`
