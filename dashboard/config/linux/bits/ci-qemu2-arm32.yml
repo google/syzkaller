@@ -1,0 +1,9 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Temporary workarounds for ci-qemu2-arm32.
+
+config:
+ # These drivers hit fatal DRM plane validation warnings during early boot. See #7805.
+ - DRM_PL111: n
+ - DRM_VKMS: [n, override]

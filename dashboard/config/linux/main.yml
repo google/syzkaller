@@ -22,7 +22,7 @@ instances:
  # TODO: enable kasan when it works, currently Go binaries hang on KASAN kernel:
  # https://lore.kernel.org/linux-arm-kernel/CACT4Y+YdJoNTqnBSELcEbcbVsKBtJfYUc7_GSXbUQfAJN3JyRg@mail.gmail.com/
  - upstream-arm-kasan:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux, reduced]
- - upstream-arm-full:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux]
+ - upstream-arm-full:		[upstream, arm, ci_qemu2_arm32, timeouts_emu, gcc, bpfjit, lsm, selinux]
  - upstream-riscv64-kasan:	[upstream, riscv, timeouts_emu, gcc, bpfjit, lsm, apparmor, reduced, kasan, kfence]
  - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence, nokcov]
  - upstream-allyes:		[linux-next, allyes, x86_64, clang, baseline, nonoise]
@@ -97,6 +97,7 @@ includes:
  - maintained.yml: [-unmaintained]
  - kexec.yml: [kexec]
  - linux-upstream.yml: [upstream]
+ - ci-qemu2-arm32.yml: [ci_qemu2_arm32, -baseline]
  - linux-next.yml: [linux-next]
  - allyes.yml: [allyes]
  - stable-5.15.yml: [stable-5.15]
