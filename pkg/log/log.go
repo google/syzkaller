@@ -152,6 +152,6 @@ func writeMessage(v int, severity, msg string, args ...any) {
 type VerboseWriter int
 
 func (w VerboseWriter) Write(data []byte) (int, error) {
-	Logf(int(w), "%s", data)
+	Logf(int(w), "%s", bytes.TrimRight(data, "\r\n"))
 	return len(data), nil
 }
