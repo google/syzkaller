@@ -5,7 +5,9 @@
 package linux
 
 import (
+	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -223,6 +225,14 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	case "sched_setattr":
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
+	case "open", "openat", "openat2", "creat",
+		"symlink", "symlinkat", "link", "linkat":
+		// Manually binding/unbinding drivers via sysfs or forcing driver_override
+		// attaches drivers to incompatible devices or unbinds core platform hardware,
+		// triggering nonsensical crashes that maintainers reject as invalid root operations.
+		// See the discussion at:
+		// https://lore.kernel.org/all/6a88012e.dbb3a75c.13dd47.0007.GAE@google.com/T/
+		arch.neutralizePaths(c)
 	}
 
 	switch c.Meta.Name {
@@ -230,6 +240,48 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		arch.neutralizeEbtables(c)
 	}
 	return nil
+}
+
+func (arch *arch) neutralizePaths(c *prog.Call) {
+	prog.ForeachArg(c, func(arg prog.Arg, _ *prog.ArgCtx) {
+		dataArg, ok := arg.(*prog.DataArg)
+		if !ok || dataArg.Dir() == prog.DirOut {
+			return
+		}
+		data := dataArg.Data()
+		if len(data) == 0 {
+			return
+		}
+		str := strings.TrimRight(string(data), "\x00")
+		clean := filepath.Clean(str)
+		if isForbiddenBindingPath(clean) {
+			bufType, _ := dataArg.Type().(*prog.BufferType)
+			var safe []byte
+			if bufType != nil && !bufType.Varlen() {
+				safe = make([]byte, bufType.Size())
+				copy(safe, "./file0")
+			} else if bufType != nil && bufType.NoZ {
+				safe = []byte("./file0")
+			} else {
+				safe = []byte("./file0\x00")
+			}
+			dataArg.SetData(safe)
+		}
+	})
+}
+
+// isForbiddenBindingPath checks whether a path targets sysfs driver binding/unbinding controls
+// (e.g. /sys/bus/.../bind, /sys/devices/.../driver_override, /sys/bus/.../drivers_probe).
+func isForbiddenBindingPath(clean string) bool {
+	if !strings.Contains(clean, "/bus/") &&
+		!strings.Contains(clean, "/devices/") &&
+		!strings.Contains(clean, "/device/") {
+		return false
+	}
+	return strings.HasSuffix(clean, "/bind") ||
+		strings.HasSuffix(clean, "/unbind") ||
+		strings.HasSuffix(clean, "/driver_override") ||
+		strings.HasSuffix(clean, "/drivers_probe")
 }
 
 func neutralizeSchedAttr(a prog.Arg) {

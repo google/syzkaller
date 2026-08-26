@@ -149,6 +149,34 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 			Out:       `sched_setattr(0x0, &(0x7f00000001c0)={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, 0x0)`,
 			StrictErr: `wrong array arg`,
 		},
+		{
+			In:  `openat(0xffffffffffffff9c, &(0x7f0000000100)='./sys/bus/platform/drivers/bxt_wcove_usbc/bind\x00', 0x1, 0x0)`,
+			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)=` +
+				`'./sys/bus/platform/devices/pcspkr/driver_override\x00', 0x1, 0x0)`,
+			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			In:  `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='/sys/bus/pci/drivers_probe\x00', 0x1, 0x0)`,
+			Out: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			In: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)=` +
+				`'/sys/devices/platform/pcspkr/driver_override\x00', 0x1, 0x0)`,
+			Out: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			In:  `symlink(&(0x7f0000000100)='./sys/bus/platform/drivers/foo/unbind\x00', &(0x7f0000000200)='./link0\x00')`,
+			Out: `symlink(&(0x7f0000000100)='./file0\x00', &(0x7f0000000200)='./link0\x00')`,
+		},
+		{
+			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./sys/bus/platform/drivers/foo/uevent\x00', 0x1, 0x0)`,
+		},
+		{
+			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./bind\x00', 0x1, 0x0)`,
+		},
 	})
 }
 
