@@ -17,13 +17,10 @@ import (
 func patchRefinementLoop(initStyleItems bool) aflow.Action {
 	actions := []aflow.Action{applyPatch}
 	if initStyleItems {
-		actions = append(actions, aflow.NewFuncAction("init-style-items", func(ctx *aflow.Context, args struct{}) (struct {
-			StyleItems []string
-		}, error) {
-			return struct{ StyleItems []string }{}, nil
-		}))
+		actions = append(actions, initStyleItemsAction)
 	}
 	actions = append(actions,
+		runCheckpatch,
 		&aflow.DoWhile{
 			While:         "NeedRefinement",
 			MaxIterations: 5,
@@ -35,22 +32,58 @@ func patchRefinementLoop(initStyleItems bool) aflow.Action {
 			},
 			Do: aflow.Pipeline(
 				&aflow.LLMAgent{
-					Name:        "patch-formatter",
+					Name:        "checkpatch-arbiter",
 					Model:       aflow.CoreModel,
-					Reply:       "FormatterExplanation",
+					Outputs:     aflow.LLMOutputs[checkpatchArbiterOutputs](),
 					TaskType:    aflow.FormalReasoningTask,
-					Instruction: formatterInstruction,
-					Prompt:      formatterPrompt,
-					Tools: aflow.Tools(common.CodeAccessTools, codeeditor.Tool,
-						patchdiff.Tool, checkpatch.Tool, clangformat.Tool),
+					Instruction: checkpatchArbiterInstruction,
+					Prompt:      checkpatchArbiterPrompt,
 				},
-				crash.TestPatchInplace, // -> PatchDiff or TestError
-				runCheckpatch,
+				evaluateArbiter,
+				&aflow.If{
+					Condition: "NeedRefinement",
+					Do: aflow.Pipeline(
+						&aflow.LLMAgent{
+							Name:        "patch-formatter",
+							Model:       aflow.CoreModel,
+							Reply:       "FormatterExplanation",
+							TaskType:    aflow.FormalReasoningTask,
+							Instruction: formatterInstruction,
+							Prompt:      formatterPrompt,
+							Tools: aflow.Tools(common.CodeAccessTools, codeeditor.Tool,
+								patchdiff.Tool, checkpatch.Tool, clangformat.Tool),
+						},
+						crash.TestPatchInplace, // -> PatchDiff or TestError
+						runCheckpatch,
+					),
+				},
 			),
 		},
 	)
 	return aflow.Pipeline(actions...)
 }
+
+type checkpatchArbiterOutputs struct {
+	ActionableIssues []string `jsonschema:"List of genuine, fixable style/formatting issues."`
+}
+
+var evaluateArbiter = aflow.NewFuncAction("evaluate-checkpatch-arbiter",
+	func(ctx *aflow.Context, args struct {
+		ActionableIssues []string
+		TestError        string
+	}) (struct {
+		NeedRefinement bool
+	}, error) {
+		return struct{ NeedRefinement bool }{
+			NeedRefinement: len(args.ActionableIssues) > 0 || args.TestError != "",
+		}, nil
+	})
+
+var initStyleItemsAction = aflow.NewFuncAction("init-style-items", func(ctx *aflow.Context, args struct{}) (struct {
+	StyleItems []string
+}, error) {
+	return struct{ StyleItems []string }{}, nil
+})
 
 var applyPatch = aflow.NewFuncAction("apply-patch", func(ctx *aflow.Context, args struct {
 	KernelScratchSrc string
@@ -61,36 +94,67 @@ var applyPatch = aflow.NewFuncAction("apply-patch", func(ctx *aflow.Context, arg
 
 var runCheckpatch = aflow.NewFuncAction("run-checkpatch", func(ctx *aflow.Context, args struct {
 	KernelScratchSrc string
-	TestError        string
 }) (struct {
 	CheckpatchOutput string
-	NeedRefinement   bool
 }, error) {
-	output, hasErrors, err := kernel.Checkpatch(args.KernelScratchSrc)
+	output, _, err := kernel.Checkpatch(args.KernelScratchSrc)
 	if err != nil {
 		return struct {
 			CheckpatchOutput string
-			NeedRefinement   bool
 		}{}, err
 	}
 
 	return struct {
 		CheckpatchOutput string
-		NeedRefinement   bool
 	}{
 		CheckpatchOutput: output,
-		NeedRefinement:   hasErrors || args.TestError != "",
 	}, nil
 })
+
+const checkpatchArbiterInstruction = `
+You are an expert Linux kernel maintainer acting as a code style arbiter.
+Your task is to review scripts/checkpatch.pl output and reviewer style requests for a proposed patch.
+
+Determine which reported issues are genuine, actionable formatting/style defects (e.g. indentation, whitespace,
+naming, syntax style) and should be fixed. List them in ActionableIssues.
+
+Ignore issues that are false positives, intentional constructs (e.g. BUG_ON/XA_BUG_ON in test files, macros,
+subsystem conventions), or unfixable without breaking code logic or tests. If no issues should be changed,
+leave ActionableIssues empty.
+`
+
+const checkpatchArbiterPrompt = `
+The patch diff is:
+
+{{.PatchDiff}}
+
+{{if .CheckpatchOutput}}
+The checkpatch.pl output is:
+{{.CheckpatchOutput}}
+{{end}}
+
+{{if .StyleItems}}
+Reviewers requested the following style items:
+{{range .StyleItems}}
+- {{.}}
+{{end}}
+{{end}}
+
+{{if .TestError}}
+Previous build/test error:
+{{.TestError}}
+{{end}}
+
+Carefully evaluate each issue and populate ActionableIssues.
+`
 
 const formatterInstruction = `
 You are an expert Linux kernel developer tasked with formatting a kernel patch.
 Your objective is purely formatting: you must ensure the patch complies with the kernel's coding style,
-conforms to the surrounding code rules, and passes checkpatch.pl, while preserving the code logic exactly as it is.
-You should stop once the requested formatting changes are done and checkpatch.pl is happy.
+conforms to the surrounding code rules, and addresses the requested style changes, while preserving the code
+logic exactly as it is.
+You should stop once the requested formatting changes are done.
 Do not question the requested changes unless they are obviously wrong.
-If the code already conforms to the requested changes, surrounding code rules,
-and checkpatch.pl is happy, you should just finish your task.
 
 WARNING: The {{.toolClangFormat}} tool may break the formatting of the surrounding code (like manual alignment).
 Use it with caution. We want to make the change fit into the existing formatting as much as possible.
@@ -101,16 +165,11 @@ The current patch diff is:
 
 {{.PatchDiff}}
 
-{{if .StyleItems}}
-The reviewers requested the following style changes:
-{{range .StyleItems}}
+{{if .ActionableIssues}}
+The following style and formatting issues must be fixed:
+{{range .ActionableIssues}}
 - {{.}}
 {{end}}
-{{end}}
-
-{{if .CheckpatchOutput}}
-The checkpatch.pl output is:
-{{.CheckpatchOutput}}
 {{end}}
 
 {{if .TestError}}
