@@ -75,7 +75,7 @@ func (repo *SessionRepository) Insert(ctx context.Context, session *Session) err
 	return repo.genericEntityOps.Insert(ctx, session)
 }
 
-func (repo *SessionRepository) ListRunning(ctx context.Context) ([]*Session, error) {
+func (repo *SessionRepository) ListInProgress(ctx context.Context) ([]*Session, error) {
 	return repo.readEntities(ctx, spanner.Statement{
 		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NOT NULL AND `FinishedAt` IS NULL",
 	})
