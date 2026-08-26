@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/workflow"
-	"golang.org/x/sync/errgroup"
 )
 
 type SeriesProcessor struct {
@@ -27,6 +26,13 @@ type SeriesProcessor struct {
 	workflows         workflow.Service
 	dbPollInterval    time.Duration
 	parallelWorkflows int
+
+	// activeSessions tracks sessions currently queued in memory or running in worker goroutines.
+	// We track active sessions in memory because session.StartedAt in the database is only set
+	// right before the workflow is actually started. Tracking active sessions in memory prevents
+	// streamSeries from re-querying and re-dispatching waiting sessions before their StartedAt
+	// timestamp is committed to the database.
+	activeSessions sync.Map
 }
 
 func NewSeriesProcessor(env *app.AppEnvironment, cfg *app.AppConfig) *SeriesProcessor {
@@ -49,20 +55,24 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	ch := make(chan *db.Session, 1)
-	wg.Go(func() {
-		sp.seriesRunner(ctx, ch)
-	})
-	// First pick up the previously running sessions.
-	activeSessions, err := sp.sessionRepo.ListRunning(ctx)
+	ch := make(chan *db.Session)
+	for range sp.parallelWorkflows {
+		wg.Go(func() {
+			sp.seriesRunner(ctx, ch)
+		})
+	}
+	// First pick up the previously started sessions.
+	inProgress, err := sp.sessionRepo.ListInProgress(ctx)
 	if err != nil {
 		return err
 	}
-	log.Printf("queried %d unfinished sessions", len(activeSessions))
-	for _, session := range activeSessions {
+	log.Printf("queried %d unfinished sessions", len(inProgress))
+	for _, session := range inProgress {
+		sp.activeSessions.Store(session.ID, struct{}{})
 		select {
 		case ch <- session:
 		case <-ctx.Done():
+			sp.activeSessions.Delete(session.ID)
 			return ctx.Err()
 		}
 	}
@@ -81,27 +91,24 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 			return
 		case <-time.After(sp.dbPollInterval):
 		}
-		if len(ch) > 0 {
-			// There are still series to be picked, no need to query the DB.
-			continue
-		}
-		var err error
-		var list []*db.Session
-		list, err = sp.sessionRepo.ListWaiting(ctx, cap(ch))
+		// Query waiting sessions up to the parallel workflow capacity.
+		list, err := sp.sessionRepo.ListWaiting(ctx, sp.parallelWorkflows)
 		if err != nil {
-			app.Errorf("failed to query series: %v", err)
+			// Do not log context cancellation errors during shutdown.
+			if ctx.Err() == nil {
+				app.Errorf("failed to query series: %v", err)
+			}
 			continue
 		}
 		for _, session := range list {
-			// Mark as started in DB immediately to avoid re-querying it.
-			err := sp.sessionRepo.Start(ctx, session.ID)
-			if err != nil {
-				app.Errorf("failed to mark session started: %v", err)
+			if _, ok := sp.activeSessions.Load(session.ID); ok {
 				continue
 			}
+			sp.activeSessions.Store(session.ID, struct{}{})
 			select {
 			case ch <- session:
 			case <-ctx.Done():
+				sp.activeSessions.Delete(session.ID)
 				return
 			}
 		}
@@ -109,38 +116,32 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 }
 
 func (sp *SeriesProcessor) seriesRunner(ctx context.Context, ch <-chan *db.Session) {
-	var eg errgroup.Group
-	defer eg.Wait()
-
-	eg.SetLimit(sp.parallelWorkflows)
 	for {
-		var session *db.Session
 		select {
-		case session = <-ch:
-			if session == nil {
+		case session, ok := <-ch:
+			if !ok {
 				return
 			}
-		case <-ctx.Done():
-			return
-		}
-		log.Printf("scheduled session %q for series %q", session.ID, session.SeriesID)
-		eg.Go(func() error {
 			log.Printf("started processing session %q", session.ID)
 			sp.handleSession(ctx, session)
 			log.Printf("finished processing session %q", session.ID)
-			return nil
-		})
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
 func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Session) {
+	defer sp.activeSessions.Delete(session.ID)
 	// TODO: set some sane deadline or just track indefinitely?
 	pollPeriod := sp.workflows.PollPeriod()
-	for {
-		select {
-		case <-time.After(pollPeriod):
-		case <-ctx.Done():
-			return
+	for first := true; ; first = false {
+		if !first {
+			select {
+			case <-time.After(pollPeriod):
+			case <-ctx.Done():
+				return
+			}
 		}
 		status, workflowLog, err := sp.workflows.Status(session.ID)
 		if err != nil {
