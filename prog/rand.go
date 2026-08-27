@@ -670,12 +670,12 @@ func (r *randGen) generateParticularCallUnsafe(s *state, meta *Syscall) (calls [
 }
 
 // GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
-func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
+func (target *Target) GenerateAllSyzProg(rs rand.Source, ct *ChoiceTable) *Prog {
 	p := &Prog{
 		Target: target,
 	}
 	r := newRand(target, rs)
-	s := newState(target, target.DefaultChoiceTable(), nil)
+	s := newState(target, ct, nil)
 	for _, meta := range target.PseudoSyscalls() {
 		calls := r.generateParticularCallUnsafe(s, meta)
 		for _, c := range calls {
