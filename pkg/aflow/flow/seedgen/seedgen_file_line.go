@@ -63,6 +63,7 @@ type ResolveLineToPCArgs struct {
 	LineNumber int
 	KernelSrc  string
 	KernelObj  string
+	TargetArch string
 }
 
 type ResolveLineToPCResult struct {
@@ -76,7 +77,7 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 		return ResolveLineToPCResult{}, fmt.Errorf("both FilePath and LineNumber must be provided")
 	}
 
-	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, args.FilePath, args.LineNumber)
+	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, args.TargetArch, args.FilePath, args.LineNumber)
 	if err != nil {
 		return ResolveLineToPCResult{}, err
 	}
@@ -91,8 +92,11 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 	}, nil
 }
 
-func resolveLineToPCs(kernelSrc, kernelObj, filePath string, line int) ([]uint64, error) {
-	target := targets.Get(targets.Linux, targets.AMD64)
+func resolveLineToPCs(kernelSrc, kernelObj, targetArch, filePath string, line int) ([]uint64, error) {
+	target := targets.Get(targets.Linux, targetArch)
+	if target == nil {
+		return nil, fmt.Errorf("unsupported target %s/%s", targets.Linux, targetArch)
+	}
 	vmlinux := filepath.Join(kernelObj, target.KernelObject)
 
 	cfg := &mgrconfig.Config{
