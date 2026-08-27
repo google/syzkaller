@@ -17,11 +17,11 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// SymbolizePC action resolves a kernel PC address to a source file and line number.
+// SymbolizePC action resolves the primary kernel PC address (PCs[0]) to a source file and line number.
 var SymbolizePC = aflow.NewFuncAction("kernel-symbolize-pc", symbolizePC)
 
 type symbolizePCArgs struct {
-	PC         string
+	PCs        []string
 	KernelSrc  string
 	KernelObj  string
 	TargetOS   string
@@ -52,16 +52,16 @@ type symbolizePCResult struct {
 var makeSymbolizer = symbolizer.Make
 
 func symbolizePC(ctx *aflow.Context, args symbolizePCArgs) (symbolizePCResult, error) {
-	if args.PC == "" {
+	if len(args.PCs) == 0 {
 		return symbolizePCResult{}, fmt.Errorf("invalid PC address: empty")
 	}
-	s := strings.TrimSpace(args.PC)
+	s := strings.TrimSpace(args.PCs[0])
 	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
-		return symbolizePCResult{}, fmt.Errorf("PC address must be hex and start with 0x: %q", args.PC)
+		return symbolizePCResult{}, fmt.Errorf("PC address must be hex and start with 0x: %q", args.PCs[0])
 	}
 	pc, err := strconv.ParseUint(s[2:], 16, 64)
 	if err != nil {
-		return symbolizePCResult{}, fmt.Errorf("invalid PC address %q: %w", args.PC, err)
+		return symbolizePCResult{}, fmt.Errorf("invalid PC address %q: %w", args.PCs[0], err)
 	}
 	target := targets.Get(args.TargetOS, args.TargetArch)
 	if target == nil {

@@ -59,7 +59,7 @@ func TestParsePC(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.want, got.PC)
+				require.Equal(t, []string{tt.want}, got.PCs)
 			}
 		})
 	}
@@ -86,7 +86,7 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 		"File":                   "arch/x86/kvm/vmx/vmx.c",
 		"Line":                   1234,
 		"FunctionName":           "vmx_vcpu_run",
-		"PC":                     "0xffffffff81001234",
+		"PCs":                    []string{"0xffffffff81001234"},
 		"FunctionSource":         "void vmx_vcpu_run() { ... }",
 		"DescriptionFilesPrompt": "Description files available: dev_kvm.txt, dev_kvm_amd64.txt",
 		"DocSyzOS":               docs.SyzOS,
@@ -98,6 +98,7 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 	rendered := buf.String()
 
 	require.Contains(t, rendered, "Target File: arch/x86/kvm/vmx/vmx.c")
+	require.Contains(t, rendered, "Target PCs: 0xffffffff81001234")
 	require.Contains(t, rendered, "Target Environment:")
 	require.Contains(t, rendered, "Target OS: linux")
 	require.Contains(t, rendered, "Target Arch: amd64")

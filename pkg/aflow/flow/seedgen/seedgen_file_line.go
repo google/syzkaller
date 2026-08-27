@@ -66,8 +66,7 @@ type ResolveLineToPCArgs struct {
 }
 
 type ResolveLineToPCResult struct {
-	PC  string   `jsonschema:"Primary target PC (hex format)."`
-	PCs []string `jsonschema:"All candidate KCOV PCs corresponding to this file and line (hex format)."`
+	PCs []string `jsonschema:"Candidate KCOV PCs for file and line (hex), with PCs[0] as primary."`
 }
 
 var ActionResolveLineToPC = aflow.NewFuncAction("resolve-line-to-pc", resolveLineToPCAction)
@@ -87,13 +86,7 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 		hexPCs[i] = fmt.Sprintf("0x%x", pc)
 	}
 
-	primaryPC := ""
-	if len(hexPCs) > 0 {
-		primaryPC = hexPCs[0]
-	}
-
 	return ResolveLineToPCResult{
-		PC:  primaryPC,
 		PCs: hexPCs,
 	}, nil
 }
