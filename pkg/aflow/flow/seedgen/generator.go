@@ -227,8 +227,7 @@ Workflow:
 	Prompt: `Target File: {{.File}}
 Target Line: {{.Line}}
 Target Function: {{.FunctionName}}
-{{if .PCs}}Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}
-{{else if .PC}}Target PC: {{.PC}}{{end}}
+Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}
 {{if .Frames}}
 Candidate PC(s) correspond to the following inline call chain:
 {{range $i, $f := .Frames}}{{$i}}. {{$f.Func}} ({{$f.File}}:{{$f.Line}})

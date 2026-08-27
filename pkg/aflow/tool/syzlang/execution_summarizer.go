@@ -16,7 +16,6 @@ type ExecutionSummarizerArgs struct {
 
 type executionSummarizerState struct {
 	File                        string
-	PC                          string
 	PCs                         []string
 	LastFailedExecutionCachedID string
 	EnvironmentPrompt           string `json:",omitempty"`
@@ -43,8 +42,7 @@ var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSumm
 {{if .Question}}{{.Question}}{{else}}Why did this program fail to reach the target PC?{{end}}
 
 Target file: {{.File}}
-{{if .PCs}}Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}
-{{else if .PC}}Target PC: {{.PC}}{{end}}`,
+Target PCs: {{range $i, $pc := .PCs}}{{if $i}}, {{end}}{{$pc}}{{end}}`,
 }
 
 const summarizerInstruction = `

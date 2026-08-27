@@ -45,37 +45,37 @@ func TestSymbolizePC(t *testing.T) {
 		errContains string
 	}{
 		{
-			name: "empty PC address",
+			name: "empty PC addresses",
 			args: symbolizePCArgs{
-				PC: "",
+				PCs: []string{},
 			},
 			errContains: "invalid PC address: empty",
 		},
 		{
 			name: "PC missing 0x prefix",
 			args: symbolizePCArgs{
-				PC: "ffffffff8180a42e",
+				PCs: []string{"ffffffff8180a42e"},
 			},
 			errContains: "PC address must be hex and start with 0x",
 		},
 		{
 			name: "invalid PC hex digits",
 			args: symbolizePCArgs{
-				PC: "0xZZZZ",
+				PCs: []string{"0xZZZZ"},
 			},
 			errContains: "invalid PC address",
 		},
 		{
 			name: "empty target OS and Arch",
 			args: symbolizePCArgs{
-				PC: "0xffffffff8180a42e",
+				PCs: []string{"0xffffffff8180a42e"},
 			},
 			errContains: "unsupported target /",
 		},
 		{
 			name: "unsupported target OS and Arch",
 			args: symbolizePCArgs{
-				PC:         "0xffffffff8180a42e",
+				PCs:        []string{"0xffffffff8180a42e"},
 				TargetOS:   "unsupported_os",
 				TargetArch: "unsupported_arch",
 			},
@@ -84,7 +84,7 @@ func TestSymbolizePC(t *testing.T) {
 		{
 			name: "symbolizer error",
 			args: symbolizePCArgs{
-				PC:         "0xffffffff8180a42e",
+				PCs:        []string{"0xffffffff8180a42e"},
 				TargetOS:   "linux",
 				TargetArch: "amd64",
 				KernelObj:  tempDir,
@@ -96,7 +96,7 @@ func TestSymbolizePC(t *testing.T) {
 		{
 			name: "no frames returned",
 			args: symbolizePCArgs{
-				PC:         "0xffffffff8180a42e",
+				PCs:        []string{"0xffffffff8180a42e"},
 				TargetOS:   "linux",
 				TargetArch: "amd64",
 				KernelObj:  tempDir,
@@ -108,7 +108,40 @@ func TestSymbolizePC(t *testing.T) {
 		{
 			name: "single frame success",
 			args: symbolizePCArgs{
-				PC:         "0xffffffff8180a42e",
+				PCs:        []string{"0xffffffff8180a42e"},
+				TargetOS:   "linux",
+				TargetArch: "amd64",
+				KernelObj:  tempDir,
+				KernelSrc:  tempDir,
+			},
+			mockFrames: []symbolizer.Frame{
+				{
+					PC:   0xffffffff8180a42e,
+					Func: "do_sys_open",
+					File: filepath.Join(tempDir, "fs/open.c"),
+					Line: 1234,
+				},
+			},
+			wantRes: symbolizePCResult{
+				File:      "fs/open.c",
+				Line:      1234,
+				Func:      "do_sys_open",
+				OuterFile: "fs/open.c",
+				OuterLine: 1234,
+				OuterFunc: "do_sys_open",
+				Frames: []InlineFrame{
+					{
+						Func: "do_sys_open",
+						File: "fs/open.c",
+						Line: 1234,
+					},
+				},
+			},
+		},
+		{
+			name: "multiple PCs uses first PC",
+			args: symbolizePCArgs{
+				PCs:        []string{"0xffffffff8180a42e", "0xffffffff8180a500"},
 				TargetOS:   "linux",
 				TargetArch: "amd64",
 				KernelObj:  tempDir,
@@ -141,7 +174,7 @@ func TestSymbolizePC(t *testing.T) {
 		{
 			name: "inlined frames success",
 			args: symbolizePCArgs{
-				PC:         "0xffffffff8180a42e",
+				PCs:        []string{"0xffffffff8180a42e"},
 				TargetOS:   "linux",
 				TargetArch: "amd64",
 				KernelObj:  tempDir,

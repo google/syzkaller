@@ -117,7 +117,6 @@ type ParsePCArgs struct {
 }
 
 type ParsePCResult struct {
-	PC  string
 	PCs []string
 }
 
@@ -129,7 +128,7 @@ func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) 
 		return ParsePCResult{}, err
 	}
 	hexPC := fmt.Sprintf("0x%x", pc)
-	return ParsePCResult{PC: hexPC, PCs: []string{hexPC}}, nil
+	return ParsePCResult{PCs: []string{hexPC}}, nil
 }
 
 func parseFlexPC(raw string) (uint64, error) {
@@ -151,7 +150,6 @@ type VerifyPCAndLoopStateArgs struct {
 	JudgeStopped         bool
 	JudgeReason          string
 	FailedHistorySummary string
-	PC                   string
 	PCs                  []string
 }
 
@@ -184,12 +182,7 @@ var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop
 			return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
 		}
 
-		candidatePCs := args.PCs
-		if len(candidatePCs) == 0 && args.PC != "" {
-			candidatePCs = []string{args.PC}
-		}
-
-		reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, candidatePCs...)
+		reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, args.PCs...)
 		if err != nil {
 			reached = false
 		}
