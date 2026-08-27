@@ -19,16 +19,18 @@ var HistorySummarizerAgent = &aflow.LLMAgent{
 	Name:     "generator-history-summarizer",
 	Model:    aflow.CoreModel,
 	TaskType: aflow.FormalReasoningTask,
-	Outputs:  aflow.ValidatedLLMOutputs[HistorySummarizerOutputs, struct{}](nil),
-	Instruction: "You are an expert agent analyst. Your task is to analyze the conversation history of a " +
-		"failed seed generator agent that was stopped by its judge or hit an execution error.\n\n" +
-		"Produce a structured, concise, and highly actionable FailedHistorySummary to guide the next " +
-		"generator attempt.\n\n" +
-		"You MUST structure your FailedHistorySummary into the following four markdown sections:\n" +
-		"1. ## FAILED STRATEGY & SYSCALL PATHS\n" +
-		"2. ## REPEATED ERRORS & STUCK LOOPS\n" +
-		"3. ## DISCARDED TEST SEEDS & SYZLANG CONSTRUCTS\n" +
-		"4. ## RECOMMENDED ALTERNATIVE DIRECTIONS & NEGATIVE CONSTRAINTS",
+	Outputs:  aflow.LLMOutputs[HistorySummarizerOutputs](),
+	Instruction: `You are an expert agent analyst. Your task is to analyze the conversation history of a
+failed seed generator agent that was stopped by its judge or hit an execution error.
+
+Produce a structured, concise, and highly actionable FailedHistorySummary to guide the next
+generator attempt.
+
+You MUST structure your FailedHistorySummary into the following four markdown sections:
+1. ## FAILED STRATEGY & SYSCALL PATHS
+2. ## REPEATED ERRORS & STUCK LOOPS
+3. ## DISCARDED TEST SEEDS & SYZLANG CONSTRUCTS
+4. ## RECOMMENDED ALTERNATIVE DIRECTIONS & NEGATIVE CONSTRAINTS`,
 	Prompt: `Failed Agent Name: seed-generator
 Failed Conversation History:
 {{.FormattedFailedHistoryText}}`,
@@ -45,24 +47,21 @@ type FormatFailedHistoryResult struct {
 var ActionFormatFailedHistory = aflow.NewFuncAction("seedgen-format-failed-history",
 	func(ctx *aflow.Context, args FormatFailedHistoryArgs) (FormatFailedHistoryResult, error) {
 		if len(args.FailedHistory) == 0 {
-			return FormatFailedHistoryResult{},
-				fmt.Errorf("failed history not found in state context")
+			return FormatFailedHistoryResult{}, fmt.Errorf("failed history not found in state context")
 		}
-		history := args.FailedHistory
 		var sb strings.Builder
-		for _, msg := range history {
-			role := msg.Role
-			sb.WriteString(fmt.Sprintf("[%s]:\n", role))
+		for _, msg := range args.FailedHistory {
+			fmt.Fprintf(&sb, "[%s]:\n", msg.Role)
 			for _, part := range msg.Parts {
-				if part.FunctionCall != nil {
-					sb.WriteString(fmt.Sprintf("  Called tool %s with args: %+v\n",
-						part.FunctionCall.Name, part.FunctionCall.Args))
-				} else if part.FunctionResponse != nil {
-					sb.WriteString(fmt.Sprintf("  Tool %s returned: %+v\n",
-						part.FunctionResponse.Name, part.FunctionResponse.Response))
-				} else if part.Text != "" {
-					sb.WriteString(part.Text)
-					sb.WriteString("\n")
+				switch {
+				case part.FunctionCall != nil:
+					fmt.Fprintf(&sb, "  Called tool %s with args: %+v\n",
+						part.FunctionCall.Name, part.FunctionCall.Args)
+				case part.FunctionResponse != nil:
+					fmt.Fprintf(&sb, "  Tool %s returned: %+v\n",
+						part.FunctionResponse.Name, part.FunctionResponse.Response)
+				case part.Text != "":
+					fmt.Fprintln(&sb, part.Text)
 				}
 			}
 			sb.WriteString("\n")
