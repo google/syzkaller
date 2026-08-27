@@ -97,7 +97,6 @@ var ActionFormatOutput = aflow.NewFuncAction("format-output",
 	func(ctx *aflow.Context, args FormatOutputArgs) (ai.SeedGenOutputs, error) {
 		seedSyz := ""
 		if args.ExecutionCachedID != "" {
-			var err error
 			generated, err := crash.LoadSeedProgramDetails(ctx, args.ExecutionCachedID)
 			if err != nil {
 				return ai.SeedGenOutputs{}, aflow.BadCallError("failed to read program from cache: %v", err)
@@ -134,11 +133,7 @@ func parsePCAction(ctx *aflow.Context, args ParsePCArgs) (ParsePCResult, error) 
 
 func parseFlexPC(raw string) (uint64, error) {
 	s := strings.TrimSpace(raw)
-	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
-		return strconv.ParseUint(s[2:], 16, 64)
-	}
-	pc, err := strconv.ParseUint(s, 0, 64)
-	if err == nil {
+	if pc, err := strconv.ParseUint(s, 0, 64); err == nil {
 		return pc, nil
 	}
 	return strconv.ParseUint(s, 16, 64)
@@ -179,18 +174,8 @@ func verifyPCAndLoopStateAction(ctx *aflow.Context, args VerifyPCAndLoopStateArg
 			LastFailedExecutionCachedID: args.LastFailedExecutionCachedID,
 		}, nil
 	}
-
 	if args.GeneratorGiveUp {
 		return VerifyPCAndLoopStateResult{
-			ContinueLoop:           "",
-			PCReached:              false,
-			FailedHistorySummaries: summaries,
-		}, nil
-	}
-	if args.ExecutionCachedID == "" {
-		// This shouldn't happen due to GeneratorAgent output validation, but handle it safely.
-		return VerifyPCAndLoopStateResult{
-			ContinueLoop:           "yes",
 			PCReached:              false,
 			FailedHistorySummaries: summaries,
 		}, nil
@@ -198,23 +183,20 @@ func verifyPCAndLoopStateAction(ctx *aflow.Context, args VerifyPCAndLoopStateArg
 
 	reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, args.PCs...)
 	if err != nil {
-		reached = false
+		return VerifyPCAndLoopStateResult{}, err
 	}
-
 	if reached {
 		return VerifyPCAndLoopStateResult{
-			ContinueLoop:           "",
 			PCReached:              true,
 			FailedHistorySummaries: summaries,
 		}, nil
 	}
-	res := VerifyPCAndLoopStateResult{
+	return VerifyPCAndLoopStateResult{
 		ContinueLoop:                "yes",
 		PCReached:                   false,
 		LastFailedExecutionCachedID: args.ExecutionCachedID,
 		FailedHistorySummaries:      summaries,
-	}
-	return res, nil
+	}, nil
 }
 
 type PrepareFailedDetailsArgs struct {
