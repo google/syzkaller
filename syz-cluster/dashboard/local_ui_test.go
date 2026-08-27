@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -66,7 +67,19 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 	series := controller.DummySeries()
 	series.PublishedAt = time.Now()
 	series.AuthorEmail = "fake@author.com"
-	series.Cc = []string{"fake@cc.com", "another@cc.com"}
+	series.Cc = make([]string, 10)
+	for i := range series.Cc {
+		series.Cc[i] = fmt.Sprintf("fake%d@cc.com", i+1)
+	}
+	series.Patches = make([]api.SeriesPatch, 10)
+	for i := range series.Patches {
+		series.Patches[i] = api.SeriesPatch{
+			Seq:   i + 1,
+			Title: fmt.Sprintf("patch %d title", i+1),
+			Link:  fmt.Sprintf("http://link/to/patch/%d", i+1),
+			Body:  []byte(fmt.Sprintf("patch %d content\n", i+1)),
+		}
+	}
 	ids := controller.UploadTestSeries(t, ctx, client, series)
 
 	// Add a fake triage log.
