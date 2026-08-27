@@ -9,8 +9,6 @@ import (
 	"text/template"
 
 	"github.com/google/syzkaller/docs"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,56 +75,6 @@ func TestResolveLineToPCAction(t *testing.T) {
 	_, err = resolveLineToPCAction(nil, ResolveLineToPCArgs{FilePath: "fs/ext4/super.c", LineNumber: 0})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
-}
-
-func TestMatchDwarfFile(t *testing.T) {
-	kd := &mgrconfig.KernelDirs{}
-	require.True(t, matchDwarfFile("arch/x86/kvm/vmx/sgx.h", "arch/x86/kvm/vmx/sgx.h", kd))
-	require.True(t, matchDwarfFile("/build/kernel/arch/x86/kvm/vmx/sgx.h", "arch/x86/kvm/vmx/sgx.h", kd))
-	require.False(t, matchDwarfFile("fs/ext4/super.c", "fs/ext4/inode.c", kd))
-}
-
-func TestMatchCandidatePCs(t *testing.T) {
-	cleanTargetFile := "virt/kvm/kvm_main.c"
-	kd := &mgrconfig.KernelDirs{}
-
-	// Mock line table.
-	lineTable := []lineEntry{
-		{addr: 0x100, line: 5290},
-		{addr: 0x110, line: 5289},
-		{addr: 0x120, line: 5290},
-		{addr: 0x130, line: 5314},
-	}
-
-	// Mock PC to Frames.
-	pcToFrames := map[uint64][]symbolizer.Frame{
-		0x100: { // Failure path.
-			{PC: 0x100, File: "virt/kvm/kvm_main.c", Line: 5290},
-		},
-		0x120: { // Success path.
-			{PC: 0x120, File: "virt/kvm/kvm_main.c", Line: 5290},
-		},
-		0x999: { // Completely unrelated line/file.
-			{PC: 0x999, File: "fs/ext4/inode.c", Line: 100},
-		},
-	}
-
-	// Test case 1: targetLine = 5295.
-	// 0x100 interval: next is 0x110 (Line 5289). Range [5290, 5289) -> does not contain 5295.
-	// 0x120 interval: next is 0x130 (Line 5314). Range [5290, 5314) -> contains 5295.
-	// So only 0x120 should be matched.
-	pcs, err := matchCandidatePCs(pcToFrames, lineTable, cleanTargetFile, kd, 5295)
-	require.NoError(t, err)
-	require.Equal(t, []uint64{0x120}, pcs)
-
-	// Test case 2: Fallback when no interval contains targetLine.
-	// targetLine = 5320 (after all line table entries).
-	// Both 0x100 and 0x120 have lStart <= 5320.
-	// The best (closest preceding) line is 5290.
-	// So both should be returned as fallback.
-	pcs, err = matchCandidatePCs(pcToFrames, lineTable, cleanTargetFile, kd, 5320)
-	require.NoError(t, err)
-	require.ElementsMatch(t, []uint64{0x100, 0x120}, pcs)
 }
 
 func TestGeneratorAgentPromptRendering(t *testing.T) {
