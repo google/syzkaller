@@ -7,6 +7,7 @@ package seedgen
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -151,6 +152,7 @@ type VerifyPCAndLoopStateArgs struct {
 	JudgeStopped                bool
 	JudgeReason                 string
 	FailedHistorySummary        string
+	FailedHistorySummaries      []string
 	PCs                         []string
 }
 
@@ -158,27 +160,40 @@ type VerifyPCAndLoopStateResult struct {
 	ContinueLoop                string
 	PCReached                   bool
 	LastFailedExecutionCachedID string
-	LastFailedHistorySummary    string
+	FailedHistorySummaries      []string
 }
 
 var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop", verifyPCAndLoopStateAction)
 
 func verifyPCAndLoopStateAction(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
+	summaries := args.FailedHistorySummaries
+	if args.JudgeStopped && args.FailedHistorySummary != "" {
+		summaries = append(slices.Clone(summaries), args.FailedHistorySummary)
+	}
+
 	if args.JudgeStopped {
 		return VerifyPCAndLoopStateResult{
 			ContinueLoop:                "yes",
 			PCReached:                   false,
-			LastFailedHistorySummary:    args.FailedHistorySummary,
+			FailedHistorySummaries:      summaries,
 			LastFailedExecutionCachedID: args.LastFailedExecutionCachedID,
 		}, nil
 	}
 
 	if args.GeneratorGiveUp {
-		return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
+		return VerifyPCAndLoopStateResult{
+			ContinueLoop:           "",
+			PCReached:              false,
+			FailedHistorySummaries: summaries,
+		}, nil
 	}
 	if args.ExecutionCachedID == "" {
 		// This shouldn't happen due to GeneratorAgent output validation, but handle it safely.
-		return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
+		return VerifyPCAndLoopStateResult{
+			ContinueLoop:           "yes",
+			PCReached:              false,
+			FailedHistorySummaries: summaries,
+		}, nil
 	}
 
 	reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, args.PCs...)
@@ -187,13 +202,17 @@ func verifyPCAndLoopStateAction(ctx *aflow.Context, args VerifyPCAndLoopStateArg
 	}
 
 	if reached {
-		return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: true}, nil
+		return VerifyPCAndLoopStateResult{
+			ContinueLoop:           "",
+			PCReached:              true,
+			FailedHistorySummaries: summaries,
+		}, nil
 	}
 	res := VerifyPCAndLoopStateResult{
 		ContinueLoop:                "yes",
 		PCReached:                   false,
 		LastFailedExecutionCachedID: args.ExecutionCachedID,
-		LastFailedHistorySummary:    args.FailedHistorySummary,
+		FailedHistorySummaries:      summaries,
 	}
 	return res, nil
 }

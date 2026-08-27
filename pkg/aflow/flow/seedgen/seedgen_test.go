@@ -100,6 +100,7 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 		"DescriptionFilesPrompt": "Description files available: dev_kvm.txt, dev_kvm_amd64.txt",
 		"DocSyzOS":               docs.SyzOS,
 		"EnvironmentPrompt":      "Target OS: linux\nTarget Arch: amd64\nVM Type: qemu\n",
+		"FailedHistorySummaries": []string{"Analysis of loop 1", "Analysis of loop 2"},
 	}
 
 	err = tmpl.Execute(&buf, data)
@@ -114,6 +115,10 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 	require.Contains(t, rendered, "VM Type: qemu")
 	require.Contains(t, rendered, "Document about SyzOS setup:")
 	require.Contains(t, rendered, "SYZOS Technical Documentation")
+	require.Contains(t, rendered, "Lessons and negative constraints from previous attempts that got stuck:")
+	require.Contains(t, rendered, "Analysis of loop 1")
+	require.Contains(t, rendered, "Analysis of loop 2")
+	require.Contains(t, rendered, "Do NOT repeat the dead-end strategies")
 }
 
 func TestVerifyPCAndLoopStateAction(t *testing.T) {
@@ -123,7 +128,7 @@ func TestVerifyPCAndLoopStateAction(t *testing.T) {
 		want VerifyPCAndLoopStateResult
 	}{
 		{
-			name: "judge stopped preserves last failed id and sets summary",
+			name: "judge stopped appends to empty summaries and preserves last failed id",
 			args: VerifyPCAndLoopStateArgs{
 				JudgeStopped:                true,
 				FailedHistorySummary:        "looping in tool calls",
@@ -132,33 +137,47 @@ func TestVerifyPCAndLoopStateAction(t *testing.T) {
 			want: VerifyPCAndLoopStateResult{
 				ContinueLoop:                "yes",
 				PCReached:                   false,
-				LastFailedHistorySummary:    "looping in tool calls",
+				FailedHistorySummaries:      []string{"looping in tool calls"},
 				LastFailedExecutionCachedID: "prev-cached-id",
 			},
 		},
 		{
-			name: "generator give up terminates loop",
+			name: "judge stopped appends to existing summaries",
 			args: VerifyPCAndLoopStateArgs{
-				GeneratorGiveUp:      true,
-				FailedHistorySummary: "stale summary",
+				JudgeStopped:           true,
+				FailedHistorySummary:   "another stuck loop",
+				FailedHistorySummaries: []string{"looping in tool calls"},
 			},
 			want: VerifyPCAndLoopStateResult{
-				ContinueLoop: "",
-				PCReached:    false,
+				ContinueLoop:           "yes",
+				PCReached:              false,
+				FailedHistorySummaries: []string{"looping in tool calls", "another stuck loop"},
 			},
 		},
 		{
-			name: "execution failed to reach pc updates last failed id",
+			name: "generator give up terminates loop and preserves summaries",
 			args: VerifyPCAndLoopStateArgs{
-				ExecutionCachedID:    "cached-attempt-1",
-				PCs:                  []string{"0x1000"},
-				FailedHistorySummary: "summary",
+				GeneratorGiveUp:        true,
+				FailedHistorySummaries: []string{"looping in tool calls"},
+			},
+			want: VerifyPCAndLoopStateResult{
+				ContinueLoop:           "",
+				PCReached:              false,
+				FailedHistorySummaries: []string{"looping in tool calls"},
+			},
+		},
+		{
+			name: "execution failed to reach pc preserves summaries and updates last failed id",
+			args: VerifyPCAndLoopStateArgs{
+				ExecutionCachedID:      "cached-attempt-1",
+				PCs:                    []string{"0x1000"},
+				FailedHistorySummaries: []string{"looping in tool calls"},
 			},
 			want: VerifyPCAndLoopStateResult{
 				ContinueLoop:                "yes",
 				PCReached:                   false,
 				LastFailedExecutionCachedID: "cached-attempt-1",
-				LastFailedHistorySummary:    "summary",
+				FailedHistorySummaries:      []string{"looping in tool calls"},
 			},
 		},
 	}
