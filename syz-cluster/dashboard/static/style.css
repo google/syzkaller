@@ -22,3 +22,9 @@ body {
 .btn-collapse[aria-expanded="true"]::after {
   content: "\25B2"; /* UP-POINTING TRIANGLE */
 }
+
+#patches-box.collapsed {
+  max-height: 220px;
+  overflow: auto;
+  border-bottom: 1px solid #dee2e6;
+}

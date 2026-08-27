@@ -18,20 +18,35 @@
         </div>
       </div>
     </div>
+
     <script>
       $(document).ready(function() {
-          $('a.modal-link-raw').click(function(event) {
+          $(document).on('click', 'a.modal-link-raw', function(event) {
               event.preventDefault();
-              var body = $('#contentModal .modal-body')
+              var body = $('#contentModal .modal-body');
               var url = $(this).attr('href');
-              body.html("")
-              body.load(url, function(response, status, xhr){
-                  if (status == "success") {
-                      body.html($('<pre></pre>').text(response))
+              body.html("");
+              body.load(url, function(response, status, xhr) {
+                  if (status === "success") {
+                      body.html($('<pre></pre>').text(response));
                   }
                   $('#contentModal').modal('show');
               });
-          })
+          });
+
+          $('#patch-toggle').click(function(e) {
+              e.preventDefault();
+              var collapsed = $('#patches-box').toggleClass('collapsed').hasClass('collapsed');
+              $(this).text(collapsed ? 'Expand' : 'Collapse');
+          });
+
+          $('#patch-search').on('input', function() {
+              var v = $(this).val().toLowerCase();
+              $('#patches-box tbody tr').each(function() {
+                  var subject = $(this).find('.patch-subject').text().toLowerCase();
+                  $(this).toggle(subject.indexOf(v) !== -1);
+              });
+          });
       });
     </script>
 
@@ -74,24 +89,33 @@
             </tbody>
         </table>
 
-        <h5 class="mt-3">Patches ({{.TotalPatches}})</h5>
-        <table class="table table-striped table-sm">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Content <a href="/series/{{.ID}}/all_patches">[All]</a></th>
-                </tr>
-            </thead>
-            <tbody>
-                {{$data := .}} 
-                {{range .Patches}}
-                <tr>
-                    <td class="patch-subject"><a href="{{.Link}}">{{.Title}}</a></td>
-                    <td><a href="/patches/{{.ID}}" class="modal-link-raw">[Body]</a></td>
-                </tr>
-                {{end}}
-           </tbody>
-        </table>
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0">Patches ({{.TotalPatches}})</h5>
+                <input type="text" id="patch-search" class="form-control form-control-sm" placeholder="Search patches..." style="width: 200px;">
+            </div>
+            {{if gt .TotalPatches 5}}
+                <a href="#" id="patch-toggle" class="btn btn-sm btn-outline-secondary py-0">Expand</a>
+            {{end}}
+        </div>
+        <div id="patches-box"{{if gt .TotalPatches 5}} class="collapsed"{{end}}>
+            <table class="table table-striped table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Content <a href="/series/{{.ID}}/all_patches">[All]</a></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Patches}}
+                    <tr>
+                        <td class="patch-subject"><a href="{{.Link}}">{{.Title}}</a></td>
+                        <td><a href="/patches/{{.ID}}" class="modal-link-raw">[Body]</a></td>
+                    </tr>
+                    {{end}}
+               </tbody>
+            </table>
+        </div>
 
         <!-- Series Summary Block -->
         {{$mainSession := .MainSession}}
