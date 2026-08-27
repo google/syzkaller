@@ -1213,7 +1213,7 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 	// which overlaps with comparison type in kernel exposed records. As the result write_comparisons
 	// that will try to write out data from unfinished syscalls will see these rpc::ComparisonRaw records,
 	// mis-interpret PC as type, and fail as: SYZFAIL: invalid kcov comp type (type=ffffffff8100b4e0).
-	if (flag_coverage)
+	if (cover_collection_required())
 		cover_reset(&th->cov);
 	th->executing = true;
 	th->call_index = call_index;
@@ -1563,7 +1563,7 @@ void execute_call(thread_t* th)
 		th->soft_fail_state = true;
 	}
 
-	if (flag_coverage)
+	if (cover_collection_required())
 		cover_reset(&th->cov);
 	// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
 	// Arrange for res = -1 and errno = EFAULT result for such case.
@@ -1577,7 +1577,7 @@ void execute_call(thread_t* th)
 	// Reset the flag before the first possible fail().
 	th->soft_fail_state = false;
 
-	if (flag_coverage)
+	if (cover_collection_required())
 		cover_collect(&th->cov);
 	th->fault_injected = false;
 
@@ -1593,7 +1593,7 @@ void execute_call(thread_t* th)
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res);
 	if (th->res == (intptr_t)-1)
 		debug(" errno=%d", th->reserrno);
-	if (flag_coverage)
+	if (cover_collection_required())
 		debug(" cover=%u", th->cov.size);
 	if (th->call_props.fail_nth > 0)
 		debug(" fault=%d", th->fault_injected);
