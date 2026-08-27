@@ -115,3 +115,58 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 	require.Contains(t, rendered, "Document about SyzOS setup:")
 	require.Contains(t, rendered, "SYZOS Technical Documentation")
 }
+
+func TestVerifyPCAndLoopStateAction(t *testing.T) {
+	tests := []struct {
+		name string
+		args VerifyPCAndLoopStateArgs
+		want VerifyPCAndLoopStateResult
+	}{
+		{
+			name: "judge stopped preserves last failed id and sets summary",
+			args: VerifyPCAndLoopStateArgs{
+				JudgeStopped:                true,
+				FailedHistorySummary:        "looping in tool calls",
+				LastFailedExecutionCachedID: "prev-cached-id",
+			},
+			want: VerifyPCAndLoopStateResult{
+				ContinueLoop:                "yes",
+				PCReached:                   false,
+				LastFailedHistorySummary:    "looping in tool calls",
+				LastFailedExecutionCachedID: "prev-cached-id",
+			},
+		},
+		{
+			name: "generator give up terminates loop",
+			args: VerifyPCAndLoopStateArgs{
+				GeneratorGiveUp:      true,
+				FailedHistorySummary: "stale summary",
+			},
+			want: VerifyPCAndLoopStateResult{
+				ContinueLoop: "",
+				PCReached:    false,
+			},
+		},
+		{
+			name: "execution failed to reach pc updates last failed id",
+			args: VerifyPCAndLoopStateArgs{
+				ExecutionCachedID:    "cached-attempt-1",
+				PCs:                  []string{"0x1000"},
+				FailedHistorySummary: "summary",
+			},
+			want: VerifyPCAndLoopStateResult{
+				ContinueLoop:                "yes",
+				PCReached:                   false,
+				LastFailedExecutionCachedID: "cached-attempt-1",
+				LastFailedHistorySummary:    "summary",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := verifyPCAndLoopStateAction(nil, tt.args)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}

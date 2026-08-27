@@ -253,10 +253,6 @@ func (ctx *Context) ConsumeTokens(tokens int) error {
 	return nil
 }
 
-func (ctx *Context) StateMap() map[string]any {
-	return ctx.state
-}
-
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {
 	dir, err := ctx.cache.Create(typ, desc, populate)
 	if err != nil {
