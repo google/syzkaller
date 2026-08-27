@@ -144,13 +144,14 @@ func parseFlexPC(raw string) (uint64, error) {
 }
 
 type VerifyPCAndLoopStateArgs struct {
-	ExecutionCachedID    string
-	GeneratorGiveUp      bool
-	GeneratorReason      string
-	JudgeStopped         bool
-	JudgeReason          string
-	FailedHistorySummary string
-	PCs                  []string
+	ExecutionCachedID           string
+	LastFailedExecutionCachedID string
+	GeneratorGiveUp             bool
+	GeneratorReason             string
+	JudgeStopped                bool
+	JudgeReason                 string
+	FailedHistorySummary        string
+	PCs                         []string
 }
 
 type VerifyPCAndLoopStateResult struct {
@@ -160,44 +161,42 @@ type VerifyPCAndLoopStateResult struct {
 	LastFailedHistorySummary    string
 }
 
-var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop",
-	func(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
-		if args.JudgeStopped {
-			res := VerifyPCAndLoopStateResult{
-				ContinueLoop:             "yes",
-				PCReached:                false,
-				LastFailedHistorySummary: args.FailedHistorySummary,
-			}
-			if id, ok := ctx.StateMap()["LastFailedExecutionCachedID"].(string); ok {
-				res.LastFailedExecutionCachedID = id
-			}
-			return res, nil
-		}
+var ActionVerifyPCAndLoopState = aflow.NewFuncAction("seedgen-verify-pc-and-loop", verifyPCAndLoopStateAction)
 
-		if args.GeneratorGiveUp {
-			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
-		}
-		if args.ExecutionCachedID == "" {
-			// This shouldn't happen due to GeneratorAgent output validation, but handle it safely.
-			return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
-		}
-
-		reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, args.PCs...)
-		if err != nil {
-			reached = false
-		}
-
-		if reached {
-			return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: true}, nil
-		}
-		res := VerifyPCAndLoopStateResult{
+func verifyPCAndLoopStateAction(ctx *aflow.Context, args VerifyPCAndLoopStateArgs) (VerifyPCAndLoopStateResult, error) {
+	if args.JudgeStopped {
+		return VerifyPCAndLoopStateResult{
 			ContinueLoop:                "yes",
 			PCReached:                   false,
-			LastFailedExecutionCachedID: args.ExecutionCachedID,
 			LastFailedHistorySummary:    args.FailedHistorySummary,
-		}
-		return res, nil
-	})
+			LastFailedExecutionCachedID: args.LastFailedExecutionCachedID,
+		}, nil
+	}
+
+	if args.GeneratorGiveUp {
+		return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: false}, nil
+	}
+	if args.ExecutionCachedID == "" {
+		// This shouldn't happen due to GeneratorAgent output validation, but handle it safely.
+		return VerifyPCAndLoopStateResult{ContinueLoop: "yes", PCReached: false}, nil
+	}
+
+	reached, err := crash.CheckHexPCsInCoverage(ctx, args.ExecutionCachedID, args.PCs...)
+	if err != nil {
+		reached = false
+	}
+
+	if reached {
+		return VerifyPCAndLoopStateResult{ContinueLoop: "", PCReached: true}, nil
+	}
+	res := VerifyPCAndLoopStateResult{
+		ContinueLoop:                "yes",
+		PCReached:                   false,
+		LastFailedExecutionCachedID: args.ExecutionCachedID,
+		LastFailedHistorySummary:    args.FailedHistorySummary,
+	}
+	return res, nil
+}
 
 type PrepareFailedDetailsArgs struct {
 	LastFailedExecutionCachedID string
