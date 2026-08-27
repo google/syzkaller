@@ -212,3 +212,48 @@ func TestExecutorZeroCalls(t *testing.T) {
 	require.NoError(t, res.Err, "zero-call program execution failed:\n%s", res.Output)
 	require.Empty(t, res.Info.Calls, "expected 0 call info")
 }
+
+func TestExecutorThreadsWithoutCoverage(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget("test", "64_fork")
+	require.NoError(t, err)
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
+	}
+	executor := csource.BuildExecutor(t, target, "../..")
+
+	source := queue.Plain()
+	ctx := startRPCServer(t, target, executor, source, rpcParams{})
+
+	// 6 async calls keep threads 0..5 busy, so the 7th call must allocate thread 6,
+	// which is never pre-mmapped (kCoverDefaultCount = 6).
+	testProg := `
+syz_sleep_ms(0x3e8) (async)
+syz_sleep_ms(0x3e8) (async)
+syz_sleep_ms(0x3e8) (async)
+syz_sleep_ms(0x3e8) (async)
+syz_sleep_ms(0x3e8) (async)
+syz_sleep_ms(0x3e8) (async)
+syz_errno(0x0)
+`
+	p, err := target.Deserialize([]byte(testProg), prog.Strict)
+	require.NoError(t, err)
+
+	req := &queue.Request{
+		Type:         flatrpc.RequestTypeProgram,
+		Prog:         p,
+		ReturnError:  true,
+		ReturnOutput: true,
+		ExecOpts: flatrpc.ExecOpts{
+			EnvFlags:  flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSignal | flatrpc.ExecEnvDelayKcovMmap,
+			ExecFlags: flatrpc.ExecFlagThreaded,
+		},
+	}
+	source.Submit(req)
+	res := req.Wait(ctx)
+	require.NoError(t, res.Err, "execution failed:\n%s", res.Output)
+	require.Equal(t, queue.Success, res.Status)
+	require.Len(t, res.Info.Calls, len(p.Calls))
+	require.NotZero(t, res.Info.Calls[len(p.Calls)-1].Flags&flatrpc.CallFlagFinished, "last call did not finish")
+}
