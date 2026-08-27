@@ -29,11 +29,11 @@ type SeedGenFileLineInputs struct {
 	Image         string
 	Type          string
 	VM            json.RawMessage
-	CorpusVMCount int
+	CorpusVMCount int `json:",omitempty"`
 	Syzkaller     string
 	TargetOS      string
 	TargetArch    string
-	CorpusPath    string
+	CorpusPath    string `json:",omitempty"`
 	Snapshot      bool
 }
 

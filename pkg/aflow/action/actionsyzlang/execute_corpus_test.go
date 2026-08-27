@@ -54,8 +54,9 @@ func createTestCorpus(t *testing.T, targetOS, targetArch string, progStrs []stri
 
 func TestExecuteCorpusAction_EmptyCorpusPath(t *testing.T) {
 	ctx := aflow.NewTestContext(t)
-	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{})
-	require.EqualError(t, err, "corpusPath is not provided but is required for ActionExecuteCorpus")
+	res, err := executeCorpusAction(ctx, ExecuteCorpusArgs{})
+	require.NoError(t, err)
+	require.Empty(t, res.CorpusDir)
 }
 
 func TestExecuteCorpusAction_FileNotFound(t *testing.T) {
@@ -103,13 +104,14 @@ func TestExecuteCorpusAction_EmptyCorpus(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, dbFile.Flush())
 
-	_, err = executeCorpusAction(ctx, ExecuteCorpusArgs{
+	res, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    corpusPath,
 		TargetOS:      "linux",
 		TargetArch:    "amd64",
 		CorpusVMCount: 1,
 	})
-	require.ErrorContains(t, err, "corpus is empty")
+	require.NoError(t, err)
+	require.Empty(t, res.CorpusDir)
 }
 
 func TestExecuteCorpusAction_BuildConfigError(t *testing.T) {
