@@ -75,6 +75,15 @@ func TestResolveLineToPCAction(t *testing.T) {
 	_, err = resolveLineToPCAction(nil, ResolveLineToPCArgs{FilePath: "fs/ext4/super.c", LineNumber: 0})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "both FilePath and LineNumber must be provided")
+
+	// Test unsupported target arch error.
+	_, err = resolveLineToPCAction(nil, ResolveLineToPCArgs{
+		FilePath:   "fs/ext4/super.c",
+		LineNumber: 100,
+		TargetArch: "unsupported_arch",
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unsupported target linux/unsupported_arch")
 }
 
 func TestGeneratorAgentPromptRendering(t *testing.T) {
