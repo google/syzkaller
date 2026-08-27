@@ -242,8 +242,8 @@ func testCrossArchProg(t *testing.T, p *Prog, crossTargets []*Target) {
 
 func TestSpecialStructs(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
-		_ = target.GenerateAllSyzProg(rs)
 		ct := target.DefaultChoiceTable()
+		_ = target.GenerateAllSyzProg(rs, ct)
 		for special, gen := range target.SpecialTypes {
 			t.Run(special, func(t *testing.T) {
 				var typ Type

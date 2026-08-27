@@ -91,7 +91,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool, ct *prog.ChoiceTab
 	// but this makes the NULL argument warnings go away (they showed up in ".constprop" versions).
 	// Testing 2 programs takes too long since we have lots of options permutations and OS/arch.
 	// So we use the as-is in short tests and minimized version in full tests.
-	syzProg := target.GenerateAllSyzProg(rs)
+	syzProg := target.GenerateAllSyzProg(rs, ct)
 	var opts []Options
 	if !full || testing.Short() {
 		p.Calls = append(p.Calls, syzProg.Calls...)
