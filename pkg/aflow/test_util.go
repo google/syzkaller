@@ -17,5 +17,6 @@ func NewTestContext(t *testing.T) *Context {
 	return &Context{
 		Context: t.Context(),
 		cache:   cache,
+		state:   make(map[string]any),
 	}
 }

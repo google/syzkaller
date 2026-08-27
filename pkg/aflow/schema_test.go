@@ -279,3 +279,61 @@ func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, 
 		}
 	}
 }
+
+func TestConvertToMap(t *testing.T) {
+	type Entity struct {
+		Kind string
+		Name string
+	}
+	type Nested struct {
+		Val string
+	}
+	type TestStruct struct {
+		I     int
+		S     string
+		Slice []Entity
+		Map   map[string]Entity
+		Ptr   *Nested
+		Raw   json.RawMessage
+		Time  time.Time
+	}
+
+	timeVal, err := time.Parse(time.RFC3339, "2026-07-17T12:00:00Z")
+	require.NoError(t, err)
+
+	input := TestStruct{
+		I: 42,
+		S: "hello",
+		Slice: []Entity{
+			{Kind: "func", Name: "foo"},
+		},
+		Map: map[string]Entity{
+			"key": {Kind: "struct", Name: "bar"},
+		},
+		Ptr:  &Nested{Val: "nested"},
+		Raw:  json.RawMessage(`{"a":1}`),
+		Time: timeVal,
+	}
+
+	got := convertToMap(input)
+
+	want := map[string]any{
+		"I": 42,
+		"S": "hello",
+		"Slice": []any{
+			map[string]any{"Kind": "func", "Name": "foo"},
+		},
+		"Map": map[string]any{
+			"key": map[string]any{"Kind": "struct", "Name": "bar"},
+		},
+		"Ptr":  map[string]any{"Val": "nested"},
+		"Raw":  map[string]any{"a": 1},
+		"Time": "2026-07-17T12:00:00Z",
+	}
+
+	gotJSON, err := json.Marshal(got)
+	require.NoError(t, err)
+	wantJSON, err := json.Marshal(want)
+	require.NoError(t, err)
+	require.JSONEq(t, string(wantJSON), string(gotJSON))
+}
