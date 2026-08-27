@@ -35,7 +35,7 @@ var GeneratorAgent = &aflow.LLMAgent{
 		}),
 	Tools: aflow.Tools(
 		kernel.ToolConfigGrep,
-		&SeedgenAnalyzer,
+		&ReachabilityAnalyzer,
 		syzlang.CodeFixer,
 		syzlang.ExecutionSummarizer,
 		syzlang.CheckPCReached,
@@ -57,7 +57,7 @@ progress towards reaching any of the target PCs.
 
 Analyze the conversation history for the following stall patterns:
 1. TOOL CALL REPETITION & SEARCH LOOPS:
-   - Calling research tools ('seedgen-analyzer', 'syz-grepper', 'read-syz-spec', 'codesearch-*') 3 or more times
+   - Calling research tools ('reachability-analyzer', 'syz-grepper', 'read-syz-spec', 'codesearch-*') 3 or more times
      with identical or slightly reworded queries without advancing to testing programs via 'code-fixer'.
    - Querying 'get-corpus-programs' repeatedly without synthesizing new syzlang programs.
 2. CODE-FIXER OSCILLATION & STAGNATION:
@@ -86,7 +86,7 @@ Your job is to generate a syzlang program that reaches any of the candidate targ
 You have these powerful tools:
 1. 'kernel-config-grep': Use this tool to search the kernel build configuration (.config)
 for specific drivers or features (e.g., query 'CONFIG_USB' or 'CONFIG_NET').
-2. 'seedgen-analyzer': Use this to delegate research tasks. When calling this tool,
+2. 'reachability-analyzer': Use this to delegate research tasks. When calling this tool,
 (CRITICAL INSTRUCTION) ALWAYS instruct the analyzer to focus on finding the straight-forward,
 or most direct path/precondition first, rather than listing all possible paths.
 ALWAYS provide DETAILED and specific questions and explicitly explain
@@ -114,7 +114,7 @@ Prefer no PathPrefix for 'syz-grepper' as long as there is no truncation.
 You should search for test seeds when you need to set up complex subsystems, mount file system images,
 or initialize devices. These test seeds provide examples for environment, file system, or device setup.
 Do NOT try to understand exactly each parameter in the tests/files.
-You only need to know what they set up, for which you can utilize the 'seedgen-analyzer'.
+You only need to know what they set up, for which you can utilize the 'reachability-analyzer'.
 You must copy their setup lines directly into your program, preserving any "$BLOB_*" placeholders exactly as-is.
 5. 'get-corpus-programs': Use this tool to query if any existing syzkaller corpus programs
 reach a specified kernel function (e.g. intermediate callers along the target call graph, or probe/init
@@ -215,7 +215,7 @@ Workflow:
    'DocPseudoSyscalls' and 'DocSyzOS' (see below). Use 'syz-grepper' (setting PathPrefix='test'
    to search example seeds) for specialized setup helpers (e.g. 'syz_kvm_setup_syzos_vm', 'syz_usb_connect').
 2. PRECONDITION RESEARCH:
-   Instruct 'seedgen-analyzer' to find caller ` + "`if`" + ` conditions and required subsystem state
+   Instruct 'reachability-analyzer' to find caller ` + "`if`" + ` conditions and required subsystem state
    flags leading directly to the target line before writing new program logic.
 3. DISASSEMBLY INSPECTION:
    When calling 'disassemble-context', pass any of the Candidate PCs provided in your target
