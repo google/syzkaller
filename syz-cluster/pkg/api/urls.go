@@ -26,6 +26,10 @@ func (g *URLGenerator) FindingCRepro(findingID string) string {
 	return fmt.Sprintf("%s/findings/%s/c_repro", g.baseURL, findingID)
 }
 
+func (g *URLGenerator) FindingTriageTrajectory(findingID string) string {
+	return fmt.Sprintf("%s/findings/%s/triage_trajectory", g.baseURL, findingID)
+}
+
 func (g *URLGenerator) Series(seriesID string) string {
 	return fmt.Sprintf("%s/series/%s", g.baseURL, seriesID)
 }

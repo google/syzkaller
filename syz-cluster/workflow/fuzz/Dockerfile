@@ -10,7 +10,7 @@ FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 # Regular setup (SMOKE_TEST=0)
 FROM debian:bookworm AS setup-0
 RUN apt-get update && \
-    apt-get install -y qemu-system openssh-client curl cpp gcc
+    apt-get install -y qemu-system openssh-client curl cpp gcc git
 
 # Install clang tools.
 RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
@@ -31,6 +31,7 @@ FROM setup-${SMOKE_TEST} AS final
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
+RUN git config --system --add safe.directory '*'
 
 COPY --from=builder /build/bin/ /syzkaller/bin/
 COPY --from=builder /build/syz-cluster/bin/fuzz-action /bin/fuzz-action
