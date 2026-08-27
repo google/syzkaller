@@ -20,10 +20,17 @@ type analyzerState struct {
 	EnvironmentPrompt string `json:",omitempty"`
 }
 
-var SeedgenAnalyzer = aflow.LLMTool[analyzerState, AnalyzerQuery]{
-	Name: "seedgen-analyzer",
-	Description: "Use this tool to explore the codebase. Provide a specific query, " +
-		"and it will search the codebase and return a concise summary of the findings.",
+var ReachabilityAnalyzer = aflow.LLMTool[analyzerState, AnalyzerQuery]{
+	Name: "reachability-analyzer",
+	Description: `Use this tool to research how userspace can reach specific kernel code paths or branches.
+It specializes in:
+1. Finding userspace-facing entry points (syscalls, ioctls, netlink, sysfs/procfs, socket options).
+2. Identifying branch preconditions and required subsystem state leading to a target line.
+3. Cross-referencing kernel C code with Syzkaller syscall descriptions (sys/linux/*.txt)
+   and pseudo-syscalls (syz_*).
+4. Checking kernel build options in .config.
+DO NOT use this tool for git history/blame or generic code refactoring questions;
+use it specifically to discover reachable trigger paths from userspace into the kernel.`,
 	Model:    aflow.CoreModel,
 	TaskType: aflow.FormalReasoningTask,
 	Tools: aflow.Tools(
@@ -33,8 +40,9 @@ var SeedgenAnalyzer = aflow.LLMTool[analyzerState, AnalyzerQuery]{
 		syzlang.ReadSyzSpec,
 		syzlang.SyzGrepper,
 	),
-	Instruction: `You are a pragmatic codebase researcher.
-Your task is to find the most direct and straight-forward answer to the requested query.
+	Instruction: `You are a pragmatic reachability and entrypoint researcher.
+Your task is to find the most direct and straight-forward userspace call path and
+prerequisites to reach the requested target.
 There are two distinct domains you might need to research, with specific tools for each:
 1. Linux Kernel Source Tree & Environment: Use 'codesearch-*' tools and 'grepper' to find struct layouts,
 macro definitions, and function implementations in the target kernel. Use 'kernel-config-grep' to check
