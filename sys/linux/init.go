@@ -248,6 +248,12 @@ func (arch *arch) neutralizePaths(c *prog.Call) {
 		if !ok || dataArg.Dir() == prog.DirOut {
 			return
 		}
+		bufType, _ := dataArg.Type().(*prog.BufferType)
+		// If the argument has a fixed set of allowed values, rewriting to ./file0
+		// would break serialization and deserialization validation.
+		if bufType != nil && len(bufType.Values) > 0 {
+			return
+		}
 		data := dataArg.Data()
 		if len(data) == 0 {
 			return
@@ -255,7 +261,6 @@ func (arch *arch) neutralizePaths(c *prog.Call) {
 		str := strings.TrimRight(string(data), "\x00")
 		clean := filepath.Clean(str)
 		if isForbiddenBindingPath(clean) {
-			bufType, _ := dataArg.Type().(*prog.BufferType)
 			var safe []byte
 			if bufType != nil && !bufType.Varlen() {
 				safe = make([]byte, bufType.Size())
