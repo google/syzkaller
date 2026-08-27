@@ -260,12 +260,14 @@ Generated Syz:
 ---
 {{end}}
 
-{{if .LastFailedHistorySummary}}
+{{if .FailedHistorySummaries}}
 ---
-Warning: The previous attempt got stuck and was terminated by the Judge. 
-Summary of the failure:
-{{.LastFailedHistorySummary}}
-Use this info to avoid repeating the same loops or strategies.
+Lessons and negative constraints from previous attempts that got stuck:
+{{range .FailedHistorySummaries}}
+{{.}}
+---
+{{end}}
+Do NOT repeat the dead-end strategies, stuck loops, or invalid syscall patterns described above.
 ---
 {{end}}
 
