@@ -84,9 +84,9 @@ Your goal is to reach any of the candidate target PCs.
 
 Your job is to generate a syzlang program that reaches any of the candidate target PCs.
 You have these powerful tools:
-1. 'kernel-config-grep': Use this tool to search the kernel build configuration (.config)
+1. '{{.toolKernelConfigGrep}}': Use this tool to search the kernel build configuration (.config)
 for specific drivers or features (e.g., query 'CONFIG_USB' or 'CONFIG_NET').
-2. 'reachability-analyzer': Use this to delegate research tasks. When calling this tool,
+2. '{{.toolReachabilityAnalyzer}}': Use this to delegate research tasks. When calling this tool,
 (CRITICAL INSTRUCTION) ALWAYS instruct the analyzer to focus on finding the straight-forward,
 or most direct path/precondition first, rather than listing all possible paths.
 ALWAYS provide DETAILED and specific questions and explicitly explain
@@ -94,9 +94,9 @@ WHY you need this information, so the subagent can understand your intent
 and work more efficiently. Do NOT ask it to perform trivial lookup tasks
 that you can execute directly (e.g. single syzlang spec reads or basic identifier greps).
 Instruct the analyzer to actively read the kernel documentation under the 'Documentation/'
-directory in the kernel source tree (using 'grepper' or codesearch tools) to understand the target
+directory in the kernel source tree (using codesearch tools) to understand the target
 component's requirements, parameters, and initialization/setup sequence.
-3. 'code-fixer': Once you have a syzlang program, use this tool to debug it.
+3. '{{.toolCodeFixer}}': Once you have a syzlang program, use this tool to debug it.
 The tool will repeatedly execute the program until it has no compilation or unacceptable call errors,
 and will return the ExecutionCachedID or report that it gave up.
 When calling this tool, ALWAYS provide a concise description of what your program is attempting
@@ -105,18 +105,18 @@ IMPORTANT: If the target PC is inside an error path (e.g. if the path to the PC 
 a syscall to fail or return an error), or if executing $kvm commands (such as 'ioctl$KVM_RUN') that might hang
 or time out (returning 'call execution timed out or hung' / Errno 38), you must determine whether this is an
 acceptable error. Describe any expected/acceptable call errors in 'AcceptableCallErrorsDescription' when calling
-code-fixer (e.g., "ioctl$KVM_RUN hanging/timing out is expected" or "call execution timed out or hung"), so that
-code-fixer does not try to fix them.
+'{{.toolCodeFixer}}' (e.g., "ioctl$KVM_RUN hanging/timing out is expected" or "call execution timed out or hung"),
+so that '{{.toolCodeFixer}}' does not try to fix them.
 Unacceptable errors (such as ENOSYS/Function not implemented on critical paths) will not be ignored.
-4. 'read-syz-spec' and 'syz-grepper': Use these tools to search and read syzlang specifications
+4. '{{.toolReadSyzSpec}}' and '{{.toolSyzGrepper}}': Use these tools to search and read syzlang specifications
 (xxx.txt) and test seeds (test/).
-Prefer no PathPrefix for 'syz-grepper' as long as there is no truncation.
+Prefer no PathPrefix for '{{.toolSyzGrepper}}' as long as there is no truncation.
 You should search for test seeds when you need to set up complex subsystems, mount file system images,
 or initialize devices. These test seeds provide examples for environment, file system, or device setup.
 Do NOT try to understand exactly each parameter in the tests/files.
-You only need to know what they set up, for which you can utilize the 'reachability-analyzer'.
+You only need to know what they set up, for which you can utilize '{{.toolReachabilityAnalyzer}}'.
 You must copy their setup lines directly into your program, preserving any "$BLOB_*" placeholders exactly as-is.
-5. 'get-corpus-programs': Use this tool to query if any existing syzkaller corpus programs
+5. '{{.toolGetCorpusPrograms}}': Use this tool to query if any existing syzkaller corpus programs
 reach a specified kernel function (e.g. intermediate callers along the target call graph, or probe/init
 functions of peer drivers within the same subsystem directory or driver family).
 This can provide valuable guidance on kernel setup or syscall sequences.
@@ -140,14 +140,14 @@ a target/function is unreachable or that hardware/drivers are not instantiated i
 Workflow:
 1. Read the Target details, previous attempts, and any Judge failure summaries from the prompt.
 2. PRE-GENERATION HARDWARE REACHABILITY & ENVIRONMENT CHECK:
-   Before generating syzlang programs or invoking 'code-fixer':
-   a. Use 'kernel-config-grep' to verify if the required kernel driver is compiled (.config) or if target features
-      are available.
+   Before generating syzlang programs or invoking '{{.toolCodeFixer}}':
+   a. Use '{{.toolKernelConfigGrep}}' to verify if the required kernel driver is compiled (.config)
+      or if target features are available.
       CRITICAL: You MUST NOT assume the hardware or software capabilities of the target VM / QEMU environment.
       Do NOT rely on your static memory, parametric knowledge, or unverified assumptions to claim that a driver,
       device, or feature is unavailable or unprobed.
       Any claim of unreachability MUST be empirically verified and proven using available tools (e.g., checking
-      .config via 'kernel-config-grep', syzlang specs via 'syz-grepper', or kernel source/sysfs paths).
+      .config via '{{.toolKernelConfigGrep}}', syzlang specs via '{{.toolSyzGrepper}}', or kernel source/sysfs paths).
       You MUST TRY; if one approach or device connection method fails, you must actively reason for alternative
       ways to reach the target location. This includes considering software emulation/virtual drivers
       (e.g., dummy_hcd, vhci_hcd, loop, veth, tun/tap, kvm, pty, configfs), platform driver rebinding, or alternative
@@ -164,33 +164,36 @@ Workflow:
         'alarmtimer', 'serial8250') to the target
         platform driver using sysfs 'driver_override' and 'bind' attributes. Never mark a platform driver as unreachable
         without attempting this rebinding setup.
-      NOTE: Do NOT rely on 'get-corpus-programs' when evaluating target reachability. A lack of corpus programs
+      NOTE: Do NOT rely on '{{.toolGetCorpusPrograms}}' when evaluating target reachability. A lack of corpus programs
       reflects missing prior coverage, NOT hardware unreachability.
    d. If classified as an UNREACHABLE HARDWARE TARGET (after empirical verification):
-      Call 'set-results' IMMEDIATELY with GeneratorGiveUp=true. Do NOT burn iterations running 'code-fixer'.
+      Call 'set-results' IMMEDIATELY with GeneratorGiveUp=true. Do NOT burn iterations running '{{.toolCodeFixer}}'.
       Your GeneratorReason MUST cite the specific driver probe callback and the empirically verified blocker.
 
 3. Loop internally to find a program that reaches any of the target PCs:
+   Use '{{.toolCodeFixer}}', '{{.toolCheckPcReached}}', and '{{.toolExecutionSummarizer}}' to iterate internally
+   until you reach any of the target PCs or decide to give up.
    - Avoid Non-Converging Loops: Do NOT repeat near-identical syzlang programs or retry the same failing ioctl
      sequence indefinitely. If a strategy consistently fails to reach the target PC across multiple attempts,
      you MUST either change your setup approach (e.g., testing different MSRs or specialized setup helpers) or call
      'set-results' with GeneratorGiveUp=true explaining the blocker.
    a. Formulate a syzlang program. You may try out you ideas by formulating a plausible program.
-   b. Call 'code-fixer' to debug and execute it (passing 'ProgramIntentDescription').
-      - If code-fixer returns CodeFixerGiveUp = true, read its CodeFixerReason. If it gave up due to environment
-        or setup failure (e.g. ENOSYS or unsupported subsystem setup in environment), you must NOT loop/retry. You must
-        either try a completely different strategy, or give up by calling 'set-results' with GeneratorGiveUp=true.
+   b. Call '{{.toolCodeFixer}}' to debug and execute it (passing 'ProgramIntentDescription').
+      - If '{{.toolCodeFixer}}' returns CodeFixerGiveUp = true, read its CodeFixerReason. If it gave up due
+        to environment or setup failure (e.g. ENOSYS or unsupported subsystem setup in environment),
+        you must NOT loop/retry. You must either try a completely different strategy, or give up by calling
+        'set-results' with GeneratorGiveUp=true.
       - Otherwise, obtain the ExecutionCachedID.
-   c. Call 'check-pc-reached' with the ExecutionCachedID to verify if any of the target PCs were reached.
+   c. Call '{{.toolCheckPcReached}}' with the ExecutionCachedID to verify if any of the target PCs were reached.
    d. If reached is true:
       - Success! Call 'set-results' with this ExecutionCachedID and end your execution.
    e. If reached is false:
-      - Inspect 'ProgramDiff' returned by 'code-fixer':
-        * DESTRUCTIVE DIFF (Do NOT call 'execution-summarizer'): If 'ProgramDiff' shows that 'code-fixer'
-          deleted key setup syscalls (e.g. mkdirat, symlinkat, device attach), replaced target subsystem/driver
-          names, or stripped critical program logic to pass execution, the resulting ExecutionCachedID is invalid
-          for trace analysis.
-          Action: Skip 'execution-summarizer'. Read 'ProgramDiff' directly to identify what setup calls failed.
+      - Inspect 'ProgramDiff' returned by '{{.toolCodeFixer}}':
+        * DESTRUCTIVE DIFF (Do NOT call '{{.toolExecutionSummarizer}}'): If 'ProgramDiff'
+          shows that '{{.toolCodeFixer}}' deleted key setup syscalls (e.g. mkdirat, symlinkat, device attach),
+          replaced target subsystem/driver names, or stripped critical program logic to pass execution,
+          the resulting ExecutionCachedID is invalid for trace analysis.
+          Action: Skip '{{.toolExecutionSummarizer}}'. Read 'ProgramDiff' directly to identify what setup calls failed.
           Reason about why those calls failed (e.g. missing parent ConfigFS directories or missing preconditions).
           Use call error codes as diagnostic clues:
           - ENOENT/ENODEV: Check for missing parent setup calls, unmounted filesystems, or unemulated devices.
@@ -198,13 +201,15 @@ Workflow:
           - EEXIST/EBUSY: Check for duplicate setup calls (e.g., executing the same setup or open call twice).
           - Async Timing: Ensure nanosleep is placed after asynchronous setup calls (e.g. syz_usb_connect).
           Refine your syzlang program (step a) to properly establish those setup preconditions.
-        * PRESERVED DIFF (Call 'execution-summarizer'): If 'ProgramDiff' shows the core setup and target syscalls
-          were preserved (only argument types, flags, or syntax were tuned), call 'execution-summarizer' with
-          the ExecutionCachedID to obtain a detailed failure summary of why kernel execution diverged.
+        * PRESERVED DIFF (Call '{{.toolExecutionSummarizer}}'): If 'ProgramDiff' shows
+          the core setup and target syscalls were preserved (only argument types, flags, or syntax were tuned),
+          call '{{.toolExecutionSummarizer}}' with the ExecutionCachedID to obtain a detailed failure summary
+          of why kernel execution diverged.
           CRITICAL: You MUST carefully investigate this diff to identify any type, argument, or syntax workarounds
-          introduced by 'code-fixer' to achieve successful compilation. If those workarounds make sense and do not
-          conflict with your target setup or intent, you MUST preserve them in subsequent program formulations.
-      - Use the insights (from ProgramDiff or execution-summarizer) to formulate a new program,
+          introduced by '{{.toolCodeFixer}}' to achieve successful compilation. If those workarounds make sense
+          and do not conflict with your target setup or intent, you MUST preserve them in subsequent
+          program formulations.
+      - Use the insights (from ProgramDiff or '{{.toolExecutionSummarizer}}') to formulate a new program,
         and repeat from step (a).
 4. If you decide to give up entirely (e.g., after multiple attempts or if target is unreachable),
    call 'set-results' with GeneratorGiveUp=true and a reason.
@@ -212,17 +217,14 @@ Workflow:
 ## SEED GENERATION GUIDELINES
 1. PSEUDO-SYSCALL DISCOVERY:
    Before constructing complex subsystem environments (KVM VMs, USB devices, Netlink), check
-   'DocPseudoSyscalls' and 'DocSyzOS' (see below). Use 'syz-grepper' (setting PathPrefix='test'
+   'DocPseudoSyscalls' and 'DocSyzOS' (see below). Use '{{.toolSyzGrepper}}' (setting PathPrefix='test'
    to search example seeds) for specialized setup helpers (e.g. 'syz_kvm_setup_syzos_vm', 'syz_usb_connect').
 2. PRECONDITION RESEARCH:
-   Instruct 'reachability-analyzer' to find caller ` + "`if`" + ` conditions and required subsystem state
+   Instruct '{{.toolReachabilityAnalyzer}}' to find caller ` + "`if`" + ` conditions and required subsystem state
    flags leading directly to the target line before writing new program logic.
-3. DISASSEMBLY INSPECTION:
-   When calling 'disassemble-context', pass any of the Candidate PCs provided in your target
-   summary to inspect assembly and interleaved C source.
-4. SYSCALL NAME VERIFICATION:
+3. SYSCALL NAME VERIFICATION:
    Always verify that any specialized syscall variant name you use actually exists in the syzkaller specification
-   (using 'syz-grepper'). Do not hallucinate variants (like 'openat$kvm_param').
+   (using '{{.toolSyzGrepper}}'). Do not hallucinate variants (like 'openat$kvm_param').
    If you receive an 'unknown syscall' compilation error, check the name first before editing the arguments.`,
 	Prompt: `Target File: {{.File}}
 Target Line: {{.Line}}
@@ -271,7 +273,5 @@ Do NOT repeat the dead-end strategies, stuck loops, or invalid syscall patterns 
 ---
 {{end}}
 
-Formulate a plausible syzlang program to reach any of the target PCs.
-Use 'code-fixer', 'check-pc-reached', and 'execution-summarizer' to \
-iterate internally until you reach any of the target PCs or decide to give up.`,
+Formulate a plausible syzlang program to reach any of the target PCs.`,
 }

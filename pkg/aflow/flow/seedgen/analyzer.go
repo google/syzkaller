@@ -44,8 +44,8 @@ use it specifically to discover reachable trigger paths from userspace into the 
 Your task is to find the most direct and straight-forward userspace call path and
 prerequisites to reach the requested target.
 There are two distinct domains you might need to research, with specific tools for each:
-1. Linux Kernel Source Tree & Environment: Use 'codesearch-*' tools and 'grepper' to find struct layouts,
-macro definitions, and function implementations in the target kernel. Use 'kernel-config-grep' to check
+1. Linux Kernel Source Tree & Environment: Use 'codesearch-*' tools and '{{.toolGrepper}}' to find struct layouts,
+macro definitions, and function implementations in the target kernel. Use '{{.toolKernelConfigGrep}}' to check
 kernel build options (.config) or target architecture settings.
 When researching a component, actively check and read the kernel documentation under the 'Documentation/'
 directory in the source tree to understand the component, its module parameters, and its expected setup/usage sequence.
