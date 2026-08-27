@@ -29,12 +29,12 @@ type SeedGenInputs struct {
 	Image         string
 	Type          string
 	VM            json.RawMessage
-	CorpusVMCount int
+	CorpusVMCount int `json:",omitempty"`
 	Syzkaller     string
 	TargetOS      string
 	TargetArch    string
 	Snapshot      bool
-	CorpusPath    string
+	CorpusPath    string `json:",omitempty"`
 }
 
 func seedGenPipeline(prefix ...aflow.Action) aflow.Action {

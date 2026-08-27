@@ -29,14 +29,14 @@ import (
 )
 
 type ExecuteCorpusArgs struct {
-	CorpusPath    string
+	CorpusPath    string `json:",omitempty"`
 	TargetOS      string
 	TargetArch    string
 	Syzkaller     string
 	Image         string
 	Type          string
 	VM            json.RawMessage
-	CorpusVMCount int
+	CorpusVMCount int `json:",omitempty"`
 	KernelSrc     string
 	KernelObj     string
 	KernelCommit  string
@@ -56,7 +56,7 @@ var ActionExecuteCorpus = aflow.NewFuncAction("execute-corpus", executeCorpusAct
 
 func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCorpusResult, error) {
 	if args.CorpusPath == "" {
-		return ExecuteCorpusResult{}, fmt.Errorf("corpusPath is not provided but is required for ActionExecuteCorpus")
+		return ExecuteCorpusResult{}, nil
 	}
 	if args.CorpusVMCount <= 0 {
 		return ExecuteCorpusResult{}, fmt.Errorf("corpusVMCount is not provided but is required for ActionExecuteCorpus")
@@ -83,7 +83,7 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 	}
 	sortedKeys := slices.Sorted(maps.Keys(corpusDB.Records))
 	if len(sortedKeys) == 0 {
-		return ExecuteCorpusResult{}, fmt.Errorf("corpus is empty")
+		return ExecuteCorpusResult{}, nil
 	}
 
 	desc := fmt.Sprintf("corpus-execution-v1-%v-%v", args.KernelCommit, corpusSig)
