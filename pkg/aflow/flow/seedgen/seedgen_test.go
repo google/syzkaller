@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/google/syzkaller/docs"
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/stretchr/testify/require"
 )
 
@@ -122,6 +123,12 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 }
 
 func TestVerifyPCAndLoopStateAction(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	_, cachedID, err := aflow.CacheObject(ctx, "repro", "1", func() (any, error) {
+		return struct{}{}, nil
+	})
+	require.NoError(t, err)
+
 	tests := []struct {
 		name string
 		args VerifyPCAndLoopStateArgs
@@ -169,21 +176,21 @@ func TestVerifyPCAndLoopStateAction(t *testing.T) {
 		{
 			name: "execution failed to reach pc preserves summaries and updates last failed id",
 			args: VerifyPCAndLoopStateArgs{
-				ExecutionCachedID:      "cached-attempt-1",
+				ExecutionCachedID:      cachedID,
 				PCs:                    []string{"0x1000"},
 				FailedHistorySummaries: []string{"looping in tool calls"},
 			},
 			want: VerifyPCAndLoopStateResult{
 				ContinueLoop:                "yes",
 				PCReached:                   false,
-				LastFailedExecutionCachedID: "cached-attempt-1",
+				LastFailedExecutionCachedID: cachedID,
 				FailedHistorySummaries:      []string{"looping in tool calls"},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := verifyPCAndLoopStateAction(nil, tt.args)
+			got, err := verifyPCAndLoopStateAction(ctx, tt.args)
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 		})
