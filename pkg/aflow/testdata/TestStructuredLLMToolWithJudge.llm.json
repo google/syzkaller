@@ -192,7 +192,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+						"text": "Judge the history\n\nAnalyze the provided execution history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
 					}
 				],
 				"role": "user"
@@ -251,57 +251,7 @@
 			{
 				"parts": [
 					{
-						"text": "What is the answer?"
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"functionCall": {
-							"id": "tick_id1",
-							"name": "tick"
-						}
-					}
-				],
-				"role": "model"
-			},
-			{
-				"parts": [
-					{
-						"functionResponse": {
-							"id": "tick_id1",
-							"response": {
-								"Res": 42
-							},
-							"name": "tick"
-						}
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"functionCall": {
-							"id": "tick_id2",
-							"name": "tick"
-						}
-					}
-				],
-				"role": "model"
-			},
-			{
-				"parts": [
-					{
-						"functionResponse": {
-							"id": "tick_id2",
-							"response": {
-								"Res": 42
-							},
-							"name": "tick"
-						}
+						"text": "Below is the execution history of the subagent under evaluation:\n\u003cexecution_history\u003e\n[user]:\nWhat is the answer?\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n\n\u003c/execution_history\u003e\n\nEvaluate whether the subagent is stuck, oscillating, or making no progress based on the history above.\nCall set-results with Stop and Reason."
 					}
 				],
 				"role": "user"

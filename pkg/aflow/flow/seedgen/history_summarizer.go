@@ -5,7 +5,6 @@ package seedgen
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/backend"
@@ -49,24 +48,7 @@ var ActionFormatFailedHistory = aflow.NewFuncAction("seedgen-format-failed-histo
 		if len(args.FailedHistory) == 0 {
 			return FormatFailedHistoryResult{}, fmt.Errorf("failed history not found in state context")
 		}
-		var sb strings.Builder
-		for _, msg := range args.FailedHistory {
-			fmt.Fprintf(&sb, "[%s]:\n", msg.Role)
-			for _, part := range msg.Parts {
-				switch {
-				case part.FunctionCall != nil:
-					fmt.Fprintf(&sb, "  Called tool %s with args: %+v\n",
-						part.FunctionCall.Name, part.FunctionCall.Args)
-				case part.FunctionResponse != nil:
-					fmt.Fprintf(&sb, "  Tool %s returned: %+v\n",
-						part.FunctionResponse.Name, part.FunctionResponse.Response)
-				case part.Text != "":
-					fmt.Fprintln(&sb, part.Text)
-				}
-			}
-			sb.WriteString("\n")
-		}
 		return FormatFailedHistoryResult{
-			FormattedFailedHistoryText: sb.String(),
+			FormattedFailedHistoryText: aflow.FormatHistoryMessages(args.FailedHistory),
 		}, nil
 	})

@@ -84,7 +84,7 @@ func TestLLMJudgeVerify(t *testing.T) {
 	}
 }
 
-func TestLLMJudgeInitChatHistory(t *testing.T) {
+func TestLLMJudgeFormatHistory(t *testing.T) {
 	judge := &LLMJudge{
 		Name:               "test-judge",
 		Model:              "model1",
@@ -133,12 +133,8 @@ func TestLLMJudgeInitChatHistory(t *testing.T) {
 		},
 	}
 
-	ctx := &Context{
-		state: map[string]any{
-			judgeStateHistory: rawHistory,
-		},
-	}
-	gotHistory, err := judge.agent.InitChatHistoryFunc(ctx)
-	require.NoError(t, err)
-	require.Equal(t, rawHistory, gotHistory)
+	formatted := formatJudgeHistory(rawHistory)
+	require.Contains(t, formatted, "[user]:\ninitial prompt")
+	require.Contains(t, formatted, "[model]:\n  Called tool execute-seed")
+	require.Contains(t, formatted, "Tool execute-seed returned: map[output:seed run success]")
 }

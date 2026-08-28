@@ -134,7 +134,8 @@
 		"Name": "test-judge",
 		"Model": "model1",
 		"Started": "0001-01-01T00:00:15Z",
-		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+		"Instruction": "Judge the history\n\nAnalyze the provided execution history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Below is the execution history of the subagent under evaluation:\n\u003cexecution_history\u003e\n[user]:\nPrompt\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n\n\u003c/execution_history\u003e\n\nEvaluate whether the subagent is stuck, oscillating, or making no progress based on the history above.\nCall set-results with Stop and Reason."
 	},
 	{
 		"Seq": 9,
@@ -192,7 +193,8 @@
 			"Reason": "stuck in tick loop",
 			"Stop": true
 		},
-		"Instruction": "Judge the history\n\nAnalyze the provided history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+		"Instruction": "Judge the history\n\nAnalyze the provided execution history of the subagent and call set-results with Stop and Reason.\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Below is the execution history of the subagent under evaluation:\n\u003cexecution_history\u003e\n[user]:\nPrompt\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n[model]:\n  Called tool tick with args: map[]\n\n[user]:\n  Tool tick returned: map[Res:42]\n\n\n\u003c/execution_history\u003e\n\nEvaluate whether the subagent is stuck, oscillating, or making no progress based on the history above.\nCall set-results with Stop and Reason."
 	},
 	{
 		"Seq": 1,
