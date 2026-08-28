@@ -1,0 +1,89 @@
+TITLE: inconsistent lock state in x25_kill_by_neigh
+TYPE: LOCKDEP
+
+[  477.578412][    C1] 
+[  477.580817][    C1] ================================
+[  477.585958][    C1] WARNING: inconsistent lock state
+[  477.591125][    C1] syzkaller #0 Tainted: G             L     
+[  477.597140][    C1] --------------------------------
+[  477.602273][    C1] inconsistent {SOFTIRQ-ON-W} -> {IN-SOFTIRQ-W} usage.
+[  477.609170][    C1] ksoftirqd/1/24 [HC0[0]:SC1[1]:HE1:SE0] takes:
+[  477.615456][    C1] ffff88807d34c260 (sk_lock-AF_X25){+.?.}-{0:0}, at: x25_kill_by_neigh+0x10d/0x250
+[  477.624838][    C1] {SOFTIRQ-ON-W} state was registered at:
+[  477.630591][    C1]   lock_acquire+0x115/0x350
+[  477.635235][    C1]   lock_sock_nested+0x41/0x100
+[  477.640144][    C1]   x25_release+0xa0/0x3d0
+[  477.640441][T13896] NILFS (loop4): segctord starting. Construction interval = 5 seconds, CP frequency < 30 seconds
+[  477.655102][    C1]   sock_release+0x85/0x150
+[  477.659640][    C1]   __sys_socket+0x19e/0x1b0
+[  477.664261][    C1]   __x64_sys_socket+0x7a/0x90
+[  477.669053][    C1]   do_syscall_64+0x166/0x520
+[  477.673762][    C1]   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  477.679764][    C1] irq event stamp: 4372756
+[  477.684191][    C1] hardirqs last  enabled at (4372756): [<ffffffff8188ef56>] __local_bh_enable_ip+0xd6/0x140
+[  477.694281][    C1] hardirqs last disabled at (4372755): [<ffffffff8188eef2>] __local_bh_enable_ip+0x72/0x140
+[  477.704369][    C1] softirqs last  enabled at (4372706): [<ffffffff81891c36>] run_ksoftirqd+0x36/0x60
+[  477.713771][    C1] softirqs last disabled at (4372713): [<ffffffff81891c36>] run_ksoftirqd+0x36/0x60
+[  477.723199][    C1] 
+[  477.723199][    C1] other info that might help us debug this:
+[  477.731272][    C1]  Possible unsafe locking scenario:
+[  477.731272][    C1] 
+[  477.738763][    C1]        CPU0
+[  477.742061][    C1]        ----
+[  477.745356][    C1]   lock(sk_lock-AF_X25);
+[  477.749704][    C1]   <Interrupt>
+[  477.753175][    C1]     lock(sk_lock-AF_X25);
+[  477.757701][    C1] 
+[  477.757701][    C1]  *** DEADLOCK ***
+[  477.757701][    C1] 
+[  477.765862][    C1] locks held by ksoftirqd/1/24: 1, last CPU#1:
+[  477.772032][    C1]  #0: ffffffff8ed5c6a0 (rcu_read_lock){....}-{1:3}, at: netif_receive_skb_core+0x33/0x2b0
+[  477.782073][    C1] 
+[  477.782073][    C1] stack backtrace:
+[  477.788093][    C1] CPU: 1 UID: 0 PID: 24 Comm: ksoftirqd/1 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+[  477.798873][    C1] Tainted: [L]=SOFTLOCKUP
+[  477.803206][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+[  477.813296][    C1] Call Trace:
+[  477.816607][    C1]  <TASK>
+[  477.819564][    C1]  dump_stack_lvl+0xe8/0x150
+[  477.824196][    C1]  print_usage_bug+0x28c/0x2e0
+[  477.828990][    C1]  valid_state+0xbe/0xf0
+[  477.833427][    C1]  mark_lock_irq+0x36/0x380
+[  477.837957][    C1]  mark_lock+0x117/0x190
+[  477.842222][    C1]  __lock_acquire+0x6b7/0x2e50
+[  477.847005][    C1]  ? kasan_quarantine_put+0xbb/0x1f0
+[  477.852309][    C1]  ? do_raw_spin_lock+0x12b/0x2f0
+[  477.857358][    C1]  ? lock_acquire+0x115/0x350
+[  477.862061][    C1]  lock_acquire+0x115/0x350
+[  477.866587][    C1]  ? x25_kill_by_neigh+0x10d/0x250
+[  477.871725][    C1]  ? x25_kill_by_neigh+0x103/0x250
+[  477.876942][    C1]  lock_sock_nested+0x41/0x100
+[  477.881729][    C1]  ? x25_kill_by_neigh+0x10d/0x250
+[  477.886892][    C1]  x25_kill_by_neigh+0x10d/0x250
+[  477.891858][    C1]  x25_lapb_receive_frame+0x1b0/0xfb0
+[  477.897284][    C1]  ? netif_receive_skb_core+0x33/0x2b0
+[  477.902798][    C1]  ? netif_receive_skb_core+0x33/0x2b0
+[  477.908279][    C1]  ? __pfx_x25_lapb_receive_frame+0x10/0x10
+[  477.914192][    C1]  netif_receive_skb_core+0x2a6/0x2b0
+[  477.919767][    C1]  lapbeth_napi_poll+0x42/0x90
+[  477.924667][    C1]  __napi_poll+0xaa/0x330
+[  477.929027][    C1]  net_rx_action+0x61d/0xf50
+[  477.933654][    C1]  ? __pfx_net_rx_action+0x10/0x10
+[  477.938822][    C1]  ? kvm_sched_clock_read+0x11/0x20
+[  477.944061][    C1]  ? __pfx_sched_clock_cpu+0x10/0x10
+[  477.949371][    C1]  handle_softirqs+0x226/0x860
+[  477.954167][    C1]  ? schedule+0x90/0x2b0
+[  477.958431][    C1]  ? run_ksoftirqd+0x36/0x60
+[  477.963057][    C1]  ? smpboot_thread_fn+0x4e/0xa70
+[  477.968282][    C1]  run_ksoftirqd+0x36/0x60
+[  477.972737][    C1]  smpboot_thread_fn+0x565/0xa70
+[  477.977715][    C1]  ? smpboot_thread_fn+0x4e/0xa70
+[  477.982768][    C1]  kthread+0x38b/0x480
+[  477.986872][    C1]  ? __pfx_smpboot_thread_fn+0x10/0x10
+[  477.992355][    C1]  ? __pfx_kthread+0x10/0x10
+[  477.996962][    C1]  ret_from_fork+0x514/0xb70
+[  478.001572][    C1]  ? __pfx_ret_from_fork+0x10/0x10
+[  478.006726][    C1]  ? __switch_to+0xc89/0x1420
+[  478.011457][    C1]  ? __pfx_kthread+0x10/0x10
+[  478.016067][    C1]  ret_from_fork_asm+0x1a/0x30
+[  478.020855][    C1]  </TASK>

@@ -1,0 +1,92 @@
+TITLE: inconsistent lock state in x25_kill_by_neigh
+TYPE: LOCKDEP
+
+[  161.268908][    C1] ================================
+[  161.274020][    C1] WARNING: inconsistent lock state
+[  161.279128][    C1] syzkaller #0 Not tainted
+[  161.283540][    C1] --------------------------------
+[  161.288638][    C1] inconsistent {SOFTIRQ-ON-W} -> {IN-SOFTIRQ-W} usage.
+[  161.295476][    C1] swapper/1/0 [HC0[0]:SC1[1]:HE1:SE0] takes:
+[  161.301454][    C1] ffff888026ad6260 (sk_lock-AF_X25){+.?.}-{0:0}, at: x25_kill_by_neigh+0x10d/0x250
+[  161.310786][    C1] {SOFTIRQ-ON-W} state was registered at:
+[  161.316514][    C1]   lock_acquire+0x115/0x350
+[  161.321131][    C1]   lock_sock_nested+0x41/0x100
+[  161.325986][    C1]   x25_bind+0x209/0x450
+[  161.330237][    C1]   __sys_bind+0x2e3/0x410
+[  161.334664][    C1]   __x64_sys_bind+0x7a/0x90
+[  161.339264][    C1]   do_syscall_64+0x166/0x520
+[  161.344132][    C1]   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  161.350115][    C1] irq event stamp: 476298
+[  161.354439][    C1] hardirqs last  enabled at (476298): [<ffffffff8188efd6>] __local_bh_enable_ip+0xd6/0x140
+[  161.364425][    C1] hardirqs last disabled at (476297): [<ffffffff8188ef72>] __local_bh_enable_ip+0x72/0x140
+[  161.374418][    C1] softirqs last  enabled at (476056): [<ffffffff8188fc7b>] __irq_exit_rcu+0xcb/0x220
+[  161.384013][    C1] softirqs last disabled at (476075): [<ffffffff8188fc7b>] __irq_exit_rcu+0xcb/0x220
+[  161.393535][    C1] 
+[  161.393535][    C1] other info that might help us debug this:
+[  161.401593][    C1]  Possible unsafe locking scenario:
+[  161.401593][    C1] 
+[  161.409044][    C1]        CPU0
+[  161.412334][    C1]        ----
+[  161.415628][    C1]   lock(sk_lock-AF_X25);
+[  161.419994][    C1]   <Interrupt>
+[  161.423452][    C1]     lock(sk_lock-AF_X25);
+[  161.428046][    C1] 
+[  161.428046][    C1]  *** DEADLOCK ***
+[  161.428046][    C1] 
+[  161.436274][    C1] locks held by swapper/1/0: 1, last CPU#1:
+[  161.442182][    C1]  #0: ffffffff8ed5caa0 (rcu_read_lock){....}-{1:3}, at: netif_receive_skb_core+0x33/0x2b0
+[  161.452318][    C1] 
+[  161.452318][    C1] stack backtrace:
+[  161.458234][    C1] CPU: 1 UID: 0 PID: 0 Comm: swapper/1 Not tainted syzkaller #0 PREEMPT(full) 
+[  161.467168][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+[  161.477322][    C1] Call Trace:
+[  161.480614][    C1]  <IRQ>
+[  161.483480][    C1]  dump_stack_lvl+0xe8/0x150
+[  161.488106][    C1]  print_usage_bug+0x28c/0x2e0
+[  161.492914][    C1]  valid_state+0xbe/0xf0
+[  161.497165][    C1]  mark_lock_irq+0x36/0x380
+[  161.501782][    C1]  mark_lock+0x117/0x190
+[  161.506032][    C1]  __lock_acquire+0x6b7/0x2e50
+[  161.510989][    C1]  ? kasan_quarantine_put+0xbb/0x1f0
+[  161.516299][    C1]  ? do_raw_spin_lock+0x12b/0x2f0
+[  161.521334][    C1]  ? lock_acquire+0x115/0x350
+[  161.526019][    C1]  lock_acquire+0x115/0x350
+[  161.530527][    C1]  ? x25_kill_by_neigh+0x10d/0x250
+[  161.535649][    C1]  ? x25_kill_by_neigh+0x103/0x250
+[  161.540817][    C1]  lock_sock_nested+0x41/0x100
+[  161.545609][    C1]  ? x25_kill_by_neigh+0x10d/0x250
+[  161.550747][    C1]  x25_kill_by_neigh+0x10d/0x250
+[  161.555710][    C1]  x25_lapb_receive_frame+0x1b0/0xfb0
+[  161.561108][    C1]  ? netif_receive_skb_core+0x33/0x2b0
+[  161.566572][    C1]  ? netif_receive_skb_core+0x33/0x2b0
+[  161.572069][    C1]  ? __pfx_x25_lapb_receive_frame+0x10/0x10
+[  161.577995][    C1]  netif_receive_skb_core+0x2a6/0x2b0
+[  161.583386][    C1]  lapbeth_napi_poll+0x42/0x90
+[  161.588160][    C1]  __napi_poll+0xaa/0x330
+[  161.592506][    C1]  net_rx_action+0x61d/0xf50
+[  161.597132][    C1]  ? __pfx_net_rx_action+0x10/0x10
+[  161.602263][    C1]  handle_softirqs+0x226/0x860
+[  161.607037][    C1]  ? __irq_exit_rcu+0xcb/0x220
+[  161.611809][    C1]  __irq_exit_rcu+0xcb/0x220
+[  161.616404][    C1]  irq_exit_rcu+0x9/0x30
+[  161.620653][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[  161.626297][    C1]  </IRQ>
+[  161.629228][    C1]  <TASK>
+[  161.632152][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  161.638129][    C1] RIP: 0010:pv_native_safe_halt+0xf/0x20
+[  161.643781][    C1] Code: 8c 95 02 c3 cc cc cc cc cc cc cc 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 f3 0f 1e fa 66 90 0f 00 2d d3 00 2c 00 fb f4 <e9> cc 0a 03 00 cc cc cc cc cc cc cc cc cc cc cc cc 90 90 90 90 90
+[  161.663425][    C1] RSP: 0018:ffffc900001a7e40 EFLAGS: 00000246
+[  161.669497][    C1] RAX: 00000000000743a9 RBX: ffffffff819bab20 RCX: 8000000000000001
+[  161.677470][    C1] RDX: 0000000000000001 RSI: ffffffff8e45f620 RDI: ffffffff8c6cb180
+[  161.685441][    C1] RBP: ffffc900001a7f10 R08: ffff8880b8733b1b R09: 1ffff110170e6763
+[  161.693413][    C1] R10: dffffc0000000000 R11: ffffed10170e6764 R12: 0000000000000000
+[  161.701388][    C1] R13: 1ffff11003cd1bb8 R14: 1ffff92000034fd0 R15: dffffc0000000000
+[  161.709365][    C1]  ? do_idle+0x2e0/0x540
+[  161.713624][    C1]  default_idle+0x9/0x20
+[  161.717883][    C1]  default_idle_call+0x72/0xb0
+[  161.722687][    C1]  do_idle+0x2e0/0x540
+[  161.726775][    C1]  ? __pfx_do_idle+0x10/0x10
+[  161.731396][    C1]  cpu_startup_entry+0x43/0x60
+[  161.736170][    C1]  start_secondary+0x101/0x110
+[  161.740947][    C1]  common_startup_64+0x13e/0x157
+[  161.745911][    C1]  </TASK>
