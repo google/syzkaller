@@ -4,13 +4,13 @@
 package patching
 
 import (
-	"fmt"
 	"net/mail"
 	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 type tagExtractorArgs struct {
@@ -26,17 +26,6 @@ type tagExtractorState struct {
 	BaseTestedBy    []string
 	BaseReportedBy  []string
 	BaseSuggestedBy []string
-}
-
-func normalizeTagValue(val string) string {
-	addr, err := mail.ParseAddress(val)
-	if err != nil {
-		return val
-	}
-	if addr.Name == "" {
-		return addr.Address
-	}
-	return fmt.Sprintf("%s <%s>", addr.Name, addr.Address)
 }
 
 func validateTagExtractorOutputs(ctx *aflow.Context, state tagExtractorState,
@@ -58,7 +47,7 @@ func validateTagExtractorOutputs(ctx *aflow.Context, state tagExtractorState,
 			return args, aflow.BadCallError("value for tag %q must be a valid name and email "+
 				"(e.g. 'Name <email@example.com>'): %v", tag.Tag, err)
 		}
-		tag.Value = normalizeTagValue(tag.Value)
+		tag.Value = vcs.FormatGitAuthor(tag.Value)
 		validAddTags = append(validAddTags, tag)
 	}
 	args.AddTags = validAddTags

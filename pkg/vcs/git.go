@@ -998,3 +998,17 @@ func (git Git) ContainedIn(parent, commit string) (bool, error) {
 func (git Git) Diff(commitA, commitB string) ([]byte, error) {
 	return git.Run("diff", commitA+".."+commitB)
 }
+
+// FormatGitAuthor converts an email address into an unquoted Git author format (Name <email>).
+// In Git commit metadata and trailers (e.g. "Signed-off-by:", "Reviewed-by:"), display names
+// must never be double-quoted even if they contain special characters like commas
+// (e.g. "First, Second <user@email.com>").
+func FormatGitAuthor(addr string) string {
+	if parsed, err := mail.ParseAddress(addr); err == nil {
+		if parsed.Name != "" {
+			return fmt.Sprintf("%s <%s>", parsed.Name, parsed.Address)
+		}
+		return parsed.Address
+	}
+	return addr
+}

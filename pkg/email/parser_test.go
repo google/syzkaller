@@ -1328,3 +1328,31 @@ func TestDirectlyAddressedTo(t *testing.T) {
 	assert.True(t, msg.DirectlyAddressedTo("12345hash"))
 	assert.False(t, msg.DirectlyAddressedTo("67890hash"))
 }
+
+func TestFormatAddress(t *testing.T) {
+	tests := []struct {
+		name      string
+		emailAddr string
+		want      string
+	}{
+		{
+			name:      "First, Second",
+			emailAddr: "user@email.com",
+			want:      `"First, Second" <user@email.com>`,
+		},
+		{
+			name:      "First Second",
+			emailAddr: "user@email.com",
+			want:      "First Second <user@email.com>",
+		},
+		{
+			name:      "",
+			emailAddr: "user@email.com",
+			want:      "user@email.com",
+		},
+	}
+	for _, tc := range tests {
+		got := FormatAddress(tc.name, tc.emailAddr)
+		require.Equal(t, tc.want, got)
+	}
+}

@@ -275,6 +275,22 @@ func EmailsMatch(val1, val2 string) bool {
 	return val1 == val2
 }
 
+// FormatAddress formats name and email as an RFC 5322 address.
+// Multi-word display names like "First Last <user@email.com>" are valid unquoted in RFC 5322,
+// but names containing delimiters (such as commas in "Last, First") require double quotes.
+// Since net/mail.Address.String() conservatively quotes any display name with whitespace,
+// we verify if the unquoted form is already valid RFC 5322 before falling back to quoted formatting.
+func FormatAddress(name, email string) string {
+	if name == "" {
+		return email
+	}
+	raw := fmt.Sprintf("%s <%s>", name, email)
+	if _, err := mail.ParseAddress(raw); err == nil {
+		return raw
+	}
+	return (&mail.Address{Name: name, Address: email}).String()
+}
+
 // Split splits email into user (without context) and domain (with @ prefix).
 func Split(email string) (string, string, error) {
 	addr, err := mail.ParseAddress(email)
