@@ -687,3 +687,39 @@ index %s..123456 100644
 	require.Len(t, bases, 1)
 	assert.Equal(t, commitM.Hash, bases[0].Hash)
 }
+
+func TestFormatGitAuthor(t *testing.T) {
+	tests := []struct {
+		addr string
+		want string
+	}{
+		{
+			addr: `"First, Second" <user@email.com>`,
+			want: "First, Second <user@email.com>",
+		},
+		{
+			addr: "First Second <user@email.com>",
+			want: "First Second <user@email.com>",
+		},
+		{
+			addr: "  First Second   <user@email.com>  ",
+			want: "First Second <user@email.com>",
+		},
+		{
+			addr: "user@email.com",
+			want: "user@email.com",
+		},
+		{
+			addr: "<user@email.com>",
+			want: "user@email.com",
+		},
+		{
+			addr: "not an email",
+			want: "not an email",
+		},
+	}
+	for _, tc := range tests {
+		got := FormatGitAuthor(tc.addr)
+		require.Equal(t, tc.want, got)
+	}
+}

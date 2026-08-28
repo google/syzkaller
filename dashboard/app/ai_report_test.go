@@ -1799,3 +1799,37 @@ func TestAIActionEmailsAuth(t *testing.T) {
 		})
 	}
 }
+
+func TestUpstreamCommandWithCommaInName(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
+		},
+	})
+
+	_, jobID := c.setupAIPatchJob(t)
+	c.finishAIPatchJob(t, jobID, nil)
+
+	pollResp := c.pollAndConfirmReport(t, "lore", "moderation-msg-id")
+	require.True(t, pollResp.Result.CanUpstream)
+
+	// Upstream the result with an author whose name has a comma.
+	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		RootExtID:  "moderation-msg-id",
+		Upstream:   &dashapi.UpstreamCommand{},
+		AuthorName: "First, Second",
+		Author:     "user@email.com",
+		Source:     "lore",
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+
+	// Poll the report at the public stage.
+	pollResp = c.pollAndConfirmReport(t, "lore", "msg-id-123")
+	require.Contains(t, pollResp.Result.Patch.Authors, `First, Second <user@email.com>`)
+	require.Contains(t, pollResp.Result.To, `"First, Second" <user@email.com>`)
+}

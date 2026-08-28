@@ -126,24 +126,3 @@ func TestValidateTagExtractorOutputs(t *testing.T) {
 		})
 	}
 }
-
-func TestNormalizeTagValue(t *testing.T) {
-	tests := []struct {
-		val  string
-		want string
-	}{
-		{"Valid Name <valid@email.com>", "Valid Name <valid@email.com>"},
-		{"\"Valid Name\" <valid@email.com>", "Valid Name <valid@email.com>"},
-		{"  Valid Name   <valid@email.com>  ", "Valid Name <valid@email.com>"},
-		{"valid@email.com", "valid@email.com"},
-		{"<valid@email.com>", "valid@email.com"},
-		{"not an email", "not an email"}, // Fallback to raw value if it fails to parse.
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.val, func(t *testing.T) {
-			got := normalizeTagValue(tt.val)
-			require.Equal(t, tt.want, got)
-		})
-	}
-}

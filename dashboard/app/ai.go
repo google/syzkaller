@@ -584,7 +584,7 @@ func handleAIJobPagePushToReporting(ctx context.Context, job *aidb.Job, userName
 		return fmt.Errorf("no valid next stage found")
 	}
 
-	upstreamedBy := formatUpstreamedBy(userName, userEmail)
+	upstreamedBy := email.FormatAddress(userName, userEmail)
 	args := aidb.UpstreamReportArgs{
 		Job: job,
 		Reporting: &aidb.JobReporting{

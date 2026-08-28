@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/vcs"
 	"google.golang.org/appengine/v2/log"
 )
 
@@ -95,13 +96,6 @@ func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.Send
 	}
 }
 
-func formatUpstreamedBy(name, email string) string {
-	if name != "" {
-		return fmt.Sprintf("%s <%s>", name, email)
-	}
-	return email
-}
-
 func filterStageEmails(nsCfg *Config, emails []string) []string {
 	if nsCfg.AI == nil {
 		return emails
@@ -124,7 +118,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 		return err
 	}
 
-	upstreamedBy := formatUpstreamedBy(req.AuthorName, req.Author)
+	upstreamedBy := email.FormatAddress(req.AuthorName, req.Author)
 
 	nsCfg := getNsConfig(ctx, job.Namespace)
 	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
@@ -379,10 +373,14 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}
 	models := extractExecutedModels(trajectory)
 	var to, cc []string
+	var gitAuthors []string
 	seen := make(map[string]bool)
 	for _, a := range authors {
+		// Email recipients ('To'/'Cc') must adhere to RFC 5322 (quoting special characters like commas).
 		to = append(to, a)
 		seen[email.CanonicalEmail(a)] = true
+		// Git patch metadata ('Authors') must be unquoted (e.g. for in-body 'From:' and 'Signed-off-by:').
+		gitAuthors = append(gitAuthors, vcs.FormatGitAuthor(a))
 	}
 
 	for _, rec := range res.Recipients {
@@ -409,7 +407,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		To:          to,
 		Cc:          cc,
 		Tools:       models,
-		Authors:     authors,
+		Authors:     gitAuthors,
 		Fixes:       res.Fixes,
 		ReviewedBy:  res.ReviewedBy,
 		AckedBy:     res.AckedBy,
