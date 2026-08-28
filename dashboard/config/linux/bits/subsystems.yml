@@ -450,12 +450,14 @@ config:
  # The only reason to enable it is IOMMUFD_TEST, which really shouldn't
  # depend on RUNTIME_TESTING_MENU since it only adds debug checks.
  - RUNTIME_TESTING_MENU: [v6.9]
- - ANDROID_BINDER_IPC
+ # ANDROID_BINDER_IPC conflicts with ANDROID_BINDER_IPC_RUST.
+ - ANDROID_BINDER_IPC: [-rust]
+ - ANDROID_BINDER_IPC_RUST: [v6.18, rust]
  # Create binder device per test process for isolation.
  # Earlier we defined here 32 devices and syzkaller allocated one per test process.
  # When binderfs is used, we don't need that many - 2 is enough.
  - ANDROID_BINDER_DEVICES: "binder0,binder1"
- - ANDROID_BINDERFS
+ - ANDROID_BINDERFS: [-rust]
  - COUNTER
  - VALIDATE_FS_PARSER
  - PSTORE
