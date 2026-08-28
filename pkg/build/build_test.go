@@ -619,4 +619,16 @@ make[4]: *** [scripts/Makefile.build:287: kernel/trace/bpf_trace.o] Error 1
 		"",
 		"",
 	},
+	{`
+  REMOVE  arch/x86/include/generated/asm/.tmp_cpufeaturemasks.h
+  UPD     arch/x86/include/generated/asm/cpufeaturemasks.h
+mv: cannot stat 'arch/x86/include/generated/asm/.tmp_cpufeaturemasks.h': No such file or directory
+make[1]: *** [arch/x86/Makefile:269: arch/x86/include/generated/asm/cpufeaturemasks.h] Error 1
+make[1]: *** Waiting for unfinished jobs....
+make: *** [Makefile:248: __sub-make] Error 2
+`,
+		"mv: cannot stat 'arch/x86/include/generated/asm/.tmp_cpufeaturemasks.h': No such file or directory",
+		"",
+		"",
+	},
 }

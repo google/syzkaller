@@ -355,6 +355,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`^Killed$`)},
 	{pattern: regexp.MustCompile(`error\[.*?\]: `)},
 	{weak: true, pattern: regexp.MustCompile(`: not found`)},
+	{weak: true, pattern: regexp.MustCompile(`: [nN]o such file or directory`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
 	{weak: true, pattern: regexp.MustCompile(`(ERROR|FAILED): Build did NOT complete`)},
