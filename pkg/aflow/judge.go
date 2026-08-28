@@ -6,7 +6,7 @@ package aflow
 import (
 	"fmt"
 	"reflect"
-	"slices"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
 )
@@ -58,20 +58,23 @@ func (j *LLMJudge) verify() error {
 	j.agent = &LLMAgent{
 		Name:          j.Name,
 		Model:         j.Model,
-		MaxIterations: 1,
+		MaxIterations: 3,
 		TaskType:      FormalReasoningTask,
 		Outputs:       LLMOutputs[JudgeOutputs](),
 		Instruction: j.Instruction + "\n\n" +
-			"Analyze the provided history of the subagent and call set-results with Stop and Reason.",
-		InitChatHistoryFunc: func(ctx *Context) ([]llmMessage, error) {
-			history, _ := ctx.state[judgeStateHistory].([]llmMessage)
-			return slices.Clone(history), nil
-		},
+			"Analyze the provided execution history of the subagent and call set-results with Stop and Reason.",
+		Prompt: `Below is the execution history of the subagent under evaluation:
+<execution_history>
+{{.` + judgeStateHistory + `}}
+</execution_history>
+
+Evaluate whether the subagent is stuck, oscillating, or making no progress based on the history above.
+Call set-results with Stop and Reason.`,
 	}
 	ctx := newVerifyContext()
 	ctx.state[judgeStateHistory] = &varState{
 		action: "judge inputs",
-		typ:    reflect.TypeFor[[]llmMessage](),
+		typ:    reflect.TypeFor[string](),
 		used:   false,
 	}
 	j.agent.verify(ctx)
@@ -84,7 +87,7 @@ func (j *LLMJudge) verify() error {
 func (j *LLMJudge) Evaluate(ctx *Context, history []llmMessage) (JudgeOutputs, error) {
 	oldState := ctx.state
 	ctx.state = map[string]any{
-		judgeStateHistory: history,
+		judgeStateHistory: formatJudgeHistory(history),
 	}
 	defer func() {
 		ctx.state = oldState
@@ -98,4 +101,32 @@ func (j *LLMJudge) Evaluate(ctx *Context, history []llmMessage) (JudgeOutputs, e
 	reason, _ := ctx.state[judgeOutputReason].(string)
 
 	return JudgeOutputs{Stop: stop, Reason: reason}, nil
+}
+
+func formatJudgeHistory(history []llmMessage) string {
+	return FormatHistoryMessages(extractHistoryMessages(history))
+}
+
+func FormatHistoryMessages(messages []*backend.Message) string {
+	var sb strings.Builder
+	for _, msg := range messages {
+		if msg == nil {
+			continue
+		}
+		fmt.Fprintf(&sb, "[%s]:\n", msg.Role)
+		for _, part := range msg.Parts {
+			switch {
+			case part.FunctionCall != nil:
+				fmt.Fprintf(&sb, "  Called tool %s with args: %+v\n",
+					part.FunctionCall.Name, part.FunctionCall.Args)
+			case part.FunctionResponse != nil:
+				fmt.Fprintf(&sb, "  Tool %s returned: %+v\n",
+					part.FunctionResponse.Name, part.FunctionResponse.Response)
+			case part.Text != "":
+				fmt.Fprintln(&sb, part.Text)
+			}
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }
