@@ -2490,7 +2490,7 @@ func loadManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 	for i, mgr := range managers {
 		stats := fullStats[i]
 		link := mgr.Link
-		if accessLevel < AccessUser {
+		if accessLevel < AccessUser && !appengine.IsDevAppServer() {
 			link = ""
 		}
 		uptime := mgr.CurrentUpTime
@@ -2504,13 +2504,15 @@ func loadManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 			coverURL = asset.DownloadURL
 		} else if getConfig(ctx).CoverPath != "" {
 			coverURL = getConfig(ctx).CoverPath + mgr.Name + ".html"
+		} else if link != "" {
+			coverURL = link + "/cover"
 		}
 		ui := &uiManager{
 			Now:                   timeNow(ctx),
 			Namespace:             mgr.Namespace,
 			Name:                  mgr.Name,
 			Link:                  link,
-			PageLink:              mgr.Namespace + "/manager/" + mgr.Name,
+			PageLink:              "/" + mgr.Namespace + "/manager/" + mgr.Name,
 			CoverLink:             coverURL,
 			CurrentBuild:          uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),

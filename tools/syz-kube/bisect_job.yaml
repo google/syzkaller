@@ -1,0 +1,61 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: syz-bisect
+  namespace: syzkube
+spec:
+  template:
+    spec:
+      containers:
+      - name: bisect
+        image: gcr.io/syzkaller/env
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && apt-get install -y --no-install-recommends qemu-system-x86 git
+          git config --global --add safe.directory '*'
+
+          echo "Cloning syzkaller repository..."
+          mkdir -p /go/src/github.com/google
+          git clone https://github.com/google/syzkaller.git /go/src/github.com/google/syzkaller
+          cd /go/src/github.com/google/syzkaller
+
+          echo "Building syz-bisect and target binaries..."
+          make bisect target
+
+          echo "Starting bisection job..."
+          ./bin/syz-bisect -config /config/tools/syz-kube/bisect_config.json -crash /config/tools/syz-kube/test-crash
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: git-cache
+          mountPath: /git-cache
+        - name: disk-image
+          mountPath: /disk.raw
+        - name: config-dir
+          mountPath: /config
+      restartPolicy: Never
+      volumes:
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+      - name: git-cache
+        hostPath:
+          path: /projects/linux
+      - name: disk-image
+        hostPath:
+          path: /projects/disk.raw
+          type: File
+      - name: config-dir
+        hostPath:
+          path: /projects/syzkaller
+          type: Directory
+  backoffLimit: 0

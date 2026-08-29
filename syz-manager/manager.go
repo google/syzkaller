@@ -1488,8 +1488,8 @@ func (mgr *Manager) dashboardReporter() {
 
 func (mgr *Manager) dashboardReproTasks() {
 	for range time.NewTicker(20 * time.Minute).C {
-		if !mgr.reproLoop.CanReproMore() {
-			// We don't need reproducers at the moment.
+		if !mgr.reproLoop.CanReproMore() || mgr.cfg.Tag == "" {
+			// We don't need reproducers at the moment or have no build tag.
 			continue
 		}
 		resp, err := mgr.dash.LogToRepro(&dashapi.LogToReproReq{BuildID: mgr.cfg.Tag})
@@ -1534,9 +1534,14 @@ func publicWebAddr(addr string) string {
 	if addr == "" {
 		return ""
 	}
+	if public := os.Getenv("SYZ_PUBLIC_WEB_ADDR"); public != "" {
+		return "http://" + public
+	}
 	_, port, err := net.SplitHostPort(addr)
 	if err == nil && port != "" {
-		if host, err := os.Hostname(); err == nil {
+		if host := os.Getenv("SYZ_PUBLIC_HOST"); host != "" {
+			addr = net.JoinHostPort(host, port)
+		} else if host, err := os.Hostname(); err == nil {
 			addr = net.JoinHostPort(host, port)
 		}
 		if GCE, err := gce.NewContext("", ""); err == nil {

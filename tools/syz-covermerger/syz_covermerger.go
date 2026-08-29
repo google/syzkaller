@@ -4,11 +4,20 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"maps"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 
 	"cloud.google.com/go/civil"
@@ -32,14 +41,22 @@ var (
 	flagTotalRows           = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
 	flagToDashAPI           = flag.String("to-dashapi", "", "[optional] dashapi address")
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
+	flagDashboardKey        = flag.String("dashboard-key", "", "[optional] dashboard key for dashapi auth")
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
 	flagToGCS               = flag.String("to-gcs", "", "[optional] gcs destination to save jsonl to")
+	flagRawCoverageDir      = flag.String("raw-coverage-dir", "",
+		"[optional] directory containing local *.jsonl.gz raw coverage files")
 )
 
 func makeProvider() covermerger.FileVersProvider {
 	switch *flagSrcProvider {
 	case "git-clone":
+		if *flagRepo != "" {
+			if _, err := os.Stat(filepath.Join(*flagRepo, ".git")); err == nil {
+				return covermerger.MakeExistingRepo(*flagRepo)
+			}
+		}
 		return covermerger.MakeMonoRepo(*flagWorkdir)
 	case "web-git":
 		return covermerger.MakeWebGit(nil)
@@ -54,8 +71,129 @@ func main() {
 	}
 }
 
+func getGitHead(dir string) string {
+	cmd := exec.Command("git", "-c", "safe.directory=*", "-C", dir, "rev-parse", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+func initLocalRecords(dir, repo, commit string) (io.ReadCloser, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.jsonl.gz"))
+	if err != nil || len(files) == 0 {
+		return nil, fmt.Errorf("no coverage files found in %s: %w", dir, err)
+	}
+
+	type recordKey struct {
+		filePath string
+		funcName string
+		sl       int
+		manager  string
+	}
+
+	hits := make(map[recordKey]int)
+
+	type rawRecord struct {
+		FilePath string `json:"file_path"`
+		FuncName string `json:"func_name"`
+		SL       int    `json:"sl"`
+		HitCount int    `json:"hit_count"`
+	}
+
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			continue
+		}
+		gz, err := gzip.NewReader(f)
+		if err != nil {
+			f.Close()
+			continue
+		}
+
+		manager := "syz-manager-0"
+		base := filepath.Base(file)
+		if _, rest, ok := strings.Cut(base, "-manager-"); ok {
+			idxPart, _, _ := strings.Cut(rest, "-")
+			manager = fmt.Sprintf("syz-manager-%s", idxPart)
+		}
+
+		dec := json.NewDecoder(gz)
+		for {
+			var r rawRecord
+			if err := dec.Decode(&r); err != nil {
+				break
+			}
+			if r.HitCount < 0 {
+				continue
+			}
+			cleanPath := r.FilePath
+			if _, after, ok := strings.Cut(cleanPath, "tmp/kernel-build/kernel/"); ok {
+				cleanPath = after
+			} else if _, after, ok := strings.Cut(cleanPath, "/kernel/"); ok {
+				cleanPath = after
+			}
+			key := recordKey{
+				filePath: cleanPath,
+				funcName: r.FuncName,
+				sl:       r.SL,
+				manager:  manager,
+			}
+			hits[key] += r.HitCount
+		}
+		gz.Close()
+		f.Close()
+	}
+
+	fileKeys := make(map[string][]recordKey)
+	for k := range hits {
+		fileKeys[k.filePath] = append(fileKeys[k.filePath], k)
+	}
+	sortedFiles := slices.Sorted(maps.Keys(fileKeys))
+
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		cw := csv.NewWriter(pw)
+		defer cw.Flush()
+
+		_ = cw.Write([]string{
+			covermerger.KeyKernelRepo,
+			covermerger.KeyKernelCommit,
+			covermerger.KeyFilePath,
+			covermerger.KeyFuncName,
+			covermerger.KeyStartLine,
+			covermerger.KeyHitCount,
+			covermerger.KeyManager,
+		})
+
+		for _, file := range sortedFiles {
+			for _, k := range fileKeys[file] {
+				_ = cw.Write([]string{
+					repo,
+					commit,
+					k.filePath,
+					k.funcName,
+					strconv.Itoa(k.sl),
+					strconv.Itoa(hits[k]),
+					k.manager,
+				})
+			}
+		}
+	}()
+
+	return pr, nil
+}
+
 func do() error {
 	defer tool.Init()()
+	if *flagCommit == "HEAD" && *flagRepo != "" {
+		if head := getGitHead(*flagRepo); head != "" {
+			*flagCommit = head
+		}
+	}
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
@@ -71,21 +209,29 @@ func do() error {
 		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 	}
 	dateFrom = dateTo.AddDays(-int(*flagDuration))
-	csvReader, err := covermerger.InitNsRecords(context.Background(),
-		*flagNamespace,
-		*flagFilePathPrefix,
-		"",
-		dateFrom,
-		dateTo,
-	)
-	if err != nil {
-		panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
+	var csvReader io.ReadCloser
+	if *flagRawCoverageDir != "" {
+		csvReader, err = initLocalRecords(*flagRawCoverageDir, *flagRepo, *flagCommit)
+		if err != nil {
+			panic(fmt.Sprintf("failed to initLocalRecords: %v", err.Error()))
+		}
+	} else {
+		csvReader, err = covermerger.InitNsRecords(context.Background(),
+			*flagNamespace,
+			*flagFilePathPrefix,
+			"",
+			dateFrom,
+			dateTo,
+		)
+		if err != nil {
+			panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
+		}
 	}
 	defer csvReader.Close()
 	var wc io.WriteCloser
 	url := *flagToGCS
 	if *flagToDashAPI != "" {
-		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, *flagDashboardKey)
 		if err != nil {
 			return fmt.Errorf("dashapi.New: %w", err)
 		}
@@ -128,7 +274,7 @@ func do() error {
 	printCoverage(totalInstrumentedLines, totalCoveredLines)
 	if *flagToDashAPI != "" {
 		// Merging may take hours. It is better to create new connection instead of reuse.
-		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, *flagDashboardKey)
 		if err != nil {
 			return fmt.Errorf("dashapi.New: %w", err)
 		}
