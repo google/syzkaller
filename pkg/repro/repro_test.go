@@ -411,3 +411,44 @@ alarm(0xa)
 	require.NotNil(t, result)
 	require.Equal(t, "pause()\nalarm(0xa)\n", string(result.Prog.Serialize()))
 }
+
+func TestReproDuration(t *testing.T) {
+	const progTimeout = 5 * time.Second
+	tests := []struct {
+		name            string
+		baseTimeout     time.Duration
+		crashedDuration time.Duration
+		want            time.Duration
+	}{
+		{
+			name:            "fast crash below progTimeout",
+			baseTimeout:     6 * time.Minute,
+			crashedDuration: 500 * time.Millisecond,
+			want:            10 * time.Second,
+		},
+		{
+			name:            "normal crash scaled by 2",
+			baseTimeout:     6 * time.Minute,
+			crashedDuration: 20 * time.Second,
+			want:            40 * time.Second,
+		},
+		{
+			name:            "slow crash capped at baseTimeout",
+			baseTimeout:     100 * time.Second,
+			crashedDuration: 80 * time.Second,
+			want:            100 * time.Second,
+		},
+		{
+			name:            "tight baseTimeout limit",
+			baseTimeout:     5 * time.Second,
+			crashedDuration: 2 * time.Second,
+			want:            5 * time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := reproDuration(tt.baseTimeout, tt.crashedDuration, progTimeout)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
