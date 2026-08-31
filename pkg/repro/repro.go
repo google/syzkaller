@@ -407,7 +407,7 @@ func (ctx *reproContext) extractProgSingle(entries []*prog.LogEntry, duration ti
 		if ret.Crashed {
 			res := &Result{
 				Prog:     ent.P,
-				Duration: max(duration, ret.Duration*3/2),
+				Duration: reproDuration(duration, ret.Duration, ctx.timeouts.Program),
 				Opts:     opts,
 			}
 			ctx.reproLogf(3, "single: successfully extracted reproducer")
@@ -521,11 +521,15 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 	}
 	res := &Result{
 		Prog:     p,
-		Duration: min(dur, ret.Duration*2),
+		Duration: reproDuration(dur, ret.Duration, ctx.timeouts.Program),
 		Opts:     ctx.startOpts,
 	}
 	ctx.reproLogf(3, "bisect: concatenation succeeded")
 	return res, nil
+}
+
+func reproDuration(baseTimeout, crashedDuration, progTimeout time.Duration) time.Duration {
+	return min(baseTimeout, max(progTimeout, crashedDuration)*2)
 }
 
 // Minimize calls and arguments.
