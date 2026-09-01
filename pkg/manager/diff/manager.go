@@ -137,6 +137,7 @@ type Kernel interface {
 	Pool() *vm.Dispatcher
 	Features() flatrpc.Feature
 	Reporter() *report.Reporter
+	Symbolize(rep *report.Report)
 }
 
 type diffContext struct {
@@ -210,6 +211,7 @@ loop:
 		case ret := <-dc.doneRepro:
 			// We have finished reproducing a crash from the patched instance.
 			if ret.Repro != nil && ret.Repro.Report != nil {
+				dc.new.Symbolize(ret.Repro.Report)
 				origTitle := ret.Crash.Report.Title
 				if ret.Repro.Report.SameBug(ret.Crash.Report) {
 					origTitle = "-SAME-"
@@ -239,6 +241,7 @@ loop:
 }
 
 func (dc *diffContext) handleNewCrash(rep *report.Report, reproLoop *manager.ReproLoop) {
+	dc.new.Symbolize(rep)
 	crash := &manager.Crash{Report: rep}
 	need := dc.NeedRepro(crash)
 	log.Logf(0, "patched crashed: %v [need repro = %v]",
@@ -309,6 +312,7 @@ func (dc *diffContext) ignoreCrash(ctx context.Context, title string) bool {
 }
 
 func (dc *diffContext) reportBaseCrash(ctx context.Context, rep *report.Report) {
+	dc.base.Symbolize(rep)
 	dc.store.BaseCrashed(rep.Title, rep.Report)
 	if dc.cfg.BaseCrashes == nil {
 		return

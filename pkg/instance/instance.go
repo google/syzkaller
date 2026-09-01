@@ -417,6 +417,9 @@ func (inst *inst) testInstance() error {
 		return &TestError{Title: err.Error()}
 	}
 	if out.Report != nil {
+		if err := inst.reporter.Symbolize(out.Report); err != nil {
+			log.Logf(0, "failed to symbolize report: %v", err)
+		}
 		return &TestError{Title: out.Report.Title, Report: out.Report}
 	}
 	return nil
@@ -435,6 +438,9 @@ func (inst *inst) testRepro() ([]byte, [][]uint64, error) {
 			return nil, nil, err
 		}
 		if res.Report != nil {
+			if err := inst.reporter.Symbolize(res.Report); err != nil {
+				log.Logf(0, "failed to symbolize report: %v", err)
+			}
 			err = &CrashError{Report: res.Report}
 		}
 		return res.Output, res.Coverage, err

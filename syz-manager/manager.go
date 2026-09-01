@@ -882,6 +882,15 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 		}
 	}
 
+	if err := mgr.reporter.Symbolize(repro.Report); err != nil {
+		log.Errorf("failed to symbolize report: %v", err)
+	}
+	if res.Strace != nil && res.Strace.Report != nil {
+		if err := mgr.reporter.Symbolize(res.Strace.Report); err != nil {
+			log.Errorf("failed to symbolize report: %v", err)
+		}
+	}
+
 	if mgr.dash != nil {
 		// Note: we intentionally don't set Corrupted for reproducers:
 		// 1. This is reproducible so can be debugged even with corrupted report.

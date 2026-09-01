@@ -304,3 +304,9 @@ func (kc *kernelContext) Features() flatrpc.Feature {
 func (kc *kernelContext) Reporter() *report.Reporter {
 	return kc.reporter
 }
+
+func (kc *kernelContext) Symbolize(rep *report.Report) {
+	if err := kc.reporter.Symbolize(rep); err != nil {
+		log.Logf(0, "%s: failed to symbolize report: %v", kc.name, err)
+	}
+}

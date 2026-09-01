@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/prog/test"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
 )
@@ -56,13 +57,25 @@ func newTestEnv(t *testing.T, cfg *Config) *testEnv {
 		divergentCrashes: make(chan *report.Report, 128),
 	}
 
+	testReporter, err := report.NewReporter(&mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	base := &MockKernel{
-		CrashesCh: make(chan *report.Report, 1),
-		LoopFunc:  func(ctx context.Context) error { return nil },
+		CrashesCh:   make(chan *report.Report, 1),
+		LoopFunc:    func(ctx context.Context) error { return nil },
+		ReporterVal: testReporter,
 	}
 	newKernel := &MockKernel{
-		CrashesCh: make(chan *report.Report, 1),
-		LoopFunc:  func(ctx context.Context) error { return nil },
+		CrashesCh:   make(chan *report.Report, 1),
+		LoopFunc:    func(ctx context.Context) error { return nil },
+		ReporterVal: testReporter,
 	}
 
 	newKernel.PoolVal = dispatcher.NewPool[*vm.Instance](1, func(ctx context.Context, index int) (*vm.Instance, error) {
@@ -166,6 +179,12 @@ func (mk *MockKernel) Features() flatrpc.Feature {
 
 func (mk *MockKernel) Reporter() *report.Reporter {
 	return mk.ReporterVal
+}
+
+func (mk *MockKernel) Symbolize(rep *report.Report) {
+	if mk.ReporterVal != nil {
+		_ = mk.ReporterVal.Symbolize(rep)
+	}
 }
 
 func (mk *MockKernel) FinishCorpusTriage() {
