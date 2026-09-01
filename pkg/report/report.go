@@ -90,6 +90,17 @@ func (rep *Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", rep.Title, rep.Report)
 }
 
+func (rep *Report) PrependOutput(prefix []byte) {
+	if len(prefix) == 0 {
+		return
+	}
+	rep.Output = slices.Concat(prefix, rep.Output)
+	n := len(prefix)
+	rep.StartPos += n
+	rep.EndPos += n
+	rep.SkipPos += n
+}
+
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	var localModules []*vminfo.KernelModule

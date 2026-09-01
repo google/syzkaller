@@ -603,3 +603,23 @@ func TestIPv6TitleReplacement(t *testing.T) {
 		})
 	}
 }
+
+func TestReportPrependOutput(t *testing.T) {
+	rep := &Report{
+		Output:   []byte("kernel crash output"),
+		StartPos: 7,
+		EndPos:   12,
+		SkipPos:  19,
+	}
+	prefix := []byte("executing program 0:\nalarm(0xa)\n")
+	rep.PrependOutput(prefix)
+
+	require.Equal(t, "executing program 0:\nalarm(0xa)\nkernel crash output", string(rep.Output))
+	require.Equal(t, 7+len(prefix), rep.StartPos)
+	require.Equal(t, 12+len(prefix), rep.EndPos)
+	require.Equal(t, 19+len(prefix), rep.SkipPos)
+
+	// Prepending empty prefix does nothing.
+	rep.PrependOutput(nil)
+	require.Equal(t, "executing program 0:\nalarm(0xa)\nkernel crash output", string(rep.Output))
+}
