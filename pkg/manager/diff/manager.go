@@ -209,7 +209,7 @@ loop:
 			// We have finished reproducing a crash from the patched instance.
 			if ret.Repro != nil && ret.Repro.Report != nil {
 				origTitle := ret.Crash.Report.Title
-				if ret.Repro.Report.Title == origTitle {
+				if ret.Repro.Report.SameBug(ret.Crash.Report) {
 					origTitle = "-SAME-"
 				}
 				log.Logf(1, "found repro for %q (orig title: %q, reliability: %2.f), took %.2f minutes",

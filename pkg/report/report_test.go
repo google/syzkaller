@@ -604,6 +604,70 @@ func TestIPv6TitleReplacement(t *testing.T) {
 	}
 }
 
+func TestSameBug(t *testing.T) {
+	tests := []struct {
+		name string
+		rep1 *Report
+		rep2 *Report
+		want bool
+	}{
+		{
+			name: "both nil",
+			rep1: nil,
+			rep2: nil,
+			want: false,
+		},
+		{
+			name: "one nil",
+			rep1: &Report{Title: "titleA"},
+			rep2: nil,
+			want: false,
+		},
+		{
+			name: "same title",
+			rep1: &Report{Title: "titleA"},
+			rep2: &Report{Title: "titleA"},
+			want: true,
+		},
+		{
+			name: "different title, no alt",
+			rep1: &Report{Title: "titleA"},
+			rep2: &Report{Title: "titleB"},
+			want: false,
+		},
+		{
+			name: "rep1 title matches rep2 alt",
+			rep1: &Report{Title: "titleA"},
+			rep2: &Report{Title: "titleB", AltTitles: []string{"titleA"}},
+			want: true,
+		},
+		{
+			name: "rep2 title matches rep1 alt",
+			rep1: &Report{Title: "titleA", AltTitles: []string{"titleB"}},
+			rep2: &Report{Title: "titleB"},
+			want: true,
+		},
+		{
+			name: "alt titles intersect",
+			rep1: &Report{Title: "titleA", AltTitles: []string{"common"}},
+			rep2: &Report{Title: "titleB", AltTitles: []string{"common"}},
+			want: true,
+		},
+		{
+			name: "alt titles do not intersect",
+			rep1: &Report{Title: "titleA", AltTitles: []string{"alt1"}},
+			rep2: &Report{Title: "titleB", AltTitles: []string{"alt2"}},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, tt.rep1.SameBug(tt.rep2))
+			require.Equal(t, tt.want, tt.rep2.SameBug(tt.rep1))
+		})
+	}
+}
+
 func TestReportPrependOutput(t *testing.T) {
 	rep := &Report{
 		Output:   []byte("kernel crash output"),
