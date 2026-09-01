@@ -100,13 +100,14 @@ func Run(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg Config) err
 	}
 
 	diffCtx := &diffContext{
-		cfg:           cfg,
-		doneRepro:     make(chan *manager.ReproResult),
-		base:          base,
-		new:           new,
-		store:         cfg.Store,
-		reproAttempts: map[string]int{},
-		patchedOnly:   cfg.PatchedOnly,
+		cfg:              cfg,
+		doneRepro:        make(chan *manager.ReproResult),
+		base:             base,
+		new:              new,
+		store:            cfg.Store,
+		reproAttempts:    map[string]int{},
+		patchedOnly:      cfg.PatchedOnly,
+		divergentCrashes: make(chan *report.Report, 128),
 	}
 	if newCfg.HTTP != "" {
 		diffCtx.http = &manager.HTTPServer{
@@ -143,10 +144,11 @@ type diffContext struct {
 	store *manager.DiffFuzzerStore
 	http  *manager.HTTPServer
 
-	doneRepro   chan *manager.ReproResult
-	base        Kernel
-	new         Kernel
-	patchedOnly chan *Bug
+	doneRepro        chan *manager.ReproResult
+	base             Kernel
+	new              Kernel
+	patchedOnly      chan *Bug
+	divergentCrashes chan *report.Report
 
 	mu            sync.Mutex
 	reproAttempts map[string]int
@@ -228,21 +230,26 @@ loop:
 			}
 			dc.store.SaveRepro(ret)
 		case rep := <-dc.new.Crashes():
-			// A new crash is found on the patched instance.
-			crash := &manager.Crash{Report: rep}
-			need := dc.NeedRepro(crash)
-			log.Logf(0, "patched crashed: %v [need repro = %v]",
-				rep.Title, need)
-			dc.store.PatchedCrashed(rep.Title, rep.Report, rep.Output)
-			if need {
-				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusVerifying)
-				reproLoop.Enqueue(crash)
-			} else {
-				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusIgnored)
-			}
+			dc.handleNewCrash(rep, reproLoop)
+		case rep := <-dc.divergentCrashes:
+			dc.handleNewCrash(rep, reproLoop)
 		}
 	}
 	return g.Wait()
+}
+
+func (dc *diffContext) handleNewCrash(rep *report.Report, reproLoop *manager.ReproLoop) {
+	crash := &manager.Crash{Report: rep}
+	need := dc.NeedRepro(crash)
+	log.Logf(0, "patched crashed: %v [need repro = %v]",
+		rep.Title, need)
+	dc.store.PatchedCrashed(rep.Title, rep.Report, rep.Output)
+	if need {
+		dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusVerifying)
+		reproLoop.Enqueue(crash)
+	} else {
+		dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusIgnored)
+	}
 }
 
 func (dc *diffContext) handleReproResult(ctx context.Context, ret reproRunnerResult, reproLoop *manager.ReproLoop) {
@@ -415,11 +422,19 @@ func (dc *diffContext) RunRepro(ctx context.Context, crash *manager.Crash) *mana
 	dc.mu.Unlock()
 
 	res, stats, err := dc.cfg.runRepro(ctx, crash.Output, repro.Environment{
-		Config:   dc.new.Config(),
-		Features: dc.new.Features(),
-		Reporter: dc.new.Reporter(),
-		Pool:     dc.new.Pool(),
-		Fast:     !crash.FullRepro,
+		Config:       dc.new.Config(),
+		Features:     dc.new.Features(),
+		Reporter:     dc.new.Reporter(),
+		Pool:         dc.new.Pool(),
+		Fast:         !crash.FullRepro,
+		TargetReport: crash.Report,
+		OnDivergentCrash: func(rep *report.Report) {
+			log.Logf(0, "reproducing %q yielded divergent crash %q", crash.Title, rep.Title)
+			select {
+			case dc.divergentCrashes <- rep:
+			case <-ctx.Done():
+			}
+		},
 	})
 	if res != nil && res.Report != nil {
 		dc.mu.Lock()

@@ -48,11 +48,12 @@ func newTestEnv(t *testing.T, cfg *Config) *testEnv {
 	}
 
 	diffCtx := &diffContext{
-		cfg:           *cfg,
-		doneRepro:     make(chan *manager.ReproResult, 1),
-		store:         cfg.Store,
-		reproAttempts: map[string]int{},
-		patchedOnly:   cfg.PatchedOnly,
+		cfg:              *cfg,
+		doneRepro:        make(chan *manager.ReproResult, 1),
+		store:            cfg.Store,
+		reproAttempts:    map[string]int{},
+		patchedOnly:      cfg.PatchedOnly,
+		divergentCrashes: make(chan *report.Report, 128),
 	}
 
 	base := &MockKernel{
