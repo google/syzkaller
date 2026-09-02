@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
@@ -367,6 +368,34 @@ type Candidate struct {
 }
 
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
+	fuzzer.addCandidates(candidates, nil)
+}
+
+func (fuzzer *Fuzzer) AddCandidatesWait(ctx context.Context, candidates []Candidate) {
+	if len(candidates) == 0 {
+		return
+	}
+	done := make(chan struct{})
+	fuzzer.addCandidates(candidates, func() {
+		close(done)
+	})
+	select {
+	case <-ctx.Done():
+	case <-done:
+	}
+}
+
+func (fuzzer *Fuzzer) addCandidates(candidates []Candidate, onDone func()) {
+	if len(candidates) == 0 {
+		if onDone != nil {
+			onDone()
+		}
+		return
+	}
+	var remaining atomic.Int32
+	if onDone != nil {
+		remaining.Store(int32(len(candidates)))
+	}
 	fuzzer.statCandidates.Add(len(candidates))
 	for _, candidate := range candidates {
 		req := &queue.Request{
@@ -374,6 +403,14 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:      fuzzer.statExecCandidate,
 			Important: true,
+		}
+		if onDone != nil {
+			req.OnDone(func(req *queue.Request, res *queue.Result) bool {
+				if remaining.Add(-1) == 0 {
+					onDone()
+				}
+				return true
+			})
 		}
 		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}
