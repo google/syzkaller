@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
@@ -1422,6 +1423,9 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	if err = aiJobApplyLabels(ctx, job); err != nil {
 		return nil, err
 	}
+	if err := saveCandidateSeeds(ctx, job, finished); err != nil {
+		log.Errorf(ctx, "failed to save candidate seeds for job %v: %v", job.ID, err)
+	}
 	if job.Type == ai.WorkflowPatchIteration {
 		if err := finishIterationJob(ctx, job); err != nil {
 			return nil, err
@@ -1566,6 +1570,19 @@ func castJobResults[T any](job *aidb.Job) (T, error) {
 	return parseJSON[T](job.Results)
 }
 
+func castJobArgs[T any](job *aidb.Job) (T, error) {
+	var res T
+	if !job.Args.Valid {
+		return res, fmt.Errorf("job %v %v does not have args", job.Type, job.ID)
+	}
+	data, err := json.Marshal(job.Args.Value)
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(data, &res)
+	return res, err
+}
+
 func parseJSON[T any](val spanner.NullJSON) (T, error) {
 	var res T
 	// Database may store older versions of the output structs.
@@ -1577,6 +1594,59 @@ func parseJSON[T any](val spanner.NullJSON) (T, error) {
 		return res, err
 	}
 	return osutil.ParseJSON[T](data)
+}
+
+func saveCandidateSeeds(ctx context.Context, job *aidb.Job, finished time.Time) error {
+	if job.Type != ai.WorkflowSeedGen && job.Type != ai.WorkflowSeedGenFileLine {
+		return nil
+	}
+	type jobTarget struct {
+		TargetOS   string
+		TargetArch string
+	}
+	target, err := castJobArgs[jobTarget](job)
+	if err != nil {
+		return fmt.Errorf("failed to cast job args for %v: %w", job.ID, err)
+	}
+	if target.TargetOS == "" || target.TargetArch == "" {
+		// Under normal operation TargetOS and TargetArch should always be set, but it is
+		// too late to fail the job now. Skip saving candidate seeds since managers would
+		// never be able to poll seeds with empty targets.
+		log.Errorf(ctx, "job %v has empty TargetOS (%q) or TargetArch (%q), skipping candidate seeds",
+			job.ID, target.TargetOS, target.TargetArch)
+		return nil
+	}
+	artifacts, err := aidb.QueryJobArtifacts(ctx, job.ID, trajectory.ArtifactSyzProg)
+	if err != nil {
+		return fmt.Errorf("failed to query job artifacts for %v: %w", job.ID, err)
+	}
+	progs := artifacts
+	if res, err := castJobResults[ai.SeedGenOutputs](job); err == nil && res.SeedSyz != "" {
+		progs = append(progs, res.SeedSyz)
+	}
+	if len(progs) == 0 {
+		return nil
+	}
+	var candidateSeeds []*aidb.CandidateSeed
+	seen := make(map[string]bool)
+	for _, p := range progs {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		candidateSeeds = append(candidateSeeds, &aidb.CandidateSeed{
+			JobID:      job.ID,
+			Namespace:  job.Namespace,
+			TargetOS:   target.TargetOS,
+			TargetArch: target.TargetArch,
+			CreatedAt:  finished,
+			Prog:       []byte(p),
+		})
+	}
+	if err := aidb.AddCandidateSeeds(ctx, candidateSeeds); err != nil {
+		return fmt.Errorf("failed to save candidate seeds for job %v: %w", job.ID, err)
+	}
+	return nil
 }
 
 func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any, error) {

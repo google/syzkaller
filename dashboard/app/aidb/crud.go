@@ -6,6 +6,7 @@ package aidb
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -475,6 +476,7 @@ func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Spa
 		Error:                toNullString(span.Error),
 		Args:                 toNullJSON(span.Args),
 		Results:              toNullJSON(span.Results),
+		Artifacts:            toNullJSON(span.Artifacts),
 		Instruction:          toNullString(span.Instruction),
 		Prompt:               toNullString(span.Prompt),
 		Reply:                toNullString(span.Reply),
@@ -489,6 +491,46 @@ func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Spa
 	}
 	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
 	return err
+}
+
+func QueryJobArtifacts(ctx context.Context, jobID string, typ trajectory.ArtifactType) ([]string, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	iter := client.Single().Query(ctx, spanner.Statement{
+		SQL: `SELECT Artifacts
+			FROM TrajectorySpans
+			WHERE JobID = @jobID AND Artifacts IS NOT NULL AND Error IS NULL
+			ORDER BY Seq ASC`,
+		Params: map[string]any{
+			"jobID": jobID,
+		},
+	})
+	defer iter.Stop()
+	var artifacts []string
+	err = iter.Do(func(row *spanner.Row) error {
+		var raw spanner.NullJSON
+		if err := row.ColumnByName("Artifacts", &raw); err != nil {
+			return err
+		}
+		if raw.IsNull() {
+			return nil
+		}
+		data, err := json.Marshal(raw.Value)
+		if err != nil {
+			return err
+		}
+		var parsed map[trajectory.ArtifactType]string
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			return err
+		}
+		if val, ok := parsed[typ]; ok && val != "" {
+			artifacts = append(artifacts, val)
+		}
+		return nil
+	})
+	return artifacts, err
 }
 
 func LoadTrajectory(ctx context.Context, jobID string) ([]*TrajectorySpan, error) {
@@ -1456,8 +1498,8 @@ func selectAllFrom[T any](table string) string {
 	return fmt.Sprintf("SELECT %v FROM %v ", strings.Join(fields, ", "), table)
 }
 
-func toNullJSON(v map[string]any) spanner.NullJSON {
-	if v == nil {
+func toNullJSON[M ~map[K]V, K comparable, V any](v M) spanner.NullJSON {
+	if len(v) == 0 {
 		return spanner.NullJSON{}
 	}
 	return spanner.NullJSON{Value: v, Valid: true}
@@ -1536,4 +1578,121 @@ func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
 			argsMap["BaseSuggestedBy"] = tags
 		}
 	}
+}
+
+func AddCandidateSeeds(ctx context.Context, seeds []*CandidateSeed) error {
+	if len(seeds) == 0 {
+		return nil
+	}
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	var mutations []*spanner.Mutation
+	for _, s := range seeds {
+		if s.ID == "" {
+			s.ID = uuid.NewString()
+		}
+		mut, err := spanner.InsertOrUpdateStruct("CandidateSeeds", s)
+		if err != nil {
+			return err
+		}
+		mutations = append(mutations, mut)
+	}
+	_, err = client.Apply(ctx, mutations)
+	return err
+}
+
+func PollCandidateSeeds(ctx context.Context, ns, clientName, targetOS, targetArch string,
+	limit int) ([]*CandidateSeed, time.Time, string, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, time.Time{}, "", err
+	}
+	cursor, err := readRow[ClientSeedCursor](ctx, client.Single(), spanner.Statement{
+		SQL: `SELECT Namespace, Client, LastTriagedTime, LastTriagedID
+			FROM ClientSeedCursors
+			WHERE Namespace = @ns AND Client = @client`,
+		Params: map[string]any{
+			"ns":     ns,
+			"client": clientName,
+		},
+	})
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, time.Time{}, "", err
+	}
+	sinceTime := TimeNow(ctx).Add(-24 * time.Hour)
+	sinceID := ""
+	if cursor != nil && !cursor.LastTriagedTime.IsZero() {
+		sinceTime = cursor.LastTriagedTime
+		sinceID = cursor.LastTriagedID
+	}
+	seeds, err := selectAll[CandidateSeed](ctx, spanner.Statement{
+		SQL: `SELECT Namespace, TargetOS, TargetArch, CreatedAt, ID, JobID, Prog
+			FROM CandidateSeeds
+			WHERE Namespace = @ns
+			  AND (@targetOS = '' OR TargetOS = @targetOS)
+			  AND (@targetArch = '' OR TargetArch = @targetArch)
+			  AND (CreatedAt > @sinceTime OR (CreatedAt = @sinceTime AND ID > @sinceID))
+			ORDER BY CreatedAt ASC, ID ASC
+			LIMIT @limit`,
+		Params: map[string]any{
+			"ns":         ns,
+			"targetOS":   targetOS,
+			"targetArch": targetArch,
+			"sinceTime":  sinceTime,
+			"sinceID":    sinceID,
+			"limit":      limit,
+		},
+	})
+	if err != nil {
+		return nil, time.Time{}, "", err
+	}
+	maxCreatedAt := sinceTime
+	lastID := sinceID
+	if len(seeds) > 0 {
+		last := seeds[len(seeds)-1]
+		maxCreatedAt = last.CreatedAt
+		lastID = last.ID
+	}
+	return seeds, maxCreatedAt, lastID, nil
+}
+
+func DoneCandidateSeeds(ctx context.Context, ns, clientName string, doneTime time.Time, doneID string) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		existing, err := readRow[ClientSeedCursor](ctx, txn, spanner.Statement{
+			SQL: `SELECT Namespace, Client, LastTriagedTime, LastTriagedID
+				FROM ClientSeedCursors
+				WHERE Namespace = @ns AND Client = @client`,
+			Params: map[string]any{
+				"ns":     ns,
+				"client": clientName,
+			},
+		})
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return err
+		}
+		if existing != nil && !existing.LastTriagedTime.IsZero() {
+			if doneTime.Before(existing.LastTriagedTime) ||
+				(doneTime.Equal(existing.LastTriagedTime) && doneID <= existing.LastTriagedID) {
+				return nil
+			}
+		}
+		cursor := &ClientSeedCursor{
+			Namespace:       ns,
+			Client:          clientName,
+			LastTriagedTime: doneTime,
+			LastTriagedID:   doneID,
+		}
+		mut, err := spanner.InsertOrUpdateStruct("ClientSeedCursors", cursor)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return err
 }

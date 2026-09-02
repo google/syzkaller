@@ -81,6 +81,7 @@ type TrajectorySpan struct {
 	Error                spanner.NullString
 	Args                 spanner.NullJSON
 	Results              spanner.NullJSON
+	Artifacts            spanner.NullJSON
 	Instruction          spanner.NullString
 	Prompt               spanner.NullString
 	Reply                spanner.NullString
@@ -138,4 +139,21 @@ type JobComment struct {
 	OwnEmail     bool
 	Processed    bool
 	VerifiedDKIM bool
+}
+
+type CandidateSeed struct {
+	Namespace  string
+	TargetOS   string
+	TargetArch string
+	CreatedAt  time.Time
+	ID         string
+	JobID      string
+	Prog       []byte
+}
+
+type ClientSeedCursor struct {
+	Namespace       string
+	Client          string
+	LastTriagedTime time.Time
+	LastTriagedID   string
 }

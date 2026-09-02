@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -1445,4 +1446,172 @@ func TestAIJobsErrorVisibility(t *testing.T) {
 	require.NotContains(t, string(respBugUser), errText)
 	require.NotContains(t, string(respBugUser), aiErrorPlaceholder)
 	require.NotContains(t, string(respBugUser), ">Error</a></th>")
+}
+
+func TestCandidateSeeds(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	c.pollAIWorkflow(t, ai.WorkflowSeedGen)
+	jobID := c.createAIJob(extID, string(ai.WorkflowSeedGen), "")
+
+	// Log tool spans with Artifacts.
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: "test-agent",
+		JobID:     jobID,
+		Span: &trajectory.Span{
+			Seq:       0,
+			Type:      trajectory.SpanTool,
+			Name:      "execute-seed",
+			Artifacts: map[trajectory.ArtifactType]string{trajectory.ArtifactSyzProg: "syz_mount_image(0)"},
+			Started:   c.mockedTime,
+			Finished:  c.mockedTime.Add(time.Second),
+		},
+	}))
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: "test-agent",
+		JobID:     jobID,
+		Span: &trajectory.Span{
+			Seq:       1,
+			Type:      trajectory.SpanTool,
+			Name:      "execute-seed",
+			Artifacts: map[trajectory.ArtifactType]string{trajectory.ArtifactSyzProg: "syz_mount_image(1)"},
+			Started:   c.mockedTime,
+			Finished:  c.mockedTime.Add(time.Second),
+		},
+	}))
+
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"SeedSyz": "syz_mount_image(2)",
+			"Success": true,
+		},
+	})
+	require.NoError(t, err)
+
+	// 1. Manager 1 polls candidate seeds.
+	pollResp, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "manager-1",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Len(t, pollResp.Seeds, 3)
+	require.NotEmpty(t, pollResp.Token)
+
+	// 2. Manager 1 marks them done.
+	err = c.aiClient.CandidateSeedsDone(&dashapi.CandidateSeedsDoneReq{
+		Name:  "manager-1",
+		Token: pollResp.Token,
+	})
+	require.NoError(t, err)
+
+	// 3. Manager 1 polls again, should get 0 seeds.
+	pollResp2, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "manager-1",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Empty(t, pollResp2.Seeds)
+	require.Empty(t, pollResp2.Token)
+
+	// 4. Manager 2 polls for the first time, should get all 3 seeds with target info.
+	pollResp3, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "manager-2",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Len(t, pollResp3.Seeds, 3)
+	require.Equal(t, targets.Linux, pollResp3.Seeds[0].TargetOS)
+	require.Equal(t, targets.AMD64, pollResp3.Seeds[0].TargetArch)
+
+	// 5. Generic client (e.g. hub) polls without target, gets all seeds.
+	pollRespHub, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name: "hub-client",
+	})
+	require.NoError(t, err)
+	require.Len(t, pollRespHub.Seeds, 3)
+	require.Equal(t, targets.Linux, pollRespHub.Seeds[0].TargetOS)
+	require.Equal(t, targets.AMD64, pollRespHub.Seeds[0].TargetArch)
+}
+
+func TestCandidateSeedsPagination(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	jobID, err := aidb.CreateJob(c.ctx, &aidb.Job{
+		Type:        "seed-gen",
+		Workflow:    "seed-gen",
+		Namespace:   "ains",
+		Description: "test job",
+		Link:        "http://test",
+	})
+	require.NoError(t, err)
+
+	// Insert 25 seeds sharing the exact same CreatedAt timestamp.
+	sameTime := c.mockedTime
+	var seeds []*aidb.CandidateSeed
+	for i := range 25 {
+		progBytes := []byte(fmt.Sprintf("syz_mount_image(%d)", i))
+		seeds = append(seeds, &aidb.CandidateSeed{
+			Namespace:  "ains",
+			TargetOS:   targets.Linux,
+			TargetArch: targets.AMD64,
+			CreatedAt:  sameTime,
+			ID:         fmt.Sprintf("seed-%02d", i),
+			JobID:      jobID,
+			Prog:       progBytes,
+		})
+	}
+	require.NoError(t, aidb.AddCandidateSeeds(c.ctx, seeds))
+
+	// Page 1: Poll first 20 seeds.
+	pollResp1, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "mgr-paginated",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Len(t, pollResp1.Seeds, 20)
+	require.NotEmpty(t, pollResp1.Token)
+
+	// Acknowledge Page 1.
+	require.NoError(t, c.aiClient.CandidateSeedsDone(&dashapi.CandidateSeedsDoneReq{
+		Name:  "mgr-paginated",
+		Token: pollResp1.Token,
+	}))
+
+	// Page 2: Poll remaining 5 seeds (same timestamp).
+	pollResp2, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "mgr-paginated",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Len(t, pollResp2.Seeds, 5)
+	require.NotEmpty(t, pollResp2.Token)
+
+	// Acknowledge Page 2.
+	require.NoError(t, c.aiClient.CandidateSeedsDone(&dashapi.CandidateSeedsDoneReq{
+		Name:  "mgr-paginated",
+		Token: pollResp2.Token,
+	}))
+
+	// Page 3: No more seeds.
+	pollResp3, err := c.aiClient.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+		Name:       "mgr-paginated",
+		TargetOS:   targets.Linux,
+		TargetArch: targets.AMD64,
+	})
+	require.NoError(t, err)
+	require.Empty(t, pollResp3.Seeds)
 }
