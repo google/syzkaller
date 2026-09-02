@@ -348,6 +348,11 @@ var dynamicTitleReplacement = []replacement{
 		"IP",
 	},
 	{
+		// Replace IPv6 addresses.
+		regexp.MustCompile(`(^|\W)([0-9a-f:]*::[0-9a-f:]*|(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4})(\W|$)`),
+		"${1}IPV6ADDR${3}",
+	},
+	{
 		// Replace that everything looks like a file line number with "LINE".
 		regexp.MustCompile(`(\.\w+)(:[0-9]+)+`),
 		"${1}:LINE",
