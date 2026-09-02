@@ -572,3 +572,51 @@ pause()
 	require.NotEmpty(t, testedProgs)
 	require.Contains(t, testedProgs[0], "alarm(0xa)")
 }
+
+// Verify that during the validation phase, title switches of the same bug type are accepted
+// towards reliability, while low-priority failures and different bug types are ignored.
+func TestValidationRelaxedMatching(t *testing.T) {
+	ctx := &reproContext{
+		targetReport: &report.Report{
+			Title: "WARNING in sock_init_data",
+			Type:  crash.Warning,
+		},
+		stats:      new(Stats),
+		validating: true,
+	}
+	// Title variation of the same bug type is accepted.
+	v, err := ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "WARNING in sock_setsockopt",
+				Type:  crash.Warning,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.True(t, v.Crashed)
+
+	// Downgrade to low-priority failure (e.g. lost connection) is rejected.
+	v, err = ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "lost connection to test machine",
+				Type:  crash.LostConnection,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.False(t, v.Crashed)
+
+	// Different bug type (e.g. BUG vs Warning) is rejected.
+	v, err = ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "BUG: unable to handle kernel paging request",
+				Type:  crash.Bug,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.False(t, v.Crashed)
+}

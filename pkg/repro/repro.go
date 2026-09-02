@@ -66,6 +66,7 @@ type reproContext struct {
 	timeouts          targets.Timeouts
 	reportedDivergent map[string]bool
 	fast              bool
+	validating        bool
 	onDivergentCrash  func(rep *report.Report)
 }
 
@@ -266,6 +267,7 @@ func (ctx *reproContext) repro() (*Result, error) {
 		}
 	}
 	// Validate the resulting reproducer - a random rare kernel crash might have diverted the process.
+	ctx.validating = true
 	res.Reliability, err = calculateReliability(func() (bool, error) {
 		ret, err := ctx.testProg(res.Prog, res.Duration, res.Opts)
 		if err != nil {
@@ -711,8 +713,15 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 			return verdict{false, result.Duration}, nil
 		}
 		if ctx.targetReport != nil && !ctx.targetReport.SameBug(rep) {
+			// At the validation stage, we are testing the already extracted and minimized program.
+			// If it triggers different titles of the same bug type, we cannot do much with them
+			// anyway, so accept them towards reliability rather than dropping the reproducer.
+			if ctx.validating && ctx.targetReport.Type != crash.UnknownType && rep.Type == ctx.targetReport.Type {
+				ctx.report = rep
+				return verdict{true, result.Duration}, nil
+			}
 			ctx.reproLogf(2, "divergent crash: %v (target: %v)", rep.Title, ctx.targetReport.Title)
-			if onDivergent != nil && !ctx.reportedDivergent[rep.Title] {
+			if onDivergent != nil && !ctx.validating && !ctx.reportedDivergent[rep.Title] {
 				ctx.reportedDivergent[rep.Title] = true
 				onDivergent(rep)
 			}
