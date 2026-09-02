@@ -1,0 +1,7 @@
+TITLE: BUG: Address IPV6ADDR on device lo is missing its host route.
+
+[  184.801206][ T1191] IPv6: BUG: Address 2001:0db8:85a3:0000:0000:8a2e:0370:7334 on device lo is missing its host route.
+[  184.804883][ T4795] lo speed is unknown, defaulting to 1000
+[  184.804923][ T4795] syz0: Port: 1 Link ACTIVE
+SYZFAIL: failed to recv rpc
+fd=3 want=4 recv=0 n=0 (errno 9: Bad file descriptor)

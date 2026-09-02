@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -564,6 +565,41 @@ func TestSplitReportBytes(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			splitted := SplitReportBytes(test.input)
 			assert.Equal(t, test.wantFirst, string(splitted[0]))
+		})
+	}
+}
+
+func TestIPv6TitleReplacement(t *testing.T) {
+	tests := []struct {
+		name  string
+		title string
+		want  string
+	}{
+		{
+			name:  "short",
+			title: "here's IP: aaaa::",
+			want:  "here's IP: IPV6ADDR",
+		},
+		{
+			name:  "long",
+			title: "long IP: 2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+			want:  "long IP: IPV6ADDR",
+		},
+		{
+			name:  "unrelated 0:0:0",
+			title: "some 0:0:0 text",
+			want:  "some NUM:NUM:NUM text",
+		},
+		{
+			name:  "unrelated colons",
+			title: "other a:b:c text",
+			want:  "other a:b:c text",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := replaceTable(dynamicTitleReplacement, test.title)
+			require.Equal(t, test.want, got)
 		})
 	}
 }
