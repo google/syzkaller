@@ -153,7 +153,7 @@ func (tei *testExecInterface) RunSyz(_ context.Context, syzProg []byte, _ instan
 	return tei.run(syzProg)
 }
 
-func runTestReproEnv(t *testing.T, log string, env Environment, exec execInterface) (*Result, *Stats, error) {
+func testEnvironment(t *testing.T, exec execInterface) Environment {
 	mgrConfig := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -171,15 +171,17 @@ func runTestReproEnv(t *testing.T, log string, env Environment, exec execInterfa
 	if err != nil {
 		t.Fatal(err)
 	}
-	env.Config = mgrConfig
-	env.Features = flatrpc.AllFeatures
-	env.Reporter = reporter
-	env.logf = t.Logf
-	return runInner(context.Background(), []byte(log), env, exec)
+	return Environment{
+		Config:   mgrConfig,
+		Features: flatrpc.AllFeatures,
+		Reporter: reporter,
+		logf:     t.Logf,
+		exec:     exec,
+	}
 }
 
 func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
-	return runTestReproEnv(t, log, Environment{}, exec)
+	return RunFromLog(context.Background(), []byte(log), testEnvironment(t, exec))
 }
 
 const testReproLog = `
@@ -397,11 +399,12 @@ func TestBrokenCompilerRepro(t *testing.T) {
 		Fast:     false,
 		Reporter: reporter,
 		logf:     t.Logf,
+		exec: &testExecInterface{
+			run: testExecRunner,
+		},
 	}
 
-	result, _, err := runInner(context.Background(), []byte(testReproLog), env, &testExecInterface{
-		run: testExecRunner,
-	})
+	result, _, err := RunFromLog(context.Background(), []byte(testReproLog), env)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, false, result.CRepro, "C repro should have been skipped")
@@ -488,15 +491,7 @@ alarm(0xa)
 pause()
 `
 	var divergentReports []*report.Report
-	env := Environment{
-		TargetReport: &report.Report{
-			Title: "panic: target error",
-		},
-		OnDivergentCrash: func(rep *report.Report) {
-			divergentReports = append(divergentReports, rep)
-		},
-	}
-	result, _, err := runTestReproEnv(t, log, env, &testExecInterface{
+	env := testEnvironment(t, &testExecInterface{
 		run: func(p []byte) (*instance.RunResult, error) {
 			if strings.Contains(string(p), "pause()") {
 				return fakeCrashResult("WARNING: unrelated warning"), nil
@@ -507,6 +502,14 @@ pause()
 			return fakeCrashResult(""), nil
 		},
 	})
+	env.OnDivergentCrash = func(rep *report.Report) {
+		divergentReports = append(divergentReports, rep)
+	}
+	target := &report.Report{
+		Title:  "panic: target error",
+		Output: []byte(log),
+	}
+	result, _, err := Run(context.Background(), target, env)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "panic: target error", result.Report.Title)
@@ -517,14 +520,15 @@ pause()
 	require.Contains(t, string(divergentReports[0].Output), "pause()")
 }
 
-func TestNoInitialReport(t *testing.T) {
+func TestLogWithoutReport(t *testing.T) {
 	const log = `
 2015/12/21 12:18:05 executing program 1:
 alarm(0xa)
 2015/12/21 12:18:10 executing program 2:
 pause()
 `
-	result, _, err := runTestRepro(t, log, &testExecInterface{
+	var divergentReports []*report.Report
+	env := testEnvironment(t, &testExecInterface{
 		run: func(p []byte) (*instance.RunResult, error) {
 			if strings.Contains(string(p), "pause()") {
 				return fakeCrashResult("WARNING: first crash"), nil
@@ -532,10 +536,15 @@ pause()
 			return fakeCrashResult(""), nil
 		},
 	})
+	env.OnDivergentCrash = func(rep *report.Report) {
+		divergentReports = append(divergentReports, rep)
+	}
+	result, _, err := RunFromLog(context.Background(), []byte(log), env)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "WARNING: first crash", result.Report.Title)
 	require.Equal(t, "pause()\n", string(result.Prog.Serialize()))
+	require.Empty(t, divergentReports)
 }
 
 // Verify that if Executor.ExecID is present in the crash report, that program is tested
@@ -547,17 +556,16 @@ alarm(0xa)
 2015/12/21 12:18:10 executing program 2 (id=200):
 pause()
 `
-	env := Environment{
-		TargetReport: &report.Report{
-			Title: "panic: target error",
-			Type:  crash.TitleToType("panic: target error"),
-			Executor: &report.ExecutorInfo{
-				ExecID: 100,
-			},
+	target := &report.Report{
+		Title:  "panic: target error",
+		Type:   crash.TitleToType("panic: target error"),
+		Output: []byte(log),
+		Executor: &report.ExecutorInfo{
+			ExecID: 100,
 		},
 	}
 	var testedProgs []string
-	result, _, err := runTestReproEnv(t, log, env, &testExecInterface{
+	result, _, err := Run(context.Background(), target, testEnvironment(t, &testExecInterface{
 		run: func(p []byte) (*instance.RunResult, error) {
 			testedProgs = append(testedProgs, string(p))
 			if strings.Contains(string(p), "alarm(0xa)") {
@@ -565,7 +573,7 @@ pause()
 			}
 			return fakeCrashResult(""), nil
 		},
-	})
+	}))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "alarm(0xa)\n", string(result.Prog.Serialize()))

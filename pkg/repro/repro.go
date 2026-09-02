@@ -79,38 +79,50 @@ type execInterface interface {
 }
 
 type Environment struct {
-	Config       *mgrconfig.Config
-	Features     flatrpc.Feature
-	Reporter     *report.Reporter
-	Pool         *vm.Dispatcher
-	TargetReport *report.Report
+	Config   *mgrconfig.Config
+	Features flatrpc.Feature
+	Reporter *report.Reporter
+	Pool     *vm.Dispatcher
 	// The Fast repro mode restricts the repro log bisection,
 	// it skips multiple simpifications and C repro generation.
 	Fast             bool
 	OnDivergentCrash func(rep *report.Report)
 
 	logf func(string, ...any)
+	exec execInterface
 }
 
-func Run(ctx context.Context, log []byte, env Environment) (*Result, *Stats, error) {
-	return runInner(ctx, log, env, &poolWrapper{
-		cfg:      env.Config,
-		reporter: env.Reporter,
-		pool:     env.Pool,
-	})
+func Run(ctx context.Context, target *report.Report, env Environment) (*Result, *Stats, error) {
+	if target == nil || target.Title == "" {
+		return nil, nil, fmt.Errorf("target report with title is required")
+	}
+	return runInner(ctx, target, target.Output, env, env.exec)
+}
+
+func RunFromLog(ctx context.Context, log []byte, env Environment) (*Result, *Stats, error) {
+	if env.Reporter != nil {
+		if rep := env.Reporter.Parse(log); rep != nil && rep.Title != "" {
+			return Run(ctx, rep, env)
+		}
+	}
+	return runInner(ctx, nil, log, env, env.exec)
 }
 
 var ErrEmptyCrashLog = errors.New("no programs")
 
-func runInner(ctx context.Context, crashLog []byte, env Environment, exec execInterface) (*Result, *Stats, error) {
+func runInner(ctx context.Context, targetReport *report.Report, crashLog []byte, env Environment,
+	exec execInterface) (*Result, *Stats, error) {
+	if exec == nil {
+		exec = &poolWrapper{
+			cfg:      env.Config,
+			reporter: env.Reporter,
+			pool:     env.Pool,
+		}
+	}
 	cfg := env.Config
 	entries := cfg.Target.ParseLog(crashLog, prog.NonStrict)
 	if len(entries) == 0 {
 		return nil, nil, fmt.Errorf("log (%d bytes) parse failed: %w", len(crashLog), ErrEmptyCrashLog)
-	}
-	targetReport := env.TargetReport
-	if targetReport == nil {
-		targetReport = env.Reporter.Parse(crashLog)
 	}
 	testTimeouts := []time.Duration{
 		max(30*time.Second, 3*cfg.Timeouts.Program), // to catch simpler crashes (i.e. no races and no hangs)
@@ -122,17 +134,17 @@ func runInner(ctx context.Context, crashLog []byte, env Environment, exec execIn
 		crashType = targetReport.Type
 	}
 	switch {
-	case targetReport == nil || targetReport.Title == "":
-		// Lost connection can be detected faster,
-		// but theoretically if it's caused by a race it may need the largest timeout.
-		// No output can only be reproduced with the max timeout.
-		// As a compromise we use the smallest and the largest timeouts.
-		testTimeouts = []time.Duration{testTimeouts[0], testTimeouts[2]}
 	case crashType == crash.MemoryLeak:
 		// Memory leaks can't be detected quickly because of expensive setup and scanning.
 		testTimeouts = testTimeouts[1:]
 	case crashType == crash.Hang:
 		testTimeouts = testTimeouts[2:]
+	case targetReport == nil:
+		// Lost connection can be detected faster,
+		// but theoretically if it's caused by a race it may need the largest timeout.
+		// No output can only be reproduced with the max timeout.
+		// As a compromise we use the smallest and the largest timeouts.
+		testTimeouts = []time.Duration{testTimeouts[0], testTimeouts[2]}
 	}
 	if env.Fast {
 		testTimeouts = []time.Duration{30 * time.Second, 5 * time.Minute}

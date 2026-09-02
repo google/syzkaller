@@ -537,14 +537,13 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
-	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
-		Config:       mgr.cfg,
-		Features:     mgr.enabledFeatures,
-		Reporter:     mgr.reporter,
-		Pool:         mgr.pool,
-		TargetReport: crash.Report,
+	res, stats, err := runRepro(ctx, crash, repro.Environment{
+		Config:   mgr.cfg,
+		Features: mgr.enabledFeatures,
+		Reporter: mgr.reporter,
+		Pool:     mgr.pool,
 		OnDivergentCrash: func(rep *report.Report) {
-			log.Logf(0, "reproducing %q yielded divergent crash %q", crash.Title, rep.Title)
+			log.Logf(0, "reproducing %q yielded divergent crash %q", crash.FullTitle(), rep.Title)
 			select {
 			case mgr.crashes <- &manager.Crash{Report: rep}:
 			case <-ctx.Done():
@@ -576,6 +575,14 @@ func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager
 	mgr.processRepro(ret)
 
 	return ret
+}
+
+func runRepro(ctx context.Context, crash *manager.Crash, env repro.Environment) (
+	*repro.Result, *repro.Stats, error) {
+	if crash.Report == nil || crash.Report.Title == "" {
+		return repro.RunFromLog(ctx, crash.Output, env)
+	}
+	return repro.Run(ctx, crash.Report, env)
 }
 
 func (mgr *Manager) processRepro(res *manager.ReproResult) {

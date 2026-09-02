@@ -216,28 +216,28 @@ func (m *mockRunner) Results() <-chan reproRunnerResult {
 	return m.doneCh
 }
 
-func mockRepro(title string, err error) func(context.Context, []byte, repro.Environment) (
+func mockRepro(title string, err error) func(context.Context, *report.Report, repro.Environment) (
 	*repro.Result, *repro.Stats, error) {
 	return mockReproCallback(title, err, nil)
 }
 
 func mockReproCallback(title string, returnErr error,
-	callback func()) func(context.Context, []byte, repro.Environment) (
+	callback func()) func(context.Context, *report.Report, repro.Environment) (
 	*repro.Result, *repro.Stats, error) {
-	return func(ctx context.Context, crashLog []byte, env repro.Environment) (*repro.Result, *repro.Stats, error) {
+	return func(ctx context.Context, target *report.Report, env repro.Environment) (*repro.Result, *repro.Stats, error) {
 		if callback != nil {
 			callback()
 		}
 		if returnErr != nil {
 			return nil, nil, returnErr
 		}
-		target, err := prog.GetTarget("test", "64")
+		progTarget, err := prog.GetTarget("test", "64")
 		if err != nil {
 			return nil, nil, err
 		}
 		return &repro.Result{
 			Report: &report.Report{Title: title},
-			Prog:   target.DataMmapProg(),
+			Prog:   progTarget.DataMmapProg(),
 		}, &repro.Stats{}, nil
 	}
 }

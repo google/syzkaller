@@ -47,7 +47,7 @@ type Config struct {
 	IgnoreCrash func(context.Context, string) (bool, error)
 
 	runner   runner
-	runRepro func(context.Context, []byte, repro.Environment) (*repro.Result, *repro.Stats, error)
+	runRepro func(context.Context, *report.Report, repro.Environment) (*repro.Result, *repro.Stats, error)
 }
 
 func (cfg *Config) TriageDeadline() <-chan time.Time {
@@ -425,13 +425,12 @@ func (dc *diffContext) RunRepro(ctx context.Context, crash *manager.Crash) *mana
 	dc.reproAttempts[crash.Title]++
 	dc.mu.Unlock()
 
-	res, stats, err := dc.cfg.runRepro(ctx, crash.Output, repro.Environment{
-		Config:       dc.new.Config(),
-		Features:     dc.new.Features(),
-		Reporter:     dc.new.Reporter(),
-		Pool:         dc.new.Pool(),
-		Fast:         !crash.FullRepro,
-		TargetReport: crash.Report,
+	res, stats, err := dc.cfg.runRepro(ctx, crash.Report, repro.Environment{
+		Config:   dc.new.Config(),
+		Features: dc.new.Features(),
+		Reporter: dc.new.Reporter(),
+		Pool:     dc.new.Pool(),
+		Fast:     !crash.FullRepro,
 		OnDivergentCrash: func(rep *report.Report) {
 			log.Logf(0, "reproducing %q yielded divergent crash %q", crash.Title, rep.Title)
 			select {
