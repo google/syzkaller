@@ -85,6 +85,9 @@ func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
 	eg.Go(func() error {
 		defer cancel()
 		if err := rm.Loop(); err != nil {
+			if egCtx.Err() != nil {
+				return nil
+			}
 			return fmt.Errorf("isolated RunnerManager loop failed: %w", err)
 		}
 		if egCtx.Err() == nil {
