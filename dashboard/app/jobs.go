@@ -15,7 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
 	db "google.golang.org/appengine/v2/datastore"
@@ -2010,22 +2012,19 @@ type testReproCReqArgs struct {
 }
 
 // handleTestReproCRequest creates a JobTestPatch job to test a C reproducer on a manager.
-func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job, error) {
+func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job, *db.Key, error) {
 	if len(args.reproC) == 0 {
-		return nil, &BadTestRequestError{"C reproducer is empty"}
+		return nil, nil, &BadTestRequestError{"C reproducer is empty"}
 	}
 	crash, crashKey, err := findCrashForBug(ctx, args.bug)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find a crash for bug: %w", err)
+		return nil, nil, fmt.Errorf("failed to find a crash for bug: %w", err)
 	}
 	targetMgr := args.manager
 	if targetMgr == "" {
 		targetMgr = crash.Manager
 	}
 	manager, _ := activeManager(ctx, targetMgr, args.bug.Namespace)
-	if existing := findDuplicateTestReproCJob(ctx, args.bugKey, manager, args.reproC); existing != nil {
-		return existing, nil
-	}
 	var build *Build
 	if manager != "" {
 		build, err = lastManagerBuild(ctx, args.bug.Namespace, manager)
@@ -2033,9 +2032,9 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 		build, err = loadBuild(ctx, args.bug.Namespace, crash.BuildID)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to load build: %w", err)
+		return nil, nil, fmt.Errorf("failed to load build: %w", err)
 	}
-	job, _, err := addTestJob(ctx, &testJobArgs{
+	return addTestJob(ctx, &testJobArgs{
 		crash:     crash,
 		crashKey:  crashKey,
 		configRef: build.KernelConfig,
@@ -2049,27 +2048,50 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 			reproC:  args.reproC,
 		},
 	})
-	return job, err
 }
 
-func findDuplicateTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) *Job {
-	var existingJobs []*Job
-	_, err := db.NewQuery("Job").
+// extractAIJobReproC extracts raw C reproducer bytes and target manager from an AI job.
+func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) (reproC []byte, manager string) {
+	outputs, err := castJobResults[ai.ReproCOutputs](aiJob)
+	if err != nil || outputs.ReproC == "" {
+		return nil, ""
+	}
+	if argsMap, ok := aiJob.Args.Value.(map[string]any); ok {
+		manager, _ = argsMap["KernelConfigManager"].(string)
+	}
+	if manager == "" && bug != nil && len(bug.HappenedOn) > 0 {
+		manager = bug.HappenedOn[0]
+	}
+	return []byte(outputs.ReproC), manager
+}
+
+// findTestReproCJob queries Datastore for an existing JobTestPatch job matching reproC under bugKey.
+func findTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) (*Job, *db.Key, error) {
+	query := db.NewQuery("Job").
 		Ancestor(bugKey).
 		Filter("Type=", JobTestPatch).
-		Filter("Manager=", manager).
-		Filter("Finished=", time.Time{}).
-		GetAll(ctx, &existingJobs)
+		Filter("Manager=", manager)
+	var existingJobs []*Job
+	keys, err := query.GetAll(ctx, &existingJobs)
 	if err != nil {
-		return nil
+		return nil, nil, err
 	}
-	for _, j := range existingJobs {
+	for i, j := range existingJobs {
 		if j.CandidateReproC != 0 {
 			existingReproC, _, err := getText(ctx, textReproC, j.CandidateReproC)
-			if err == nil && bytes.Equal(existingReproC, reproC) {
-				return j
+			if err != nil {
+				return nil, nil, err
+			}
+			if bytes.Equal(existingReproC, reproC) {
+				return j, keys[i], nil
 			}
 		}
 	}
-	return nil
+	return nil, nil, nil
+}
+
+// hasTestReproCJob checks if any JobTestPatch job (pending or finished) exists for reproC on manager.
+func hasTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) (bool, error) {
+	job, _, err := findTestReproCJob(ctx, bugKey, manager, reproC)
+	return job != nil, err
 }

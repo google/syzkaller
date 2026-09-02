@@ -1277,8 +1277,7 @@ func TestAITestReproC(t *testing.T) {
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: aiJobResp.ID,
 		Results: map[string]any{
-			"ReproC":              "int main() { return 0; }",
-			"KernelConfigManager": build.Manager,
+			"ReproC": "int main() { return 0; }",
 		},
 	})
 	require.NoError(t, err)
