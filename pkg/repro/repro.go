@@ -688,10 +688,8 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 	for range attempts {
 		const errAttempts = 3
 		for range errAttempts {
-			// It's hard to classify all kinds of errors into the one worth repeating
-			// and not. So let's just retry runs for all errors.
-			// If the problem is transient, it will likely go away.
-			// If the problem is permanent, it will just be the same.
+			// Repeat the run multiple times to work around transient errors.
+			// If the run fails every time, take the last error.
 			result, err = callback()
 			if err == nil {
 				break
