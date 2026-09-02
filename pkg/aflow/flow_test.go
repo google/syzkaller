@@ -495,3 +495,63 @@ func TestConsumeTokens(t *testing.T) {
 		require.Contains(t, err.Error(), "workflow reached token limit (100)")
 	})
 }
+
+func TestRecordArtifact(t *testing.T) {
+	ctx := &Context{
+		onEvent: func(*trajectory.Span) error { return nil },
+		stubContext: stubContext{
+			timeNow: time.Now,
+		},
+	}
+	parent := &trajectory.Span{Name: "parent"}
+	require.NoError(t, ctx.startSpan(parent))
+
+	// Record artifact on parent span.
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, "parent-prog")
+	require.Equal(t, "parent-prog", parent.Artifacts[trajectory.ArtifactSyzProg])
+
+	// Child span.
+	child := &trajectory.Span{Name: "child"}
+	require.NoError(t, ctx.startSpan(child))
+
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, "child-prog")
+	require.Equal(t, "child-prog", child.Artifacts[trajectory.ArtifactSyzProg])
+	require.Equal(t, "parent-prog", parent.Artifacts[trajectory.ArtifactSyzProg])
+
+	// Empty artifact is ignored.
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, "")
+	require.Equal(t, "child-prog", child.Artifacts[trajectory.ArtifactSyzProg])
+
+	require.NoError(t, ctx.finishSpan(child, nil))
+
+	// After child finishes, recording goes back to parent.
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, "parent-prog-updated")
+	require.Equal(t, "parent-prog-updated", parent.Artifacts[trajectory.ArtifactSyzProg])
+
+	require.NoError(t, ctx.finishSpan(parent, nil))
+	require.Empty(t, ctx.activeSpans)
+
+	// Recording with no active spans does not crash.
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, "orphan-prog")
+
+	// Test recording artifact inside an action.
+	var finishedSpan *trajectory.Span
+	actionCtx := &Context{
+		onEvent: func(span *trajectory.Span) error {
+			if !span.Finished.IsZero() {
+				finishedSpan = span
+			}
+			return nil
+		},
+		stubContext: stubContext{
+			timeNow: time.Now,
+		},
+	}
+	action := NewFuncAction("action-record-artifact", func(ctx *Context, in struct{}) (struct{}, error) {
+		ctx.RecordArtifact(trajectory.ArtifactSyzProg, "action-prog")
+		return struct{}{}, nil
+	})
+	require.NoError(t, action.execute(actionCtx))
+	require.NotNil(t, finishedSpan)
+	require.Equal(t, "action-prog", finishedSpan.Artifacts[trajectory.ArtifactSyzProg])
+}

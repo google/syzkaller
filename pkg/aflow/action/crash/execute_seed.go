@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/hash"
@@ -53,6 +54,7 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 		return "", aflow.BadCallError("program has %d calls, exceeding the limit of %d", len(p.Calls), prog.MaxCalls)
 	}
 	fullSyz = string(p.Serialize())
+	ctx.RecordArtifact(trajectory.ArtifactSyzProg, fullSyz)
 
 	if args.Image == "" || len(args.VM) == 0 {
 		return "", fmt.Errorf("VM configuration is missing")
