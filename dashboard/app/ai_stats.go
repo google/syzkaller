@@ -15,11 +15,68 @@ import (
 )
 
 type uiAIGraphsPage struct {
-	Header            *uiHeader
+	Header *uiHeader
+	*uiAIGraphs
+}
+
+type uiAIGraphs struct {
 	TokenGraph        *uiGraph
 	JobTypeTokenGraph *uiGraph
 	FinishedJobsGraph *uiGraph
 	JobTypesGraph     *uiGraph
+}
+
+func aiGraphsKey(ns string) string {
+	return fmt.Sprintf("%s-ai-graphs", ns)
+}
+
+func loadAIGraphs(ctx context.Context, ns string) (*uiAIGraphs, error) {
+	var modelTokens []*aidb.MonthlyModelTokenStat
+	var jobTypeTokens []*aidb.MonthlyJobTypeTokenStat
+	var finishedJobs []*aidb.MonthlyFinishedJobsStat
+	var jobTypes []*aidb.MonthlyJobTypeStat
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		var err error
+		modelTokens, err = aidb.LoadMonthlyModelTokenStats(egCtx, ns)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		jobTypeTokens, err = aidb.LoadMonthlyJobTypeTokenStats(egCtx, ns)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		finishedJobs, err = aidb.LoadMonthlyFinishedJobsStats(egCtx, ns)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		jobTypes, err = aidb.LoadMonthlyJobTypeStats(egCtx, ns)
+		return err
+	})
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return &uiAIGraphs{
+		TokenGraph:        createAITokenGraph(modelTokens),
+		JobTypeTokenGraph: createAIJobTypeTokenGraph(jobTypeTokens),
+		FinishedJobsGraph: createAIFinishedJobsGraph(finishedJobs),
+		JobTypesGraph:     createAIJobTypesGraph(jobTypes),
+	}, nil
+}
+
+func CachedAIGraphs(ctx context.Context, ns string) (*uiAIGraphs, error) {
+	return cachedObject(ctx,
+		aiGraphsKey(ns),
+		6*time.Hour,
+		func(ctx context.Context) (*uiAIGraphs, error) {
+			return loadAIGraphs(ctx, ns)
+		},
+	)
 }
 
 func handleAIGraphs(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -34,47 +91,14 @@ func handleAIGraphs(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		return ErrClientNotFound
 	}
 
-	var modelTokens []*aidb.MonthlyModelTokenStat
-	var jobTypeTokens []*aidb.MonthlyJobTypeTokenStat
-	var finishedJobs []*aidb.MonthlyFinishedJobsStat
-	var jobTypes []*aidb.MonthlyJobTypeStat
-
-	eg, egCtx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		modelTokens, err = aidb.LoadMonthlyModelTokenStats(egCtx, hdr.Namespace)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		jobTypeTokens, err = aidb.LoadMonthlyJobTypeTokenStats(egCtx, hdr.Namespace)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		finishedJobs, err = aidb.LoadMonthlyFinishedJobsStats(egCtx, hdr.Namespace)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		jobTypes, err = aidb.LoadMonthlyJobTypeStats(egCtx, hdr.Namespace)
-		return err
-	})
-	if err := eg.Wait(); err != nil {
+	graphs, err := CachedAIGraphs(ctx, hdr.Namespace)
+	if err != nil {
 		return err
 	}
 
-	tokenGraph := createAITokenGraph(modelTokens)
-	jobTypeTokenGraph := createAIJobTypeTokenGraph(jobTypeTokens)
-	finishedGraph := createAIFinishedJobsGraph(finishedJobs)
-	jobTypesGraph := createAIJobTypesGraph(jobTypes)
-
 	page := &uiAIGraphsPage{
-		Header:            hdr,
-		TokenGraph:        tokenGraph,
-		JobTypeTokenGraph: jobTypeTokenGraph,
-		FinishedJobsGraph: finishedGraph,
-		JobTypesGraph:     jobTypesGraph,
+		Header:     hdr,
+		uiAIGraphs: graphs,
 	}
 
 	return serveTemplate(w, "graph_ai.html", page)
