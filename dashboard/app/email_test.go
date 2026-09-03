@@ -1206,7 +1206,7 @@ For more options, visit https://groups.google.com/d/optout.
 }
 
 func TestEmailPatchTestingAccess(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	client := c.client2

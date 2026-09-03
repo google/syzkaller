@@ -14,13 +14,16 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
 // nolint: funlen
 func TestBisectCause(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
+
+	appID := appengine.AppID(c.ctx)
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
@@ -116,9 +119,9 @@ func TestBisectCause(t *testing.T) {
 				CC: []string{
 					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
 					// These must be filtered out:
-					"syzbot@testapp.appspotmail.com",
-					"syzbot+1234@testapp.appspotmail.com",
-					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+					"syzbot@" + appID + ".appspotmail.com",
+					"syzbot+1234@" + appID + ".appspotmail.com",
+					"\"syzbot\" <syzbot+1234@" + appID + ".appspotmail.com>",
 				},
 				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
@@ -159,20 +162,21 @@ git tree:       repo1 branch1
 final oops:     %[3]v
 console output: %[4]v
 kernel config:  %[5]v
-dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
+dashboard link: https://%[8]v.appspot.com/bug?extid=%[1]v
 syz repro:      %[6]v
 C reproducer:   %[7]v
 
-Reported-by: syzbot+%[1]v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@%[8]v.appspotmail.com
 Fixes: 36e65cb4a044 ("kernel: add a bug")
 
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
-`, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
+`, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink,
+			kernelConfigLink, reproSyzLink, reproCLink, appID))
 
-		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(c.ctx), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
-		cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
-			dbBug.keyHash(c.ctx), crash2.ReproC))
+		syzRepro := []byte(fmt.Sprintf("# https://%v.appspot.com/bug?id=%v\n%s#%s\n%s",
+			appID, dbBug.keyHash(c.ctx), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
+		cRepro := []byte(fmt.Sprintf("// https://%v.appspot.com/bug?id=%v\n%s",
+			appID, dbBug.keyHash(c.ctx), crash2.ReproC))
 		c.checkURLContents(bisectLogLink, []byte("bisect log 2"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisect crash report"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisect crash log"))
@@ -204,7 +208,7 @@ HEAD commit:    111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
-dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
+dashboard link: https://%[9]v.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
 syz repro:      %[4]v
 C reproducer:   %[5]v
@@ -223,7 +227,7 @@ final oops:     %[7]v
 console output: %[8]v
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+%[1]v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@%[9]v.appspotmail.com
 Fixes: 36e65cb4a044 ("kernel: add a bug")
 
 report2
@@ -254,7 +258,7 @@ If the report is a duplicate of another one, reply with:
 If you want to undo deduplication, reply with:
 #syz undup`,
 			extBugID2, crashLogLink, kernelConfigLink, reproSyzLink, reproCLink,
-			bisectLogLink, bisectCrashReportLink, bisectCrashLogLink))
+			bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, appID))
 	}
 
 	// BisectCause #4
@@ -287,9 +291,9 @@ If you want to undo deduplication, reply with:
 				CC: []string{
 					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
 					// These must be filtered out:
-					"syzbot@testapp.appspotmail.com",
-					"syzbot+1234@testapp.appspotmail.com",
-					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+					"syzbot@" + appID + ".appspotmail.com",
+					"syzbot+1234@" + appID + ".appspotmail.com",
+					"\"syzbot\" <syzbot+1234@" + appID + ".appspotmail.com>",
 				},
 				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
@@ -375,9 +379,9 @@ If you want to undo deduplication, reply with:
 				CC: []string{
 					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
 					// These must be filtered out:
-					"syzbot@testapp.appspotmail.com",
-					"syzbot+1234@testapp.appspotmail.com",
-					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+					"syzbot@" + appID + ".appspotmail.com",
+					"syzbot+1234@" + appID + ".appspotmail.com",
+					"\"syzbot\" <syzbot+1234@" + appID + ".appspotmail.com>",
 				},
 				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
@@ -417,7 +421,7 @@ git tree:       repo1 branch1
 final oops:     %[3]v
 console output: %[4]v
 kernel config:  %[5]v
-dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
+dashboard link: https://%[8]v.appspot.com/bug?extid=%[1]v
 syz repro:      %[6]v
 
 If the result looks correct, please mark the issue as fixed by replying with:
@@ -425,10 +429,11 @@ If the result looks correct, please mark the issue as fixed by replying with:
 #syz fix: kernel: add a fix
 
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
-`, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
+`, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink,
+			kernelConfigLink, reproSyzLink, reproCLink, appID))
 
-		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(c.ctx), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
+		syzRepro := []byte(fmt.Sprintf("# https://%v.appspot.com/bug?id=%v\n%s#%s\n%s",
+			appID, dbBug.keyHash(c.ctx), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
 		c.checkURLContents(bisectLogLink, []byte("bisectfix log 4"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisectfix crash report 4"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisectfix crash log 4"))

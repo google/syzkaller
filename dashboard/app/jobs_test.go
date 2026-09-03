@@ -286,7 +286,7 @@ Note: testing is done by a robot and is best-effort only.
 
 // Test whether we can test boot time crashes.
 func TestBootErrorPatch(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	build := testBuild(1)
@@ -310,7 +310,7 @@ func TestBootErrorPatch(t *testing.T) {
 const testErrorTitle = `upstream test error: WARNING in __queue_work`
 
 func TestTestErrorPatch(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	build := testBuild(1)
@@ -940,7 +940,7 @@ func TestFixBisectionsListed(t *testing.T) {
 
 // Test that fix bisections do not occur if Repo has NoFixBisections set.
 func TestFixBisectionsDisabled(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	// Upload a crash report.
@@ -1136,7 +1136,7 @@ func TestExternalPatchCompletion(t *testing.T) {
 }
 
 func TestParallelJobs(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	client := c.client
