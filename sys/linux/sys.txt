@@ -213,6 +213,8 @@ brk(brk intptr)
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset intptr[0:0xffffffff, 0x1000])
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
+# mremap with MREMAP_DONTUNMAP requires old_len == new_len and MREMAP_MAYMOVE.
+mremap$dontunmap(addr vma, len len[addr], newlen len[addr], flags flags[mremap_dontunmap_flags], newaddr vma)
 remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
 mprotect(addr vma, len len[addr], prot flags[mmap_prot])
 msync(addr vma, len len[addr], f flags[msync_flags])
@@ -1377,7 +1379,10 @@ move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
 mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_SEM, PROT_GROWSDOWN, PROT_GROWSUP
 mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED, MAP_GROWSDOWN, MAP_HUGETLB, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE, MAP_POPULATE, MAP_STACK, MAP_UNINITIALIZED, MAP_SHARED_VALIDATE, MAP_SYNC, MAP_FIXED_NOREPLACE
-mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED, MREMAP_DONTUNMAP
+mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED
+mremap_dontunmap_flags = MREMAP_DONTUNMAP_MAYMOVE, MREMAP_DONTUNMAP_MAYMOVE_FIXED
+define MREMAP_DONTUNMAP_MAYMOVE	MREMAP_DONTUNMAP | MREMAP_MAYMOVE
+define MREMAP_DONTUNMAP_MAYMOVE_FIXED	MREMAP_DONTUNMAP | MREMAP_MAYMOVE | MREMAP_FIXED
 mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT, O_NOTIFICATION_PIPE
