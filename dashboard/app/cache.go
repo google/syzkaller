@@ -64,7 +64,7 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "failed load backports: %v", err)
 		return
 	}
-	for ns := range getConfig(c).Namespaces {
+	for ns, cfg := range getConfig(c).Namespaces {
 		bugs, _, err := loadNamespaceBugs(c, ns)
 		if err != nil {
 			log.Errorf(c, "failed load ns=%v bugs: %v", ns, err)
@@ -80,6 +80,14 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 		graph := createFoundBugs(c, filterStableGraphBugs(c, bugs, ns))
 		if err := setCachedObject(c, foundBugsGraphKey(ns), 6*time.Hour, graph); err != nil {
 			log.Errorf(c, "failed to store found bugs graph for ns=%v: %v", ns, err)
+		}
+		if cfg.AI != nil {
+			graphs, err := loadAIGraphs(c, ns)
+			if err != nil {
+				log.Errorf(c, "failed to build ai graphs for ns=%v: %v", ns, err)
+			} else if err := setCachedObject(c, aiGraphsKey(ns), 6*time.Hour, graphs); err != nil {
+				log.Errorf(c, "failed to store ai graphs for ns=%v: %v", ns, err)
+			}
 		}
 	}
 }
