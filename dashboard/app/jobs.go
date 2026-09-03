@@ -395,13 +395,19 @@ func getNextJob(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*
 	} else {
 		handlers = append(handlers, createBisectJob, jobFromBugSample)
 	}
+	var lastErr error
 	for _, f := range handlers {
 		job, jobKey, err := f(ctx, managers)
-		if job != nil || err != nil {
-			return job, jobKey, err
+		if err != nil {
+			log.Errorf(ctx, "job handler failed: %v", err)
+			lastErr = err
+			continue
+		}
+		if job != nil {
+			return job, jobKey, nil
 		}
 	}
-	return nil, nil, nil
+	return nil, nil, lastErr
 }
 
 const jobGenerationPeriod = time.Minute
