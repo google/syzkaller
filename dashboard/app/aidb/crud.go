@@ -406,6 +406,21 @@ func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
 	})
 }
 
+func LoadFinishedReproCJobs(ctx context.Context, since time.Time) ([]*Job, error) {
+	return selectAll[Job](ctx, spanner.Statement{
+		SQL: selectJobs() + `WHERE Workflow = 'repro-c'
+	AND Finished >= @since
+	AND Error = ''
+	AND BugID IS NOT NULL
+	AND BugID != ''
+	ORDER BY Created DESC
+	LIMIT 100`,
+		Params: map[string]any{
+			"since": since,
+		},
+	})
+}
+
 func LoadBugIDsWithPendingPatch(ctx context.Context, ns string, workflows []ai.WorkflowType) ([]string, error) {
 	if len(workflows) == 0 {
 		return nil, nil
