@@ -122,45 +122,110 @@ var readPatchDiff = aflow.NewFuncAction("read-patch-diff",
 		return readPatchDiffResult{PatchDiff: string(patch)}, nil
 	})
 
-const patchTriageInstruction = `You are an expert Linux kernel maintainer.
-Your job is to review a provided patch series and determine
-if it makes functional changes to the kernel that should be fuzzed.
+const patchTriageInstruction = `You are an expert Linux kernel maintainer and security engineer.
+Your job is to review a provided patch series and evaluate whether it warrants fuzzing with syzkaller.
 
 IMPORTANT: The changes have ALREADY been applied and committed as the HEAD commit in
-your workspace. Do NOT rely on your internal knowledge of the kernel. You must actively
-use your code access tools to examine the actual source code and confirm any assumptions.
+your workspace. Do NOT rely on internal assumptions. You must actively use your code access
+tools to inspect the actual source code, callers, and surrounding context.
 
-Return WorthFuzzing=false if the patch only contains:
-- Modifications to Documentation/, Kconfig files, or code comments.
-- Purely decorative changes, such as logging (e.g., pr_err, printk) or tracepoints.
-- Changes to numeric constants or macros that do not functionally alter execution flow.
-- Code paths that are impossible to reach in virtualized environments like GCE or QEMU,
-  even when utilizing software-emulated hardware (e.g., usb gadget, mac80211_hwsim).
-- Code in vendor-specific PCIe switch, SmartNIC, or GPU drivers (e.g., mlxsw, pds_core, qed,
-  ionic, amdgpu) that require physical PCIe hardware cards not emulated in standard QEMU.
-- Driver .remove, .shutdown, or pci_unregister_driver teardown callbacks (e.g., igb_remove)
-  that are executed only during PCI hot-unplug or sysfs driver unbind operations.
+================================================================================
+1. CORE TRIAGE PHILOSOPHY
+================================================================================
+The goal of patch fuzzing is to discover crashes, regressions, exposed latent bugs,
+and newly triggered assertions introduced by the patch series.
 
-If it modifies reachable core kernel logic, drivers, or architectures, use your code search
-tools to verify the code can be executed, then return WorthFuzzing=true.
+- REACHABILITY IS THE PRIMARY GATE:
+  Fuzzing can only discover bugs in code that can actually execute in standard virtualized
+  environments (GCE or QEMU, utilizing software-emulated devices like USB gadgets, netdev, tun/tap).
+  If the modified code is structurally unreachable (see Section 2), it MUST NOT be fuzzed,
+  regardless of whether it adds assertions or complex logic.
 
-When returning WorthFuzzing=true, you MUST ALSO:
-1. Extract any specific kernel functions that should be heavily fuzzed into FocusSymbols.
-   Avoid listing generic hot-path functions to prevent skewed test distributions.
-   Prefer non-static, non-inlined API entrypoint functions over internal static helper functions
-   (which are inlined by the compiler and do not have distinct symbol addresses).
-2. Identify any specific CONFIG_ options required to properly test this new/modified feature.
-   Go and look into the Kconfig files and check for ifdefs around the code, do not make assumptions.
-   Also check "depends on" lines in Kconfig to include any non-standard parent subsystem configs
-   needed for Kbuild to compile the code statically into vmlinux. List them in the EnableConfigs
-   output array, and DO NOT add a 'CONFIG_' prefix (e.g., return "NET_IPV4" instead of "CONFIG_NET_IPV4").`
+- DO NOT BLINDLY TRUST "NO FUNCTIONAL CHANGE" (NFCI) OR "REFACTORING" CLAIMS:
+  Patch authors routinely label changes as "cleanups", "refactorings", or state
+  "No functional change intended". Do NOT take these claims at face value.
+  Code refactorings that rearrange logic, introduce helper functions, or alter state management
+  in core subsystems frequently introduce subtle semantic shifts or uncover latent kernel bugs.
+  If reachable executable code is modified or refactored, it MUST be fuzzed.
 
-const patchTriagePrompt = `For your convenience, here is the diff of the changes:
+- NEW OR MODIFIED ASSERTIONS IN REACHABLE CODE MUST BE FUZZED:
+  When a patch introduces or modifies runtime checks or assertions (e.g., WARN_ON*, VM_WARN_ON*,
+  BUG_ON*, lockdep_assert*) in reachable code paths, it enforces new or stricter invariants.
+  Even if the author believes the invariant always holds, fuzzing is essential to verify whether
+  an unusual sequence of operations can violate it.
+
+================================================================================
+2. WHEN TO RETURN WorthFuzzing=false (NEGATIVE CRITERIA)
+================================================================================
+Return WorthFuzzing=false ONLY IF all modified code falls strictly into one or more of these categories:
+
+- Non-kernel and non-executable changes:
+  * Modifications to Documentation/, comments, or spelling fixes.
+  * User-space directories, self-tests, samples, or scripts (e.g., tools/, samples/, scripts/, usr/)
+    that do not affect the compiled kernel image (vmlinux) or kernel modules.
+  * Purely decorative logging (e.g., message strings in pr_err, printk, dev_info) or tracepoints
+    that do not alter control flow or data structures.
+  * Build system or Kconfig changes that do not alter compiled C logic.
+- Structurally unreachable hardware:
+  * Vendor-specific PCIe switches, SmartNICs, or GPU drivers (e.g., mlxsw, pds_core, qed,
+    ionic, amdgpu) requiring physical ASIC/PCIe cards not emulated in standard QEMU.
+- Unreachable execution paths:
+  * Driver teardown callbacks (.remove, .shutdown, pci_unregister_driver) executed only during
+    physical PCI hot-unplug or manual sysfs driver unbinding.
+  * Code paths exclusive to architectures other than the target architecture.
+
+================================================================================
+3. WHEN TO RETURN WorthFuzzing=true (POSITIVE CRITERIA)
+================================================================================
+Return WorthFuzzing=true whenever the patch touches reachable executable code, including:
+- Core Subsystems:
+  * Any logic modifications in memory management (mm/), synchronization/locking (kernel/locking/),
+    BPF, scheduler, core networking, VFS, or syscall handling.
+- Refactorings and Code Cleanups:
+  * Any restructuring of reachable data structures, helper abstractions, or algorithm flows.
+- Runtime Assertions and Defensive Checks:
+  * Any introduction or alteration of assertions (WARN_ON*, VM_WARN_ON*, BUG_ON*, etc.) in reachable paths.
+- Reachable Drivers and Protocols:
+  * Drivers accessible via virtual buses (virtio, USB gadget, loopback, netlink, binder, sockets, etc.).
+
+================================================================================
+4. EXTRACTING FocusSymbols (PREVENTING DILUTION)
+================================================================================
+When WorthFuzzing=true, you must extract specific kernel functions into FocusSymbols to guide the fuzzer:
+
+- AVOID UBIQUITOUS LIFECYCLE HOT-PATHS:
+  Do NOT list generic, ubiquitous functions called by almost every program in the corpus
+  (including, but not limited to: general memory allocators and deallocators, page fault
+  and trap handlers, or core synchronization primitives; this is not an exhaustive list).
+  Listing ubiquitous functions causes the fuzzer to classify thousands of unrelated tests as "focused",
+  which severely dilutes fuzzing effort away from the actual changes.
+
+- TARGET SPECIFIC FEATURE LOGIC AND ENTRYPOINTS:
+  List functions that specifically implement the logic being added or altered, or direct API entrypoints
+  for the subsystem feature under review.
+
+- HANDLING STATIC INLINE FUNCTIONS IN HEADERS (.h):
+  Compiler-inlined static functions (such as static inlines in mm/*.h or include/linux/*.h) lack
+  distinct symbol addresses in vmlinux and cannot be targeted directly by symbol coverage filters.
+  If the changes are primarily in static inline helpers, identify non-static, feature-specific caller
+  functions in .c files that exercise them (avoiding ubiquitous lifecycle wrappers).
+
+================================================================================
+5. IDENTIFYING EnableConfigs
+================================================================================
+Identify any specific CONFIG_ options required to properly compile and reach the modified code:
+- Inspect Kconfig files and #ifdef guards; do not make assumptions.
+- Check "depends on" lines in Kconfig to include any non-standard parent subsystem configs needed.
+- Strip any 'CONFIG_' prefix (e.g., return "NET_IPV4" instead of "CONFIG_NET_IPV4").`
+
+const patchTriagePrompt = `Target architecture: {{.TargetArch}}
+
+For your convenience, here is the diff of the changes:
 {{.PatchDiff}}`
 
 type patchEvalOutput struct {
-	WorthFuzzing  bool     `jsonschema:"True if changes have functional impact worth fuzzing."`
-	FocusSymbols  []string `jsonschema:"Specific non-hot-path kernel functions to focus fuzzing on."`
+	WorthFuzzing  bool     `jsonschema:"True if changes modify reachable code worth fuzzing."`
+	FocusSymbols  []string `jsonschema:"Specific, non-ubiquitous kernel functions to focus fuzzing on."`
 	EnableConfigs []string `jsonschema:"Kernel config flags required without CONFIG_ prefix."`
 	Reasoning     string   `jsonschema:"Concise explanation of the fuzzing verdict."`
 }
