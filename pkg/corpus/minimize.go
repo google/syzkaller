@@ -47,9 +47,9 @@ func (corpus *Corpus) Minimize(cover bool) {
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)
 		corpus.progsMap[inp.Sig] = inp
-		corpus.saveProgram(inp.Prog, inp.Signal)
+		corpus.saveProgram(inp.Prog, len(inp.Signal))
 		for area := range inp.areas {
-			area.saveProgram(inp.Prog, inp.Signal)
+			area.saveProgram(inp.Prog, area.inAreaPCs(inp.Cover))
 		}
 	}
 }

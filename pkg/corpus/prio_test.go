@@ -117,3 +117,45 @@ func TestFocusAreas(t *testing.T) {
 	assert.InDelta(t, secondCount, TOTAL*0.3, TOTAL/25)
 	assert.InDelta(t, thirdCount, TOTAL*0.6, TOTAL/25)
 }
+
+func TestFocusAreaInAreaWeighting(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+	rnd := rand.New(rs)
+
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name:     "patch",
+			CoverPCs: map[uint64]struct{}{10: {}, 11: {}},
+			Weight:   1.0,
+		},
+	})
+
+	// inp1 has 100 global signal entries, but only 1 PC in the focus area.
+	inp1 := generateRangedInput(target, rs, 1, 100)
+	inp1.Cover = []uint64{10}
+
+	// inp2 has only 2 global signal entries, but both of its PCs are in the focus area.
+	inp2 := generateRangedInput(target, rs, 101, 102)
+	inp2.Cover = []uint64{10, 11}
+
+	corpus.Save(inp1)
+	corpus.Save(inp2)
+
+	verifySampling := func(stage string) {
+		counts := make(map[*prog.Prog]int)
+		const iters = 10000
+		for range iters {
+			counts[corpus.ChooseProgram(rnd)]++
+		}
+		// inp2 has 2 focus PCs, inp1 has 1 focus PC.
+		// inp2 should be chosen ~2/3 (66.7%) of the time, inp1 ~1/3 (33.3%).
+		// Under the old bug (len(signal)), inp1 would be chosen ~98% of the time.
+		assert.InDelta(t, 2.0/3.0, float64(counts[inp2.Prog])/iters, 0.05, stage)
+		assert.InDelta(t, 1.0/3.0, float64(counts[inp1.Prog])/iters, 0.05, stage)
+	}
+
+	verifySampling("before minimization")
+	corpus.Minimize(true)
+	verifySampling("after minimization")
+}

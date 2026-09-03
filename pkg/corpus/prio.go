@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -28,12 +27,11 @@ func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
 	return pl.progs[idx]
 }
 
-func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
-	prio := int64(len(signal))
+func (pl *ProgramsList) saveProgram(p *prog.Prog, prio int) {
 	if prio == 0 {
 		prio = 1
 	}
-	pl.sumPrios += prio
+	pl.sumPrios += int64(prio)
 	pl.accPrios = append(pl.accPrios, pl.sumPrios)
 	pl.progs = append(pl.progs, p)
 }

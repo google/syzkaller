@@ -47,6 +47,16 @@ type FocusArea struct {
 	Weight   float64
 }
 
+func (fa *FocusArea) inAreaPCs(cover []uint64) int {
+	var count int
+	for _, pc := range cover {
+		if _, ok := fa.CoverPCs[pc]; ok {
+			count++
+		}
+	}
+	return count
+}
+
 func NewCorpus(ctx context.Context) *Corpus {
 	return NewMonitoredCorpus(ctx, nil)
 }
@@ -161,7 +171,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 			newItem.Updates = append(newItem.Updates, update)
 		}
 		corpus.progsMap[sig] = newItem
-		corpus.applyFocusAreas(newItem, inp.Cover)
+		corpus.applyFocusAreas(newItem)
 	} else {
 		item := &Item{
 			Sig:     sig,
@@ -173,8 +183,8 @@ func (corpus *Corpus) Save(inp NewInput) {
 			Updates: []ItemUpdate{update},
 		}
 		corpus.progsMap[sig] = item
-		corpus.applyFocusAreas(item, inp.Cover)
-		corpus.saveProgram(inp.Prog, inp.Signal)
+		corpus.applyFocusAreas(item)
+		corpus.saveProgram(inp.Prog, len(inp.Signal))
 	}
 	corpus.signal.Merge(inp.Signal)
 	newCover := corpus.cover.MergeDiff(inp.Cover)
@@ -191,22 +201,16 @@ func (corpus *Corpus) Save(inp NewInput) {
 	}
 }
 
-func (corpus *Corpus) applyFocusAreas(item *Item, coverDelta []uint64) {
+func (corpus *Corpus) applyFocusAreas(item *Item) {
 	for _, area := range corpus.focusAreas {
 		if _, ok := item.areas[area]; ok {
 			continue
 		}
-		matches := false
-		for _, pc := range coverDelta {
-			if _, ok := area.CoverPCs[pc]; ok {
-				matches = true
-				break
-			}
-		}
-		if !matches {
+		prio := area.inAreaPCs(item.Cover)
+		if prio == 0 {
 			continue
 		}
-		area.saveProgram(item.Prog, item.Signal)
+		area.saveProgram(item.Prog, prio)
 		if item.areas == nil {
 			item.areas = make(map[*focusAreaState]struct{})
 		}
