@@ -21,7 +21,7 @@ func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
 	if len(pl.progs) == 0 {
 		return nil
 	}
-	randVal := r.Int63n(pl.sumPrios + 1)
+	randVal := r.Int63n(pl.sumPrios) + 1
 	idx := sort.Search(len(pl.accPrios), func(i int) bool {
 		return pl.accPrios[i] >= randVal
 	})
