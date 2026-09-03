@@ -388,13 +388,15 @@ func getNextJob(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*
 	if err := throttleJobGeneration(ctx, managers); err != nil {
 		return nil, nil, err
 	}
-	var handlers []func(context.Context, map[string]dashapi.ManagerJobs) (*Job, *db.Key, error)
-	// Let's alternate handlers, so that neither patch tests nor bisections overrun one another.
-	if timeNow(ctx).UnixMilli()%2 == 0 {
-		handlers = append(handlers, jobFromBugSample, createBisectJob)
-	} else {
-		handlers = append(handlers, createBisectJob, jobFromBugSample)
+	handlers := []func(context.Context, map[string]dashapi.ManagerJobs) (*Job, *db.Key, error){
+		createCReproTestJobs,
+		jobFromBugSample,
+		createBisectJob,
 	}
+	// Shuffle handlers so that neither patch tests, C repros, nor bisections overrun one another.
+	rand.Shuffle(len(handlers), func(i, j int) {
+		handlers[i], handlers[j] = handlers[j], handlers[i]
+	})
 	var lastErr error
 	for _, f := range handlers {
 		job, jobKey, err := f(ctx, managers)
@@ -2100,4 +2102,67 @@ func findTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, repr
 func hasTestReproCJob(ctx context.Context, bugKey *db.Key, manager string, reproC []byte) (bool, error) {
 	job, _, err := findTestReproCJob(ctx, bugKey, manager, reproC)
 	return job != nil, err
+}
+
+const reproCJobWindow = 14 * 24 * time.Hour
+
+// createCReproTestJobs polls finished repro-c AI jobs and queues JobTestPatch jobs for active managers.
+func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	hasTestPatches := false
+	for _, jobs := range managers {
+		if jobs.TestPatches {
+			hasTestPatches = true
+			break
+		}
+	}
+	if !hasTestPatches {
+		return nil, nil, nil
+	}
+	since := timeNow(ctx).Add(-reproCJobWindow)
+	aiJobs, err := aidb.LoadFinishedReproCJobs(ctx, since)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to LoadFinishedReproCJobs: %w", err)
+	}
+	for _, aiJob := range aiJobs {
+		if !aiJob.BugID.Valid || aiJob.BugID.StringVal == "" {
+			continue
+		}
+		bugKey := db.NewKey(ctx, "Bug", aiJob.BugID.StringVal, 0, nil)
+		bug := new(Bug)
+		if err := db.Get(ctx, bugKey, bug); err != nil {
+			return nil, nil, fmt.Errorf("failed to get bug %v: %w", aiJob.BugID.StringVal, err)
+		}
+		if bug.Status != BugStatusOpen || len(bug.Commits) > 0 ||
+			getNsConfig(ctx, bug.Namespace).Decommissioned {
+			continue
+		}
+		reproC, manager := extractAIJobReproC(aiJob, bug)
+		if len(reproC) == 0 || manager == "" {
+			continue
+		}
+		activeMgr, _ := activeManager(ctx, manager, bug.Namespace)
+		if activeMgr == "" || !managers[activeMgr].TestPatches {
+			continue
+		}
+		hasJob, err := hasTestReproCJob(ctx, bugKey, activeMgr, reproC)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to check existing c repro job for bug %v: %w", bugKey.StringID(), err)
+		}
+		if hasJob {
+			continue
+		}
+		job, jobKey, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
+			bug:     bug,
+			bugKey:  bugKey,
+			manager: activeMgr,
+			reproC:  reproC,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create test repro c job for bug %v: %w", bugKey.StringID(), err)
+		}
+		if job != nil {
+			return job, jobKey, nil
+		}
+	}
+	return nil, nil, nil
 }
