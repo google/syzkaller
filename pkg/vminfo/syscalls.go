@@ -193,7 +193,9 @@ func (ctx *checkContext) supportedSyscalls(names []string) string {
 
 func supportedOpenat(ctx *checkContext, call *prog.Syscall) string {
 	fname, ok := extractStringConst(call.Args[1].Type, call.Attrs.Automatic)
-	if !ok || fname[0] != '/' {
+	// Variants such as openat$empty intentionally use an empty pathname.
+	// They do not name a device whose availability needs probing here.
+	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return ""
 	}
 	modes := ctx.allOpenModes()

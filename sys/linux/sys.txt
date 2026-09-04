@@ -119,8 +119,11 @@ open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd 
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
 openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
 openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+# O_EMPTYPATH can reopen any path-backed fd, not just a directory fd.
+openat$empty(fd fd, file ptr[in, string[""]], flags flags[open_empty_flags], mode flags[open_mode]) fd
 openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir (automatic_helper)
 openat2(fd fd_dir[opt], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd
+openat2$empty(fd fd, file ptr[in, string[""]], how ptr[in, open_how_empty], size bytesize[how]) fd
 creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
 read(fd fd, buf buffer[out], count len[buf])
@@ -1364,13 +1367,22 @@ kcmp_epoll_slot {
 }
 
 open_how {
-	flags	flags[open_flags, int64]
+	flags	flags[openat2_flags, int64]
+	mode	flags[open_mode, int64]
+	resolve	flags[resolve_flags, int64]
+}
+
+open_how_empty {
+	flags	flags[openat2_empty_flags, int64]
 	mode	flags[open_mode, int64]
 	resolve	flags[resolve_flags, int64]
 }
 
 # Not providing O_WRONLY means O_RDONLY.
-open_flags = O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
+open_flags = O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, O_EMPTYPATH, __O_TMPFILE
+open_empty_flags = O_EMPTYPATH, O_WRONLY, O_RDWR, O_APPEND, O_CLOEXEC, O_DIRECT, O_DIRECTORY, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
+openat2_flags = O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, O_EMPTYPATH, OPENAT2_REGULAR, __O_TMPFILE
+openat2_empty_flags = O_EMPTYPATH, O_WRONLY, O_RDWR, O_APPEND, O_CLOEXEC, O_DIRECT, O_DIRECTORY, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, OPENAT2_REGULAR
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 resolve_flags = RESOLVE_CACHED, RESOLVE_BENEATH, RESOLVE_IN_ROOT, RESOLVE_NO_MAGICLINKS, RESOLVE_NO_SYMLINKS, RESOLVE_NO_XDEV
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP, MADV_WIPEONFORK, MADV_KEEPONFORK, MADV_COLD, MADV_PAGEOUT, MADV_POPULATE_READ, MADV_POPULATE_WRITE, MADV_COLLAPSE
@@ -1460,7 +1472,7 @@ fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO, CLONE_PIDFD, CLONE_NEWTIME
-clone3_flags = CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP, clone_flags
+clone3_flags = CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP, CLONE_NNP, CLONE_PIDFD_AUTOKILL, clone_flags
 ptrace_peeksiginfo_flags = PTRACE_PEEKSIGINFO_SHARED
 close_range_flags = CLOSE_RANGE_UNSHARE
 
