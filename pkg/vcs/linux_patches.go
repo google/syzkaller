@@ -145,4 +145,10 @@ var pickLinuxCommits = []BackportCommit{
 		GuiltyHash: `2a04739139b2b2761571e18937e2400e71eff664`,
 		FixHash:    `c5d296bad640b190c52ef7508114d70e971a4bba`,
 	},
+	{
+		// Fixes `ld.lld: error: version script assignment of 'LINUX_2.6' to symbol '__vdso_sgx_enter_enclave' failed`.
+		// Title: x86/vdso: Conditionally export __vdso_sgx_enter_enclave()
+		GuiltyHash: `84664369520170f48546c55cbc1f3fbde9b1e140`,
+		FixHash:    `45be2ad007a9c6bea70249c4cf3e4905afe4caeb`,
+	},
 }
