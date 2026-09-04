@@ -1587,11 +1587,12 @@ func TestAIGraphBuilders(t *testing.T) {
 		}
 	}
 
-	// Token graph test.
-	tokenStats := []*aidb.MonthlyModelTokenStat{
-		{Model: "gemini-2.5-pro", Month: jan, TotalTokens: 1250},
-		{Model: "gemini-2.0-flash", Month: jan, TotalTokens: 600},
-		{Model: "gemini-2.5-pro", Month: feb, TotalTokens: 2400},
+	// Token and job type token graph tests.
+	tokenStats := []*aidb.MonthlyTokenStat{
+		{Type: "patching", Model: "gemini-2.5-pro", Month: jan, TotalTokens: 1000},
+		{Type: "repro-c", Model: "gemini-2.5-pro", Month: jan, TotalTokens: 250},
+		{Type: "repro-c", Model: "gemini-2.0-flash", Month: jan, TotalTokens: 600},
+		{Type: "repro-c", Model: "gemini-2.5-pro", Month: feb, TotalTokens: 2400},
 	}
 	tokenGraph := createAITokenGraph(tokenStats)
 	require.Len(t, tokenGraph.Headers, 2)
@@ -1601,13 +1602,7 @@ func TestAIGraphBuilders(t *testing.T) {
 	checkCol(tokenGraph.Columns[0], "Jan-26", 1850, 600, 1250)
 	checkCol(tokenGraph.Columns[1], "Feb-26", 2400, 0, 2400)
 
-	// Job type tokens graph test.
-	jobTypeTokenStats := []*aidb.MonthlyJobTypeTokenStat{
-		{Type: "patching", Month: jan, TotalTokens: 1000},
-		{Type: "repro-c", Month: jan, TotalTokens: 850},
-		{Type: "repro-c", Month: feb, TotalTokens: 2400},
-	}
-	jobTypeTokenGraph := createAIJobTypeTokenGraph(jobTypeTokenStats)
+	jobTypeTokenGraph := createAIJobTypeTokenGraph(tokenStats)
 	require.Len(t, jobTypeTokenGraph.Headers, 2)
 	require.Equal(t, "patching", jobTypeTokenGraph.Headers[0].Name)
 	require.Equal(t, "repro-c", jobTypeTokenGraph.Headers[1].Name)
@@ -1615,30 +1610,25 @@ func TestAIGraphBuilders(t *testing.T) {
 	checkCol(jobTypeTokenGraph.Columns[0], "Jan-26", 1850, 1000, 850)
 	checkCol(jobTypeTokenGraph.Columns[1], "Feb-26", 2400, 0, 2400)
 
-	// Finished jobs graph test.
-	finishedStats := []*aidb.MonthlyFinishedJobsStat{
-		{Month: jan, FinishedCount: 1},
-		{Month: feb, FinishedCount: 2},
+	// Finished jobs and job types graph test.
+	jobTypeStats := []*aidb.MonthlyJobTypeStat{
+		{Type: "patching", Month: jan, Count: 1},
+		{Type: "repro-c", Month: feb, Count: 2},
 	}
-	finishedGraph := createAIFinishedJobsGraph(finishedStats)
+	finishedGraph := createAIFinishedJobsGraph(jobTypeStats)
 	require.Len(t, finishedGraph.Headers, 1)
 	require.Equal(t, "Finished Jobs", finishedGraph.Headers[0].Name)
 	require.Len(t, finishedGraph.Columns, 2)
 	checkCol(finishedGraph.Columns[0], "Jan-26", 1, 1)
 	checkCol(finishedGraph.Columns[1], "Feb-26", 2, 2)
 
-	// Job types graph test.
-	jobTypeStats := []*aidb.MonthlyJobTypeStat{
-		{Type: "patching", Month: jan, Count: 1},
-		{Type: "repro-c", Month: feb, Count: 1},
-	}
 	jobTypesGraph := createAIJobTypesGraph(jobTypeStats)
 	require.Len(t, jobTypesGraph.Headers, 2)
 	require.Equal(t, "patching", jobTypesGraph.Headers[0].Name)
 	require.Equal(t, "repro-c", jobTypesGraph.Headers[1].Name)
 	require.Len(t, jobTypesGraph.Columns, 2)
 	checkCol(jobTypesGraph.Columns[0], "Jan-26", 1, 1, 0)
-	checkCol(jobTypesGraph.Columns[1], "Feb-26", 1, 0, 1)
+	checkCol(jobTypesGraph.Columns[1], "Feb-26", 2, 0, 2)
 }
 
 func TestAIGraphsEndpoint(t *testing.T) {
