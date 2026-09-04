@@ -305,7 +305,8 @@ config:
  - DRM_DEBUG_MM
  - DRM_I915: [x86_64, -preempt_rt]
  - DRM_VGEM
- - DRM_VKMS
+ # Disabled on arm: hits fatal DRM plane validation warnings during early boot (#7805).
+ - DRM_VKMS: [-arm]
  - DRM_VMWGFX: [x86_64]
  - DRM_VMWGFX_FBCON: [x86_64, -v6.1]
  - DRM_FBDEV_EMULATION: [x86_64] # required by DRM_VMWGFX_FBCON
