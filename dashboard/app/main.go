@@ -74,6 +74,7 @@ func initHTTPHandlers() {
 	http.Handle("/{ns}/graph/coverage", handlerWrapper(handleCoverageGraph))
 	http.Handle("/{ns}/graph/ai", handlerWrapper(handleAIGraphs))
 	http.Handle("/{ns}/coverage/file", handlerWrapper(handleFileCoverage))
+	http.Handle("/{ns}/coverage/uncovered-targets", handlerWrapper(handleUncoveredTargets))
 	http.Handle("/{ns}/coverage", handlerWrapper(handleCoverageHeatmap))
 	http.Handle("/{ns}/coverage/subsystems", handlerWrapper(handleSubsystemsCoverageHeatmap))
 	http.Handle("/{ns}/repos", handlerWrapper(handleRepos))
