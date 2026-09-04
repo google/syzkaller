@@ -13,12 +13,14 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"encoding/json"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/coveragedb/testutil"
 	"github.com/google/syzkaller/pkg/covermerger"
 	mergermocks "github.com/google/syzkaller/pkg/covermerger/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func setCoverageDBClient(ctx context.Context, client *spanner.Client) context.Context {
@@ -190,4 +192,66 @@ func multiManagerCovDBFixture(t *testing.T) *spanner.Client {
 	}})
 
 	return client
+}
+
+func TestUncoveredTargets(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := testutil.SetupCoverageTestDB(t)
+	period, err := coveragedb.MakeTimePeriod(civil.Date{Year: 2026, Month: 9, Day: 30}, "month")
+	require.NoError(t, err)
+
+	hist := &coveragedb.HistoryRecord{
+		Namespace: "test2",
+		Repo:      "repo1",
+		Commit:    "abcdef1234567890",
+		Duration:  int64(period.Days),
+		DateTo:    period.DateTo,
+		Session:   "sess-targets",
+	}
+	testutil.InsertCoverageData(t, client, "*", hist, []*coveragedb.FileCoverageWithLineInfo{
+		{
+			FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+				Filepath:     "arch/x86/kvm/x86.c",
+				Instrumented: 2,
+				Covered:      1,
+			},
+			LinesInstrumented: []int64{10, 20},
+			HitCounts:         []int64{0, 1},
+		},
+	})
+	testutil.InsertFunctionsData(t, client, hist, []*coveragedb.FuncLines{
+		{
+			FilePath: "arch/x86/kvm/x86.c",
+			FuncName: "kvm_arch_vcpu_ioctl",
+			Lines:    []int64{10},
+		},
+	})
+	c.setCoverageMocks("test2", client, nil)
+
+	// Valid namespace returns 200 OK with JSON targets.
+	raw, err := c.GET("/test2/coverage/uncovered-targets")
+	require.NoError(t, err)
+	var targets coveragedb.CoverageTargets
+	require.NoError(t, json.Unmarshal(raw, &targets))
+	require.Equal(t, coveragedb.CoverageTargets{
+		Namespace:    "test2",
+		KernelRepo:   hist.Repo,
+		KernelCommit: hist.Commit,
+		Targets: []coveragedb.UncoveredFunction{
+			{
+				FilePath:   "arch/x86/kvm/x86.c",
+				FuncName:   "kvm_arch_vcpu_ioctl",
+				HasCovered: false,
+				Lines:      []int64{10},
+			},
+		},
+	}, targets)
+
+	// Namespace without coverage returns 404.
+	_, err = c.GET("/test1/coverage/uncovered-targets")
+	var httpErr *HTTPError
+	require.True(t, errors.As(err, &httpErr))
+	require.Equal(t, http.StatusNotFound, httpErr.Code)
 }

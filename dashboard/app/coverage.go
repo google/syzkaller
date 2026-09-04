@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -344,6 +345,36 @@ func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(content))
 	return nil
+}
+
+func handleUncoveredTargets(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
+	if err != nil {
+		return err
+	}
+	nsConfig := getNsConfig(ctx, hdr.Namespace)
+	if nsConfig.Coverage == nil {
+		return ErrClientNotFound
+	}
+	var prefixes []string
+	for _, p := range r.URL.Query()["prefix"] {
+		if p = strings.TrimSpace(p); p != "" {
+			prefixes = append(prefixes, p)
+		}
+	}
+	limit := getParam[int](r, "limit")
+	client := getCoverageDBClient(ctx)
+	targets, err := coveragedb.GetCoverageTargets(ctx, client, hdr.Namespace, coveragedb.TargetFilter{
+		Prefixes: prefixes,
+		Limit:    limit,
+	})
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	return enc.Encode(targets)
 }
 
 var keyWebGit = "file content provider"
