@@ -5,6 +5,7 @@ package dashapi
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -57,6 +58,42 @@ func (dash *Dashboard) AIJobDone(req *AIJobDoneReq) error {
 
 func (dash *Dashboard) AITrajectoryLog(req *AITrajectoryReq) error {
 	return dash.Query("ai_trajectory_log", req, nil)
+}
+
+type CandidateSeedsPollReq struct {
+	Name       string
+	TargetOS   string
+	TargetArch string
+}
+
+type CandidateSeed struct {
+	ID         string
+	TargetOS   string
+	TargetArch string
+	Prog       []byte
+	CreatedAt  time.Time
+}
+
+type CandidateSeedsPollResp struct {
+	Seeds []CandidateSeed
+	Token string
+}
+
+type CandidateSeedsDoneReq struct {
+	Name  string
+	Token string
+}
+
+func (dash *Dashboard) CandidateSeedsPoll(req *CandidateSeedsPollReq) (*CandidateSeedsPollResp, error) {
+	resp := new(CandidateSeedsPollResp)
+	if err := dash.Query("candidate_seeds_poll", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) CandidateSeedsDone(req *CandidateSeedsDoneReq) error {
+	return dash.Query("candidate_seeds_done", req, nil)
 }
 
 // SendExternalCommandReq represents a request to report a patch action externally (upstream or reject).

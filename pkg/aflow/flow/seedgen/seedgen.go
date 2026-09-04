@@ -5,7 +5,6 @@
 package seedgen
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
@@ -19,23 +18,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
-
-type SeedGenInputs struct {
-	AgentName     string
-	RawPC         string
-	KernelRepo    string
-	KernelCommit  string
-	KernelConfig  string
-	Image         string
-	Type          string
-	VM            json.RawMessage
-	CorpusVMCount int `json:",omitempty"`
-	Syzkaller     string
-	TargetOS      string
-	TargetArch    string
-	Snapshot      bool
-	CorpusPath    string `json:",omitempty"`
-}
 
 func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
 	steps := append([]aflow.Action{actionsyzlang.PrepareSyzFS}, prefix...)
@@ -66,7 +48,7 @@ func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
 }
 
 func init() {
-	aflow.Register[SeedGenInputs, ai.SeedGenOutputs](
+	aflow.Register[ai.SeedGenArgs, ai.SeedGenOutputs](
 		ai.WorkflowSeedGen,
 		"generate a syzlang program to reach a specific code position",
 		&aflow.Flow{

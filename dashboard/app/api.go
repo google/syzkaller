@@ -25,6 +25,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/auth"
@@ -84,6 +85,8 @@ var apiHandlers = map[string]APIHandler{
 	"add_build_assets":      nsHandler(apiAddBuildAssets),
 	"log_to_repro":          nsHandler(apiLogToReproduce),
 	"repro_task_done":       nsHandler(apiReproTaskDone),
+	"candidate_seeds_poll":  nsHandler(apiCandidateSeedsPoll),
+	"candidate_seeds_done":  nsHandler(apiCandidateSeedsDone),
 	"client_info":           nsHandler(apiClientInfo),
 }
 
@@ -2033,4 +2036,72 @@ func apiSaveCoverage(ctx context.Context, payload io.Reader) (any, error) {
 // and use it to tag uploaded coverage data.
 func apiClientInfo(ctx context.Context, ns string, req *dashapi.ClientInfoReq) (any, error) {
 	return &dashapi.ClientInfoResp{Namespace: ns}, nil
+}
+
+const candidateSeedsPollLimit = 20
+
+func apiCandidateSeedsPoll(ctx context.Context, ns string, req *dashapi.CandidateSeedsPollReq) (any, error) {
+	if req.Name == "" {
+		return nil, errors.New("client name is empty")
+	}
+	seeds, maxCreatedAt, lastID, err := aidb.PollCandidateSeeds(
+		ctx, ns, req.Name, req.TargetOS, req.TargetArch, candidateSeedsPollLimit)
+	if err != nil {
+		return nil, err
+	}
+	resp := &dashapi.CandidateSeedsPollResp{
+		Seeds: make([]dashapi.CandidateSeed, 0, len(seeds)),
+	}
+	if len(seeds) > 0 {
+		resp.Token = encodeCandidateSeedsToken(maxCreatedAt, lastID)
+	}
+	for _, s := range seeds {
+		resp.Seeds = append(resp.Seeds, dashapi.CandidateSeed{
+			ID:         s.ID,
+			TargetOS:   s.TargetOS,
+			TargetArch: s.TargetArch,
+			Prog:       s.Prog,
+			CreatedAt:  s.CreatedAt,
+		})
+	}
+	return resp, nil
+}
+
+func apiCandidateSeedsDone(ctx context.Context, ns string, req *dashapi.CandidateSeedsDoneReq) (any, error) {
+	if req.Name == "" {
+		return nil, errors.New("client name is empty")
+	}
+	if req.Token == "" {
+		return nil, nil
+	}
+	doneTime, doneID, err := decodeCandidateSeedsToken(req.Token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+	if doneTime.IsZero() {
+		return nil, nil
+	}
+	return nil, aidb.DoneCandidateSeeds(ctx, ns, req.Name, doneTime, doneID)
+}
+
+func encodeCandidateSeedsToken(t time.Time, id string) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339Nano) + "|" + id
+}
+
+func decodeCandidateSeedsToken(token string) (time.Time, string, error) {
+	if token == "" {
+		return time.Time{}, "", nil
+	}
+	timeStr, id, ok := strings.Cut(token, "|")
+	if !ok {
+		return time.Time{}, "", errors.New("invalid token format")
+	}
+	t, err := time.Parse(time.RFC3339Nano, timeStr)
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	return t, id, nil
 }

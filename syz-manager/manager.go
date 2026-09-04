@@ -1208,6 +1208,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		go mgr.fuzzerLoop(fuzzerObj)
 		if mgr.dash != nil {
 			go mgr.dashboardReporter()
+			go mgr.dashboardCandidateSeeds()
 			if mgr.cfg.Reproduce {
 				go mgr.dashboardReproTasks()
 			}
@@ -1506,6 +1507,48 @@ func (mgr *Manager) dashboardReproTasks() {
 					Title:  resp.Title,
 					Output: resp.CrashLog,
 				},
+			}
+		}
+	}
+}
+
+func (mgr *Manager) dashboardCandidateSeeds() {
+	for {
+		time.Sleep(5 * time.Minute)
+		fuzzerObj := mgr.fuzzer.Load()
+		if fuzzerObj == nil || !fuzzerObj.CandidateTriageFinished() {
+			continue
+		}
+		resp, err := mgr.dash.CandidateSeedsPoll(&dashapi.CandidateSeedsPollReq{
+			Name:       mgr.cfg.Name,
+			TargetOS:   mgr.cfg.TargetOS,
+			TargetArch: mgr.cfg.TargetArch,
+		})
+		if err != nil {
+			log.Logf(0, "failed to poll candidate seeds: %v", err)
+			continue
+		}
+		if len(resp.Seeds) == 0 {
+			continue
+		}
+		var candidates []fuzzer.Candidate
+		for _, seed := range resp.Seeds {
+			p, err := mgr.target.Deserialize(seed.Prog, prog.NonStrict)
+			if err != nil {
+				log.Logf(1, "failed to deserialize candidate seed %v: %v", seed.ID, err)
+				continue
+			}
+			candidates = append(candidates, fuzzer.Candidate{
+				Prog: p,
+			})
+		}
+		fuzzerObj.AddCandidatesWait(context.Background(), candidates)
+		if resp.Token != "" {
+			if err := mgr.dash.CandidateSeedsDone(&dashapi.CandidateSeedsDoneReq{
+				Name:  mgr.cfg.Name,
+				Token: resp.Token,
+			}); err != nil {
+				log.Logf(0, "failed to confirm candidate seeds: %v", err)
 			}
 		}
 	}

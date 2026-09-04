@@ -4,7 +4,10 @@
 // Package ai contains common workflow definitions.
 package ai
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type WorkflowType string
 
@@ -164,6 +167,23 @@ type PatchTriageResult struct {
 	FocusSymbols  []string
 	EnableConfigs []string
 	Reasoning     string
+}
+
+type SeedGenArgs struct {
+	AgentName     string
+	RawPC         string
+	KernelRepo    string
+	KernelCommit  string
+	KernelConfig  string
+	Image         string
+	Type          string
+	VM            json.RawMessage
+	CorpusVMCount int `json:",omitempty"`
+	Syzkaller     string
+	TargetOS      string
+	TargetArch    string
+	Snapshot      bool
+	CorpusPath    string `json:",omitempty"`
 }
 
 type SeedGenOutputs struct {

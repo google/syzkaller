@@ -32,6 +32,9 @@ type Span struct {
 	Args    map[string]any `json:",omitzero"`
 	Results map[string]any `json:",omitzero"`
 
+	// Artifacts produced or operated on during this step.
+	Artifacts map[ArtifactType]string `json:",omitzero"`
+
 	// Agent invocation.
 	Instruction string `json:",omitzero"`
 	Prompt      string `json:",omitzero"`
@@ -46,6 +49,12 @@ type Span struct {
 	OutputTokens         int `json:",omitzero"`
 	OutputThoughtsTokens int `json:",omitzero"`
 }
+
+type ArtifactType string
+
+const (
+	ArtifactSyzProg ArtifactType = "syz-prog"
+)
 
 type SpanType string
 

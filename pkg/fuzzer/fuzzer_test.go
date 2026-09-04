@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFuzz(t *testing.T) {
@@ -249,4 +250,55 @@ func checkGoroutineLeaks() {
 	if err != "" {
 		panic(err)
 	}
+}
+
+func TestAddCandidatesWait(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus:   corpus.NewMonitoredCorpus(ctx, nil),
+		Coverage: true,
+	}, rand.New(testutil.RandSource(t)), target)
+
+	// 1. Empty candidates should return immediately.
+	fuzzer.AddCandidatesWait(ctx, nil)
+
+	// 2. Non-empty candidates.
+	const testProg = `syz_compare(&AUTO="00000000", 0x4, &AUTO=@conditional={0x0, @void, @void, @void}, AUTO)`
+	p, err := target.Deserialize([]byte(testProg), prog.NonStrict)
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		fuzzer.AddCandidatesWait(ctx, []Candidate{
+			{Prog: p},
+			{Prog: p.Clone()},
+		})
+		close(done)
+	}()
+
+	for fuzzer.statCandidates.Val() < 2 {
+		time.Sleep(time.Millisecond)
+	}
+
+	for range 2 {
+		req := fuzzer.Next()
+		require.NotNil(t, req)
+		req.Done(&queue.Result{
+			Status: queue.Success,
+		})
+	}
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("AddCandidatesWait timed out")
+	}
+
+	// 3. Cancelled context unblocks immediately.
+	cancCtx, cancel := context.WithCancel(ctx)
+	cancel()
+	fuzzer.AddCandidatesWait(cancCtx, []Candidate{{Prog: p}})
 }
