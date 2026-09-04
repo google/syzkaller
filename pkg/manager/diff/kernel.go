@@ -200,6 +200,9 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	filtered := manager.FilterCandidates(candidates, syscalls, false).Candidates
 	log.Logf(0, "%s: adding %d seeds", kc.name, len(filtered))
 	fuzzerObj.AddCandidates(filtered)
+	if len(kc.coverFilters.Areas) > 0 {
+		go kc.calibrateFocusAreas(corpusObj, fuzzerObj)
+	}
 
 	go func() {
 		if !kc.cfg.Cover {
@@ -303,4 +306,31 @@ func (kc *kernelContext) Features() flatrpc.Feature {
 
 func (kc *kernelContext) Reporter() *report.Reporter {
 	return kc.reporter
+}
+
+const (
+	focusAreaThreshold = 0.10 // 10%
+	focusAreaMinHits   = 10   // do not prune if <= 10 progs match
+	focusAreaMaxHits   = 100  // prune if > 100 progs match regardless of corpus size
+)
+
+func (kc *kernelContext) calibrateFocusAreas(corpusObj *corpus.Corpus, fuzzerObj *fuzzer.Fuzzer) {
+	const checkPeriod = 5 * time.Second
+	ticker := time.NewTicker(checkPeriod)
+	defer ticker.Stop()
+	for !fuzzerObj.CandidateTriageFinished() && kc.TriageProgress() < 0.99 {
+		select {
+		case <-ticker.C:
+		case <-kc.ctx.Done():
+			return
+		}
+	}
+	stats := corpusObj.CalibrateFocusAreas(focusAreaThreshold, focusAreaMinHits, focusAreaMaxHits)
+	for areaName, st := range stats {
+		if areaName == "" && st.TotalPCs == 0 {
+			continue
+		}
+		log.Logf(0, "%s: focus area %q calibrated: %d/%d PCs pruned, %d progs matching",
+			kc.name, areaName, st.PrunedPCs, st.TotalPCs, st.Progs)
+	}
 }

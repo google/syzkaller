@@ -57,6 +57,13 @@ func (fa *FocusArea) inAreaPCs(cover []uint64) int {
 	return count
 }
 
+// AreaCalibrateStat contains calibration statistics for a single focus area.
+type AreaCalibrateStat struct {
+	TotalPCs  int
+	PrunedPCs int
+	Progs     int
+}
+
 func NewCorpus(ctx context.Context) *Corpus {
 	return NewMonitoredCorpus(ctx, nil)
 }
@@ -88,11 +95,80 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 				stat.LenOf(&obj.progs, &corpus.mu))
 		}
 		corpus.focusAreas = append(corpus.focusAreas, &focusAreaState{
-			FocusArea:    area,
+			FocusArea: FocusArea{
+				Name:     area.Name,
+				CoverPCs: maps.Clone(area.CoverPCs),
+				Weight:   area.Weight,
+			},
 			ProgramsList: obj,
 		})
 	}
 	return corpus
+}
+
+// CalibrateFocusAreas prunes ubiquitous PCs that appear in more than threshold fraction
+// of corpus programs (bounded between minHits and maxHits), and rebuilds focus area program lists.
+func (corpus *Corpus) CalibrateFocusAreas(threshold float64, minHits, maxHits int) map[string]AreaCalibrateStat {
+	corpus.mu.Lock()
+	defer corpus.mu.Unlock()
+
+	stats := make(map[string]AreaCalibrateStat)
+	for _, area := range corpus.focusAreas {
+		stats[area.Name] = AreaCalibrateStat{
+			TotalPCs: len(area.CoverPCs),
+			Progs:    len(area.progs),
+		}
+	}
+	nProgs := len(corpus.progsMap)
+	if nProgs == 0 || threshold <= 0 || len(corpus.focusAreas) == 0 {
+		return stats
+	}
+
+	pcHits := make(map[uint64]int)
+	for _, area := range corpus.focusAreas {
+		for pc := range area.CoverPCs {
+			pcHits[pc] = 0
+		}
+	}
+	for _, item := range corpus.progsMap {
+		for _, pc := range item.Cover {
+			if _, ok := pcHits[pc]; ok {
+				pcHits[pc]++
+			}
+		}
+	}
+
+	allowedHits := int(float64(nProgs) * threshold)
+	if minHits > 0 && allowedHits < minHits {
+		allowedHits = minHits
+	}
+	if maxHits > 0 && allowedHits > maxHits {
+		allowedHits = maxHits
+	}
+
+	for _, area := range corpus.focusAreas {
+		total := len(area.CoverPCs)
+		maps.DeleteFunc(area.CoverPCs, func(pc uint64, _ struct{}) bool {
+			return pcHits[pc] > allowedHits
+		})
+		area.ProgramsList.clear()
+		st := stats[area.Name]
+		st.PrunedPCs = total - len(area.CoverPCs)
+		stats[area.Name] = st
+	}
+
+	// Clear area assignments on existing items and reapply.
+	for _, item := range corpus.progsMap {
+		item.areas = nil
+		corpus.applyFocusAreas(item)
+	}
+
+	for _, area := range corpus.focusAreas {
+		st := stats[area.Name]
+		st.Progs = len(area.progs)
+		stats[area.Name] = st
+	}
+	return stats
 }
 
 // ItemUpdate represents an update to a corpus item.
