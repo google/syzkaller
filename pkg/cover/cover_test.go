@@ -49,7 +49,9 @@ func TestMergeDiff(t *testing.T) {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			var cov Cover
 			cov.Merge(test.init)
+			orig := slices.Clone(test.merge)
 			diff := cov.MergeDiff(test.merge)
+			require.Equal(t, orig, test.merge)
 			require.Equal(t, test.diff, diff, "result is wrong")
 			result := cov.Serialize()
 			slices.Sort(result)

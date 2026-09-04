@@ -8,11 +8,13 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCorpusOperation(t *testing.T) {
@@ -208,4 +210,27 @@ func TestFocusedCorpusReSave(t *testing.T) {
 
 	// Verify that the program is not double-counted in the focus area.
 	assert.Len(t, corpus.focusAreas[0].progs, 1)
+}
+
+// Regression test for #7852: ensure saving an input with partially overlapping
+// coverage does not mutate item.Cover in-place, preserving full coverage in CallCover.
+func TestCallCoverPreserved(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewCorpus(context.Background())
+	rs := rand.NewSource(0)
+
+	inp1 := generateInput(target, rs, 1)
+	inp1.Cover = []uint64{10, 20}
+	corpus.Save(inp1)
+
+	// Save an input with partially overlapping coverage (PC 10 exists, 30 is new).
+	// Call = -1 isolates it under prog.ExtraCallName.
+	inp2 := generateInput(target, rs, 2)
+	inp2.Call = -1
+	inp2.Cover = []uint64{10, 30}
+	corpus.Save(inp2)
+
+	// In-place mutation would overwrite PC 10 with 30, leaving only [30].
+	callCover := corpus.CallCover()
+	require.Equal(t, cover.FromRaw([]uint64{10, 30}), callCover[prog.ExtraCallName].Cover)
 }

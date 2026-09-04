@@ -23,23 +23,22 @@ func (cov *Cover) Merge(raw []uint64) {
 	}
 }
 
-// MergeDiff merges raw into coverage and returns newly added PCs. Overwrites/mutates raw.
+// MergeDiff merges raw into coverage and returns newly added PCs.
 func (cov *Cover) MergeDiff(raw []uint64) []uint64 {
 	c := *cov
 	if c == nil {
 		c = make(Cover)
 		*cov = c
 	}
-	n := 0
+	var diff []uint64
 	for _, pc := range raw {
 		if _, ok := c[pc]; ok {
 			continue
 		}
 		c[pc] = struct{}{}
-		raw[n] = pc
-		n++
+		diff = append(diff, pc)
 	}
-	return raw[:n]
+	return diff
 }
 
 func (cov *Cover) Serialize() []uint64 {
