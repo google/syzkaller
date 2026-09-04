@@ -74,6 +74,11 @@ struct api_call_3 {
 	uint64 args[3];
 };
 
+struct api_call_4 {
+	struct api_call_header header;
+	uint64 args[4];
+};
+
 struct api_call_5 {
 	struct api_call_header header;
 	uint64 args[5];
