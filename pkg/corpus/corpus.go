@@ -272,5 +272,7 @@ func (corpus *Corpus) ProgsPerArea() map[string]int {
 }
 
 func (corpus *Corpus) Cover() []uint64 {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
 	return corpus.cover.Serialize()
 }
