@@ -1573,3 +1573,80 @@ func TestAIJobsErrorVisibility(t *testing.T) {
 	require.NotContains(t, string(respBugUser), aiErrorPlaceholder)
 	require.NotContains(t, string(respBugUser), ">Error</a></th>")
 }
+
+func TestAIGraphBuilders(t *testing.T) {
+	jan := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	feb := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)
+
+	checkCol := func(col uiGraphColumn, hint string, ann float32, vals ...float32) {
+		require.Equal(t, hint, col.Hint)
+		require.Equal(t, ann, col.Annotation)
+		require.Len(t, col.Vals, len(vals))
+		for i, v := range vals {
+			require.Equal(t, v, col.Vals[i].Val)
+		}
+	}
+
+	// Token and job type token graph tests.
+	tokenStats := []*aidb.MonthlyTokenStat{
+		{Type: "patching", Model: "gemini-2.5-pro", Month: jan, TotalTokens: 1000},
+		{Type: "repro-c", Model: "gemini-2.5-pro", Month: jan, TotalTokens: 250},
+		{Type: "repro-c", Model: "gemini-2.0-flash", Month: jan, TotalTokens: 600},
+		{Type: "repro-c", Model: "gemini-2.5-pro", Month: feb, TotalTokens: 2400},
+	}
+	tokenGraph := createAITokenGraph(tokenStats)
+	require.Len(t, tokenGraph.Headers, 2)
+	require.Equal(t, "gemini-2.0-flash", tokenGraph.Headers[0].Name)
+	require.Equal(t, "gemini-2.5-pro", tokenGraph.Headers[1].Name)
+	require.Len(t, tokenGraph.Columns, 2)
+	checkCol(tokenGraph.Columns[0], "Jan-26", 1850, 600, 1250)
+	checkCol(tokenGraph.Columns[1], "Feb-26", 2400, 0, 2400)
+
+	jobTypeTokenGraph := createAIJobTypeTokenGraph(tokenStats)
+	require.Len(t, jobTypeTokenGraph.Headers, 2)
+	require.Equal(t, "patching", jobTypeTokenGraph.Headers[0].Name)
+	require.Equal(t, "repro-c", jobTypeTokenGraph.Headers[1].Name)
+	require.Len(t, jobTypeTokenGraph.Columns, 2)
+	checkCol(jobTypeTokenGraph.Columns[0], "Jan-26", 1850, 1000, 850)
+	checkCol(jobTypeTokenGraph.Columns[1], "Feb-26", 2400, 0, 2400)
+
+	// Finished jobs and job types graph test.
+	jobTypeStats := []*aidb.MonthlyJobTypeStat{
+		{Type: "patching", Month: jan, Count: 1},
+		{Type: "repro-c", Month: feb, Count: 2},
+	}
+	finishedGraph := createAIFinishedJobsGraph(jobTypeStats)
+	require.Len(t, finishedGraph.Headers, 1)
+	require.Equal(t, "Finished Jobs", finishedGraph.Headers[0].Name)
+	require.Len(t, finishedGraph.Columns, 2)
+	checkCol(finishedGraph.Columns[0], "Jan-26", 1, 1)
+	checkCol(finishedGraph.Columns[1], "Feb-26", 2, 2)
+
+	jobTypesGraph := createAIJobTypesGraph(jobTypeStats)
+	require.Len(t, jobTypesGraph.Headers, 2)
+	require.Equal(t, "patching", jobTypesGraph.Headers[0].Name)
+	require.Equal(t, "repro-c", jobTypesGraph.Headers[1].Name)
+	require.Len(t, jobTypesGraph.Columns, 2)
+	checkCol(jobTypesGraph.Columns[0], "Jan-26", 1, 1, 0)
+	checkCol(jobTypesGraph.Columns[1], "Feb-26", 2, 0, 2)
+}
+
+func TestAIGraphsEndpoint(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// Public and regular users cannot access the graphs page.
+	_, err := c.AuthGET(AccessPublic, "/ains/graph/ai")
+	require.Error(t, err)
+	_, err = c.AuthGET(AccessUser, "/ains/graph/ai")
+	require.Error(t, err)
+
+	// Admin can access the page.
+	respAdmin, err := c.AuthGET(AccessAdmin, "/ains/graph/ai")
+	require.NoError(t, err)
+	require.Contains(t, string(respAdmin), "Total Token Consumption (Per Model)")
+
+	// Non-AI namespace is rejected even for admin.
+	_, err = c.AuthGET(AccessAdmin, "/test1/graph/ai")
+	require.Error(t, err)
+}
