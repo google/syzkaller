@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/workflow"
-	"golang.org/x/sync/errgroup"
 )
 
 type SeriesProcessor struct {
@@ -27,6 +26,13 @@ type SeriesProcessor struct {
 	workflows         workflow.Service
 	dbPollInterval    time.Duration
 	parallelWorkflows int
+
+	// activeSessions tracks sessions currently queued in memory or running in worker goroutines.
+	// We track active sessions in memory because session.StartedAt in the database is only set
+	// right before the workflow is actually started. Tracking active sessions in memory prevents
+	// streamSeries from re-querying and re-dispatching waiting sessions before their StartedAt
+	// timestamp is committed to the database.
+	activeSessions sync.Map
 }
 
 func NewSeriesProcessor(env *app.AppEnvironment, cfg *app.AppConfig) *SeriesProcessor {
@@ -49,19 +55,22 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	ch := make(chan *db.Session, 1)
-	wg.Go(func() {
-		sp.seriesRunner(ctx, ch)
-	})
+	ch := make(chan *db.Session)
+	for range sp.parallelWorkflows {
+		wg.Go(func() {
+			sp.seriesRunner(ctx, ch)
+		})
+	}
 	// First pick up the previously running sessions.
-	activeSessions, err := sp.sessionRepo.ListRunning(ctx)
+	runningSessions, err := sp.sessionRepo.ListRunning(ctx)
 	if err != nil {
 		return err
 	}
-	log.Printf("queried %d unfinished sessions", len(activeSessions))
-	for _, session := range activeSessions {
+	log.Printf("queried %d unfinished sessions", len(runningSessions))
+	for _, session := range runningSessions {
 		select {
 		case ch <- session:
+			sp.activeSessions.Store(session.ID, struct{}{})
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -81,26 +90,21 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 			return
 		case <-time.After(sp.dbPollInterval):
 		}
-		if len(ch) > 0 {
-			// There are still series to be picked, no need to query the DB.
-			continue
-		}
-		var err error
-		var list []*db.Session
-		list, err = sp.sessionRepo.ListWaiting(ctx, cap(ch))
+		// Query waiting sessions up to the parallel workflow capacity.
+		list, err := sp.sessionRepo.ListWaiting(ctx, sp.parallelWorkflows)
 		if err != nil {
-			app.Errorf("failed to query series: %v", err)
+			if ctx.Err() == nil {
+				app.Errorf("failed to query series: %v", err)
+			}
 			continue
 		}
 		for _, session := range list {
-			// Mark as started in DB immediately to avoid re-querying it.
-			err := sp.sessionRepo.Start(ctx, session.ID)
-			if err != nil {
-				app.Errorf("failed to mark session started: %v", err)
+			if _, ok := sp.activeSessions.Load(session.ID); ok {
 				continue
 			}
 			select {
 			case ch <- session:
+				sp.activeSessions.Store(session.ID, struct{}{})
 			case <-ctx.Done():
 				return
 			}
@@ -109,88 +113,80 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 }
 
 func (sp *SeriesProcessor) seriesRunner(ctx context.Context, ch <-chan *db.Session) {
-	var eg errgroup.Group
-	defer eg.Wait()
-
-	eg.SetLimit(sp.parallelWorkflows)
 	for {
-		var session *db.Session
 		select {
-		case session = <-ch:
-			if session == nil {
+		case session, ok := <-ch:
+			if !ok {
 				return
 			}
-		case <-ctx.Done():
-			return
-		}
-		log.Printf("scheduled session %q for series %q", session.ID, session.SeriesID)
-		eg.Go(func() error {
 			log.Printf("started processing session %q", session.ID)
 			sp.handleSession(ctx, session)
 			log.Printf("finished processing session %q", session.ID)
-			return nil
-		})
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
 func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Session) {
+	defer sp.activeSessions.Delete(session.ID)
 	// TODO: set some sane deadline or just track indefinitely?
 	pollPeriod := sp.workflows.PollPeriod()
 	for {
+		status, workflowLog, err := sp.workflows.Status(session.ID)
+		if err != nil {
+			app.Errorf("failed to query workflow %q status: %v", session.ID, err)
+		} else {
+			if len(workflowLog) > 0 {
+				err := sp.updateSessionLog(ctx, session, workflowLog)
+				if err != nil {
+					app.Errorf("failed to update session log: %v", err)
+				}
+			}
+			switch status {
+			case workflow.StatusNotFound:
+				log.Printf("scheduling a workflow for %q", session.ID)
+				err := sp.sessionRepo.Start(ctx, session.ID)
+				if err == db.ErrSessionAlreadyStarted {
+					// It may happen if the service was restarted right between the moment we updated the DB
+					// and actually started the workflow.
+					log.Printf("session %q was already marked as started, but there's no actual workflow", session.ID)
+				} else if err != nil {
+					app.Errorf("failed to mark session started: %v", err)
+					break
+				}
+				err = sp.workflows.Start(session.ID)
+				if err != nil {
+					app.Errorf("failed to start a workflow: %v", err)
+				}
+			case workflow.StatusFinished, workflow.StatusFailed:
+				log.Printf("workflow for %q completed (status=%q), mark the session finished", session.ID, status)
+				err := sp.stopRunningTests(ctx, session.ID)
+				if err != nil {
+					app.Errorf("failed to check running tests for %s: %v", session.ID, err)
+				}
+				// TODO: StatusFailed needs a different handling.
+				err = sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
+					session.SetFinishedAt(time.Now())
+					return nil
+				})
+				if err == nil {
+					// Nothing to do here anymore.
+					return
+				}
+				// Let's hope the error was transient.
+				app.Errorf("failed to update session %q: %v", session.ID, err)
+			case workflow.StatusRunning:
+				// Let's keep on tracking.
+			default:
+				panic("unexpected workflow status: " + status)
+			}
+		}
+
 		select {
 		case <-time.After(pollPeriod):
 		case <-ctx.Done():
 			return
-		}
-		status, workflowLog, err := sp.workflows.Status(session.ID)
-		if err != nil {
-			app.Errorf("failed to query workflow %q status: %v", session.ID, err)
-			continue
-		}
-		if len(workflowLog) > 0 {
-			err := sp.updateSessionLog(ctx, session, workflowLog)
-			if err != nil {
-				app.Errorf("failed to update session log: %v", err)
-			}
-		}
-		switch status {
-		case workflow.StatusNotFound:
-			log.Printf("scheduling a workflow for %q", session.ID)
-			err := sp.sessionRepo.Start(ctx, session.ID)
-			if err == db.ErrSessionAlreadyStarted {
-				// It may happen if the service was restarted right between the moment we updated the DB
-				// and actually started the workflow.
-				log.Printf("session %q was already marked as started, but there's no actual workflow", session.ID)
-			} else if err != nil {
-				app.Errorf("failed to mark session started: %v", err)
-				break
-			}
-			err = sp.workflows.Start(session.ID)
-			if err != nil {
-				app.Errorf("failed to start a workflow: %v", err)
-			}
-		case workflow.StatusFinished, workflow.StatusFailed:
-			log.Printf("workflow for %q completed (status=%q), mark the session finished", session.ID, status)
-			err := sp.stopRunningTests(ctx, session.ID)
-			if err != nil {
-				app.Errorf("failed to check running tests for %s: %v", session.ID, err)
-			}
-			// TODO: StatusFailed needs a different handling.
-			err = sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
-				session.SetFinishedAt(time.Now())
-				return nil
-			})
-			if err == nil {
-				// Nothing to do here anymore.
-				return
-			}
-			// Let's hope the error was transient.
-			app.Errorf("failed to update session %q: %v", session.ID, err)
-		case workflow.StatusRunning:
-			// Let's keep on tracking.
-			continue
-		default:
-			panic("unexpected workflow status: " + status)
 		}
 	}
 }

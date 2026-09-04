@@ -188,6 +188,71 @@ func newMockedWorkflows() *mockedWorkflows {
 	return &obj
 }
 
+func TestParallelWorkflowsLimit(t *testing.T) {
+	workflows := newMockedWorkflows()
+	processor, client, ctx := prepareProcessorTest(t, workflows)
+	processor.parallelWorkflows = 1
+
+	var wg sync.WaitGroup
+	ctx2, cancel := context.WithCancel(ctx)
+	wg.Go(func() {
+		processor.Loop(ctx2)
+	})
+
+	// Add 3 series.
+	for i := range 3 {
+		id := fmt.Sprintf("series-%d", i)
+		controller.UploadTestSeries(t, ctx, client, &api.Series{
+			ExtID: id,
+			Title: id,
+		})
+	}
+
+	// Wait for the first workflow to be created.
+	assert.Eventually(t, func() bool {
+		workflows.mu.Lock()
+		defer workflows.mu.Unlock()
+		return len(workflows.created) == 1
+	}, 2*time.Second, time.Millisecond*50)
+
+	// Check the series statuses.
+	inProgress, err := processor.seriesRepo.ListLatest(ctx, db.SeriesFilter{
+		Status: db.SessionStatusInProgress,
+	}, time.Time{})
+	assert.NoError(t, err)
+	assert.Len(t, inProgress, 1)
+
+	waiting, err := processor.seriesRepo.ListLatest(ctx, db.SeriesFilter{
+		Status: db.SessionStatusWaiting,
+	}, time.Time{})
+	assert.NoError(t, err)
+	assert.Len(t, waiting, 2)
+
+	// Finish the first workflow.
+	workflows.finish <- struct{}{}
+	awaitFinishedSessions(t, processor.seriesRepo, 1)
+
+	// Wait for the second workflow to start.
+	assert.Eventually(t, func() bool {
+		workflows.mu.Lock()
+		defer workflows.mu.Unlock()
+		return len(workflows.created) == 2
+	}, 2*time.Second, time.Millisecond*50)
+
+	inProgress, err = processor.seriesRepo.ListLatest(ctx, db.SeriesFilter{
+		Status: db.SessionStatusInProgress,
+	}, time.Time{})
+	assert.NoError(t, err)
+	assert.Len(t, inProgress, 1)
+
+	// Finish remaining workflows.
+	workflows.finish <- struct{}{}
+	workflows.finish <- struct{}{}
+	awaitFinishedSessions(t, processor.seriesRepo, 3)
+	cancel()
+	wg.Wait()
+}
+
 func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor,
 	*api.Client, context.Context) {
 	env, ctx := app.TestEnvironment(t)
