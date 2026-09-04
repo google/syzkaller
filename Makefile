@@ -475,3 +475,7 @@ check_k8s:
 
 act:
 	curl https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
+
+.PHONY: deb-pkg
+deb-pkg:
+	./tools/create-deb-pkg.sh
