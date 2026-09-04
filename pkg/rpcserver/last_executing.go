@@ -94,9 +94,5 @@ func PrependExecuting(rep *report.Report, lastExec []ExecRecord) {
 		fmt.Fprintf(buf, "%v ago: executing program %v (id=%v):\n%s\n", exec.Time, exec.Proc, exec.ID, exec.Prog)
 	}
 	fmt.Fprintf(buf, "kernel console output (not intermixed with test programs):\n\n")
-	rep.Output = append(buf.Bytes(), rep.Output...)
-	n := len(buf.Bytes())
-	rep.StartPos += n
-	rep.EndPos += n
-	rep.SkipPos += n
+	rep.PrependOutput(buf.Bytes())
 }

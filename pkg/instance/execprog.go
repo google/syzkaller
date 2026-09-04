@@ -156,9 +156,6 @@ func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunR
 	if rep == nil {
 		inst.Logf(2, "program did not crash")
 	} else {
-		if err := inst.reporter.Symbolize(rep); err != nil {
-			inst.Logf(0, "failed to symbolize report: %v", err)
-		}
 		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
 	res := &RunResult{
