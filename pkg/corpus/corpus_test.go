@@ -8,11 +8,13 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCorpusOperation(t *testing.T) {
@@ -208,4 +210,57 @@ func TestFocusedCorpusReSave(t *testing.T) {
 
 	// Verify that the program is not double-counted in the focus area.
 	assert.Len(t, corpus.focusAreas[0].progs, 1)
+}
+
+func TestCallCoverPreserved(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewCorpus(context.Background())
+	rs := rand.NewSource(0)
+
+	inp1 := generateInput(target, rs, 1)
+	inp1.Cover = []uint64{10, 20}
+	corpus.Save(inp1)
+
+	inp2 := generateInput(target, rs, 2)
+	inp2.Call = -1
+	inp2.Cover = []uint64{10, 30}
+	corpus.Save(inp2)
+
+	callCover := corpus.CallCover()
+	require.Equal(t, cover.FromRaw([]uint64{10, 30}), callCover[prog.ExtraCallName].Cover)
+}
+
+func TestCalibrateFocusAreas(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{{
+		Name:     "area",
+		CoverPCs: map[uint64]struct{}{1: {}, 2: {}},
+	}})
+
+	// PC 1 is ubiquitous (3/3 progs), PC 2 is rare (1/3 progs).
+	for _, cover := range [][]uint64{{1, 2}, {1}, {1}} {
+		inp := generateInput(target, rs, 1)
+		inp.Cover = cover
+		corpus.Save(inp)
+	}
+	require.Equal(t, 3, corpus.ProgsPerArea()["area"])
+
+	// Calibrate: threshold 50%, minHits 1, maxHits 2 -> allowedHits is 1.
+	// PC 1 (>1 hits) is pruned, PC 2 (1 hit) is kept.
+	stats := corpus.CalibrateFocusAreas(0.5, 1, 2)
+	require.Equal(t, AreaCalibrateStat{TotalPCs: 2, PrunedPCs: 1, Progs: 1}, stats["area"])
+	require.Equal(t, 1, corpus.ProgsPerArea()["area"])
+
+	// New program with pruned PC 1 does not match; program with PC 2 does.
+	inp := generateInput(target, rs, 1)
+	inp.Cover = []uint64{1}
+	corpus.Save(inp)
+	require.Equal(t, 1, corpus.ProgsPerArea()["area"])
+
+	inp = generateInput(target, rs, 1)
+	inp.Cover = []uint64{2}
+	corpus.Save(inp)
+	require.Equal(t, 2, corpus.ProgsPerArea()["area"])
 }
