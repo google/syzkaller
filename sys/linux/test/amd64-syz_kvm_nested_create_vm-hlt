@@ -1,5 +1,5 @@
 #
-# requires: arch=amd64 -threaded
+# requires: arch=amd64 nested -threaded
 #
 r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
