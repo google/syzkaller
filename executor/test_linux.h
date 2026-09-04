@@ -33,81 +33,100 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		printf("failed to open /dev/kvm (%d)\n", errno);
 		return 1;
 	}
-	int vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0);
-	if (vmfd == -1) {
-		printf("KVM_CREATE_VM failed (%d)\n", errno);
-		return 1;
-	}
-	int cpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
-	if (cpufd == -1) {
-		printf("KVM_CREATE_VCPU failed (%d)\n", errno);
-		return 1;
-	}
-	int cpu_mem_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, 0);
-	if (cpu_mem_size <= 0) {
-		printf("KVM_GET_VCPU_MMAP_SIZE failed (%d)\n", errno);
-		return 1;
-	}
-	struct kvm_run* cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size,
-							PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
-	if (cpu_mem == MAP_FAILED) {
-		printf("cpu mmap failed (%d)\n", errno);
-		return 1;
-	}
+	int vmfd = -1;
+	int cpufd = -1;
+	int cpu_mem_size = 0;
+	struct kvm_run* cpu_mem = (struct kvm_run*)MAP_FAILED;
 	int vm_mem_size = 24 * SYZ_PAGE_SIZE; // Allocate what executor allocates for vma[24]
-	void* vm_mem = mmap(0, vm_mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (vm_mem == MAP_FAILED) {
-		printf("mmap failed (%d)\n", errno);
-		return 1;
-	}
+	void* vm_mem = MAP_FAILED;
 	struct kvm_text kvm_text;
-	kvm_text.typ = text_type;
-	kvm_text.text = text;
-	kvm_text.size = text_size;
-	if (syz_kvm_setup_cpu(vmfd, cpufd, (uintptr_t)vm_mem, (uintptr_t)&kvm_text, 1, flags, 0, 0)) {
-		printf("syz_kvm_setup_cpu failed (%d)\n", errno);
-		return 1;
-	}
-
-	int ret = ioctl(cpufd, KVM_RUN, 0);
-	// KVM_RUN returns positive values on PPC64
-	if (ret < 0) {
-		printf("KVM_RUN returned %d, errno=%d\n", ret, errno);
-		return 1;
-	}
 	struct kvm_regs regs;
-	if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
-		printf("KVM_GET_REGS failed (%d)\n", errno);
-		dump_cpu_state(cpufd, (char*)vm_mem);
-		return 1;
-	}
-	if (cpu_mem->exit_reason != reason) {
-		printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
-		if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
-			printf("hardware exit reason 0x%llx\n",
-			       (unsigned long long)cpu_mem->fail_entry.hardware_entry_failure_reason);
-		dump_cpu_state(cpufd, (char*)vm_mem);
-		return 1;
-	}
+	int ret = 1;
+
+	do {
+		vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0);
+		if (vmfd == -1) {
+			printf("KVM_CREATE_VM failed (%d)\n", errno);
+			break;
+		}
+		cpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
+		if (cpufd == -1) {
+			printf("KVM_CREATE_VCPU failed (%d)\n", errno);
+			break;
+		}
+		cpu_mem_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, 0);
+		if (cpu_mem_size <= 0) {
+			printf("KVM_GET_VCPU_MMAP_SIZE failed (%d)\n", errno);
+			break;
+		}
+		cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size,
+						PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
+		if (cpu_mem == MAP_FAILED) {
+			printf("cpu mmap failed (%d)\n", errno);
+			break;
+		}
+		vm_mem = mmap(0, vm_mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (vm_mem == MAP_FAILED) {
+			printf("mmap failed (%d)\n", errno);
+			break;
+		}
+		kvm_text.typ = text_type;
+		kvm_text.text = text;
+		kvm_text.size = text_size;
+		if (syz_kvm_setup_cpu(vmfd, cpufd, (uintptr_t)vm_mem, (uintptr_t)&kvm_text, 1, flags, 0, 0)) {
+			printf("syz_kvm_setup_cpu failed (%d)\n", errno);
+			break;
+		}
+
+		ret = ioctl(cpufd, KVM_RUN, 0);
+		// KVM_RUN returns positive values on PPC64
+		if (ret < 0) {
+			printf("KVM_RUN returned %d, errno=%d\n", ret, errno);
+			ret = 1;
+			break;
+		}
+		if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
+			printf("KVM_GET_REGS failed (%d)\n", errno);
+			dump_cpu_state(cpufd, (char*)vm_mem);
+			ret = 1;
+			break;
+		}
+		if (cpu_mem->exit_reason != reason) {
+			printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
+			if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
+				printf("hardware exit reason 0x%llx\n",
+				       (unsigned long long)cpu_mem->fail_entry.hardware_entry_failure_reason);
+			dump_cpu_state(cpufd, (char*)vm_mem);
+			ret = 1;
+			break;
+		}
 #ifdef GOARCH_amd64
-	if (check_rax && regs.rax != 0xbadc0de) {
-		printf("wrong result: rax=0x%llx\n", (long long)regs.rax);
-		dump_cpu_state(cpufd, (char*)vm_mem);
-		return 1;
-	}
+		if (check_rax && regs.rax != 0xbadc0de) {
+			printf("wrong result: rax=0x%llx\n", (long long)regs.rax);
+			dump_cpu_state(cpufd, (char*)vm_mem);
+			ret = 1;
+			break;
+		}
 #elif GOARCH_ppc64le
-	if (check_rax && regs.gpr[3] != 0xbadc0de) {
-		printf("wrong result: gps[3]=0x%llx\n", (long long)regs.gpr[3]);
-		dump_cpu_state(cpufd, (char*)vm_mem);
-		return 1;
-	}
+		if (check_rax && regs.gpr[3] != 0xbadc0de) {
+			printf("wrong result: gps[3]=0x%llx\n", (long long)regs.gpr[3]);
+			dump_cpu_state(cpufd, (char*)vm_mem);
+			ret = 1;
+			break;
+		}
 #endif
-	munmap(vm_mem, vm_mem_size);
-	munmap(cpu_mem, cpu_mem_size);
-	close(cpufd);
-	close(vmfd);
+		ret = 0;
+	} while (false);
+	if (vm_mem != MAP_FAILED)
+		munmap(vm_mem, vm_mem_size);
+	if (cpu_mem != MAP_FAILED)
+		munmap(cpu_mem, cpu_mem_size);
+	if (cpufd != -1)
+		close(cpufd);
+	if (vmfd != -1)
+		close(vmfd);
 	close(kvmfd);
-	return 0;
+	return ret;
 }
 
 static int test_kvm()
@@ -196,6 +215,12 @@ static int test_kvm()
 		if (res)
 			return res;
 	}
+#elif GOARCH_loong64
+	// LoongArch: lu12i.w $t0, 0x200; st.d $zero, $t0, 0.
+	// This stores zero to 0x200000 and should trigger KVM_EXIT_MMIO.
+	const char text[] = "\x0c\x40\x00\x14\x80\x01\xc0\x29";
+	if ((res = test_one(0, text, sizeof(text) - 1, 0, KVM_EXIT_MMIO, false)))
+		return res;
 #else
 	// Keeping gcc happy
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
@@ -230,11 +255,13 @@ static void dump_seg(const char* name, struct kvm_segment* seg)
 
 static void dump_cpu_state(int cpufd, char* vm_mem)
 {
+#ifndef GOARCH_loong64
 	struct kvm_sregs sregs;
 	if (ioctl(cpufd, KVM_GET_SREGS, &sregs)) {
 		printf("KVM_GET_SREGS failed (%d)\n", errno);
 		return;
 	}
+#endif
 	struct kvm_regs regs;
 	if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
 		printf("KVM_GET_REGS failed (%d)\n", errno);
@@ -275,6 +302,11 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 	printf("GPR24 %016lx %016lx %016lx %016lx\n", regs.gpr[24], regs.gpr[25], regs.gpr[26], regs.gpr[27]);
 	printf("GPR28 %016lx %016lx %016lx %016lx\n", regs.gpr[28], regs.gpr[29], regs.gpr[30], regs.gpr[31]);
 	printf(" SRR0 %016lx  SRR1 %016lx\n", regs.srr0, regs.srr1);
+#elif GOARCH_loong64
+	printf("PC %016llx\n", (unsigned long long)regs.pc);
+	printf("GPR00 %016llx %016llx %016llx %016llx\n",
+	       (unsigned long long)regs.gpr[0], (unsigned long long)regs.gpr[1],
+	       (unsigned long long)regs.gpr[2], (unsigned long long)regs.gpr[3]);
 #endif
 }
 

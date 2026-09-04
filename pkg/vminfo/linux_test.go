@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,6 +87,22 @@ func TestLinuxSyscalls(t *testing.T) {
 		if !info.Enabled {
 			t.Errorf("feature %v is not enabled: %v", flatrpc.EnumNamesFeature[feat], info.Reason)
 		}
+	}
+}
+
+func TestLinuxSyzKvmSupportedLoong64(t *testing.T) {
+	cfg := testConfig(t, targets.Linux, targets.Loong64)
+	ctx := &checkContext{target: cfg.Target}
+	for _, call := range []string{
+		"syz_kvm_setup_cpu$loong64",
+		"syz_kvm_assert_reg$loong64",
+		"syz_kvm_assert_syzos_kvm_exit$loong64",
+		"syz_kvm_setup_syzos_vm$loong64",
+		"syz_kvm_add_vcpu$loong64",
+		"syz_kvm_assert_syzos_uexit$loong64",
+	} {
+		reason := linuxSyzKvmSupported(ctx, &prog.Syscall{Name: call})
+		require.Empty(t, reason, "%s is disabled", call)
 	}
 }
 
