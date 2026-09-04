@@ -31,25 +31,13 @@ func aiGraphsKey(ns string) string {
 }
 
 func loadAIGraphs(ctx context.Context, ns string) (*uiAIGraphs, error) {
-	var modelTokens []*aidb.MonthlyModelTokenStat
-	var jobTypeTokens []*aidb.MonthlyJobTypeTokenStat
-	var finishedJobs []*aidb.MonthlyFinishedJobsStat
+	var tokens []*aidb.MonthlyTokenStat
 	var jobTypes []*aidb.MonthlyJobTypeStat
 
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		var err error
-		modelTokens, err = aidb.LoadMonthlyModelTokenStats(egCtx, ns)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		jobTypeTokens, err = aidb.LoadMonthlyJobTypeTokenStats(egCtx, ns)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		finishedJobs, err = aidb.LoadMonthlyFinishedJobsStats(egCtx, ns)
+		tokens, err = aidb.LoadMonthlyTokenStats(egCtx, ns)
 		return err
 	})
 	eg.Go(func() error {
@@ -62,9 +50,9 @@ func loadAIGraphs(ctx context.Context, ns string) (*uiAIGraphs, error) {
 	}
 
 	return &uiAIGraphs{
-		TokenGraph:        createAITokenGraph(modelTokens),
-		JobTypeTokenGraph: createAIJobTypeTokenGraph(jobTypeTokens),
-		FinishedJobsGraph: createAIFinishedJobsGraph(finishedJobs),
+		TokenGraph:        createAITokenGraph(tokens),
+		JobTypeTokenGraph: createAIJobTypeTokenGraph(tokens),
+		FinishedJobsGraph: createAIFinishedJobsGraph(jobTypes),
 		JobTypesGraph:     createAIJobTypesGraph(jobTypes),
 	}, nil
 }
@@ -173,19 +161,19 @@ func tokensToMonthlySeries[T any](stats []T, get func(T) (time.Time, string, int
 	return createAIMonthlyMultiSeriesGraph(items)
 }
 
-func createAITokenGraph(stats []*aidb.MonthlyModelTokenStat) *uiGraph {
-	return tokensToMonthlySeries(stats, func(s *aidb.MonthlyModelTokenStat) (time.Time, string, int64) {
+func createAITokenGraph(stats []*aidb.MonthlyTokenStat) *uiGraph {
+	return tokensToMonthlySeries(stats, func(s *aidb.MonthlyTokenStat) (time.Time, string, int64) {
 		return s.Month, s.Model, s.TotalTokens
 	})
 }
 
-func createAIJobTypeTokenGraph(stats []*aidb.MonthlyJobTypeTokenStat) *uiGraph {
-	return tokensToMonthlySeries(stats, func(s *aidb.MonthlyJobTypeTokenStat) (time.Time, string, int64) {
+func createAIJobTypeTokenGraph(stats []*aidb.MonthlyTokenStat) *uiGraph {
+	return tokensToMonthlySeries(stats, func(s *aidb.MonthlyTokenStat) (time.Time, string, int64) {
 		return s.Month, s.Type, s.TotalTokens
 	})
 }
 
-func createAIFinishedJobsGraph(stats []*aidb.MonthlyFinishedJobsStat) *uiGraph {
+func createAIFinishedJobsGraph(stats []*aidb.MonthlyJobTypeStat) *uiGraph {
 	monthMap := make(map[time.Time]int64)
 	var months []time.Time
 	for _, s := range stats {
@@ -193,7 +181,7 @@ func createAIFinishedJobsGraph(stats []*aidb.MonthlyFinishedJobsStat) *uiGraph {
 		if _, ok := monthMap[m]; !ok {
 			months = append(months, m)
 		}
-		monthMap[m] += s.FinishedCount
+		monthMap[m] += s.Count
 	}
 	slices.SortFunc(months, func(a, b time.Time) int {
 		return a.Compare(b)
