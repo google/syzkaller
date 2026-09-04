@@ -4134,16 +4134,40 @@ static void reset_net_namespace(void)
 
 #if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
 #include <fcntl.h>
+#include <linux/magic.h>
 #include <string.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/types.h>
 
-static void mount_cgroups(const char* dir, const char** controllers, int count)
+// setup_cgroups() can be called more than once.  An existing path is only
+// safe to reuse if it is still backed by the expected cgroup filesystem.
+static bool cgroups_enabled;
+static bool cgroups_invalid;
+
+static bool is_cgroup_fs(const char* dir, long magic)
+{
+	struct statfs fs;
+	return statfs(dir, &fs) == 0 && fs.f_type == magic;
+}
+
+static bool validate_existing_cgroup(const char* dir, long magic)
+{
+	if (is_cgroup_fs(dir, magic))
+		return true;
+	debug("%s is not the expected cgroup filesystem\n", dir);
+	cgroups_invalid = true;
+	return false;
+}
+
+static bool mount_cgroups(const char* dir, const char** controllers, int count)
 {
 	if (mkdir(dir, 0777)) {
+		if (errno == EEXIST)
+			return validate_existing_cgroup(dir, CGROUP_SUPER_MAGIC);
 		debug("mkdir(%s) failed: %d\n", dir, errno);
-		return;
+		return false;
 	}
 	// First, probe one-by-one to understand what controllers are present.
 	char enabled[128] = {0};
@@ -4158,9 +4182,12 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 		strcat(enabled, controllers[i]);
 	}
 	if (enabled[0] == 0) {
-		if (rmdir(dir) && errno != EBUSY)
-			failmsg("rmdir failed", "dir=%s", dir);
-		return;
+		if (rmdir(dir)) {
+			if (errno != EBUSY)
+				failmsg("rmdir failed", "dir=%s", dir);
+			return validate_existing_cgroup(dir, CGROUP_SUPER_MAGIC);
+		}
+		return false;
 	}
 	// Now mount all at once.
 	if (mount("none", dir, "cgroup", 0, enabled + 1)) {
@@ -4168,21 +4195,30 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 		// (systemd starts messing with these mounts?),
 		// so we don't fail, but just log the error.
 		debug("mount(%s, %s) failed: %d\n", dir, enabled + 1, errno);
-		if (rmdir(dir) && errno != EBUSY)
-			failmsg("rmdir failed", "dir=%s enabled=%s", dir, enabled);
+		if (rmdir(dir)) {
+			if (errno != EBUSY)
+				failmsg("rmdir failed", "dir=%s enabled=%s", dir, enabled);
+			return validate_existing_cgroup(dir, CGROUP_SUPER_MAGIC);
+		}
+		return false;
 	}
 	if (chmod(dir, 0777)) {
 		debug("chmod(%s) failed: %d\n", dir, errno);
 	}
+	return validate_existing_cgroup(dir, CGROUP_SUPER_MAGIC);
 }
 
-static void mount_cgroups2(const char** controllers, int count)
+static bool mount_cgroups2(const char** controllers, int count)
 {
 	if (mkdir("/syzcgroup/unified", 0777)) {
-		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
-		return;
-	}
-	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
+		if (errno == EEXIST) {
+			if (!validate_existing_cgroup("/syzcgroup/unified", CGROUP2_SUPER_MAGIC))
+				return false;
+		} else {
+			debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
+			return false;
+		}
+	} else if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
 		debug("mount(cgroup2) failed: %d\n", errno);
 		// For all cases when we don't end up mounting cgroup/cgroup2
 		// in /syzcgroup/{unified,net,cpu}, we need to remove the dir.
@@ -4191,22 +4227,31 @@ static void mount_cgroups2(const char** controllers, int count)
 		// after tests and may easily consume all disk space.
 		// EBUSY usually means that cgroup is already mounted there
 		// by a previous run of e.g. syz-execprog.
-		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
-			fail("rmdir(/syzcgroup/unified) failed");
-		return;
+		if (rmdir("/syzcgroup/unified")) {
+			if (errno != EBUSY)
+				fail("rmdir(/syzcgroup/unified) failed");
+			return validate_existing_cgroup("/syzcgroup/unified", CGROUP2_SUPER_MAGIC);
+		}
+		return false;
+	}
+	if (!is_cgroup_fs("/syzcgroup/unified", CGROUP2_SUPER_MAGIC)) {
+		debug("/syzcgroup/unified is not a cgroup2 filesystem\n");
+		cgroups_invalid = true;
+		return false;
 	}
 	if (chmod("/syzcgroup/unified", 0777)) {
 		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
 	}
 	int control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
 	if (control == -1)
-		return;
+		return true;
 	int i;
 	for (i = 0; i < count; i++)
 		if (write(control, controllers[i], strlen(controllers[i])) < 0) {
 			debug("write(cgroup.subtree_control, %s) failed: %d\n", controllers[i], errno);
 		}
 	close(control);
+	return true;
 }
 
 static void setup_cgroups()
@@ -4222,21 +4267,31 @@ static void setup_cgroups()
 	const char* unified_controllers[] = {"+cpu", "+io", "+pids"};
 	const char* net_controllers[] = {"net", "net_prio", "devices", "blkio", "freezer"};
 	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit", "memory"};
+	cgroups_enabled = true;
+	cgroups_invalid = false;
 	if (mkdir("/syzcgroup", 0777)) {
+		int err = errno;
 		// Can happen due to e.g. read-only file system (EROFS).
-		debug("mkdir(/syzcgroup) failed: %d\n", errno);
-		return;
+		debug("mkdir(/syzcgroup) failed: %d\n", err);
+		if (err != EEXIST) {
+			cgroups_enabled = false;
+			return;
+		}
 	}
 	mount_cgroups2(unified_controllers, sizeof(unified_controllers) / sizeof(unified_controllers[0]));
 	mount_cgroups("/syzcgroup/net", net_controllers, sizeof(net_controllers) / sizeof(net_controllers[0]));
 	mount_cgroups("/syzcgroup/cpu", cpu_controllers, sizeof(cpu_controllers) / sizeof(cpu_controllers[0]));
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
 	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
+	if (cgroups_invalid)
+		cgroups_enabled = false;
 }
 
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void setup_cgroups_loop()
 {
+	if (!cgroups_enabled)
+		return;
 #if SYZ_EXECUTOR
 	if (!flag_cgroups)
 		return;
@@ -4287,6 +4342,8 @@ static void setup_cgroups_loop()
 
 static void setup_cgroups_test()
 {
+	if (!cgroups_enabled)
+		return;
 #if SYZ_EXECUTOR
 	if (!flag_cgroups)
 		return;
@@ -4310,6 +4367,8 @@ static void setup_cgroups_test()
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
 static void initialize_cgroups()
 {
+	if (!cgroups_enabled)
+		return;
 #if SYZ_EXECUTOR
 	if (!flag_cgroups)
 		return;
