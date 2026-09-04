@@ -75,6 +75,91 @@ func TestSelectTrees(t *testing.T) {
 	}
 }
 
+func TestSelectTreesWithCandidates(t *testing.T) {
+	trees := []*api.Tree{
+		{
+			Name:       "mainline",
+			EmailLists: nil,
+		},
+		{
+			Name:       "stable",
+			EmailLists: []string{"stable@vger.kernel.org"},
+			Type:       api.TreeTypeStable,
+		},
+	}
+	tests := []struct {
+		testName string
+		result   []string
+		series   *api.Series
+		noStable bool
+	}{
+		{
+			testName: "lts-rc-5.15-review",
+			result:   []string{"stable"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				SubjectTags:       []string{"5.15"},
+				Title:             "5.15.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "lts-rc-5.15-review-no-subject-tag",
+			result:   []string{"stable"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				Title:             "5.15.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "lts-rc-via-headers",
+			result:   []string{"stable"},
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				Title:             "Patch review for stable release",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.15.y",
+			},
+		},
+		{
+			testName: "lts-rc-no-matching-tree",
+			result:   nil,
+			noStable: true,
+			series: &api.Series{
+				Cc:                []string{"stable@vger.kernel.org"},
+				SubjectTags:       []string{"5.16"},
+				Title:             "5.16.138-rc1 review",
+				XStable:           "review",
+				XKernelTestBranch: "linux-5.16.y",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			inputTrees := trees
+			if test.noStable {
+				inputTrees = []*api.Tree{trees[0]}
+			}
+			tree, err := StableTree(inputTrees, test.series)
+			if test.result == nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				selectedTrees := SelectTrees(test.series, []*api.Tree{tree})
+				var retNames []string
+				for _, tree := range selectedTrees {
+					retNames = append(retNames, tree.Name)
+				}
+				assert.Equal(t, test.result, retNames)
+			}
+		})
+	}
+}
+
 func TestTreeFromBranch(t *testing.T) {
 	trees := []*api.Tree{{Name: "a"}, {Name: "b"}}
 	treeIdx, branch := FindTree(trees, "a/some_branch")
