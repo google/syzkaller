@@ -5503,7 +5503,7 @@ static const char* setup_binfmt_misc()
 		return NULL;
 	}
 	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
-	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
+	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::/proc/thread-self/cwd/file0:POC"))
 		return "write(/proc/sys/fs/binfmt_misc/register) failed";
 	return NULL;
 }
