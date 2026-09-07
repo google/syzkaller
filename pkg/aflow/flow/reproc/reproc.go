@@ -165,7 +165,7 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 
 	const (
 		defaultLogLimit = 200
-		straceLogLimit  = 2000
+		straceLogLimit  = 200
 	)
 
 	return TruncateLogResult{
@@ -442,7 +442,6 @@ func init() {
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: oracleInstruction,
 							Prompt:      oraclePrompt,
-							Tools:       tools,
 						},
 						LoopController,
 					),
@@ -611,11 +610,8 @@ If the reproduction attempt fails (e.g., a system call returns an error, or a
 warning/error message appears in the console log), you MUST:
 1. Identify the failing system call from the execution trace or strace output.
 2. Identify any corresponding warning or error messages in the console log.
-3. Immediately search the kernel source tree for the warning message strings or
-   the code of the failing system call/subsystem to locate the validation logic.
-4. Trace the kernel's validation logic to diagnose the exact constraint violation
-   or input mismatch in the generated program.
-5. Provide a technical diagnosis in the feedback explaining the exact kernel constraint that was violated and why.
+3. Provide a clear technical diagnosis in the feedback identifying the failing call,
+   return code (errno), and error messages so the strategy-refiner can analyze the root cause.
 {{end}}`
 
 const oraclePrompt = `Bug Description: {{.BugDescription}}
