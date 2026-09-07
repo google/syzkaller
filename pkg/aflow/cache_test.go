@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestCache(t *testing.T) {
@@ -225,4 +228,130 @@ func TestRetrieveObject_InvalidID(t *testing.T) {
 	_, err = RetrieveObject[X](ctx, "../invalid")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid cached ID (not local)")
+}
+
+// TestCacheParallel verifies that populating different entries is not serialized.
+// The populate callbacks wait for each other, so the test hangs if it's not the case.
+func TestCacheParallel(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	first, second := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	eg.Go(func() error {
+		_, err := c.Create("build", "1", func(dir string) error {
+			close(first)
+			<-second
+			return nil
+		})
+		return err
+	})
+	eg.Go(func() error {
+		_, err := c.Create("build", "2", func(dir string) error {
+			close(second)
+			<-first
+			return nil
+		})
+		return err
+	})
+	require.NoError(t, eg.Wait())
+}
+
+func TestCacheConcurrent(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	var popCount atomic.Int64
+	started, gate := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	eg.Go(func() error {
+		_, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			close(started)
+			<-gate
+			return osutil.WriteFile(filepath.Join(dir, "f"), []byte("data"))
+		})
+		return err
+	})
+	<-started
+	eg.Go(func() error {
+		_, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			return nil
+		})
+		return err
+	})
+	// Both callers must be in the same flight, otherwise the second one would populate
+	// the entry on its own and the popCount check below would be meaningless.
+	waitFlightJoin(t, 2)
+	close(gate)
+	require.NoError(t, eg.Wait())
+	require.Equal(t, int64(1), popCount.Load())
+}
+
+func TestCacheConcurrentErr(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	var popCount atomic.Int64
+	started, gate := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	eg.Go(func() error {
+		_, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			close(started)
+			<-gate
+			return fmt.Errorf("build failed")
+		})
+		return err
+	})
+	<-started
+	eg.Go(func() error {
+		_, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			return nil
+		})
+		return err
+	})
+	waitFlightJoin(t, 2)
+	close(gate)
+	// Both callers share the failure, the callback is not retried right away.
+	require.Error(t, eg.Wait())
+	require.Equal(t, int64(1), popCount.Load())
+
+	// Verify that the failure is not cached and the next attempt populates the entry.
+	_, err = c.Create("build", "k", func(dir string) error {
+		popCount.Add(1)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), popCount.Load())
+
+	// Verify that a subsequent attempt uses the cached entry.
+	_, err = c.Create("build", "k", func(dir string) error {
+		popCount.Add(1)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), popCount.Load())
+}
+
+// waitFlightJoin waits until count goroutines are inside of the singleflight call in Cache.Create.
+func waitFlightJoin(t *testing.T, count int) {
+	buf := make([]byte, 1<<20)
+	for range 1000 {
+		n := runtime.Stack(buf, true)
+		got := 0
+		for stack := range bytes.SplitSeq(buf[:n], []byte("\n\n")) {
+			if bytes.Contains(stack, []byte("singleflight.(*Group).Do")) &&
+				bytes.Contains(stack, []byte("aflow.(*Cache).Create")) {
+				got++
+			}
+		}
+		if got >= count {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %v goroutines to join the flight", count)
 }

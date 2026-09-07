@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
+	"golang.org/x/sync/singleflight"
 )
 
 // Cache maintains on-disk cache with directories with arbitrary contents (kernel checkouts, builds, etc).
@@ -22,10 +23,12 @@ import (
 // cached directory. Old unused directories are incrementally removed if the total disk usage grows
 // over the specified limit.
 type Cache struct {
-	dir         string
-	maxSize     uint64
-	timeNow     func() time.Time
-	t           *testing.T
+	dir     string
+	maxSize uint64
+	timeNow func() time.Time
+	t       *testing.T
+	// flight coalesces concurrent population of the same cache entry.
+	flight      singleflight.Group
 	mu          sync.Mutex
 	currentSize uint64
 	entries     map[string]*cacheEntry
@@ -66,8 +69,6 @@ func newTestCache(t *testing.T, dir string, maxSize uint64, timeNow func() time.
 // (the second invocation with the same typ+desc will return dir created by the first
 // invocation with the same typ+desc).
 func (c *Cache) Create(typ, desc string, populate func(string) error) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	// Note: we don't populate a temp dir and then atomically rename it to the final destination,
 	// because at least kernel builds encode the current path in debug info/compile commands,
 	// so moving the dir later would break all that. Instead we rely on the presence of the meta file
@@ -75,49 +76,100 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 	id := hash.String(desc)
 	dir := filepath.Join(c.dir, typ, id)
 	metaFile := filepath.Join(dir, cacheMetaFile)
-	if c.entries[dir] == nil {
-		os.RemoveAll(dir)
-		if err := osutil.MkdirAll(dir); err != nil {
-			return "", err
-		}
-		if err := populate(dir); err != nil {
-			os.RemoveAll(dir)
-			return "", err
-		}
-		size, err := osutil.DiskUsage(dir)
-		if err != nil {
-			return "", err
-		}
-		meta := cacheMeta{
-			Version:     currentCacheVersion,
-			Description: desc,
-			DiskUsage:   size,
-		}
-		if err := osutil.WriteJSON(metaFile, meta); err != nil {
-			os.RemoveAll(dir)
-			return "", err
-		}
-		c.entries[dir] = &cacheEntry{
-			dir:  dir,
-			size: size,
-		}
-		c.currentSize += size
-		c.logf("created entry %v, size %v, current size %v", dir, size, c.currentSize)
-	}
-	// Note the entry was used now.
-	now := c.timeNow()
-	if err := os.Chtimes(metaFile, now, now); err != nil {
+	// Concurrent requests for the same entry are coalesced and share the result, including errors.
+	// Failures are never cached (no entry is created), so the next Create will populate the dir
+	// again, and the callers that expect transient failures (e.g. the LLM agent) retry themselves.
+	// This is better than letting every caller re-run a failed multi-minute operation in turn.
+	if _, err, _ := c.flight.Do(dir, func() (any, error) {
+		return nil, c.populateEntry(dir, metaFile, desc, populate)
+	}); err != nil {
 		return "", err
 	}
+	if err := c.useEntry(dir, metaFile); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// populateEntry creates the cache entry for the dir, unless it's already cached.
+// It must be called under c.flight to avoid concurrent population of the same dir.
+func (c *Cache) populateEntry(dir, metaFile, desc string, populate func(string) error) error {
+	c.mu.Lock()
+	cached := c.entries[dir] != nil
+	c.mu.Unlock()
+	if cached {
+		return nil
+	}
+	// Note: the entry is not accounted in currentSize until it's fully populated
+	// (we don't know its size in advance), so the cache may temporarily grow over maxSize.
+	// The extra space is reclaimed by the purge that follows the population.
+	size, err := c.populateDir(dir, metaFile, desc, populate)
+	if err != nil {
+		return err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries[dir] = &cacheEntry{
+		dir:  dir,
+		size: size,
+		// Set lastUsed right away, otherwise the entry looks like the oldest one
+		// and may be purged before the caller accounts its use.
+		lastUsed: c.timeNow(),
+	}
+	c.currentSize += size
+	c.logf("created entry %v, size %v, current size %v", dir, size, c.currentSize)
+	return nil
+}
+
+// useEntry accounts one more use of the cached dir.
+func (c *Cache) useEntry(dir, metaFile string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	entry := c.entries[dir]
+	if entry == nil {
+		// A concurrent Create has purged the entry before we accounted its use.
+		// The entry is the most recently used one, so this means that the cache is over the limit
+		// and all of the older entries are still in use.
+		return fmt.Errorf("cache entry %v was purged before use, the cache is too small", dir)
+	}
+	now := c.timeNow()
+	if err := os.Chtimes(metaFile, now, now); err != nil {
+		return err
+	}
 	entry.usageCount++
 	entry.lastUsed = now
 	c.logf("using entry %v, usage count %v", dir, entry.usageCount)
 	if err := c.purge(); err != nil {
 		entry.usageCount--
-		return "", err
+		return err
 	}
-	return dir, nil
+	return nil
+}
+
+func (c *Cache) populateDir(dir, metaFile, desc string, populate func(string) error) (uint64, error) {
+	os.RemoveAll(dir)
+	if err := osutil.MkdirAll(dir); err != nil {
+		return 0, err
+	}
+	if err := populate(dir); err != nil {
+		os.RemoveAll(dir)
+		return 0, err
+	}
+	size, err := osutil.DiskUsage(dir)
+	if err != nil {
+		os.RemoveAll(dir)
+		return 0, err
+	}
+	meta := cacheMeta{
+		Version:     currentCacheVersion,
+		Description: desc,
+		DiskUsage:   size,
+	}
+	if err := osutil.WriteJSON(metaFile, meta); err != nil {
+		os.RemoveAll(dir)
+		return 0, err
+	}
+	return size, nil
 }
 
 func cacheCreateObject[T any](c *Cache, typ, desc string, populate func() (T, error)) (string, T, error) {
@@ -243,6 +295,9 @@ func (c *Cache) purge() error {
 		if entry.usageCount != 0 || c.currentSize < c.maxSize {
 			break
 		}
+		// Note: the removal must happen under c.mu, despite it may be slow for large dirs.
+		// Otherwise a concurrent Create may start populating the dir (populateDir begins
+		// with its own RemoveAll/MkdirAll) while we are still deleting it.
 		if err := os.RemoveAll(entry.dir); err != nil {
 			return err
 		}
