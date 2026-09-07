@@ -61,6 +61,14 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 	}
 
 	p.models = map[string]*modelInfo{
+		"gemini-3.8-flash": {
+			Thinking: true,
+			// Gemini 3.8 Flash does not support MINIMAL thinking.
+			MinThinkingLevel: backend.ThinkingLevelLow,
+			MaxTemperature:   2.0,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
 		"gemini-3.7-flash": {
 			Thinking: true,
 			// Gemini 3.7 Flash does not support MINIMAL thinking.
@@ -70,12 +78,6 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			OutputTokenLimit: 65536,
 		},
 		"gemini-3.6-flash": {
-			Thinking:         true,
-			MaxTemperature:   2.0,
-			InputTokenLimit:  1048576,
-			OutputTokenLimit: 65536,
-		},
-		"gemini-3.5-flash": {
 			Thinking:         true,
 			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
@@ -123,9 +125,9 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 	case backend.DeepReasoningModel:
 		return []string{"gemini-3.1-pro-preview"}
 	case backend.CoreModel:
-		return []string{"gemini-3.7-flash"}
+		return []string{"gemini-3.8-flash"}
 	case backend.LightweightModel:
-		return []string{"gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"}
+		return []string{"gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"}
 	default:
 		return nil
 	}
