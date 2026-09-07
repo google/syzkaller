@@ -60,8 +60,7 @@ func TestOldBugTagsConversion(t *testing.T) {
 	}, newBug)
 }
 
-// TODO: remove this test when populateReproTime admin action is removed after migration.
-func TestPopulateReproTime(t *testing.T) {
+func TestReportCrashReproTime(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -98,78 +97,6 @@ func TestPopulateReproTime(t *testing.T) {
 	// Verify real-time setting of FirstSyzReproTime and FirstCReproTime.
 	c.expectEQ(bug.FirstSyzReproTime, timeReproSyz)
 	c.expectEQ(bug.FirstCReproTime, timeReproC)
-
-	// Clear fields and reset StructVersion to simulate legacy bug data before DB update.
-	bugKey := bug.key(c.ctx)
-	updateSingleBug(c.ctx, bugKey, func(b *Bug) error {
-		b.FirstSyzReproTime = time.Time{}
-		b.FirstCReproTime = time.Time{}
-		b.StructVersion = 1
-		return nil
-	})
-
-	bugs, _, err = loadAllBugs(c.ctx, nil)
-	c.expectOK(err)
-	c.expectEQ(bugs[0].FirstSyzReproTime.IsZero(), true)
-	c.expectEQ(bugs[0].FirstCReproTime.IsZero(), true)
-	c.expectEQ(bugs[0].StructVersion, 1)
-
-	// Report another bug without repro.
-	build2 := testBuild(2)
-	c.client2.UploadBuild(build2)
-	crashNoRepro := testCrash(build2, 2)
-	c.client2.ReportCrash(crashNoRepro)
-
-	bugs, _, err = loadAllBugs(c.ctx, nil)
-	c.expectOK(err)
-	c.expectEQ(len(bugs), 2)
-	var bugWithoutRepro *Bug
-	for _, b := range bugs {
-		if !b.HasCRepro && !b.HasSyzRepro {
-			bugWithoutRepro = b
-		}
-	}
-	require.NotNil(t, bugWithoutRepro)
-	updateSingleBug(c.ctx, bugWithoutRepro.key(c.ctx), func(b *Bug) error {
-		b.StructVersion = 1
-		return nil
-	})
-
-	// Trigger admin action with limit=1 to verify partial migration.
-	_, err = c.AuthGET(AccessAdmin, "/admin?action=populateReproTime&limit=1")
-	c.expectOK(err)
-
-	bugs, _, err = loadAllBugs(c.ctx, nil)
-	c.expectOK(err)
-	v1Count := 0
-	v2Count := 0
-	for _, b := range bugs {
-		switch b.StructVersion {
-		case 1:
-			v1Count++
-		case bugStructVersion:
-			v2Count++
-		}
-	}
-	c.expectEQ(v1Count, 1)
-	c.expectEQ(v2Count, 1)
-
-	// Trigger admin action to populate all remaining bugs.
-	_, err = c.AuthGET(AccessAdmin, "/admin?action=populateReproTime")
-	c.expectOK(err)
-
-	bugs, _, err = loadAllBugs(c.ctx, nil)
-	c.expectOK(err)
-	for _, b := range bugs {
-		c.expectEQ(b.StructVersion, bugStructVersion)
-		if b.HasCRepro {
-			c.expectEQ(b.FirstCReproTime, timeReproC)
-			c.expectEQ(b.FirstSyzReproTime, timeReproSyz)
-		} else {
-			c.expectTrue(b.FirstCReproTime.IsZero())
-			c.expectTrue(b.FirstSyzReproTime.IsZero())
-		}
-	}
 }
 
 func TestUpdateReproLevel(t *testing.T) {
