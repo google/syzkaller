@@ -518,6 +518,9 @@ func TestResolveLineToPCs(t *testing.T) {
 	if target == nil {
 		t.Skip("skipping, amd64 target not found")
 	}
+	if target.BrokenCompiler != "" {
+		t.Skip("skipping the test due to broken compiler:\n" + target.BrokenCompiler)
+	}
 
 	testSource := `// Line 1: file header comment
 int compute(int x) {
