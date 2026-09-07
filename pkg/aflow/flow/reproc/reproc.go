@@ -388,7 +388,7 @@ func init() {
 					Tools:       tools,
 				},
 				&aflow.DoWhile{
-					MaxIterations: 20,
+					MaxIterations: 10,
 					While:         "ContinueSignal",
 					Do: aflow.Pipeline(
 						&aflow.If{
