@@ -4,6 +4,7 @@
 package reproc
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -20,14 +21,20 @@ func TestFormatCFunc(t *testing.T) {
 
 func TestTruncateLogFunc(t *testing.T) {
 	ctx := aflow.NewTestContext(t)
+	var straceLines []string
+	for range 250 {
+		straceLines = append(straceLines, "syscall(...) = 0")
+	}
 	args := TruncateLogArgs{
 		ConsoleOutput:        "line1\nline2\nline3",
+		StraceOutput:         strings.Join(straceLines, "\n"),
 		CandidateCrashReport: "report",
 	}
 	res, err := TruncateLogFunc(ctx, args)
 	assert.NoError(t, err)
 	assert.Equal(t, "line1\nline2\nline3", res.TruncatedConsoleOutput)
 	assert.Equal(t, "report", res.TruncatedCrashReport)
+	assert.Equal(t, 200, len(strings.Split(res.TruncatedStraceOutput, "\n")))
 }
 
 func TestLoopControllerFunc(t *testing.T) {
