@@ -77,7 +77,7 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 		return ExecuteCorpusResult{}, fmt.Errorf("unknown sys target: %s/%s", args.TargetOS, args.TargetArch)
 	}
 
-	corpusDB, err := db.Open(args.CorpusPath, false)
+	corpusDB, err := db.OpenReadOnly(args.CorpusPath)
 	if err != nil {
 		return ExecuteCorpusResult{}, fmt.Errorf("failed to open corpus db: %w", err)
 	}
