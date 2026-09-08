@@ -263,7 +263,11 @@ func parseLLMError(err error, model string) error {
 func parseLLMResp(resp *genai.GenerateContentResponse) error {
 	if len(resp.Candidates) == 0 || resp.Candidates[0] == nil {
 		if resp.PromptFeedback != nil {
-			return fmt.Errorf("request blocked: %v", resp.PromptFeedback.BlockReasonMessage)
+			reason := resp.PromptFeedback.BlockReasonMessage
+			if reason == "" {
+				reason = string(resp.PromptFeedback.BlockReason)
+			}
+			return fmt.Errorf("request blocked: %v", reason)
 		}
 		return fmt.Errorf("empty model response")
 	}
@@ -276,6 +280,9 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 		}
 		if candidate.FinishReason == genai.FinishReasonMaxTokens {
 			return &backend.OutputTokenOverflowError{Err: errors.New(string(candidate.FinishReason))}
+		}
+		if candidate.FinishMessage == "" {
+			return errors.New(string(candidate.FinishReason))
 		}
 		return fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
 	}
