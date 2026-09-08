@@ -1,0 +1,127 @@
+TITLE: BUG: workqueue lockup in nsim_fib_event_work
+
+[  117.366533][    C0] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:1b, vlan:0)
+[  117.366656][    C0] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:1b, vlan:0)
+[  120.818093][    C0] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 56s!
+[  120.818193][    C0] Showing busy workqueues and worker pools:
+[  120.818202][    C0] workqueue events: flags=0x100
+[  120.818233][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=20 refcnt=21
+[  120.818252][    C0]     in-flight: 9:nsim_fib_event_work for 58s nsim_fib_event_work ,1074:nsim_fib_event_work for 57s
+[  120.818295][    C0]     pending: free_obj_work, drm_fb_helper_damage_work, 2*nsim_dev_hwstats_traffic_work, psi_avgs_work, ovs_dp_masks_rebalance, rht_deferred_worker, psi_avgs_work, 4*l2cap_info_timeout, ovs_dp_masks_rebalance, vmstat_shepherd, 2*ovs_dp_masks_rebalance, nsim_fib_event_work
+[  120.818406][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  120.818423][    C0]     in-flight: 4474:reg_todo for 50s
+[  120.818443][    C0]     pending: psi_avgs_work
+[  120.818455][    C0] workqueue events_long: flags=0x100
+[  120.818464][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=9 refcnt=10
+[  120.818484][    C0]     pending: 9*defense_work_handler
+[  120.818505][    C0] workqueue events_unbound: flags=0x2
+[  120.818513][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  120.818529][    C0]     in-flight: 4964:cfg80211_wiphy_work for 39s cfg80211_wiphy_work
+[  120.818561][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=12 refcnt=13
+[  120.818575][    C0]     in-flight: 3998:fsnotify_mark_destroy_workfn for 56s ,1401:fsnotify_connector_destroy_workfn for 56s ,3906:cfg80211_wiphy_work for 51s cfg80211_wiphy_work ,12:cfg80211_wiphy_work for 44s cfg80211_wiphy_work ,39:cfg80211_wiphy_work for 55s cfg80211_wiphy_work ,40:nsim_dev_trap_report_work for 4s
+[  120.818684][    C0]     pending: nsim_dev_trap_report_work, toggle_allocation_gate, flush_memcg_stats_dwork
+[  120.818711][    C0] workqueue events_power_efficient: flags=0x82
+[  120.818719][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  120.818733][    C0]     in-flight: 3803:neigh_periodic_work for 19s
+[  120.818754][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=7 refcnt=8
+[  120.818768][    C0]     in-flight: 15:crda_timeout_work for 5s
+[  120.818785][    C0]     pending: gc_worker, do_cache_clean, fb_flashcursor, wg_ratelimiter_gc_entries, 2*neigh_managed_work
+[  120.818830][    C0] workqueue rcu_gp: flags=0x108
+[  120.818838][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.818854][    C0]     pending: srcu_invoke_callbacks
+[  120.818873][    C0] workqueue netns: flags=0x6000a
+[  120.818882][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=5
+[  120.818895][    C0]     in-flight: 869:cleanup_net for 59s
+[  120.818912][    C0]     inactive: cleanup_net
+[  120.818925][    C0] workqueue mm_percpu_wq: flags=0x108
+[  120.818933][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.818949][    C0]     pending: vmstat_update
+[  120.818969][    C0] workqueue writeback: flags=0x4a
+[  120.818978][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  120.818992][    C0]     in-flight: 1228:wb_workfn for 49s
+[  120.819046][    C0] workqueue mld: flags=0x40108
+[  120.819054][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=47
+[  120.819070][    C0]     in-flight: 4936:mld_dad_work for 56s
+[  120.819086][    C0]     inactive: mld_dad_work, mld_ifc_work, 2*mld_dad_work, 2*mld_ifc_work, 3*mld_dad_work, mld_ifc_work, mld_dad_work, mld_ifc_work, 2*mld_dad_work, 2*mld_ifc_work, 3*mld_dad_work, 4*mld_ifc_work, 3*mld_dad_work, 2*mld_ifc_work, 3*mld_dad_work, 5*mld_ifc_work, 9*mld_dad_work
+[  120.819198][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=8
+[  120.819214][    C0]     in-flight: 4781:mld_dad_work for 0s
+[  120.819229][    C0]     inactive: 5*mld_dad_work, mld_ifc_work
+[  120.819248][    C0] workqueue ipv6_addrconf: flags=0x6000a
+[  120.819256][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=83 MAYDAY
+[  120.819270][    C0]     in-flight: 2820(RESCUER):addrconf_dad_work for 26s
+[  120.819286][    C0]     inactive: 77*addrconf_dad_work
+[  120.819313][    C0] workqueue bat_events: flags=0x6000a
+[  120.819321][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=49 MAYDAY
+[  120.819335][    C0]     in-flight: 2852(RESCUER):batadv_tt_purge for 12s
+[  120.819353][    C0]     inactive: 3*batadv_tt_purge, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, 6*batadv_mcast_mla_update, 8*batadv_iv_send_outstanding_bat_ogm_packet, batadv_purge_orig, batadv_iv_send_outstanding_bat_ogm_packet, 2*batadv_purge_orig, batadv_iv_send_outstanding_bat_ogm_packet, 3*batadv_purge_orig, 4*batadv_iv_send_outstanding_bat_ogm_packet, 2*batadv_tt_purge
+[  120.819504][    C0] workqueue wg-kex-wg0: flags=0x124
+[  120.819512][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819528][    C0]     pending: wg_packet_handshake_receive_worker
+[  120.819544][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  120.819560][    C0]     in-flight: 4809:wg_packet_handshake_receive_worker for 15s wg_packet_handshake_receive_worker
+[  120.819588][    C0] workqueue wg-kex-wg0: flags=0x6
+[  120.819597][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  120.819612][    C0]     pending: wg_packet_handshake_send_worker
+[  120.819627][    C0] workqueue wg-crypt-wg0: flags=0x128
+[  120.819635][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=3 refcnt=4
+[  120.819651][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker, wg_packet_decrypt_worker
+[  120.819679][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819694][    C0]     pending: wg_packet_decrypt_worker
+[  120.819709][    C0] workqueue wg-kex-wg1: flags=0x124
+[  120.819717][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819733][    C0]     pending: wg_packet_handshake_receive_worker
+[  120.819749][    C0] workqueue wg-kex-wg1: flags=0x6
+[  120.819758][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  120.819772][    C0]     pending: wg_packet_handshake_send_worker
+[  120.819787][    C0] workqueue wg-crypt-wg1: flags=0x128
+[  120.819795][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=3 refcnt=4
+[  120.819811][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker, wg_packet_decrypt_worker
+[  120.819839][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819854][    C0]     pending: wg_packet_decrypt_worker
+[  120.819868][    C0] workqueue wg-kex-wg2: flags=0x124
+[  120.819876][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819892][    C0]     pending: wg_packet_handshake_receive_worker
+[  120.819907][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.819923][    C0]     in-flight: 24:wg_packet_handshake_receive_worker for 8s
+[  120.819944][    C0] workqueue wg-crypt-wg2: flags=0x128
+[  120.819952][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  120.819968][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker
+[  120.820000][    C0] workqueue wg-crypt-wg0: flags=0x128
+[  120.820008][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=3 refcnt=4
+[  120.820024][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker, wg_packet_decrypt_worker
+[  120.820052][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  120.820068][    C0]     pending: wg_packet_tx_worker
+[  120.820083][    C0] workqueue wg-crypt-wg1: flags=0x128
+[  120.820091][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=3 refcnt=4
+[  120.820107][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker, wg_packet_decrypt_worker
+[  120.820136][    C0] workqueue wg-crypt-wg2: flags=0x128
+[  120.820148][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  120.820165][    C0]     pending: wg_packet_encrypt_worker, wg_packet_tx_worker
+[  120.820197][    C0] pool 2: cpus=0 node=0 flags=0x0 nice=0 hung=56s workers=6 idle: 4831 1511 10
+[  120.820235][    C0] pool 6: cpus=1 node=0 flags=0x0 nice=0 hung=0s workers=6 idle: 866 26
+[  120.820266][    C0] pool 8: cpus=0-1 flags=0x6 nice=0 hung=4s workers=12 manager: 4965
+[  120.820289][    C0] Showing backtraces of busy workers in stalled worker pools:
+[  120.820297][    C0] pool 2:
+[  120.820302][    C0] task:kworker/0:0     state:R  running task     stack:0     pid:9     tgid:9     ppid:2      task_flags:0x4208060 flags:0x00000010
+[  120.820317][    C0] Workqueue: events nsim_fib_event_work
+[  120.820328][    C0] Call trace:
+[  120.820332][    C0]  __switch_to+0x2b0/0x6e0 (T)
+[  120.820344][    C0]  __schedule+0x1370/0x2d80
+[  120.820353][    C0]  preempt_schedule_common+0xd4/0x190
+[  120.820361][    C0]  preempt_schedule+0x60/0x78
+[  120.820369][    C0]  irq_work_queue+0xa0/0xa4
+[  120.820378][    C0]  nsim_fib_event+0x3170/0x60c4
+[  120.820388][    C0]  nsim_fib_event_work+0x1d8/0x320
+[  120.820398][    C0]  process_scheduled_works+0x788/0x10b8
+[  120.820408][    C0]  worker_thread+0x798/0xbd0
+[  120.820417][    C0]  kthread+0x304/0x3d4
+[  120.820426][    C0]  ret_from_fork+0x10/0x20
+[  120.820435][    C0] pool 2:
+[  120.820438][    C0] task:kworker/0:5     state:R  running task     stack:0     pid:4936  tgid:4936  ppid:2      task_flags:0x4208060 flags:0x00000010
+[  120.820451][    C0] Workqueue: mld mld_dad_work
+[  120.820458][    C0] Call trace:
+[  120.820461][    C0]  __switch_to+0x2b0/0x6e0 (T)
+[  120.820469][    C0]  __schedule+0x1370/0x2d80
+[  120.820480][    C0]  preempt_schedule_common+0xd4/0x190
+[  120.820488][    C0]  preempt_schedule+0x60/0x78
+[  120.820496][    C0]  __local_bh_enable_ip+0x20c/0x35c

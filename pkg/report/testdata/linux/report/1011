@@ -1,0 +1,14 @@
+TITLE: BUG: workqueue lockup
+
+[   42.731746][ T6029] loop0: detected capacity change from 0 to 256
+[   42.754078][ T6032] netlink: 'syz.4.501': attribute type 1 has an invalid length.
+[   42.891299][ T6035] Process accounting resumed
+[   53.773184][    C0] sched: DL replenish lagged too much
+[   78.708803][ T1597] ieee802154 phy0 wpan0: encryption failed: -22
+[   78.717807][ T1597] ieee802154 phy1 wpan1: encryption failed: -22
+[   90.749082][    C0] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 35s!
+[   90.749180][    C0] Showing busy workqueues and worker pools:
+[   90.749189][    C0] workqueue events: flags=0x100
+[   90.749226][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=18 refcnt=19
+[   90.749244][    C0]     pending: 5*nsim_dev_hwstats_traffic_work, psi_avgs_work, 6*ovs_dp_masks_rebalance, 4*psi_avgs_work, vmstat_shepherd, psi_avgs_work
+
