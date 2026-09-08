@@ -683,7 +683,6 @@ func (a *agentSession) compressContext(
 		Parts: []backend.Part{{Text: "Here is the summary of the previous execution history:\n\n" + reply}},
 	}
 
-	fmt.Printf("DEBUG compressContext finish: span.Model=%q\n", span.Model)
 	return newSummary, span.OutputTokens, ctx.finishSpan(span, nil)
 }
 
@@ -693,7 +692,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 		return false, nil
 	}
 
-	preserveHistoryTokens := 20000
+	preserveHistoryTokens := min(20000, a.compressTokens/2)
 
 	// Find the split index to preserve up to preserveHistoryTokens.
 	splitIndex := len(a.req)
@@ -963,14 +962,11 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *backend.GenerateConf
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	if a.compressTokens == 0 {
-		// Value chosen based on Gemini summarization of:
-		// "Retrieval and Multi-Hop Reasoning in 1M-Token Context Windows: Evaluating LLMs on Classical Chinese Text"
-		// (https://arxiv.org/pdf/2605.02173)
-		// and "Gemini 3.1 Pro: The Complete Guide to Google's Latest AI Model"
-		// (https://o-mega.ai/articles/gemini-3-1-pro-the-complete-guide-to-google-s-latest-ai-model-february-2026)
-		// for gemini-3.1-pro model.
-		// Note: here we assume the model has 1M input context.
-		a.compressTokens = 150_000
+		// Threshold of context history accumulation after the anchor prompt before
+		// triggering summarization. Lowered to 60,000 based on empirical analysis of
+		// production workflows, where typical runs accumulate 25K-50K tokens, while
+		// runaway exploration loops accumulate 100K-950K tokens.
+		a.compressTokens = 60_000
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	if a.ValidatedReply != nil {

@@ -141,31 +141,6 @@
 			{
 				"parts": [
 					{
-						"functionCall": {
-							"id": "id2",
-							"name": "tick"
-						}
-					}
-				],
-				"role": "model"
-			},
-			{
-				"parts": [
-					{
-						"functionResponse": {
-							"id": "id2",
-							"response": {
-								"ResFoo": 123
-							},
-							"name": "tick"
-						}
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
 						"text": "Task: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response. Do NOT use any tools."
 					}
 				],
@@ -228,6 +203,31 @@
 				"parts": [
 					{
 						"text": "Here is the summary of the previous execution history:\n\ncompressed summary"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
 					}
 				],
 				"role": "user"
