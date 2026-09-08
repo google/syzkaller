@@ -98,8 +98,8 @@ func TestTokenCompression(t *testing.T) {
 			},
 			// 4. The main agent resumes with the truncated history. We finish the workflow.
 			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
-				// Assert that the history was correctly truncated!
-				assert.Equal(t, 2, len(req), "History should be truncated to just Anchor and Summary")
+				// Assert that the history was correctly truncated to Anchor + Summary + Preserved Suffix.
+				assert.Equal(t, 4, len(req), "History should be Anchor, Summary, and preserved suffix")
 
 				// Assert Anchor Message remains untouched.
 				assert.Equal(t, "Prompt", req[0].Parts[0].Text)
@@ -107,6 +107,12 @@ func TestTokenCompression(t *testing.T) {
 				// Assert Summary is correctly formatted.
 				assert.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
 					req[1].Parts[0].Text)
+
+				// Assert that the latest turn was preserved in the suffix.
+				assert.Equal(t, backend.RoleModel, req[2].Role)
+				assert.Equal(t, "id2", req[2].Parts[0].FunctionCall.ID)
+				assert.Equal(t, backend.RoleUser, req[3].Role)
+				assert.Equal(t, "id2", req[3].Parts[0].FunctionResponse.ID)
 				return &backend.GenerateResponse{
 					UsageMetadata: &backend.UsageMetadata{
 						InputTokens:  20, // tokens dropped after compression
