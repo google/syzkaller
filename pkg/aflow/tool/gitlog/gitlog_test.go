@@ -52,14 +52,14 @@ diff --git a/foo\.c b/foo\.c
 		state{KernelSrc: repoDir},
 		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567"},
 		showResult{},
-		`git show failed: fatal: Not a valid object name 0123456789abcdef0123456789abcdef01234567^{commit}`,
+		`git show failed: commit 0123456789abcdef0123456789abcdef01234567 does not exist`,
 		aflow.TestWorkdir(tmpDir))
 
 	aflow.TestTool(t, ToolShow,
 		state{KernelSrc: repoDir},
 		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567:missing.c"},
 		showResult{},
-		`git show failed: fatal: Not a valid object name 0123456789abcdef0123456789abcdef01234567^{commit}`,
+		`git show failed: commit 0123456789abcdef0123456789abcdef01234567 does not exist`,
 		aflow.TestWorkdir(tmpDir))
 
 	// Test git-show with non-existing file.
