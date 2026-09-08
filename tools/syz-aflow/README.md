@@ -67,3 +67,14 @@ If the workflow needs to perform actions that interact with VMs (like reproducin
 Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or `"@./relative/path"`) will be automatically expanded with the contents of that file. Relative paths are resolved relative to the directory of the `-input` JSON file. Literal leading `@` characters can be escaped with `@@` (e.g. `"@@literal"`).
 
 See `aflow.go` (or run `./syz-aflow -help`) for all available flags.
+
+### Authentication & API Keys
+
+When using the `gemini` provider, specify your Gemini API key(s) via the `GEMINI_API_KEYS` (or `GEMINI_API_KEY`, `GOOGLE_API_KEYS`, `GOOGLE_API_KEY`) environment variable:
+```bash
+export GEMINI_API_KEYS="your-api-key"
+```
+To rotate multiple keys across tasks, provide them separated by newlines or commas:
+```bash
+export GEMINI_API_KEYS="$(cat keys.txt)"
+```
