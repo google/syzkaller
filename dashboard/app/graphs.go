@@ -138,7 +138,7 @@ func handleKernelHealthGraph(ctx context.Context, w http.ResponseWriter, r *http
 	}
 	data := &uiKernelHealthPage{
 		Header: hdr,
-		Graph:  createBugsGraph(ctx, bugs),
+		Graph:  createBugsGraph(timeNow(ctx), bugs),
 	}
 	return serveTemplate(w, "graph_bugs.html", data)
 }
@@ -421,46 +421,79 @@ func isStableBug(ctx context.Context, bug *Bug, lastReporting int) bool {
 	return false
 }
 
-func createBugsGraph(ctx context.Context, bugs []*Bug) *uiGraph {
-	type BugStats struct {
-		Opened        int
-		Fixed         int
-		Closed        int
-		TotalReported int
-		TotalOpen     int
-		TotalFixed    int
-		TotalClosed   int
+type bugStats struct {
+	Opened         int
+	Fixed          int
+	Closed         int
+	SyzReproOpened int
+	SyzReproClosed int
+	CReproOpened   int
+	CReproClosed   int
+	TotalReported  int
+	TotalOpen      int
+	TotalFixed     int
+	TotalClosed    int
+	OpenSyzRepro   int
+	OpenCRepro     int
+}
+
+func recordReproTimeline(reproTime, closeTime time.Time, statsFor func(time.Time) *bugStats, syz bool) {
+	if reproTime.IsZero() || (!closeTime.IsZero() && closeTime.Before(reproTime)) {
+		return
 	}
-	const timeWeek = 30 * 24 * time.Hour
-	now := timeNow(ctx)
-	m := make(map[int]*BugStats)
-	maxWeek := 0
-	bugStatsFor := func(t time.Time) *BugStats {
-		week := max(0, int(now.Sub(t)/(30*24*time.Hour)))
-		maxWeek = max(maxWeek, week)
-		bs := m[week]
+	bs := statsFor(reproTime)
+	if syz {
+		bs.SyzReproOpened++
+	} else {
+		bs.CReproOpened++
+	}
+	if !closeTime.IsZero() {
+		bs := statsFor(closeTime)
+		if syz {
+			bs.SyzReproClosed++
+		} else {
+			bs.CReproClosed++
+		}
+	}
+}
+
+func createBugsGraph(now time.Time, bugs []*Bug) *uiGraph {
+	const monthDuration = 30 * 24 * time.Hour
+	m := make(map[int]*bugStats)
+	maxMonth := 0
+	bugStatsFor := func(t time.Time) *bugStats {
+		month := max(0, int(now.Sub(t)/monthDuration))
+		maxMonth = max(maxMonth, month)
+		bs := m[month]
 		if bs == nil {
-			bs = new(BugStats)
-			m[week] = bs
+			bs = new(bugStats)
+			m[month] = bs
 		}
 		return bs
 	}
 	for _, bug := range bugs {
 		bugStatsFor(bug.FirstTime).Opened++
+		var closeTime time.Time
 		if !bug.Closed.IsZero() {
+			closeTime = bug.Closed
+			bs := bugStatsFor(bug.Closed)
 			if bug.Status == BugStatusFixed {
-				bugStatsFor(bug.Closed).Fixed++
+				bs.Fixed++
 			}
-			bugStatsFor(bug.Closed).Closed++
+			bs.Closed++
 		} else if len(bug.Commits) != 0 {
-			bugStatsFor(now).Fixed++
-			bugStatsFor(now).Closed++
+			closeTime = now
+			bs := bugStatsFor(now)
+			bs.Fixed++
+			bs.Closed++
 		}
+		recordReproTimeline(bug.FirstSyzReproTime, closeTime, bugStatsFor, true)
+		recordReproTimeline(bug.FirstCReproTime, closeTime, bugStatsFor, false)
 	}
-	var stats []BugStats
-	var prev BugStats
-	for i := maxWeek; i >= 0; i-- {
-		var bs BugStats
+	stats := make([]bugStats, 0, maxMonth+1)
+	var prev bugStats
+	for i := maxMonth; i >= 0; i-- {
+		var bs bugStats
 		if p := m[i]; p != nil {
 			bs = *p
 		}
@@ -468,21 +501,32 @@ func createBugsGraph(ctx context.Context, bugs []*Bug) *uiGraph {
 		bs.TotalFixed = prev.TotalFixed + bs.Fixed
 		bs.TotalClosed = prev.TotalClosed + bs.Closed
 		bs.TotalOpen = bs.TotalReported - bs.TotalClosed
+		bs.OpenSyzRepro = max(0, prev.OpenSyzRepro+bs.SyzReproOpened-bs.SyzReproClosed)
+		bs.OpenCRepro = max(0, prev.OpenCRepro+bs.CReproOpened-bs.CReproClosed)
 		stats = append(stats, bs)
 		prev = bs
 	}
-	var columns []uiGraphColumn
-	for week, bs := range stats {
-		col := uiGraphColumn{Hint: now.Add(time.Duration(week-len(stats)+1) * timeWeek).Format("Jan-06")}
-		col.Vals = append(col.Vals, uiGraphValue{Val: float32(bs.TotalOpen)})
-		col.Vals = append(col.Vals, uiGraphValue{Val: float32(bs.TotalReported)})
-		col.Vals = append(col.Vals, uiGraphValue{Val: float32(bs.TotalFixed)})
-		// col.Vals = append(col.Vals, uiGraphValue{Val: float32(bs.Opened)})
-		// col.Vals = append(col.Vals, uiGraphValue{Val: float32(bs.Fixed)})
-		columns = append(columns, col)
+	columns := make([]uiGraphColumn, 0, len(stats))
+	for month, bs := range stats {
+		columns = append(columns, uiGraphColumn{
+			Hint: now.Add(time.Duration(month-len(stats)+1) * monthDuration).Format("Jan-06"),
+			Vals: []uiGraphValue{
+				{Val: float32(bs.TotalOpen)},
+				{Val: float32(bs.TotalReported)},
+				{Val: float32(bs.TotalFixed)},
+				{Val: float32(bs.OpenSyzRepro)},
+				{Val: float32(bs.OpenCRepro)},
+			},
+		})
 	}
 	return &uiGraph{
-		Headers: []uiGraphHeader{{Name: "open bugs"}, {Name: "total reported"}, {Name: "total fixed"}},
+		Headers: []uiGraphHeader{
+			{Name: "open bugs"},
+			{Name: "total reported"},
+			{Name: "total fixed"},
+			{Name: "open bugs with syz repro"},
+			{Name: "open bugs with C repro"},
+		},
 		Columns: columns,
 	}
 }

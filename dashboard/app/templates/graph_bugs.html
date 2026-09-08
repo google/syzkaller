@@ -29,9 +29,16 @@ Bugs statistics graph.
 					vAxis: {textPosition: 'in'},
 					focusTarget: "category",
 					series: {
+						// open bugs
 						0: {targetAxisIndex: 0, color: "red", lineWidth: 3},
+						// total reported
 						1: {targetAxisIndex: 1, color: "black"},
+						// total fixed
 						2: {targetAxisIndex: 1, color: "green"},
+						// open bugs with syz repro
+						3: {targetAxisIndex: 0, color: "blue"},
+						// open bugs with C repro
+						4: {targetAxisIndex: 0, color: "purple"},
 					},
 					vAxes: {
 						0: {title: '# open bugs', gridlines: {multiple: 1}, minorGridlines: {multiple: 1}},

@@ -258,3 +258,90 @@ func TestResolutionGraphEndpoint(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(reply), "bug resolution rates")
 }
+
+func TestCreateBugsGraphWithRepros(t *testing.T) {
+	now := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	const month = 30 * 24 * time.Hour
+
+	bugs := []*Bug{
+		// Bug 1: Reported 2 months ago, syz repro 2 months ago, fixed 1 month ago.
+		{
+			FirstTime:         now.Add(-2 * month),
+			FirstSyzReproTime: now.Add(-2 * month),
+			Closed:            now.Add(-1 * month),
+			Status:            BugStatusFixed,
+		},
+		// Bug 2: Reported 1 month ago, syz repro and C repro 1 month ago, still open.
+		{
+			FirstTime:         now.Add(-1 * month),
+			FirstSyzReproTime: now.Add(-1 * month),
+			FirstCReproTime:   now.Add(-1 * month),
+			Status:            BugStatusOpen,
+		},
+		// Bug 3: Reported now, only C repro now, still open.
+		{
+			FirstTime:       now,
+			FirstCReproTime: now,
+			Status:          BugStatusOpen,
+		},
+		// Bug 4: Bug with zero repro timestamps (to verify zero-timestamp handling).
+		{
+			FirstTime: now.Add(-1 * month),
+			Status:    BugStatusOpen,
+		},
+		// Bug 5: Reported 2 months ago, but syz repro found 1 month later and C repro found now.
+		{
+			FirstTime:         now.Add(-2 * month),
+			FirstSyzReproTime: now.Add(-1 * month),
+			FirstCReproTime:   now,
+			Status:            BugStatusOpen,
+		},
+	}
+
+	graph := createBugsGraph(now, bugs)
+	expectedHeaders := []uiGraphHeader{
+		{Name: "open bugs"},
+		{Name: "total reported"},
+		{Name: "total fixed"},
+		{Name: "open bugs with syz repro"},
+		{Name: "open bugs with C repro"},
+	}
+	require.Equal(t, expectedHeaders, graph.Headers)
+	require.Len(t, graph.Columns, 3)
+
+	// Column 0: 2 months ago.
+	// Open: Bug 1, Bug 5 -> open=2, reported=2, fixed=0, open w/ syz repro=1 (Bug 1), open w/ C repro=0.
+	require.Equal(t, "Jul-26", graph.Columns[0].Hint)
+	require.Equal(t, []uiGraphValue{
+		{Val: 2}, // open bugs
+		{Val: 2}, // total reported
+		{Val: 0}, // total fixed
+		{Val: 1}, // open bugs with syz repro
+		{Val: 0}, // open bugs with C repro
+	}, graph.Columns[0].Vals)
+
+	// Column 1: 1 month ago.
+	// Bug 1 fixed (closed). New open: +Bug 2, +Bug 4 -> open=3, reported=4, fixed=1.
+	// Open w/ syz repro: Bug 2, Bug 5 -> 2. Open w/ C repro: Bug 2 -> 1.
+	require.Equal(t, "Aug-26", graph.Columns[1].Hint)
+	require.Equal(t, []uiGraphValue{
+		{Val: 3}, // open bugs
+		{Val: 4}, // total reported
+		{Val: 1}, // total fixed
+		{Val: 2}, // open bugs with syz repro
+		{Val: 1}, // open bugs with C repro
+	}, graph.Columns[1].Vals)
+
+	// Column 2: current month (now).
+	// New open: +Bug 3 -> open=4, reported=5, fixed=1.
+	// Open w/ syz repro: Bug 2, Bug 5 -> 2.
+	// Open w/ C repro: Bug 2, Bug 3, Bug 5 -> 3.
+	require.Equal(t, "Sep-26", graph.Columns[2].Hint)
+	require.Equal(t, []uiGraphValue{
+		{Val: 4}, // open bugs
+		{Val: 5}, // total reported
+		{Val: 1}, // total fixed
+		{Val: 2}, // open bugs with syz repro
+		{Val: 3}, // open bugs with C repro
+	}, graph.Columns[2].Vals)
+}
