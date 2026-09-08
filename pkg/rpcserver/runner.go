@@ -15,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stat"
@@ -53,6 +52,7 @@ type Runner struct {
 	conn        *flatrpc.Conn
 	stopped     bool
 	machineInfo []byte
+	logf        func(int, string, ...any)
 }
 
 type runnerStats struct {
@@ -221,7 +221,7 @@ func (runner *Runner) ConnectionLoop() error {
 				infoc = nil
 			} else {
 				// The request was solicited in detectTimeout().
-				log.Logf(0, "status result: %s", result)
+				runner.logf(0, "status result: %s", result)
 			}
 		default:
 			return fmt.Errorf("received unknown message type %T", msg)
@@ -273,14 +273,14 @@ func (runner *Runner) detectTimeout() chan struct{} {
 	go func() {
 		select {
 		case <-time.After(time.Minute):
-			log.Logf(0, "timed out waiting for executor reply, aborting the connection in 1 minute")
+			runner.logf(0, "timed out waiting for executor reply, aborting the connection in 1 minute")
 			go func() {
 				time.Sleep(time.Minute)
 				runner.conn.Close()
 			}()
 			err := runner.sendStateRequest()
 			if err != nil {
-				log.Logf(0, "failed to send state request: %v", err)
+				runner.logf(0, "failed to send state request: %v", err)
 				return
 			}
 
