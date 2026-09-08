@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
 	"google.golang.org/genai"
 )
+
+var flagNoSafetyFilters = flag.Bool("no-safety-filters", false, "disable safety filters for Gemini/Vertex requests")
 
 func init() {
 	RegisterProvider("gemini", func(ctx context.Context, model string) (backend.Provider, error) {
@@ -23,7 +26,8 @@ func init() {
 			return nil, fmt.Errorf("gemini provider requires GOOGLE_API_KEY or GEMINI_API_KEY environment variable to be set")
 		}
 		provider, err := gemini.NewProvider(ctx, gemini.Config{
-			ModelOverride: model,
+			ModelOverride:   model,
+			NoSafetyFilters: *flagNoSafetyFilters,
 			ClientConfig: &genai.ClientConfig{
 				APIKey: apiKey,
 			},
@@ -44,7 +48,8 @@ func init() {
 			location = "global"
 		}
 		provider, err := gemini.NewProvider(ctx, gemini.Config{
-			ModelOverride: model,
+			ModelOverride:   model,
+			NoSafetyFilters: *flagNoSafetyFilters,
 			ClientConfig: &genai.ClientConfig{
 				Backend:  genai.BackendVertexAI,
 				Project:  project,

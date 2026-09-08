@@ -55,6 +55,7 @@ type Config struct {
 	DefaultBackend string `json:"default_backend"`
 	GeminiAPIKey   string `json:"gemini_api_key"`
 	CloudProject   string `json:"-"`
+	SafetyFilters  bool   `json:"safety_filters"`
 }
 
 func loadConfig(configFile string) (*Config, error) {
@@ -64,6 +65,7 @@ func loadConfig(configFile string) (*Config, error) {
 		CacheSize:       1 << 40, // 1TB
 		GeminiAPIKey:    "env:GOOGLE_API_KEY",
 		DefaultBackend:  backendGemini,
+		SafetyFilters:   true,
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
