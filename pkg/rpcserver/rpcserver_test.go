@@ -226,6 +226,9 @@ func TestHandleConn(t *testing.T) {
 				Manager: managerMock,
 				Stats:   NewStats(),
 				Debug:   debug,
+				Logf: func(_ int, msg string, args ...any) {
+					t.Logf(msg, args...)
+				},
 			})
 			assert.NoError(t, err)
 			serv := s.(*server)
@@ -279,6 +282,9 @@ func TestMachineCheckCrash(t *testing.T) {
 			Procs:               4,
 			Slowdown:            1,
 			machineCheckStarted: checkBegan,
+			Logf: func(_ int, msg string, args ...any) {
+				t.Logf(msg, args...)
+			},
 		},
 		Executor: executor,
 		Dir:      t.TempDir(),
