@@ -1,0 +1,162 @@
+TITLE: BUG: workqueue lockup in wg_packet_handshake_receive_worker
+
+[  282.092519][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  282.105140][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  286.486862][    C0] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 168s!
+[  286.496941][    C0] Showing busy workqueues and worker pools:
+[  286.503548][    C0] workqueue events: flags=0x100
+[  286.508486][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=12 refcnt=13
+[  286.508541][    C0]     pending: nsim_dev_hwstats_traffic_work, 3*psi_avgs_work, vmstat_shepherd, psi_avgs_work, 4*ovs_dp_masks_rebalance, delayed_vfree_work, psi_avgs_work
+[  286.508711][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.508752][    C0]     in-flight: 5684:reg_todo for 170s
+[  286.508798][    C0] workqueue events_long: flags=0x100
+[  286.550082][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  286.550142][    C0]     pending: 2*defense_work_handler
+[  286.550188][    C0] workqueue events_unbound: flags=0x2
+[  286.568314][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=18 refcnt=19
+[  286.568360][    C0]     in-flight: 13:cfg80211_wiphy_work for 178s ,86:cfg80211_wiphy_work for 179s
+[  286.568467][    C0]     pending: 3*macvlan_process_broadcast, 2*cfg80211_wiphy_work, 7*macvlan_process_broadcast, 2*nsim_dev_trap_report_work, fsnotify_connector_destroy_workfn, fsnotify_mark_destroy_workfn
+[  286.568632][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=22 refcnt=23
+[  286.568668][    C0]     in-flight: 3307:cfg80211_wiphy_work for 171s ,57:cfg80211_wiphy_work for 174s ,1116:cfg80211_wiphy_work for 170s ,3324:cfg80211_wiphy_work for 168s ,47:cfg80211_wiphy_work for 173s ,3306:cfg80211_wiphy_work for 174s ,35:cfg80211_wiphy_work for 176s ,769:cfg80211_wiphy_work for 172s
+[  286.569014][    C0]     pending: flush_memcg_stats_dwork, 3*nsim_dev_trap_report_work, cfg80211_wiphy_work, toggle_allocation_gate, 2*cfg80211_wiphy_work, crng_reseed, 5*cfg80211_wiphy_work
+[  286.569206][    C0] workqueue events_freezable: flags=0x104
+[  286.661155][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.661207][    C0]     pending: update_balloon_stats_func
+[  286.661247][    C0] workqueue events_power_efficient: flags=0x180
+[  286.680527][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=6 refcnt=7
+[  286.680575][    C0]     in-flight: 5630:neigh_periodic_work for 168s
+[  286.680636][    C0]     pending: wg_ratelimiter_gc_entries, neigh_managed_work, gc_worker, 2*check_lifetime
+[  286.680726][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  286.680766][    C0]     in-flight: 5700:reg_check_chans_work for 117s ,5699:crda_timeout_work for 160s
+[  286.680849][    C0] workqueue mm_percpu_wq: flags=0x108
+[  286.726830][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.726879][    C0]     pending: vmstat_update
+[  286.726985][    C0] workqueue ipv6_addrconf: flags=0x6000a
+[  286.744602][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=11 MAYDAY
+[  286.744648][    C0]     in-flight: 3196(RESCUER):addrconf_verify_work for 102s
+[  286.744710][    C0]     pending: mayday_cursor_func
+[  286.744743][    C0]     inactive: 5*addrconf_verify_work
+[  286.744787][    C0] workqueue bat_events: flags=0x6000a
+[  286.776076][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=45 MAYDAY
+[  286.776122][    C0]     in-flight: 3227(RESCUER):batadv_tt_purge for 28s
+[  286.776188][    C0]     pending: mayday_cursor_func
+[  286.776220][    C0]     inactive: batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_bla_periodic_work, batadv_dat_purge, batadv_purge_orig, 5*batadv_mcast_mla_update, batadv_purge_orig, 13*batadv_iv_send_outstanding_bat_ogm_packet, 3*batadv_purge_orig, 2*batadv_iv_send_outstanding_bat_ogm_packet, batadv_tt_purge, batadv_bla_periodic_work, batadv_dat_purge, 3*batadv_tt_purge
+[  286.776621][    C0] workqueue wg-kex-wg0: flags=0x124
+[  286.842901][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.842954][    C0]     pending: wg_packet_handshake_receive_worker
+[  286.842991][    C0] workqueue wg-kex-wg0: flags=0x6
+[  286.861809][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  286.861858][    C0]     pending: wg_packet_handshake_send_worker
+[  286.861894][    C0] workqueue wg-kex-wg1: flags=0x124
+[  286.880276][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.880337][    C0]     in-flight: 5719:wg_packet_handshake_receive_worker for 180s
+[  286.880400][    C0] workqueue wg-kex-wg1: flags=0x6
+[  286.900631][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  286.900674][    C0]     in-flight: 12:wg_packet_handshake_send_worker for 27s
+[  286.900731][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  286.900769][    C0]     pending: wg_packet_handshake_send_worker
+[  286.900801][    C0] workqueue wg-kex-wg0: flags=0x6
+[  286.933126][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  286.933179][    C0]     pending: wg_packet_handshake_send_worker
+[  286.933219][    C0] workqueue wg-kex-wg2: flags=0x124
+[  286.951588][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.951641][    C0]     pending: wg_packet_handshake_receive_worker
+[  286.951689][    C0] workqueue wg-kex-wg2: flags=0x6
+[  286.970521][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  286.970565][    C0]     pending: 2*wg_packet_handshake_send_worker
+[  286.970604][    C0] workqueue wg-kex-wg1: flags=0x124
+[  286.989182][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  286.989234][    C0]     pending: wg_packet_handshake_receive_worker
+[  286.989271][    C0] workqueue wg-kex-wg1: flags=0x6
+[  286.993705][    C1] net_ratelimit: 10187 callbacks suppressed
+[  286.993789][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  286.998781][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  286.998906][    C0]     pending: 2*wg_packet_handshake_send_worker
+[  286.999011][    C0] workqueue wg-kex-wg2: flags=0x6
+[  287.004462][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  287.008094][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  287.008139][    C0]     pending: 2*wg_packet_handshake_send_worker
+[  287.008234][    C0] workqueue wg-kex-wg0: flags=0x124
+[  287.015220][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  287.025980][    C0]   pwq 6: cpus=1 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  287.026027][    C0]     in-flight: 24:wg_packet_handshake_receive_worker for 19s
+[  287.026079][    C0] workqueue wg-kex-wg0: flags=0x6
+[  287.034156][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  287.039297][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  287.039342][    C0]     pending: 2*wg_packet_handshake_send_worker
+[  287.039419][    C0] workqueue wg-kex-wg1: flags=0x124
+[  287.045529][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  287.056421][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  287.056468][    C0]     in-flight: 5728:wg_packet_handshake_receive_worker for 180s
+[  287.056525][    C0] workqueue wg-kex-wg1: flags=0x6
+[  287.064934][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:1b, vlan:0)
+[  287.070025][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.070071][    C0]     pending: wg_packet_handshake_send_worker
+[  287.070137][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.070241][    C0]     pending: wg_packet_handshake_send_worker
+[  287.070330][    C0] workqueue wg-kex-wg0: flags=0x124
+[  287.076474][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:1b, vlan:0)
+[  287.087321][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  287.087368][    C0]     in-flight: 5726:wg_packet_handshake_receive_worker for 171s
+[  287.087424][    C0] workqueue wg-kex-wg0: flags=0x6
+[  287.095976][    C1] bridge0: received packet on bridge_slave_0 with own address as source address (addr:aa:aa:aa:aa:aa:1b, vlan:0)
+[  287.102280][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.102322][    C0]     pending: wg_packet_handshake_send_worker
+[  287.102376][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.102484][    C0]     pending: wg_packet_handshake_send_worker
+[  287.102643][    C0] workqueue wg-kex-wg0: flags=0x124
+[  287.108917][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:4a:fd:f2:8e:b9:d9, vlan:0)
+[  287.119377][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  287.119424][    C0]     in-flight: 10:wg_packet_handshake_receive_worker for 171s
+[  287.119480][    C0] workqueue wg-kex-wg0: flags=0x6
+[  287.127706][    C1] bridge0: received packet on veth0_to_bridge with own address as source address (addr:4a:fd:f2:8e:b9:d9, vlan:0)
+[  287.132707][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.132753][    C0]     pending: wg_packet_handshake_send_worker
+[  287.132874][    C0] workqueue wg-crypt-wg0: flags=0x128
+[  287.351185][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=1 refcnt=2
+[  287.351239][    C0]     pending: wg_packet_encrypt_worker
+[  287.351276][    C0] workqueue wg-kex-wg2: flags=0x6
+[  287.369424][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.369471][    C0]     pending: wg_packet_handshake_send_worker
+[  287.369509][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.369544][    C0]     pending: wg_packet_handshake_send_worker
+[  287.369575][    C0] workqueue wg-kex-wg1: flags=0x6
+[  287.400748][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.400799][    C0]     pending: wg_packet_handshake_send_worker
+[  287.400835][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.400879][    C0]     pending: wg_packet_handshake_send_worker
+[  287.400910][    C0] workqueue wg-kex-wg1: flags=0x6
+[  287.432084][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.432133][    C0]     pending: wg_packet_handshake_send_worker
+[  287.432172][    C0] workqueue wg-crypt-wg1: flags=0x128
+[  287.450622][    C0]   pwq 2: cpus=0 node=0 flags=0x0 nice=0 active=2 refcnt=3
+[  287.450674][    C0]     pending: wg_packet_decrypt_worker, wg_packet_encrypt_worker
+[  287.450725][    C0] workqueue wg-kex-wg2: flags=0x6
+[  287.470950][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=2 refcnt=3
+[  287.470999][    C0]     pending: 2*wg_packet_handshake_send_worker
+[  287.471039][    C0] workqueue wg-kex-wg2: flags=0x6
+[  287.489413][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.489460][    C0]     pending: wg_packet_handshake_send_worker
+[  287.489493][    C0]   pwq 8: cpus=0-1 flags=0x6 nice=0 active=1 refcnt=2
+[  287.489528][    C0]     pending: wg_packet_handshake_send_worker
+[  287.489566][    C0] pool 2: cpus=0 node=0 flags=0x0 nice=0 hung=169s workers=8 idle: 9 187 5727
+[  287.489645][    C0] pool 6: cpus=1 node=0 flags=0x0 nice=0 hung=0s workers=7 idle: 42 809 5359
+[  287.489718][    C0] pool 8: cpus=0-1 flags=0x6 nice=0 hung=6s workers=12 manager: 5896
+[  287.489762][    C0] Showing backtraces of busy workers in stalled worker pools:
+[  287.549176][    C0] pool 2:
+[  287.549190][    C0] task:kworker/0:1     state:R  running task     stack:23976 pid:10    tgid:10    ppid:2      task_flags:0x4208060 flags:0x00080000
+[  287.549261][    C0] Workqueue: wg-kex-wg0 wg_packet_handshake_receive_worker
+[  287.549310][    C0] Call Trace:
+[  287.549317][    C0]  <TASK>
+[  287.549332][    C0]  __schedule+0x17d9/0x56c0
+[  287.549370][    C0]  ? lockdep_hardirqs_on+0x7a/0x110
+[  287.549395][    C0]  ? kernel_fpu_end+0x62/0x80
+[  287.549419][    C0]  ? __local_bh_enable_ip+0xd0/0x130
+[  287.549479][    C0]  ? __pfx___schedule+0x10/0x10
+[  287.549499][    C0]  ? __asan_memset+0x22/0x50
+[  287.549527][    C0]  ? encode_point+0x8346/0x84b0
+[  287.549552][    C0]  ? check_path+0x21/0x40
+[  287.549594][    C0]  ? preempt_schedule_thunk+0x16/0x40
+[  287.549623][    C0]  preempt_schedule_common+0x82/0xd0
+[  287.549645][    C0]  ? kernel_fpu_end+0x62/0x80
+[  287.549669][    C0]  preempt_schedule_thunk+0x16/0x40

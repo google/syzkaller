@@ -1894,6 +1894,12 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title:        compile("BUG: workqueue lockup"),
+				report:       compile("BUG: workqueue lockup(?:.*\\n)+?.*Workqueue:\\s+\\S+\\s+([a-zA-Z0-9_]+)"),
+				fmt:          "BUG: workqueue lockup in %[1]v",
+				noStackTrace: true,
+			},
+			{
+				title:        compile("BUG: workqueue lockup"),
 				fmt:          "BUG: workqueue lockup",
 				noStackTrace: true,
 			},
