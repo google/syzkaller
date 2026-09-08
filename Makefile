@@ -156,7 +156,8 @@ go-flags:
 	@echo "${GOHOSTFLAGS}"
 
 aflow: descriptions
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-aflow github.com/google/syzkaller/tools/syz-aflow
+	# syz-aflow uses codesearch clang tool which requires cgo.
+	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-aflow github.com/google/syzkaller/tools/syz-aflow
 
 manager: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
