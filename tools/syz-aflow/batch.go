@@ -265,6 +265,14 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 
 	inProgressHTML := r.targetPath(stateInProgress, task.ID, ".html")
 	defer os.Remove(inProgressHTML)
+	inProgressLog := r.targetPath(stateInProgress, task.ID, ".log")
+	defer os.Remove(inProgressLog)
+
+	taskLogf, closeLog, err := openTaskLog(inProgressLog)
+	if err != nil {
+		return stateError, err
+	}
+	defer closeLog()
 
 	var spans []*trajectory.Span
 	onEvent := func(span *trajectory.Span) error {
@@ -282,7 +290,9 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 		OnEvent:    onEvent,
 		Debug:      r.debug,
 		TokenLimit: r.tokenLimit,
+		Logf:       taskLogf,
 	})
+	closeLog()
 	if ctx.Err() != nil {
 		return stateError, ctx.Err()
 	}
@@ -320,11 +330,29 @@ func (r *Runner) targetPath(state, id, ext string) string {
 	return filepath.Join(r.workdir, "trajectories", state, id+ext)
 }
 
+func openTaskLog(path string) (func(int, string, ...any), func(), error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create log file: %w", err)
+	}
+	logger := log.New(f, "", log.Ldate|log.Ltime)
+	return func(v int, format string, args ...any) {
+			logger.Printf("[%d] %s", v, fmt.Sprintf(format, args...))
+		}, sync.OnceFunc(func() {
+			f.Close()
+		}), nil
+}
+
 func (r *Runner) saveResult(res batchResult, spans []*trajectory.Span) error {
 	if err := osutil.MkdirAll(filepath.Dir(r.targetPath(res.State, res.ID, ".json"))); err != nil {
 		return err
 	}
 	saveHTML(r.targetPath(res.State, res.ID, ".html"), spans)
+	inProgressLog := r.targetPath(stateInProgress, res.ID, ".log")
+	finalLog := r.targetPath(res.State, res.ID, ".log")
+	if err := os.Rename(inProgressLog, finalLog); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to move log file: %w", err)
+	}
 	return osutil.WriteJSON(r.targetPath(res.State, res.ID, ".json"), res)
 }
 

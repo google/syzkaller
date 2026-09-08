@@ -17,5 +17,8 @@ func NewTestContext(t *testing.T) *Context {
 	return &Context{
 		Context: t.Context(),
 		cache:   cache,
+		logf: func(_ int, msg string, args ...any) {
+			t.Logf(msg, args...)
+		},
 	}
 }
