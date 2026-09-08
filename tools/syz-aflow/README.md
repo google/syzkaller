@@ -82,3 +82,14 @@ Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or
 - `-auth`: Use gcloud auth token when downloading bugs.
 - `-debug`: Enable runner debug logging.
 - `-token-limit`: Maximum tokens allowed for the workflow run (0 = no limit).
+
+### Authentication & API Keys
+
+When using the `gemini` provider, specify your Gemini API key(s) via the `GEMINI_API_KEYS` (or `GEMINI_API_KEY`, `GOOGLE_API_KEYS`, `GOOGLE_API_KEY`) environment variable:
+```bash
+export GEMINI_API_KEYS="your-api-key"
+```
+To rotate multiple keys across tasks, provide them separated by newlines or commas:
+```bash
+export GEMINI_API_KEYS="$(cat keys.txt)"
+```
