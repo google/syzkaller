@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasic(t *testing.T) {
@@ -380,4 +382,39 @@ func TestDeterministic(t *testing.T) {
 			t.Fatal("ReadCorpus output program order is non-deterministic")
 		}
 	}
+}
+
+func TestOpenReadOnly(t *testing.T) {
+	t.Run("NonexistentFile", func(t *testing.T) {
+		nonexistent := filepath.Join(t.TempDir(), "nonexistent")
+		_, err := OpenReadOnly(nonexistent)
+		require.Error(t, err)
+		require.NoFileExists(t, nonexistent)
+	})
+
+	t.Run("ReadRecords", func(t *testing.T) {
+		fn := tempFile(t)
+		defer os.Remove(fn)
+
+		writableDB, err := Open(fn, false)
+		require.NoError(t, err)
+		writableDB.Save("key1", []byte("val1"), 1)
+		writableDB.Save("key2", []byte("val2"), 2)
+		require.NoError(t, writableDB.Flush())
+
+		require.NoError(t, os.Chmod(fn, 0400))
+		defer os.Chmod(fn, 0600)
+
+		roDB, err := OpenReadOnly(fn)
+		require.NoError(t, err)
+		require.Len(t, roDB.Records, 2)
+		require.Equal(t, []byte("val1"), roDB.Records["key1"].Val)
+		require.Equal(t, []byte("val2"), roDB.Records["key2"].Val)
+		require.NoFileExists(t, fn+".tmp")
+
+		require.Panics(t, func() { roDB.Save("key3", []byte("val3"), 3) })
+		require.Panics(t, func() { roDB.Delete("key1") })
+		require.Panics(t, func() { roDB.Flush() })
+		require.Panics(t, func() { roDB.BumpVersion(3) })
+	})
 }
