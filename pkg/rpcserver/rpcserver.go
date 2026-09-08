@@ -76,6 +76,7 @@ type Config struct {
 	Timeouts      targets.Timeouts
 	pcBase        uint64
 	localModules  []*vminfo.KernelModule
+	Logf          func(int, string, ...any)
 
 	// RPCServer closes the channel once the machine check has begun. Used for fault injection during testing.
 	machineCheckStarted chan struct{}
@@ -86,6 +87,7 @@ type RemoteConfig struct {
 	Manager Manager
 	Stats   Stats
 	Debug   bool
+	Logf    func(int, string, ...any)
 }
 
 type Manager interface {
@@ -103,6 +105,7 @@ type server struct {
 	sysTarget *targets.Target
 	timeouts  targets.Timeouts
 	checker   *vminfo.Checker
+	logf      func(int, string, ...any)
 
 	infoOnce         sync.Once
 	checkDone        atomic.Bool
@@ -206,6 +209,7 @@ func New(cfg *RemoteConfig) (Server, error) {
 		Timeouts:          cfg.Timeouts,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
+		Logf:              cfg.Logf,
 	}, cfg.Manager), nil
 }
 
@@ -215,6 +219,10 @@ func newImpl(cfg *Config, mgr Manager) *server {
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
 	checker := vminfo.New(&cfg.Config)
 	baseSource := queue.DynamicSource(checker)
+	logf := cfg.Logf
+	if logf == nil {
+		logf = log.Logf
+	}
 	return &server{
 		cfg:         cfg,
 		mgr:         mgr,
@@ -226,6 +234,7 @@ func newImpl(cfg *Config, mgr Manager) *server {
 		baseSource:  baseSource,
 		execSource:  queue.Distribute(queue.Retry(baseSource)),
 		onHandshake: make(chan *handshakeResult, 1),
+		logf:        logf,
 
 		Stats: cfg.Stats,
 		runnerStats: &runnerStats{
@@ -259,7 +268,7 @@ func (serv *server) Setup() error {
 		return err
 	}
 	serv.serv = s
-	log.Logf(0, "serving rpc on tcp://%v", serv.Port())
+	serv.logf(0, "serving rpc on tcp://%v", serv.Port())
 	return nil
 }
 
@@ -272,7 +281,7 @@ func (serv *server) Serve(ctx context.Context) error {
 		return serv.serv.Serve(ctx, func(ctx context.Context, conn *flatrpc.Conn) error {
 			err := serv.handleConn(ctx, conn)
 			if err != nil && !errors.Is(err, errFatal) {
-				log.Logf(2, "%v", err)
+				serv.logf(2, "%v", err)
 				return nil
 			}
 			return err
@@ -329,7 +338,7 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	}
 
 	// From now on, assume that the client is well-behaving.
-	log.Logf(1, "runner %v connected", id)
+	serv.logf(1, "runner %v connected", id)
 
 	if serv.cfg.VMLess {
 		// There is no VM loop, so mimic what it would do.
@@ -351,7 +360,7 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	}
 
 	err = serv.handleRunnerConn(ctx, runner, conn)
-	log.Logf(2, "runner %v: %v", id, err)
+	serv.logf(2, "runner %v: %v", id, err)
 
 	runner.resultCh <- err
 	return nil
@@ -374,7 +383,7 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 
 	info, err := runner.Handshake(conn, opts)
 	if err != nil {
-		log.Logf(1, "%v", err)
+		serv.logf(1, "%v", err)
 		return err
 	}
 
@@ -394,14 +403,14 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
 	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
 	if err != nil {
-		log.Logf(0, "parsing of machine info failed: %v", err)
+		serv.logf(0, "parsing of machine info failed: %v", err)
 		if infoReq.Error == "" {
 			infoReq.Error = err.Error()
 		}
 	}
 	modules = backend.FixModules(serv.cfg.localModules, modules, serv.cfg.pcBase)
 	if infoReq.Error != "" {
-		log.Logf(0, "machine check failed: %v", infoReq.Error)
+		serv.logf(0, "machine check failed: %v", infoReq.Error)
 		serv.checkFailures++
 		if serv.checkFailures == 10 {
 			return handshakeResult{}, fmt.Errorf("%w: machine check failed too many times", errFatal)
@@ -560,7 +569,7 @@ func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 	slices.Sort(lines)
 	buf.WriteString(strings.Join(lines, ""))
 	fmt.Fprintf(buf, "\n")
-	log.Logf(0, "machine check:\n%s", buf.Bytes())
+	serv.logf(0, "machine check:\n%s", buf.Bytes())
 }
 
 func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo UpdateInfo) chan error {
@@ -585,6 +594,7 @@ func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo Updat
 		procs:    serv.cfg.Procs,
 		updInfo:  updInfo,
 		resultCh: make(chan error, 1),
+		logf:     serv.logf,
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()

@@ -21,7 +21,8 @@ import (
 
 type rpcBackend struct {
 	rpcserver.Server
-	cfg *mgrconfig.Config
+	cfg  *mgrconfig.Config
+	logf func(int, string, ...any)
 }
 
 func New(cfg *rpcserver.RemoteConfig) (Server, error) {
@@ -29,9 +30,14 @@ func New(cfg *rpcserver.RemoteConfig) (Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	logf := cfg.Logf
+	if logf == nil {
+		logf = log.Logf
+	}
 	return &rpcBackend{
 		Server: rpcServ,
 		cfg:    cfg.Config,
+		logf:   logf,
 	}, nil
 }
 
@@ -98,12 +104,12 @@ func (b *rpcBackend) RunRequests(ctx context.Context, inst *vm.Instance,
 
 	if err != nil {
 		if errors.Is(err, vmimpl.ErrPreempted) {
-			log.Logf(0, "VM %v: preempted while executing", inst.Index())
+			b.logf(0, "VM %v: preempted while executing", inst.Index())
 		} else {
 			err = fmt.Errorf("failed to run fuzzer: %w", err)
 		}
 	} else if len(reps) == 0 {
-		log.Logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
+		b.logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
 	}
 
 	// Fetch executor info and clean up instance.
