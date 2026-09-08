@@ -122,6 +122,24 @@ func TestParseLLMError(t *testing.T) {
 				Err: errors.New("MAX_TOKENS"),
 			},
 		},
+		{
+			resp: &genai.GenerateContentResponse{
+				PromptFeedback: &genai.GenerateContentResponsePromptFeedback{
+					BlockReason: genai.BlockedReasonSafety,
+				},
+			},
+			outputErr: errors.New("request blocked: SAFETY"),
+		},
+		{
+			resp: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{
+					{
+						FinishReason: genai.FinishReasonSafety,
+					},
+				},
+			},
+			outputErr: errors.New("SAFETY"),
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
