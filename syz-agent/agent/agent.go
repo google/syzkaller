@@ -334,7 +334,8 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	}
 
 	geminiCfg := gemini.Config{
-		ModelOverride: s.cfg.Model,
+		ModelOverride:   s.cfg.Model,
+		NoSafetyFilters: !s.cfg.SafetyFilters,
 	}
 	switch backend {
 	case backendVertex:

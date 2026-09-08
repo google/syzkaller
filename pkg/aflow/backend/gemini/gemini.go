@@ -27,6 +27,7 @@ type Provider struct {
 	models          map[string]*modelInfo
 	modelPathPrefix string
 	modelOverride   string
+	noSafetyFilters bool
 	err             error
 }
 
@@ -39,8 +40,9 @@ type modelInfo struct {
 }
 
 type Config struct {
-	ModelOverride string
-	ClientConfig  *genai.ClientConfig
+	ModelOverride   string
+	ClientConfig    *genai.ClientConfig
+	NoSafetyFilters bool
 }
 
 func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
@@ -59,6 +61,8 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 	if p.client != nil || p.err != nil {
 		return p.err
 	}
+
+	p.noSafetyFilters = cfg.NoSafetyFilters
 
 	p.models = map[string]*modelInfo{
 		"gemini-3.8-flash": {
@@ -186,6 +190,10 @@ func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend
 				genaiCfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelHigh
 			}
 		}
+	}
+
+	if c.p.noSafetyFilters {
+		genaiCfg.SafetySettings = noSafetySettings
 	}
 
 	var req []*genai.Content
@@ -374,4 +382,8 @@ func fromGenaiResponse(resp *genai.GenerateContentResponse) *backend.GenerateRes
 		}
 	}
 	return res
+}
+
+var noSafetySettings = []*genai.SafetySetting{
+	{Category: genai.HarmCategoryDangerousContent, Threshold: genai.HarmBlockThresholdBlockNone},
 }

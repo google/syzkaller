@@ -43,6 +43,7 @@ func TestConfigPlainValues(t *testing.T) {
 	assert.Equal(t, "test-dashboard-client", cfg.DashboardClient)
 	assert.Equal(t, "test-dashboard-key", cfg.DashboardKey)
 	assert.Equal(t, "test-gemini-key", cfg.GeminiAPIKey)
+	assert.True(t, cfg.SafetyFilters)
 }
 
 func TestConfigEnvResolution(t *testing.T) {
@@ -150,5 +151,37 @@ func TestConfigBackendRoutingValidation(t *testing.T) {
 		_, err = loadConfig(confFile)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), `is not a registered workflow`)
+	})
+}
+
+func TestConfigSafetyFilters(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "syz-agent-test")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	confFile := filepath.Join(tmpDir, "config.json")
+	writeConfig := func(val string) {
+		content := `{
+			"targets": {"linux/amd64": {"image": "image1"}},
+			"dashboard_client": "test-client",
+			"dashboard_key": "test-key",
+			"safety_filters": ` + val + `
+		}`
+		err := os.WriteFile(confFile, []byte(content), 0644)
+		assert.NoError(t, err)
+	}
+
+	t.Run("explicitly disabled", func(t *testing.T) {
+		writeConfig("false")
+		cfg, err := loadConfig(confFile)
+		assert.NoError(t, err)
+		assert.False(t, cfg.SafetyFilters)
+	})
+
+	t.Run("explicitly enabled", func(t *testing.T) {
+		writeConfig("true")
+		cfg, err := loadConfig(confFile)
+		assert.NoError(t, err)
+		assert.True(t, cfg.SafetyFilters)
 	})
 }
