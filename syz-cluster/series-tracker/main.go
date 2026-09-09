@@ -205,7 +205,15 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, cfg *app.AppConfig, s
 			Body:  body,
 		})
 	}
-	apiSeries.Cc = sp.Emails()
+	if len(series.CoverCc) > 0 && series.XStable == "review" {
+		coverSp := seriesProcessor{}
+		for _, email := range series.CoverCc {
+			coverSp[email] = struct{}{}
+		}
+		apiSeries.Cc = coverSp.Emails()
+	} else {
+		apiSeries.Cc = sp.Emails()
+	}
 	ret, err := sf.client.UploadSeries(ctx, apiSeries)
 	if err != nil {
 		return fmt.Errorf("failed to save series: %w", err)
