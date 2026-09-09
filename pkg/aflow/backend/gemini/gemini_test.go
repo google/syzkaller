@@ -189,3 +189,22 @@ func TestToGenaiContentEmptyTextParts(t *testing.T) {
 	require.NotNil(t, got.Parts[2].FunctionCall)
 	require.Equal(t, "test_tool", got.Parts[2].FunctionCall.Name)
 }
+
+func TestToGenaiContentThoughtSignature(t *testing.T) {
+	msg := &backend.Message{
+		Role: backend.RoleModel,
+		Parts: []backend.Part{
+			{
+				FunctionCall: &backend.FunctionCall{Name: "tool_without_sig"},
+			},
+			{
+				FunctionCall:     &backend.FunctionCall{Name: "tool_with_sig"},
+				ThoughtSignature: []byte("custom_sig"),
+			},
+		},
+	}
+	got := toGenaiContent(msg)
+	require.Len(t, got.Parts, 2)
+	require.Equal(t, []byte(skipThoughtSignatureValidator), got.Parts[0].ThoughtSignature)
+	require.Equal(t, []byte("custom_sig"), got.Parts[1].ThoughtSignature)
+}
