@@ -6,6 +6,7 @@ package aflow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -80,6 +81,46 @@ func TestToolLoopDetection(t *testing.T) {
 	diffCall := &backend.FunctionCall{Name: "diff-tool", Args: args}
 	err = session.recordAndCheckDuplicate(diffCall)
 	require.NoError(t, err, "unexpected error on different call: %v", err)
+}
+
+func TestToolLoopDetectionWarningOrder(t *testing.T) {
+	session := &agentSession{LLMAgent: &LLMAgent{Name: "test-agent"}}
+	tool := NewFuncTool("test-tool", func(ctx *Context, state struct{}, args struct {
+		Query string `jsonschema:"query"`
+	}) (struct{}, error) {
+		return struct{}{}, nil
+	}, "test tool")
+	otherTool := NewFuncTool("other-tool", func(ctx *Context, state struct{}, args struct {
+		Query string `jsonschema:"query"`
+	}) (struct{}, error) {
+		return struct{}{}, nil
+	}, "other tool")
+	tools := map[string]Tool{"test-tool": tool, "other-tool": otherTool}
+	ctx := newTestContext(t, nil)
+	args := map[string]any{"Query": "test"}
+
+	for i := range defaultLoopDetectionLimit {
+		call := &backend.FunctionCall{ID: fmt.Sprintf("call%d", i), Name: "test-tool", Args: args}
+		err := session.callTools(ctx, tools, []*backend.FunctionCall{call})
+		require.NoError(t, err)
+	}
+
+	// In the next turn, execute parallel calls where the second call is a duplicate.
+	// All SYSTEM WARNING text parts must precede ALL FunctionResponse parts, and
+	// the warning must explicitly mention the tool name.
+	otherCall := &backend.FunctionCall{ID: "call-other", Name: "other-tool", Args: args}
+	dupCall := &backend.FunctionCall{ID: "call-dup", Name: "test-tool", Args: args}
+	err := session.callTools(ctx, tools, []*backend.FunctionCall{otherCall, dupCall})
+	require.NoError(t, err)
+
+	require.NotEmpty(t, session.req)
+	lastMsg := session.req[len(session.req)-1].content
+	require.Len(t, lastMsg.Parts, 3)
+	require.Contains(t, lastMsg.Parts[0].Text, `SYSTEM WARNING for tool "test-tool":`)
+	require.NotNil(t, lastMsg.Parts[1].FunctionResponse)
+	require.Equal(t, "call-other", lastMsg.Parts[1].FunctionResponse.ID)
+	require.NotNil(t, lastMsg.Parts[2].FunctionResponse)
+	require.Equal(t, "call-dup", lastMsg.Parts[2].FunctionResponse.ID)
 }
 
 func TestToolHistorySequentialLeak(t *testing.T) {
