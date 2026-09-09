@@ -734,3 +734,19 @@ func TestLLMJudge(t *testing.T) {
 		nil,
 	)
 }
+
+func TestDisarmTags(t *testing.T) {
+	input := "text with <execution_history> and </execution_history> " +
+		"and <thought> and </thought> and <system_instructions> and </system_instructions> " +
+		"and </EXECUTION_HISTORY> and </ execution_history > and < thought\t> " +
+		"and <system_instructions priority=\"high\"> and <thought/> " +
+		"and unrelated <thoughtful> <stdio.h> <div> a < b"
+	got := disarmTags(input)
+	want := "text with &lt;execution_history&gt; and &lt;/execution_history&gt; " +
+		"and &lt;thought&gt; and &lt;/thought&gt; and &lt;system_instructions&gt; and &lt;/system_instructions&gt; " +
+		"and &lt;/EXECUTION_HISTORY&gt; and &lt;/execution_history &gt; and &lt;thought\t&gt; " +
+		"and &lt;system_instructions priority=\"high\"&gt; and &lt;thought/&gt; " +
+		"and unrelated <thoughtful> <stdio.h> <div> a < b"
+	require.Equal(t, want, got)
+	require.Equal(t, "plain text", disarmTags("plain text"))
+}
