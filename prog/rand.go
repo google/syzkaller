@@ -1017,6 +1017,9 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 	var resource *ResultArg
 	for _, idx := range r.Perm(len(s.corpus)) {
 		corpusProg := s.corpus[idx]
+		if corpusProg == nil {
+			continue
+		}
 		resources := getCompatibleResources(corpusProg, t.TypeName, r)
 		if len(resources) == 0 {
 			continue
@@ -1071,6 +1074,9 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 }
 
 func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources []*ResultArg) {
+	if p == nil {
+		return nil
+	}
 	for _, c := range p.Calls {
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			// Collect only initialized resources (the ones that are already used in other calls).

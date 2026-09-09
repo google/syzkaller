@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNotEscaping(t *testing.T) {
@@ -248,4 +250,38 @@ func TestNoGenerate(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestGetCompatibleResourcesNil(t *testing.T) {
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	r := newRand(target, rs)
+
+	// A nil *Prog should be handled safely and return nil without panicking.
+	require.Empty(t, getCompatibleResources(nil, "common", r))
+}
+
+func TestResourceCentricNilCorpus(t *testing.T) {
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	r := newRand(target, rs)
+	meta := target.SyscallMap["test$consume_common"]
+	require.NotNil(t, meta)
+	resType, ok := meta.Args[0].Type.(*ResourceType)
+	require.True(t, ok)
+
+	// Corpus containing only nil programs should not panic.
+	sNil := newState(target, target.DefaultChoiceTable(), []*Prog{nil})
+	arg, calls := r.resourceCentric(sNil, resType, DirIn)
+	require.Nil(t, arg)
+	require.Nil(t, calls)
+
+	// Corpus containing nil entries alongside valid programs should skip nil entries
+	// and successfully extract compatible resources from valid programs.
+	progData := []byte("r0 = test$produce_common()\ntest$consume_common(r0)\n")
+	validProg, err := target.Deserialize(progData, Strict)
+	require.NoError(t, err)
+
+	sMixed := newState(target, target.DefaultChoiceTable(), []*Prog{nil, validProg})
+	arg, calls = r.resourceCentric(sMixed, resType, DirIn)
+	require.NotNil(t, arg)
+	require.NotEmpty(t, calls)
 }
