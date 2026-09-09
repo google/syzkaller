@@ -527,6 +527,7 @@ In-Reply-To: <Fifth>
 			Subject: "A longer series",
 			Version: 2,
 			Tags:    []string{"net"},
+			CoverCc: []string{"a@user.com", "b@user.com"},
 			Patches: []Patch{
 				{
 					Seq:   1,
@@ -561,6 +562,7 @@ In-Reply-To: <Fifth>
 			Tags:              []string{"6.18"},
 			XStable:           "review",
 			XKernelTestBranch: "linux-6.18.y",
+			CoverCc:           []string{"gregkh@linuxfoundation.org", "stable@vger.kernel.org"},
 			Patches: []Patch{
 				{
 					Seq:   1,
@@ -581,6 +583,7 @@ In-Reply-To: <Fifth>
 			assert.Equal(t, expect.Version, s.Version, "version differs")
 			assert.Equal(t, expect.XStable, s.XStable, "XStable differs")
 			assert.Equal(t, expect.XKernelTestBranch, s.XKernelTestBranch, "XKernelTestBranch differs")
+			require.Equal(t, expect.CoverCc, s.CoverCc, "CoverCc differs")
 			require.Len(t, s.Patches, len(expect.Patches), "patch count differs")
 			for i, expectPatch := range expect.Patches {
 				got := s.Patches[i]
