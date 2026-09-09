@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -190,7 +189,7 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 			Timeout: "Consider specifying a different commit.",
 		})
 	}
-	return showResult{Output: truncate(output, maxOutputLines)}, nil
+	return showResult{Output: aflow.TruncateText(string(output), maxOutputLines)}, nil
 }
 
 type blameArgs struct {
@@ -215,7 +214,7 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 			Timeout: "Consider specifying a smaller line range.",
 		})
 	}
-	return blameResult{Output: truncate(output, maxOutputLines)}, nil
+	return blameResult{Output: aflow.TruncateText(string(output), maxOutputLines)}, nil
 }
 
 type gitAdvice struct {
@@ -261,18 +260,6 @@ func isBadCall(output []byte) bool {
 		bytes.Contains(output, []byte("no match")) ||
 		bytes.Contains(output, []byte("has only")) ||
 		bytes.Contains(output, []byte("no such path"))
-}
-
-func truncate(output []byte, maxLines int) string {
-	lines := slices.Collect(bytes.Lines(output))
-	if len(lines) <= maxLines {
-		return string(output)
-	}
-	return fmt.Sprintf(`
-Full output is too long, showing %v out of %v lines.
-
-%s
-`, maxLines, len(lines), slices.Concat(lines[:maxLines]))
 }
 
 func runGit(dir string, timeout time.Duration, args ...string) ([]byte, error) {

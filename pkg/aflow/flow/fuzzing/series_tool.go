@@ -58,14 +58,7 @@ func seriesPatches(ctx *aflow.Context, state seriesPatchesState, args seriesPatc
 		}, nil
 	}
 
-	lines := slices.Collect(strings.Lines(target.Body))
-	var body string
-	if len(lines) > maxPatchLines {
-		body = fmt.Sprintf("%s\n[Output truncated: showing %d of %d lines]",
-			strings.TrimRight(strings.Join(lines[:maxPatchLines], ""), "\n"), maxPatchLines, len(lines))
-	} else {
-		body = target.Body
-	}
+	body := aflow.TruncateText(target.Body, maxPatchLines)
 
 	prefix := fmt.Sprintf("Patch [%d]", target.Seq)
 	if target.Seq == 0 {
