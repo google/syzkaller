@@ -36,6 +36,7 @@ type Series struct {
 	Version           int
 	Corrupted         string // If non-empty, contains a reason why the series better be ignored.
 	Tags              []string
+	CoverCc           []string
 	Patches           []Patch
 	BaseCommitHint    string
 	XStable           string
@@ -108,7 +109,7 @@ func PatchSeries(emails []*Email) []*Series {
 			}
 			seq := patch.Seq.ValueOr(1)
 			if seq == 0 {
-				// The cover email is not of interest.
+				series.CoverCc = email.Cc
 				continue
 			}
 			if !email.HasPatch {
