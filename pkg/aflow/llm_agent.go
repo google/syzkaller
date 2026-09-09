@@ -5,6 +5,7 @@ package aflow
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -549,6 +550,60 @@ func extractHistoryMessages(history []llmMessage) []*backend.Message {
 		messages = append(messages, msg.content)
 	}
 	return messages
+}
+
+func FormatHistoryMessages(messages []*backend.Message) string {
+	var sb strings.Builder
+	sb.WriteString("<execution_history>\n")
+	for _, msg := range messages {
+		if msg == nil {
+			continue
+		}
+		fmt.Fprintf(&sb, "[%s]:\n", msg.Role)
+		for _, part := range msg.Parts {
+			switch {
+			case part.Thought:
+				if thoughtText := strings.TrimSpace(part.Text); thoughtText != "" {
+					sb.WriteString("<thought>\n")
+					sb.WriteString(disarmTags(thoughtText))
+					sb.WriteString("\n</thought>\n")
+				}
+			case part.FunctionCall != nil:
+				fmt.Fprintf(&sb, "  Called tool %s with args: ", part.FunctionCall.Name)
+				sb.WriteString(formatJSONMap(part.FunctionCall.Args))
+				sb.WriteString("\n")
+			case part.FunctionResponse != nil:
+				fmt.Fprintf(&sb, "  Tool %s returned: ", part.FunctionResponse.Name)
+				sb.WriteString(formatJSONMap(part.FunctionResponse.Response))
+				sb.WriteString("\n")
+			case part.Text != "":
+				sb.WriteString(disarmTags(part.Text))
+				sb.WriteString("\n")
+			}
+		}
+		sb.WriteString("\n")
+	}
+	sb.WriteString("</execution_history>\n")
+	return sb.String()
+}
+
+func formatJSONMap(m map[string]any) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+	if b, err := json.Marshal(m); err == nil {
+		return string(b)
+	}
+	return fmt.Sprintf("%+v", m)
+}
+
+var reDisarmTags = regexp.MustCompile(`(?i)<\s*(\/?)\s*(execution_history|thought|system_instructions)\b([^>]*)>`)
+
+func disarmTags(s string) string {
+	if !strings.Contains(s, "<") {
+		return s
+	}
+	return reDisarmTags.ReplaceAllString(s, `&lt;$1$2$3&gt;`)
 }
 
 func (a *agentSession) checkFinalReply(ctx *Context, reply string) (string, string, error) {
