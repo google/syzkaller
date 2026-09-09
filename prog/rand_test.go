@@ -276,7 +276,9 @@ func TestResourceCentricNilCorpus(t *testing.T) {
 
 	// Corpus containing nil entries alongside valid programs should skip nil entries
 	// and successfully extract compatible resources from valid programs.
-	progData := []byte("r0 = test$produce_common()\ntest$consume_common(r0)\n")
+	progData := []byte(`r0 = test$produce_common()
+test$consume_common(r0)
+`)
 	validProg, err := target.Deserialize(progData, Strict)
 	require.NoError(t, err)
 
