@@ -136,3 +136,51 @@ func TestHandleSeriesReportLevel(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleSeriesCC(t *testing.T) {
+	tests := []struct {
+		name    string
+		xStable string
+		coverCc []string
+		patchCc string
+		wantCc  []string
+	}{
+		{
+			name:    "regular series",
+			coverCc: []string{"author@test.com", "c1@test.com"},
+			patchCc: "To: p1@test.com",
+			wantCc:  []string{"author@test.com", "p1@test.com"},
+		},
+		{
+			name:    "LTS RC series",
+			xStable: "review",
+			coverCc: []string{"c2@test.com", "author@test.com", "c1@test.com", "c2@test.com"},
+			patchCc: "To: p1@test.com",
+			wantCc:  []string{"author@test.com", "c1@test.com", "c2@test.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env, ctx := app.TestEnvironment(t)
+			sf := &SeriesFetcher{client: controller.TestServer(t, env)}
+			series := &lore.Series{
+				MessageID: "msg-" + tt.name,
+				XStable:   tt.xStable,
+				CoverCc:   tt.coverCc,
+				Patches: []lore.Patch{{
+					Email: &lore.Email{Email: &email.Email{MessageID: "patch", Author: "author@test.com"}},
+				}},
+			}
+			readers := map[string]lore.EmailReader{
+				"patch": {Read: func() ([]byte, error) {
+					return []byte("From: author@test.com\n" + tt.patchCc + "\n\nbody"), nil
+				}},
+			}
+			require.NoError(t, sf.handleSeries(ctx, &app.AppConfig{}, series, readers))
+			dbSeries, err := db.NewSeriesRepository(env.Spanner).GetByExtID(ctx, series.MessageID)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantCc, dbSeries.Cc)
+		})
+	}
+}
