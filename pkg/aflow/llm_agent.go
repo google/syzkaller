@@ -795,9 +795,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		}})
 		return nil
 	}
-	responses := &backend.Message{
-		Role: backend.RoleUser,
-	}
+	var warnings, responses []backend.Part
 	for _, call := range calls {
 		span := &trajectory.Span{
 			Type: trajectory.SpanTool,
@@ -833,23 +831,28 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 					call.Name, toolErr, call.Args)
 			}
 		}
-		responses.Parts = append(responses.Parts, backend.Part{
+		if isDuplicateErr(toolErr) {
+			warnings = append(warnings, backend.Part{
+				Text: fmt.Sprintf("SYSTEM WARNING for tool %q: %s", call.Name, toolErr.Error()),
+			})
+		}
+		responses = append(responses, backend.Part{
 			FunctionResponse: &backend.FunctionResponse{
 				ID:       call.ID,
 				Name:     call.Name,
 				Response: span.Results,
 			},
 		})
-		if isDuplicateErr(toolErr) {
-			responses.Parts = append(responses.Parts, backend.Part{
-				Text: fmt.Sprintf("SYSTEM WARNING: %s", toolErr.Error()),
-			})
-		}
 		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
 			a.outputs = span.Results
 		}
 	}
-	a.req = append(a.req, llmMessage{content: responses})
+	// All warning text parts must precede function responses;
+	// having text after function responses confuses the Vertex AI API.
+	a.req = append(a.req, llmMessage{content: &backend.Message{
+		Role:  backend.RoleUser,
+		Parts: append(warnings, responses...),
+	}})
 	return nil
 }
 
