@@ -113,6 +113,10 @@ func TestLLMJudgeFormatHistory(t *testing.T) {
 						Thought: true,
 						Text:    "analyzing seed",
 					},
+					{
+						Thought: true,
+						Text:    "   \n",
+					},
 				},
 			},
 			tokenCount: 500,
@@ -127,6 +131,11 @@ func TestLLMJudgeFormatHistory(t *testing.T) {
 							Response: map[string]any{"output": "seed run success"},
 						},
 					},
+					{
+						FunctionResponse: &backend.FunctionResponse{
+							Name: "empty-tool",
+						},
+					},
 				},
 			},
 			tokenCount: 50000,
@@ -134,7 +143,37 @@ func TestLLMJudgeFormatHistory(t *testing.T) {
 	}
 
 	formatted := formatJudgeHistory(rawHistory)
-	require.Contains(t, formatted, "[user]:\ninitial prompt")
-	require.Contains(t, formatted, "[model]:\n  Called tool execute-seed")
-	require.Contains(t, formatted, "Tool execute-seed returned: map[output:seed run success]")
+	want := `<execution_history>
+[user]:
+initial prompt
+
+[model]:
+  Called tool execute-seed with args: {}
+<thought>
+analyzing seed
+</thought>
+
+[user]:
+  Tool execute-seed returned: {"output":"seed run success"}
+  Tool empty-tool returned: {}
+
+</execution_history>
+`
+	require.Equal(t, want, formatted)
+}
+
+func TestDisarmTags(t *testing.T) {
+	input := "text with <execution_history> and </execution_history> " +
+		"and <thought> and </thought> and <system_instructions> and </system_instructions> " +
+		"and </EXECUTION_HISTORY> and </ execution_history > and < thought\t> " +
+		"and <system_instructions priority=\"high\"> and <thought/> " +
+		"and unrelated <thoughtful> <stdio.h> <div> a < b"
+	got := disarmTags(input)
+	want := "text with &lt;execution_history&gt; and &lt;/execution_history&gt; " +
+		"and &lt;thought&gt; and &lt;/thought&gt; and &lt;system_instructions&gt; and &lt;/system_instructions&gt; " +
+		"and &lt;/EXECUTION_HISTORY&gt; and &lt;/execution_history &gt; and &lt;thought\t&gt; " +
+		"and &lt;system_instructions priority=\"high\"&gt; and &lt;thought/&gt; " +
+		"and unrelated <thoughtful> <stdio.h> <div> a < b"
+	require.Equal(t, want, got)
+	require.Equal(t, "plain text", disarmTags("plain text"))
 }

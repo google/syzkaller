@@ -309,19 +309,25 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 	return nil
 }
 
+const skipThoughtSignatureValidator = "skip_thought_signature_validator"
+
 func toGenaiContent(msg *backend.Message) *genai.Content {
 	c := &genai.Content{
 		Role: string(msg.Role),
 	}
 	for _, p := range msg.Parts {
 		if p.FunctionCall != nil {
+			sig := p.ThoughtSignature
+			if len(sig) == 0 {
+				sig = []byte(skipThoughtSignatureValidator)
+			}
 			c.Parts = append(c.Parts, &genai.Part{
 				FunctionCall: &genai.FunctionCall{
 					ID:   p.FunctionCall.ID,
 					Name: p.FunctionCall.Name,
 					Args: p.FunctionCall.Args,
 				},
-				ThoughtSignature: p.ThoughtSignature,
+				ThoughtSignature: sig,
 			})
 		} else if p.FunctionResponse != nil {
 			c.Parts = append(c.Parts, &genai.Part{
