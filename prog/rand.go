@@ -1040,7 +1040,7 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 		includeCall := false
 		var newResources []*ResultArg
 		ForeachArg(v, func(arg Arg, _ *ArgCtx) {
-			if a, ok := arg.(*ResultArg); ok {
+			if a, ok := arg.(*ResultArg); ok && a != nil {
 				if a.Res != nil && !relatedRes[a.Res] {
 					newResources = append(newResources, a.Res)
 				}
@@ -1075,7 +1075,7 @@ func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			// Collect only initialized resources (the ones that are already used in other calls).
 			a, ok := arg.(*ResultArg)
-			if !ok || len(a.uses) == 0 || a.Dir() != DirOut {
+			if !ok || a == nil || len(a.uses) == 0 || a.Dir() != DirOut {
 				return
 			}
 			if !r.target.isCompatibleResource(resourceType, a.Type().Name()) {

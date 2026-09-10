@@ -249,3 +249,27 @@ func TestNoGenerate(t *testing.T) {
 		}
 	}
 }
+
+func TestGetCompatibleResourcesNilArg(t *testing.T) {
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := newRand(target, rand.NewSource(0))
+	c := target.SyscallMap["test$res0"]
+	if c == nil {
+		t.Skip("test$res0 not found")
+	}
+	call := &Call{
+		Meta: c,
+		Args: []Arg{(*ResultArg)(nil)},
+	}
+	p := &Prog{
+		Target: target,
+		Calls:  []*Call{call},
+	}
+	res := getCompatibleResources(p, "res0", r)
+	if len(res) != 0 {
+		t.Errorf("expected 0 resources, got %d", len(res))
+	}
+}
