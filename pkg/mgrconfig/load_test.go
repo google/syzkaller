@@ -112,3 +112,23 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
 }
+
+func TestBootTestCapabilitiesNormalization(t *testing.T) {
+	data := []byte(`{
+		"target": "linux/amd64",
+		"type": "none",
+		"reproduce": false,
+		"workdir": "/tmp",
+		"syzkaller": "testdata/syzkaller",
+		"boot_test_capabilities": {
+			"vendor": "Intel",
+			"nested": true
+		}
+	}`)
+	cfg, err := LoadData(data)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.BootTestCapabilities)
+	assert.Equal(t, "intel", cfg.BootTestCapabilities.CPUVendor)
+	require.NotNil(t, cfg.BootTestCapabilities.Nested)
+	assert.True(t, *cfg.BootTestCapabilities.Nested)
+}

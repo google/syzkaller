@@ -218,6 +218,10 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("if config param type is none, reproduce must be false")
 	}
 
+	if cfg.BootTestCapabilities != nil {
+		cfg.BootTestCapabilities.CPUVendor = strings.ToLower(strings.TrimSpace(cfg.BootTestCapabilities.CPUVendor))
+	}
+
 	return nil
 }
 

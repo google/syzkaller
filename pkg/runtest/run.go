@@ -69,6 +69,7 @@ type Context struct {
 	Verbose      bool
 	Debug        bool
 	Tests        string // prefix to match test file names
+	Capabilities map[string]bool
 
 	executor *queue.DynamicOrderer
 	requests []*runRequest
@@ -247,6 +248,7 @@ nextSandbox:
 			"bigendian":              sysTarget.BigEndian,
 			"arch=" + rt.Target.Arch: true,
 		}
+		maps.Copy(properties, rt.Capabilities)
 		for _, threaded := range []bool{false, true} {
 			if threaded {
 				name += "/thr"
