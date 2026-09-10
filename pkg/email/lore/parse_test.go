@@ -627,3 +627,50 @@ func TestLink(t *testing.T) {
 		})
 	}
 }
+
+func TestPatchSeriesMinRate(t *testing.T) {
+	// A series with 100 patches where 99 are present (99% rate >= 0.99) should be accepted.
+	var acceptedEmails []*Email
+	acceptedEmails = append(acceptedEmails, &Email{
+		Email: &email.Email{
+			MessageID: "<cover>",
+			Subject:   "[PATCH 000/100] Big series",
+		},
+	})
+	for i := 1; i <= 99; i++ {
+		acceptedEmails = append(acceptedEmails, &Email{
+			Email: &email.Email{
+				MessageID: fmt.Sprintf("<p%d>", i),
+				InReplyTo: "<cover>",
+				Subject:   fmt.Sprintf("[PATCH %03d/100] Patch %d", i, i),
+			},
+			HasPatch: true,
+		})
+	}
+	series := PatchSeries(acceptedEmails)
+	require.Len(t, series, 1)
+	assert.Empty(t, series[0].Corrupted)
+	assert.Len(t, series[0].Patches, 99)
+
+	// A series with 100 patches where 98 are present (98% rate < 0.99) should be corrupted.
+	var corruptedEmails []*Email
+	corruptedEmails = append(corruptedEmails, &Email{
+		Email: &email.Email{
+			MessageID: "<cover2>",
+			Subject:   "[PATCH 000/100] Another big series",
+		},
+	})
+	for i := 1; i <= 98; i++ {
+		corruptedEmails = append(corruptedEmails, &Email{
+			Email: &email.Email{
+				MessageID: fmt.Sprintf("<p2-%d>", i),
+				InReplyTo: "<cover2>",
+				Subject:   fmt.Sprintf("[PATCH %03d/100] Patch %d", i, i),
+			},
+			HasPatch: true,
+		})
+	}
+	series2 := PatchSeries(corruptedEmails)
+	require.Len(t, series2, 1)
+	assert.Equal(t, "the subject mentions 100 patches, 98 are found", series2[0].Corrupted)
+}
