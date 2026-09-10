@@ -83,6 +83,32 @@ func TestBisect(t *testing.T) {
 	}
 }
 
+func TestBisectWithFixed(t *testing.T) {
+	ctx := &reproContext{
+		stats: new(Stats),
+		logf:  t.Logf,
+		origExecutor: &report.ExecutorInfo{
+			ExecID: 42,
+		},
+	}
+	progs := []*prog.LogEntry{
+		{ID: 10},
+		{ID: 42},
+		{ID: 20},
+	}
+	res, err := ctx.bisectProgs(progs, func(p []*prog.LogEntry) (bool, error) {
+		for _, e := range p {
+			if e.ID == 42 {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	require.Equal(t, 42, res[0].ID)
+}
+
 func TestSimplifies(t *testing.T) {
 	opts := csource.Options{
 		Threaded:     true,
@@ -127,7 +153,7 @@ func (tei *testExecInterface) RunSyz(_ context.Context, syzProg []byte, _ instan
 	return tei.run(syzProg)
 }
 
-func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
+func testEnvironment(t *testing.T, exec execInterface) Environment {
 	mgrConfig := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -145,14 +171,17 @@ func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := Environment{
+	return Environment{
 		Config:   mgrConfig,
 		Features: flatrpc.AllFeatures,
-		Fast:     false,
 		Reporter: reporter,
 		logf:     t.Logf,
+		exec:     exec,
 	}
-	return runInner(context.Background(), []byte(log), env, exec)
+}
+
+func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
+	return RunFromLog(context.Background(), []byte(log), testEnvironment(t, exec))
 }
 
 const testReproLog = `
@@ -370,11 +399,12 @@ func TestBrokenCompilerRepro(t *testing.T) {
 		Fast:     false,
 		Reporter: reporter,
 		logf:     t.Logf,
+		exec: &testExecInterface{
+			run: testExecRunner,
+		},
 	}
 
-	result, _, err := runInner(context.Background(), []byte(testReproLog), env, &testExecInterface{
-		run: testExecRunner,
-	})
+	result, _, err := RunFromLog(context.Background(), []byte(testReproLog), env)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, false, result.CRepro, "C repro should have been skipped")
@@ -451,4 +481,150 @@ func TestReproDuration(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestDivergentCrash(t *testing.T) {
+	const log = `
+2015/12/21 12:18:05 executing program 1:
+alarm(0xa)
+2015/12/21 12:18:10 executing program 2:
+pause()
+`
+	var divergentReports []*report.Report
+	env := testEnvironment(t, &testExecInterface{
+		run: func(p []byte) (*instance.RunResult, error) {
+			if strings.Contains(string(p), "pause()") {
+				return fakeCrashResult("WARNING: unrelated warning"), nil
+			}
+			if strings.Contains(string(p), "alarm(0xa)") {
+				return fakeCrashResult("panic: target error"), nil
+			}
+			return fakeCrashResult(""), nil
+		},
+	})
+	env.OnDivergentCrash = func(rep *report.Report) {
+		divergentReports = append(divergentReports, rep)
+	}
+	target := &report.Report{
+		Title:  "panic: target error",
+		Output: []byte(log),
+	}
+	result, _, err := Run(context.Background(), target, env)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "panic: target error", result.Report.Title)
+	require.Equal(t, "alarm(0xa)\n", string(result.Prog.Serialize()))
+
+	require.Len(t, divergentReports, 1)
+	require.Equal(t, "WARNING: unrelated warning", divergentReports[0].Title)
+	require.Contains(t, string(divergentReports[0].Output), "pause()")
+}
+
+func TestLogWithoutReport(t *testing.T) {
+	const log = `
+2015/12/21 12:18:05 executing program 1:
+alarm(0xa)
+2015/12/21 12:18:10 executing program 2:
+pause()
+`
+	var divergentReports []*report.Report
+	env := testEnvironment(t, &testExecInterface{
+		run: func(p []byte) (*instance.RunResult, error) {
+			if strings.Contains(string(p), "pause()") {
+				return fakeCrashResult("WARNING: first crash"), nil
+			}
+			return fakeCrashResult(""), nil
+		},
+	})
+	env.OnDivergentCrash = func(rep *report.Report) {
+		divergentReports = append(divergentReports, rep)
+	}
+	result, _, err := RunFromLog(context.Background(), []byte(log), env)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "WARNING: first crash", result.Report.Title)
+	require.Equal(t, "pause()\n", string(result.Prog.Serialize()))
+	require.Empty(t, divergentReports)
+}
+
+// Verify that if Executor.ExecID is present in the crash report, that program is tested
+// first rather than the last entry of each proc.
+func TestCrashExecutorPriority(t *testing.T) {
+	const log = `
+2015/12/21 12:18:05 executing program 1 (id=100):
+alarm(0xa)
+2015/12/21 12:18:10 executing program 2 (id=200):
+pause()
+`
+	target := &report.Report{
+		Title:  "panic: target error",
+		Type:   crash.TitleToType("panic: target error"),
+		Output: []byte(log),
+		Executor: &report.ExecutorInfo{
+			ExecID: 100,
+		},
+	}
+	var testedProgs []string
+	result, _, err := Run(context.Background(), target, testEnvironment(t, &testExecInterface{
+		run: func(p []byte) (*instance.RunResult, error) {
+			testedProgs = append(testedProgs, string(p))
+			if strings.Contains(string(p), "alarm(0xa)") {
+				return fakeCrashResult("panic: target error"), nil
+			}
+			return fakeCrashResult(""), nil
+		},
+	}))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "alarm(0xa)\n", string(result.Prog.Serialize()))
+	require.NotEmpty(t, testedProgs)
+	require.Contains(t, testedProgs[0], "alarm(0xa)")
+}
+
+// Verify that during the validation phase, title switches of the same bug type are accepted
+// towards reliability, while low-priority failures and different bug types are ignored.
+func TestValidationRelaxedMatching(t *testing.T) {
+	ctx := &reproContext{
+		targetReport: &report.Report{
+			Title: "WARNING in sock_init_data",
+			Type:  crash.Warning,
+		},
+		stats:      new(Stats),
+		validating: true,
+	}
+	// Title variation of the same bug type is accepted.
+	v, err := ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "WARNING in sock_setsockopt",
+				Type:  crash.Warning,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.True(t, v.Crashed)
+
+	// Downgrade to low-priority failure (e.g. lost connection) is rejected.
+	v, err = ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "lost connection to test machine",
+				Type:  crash.LostConnection,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.False(t, v.Crashed)
+
+	// Different bug type (e.g. BUG vs Warning) is rejected.
+	v, err = ctx.getVerdict(func() (*instance.RunResult, error) {
+		return &instance.RunResult{
+			Report: &report.Report{
+				Title: "BUG: unable to handle kernel paging request",
+				Type:  crash.Bug,
+			},
+		}, nil
+	}, nil, false)
+	require.NoError(t, err)
+	require.False(t, v.Crashed)
 }

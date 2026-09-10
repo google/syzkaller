@@ -67,7 +67,7 @@ func main() {
 	go func() {
 		defer done()
 
-		res, stats, err := repro.Run(ctx, data, repro.Environment{
+		res, stats, err := repro.RunFromLog(ctx, data, repro.Environment{
 			Config:   cfg,
 			Features: flatrpc.AllFeatures,
 			Reporter: reporter,

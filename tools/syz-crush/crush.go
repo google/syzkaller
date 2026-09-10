@@ -122,7 +122,7 @@ func main() {
 		count++
 		if rep != nil {
 			crashes++
-			storeCrash(cfg, rep)
+			storeCrash(cfg, reporter, rep)
 		}
 		log.Printf("instances executed: %v, crashes: %v", count, crashes)
 	}
@@ -130,8 +130,13 @@ func main() {
 	log.Printf("all done. reproduced %v crashes. reproduce rate %.2f%%", crashes, float64(crashes)/float64(count)*100.0)
 }
 
-func storeCrash(cfg *mgrconfig.Config, res *instance.RunResult) {
+func storeCrash(cfg *mgrconfig.Config, reporter *report.Reporter, res *instance.RunResult) {
 	rep := res.Report
+	if reporter != nil && len(rep.Report) > 0 {
+		if err := reporter.Symbolize(rep); err != nil {
+			log.Printf("failed to symbolize report: %v", err)
+		}
+	}
 	id := hash.String([]byte(rep.Title))
 	dir := filepath.Join(filepath.Dir(flag.Args()[0]), "crashes", id)
 	osutil.MkdirAll(dir)

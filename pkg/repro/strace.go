@@ -75,5 +75,5 @@ func (strace *StraceResult) IsSameBug(repro *Result) bool {
 	if strace == nil || strace.Report == nil || repro.Report == nil {
 		return false
 	}
-	return strace.Report.Title == repro.Report.Title
+	return strace.Report.SameBug(repro.Report)
 }

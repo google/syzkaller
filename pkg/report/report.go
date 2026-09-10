@@ -90,6 +90,34 @@ func (rep *Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", rep.Title, rep.Report)
 }
 
+func (rep *Report) SameBug(other *Report) bool {
+	if rep == nil || other == nil {
+		return false
+	}
+	if rep.Title == other.Title ||
+		slices.Contains(other.AltTitles, rep.Title) ||
+		slices.Contains(rep.AltTitles, other.Title) {
+		return true
+	}
+	for _, title := range rep.AltTitles {
+		if slices.Contains(other.AltTitles, title) {
+			return true
+		}
+	}
+	return false
+}
+
+func (rep *Report) PrependOutput(prefix []byte) {
+	if len(prefix) == 0 {
+		return
+	}
+	rep.Output = slices.Concat(prefix, rep.Output)
+	n := len(prefix)
+	rep.StartPos += n
+	rep.EndPos += n
+	rep.SkipPos += n
+}
+
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	var localModules []*vminfo.KernelModule

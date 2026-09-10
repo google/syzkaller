@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/prog/test"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
 )
@@ -48,20 +49,33 @@ func newTestEnv(t *testing.T, cfg *Config) *testEnv {
 	}
 
 	diffCtx := &diffContext{
-		cfg:           *cfg,
-		doneRepro:     make(chan *manager.ReproResult, 1),
-		store:         cfg.Store,
-		reproAttempts: map[string]int{},
-		patchedOnly:   cfg.PatchedOnly,
+		cfg:              *cfg,
+		doneRepro:        make(chan *manager.ReproResult, 1),
+		store:            cfg.Store,
+		reproAttempts:    map[string]int{},
+		patchedOnly:      cfg.PatchedOnly,
+		divergentCrashes: make(chan *report.Report, 128),
 	}
 
+	testReporter, err := report.NewReporter(&mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	base := &MockKernel{
-		CrashesCh: make(chan *report.Report, 1),
-		LoopFunc:  func(ctx context.Context) error { return nil },
+		CrashesCh:   make(chan *report.Report, 1),
+		LoopFunc:    func(ctx context.Context) error { return nil },
+		ReporterVal: testReporter,
 	}
 	newKernel := &MockKernel{
-		CrashesCh: make(chan *report.Report, 1),
-		LoopFunc:  func(ctx context.Context) error { return nil },
+		CrashesCh:   make(chan *report.Report, 1),
+		LoopFunc:    func(ctx context.Context) error { return nil },
+		ReporterVal: testReporter,
 	}
 
 	newKernel.PoolVal = dispatcher.NewPool[*vm.Instance](1, func(ctx context.Context, index int) (*vm.Instance, error) {
@@ -167,6 +181,12 @@ func (mk *MockKernel) Reporter() *report.Reporter {
 	return mk.ReporterVal
 }
 
+func (mk *MockKernel) Symbolize(rep *report.Report) {
+	if mk.ReporterVal != nil {
+		_ = mk.ReporterVal.Symbolize(rep)
+	}
+}
+
 func (mk *MockKernel) FinishCorpusTriage() {
 	mk.TriageProgressVal = 1.0
 }
@@ -196,28 +216,28 @@ func (m *mockRunner) Results() <-chan reproRunnerResult {
 	return m.doneCh
 }
 
-func mockRepro(title string, err error) func(context.Context, []byte, repro.Environment) (
+func mockRepro(title string, err error) func(context.Context, *report.Report, repro.Environment) (
 	*repro.Result, *repro.Stats, error) {
 	return mockReproCallback(title, err, nil)
 }
 
 func mockReproCallback(title string, returnErr error,
-	callback func()) func(context.Context, []byte, repro.Environment) (
+	callback func()) func(context.Context, *report.Report, repro.Environment) (
 	*repro.Result, *repro.Stats, error) {
-	return func(ctx context.Context, crashLog []byte, env repro.Environment) (*repro.Result, *repro.Stats, error) {
+	return func(ctx context.Context, target *report.Report, env repro.Environment) (*repro.Result, *repro.Stats, error) {
 		if callback != nil {
 			callback()
 		}
 		if returnErr != nil {
 			return nil, nil, returnErr
 		}
-		target, err := prog.GetTarget("test", "64")
+		progTarget, err := prog.GetTarget("test", "64")
 		if err != nil {
 			return nil, nil, err
 		}
 		return &repro.Result{
 			Report: &report.Report{Title: title},
-			Prog:   target.DataMmapProg(),
+			Prog:   progTarget.DataMmapProg(),
 		}, &repro.Stats{}, nil
 	}
 }
