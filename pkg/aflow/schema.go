@@ -5,10 +5,12 @@ package aflow
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"maps"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -154,8 +156,126 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		}
 		return nil
 	}
-	if field.Type() == fType {
-		field.Set(fValue)
+	if num, ok := f.(json.Number); ok {
+		if reflect.Zero(targetType).CanInt() {
+			iv, err := strconv.ParseInt(string(num), 10, targetType.Bits())
+			if err == nil {
+				res := reflect.ValueOf(iv).Convert(targetType)
+				if field.Kind() == reflect.Ptr {
+					ptr := reflect.New(targetType)
+					ptr.Elem().Set(res)
+					field.Set(ptr)
+				} else {
+					field.Set(res)
+				}
+				return nil
+			}
+			if errors.Is(err, strconv.ErrRange) {
+				if tool {
+					return BadCallError("argument %v: integer value out of range %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: integer value out of range %v", val, name, f)
+			}
+			fv, errFloat := strconv.ParseFloat(string(num), 64)
+			if errFloat == nil {
+				res := reflect.ValueOf(fv).Convert(targetType)
+				if fv != res.Convert(reflect.TypeFor[float64]()).Float() {
+					if tool {
+						return BadCallError("argument %v: float value truncated from %v to %v",
+							name, f, res.Interface())
+					}
+					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+						val, name, f, res.Interface())
+				}
+				if field.Kind() == reflect.Ptr {
+					ptr := reflect.New(targetType)
+					ptr.Elem().Set(res)
+					field.Set(ptr)
+				} else {
+					field.Set(res)
+				}
+				return nil
+			}
+			if tool {
+				return BadCallError("argument %q has wrong type: got %T, want %v",
+					name, f, field.Type().String())
+			}
+			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+				val, name, f, field.Type().String())
+		}
+		if reflect.Zero(targetType).CanUint() {
+			uv, err := strconv.ParseUint(string(num), 10, targetType.Bits())
+			if err == nil {
+				res := reflect.ValueOf(uv).Convert(targetType)
+				if field.Kind() == reflect.Ptr {
+					ptr := reflect.New(targetType)
+					ptr.Elem().Set(res)
+					field.Set(ptr)
+				} else {
+					field.Set(res)
+				}
+				return nil
+			}
+			if errors.Is(err, strconv.ErrRange) {
+				if tool {
+					return BadCallError("argument %v: integer value out of range %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: integer value out of range %v", val, name, f)
+			}
+			fv, errFloat := strconv.ParseFloat(string(num), 64)
+			if errFloat == nil && fv >= 0 {
+				res := reflect.ValueOf(fv).Convert(targetType)
+				if fv != res.Convert(reflect.TypeFor[float64]()).Float() {
+					if tool {
+						return BadCallError("argument %v: float value truncated from %v to %v",
+							name, f, res.Interface())
+					}
+					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+						val, name, f, res.Interface())
+				}
+				if field.Kind() == reflect.Ptr {
+					ptr := reflect.New(targetType)
+					ptr.Elem().Set(res)
+					field.Set(ptr)
+				} else {
+					field.Set(res)
+				}
+				return nil
+			}
+			if tool {
+				return BadCallError("argument %q has wrong type: got %T, want %v",
+					name, f, field.Type().String())
+			}
+			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+				val, name, f, field.Type().String())
+		}
+		if targetType.Kind() == reflect.Float32 || targetType.Kind() == reflect.Float64 {
+			fv, err := strconv.ParseFloat(string(num), targetType.Bits())
+			if err != nil {
+				if tool {
+					return BadCallError("argument %v: invalid float value %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: invalid float value %v", val, name, f)
+			}
+			res := reflect.ValueOf(fv).Convert(targetType)
+			if field.Kind() == reflect.Ptr {
+				ptr := reflect.New(targetType)
+				ptr.Elem().Set(res)
+				field.Set(ptr)
+			} else {
+				field.Set(res)
+			}
+			return nil
+		}
+	}
+	if field.Kind() == reflect.Interface || field.Type() == fType || targetType == fType {
+		if field.Kind() == reflect.Ptr && targetType == fType {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(fValue)
+			field.Set(ptr)
+		} else {
+			field.Set(fValue)
+		}
 		return nil
 	}
 
