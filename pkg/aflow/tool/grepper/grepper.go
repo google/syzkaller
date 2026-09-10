@@ -85,26 +85,32 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	// They can contain lines >100K. We mainly intend to match source/docs files
 	// which should not contain long lines, so cap at 200 chars.
 	const maxLineLen = 200
-	lines := slices.Collect(bytes.Lines(output))
+	lines := make([][]byte, 0, maxLines)
 	var truncated bool
-	for i, line := range lines {
-		hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
-		contentLen := len(line)
-		if hasNewline {
-			contentLen--
-		}
-		if contentLen > maxLineLen {
-			newLine := slices.Clone(line[:maxLineLen])
-			newLine = append(newLine, []byte("...")...)
+	totalLines := 0
+	for line := range bytes.Lines(output) {
+		totalLines++
+		if len(lines) < maxLines {
+			hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
+			contentLen := len(line)
 			if hasNewline {
-				newLine = append(newLine, '\n')
+				contentLen--
 			}
-			lines[i] = newLine
-			truncated = true
+			if contentLen > maxLineLen {
+				newLine := slices.Clone(line[:maxLineLen])
+				newLine = append(newLine, []byte("...")...)
+				if hasNewline {
+					newLine = append(newLine, '\n')
+				}
+				lines = append(lines, newLine)
+				truncated = true
+			} else {
+				lines = append(lines, line)
+			}
 		}
 	}
 
-	if len(lines) <= maxLines {
+	if totalLines <= maxLines {
 		if truncated {
 			return results{string(slices.Concat(lines...))}, nil
 		}
@@ -115,6 +121,6 @@ Full output is too long, showing %v out of %v lines.
 Use more precise expression if possible.
 
 %s
-`, maxLines, len(lines), slices.Concat(lines[:maxLines]...))
+`, maxLines, totalLines, slices.Concat(lines...))
 	return results{res}, nil
 }
