@@ -124,67 +124,72 @@ if [ "$TARGETARCH" = "amd64" ] || [ "$TARGETARCH" = "loong64" ]; then
 
 fi
 
-if [ "$TARGETARCH" = "amd64" ]; then
-    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
-        current_func=""
-        problematic_lines=""
-        while IFS= read -r line; do
-            if echo "$line" | grep -q -E '^[0-9a-f]+ <.*>:$'; then
-                current_func=$(echo "$line" | sed -n 's/.*<\(.*\)>:/\1/p')
-                continue
-            fi
-            if echo "$line" | grep -q '(%rip)'; then
-                target_addr_hex=$(echo "$line" | sed -n 's/.*# \([0-9a-f]\+\).*/\1/p')
-                if [ -z "$target_addr_hex" ]; then
-                    continue
-                fi
-                target_addr_dec=$(printf "%d" "0x$target_addr_hex")
-                if [ "$target_addr_dec" -lt "$GUEST_START" ] || [ "$target_addr_dec" -gt "$GUEST_END" ]; then
-                    if [ -n "$current_func" ]; then
-                        problematic_lines="${problematic_lines}In function <${current_func}>:\n"
-                    fi
-                    problematic_lines="${problematic_lines}\t${line}\n"
-                fi
-            fi
-        done
-        printf "%b" "$problematic_lines"
-    })
-elif [ "$TARGETARCH" = "loong64" ]; then
-    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
-        current_func=""
-        problematic_lines=""
-        while IFS= read -r line; do
-            if echo "$line" | grep -q -E '^[0-9a-f]+ <.*>:$'; then
-                current_func=$(echo "$line" | sed -n 's/.*<\(.*\)>:/\1/p')
-                continue
-            fi
-            if ! echo "$line" | grep -q -E "$PATTERNS_TO_FIND"; then
-                continue
-            fi
-            if echo "$line" | grep -q -E '[[:space:]]pcaddi[[:space:]]'; then
-                insn_addr_hex=$(echo "$line" | sed -n 's/^[[:space:]]*\([0-9a-f]\+\):.*/\1/p')
-                insn_hex=$(echo "$line" | sed -n 's/^[[:space:]]*[0-9a-f]\+:[[:space:]]*\([0-9a-f]\{8\}\)[[:space:]].*/\1/p')
-                if [ -n "$insn_addr_hex" ] && [ -n "$insn_hex" ]; then
-                    insn_addr=$(printf "%d" "0x$insn_addr_hex")
-                    insn=$(printf "%d" "0x$insn_hex")
-                    imm=$(( (insn >> 5) & 1048575 ))
-                    if [ "$imm" -ge 524288 ]; then
-                        imm=$((imm - 1048576))
-                    fi
-                    target=$((insn_addr + imm * 4))
-                    if [ "$target" -ge "$GUEST_START" ] && [ "$target" -lt "$GUEST_END" ]; then
-                        continue
-                    fi
-                fi
-            fi
-            if [ -n "$current_func" ]; then
-                problematic_lines="${problematic_lines}In function <${current_func}>:\n"
-                current_func=""
-            fi
-            problematic_lines="${problematic_lines}\t${line}\n"
-        done
-        printf "%b" "$problematic_lines"
-    })
+if [ "$TARGETARCH" = "amd64" ] || [ "$TARGETARCH" = "loong64" ]; then
+    FOUND_INSTRUCTIONS=$(printf '%s\n' "$DISASSEMBLY_OUTPUT" | $AWK_CMD \
+        -v arch="$TARGETARCH" \
+        -v pattern="$PATTERNS_TO_FIND" \
+        -v guest_start="$GUEST_START" \
+        -v guest_end="$GUEST_END" '
+    # POSIX awk has no portable hexadecimal conversion function.
+    function hex2dec(hex, value, i, digit) {
+        value = 0
+        hex = tolower(hex)
+        for (i = 1; i <= length(hex); i++) {
+            digit = index("0123456789abcdef", substr(hex, i, 1)) - 1
+            if (digit < 0)
+                return -1
+            value = value * 16 + digit
+        }
+        return value
+    }
+    function report(clear_context) {
+        if (current_func)
+            print "In function <" current_func ">:"
+        print "\t" $0
+        if (clear_context)
+            current_func = ""
+    }
+    /^[0-9a-f]+ <.*>:$/ {
+        current_func = $0
+        sub(/^[^<]*</, "", current_func)
+        sub(/>:$/, "", current_func)
+        next
+    }
+    arch == "amd64" && /\(%rip\)/ {
+        target_hex = $0
+        if (!sub(/^.*#[[:space:]]*/, "", target_hex))
+            next
+        sub(/[[:space:]].*$/, "", target_hex)
+        target = hex2dec(target_hex)
+        if (target >= 0 && (target < guest_start || target > guest_end))
+            report(0)
+        next
+    }
+    arch == "loong64" && $0 ~ pattern {
+        if ($0 ~ /[[:space:]]pcaddi[[:space:]]/) {
+            insn_addr_hex = $0
+            sub(/^[[:space:]]*/, "", insn_addr_hex)
+            sub(/:.*/, "", insn_addr_hex)
+            insn_hex = $0
+            sub(/^[[:space:]]*[0-9a-f]+:[[:space:]]*/, "", insn_hex)
+            sub(/[[:space:]].*$/, "", insn_hex)
+            if (length(insn_hex) == 8) {
+                insn_addr = hex2dec(insn_addr_hex)
+                insn = hex2dec(insn_hex)
+                # PCADDI encodes a signed 20-bit word offset in bits 24:5.
+                imm = int(insn / 32) % 1048576
+                if (imm >= 524288)
+                    imm -= 1048576
+                target = insn_addr + imm * 4
+                if (insn_addr >= 0 && insn >= 0 &&
+                    target >= guest_start && target < guest_end)
+                    next
+            }
+        }
+        # Reject other PC-relative forms and malformed PCADDI encodings.
+        report(1)
+    }
+' || true)
 else
     # The original logic for other architectures (e.g. arm64)
     FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | $AWK_CMD -v pattern="$PATTERNS_TO_FIND" '
