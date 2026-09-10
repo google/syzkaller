@@ -70,14 +70,6 @@ static long syz_kvm_assert_reg(volatile long a0, volatile long a1, volatile long
 }
 #endif
 
-#ifndef NONFAILING
-// csource removes the common NONFAILING definition when HandleSegv is off.
-// This header also uses its result in conditions, so provide the equivalent
-// direct-access behavior locally instead of leaving an undefined macro.
-#define NONFAILING(...) ((void)(__VA_ARGS__), 1)
-#define LOONG64_KVM_UNDEFINE_NONFAILING
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 
 // syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
@@ -115,19 +107,16 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			return -1;
 	}
 
-	const void* text = 0;
-	uintptr_t text_size = 0;
-	if (!NONFAILING(text = text_array_ptr[0].text) ||
-	    !NONFAILING(text_size = text_array_ptr[0].size)) {
-		errno = EFAULT;
-		return -1;
-	}
+	const void* text = text_array_ptr[0].text;
+	uintptr_t text_size = text_array_ptr[0].size;
 	if (text_size > guest_mem_size)
 		text_size = guest_mem_size;
-	if (text_size > 0 &&
-	    (!text || !NONFAILING(memcpy(host_mem, text, text_size)))) {
-		errno = EFAULT;
-		return -1;
+	if (text_size > 0) {
+		if (!text) {
+			errno = EFAULT;
+			return -1;
+		}
+		memcpy(host_mem, text, text_size);
 	}
 
 	struct kvm_regs regs;
@@ -206,17 +195,13 @@ static void validate_guest_code(const void* mem, size_t size)
 	}
 }
 
-static int install_syzos_code(void* host_mem, size_t mem_size)
+static void install_syzos_code(void* host_mem, size_t mem_size)
 {
 	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
 	if (size > mem_size)
 		fail("SYZOS size exceeds guest memory");
 	validate_guest_code(&__start_guest, size);
-	if (size && !NONFAILING(memcpy(host_mem, &__start_guest, size))) {
-		errno = EFAULT;
-		return -1;
-	}
-	return 0;
+	memcpy(host_mem, &__start_guest, size);
 }
 
 #define MEM_REGION_FLAG_USER_CODE (1 << 0)
@@ -266,9 +251,8 @@ static int setup_vm(int vmfd, void* host_mem, size_t total_pages, void** user_te
 			flags |= KVM_MEM_LOG_DIRTY_PAGES;
 		if (r->flags & MEM_REGION_FLAG_READONLY)
 			flags |= KVM_MEM_READONLY;
-		if ((r->flags & MEM_REGION_FLAG_EXECUTOR_CODE) &&
-		    install_syzos_code(next.addr, next.size))
-			return -1;
+		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
+			install_syzos_code(next.addr, next.size);
 		if (vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size,
 					      (uintptr_t)next.addr))
 			return -1;
@@ -304,14 +288,11 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	void* user_text = NULL;
 	if (setup_vm(vmfd, guest_mem, total_pages, &user_text))
 		return -1;
-	if (!NONFAILING(ret->vmfd = vmfd) ||
-	    !NONFAILING(ret->next_cpu_id = 0) ||
-	    !NONFAILING(ret->host_mem = guest_mem) ||
-	    !NONFAILING(ret->total_pages = total_pages) ||
-	    !NONFAILING(ret->user_text = user_text)) {
-		errno = EFAULT;
-		return -1;
-	}
+	ret->vmfd = vmfd;
+	ret->next_cpu_id = 0;
+	ret->host_mem = guest_mem;
+	ret->total_pages = total_pages;
+	ret->user_text = user_text;
 
 	return (long)ret;
 }
@@ -341,10 +322,12 @@ static int install_user_code(int cpufd, void* user_text_slot, int cpu_id, const 
 	if (text_size > LOONG64_KVM_PAGE_SIZE)
 		text_size = LOONG64_KVM_PAGE_SIZE;
 	void* target = (void*)((uintptr_t)user_text_slot + (LOONG64_KVM_PAGE_SIZE * cpu_id));
-	if (text_size > 0 &&
-	    (!text || !NONFAILING(memcpy(target, text, text_size)))) {
-		errno = EFAULT;
-		return -1;
+	if (text_size > 0) {
+		if (!text) {
+			errno = EFAULT;
+			return -1;
+		}
+		memcpy(target, text, text_size);
 	}
 	return reset_cpu_regs(cpufd, cpu_id, text_size);
 }
@@ -353,12 +336,6 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 {
 	struct kvm_syz_vm* vm = (struct kvm_syz_vm*)a0;
 	struct kvm_text* utext = (struct kvm_text*)a1;
-	const void* text = 0;
-	size_t text_size = 0;
-	int vmfd = -1;
-	int cpu_id = -1;
-	void* user_text = NULL;
-
 	(void)a2;
 	(void)a3;
 
@@ -366,14 +343,11 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 		errno = EINVAL;
 		return -1;
 	}
-	if (!NONFAILING(text = utext->text) ||
-	    !NONFAILING(text_size = utext->size) ||
-	    !NONFAILING(vmfd = vm->vmfd) ||
-	    !NONFAILING(cpu_id = vm->next_cpu_id) ||
-	    !NONFAILING(user_text = vm->user_text)) {
-		errno = EFAULT;
-		return -1;
-	}
+	const void* text = utext->text;
+	size_t text_size = utext->size;
+	int vmfd = vm->vmfd;
+	int cpu_id = vm->next_cpu_id;
+	void* user_text = vm->user_text;
 	if (cpu_id < 0) {
 		errno = EINVAL;
 		return -1;
@@ -391,11 +365,7 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 		errno = err;
 		return -1;
 	}
-	if (!NONFAILING(vm->next_cpu_id = cpu_id + 1)) {
-		close(cpufd);
-		errno = EFAULT;
-		return -1;
-	}
+	vm->next_cpu_id = cpu_id + 1;
 	return cpufd;
 }
 #endif
@@ -414,17 +384,10 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 		errno = EINVAL;
 		return -1;
 	}
-	uint32 exit_reason = 0;
-	uint32 mmio_len = 0;
-	uint8 is_write = 0;
-	uint64 phys_addr = 0;
-	if (!NONFAILING(exit_reason = run->exit_reason) ||
-	    !NONFAILING(phys_addr = run->mmio.phys_addr) ||
-	    !NONFAILING(mmio_len = run->mmio.len) ||
-	    !NONFAILING(is_write = run->mmio.is_write)) {
-		errno = EFAULT;
-		return -1;
-	}
+	uint32 exit_reason = run->exit_reason;
+	uint64 phys_addr = run->mmio.phys_addr;
+	uint32 mmio_len = run->mmio.len;
+	uint8 is_write = run->mmio.is_write;
 	if ((exit_reason != KVM_EXIT_MMIO) ||
 	    (phys_addr != LOONG64_ADDR_UEXIT) ||
 	    !is_write || (mmio_len != sizeof(uint64))) {
@@ -436,10 +399,7 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 	}
 
 	uint64 actual_code = 0;
-	if (!NONFAILING(memcpy(&actual_code, run->mmio.data, sizeof(actual_code)))) {
-		errno = EFAULT;
-		return -1;
-	}
+	memcpy(&actual_code, run->mmio.data, sizeof(actual_code));
 	if (actual_code != expect) {
 #if !SYZ_EXECUTOR
 		fprintf(stderr, "[SYZOS-DEBUG] Exit Code Mismatch on VCPU %d\n", cpufd);
@@ -452,11 +412,6 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 	}
 	return 0;
 }
-#endif
-
-#ifdef LOONG64_KVM_UNDEFINE_NONFAILING
-#undef NONFAILING
-#undef LOONG64_KVM_UNDEFINE_NONFAILING
 #endif
 
 #endif // EXECUTOR_COMMON_KVM_LOONG64_H
