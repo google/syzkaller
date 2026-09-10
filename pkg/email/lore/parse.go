@@ -127,7 +127,13 @@ func PatchSeries(emails []*Email) []*Series {
 				Email: email,
 			})
 		}
-		if len(hasSeq) != total {
+		// Occasionally, we have at least one missing patch in series sent for review.
+		// Require at least 99% of patches to accept the series.
+		// TODO: Modify syz-cluster to accept two pairs of commits, and use stable-rc tree, which has the changes already
+		// applied, instead of the stable tree.
+		const minPatchRate = 0.99
+		// Note that total may be 0 if the subject mentions e.g. "0/0", so guard the division.
+		if total <= 0 || len(hasSeq) > total || float64(len(hasSeq))/float64(total) < minPatchRate {
 			series.Corrupted = fmt.Sprintf("the subject mentions %d patches, %d are found",
 				total, len(hasSeq))
 			continue
