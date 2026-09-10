@@ -13,17 +13,21 @@ import (
 
 // DoWhile represents "do { body } while (cond)" loop.
 type DoWhile struct {
-	// Dody of the loop.
+	// Body of the loop.
 	Do Action
-	// Exit condition. It should be a string state variable.
-	// The loop exists when the variable is empty.
+	// Exit condition. It should be a string or bool state variable.
+	// The loop exits when the variable is empty or false.
 	While string
-	// Max interations for the loop.
+	// Max iterations for the loop.
 	// Must be specified to avoid unintended effectively infinite loops.
 	MaxIterations int
 	// MapOutputs renames or overrides variables produced inside the loop
 	// before exposing them to the parent context upon loop completion.
 	MapOutputs map[string]string
+	// OnMaxIterations is executed when the loop reaches MaxIterations instead
+	// of returning an error. It executes after the loop finishes and MapOutputs
+	// has been applied; its outputs are not mapped by MapOutputs.
+	OnMaxIterations Action
 
 	loopVars map[string]reflect.Type
 }
@@ -35,14 +39,17 @@ func (dw *DoWhile) execute(ctx *Context) error {
 	if err := ctx.startSpan(span); err != nil {
 		return err
 	}
-	err := dw.loop(ctx)
+	exhausted, err := dw.loop(ctx)
 	if err := ctx.finishSpan(span, err); err != nil {
 		return err
+	}
+	if exhausted && dw.OnMaxIterations != nil {
+		return dw.OnMaxIterations.execute(ctx)
 	}
 	return nil
 }
 
-func (dw *DoWhile) loop(ctx *Context) error {
+func (dw *DoWhile) loop(ctx *Context) (bool, error) {
 	for name, typ := range dw.loopVars {
 		// We allow redefinition of loop variables to support nested loops.
 		// They are reset to zero values at the start of the loop.
@@ -54,11 +61,11 @@ func (dw *DoWhile) loop(ctx *Context) error {
 			Name: fmt.Sprint(iter),
 		}
 		if err := ctx.startSpan(span); err != nil {
-			return err
+			return false, err
 		}
 		err := dw.Do.execute(ctx)
 		if err := ctx.finishSpan(span, err); err != nil {
-			return err
+			return false, err
 		}
 		val := ctx.state[dw.While]
 		cond := false
@@ -69,15 +76,23 @@ func (dw *DoWhile) loop(ctx *Context) error {
 			cond = v
 		}
 		if !cond {
-			for from, to := range dw.MapOutputs {
-				if val, ok := ctx.state[from]; ok {
-					ctx.state[to] = val
-				}
-			}
-			return nil
+			dw.mapOutputs(ctx)
+			return false, nil
 		}
 	}
-	return fmt.Errorf("DoWhile reached max iteration limit %v", dw.MaxIterations)
+	if dw.OnMaxIterations != nil {
+		dw.mapOutputs(ctx)
+		return true, nil
+	}
+	return false, fmt.Errorf("DoWhile reached max iteration limit %v", dw.MaxIterations)
+}
+
+func (dw *DoWhile) mapOutputs(ctx *Context) {
+	for from, to := range dw.MapOutputs {
+		if val, ok := ctx.state[from]; ok {
+			ctx.state[to] = val
+		}
+	}
 }
 
 func (dw *DoWhile) verify(ctx *verifyContext) {
@@ -124,6 +139,9 @@ func (dw *DoWhile) verify(ctx *verifyContext) {
 				typ:    desc.typ,
 			}
 		}
+		if dw.OnMaxIterations != nil {
+			dw.verifyOnMaxIterations(ctx, origState)
+		}
 	}
 	if inputs {
 		ctx.inputs, ctx.outputs = true, false
@@ -137,7 +155,31 @@ func (dw *DoWhile) verify(ctx *verifyContext) {
 		} else {
 			state.used = true
 		}
+		if dw.OnMaxIterations != nil {
+			dw.OnMaxIterations.verify(ctx)
+		}
 	}
+}
+
+func (dw *DoWhile) verifyOnMaxIterations(ctx *verifyContext, origState map[string]*varState) {
+	loopState := ctx.state
+	ctx.state = maps.Clone(origState)
+	dw.OnMaxIterations.verify(ctx)
+	for name, desc := range ctx.state {
+		if origState[name] != nil {
+			continue
+		}
+		expected := loopState[name]
+		if expected == nil {
+			ctx.errorf("DoWhile", "output %v is produced by OnMaxIterations but not by Do", name)
+			continue
+		}
+		if expected.typ != desc.typ {
+			ctx.errorf("DoWhile", "output %v has different types in Do and OnMaxIterations: want %v, has %v",
+				name, expected.typ, desc.typ)
+		}
+	}
+	ctx.state = loopState
 }
 
 // ForEach executes an action for each element in a slice.

@@ -116,6 +116,48 @@ func TestDoWhileErrors(t *testing.T) {
 			While:         "Output1",
 			MaxIterations: 10,
 		}})
+
+	for _, test := range []struct {
+		name   string
+		err    string
+		action Action
+	}{
+		{
+			name: "extra output",
+			err:  "flow test: action DoWhile: output Output2 is produced by OnMaxIterations but not by Do",
+			action: NewFuncAction("onMax", func(ctx *Context, args struct{}) (struct{ Output2 string }, error) {
+				return struct{ Output2 string }{}, nil
+			}),
+		},
+		{
+			name: "type mismatch",
+			err: "flow test: action DoWhile: output Output1 has different types in Do and OnMaxIterations: " +
+				"want string, has int",
+			action: NewFuncAction("onMax", func(ctx *Context, args struct{}) (struct{ Output1 int }, error) {
+				return struct{ Output1 int }{}, nil
+			}),
+		},
+		{
+			name: "missing input",
+			err:  "flow test: action onMax: no input Missing, available inputs: [Output1]",
+			action: NewFuncAction("onMax", func(ctx *Context, args struct {
+				Missing int
+			}) (struct{ Output1 string }, error) {
+				return struct{ Output1 string }{}, nil
+			}),
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			testRegistrationError[struct{}, struct{}](t, test.err, &Flow{Root: &DoWhile{
+				Do: NewFuncAction("body", func(ctx *Context, args struct{ Output1 string }) (struct{ Output1 string }, error) {
+					return struct{ Output1 string }{}, nil
+				}),
+				While:           "Output1",
+				MaxIterations:   10,
+				OnMaxIterations: test.action,
+			}})
+		})
+	}
 }
 
 func TestDoWhileMaxIters(t *testing.T) {
@@ -133,6 +175,59 @@ func TestDoWhileMaxIters(t *testing.T) {
 		nil,
 		nil,
 	)
+}
+
+func TestDoWhileOnMaxIterations(t *testing.T) {
+	type loopBodyOutputs struct {
+		Error  string
+		Val    string
+		GaveUp bool
+		Reason string
+	}
+	type onMaxOutputs struct {
+		GaveUp bool
+		Reason string
+	}
+	type expectedOutputs struct {
+		Val    string
+		GaveUp bool
+		Reason string
+	}
+
+	fallback := NewFuncAction("on-max", func(ctx *Context, args struct{}) (onMaxOutputs, error) {
+		return onMaxOutputs{GaveUp: true, Reason: "max iterations reached"}, nil
+	})
+	step := func(retErr, val string) Action {
+		return NewFuncAction("step", func(ctx *Context, args struct{}) (loopBodyOutputs, error) {
+			return loopBodyOutputs{Error: retErr, Val: val}, nil
+		})
+	}
+
+	t.Run("Exhausted", func(t *testing.T) {
+		testFlow[struct{}, expectedOutputs](t, nil, map[string]any{
+			"Val":    "loop-val",
+			"GaveUp": true,
+			"Reason": "max iterations reached",
+		}, &DoWhile{
+			Do:              step("loop", "loop-val"),
+			While:           "Error",
+			MaxIterations:   3,
+			OnMaxIterations: fallback,
+		}, nil, nil)
+	})
+
+	t.Run("NormalExit", func(t *testing.T) {
+		testFlow[struct{}, expectedOutputs](t, nil, map[string]any{
+			"Val":    "success-val",
+			"GaveUp": false,
+			"Reason": "",
+		}, &DoWhile{
+			Do:              step("", "success-val"),
+			While:           "Error",
+			MaxIterations:   3,
+			OnMaxIterations: fallback,
+		}, nil, nil)
+	})
 }
 
 func TestForEach(t *testing.T) {
