@@ -43,80 +43,80 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 	struct kvm_regs regs;
 	int ret = 1;
 
-	do {
-		vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0);
-		if (vmfd == -1) {
-			printf("KVM_CREATE_VM failed (%d)\n", errno);
-			break;
-		}
-		cpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
-		if (cpufd == -1) {
-			printf("KVM_CREATE_VCPU failed (%d)\n", errno);
-			break;
-		}
-		cpu_mem_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, 0);
-		if (cpu_mem_size <= 0) {
-			printf("KVM_GET_VCPU_MMAP_SIZE failed (%d)\n", errno);
-			break;
-		}
-		cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size,
-						PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
-		if (cpu_mem == MAP_FAILED) {
-			printf("cpu mmap failed (%d)\n", errno);
-			break;
-		}
-		vm_mem = mmap(0, vm_mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if (vm_mem == MAP_FAILED) {
-			printf("mmap failed (%d)\n", errno);
-			break;
-		}
-		kvm_text.typ = text_type;
-		kvm_text.text = text;
-		kvm_text.size = text_size;
-		if (syz_kvm_setup_cpu(vmfd, cpufd, (uintptr_t)vm_mem, (uintptr_t)&kvm_text, 1, flags, 0, 0)) {
-			printf("syz_kvm_setup_cpu failed (%d)\n", errno);
-			break;
-		}
+	vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0);
+	if (vmfd == -1) {
+		printf("KVM_CREATE_VM failed (%d)\n", errno);
+		goto cleanup;
+	}
+	cpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
+	if (cpufd == -1) {
+		printf("KVM_CREATE_VCPU failed (%d)\n", errno);
+		goto cleanup;
+	}
+	cpu_mem_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, 0);
+	if (cpu_mem_size <= 0) {
+		printf("KVM_GET_VCPU_MMAP_SIZE failed (%d)\n", errno);
+		goto cleanup;
+	}
+	cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size,
+					PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
+	if (cpu_mem == MAP_FAILED) {
+		printf("cpu mmap failed (%d)\n", errno);
+		goto cleanup;
+	}
+	vm_mem = mmap(0, vm_mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (vm_mem == MAP_FAILED) {
+		printf("mmap failed (%d)\n", errno);
+		goto cleanup;
+	}
+	kvm_text.typ = text_type;
+	kvm_text.text = text;
+	kvm_text.size = text_size;
+	if (syz_kvm_setup_cpu(vmfd, cpufd, (uintptr_t)vm_mem, (uintptr_t)&kvm_text, 1, flags, 0, 0)) {
+		printf("syz_kvm_setup_cpu failed (%d)\n", errno);
+		goto cleanup;
+	}
 
-		ret = ioctl(cpufd, KVM_RUN, 0);
-		// KVM_RUN returns positive values on PPC64
-		if (ret < 0) {
-			printf("KVM_RUN returned %d, errno=%d\n", ret, errno);
-			ret = 1;
-			break;
-		}
-		if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
-			printf("KVM_GET_REGS failed (%d)\n", errno);
-			dump_cpu_state(cpufd, (char*)vm_mem);
-			ret = 1;
-			break;
-		}
-		if (cpu_mem->exit_reason != reason) {
-			printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
-			if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
-				printf("hardware exit reason 0x%llx\n",
-				       (unsigned long long)cpu_mem->fail_entry.hardware_entry_failure_reason);
-			dump_cpu_state(cpufd, (char*)vm_mem);
-			ret = 1;
-			break;
-		}
+	ret = ioctl(cpufd, KVM_RUN, 0);
+	// KVM_RUN returns positive values on PPC64
+	if (ret < 0) {
+		printf("KVM_RUN returned %d, errno=%d\n", ret, errno);
+		ret = 1;
+		goto cleanup;
+	}
+	if (ioctl(cpufd, KVM_GET_REGS, &regs)) {
+		printf("KVM_GET_REGS failed (%d)\n", errno);
+		dump_cpu_state(cpufd, (char*)vm_mem);
+		ret = 1;
+		goto cleanup;
+	}
+	if (cpu_mem->exit_reason != reason) {
+		printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
+		if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
+			printf("hardware exit reason 0x%llx\n",
+			       (unsigned long long)cpu_mem->fail_entry.hardware_entry_failure_reason);
+		dump_cpu_state(cpufd, (char*)vm_mem);
+		ret = 1;
+		goto cleanup;
+	}
 #ifdef GOARCH_amd64
-		if (check_rax && regs.rax != 0xbadc0de) {
-			printf("wrong result: rax=0x%llx\n", (long long)regs.rax);
-			dump_cpu_state(cpufd, (char*)vm_mem);
-			ret = 1;
-			break;
-		}
+	if (check_rax && regs.rax != 0xbadc0de) {
+		printf("wrong result: rax=0x%llx\n", (long long)regs.rax);
+		dump_cpu_state(cpufd, (char*)vm_mem);
+		ret = 1;
+		goto cleanup;
+	}
 #elif GOARCH_ppc64le
-		if (check_rax && regs.gpr[3] != 0xbadc0de) {
-			printf("wrong result: gps[3]=0x%llx\n", (long long)regs.gpr[3]);
-			dump_cpu_state(cpufd, (char*)vm_mem);
-			ret = 1;
-			break;
-		}
+	if (check_rax && regs.gpr[3] != 0xbadc0de) {
+		printf("wrong result: gps[3]=0x%llx\n", (long long)regs.gpr[3]);
+		dump_cpu_state(cpufd, (char*)vm_mem);
+		ret = 1;
+		goto cleanup;
+	}
 #endif
-		ret = 0;
-	} while (false);
+	ret = 0;
+
+cleanup:
 	if (vm_mem != MAP_FAILED)
 		munmap(vm_mem, vm_mem_size);
 	if (cpu_mem != MAP_FAILED)
