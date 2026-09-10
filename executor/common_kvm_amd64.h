@@ -1198,14 +1198,6 @@ static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint6
 	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
 }
 
-static void install_syzos_code(void* host_mem, size_t mem_size)
-{
-	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
-	if (size > mem_size)
-		fail("SYZOS size exceeds guest memory");
-	memcpy(host_mem, &__start_guest, size);
-}
-
 static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 {
 	struct addr_size allocator = {.addr = vm->host_mem, .size = vm->total_pages * KVM_PAGE_SIZE};

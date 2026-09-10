@@ -195,27 +195,6 @@ static void validate_guest_code(const void* mem, size_t size)
 	}
 }
 
-static void install_syzos_code(void* host_mem, size_t mem_size)
-{
-	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
-	if (size > mem_size)
-		fail("SYZOS size exceeds guest memory");
-	validate_guest_code(&__start_guest, size);
-	memcpy(host_mem, &__start_guest, size);
-}
-
-#define MEM_REGION_FLAG_USER_CODE (1 << 0)
-#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
-#define MEM_REGION_FLAG_READONLY (1 << 2)
-#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
-#define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
-
-struct mem_region {
-	uint64 gpa;
-	int pages;
-	uint32 flags;
-};
-
 // SYZOS guest physical memory layout (must stay in sync with executor/kvm.h).
 static const struct mem_region syzos_mem_regions[] = {
     // Unmapped region to trigger page faults (1 page at LOONG64_ADDR_EXIT).
@@ -251,8 +230,10 @@ static int setup_vm(int vmfd, void* host_mem, size_t total_pages, void** user_te
 			flags |= KVM_MEM_LOG_DIRTY_PAGES;
 		if (r->flags & MEM_REGION_FLAG_READONLY)
 			flags |= KVM_MEM_READONLY;
-		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
-			install_syzos_code(next.addr, next.size);
+		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE) {
+			size_t syzos_size = install_syzos_code(next.addr, next.size);
+			validate_guest_code(next.addr, syzos_size);
+		}
 		if (vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size,
 					      (uintptr_t)next.addr))
 			return -1;
