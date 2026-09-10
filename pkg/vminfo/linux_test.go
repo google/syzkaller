@@ -427,3 +427,139 @@ D                   : d
 `,
 	},
 }
+
+func TestParseCPUVendor(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want string
+	}{
+		{
+			name: "Intel CPU",
+			data: "processor\t: 0\nvendor_id\t: GenuineIntel\ncpu family\t: 6\n",
+			want: "intel",
+		},
+		{
+			name: "AMD CPU",
+			data: "processor\t: 0\nvendor_id\t: AuthenticAMD\ncpu family\t: 23\n",
+			want: "amd",
+		},
+		{
+			name: "Unknown CPU",
+			data: "processor\t: 0\nvendor_id\t: UnknownVendor\ncpu family\t: 1\n",
+			want: "",
+		},
+		{
+			name: "Empty data",
+			data: "",
+			want: "",
+		},
+		{
+			name: "Multiple colons in value",
+			data: "processor\t: 0\nvendor_id\t: GenuineIntel:with:extra:colons\n",
+			want: "intel",
+		},
+		{
+			name: "No vendor_id line",
+			data: "processor\t: 0\ncpu family\t: 6\n",
+			want: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseCPUVendor([]byte(tc.data))
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestParseKVMNested(t *testing.T) {
+	trueVal := true
+	falseVal := false
+
+	tests := []struct {
+		name   string
+		files  filesystem
+		vendor string
+		want   *bool
+	}{
+		{
+			name: "Intel Nested Enabled Y",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("Y\n"),
+				},
+			},
+			want: &trueVal,
+		},
+		{
+			name: "Intel Nested Enabled lowercase y",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("y\n"),
+				},
+			},
+			want: &trueVal,
+		},
+		{
+			name: "Intel Nested Enabled 1",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("1\n"),
+				},
+			},
+			want: &trueVal,
+		},
+		{
+			name: "Intel Nested Disabled N",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("N\n"),
+				},
+			},
+			want: &falseVal,
+		},
+		{
+			name: "AMD Nested Enabled 1",
+			files: filesystem{
+				"/sys/module/kvm_amd/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("1\n"),
+				},
+			},
+			want: &trueVal,
+		},
+		{
+			name: "AMD CPU checks kvm_amd even if kvm_intel is disabled",
+			files: filesystem{
+				"/sys/module/kvm_intel/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("N\n"),
+				},
+				"/sys/module/kvm_amd/parameters/nested": &flatrpc.FileInfo{
+					Exists: true,
+					Data:   []byte("1\n"),
+				},
+			},
+			vendor: "amd",
+			want:   &trueVal,
+		},
+		{
+			name:  "No KVM modules",
+			files: filesystem{},
+			want:  nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseKVMNested(tc.files, tc.vendor)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

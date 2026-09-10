@@ -204,3 +204,58 @@ func linuxReadKVMInfo(files filesystem, w io.Writer) (string, error) {
 	}
 	return "KVM", nil
 }
+
+func (linux) capabilities(files filesystem) *Capabilities {
+	caps := new(Capabilities)
+	if cpuinfo, err := files.ReadFile("/proc/cpuinfo"); err == nil {
+		if vendor := parseCPUVendor(cpuinfo); vendor != "" {
+			caps.CPUVendor = vendor
+		}
+	}
+	caps.Nested = parseKVMNested(files, caps.CPUVendor)
+	return caps
+}
+
+func parseCPUVendor(data []byte) string {
+	for len(data) > 0 {
+		var line []byte
+		line, data, _ = bytes.Cut(data, []byte{'\n'})
+		key, val, ok := bytes.Cut(line, []byte{':'})
+		if !ok {
+			continue
+		}
+		if bytes.Equal(bytes.TrimSpace(key), []byte("vendor_id")) {
+			val = bytes.TrimSpace(val)
+			if bytes.Contains(val, []byte("Intel")) {
+				return "intel"
+			}
+			if bytes.Contains(val, []byte("AMD")) {
+				return "amd"
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
+func parseKVMNested(files filesystem, vendor string) *bool {
+	var modules []string
+	switch vendor {
+	case "intel":
+		modules = []string{"kvm_intel"}
+	case "amd":
+		modules = []string{"kvm_amd"}
+	default:
+		modules = []string{"kvm_intel", "kvm_amd"}
+	}
+	for _, mod := range modules {
+		data, err := files.ReadFile(path.Join("/sys/module", mod, "parameters/nested"))
+		if err != nil {
+			continue
+		}
+		val := strings.TrimSpace(string(data))
+		enabled := strings.EqualFold(val, "y") || val == "1"
+		return &enabled
+	}
+	return nil
+}
