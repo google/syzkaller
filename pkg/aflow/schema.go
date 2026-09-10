@@ -157,17 +157,20 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		return nil
 	}
 	if num, ok := f.(json.Number); ok {
-		if reflect.Zero(targetType).CanInt() {
+		setVal := func(res reflect.Value) {
+			if field.Kind() == reflect.Ptr {
+				ptr := reflect.New(targetType)
+				ptr.Elem().Set(res)
+				field.Set(ptr)
+			} else {
+				field.Set(res)
+			}
+		}
+		switch targetType.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			iv, err := strconv.ParseInt(string(num), 10, targetType.Bits())
 			if err == nil {
-				res := reflect.ValueOf(iv).Convert(targetType)
-				if field.Kind() == reflect.Ptr {
-					ptr := reflect.New(targetType)
-					ptr.Elem().Set(res)
-					field.Set(ptr)
-				} else {
-					field.Set(res)
-				}
+				setVal(reflect.ValueOf(iv).Convert(targetType))
 				return nil
 			}
 			if errors.Is(err, strconv.ErrRange) {
@@ -187,13 +190,7 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
 						val, name, f, res.Interface())
 				}
-				if field.Kind() == reflect.Ptr {
-					ptr := reflect.New(targetType)
-					ptr.Elem().Set(res)
-					field.Set(ptr)
-				} else {
-					field.Set(res)
-				}
+				setVal(res)
 				return nil
 			}
 			if tool {
@@ -202,18 +199,10 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 			}
 			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
 				val, name, f, field.Type().String())
-		}
-		if reflect.Zero(targetType).CanUint() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			uv, err := strconv.ParseUint(string(num), 10, targetType.Bits())
 			if err == nil {
-				res := reflect.ValueOf(uv).Convert(targetType)
-				if field.Kind() == reflect.Ptr {
-					ptr := reflect.New(targetType)
-					ptr.Elem().Set(res)
-					field.Set(ptr)
-				} else {
-					field.Set(res)
-				}
+				setVal(reflect.ValueOf(uv).Convert(targetType))
 				return nil
 			}
 			if errors.Is(err, strconv.ErrRange) {
@@ -233,13 +222,7 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
 						val, name, f, res.Interface())
 				}
-				if field.Kind() == reflect.Ptr {
-					ptr := reflect.New(targetType)
-					ptr.Elem().Set(res)
-					field.Set(ptr)
-				} else {
-					field.Set(res)
-				}
+				setVal(res)
 				return nil
 			}
 			if tool {
@@ -248,8 +231,7 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 			}
 			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
 				val, name, f, field.Type().String())
-		}
-		if targetType.Kind() == reflect.Float32 || targetType.Kind() == reflect.Float64 {
+		case reflect.Float32, reflect.Float64:
 			fv, err := strconv.ParseFloat(string(num), targetType.Bits())
 			if err != nil {
 				if tool {
@@ -257,14 +239,7 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 				}
 				return fmt.Errorf("%T: field %v: invalid float value %v", val, name, f)
 			}
-			res := reflect.ValueOf(fv).Convert(targetType)
-			if field.Kind() == reflect.Ptr {
-				ptr := reflect.New(targetType)
-				ptr.Elem().Set(res)
-				field.Set(ptr)
-			} else {
-				field.Set(res)
-			}
+			setVal(reflect.ValueOf(fv).Convert(targetType))
 			return nil
 		}
 	}
