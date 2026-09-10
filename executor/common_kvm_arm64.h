@@ -85,15 +85,6 @@ static void validate_guest_code(void* mem, size_t size)
 	}
 }
 
-static void install_syzos_code(void* host_mem, size_t mem_size)
-{
-	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
-	if (size > mem_size)
-		fail("SYZOS size exceeds guest memory");
-	memcpy(host_mem, &__start_guest, size);
-	validate_guest_code(host_mem, size);
-}
-
 static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
@@ -110,7 +101,8 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
-	install_syzos_code(host_text.addr, host_text.size);
+	size_t syzos_size = install_syzos_code(host_text.addr, host_text.size);
+	validate_guest_code(host_text.addr, syzos_size);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
