@@ -70,14 +70,6 @@ static long syz_kvm_assert_reg(volatile long a0, volatile long a1, volatile long
 }
 #endif
 
-#ifndef NONFAILING
-// csource removes the common NONFAILING definition when HandleSegv is off.
-// This header also uses its result in conditions, so provide the equivalent
-// direct-access behavior locally instead of leaving an undefined macro.
-#define NONFAILING(...) ((void)(__VA_ARGS__), 1)
-#define LOONG64_KVM_UNDEFINE_NONFAILING
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 
 // syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
@@ -115,19 +107,16 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			return -1;
 	}
 
-	const void* text = 0;
-	uintptr_t text_size = 0;
-	if (!NONFAILING(text = text_array_ptr[0].text) ||
-	    !NONFAILING(text_size = text_array_ptr[0].size)) {
-		errno = EFAULT;
-		return -1;
-	}
+	const void* text = text_array_ptr[0].text;
+	uintptr_t text_size = text_array_ptr[0].size;
 	if (text_size > guest_mem_size)
 		text_size = guest_mem_size;
-	if (text_size > 0 &&
-	    (!text || !NONFAILING(memcpy(host_mem, text, text_size)))) {
-		errno = EFAULT;
-		return -1;
+	if (text_size > 0) {
+		if (!text) {
+			errno = EFAULT;
+			return -1;
+		}
+		memcpy(host_mem, text, text_size);
 	}
 
 	struct kvm_regs regs;
@@ -278,14 +267,11 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	void* user_text = NULL;
 	if (setup_vm(vmfd, guest_mem, total_pages, &user_text))
 		return -1;
-	if (!NONFAILING(ret->vmfd = vmfd) ||
-	    !NONFAILING(ret->next_cpu_id = 0) ||
-	    !NONFAILING(ret->host_mem = guest_mem) ||
-	    !NONFAILING(ret->total_pages = total_pages) ||
-	    !NONFAILING(ret->user_text = user_text)) {
-		errno = EFAULT;
-		return -1;
-	}
+	ret->vmfd = vmfd;
+	ret->next_cpu_id = 0;
+	ret->host_mem = guest_mem;
+	ret->total_pages = total_pages;
+	ret->user_text = user_text;
 
 	return (long)ret;
 }
@@ -315,10 +301,12 @@ static int copy_user_code(void* user_text_slot, int cpu_id, const void* text, si
 	if (text_size > LOONG64_KVM_PAGE_SIZE)
 		text_size = LOONG64_KVM_PAGE_SIZE;
 	void* target = (void*)((uintptr_t)user_text_slot + (LOONG64_KVM_PAGE_SIZE * cpu_id));
-	if (text_size > 0 &&
-	    (!text || !NONFAILING(memcpy(target, text, text_size)))) {
-		errno = EFAULT;
-		return -1;
+	if (text_size > 0) {
+		if (!text) {
+			errno = EFAULT;
+			return -1;
+		}
+		memcpy(target, text, text_size);
 	}
 	return 0;
 }
@@ -327,12 +315,6 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 {
 	struct kvm_syz_vm* vm = (struct kvm_syz_vm*)a0;
 	struct kvm_text* utext = (struct kvm_text*)a1;
-	const void* text = 0;
-	size_t text_size = 0;
-	int vmfd = -1;
-	int cpu_id = -1;
-	void* user_text = NULL;
-
 	(void)a2;
 	(void)a3;
 
@@ -340,14 +322,11 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 		errno = EINVAL;
 		return -1;
 	}
-	if (!NONFAILING(text = utext->text) ||
-	    !NONFAILING(text_size = utext->size) ||
-	    !NONFAILING(vmfd = vm->vmfd) ||
-	    !NONFAILING(cpu_id = vm->next_cpu_id) ||
-	    !NONFAILING(user_text = vm->user_text)) {
-		errno = EFAULT;
-		return -1;
-	}
+	const void* text = utext->text;
+	size_t text_size = utext->size;
+	int vmfd = vm->vmfd;
+	int cpu_id = vm->next_cpu_id;
+	void* user_text = vm->user_text;
 	if (cpu_id < 0) {
 		errno = EINVAL;
 		return -1;
@@ -366,10 +345,7 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 	// fault and leave the kernel-created vCPU unrecorded. A failed create does not
 	// consume the kernel ID, but skipping it locally is safe because KVM permits
 	// vCPU IDs to be allocated sparsely.
-	if (!NONFAILING(vm->next_cpu_id = cpu_id + 1)) {
-		errno = EFAULT;
-		return -1;
-	}
+	vm->next_cpu_id = cpu_id + 1;
 	int cpufd = ioctl(vmfd, KVM_CREATE_VCPU, cpu_id);
 	if (cpufd == -1)
 		return -1;
@@ -397,17 +373,10 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 		errno = EINVAL;
 		return -1;
 	}
-	uint32 exit_reason = 0;
-	uint32 mmio_len = 0;
-	uint8 is_write = 0;
-	uint64 phys_addr = 0;
-	if (!NONFAILING(exit_reason = run->exit_reason) ||
-	    !NONFAILING(phys_addr = run->mmio.phys_addr) ||
-	    !NONFAILING(mmio_len = run->mmio.len) ||
-	    !NONFAILING(is_write = run->mmio.is_write)) {
-		errno = EFAULT;
-		return -1;
-	}
+	uint32 exit_reason = run->exit_reason;
+	uint64 phys_addr = run->mmio.phys_addr;
+	uint32 mmio_len = run->mmio.len;
+	uint8 is_write = run->mmio.is_write;
 	if ((exit_reason != KVM_EXIT_MMIO) ||
 	    (phys_addr != LOONG64_ADDR_UEXIT) ||
 	    !is_write || (mmio_len != sizeof(uint64))) {
@@ -419,10 +388,7 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 	}
 
 	uint64 actual_code = 0;
-	if (!NONFAILING(memcpy(&actual_code, run->mmio.data, sizeof(actual_code)))) {
-		errno = EFAULT;
-		return -1;
-	}
+	memcpy(&actual_code, run->mmio.data, sizeof(actual_code));
 	if (actual_code != expect) {
 #if !SYZ_EXECUTOR
 		fprintf(stderr, "[SYZOS-DEBUG] Exit Code Mismatch on VCPU %d\n", cpufd);
@@ -435,11 +401,6 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 	}
 	return 0;
 }
-#endif
-
-#ifdef LOONG64_KVM_UNDEFINE_NONFAILING
-#undef NONFAILING
-#undef LOONG64_KVM_UNDEFINE_NONFAILING
 #endif
 
 #endif // EXECUTOR_COMMON_KVM_LOONG64_H
