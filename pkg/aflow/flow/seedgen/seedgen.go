@@ -37,6 +37,22 @@ type SeedGenInputs struct {
 	CorpusPath    string `json:",omitempty"`
 }
 
+const maxSeedGenAttempts = 5
+
+type seedGenGiveUpResult struct {
+	GeneratorGiveUp bool
+	GeneratorReason string
+}
+
+var actionSeedGenGiveUpMaxAttempts = aflow.NewFuncAction("giveup-max-attempts",
+	func(ctx *aflow.Context, args struct{}) (seedGenGiveUpResult, error) {
+		return seedGenGiveUpResult{
+			GeneratorGiveUp: true,
+			GeneratorReason: fmt.Sprintf("exceeded maximum generation attempts (%d) without reaching target PC",
+				maxSeedGenAttempts),
+		}, nil
+	})
+
 func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
 	steps := append([]aflow.Action{actionsyzlang.PrepareSyzFS}, prefix...)
 	steps = append(steps,
@@ -45,8 +61,9 @@ func seedGenPipeline(prefix ...aflow.Action) aflow.Action {
 		codesearcher.PrepareIndex,
 		codesearcher.ActionExtractFunction,
 		&aflow.DoWhile{
-			While:         "ContinueLoop",
-			MaxIterations: 5,
+			While:           "ContinueLoop",
+			MaxIterations:   maxSeedGenAttempts,
+			OnMaxIterations: actionSeedGenGiveUpMaxAttempts,
 			Do: aflow.Pipeline(
 				ActionPrepareFailedDetails,
 				GeneratorAgent,
