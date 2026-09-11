@@ -634,6 +634,7 @@ var testConfig = &GlobalConfig{
 		},
 		"ains": {
 			AI: &AIConfig{
+				AutoReproC:     true,
 				BaseRepository: "git://ai/base.git",
 				BaseBranch:     "ai-base",
 				BaseCommit:     "RC",

@@ -1905,6 +1905,13 @@ func collectChangelog(ctx context.Context, jobID, currentStage string) []dashapi
 	return changes
 }
 
+const (
+	maxAutoReproCAttempts = 2
+	reproCMinAge          = 48 * time.Hour
+	reproCMaxAge          = 30 * 24 * time.Hour
+	reproCPatchAge        = 30 * 24 * time.Hour
+)
+
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
 // To avoid race conditions between concurrent agents, it operates in two phases,
 // both leveraging Datastore transactions:
@@ -2038,7 +2045,7 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 		last  time.Time
 	}{}
 	for _, job := range jobs {
-		typ := ai.WorkflowType(job.Workflow)
+		typ := job.Type
 		// Have finished successful job.
 		if job.Finished.Valid && job.Error == "" ||
 			// Or already have a pending or a running job.
@@ -2050,8 +2057,12 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 		// Have a failed, or aborted job.
 		attempts := workflowAttempts[typ]
 		attempts.count++
-		if job.Started.Time.After(attempts.last) {
-			attempts.last = job.Started.Time
+		jobTime := job.Created
+		if job.Started.Valid {
+			jobTime = job.Started.Time
+		}
+		if jobTime.After(attempts.last) {
+			attempts.last = jobTime
 		}
 		workflowAttempts[typ] = attempts
 	}
@@ -2060,7 +2071,12 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	// or may be fixed over time. So we retry failed/aborted jobs with an exponential
 	// backoff based on attempts count. 1 job is retried in 1 day; 2 jobs - in 2 days;
 	// 3 jobs - in 4 days, and so on up to the cap of 30 days.
+	// For repro-c, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
 	for typ, attempts := range workflowAttempts {
+		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts {
+			delete(workflows, typ)
+			continue
+		}
 		retryPeriod := time.Duration(min(30, 1<<(attempts.count-1))) * 24 * time.Hour
 		if timeSince(ctx, attempts.last) < retryPeriod {
 			delete(workflows, typ)
@@ -2072,6 +2088,11 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	}
 	slices.Sort(pending)
 	return pending, nil
+}
+
+func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duration) bool {
+	lastPatch := bug.discussionSummary().LastPatchMessage
+	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2092,7 +2113,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		workflows[ai.WorkflowAssessmentSecurity] = true
 	}
 	if manual {
-		// Types we don't create automatically yet, but can be created manually.
+		// Workflows created only manually, or manual overrides bypassing auto-creation filters.
 		if typ.IsUAF() {
 			workflows[ai.WorkflowModeration] = true
 		}
@@ -2101,6 +2122,26 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		workflows[ai.WorkflowRepro] = true
 		workflows[ai.WorkflowReproC] = true
+	} else {
+		// Automatic C reproducer generation heuristics:
+		// - Namespace must have AutoReproC enabled.
+		// - Open bugs only, with no fixing commits.
+		// - Must have a crash report, but no existing C reproducer.
+		// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
+		// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
+		// - Skip non-fatal issues (INFO).
+		// - Skip bugs that have recent patch candidates being discussed / tested.
+		nsCfg := getNsConfig(ctx, bug.Namespace)
+		canAutoReproC := nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
+			bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+			!bug.HasCRepro && bug.HasReport &&
+			timeSince(ctx, bug.FirstTime) > reproCMinAge &&
+			timeSince(ctx, bug.LastTime) < reproCMaxAge &&
+			!strings.HasPrefix(bug.Title, "INFO:") &&
+			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
+		if canAutoReproC {
+			workflows[ai.WorkflowReproC] = true
+		}
 	}
 	return workflows
 }
