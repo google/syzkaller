@@ -1906,6 +1906,8 @@ func collectChangelog(ctx context.Context, jobID, currentStage string) []dashapi
 }
 
 const (
+	maxAutoReproCJobs     = 5
+	autoReproCRateWindow  = 6 * time.Hour
 	maxAutoReproCAttempts = 2
 	reproCMinAge          = 48 * time.Hour
 	reproCMaxAge          = 30 * 24 * time.Hour
@@ -1914,6 +1916,14 @@ const (
 
 func allowedReproCArch(arch string) bool {
 	return arch == targets.AMD64 || arch == targets.ARM64
+}
+
+func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
+	count, err := aidb.CountJobsSince(ctx, ns, ai.WorkflowReproC, timeNow(ctx).Add(-autoReproCRateWindow))
+	if err != nil {
+		return false, fmt.Errorf("failed to check repro-c rate limit for %v: %w", ns, err)
+	}
+	return count < maxAutoReproCJobs, nil
 }
 
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
@@ -1929,12 +1939,27 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 		if cfg.AI == nil || !client.AllowedNamespace(ns) {
 			continue
 		}
-		if created, err := findPendingJobs(ctx, ns, date, reqWorkflows); err != nil {
+		workflowsForNS := reqWorkflows
+		if slices.ContainsFunc(reqWorkflows, func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowReproC }) {
+			canReproC, err := canAutoCreateReproC(ctx, ns)
+			if err != nil {
+				return false, err
+			}
+			if !canReproC {
+				workflowsForNS = slices.DeleteFunc(slices.Clone(reqWorkflows), func(w dashapi.AIWorkflow) bool {
+					return w.Type == ai.WorkflowReproC
+				})
+			}
+		}
+		if len(workflowsForNS) == 0 {
+			continue
+		}
+		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
 		}
-		if created, err := processStaleBugs(ctx, ns, date, reqWorkflows); err != nil {
+		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS); err != nil {
 			return false, err
 		} else if created {
 			return true, nil

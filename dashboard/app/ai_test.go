@@ -1873,3 +1873,48 @@ func TestPendingWorkflowsForBugAbortedJob(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, pending, string(ai.WorkflowReproC))
 }
+
+func TestAutoCreateReproCRateLimit(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	const totalBugs = maxAutoReproCJobs + 1
+	for i := range totalBugs {
+		crash := testCrash(build, 1)
+		crash.Title = fmt.Sprintf("kernel BUG at mm/page_alloc_%d.c", i)
+		c.aiClient.ReportCrash(crash)
+		c.aiClient.pollEmailBug()
+	}
+
+	// Advance time past 48 hours so all bugs become eligible.
+	c.advanceTime(49 * time.Hour)
+
+	reproCFlow := dashapi.AIWorkflow{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)}
+
+	// Poll maxAutoReproCJobs with distinct agent names. All should be auto-created and assigned.
+	for i := range maxAutoReproCJobs {
+		resp := c.pollAIJob(t, fmt.Sprintf("agent-%d", i), reproCFlow)
+		require.NotEmpty(t, resp.ID)
+		require.Equal(t, string(ai.WorkflowReproC), resp.Workflow)
+	}
+
+	count, err := aidb.CountJobsSince(c.ctx, "ains", ai.WorkflowReproC, timeNow(c.ctx).Add(-autoReproCRateWindow))
+	require.NoError(t, err)
+	require.Equal(t, int64(maxAutoReproCJobs), count)
+
+	// With all existing jobs running and maxAutoReproCJobs created in the window,
+	// auto-creation of the next bug must be rate-limited (no job created).
+	resp := c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs), reproCFlow)
+	require.Empty(t, resp.ID)
+
+	// Advance time past the rate window so previous jobs fall outside the window.
+	c.advanceTime(autoReproCRateWindow + time.Second)
+
+	// Now the rate limit window has cleared, and the next bug should be picked up.
+	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs), reproCFlow)
+	require.NotEmpty(t, resp.ID)
+	require.Equal(t, string(ai.WorkflowReproC), resp.Workflow)
+}
