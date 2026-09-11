@@ -177,6 +177,16 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 		{
 			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./bind\x00', 0x1, 0x0)`,
 		},
+		{
+			In: `
+r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/usb/drivers/cdc_ether/new_id\x00', 0x1, 0x0)
+write(r0, &(0x7f0000000080)='0424 9514\x00', 0xa)
+`,
+			Out: `
+r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1, 0x0)
+write(r0, &(0x7f0000000080)='0424 9514\x00', 0xa)
+`,
+		},
 	})
 }
 
