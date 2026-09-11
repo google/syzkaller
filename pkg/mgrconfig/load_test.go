@@ -112,3 +112,21 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
 }
+
+func TestFormatTarget(t *testing.T) {
+	tests := []struct {
+		os     string
+		vmArch string
+		arch   string
+		want   string
+	}{
+		{targets.Linux, "amd64", "amd64", "linux/amd64"},
+		{targets.Linux, "", "amd64", "linux/amd64"},
+		{targets.Linux, "amd64", "386", "linux/amd64/386"},
+		{targets.Linux, "arm64", "arm", "linux/arm64/arm"},
+	}
+	for _, tc := range tests {
+		got := FormatTarget(tc.os, tc.vmArch, tc.arch)
+		require.Equal(t, tc.want, got)
+	}
+}

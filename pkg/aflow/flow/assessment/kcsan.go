@@ -14,6 +14,7 @@ import (
 type kcsanInputs struct {
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	CrashReport  string
 	KernelRepo   string
 	KernelCommit string

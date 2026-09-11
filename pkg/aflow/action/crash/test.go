@@ -32,6 +32,7 @@ type testArgs struct {
 	AgentName        string
 	TargetOS         string
 	TargetArch       string
+	TargetVMArch     string `json:",omitempty"`
 	Syzkaller        string
 	Image            string
 	Type             string
@@ -96,7 +97,7 @@ func testPatchInplace(ctx *aflow.Context, args testArgs) (testResult, error) {
 
 func testPatchBuild(ctx *aflow.Context, args testArgs) (string, error) {
 	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc,
-		args.KernelConfig, args.TargetOS, args.TargetArch, false); err != nil {
+		args.KernelConfig, args.TargetOS, args.TargetArch, args.TargetVMArch, false); err != nil {
 		// TODO: should distinguish between infra errors, and patch compilation errors.
 		return fmt.Sprintf("Building the kernel failed with: %v", err), nil
 	}
@@ -115,6 +116,7 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 		TargetConfig: TargetConfig{
 			AgentName:    args.AgentName,
 			TargetArch:   args.TargetArch,
+			TargetVMArch: args.TargetVMArch,
 			Syzkaller:    args.Syzkaller,
 			Image:        args.Image,
 			Type:         args.Type,

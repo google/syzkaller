@@ -15,15 +15,16 @@ import (
 var ActionConfigureRunner = aflow.NewFuncAction("configure-runner", configureRunnerAction)
 
 type ConfigureRunnerArgs struct {
-	TargetOS   string
-	TargetArch string
-	Syzkaller  string
-	Image      string
-	Type       string
-	VM         json.RawMessage
-	KernelSrc  string
-	KernelObj  string
-	Snapshot   bool
+	TargetOS     string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
+	Syzkaller    string
+	Image        string
+	Type         string
+	VM           json.RawMessage
+	KernelSrc    string
+	KernelObj    string
+	Snapshot     bool
 }
 
 type ConfigureRunnerResult struct {
@@ -37,14 +38,15 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (Config
 	}
 
 	targetCfg := TargetConfig{
-		TargetArch: args.TargetArch,
-		Syzkaller:  args.Syzkaller,
-		Image:      args.Image,
-		Type:       args.Type,
-		VM:         args.VM,
-		KernelSrc:  args.KernelSrc,
-		KernelObj:  args.KernelObj,
-		Snapshot:   args.Snapshot,
+		TargetArch:   args.TargetArch,
+		TargetVMArch: args.TargetVMArch,
+		Syzkaller:    args.Syzkaller,
+		Image:        args.Image,
+		Type:         args.Type,
+		VM:           args.VM,
+		KernelSrc:    args.KernelSrc,
+		KernelObj:    args.KernelObj,
+		Snapshot:     args.Snapshot,
 	}
 
 	if err := targetCfg.Validate(); err != nil {

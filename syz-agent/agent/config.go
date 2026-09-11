@@ -24,6 +24,7 @@ const (
 var supportedBackends = []string{backendGemini, backendVertex}
 
 type TargetConfig struct {
+	Target       string          `json:"target"`
 	KernelConfig string          `json:"kernel_config"`
 	Image        string          `json:"image"`
 	Type         string          `json:"type"`
@@ -75,13 +76,18 @@ func loadConfig(configFile string) (*Config, error) {
 		return nil, fmt.Errorf("at least one target must be specified in config")
 	}
 	for target, tcfg := range cfg.Targets {
-		osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(target)
+		targetStr := target
+		if tcfg.Target != "" {
+			targetStr = tcfg.Target
+		}
+		osVal, vmarch, arch, _, _, err := mgrconfig.SplitTarget(targetStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse agent target %q: %w", target, err)
+			return nil, fmt.Errorf("failed to parse agent target %q: %w", targetStr, err)
 		}
 		tcfg.TargetOS = osVal
 		tcfg.TargetArch = arch
 		tcfg.TargetVMArch = vmarch
+		tcfg.Target = targetStr
 
 		if len(tcfg.VM) == 0 {
 			continue

@@ -15,6 +15,7 @@ import (
 type assessmentSecurityInputs struct {
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	CrashReport  string
 	ReproSyz     string
 	ReproC       string
