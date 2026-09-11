@@ -568,4 +568,33 @@
 
 #endif // RISCV64 SYZOS definitions
 
+// LOONG64 SYZOS definitions.
+#if GOARCH_loong64
+// linux/loong64 uses 16 KiB pages. KVM memslots and host userspace addresses
+// must follow that host page size. Do not reuse the global 4 KiB KVM_PAGE_SIZE
+// for Loong64 SYZOS layout or memory-region sizing.
+#define LOONG64_KVM_PAGE_SIZE (16 << 10)
+// Keep absolute guest memory near other arches (~4 MiB).
+#define LOONG64_KVM_GUEST_PAGES 256
+#define LOONG64_KVM_GUEST_MEM_SIZE (LOONG64_KVM_GUEST_PAGES * LOONG64_KVM_PAGE_SIZE)
+
+// Write to this page to trigger a page fault and stop KVM_RUN.
+// Chosen to match the unmapped high-GPA style used by riscv64/arm64 and to stay
+// clear of the low identity-mapped region used by syz_kvm_setup_cpu$loong64.
+#define LOONG64_ADDR_EXIT 0x40000000
+// Dedicated address within the exit page for the uexit command.
+#define LOONG64_ADDR_UEXIT (LOONG64_ADDR_EXIT + 256)
+// Two writable pages with KVM_MEM_LOG_DIRTY_PAGES explicitly set.
+#define LOONG64_ADDR_DIRTY_PAGES (LOONG64_ADDR_EXIT + LOONG64_KVM_PAGE_SIZE)
+// Per-VCPU user API payload pages.
+#define LOONG64_ADDR_USER_CODE 0x80000000
+// Location of the SYZOS guest code. Name shared with other SYZOS arches.
+#define SYZOS_ADDR_EXECUTOR_CODE (LOONG64_ADDR_USER_CODE + KVM_MAX_VCPU * LOONG64_KVM_PAGE_SIZE)
+// Scratch page reserved for future runtime-generated guest code.
+#define LOONG64_ADDR_SCRATCH_CODE (SYZOS_ADDR_EXECUTOR_CODE + 4 * LOONG64_KVM_PAGE_SIZE)
+// Per-VCPU stack base (one page per VCPU).
+#define LOONG64_ADDR_STACK_BASE (LOONG64_ADDR_SCRATCH_CODE + LOONG64_KVM_PAGE_SIZE)
+
+#endif // LOONG64 SYZOS definitions
+
 #endif // EXECUTOR_KVM_H

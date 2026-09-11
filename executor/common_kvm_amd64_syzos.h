@@ -80,20 +80,9 @@ struct l2_guest_regs {
 	uint64 r8, r9, r10, r11, r12, r13, r14, r15;
 };
 
-// Flags for mem_region
-#define MEM_REGION_FLAG_USER_CODE (1 << 0)
-#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
-#define MEM_REGION_FLAG_READONLY (1 << 2)
-#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
+// AMD64-specific flags for mem_region.
 #define MEM_REGION_FLAG_GPA0 (1 << 5)
-#define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
 #define MEM_REGION_FLAG_REMAINING (1 << 7)
-
-struct mem_region {
-	uint64 gpa;
-	int pages;
-	uint32 flags;
-};
 
 struct syzos_boot_args {
 	uint32 region_count;
