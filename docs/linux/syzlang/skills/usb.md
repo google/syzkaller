@@ -11,3 +11,9 @@ description: USB Device Emulation and Gadget Constraints (raw-gadget/dummy_hcd)
 - Endpoint I/O: Use 'syz_usb_ep_write(conn, ep, len, data)' or 'syz_usb_ep_read(conn, ep, len, data)'
   (e.g. ep 0x81 IN / 0x02 OUT) to exchange data packets with the emulated device.
 - Disconnect: Use 'syz_usb_disconnect(conn)'.
+- Forbidden Sysfs Driver Binding:
+  * Do NOT use sysfs driver binding/unbinding endpoints (such as '/bind', '/unbind', '/driver_override',
+    '/drivers_probe', or '/new_id' under '/sys/bus/usb/drivers/').
+  * Syzkaller actively neutralizes these paths to './file0' because manually binding drivers causes invalid crashes
+    rejected by maintainers.
+  * You MUST test and probe USB drivers by emulating the device with 'syz_usb_connect' instead.
