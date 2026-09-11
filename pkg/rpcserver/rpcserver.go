@@ -361,6 +361,7 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 	opts := &handshakeConfig{
 		VMLess:   serv.cfg.VMLess,
 		Files:    serv.checker.RequiredFiles(),
+		Commands: serv.checker.RequiredCommands(),
 		Timeouts: serv.timeouts,
 		Callback: serv.handleMachineInfo,
 	}
@@ -392,7 +393,13 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 }
 
 func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
-	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
+	cmdResults := make(map[flatrpc.Command][]byte)
+	for _, r := range infoReq.CommandResults {
+		if r != nil && r.Error == "" {
+			cmdResults[r.Cmd] = r.Output
+		}
+	}
+	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files, cmdResults)
 	if err != nil {
 		log.Logf(0, "parsing of machine info failed: %v", err)
 		if infoReq.Error == "" {
