@@ -5,10 +5,12 @@ package aflow
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"maps"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -154,8 +156,101 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		}
 		return nil
 	}
-	if field.Type() == fType {
-		field.Set(fValue)
+	if num, ok := f.(json.Number); ok {
+		setVal := func(res reflect.Value) {
+			if field.Kind() == reflect.Ptr {
+				ptr := reflect.New(targetType)
+				ptr.Elem().Set(res)
+				field.Set(ptr)
+			} else {
+				field.Set(res)
+			}
+		}
+		switch targetType.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			iv, err := strconv.ParseInt(string(num), 10, targetType.Bits())
+			if err == nil {
+				setVal(reflect.ValueOf(iv).Convert(targetType))
+				return nil
+			}
+			if errors.Is(err, strconv.ErrRange) {
+				if tool {
+					return BadCallError("argument %v: integer value out of range %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: integer value out of range %v", val, name, f)
+			}
+			fv, errFloat := strconv.ParseFloat(string(num), 64)
+			if errFloat == nil {
+				res := reflect.ValueOf(fv).Convert(targetType)
+				if fv != res.Convert(reflect.TypeFor[float64]()).Float() {
+					if tool {
+						return BadCallError("argument %v: float value truncated from %v to %v",
+							name, f, res.Interface())
+					}
+					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+						val, name, f, res.Interface())
+				}
+				setVal(res)
+				return nil
+			}
+			if tool {
+				return BadCallError("argument %q has wrong type: got %T, want %v",
+					name, f, field.Type().String())
+			}
+			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+				val, name, f, field.Type().String())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			uv, err := strconv.ParseUint(string(num), 10, targetType.Bits())
+			if err == nil {
+				setVal(reflect.ValueOf(uv).Convert(targetType))
+				return nil
+			}
+			if errors.Is(err, strconv.ErrRange) {
+				if tool {
+					return BadCallError("argument %v: integer value out of range %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: integer value out of range %v", val, name, f)
+			}
+			fv, errFloat := strconv.ParseFloat(string(num), 64)
+			if errFloat == nil && fv >= 0 {
+				res := reflect.ValueOf(fv).Convert(targetType)
+				if fv != res.Convert(reflect.TypeFor[float64]()).Float() {
+					if tool {
+						return BadCallError("argument %v: float value truncated from %v to %v",
+							name, f, res.Interface())
+					}
+					return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+						val, name, f, res.Interface())
+				}
+				setVal(res)
+				return nil
+			}
+			if tool {
+				return BadCallError("argument %q has wrong type: got %T, want %v",
+					name, f, field.Type().String())
+			}
+			return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+				val, name, f, field.Type().String())
+		case reflect.Float32, reflect.Float64:
+			fv, err := strconv.ParseFloat(string(num), targetType.Bits())
+			if err != nil {
+				if tool {
+					return BadCallError("argument %v: invalid float value %v", name, f)
+				}
+				return fmt.Errorf("%T: field %v: invalid float value %v", val, name, f)
+			}
+			setVal(reflect.ValueOf(fv).Convert(targetType))
+			return nil
+		}
+	}
+	if field.Kind() == reflect.Interface || field.Type() == fType || targetType == fType {
+		if field.Kind() == reflect.Ptr && targetType == fType {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(fValue)
+			field.Set(ptr)
+		} else {
+			field.Set(fValue)
+		}
 		return nil
 	}
 
