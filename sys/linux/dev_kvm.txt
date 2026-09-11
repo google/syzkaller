@@ -99,6 +99,7 @@ ioctl$KVM_HAS_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg pt
 
 ioctl$KVM_CREATE_GUEST_MEMFD(fd fd_kvmvm, cmd const[KVM_CREATE_GUEST_MEMFD], arg ptr[in, kvm_create_guest_memfd]) fd_kvm_guest_memfd
 ioctl$KVM_PRE_FAULT_MEMORY(fd fd_kvmcpu, cmd const[KVM_PRE_FAULT_MEMORY], arg ptr[inout, kvm_pre_fault_memory])
+ioctl$KVM_SET_MEMORY_ATTRIBUTES(fd fd_kvmvm, cmd const[KVM_SET_MEMORY_ATTRIBUTES], arg ptr[in, kvm_memory_attributes])
 fallocate$kvm_guest_memfd(fd fd_kvm_guest_memfd, mode flags[fallocate_mode], off flags[kvm_guest_addr_offsets], len flags[kvm_guest_addr_size])
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEM_GUEST_MEMFD
@@ -373,6 +374,15 @@ kvm_pre_fault_memory {
 	size	flags[kvm_guest_addr_size, int64]
 	flags	const[0, int64]
 	padding	array[const[0, int64], 5]
+}
+
+kvm_memory_attribute_flags = KVM_MEMORY_ATTRIBUTE_PRIVATE
+
+kvm_memory_attributes {
+	address		flags[kvm_guest_addrs, int64]
+	size		flags[kvm_guest_addr_size, int64]
+	attributes	flags[kvm_memory_attribute_flags, int64]
+	flags		const[0, int64]
 }
 
 kvm_create_device {

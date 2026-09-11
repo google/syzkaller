@@ -683,7 +683,6 @@ ioctl$KVM_CAP_HYPERV_ENFORCE_CPUID(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg 
 ioctl$KVM_CAP_ENFORCE_PV_FEATURE_CPUID(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ENFORCE_PV_FEATURE_CPUID, bool64]])
 ioctl$KVM_CAP_SYNC_REGS(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_SYNC_REGS, void]])
 
-ioctl$KVM_SET_MEMORY_ATTRIBUTES(fd fd_kvmvm, cmd const[KVM_SET_MEMORY_ATTRIBUTES], arg ptr[in, kvm_memory_attributes])
 ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 
 # KVM_GET_SREGS2/KVM_SET_SREGS2 are only supported on x86 - unlike KVM_GET_SREGS/KVM_SET_SREGS.
@@ -1022,15 +1021,6 @@ kvm_debugregs {
 	dr7	flags[kvm_x86_dr7, int64]
 	flags	int64
 	reserv	array[const[0, int64], 9]
-}
-
-kvm_memory_attribute_flags = KVM_MEMORY_ATTRIBUTE_PRIVATE
-
-kvm_memory_attributes {
-	address		flags[kvm_guest_addrs, int64]
-	size		flags[kvm_guest_addr_size, int64]
-	attributes	flags[kvm_memory_attribute_flags, int64]
-	flags		const[0, int64]
 }
 
 kvm_sregs2_flags = KVM_SREGS2_FLAGS_PDPTRS_VALID
