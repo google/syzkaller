@@ -23,6 +23,20 @@
         "qemu_args": "-machine q35 -enable-kvm -cpu max,migratable=off -smp 2,sockets=2,cores=1"
       }
     },
+    "linux/386": {
+      "target": "linux/amd64/386",
+      "image": "/disk-images/buildroot_amd64",
+      "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
+      "strace_bin": "/opt/bin/strace",
+      "type": "qemu",
+      "vm": {
+        "count": 3,
+        "cpu": 2,
+        "mem": 8192,
+        "cmdline": "root=/dev/sda1",
+        "qemu_args": "-machine q35 -enable-kvm -cpu max,migratable=off -smp 2,sockets=2,cores=1"
+      }
+    },
     "linux/arm64": {
       "image": "/disk-images/buildroot_arm64",
       "kernel_config": "/kernel-configs/upstream-arm64-gce-kasan.config",
