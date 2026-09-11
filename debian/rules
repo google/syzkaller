@@ -1,0 +1,61 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+include /usr/share/dpkg/architecture.mk
+
+# Map Debian arch to Go arch
+GO_ARCH_MAP_amd64 = amd64
+GO_ARCH_MAP_arm64 = arm64
+GO_ARCH_MAP_i386 = 386
+GO_ARCH_MAP_armhf = arm
+GO_ARCH_MAP_ppc64el = ppc64le
+GO_ARCH_MAP_s390x = s390x
+GO_ARCH_MAP_riscv64 = riscv64
+GO_ARCH_MAP_mips64el = mips64le
+
+GOARCH := $(GO_ARCH_MAP_$(DEB_HOST_ARCH))
+ifeq ($(GOARCH),)
+$(error Unsupported Debian architecture: $(DEB_HOST_ARCH))
+endif
+TARGETOS := linux
+TARGETARCH := $(GOARCH)
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	@echo "Binaries pre-built via container; skipping build."
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	# Install all binaries under /usr/share/syzkaller/bin/ matching
+	# the layout syz-manager expects (set "syzkaller": "/usr/share/syzkaller").
+	install -d debian/syzkaller/usr/share/syzkaller/bin
+	install -m 755 bin/syz-manager debian/syzkaller/usr/share/syzkaller/bin/
+	install -m 755 bin/syz-repro debian/syzkaller/usr/share/syzkaller/bin/
+	install -m 755 bin/syz-mutate debian/syzkaller/usr/share/syzkaller/bin/
+	install -m 755 bin/syz-prog2c debian/syzkaller/usr/share/syzkaller/bin/
+	install -m 755 bin/syz-db debian/syzkaller/usr/share/syzkaller/bin/
+	install -m 755 bin/syz-upgrade debian/syzkaller/usr/share/syzkaller/bin/
+	install -d debian/syzkaller/usr/share/syzkaller/bin/$(TARGETOS)_$(TARGETARCH)
+	install -m 755 bin/$(TARGETOS)_$(TARGETARCH)/syz-executor \
+		debian/syzkaller/usr/share/syzkaller/bin/$(TARGETOS)_$(TARGETARCH)/
+	install -m 755 bin/$(TARGETOS)_$(TARGETARCH)/syz-execprog \
+		debian/syzkaller/usr/share/syzkaller/bin/$(TARGETOS)_$(TARGETARCH)/
+	# Symlink all tools into /usr/bin/
+	install -d debian/syzkaller/usr/bin
+	ln -s ../share/syzkaller/bin/syz-manager debian/syzkaller/usr/bin/syz-manager
+	ln -s ../share/syzkaller/bin/syz-repro debian/syzkaller/usr/bin/syz-repro
+	ln -s ../share/syzkaller/bin/syz-mutate debian/syzkaller/usr/bin/syz-mutate
+	ln -s ../share/syzkaller/bin/syz-prog2c debian/syzkaller/usr/bin/syz-prog2c
+	ln -s ../share/syzkaller/bin/syz-db debian/syzkaller/usr/bin/syz-db
+	ln -s ../share/syzkaller/bin/syz-upgrade debian/syzkaller/usr/bin/syz-upgrade
+	ln -s ../share/syzkaller/bin/$(TARGETOS)_$(TARGETARCH)/syz-executor debian/syzkaller/usr/bin/syz-executor
+	ln -s ../share/syzkaller/bin/$(TARGETOS)_$(TARGETARCH)/syz-execprog debian/syzkaller/usr/bin/syz-execprog
+
+override_dh_auto_clean:
+
+override_dh_dwz:
+override_dh_strip:

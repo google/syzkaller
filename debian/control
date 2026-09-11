@@ -1,0 +1,24 @@
+Source: syzkaller
+Section: devel
+Priority: optional
+Maintainer: Yunseong Kim <yunseong.kim@est.tech>
+Build-Depends: debhelper-compat (= 13), golang-any (>= 2:1.26~)
+Standards-Version: 4.7.0
+Homepage: https://github.com/google/syzkaller
+Vcs-Git: https://github.com/google/syzkaller.git
+Vcs-Browser: https://github.com/google/syzkaller
+Rules-Requires-Root: no
+
+Package: syzkaller
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, golang-go
+Static-Built-Using: ${misc:Static-Built-Using}
+Description: unsupervised coverage-guided kernel fuzzer
+ syzkaller is an unsupervised coverage-guided kernel fuzzer.
+ It supports fuzzing Linux, FreeBSD, Fuchsia, gVisor, NetBSD,
+ OpenBSD, and Windows kernels. It uses KCOV-based coverage
+ feedback to guide test generation and can automatically
+ reproduce and bisect found bugs.
+ .
+ The package provides syz-manager, syz-fuzzer, syz-executor
+ and related tools for kernel fuzzing.
