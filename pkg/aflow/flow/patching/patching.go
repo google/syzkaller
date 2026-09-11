@@ -27,6 +27,7 @@ type Inputs struct {
 	AgentName    string
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	ReproOpts    string
 	ReproSyz     string
 	ReproC       string

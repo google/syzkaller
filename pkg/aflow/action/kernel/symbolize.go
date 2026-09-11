@@ -21,11 +21,12 @@ import (
 var SymbolizePC = aflow.NewFuncAction("kernel-symbolize-pc", symbolizePC)
 
 type symbolizePCArgs struct {
-	PCs        []string
-	KernelSrc  string
-	KernelObj  string
-	TargetOS   string
-	TargetArch string
+	PCs          []string
+	KernelSrc    string
+	KernelObj    string
+	TargetOS     string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 }
 
 type InlineFrame struct {
@@ -63,9 +64,11 @@ func symbolizePC(ctx *aflow.Context, args symbolizePCArgs) (symbolizePCResult, e
 	if err != nil {
 		return symbolizePCResult{}, fmt.Errorf("invalid PC address %q: %w", args.PCs[0], err)
 	}
-	target := targets.Get(args.TargetOS, args.TargetArch)
+	// The PCs and vmlinux belong to the kernel, so use the VM arch here.
+	arch := vmArch(args.TargetArch, args.TargetVMArch)
+	target := targets.Get(args.TargetOS, arch)
 	if target == nil {
-		return symbolizePCResult{}, fmt.Errorf("unsupported target %s/%s", args.TargetOS, args.TargetArch)
+		return symbolizePCResult{}, fmt.Errorf("unsupported target %s/%s", args.TargetOS, arch)
 	}
 	vmlinux := filepath.Join(args.KernelObj, target.KernelObject)
 	symb := makeSymbolizer(target)
