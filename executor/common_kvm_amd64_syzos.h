@@ -112,9 +112,17 @@ struct syzos_globals {
 #ifdef __cplusplus
 extern "C" {
 #endif
-GUEST_CODE static void guest_uexit(uint64 exit_code);
-GUEST_CODE static void nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs);
-GUEST_CODE static void nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_regs* regs);
+// These three are called only from raw inline assembly (`call guest_uexit` etc.),
+// which is invisible to the compiler's call graph. A plain `static` definition
+// can end up assigned to a different LTO partition than its asm caller and never
+// get linked in, even with __attribute__((used)) -- see the definitions below for
+// why they're kept non-static with a stable external symbol instead. They can't
+// be `inline` either: GUEST_CODE places them in a fixed "guest" section that gets
+// copied wholesale into VM guest memory, and GCC's vague/COMDAT linkage for
+// inline functions conflicts with that fixed section placement.
+GUEST_CODE void guest_uexit(uint64 exit_code);
+GUEST_CODE void nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs);
+GUEST_CODE void nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_regs* regs);
 #ifdef __cplusplus
 }
 #endif
@@ -300,9 +308,14 @@ GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
 // and can handle the call depending on the data passed as exit code.
 
 // Make sure the compiler does not optimize this function away, it is called from
-// assembly.
+// assembly. A plain `static` definition isn't enough under LTO: it can end up
+// assigned to a different partition than uexit_irq_handler's `call guest_uexit`,
+// leaving that call unresolved at link time. This header is only ever included
+// by executor.cc, so there's no ODR risk, and it can't be `inline` -- see the
+// comment on the forward declaration above.
 __attribute__((used))
-GUEST_CODE static noinline void
+GUEST_CODE noinline void
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 guest_uexit(uint64 exit_code)
 {
 	// Force exit_code into RAX using inline asm constraints ("a").
@@ -963,9 +976,11 @@ GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
 	vmwrite(VMCS_GUEST_RIP, rip);
 }
 
-// This function is called from inline assembly.
+// This function is called from inline assembly. See the comment on
+// guest_uexit() above for why it's non-static and can't be `inline`.
 __attribute__((used))
-GUEST_CODE static void
+GUEST_CODE void
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
 {
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
@@ -1106,7 +1121,10 @@ GUEST_CODE static void advance_l2_rip_amd(uint64 basic_reason, uint64 cpu_id, ui
 	vmcb_write64(vmcb_addr, VMCB_GUEST_RIP, rip);
 }
 
-__attribute__((used)) GUEST_CODE static void
+// This function is called from inline assembly. See the comment on
+// guest_uexit() above for why it's non-static and can't be `inline`.
+__attribute__((used)) GUEST_CODE void
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_regs* regs)
 {
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
