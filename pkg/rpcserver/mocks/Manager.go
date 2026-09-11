@@ -159,16 +159,16 @@ func (_c *Manager_CoverageFilter_Call) RunAndReturn(run func(modules []*vminfo.K
 }
 
 // MachineChecked provides a mock function for the type Manager
-func (_mock *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error {
-	ret := _mock.Called(features, syscalls)
+func (_mock *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool, capabilities *vminfo.Capabilities) error {
+	ret := _mock.Called(features, syscalls, capabilities)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MachineChecked")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) error); ok {
-		r0 = returnFunc(features, syscalls)
+	if returnFunc, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool, *vminfo.Capabilities) error); ok {
+		r0 = returnFunc(features, syscalls, capabilities)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -183,11 +183,12 @@ type Manager_MachineChecked_Call struct {
 // MachineChecked is a helper method to define mock.On call
 //   - features flatrpc.Feature
 //   - syscalls map[*prog.Syscall]bool
-func (_e *Manager_Expecter) MachineChecked(features interface{}, syscalls interface{}) *Manager_MachineChecked_Call {
-	return &Manager_MachineChecked_Call{Call: _e.mock.On("MachineChecked", features, syscalls)}
+//   - capabilities *vminfo.Capabilities
+func (_e *Manager_Expecter) MachineChecked(features interface{}, syscalls interface{}, capabilities interface{}) *Manager_MachineChecked_Call {
+	return &Manager_MachineChecked_Call{Call: _e.mock.On("MachineChecked", features, syscalls, capabilities)}
 }
 
-func (_c *Manager_MachineChecked_Call) Run(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool)) *Manager_MachineChecked_Call {
+func (_c *Manager_MachineChecked_Call) Run(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool, capabilities *vminfo.Capabilities)) *Manager_MachineChecked_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 flatrpc.Feature
 		if args[0] != nil {
@@ -197,9 +198,14 @@ func (_c *Manager_MachineChecked_Call) Run(run func(features flatrpc.Feature, sy
 		if args[1] != nil {
 			arg1 = args[1].(map[*prog.Syscall]bool)
 		}
+		var arg2 *vminfo.Capabilities
+		if args[2] != nil {
+			arg2 = args[2].(*vminfo.Capabilities)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -210,7 +216,7 @@ func (_c *Manager_MachineChecked_Call) Return(err error) *Manager_MachineChecked
 	return _c
 }
 
-func (_c *Manager_MachineChecked_Call) RunAndReturn(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) error) *Manager_MachineChecked_Call {
+func (_c *Manager_MachineChecked_Call) RunAndReturn(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool, capabilities *vminfo.Capabilities) error) *Manager_MachineChecked_Call {
 	_c.Call.Return(run)
 	return _c
 }

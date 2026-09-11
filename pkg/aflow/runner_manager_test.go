@@ -204,14 +204,14 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 	rm.backend = mockBackend
 
 	// 1. Empty syscalls returns error
-	err = rm.MachineChecked(0, nil)
+	err = rm.MachineChecked(0, nil, nil)
 	require.EqualError(t, err, "no syscalls enabled for runner")
 
 	// 2. Non-empty syscalls succeeds and closes readyC
 	enabledSyscalls := map[*prog.Syscall]bool{
 		target.SyscallMap["getpid"]: true,
 	}
-	err = rm.MachineChecked(flatrpc.FeatureCoverage, enabledSyscalls)
+	err = rm.MachineChecked(flatrpc.FeatureCoverage, enabledSyscalls, nil)
 	require.NoError(t, err)
 	require.NotNil(t, mockBackend.source)
 
@@ -222,7 +222,7 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 	}
 
 	// 3. Subsequent MachineChecked call does not panic
-	err = rm.MachineChecked(flatrpc.FeatureCoverage, enabledSyscalls)
+	err = rm.MachineChecked(flatrpc.FeatureCoverage, enabledSyscalls, nil)
 	require.NoError(t, err)
 }
 
