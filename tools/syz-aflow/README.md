@@ -1,6 +1,6 @@
 # `syz-aflow` - AI Workflow Executor
 
-`syz-aflow` is a CLI tool designed to execute `aflow` workflows locally for debugging and testing purposes.
+`syz-aflow` is a CLI tool designed to execute `aflow` workflows locally for debugging and testing purposes. It supports both single-workflow execution and concurrent batch execution of multiple tasks.
 
 ## Building
 
@@ -12,13 +12,33 @@ This will create a `syz-aflow` binary in the repository root.
 
 ## Usage
 
-### Basic Execution
+### Single-Task Execution
 
-To run a workflow, you need to specify the workflow name, an input JSON file, and a working directory:
+To run a single workflow, specify the workflow name, an input JSON file, and a working directory:
 
 ```bash
 ./tools/syz-env ./syz-aflow -workflow <workflow_name> -input <input.json> -workdir <workdir>
 ```
+
+You can monitor execution in real time by providing the `-html` flag:
+```bash
+./tools/syz-env ./syz-aflow -workflow <workflow_name> -input input.json -workdir ./workdir -html trajectory.html
+```
+
+### Batch Execution
+
+When `-input` points to a directory containing `*.json` task files (such as those produced by `syz-uncovered-batch`), `syz-aflow` automatically executes them as a batch:
+
+```bash
+./tools/syz-env ./syz-aflow -workflow seed-gen-file-line -input ./tasks -workdir ./workdir -parallel 4 -corpus ./corpus.db
+```
+
+- **Parallel execution:** `-parallel <N>` runs multiple workers concurrently.
+- **Trajectory classification:** Each task is tracked and classified into:
+  `<workdir>/trajectories/{success,giveup,error}/<task_id>.{html,json}`
+  Active tasks write real-time trajectories to `<workdir>/trajectories/in_progress/<task_id>.html`.
+- **Restartability:** Previously completed tasks in any outcome directory (`success`, `giveup`, `error`) are automatically skipped on restart.
+- **Seed collection:** If `-corpus` is specified, executed Syzkaller programs from the trajectories are stripped of fault-injection flags, deduplicated, and stored into the specified `corpus.db` file.
 
 ### Workflow Inputs
 
@@ -46,22 +66,30 @@ If the workflow needs to perform actions that interact with VMs (like reproducin
 
 Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or `"@./relative/path"`) will be automatically expanded with the contents of that file. Relative paths are resolved relative to the directory of the `-input` JSON file. Literal leading `@` characters can be escaped with `@@` (e.g. `"@@literal"`).
 
-
 ### Flags
 
 - `-workflow`: The name of the workflow to execute.
-- `-input`: Path to a JSON file containing the arguments for the workflow.
-- `-workdir`: Directory where the workflow can perform checkouts, builds, etc.
-- `-html`: Path to an HTML file where the execution trajectory will be rendered in real-time.
+- `-input`: Path to a task JSON file or directory containing task input files.
+- `-parallel`: Number of parallel workflows to run (default 1).
+- `-workdir`: Directory where the workflow can perform checkouts, builds, and store trajectories and cache.
+- `-corpus`: Path to `corpus.db` to collect executed syz programs.
+- `-html`: Path to an HTML file where the execution trajectory will be rendered in real-time (single-task mode only).
+- `-output`: Save final workflow output to this JSON file (single-task mode only).
 - `-model`: Override the default LLM model.
+- `-provider`: LLM provider to use (`gemini`, `vertex`, default `gemini`).
 - `-cache-size`: Set the maximum cache size (default "10GB").
 - `-download-bug`: Download bug details from the dashboard by ID or ExtID.
 - `-auth`: Use gcloud auth token when downloading bugs.
+- `-debug`: Enable runner debug logging.
+- `-token-limit`: Maximum tokens allowed for the workflow run (0 = no limit).
 
-### Live Trajectory Visualization
+### Authentication & API Keys
 
-You can monitor the execution of the workflow in real-time by using the `-html` flag:
+When using the `gemini` provider, specify your Gemini API key(s) via the `GEMINI_API_KEYS` (or `GEMINI_API_KEY`, `GOOGLE_API_KEYS`, `GOOGLE_API_KEY`) environment variable:
 ```bash
-./tools/syz-env ./syz-aflow -workflow patching -input input.json -workdir ./workdir -html trajectory.html
+export GEMINI_API_KEYS="your-api-key"
 ```
-Open the specified HTML file in your browser to see the charts and steps as they execute.
+To rotate multiple keys across tasks, provide them separated by newlines or commas:
+```bash
+export GEMINI_API_KEYS="$(cat keys.txt)"
+```
