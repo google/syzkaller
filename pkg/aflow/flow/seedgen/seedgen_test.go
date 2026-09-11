@@ -8,7 +8,6 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +98,7 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 		"PCs":                    []string{"0xffffffff81001234"},
 		"FunctionSource":         "void vmx_vcpu_run() { ... }",
 		"DescriptionFilesPrompt": "Description files available: dev_kvm.txt, dev_kvm_amd64.txt",
-		"DocSyzOS":               docs.SyzOS,
+		"SkillsPrompt":           "Available Subsystem Skills:\n- skills/kvm.md: KVM Virtualization",
 		"EnvironmentPrompt":      "Target OS: linux\nTarget Arch: amd64\nVM Type: qemu\n",
 		"FailedHistorySummaries": []string{"Analysis of loop 1", "Analysis of loop 2"},
 	}
@@ -114,8 +113,8 @@ func TestGeneratorAgentPromptRendering(t *testing.T) {
 	require.Contains(t, rendered, "Target OS: linux")
 	require.Contains(t, rendered, "Target Arch: amd64")
 	require.Contains(t, rendered, "VM Type: qemu")
-	require.Contains(t, rendered, "Document about SyzOS setup:")
-	require.Contains(t, rendered, "SYZOS Technical Documentation")
+	require.Contains(t, rendered, "Available Subsystem Skills:")
+	require.Contains(t, rendered, "- skills/kvm.md: KVM Virtualization")
 	require.Contains(t, rendered, "Lessons and negative constraints from previous attempts that got stuck:")
 	require.Contains(t, rendered, "Analysis of loop 1")
 	require.Contains(t, rendered, "Analysis of loop 2")

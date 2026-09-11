@@ -215,10 +215,11 @@ Workflow:
    call 'set-results' with GeneratorGiveUp=true and a reason.
 
 ## SEED GENERATION GUIDELINES
-1. PSEUDO-SYSCALL DISCOVERY:
+1. PSEUDO-SYSCALL DISCOVERY & SUBSYSTEM SKILLS:
    Before constructing complex subsystem environments (KVM VMs, USB devices, Netlink), check
-   'DocPseudoSyscalls' and 'DocSyzOS' (see below). Use '{{.toolSyzGrepper}}' (setting PathPrefix='test'
-   to search example seeds) for specialized setup helpers (e.g. 'syz_kvm_setup_syzos_vm', 'syz_usb_connect').
+   'DocPseudoSyscalls' and read the relevant subsystem skill using '{{.toolReadSyzSpec}}' (e.g.
+   'skills/kvm.md'). Use '{{.toolSyzGrepper}}' (setting PathPrefix='test' to search example seeds)
+   for specialized setup helpers (e.g. 'syz_kvm_setup_syzos_vm', 'syz_usb_connect').
 2. PRECONDITION RESEARCH:
    Instruct '{{.toolReachabilityAnalyzer}}' to find caller ` + "`if`" + ` conditions and required subsystem state
    flags leading directly to the target line before writing new program logic.
@@ -247,10 +248,6 @@ which is called within the target function.
 
 {{.SkillsPrompt}}
 
-{{if .DocSyzOS}}
-Document about SyzOS setup:
-{{.DocSyzOS}}
-{{end}}
 
 {{$lastID := .LastFailedExecutionCachedID}}
 {{$lastGen := .LastFailedGeneratedSyz}}
