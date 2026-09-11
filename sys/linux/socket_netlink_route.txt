@@ -38,6 +38,21 @@ socket$nl_route(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETL
 
 sendmsg$nl_route(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg_route]], f flags[send_flags])
 
+# Focused CAN lifecycle operations.  Keeping the attribute set empty avoids
+# pulling unrelated namespace/file-descriptor resources into CAN-only fuzzing,
+# while still exercising NETDEV_DOWN and NETDEV_UNREGISTER notifier races.
+sendmsg$nl_route_can_dellink(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg[RTM_DELLINK, ifinfomsg_can_lifecycle, void]]], f flags[send_flags])
+sendmsg$nl_route_can_setlink(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg[RTM_SETLINK, ifinfomsg_can_lifecycle, void]]], f flags[send_flags])
+
+ifinfomsg_can_lifecycle {
+	ifi_family	const[AF_UNSPEC, int8]
+	__ifi_pad	const[0, int8]
+	ifi_type	const[0, int16]
+	ifi_index	ifindex_vcan
+	ifi_flags	flags[net_device_flags, int32]
+	ifi_change	flags[net_device_flags, int32]
+}
+
 netlink_msg_route [
 	newlink			netlink_msg[RTM_NEWLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
 	getlink			netlink_msg[RTM_GETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
