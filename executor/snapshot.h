@@ -30,15 +30,61 @@
 // We don't need even networking in snapshot mode since we communicate via shared memory.
 
 static struct {
-	// Ivshmem interrupt doorbell register.
+	// Ivshmem interrupt doorbell register. Null when the VMM has no doorbell device
+	// (crosvm), in which case the host polls the state in the header instead.
 	volatile uint32* doorbell;
 	volatile rpc::SnapshotHeaderT* hdr;
 	void* input;
 } ivs;
 
+// Guest physical address at which crosvm maps the shared memory region.
+// Must be kept in sync with snapshotAddr in vm/crosvm/snapshot_linux.go.
+const uint64 kCrosvmSnapshotAddr = 1ull << 36;
+
+static void SetupSharedMemory(void* input, void* output, void* regs)
+{
+	ivs.doorbell = regs ? static_cast<uint32*>(regs) + 3 : nullptr;
+	ivs.hdr = static_cast<rpc::SnapshotHeaderT*>(output);
+	ivs.input = input;
+	output_data = reinterpret_cast<OutputData*>(static_cast<char*>(output) + sizeof(rpc::SnapshotHeaderT));
+	output_size = static_cast<uint64>(rpc::Const::MaxOutputSize) - sizeof(rpc::SnapshotHeaderT);
+}
+
+// Finds the shared memory region crosvm maps into the guest with --file-backed-mapping,
+// see vm/crosvm/snapshot_linux.go. crosvm has no ivshmem device, so instead of discovering
+// a PCI BAR we map the fixed guest physical address the host agreed on. The region is MMIO
+// rather than RAM, which is both why the host can exclude it from snapshots and why
+// /dev/mem lets us map it even with CONFIG_STRICT_DEVMEM=y.
+static bool FindCrosvmSharedMemory()
+{
+	int fd = open("/dev/mem", O_RDWR | O_SYNC);
+	if (fd == -1) {
+		debug("open(/dev/mem) failed\n");
+		return false;
+	}
+	void* input = mmap(nullptr, static_cast<uint64>(rpc::Const::MaxInputSize),
+			   PROT_READ, MAP_SHARED, fd, kCrosvmSnapshotAddr);
+	void* output = mmap(nullptr, static_cast<uint64>(rpc::Const::MaxOutputSize),
+			    PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+			    kCrosvmSnapshotAddr + static_cast<uint64>(rpc::Const::MaxInputSize));
+	close(fd);
+	if (input == MAP_FAILED || output == MAP_FAILED) {
+		debug("failed to mmap /dev/mem at 0x%llx\n", kCrosvmSnapshotAddr);
+		return false;
+	}
+	debug("mapped crosvm shmem input at %p, output at %p\n", input, output);
+#if GOOS_linux
+	if (pkeys_enabled && pkey_mprotect(output, static_cast<uint64>(rpc::Const::MaxOutputSize),
+					   PROT_READ | PROT_WRITE, RESERVED_PKEY))
+		exitf("failed to pkey_mprotect output buffer");
+#endif
+	SetupSharedMemory(input, output, nullptr);
+	return true;
+}
+
 // Finds qemu ivshmem device, see:
 // https://www.qemu.org/docs/master/specs/ivshmem-spec.html
-static void FindIvshmemDevices()
+static bool FindIvshmemDevices()
 {
 	std::string result;
 	DIR* devices = opendir("/sys/bus/pci/devices");
@@ -97,12 +143,18 @@ static void FindIvshmemDevices()
 	}
 	closedir(devices);
 	if (regs == nullptr || input == nullptr)
-		fail("cannot find ivshmem PCI devices");
-	ivs.doorbell = static_cast<uint32*>(regs) + 3;
-	ivs.hdr = static_cast<rpc::SnapshotHeaderT*>(output);
-	ivs.input = input;
-	output_data = reinterpret_cast<OutputData*>(static_cast<char*>(output) + sizeof(rpc::SnapshotHeaderT));
-	output_size = static_cast<uint64>(rpc::Const::MaxOutputSize) - sizeof(rpc::SnapshotHeaderT);
+		return false;
+	SetupSharedMemory(input, output, regs);
+	return true;
+}
+
+static void FindSharedMemory()
+{
+	if (FindIvshmemDevices())
+		return;
+	if (FindCrosvmSharedMemory())
+		return;
+	fail("cannot find ivshmem PCI devices nor the crosvm shared memory region");
 }
 
 static void SnapshotSetup(char** argv, int argc)
@@ -116,7 +168,7 @@ static void SnapshotSetup(char** argv, int argc)
 	// This is required to turn off rate limiting of writes.
 	write_file("/proc/sys/kernel/printk_devkmsg", "on\n");
 #endif
-	FindIvshmemDevices();
+	FindSharedMemory();
 	// Wait for the host to write handshake_req into input memory.
 	while (ivs.hdr->state != rpc::SnapshotState::Handshake)
 		sleep_ms(10);
@@ -164,9 +216,12 @@ static void SnapshotSetState(rpc::SnapshotState state)
 	      rpc::EnumNameSnapshotState(ivs.hdr->state), rpc::EnumNameSnapshotState(state));
 	std::atomic_signal_fence(std::memory_order_seq_cst);
 	ivs.hdr->state = state;
-	// The register contains VM index shifted by 16 (the host part is VM index 1)
-	// + interrup vector index (0 in our case).
-	*ivs.doorbell = 1 << 16;
+	if (ivs.doorbell) {
+		// The register contains VM index shifted by 16 (the host part is VM index 1)
+		// + interrup vector index (0 in our case).
+		*ivs.doorbell = 1 << 16;
+	}
+	// Without a doorbell (crosvm) the host polls the state we just stored.
 }
 
 // PopulateMemory prefaults anon memory (we want to avoid minor page faults as well).
