@@ -14,6 +14,7 @@ import (
 type moderationInputs struct {
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	BugTitle     string
 	CrashReport  string
 	KernelRepo   string

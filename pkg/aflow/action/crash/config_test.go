@@ -92,6 +92,13 @@ func setupDummySyzkaller(t *testing.T) string {
 		err = os.WriteFile(filepath.Join(binDir, file), []byte("dummy"), 0644)
 		require.NoError(t, err)
 	}
+
+	bin386Dir := filepath.Join(dir, "bin", "linux_386")
+	err = os.MkdirAll(bin386Dir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(bin386Dir, "syz-executor"), []byte("dummy"), 0644)
+	require.NoError(t, err)
+
 	return dir
 }
 
@@ -174,5 +181,22 @@ func TestBuildConfig(t *testing.T) {
 		_, err := BuildConfig(cfg, t.TempDir())
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to embed kernel")
+	})
+
+	t.Run("qemu 386 compat mode", func(t *testing.T) {
+		img := createDummyImage(t)
+		cfg := TargetConfig{
+			TargetArch:   "386",
+			TargetVMArch: "amd64",
+			Type:         "qemu",
+			Syzkaller:    syzDir,
+			Image:        img,
+			KernelObj:    "dummy_kernel_obj",
+		}
+		res, err := BuildConfig(cfg, t.TempDir())
+		require.NoError(t, err)
+		require.Equal(t, "linux/amd64/386", res.RawTarget)
+		require.Equal(t, "amd64", res.TargetVMArch)
+		require.Equal(t, "386", res.TargetArch)
 	})
 }

@@ -29,6 +29,7 @@ var Build = aflow.NewFuncAction("kernel-builder", buildKernel)
 type buildArgs struct {
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	KernelSrc    string
 	KernelCommit string
 	KernelConfig string
@@ -40,13 +41,16 @@ type buildResult struct {
 
 var cmdlineRe = regexp.MustCompile(`(?m)^CONFIG_CMDLINE="(.*)"$`)
 
-func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch string, cleanup bool) error {
+func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch string, cleanup bool) error {
+	if targetVMArch == "" {
+		targetVMArch = targetArch
+	}
 	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
 		return err
 	}
 	configScript := filepath.Join(srcDir, "scripts", "config")
 	configArgs := []string{"--set-str", "INITRAMFS_SOURCE", ""}
-	switch targetArch {
+	switch targetVMArch {
 	case targets.AMD64:
 		// We don't fuzz x32 arch, and it's not very interesting,
 		// but building with this config and ld.lld fails with the following error:
@@ -54,6 +58,9 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch string, cleanup boo
 		// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
 		// Also enforce gzip since lz4 is not present in the Docker container.
 		configArgs = append(configArgs, "-d", "X86_X32_ABI", "-e", "KERNEL_GZIP", "-d", "KERNEL_LZ4")
+		if targetArch == targets.I386 {
+			configArgs = append(configArgs, "-e", "IA32_EMULATION")
+		}
 	case targets.ARM64:
 		// Necessary for booting on GCE.
 		cmdline := "earlyprintk=serial net.ifnames=0 console=ttyAMA0 root=/dev/vda"
@@ -65,8 +72,8 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch string, cleanup boo
 	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript, configArgs...); err != nil {
 		return err
 	}
-	target := targets.List[targetOS][targetArch]
-	image := filepath.FromSlash(build.LinuxKernelImage(targetArch))
+	target := targets.List[targetOS][targetVMArch]
+	image := filepath.FromSlash(build.LinuxKernelImage(targetVMArch))
 	makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
 		"ccache", buildDir, runtime.NumCPU())
 	const compileCommands = "compile_commands.json"
@@ -107,7 +114,7 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v",
 		args.KernelCommit, hash.String(args.KernelConfig))
 	dir, err := ctx.Cache("build", desc, func(dir string) error {
-		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, args.TargetOS, args.TargetArch, true)
+		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, args.TargetOS, args.TargetArch, args.TargetVMArch, true)
 	})
 	return buildResult{KernelObj: dir}, err
 }

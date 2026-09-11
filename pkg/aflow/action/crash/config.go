@@ -20,6 +20,8 @@ type TargetConfig struct {
 	AgentName string
 	// Target architecture of the kernel under test (e.g., "amd64", "arm64").
 	TargetArch string
+	// Target VM architecture running the kernel (e.g., "amd64", "arm64").
+	TargetVMArch string `json:",omitempty"`
 	// Directory path containing syzkaller host/target binaries.
 	Syzkaller string
 	// Path to the disk image file used by the VM.
@@ -76,16 +78,20 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 	}
 
 	targetArch := args.TargetArch
+	targetVMArch := args.TargetVMArch
+	if targetVMArch == "" {
+		targetVMArch = targetArch
+	}
 	image := args.Image
 
-	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetVMArch)))
 	switch args.Type {
 	case "qemu":
 		vmConfig["kernel"] = kernelPath
 	case "gce":
 		params := build.Params{
 			TargetOS:     targets.Linux,
-			TargetArch:   targetArch,
+			TargetArch:   targetVMArch,
 			UserspaceDir: image,
 			OutputDir:    workdir,
 		}
@@ -102,7 +108,11 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 
 	cfg := mgrconfig.DefaultValues()
 	cfg.Name = args.AgentName
-	cfg.RawTarget = targets.Linux + "/" + targetArch
+	if targetArch == targetVMArch {
+		cfg.RawTarget = targets.Linux + "/" + targetArch
+	} else {
+		cfg.RawTarget = targets.Linux + "/" + targetVMArch + "/" + targetArch
+	}
 	cfg.Workdir = workdir
 	cfg.Syzkaller = args.Syzkaller
 	cfg.KernelObj = args.KernelObj
