@@ -5,7 +5,6 @@ package aflow
 
 import (
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -113,10 +113,7 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 	entry.usageCount++
 	entry.lastUsed = now
 	c.logf("using entry %v, usage count %v", dir, entry.usageCount)
-	if err := c.purge(); err != nil {
-		entry.usageCount--
-		return "", err
-	}
+	c.purge()
 	return dir, nil
 }
 
@@ -170,13 +167,38 @@ func (c *Cache) Release(dir string) {
 // The temp dir is within the cache, but won't have the metadata file,
 // so it will be removed on the next start (if not removed earlier).
 func (c *Cache) TempDir() (string, error) {
-	tmpDir := filepath.Join(c.dir, "tmp")
+	tmpDir := c.tmpDir()
 	osutil.MkdirAll(tmpDir)
 	return os.MkdirTemp(tmpDir, "tmp")
 }
 
+// tmpDir holds temp dirs and the entries staged for removal, but never cache entries:
+// init removes its contents on the next start.
+func (c *Cache) tmpDir() string {
+	return filepath.Join(c.dir, "tmp")
+}
+
+// trashDir returns the dir where purge stages evicted entries before removing them.
+// It's nested one level deeper than cache entries on purpose, see the glob in init.
+func (c *Cache) trashDir() string {
+	return filepath.Join(c.tmpDir(), "trash")
+}
+
+// removeAll removes the dir and reports failures. A failure is not fatal, but it does mean that
+// the disk space is not reclaimed until the next start: a dir staged for removal is removed by
+// init together with the whole trash dir, while an entry removed in place (the purge fallback
+// below) still holds its meta file, so init just picks it up as a valid entry again.
+func (c *Cache) removeAll(dir string) {
+	if err := osutil.RemoveAll(dir); err != nil {
+		log.Errorf("aflow cache: failed to remove %v: %v", dir, err)
+	}
+}
+
 // init reads the cached dirs (disk usage, last use time) from disk when the cache is created.
 func (c *Cache) init() error {
+	// Note: the glob matches exactly two levels, and that's what makes the trash dir work.
+	// The entries staged for removal sit one level deeper and still hold their meta files,
+	// so walking the tree recursively here would resurrect all of them as valid entries.
 	dirs, err := filepath.Glob(filepath.Join(c.dir, "*", "*"))
 	if err != nil {
 		return err
@@ -186,7 +208,9 @@ func (c *Cache) init() error {
 		data, err := os.ReadFile(metaFile)
 		if err != nil {
 			if os.IsNotExist(err) {
-				// Incomplete cache dir.
+				// Either an incomplete cache dir, or a leftover of the previous run:
+				// a temp dir, or the trash dir with the entries that purge staged for
+				// removal but did not manage to remove.
 				if err := osutil.RemoveAll(dir); err != nil {
 					return err
 				}
@@ -221,30 +245,52 @@ func (c *Cache) init() error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.purge()
+	c.purge()
+	return nil
 }
 
 // purge removes oldest unused directories if the cache is over maxSize.
-func (c *Cache) purge() error {
+// c.mu must be held when called; purge temporarily unlocks c.mu while removing staged files.
+// Note: returning the staged dirs and letting the caller remove them after releasing the lock
+// would be cleaner, but it does not work here: Create calls purge with a pending
+// defer c.mu.Unlock(), so it cannot release the lock before it returns, and the removal would
+// end up under the lock again. Restructuring Create to avoid that is not worth it for now.
+func (c *Cache) purge() {
 	if c.mu.TryLock() {
 		panic("c.mu is not locked")
 	}
 	if c.currentSize < c.maxSize {
-		return nil
+		return
 	}
-	list := slices.Collect(maps.Values(c.entries))
-	slices.SortFunc(list, func(a, b *cacheEntry) int {
-		if a.usageCount != b.usageCount {
-			return a.usageCount - b.usageCount
+	unused := make([]*cacheEntry, 0, len(c.entries))
+	for _, entry := range c.entries {
+		if entry.usageCount == 0 {
+			unused = append(unused, entry)
 		}
+	}
+	if len(unused) == 0 {
+		return
+	}
+	slices.SortFunc(unused, func(a, b *cacheEntry) int {
 		return a.lastUsed.Compare(b.lastUsed)
 	})
-	for _, entry := range list {
-		if entry.usageCount != 0 || c.currentSize < c.maxSize {
+	trashDir := c.trashDir()
+	_ = osutil.MkdirAll(trashDir)
+	var staged []string
+	for _, entry := range unused {
+		if c.currentSize < c.maxSize {
 			break
 		}
-		if err := os.RemoveAll(entry.dir); err != nil {
-			return err
+		// Phase 1: atomically move the dir to a staging path under the lock, so that
+		// a concurrent Create can immediately re-populate entry.dir without colliding
+		// with our removal (re-populating a dir starts with its own RemoveAll/MkdirAll).
+		// The timestamp disambiguates an entry re-evicted while its predecessor is still staged.
+		dst := filepath.Join(trashDir, fmt.Sprintf("%v-%v", filepath.Base(entry.dir), time.Now().UnixNano()))
+		if err := os.Rename(entry.dir, dst); err != nil {
+			// Staging failed, fall back to removing the dir in place under the lock.
+			c.removeAll(entry.dir)
+		} else {
+			staged = append(staged, dst)
 		}
 		delete(c.entries, entry.dir)
 		if c.currentSize < entry.size {
@@ -252,7 +298,15 @@ func (c *Cache) purge() error {
 		}
 		c.currentSize -= entry.size
 	}
-	return nil
+	// Phase 2: remove the staged dirs with the lock released, this can be very slow
+	// for large dirs and does not need to block concurrent cache users.
+	if len(staged) > 0 {
+		c.mu.Unlock()
+		for _, dir := range staged {
+			c.removeAll(dir)
+		}
+		c.mu.Lock()
+	}
 }
 
 func (c *Cache) logf(msg string, args ...any) {

@@ -226,3 +226,79 @@ func TestRetrieveObject_InvalidID(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid cached ID (not local)")
 }
+
+// TestCachePurgeStaged verifies that an evicted entry is both staged and actually removed.
+func TestCachePurgeStaged(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 10<<10, time.Now)
+	require.NoError(t, err)
+
+	// Create an entry that fills the cache, then release it so that it becomes evictable.
+	oldDir, err := c.Create("old", "1", func(dir string) error {
+		return osutil.WriteFile(filepath.Join(dir, "f"), bytes.Repeat([]byte{'a'}, 20<<10))
+	})
+	require.NoError(t, err)
+	c.Release(oldDir)
+
+	newDir, err := c.Create("build", "target", func(dir string) error {
+		return osutil.WriteFile(filepath.Join(dir, "out"), []byte("ok"))
+	})
+	require.NoError(t, err)
+	c.Release(newDir)
+
+	// The old entry is evicted (phase 1) and the staged dir is removed (phase 2).
+	require.NotContains(t, c.entries, oldDir)
+	require.False(t, osutil.IsExist(oldDir))
+	left, err := filepath.Glob(filepath.Join(c.trashDir(), "*"))
+	require.NoError(t, err)
+	require.Empty(t, left)
+	require.Contains(t, c.entries, newDir)
+}
+
+func TestCacheInitStagedTrash(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+
+	dir, err := c.Create("build", "1", func(dir string) error {
+		return osutil.WriteFile(filepath.Join(dir, "out"), []byte("hello"))
+	})
+	require.NoError(t, err)
+	c.Release(dir)
+
+	// Simulate an interrupted eviction: the entry was staged for removal, but the process
+	// was terminated before it was removed. The staged dir still holds a valid meta file.
+	staged := filepath.Join(c.trashDir(), "1-12345")
+	require.NoError(t, osutil.MkdirAll(c.trashDir()))
+	require.NoError(t, os.Rename(dir, staged))
+
+	// The trash dir itself has no meta file, so init removes it with all of its contents
+	// instead of ingesting the staged entry as a valid one.
+	c2, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	require.False(t, osutil.IsExist(c2.trashDir()))
+	require.Equal(t, uint64(0), c2.currentSize)
+	require.Empty(t, c2.entries)
+}
+
+// TestCacheTmpTyp verifies that "tmp" is a usable entry type, i.e. that entries don't collide
+// with the dir that holds temp dirs and the entries staged for removal.
+func TestCacheTmpTyp(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+
+	dir, err := c.Create("tmp", "1", func(dir string) error {
+		return osutil.WriteFile(filepath.Join(dir, "out"), []byte("hello"))
+	})
+	require.NoError(t, err)
+	c.Release(dir)
+
+	// The entry must survive a restart.
+	c2, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	require.Contains(t, c2.entries, dir)
+	data, err := os.ReadFile(filepath.Join(dir, "out"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("hello"), data)
+}
