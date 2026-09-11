@@ -227,11 +227,13 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		neutralizeSchedAttr(c.Args[1])
 	case "open", "openat", "openat2", "creat",
 		"symlink", "symlinkat", "link", "linkat":
-		// Manually binding/unbinding drivers via sysfs or forcing driver_override
-		// attaches drivers to incompatible devices or unbinds core platform hardware,
-		// triggering nonsensical crashes that maintainers reject as invalid root operations.
-		// See the discussion at:
+		// Manually binding/unbinding drivers via sysfs, forcing driver_override,
+		// or adding dynamic driver IDs via new_id attaches drivers to incompatible
+		// devices or unbinds core platform hardware, triggering nonsensical crashes
+		// that maintainers reject as invalid root operations.
+		// See the discussions at:
 		// https://lore.kernel.org/all/6a88012e.dbb3a75c.13dd47.0007.GAE@google.com/T/
+		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
 		arch.neutralizePaths(c)
 	}
 
@@ -276,7 +278,8 @@ func (arch *arch) neutralizePaths(c *prog.Call) {
 }
 
 // isForbiddenBindingPath checks whether a path targets sysfs driver binding/unbinding controls
-// (e.g. /sys/bus/.../bind, /sys/devices/.../driver_override, /sys/bus/.../drivers_probe).
+// (e.g. /sys/bus/.../bind, /sys/devices/.../driver_override, /sys/bus/.../drivers_probe,
+// /sys/bus/.../new_id).
 func isForbiddenBindingPath(clean string) bool {
 	if !strings.Contains(clean, "/bus/") &&
 		!strings.Contains(clean, "/devices/") &&
@@ -286,7 +289,8 @@ func isForbiddenBindingPath(clean string) bool {
 	return strings.HasSuffix(clean, "/bind") ||
 		strings.HasSuffix(clean, "/unbind") ||
 		strings.HasSuffix(clean, "/driver_override") ||
-		strings.HasSuffix(clean, "/drivers_probe")
+		strings.HasSuffix(clean, "/drivers_probe") ||
+		strings.HasSuffix(clean, "/new_id")
 }
 
 func neutralizeSchedAttr(a prog.Arg) {
