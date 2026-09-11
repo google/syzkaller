@@ -128,15 +128,7 @@ var generateReproOpts = aflow.NewFuncAction("generate-repro-opts", func(_ *aflow
 	Sandbox      string
 }) (struct{ ReproOpts string }, error) {
 	cfg := mgrconfig.DefaultValues()
-	vmArch := args.TargetVMArch
-	if vmArch == "" {
-		vmArch = args.TargetArch
-	}
-	if args.TargetArch == vmArch {
-		cfg.RawTarget = targets.Linux + "/" + args.TargetArch
-	} else {
-		cfg.RawTarget = targets.Linux + "/" + vmArch + "/" + args.TargetArch
-	}
+	cfg.RawTarget = mgrconfig.FormatTarget(targets.Linux, args.TargetVMArch, args.TargetArch)
 	if args.Sandbox != "" {
 		cfg.Sandbox = args.Sandbox
 	}

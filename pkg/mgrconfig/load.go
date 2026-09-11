@@ -431,6 +431,13 @@ func SplitTarget(str string) (os, vmarch, arch string, target *prog.Target, sysT
 	return
 }
 
+func FormatTarget(os, vmArch, arch string) string {
+	if vmArch == "" || vmArch == arch {
+		return os + "/" + arch
+	}
+	return os + "/" + vmArch + "/" + arch
+}
+
 func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 	descriptionsMode DescriptionsMode) ([]int, error) {
 	syscalls := make(map[int]bool)

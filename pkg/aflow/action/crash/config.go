@@ -108,11 +108,7 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 
 	cfg := mgrconfig.DefaultValues()
 	cfg.Name = args.AgentName
-	if targetArch == targetVMArch {
-		cfg.RawTarget = targets.Linux + "/" + targetArch
-	} else {
-		cfg.RawTarget = targets.Linux + "/" + targetVMArch + "/" + targetArch
-	}
+	cfg.RawTarget = mgrconfig.FormatTarget(targets.Linux, targetVMArch, targetArch)
 	cfg.Workdir = workdir
 	cfg.Syzkaller = args.Syzkaller
 	cfg.KernelObj = args.KernelObj
