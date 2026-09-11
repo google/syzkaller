@@ -168,6 +168,7 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 				Options: []string{
 					targets.AMD64,
 					targets.ARM64,
+					targets.I386,
 				},
 			},
 			ManualWorkflowField{
@@ -1674,6 +1675,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"SyzkallerCommit": build.SyzkallerCommit,
 		"TargetOS":        build.OS,
 		"TargetArch":      build.Arch,
+		"TargetVMArch":    build.VMArch,
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
@@ -1687,6 +1689,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		args["KernelConfigID"] = mgrBuild.KernelConfig
 		args["KernelConfigManager"] = manager
 		args["TargetArch"] = mgrBuild.Arch
+		args["TargetVMArch"] = mgrBuild.VMArch
 	}
 	maps.Copy(args, extraArgs)
 	return aidb.CreateJob(ctx, &aidb.Job{
