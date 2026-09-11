@@ -1,0 +1,2 @@
+ALTER TABLE Series DROP COLUMN XKernelTestBranch;
+ALTER TABLE Series DROP COLUMN XStable;

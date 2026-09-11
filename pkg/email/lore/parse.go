@@ -127,7 +127,11 @@ func PatchSeries(emails []*Email) []*Series {
 				Email: email,
 			})
 		}
-		if len(hasSeq) != total {
+		// Occasionally, we have at least one missing patch in LTS RC's sent for review. The simplest fix for this is to
+		// simply ignore the missing patches for LTS.
+		// TODO: Modify syz-cluster to accept two pairs of commits, and use stable-rc tree, which has the changes already
+		// applied, instead of the stable tree.
+		if len(hasSeq) != total && series.XStable != "review" {
 			series.Corrupted = fmt.Sprintf("the subject mentions %d patches, %d are found",
 				total, len(hasSeq))
 			continue
