@@ -16,11 +16,13 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -1649,4 +1651,225 @@ func TestAIGraphsEndpoint(t *testing.T) {
 	// Non-AI namespace is rejected even for admin.
 	_, err = c.AuthGET(AccessAdmin, "/test1/graph/ai")
 	require.Error(t, err)
+}
+
+func TestWorkflowsForBugReproC(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	now := timeNow(c.ctx)
+	base := func() *Bug {
+		return &Bug{
+			Namespace: "ains",
+			Title:     "kernel BUG at mm/page_alloc.c",
+			Status:    BugStatusOpen,
+			HasReport: true,
+			FirstTime: now.Add(-49 * time.Hour),
+			LastTime:  now.Add(-49 * time.Hour),
+		}
+	}
+	withPatch := func(age time.Duration) func(*Bug) {
+		return func(b *Bug) {
+			b.DiscussionInfo = []BugDiscussionInfo{{
+				Source:  "lore",
+				Summary: DiscussionSummary{LastPatchMessage: now.Add(-age)},
+			}}
+		}
+	}
+
+	tests := []struct {
+		name string
+		mod  func(*Bug)
+		want bool
+	}{
+		{name: "eligible", want: true},
+		{name: "too young (<=48h)", mod: func(b *Bug) { b.FirstTime = now.Add(-48 * time.Hour) }},
+		{name: "stale (>30d)", mod: func(b *Bug) { b.LastTime = now.Add(-31 * 24 * time.Hour) }},
+		{name: "has C repro", mod: func(b *Bug) { b.HasCRepro = true }},
+		{name: "no report", mod: func(b *Bug) { b.HasReport = false }},
+		{name: "fixed", mod: func(b *Bug) { b.Status = BugStatusFixed }},
+		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
+		{name: "INFO: prefix", mod: func(b *Bug) { b.Title = "INFO: task hung in foo" }},
+		{name: "INFORMATION prefix allowed", mod: func(b *Bug) { b.Title = "INFORMATION leak in sys_bar" }, want: true},
+		{name: "WARNING prefix allowed", mod: func(b *Bug) { b.Title = "WARNING in sys_bar" }, want: true},
+		{name: "recent patch candidate", mod: withPatch(5 * 24 * time.Hour)},
+		{name: "old patch candidate allowed", mod: withPatch(31 * 24 * time.Hour), want: true},
+		{name: "non-AI namespace", mod: func(b *Bug) { b.Namespace = "test2" }},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			b := base()
+			if tc.mod != nil {
+				tc.mod(b)
+			}
+			got := workflowsForBug(c.ctx, b, false)
+			require.Equal(t, tc.want, got[ai.WorkflowReproC])
+		})
+	}
+
+	t.Run("manual overrides all", func(t *testing.T) {
+		b := &Bug{
+			Namespace: "test2",
+			Status:    BugStatusFixed,
+			Commits:   []string{"fix"},
+			HasCRepro: true,
+			HasReport: false,
+			LastTime:  now.Add(-31 * 24 * time.Hour),
+			Title:     "INFO: task hung in foo",
+		}
+		withPatch(5 * 24 * time.Hour)(b)
+		got := workflowsForBug(c.ctx, b, true)
+		require.True(t, got[ai.WorkflowReproC])
+	})
+}
+
+func TestAutoCreateReproCJob(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "kernel BUG at mm/page_alloc.c"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	// Initially (< 48h), pollAIWorkflow should not create a repro-c job.
+	resp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp.ID)
+
+	// Advance time past 48 hours so the bug becomes eligible.
+	c.advanceTime(49 * time.Hour)
+
+	// Attempt 1: job is created and assigned.
+	resp1 := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, resp1.ID)
+	require.Equal(t, string(ai.WorkflowReproC), resp1.Workflow)
+	require.Equal(t, crash.Title, resp1.Args["BugTitle"])
+
+	// Another poll should return nothing because the job is running.
+	resp2 := c.pollAIJob(t, "agent-2", dashapi.AIWorkflow{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)})
+	require.Empty(t, resp2.ID)
+
+	// Job 1 fails with an error.
+	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    resp1.ID,
+		Error: "kernel build failed",
+	})
+	require.NoError(t, err)
+
+	// Immediately after failure (within backoff), no new job should be created.
+	resp = c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp.ID)
+
+	// Advance time past 1st retry backoff (24 hours).
+	c.advanceTime(25 * time.Hour)
+
+	// Attempt 2: job is created again.
+	respRetry := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, respRetry.ID)
+	require.NotEqual(t, resp1.ID, respRetry.ID)
+
+	// Job 2 also fails with an error.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    respRetry.ID,
+		Error: "kernel build failed again",
+	})
+	require.NoError(t, err)
+
+	// Advance time past 2nd retry backoff (48 hours).
+	c.advanceTime(49 * time.Hour)
+
+	// Attempt 3: maxAutoReproCAttempts (2) reached, so no new job is created automatically.
+	resp3 := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp3.ID)
+
+	// Manual job creation should still succeed.
+	bugs, _, err := loadAllBugs(c.ctx, nil)
+	require.NoError(t, err)
+	require.Len(t, bugs, 1)
+
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bugs[0].keyHash(c.ctx))
+	values := url.Values{}
+	values.Set("ai-job-create", string(ai.WorkflowReproC))
+	_, err = c.AuthPOSTForm(AccessUser, jobCreateURL, values)
+	require.NoError(t, err)
+
+	manualResp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.NotEmpty(t, manualResp.ID)
+}
+
+func TestAutoCreateReproCUnsupportedArch(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.Arch = targets.RiscV64
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "kernel BUG at mm/page_alloc.c"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	// Advance time past 48 hours.
+	c.advanceTime(49 * time.Hour)
+
+	// pollAIWorkflow should not create a repro-c job for unsupported arch (e.g. riscv64).
+	resp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp.ID)
+}
+
+func TestPendingWorkflowsForBugAbortedJob(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "kernel BUG at mm/page_alloc.c"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	c.advanceTime(49 * time.Hour)
+
+	bugs, _, err := loadAllBugs(c.ctx, nil)
+	require.NoError(t, err)
+	require.Len(t, bugs, 1)
+	bug := bugs[0]
+	bugKey := bug.key(c.ctx)
+
+	// Before any jobs, repro-c should be pending.
+	pending, err := pendingWorkflowsForBug(c.ctx, bug, bugKey)
+	require.NoError(t, err)
+	require.Contains(t, pending, string(ai.WorkflowReproC))
+
+	// Create a job that was aborted before ever being started (Started is NULL).
+	_, err = aidb.CreateJob(c.ctx, &aidb.Job{
+		Type:      ai.WorkflowReproC,
+		Workflow:  string(ai.WorkflowReproC),
+		Namespace: "ains",
+		BugID:     spanner.NullString{StringVal: bug.keyHash(c.ctx), Valid: true},
+		Finished:  spanner.NullTime{Time: timeNow(c.ctx), Valid: true},
+		Error:     "Aborted: timeout before start",
+		Aborted:   true,
+	})
+	require.NoError(t, err)
+
+	// Since job was created at timeNow, exponential backoff (24h) must apply
+	// based on job.Created (even though job.Started is NULL), so repro-c is suppressed.
+	pending, err = pendingWorkflowsForBug(c.ctx, bug, bugKey)
+	require.NoError(t, err)
+	require.NotContains(t, pending, string(ai.WorkflowReproC))
+
+	// Advance past the 24h backoff window.
+	c.advanceTime(25 * time.Hour)
+
+	// Now it should be retried automatically (attempt 2).
+	pending, err = pendingWorkflowsForBug(c.ctx, bug, bugKey)
+	require.NoError(t, err)
+	require.Contains(t, pending, string(ai.WorkflowReproC))
 }
