@@ -16,6 +16,7 @@ description: KVM Virtualization and Guest Constraints (x86/amd64 Focus)
   * Use 'syz_kvm_setup_syzos_vm$x86' to allocate guest memory and load the SYZOS guest library.
   * Use 'syz_kvm_add_vcpu$x86' to initialize the vCPU and define the sequence of guest instructions/commands
     (the SYZOS payload array) that the guest vCPU will execute inside the VM context when 'ioctl$KVM_RUN' is called.
+  * For full SYZOS architecture, memory layouts, and low-level command details, consult 'docs/syzos.md'.
 - Strict KVM ioctl Sequence Order (CRITICAL INSTRUCTION):
   When configuring a VM and vCPUs, you MUST follow this exact sequence:
   1) Create VM ('ioctl$KVM_CREATE_VM')

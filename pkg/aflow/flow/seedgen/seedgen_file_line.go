@@ -46,7 +46,6 @@ func init() {
 				"DocProgramSyntax":             docs.ProgramSyntax,
 				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
 				"DocPseudoSyscalls":            docs.PseudoSyscalls,
-				"DocSyzOS":                     docs.SyzOS,
 			},
 			Root: seedGenPipeline(
 				kernel.Checkout,
