@@ -421,6 +421,30 @@ func LoadFinishedReproCJobs(ctx context.Context, since time.Time) ([]*Job, error
 	})
 }
 
+// CountJobsSince returns the number of jobs of the specified workflow type
+// created on or after since in the given namespace.
+func CountJobsSince(ctx context.Context, ns string, typ ai.WorkflowType, since time.Time) (int64, error) {
+	type countResult struct {
+		Count int64
+	}
+	res, err := selectOne[countResult](ctx, spanner.Statement{
+		SQL: `SELECT COUNT(1) AS Count
+		FROM Jobs
+		WHERE Namespace = @ns
+		  AND Type = @type
+		  AND Created >= @since`,
+		Params: map[string]any{
+			"ns":    ns,
+			"type":  string(typ),
+			"since": since,
+		},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return res.Count, nil
+}
+
 func LoadBugIDsWithPendingPatch(ctx context.Context, ns string, workflows []ai.WorkflowType) ([]string, error) {
 	if len(workflows) == 0 {
 		return nil, nil
