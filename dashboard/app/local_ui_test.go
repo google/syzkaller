@@ -99,6 +99,7 @@ var localUIConfig = &GlobalConfig{
 			DisplayTitle: "Linux",
 			AccessLevel:  AccessPublic,
 			AI: &AIConfig{
+				AutoReproC:     true,
 				BaseRepository: "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
 				BaseBranch:     "master",
 				BaseCommit:     "RC",

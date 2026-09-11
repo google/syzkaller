@@ -149,8 +149,10 @@ type Config struct {
 type AIConfig struct {
 	// Whether to upload generated patches to gerrit.
 	UploadPatchesToGerrit bool
-	Stages                []AIPatchStageConfig
-	SecurityPrio          func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
+	// Whether to automatically create C reproducer generation jobs for eligible bugs.
+	AutoReproC   bool
+	Stages       []AIPatchStageConfig
+	SecurityPrio func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
 
 	// Emails or domains allowed to execute external AI commands (#syz upstream, reject, etc).
 	AllowedCommandAuthors []string
