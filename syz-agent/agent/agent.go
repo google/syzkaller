@@ -296,10 +296,14 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	}
 	agentOS, _ := req.Args["TargetOS"].(string)
 	agentArch, _ := req.Args["TargetArch"].(string)
+	agentVMArch, _ := req.Args["TargetVMArch"].(string)
 
 	var tcfg *TargetConfig
 	for _, t := range s.cfg.Targets {
 		if t.TargetOS == agentOS && t.TargetArch == agentArch {
+			if agentVMArch != "" && t.TargetVMArch != agentVMArch {
+				continue
+			}
 			tcfg = t
 			break
 		}
@@ -311,6 +315,9 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 
 	inputs := initState(tcfg, s.syzkallerDir, s.name)
 	maps.Insert(inputs, maps.All(req.Args))
+	if vmArch, _ := inputs["TargetVMArch"].(string); vmArch == "" {
+		inputs["TargetVMArch"] = tcfg.TargetVMArch
+	}
 
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
@@ -393,6 +400,7 @@ func initState(cfg *TargetConfig, syzkallerDir, agentName string) map[string]any
 		"AgentName":    agentName,
 		"TargetOS":     cfg.TargetOS,
 		"TargetArch":   cfg.TargetArch,
+		"TargetVMArch": cfg.TargetVMArch,
 		"Syzkaller":    osutil.Abs(syzkallerDir),
 		"Image":        cfg.Image,
 		"Type":         cfg.Type,
