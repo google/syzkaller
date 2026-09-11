@@ -87,26 +87,29 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	const maxLineLen = 200
 	lines := make([][]byte, 0, maxLines)
 	var truncated bool
-	totalLines := 0
-	for line := range bytes.Lines(output) {
+	totalLines := bytes.Count(output, []byte{'\n'})
+	if len(output) > 0 && output[len(output)-1] != '\n' {
 		totalLines++
-		if len(lines) < maxLines {
-			hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
-			contentLen := len(line)
+	}
+	for line := range bytes.Lines(output) {
+		if len(lines) >= maxLines {
+			break
+		}
+		hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
+		contentLen := len(line)
+		if hasNewline {
+			contentLen--
+		}
+		if contentLen > maxLineLen {
+			newLine := slices.Clone(line[:maxLineLen])
+			newLine = append(newLine, []byte("...")...)
 			if hasNewline {
-				contentLen--
+				newLine = append(newLine, '\n')
 			}
-			if contentLen > maxLineLen {
-				newLine := slices.Clone(line[:maxLineLen])
-				newLine = append(newLine, []byte("...")...)
-				if hasNewline {
-					newLine = append(newLine, '\n')
-				}
-				lines = append(lines, newLine)
-				truncated = true
-			} else {
-				lines = append(lines, line)
-			}
+			lines = append(lines, newLine)
+			truncated = true
+		} else {
+			lines = append(lines, line)
 		}
 	}
 
