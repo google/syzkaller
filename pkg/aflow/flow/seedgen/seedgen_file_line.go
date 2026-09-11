@@ -33,6 +33,7 @@ type SeedGenFileLineInputs struct {
 	Syzkaller     string
 	TargetOS      string
 	TargetArch    string
+	TargetVMArch  string `json:",omitempty"`
 	CorpusPath    string `json:",omitempty"`
 	Snapshot      bool
 }
@@ -58,11 +59,12 @@ func init() {
 }
 
 type ResolveLineToPCArgs struct {
-	FilePath   string
-	LineNumber int
-	KernelSrc  string
-	KernelObj  string
-	TargetArch string
+	FilePath     string
+	LineNumber   int
+	KernelSrc    string
+	KernelObj    string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 }
 
 type ResolveLineToPCResult struct {
@@ -76,7 +78,12 @@ func resolveLineToPCAction(ctx *aflow.Context, args ResolveLineToPCArgs) (Resolv
 		return ResolveLineToPCResult{}, fmt.Errorf("both FilePath and LineNumber must be provided")
 	}
 
-	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, args.TargetArch, args.FilePath, args.LineNumber)
+	// The coverage backend parses vmlinux, so it needs the kernel (VM) arch.
+	arch := args.TargetVMArch
+	if arch == "" {
+		arch = args.TargetArch
+	}
+	pcs, err := resolveLineToPCs(args.KernelSrc, args.KernelObj, arch, args.FilePath, args.LineNumber)
 	if err != nil {
 		return ResolveLineToPCResult{}, err
 	}

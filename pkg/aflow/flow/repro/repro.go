@@ -26,6 +26,7 @@ type ReproInputs struct {
 	AgentName    string
 	TargetOS     string
 	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	BugTitle     string
 	CrashReport  string
 	KernelRepo   string
@@ -122,11 +123,20 @@ func formatReproFinderOutputs(ctx *aflow.Context, state ReproFinderState,
 }
 
 var generateReproOpts = aflow.NewFuncAction("generate-repro-opts", func(_ *aflow.Context, args struct {
-	TargetArch string
-	Sandbox    string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
+	Sandbox      string
 }) (struct{ ReproOpts string }, error) {
 	cfg := mgrconfig.DefaultValues()
-	cfg.RawTarget = targets.Linux + "/" + args.TargetArch
+	vmArch := args.TargetVMArch
+	if vmArch == "" {
+		vmArch = args.TargetArch
+	}
+	if args.TargetArch == vmArch {
+		cfg.RawTarget = targets.Linux + "/" + args.TargetArch
+	} else {
+		cfg.RawTarget = targets.Linux + "/" + vmArch + "/" + args.TargetArch
+	}
 	if args.Sandbox != "" {
 		cfg.Sandbox = args.Sandbox
 	}

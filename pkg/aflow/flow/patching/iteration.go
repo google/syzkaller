@@ -18,9 +18,10 @@ import (
 )
 
 type PatchIterationInputs struct {
-	AgentName  string
-	TargetOS   string
-	TargetArch string
+	AgentName    string
+	TargetOS     string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
 	// Standard test environment config (same as in patching.Inputs)
 	Syzkaller    string
 	Image        string

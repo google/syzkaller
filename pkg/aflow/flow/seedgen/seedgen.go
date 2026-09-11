@@ -33,6 +33,7 @@ type SeedGenInputs struct {
 	Syzkaller     string
 	TargetOS      string
 	TargetArch    string
+	TargetVMArch  string `json:",omitempty"`
 	Snapshot      bool
 	CorpusPath    string `json:",omitempty"`
 }

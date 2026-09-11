@@ -20,6 +20,8 @@ type TargetConfig struct {
 	AgentName string
 	// Target architecture of the kernel under test (e.g., "amd64", "arm64").
 	TargetArch string
+	// Target VM architecture running the kernel (e.g., "amd64", "arm64").
+	TargetVMArch string `json:",omitempty"`
 	// Directory path containing syzkaller host/target binaries.
 	Syzkaller string
 	// Path to the disk image file used by the VM.
@@ -46,11 +48,24 @@ type TargetConfig struct {
 	Snapshot bool
 }
 
+// VMArch returns the architecture of the kernel and of the VM that runs it.
+// It may differ from TargetArch, e.g. 386 programs are executed under an amd64 kernel.
+func (args TargetConfig) VMArch() string {
+	if args.TargetVMArch != "" {
+		return args.TargetVMArch
+	}
+	return args.TargetArch
+}
+
 // Validate checks if the target configuration is valid.
 func (args TargetConfig) Validate() error {
 	if targets.Get(targets.Linux, args.TargetArch) == nil {
 		return fmt.Errorf("unsupported target: %v/%v", targets.Linux, args.TargetArch)
 	}
+	if targets.Get(targets.Linux, args.VMArch()) == nil {
+		return fmt.Errorf("unsupported VM target: %v/%v", targets.Linux, args.VMArch())
+	}
+
 	switch args.Type {
 	case "qemu", "gce":
 	default:
@@ -76,16 +91,17 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 	}
 
 	targetArch := args.TargetArch
+	targetVMArch := args.VMArch()
 	image := args.Image
 
-	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetArch)))
+	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targetVMArch)))
 	switch args.Type {
 	case "qemu":
 		vmConfig["kernel"] = kernelPath
 	case "gce":
 		params := build.Params{
 			TargetOS:     targets.Linux,
-			TargetArch:   targetArch,
+			TargetArch:   targetVMArch,
 			UserspaceDir: image,
 			OutputDir:    workdir,
 		}
@@ -102,7 +118,11 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 
 	cfg := mgrconfig.DefaultValues()
 	cfg.Name = args.AgentName
-	cfg.RawTarget = targets.Linux + "/" + targetArch
+	if targetArch == targetVMArch {
+		cfg.RawTarget = targets.Linux + "/" + targetArch
+	} else {
+		cfg.RawTarget = targets.Linux + "/" + targetVMArch + "/" + targetArch
+	}
 	cfg.Workdir = workdir
 	cfg.Syzkaller = args.Syzkaller
 	cfg.KernelObj = args.KernelObj

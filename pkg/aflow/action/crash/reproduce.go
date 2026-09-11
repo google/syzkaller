@@ -315,9 +315,11 @@ func symbolize(args TargetConfig, coverage [][]uint64) ([][]symbolizer.Frame, er
 		return nil, nil
 	}
 
-	target := targets.Get(targets.Linux, args.TargetArch)
+	// Coverage PCs come from the kernel, so they must be interpreted
+	// in terms of the VM arch rather than of the program arch.
+	target := targets.Get(targets.Linux, args.VMArch())
 	if target == nil {
-		return nil, fmt.Errorf("unknown target: %s/%s", targets.Linux, args.TargetArch)
+		return nil, fmt.Errorf("unknown target: %s/%s", targets.Linux, args.VMArch())
 	}
 
 	adjustedCoverage := make([][]uint64, 0, len(coverage))

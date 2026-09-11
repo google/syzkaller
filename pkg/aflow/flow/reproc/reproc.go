@@ -27,6 +27,7 @@ type ReproCInputs struct {
 	AgentName      string
 	TargetOS       string
 	TargetArch     string
+	TargetVMArch   string `json:",omitempty"`
 	BugDescription string
 
 	KernelRepo   string
