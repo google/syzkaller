@@ -53,6 +53,7 @@ ioctl$KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], 
 ioctl$KVM_CAP_HALT_POLL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HALT_POLL, int64]])
 ioctl$KVM_CAP_DIRTY_LOG_RING(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING, flags[kvm_dirty_log_sizes, int64]]])
 ioctl$KVM_CAP_DIRTY_LOG_RING_ACQ_REL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING_ACQ_REL, flags[kvm_dirty_log_sizes, int64]]])
+ioctl$KVM_CAP_DIRTY_LOG_RING_WITH_BITMAP(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING_WITH_BITMAP, flags[kvm_dirty_log_sizes, int64]]])
 
 # TODO: need more precise handling for arguments below
 ioctl$KVM_CAP_PTP_KVM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PTP_KVM, void]])
@@ -109,7 +110,7 @@ kvm_device_flags = 0, KVM_CREATE_DEVICE_TEST
 kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTDBG_USE_SW_BP, KVM_GUESTDBG_USE_HW_BP, KVM_GUESTDBG_USE_HW, KVM_GUESTDBG_INJECT_DB, KVM_GUESTDBG_INJECT_BP, KVM_GUESTDBG_EXIT_PENDING, KVM_GUESTDBG_BLOCKIRQ
 kvm_guest_selector = 0, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16
 kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITIALLY_SET
-kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536
+kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_x86_cr0 = 1, 2, 4, 8, 16, 32, 65536, 262144, 536870912, 1073741824, 2147483648
@@ -126,6 +127,26 @@ define KVM_RUN_SIZE	sizeof(struct kvm_run)
 mmap$KVM_VCPU(addr vma, len vcpu_mmap_size, prot flags[mmap_prot], flags flags[mmap_flags], cpufd fd_kvmcpu, offset const[0]) kvm_run_ptr
 munmap$KVM_VCPU(addr kvm_run_ptr, len intptr)
 _ = __NR_mmap2
+
+# Dirty ring buffer is mapped at KVM_DIRTY_LOG_PAGE_OFFSET (64 pages on x86) on vcpu fd.
+# Userspace reads dirtied entries (KVM_DIRTY_GFN_F_DIRTY), marks them as harvested
+# (KVM_DIRTY_GFN_F_RESET), and invokes KVM_RESET_DIRTY_RINGS to re-arm dirty logging.
+define KVM_DIRTY_LOG_PAGE_OFFSET_BYTES	(KVM_DIRTY_LOG_PAGE_OFFSET * 4096)
+resource kvm_dirty_ring_ptr[int64]
+mmap$KVM_DIRTY_RING(addr vma, len flags[kvm_dirty_log_sizes], prot flags[mmap_prot], flags flags[mmap_flags], cpufd fd_kvmcpu, offset const[KVM_DIRTY_LOG_PAGE_OFFSET_BYTES]) kvm_dirty_ring_ptr
+munmap$KVM_DIRTY_RING(addr kvm_dirty_ring_ptr, len flags[kvm_dirty_log_sizes])
+
+# Writes to dirty ring entries to test harvesting and reset handshake with kernel.
+syz_memcpy_off$KVM_DIRTY_GFN(dst kvm_dirty_ring_ptr, off intptr, src ptr[in, kvm_dirty_gfn], src_off const[0], nbytes bytesize[src])
+
+# struct kvm_dirty_gfn from include/uapi/linux/kvm.h
+kvm_dirty_gfn {
+	flags	flags[kvm_dirty_gfn_flags, int32]
+	slot	flags[kvm_mem_slots, int32]
+	offset	int64
+}
+
+kvm_dirty_gfn_flags = KVM_DIRTY_GFN_F_DIRTY, KVM_DIRTY_GFN_F_RESET
 
 define KVM_EXIT_MMIO_OFFSET	offsetof(struct kvm_run, mmio)
 define KVM_EXIT_MMIO_SIZE	sizeof_field(struct kvm_run, mmio)
