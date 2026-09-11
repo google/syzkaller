@@ -7,6 +7,7 @@ include <linux/kvm.h>
 include <linux/kvm_host.h>
 include <uapi/linux/fcntl.h>
 include <asm/mce.h>
+include <linux/falloc.h>
 
 resource fd_kvm[fd]
 resource fd_kvmvm[fd]
@@ -98,6 +99,7 @@ ioctl$KVM_HAS_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg pt
 
 ioctl$KVM_CREATE_GUEST_MEMFD(fd fd_kvmvm, cmd const[KVM_CREATE_GUEST_MEMFD], arg ptr[in, kvm_create_guest_memfd]) fd_kvm_guest_memfd
 ioctl$KVM_PRE_FAULT_MEMORY(fd fd_kvmcpu, cmd const[KVM_PRE_FAULT_MEMORY], arg ptr[inout, kvm_pre_fault_memory])
+fallocate$kvm_guest_memfd(fd fd_kvm_guest_memfd, mode flags[fallocate_mode], off flags[kvm_guest_addr_offsets], len flags[kvm_guest_addr_size])
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEM_GUEST_MEMFD
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
@@ -112,6 +114,7 @@ kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITI
 kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
+kvm_guest_addr_offsets = 0, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_x86_cr0 = 1, 2, 4, 8, 16, 32, 65536, 262144, 536870912, 1073741824, 2147483648
 kvm_x86_cr4 = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 131072, 262144, 1048576, 2097152, 4194304
 kvm_x86_efer = 1, 256, 1024, 2048, 4096, 8192, 16384, 32768
@@ -357,9 +360,11 @@ kvm_smccc_filter {
 	pad		array[const[0, int8], 15]
 }
 
+guest_memfd_flags = GUEST_MEMFD_FLAG_MMAP, GUEST_MEMFD_FLAG_INIT_SHARED
+
 kvm_create_guest_memfd {
-	size		int64
-	flags		int64
+	size		flags[kvm_guest_addr_size, int64]
+	flags		flags[guest_memfd_flags, int64]
 	reserved	array[const[0, int64], 6]
 }
 
@@ -367,7 +372,7 @@ kvm_pre_fault_memory {
 	gpa	flags[kvm_guest_addrs, int64]
 	size	flags[kvm_guest_addr_size, int64]
 	flags	const[0, int64]
-	pad	array[const[0, int64], 5]
+	padding	array[const[0, int64], 5]
 }
 
 kvm_create_device {
@@ -556,7 +561,7 @@ kvm_userspace_memory_region2 {
 	paddr			flags[kvm_guest_addrs, int64]
 	size			len[addr, int64]
 	addr			vma64[1:2]
-	guest_memfd_offset	int64
+	guest_memfd_offset	flags[kvm_guest_addr_offsets, int64]
 	guest_memfd		fd_kvm_guest_memfd
 	pad1			const[0, int32]
 	pad2			array[const[0, int64], 14]
