@@ -37,10 +37,18 @@ mkdir "$workdir/kernel"
 if [[ -z "${GVISOR_VMLINUX_PATH:-}" ]]; then
   arch="$(uname -m)"
   url="https://storage.googleapis.com/gvisor/releases/release/latest/${arch}"
-  curl --output "$workdir/kernel/vmlinux" "${url}/runsc"
-  chmod a+rx "$workdir/kernel/vmlinux"
+  curl --fail --location --output "$workdir/gvisor.tar.bz2" "${url}/gvisor.tar.bz2"
+  curl --fail --location --output "$workdir/gvisor.tar.bz2.sha512" "${url}/gvisor.tar.bz2.sha512"
+  (cd "$workdir" && sha512sum -c gvisor.tar.bz2.sha512)
+  tar -xjf "$workdir/gvisor.tar.bz2" -C "$workdir/kernel"
+  mv "$workdir/kernel/runsc" "$workdir/kernel/vmlinux"
+  chmod -R a+rX "$workdir/kernel"
 else
   install -m555 "$GVISOR_VMLINUX_PATH" "$workdir/kernel/vmlinux"
+  gvisor_bin="$(dirname "$GVISOR_VMLINUX_PATH")/gvisor-bin"
+  if [[ -d "$gvisor_bin" ]]; then
+    cp -r --preserve=mode "$gvisor_bin" "$workdir/kernel/gvisor-bin"
+  fi
 fi
 
 sudo -E ./bin/syz-manager -config "$workdir/config" --mode smoke-test
