@@ -19,6 +19,7 @@ ENV GITREVDATE=${GITREVDATE}
 RUN make target OS=linux TARGETARCH=amd64
 RUN make target OS=linux TARGETARCH=arm
 RUN make target OS=linux TARGETARCH=arm64
+RUN make target OS=linux TARGETARCH=386 TARGETVMARCH=amd64
 RUN make agent
 
 FROM gcr.io/syzkaller/syzbot
