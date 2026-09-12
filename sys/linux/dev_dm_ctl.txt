@@ -1,0 +1,44 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <uapi/asm/ioctl.h>
+include <uapi/linux/dm-ioctl.h>
+
+resource fd_dm_ctl[fd]
+resource dm_ctl_dev[int64]
+
+openat$dm_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/mapper/control"]], flags const[O_RDWR], mode const[0]) fd_dm_ctl
+
+ioctl$DM_VERSION(fd fd_dm_ctl, cmd const[DM_VERSION], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_CREATE(fd fd_dm_ctl, cmd const[DM_DEV_CREATE], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_REMOVE(fd fd_dm_ctl, cmd const[DM_DEV_REMOVE], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_SUSPEND(fd fd_dm_ctl, cmd const[DM_DEV_SUSPEND], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_STATUS(fd fd_dm_ctl, cmd const[DM_DEV_STATUS], arg ptr[inout, dm_ioctl])
+ioctl$DM_TABLE_CLEAR(fd fd_dm_ctl, cmd const[DM_TABLE_CLEAR], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_ARM_POLL(fd fd_dm_ctl, cmd const[DM_DEV_ARM_POLL], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_RENAME(fd fd_dm_ctl, cmd const[DM_DEV_RENAME], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_WAIT(fd fd_dm_ctl, cmd const[DM_DEV_WAIT], arg ptr[inout, dm_ioctl])
+ioctl$DM_TABLE_LOAD(fd fd_dm_ctl, cmd const[DM_TABLE_LOAD], arg ptr[inout, dm_ioctl])
+ioctl$DM_TABLE_DEPS(fd fd_dm_ctl, cmd const[DM_TABLE_DEPS], arg ptr[inout, dm_ioctl])
+ioctl$DM_TABLE_STATUS(fd fd_dm_ctl, cmd const[DM_TABLE_STATUS], arg ptr[inout, dm_ioctl])
+ioctl$DM_LIST_VERSIONS(fd fd_dm_ctl, cmd const[DM_LIST_VERSIONS], arg ptr[inout, dm_ioctl])
+ioctl$DM_TARGET_MSG(fd fd_dm_ctl, cmd const[DM_TARGET_MSG], arg ptr[inout, dm_ioctl])
+ioctl$DM_DEV_SET_GEOMETRY(fd fd_dm_ctl, cmd const[DM_DEV_SET_GEOMETRY], arg ptr[inout, dm_ioctl])
+ioctl$DM_GET_TARGET_VERSION(fd fd_dm_ctl, cmd const[DM_GET_TARGET_VERSION], arg ptr[inout, dm_ioctl])
+
+dm_ioctl {
+	version		array[int32, 3]
+	data_size	bytesize[dm_ioctl, int32]
+	data_start	offsetof[data, int32]
+	target_count	int32
+	open_count	int32
+	flags		int32
+	event_nr	int32
+	padding		int32
+	dev		dm_ctl_dev
+	name		array[int8, DM_NAME_LEN]
+	uuid		array[int8, DM_UUID_LEN]
+	data		array[int8, 7]
+	data1		array[int8]
+}
