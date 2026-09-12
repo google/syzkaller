@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/ulikunitz/xz"
 )
 
@@ -228,6 +229,23 @@ func collectBytes(saveTo **uploadedFile) objectUploadCallback {
 		}
 		return &uploadResponse{path: req.savePath, writer: wwc}, nil
 	}
+}
+
+func TestUploadAlreadyCompressed(t *testing.T) {
+	dashMock := newDashMock()
+	storage, be := makeStorage(t, dashMock)
+	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
+	content := []byte{0x1, 0x2, 0x3, 0x4}
+	var file *uploadedFile
+	be.objectUpload = collectBytes(&file)
+	extra := &ExtraUploadArg{AlreadyCompressed: true}
+	asset, err := storage.UploadBuildAsset(bytes.NewReader(content), "gvisor.tar.bz2",
+		dashapi.BootableDisk, build, extra)
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	require.True(t, strings.HasSuffix(file.req.savePath, "/gvisor-abcdef21.tar.bz2"), file.req.savePath)
+	require.True(t, strings.HasSuffix(asset.DownloadURL, "/gvisor-abcdef21.tar.bz2"), asset.DownloadURL)
+	require.Equal(t, content, file.bytes)
 }
 
 func TestUploadHtmlAsset(t *testing.T) {

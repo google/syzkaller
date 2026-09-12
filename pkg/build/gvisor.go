@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type gvisor struct{}
@@ -28,36 +27,18 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	if err != nil {
 		return ImageDetails{}, fmt.Errorf("cannot parse gVisor configuration: %w", err)
 	}
-	bazelOpts := "--verbose_failures"
 
-	target := "//runsc:runsc"
-	if config.Coverage {
-		if config.Race {
-			target = "//runsc:runsc_race_coverage"
-		} else {
-			target = "//runsc:runsc_coverage"
-		}
-	} else if config.Race {
-		bazelOpts += " --config=race "
-		target = "//runsc:runsc-race"
-	}
-
-	outBinary := filepath.Join(params.OutputDir, "image")
+	image := filepath.Join(params.OutputDir, "image")
 	cmd := osutil.Command("make", "copy",
 		"DOCKER_BUILD=0",
-		fmt.Sprintf("BAZEL_OPTIONS=%s", bazelOpts),
-		fmt.Sprintf("TARGETS=%s", target),
-		fmt.Sprintf("DESTINATION=%s", outBinary),
+		"BAZEL_OPTIONS=--verbose_failures",
+		fmt.Sprintf("TARGETS=%s", config.releaseTarget()),
+		fmt.Sprintf("DESTINATION=%s", image),
 	)
 	cmd.Dir = params.KernelDir
-
-	log.Logf(0, "bazel copy: %v", cmd.Env)
-	if _, err := osutil.Run(60*time.Minute, cmd); err != nil {
-		return ImageDetails{}, err
-	}
-
-	sysTarget := targets.Get(params.TargetOS, params.TargetArch)
-	return ImageDetails{}, osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
+	log.Logf(0, "bazel copy: %v", cmd.Args)
+	_, err = osutil.Run(60*time.Minute, cmd)
+	return ImageDetails{}, err
 }
 
 func (gvisor) clean(params Params) error {
@@ -78,6 +59,20 @@ type gvisorConfig struct {
 
 	// Race represents whether race condition detection is enabled.
 	Race bool
+}
+
+// releaseTarget returns the bazel target of the gVisor release tarball for the configuration.
+func (cfg gvisorConfig) releaseTarget() string {
+	switch {
+	case cfg.Coverage && cfg.Race:
+		return "//debian:gvisor-release-race-coverage-tar-bz2"
+	case cfg.Coverage:
+		return "//debian:gvisor-release-coverage-tar-bz2"
+	case cfg.Race:
+		return "//debian:gvisor-release-race-tar-bz2"
+	default:
+		return "//debian:gvisor-release-tar-bz2"
+	}
 }
 
 // parseGVisorConfig parses a set of flags into a `gvisorConfig`.

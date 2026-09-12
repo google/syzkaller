@@ -80,6 +80,8 @@ type ExtraUploadArg struct {
 	// If the asset being uploaded already exists (see above), don't return
 	// an error, abort uploading and return the download URL.
 	SkipIfExists bool
+	// The asset is already compressed, so don't compress it again.
+	AlreadyCompressed bool
 }
 
 var ErrAssetTypeDisabled = errors.New("uploading assets of this type is disabled")
@@ -128,6 +130,9 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 	if typeDescr.customCompressor != nil {
 		compressor = typeDescr.customCompressor
 	}
+	if extra != nil && extra.AlreadyCompressed {
+		compressor = noCompressor
+	}
 	res, err := compressor(req, storage.backend.upload)
 	if existsErr, ok := errors.AsType[*FileExistsError](err); ok {
 		storage.tracer.Logf("asset %s already exists", path)
@@ -165,7 +170,7 @@ func (storage *Storage) UploadBuildAsset(reader io.Reader, fileName string, asse
 		commit = commit[:commitPrefix]
 	}
 	baseName := filepath.Base(fileName)
-	fileExt := filepath.Ext(baseName)
+	fileExt := fileExtension(baseName)
 	name := fmt.Sprintf("%s-%s%s",
 		strings.TrimSuffix(baseName, fileExt),
 		commit,
@@ -178,6 +183,16 @@ func (storage *Storage) UploadBuildAsset(reader io.Reader, fileName string, asse
 		Type:        assetType,
 		DownloadURL: url,
 	}, nil
+}
+
+// fileExtension returns the file extension, treating tarballs
+// (e.g. ".tar.bz2") as part of the file extension.
+func fileExtension(name string) string {
+	ext := filepath.Ext(name)
+	if rest := strings.TrimSuffix(name, ext); strings.HasSuffix(rest, ".tar") {
+		return ".tar" + ext
+	}
+	return ext
 }
 
 func (storage *Storage) ReportBuildAssets(build *dashapi.Build, assets ...dashapi.NewAsset) error {
@@ -311,6 +326,11 @@ type StorageBackend interface {
 
 type Compressor func(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error)
+
+func noCompressor(req *uploadRequest,
+	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error) {
+	return next(req)
+}
 
 func xzCompressor(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error) {

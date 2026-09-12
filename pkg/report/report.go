@@ -93,7 +93,7 @@ func (rep *Report) String() string {
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	var localModules []*vminfo.KernelModule
-	if cfg.KernelObj != "" {
+	if cfg.KernelObj != "" && cfg.Type != targets.GVisor {
 		var err error
 		localModules, err = backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
 		if err != nil {
