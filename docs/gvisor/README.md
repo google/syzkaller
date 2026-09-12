@@ -4,7 +4,12 @@
 Go, that implements a substantial portion of the Linux system surface.
 
 `gVisor` uses `linux` OS, but the special `gvisor` VM type. There is nothing
-special regarding `gVisor` besides that. Here is an example manager config:
+special regarding `gVisor` besides that. The `image` is a gVisor release
+tarball (`gvisor.tar.bz2`, see
+[installation instructions](https://gvisor.dev/docs/user_guide/install/)),
+which syzkaller extracts into the `workdir`. There is no kernel object, so
+`kernel_obj` is not needed; for coverage, point `kernel_src` to the gVisor
+source tree. Here is an example manager config:
 
 ```
 {
@@ -12,7 +17,7 @@ special regarding `gVisor` besides that. Here is an example manager config:
 	"target": "linux/amd64",
 	"http": ":12345",
 	"workdir": "/workdir",
-	"image": "/usr/local/bin/runsc",
+	"image": "/path/to/gvisor.tar.bz2",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
 	"cover": false,
 	"procs": 8,
@@ -37,11 +42,12 @@ $ cd $SYZKALLER_DIR
 $ make
 ```
 
-2. Build runsc:
+2. Build the gVisor release tarball and extract it:
 
 ```bash
 $ cd $GVISOR_DIR
-$ bazel build //runsc
+$ make release-tarball DESTINATION=bin/
+$ tar -C bin/ -xf bin/gvisor.tar.bz2
 ```
 
 3. Create a `bundle/` directory with a config like the one below. Be sure to
@@ -55,7 +61,7 @@ $ $EDITOR bundle/config.json
 4. Run gVisor:
 
 ```bash
-$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc \
+$ sudo bin/runsc \
     -platform=ptrace \
     -file-access=shared \
     -network=host \
@@ -67,7 +73,7 @@ $ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc \
 5. Remove container:
 
 ```bash
-$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc delete -force syzkaller
+$ sudo bin/runsc delete -force syzkaller
 ```
 
 Note that you'll want to adjust the `runsc` args to match the config in which
@@ -303,22 +309,28 @@ You can also adjust the args to `syz-execprog` in `config.json`. e.g., add
 ```
 ## syzkaller way gVisor use
 
-To build specific gVisor ver:
+To build a specific gVisor version:
 
 ```
 git clone https://github.com/google/gvisor
 git checkout be6ffa78e4df78df13d004a17f2a8833305285c4
 ```
 
-To build runsc:
+syzkaller uses gVisor release tarballs as images. `pkg/build` builds them from
+the gVisor sources with `make copy` (see `pkg/build/gvisor.go`), e.g. for the
+coverage-instrumented build that syzbot uses:
 
 ```
-bazel build --verbose_failures --collect_code_coverage --instrumentation_filter=//pkg/...,-//pkg/sentry/platform,-//pkg/ring0,-//pkg/coverage:coverage //runsc:runsc
+make copy TARGETS=//debian:gvisor-release-coverage-tar-bz2 DESTINATION=gvisor-coverage.tar.bz2
 ```
 
-To find runsc binary and get symbols
+`-race` and `-race-coverage` variants of the tarball are available as well.
+The kernel config of a gVisor manager consists of the `-cover` and `-race`
+flags that select the variant.
+
+To get coverage symbols, extract the tarball and run `runsc symbolize`:
 
 ```
-bazel aquery --collect_code_coverage --instrumentation_filter=//pkg/...,-//pkg/sentry/platform,-//pkg/ring0,-//pkg/coverage:coverage 'mnemonic("GoLink", //runsc:runsc)'
-./bazel-out/k8-fastbuild-ST-a2b97ed4b8d6/bin/runsc/runsc_/runsc symbolize -all > symbolize_all_gvisor_be6ffa78e4df78df13d004a17f2a8833305285c4.txt
+tar -xf gvisor-coverage.tar.bz2
+./runsc symbolize -all > symbolize_all_gvisor_be6ffa78e4df78df13d004a17f2a8833305285c4.txt
 ```
