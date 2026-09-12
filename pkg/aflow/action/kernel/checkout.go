@@ -127,6 +127,11 @@ func checkoutScratch(ctx *aflow.Context, args checkoutScratchArgs) (checkoutScra
 	if err := shallowGitClone(dir, args.KernelSrc); err != nil {
 		return checkoutScratchResult{}, err
 	}
+	// The directory is 0700 by default. Chown to the sandbox user
+	// so that sandboxed commands (e.g. vcs.Patch) can use it.
+	if err := osutil.SandboxChown(dir); err != nil {
+		return checkoutScratchResult{}, err
+	}
 	return checkoutScratchResult{dir}, nil
 }
 
