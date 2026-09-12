@@ -815,10 +815,14 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 				name:      "non_bootable_disk.raw",
 			})
 		} else {
+			name := "disk.raw"
+			if mgr.managercfg.Type == targets.GVisor {
+				name = "gvisor.tar.bz2"
+			}
 			pending = append(pending, pendingAsset{
 				path:      imageFile,
 				assetType: dashapi.BootableDisk,
-				name:      "disk.raw",
+				name:      name,
 			})
 		}
 	}

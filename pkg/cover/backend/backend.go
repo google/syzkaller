@@ -72,14 +72,15 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 	target := cfg.SysTarget
 	moduleObj := cfg.ModuleObj
 	vm := cfg.Type
+	if vm == targets.GVisor {
+		// gVisor has no kernel object, coverage is symbolized from the image.
+		return makeGvisor(target, cfg.Image, kernelDirs.Src, modules)
+	}
 	if kernelDirs.Obj == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
 	if target.OS == targets.Darwin {
 		return makeMachO(target, kernelDirs, moduleObj, modules)
-	}
-	if vm == targets.GVisor {
-		return makeGvisor(target, kernelDirs, modules)
 	}
 	var delimiters []string
 	if cfg.AndroidSplitBuild {
