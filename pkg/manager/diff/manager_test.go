@@ -209,3 +209,24 @@ func TestDiffRetryRepro(t *testing.T) {
 	default:
 	}
 }
+
+func TestDiffDivergentCrash(t *testing.T) {
+	// During repro of title1, a divergent crash title2 is reported -> title2 is queued and reproduced.
+	env := newTestEnv(t, &Config{
+		runRepro: func(ctx context.Context, target *report.Report,
+			reproEnv repro.Environment) (*repro.Result, *repro.Stats, error) {
+			if target.Title == "title1" && reproEnv.OnDivergentCrash != nil {
+				reproEnv.OnDivergentCrash(&report.Report{Title: "title2", Report: []byte("log2")})
+			}
+			return nil, nil, errors.New("repro failed")
+		},
+	})
+	defer env.close()
+
+	env.new.FinishCorpusTriage()
+	env.start()
+
+	env.new.CrashesCh <- &report.Report{Title: "title1", Report: []byte("log1")}
+	env.waitForStatus("title1", manager.DiffBugStatusCompleted)
+	env.waitForStatus("title2", manager.DiffBugStatusCompleted)
+}
