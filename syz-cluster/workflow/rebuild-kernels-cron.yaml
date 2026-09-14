@@ -69,6 +69,10 @@ spec:
           )))
           build_requests = []
           for tree in data.get("trees", []):
+              # Some trees (e.g. stable) have no single default branch. While we could be smoke building them, there
+              # isn't a real need for that, since we only use them for stable releases, not random daily patches.
+              if not tree.get("branch"):
+                  continue
               for config_name in unique_kernel_configs:
                   build_request = {
                       "arch": "amd64", # TODO: consider others as well.

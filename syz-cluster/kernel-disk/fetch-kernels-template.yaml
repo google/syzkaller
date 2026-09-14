@@ -72,8 +72,20 @@ spec:
             NAME="{{=jsonpath(inputs.parameters.tree, '$.name')}}"
             REPO="{{=jsonpath(inputs.parameters.tree, '$.URL')}}"
             BRANCH="{{=jsonpath(inputs.parameters.tree, '$.branch')}}"
-            echo "${NAME}: ${REPO}/${BRANCH}"
+            echo "${NAME}: ${REPO} (branch: ${BRANCH:-<all>})"
             git remote remove ${NAME} || true
             git remote add ${NAME} ${REPO}
-            git fetch ${NAME} ${BRANCH} --tags "+refs/heads/*:refs/heads/${NAME}/*" "+refs/tags/*:refs/tags/${NAME}/*"
-            git log -1 --format="%h %an %ad %s" ${NAME}/${BRANCH}
+            # The refspecs below already fetch all branches and tags, so there's no need to mention ${BRANCH}
+            # separately. Some trees (e.g. stable) don't even have a single default branch.
+            git fetch ${NAME} --tags "+refs/heads/*:refs/heads/${NAME}/*" "+refs/tags/*:refs/tags/${NAME}/*"
+            if [ -n "${BRANCH}" ]; then
+              git log -1 --format="%h %an %ad %s" ${NAME}/${BRANCH}
+            else
+              # The tree has no single default branch, so just report what we
+              # have fetched and how fresh the most active branches are.
+              echo "fetched $(git for-each-ref "refs/heads/${NAME}/" | wc -l) branches," \
+                "$(git for-each-ref "refs/tags/${NAME}/" | wc -l) tags; most recent:"
+              git for-each-ref --sort=-committerdate --count=5 \
+                --format="%(refname:lstrip=2) %(objectname:short) %(committerdate:short) %(contents:subject)" \
+                "refs/heads/${NAME}/"
+            fi
