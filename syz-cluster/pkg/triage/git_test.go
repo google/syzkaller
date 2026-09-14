@@ -45,7 +45,12 @@ func TestGitTreeOpsApply(t *testing.T) {
 
 	ops, err := NewGitTreeOps(baseDir, false)
 	assert.NoError(t, err)
-	assert.Error(t, ops.ApplySeries(base.Hash, [][]byte{goodPatch, wontApply}))
+	// A series that does not apply must be distinguishable from a repository-level error.
+	err = ops.ApplySeries(base.Hash, [][]byte{goodPatch, wontApply})
+	assert.ErrorIs(t, err, ErrSeriesNotApplicable)
+	err = ops.ApplySeries("does-not-exist", [][]byte{goodPatch})
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, ErrSeriesNotApplicable)
 	assert.NoError(t, ops.ApplySeries(base.Hash, [][]byte{goodPatch}))
 }
 

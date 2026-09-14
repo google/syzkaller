@@ -151,6 +151,12 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	triager.Logf("continuing with %v in %v", result.Commit, result.Tree.Name)
 
 	if _, err := triager.ws.Checkout(result.Tree.Name, result.Commit, series.PatchBodies()); err != nil {
+		if errors.Is(err, triage.ErrSeriesNotApplicable) {
+			// The base commit candidates are not guaranteed to be the ones the series
+			// actually applies to, e.g. if the patches were mangled by the sender's
+			// email client.
+			return nil, SkipError(err.Error())
+		}
 		return nil, fmt.Errorf("failed to checkout and apply patches: %w", err)
 	}
 
