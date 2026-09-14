@@ -230,14 +230,15 @@ loop:
 		case rep := <-dc.new.Crashes():
 			// A new crash is found on the patched instance.
 			crash := &manager.Crash{Report: rep}
-			need := dc.NeedRepro(crash)
+			ignore := dc.shouldIgnore(crash)
+			need := !ignore && dc.NeedRepro(crash)
 			log.Logf(0, "patched crashed: %v [need repro = %v]",
 				rep.Title, need)
 			dc.store.PatchedCrashed(rep.Title, rep.Report, rep.Output)
 			if need {
 				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusVerifying)
 				reproLoop.Enqueue(crash)
-			} else {
+			} else if ignore {
 				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusIgnored)
 			}
 		}
@@ -392,16 +393,20 @@ func needReproForTitle(title string) bool {
 	return true
 }
 
+func (dc *diffContext) shouldIgnore(crash *manager.Crash) bool {
+	if !needReproForTitle(crash.Title) {
+		return true
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	return dc.ignoreCrash(ctx, crash.Title)
+}
+
 func (dc *diffContext) NeedRepro(crash *manager.Crash) bool {
 	if crash.FullRepro {
 		return true
 	}
-	if !needReproForTitle(crash.Title) {
-		return false
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	if dc.ignoreCrash(ctx, crash.Title) {
+	if dc.shouldIgnore(crash) {
 		return false
 	}
 	dc.mu.Lock()
