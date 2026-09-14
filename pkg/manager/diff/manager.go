@@ -402,11 +402,15 @@ func (dc *diffContext) shouldIgnore(crash *manager.Crash) bool {
 	return dc.ignoreCrash(ctx, crash.Title)
 }
 
+// NeedRepro is called by the repro loop before every reproduction attempt, so it must
+// only consult the in-memory state. The expensive checks are done in shouldIgnore()
+// once, at the moment the crash is first seen.
 func (dc *diffContext) NeedRepro(crash *manager.Crash) bool {
 	if crash.FullRepro {
 		return true
 	}
-	if dc.shouldIgnore(crash) {
+	if dc.store.EverCrashedBase(crash.Title) {
+		// The base kernel has crashed with the same title in the meantime.
 		return false
 	}
 	dc.mu.Lock()
