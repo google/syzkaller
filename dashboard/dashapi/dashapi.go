@@ -352,6 +352,62 @@ func (dash *Dashboard) ReportCrash(crash *Crash) (*ReportCrashResp, error) {
 	return resp, err
 }
 
+// ExternalRepro is a single crash+repro submitted by an external bug-finding pipeline
+// (e.g. a third-party fuzzer or LLM-driven bug finder).
+type ExternalRepro struct {
+	Crash                 // Title, Report, Log, ReproC, ReproSyz, ReproOpts, BuildID (optional), etc.
+	ExternalID   string   // caller-assigned ID, echoed back in status polling
+	KernelConfig []byte   // .config used, stored for provenance even if BuildID is unset
+	QEMUArgs     []string // qemu command line used to reproduce
+	Tools        []string // tool/LLM names+versions that found/reproduced this, e.g. "gpt-5-codex@2026-09"
+}
+
+type ReproBatchUploadReq struct {
+	Source string
+	Repros []ExternalRepro
+}
+
+type ReproBatchUploadResp struct {
+	BatchID string
+}
+
+type ReproBatchStatusReq struct {
+	BatchID string
+}
+
+type ReproBatchItemStatus struct {
+	ExternalID string
+	Status     string // see ReproBatchStatus* consts below
+	BugID      string
+	Error      string
+}
+
+const (
+	ReproBatchPending    = "pending"
+	ReproBatchReproduced = "reproduced"
+	ReproBatchDuplicate  = "duplicate"
+	ReproBatchNoBuild    = "no_build" // BuildID not supplied/known; recorded but not ingested into a bug
+	ReproBatchError      = "error"
+)
+
+type ReproBatchStatusResp struct {
+	Total     int
+	Processed int
+	Items     []ReproBatchItemStatus
+}
+
+func (dash *Dashboard) UploadReproBatch(req *ReproBatchUploadReq) (*ReproBatchUploadResp, error) {
+	resp := new(ReproBatchUploadResp)
+	err := dash.Query("repro_batch_upload", req, resp)
+	return resp, err
+}
+
+func (dash *Dashboard) ReproBatchStatus(req *ReproBatchStatusReq) (*ReproBatchStatusResp, error) {
+	resp := new(ReproBatchStatusResp)
+	err := dash.Query("repro_batch_status", req, resp)
+	return resp, err
+}
+
 // CrashID is a short summary of a crash for repro queries.
 type CrashID struct {
 	BuildID      string

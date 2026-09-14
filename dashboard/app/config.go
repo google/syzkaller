@@ -144,6 +144,9 @@ type Config struct {
 	Coverage *CoverageConfig
 	// Reproducers export path.
 	ReproExportPath string
+	// AllowReproBatchUpload enables the repro_batch_upload/repro_batch_status API
+	// for external bug-finding pipelines in this namespace.
+	AllowReproBatchUpload bool
 }
 
 type AIConfig struct {
