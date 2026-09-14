@@ -1,0 +1,7 @@
+# Regression test for https://github.com/torvalds/linux/commit/7d11e047eda5f98514ae62507065ac961981c025
+
+socketpair$unix(0x1, 0x1, 0x0, &(0x7f0000000000)={<r0=>0xffffffffffffffff, <r1=>0xffffffffffffffff})
+setsockopt$sock_int(r0, 0x1, 0x54, &(0x7f0000000080)=0x1, 0x4)
+write(r1, &(0x7f0000000100)="0123456789", 0xa)
+pipe2(&(0x7f0000000200)={<r2=>0xffffffffffffffff, <r3=>0xffffffffffffffff}, 0x0)
+splice(r0, 0x0, r3, 0x0, 0xa, 0x0)
