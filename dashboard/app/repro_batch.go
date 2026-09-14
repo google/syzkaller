@@ -26,8 +26,8 @@ type ReproBatchItem struct {
 	ExternalID string
 	Status     string
 	BugID      string
-	Error      string
-	Provenance int64 // Text key from putText, holds kernel config / qemu args / tools JSON
+	Error      string `datastore:",noindex"`
+	Provenance int64  `datastore:",noindex"` // Text key from putText, holds kernel config / qemu args / tools JSON
 }
 
 func createReproBatch(ctx context.Context, ns, source string, total int) (*ReproBatch, error) {
