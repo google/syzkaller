@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestCache(t *testing.T) {
@@ -227,6 +230,210 @@ func TestRetrieveObject_InvalidID(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid cached ID (not local)")
 }
 
+// TestCachePanic verifies that a panic in the populate callback does not create a cache entry,
+// does not leave the partially populated dir on disk, and leaves the cache in a usable state.
+func TestCachePanic(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+
+	var panicDir string
+	require.Panics(t, func() {
+		c.Create("build", "1", func(dir string) error {
+			panicDir = dir
+			require.NoError(t, osutil.WriteFile(filepath.Join(dir, "partial"), []byte("junk")))
+			panic("populate failed")
+		})
+	})
+	require.Empty(t, c.entries)
+	require.Empty(t, c.pending)
+	require.Equal(t, uint64(0), c.currentSize)
+	require.False(t, osutil.IsExist(panicDir))
+
+	// The cache is still usable and the entry is populated from scratch.
+	var popCount atomic.Int64
+	dir, err := c.Create("build", "1", func(dir string) error {
+		popCount.Add(1)
+		return osutil.WriteFile(filepath.Join(dir, "f"), []byte("data"))
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), popCount.Load())
+	data, err := os.ReadFile(filepath.Join(dir, "f"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("data"), data)
+	c.Release(dir)
+}
+
+// TestCacheParallel verifies that populating different entries is not serialized.
+// The populate callbacks wait for each other, so they both time out if it's not the case.
+func TestCacheParallel(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	first, second := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	eg.Go(func() error {
+		dir, err := c.Create("build", "1", func(dir string) error {
+			close(first)
+			return waitClose(second)
+		})
+		if err == nil {
+			c.Release(dir)
+		}
+		return err
+	})
+	eg.Go(func() error {
+		dir, err := c.Create("build", "2", func(dir string) error {
+			close(second)
+			return waitClose(first)
+		})
+		if err == nil {
+			c.Release(dir)
+		}
+		return err
+	})
+	require.NoError(t, eg.Wait())
+}
+
+// TestCacheConcurrent verifies that concurrent Create calls for the same entry
+// are coalesced and the dir is populated only once.
+func TestCacheConcurrent(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	var popCount atomic.Int64
+	var dir1, dir2 string
+	started, gate := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	eg.Go(func() error {
+		dir, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			close(started)
+			if err := waitClose(gate); err != nil {
+				return err
+			}
+			return osutil.WriteFile(filepath.Join(dir, "f"), []byte("data"))
+		})
+		if err == nil {
+			dir1 = dir
+			c.Release(dir)
+		}
+		return err
+	})
+	require.NoError(t, waitClose(started))
+	eg.Go(func() error {
+		dir, err := c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			return nil
+		})
+		if err == nil {
+			dir2 = dir
+			c.Release(dir)
+		}
+		return err
+	})
+	// Let the second Create block on the first one, otherwise it may get a cache hit instead.
+	waitPendingWaiters(t, c, "build", "k", 1)
+	close(gate)
+	require.NoError(t, eg.Wait())
+	require.Equal(t, int64(1), popCount.Load())
+	// Both callers share the dir populated by the first one.
+	require.Equal(t, dir1, dir2)
+	data, err := os.ReadFile(filepath.Join(dir1, "f"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("data"), data)
+}
+
+// TestCacheConcurrentErr verifies that a failed population is shared by all waiting callers,
+// but is not cached, so that the next Create retries it.
+func TestCacheConcurrentErr(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	var popCount atomic.Int64
+	started, gate := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	var err1, err2 error
+	eg.Go(func() error {
+		_, err1 = c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			close(started)
+			if err := waitClose(gate); err != nil {
+				return err
+			}
+			return fmt.Errorf("build failed")
+		})
+		return err1
+	})
+	require.NoError(t, waitClose(started))
+	eg.Go(func() error {
+		_, err2 = c.Create("build", "k", func(dir string) error {
+			popCount.Add(1)
+			return nil
+		})
+		return err2
+	})
+	waitPendingWaiters(t, c, "build", "k", 1)
+	close(gate)
+	// Both callers share the failure, the callback is not retried right away.
+	require.Error(t, eg.Wait())
+	require.ErrorContains(t, err1, "build failed")
+	require.ErrorContains(t, err2, "build failed")
+	require.Equal(t, int64(1), popCount.Load())
+
+	// Verify that the failure is not cached and the next attempt populates the entry.
+	dir, err := c.Create("build", "k", func(dir string) error {
+		popCount.Add(1)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), popCount.Load())
+	c.Release(dir)
+
+	// Verify that a subsequent attempt uses the cached entry.
+	dir, err = c.Create("build", "k", func(dir string) error {
+		popCount.Add(1)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), popCount.Load())
+	c.Release(dir)
+}
+
+// TestCacheConcurrentCreateMultipleWaiters verifies that any number of Create calls for the same
+// entry are coalesced onto a single population.
+func TestCacheConcurrentCreateMultipleWaiters(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	const waiters = 3
+	var popCount atomic.Int64
+	started, gate := make(chan struct{}), make(chan struct{})
+	var eg errgroup.Group
+	for range waiters + 1 {
+		eg.Go(func() error {
+			dir, err := c.Create("build", "target", func(dir string) error {
+				popCount.Add(1)
+				close(started)
+				if err := waitClose(gate); err != nil {
+					return err
+				}
+				return osutil.WriteFile(filepath.Join(dir, "out"), []byte("ok"))
+			})
+			if err == nil {
+				c.Release(dir)
+			}
+			return err
+		})
+	}
+	// Let all the other calls block on the populating one, otherwise they may get a cache hit.
+	require.NoError(t, waitClose(started))
+	waitPendingWaiters(t, c, "build", "target", waiters)
+	close(gate)
+	require.NoError(t, eg.Wait())
+	require.Equal(t, int64(1), popCount.Load())
+}
+
 // TestCachePurgeStaged verifies that an evicted entry is both staged and actually removed.
 func TestCachePurgeStaged(t *testing.T) {
 	tempDir := t.TempDir()
@@ -302,3 +509,42 @@ func TestCacheTmpTyp(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello"), data)
 }
+
+// pendingWaiters returns the number of Create calls waiting for the entry population.
+func (c *Cache) pendingWaiters(typ, desc string) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	p := c.pending[filepath.Join(c.dir, typ, hash.String(desc))]
+	if p == nil {
+		return 0
+	}
+	return p.waiters
+}
+
+// waitPendingWaiters waits until count Create calls are blocked waiting for the entry population.
+func waitPendingWaiters(t *testing.T, c *Cache, typ, desc string, count int) {
+	t.Helper()
+	start := time.Now()
+	for c.pendingWaiters(typ, desc) < count {
+		if time.Since(start) > waitTimeout {
+			t.Fatalf("timed out waiting for %v waiters for %v/%v", count, typ, desc)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// waitClose waits until the channel is closed. It returns an error rather than failing the test,
+// so that it can also be used from the populate callbacks, which run on other goroutines.
+// The timeout matters: without it a test that never reaches the expected state hangs until the
+// package timeout kills the whole test binary, which hides which test actually broke.
+func waitClose(ch <-chan struct{}) error {
+	select {
+	case <-ch:
+		return nil
+	case <-time.After(waitTimeout):
+		return fmt.Errorf("timed out waiting for the other goroutine")
+	}
+}
+
+// waitTimeout must stay well below the default 10 minute package test timeout.
+const waitTimeout = time.Minute
