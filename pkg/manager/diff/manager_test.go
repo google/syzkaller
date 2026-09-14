@@ -200,9 +200,9 @@ func TestDiffRetryRepro(t *testing.T) {
 		}
 		env.waitForStatus("crash_title", manager.DiffBugStatusCompleted)
 	}
-	// Inject one more crash, which should be ignored.
+	// Inject one more crash, which should not trigger another repro and should preserve Completed status.
 	env.new.CrashesCh <- &report.Report{Title: "crash_title", Report: []byte("log")}
-	env.waitForStatus("crash_title", manager.DiffBugStatusIgnored)
+	env.waitForStatus("crash_title", manager.DiffBugStatusCompleted)
 	select {
 	case <-reproCalled:
 		t.Fatalf("unexpected repro")
