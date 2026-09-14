@@ -49,8 +49,8 @@ func createReproBatch(ctx context.Context, ns, source string, total int) (*Repro
 // upload for the same item overwrites rather than duplicates.
 func saveReproBatchItem(ctx context.Context, batchID string, item *ReproBatchItem) error {
 	item.BatchID = batchID
-	keyName := batchID + "|" + item.ExternalID
-	key := db.NewKey(ctx, "ReproBatchItem", keyName, 0, nil)
+	parentKey := db.NewKey(ctx, "ReproBatch", batchID, 0, nil)
+	key := db.NewKey(ctx, "ReproBatchItem", item.ExternalID, 0, parentKey)
 	_, err := db.Put(ctx, key, item)
 	if err != nil {
 		return fmt.Errorf("failed to put ReproBatchItem: %w", err)
