@@ -855,7 +855,7 @@ func apiReportCrash(ctx context.Context, ns string, req *dashapi.Crash) (any, er
 	return resp, nil
 }
 
-const maxReproBatchSize = 200
+const maxReproBatchSize = 20
 
 func apiReproBatchUpload(ctx context.Context, ns string, req *dashapi.ReproBatchUploadReq) (any, error) {
 	if stop, err := emergentlyStopped(ctx); err != nil || stop {
@@ -905,12 +905,14 @@ func processExternalRepro(ctx context.Context, ns, batchID string, r *dashapi.Ex
 		ExternalID: r.ExternalID,
 		Status:     dashapi.ReproBatchError,
 	}
-	provenance, err := putText(ctx, ns, textReproBatchProvenance, marshalProvenance(r))
-	if err != nil {
-		item.Error = fmt.Sprintf("failed to store provenance: %v", err)
-		return item
+	if len(r.KernelConfig) > 0 || len(r.QEMUArgs) > 0 || len(r.Tools) > 0 {
+		provenance, err := putText(ctx, ns, textReproBatchProvenance, marshalProvenance(r))
+		if err != nil {
+			item.Error = fmt.Sprintf("failed to store provenance: %v", err)
+			return item
+		}
+		item.Provenance = provenance
 	}
-	item.Provenance = provenance
 
 	if r.BuildID == "" {
 		item.Status = dashapi.ReproBatchNoBuild

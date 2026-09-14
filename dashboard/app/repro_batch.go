@@ -49,8 +49,8 @@ func createReproBatch(ctx context.Context, ns, source string, total int) (*Repro
 // upload for the same item overwrites rather than duplicates.
 func saveReproBatchItem(ctx context.Context, batchID string, item *ReproBatchItem) error {
 	item.BatchID = batchID
-	parentKey := db.NewKey(ctx, "ReproBatch", batchID, 0, nil)
-	key := db.NewKey(ctx, "ReproBatchItem", item.ExternalID, 0, parentKey)
+	batchKey := db.NewKey(ctx, "ReproBatch", batchID, 0, nil)
+	key := db.NewKey(ctx, "ReproBatchItem", item.ExternalID, 0, batchKey)
 	_, err := db.Put(ctx, key, item)
 	if err != nil {
 		return fmt.Errorf("failed to put ReproBatchItem: %w", err)
@@ -59,8 +59,9 @@ func saveReproBatchItem(ctx context.Context, batchID string, item *ReproBatchIte
 }
 
 func loadReproBatchStatus(ctx context.Context, ns, batchID string) (*dashapi.ReproBatchStatusResp, error) {
+	batchKey := db.NewKey(ctx, "ReproBatch", batchID, 0, nil)
 	batch := new(ReproBatch)
-	if err := db.Get(ctx, db.NewKey(ctx, "ReproBatch", batchID, 0, nil), batch); err != nil {
+	if err := db.Get(ctx, batchKey, batch); err != nil {
 		return nil, fmt.Errorf("failed to get batch %q: %w", batchID, err)
 	}
 	if batch.Namespace != ns {
@@ -68,7 +69,7 @@ func loadReproBatchStatus(ctx context.Context, ns, batchID string) (*dashapi.Rep
 	}
 	var items []*ReproBatchItem
 	_, err := db.NewQuery("ReproBatchItem").
-		Filter("BatchID=", batchID).
+		Ancestor(batchKey).
 		GetAll(ctx, &items)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query ReproBatchItem: %w", err)
