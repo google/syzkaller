@@ -886,6 +886,9 @@ func apiReproBatchUpload(ctx context.Context, ns string, req *dashapi.ReproBatch
 }
 
 func apiReproBatchStatus(ctx context.Context, ns string, req *dashapi.ReproBatchStatusReq) (any, error) {
+	if req.BatchID == "" {
+		return nil, fmt.Errorf("missing batch ID")
+	}
 	resp, err := loadReproBatchStatus(ctx, ns, req.BatchID)
 	if err != nil {
 		return nil, err
