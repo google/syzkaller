@@ -458,8 +458,8 @@ func compressArtifacts(dir string) (io.Reader, error) {
 	var buf bytes.Buffer
 	lw := &LimitedWriter{
 		writer: &buf,
-		// Don't create an archive larger than 64MB.
-		limit: 64 * 1000 * 1000,
+		// Don't create an archive larger than 128MB.
+		limit: 128 * 1000 * 1000,
 	}
 	err := osutil.TarGzDirectory(dir, lw)
 	if err != nil {
