@@ -33,11 +33,11 @@ When `-input` points to a directory containing `*.json` task files (such as thos
 ./tools/syz-env ./syz-aflow -workflow seed-gen-file-line -input ./tasks -workdir ./workdir -parallel 4 -corpus ./corpus.db
 ```
 
-- **Parallel execution:** `-parallel <N>` runs multiple workers concurrently.
+- **Parallel execution:** `-parallel <N>` runs multiple workers concurrently in randomized order.
 - **Trajectory classification:** Each task is tracked and classified into:
   `<workdir>/trajectories/{success,giveup,unreached,error}/<task_id>.{html,json}`
-  Active tasks write real-time trajectories to `<workdir>/trajectories/in_progress/<task_id>.html`.
-- **Restartability:** Previously completed tasks in any outcome directory (`success`, `giveup`, `unreached`, `error`) are automatically skipped on restart.
+  Active tasks write real-time trajectories to `<workdir>/trajectories/in_progress/<task_id>.html` and logs to `<workdir>/trajectories/in_progress/<task_id>.log`.
+- **Restartability:** Previously completed tasks in any outcome directory (`success`, `giveup`, `unreached`, `error`) are automatically skipped on restart. Tasks aborted by the previous run (those left in `trajectories/in_progress/`) are re-executed first: the run starts from scratch, but the LLM responses are replayed from the cache, which is purged on the LRU basis, so it pays off to get to them before they are evicted. Only the remaining parallel capacity is filled with other randomized tasks.
 - **Seed collection:** If `-corpus` is specified, executed Syzkaller programs from the trajectories are stripped of fault-injection flags, deduplicated, and stored into the specified `corpus.db` file.
 
 ### Workflow Inputs

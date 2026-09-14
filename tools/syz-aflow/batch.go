@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
@@ -32,7 +33,11 @@ const (
 	stateInProgress = "in_progress"
 )
 
-var batchStates = []string{stateSuccess, stateGiveUp, stateUnreached, stateError}
+var (
+	batchStates = []string{stateSuccess, stateGiveUp, stateUnreached, stateError}
+	// The file extensions written while a task is still running.
+	inProgressExts = []string{".html", ".log"}
+)
 
 type batchTask struct {
 	ID   string
@@ -198,16 +203,13 @@ func (r *Runner) runBatch(ctx context.Context, tasks []batchTask) error {
 	log.Printf("found %d targets", len(tasks))
 
 	totalTasks := len(tasks)
-	completed, err := r.completedTaskIDs()
+	tasks, resumedCount, err := r.prepareBatchTasks(tasks)
 	if err != nil {
-		return fmt.Errorf("failed to check completed targets: %w", err)
+		return err
 	}
-	tasks = slices.DeleteFunc(tasks, func(task batchTask) bool {
-		return completed[task.ID]
-	})
 
-	log.Printf("%d targets pending execution (%d already completed)",
-		len(tasks), totalTasks-len(tasks))
+	log.Printf("%d targets pending execution (%d already completed, %d resumed)",
+		len(tasks), totalTasks-len(tasks), resumedCount)
 	if len(tasks) == 0 {
 		log.Printf("all targets have already completed")
 		return nil
@@ -265,9 +267,7 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 	}
 
 	inProgressHTML := r.targetPath(stateInProgress, task.ID, ".html")
-	defer os.Remove(inProgressHTML)
 	inProgressLog := r.targetPath(stateInProgress, task.ID, ".log")
-	defer os.Remove(inProgressLog)
 
 	taskLogf, closeLog, err := openTaskLog(inProgressLog)
 	if err != nil {
@@ -349,17 +349,65 @@ func (r *Runner) saveResult(res batchResult, spans []*trajectory.Span) error {
 		return err
 	}
 	saveHTML(r.targetPath(res.State, res.ID, ".html"), spans)
+	inProgressHTML := r.targetPath(stateInProgress, res.ID, ".html")
+	if err := os.Remove(inProgressHTML); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove in-progress html: %w", err)
+	}
 	inProgressLog := r.targetPath(stateInProgress, res.ID, ".log")
 	finalLog := r.targetPath(res.State, res.ID, ".log")
 	if err := os.Rename(inProgressLog, finalLog); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to move log file: %w", err)
 	}
+	// The result file marks the task as completed, so write it only once everything else is in place.
 	return osutil.WriteJSON(r.targetPath(res.State, res.ID, ".json"), res)
 }
 
-func (r *Runner) completedTaskIDs() (map[string]bool, error) {
-	completed := make(map[string]bool)
-	for _, state := range batchStates {
+// prepareBatchTasks returns the pending tasks in the execution order: the tasks aborted during
+// the previous run come first (so that they are resumed from the still warm LLM cache), the rest
+// follow in random order. It also returns the number of the resumed tasks.
+func (r *Runner) prepareBatchTasks(tasks []batchTask) ([]batchTask, int, error) {
+	completed, err := r.taskIDs(batchStates, ".json")
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to check completed targets: %w", err)
+	}
+	inProgress, err := r.taskIDs([]string{stateInProgress}, inProgressExts...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to check in-progress targets: %w", err)
+	}
+	var aborted, rest []batchTask
+	for _, task := range tasks {
+		switch {
+		case completed[task.ID]:
+		case inProgress[task.ID]:
+			delete(inProgress, task.ID)
+			aborted = append(aborted, task)
+		default:
+			rest = append(rest, task)
+		}
+	}
+	// Whatever is left in the map belongs to the already completed tasks.
+	for id := range inProgress {
+		if !completed[id] {
+			continue
+		}
+		for _, ext := range inProgressExts {
+			path := r.targetPath(stateInProgress, id, ext)
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				log.Printf("failed to remove stale file %v: %v", path, err)
+			}
+		}
+	}
+	rand.Shuffle(len(rest), func(i, j int) {
+		rest[i], rest[j] = rest[j], rest[i]
+	})
+	return append(aborted, rest...), len(aborted), nil
+}
+
+// taskIDs collects the IDs of the tasks that have files with the given extensions in the
+// trajectory directories of the given states.
+func (r *Runner) taskIDs(states []string, exts ...string) (map[string]bool, error) {
+	ids := make(map[string]bool)
+	for _, state := range states {
 		entries, err := os.ReadDir(filepath.Join(r.workdir, "trajectories", state))
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -368,12 +416,16 @@ func (r *Runner) completedTaskIDs() (map[string]bool, error) {
 			return nil, err
 		}
 		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-				completed[strings.TrimSuffix(entry.Name(), ".json")] = true
+			if entry.IsDir() {
+				continue
+			}
+			ext := filepath.Ext(entry.Name())
+			if slices.Contains(exts, ext) {
+				ids[strings.TrimSuffix(entry.Name(), ext)] = true
 			}
 		}
 	}
-	return completed, nil
+	return ids, nil
 }
 
 func findTaskFiles(path string) ([]batchTask, bool, error) {

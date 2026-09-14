@@ -5,12 +5,17 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,20 +108,133 @@ func TestFindTaskFiles(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestBatchRunnerIsCompleted(t *testing.T) {
-	runner := &Runner{workdir: t.TempDir()}
-	for _, state := range batchStates {
-		require.NoError(t, runner.saveResult(batchResult{ID: "task_" + state, State: state}, nil))
+func TestPrepareBatchTasks(t *testing.T) {
+	tests := []struct {
+		name string
+		// Existing trajectory files, relative to the trajectories directory.
+		files []string
+		tasks []string
+		// The tasks expected to be resumed first and the ones expected to follow them.
+		wantResumed []string
+		wantRest    []string
+		// The trajectory files expected to be gone afterwards.
+		wantRemoved []string
+	}{
+		{
+			name:     "empty workdir",
+			tasks:    []string{"task_1", "task_2"},
+			wantRest: []string{"task_1", "task_2"},
+		},
+		{
+			name: "completed tasks are skipped",
+			files: []string{
+				"success/task_1.json",
+				"giveup/task_2.json",
+				"unreached/task_3.json",
+				"error/task_4.json",
+				// Not a result file, so task_5 is still pending.
+				"success/task_5.html",
+			},
+			tasks:    []string{"task_1", "task_2", "task_3", "task_4", "task_5"},
+			wantRest: []string{"task_5"},
+		},
+		{
+			name: "aborted tasks come first",
+			files: []string{
+				"in_progress/task_2.log",
+				"in_progress/task_4.html",
+				"in_progress/task_4.log",
+				// Only result files mark a task as completed.
+				"in_progress/task_5.json",
+			},
+			tasks:       []string{"task_1", "task_2", "task_3", "task_4", "task_5"},
+			wantResumed: []string{"task_2", "task_4"},
+			wantRest:    []string{"task_1", "task_3", "task_5"},
+		},
+		{
+			name: "stale files of completed tasks are removed",
+			files: []string{
+				"success/task_1.json",
+				"in_progress/task_1.html",
+				"in_progress/task_1.log",
+				"in_progress/task_2.log",
+				// The task is no longer in the list, but its files must be kept.
+				"in_progress/task_3.log",
+			},
+			tasks:       []string{"task_1", "task_2"},
+			wantResumed: []string{"task_2"},
+			wantRemoved: []string{"in_progress/task_1.html", "in_progress/task_1.log"},
+		},
+		{
+			name:        "dots in task IDs",
+			files:       []string{"in_progress/net.ipv4.log", "success/net.ipv6.json"},
+			tasks:       []string{"net.ipv4", "net.ipv6"},
+			wantResumed: []string{"net.ipv4"},
+		},
 	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			runner := &Runner{workdir: t.TempDir()}
+			for _, file := range test.files {
+				path := filepath.Join(runner.workdir, "trajectories", file)
+				require.NoError(t, osutil.MkdirAll(filepath.Dir(path)))
+				require.NoError(t, osutil.WriteFile(path, []byte("data")))
+			}
+			var tasks []batchTask
+			for _, id := range test.tasks {
+				tasks = append(tasks, batchTask{ID: id})
+			}
 
-	completed, err := runner.completedTaskIDs()
+			ordered, resumed, err := runner.prepareBatchTasks(tasks)
+			require.NoError(t, err)
+			require.Equal(t, len(test.wantResumed), resumed)
+			assert.ElementsMatch(t, test.wantResumed, taskIDsOf(ordered[:resumed]))
+			assert.ElementsMatch(t, test.wantRest, taskIDsOf(ordered[resumed:]))
+
+			for _, file := range test.files {
+				path := filepath.Join(runner.workdir, "trajectories", file)
+				if slices.Contains(test.wantRemoved, file) {
+					assert.NoFileExists(t, path)
+				} else {
+					assert.FileExists(t, path)
+				}
+			}
+		})
+	}
+}
+
+func TestPrepareBatchTasksRandomizes(t *testing.T) {
+	runner := &Runner{workdir: t.TempDir()}
+	var tasks []batchTask
+	for i := range 10 {
+		tasks = append(tasks, batchTask{ID: fmt.Sprintf("task_%d", i)})
+	}
+	orders := map[string]bool{}
+	for range 20 {
+		ordered, _, err := runner.prepareBatchTasks(tasks)
+		require.NoError(t, err)
+		orders[strings.Join(taskIDsOf(ordered), " ")] = true
+	}
+	assert.Greater(t, len(orders), 1, "the task order must be randomized")
+}
+
+func TestSaveResult(t *testing.T) {
+	runner := &Runner{workdir: t.TempDir()}
+	inProgressDir := filepath.Join(runner.workdir, "trajectories", stateInProgress)
+	require.NoError(t, osutil.MkdirAll(inProgressDir))
+	require.NoError(t, osutil.WriteFile(filepath.Join(inProgressDir, "task_1.html"), []byte("html")))
+	require.NoError(t, osutil.WriteFile(filepath.Join(inProgressDir, "task_1.log"), []byte("log")))
+
+	require.NoError(t, runner.saveResult(batchResult{ID: "task_1", State: stateSuccess}, nil))
+
+	// The in-progress files must be gone and the log must be preserved in the final directory.
+	assert.NoFileExists(t, runner.targetPath(stateInProgress, "task_1", ".html"))
+	assert.NoFileExists(t, runner.targetPath(stateInProgress, "task_1", ".log"))
+	assert.FileExists(t, runner.targetPath(stateSuccess, "task_1", ".json"))
+	assert.FileExists(t, runner.targetPath(stateSuccess, "task_1", ".html"))
+	logData, err := os.ReadFile(runner.targetPath(stateSuccess, "task_1", ".log"))
 	require.NoError(t, err)
-	require.Equal(t, map[string]bool{
-		"task_success":   true,
-		"task_giveup":    true,
-		"task_error":     true,
-		"task_unreached": true,
-	}, completed)
+	assert.Equal(t, "log", string(logData))
 }
 
 func TestAppendOrUpdateSpan(t *testing.T) {
@@ -151,4 +269,12 @@ func TestAppendOrUpdateSpan(t *testing.T) {
 	require.Equal(t, s0Updated, spans[0])
 	require.Equal(t, s1, spans[1])
 	require.Equal(t, s2, spans[2])
+}
+
+func taskIDsOf(tasks []batchTask) []string {
+	var ids []string
+	for _, task := range tasks {
+		ids = append(ids, task.ID)
+	}
+	return ids
 }
