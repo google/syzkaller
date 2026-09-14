@@ -4,6 +4,7 @@
 package triage
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -42,6 +43,11 @@ func (ops *GitTreeOps) Commit(treeName, commitOrBranch string) (*vcs.Commit, err
 	return ops.Git.Commit(treeName + "/" + commitOrBranch)
 }
 
+// ErrSeriesNotApplicable means that the patch series does not apply to the requested commit.
+// Unlike the other errors ApplySeries() may return, it points to a problem with the series
+// itself rather than with the repository.
+var ErrSeriesNotApplicable = errors.New("the series does not apply")
+
 func (ops *GitTreeOps) ApplySeries(commit string, patches [][]byte) error {
 	ops.Reset()
 	_, err := ops.Run("reset", "--hard", commit)
@@ -51,7 +57,7 @@ func (ops *GitTreeOps) ApplySeries(commit string, patches [][]byte) error {
 	for i, patch := range patches {
 		err := ops.Apply(patch)
 		if err != nil {
-			return fmt.Errorf("failed to apply patch %d: %w", i, err)
+			return fmt.Errorf("%w: patch %d: %w", ErrSeriesNotApplicable, i, err)
 		}
 	}
 	return nil
