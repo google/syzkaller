@@ -134,6 +134,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 	sourceDir := arch.sourceDir
 	buildDir := arch.buildDir
 	args := []string{
+		"-std=gnu11",
 		// EFI kernel headers use wide character constants.
 		"-fshort-wchar",
 		// Avoid implicit declaration errors.
