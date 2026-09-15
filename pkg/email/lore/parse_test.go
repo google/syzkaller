@@ -674,3 +674,55 @@ func TestPatchSeriesMinRate(t *testing.T) {
 	require.Len(t, series2, 1)
 	assert.Equal(t, "the subject mentions 100 patches, 98 are found", series2[0].Corrupted)
 }
+
+// Series that consist only of a cover letter (and no actual patches) must be rejected.
+func TestPatchSeriesNoPatches(t *testing.T) {
+	tests := []struct {
+		name      string
+		emails    []*Email
+		corrupted string
+	}{
+		{
+			name: "only cover letter",
+			emails: []*Email{
+				{Email: &email.Email{MessageID: "<cover>", Subject: "[PATCH 0/2] Series"}},
+			},
+			corrupted: "the subject mentions 2 patches, 0 are found",
+		},
+		{
+			name: "cover letter and replies without patches",
+			emails: []*Email{
+				{Email: &email.Email{MessageID: "<cover>", Subject: "[PATCH 0/1] Series"}},
+				{Email: &email.Email{MessageID: "<reply>", InReplyTo: "<cover>", Subject: "Re: [PATCH 1/1] Series"}},
+			},
+			corrupted: "the subject mentions 1 patches, 0 are found",
+		},
+		{
+			name: "zero-sized series",
+			emails: []*Email{
+				{Email: &email.Email{MessageID: "<cover>", Subject: "[PATCH 0/0] Series"}},
+			},
+			corrupted: "the subject mentions 0 patches, 0 are found",
+		},
+		{
+			name: "cover letter and one patch",
+			emails: []*Email{
+				{Email: &email.Email{MessageID: "<cover>", Subject: "[PATCH 0/1] Series"}},
+				{Email: &email.Email{MessageID: "<patch>", InReplyTo: "<cover>", Subject: "[PATCH 1/1] Series"},
+					HasPatch: true},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			series := PatchSeries(test.emails)
+			require.Len(t, series, 1)
+			assert.Equal(t, test.corrupted, series[0].Corrupted)
+			if test.corrupted != "" {
+				assert.Empty(t, series[0].Patches)
+			} else {
+				assert.NotEmpty(t, series[0].Patches)
+			}
+		})
+	}
+}
