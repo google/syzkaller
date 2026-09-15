@@ -212,20 +212,54 @@
 	{
 		"Seq": 13,
 		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:25Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
 		"Type": "tool",
 		"Name": "set-results",
-		"Started": "0001-01-01T00:00:23Z",
+		"Started": "0001-01-01T00:00:27Z",
 		"Args": {
 			"Answer": "Found half of the answer."
 		}
 	},
 	{
-		"Seq": 13,
+		"Seq": 15,
 		"Nesting": 4,
 		"Type": "tool",
 		"Name": "set-results",
-		"Started": "0001-01-01T00:00:23Z",
-		"Finished": "0001-01-01T00:00:24Z",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z",
 		"Args": {
 			"Answer": "Found half of the answer."
 		},
@@ -240,7 +274,7 @@
 		"Name": "researcher",
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:06Z",
-		"Finished": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:29Z",
 		"Results": {
 			"Answer": "Found half of the answer."
 		},
@@ -253,7 +287,7 @@
 		"Type": "tool",
 		"Name": "researcher",
 		"Started": "0001-01-01T00:00:05Z",
-		"Finished": "0001-01-01T00:00:26Z",
+		"Finished": "0001-01-01T00:00:30Z",
 		"Args": {
 			"Question": "What do you think?"
 		},
@@ -262,21 +296,21 @@
 		}
 	},
 	{
-		"Seq": 14,
+		"Seq": 16,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:27Z"
+		"Started": "0001-01-01T00:00:31Z"
 	},
 	{
-		"Seq": 14,
+		"Seq": 16,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:27Z",
-		"Finished": "0001-01-01T00:00:28Z"
+		"Started": "0001-01-01T00:00:31Z",
+		"Finished": "0001-01-01T00:00:32Z"
 	},
 	{
 		"Seq": 1,
@@ -285,7 +319,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:33Z",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "Used partial findings!"
@@ -296,7 +330,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:30Z",
+		"Finished": "0001-01-01T00:00:34Z",
 		"Results": {
 			"Reply": "Used partial findings!"
 		}
