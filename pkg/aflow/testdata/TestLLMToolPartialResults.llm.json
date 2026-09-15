@@ -425,7 +425,7 @@
 						"functionResponse": {
 							"id": "id0",
 							"response": {
-								"error": "agent reached max iterations limit (3)"
+								"Answer": "Found half of the answer."
 							},
 							"name": "researcher"
 						}
