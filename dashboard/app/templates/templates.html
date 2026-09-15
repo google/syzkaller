@@ -242,7 +242,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="stat">{{formatRepro $b.HasCRepro $b.HasSyzRepro}}</td>
 			<td class="bisect_status">{{print $b.BisectCause}}</td>
 			<td class="bisect_status">{{print $b.BisectFix}}</td>
-			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
+			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}" sort-value="{{$b.NumCrashes}}"
+				{{- if $b.NumDups}} title="{{$b.DupNumCrashes}} crashes in {{$b.NumDups}} duplicate bugs"{{end -}}
+			>{{$b.NumCrashes}}{{if $b.DupNumCrashes}} (+{{$b.DupNumCrashes}}){{end}}</td>
 			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
 			<td class="stat">
 				{{if $b.ExternalLink}}
