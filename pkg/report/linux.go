@@ -6,6 +6,7 @@ package report
 import (
 	"bytes"
 	"fmt"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -997,12 +998,12 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(line) {
 			continue
 		}
-		guilty = filepath.Clean(string(file))
+		guilty = path.Clean(string(file))
 		break
 	}
 
 	// Search for deeper filepaths in the stack trace below the first possible guilty file.
-	deepestPath := filepath.Dir(guilty)
+	deepestPath := guiltyDir(guilty)
 	for len(lines) > 0 {
 		line, lines = lines[0], lines[1:]
 		match := filenameRe.FindSubmatch(line)
@@ -1013,18 +1014,29 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(line) {
 			continue
 		}
-		clean := filepath.Clean(string(file))
+		clean := path.Clean(string(file))
+		cleanDir := guiltyDir(clean)
 
-		// Check if the new path has *both* the same directory prefix *and* a deeper suffix.
-		if suffix, ok := strings.CutPrefix(clean, deepestPath); ok {
-			if deeperPathRe.Match([]byte(suffix)) {
-				guilty = clean
-				deepestPath = filepath.Dir(guilty)
-			}
+		// Check if the new path has *both* the same directory prefix *and* a deeper nesting.
+		if strings.HasPrefix(cleanDir, deepestPath+"/") {
+			guilty = clean
+			deepestPath = cleanDir
 		}
 	}
 
 	return guilty
+}
+
+func guiltyDir(file string) string {
+	dir := path.Clean(path.Dir(file))
+	switch dir {
+	// fs/iomap and fs/netfs are shared helper libraries for filesystems in fs/*,
+	// so treat their effective directory depth as "fs".
+	case "fs/iomap", "fs/netfs":
+		return "fs"
+	default:
+		return dir
+	}
 }
 
 func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
@@ -1558,6 +1570,12 @@ var linuxStackParams = &stackParams{
 		"print_tainted",
 		"xas_(?:start|load|find)",
 		"find_lock_entries",
+		"ifs_free",
+		"iomap_invalidate_folio",
+		"folio_invalidate",
+		"truncate_cleanup_folio",
+		"truncate_inode_folio",
+		"truncate_inode_partial_folio",
 		"truncate_inode_pages_range",
 		"__phys_addr",
 		"__fortify_report",

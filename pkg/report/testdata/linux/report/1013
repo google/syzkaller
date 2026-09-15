@@ -1,0 +1,70 @@
+TITLE: WARNING in iomap_release_folio
+TYPE: WARNING
+PANICKED: Y
+
+[  156.512801][   T69] ------------[ cut here ]------------
+[  156.516393][   T69] ifs_is_fully_uptodate(folio, ifs) != folio_test_uptodate(folio)
+[  156.516408][   T69] WARNING: fs/iomap/buffered-io.c:289 at ifs_free+0x344/0x400, CPU#0: kswapd0/69
+[  156.523950][   T69] Modules linked in:
+[  156.527098][   T69] CPU: 0 UID: 0 PID: 69 Comm: kswapd0 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+[  156.532152][   T69] Tainted: [L]=SOFTLOCKUP
+[  156.533990][   T69] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[  156.538130][   T69] RIP: 0010:ifs_free+0x344/0x400
+[  156.540266][   T69] Code: 41 5f 5d e9 ee 45 bd ff e8 79 0e 5a ff 90 0f 0b 90 e9 d8 fe ff ff e8 6b 0e 5a ff 90 0f 0b 90 e9 12 ff ff ff e8 5d 0e 5a ff 90 <0f> 0b 90 eb c7 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 0e fe ff ff
+[  156.548324][   T69] RSP: 0018:ffffc90000cded20 EFLAGS: 00010293
+[  156.550667][   T69] RAX: ffffffff826d0353 RBX: 0000000000000008 RCX: ffff888000f1a540
+[  156.554031][   T69] RDX: 0000000000000000 RSI: 0000000000000008 RDI: 0000000000000000
+[  156.557326][   T69] RBP: 00000000826d8101 R08: ffffea00007d5d87 R09: 1ffffd40000fabb0
+[  156.560949][   T69] R10: dffffc0000000000 R11: fffff940000fabb1 R12: ffff888012f41544
+[  156.564717][   T69] R13: ffff888012f41500 R14: ffffea00007d5d80 R15: 0000000000000000
+[  156.567945][   T69] FS:  0000000000000000(0000) GS:ffff88808c549000(0000) knlGS:0000000000000000
+[  156.571704][   T69] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  156.574471][   T69] CR2: 00007f19da578b50 CR3: 00000000441c6000 CR4: 0000000000352ef0
+[  156.577851][   T69] Call Trace:
+[  156.579316][   T69]  <TASK>
+[  156.580617][   T69]  iomap_release_folio+0x254/0x450
+[  156.583011][   T69]  shrink_folio_list+0x2364/0x5330
+[  156.585215][   T69]  ? __pfx_shrink_folio_list+0x10/0x10
+[  156.587464][   T69]  ? __pfx___css_rstat_updated+0x10/0x10
+[  156.589915][   T69]  ? __lock_acquire+0x683/0x2cf0
+[  156.592166][   T69]  ? mod_memcg_lruvec_state+0xd5/0x270
+[  156.594535][   T69]  ? lock_acquire+0x106/0x350
+[  156.596626][   T69]  ? try_to_inc_min_seq+0x56a/0x750
+[  156.599070][   T69]  ? evict_folios+0x257/0x49e0
+[  156.601151][   T69]  evict_folios+0x3821/0x49e0
+[  156.603271][   T69]  ? evict_folios+0x257/0x49e0
+[  156.605441][   T69]  ? __pfx_evict_folios+0x10/0x10
+[  156.607681][   T69]  try_to_shrink_lruvec+0xb4f/0xed0
+[  156.609915][   T69]  ? __pfx_try_to_shrink_lruvec+0x10/0x10
+[  156.612464][   T69]  ? shrink_node+0x2ed4/0x3b60
+[  156.614468][   T69]  shrink_one+0x233/0x730
+[  156.616299][   T69]  ? shrink_node+0x2ed4/0x3b60
+[  156.618359][   T69]  shrink_node+0x3303/0x3b60
+[  156.620187][   T69]  ? shrink_node+0x2ed4/0x3b60
+[  156.622241][   T69]  ? percpu_ref_put+0x19/0x180
+[  156.624107][   T69]  ? percpu_ref_put+0x19/0x180
+[  156.625976][   T69]  ? __pfx_shrink_node+0x10/0x10
+[  156.627999][   T69]  ? percpu_ref_put+0x19/0x180
+[  156.630373][   T69]  ? percpu_ref_put+0x19/0x180
+[  156.632679][   T69]  ? mem_cgroup_iter+0x410/0x440
+[  156.634649][   T69]  ? mem_cgroup_iter+0x3b/0x440
+[  156.636680][   T69]  kswapd+0x17b6/0x31c0
+[  156.638463][   T69]  ? kswapd+0x9b6/0x31c0
+[  156.640323][   T69]  ? __pfx_kswapd+0x10/0x10
+[  156.642367][   T69]  ? trace_contention_end+0x3d/0x140
+[  156.645767][   T69]  ? __lock_acquire+0x683/0x2cf0
+[  156.648078][   T69]  ? kthread_affine_node+0x2b2/0x360
+[  156.650351][   T69]  ? __mutex_unlock_slowpath+0x731/0x900
+[  156.652970][   T69]  ? __pfx_autoremove_wake_function+0x10/0x10
+[  156.655517][   T69]  ? __kthread_parkme+0x71/0x1f0
+[  156.657616][   T69]  ? __kthread_parkme+0x196/0x1f0
+[  156.659713][   T69]  kthread+0x388/0x470
+[  156.661439][   T69]  ? __pfx_kswapd+0x10/0x10
+[  156.663416][   T69]  ? __pfx_kthread+0x10/0x10
+[  156.665326][   T69]  ret_from_fork+0x514/0xb70
+[  156.667494][   T69]  ? __pfx_ret_from_fork+0x10/0x10
+[  156.669889][   T69]  ? __switch_to+0xc89/0x1420
+[  156.671984][   T69]  ? __pfx_kthread+0x10/0x10
+[  156.673825][   T69]  ret_from_fork_asm+0x1a/0x30
+[  156.675799][   T69]  </TASK>
+[  156.677025][   T69] Kernel panic - not syncing: kernel: panic_on_warn set ...
