@@ -11,3 +11,6 @@ data:
       env:
          - name: STORAGE_EMULATOR_HOST
            value: http://fake-gcs-server.default.svc.cluster.local:4443
+         # Keep in sync with common/argo/patch-workflow-controller-configmap.yaml.
+         - name: TRANSIENT_ERROR_PATTERN
+           value: "could not find default credentials"

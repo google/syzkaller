@@ -10,3 +10,10 @@ data:
   workflowDefaults: |
         spec:
             serviceAccountName: argo-executor-ksa
+  executor: |
+    env:
+      # On GKE with Workload Identity, the metadata server can take a few seconds
+      # to serve credentials to newly created pods, causing argoexec's GCS client
+      # to fail with "could not find default credentials".
+      - name: TRANSIENT_ERROR_PATTERN
+        value: "could not find default credentials"
