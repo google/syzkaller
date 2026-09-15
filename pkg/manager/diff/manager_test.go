@@ -23,7 +23,7 @@ func TestNeedReproForTitle(t *testing.T) {
 		"no output from test machine":                          false,
 		"SYZFAIL: read failed":                                 false,
 		"lost connection to test machine":                      false,
-		"INFO: rcu detected stall in clone":                    false,
+		"INFO: rcu detected stall in clone":                    true,
 		"WARNING in arch_install_hw_breakpoint":                true,
 		"KASAN: slab-out-of-bounds Write in __bpf_get_stackid": true,
 	} {

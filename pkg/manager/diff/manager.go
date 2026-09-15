@@ -385,7 +385,6 @@ const maxReproAttempts = 6
 func needReproForTitle(title string) bool {
 	if strings.Contains(title, "no output") ||
 		strings.Contains(title, "lost connection") ||
-		strings.Contains(title, "detected stall") ||
 		strings.Contains(title, "SYZ") {
 		// Don't waste time reproducing these.
 		return false
