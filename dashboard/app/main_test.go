@@ -534,6 +534,53 @@ func TestDupReproNotShownInList(t *testing.T) {
 	require.Equal(t, crash.Title, bug.Title)
 	assert.False(t, bug.HasCRepro)
 	assert.False(t, bug.HasSyzRepro)
-	// Crashes are still merged, though.
-	assert.EqualValues(t, 2, bug.NumCrashes)
+}
+
+// The crash count and the last crash time of duplicate bugs must not be merged
+// into the canonical bug's own fields on the bug list pages; instead, the
+// duplicates' crashes are shown separately as "N (+M)".
+func TestDupCrashesInList(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.client.UploadBuild(build))
+
+	crash := testCrash(build, 1)
+	crash.Title = "canonical bug"
+	_, err := c.client.ReportCrash(crash)
+	require.NoError(t, err)
+
+	c.advanceTime(time.Hour)
+	dupCrash := testCrash(build, 2)
+	dupCrash.Title = "dup bug"
+	_, err = c.client.ReportCrash(dupCrash)
+	require.NoError(t, err)
+	_, err = c.client.ReportCrash(dupCrash)
+	require.NoError(t, err)
+
+	reports := map[string]*dashapi.BugReport{}
+	for _, rep := range c.globalClient.pollBugs(2) {
+		reports[rep.Title] = rep
+	}
+	c.globalClient.updateBug(reports[dupCrash.Title].ID, dashapi.BugStatusDup, reports[crash.Title].ID)
+
+	groups, err := fetchNamespaceBugs(c.ctx, AccessAdmin, "test1", nil)
+	require.NoError(t, err)
+
+	var listed []*uiBug
+	for _, group := range groups {
+		listed = append(listed, group.Bugs...)
+	}
+	require.Len(t, listed, 1, "the dup must not be listed separately")
+	bug := listed[0]
+	require.Equal(t, crash.Title, bug.Title)
+	assert.EqualValues(t, 1, bug.NumCrashes)
+	assert.Equal(t, bug.FirstTime, bug.LastTime)
+	assert.Equal(t, 1, bug.NumDups)
+	assert.EqualValues(t, 2, bug.DupNumCrashes)
+
+	reply, err := c.AuthGET(AccessAdmin, "/test1")
+	require.NoError(t, err)
+	assert.Contains(t, string(reply), `>1 (+2)</td>`)
 }
