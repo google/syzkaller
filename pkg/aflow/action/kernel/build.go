@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -121,7 +122,10 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 }
 
 func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
-	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v",
+	// The target must be part of the key: BuildKernel patches the config depending on the
+	// architecture, so the same config may produce different kernels for different targets.
+	desc := fmt.Sprintf("kernel target %v, commit %v, kernel config hash %v",
+		mgrconfig.FormatTarget(args.TargetOS, args.TargetVMArch, args.TargetArch),
 		args.KernelCommit, hash.String(args.KernelConfig))
 	dir, err := ctx.Cache("build", desc, func(dir string) error {
 		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, args.TargetOS, args.TargetArch, args.TargetVMArch, true)
