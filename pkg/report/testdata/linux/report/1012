@@ -1,0 +1,65 @@
+TITLE: WARNING in ntfs_evict_inode
+TYPE: WARNING
+PANICKED: Y
+
+[  219.892726][ T5758] ------------[ cut here ]------------
+[  219.892758][ T5758] ifs_is_fully_uptodate(folio, ifs) != folio_test_uptodate(folio)
+[  219.892769][ T5758] WARNING: fs/iomap/buffered-io.c:295 at ifs_free+0x34a/0x410, CPU#1: syz-executor/5758
+[  219.916054][ T5758] Modules linked in:
+[  219.920005][ T5758] CPU: 1 UID: 0 PID: 5758 Comm: syz-executor Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+[  219.930072][ T5758] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+[  219.940232][ T5758] RIP: 0010:ifs_free+0x34a/0x410
+[  219.945263][ T5758] Code: 41 5f 5d e9 b8 73 c1 ff e8 53 90 61 ff 90 0f 0b 90 e9 d5 fe ff ff e8 45 90 61 ff 90 0f 0b 90 e9 12 ff ff ff e8 37 90 61 ff 90 <0f> 0b 90 eb c7 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 08 fe ff ff
+[  219.964958][ T5758] RSP: 0000:ffffc90004acf698 EFLAGS: 00010293
+[  219.971071][ T5758] RAX: ffffffff8264e2f9 RBX: 0000000000000008 RCX: ffff88802eaa8000
+[  219.979138][ T5758] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  219.987203][ T5758] RBP: 0000000082656101 R08: 0000000000000000 R09: 0000000000000000
+[  219.995267][ T5758] R10: dffffc0000000000 R11: fffff940002f30a1 R12: ffff888035c68c84
+[  220.003279][ T5758] R13: ffff888035c68c00 R14: ffffea0001798500 R15: 0000000000000000
+[  220.011347][ T5758] FS:  000055559349e500(0000) GS:ffff888125cd9000(0000) knlGS:0000000000000000
+[  220.020557][ T5758] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  220.028108][ T5758] CR2: 000055558dc42a68 CR3: 000000001260e000 CR4: 00000000003526f0
+[  220.036167][ T5758] Call Trace:
+[  220.039475][ T5758]  <TASK>
+[  220.042427][ T5758]  ? __pfx_iomap_invalidate_folio+0x10/0x10
+[  220.048418][ T5758]  truncate_cleanup_folio+0xcb/0x190
+[  220.053760][ T5758]  truncate_inode_pages_range+0x2c4/0xd80
+[  220.059589][ T5758]  ? __lock_acquire+0x6df/0x2e40
+[  220.064657][ T5758]  ? __pfx_truncate_inode_pages_range+0x10/0x10
+[  220.070999][ T5758]  ? rt_spin_unlock+0x159/0x200
+[  220.075954][ T5758]  ? rt_spin_unlock+0x165/0x200
+[  220.080858][ T5758]  ? __pfx_ntfs_evict_inode+0x10/0x10
+[  220.086325][ T5758]  ntfs_evict_inode+0x19/0x40
+[  220.091052][ T5758]  evict+0x624/0xb50
+[  220.095047][ T5758]  ? __pfx_evict+0x10/0x10
+[  220.099523][ T5758]  ? rt_spin_unlock+0x165/0x200
+[  220.104478][ T5758]  evict_inodes+0x7e3/0x870
+[  220.109026][ T5758]  ? __pfx_cgroup_writeback_umount+0x10/0x10
+[  220.115096][ T5758]  ? __pfx_evict_inodes+0x10/0x10
+[  220.120158][ T5758]  ? ntfs_sync_fs+0x22a/0x260
+[  220.124933][ T5758]  ? sync_filesystem+0x1f8/0x250
+[  220.129917][ T5758]  generic_shutdown_super+0xaa/0x2d0
+[  220.135297][ T5758]  kill_block_super+0x44/0xa0
+[  220.140019][ T5758]  ntfs3_kill_sb+0x44/0x1c0
+[  220.140619][ T6054] loop4: detected capacity change from 0 to 4096
+[  220.150965][ T5758]  deactivate_locked_super+0xbc/0x110
+[  220.156456][ T5758]  cleanup_mnt+0x3d3/0x460
+[  220.160920][ T5758]  task_work_run+0x1d9/0x270
+[  220.165591][ T5758]  ? __pfx_task_work_run+0x10/0x10
+[  220.170758][ T5758]  exit_to_user_mode_loop+0x204/0x770
+[  220.176222][ T5758]  ? rcu_is_watching+0x16/0xb0
+[  220.181037][ T5758]  do_syscall_64+0x328/0x520
+[  220.185708][ T5758]  ? trace_irq_disable+0x3b/0x140
+[  220.190858][ T5758]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  220.197016][ T5758]  ? clear_bhb_loop+0x70/0xc0
+[  220.201731][ T5758]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  220.207722][ T5758] RIP: 0033:0x7f394350f397
+[  220.212173][ T5758] Code: a2 c7 05 5c 43 25 00 00 00 00 00 eb 96 e8 e1 12 00 00 90 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 e8 ff ff ff f7 d8 64 89 02 b8
+[  220.231878][ T5758] RSP: 002b:00007ffdbe184418 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+[  220.240381][ T5758] RAX: 0000000000000000 RBX: 00007f39435a4474 RCX: 00007f394350f397
+[  220.248486][ T5758] RDX: 0000000000000000 RSI: 0000000000000009 RDI: 00007ffdbe1844d0
+[  220.256546][ T5758] RBP: 00007ffdbe1844d0 R08: 00007ffdbe1854d0 R09: 00000000ffffffff
+[  220.264609][ T5758] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdbe185560
+[  220.272635][ T5758] R13: 00007f39435a4474 R14: 0000000000035771 R15: 00007ffdbe1855a0
+[  220.280717][ T5758]  </TASK>
+[  220.283775][ T5758] Kernel panic - not syncing: kernel: panic_on_warn set ...

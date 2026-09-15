@@ -1,0 +1,37 @@
+FILE: fs/iomap/buffered-io.c
+
+------------[ cut here ]------------
+ifs_is_fully_uptodate(folio, ifs) != folio_test_uptodate(folio)
+WARNING: fs/iomap/buffered-io.c:289 at ifs_free+0x344/0x400 fs/iomap/buffered-io.c:288, CPU#0: kswapd0/69
+Modules linked in:
+CPU: 0 UID: 0 PID: 69 Comm: kswapd0 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+Tainted: [L]=SOFTLOCKUP
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+RIP: 0010:ifs_free+0x344/0x400 fs/iomap/buffered-io.c:288
+Code: 41 5f 5d e9 ee 45 bd ff e8 79 0e 5a ff 90 0f 0b 90 e9 d8 fe ff ff e8 6b 0e 5a ff 90 0f 0b 90 e9 12 ff ff ff e8 5d 0e 5a ff 90 <0f> 0b 90 eb c7 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 0e fe ff ff
+RSP: 0018:ffffc90000cded20 EFLAGS: 00010293
+RAX: ffffffff826d0353 RBX: 0000000000000008 RCX: ffff888000f1a540
+RDX: 0000000000000000 RSI: 0000000000000008 RDI: 0000000000000000
+RBP: 00000000826d8101 R08: ffffea00007d5d87 R09: 1ffffd40000fabb0
+R10: dffffc0000000000 R11: fffff940000fabb1 R12: ffff888012f41544
+R13: ffff888012f41500 R14: ffffea00007d5d80 R15: 0000000000000000
+FS:  0000000000000000(0000) GS:ffff88808c549000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f19da578b50 CR3: 00000000441c6000 CR4: 0000000000352ef0
+Call Trace:
+ <TASK>
+ iomap_release_folio+0x254/0x450 fs/iomap/buffered-io.c:820
+ shrink_folio_list+0x2364/0x5330 mm/vmscan.c:1463
+ evict_folios+0x3821/0x49e0 mm/vmscan.c:4834
+ try_to_shrink_lruvec+0xb4f/0xed0 mm/vmscan.c:4983
+ shrink_one+0x233/0x730 mm/vmscan.c:5024
+ shrink_many mm/vmscan.c:5087 [inline]
+ lru_gen_shrink_node mm/vmscan.c:5165 [inline]
+ shrink_node+0x3303/0x3b60 mm/vmscan.c:6154
+ kswapd_shrink_node mm/vmscan.c:7008 [inline]
+ balance_pgdat mm/vmscan.c:7186 [inline]
+ kswapd+0x17b6/0x31c0 mm/vmscan.c:7462
+ kthread+0x388/0x470 kernel/kthread.c:436
+ ret_from_fork+0x514/0xb70 arch/x86/kernel/process.c:158
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:245
+ </TASK>

@@ -1,0 +1,45 @@
+FILE: fs/ntfs3/inode.c
+
+------------[ cut here ]------------
+ifs_is_fully_uptodate(folio, ifs) != folio_test_uptodate(folio)
+WARNING: fs/iomap/buffered-io.c:295 at ifs_free+0x34a/0x410 fs/iomap/buffered-io.c:294, CPU#1: syz-executor/5758
+Modules linked in:
+CPU: 1 UID: 0 PID: 5758 Comm: syz-executor Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+RIP: 0010:ifs_free+0x34a/0x410 fs/iomap/buffered-io.c:294
+Code: 41 5f 5d e9 b8 73 c1 ff e8 53 90 61 ff 90 0f 0b 90 e9 d5 fe ff ff e8 45 90 61 ff 90 0f 0b 90 e9 12 ff ff ff e8 37 90 61 ff 90 <0f> 0b 90 eb c7 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 08 fe ff ff
+RSP: 0000:ffffc90004acf698 EFLAGS: 00010293
+RAX: ffffffff8264e2f9 RBX: 0000000000000008 RCX: ffff88802eaa8000
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: 0000000082656101 R08: 0000000000000000 R09: 0000000000000000
+R10: dffffc0000000000 R11: fffff940002f30a1 R12: ffff888035c68c84
+R13: ffff888035c68c00 R14: ffffea0001798500 R15: 0000000000000000
+FS:  000055559349e500(0000) GS:ffff888125cd9000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000055558dc42a68 CR3: 000000001260e000 CR4: 00000000003526f0
+Call Trace:
+ <TASK>
+ folio_invalidate mm/truncate.c:140 [inline]
+ truncate_cleanup_folio+0xcb/0x190 mm/truncate.c:160
+ truncate_inode_pages_range+0x2c4/0xd80 mm/truncate.c:404
+ ntfs_evict_inode+0x19/0x40 fs/ntfs3/inode.c:2012
+ evict+0x624/0xb50 fs/inode.c:822
+ dispose_list fs/inode.c:864 [inline]
+ evict_inodes+0x7e3/0x870 fs/inode.c:918
+ generic_shutdown_super+0xaa/0x2d0 fs/super.c:755
+ kill_block_super+0x44/0xa0 fs/super.c:1918
+ ntfs3_kill_sb+0x44/0x1c0 fs/ntfs3/super.c:1940
+ deactivate_locked_super+0xbc/0x110 fs/super.c:603
+ cleanup_mnt+0x3d3/0x460 fs/namespace.c:1317
+ task_work_run+0x1d9/0x270 kernel/task_work.c:233
+ resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+ __exit_to_user_mode_loop kernel/entry/common.c:70 [inline]
+ exit_to_user_mode_loop+0x204/0x770 kernel/entry/common.c:101
+ __exit_to_user_mode_prepare include/linux/irq-entry-common.h:207 [inline]
+ syscall_exit_to_user_mode_prepare include/linux/irq-entry-common.h:230 [inline]
+ syscall_exit_to_user_mode include/linux/entry-common.h:336 [inline]
+ do_syscall_64+0x328/0x520 arch/x86/entry/syscall_64.c:89
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f394350f397
+Code: a2 c7 05 5c 43 25 00 00 00 00 00 eb 96 e8 e1 12 00 00 90 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 e8 ff ff ff f7 d8 64 89 02 b8
+ </TASK>

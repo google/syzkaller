@@ -1,0 +1,32 @@
+FILE: fs/iomap/direct-io.c
+
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000038: 0000 [#1] SMP KASAN PTI
+KASAN: null-ptr-deref in range [0x00000000000001c0-0x00000000000001c7]
+CPU: 1 UID: 0 PID: 23 Comm: ksoftirqd/1 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+RIP: 0010:__queue_work+0xa4/0xf90 kernel/workqueue.c:2250
+Code: 10 31 ff 89 ee e8 ac 24 37 00 85 ed 0f 85 9d 0c 00 00 e8 5f 20 37 00 4d 8d b5 c0 01 00 00 4c 89 f0 48 c1 e8 03 48 89 44 24 30 <0f> b6 04 18 84 c0 0f 85 c4 0c 00 00 4c 89 34 24 41 8b 2e 89 ee 81
+RSP: 0018:ffffc900001d7868 EFLAGS: 00010002
+RAX: 0000000000000038 RBX: dffffc0000000000 RCX: ffff88801d2d5b80
+RDX: 0000000000000100 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: 0000000000000000 R08: ffff8880777ed647 R09: 1ffff1100eefdac8
+R10: dffffc0000000000 R11: ffffed100eefdac9 R12: 0000000000000008
+R13: 0000000000000000 R14: 00000000000001c0 R15: 0000000000000200
+FS:  0000000000000000(0000) GS:ffff888125fbc000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000000000 CR3: 0000000073fc0000 CR4: 00000000003526f0
+Call Trace:
+ <TASK>
+ queue_work_on+0x181/0x270 kernel/workqueue.c:2386
+ iomap_dio_bio_end_io+0xf4/0x1c0 fs/iomap/direct-io.c:222
+ blk_update_request+0x57e/0xe60 block/blk-mq.c:1006
+ blk_mq_end_request+0x3e/0x70 block/blk-mq.c:1168
+ blk_complete_reqs block/blk-mq.c:1243 [inline]
+ blk_done_softirq+0x10a/0x160 block/blk-mq.c:1248
+ handle_softirqs+0x27d/0x880 kernel/softirq.c:626
+ run_ksoftirqd+0x9b/0x100 kernel/softirq.c:1067
+ smpboot_thread_fn+0x542/0xa60 kernel/smpboot.c:160
+ kthread+0x711/0x8a0 kernel/kthread.c:463
+ ret_from_fork+0x599/0xb30 arch/x86/kernel/process.c:158
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:246
+ </TASK>
