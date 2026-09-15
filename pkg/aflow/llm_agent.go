@@ -79,9 +79,10 @@ type agentSession struct {
 	req []llmMessage
 	// outputs stores the results returned by the final set-results tool call, if any.
 	outputs map[string]any
-	// answerNow is set to true when the input overflows and the agent must
-	// immediately respond.
+	// answerNow is set to true when the agent has been asked to wrap up immediately.
 	answerNow bool
+	// answerNowLeft is the number of remaining model turns granted after answerNow is set.
+	answerNowLeft int
 	// Resolved max iterations.
 	maxIterations int
 }
@@ -110,6 +111,10 @@ const (
 	maxHistorySize            = 20 // Large enough to catch alternating loops.
 	// We abort execution after this many iterations to prevent infinite loops.
 	defaultMaxLLMIterations = 250
+	// Number of iterations an agent gets after we ask it to wrap up immediately.
+	// It needs more than one b/c it may fail to report the results properly
+	// from the first attempt.
+	answerNowIterations = 3
 	// Maximum number of parallel tool calls allowed per model turn.
 	maxParallelToolCalls = 10
 )
@@ -350,6 +355,7 @@ func (a *agentSession) tryAnswerNow(overflow bool) bool {
 		return false
 	}
 	a.answerNow = true
+	a.answerNowLeft = answerNowIterations
 	// We do not modify cfg.Tools here so that the model's prefix/KV cache
 	// remains valid for the wrap-up turns. Instead, callTools rejects any
 	// non-output tool call while wrapping up.
@@ -361,6 +367,22 @@ func (a *agentSession) tryAnswerNow(overflow bool) bool {
 		a.req[len(a.req)-1] = request
 	} else {
 		a.req = append(a.req, request)
+	}
+	return true
+}
+
+func (a *agentSession) nextIteration(iter int) bool {
+	if !a.answerNow && iter >= a.maxIterations && !a.tryAnswerNow(false) {
+		return false
+	}
+	if a.answerNow {
+		// Once the agent is asked to wrap up (either b/c of the iteration
+		// limit or b/c of a context overflow), its remaining budget is
+		// answerNowLeft rather than maxIterations.
+		if a.answerNowLeft == 0 {
+			return false
+		}
+		a.answerNowLeft--
 	}
 	return true
 }
@@ -396,7 +418,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		return "", nil, err
 	}
 	var anchorTokens int
-	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(false); iter++ {
+	for iter := 0; a.nextIteration(iter); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
 			currentInputTokens += msg.tokenCount
@@ -431,13 +453,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			// Input overflows maximum number of tokens.
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
-			if isInputTokenOverflowError(respErr) {
-				if a.tryAnswerNow(true) {
-					// This avoids a corner case when we overflowed the context
-					// on the very last iteration before maxLLMIterations.
-					iter--
-					continue
-				}
+			// It gets its own iteration budget, so no need to adjust iter here.
+			if isInputTokenOverflowError(respErr) && a.tryAnswerNow(true) {
+				continue
 			}
 			return "", nil, respErr
 		}

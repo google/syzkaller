@@ -188,13 +188,47 @@
 		"Finished": "0001-01-01T00:00:20Z"
 	},
 	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:21Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:22Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z"
+	},
+	{
 		"Seq": 4,
 		"Nesting": 3,
 		"Type": "agent",
 		"Name": "researcher",
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:06Z",
-		"Finished": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:25Z",
 		"Error": "agent reached max iterations limit (3)",
 		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
 		"Prompt": "What do you think?"
@@ -205,28 +239,28 @@
 		"Type": "tool",
 		"Name": "researcher",
 		"Started": "0001-01-01T00:00:05Z",
-		"Finished": "0001-01-01T00:00:22Z",
+		"Finished": "0001-01-01T00:00:26Z",
 		"Error": "agent reached max iterations limit (3)",
 		"Args": {
 			"Question": "What do you think?"
 		}
 	},
 	{
-		"Seq": 12,
+		"Seq": 14,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:23Z"
+		"Started": "0001-01-01T00:00:27Z"
 	},
 	{
-		"Seq": 12,
+		"Seq": 14,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:23Z",
-		"Finished": "0001-01-01T00:00:24Z"
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z"
 	},
 	{
 		"Seq": 1,
@@ -235,7 +269,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:29Z",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "Sub-agent reached limit, but flow continues!"
@@ -246,7 +280,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:26Z",
+		"Finished": "0001-01-01T00:00:30Z",
 		"Results": {
 			"Reply": "Sub-agent reached limit, but flow continues!"
 		}

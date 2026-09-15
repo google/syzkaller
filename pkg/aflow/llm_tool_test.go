@@ -186,9 +186,11 @@ func TestLLMToolMaxIters(t *testing.T) {
 	const maxIterations = 3
 	replies := researcherReplies(maxIterations)
 	// The sub-agent hits maxIterations and attempts to answer now.
-	// We provide an invalid reply so that it fails to produce structured output,
+	// We provide plain text replies until it exhausts answerNowIterations,
 	// causing the sub-agent loop to end and return BadCallError.
-	replies = append(replies, &backend.Part{Text: "I give up!"})
+	for range answerNowIterations {
+		replies = append(replies, &backend.Part{Text: "I give up!"})
+	}
 	// The main agent receives the BadCallError as a tool error response and continues,
 	// providing its final reply without terminating the flow.
 	replies = append(replies, &backend.Part{Text: "Sub-agent reached limit, but flow continues!"})
@@ -200,31 +202,34 @@ func TestLLMToolMaxIters(t *testing.T) {
 	)
 }
 
-// TestLLMToolPartialResults checks that a sub-agent that ran out of iterations still
-// hands over what it has already discovered via set-results, and that disabled tools
-// are rejected without executing on the wrap-up turn.
+// TestLLMToolPartialResults checks that a sub-agent that ran out of iterations gets
+// several attempts to report its findings via set-results, and that disabled tools
+// are rejected without executing during wrap-up.
 func TestLLMToolPartialResults(t *testing.T) {
 	type outputs struct {
 		Reply string
 	}
 	const maxIterations = 3
 	replies := append(researcherReplies(maxIterations),
-		[]backend.Part{
-			{
-				FunctionCall: &backend.FunctionCall{
-					ID:   "id_disabled",
-					Name: "researcher-tool",
-					Args: map[string]any{"Arg": 100},
-				},
-			},
-			{
-				FunctionCall: &backend.FunctionCall{
-					ID:   "id_out",
-					Name: llmSetResultsTool,
-					Args: map[string]any{"Answer": "Found half of the answer."},
-				},
+		// Attempt 1: ignores the order to wrap up and calls a disabled tool.
+		&backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   "id_disabled",
+				Name: "researcher-tool",
+				Args: map[string]any{"Arg": 100},
 			},
 		},
+		// Attempt 2: replies with plain text instead of calling set-results.
+		&backend.Part{Text: "Found half of the answer."},
+		// Attempt 3: finally calls set-results.
+		&backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   "id_out",
+				Name: llmSetResultsTool,
+				Args: map[string]any{"Answer": "Found half of the answer."},
+			},
+		},
+		// Main agent receives the results.
 		backend.Part{Text: "Used partial findings!"},
 	)
 	testFlow[struct{}, outputs](t, nil,

@@ -346,6 +346,246 @@
 		]
 	},
 	{
+		"Model": "sub-agent-model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "What do you think?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 2
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "I give up!"
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\nNote: if you already provided you final reply, you will need to provide it again after calling set-results tool.\nOr did you want to call some other tools, but did not actually do that?\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "What do you think?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 2
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "I give up!"
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\nNote: if you already provided you final reply, you will need to provide it again after calling set-results tool.\nOr did you want to call some other tools, but did not actually do that?\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "I give up!"
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\nNote: if you already provided you final reply, you will need to provide it again after calling set-results tool.\nOr did you want to call some other tools, but did not actually do that?\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
 		"Model": "model",
 		"Config": {
 			"systemInstruction": {
