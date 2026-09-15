@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOnlyManagerFilter(t *testing.T) {
@@ -494,4 +495,45 @@ func TestReproSubmitAccess(t *testing.T) {
 		c.expectOK(err)
 		assert.Contains(t, string(reply), "Send a reproducer")
 	}
+}
+
+// The reproducers of duplicate bugs must not be attributed to the canonical bug
+// on the bug list pages -- the bug page does not display them either.
+func TestDupReproNotShownInList(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// The canonical bug has no reproducer.
+	crash := testCrash(build, 1)
+	crash.Title = "canonical bug"
+	c.client.ReportCrash(crash)
+
+	// The dup bug has both syz and C reproducers.
+	dupCrash := testCrashWithRepro(build, 2)
+	dupCrash.Title = "dup bug"
+	c.client.ReportCrash(dupCrash)
+
+	reports := map[string]*dashapi.BugReport{}
+	for _, rep := range c.globalClient.pollBugs(2) {
+		reports[rep.Title] = rep
+	}
+	c.globalClient.updateBug(reports[dupCrash.Title].ID, dashapi.BugStatusDup, reports[crash.Title].ID)
+
+	groups, err := fetchNamespaceBugs(c.ctx, AccessAdmin, "test1", nil)
+	require.NoError(t, err)
+
+	var listed []*uiBug
+	for _, group := range groups {
+		listed = append(listed, group.Bugs...)
+	}
+	require.Len(t, listed, 1, "the dup must not be listed separately")
+	bug := listed[0]
+	require.Equal(t, crash.Title, bug.Title)
+	assert.False(t, bug.HasCRepro)
+	assert.False(t, bug.HasSyzRepro)
+	// Crashes are still merged, though.
+	assert.EqualValues(t, 2, bug.NumCrashes)
 }

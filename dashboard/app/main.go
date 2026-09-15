@@ -2278,8 +2278,11 @@ func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
-	bug.HasCRepro = bug.HasCRepro || dup.HasCRepro
-	bug.HasSyzRepro = bug.HasSyzRepro || dup.HasSyzRepro
+	// Note: we intentionally don't merge the repro flags of the dup.
+	// The reproducers belong to the dup bug and are not displayed on the
+	// canonical bug page, so it would only be confusing. All the rest of the
+	// code (bug filtering, repro scheduling, reporting) also only considers
+	// the bug's own reproducers.
 	updateBugBadness(ctx, bug)
 }
 
