@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -432,6 +433,83 @@ func TestCacheConcurrentCreateMultipleWaiters(t *testing.T) {
 	close(gate)
 	require.NoError(t, eg.Wait())
 	require.Equal(t, int64(1), popCount.Load())
+}
+
+// TestCachePanicWaiter verifies that a panic in the populate callback is not propagated to the
+// concurrent Create calls waiting for the same entry. They did nothing wrong, so they must get
+// an error, while the panic still unwinds in the goroutine that caused it.
+func TestCachePanicWaiter(t *testing.T) {
+	c, err := newTestCache(t, t.TempDir(), 1<<40, time.Now)
+	require.NoError(t, err)
+
+	started, gate := make(chan struct{}), make(chan struct{})
+	recovered := make(chan any, 1)
+	go func() {
+		defer func() { recovered <- recover() }()
+		c.Create("build", "target", func(dir string) error {
+			close(started)
+			if err := waitClose(gate); err != nil {
+				return err
+			}
+			panic("populate failed")
+		})
+	}()
+	// Let the populating call register the entry, otherwise the second call may become
+	// the populating one itself.
+	require.NoError(t, waitClose(started))
+
+	waiterErr := make(chan error, 1)
+	go func() {
+		dir, err := c.Create("build", "target", func(string) error { return nil })
+		if err == nil {
+			c.Release(dir)
+		}
+		waiterErr <- err
+	}()
+	waitPendingWaiters(t, c, "build", "target", 1)
+	close(gate)
+
+	require.NotNil(t, <-recovered, "the populating goroutine must still panic")
+	select {
+	case err := <-waiterErr:
+		require.ErrorContains(t, err, "panicked")
+	case <-time.After(waitTimeout):
+		t.Fatal("timed out waiting for the waiting Create call")
+	}
+}
+
+// TestCacheParallelPopulateOverLimit verifies that a freshly populated entry is not purged before
+// its creator accounts its use, even when several populations complete at the same time and push
+// the cache over the limit. Otherwise a caller could fail right after a multi-minute population.
+func TestCacheParallelPopulateOverLimit(t *testing.T) {
+	const (
+		workers   = 4
+		entrySize = 8000
+	)
+	// The cache holds only a couple of the entries, so purge does run as the workers complete.
+	c, err := newTestCache(t, t.TempDir(), 20000, time.Now)
+	require.NoError(t, err)
+
+	var barrier sync.WaitGroup
+	barrier.Add(workers)
+	var eg errgroup.Group
+	for i := range workers {
+		eg.Go(func() error {
+			dir, err := c.Create("build", fmt.Sprint(i), func(dir string) error {
+				err := osutil.WriteFile(filepath.Join(dir, "data"), make([]byte, entrySize))
+				// Complete all the populations at the same time to maximize the overlap.
+				barrier.Done()
+				barrier.Wait()
+				return err
+			})
+			if err != nil {
+				return err
+			}
+			c.Release(dir)
+			return nil
+		})
+	}
+	require.NoError(t, eg.Wait())
 }
 
 // TestCachePurgeStaged verifies that an evicted entry is both staged and actually removed.
