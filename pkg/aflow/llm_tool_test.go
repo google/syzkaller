@@ -200,6 +200,41 @@ func TestLLMToolMaxIters(t *testing.T) {
 	)
 }
 
+// TestLLMToolPartialResults checks that a sub-agent that ran out of iterations still
+// hands over what it has already discovered via set-results, and that disabled tools
+// are rejected without executing on the wrap-up turn.
+func TestLLMToolPartialResults(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	const maxIterations = 3
+	replies := append(researcherReplies(maxIterations),
+		[]backend.Part{
+			{
+				FunctionCall: &backend.FunctionCall{
+					ID:   "id_disabled",
+					Name: "researcher-tool",
+					Args: map[string]any{"Arg": 100},
+				},
+			},
+			{
+				FunctionCall: &backend.FunctionCall{
+					ID:   "id_out",
+					Name: llmSetResultsTool,
+					Args: map[string]any{"Answer": "Found half of the answer."},
+				},
+			},
+		},
+		backend.Part{Text: "Used partial findings!"},
+	)
+	testFlow[struct{}, outputs](t, nil,
+		map[string]any{"Reply": "Used partial findings!"},
+		researcherAgent(maxIterations),
+		replies,
+		nil,
+	)
+}
+
 func TestLLMToolValidation(t *testing.T) {
 	type outputs struct {
 		Reply string

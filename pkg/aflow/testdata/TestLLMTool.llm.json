@@ -466,19 +466,6 @@
 	},
 	{
 		"Model": "sub-agent-model",
-		"Config": {
-			"systemInstruction": {
-				"parts": [
-					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
-					}
-				],
-				"role": "user"
-			},
-			"temperature": 0.3,
-			"thinkingLevel": 3,
-			"includeThoughts": true
-		},
 		"Request": [
 			{
 				"parts": [
@@ -530,7 +517,7 @@
 			{
 				"parts": [
 					{
-						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without calling any more tools!\nIMPORTANT: Your tool calling ability is currently disabled.\nDo NOT attempt to output JSON to call tools. Base your response strictly on\nthe text information you have already gathered.\n"
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
 					}
 				],
 				"role": "user"

@@ -251,12 +251,16 @@ Note: if you already provided you final reply, you will need to provide it again
 Or did you want to call some other tools, but did not actually do that?
 `
 
+// Sent to a sub-agent that must wrap up right now (it either ran out of iterations,
+// or overflowed the context).
 const llmAnswerNow = `
 Provide a best-effort answer to the original question with all of the information
-you have so far without calling any more tools!
-IMPORTANT: Your tool calling ability is currently disabled.
-Do NOT attempt to output JSON to call tools. Base your response strictly on
-the text information you have already gathered.
+you have so far without doing any more research!
+IMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON
+to call them. Base the answer strictly on the information you have already gathered,
+and explicitly state which parts of it are incomplete or were not verified.
+The set-results tool is the only tool you may still call.
+Call it with the results you have so far, including any caveats or unverified parts.
 `
 
 const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
@@ -341,14 +345,14 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
-func (a *agentSession) tryAnswerNow(cfg *backend.GenerateConfig, overflow bool) bool {
+func (a *agentSession) tryAnswerNow(overflow bool) bool {
 	if !a.SubAgent || len(a.req) < 3 || a.answerNow {
 		return false
 	}
 	a.answerNow = true
-	// We clear the tools to force the model to provide a text answer instead of calling a tool.
-	cfg.Tools = nil
-
+	// We do not modify cfg.Tools here so that the model's prefix/KV cache
+	// remains valid for the wrap-up turns. Instead, callTools rejects any
+	// non-output tool call while wrapping up.
 	request := llmMessage{content: &backend.Message{
 		Role:  backend.RoleUser,
 		Parts: []backend.Part{{Text: llmAnswerNow}},
@@ -392,7 +396,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		return "", nil, err
 	}
 	var anchorTokens int
-	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(cfg, false); iter++ {
+	for iter := 0; iter < a.maxIterations || a.tryAnswerNow(false); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
 			currentInputTokens += msg.tokenCount
@@ -428,7 +432,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
 			if isInputTokenOverflowError(respErr) {
-				if a.tryAnswerNow(cfg, true) {
+				if a.tryAnswerNow(true) {
 					// This avoids a corner case when we overflowed the context
 					// on the very last iteration before maxLLMIterations.
 					iter--
@@ -867,12 +871,17 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		if err := ctx.startSpan(span); err != nil {
 			return err
 		}
-		toolErr := BadCallError("tool %q does not exist, please correct the name", call.Name)
 		tool := tools[call.Name]
-		if tool != nil {
-			if err := a.recordAndCheckDuplicate(call); err != nil {
-				toolErr = err
-			} else {
+		var toolErr error
+		switch {
+		case tool == nil:
+			toolErr = BadCallError("tool %q does not exist, please correct the name", call.Name)
+		case a.answerNow && tool != a.Outputs.tool:
+			toolErr = BadCallError(
+				"tool %q is disabled: you must stop the research now and report what you have via %q",
+				call.Name, llmSetResultsTool)
+		default:
+			if toolErr = a.recordAndCheckDuplicate(call); toolErr == nil {
 				span.Results, toolErr = tool.execute(ctx, call.Args)
 			}
 		}
@@ -1043,6 +1052,11 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	}
 	if a.Outputs == nil {
 		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+		// callTools relies on Outputs being set when it rejects
+		// non-output tool calls from a wrapping-up sub-agent.
+		if a.SubAgent {
+			ctx.errorf(a.Name, "a sub-agent must have Outputs")
+		}
 	}
 	if _, ok := taskParameters[a.TaskType]; !ok {
 		ctx.errorf(a.Name, "bad or missing TaskType (%v)", a.TaskType)
