@@ -100,6 +100,7 @@ func TestDiffSuccess(t *testing.T) {
 	select {
 	case bug := <-env.diffCtx.patchedOnly:
 		assert.Equal(t, "crash_title", bug.Report.Title)
+		assert.False(t, env.diffCtx.NeedRepro(&manager.Crash{Report: bug.Report}))
 	case <-time.After(testTimeout):
 		t.Fatal("expected patched only report")
 	}
@@ -191,7 +192,7 @@ func TestDiffRetryRepro(t *testing.T) {
 	env.new.FinishCorpusTriage()
 	env.start()
 
-	for i := 0; i <= maxReproAttempts; i++ {
+	for i := range maxReproAttempts {
 		env.new.CrashesCh <- &report.Report{Title: "crash_title", Report: []byte("log")}
 		select {
 		case <-reproCalled:
