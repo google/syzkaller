@@ -415,7 +415,7 @@ func (dc *diffContext) NeedRepro(crash *manager.Crash) bool {
 	}
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
-	return dc.reproAttempts[crash.Title] <= maxReproAttempts
+	return dc.reproAttempts[crash.Title] < maxReproAttempts
 }
 
 func (dc *diffContext) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
