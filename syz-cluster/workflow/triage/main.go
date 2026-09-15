@@ -59,7 +59,7 @@ func main() {
 	err = client.UploadTriageResult(ctx, *flagSession, &api.UploadTriageResultReq{
 		SkipReason: verdict.SkipReason,
 		Log:        output.Bytes(),
-		Trajectory: verdict.Trajectory,
+		Trajectory: triager.Trajectory(),
 	})
 	if err != nil {
 		app.Fatalf("failed to upload triage results: %v", err)
@@ -79,6 +79,13 @@ type seriesTriager struct {
 	ws        *workspace.Workspace
 	config    *app.AppConfig
 	aiVerdict *triage.AITriageResult
+}
+
+func (triager *seriesTriager) Trajectory() []byte {
+	if triager.aiVerdict != nil {
+		return triager.aiVerdict.Trajectory
+	}
+	return nil
 }
 
 func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) (*api.TriageResult, error) {
@@ -115,9 +122,6 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	if len(ret.Targets) > 0 {
 		// If we have prepared at least one fuzzing task, the series was not skipped.
 		ret.SkipReason = ""
-	}
-	if triager.aiVerdict != nil {
-		ret.Trajectory = triager.aiVerdict.Trajectory
 	}
 	return ret, nil
 }

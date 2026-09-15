@@ -18,8 +18,6 @@ type TriageResult struct {
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
 	Targets []*TestTarget `json:"targets"`
-	// Aflow Trajectory.
-	Trajectory []byte `json:"trajectory,omitempty"`
 }
 
 type TrackType string
