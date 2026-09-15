@@ -122,15 +122,39 @@ func TestLLMTool(t *testing.T) {
 	)
 }
 
-func TestLLMToolMaxIters(t *testing.T) {
-	type outputs struct {
-		Reply string
-	}
+// researcherAgent returns an agent with a single research sub-agent tool.
+func researcherAgent(maxIterations int) *LLMAgent {
 	type toolArgs struct {
 		Arg int `jsonschema:"something"`
 	}
+	return &LLMAgent{
+		Reply: "Reply",
+		Tools: []Tool{
+			&LLMTool[struct{}, DefaultLLMArgs]{
+				Name:          "researcher",
+				Model:         "sub-agent-model",
+				TaskType:      FormalReasoningTask,
+				Description:   "researcher description",
+				Instruction:   "researcher instruction",
+				Prompt:        `{{.Question}}`,
+				MaxIterations: maxIterations,
+				Tools: []Tool{
+					NewFuncTool("researcher-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+						if args.Arg >= maxIterations {
+							return struct{}{}, fmt.Errorf("disabled tool executed")
+						}
+						return struct{}{}, nil
+					}, "researcher-tool description"),
+				},
+			},
+		},
+	}
+}
+
+// researcherReplies makes the main agent call the researcher sub-agent,
+// which then calls own tool the given number of times.
+func researcherReplies(toolCalls int) []any {
 	replies := []any{
-		// Main agent calls the tool sub-agent.
 		&backend.Part{
 			FunctionCall: &backend.FunctionCall{
 				ID:   "id0",
@@ -141,8 +165,7 @@ func TestLLMToolMaxIters(t *testing.T) {
 			},
 		},
 	}
-	// Sub-agent calls own tool maxLLMIterations times.
-	for i := range defaultMaxLLMIterations {
+	for i := range toolCalls {
 		replies = append(replies, &backend.Part{
 			FunctionCall: &backend.FunctionCall{
 				ID:   "id1",
@@ -153,7 +176,16 @@ func TestLLMToolMaxIters(t *testing.T) {
 			},
 		})
 	}
-	// The sub-agent hits maxLLMIterations and attempts to answer now.
+	return replies
+}
+
+func TestLLMToolMaxIters(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	const maxIterations = 3
+	replies := researcherReplies(maxIterations)
+	// The sub-agent hits maxIterations and attempts to answer now.
 	// We provide an invalid reply so that it fails to produce structured output,
 	// causing the sub-agent loop to end and return BadCallError.
 	replies = append(replies, &backend.Part{Text: "I give up!"})
@@ -162,24 +194,7 @@ func TestLLMToolMaxIters(t *testing.T) {
 	replies = append(replies, &backend.Part{Text: "Sub-agent reached limit, but flow continues!"})
 	testFlow[struct{}, outputs](t, nil,
 		map[string]any{"Reply": "Sub-agent reached limit, but flow continues!"},
-		&LLMAgent{
-			Reply: "Reply",
-			Tools: []Tool{
-				&LLMTool[struct{}, DefaultLLMArgs]{
-					Name:        "researcher",
-					Model:       "sub-agent-model",
-					TaskType:    FormalReasoningTask,
-					Description: "researcher description",
-					Instruction: "researcher instruction",
-					Prompt:      `{{.Question}}`,
-					Tools: []Tool{
-						NewFuncTool("researcher-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
-							return struct{}{}, nil
-						}, "researcher-tool description"),
-					},
-				},
-			},
-		},
+		researcherAgent(maxIterations),
 		replies,
 		nil,
 	)
