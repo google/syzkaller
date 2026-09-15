@@ -105,6 +105,9 @@ func (w *ArgoService) generateLog(nodes v1alpha1.Nodes) []byte {
 		}
 		fmt.Fprintf(&buf, "Name: %s\n", val.Name)
 		fmt.Fprintf(&buf, "Phase: %s\n", val.Phase)
+		if val.Message != "" {
+			fmt.Fprintf(&buf, "Message: %s\n", val.Message)
+		}
 		fmt.Fprintf(&buf, "StartedAt: %s\n", val.StartedAt)
 		fmt.Fprintf(&buf, "FinishedAt: %s\n", val.FinishedAt)
 		fmt.Fprintf(&buf, "Input: %s\n", val.Inputs)
