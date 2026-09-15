@@ -4,10 +4,14 @@
 package syzlang
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/image"
 	"github.com/stretchr/testify/require"
 )
@@ -144,6 +148,56 @@ func TestExecuteSeed(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestExecuteSeedCachedErrors(t *testing.T) {
+	img := filepath.Join(t.TempDir(), "img")
+	require.NoError(t, os.WriteFile(img, nil, 0600))
+	imgHash, err := hash.File(img)
+	require.NoError(t, err)
+
+	prog := "getrlimit(0x0, 0x0)\n"
+	state := reproduceState{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		Image:      img,
+		VM:         json.RawMessage("{}"),
+	}
+	desc := fmt.Sprintf("seed-exec: kernel commit , kernel config hash %v, image hash %v,"+
+		" vm , vm config hash %v, syz repro hash %v",
+		hash.String(""), imgHash.String(), hash.String(state.VM), hash.String(prog))
+
+	tests := []struct {
+		name      string
+		cached    map[string]any
+		wantError string
+	}{
+		{
+			name:      "execution error",
+			cached:    map[string]any{"Error": "process failed"},
+			wantError: "process failed",
+		},
+		{
+			name:      "kernel crash",
+			cached:    map[string]any{"BugTitle": "KASAN: use-after-free"},
+			wantError: "kernel crashed: KASAN: use-after-free",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := aflow.NewTestContext(t)
+			_, _, err := aflow.CacheObject(ctx, "seed-exec", desc, func() (map[string]any, error) {
+				return tc.cached, nil
+			})
+			require.NoError(t, err)
+			_, err = executeSeed(ctx, state, ExecuteSeedArgs{
+				ReproSyz: prog,
+			})
+			require.ErrorContains(t, err, tc.wantError)
+			require.IsType(t, aflow.BadCallError(""), err)
 		})
 	}
 }

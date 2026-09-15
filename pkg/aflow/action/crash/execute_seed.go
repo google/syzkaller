@@ -4,7 +4,6 @@
 package crash
 
 import (
-	"errors"
 	"fmt"
 	"syscall"
 
@@ -111,10 +110,10 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 		return "", err
 	}
 	if cached.Error != "" {
-		return "", errors.New(cached.Error)
+		return "", aflow.BadCallError("%s", cached.Error)
 	}
 	if cached.BugTitle != "" {
-		return "", fmt.Errorf("kernel crashed: %s", cached.BugTitle)
+		return "", aflow.BadCallError("kernel crashed: %s", cached.BugTitle)
 	}
 
 	return cachedID, nil
