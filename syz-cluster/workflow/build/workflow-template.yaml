@@ -22,8 +22,6 @@ spec:
             value: "false"
           - name: test-name
             value: ""
-          - name: smoke-build
-            value: "false"
           # For some reason, "{{=workflow.parameters.session-id ?? ''}}" didn't work here.
           - name: session-id
             value: ""
@@ -60,8 +58,7 @@ spec:
           "--output", "/output",
           "--session", "{{inputs.parameters.session-id}}",
           "--test_name", "{{inputs.parameters.test-name}}",
-          "-findings={{inputs.parameters.findings}}",
-          "-smoke_build={{inputs.parameters.smoke-build}}"
+          "-findings={{inputs.parameters.findings}}"
           ]
         resources:
           requests:
