@@ -102,7 +102,7 @@ This file contains curated recommendations extracted from automated pull request
   - Use `ignore_return` for syscalls returning random system IDs or times.
   - Strictly match kernel struct packing: mark structs `[packed]` if and only if the kernel struct is `__packed`.
   - Model flexible and zero-length arrays (`type arr[]` / `type arr[0]`) as dynamic arrays `array[type]` paired with `len[arr, intX]`. Never hardcode fixed sizes.
-  - In `getsockopt`, always define `optlen` as `ptr[inout, len[optval, int32]]` (not `ptr[in, ...]` or `intptr`). In `setsockopt`, pass length as `len[optval, int32]`.
+  - In `getsockopt`, always define `optlen` as `ptr[inout, len[optval, int32]]` (not `ptr[in, ...]` or `intptr`). In `setsockopt`, pass length as `len[optval]`.
 - **Executor (C++ files in `executor`):**
   - Keep `executor.cc` free of OS-specific `#ifdefs`; use OS-specific headers.
   - Use `const std::string&` or `std::string_view` for immutable strings.
