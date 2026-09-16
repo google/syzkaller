@@ -545,7 +545,7 @@ func (a *agentSession) handleFinalReply(ctx *Context, reply string) (string, map
 }
 
 func (a *agentSession) evaluateJudge(ctx *Context, iter int) (bool, error) {
-	if a.Judge == nil {
+	if a.Judge == nil || a.answerNow {
 		return false, nil
 	}
 	if iter < a.Judge.MinIterations || (iter-a.Judge.MinIterations)%a.Judge.EvaluationInterval != 0 {
