@@ -1252,10 +1252,11 @@ func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*
 		EnabledCalls: map[string]map[*prog.Syscall]bool{
 			mgr.cfg.Sandbox: enabledSyscalls,
 		},
-		LogFunc: func(text string) { fmt.Println(text) },
-		Verbose: true,
-		Debug:   *flagDebug,
-		Tests:   *flagTests,
+		LogFunc:      func(text string) { fmt.Println(text) },
+		Verbose:      true,
+		Debug:        *flagDebug,
+		Tests:        *flagTests,
+		Capabilities: mgr.cfg.BootTestCapabilities.Properties(),
 	}
 	ctx.Init()
 	go func() {
