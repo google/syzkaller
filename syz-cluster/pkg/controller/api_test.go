@@ -34,15 +34,13 @@ func TestAPIGetSeries(t *testing.T) {
 func TestAPISuccessfulBuild(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)
-	UploadTestBuild(t, ctx, client, testBuild)
-	info, err := client.LastBuild(ctx, &api.LastBuildReq{
-		Arch:       testBuild.Arch,
-		TreeName:   testBuild.TreeName,
-		ConfigName: testBuild.ConfigName,
-		Status:     api.BuildSuccess,
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, testBuild, info)
+	resp := UploadTestBuild(t, ctx, client, testBuild)
+	buildRepo := db.NewBuildRepository(env.Spanner)
+	build, err := buildRepo.GetByID(ctx, resp.ID)
+	require.NoError(t, err)
+	require.NotNil(t, build)
+	assert.Equal(t, testBuild.CommitHash, build.CommitHash)
+	assert.Equal(t, db.BuildSuccess, build.Status)
 }
 
 func TestAPISaveFinding(t *testing.T) {

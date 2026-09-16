@@ -11,13 +11,11 @@ import (
 )
 
 type BuildRepository struct {
-	client *spanner.Client
 	*genericEntityOps[Build, string]
 }
 
 func NewBuildRepository(client *spanner.Client) *BuildRepository {
 	return &BuildRepository{
-		client: client,
 		genericEntityOps: &genericEntityOps[Build, string]{
 			client:   client,
 			keyField: "ID",
@@ -31,41 +29,4 @@ func (repo *BuildRepository) Insert(ctx context.Context, build *Build) error {
 		build.ID = uuid.NewString()
 	}
 	return repo.genericEntityOps.Insert(ctx, build)
-}
-
-type LastBuildParams struct {
-	Arch       string
-	TreeName   string
-	ConfigName string
-	Status     string
-	Commit     string
-}
-
-func (repo *BuildRepository) LastBuiltTree(ctx context.Context, params *LastBuildParams) (*Build, error) {
-	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM `Builds` WHERE 1=1",
-		Params: map[string]any{},
-	}
-	if params.Arch != "" {
-		stmt.SQL += " AND `Arch` = @arch"
-		stmt.Params["arch"] = params.Arch
-	}
-	if params.TreeName != "" {
-		stmt.SQL += " AND `TreeName` = @tree"
-		stmt.Params["tree"] = params.TreeName
-	}
-	if params.ConfigName != "" {
-		stmt.SQL += " AND `ConfigName` = @config"
-		stmt.Params["config"] = params.ConfigName
-	}
-	if params.Status != "" {
-		stmt.SQL += " AND `Status` = @status"
-		stmt.Params["status"] = params.Status
-	}
-	if params.Commit != "" {
-		stmt.SQL += " AND `CommitHash` = @commit"
-		stmt.Params["commit"] = params.Commit
-	}
-	stmt.SQL += " ORDER BY `CommitDate` DESC LIMIT 1"
-	return readEntity[Build](ctx, repo.client.Single(), stmt)
 }

@@ -72,35 +72,6 @@ func (s *BuildService) Upload(ctx context.Context, req *api.UploadBuildReq) (*ap
 	}, nil
 }
 
-func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*api.Build, error) {
-	build, err := s.buildRepo.LastBuiltTree(ctx, &db.LastBuildParams{
-		Arch:       req.Arch,
-		TreeName:   req.TreeName,
-		ConfigName: req.ConfigName,
-		Commit:     req.Commit,
-		Status:     req.Status,
-	})
-	if build == nil || err != nil {
-		return nil, err
-	}
-	resp := &api.Build{
-		Arch:         build.Arch,
-		TreeName:     build.TreeName,
-		TreeURL:      build.TreeURL,
-		ConfigName:   build.ConfigName,
-		CommitHash:   build.CommitHash,
-		CommitDate:   build.CommitDate,
-		BuildSuccess: build.Status == db.BuildSuccess,
-	}
-	if !build.SeriesID.IsNull() {
-		resp.SeriesID = build.SeriesID.String()
-	}
-	if !build.JobID.IsNull() {
-		resp.JobID = build.JobID.String()
-	}
-	return resp, nil
-}
-
 func makeBuildInfo(url *api.URLGenerator, build *db.Build) api.BuildInfo {
 	return api.BuildInfo{
 		TreeName:   build.TreeName,

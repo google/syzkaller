@@ -137,13 +137,13 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		if err != nil {
 			return nil, SkipError(err.Error())
 		}
-		result, err = triager.selectFromList(ctx, series, []*api.Tree{tree}, target)
+		result, err = triager.selectFromList(series, []*api.Tree{tree})
 	} else {
 		if series.IsStableBackport() {
 			return nil, SkipError("developer stable backport skipped")
 		}
 		nonStableTrees := triage.NonStableTrees(trees)
-		result, err = triager.selectBaseCommit(ctx, series, nonStableTrees, target)
+		result, err = triager.selectBaseCommit(series, nonStableTrees)
 	}
 	if err != nil {
 		return nil, err
@@ -171,8 +171,7 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	return triager.buildTestTarget(ctx, series, result, target)
 }
 
-func (triager *seriesTriager) selectBaseCommit(ctx context.Context, series *api.Series, candidateTrees []*api.Tree,
-	target *triage.MergedFuzzConfig) (*SelectResult, error) {
+func (triager *seriesTriager) selectBaseCommit(series *api.Series, candidateTrees []*api.Tree) (*SelectResult, error) {
 	if series.BaseCommitHint != "" {
 		if result, err := triager.selectFromBaseCommitHint(series.BaseCommitHint, candidateTrees); err != nil {
 			return nil, fmt.Errorf("selection by base-commit failed: %w", err)
@@ -187,7 +186,7 @@ func (triager *seriesTriager) selectBaseCommit(ctx context.Context, series *api.
 		return result, nil
 	}
 
-	return triager.selectFromList(ctx, series, candidateTrees, target)
+	return triager.selectFromList(series, candidateTrees)
 }
 
 func (triager *seriesTriager) evaluateAI(ctx context.Context, series *api.Series, isFocusedFuzzing, forceTriage bool,
@@ -361,8 +360,7 @@ func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*a
 	return nil, nil
 }
 
-func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Series, trees []*api.Tree,
-	target *triage.MergedFuzzConfig) (*SelectResult, error) {
+func (triager *seriesTriager) selectFromList(series *api.Series, trees []*api.Tree) (*SelectResult, error) {
 	selectedTrees := triage.SelectTrees(series, trees)
 	if len(selectedTrees) == 0 {
 		return nil, SkipError("no suitable base kernel trees found")
@@ -370,19 +368,8 @@ func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Se
 	var skipErr error
 	for _, tree := range selectedTrees {
 		triager.Logf("considering tree %q", tree.Name)
-		lastBuild, err := triager.client.LastBuild(ctx, &api.LastBuildReq{
-			Arch:       fuzzArch,
-			ConfigName: target.KernelConfig,
-			TreeName:   tree.Name,
-			Status:     api.BuildSuccess,
-		})
-		if err != nil {
-			// TODO: the workflow step must be retried.
-			return nil, fmt.Errorf("failed to query the last build for %q: %w", tree.Name, err)
-		}
-		triager.Logf("%q's last build: %q", tree.Name, lastBuild)
 		selector := triage.NewCommitSelector(triager.ws.GitTreeOps, triager.DebugTracer)
-		result, err := selector.Select(series, tree, lastBuild)
+		result, err := selector.Select(series, tree)
 		if err != nil {
 			// TODO: the workflow step must be retried.
 			return nil, fmt.Errorf("failed to run the commit selector for %q: %w", tree.Name, err)

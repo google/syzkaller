@@ -39,7 +39,7 @@ const (
 )
 
 // Select returns the best matching commit hash.
-func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *api.Build) (SelectResult, error) {
+func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree) (SelectResult, error) {
 	head, err := cs.ops.HeadCommit(tree)
 	if err != nil || head == nil {
 		return SelectResult{}, err
@@ -53,31 +53,13 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 		return SelectResult{Reason: reasonSeriesTooOld}, nil
 	}
 
-	// Algorithm:
-	// 1. If the last successful build is sufficiently new, prefer it over the last master.
-	// We should it be renewing it regularly, so the commit should be quite up to date.
-	// 2. If the last build is too old / the series does not apply, give a chance to the
-	// current HEAD.
-
-	var hashes []string
-	if lastBuild != nil {
-		// Check if the commit is still good enough.
-		if diff := head.CommitDate.Sub(lastBuild.CommitDate); diff > seriesLagsBehind {
-			cs.tracer.Logf("the last successful build is already too old: %v, skipping", diff)
-		} else {
-			hashes = append(hashes, lastBuild.CommitHash)
-		}
+	cs.tracer.Logf("considering %q", head.Hash)
+	err = cs.ops.ApplySeries(head.Hash, series.PatchBodies())
+	if err == nil {
+		cs.tracer.Logf("series can be applied to %q", head.Hash)
+		return SelectResult{Commit: head.Hash}, nil
 	}
-	for _, hash := range append(hashes, head.Hash) {
-		cs.tracer.Logf("considering %q", hash)
-		err := cs.ops.ApplySeries(hash, series.PatchBodies())
-		if err == nil {
-			cs.tracer.Logf("series can be applied to %q", hash)
-			return SelectResult{Commit: hash}, nil
-		} else {
-			cs.tracer.Logf("failed to apply to %q: %v", hash, err)
-		}
-	}
+	cs.tracer.Logf("failed to apply to %q: %v", head.Hash, err)
 	return SelectResult{Reason: reasonNotApplies}, nil
 }
 
