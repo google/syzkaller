@@ -390,3 +390,69 @@ func TestStructuredLLMToolWithJudge(t *testing.T) {
 		nil,
 	)
 }
+
+func TestStructuredLLMToolWithJudgeWrapUp(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	type testResult struct {
+		Answer string `jsonschema:"Answer"`
+	}
+	testFlow[struct{}, outputs](t, nil, map[string]any{"Reply": "USED_PARTIAL_FINDINGS"},
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: []Tool{
+				&StructuredLLMTool[struct{}, DefaultLLMArgs, testResult]{
+					Name:          "researcher",
+					Model:         "sub-agent-model",
+					TaskType:      FormalReasoningTask,
+					Description:   "researcher description",
+					Instruction:   "researcher instruction",
+					Prompt:        `{{.Question}}`,
+					MaxIterations: 1,
+					Tools: []Tool{
+						NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+							return struct{}{}, nil
+						}, "ticker"),
+					},
+					Judge: &LLMJudge{
+						Name:               "test-judge",
+						Model:              "judge-model",
+						MinIterations:      1,
+						EvaluationInterval: 1,
+						Instruction:        "Judge the history",
+					},
+				},
+			},
+		},
+		[]any{
+			// Turn 0: Main agent invokes the researcher subagent.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id0",
+				Name: "researcher",
+				Args: map[string]any{"Question": "What is the answer?"},
+			}},
+			// Turn 1: Subagent uses its single research iteration.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "tick_id1",
+				Name: "tick",
+			}},
+			// Wrap-up turn (iter 1, where MinIterations=1 would normally trigger the judge):
+			// subagent ignores the wrap-up prompt and calls tick again (disabled).
+			// If evaluateJudge ran here, it would consume the next reply and fail.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "tick_id2",
+				Name: "tick",
+			}},
+			// Second wrap-up turn: subagent reports findings via set-results.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id_out",
+				Name: llmSetResultsTool,
+				Args: map[string]any{"Answer": "partial answer"},
+			}},
+			// Main agent receives the partial answer.
+			backend.Part{Text: "USED_PARTIAL_FINDINGS"},
+		},
+		nil,
+	)
+}
