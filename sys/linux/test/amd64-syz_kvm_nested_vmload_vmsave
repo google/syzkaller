@@ -1,5 +1,5 @@
 #
-# requires: arch=amd64 -threaded
+# requires: arch=amd64 vendor=amd nested -threaded
 #
 
 # VMLOAD/VMSAVE Reproducer
