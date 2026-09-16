@@ -58,8 +58,9 @@ Always check the struct definition in the Linux kernel headers:
   syzlang, as this would eliminate natural alignment padding expected by
   the kernel.
 * If individual struct fields have explicit alignment attributes (e.g.
-  `__attribute__((aligned(N)))`), define explicit const padding fields (e.g.,
-  `pad array[const[0, int8], N]`) to match the alignment.
+  `__attribute__((aligned(N)))`), define explicit const padding fields of the
+  appropriate size (the difference required to align the field to the N-byte boundary)
+  to match the alignment.
 
 ## Flexible and Variable-Length Arrays
 
@@ -81,7 +82,7 @@ When describing socket options and ioctls:
   (`int32`). Always define `optlen` as `ptr[inout, len[optval, int32]]`.
   DO NOT use `ptr[in, ...]` (the kernel writes to it) and DO NOT use `intptr`
   (`socklen_t` is 32-bit).
-* In `setsockopt`, the length argument is passed by value: `len[optval]`.
+* In `setsockopt`, the length argument is passed by value: `len[optval, int32]`.
 * For ioctl commands, check the macro definition in kernel headers:
   * `_IOR`: Kernel writes data to userspace. Use `ptr[out, ...]` (or `buffer[out]`).
   * `_IOW`: Kernel reads data from userspace. Use `ptr[in, ...]`.
