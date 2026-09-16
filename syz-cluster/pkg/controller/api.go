@@ -44,7 +44,6 @@ func NewAPIServer(env *app.AppEnvironment) *APIServer {
 
 func (c APIServer) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
 	mux.HandleFunc("/findings/previous", c.getPreviousFindings)
@@ -222,19 +221,6 @@ func (c APIServer) getFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON(w, finding)
-}
-
-func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.LastBuildReq](w, r)
-	if req == nil {
-		return
-	}
-	resp, err := c.buildService.LastBuild(r.Context(), req)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
-	api.ReplyJSON[*api.Build](w, resp)
 }
 
 func (c APIServer) uploadSeries(w http.ResponseWriter, r *http.Request) {

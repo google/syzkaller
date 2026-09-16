@@ -58,20 +58,6 @@ func (client Client) GetTrees(ctx context.Context) (*TreesResp, error) {
 	return getJSON[TreesResp](ctx, client.baseURL+"/trees")
 }
 
-type LastBuildReq struct {
-	Arch       string
-	ConfigName string
-	TreeName   string
-	Commit     string
-	Status     string
-}
-
-const BuildSuccess = "success"
-
-func (client Client) LastBuild(ctx context.Context, req *LastBuildReq) (*Build, error) {
-	return postJSON[LastBuildReq, Build](ctx, client.baseURL+"/builds/last", req)
-}
-
 type UploadBuildReq struct {
 	Build
 	Config []byte `json:"config"`

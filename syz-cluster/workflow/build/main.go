@@ -91,28 +91,25 @@ func main() {
 		uploadReq.CommitHash = commit.Hash
 		uploadReq.CommitDate = commit.CommitDate
 	}
-	ret := &BuildResult{}
 	if err != nil {
 		log.Printf("failed to checkout: %v", err)
 		reportResults(ctx, client, nil, nil, []byte(err.Error()))
 		return
+	}
+	ret, err := buildKernel(tracer, req)
+	if err != nil {
+		log.Printf("build process failed: %v", err)
+		reportResults(ctx, client, nil, nil, []byte(err.Error()))
+		return
+	}
+	uploadReq.Compiler = ret.Compiler
+	uploadReq.Config = ret.Config
+	if ret.Finding == nil {
+		uploadReq.BuildSuccess = true
 	} else {
-		ret, err = buildKernel(tracer, req)
-		if err != nil {
-			log.Printf("build process failed: %v", err)
-			reportResults(ctx, client, nil, nil, []byte(err.Error()))
-			return
-		} else {
-			uploadReq.Compiler = ret.Compiler
-			uploadReq.Config = ret.Config
-			if ret.Finding == nil {
-				uploadReq.BuildSuccess = true
-			} else {
-				log.Printf("%s", output.Bytes())
-				log.Printf("failed: %s\n%s", ret.Finding.Title, ret.Finding.Report)
-				uploadReq.Log = ret.Finding.Log
-			}
-		}
+		log.Printf("%s", output.Bytes())
+		log.Printf("failed: %s\n%s", ret.Finding.Title, ret.Finding.Report)
+		uploadReq.Log = ret.Finding.Log
 	}
 	reportResults(ctx, client, uploadReq, ret.Finding, output.Bytes())
 }
