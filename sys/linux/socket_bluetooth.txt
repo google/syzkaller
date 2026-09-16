@@ -118,19 +118,19 @@ getsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SND
 setsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen len[arg])
 getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 setsockopt$bt_BT_PHY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PHY], arg ptr[in, flags[bt_phy_flags, int32]], arglen len[arg])
-getsockopt$bt_BT_PHY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PHY], arg ptr[out, int32], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_PHY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PHY], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_MODE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_MODE], arg ptr[in, flags[bt_mode_flags, int8]], arglen len[arg])
-getsockopt$bt_BT_MODE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_MODE], arg ptr[out, int8], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_MODE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_MODE], arg ptr[out, int8], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_PKT_STATUS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_STATUS], arg ptr[in, bool32], arglen len[arg])
-getsockopt$bt_BT_PKT_STATUS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_STATUS], arg ptr[out, bool32], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_PKT_STATUS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_STATUS], arg ptr[out, bool32], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_PKT_SEQNUM(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_SEQNUM], arg ptr[in, bool32], arglen len[arg])
-getsockopt$bt_BT_PKT_SEQNUM(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_SEQNUM], arg ptr[out, bool32], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_PKT_SEQNUM(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_SEQNUM], arg ptr[out, bool32], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_ISO_QOS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_QOS], arg ptr[in, bt_iso_qos], arglen len[arg])
-getsockopt$bt_BT_ISO_QOS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_QOS], arg ptr[out, bt_iso_qos], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_ISO_QOS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_QOS], arg ptr[out, bt_iso_qos], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_ISO_BASE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_BASE], arg ptr[in, array[int8]], arglen len[arg])
-getsockopt$bt_BT_ISO_BASE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_BASE], arg ptr[out, array[int8, 251]], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_ISO_BASE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_BASE], arg ptr[out, array[int8, 251]], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_BT_CODEC(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CODEC], arg ptr[in, bt_codecs], arglen len[arg])
-getsockopt$bt_BT_CODEC(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CODEC], arg ptr[out, bt_codecs], arglen ptr[in, len[arg, intptr]])
+getsockopt$bt_BT_CODEC(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CODEC], arg ptr[out, bt_codecs], arglen ptr[inout, len[arg, int32]])
 
 bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT, BT_VOICE_TRANSPARENT_16BIT
 
@@ -299,15 +299,16 @@ bt_iso_io_qos {
 bt_codecs {
 	num_codecs	len[codecs, int8]
 	codecs		array[bt_codec]
-}
+} [packed]
 
 bt_codec {
 	id		flags[bt_codec_ids, int8]
 	cid		int16
 	vid		int16
 	data_path	int8
-	num_caps	int8
-}
+	num_caps	len[caps, int8]
+	caps		array[int8]
+} [packed]
 
 hidp_connadd_req {
 	ctrlsk	sock
