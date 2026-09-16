@@ -31,20 +31,17 @@ var (
 	flagTestName   = flag.String("test_name", "", "test name")
 	flagSession    = flag.String("session", "", "session ID")
 	flagFindings   = flag.Bool("findings", false, "report build failures as findings")
-	flagSmokeBuild = flag.Bool("smoke_build", false, "build only if new, don't report findings")
 )
 
 func main() {
 	flag.Parse()
-	ensureFlags(*flagRequest, "--request",
+	ensureFlags(
+		*flagRequest, "--request",
 		*flagRepository, "--repository",
-		*flagOutput, "--output")
-	if !*flagSmokeBuild {
-		ensureFlags(
-			*flagTestName, "--test_name",
-			*flagSession, "--session",
-		)
-	}
+		*flagOutput, "--output",
+		*flagTestName, "--test_name",
+		*flagSession, "--session",
+	)
 
 	req := readRequest()
 	ctx := context.Background()
@@ -100,15 +97,6 @@ func main() {
 		reportResults(ctx, client, nil, nil, []byte(err.Error()))
 		return
 	} else {
-		if *flagSmokeBuild {
-			skip, err := alreadyBuilt(ctx, client, uploadReq)
-			if err != nil {
-				app.Fatalf("failed to query known builds: %v", err)
-			} else if skip {
-				log.Printf("%s already built, skipping", uploadReq.CommitHash)
-				return
-			}
-		}
 		ret, err = buildKernel(tracer, req)
 		if err != nil {
 			log.Printf("build process failed: %v", err)
@@ -150,9 +138,6 @@ func reportResults(ctx context.Context, client *api.Client,
 		BuildID: buildID,
 		Success: status == api.TestPassed,
 	})
-	if *flagSmokeBuild {
-		return
-	}
 	testResult := &api.SessionTest{
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
@@ -176,20 +161,6 @@ func reportResults(ctx context.Context, client *api.Client,
 			app.Fatalf("failed to report the finding: %v", err)
 		}
 	}
-}
-
-func alreadyBuilt(ctx context.Context, client *api.Client,
-	req *api.UploadBuildReq) (bool, error) {
-	build, err := client.LastBuild(ctx, &api.LastBuildReq{
-		Arch:       req.Build.Arch,
-		ConfigName: req.Build.ConfigName,
-		TreeName:   req.Build.TreeName,
-		Commit:     req.CommitHash,
-	})
-	if err != nil {
-		return false, err
-	}
-	return build != nil, nil
 }
 
 func readRequest() *api.BuildRequest {
