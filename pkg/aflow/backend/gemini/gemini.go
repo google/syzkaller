@@ -281,7 +281,9 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 	}
 	candidate := resp.Candidates[0]
 	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall {
+		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall ||
+			candidate.FinishReason == genai.FinishReasonStop ||
+			candidate.FinishReason == genai.FinishReasonRecitation {
 			// Let's consider this as a temp error, and that the next time it won't
 			// generate the same buggy output. In either case we have maxLLMRetryIters.
 			return &backend.RetryError{Delay: 0, IsExponential: false, Err: errors.New(string(candidate.FinishReason))}
