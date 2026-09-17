@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -401,5 +402,153 @@ recursive {
 		if ptr, ok := typ.(*prog.PtrType); ok && ptr.SquashableElem {
 			t.Fatal("got squashable ptr")
 		}
+	}
+}
+
+func TestOverlay(t *testing.T) {
+	t.Parallel()
+	target := targets.List[targets.TestOS][targets.TestArch64]
+
+	t.Run("success", func(t *testing.T) {
+		const autoDesc = `
+meta automatic
+
+arg_type {
+	flags	int32
+	attr	const[AUTO_CONST, int32]
+	sub	sub_only_in_auto
+}
+
+sub_only_in_auto {
+	x	int32
+}
+
+base_struct {
+	a	int64
+}
+
+auto_flags = FLAG_A, FLAG_B
+`
+		const manualDesc = `
+meta overlay["auto_test.txt"]
+
+arg_type_flags = FLAG_C, FLAG_D
+
+override arg_type {
+	flags	flags[arg_type_flags, int32]
+	attr	int32
+}
+
+override auto_flags = FLAG_C
+
+foo(a ptr[in, arg_type], b ptr[in, base_struct], c flags[auto_flags])
+`
+		eh := func(pos ast.Pos, msg string) {
+			t.Errorf("%v: %v", pos, msg)
+		}
+		desc1 := ast.Parse([]byte(autoDesc), "auto_test.txt", eh)
+		desc2 := ast.Parse([]byte(manualDesc), "manual_test.txt", eh)
+		if desc1 == nil || desc2 == nil {
+			t.Fatal("failed to parse")
+		}
+		full := &ast.Description{Nodes: append(desc1.Nodes, desc2.Nodes...)}
+		constInfo := ExtractConsts(full, target, eh)
+		if constInfo == nil {
+			t.Fatal("failed to extract consts")
+		}
+		// Ensure AUTO_CONST from overridden struct in auto_test.txt was extracted.
+		foundAutoConst := false
+		for _, c := range constInfo["auto_test.txt"].Consts {
+			if c.Name == "AUTO_CONST" {
+				foundAutoConst = true
+			}
+		}
+		if !foundAutoConst {
+			t.Fatal("AUTO_CONST not extracted for auto_test.txt")
+		}
+
+		consts := map[string]uint64{
+			"SYS_foo":    1,
+			"AUTO_CONST": 42,
+			"FLAG_A":     1,
+			"FLAG_B":     2,
+			"FLAG_C":     4,
+			"FLAG_D":     8,
+		}
+		p := Compile(full, consts, target, eh)
+		if p == nil {
+			t.Fatal("failed to compile")
+		}
+		// Check that arg_type has 2 fields (the overridden version) and not 3.
+		foundArgType := false
+		for _, typ := range p.Types {
+			if st, ok := typ.(*prog.StructType); ok && st.Name() == "arg_type" {
+				foundArgType = true
+				if len(st.Fields) != 2 {
+					t.Fatalf("expected 2 fields in overridden arg_type, got %d", len(st.Fields))
+				}
+			}
+		}
+		if !foundArgType {
+			t.Fatal("arg_type not found in compiled types")
+		}
+	})
+
+	for _, tc := range []struct {
+		name       string
+		autoDesc   string
+		manualDesc string
+		wantErr    string
+	}{
+		{
+			name: "redeclare_without_override",
+			autoDesc: `
+arg_type {
+	flags	int32
+}
+`,
+			manualDesc: `
+meta overlay["auto_test.txt"]
+
+arg_type {
+	flags	int64
+}
+
+foo(a ptr[in, arg_type])
+`,
+			wantErr: "use 'override' keyword to override",
+		},
+		{
+			name: "override_nonexistent",
+			autoDesc: `
+other_type {
+	flags	int32
+}
+`,
+			manualDesc: `
+meta overlay["auto_test.txt"]
+
+override missing_type {
+	flags	int64
+}
+
+foo(a ptr[in, other_type])
+`,
+			wantErr: "does not match any definition",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var errs []string
+			eh := func(pos ast.Pos, msg string) {
+				errs = append(errs, msg)
+			}
+			desc1 := ast.Parse([]byte(tc.autoDesc), "auto_test.txt", eh)
+			desc2 := ast.Parse([]byte(tc.manualDesc), "manual_test.txt", eh)
+			full := &ast.Description{Nodes: append(desc1.Nodes, desc2.Nodes...)}
+			Compile(full, map[string]uint64{"SYS_foo": 1}, target, eh)
+			if len(errs) == 0 || !strings.Contains(errs[0], tc.wantErr) {
+				t.Fatalf("expected error containing %q, got: %v", tc.wantErr, errs)
+			}
+		})
 	}
 }
