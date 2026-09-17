@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/repro"
@@ -208,5 +209,54 @@ func TestDiffRetryRepro(t *testing.T) {
 	case <-reproCalled:
 		t.Fatalf("unexpected repro")
 	default:
+	}
+}
+
+func TestMonitorPatchedCoverage(t *testing.T) {
+	area := func(name string, pc uint64) corpus.FocusArea {
+		return corpus.FocusArea{Name: name, CoverPCs: map[uint64]struct{}{pc: {}}}
+	}
+	// The area that lets the fuzzer still cover the rest of the kernel.
+	restOfKernel := corpus.FocusArea{Weight: 1.0}
+	tests := []struct {
+		name    string
+		areas   []corpus.FocusArea
+		progs   map[string]int
+		wantErr error
+	}{
+		{
+			name:  "no focus areas",
+			areas: []corpus.FocusArea{restOfKernel},
+		},
+		{
+			name:  "patched code reached",
+			areas: []corpus.FocusArea{area(symbolsArea, 1), area(filesArea, 2), restOfKernel},
+			progs: map[string]int{symbolsArea: 1, "": 10},
+		},
+		{
+			// The AI-suggested area is related enough to the patch, so keep fuzzing.
+			// Note that it comes after the "rest of the kernel" one.
+			name:  "only ai_focus reached",
+			areas: []corpus.FocusArea{area(symbolsArea, 1), restOfKernel, area("ai_focus", 2)},
+			progs: map[string]int{"ai_focus": 1, "": 10},
+		},
+		{
+			name:    "only the rest of the kernel reached",
+			areas:   []corpus.FocusArea{area(symbolsArea, 1), restOfKernel, area("ai_focus", 2)},
+			progs:   map[string]int{"": 10},
+			wantErr: ErrPatchedAreaNotReached,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			env := newTestEnv(t, &Config{FuzzToReachPatched: time.Millisecond})
+			env.new.FinishCorpusTriage()
+			env.new.CoverFiltersVal = manager.CoverageFilters{Areas: test.areas}
+			env.new.ProgsPerAreaVal = test.progs
+
+			ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+			defer cancel()
+			assert.ErrorIs(t, env.diffCtx.monitorPatchedCoverage(ctx), test.wantErr)
+		})
 	}
 }
