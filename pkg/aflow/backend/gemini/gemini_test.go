@@ -78,10 +78,19 @@ func TestParseLLMError(t *testing.T) {
 		// nolint:lll
 		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_input_token_count, limit: 1000000, model: gemini-3-flash Please retry in 24.180878813s.`,
 	}
+	tpmError2 := genai.APIError{
+		Code: 429,
+		// nolint:lll
+		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_input_token_count, limit: 1000000, model: gemini-3-flash Please retry in 24s.`,
+	}
 	tests := []Test{
 		{
 			inputErr:  tpmError1,
 			outputErr: &backend.RetryError{Delay: 25 * time.Second, Err: tpmError1},
+		},
+		{
+			inputErr:  tpmError2,
+			outputErr: &backend.RetryError{Delay: 25 * time.Second, Err: tpmError2},
 		},
 		{
 			inputErr: genai.APIError{
@@ -191,10 +200,7 @@ func TestParseLLMError(t *testing.T) {
 			} else if test.resp != nil {
 				err = parseLLMResp(test.resp)
 			}
-			require.IsType(t, test.outputErr, err)
-			if test.outputErr != nil {
-				require.EqualError(t, err, test.outputErr.Error())
-			}
+			require.Equal(t, test.outputErr, err)
 		})
 	}
 }
