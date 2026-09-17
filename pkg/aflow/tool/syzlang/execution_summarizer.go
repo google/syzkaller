@@ -9,15 +9,14 @@ import (
 )
 
 type ExecutionSummarizerArgs struct {
-	ExecutionCachedID string `jsonschema:"Optional cached execution ID (defaults to last failed)."`
+	ExecutionCachedID string `jsonschema:"Cached ID of the execution to analyze."`
 	Question          string `jsonschema:"Question about what this execution did, not about how to reach a target."`
 }
 
 type executionSummarizerState struct {
-	File                        string
-	PCs                         []string
-	LastFailedExecutionCachedID string
-	EnvironmentPrompt           string `json:",omitempty"`
+	File              string
+	PCs               []string
+	EnvironmentPrompt string `json:",omitempty"`
 }
 
 var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSummarizerArgs]{
@@ -40,8 +39,7 @@ and call errors; it does not research how a target could be reached.`,
 	Prompt: `{{if .EnvironmentPrompt}}Target Environment:
 {{.EnvironmentPrompt}}
 
-{{end}}Please analyze the execution of program ` +
-		`{{if .ExecutionCachedID}}{{.ExecutionCachedID}}{{else}}{{.LastFailedExecutionCachedID}}{{end}} ` +
+{{end}}Please analyze the execution of program {{.ExecutionCachedID}} ` +
 		`to answer the question:
 {{if .Question}}{{.Question}}{{else}}Why did this program fail to reach the target PC?{{end}}
 
