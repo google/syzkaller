@@ -96,6 +96,8 @@ that you can execute directly (e.g. single syzlang spec reads or basic identifie
 Instruct the analyzer to actively read the kernel documentation under the 'Documentation/'
 directory in the kernel source tree (using codesearch tools) to understand the target
 component's requirements, parameters, and initialization/setup sequence.
+Ask '{{.toolReachabilityAnalyzer}}' what a code path requires, and '{{.toolExecutionSummarizer}}'
+what a particular execution actually did; neither of them can do the other's job.
 3. '{{.toolCodeFixer}}': Once you have a syzlang program, use this tool to debug it.
 The tool will repeatedly execute the program until it has no compilation or unacceptable call errors,
 and will return the ExecutionCachedID or report that it gave up.
