@@ -997,9 +997,9 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
 					lastErr = retryErr.Err
 					break // stop retrying this model
 				}
-				delay := retryErr.Delay
+				delay := max(time.Second, retryErr.Delay)
 				if retryErr.IsExponential {
-					delay = backend.BackoffDuration(try, retryErr.Delay)
+					delay = backend.BackoffDuration(try, delay)
 				}
 				ctx.sleep(delay)
 				continue
