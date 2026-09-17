@@ -140,6 +140,48 @@ func TestParseLLMError(t *testing.T) {
 			},
 			outputErr: errors.New("SAFETY"),
 		},
+		{
+			resp: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{
+					{
+						FinishReason: genai.FinishReasonStop,
+					},
+				},
+			},
+			outputErr: &backend.RetryError{
+				Delay:         0,
+				IsExponential: false,
+				Err:           errors.New("STOP"),
+			},
+		},
+		{
+			resp: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{
+					{
+						FinishReason: genai.FinishReasonRecitation,
+					},
+				},
+			},
+			outputErr: &backend.RetryError{
+				Delay:         0,
+				IsExponential: false,
+				Err:           errors.New("RECITATION"),
+			},
+		},
+		{
+			resp: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{
+					{
+						FinishReason: genai.FinishReasonMalformedFunctionCall,
+					},
+				},
+			},
+			outputErr: &backend.RetryError{
+				Delay:         0,
+				IsExponential: false,
+				Err:           errors.New("MALFORMED_FUNCTION_CALL"),
+			},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -149,12 +191,9 @@ func TestParseLLMError(t *testing.T) {
 			} else if test.resp != nil {
 				err = parseLLMResp(test.resp)
 			}
-			if err == nil || test.outputErr == nil {
-				if err != test.outputErr {
-					t.Errorf("got %v, want %v", err, test.outputErr)
-				}
-			} else if err.Error() != test.outputErr.Error() {
-				t.Errorf("got %v, want %v", err, test.outputErr)
+			require.IsType(t, test.outputErr, err)
+			if test.outputErr != nil {
+				require.EqualError(t, err, test.outputErr.Error())
 			}
 		})
 	}
