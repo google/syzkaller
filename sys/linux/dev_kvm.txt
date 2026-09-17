@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 meta arches["386", "amd64", "arm64", "mips64le", "ppc64le", "s390x", "riscv64"]
+meta overlay["dev_kvm_auto.txt"]
 
 include <linux/kvm.h>
 include <linux/kvm_host.h>
@@ -196,12 +197,12 @@ type kvm_guest_debug[ARCH] {
 	arch	ARCH
 }
 
-kvm_reg_list {
+override kvm_reg_list {
 	n	len[reg, int64]
 	reg	array[int64]
 }
 
-kvm_device_attr [
+override kvm_device_attr [
 	attr_arm64	kvm_device_attr_arm64
 	attr_riscv64	kvm_device_attr_riscv64
 	attr_other	kvm_device_attr_generic
@@ -366,7 +367,7 @@ kvm_vcpu_attr_pvtime_ipa {
 
 kvm_pmu_event_filter = KVM_PMU_EVENT_ALLOW, KVM_PMU_EVENT_DENY
 
-kvm_pmu_event_filter {
+override kvm_pmu_event_filter {
 	base_event	int16
 	nevents		int16
 	action		flags[kvm_pmu_event_filter, int8]
@@ -384,13 +385,13 @@ kvm_smccc_filter {
 
 guest_memfd_flags = GUEST_MEMFD_FLAG_MMAP, GUEST_MEMFD_FLAG_INIT_SHARED
 
-kvm_create_guest_memfd {
+override kvm_create_guest_memfd {
 	size		flags[kvm_guest_addr_size, int64]
 	flags		flags[guest_memfd_flags, int64]
 	reserved	array[const[0, int64], 6]
 }
 
-kvm_pre_fault_memory {
+override kvm_pre_fault_memory {
 	gpa	flags[kvm_guest_addrs, int64]
 	size	flags[kvm_guest_addr_size, int64]
 	flags	const[0, int64]
@@ -399,14 +400,14 @@ kvm_pre_fault_memory {
 
 kvm_memory_attribute_flags = KVM_MEMORY_ATTRIBUTE_PRIVATE
 
-kvm_memory_attributes {
+override kvm_memory_attributes {
 	address		flags[kvm_guest_addrs, int64]
 	size		flags[kvm_guest_addr_size, int64]
 	attributes	flags[kvm_memory_attribute_flags, int64]
 	flags		const[0, int64]
 }
 
-kvm_create_device {
+override kvm_create_device {
 	type	flags[kvm_device_type, int32]	(in)
 	fd	fd_kvmdev	(out)
 	flags	flags[kvm_device_flags, int32]	(in)
@@ -420,7 +421,7 @@ kvm_s390_interrupt {
 
 kvm_irqfd_flags = KVM_IRQFD_FLAG_DEASSIGN, KVM_IRQFD_FLAG_RESAMPLE
 
-kvm_irqfd {
+override kvm_irqfd {
 	fd	fd_event
 	gsi	int32
 	flags	flags[kvm_irqfd_flags, int32]
@@ -430,7 +431,7 @@ kvm_irqfd {
 
 kvm_msi_flags = 0, KVM_MSI_VALID_DEVID
 
-kvm_msi {
+override kvm_msi {
 	addrlo	flags[kvm_guest_addrs, int32]
 	addrhi	flags[kvm_guest_addrs, int32]
 	data	int32
@@ -439,7 +440,7 @@ kvm_msi {
 	pad	array[const[0, int8], 12]
 }
 
-kvm_one_reg [
+override kvm_one_reg [
 # Constants from https://docs.kernel.org/virt/kvm/api.html
 	arm64_core		kvm_one_reg_arm64_srange[0x6030000000100000:0x6030000000100050, 2]
 	arm64_fp		kvm_one_reg_arm64_range[0x6040000000100054:0x60400000001000d0]
@@ -503,7 +504,7 @@ kvm_dirty_tlb {
 	n	int32
 }
 
-kvm_ioeventfd {
+override kvm_ioeventfd {
 	datam	int64
 	addr	flags[kvm_guest_addrs, int64]
 	len	flags[kvm_ioeventfd_len, int32]
@@ -524,50 +525,18 @@ kvm_assigned_msix_nr {
 	entnr	int16
 }
 
-kvm_irq_routing {
+override kvm_irq_routing {
 	nr	len[entries, int32]
 	flags	const[0, int32]
 	entries	array[kvm_irq_routing_entry]
 }
 
-kvm_irq_routing_entry {
+override kvm_irq_routing_entry {
 	gsi	int32
 	type	flags[kvm_irq_routing_entry_type, int32]
 	flags	flags[kvm_msi_flags, int32]
 	pad	const[0, int32]
 	u	kvm_irq_routing_entry_u
-}
-
-kvm_irq_routing_entry_u [
-	irqchip	kvm_irq_routing_irqchip
-	msi	kvm_irq_routing_msi
-	adapter	kvm_irq_routing_s390_adapter
-	sint	kvm_irq_routing_hv_sint
-]
-
-kvm_irq_routing_irqchip {
-	irqchip	int32
-	pin	int32
-}
-
-kvm_irq_routing_msi {
-	address_lo	int32
-	address_hi	int32
-	data		int32
-	devid		int32
-}
-
-kvm_irq_routing_s390_adapter {
-	indaddr	int64
-	saddr	int64
-	indoff	int64
-	soff	int32
-	aid	int32
-}
-
-kvm_irq_routing_hv_sint {
-	vcpu	int32
-	sint	int32
 }
 
 type kvm_enable_cap[CAP, ARGS] {
@@ -578,7 +547,7 @@ type kvm_enable_cap[CAP, ARGS] {
 
 define KVM_ENABLE_CAP_SIZE	sizeof(struct kvm_enable_cap)
 
-kvm_userspace_memory_region {
+override kvm_userspace_memory_region {
 	slot	flags[kvm_mem_slots, int32]
 	flags	flags[kvm_mem_region_flags, int32]
 	paddr	flags[kvm_guest_addrs, int64]
@@ -586,7 +555,7 @@ kvm_userspace_memory_region {
 	addr	vma64[1:2]
 }
 
-kvm_userspace_memory_region2 {
+override kvm_userspace_memory_region2 {
 	slot			flags[kvm_mem_slots, int32]
 	flags			flags[kvm_mem_region_flags, int32]
 	paddr			flags[kvm_guest_addrs, int64]
@@ -638,22 +607,22 @@ kvm_vcpu_events_arm64 {
 	reserved		array[const[0, int32], 12]
 }
 
-kvm_vcpu_events [
+override kvm_vcpu_events [
 	x86	kvm_vcpu_events_x86
 	arm64	kvm_vcpu_events_arm64
 ]
 
-kvm_irq_level {
+override kvm_irq_level {
 	irq	int32
 	level	int32
 }
 
-kvm_signal_mask {
+override kvm_signal_mask {
 	len	len[sigset, int32]
 	sigset	array[int8]
 }
 
-kvm_dirty_log {
+override kvm_dirty_log {
 	slot	flags[kvm_mem_slots, int32]
 	pad	const[0, int32]
 	bitmap	vma64
@@ -661,7 +630,7 @@ kvm_dirty_log {
 
 # num_pages and first_page must be multiples of 64,
 # see https://docs.kernel.org/virt/kvm/api.html#kvm-clear-dirty-log-vm-ioctl
-kvm_clear_dirty_log {
+override kvm_clear_dirty_log {
 	slot		flags[kvm_mem_slots, int32]
 	num_pages	int32[0:1024, 64]
 	first_page	int32[0:1024, 64]
@@ -669,13 +638,13 @@ kvm_clear_dirty_log {
 	bitmap		ptr[in, array[int64, 128]]
 }
 
-kvm_regs {
+override kvm_regs {
 	gp	array[int64, 16]
 	rip	flags[kvm_guest_addrs, int64]
 	rflags	flags[kvm_x86_rflags, int64]
 }
 
-kvm_sregs {
+override kvm_sregs {
 	cs	kvm_segment
 	ds	kvm_segment
 	es	kvm_segment
@@ -697,7 +666,7 @@ kvm_sregs {
 	intr	array[int64, 4]
 }
 
-kvm_segment {
+override kvm_segment {
 	base	flags[kvm_guest_addrs, int64]
 	limit	flags[kvm_guest_addrs, int32]
 	select	flags[kvm_guest_selector, int16]
@@ -713,13 +682,13 @@ kvm_segment {
 	padding	const[0, int8]
 }
 
-kvm_dtable {
+override kvm_dtable {
 	base	flags[kvm_guest_addrs, int64]
 	limit	int16
 	pad	array[const[0, int16], 3]
 }
 
-kvm_coalesced_mmio_zone {
+override kvm_coalesced_mmio_zone {
 	addr		flags[kvm_guest_addrs, int64]
 	size		flags[kvm_guest_addr_size, int32]
 	pio_or_pad	int32[0:1]
