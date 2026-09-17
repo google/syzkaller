@@ -22,10 +22,13 @@ type executionSummarizerState struct {
 }
 
 var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSummarizerArgs]{
-	Name:          "execution-summarizer",
-	Model:         aflow.CoreModel,
-	TaskType:      aflow.FormalReasoningTask,
-	MaxIterations: 50,
+	Name:     "execution-summarizer",
+	Model:    aflow.CoreModel,
+	TaskType: aflow.FormalReasoningTask,
+	// Past this many iterations the summarizer is no longer analyzing the execution,
+	// it just wanders around the kernel code, so cut it short and take whatever
+	// it has found by that moment.
+	MaxIterations: 25,
 	Description:   "Analyzes the execution of a syzkaller program to explain why it behaved the way it did.",
 	Instruction:   summarizerInstruction,
 	Tools: aflow.Tools(
