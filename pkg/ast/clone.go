@@ -102,20 +102,22 @@ func (n *Call) Clone() Node {
 
 func (n *Struct) Clone() Node {
 	return &Struct{
-		Pos:      n.Pos,
-		Name:     n.Name.Clone().(*Ident),
-		Fields:   cloneFields(n.Fields),
-		Attrs:    cloneTypes(n.Attrs),
-		Comments: cloneComments(n.Comments),
-		IsUnion:  n.IsUnion,
+		Pos:        n.Pos,
+		Name:       n.Name.Clone().(*Ident),
+		Fields:     cloneFields(n.Fields),
+		Attrs:      cloneTypes(n.Attrs),
+		Comments:   cloneComments(n.Comments),
+		IsUnion:    n.IsUnion,
+		IsOverride: n.IsOverride,
 	}
 }
 
 func (n *IntFlags) Clone() Node {
 	return &IntFlags{
-		Pos:    n.Pos,
-		Name:   n.Name.Clone().(*Ident),
-		Values: cloneInts(n.Values),
+		Pos:        n.Pos,
+		Name:       n.Name.Clone().(*Ident),
+		Values:     cloneInts(n.Values),
+		IsOverride: n.IsOverride,
 	}
 }
 
@@ -125,9 +127,10 @@ func (n *StrFlags) Clone() Node {
 		values = append(values, v.Clone().(*String))
 	}
 	return &StrFlags{
-		Pos:    n.Pos,
-		Name:   n.Name.Clone().(*Ident),
-		Values: values,
+		Pos:        n.Pos,
+		Name:       n.Name.Clone().(*Ident),
+		Values:     values,
+		IsOverride: n.IsOverride,
 	}
 }
 

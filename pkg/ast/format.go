@@ -132,6 +132,9 @@ func (n *Struct) serialize(w io.Writer) {
 	if n.IsUnion {
 		opening, closing = '[', ']'
 	}
+	if n.IsOverride {
+		fmt.Fprintf(w, "override ")
+	}
 	fmt.Fprintf(w, "%v %c\n", n.Name.Name, opening)
 	// Align all field types to the same column.
 	const tabWidth = 8
@@ -168,6 +171,9 @@ func (n *Struct) serialize(w io.Writer) {
 }
 
 func (n *IntFlags) serialize(w io.Writer) {
+	if n.IsOverride {
+		fmt.Fprintf(w, "override ")
+	}
 	fmt.Fprintf(w, "%v = ", n.Name.Name)
 	for i, v := range n.Values {
 		fmt.Fprintf(w, "%v%v", comma(i, ""), fmtInt(v))
@@ -176,6 +182,9 @@ func (n *IntFlags) serialize(w io.Writer) {
 }
 
 func (n *StrFlags) serialize(w io.Writer) {
+	if n.IsOverride {
+		fmt.Fprintf(w, "override ")
+	}
 	fmt.Fprintf(w, "%v = ", n.Name.Name)
 	for i, v := range n.Values {
 		fmt.Fprintf(w, "%v%v", comma(i, ""), FormatStr(v.Value, v.Fmt))
