@@ -16,10 +16,111 @@ import (
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
 	clangtoolimpl "github.com/google/syzkaller/tools/clang/declextract"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClangTool(t *testing.T) {
 	tooltest.TestClangTool[declextract.Output](t, clangtoolimpl.Tool)
+}
+
+func TestOverlayExtract(t *testing.T) {
+	dir := t.TempDir()
+	manualContent := `meta arches["amd64"]
+meta overlay["manual_auto.txt"]
+
+foo(a ptr[in, struct_a], b ptr[in, struct_b])
+
+override struct_b {
+	x	int32
+	y	int32
+}
+`
+	err := osutil.WriteFile(filepath.Join(dir, "manual.txt"), []byte(manualContent))
+	require.NoError(t, err)
+	out := &declextract.Output{
+		Structs: []*declextract.Struct{
+			{
+				Name:     "struct_a",
+				ByteSize: 8,
+				Align:    8,
+				Fields: []*declextract.Field{
+					{
+						Name:      "sub",
+						CountedBy: -1,
+						Type:      &declextract.Type{Struct: "struct_sub"},
+					},
+				},
+			},
+			{
+				Name:     "struct_sub",
+				ByteSize: 8,
+				Align:    8,
+				Fields: []*declextract.Field{
+					{
+						Name:      "val",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 8}},
+					},
+				},
+			},
+			{
+				Name:     "struct_b",
+				ByteSize: 8,
+				Align:    4,
+				Fields: []*declextract.Field{
+					{
+						Name:      "x",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+					{
+						Name:      "y",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+				},
+			},
+			{
+				Name:     "struct_unused",
+				ByteSize: 4,
+				Align:    4,
+				Fields: []*declextract.Field{
+					{
+						Name:      "z",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+				},
+			},
+		},
+	}
+	autoFile := filepath.Join(dir, "auto.txt")
+	overlays, err := discoverOverlays(dir, autoFile)
+	require.NoError(t, err)
+	require.Len(t, overlays, 1)
+	spec := overlays[0]
+	res, err := declextract.RunOverlay(out, new(ifaceprobe.Info), spec.roots,
+		spec.excludeStructs, spec.excludeEnums, spec.arches, nil)
+	require.NoError(t, err)
+	err = osutil.WriteFile(spec.overlayFile, res.Descriptions)
+	require.NoError(t, err)
+	eh, errors := errorHandler()
+	desc := ast.ParseGlob(filepath.Join(dir, "*.txt"), eh)
+	require.NotNil(t, desc, "failed to parse descriptions:\n%s", errors.Bytes())
+	unusedNodes, err := compiler.CollectUnused(desc.Clone(), target, eh)
+	require.NoErrorf(t, err, "failed to typecheck descriptions:\n%s", errors.Bytes())
+	removeUnusedNodes(desc, unusedNodes)
+	unusedConsts, err := compiler.CollectUnusedConsts(desc.Clone(), target, res.IncludeUse, eh)
+	require.NoErrorf(t, err, "failed to typecheck descriptions:\n%s", errors.Bytes())
+	removeUnusedNodes(desc, unusedConsts)
+	fileDesc := filterFile(desc, spec.overlayFile)
+	formatted := string(ast.Format(ast.Parse(ast.Format(fileDesc), spec.overlayFile, nil)))
+	err = osutil.WriteFile(spec.overlayFile, []byte(formatted))
+	require.NoError(t, err)
+	for _, want := range []string{"struct_a {", "struct_sub {", "struct_b {"} {
+		require.Contains(t, formatted, want)
+	}
+	require.NotContains(t, formatted, "struct_unused")
 }
 
 func TestDeclextract(t *testing.T) {
