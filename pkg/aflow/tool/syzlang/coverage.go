@@ -35,8 +35,8 @@ If the total output exceeds the maximum line limit, it will be truncated. Use 'F
 Tool returns the execution trace (chain of function calls) triggered by a specific program execution.
 Because the raw trace is extremely large, it is compressed by keeping only unique functions
 in their order of appearance, and filtering out kernel infrastructure noise.
-You MUST provide 'SyscallIndex' (1-based index of the call statement in the syzlang program,
-e.g. 1 for the 1st call). Use -1 to get the trace for extra (background) coverage.
+You MUST provide 'SyscallIndex' (0-based index of the call statement in the syzlang program,
+e.g. 0 for the 1st call). Use -1 to get the trace for extra (background) coverage.
 You can use 'GrepPattern' to filter trace lines matching a regular expression or substring pattern.
 If the trace is too large, it will be truncated. You can use 'Offset' and 'Limit' to paginate
 through trace output lines.
@@ -247,7 +247,7 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 
 type ExecutionTraceArgs struct {
 	ExecutionCachedID string `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
-	SyscallIndex      int    `jsonschema:"REQUIRED: 1-based syscall index to inspect. Use -1 for extra coverage."`
+	SyscallIndex      int    `jsonschema:"REQUIRED: 0-based syscall index to inspect. Use -1 for extra coverage."`
 	FilterSubsystem   string `json:",omitempty" jsonschema:"Optional: Filter output by file path prefix."`
 	GrepPattern       string `json:",omitempty" jsonschema:"Optional: Filter trace by function or file regex/substring."`
 	IncludeNoise      bool   `json:",omitempty" jsonschema:"Optional: Include noisy functions (e.g., locks, allocators)."`
@@ -256,7 +256,7 @@ type ExecutionTraceArgs struct {
 }
 
 type SyscallTrace struct {
-	CallIndex int      `jsonschema:"The 1-based index of the syscall in the syzkaller program. -1 for extra coverage."`
+	CallIndex int      `jsonschema:"The 0-based index of the syscall in the syzkaller program. -1 for extra coverage."`
 	Trace     []string `jsonschema:"The chain of function calls for this syscall."`
 }
 
@@ -286,14 +286,15 @@ func getExecutionTrace(
 
 	idx := -1
 	if args.SyscallIndex == -1 {
+		// The extra (background) coverage is stored in the last element.
 		idx = len(coverage) - 1
 	} else {
-		idx = args.SyscallIndex - 1
+		idx = args.SyscallIndex
 		if idx < 0 || idx >= len(coverage)-1 {
-			maxSyscall := max(0, len(coverage)-1)
+			maxSyscall := max(0, len(coverage)-2)
 			return ExecutionTraceResult{},
 				aflow.BadCallError(
-					"SyscallIndex %d is out of bounds (1-%d). Use -1 for extra coverage.",
+					"SyscallIndex %d is out of bounds (0-%d). Use -1 for extra coverage.",
 					args.SyscallIndex, maxSyscall,
 				)
 		}

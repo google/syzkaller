@@ -207,14 +207,14 @@ func TestExecutionTrace(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 1: Basic pseudo-call tree (no limits, no filters).
-	idx := 1
+	idx := 0
 	res, err := getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
 		SyscallIndex:      idx,
 	})
 	require.NoError(t, err)
 	require.Len(t, res.Traces, 1)
-	require.Equal(t, 1, res.Traces[0].CallIndex)
+	require.Equal(t, 0, res.Traces[0].CallIndex)
 	require.Equal(t, []string{
 		"sys_read (fs/read_write.c)", "vfs_read (fs/read_write.c)",
 		"fuse_read (fs/fuse/file.c)", "sys_read (fs/read_write.c)",
@@ -302,13 +302,13 @@ func TestExecutionTrace(t *testing.T) {
 	require.Contains(t, err.Error(), "SyscallIndex 5 is out of bounds")
 
 	// Test 7: Extra coverage index passed explicitly (should fail).
-	// dummyCov has length 3 (index 2 is extra coverage, valid syscall indices are 1-2).
+	// dummyCov has length 3 (index 2 is extra coverage, valid syscall indices are 0-1).
 	_, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      3,
+		SyscallIndex:      2,
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "SyscallIndex 3 is out of bounds (1-2). Use -1 for extra coverage.")
+	require.Contains(t, err.Error(), "SyscallIndex 2 is out of bounds (0-1). Use -1 for extra coverage.")
 
 	// Test 8: GrepPattern substring match on function name.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
@@ -365,7 +365,7 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 12: Offset and Limit pagination.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      1,
+		SyscallIndex:      0,
 		Offset:            3,
 		Limit:             2,
 	})
@@ -390,7 +390,7 @@ func TestExecutionTrace(t *testing.T) {
 
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedIDLong,
-		SyscallIndex:      1,
+		SyscallIndex:      0,
 	})
 	require.NoError(t, err)
 	require.Len(t, res.Traces, 1)
@@ -414,7 +414,7 @@ func TestExecutionTrace(t *testing.T) {
 	// Test 15: Out of bounds offset pagination.
 	res, err = getExecutionTrace(ctx, reproduceState{}, ExecutionTraceArgs{
 		ExecutionCachedID: reproExecCachedID,
-		SyscallIndex:      1,
+		SyscallIndex:      0,
 		Offset:            1200,
 	})
 	require.NoError(t, err)
