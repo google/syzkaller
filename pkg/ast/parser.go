@@ -134,6 +134,8 @@ func (p *parser) parseTop() Node {
 			return p.parseMeta()
 		case "type":
 			return p.parseTypeDef()
+		case "override":
+			return p.parseOverride()
 		}
 		switch p.tok {
 		case tokLParen:
@@ -196,6 +198,28 @@ func (p *parser) parseMeta() *Meta {
 	return &Meta{
 		Pos:   p.pos,
 		Value: p.parseType(),
+	}
+}
+
+func (p *parser) parseOverride() Node {
+	name := p.parseIdent()
+	switch p.tok {
+	case tokLBrace, tokLBrack:
+		str := p.parseStruct(name)
+		str.IsOverride = true
+		return str
+	case tokEq:
+		flags := p.parseFlags(name)
+		switch f := flags.(type) {
+		case *IntFlags:
+			f.IsOverride = true
+		case *StrFlags:
+			f.IsOverride = true
+		}
+		return flags
+	default:
+		p.expect(tokLBrace, tokLBrack, tokEq)
+		return nil
 	}
 }
 
