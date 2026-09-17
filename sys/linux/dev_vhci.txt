@@ -6,7 +6,7 @@ include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
-syz_emit_vhci(data ptr[in, vhci_pkt], size bytesize[data])
+syz_emit_vhci(data ptr[in, vhci_pkt], size bytesize[data]) (remote_cover)
 
 # Matches HCI_HANDLE_1/HCI_HANDLE_2 in executor/common_linux.h.
 hci_handles = 200, 201
