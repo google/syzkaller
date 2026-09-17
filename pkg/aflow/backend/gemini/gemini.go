@@ -224,7 +224,7 @@ func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend
 	return fromGenaiResponse(resp), nil
 }
 
-var rePleaseRetry = regexp.MustCompile(`Please retry in (\d+)s\.`)
+var rePleaseRetry = regexp.MustCompile(`Please retry in (\d+)[.s]`)
 
 func parseLLMError(err error, model string) error {
 	var apiErr genai.APIError
