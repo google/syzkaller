@@ -60,6 +60,18 @@ func TestLLMRetryLimit(t *testing.T) {
 		expected = append(expected, 3*time.Minute)
 	}
 	require.Equal(t, expected, delays)
+
+	// Verify that a zero Delay still sleeps for at least 1 second.
+	retryErr = &backend.RetryError{Delay: 0, Err: err0, IsExponential: false}
+	delays = nil
+	tries = 0
+	_, err = agent.generateContent(ctx, cfg, nil, 0, "model1", nil)
+	require.ErrorIs(t, err, err0)
+	require.Equal(t, maxLLMRetryIters+1, tries)
+	require.Len(t, delays, maxLLMRetryIters)
+	for _, d := range delays {
+		require.Equal(t, time.Second, d)
+	}
 }
 
 func TestTokenCompression(t *testing.T) {
