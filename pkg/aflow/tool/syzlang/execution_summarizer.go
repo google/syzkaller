@@ -5,13 +5,12 @@ package syzlang
 
 import (
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
 
 type ExecutionSummarizerArgs struct {
 	ExecutionCachedID string `jsonschema:"Optional cached execution ID (defaults to last failed)."`
-	Question          string `jsonschema:"The question to answer about this execution."`
+	Question          string `jsonschema:"Question about what this execution did, not about how to reach a target."`
 }
 
 type executionSummarizerState struct {
@@ -29,11 +28,13 @@ var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSumm
 	// it just wanders around the kernel code, so cut it short and take whatever
 	// it has found by that moment.
 	MaxIterations: 25,
-	Description:   "Analyzes the execution of a syzkaller program to explain why it behaved the way it did.",
-	Instruction:   summarizerInstruction,
+	Description: `Analyzes a recorded execution of a syzkaller program: how far it got, which calls failed,
+and where it diverged from the expected path. Answers strictly from the recorded trace, coverage
+and call errors; it does not research how a target could be reached.`,
+	Instruction: summarizerInstruction,
 	Tools: aflow.Tools(
 		CoverageFiles, FileCoverage, ExecutionTrace, DisassembleContext,
-		codesearcher.Tools, GetExecutedProgram, kernel.ToolConfigGrep,
+		codesearcher.Tools, GetExecutedProgram,
 		ReadSyzSpec, SyzGrepper,
 	),
 	Prompt: `{{if .EnvironmentPrompt}}Target Environment:
