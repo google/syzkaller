@@ -16,7 +16,8 @@ It returns an ExecutionCachedID even if the execution times out or doesn't crash
 `)
 
 	GetExecutedProgram = aflow.NewFuncTool("get-executed-program", getExecutedProgram, `
-Tool returns the syzlang program that was executed for the given ExecutionCachedID.
+Tool returns the syzlang program that was executed for the given ExecutionCachedID,
+together with the errors returned by the individual calls of that program.
 `)
 )
 
@@ -59,7 +60,8 @@ type GetExecutedProgramArgs struct {
 }
 
 type GetExecutedProgramResult struct {
-	SyzProgram string `jsonschema:"The generated syzlang program."`
+	SyzProgram string            `jsonschema:"The generated syzlang program."`
+	CallErrors []crash.CallError `jsonschema:"List of calls that failed. Empty if all succeeded."`
 }
 
 func getExecutedProgram(ctx *aflow.Context, state reproduceState,
@@ -71,7 +73,12 @@ func getExecutedProgram(ctx *aflow.Context, state reproduceState,
 	if err != nil {
 		return GetExecutedProgramResult{}, aflow.BadCallError("failed to load program details: %v", err)
 	}
+	callErrors, err := crash.LoadCallErrors(ctx, args.ExecutionCachedID)
+	if err != nil {
+		return GetExecutedProgramResult{}, aflow.BadCallError("failed to load call errors: %v", err)
+	}
 	return GetExecutedProgramResult{
 		SyzProgram: generated,
+		CallErrors: callErrors,
 	}, nil
 }

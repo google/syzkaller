@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/image"
 	"github.com/stretchr/testify/require"
@@ -200,4 +201,30 @@ func TestExecuteSeedCachedErrors(t *testing.T) {
 			require.IsType(t, aflow.BadCallError(""), err)
 		})
 	}
+}
+
+func TestGetExecutedProgram(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	syzProg := "openat$dir(0xffffffffffffff9c, &AUTO='./file0\\x00', 0x0, 0x0)\n"
+	callErrors := []crash.CallError{
+		{Index: 0, CallName: "openat$dir", Errno: 2, Error: "no such file or directory"},
+	}
+	_, cachedID, err := aflow.CacheObject(ctx, "seed-exec", "test execution", func() (map[string]any, error) {
+		return map[string]any{
+			"GeneratedSyz": syzProg,
+			"CallErrors":   callErrors,
+		}, nil
+	})
+	require.NoError(t, err)
+
+	res, err := getExecutedProgram(ctx, reproduceState{}, GetExecutedProgramArgs{ExecutionCachedID: cachedID})
+	require.NoError(t, err)
+	require.Equal(t, GetExecutedProgramResult{
+		SyzProgram: syzProg,
+		CallErrors: callErrors,
+	}, res)
+
+	_, err = getExecutedProgram(ctx, reproduceState{}, GetExecutedProgramArgs{ExecutionCachedID: "seed-exec/missing"})
+	require.Error(t, err)
+	require.IsType(t, aflow.BadCallError(""), err)
 }

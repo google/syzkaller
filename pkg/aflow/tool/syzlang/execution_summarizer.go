@@ -64,11 +64,17 @@ The main agent has provided you with:
 2. The ExecutionCachedID of the execution to analyze.
 
 Instructions:
-1. Use the 'get-executed-program' tool to load the syzlang program that was executed.
+1. Use the 'get-executed-program' tool to load the syzlang program that was executed and the errors
+   (errno) returned by its calls. Calls that are not listed in 'CallErrors' succeeded.
+   A failed call is not necessarily a problem: some calls are expected to fail, e.g. when the target
+   PC lies on an error path.
 2. HYPOTHESIS-DRIVEN TRACING (CRITICAL):
    - Do NOT blindly invoke 'get-execution-trace' across every syscall index in sequence (SyscallIndex: 0, 1, 2...).
    - First formulate a specific hypothesis about which syscall(s) are relevant to the target PC or failure
      (e.g., the primary syscall expected to trigger the PC, or prerequisite VM/device setup syscalls).
+     If some calls on the way to the target failed, start with them. Often there are no call errors
+     at all, which means that the execution diverged inside the kernel and you must locate the
+     divergence from the coverage and the trace.
    - Only query the execution traces of those relevant syscalls.
 3. EXECUTOR & PSEUDO-SYSCALL INSPECTION:
    - If the program uses pseudo-syscalls (names starting with 'syz_', such as 'syz_kvm_add_vcpu') or complex syzlang
