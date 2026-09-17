@@ -123,6 +123,12 @@ func TestParseLLMError(t *testing.T) {
 			resp: &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{
 					{
+						Content: &genai.Content{
+							Parts: []*genai.Part{
+								{Thought: true, Text: "thinking..."},
+								{Text: "partial output"},
+							},
+						},
 						FinishReason: genai.FinishReasonMaxTokens,
 					},
 				},
@@ -181,6 +187,11 @@ func TestParseLLMError(t *testing.T) {
 			resp: &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{
 					{
+						Content: &genai.Content{
+							Parts: []*genai.Part{
+								{Thought: true, Text: "thinking..."},
+							},
+						},
 						FinishReason: genai.FinishReasonMalformedFunctionCall,
 					},
 				},

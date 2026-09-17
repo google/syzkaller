@@ -280,16 +280,19 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 		return fmt.Errorf("empty model response")
 	}
 	candidate := resp.Candidates[0]
-	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
+	if candidate.FinishReason == genai.FinishReasonMaxTokens {
+		return &backend.OutputTokenOverflowError{Err: errors.New(string(candidate.FinishReason))}
+	}
+	hasOutput := candidate.Content != nil && slices.ContainsFunc(candidate.Content.Parts, func(p *genai.Part) bool {
+		return p != nil && !p.Thought
+	})
+	if !hasOutput {
 		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall ||
 			candidate.FinishReason == genai.FinishReasonStop ||
 			candidate.FinishReason == genai.FinishReasonRecitation {
 			// Let's consider this as a temp error, and that the next time it won't
 			// generate the same buggy output. In either case we have maxLLMRetryIters.
 			return &backend.RetryError{Delay: 0, IsExponential: false, Err: errors.New(string(candidate.FinishReason))}
-		}
-		if candidate.FinishReason == genai.FinishReasonMaxTokens {
-			return &backend.OutputTokenOverflowError{Err: errors.New(string(candidate.FinishReason))}
 		}
 		if candidate.FinishMessage == "" {
 			return errors.New(string(candidate.FinishReason))
@@ -302,6 +305,9 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 		return fmt.Errorf("unexpected reply fields (%+v)", *candidate)
 	}
 	for _, part := range candidate.Content.Parts {
+		if part == nil {
+			return fmt.Errorf("unexpected nil reply part")
+		}
 		if part.VideoMetadata != nil || part.InlineData != nil ||
 			part.FileData != nil || part.FunctionResponse != nil ||
 			part.CodeExecutionResult != nil || part.ExecutableCode != nil {
