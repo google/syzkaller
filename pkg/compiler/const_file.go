@@ -205,7 +205,7 @@ func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.Erro
 		eh(pos, fmt.Sprintf(msg, args...))
 		return false
 	}
-	weak := file == "auto.txt.const"
+	weak := file == "auto.txt.const" || strings.HasSuffix(file, "_auto.txt.const")
 	s := bufio.NewScanner(bytes.NewReader(data))
 	var arches []string
 	for ; s.Scan(); pos.Line++ {
