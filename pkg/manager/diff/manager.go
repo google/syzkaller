@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -350,11 +351,17 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 	}
 
 	// By this moment, we must have coverage filters already filled out.
+	// Note that we must not rely on the order of the areas: apart from the ones set up by
+	// PatchFocusAreas(), the caller may have configured its own ones (e.g. ai_focus).
+	// The only unnamed area is "everything else", so it's not of interest.
 	focusPCs := 0
-	// The last one is "everything else", so it's not of interest.
-	coverFilters := dc.new.CoverFilters()
-	for i := range len(coverFilters.Areas) - 1 {
-		focusPCs += len(coverFilters.Areas[i].CoverPCs)
+	focusAreas := map[string]struct{}{}
+	for _, area := range dc.new.CoverFilters().Areas {
+		if area.Name == "" {
+			continue
+		}
+		focusAreas[area.Name] = struct{}{}
+		focusPCs += len(area.CoverPCs)
 	}
 	if focusPCs == 0 {
 		// No areas were configured.
@@ -368,10 +375,17 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 	case <-ctx.Done():
 		return nil
 	}
-	focusAreaStats := dc.new.ProgsPerArea()
-	if focusAreaStats[symbolsArea]+focusAreaStats[filesArea]+focusAreaStats[includesArea] > 0 {
-		log.Logf(0, "fuzzer has reached the modified code (%d + %d + %d), continuing fuzzing",
-			focusAreaStats[symbolsArea], focusAreaStats[filesArea], focusAreaStats[includesArea])
+	var reached []string
+	for name, progs := range dc.new.ProgsPerArea() {
+		if _, ok := focusAreas[name]; !ok || progs == 0 {
+			continue
+		}
+		reached = append(reached, fmt.Sprintf("%s: %d", name, progs))
+	}
+	if len(reached) > 0 {
+		slices.Sort(reached)
+		log.Logf(0, "fuzzer has reached the focused areas (%s), continuing fuzzing",
+			strings.Join(reached, ", "))
 		return nil
 	}
 	log.Logf(0, "fuzzer has not reached the modified code in %s, aborting",
