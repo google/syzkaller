@@ -63,3 +63,48 @@ func TestPatchIterationInputsBackwardCompatibility(t *testing.T) {
 			"expected checkInputs to succeed without ReplyToComments, got: %v", err)
 	}
 }
+
+func TestPatchHistorySummarization(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	v1 := ai.PatchHistoryEntry{Version: 1, Description: "net: fix bug v1", Diff: "diff v1"}
+	v2 := ai.PatchHistoryEntry{Version: 2, Description: "net: fix bug v2", Diff: "diff v2"}
+
+	app1, err := appendDiscussionSummaryFunc(ctx, appendDiscussionSummaryArgs{
+		CurrentPatchEntry:        v1,
+		CurrentDiscussionSummary: "No reviewer comments.",
+	})
+	require.NoError(t, err)
+	app2, err := appendDiscussionSummaryFunc(ctx, appendDiscussionSummaryArgs{
+		CurrentPatchEntry:        v2,
+		CurrentDiscussionSummary: "Reviewer asked to fix style.",
+		SummarizedPatchHistory:   app1.SummarizedPatchHistory,
+	})
+	require.NoError(t, err)
+
+	state := viewPatchHistoryState(app2)
+	wantSummary := `Available patch versions:
+v1: No reviewer comments.
+v2: Reviewer asked to fix style.
+Call this tool with a specific version number to see its diff and description.`
+
+	res, err := viewPatchHistoryFunc(ctx, state, viewPatchHistoryArgs{Version: 0})
+	require.NoError(t, err)
+	require.Equal(t, wantSummary, res.Result)
+
+	res, err = viewPatchHistoryFunc(ctx, state, viewPatchHistoryArgs{Version: 2})
+	require.NoError(t, err)
+	require.Equal(t, `Version: v2
+Description:
+net: fix bug v2
+
+Diff:
+diff v2
+
+Discussion summary:
+Reviewer asked to fix style.
+`, res.Result)
+
+	res, err = viewPatchHistoryFunc(ctx, state, viewPatchHistoryArgs{Version: 99})
+	require.NoError(t, err)
+	require.Equal(t, "Note: the specified version (v99) is not found.\n\n"+wantSummary, res.Result)
+}
