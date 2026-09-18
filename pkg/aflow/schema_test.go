@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -262,6 +263,71 @@ func TestConvertFromMap(t *testing.T) {
 		Embedded: Embedded{B: "foo"},
 		A:        1,
 	}, "", "")
+
+	u64Val := uint64(18446744071636006420)
+	testConvertFromMap(t, false, map[string]any{
+		"I":  json.Number("42"),
+		"U":  json.Number("18446744071636006420"),
+		"F":  json.Number("3.14"),
+		"I2": json.Number("2.0"),
+		"P":  json.Number("18446744071636006420"),
+	}, struct {
+		I  int
+		U  uint64
+		F  float64
+		I2 int
+		P  *uint64
+	}{
+		I:  42,
+		U:  18446744071636006420,
+		F:  3.14,
+		I2: 2,
+		P:  &u64Val,
+	}, "", "")
+
+	testConvertFromMap(t, true, map[string]any{
+		"I0": json.Number("1.1"),
+	}, struct {
+		I0 int
+	}{},
+		`argument I0: float value truncated from 1.1 to 1`,
+		`struct { I0 int }: field I0: float value truncated from 1.1 to 1`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"I0": json.Number("9999999999999999999999999999999999999999999"),
+	}, struct {
+		I0 int
+	}{},
+		`argument I0: integer value out of range 9999999999999999999999999999999999999999999`,
+		`struct { I0 int }: field I0: integer value out of range 9999999999999999999999999999999999999999999`)
+}
+
+func TestConvertFromMapJsonNumber(t *testing.T) {
+	inputJSON := []byte(`{
+		"PC": 18446744071636006420,
+		"PCs": [18446744071636006420, 18446744071636006421],
+		"Nested": {
+			"Address": 18446744071636006420
+		}
+	}`)
+	dec := json.NewDecoder(bytes.NewReader(inputJSON))
+	dec.UseNumber()
+	var raw map[string]any
+	require.NoError(t, dec.Decode(&raw))
+
+	type Nested struct {
+		Address uint64
+	}
+	type Target struct {
+		PC     uint64
+		PCs    []uint64
+		Nested Nested
+	}
+	got, err := convertFromMap[Target](raw, false, false)
+	require.NoError(t, err)
+	require.Equal(t, uint64(18446744071636006420), got.PC)
+	require.Equal(t, []uint64{18446744071636006420, 18446744071636006421}, got.PCs)
+	require.Equal(t, uint64(18446744071636006420), got.Nested.Address)
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {

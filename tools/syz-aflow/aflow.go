@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -112,8 +113,10 @@ func run(ctx context.Context, args RunArgs) error {
 	if err != nil {
 		return fmt.Errorf("failed to open -input file: %w", err)
 	}
+	dec := json.NewDecoder(bytes.NewReader(inputData))
+	dec.UseNumber()
 	var inputs map[string]any
-	if err := json.Unmarshal(inputData, &inputs); err != nil {
+	if err := dec.Decode(&inputs); err != nil {
 		return err
 	}
 	if err := expandFileInputs(inputs, filepath.Dir(args.InputFile)); err != nil {
