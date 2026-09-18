@@ -9,11 +9,39 @@ include <uapi/linux/if.h>
 include <uapi/linux/can.h>
 include <uapi/linux/can/raw.h>
 include <uapi/linux/can/bcm.h>
+include <uapi/linux/can/isotp.h>
 include <uapi/linux/can/j1939.h>
+
+# Keep these defines local until the next full cross-architecture constant
+# extraction.  The CAN UAPI values are architecture-independent.
+define CAN_ISOTP	6
+define SOL_CAN_ISOTP	106
+define CAN_ISOTP_OPTS	1
+define CAN_ISOTP_RECV_FC	2
+define CAN_ISOTP_TX_STMIN	3
+define CAN_ISOTP_RX_STMIN	4
+define CAN_ISOTP_LL_OPTS	5
+define CAN_ISOTP_LISTEN_MODE	0x0001
+define CAN_ISOTP_EXTEND_ADDR	0x0002
+define CAN_ISOTP_TX_PADDING	0x0004
+define CAN_ISOTP_RX_PADDING	0x0008
+define CAN_ISOTP_CHK_PAD_LEN	0x0010
+define CAN_ISOTP_CHK_PAD_DATA	0x0020
+define CAN_ISOTP_HALF_DUPLEX	0x0040
+define CAN_ISOTP_FORCE_TXSTMIN	0x0080
+define CAN_ISOTP_FORCE_RXSTMIN	0x0100
+define CAN_ISOTP_RX_EXT_ADDR	0x0200
+define CAN_ISOTP_WAIT_TX_DONE	0x0400
+define CAN_ISOTP_SF_BROADCAST	0x0800
+define CAN_ISOTP_CF_BROADCAST	0x1000
+define CAN_ISOTP_DYN_FC_PARMS	0x2000
+define CAN_MTU	16
+define CANFD_MTU	72
 
 resource sock_can[sock]
 resource sock_can_raw[sock_can]
 resource sock_can_bcm[sock_can]
+resource sock_can_isotp[sock_can]
 resource sock_can_j1939[sock_can]
 resource ifindex_vcan[ifindex]
 
@@ -37,6 +65,21 @@ socket$can_bcm(domain const[AF_CAN], type const[SOCK_DGRAM], proto const[CAN_BCM
 connect$can_bcm(fd sock_can_bcm, addr ptr[in, sockaddr_can], len bytesize[addr])
 sendmsg$can_bcm(fd sock_can_bcm, msg ptr[in, msghdr_can[can_bcm_msg]], f flags[send_flags])
 recvmsg$can_bcm(fd sock_can_bcm, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+
+socket$can_isotp(domain const[AF_CAN], type const[SOCK_DGRAM], proto const[CAN_ISOTP]) sock_can_isotp
+bind$can_isotp(fd sock_can_isotp, addr ptr[in, sockaddr_can_isotp], len bytesize[addr])
+sendmsg$can_isotp(fd sock_can_isotp, msg ptr[in, msghdr_can_isotp], f flags[send_flags])
+recvmsg$can_isotp(fd sock_can_isotp, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+setsockopt$CAN_ISOTP_OPTS(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_OPTS], val ptr[in, can_isotp_options], len bytesize[val])
+setsockopt$CAN_ISOTP_RECV_FC(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_RECV_FC], val ptr[in, can_isotp_fc_options], len bytesize[val])
+setsockopt$CAN_ISOTP_TX_STMIN(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_TX_STMIN], val ptr[in, int32], len bytesize[val])
+setsockopt$CAN_ISOTP_RX_STMIN(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_RX_STMIN], val ptr[in, int32], len bytesize[val])
+setsockopt$CAN_ISOTP_LL_OPTS(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_LL_OPTS], val ptr[in, can_isotp_ll_options], len bytesize[val])
+getsockopt$CAN_ISOTP_OPTS(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_OPTS], val ptr[out, can_isotp_options], len ptr[inout, bytesize[val, int32]])
+getsockopt$CAN_ISOTP_RECV_FC(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_RECV_FC], val ptr[out, can_isotp_fc_options], len ptr[inout, bytesize[val, int32]])
+getsockopt$CAN_ISOTP_TX_STMIN(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_TX_STMIN], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$CAN_ISOTP_RX_STMIN(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_RX_STMIN], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$CAN_ISOTP_LL_OPTS(fd sock_can_isotp, level const[SOL_CAN_ISOTP], opt const[CAN_ISOTP_LL_OPTS], val ptr[out, can_isotp_ll_options], len ptr[inout, bytesize[val, int32]])
 
 socket$can_j1939(domain const[AF_CAN], type const[SOCK_DGRAM], proto const[CAN_J1939]) sock_can_j1939
 bind$can_j1939(fd sock_can_j1939, addr ptr[in, sockaddr_can_j1939], len bytesize[addr])
@@ -67,6 +110,13 @@ sockaddr_can_j1939 {
 	name		can_j1939_name
 	pgn		can_j1939_pgn
 	addr		can_j1939_addr
+}
+
+sockaddr_can_isotp {
+	can_family	const[AF_CAN, int16]
+	can_ifindex	ifindex_vcan
+	rx_id		canid_t
+	tx_id		canid_t
 }
 
 can_j1939_pgn {
@@ -101,6 +151,37 @@ msghdr_can_j1939 {
 	ctrl	const[0, intptr]
 	ctrllen	const[0, intptr]
 	f	flags[send_flags, int32]
+}
+
+msghdr_can_isotp {
+	addr	const[0, intptr]
+	addrlen	const[0, int32]
+	vec	ptr[in, iovec[in, array[int8, 1:8192]]]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+can_isotp_options {
+	flags		flags[can_isotp_flags, int32]
+	frame_txtime	int32
+	ext_address	int8
+	txpad_content	int8
+	rxpad_content	int8
+	rx_ext_address	int8
+}
+
+can_isotp_fc_options {
+	bs	int8
+	stmin	int8
+	wftmax	int8
+}
+
+can_isotp_ll_options {
+	mtu		flags[can_isotp_mtu, int8]
+	tx_dl		flags[can_isotp_tx_dl, int8]
+	tx_flags	flags[can_frame_flags, int8]
 }
 
 can_raw_msg [
@@ -155,3 +236,6 @@ j1939_filter {
 can_bcm_opcodes = TX_SETUP, TX_DELETE, TX_READ, TX_SEND, RX_SETUP, RX_DELETE, RX_READ
 can_bcm_flags = SETTIMER, STARTTIMER, TX_COUNTEVT, TX_ANNOUNCE, TX_CP_CAN_ID, RX_FILTER_ID, RX_CHECK_DLC, RX_NO_AUTOTIMER, RX_ANNOUNCE_RESUME, TX_RESET_MULTI_IDX, RX_RTR_FRAME, CAN_FD_FRAME
 can_frame_flags = CANFD_BRS, CANFD_ESI
+can_isotp_flags = CAN_ISOTP_LISTEN_MODE, CAN_ISOTP_EXTEND_ADDR, CAN_ISOTP_TX_PADDING, CAN_ISOTP_RX_PADDING, CAN_ISOTP_CHK_PAD_LEN, CAN_ISOTP_CHK_PAD_DATA, CAN_ISOTP_HALF_DUPLEX, CAN_ISOTP_FORCE_TXSTMIN, CAN_ISOTP_FORCE_RXSTMIN, CAN_ISOTP_RX_EXT_ADDR, CAN_ISOTP_WAIT_TX_DONE, CAN_ISOTP_SF_BROADCAST, CAN_ISOTP_CF_BROADCAST, CAN_ISOTP_DYN_FC_PARMS
+can_isotp_mtu = CAN_MTU, CANFD_MTU
+can_isotp_tx_dl = 8, 12, 16, 20, 24, 32, 48, 64
