@@ -83,7 +83,7 @@ syscall(__NR_mount, /*src=*/0ul, /*dst=*/0x200000005b00ul, /*type=*/0ul, /*flags
 //    mode: open_mode = 0x0 (2 bytes)
 //  ]
 //  returns fd
-syscall(__NR_openat, /*fd=*/0xffffff9c, /*file=*/0x200000000080ul, /*flags=O_TRUNC|O_SYNC|O_NOCTTY|O_CREAT|O_CLOEXEC|FASYNC|0x1*/0x183341, /*mode=*/0)
+syscall(__NR_openat, /*fd=*/0xffffff9c, /*file=*/0x200000000080ul, /*flags=O_TRUNC|O_SYNC|O_NOCTTY|O_CREAT|O_CLOEXEC|0x2001*/0x183341, /*mode=*/0)
 //  truncate arguments: [
 //    file: ptr[in, buffer] {
 //      buffer: {2e 2f 66 69 6c 65 31 00} (length 0x8)
