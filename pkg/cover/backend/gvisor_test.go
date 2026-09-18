@@ -60,7 +60,7 @@ func TestGvisorLineRe(t *testing.T) {
 		if match == nil {
 			t.Fatalf("FindStringSubmatch error on %v", test.line)
 		}
-		got := match[2]
+		got := match[1]
 		if got != test.want {
 			t.Fatalf("wanted %v, got %v", test.want, got)
 		}

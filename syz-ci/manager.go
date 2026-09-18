@@ -792,9 +792,10 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 		return nil, fmt.Errorf("asset storage is not configured")
 	}
 	type pendingAsset struct {
-		path      string
-		assetType dashapi.AssetType
-		name      string
+		path              string
+		assetType         dashapi.AssetType
+		name              string
+		alreadyCompressed bool
 	}
 	pending := []pendingAsset{}
 	kernelFile := filepath.Join(assetFolder, "kernel")
@@ -803,18 +804,31 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 		if buildInfo.OS == targets.Linux {
 			fileName = path.Base(build.LinuxKernelImage(buildInfo.Arch))
 		}
-		pending = append(pending, pendingAsset{kernelFile, dashapi.KernelImage, fileName})
+		pending = append(pending, pendingAsset{
+			path:      kernelFile,
+			assetType: dashapi.KernelImage,
+			name:      fileName,
+		})
 	}
 	imageFile := filepath.Join(assetFolder, "image")
 	if osutil.IsExist(imageFile) {
-		if mgr.managercfg.Type == "qemu" {
+		switch mgr.managercfg.Type {
+		case "qemu":
 			// For qemu we currently use non-bootable disk images.
 			pending = append(pending, pendingAsset{
 				path:      imageFile,
 				assetType: dashapi.NonBootableDisk,
 				name:      "non_bootable_disk.raw",
 			})
-		} else {
+		case targets.GVisor:
+			// For gVisor the image is the gVisor release tarball.
+			pending = append(pending, pendingAsset{
+				path:              imageFile,
+				assetType:         dashapi.BootableDisk,
+				name:              "gvisor.tar.bz2",
+				alreadyCompressed: true,
+			})
+		default:
 			pending = append(pending, pendingAsset{
 				path:      imageFile,
 				assetType: dashapi.BootableDisk,
@@ -825,8 +839,11 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 	target := mgr.managercfg.SysTarget
 	kernelObjFile := filepath.Join(assetFolder, "obj", target.KernelObject)
 	if osutil.IsExist(kernelObjFile) {
-		pending = append(pending,
-			pendingAsset{kernelObjFile, dashapi.KernelObject, target.KernelObject})
+		pending = append(pending, pendingAsset{
+			path:      kernelObjFile,
+			assetType: dashapi.KernelObject,
+			name:      target.KernelObject,
+		})
 	}
 	// TODO: add initrd?
 	ret := []dashapi.NewAsset{}
@@ -844,7 +861,10 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 			log.Logf(0, "uploading an asset %s of type %s",
 				pendingAsset.path, pendingAsset.assetType)
 		}
-		extra := &asset.ExtraUploadArg{SkipIfExists: true}
+		extra := &asset.ExtraUploadArg{
+			SkipIfExists:      true,
+			AlreadyCompressed: pendingAsset.alreadyCompressed,
+		}
 		hash := sha256.New()
 		if _, err := io.Copy(hash, file); err != nil {
 			log.Logf(0, "failed calculate hash for the asset %s: %s", pendingAsset.path, err)

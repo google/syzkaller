@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gvisor"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -42,8 +43,9 @@ type Config struct {
 }
 
 type Pool struct {
-	env *vmimpl.Env
-	cfg *Config
+	env   *vmimpl.Env
+	cfg   *Config
+	runsc string
 }
 
 type instance struct {
@@ -77,9 +79,18 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if !osutil.IsExist(env.Image) {
 		return nil, fmt.Errorf("image file %q does not exist", env.Image)
 	}
+	imageDir := filepath.Join(env.Workdir, "gvisor-image")
+	if err := os.RemoveAll(imageDir); err != nil {
+		return nil, err
+	}
+	runsc, err := gvisor.Extract(env.Image, imageDir)
+	if err != nil {
+		return nil, err
+	}
 	pool := &Pool{
-		cfg: cfg,
-		env: env,
+		cfg:   cfg,
+		env:   env,
+		runsc: runsc,
 	}
 	return pool, nil
 }
@@ -160,7 +171,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 
 	inst := &instance{
 		cfg:      pool.cfg,
-		image:    pool.env.Image,
+		image:    pool.runsc,
 		debug:    pool.env.Debug,
 		rootDir:  rootDir,
 		imageDir: imageDir,
