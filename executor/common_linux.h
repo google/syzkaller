@@ -1850,7 +1850,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_fuse_uring_complete || __NR_syz_fuse_uring_commit || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -1894,21 +1894,21 @@ struct io_uring_params {
 	struct io_cqring_offsets cq_off;
 };
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_submit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_submit || __NR_syz_fuse_uring_commit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 static long io_uring_sqe_size(struct io_uring_params* params)
 {
 	return SIZEOF_IO_URING_SQE << !!(params->flags & IORING_SETUP_SQE128);
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_complete || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_complete || __NR_syz_fuse_uring_complete || __NR_syz_fuse_uring_commit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 static long io_uring_cqe_size(struct io_uring_params* params)
 {
 	return SIZEOF_IO_URING_CQE << !!(params->flags & IORING_SETUP_CQE32);
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_complete || __NR_syz_ublk_process_io
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete || __NR_syz_fuse_uring_complete || __NR_syz_fuse_uring_commit || __NR_syz_ublk_process_io
 
 struct io_uring_cqe {
 	uint64 user_data;
@@ -1959,6 +1959,62 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_fuse_uring_complete || __NR_syz_fuse_uring_commit
+
+static long syz_fuse_uring_complete(volatile long a0, volatile long a1, volatile long a2)
+{
+	// syzlang: syz_fuse_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, headers ptr[out, fuse_uring_req_header]) fuse_commit_id
+	// C:       syz_fuse_uring_complete(struct io_uring_params* params, char* ring_ptr, char* headers)
+
+	struct io_uring_params* params = (struct io_uring_params*)a0;
+	char* ring_ptr = (char*)a1;
+	char* headers = (char*)a2;
+
+	// A registration command stays pending until FUSE assigns a request.
+	// The request header is the protocol's authoritative readiness signal;
+	// CQ publication may lag because completion runs through task work.
+	uint32* cq_head = (uint32*)(ring_ptr + params->cq_off.head);
+	uint32* cq_tail = (uint32*)(ring_ptr + params->cq_off.tail);
+	uint64* commit_id_ptr = (uint64*)(headers + 264);
+	for (int i = 0; i < 1000; i++) {
+		if (__atomic_load_n(commit_id_ptr, __ATOMIC_ACQUIRE))
+			break;
+		usleep(1000);
+	}
+	if (!__atomic_load_n(commit_id_ptr, __ATOMIC_ACQUIRE))
+		return -1;
+
+	if (__atomic_load_n(cq_head, __ATOMIC_RELAXED) !=
+	    __atomic_load_n(cq_tail, __ATOMIC_ACQUIRE)) {
+		struct io_uring_cqe cqe;
+		memset(&cqe, 0, sizeof(cqe));
+		if (__io_uring_complete(params, ring_ptr, &cqe) < 0)
+			return -1;
+		if ((int32_t)cqe.res < 0)
+			return (long)(int32_t)cqe.res;
+	}
+
+	// The kernel filled a fuse_in_header at offset 0.  Turn it into a
+	// minimal error fuse_out_header while retaining its unique ID.  A
+	// negative protocol error needs no operation-specific output payload.
+	uint64 unique = *(uint64*)(headers + 8);
+	uint64 commit_id = __atomic_load_n(commit_id_ptr, __ATOMIC_ACQUIRE);
+	if (!unique || !commit_id)
+		return -1;
+	// Consume the readiness signal.  A reused entry will publish a new ID;
+	// leaving the old value here would let a second helper submit a stale
+	// commit before the next request has actually reached userspace.
+	__atomic_store_n(commit_id_ptr, 0, __ATOMIC_RELEASE);
+	*(uint32*)(headers + 0) = 16; // sizeof(struct fuse_out_header)
+	*(int32_t*)(headers + 4) = -38; // -ENOSYS
+	*(uint64*)(headers + 8) = unique;
+	*(uint32*)(headers + 272) = 0;
+
+	return (long)commit_id;
+}
+
+#endif
+
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues
@@ -1968,6 +2024,19 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 
 #define IORING_OFF_SQ_RING 0ULL
 #define IORING_OFF_SQES 0x10000000ULL
+
+#ifndef IORING_SETUP_NO_SQARRAY
+#define IORING_SETUP_NO_SQARRAY (1U << 16)
+#endif
+#ifndef IORING_SETUP_SQE_MIXED
+#define IORING_SETUP_SQE_MIXED (1U << 19)
+#endif
+#ifndef IORING_OP_NOP128
+#define IORING_OP_NOP128 63
+#endif
+#ifndef IORING_OP_URING_CMD128
+#define IORING_OP_URING_CMD128 64
+#endif
 
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
 static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
@@ -1986,7 +2055,9 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	*ring_params_ptr_out = (void*)setup_params;
 
 	// Compute the ring sizes
-	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
+	uint32 sq_ring_sz = 0;
+	if (!(setup_params->flags & IORING_SETUP_NO_SQARRAY))
+		sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
 	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * io_uring_cqe_size(setup_params);
 
 	// Asssumed IORING_FEAT_SINGLE_MMAP, which is always the case with the current implementation
@@ -1998,16 +2069,18 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	uint32 sqes_sz = setup_params->sq_entries * io_uring_sqe_size(setup_params);
 	*sqes_ptr_out = mmap(0, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQES);
 
-	uint32* array = (uint32*)((uintptr_t)*ring_ptr_out + setup_params->sq_off.array);
-	for (uint32 index = 0; index < setup_params->sq_entries; index++)
-		array[index] = index;
+	if (!(setup_params->flags & IORING_SETUP_NO_SQARRAY)) {
+		uint32* array = (uint32*)((uintptr_t)*ring_ptr_out + setup_params->sq_off.array);
+		for (uint32 index = 0; index < setup_params->sq_entries; index++)
+			array[index] = index;
+	}
 
 	return fd_io_uring;
 }
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_fuse_uring_commit || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
@@ -2029,13 +2102,27 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 	// Get the ptr to the destination for the sqe
 	uint32 sqe_size = io_uring_sqe_size(params);
+	uint8 opcode = ((uint8*)sqe)[0];
+	uint32 nr_entries = 1;
+	if ((params->flags & IORING_SETUP_SQE_MIXED) &&
+	    (opcode == IORING_OP_NOP128 || opcode == IORING_OP_URING_CMD128))
+		nr_entries = 2;
+	// Mixed 128-byte SQEs must occupy two physically contiguous entries.
+	if (nr_entries == 2 && sq_tail + 1 >= params->sq_entries)
+		return -1;
 	char* sqe_dest = sqes_ptr + sq_tail * sqe_size;
 
 	// Write the sqe entry to its destination in sqes
 	memcpy(sqe_dest, sqe, sqe_size);
+	if (nr_entries == 2) {
+		if (opcode == IORING_OP_URING_CMD128)
+			memcpy(sqe_dest + sqe_size, sqe + sqe_size, sqe_size);
+		else
+			memset(sqe_dest + sqe_size, 0, sqe_size);
+	}
 
 	// Write the index to the sqe array
-	uint32 sq_tail_next = *sq_tail_ptr + 1;
+	uint32 sq_tail_next = *sq_tail_ptr + nr_entries;
 
 	// Advance the tail. Tail is a free-flowing integer and relies on natural wrapping.
 	// Ensure that the kernel will never see a tail update without the preceeding SQE
@@ -2044,6 +2131,57 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 	// Now the application is free to call io_uring_enter() to submit the sqe
 	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_fuse_uring_commit
+
+static long syz_fuse_uring_commit(volatile long a0, volatile long a1,
+				  volatile long a2, volatile long a3,
+				  volatile long a4, volatile long a5,
+				  volatile long a6, volatile long a7)
+{
+	// syzlang: syz_fuse_uring_commit(fd fd_io_uring, fusefd fd_fuse, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, headers ptr[out, fuse_uring_req_header], qid int16[0:3], reply ptr[inout, fuse_uring_reply]) fuse_commit_id
+	// C:       syz_fuse_uring_commit(int ring_fd, int fuse_fd, struct io_uring_params* params, char* ring_ptr, char* sqes_ptr, char* headers, uint16 qid, struct fuse_uring_reply* reply)
+
+	long commit_id = syz_fuse_uring_complete(a2, a3, a5);
+	if (commit_id <= 0)
+		return -1;
+
+	// Let the fuzzer control successful as well as malformed replies.  a7
+	// points at the already registered payload buffer.  Its last two words
+	// provide error and size control, and the complete buffer doubles as the
+	// arbitrary operation-specific reply payload.  Keeping control at the tail
+	// prevents the just-delivered request pathname from overwriting it.
+	char* headers = (char*)a5;
+	char* reply = (char*)a7;
+	int32_t reply_error = *(int32_t*)(reply + 248);
+	uint32 payload_sz = *(uint32*)(reply + 252);
+	*(uint32*)(headers + 0) = (uint32)(16 + payload_sz);
+	*(int32_t*)(headers + 4) = reply_error;
+	*(uint32*)(headers + 272) = payload_sz;
+
+	// Build the fixed 128-byte FUSE COMMIT_AND_FETCH command in-place.
+	// Keeping completion and submission in one pseudo-call prevents the
+	// executor's timeout-driven concurrency from using the resource before
+	// the asynchronous CQE has actually produced it.
+	uint64 sqe_words[16];
+	memset(sqe_words, 0, sizeof(sqe_words));
+	char* sqe = (char*)sqe_words;
+	*(uint8*)(sqe + 0) = 46; // IORING_OP_URING_CMD
+	*(uint32*)(sqe + 4) = (uint32)a1;
+	*(uint32*)(sqe + 8) = 2; // FUSE_IO_URING_CMD_COMMIT_AND_FETCH
+	*(uint64*)(sqe + 32) = (uint64)commit_id;
+	*(uint64*)(sqe + 56) = (uint64)commit_id;
+	*(uint16*)(sqe + 64) = (uint16)a6;
+
+	if (syz_io_uring_submit(a2, a3, a4, (long)sqe) < 0)
+		return -1;
+	if (syscall(__NR_io_uring_enter, (int)a0, 1, 0, 0, 0, 0) < 0)
+		return -1;
+
+	return commit_id;
 }
 
 #endif
