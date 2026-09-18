@@ -427,3 +427,57 @@ D                   : d
 `,
 	},
 }
+
+func TestLinuxCapabilities(t *testing.T) {
+	trueVal, falseVal := true, false
+	file := func(data string) *flatrpc.FileInfo {
+		return &flatrpc.FileInfo{Exists: true, Data: []byte(data)}
+	}
+	tests := []struct {
+		name  string
+		files filesystem
+		want  *Capabilities
+	}{
+		{
+			name: "intel_nested_enabled",
+			files: filesystem{
+				"/proc/cpuinfo": file("vendor_id\t: GenuineIntel\n"),
+				"/sys/module/kvm_intel/parameters/nested": file("Y\n"),
+			},
+			want: &Capabilities{CPUVendor: "intel", Nested: &trueVal},
+		},
+		{
+			name: "intel_nested_disabled",
+			files: filesystem{
+				"/proc/cpuinfo": file("vendor_id\t: GenuineIntel\n"),
+				"/sys/module/kvm_intel/parameters/nested": file("N\n"),
+			},
+			want: &Capabilities{CPUVendor: "intel", Nested: &falseVal},
+		},
+		{
+			name: "amd_nested_1",
+			files: filesystem{
+				"/proc/cpuinfo":                         file("vendor_id\t: AuthenticAMD\n"),
+				"/sys/module/kvm_amd/parameters/nested": file("1\n"),
+			},
+			want: &Capabilities{CPUVendor: "amd", Nested: &trueVal},
+		},
+		{
+			name: "no_kvm_module",
+			files: filesystem{
+				"/proc/cpuinfo": file("vendor_id\t: GenuineIntel\n"),
+			},
+			want: &Capabilities{CPUVendor: "intel"},
+		},
+		{
+			name:  "no_cpuinfo",
+			files: filesystem{},
+			want:  &Capabilities{},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, linux{}.capabilities(tc.files))
+		})
+	}
+}

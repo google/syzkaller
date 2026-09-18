@@ -204,3 +204,32 @@ func linuxReadKVMInfo(files filesystem, w io.Writer) (string, error) {
 	}
 	return "KVM", nil
 }
+
+func (linux) capabilities(files filesystem) *Capabilities {
+	caps := new(Capabilities)
+	cpuinfo, err := files.ReadFile("/proc/cpuinfo")
+	if err != nil {
+		return caps
+	}
+	caps.CPUVendor = parseCPUVendor(cpuinfo)
+	if caps.CPUVendor == "" {
+		return caps
+	}
+	path := fmt.Sprintf("/sys/module/kvm_%s/parameters/nested", caps.CPUVendor)
+	if data, err := files.ReadFile(path); err == nil {
+		val := strings.TrimSpace(string(data))
+		enabled := val == "Y" || val == "y" || val == "1"
+		caps.Nested = &enabled
+	}
+	return caps
+}
+
+func parseCPUVendor(data []byte) string {
+	if bytes.Contains(data, []byte("GenuineIntel")) {
+		return "intel"
+	}
+	if bytes.Contains(data, []byte("AuthenticAMD")) {
+		return "amd"
+	}
+	return ""
+}
