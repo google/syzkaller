@@ -1,0 +1,82 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Loong64-specific KVM syscall declarations.
+
+meta arches["loong64"]
+
+include <uapi/linux/kvm.h>
+include <asm/kvm.h>
+
+ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[void]])
+ioctl$KVM_SET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+ioctl$KVM_GET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+ioctl$KVM_HAS_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+
+syz_kvm_assert_reg$loong64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
+syz_kvm_assert_syzos_kvm_exit$loong64(run kvm_run_ptr, exitcode int64) (no_generate)
+syz_kvm_setup_cpu$loong64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_loong64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts])
+
+# kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
+resource kvm_syz_vm$loong64[int64]
+
+# Map the given memory into the VM and set up syzos there.
+# vma[256] * 16KiB target pages ~= 4MiB, matching the absolute guest memory size used by other arches.
+syz_kvm_setup_syzos_vm$loong64(fd fd_kvmvm, usermem vma[256]) kvm_syz_vm$loong64
+
+# Create a VCPU inside a kvm_syz_vm VM.
+# Prohibit flattening the input arguments, so that it is easier to reason about them.
+syz_kvm_add_vcpu$loong64(vm kvm_syz_vm$loong64, text ptr[in, kvm_text_syzos_loong64], opts ptr[in, array[kvm_setup_opt_loong64, 1]], nopt len[opts]) fd_kvmcpu (no_squash)
+
+kvm_text_syzos_loong64 {
+	typ	const[0, intptr]
+	text	ptr[in, array[syzos_api_call$loong64, 1:32]]
+	size	bytesize[text, int64]
+}
+
+type syzos_api$loong64[NUM, PAYLOAD] {
+	call	const[NUM, int64]
+	size	bytesize[parent, int64]
+	payload	PAYLOAD
+}
+
+# First Loong64 SYZOS slice only exposes UEXIT.
+syzos_api_call$loong64 [
+	uexit	syzos_api$loong64[0, intptr]
+] [varlen]
+
+syz_kvm_assert_syzos_uexit$loong64(cpufd fd_kvmcpu, run kvm_run_ptr, exitcode int64) (no_generate)
+
+kvm_device_attr_vcpu_loong64 [
+	cpucfg_feature	kvm_vcpu_attr_loong64_cpucfg_feature
+]
+
+kvm_vcpu_attr_loong64_cpucfg_feature {
+	flags	const[0, int32]
+# KVM_LOONGARCH_VCPU_CPUCFG from arch/loongarch/include/uapi/asm/kvm.h.
+	group	const[0, int32]
+# CPUCFG_KVM_FEATURE from arch/loongarch/include/uapi/asm/kvm_para.h.
+	attr	const[0x40000004, int64]
+	addr	ptr64[inout, flags[kvm_loong64_cpucfg_features, int64]]
+}
+
+# KVM_FEATURE_* values are feature indexes in the UAPI; the device attribute
+# takes the corresponding bitmask.
+kvm_loong64_cpucfg_features = 0x2, 0x4, 0x8, 0x1000000, 0x2000000
+
+kvm_setup_opt_loong64 [
+# unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extension
+	featur1	kvm_setup_opt_loong64_feature
+	featur2	kvm_setup_opt_loong64_feature
+]
+
+kvm_setup_opt_loong64_feature {
+	typ	const[1, int64]
+	val	int64
+}
+
+kvm_text_loong64 {
+	typ	const[0, intptr]
+	text	ptr[in, text[target]]
+	size	len[text, intptr]
+}
