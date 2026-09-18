@@ -6,6 +6,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -20,6 +21,125 @@ import (
 
 func TestClangTool(t *testing.T) {
 	tooltest.TestClangTool[declextract.Output](t, clangtoolimpl.Tool)
+}
+
+func TestOverlayExtract(t *testing.T) {
+	dir := t.TempDir()
+	manualContent := `meta arches["amd64"]
+meta overlay["manual_auto.txt"]
+
+foo(a ptr[in, struct_a], b ptr[in, struct_b])
+
+override struct_b {
+	x	int32
+	y	int32
+}
+`
+	if err := osutil.WriteFile(filepath.Join(dir, "manual.txt"), []byte(manualContent)); err != nil {
+		t.Fatal(err)
+	}
+	out := &declextract.Output{
+		Structs: []*declextract.Struct{
+			{
+				Name:     "struct_a",
+				ByteSize: 8,
+				Align:    8,
+				Fields: []*declextract.Field{
+					{
+						Name:      "sub",
+						CountedBy: -1,
+						Type:      &declextract.Type{Struct: "struct_sub"},
+					},
+				},
+			},
+			{
+				Name:     "struct_sub",
+				ByteSize: 8,
+				Align:    8,
+				Fields: []*declextract.Field{
+					{
+						Name:      "val",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 8}},
+					},
+				},
+			},
+			{
+				Name:     "struct_b",
+				ByteSize: 8,
+				Align:    4,
+				Fields: []*declextract.Field{
+					{
+						Name:      "x",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+					{
+						Name:      "y",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+				},
+			},
+			{
+				Name:     "struct_unused",
+				ByteSize: 4,
+				Align:    4,
+				Fields: []*declextract.Field{
+					{
+						Name:      "z",
+						CountedBy: -1,
+						Type:      &declextract.Type{Int: &declextract.IntType{ByteSize: 4}},
+					},
+				},
+			},
+		},
+	}
+	autoFile := filepath.Join(dir, "auto.txt")
+	overlays, err := discoverOverlays(dir, autoFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(overlays) != 1 {
+		t.Fatalf("expected 1 overlay, got %d", len(overlays))
+	}
+	spec := overlays[0]
+	res, err := declextract.RunOverlay(out, new(ifaceprobe.Info), spec.roots,
+		spec.excludeStructs, spec.excludeEnums, spec.arches, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := osutil.WriteFile(spec.overlayFile, res.Descriptions); err != nil {
+		t.Fatal(err)
+	}
+	eh, errors := errorHandler()
+	desc := ast.ParseGlob(filepath.Join(dir, "*.txt"), eh)
+	if desc == nil {
+		t.Fatalf("failed to parse descriptions:\n%s", errors.Bytes())
+	}
+	unusedNodes, err := compiler.CollectUnused(desc.Clone(), target, eh)
+	if err != nil {
+		t.Fatalf("failed to typecheck descriptions: %v\n%s", err, errors.Bytes())
+	}
+	removeUnusedNodes(desc, unusedNodes)
+	unusedConsts, err := compiler.CollectUnusedConsts(desc.Clone(), target, res.IncludeUse, eh)
+	if err != nil {
+		t.Fatalf("failed to typecheck descriptions: %v\n%s", err, errors.Bytes())
+	}
+	removeUnusedNodes(desc, unusedConsts)
+	fileDesc := filterFile(desc, spec.overlayFile)
+	formatted := string(ast.Format(ast.Parse(ast.Format(fileDesc), spec.overlayFile, nil)))
+	if err := osutil.WriteFile(spec.overlayFile, []byte(formatted)); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"struct_a {", "struct_sub {", "struct_b {"} {
+		if !strings.Contains(formatted, want) {
+			t.Errorf("overlay file missing %q:\n%s", want, formatted)
+		}
+	}
+	if strings.Contains(formatted, "struct_unused") {
+		t.Errorf("overlay file should not contain struct_unused:\n%s", formatted)
+	}
 }
 
 func TestDeclextract(t *testing.T) {

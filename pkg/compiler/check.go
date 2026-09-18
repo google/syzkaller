@@ -6,6 +6,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -16,6 +17,7 @@ import (
 )
 
 func (comp *compiler) typecheck() {
+	comp.applyOverlays()
 	comp.checkComments()
 	comp.checkDirectives()
 	comp.checkNames()
@@ -23,6 +25,143 @@ func (comp *compiler) typecheck() {
 	comp.checkFields()
 	comp.checkTypedefs()
 	comp.checkTypes()
+}
+
+func (comp *compiler) applyOverlays() {
+	overlayTargets, isOverlayBase := comp.collectOverlayTargets()
+	if len(overlayTargets) == 0 {
+		for _, n := range comp.desc.Nodes {
+			if isNodeOverride(n) {
+				pos, _, name := n.Info()
+				comp.error(pos, "override %v is only allowed in files with meta overlay", name)
+			}
+		}
+		return
+	}
+	baseDecls := comp.collectBaseDecls(isOverlayBase)
+	overriddenBaseNodes := make(map[ast.Node]bool)
+	for _, n := range comp.desc.Nodes {
+		pos, _, _ := n.Info()
+		targetFile := overlayTargets[filepath.Base(pos.File)]
+		comp.applyNodeOverride(n, targetFile, baseDecls[targetFile], overriddenBaseNodes)
+	}
+	if len(overriddenBaseNodes) > 0 {
+		comp.desc.Nodes = slices.DeleteFunc(comp.desc.Nodes, func(n ast.Node) bool {
+			return overriddenBaseNodes[n]
+		})
+	}
+}
+
+func (comp *compiler) collectOverlayTargets() (map[string]string, map[string]bool) {
+	overlayTargets := make(map[string]string)
+	isOverlayBase := make(map[string]bool)
+	for _, n := range comp.desc.Nodes {
+		m, ok := n.(*ast.Meta)
+		if !ok || m.Value.Ident != metaOverlay.Names[0] || len(m.Value.Args) == 0 {
+			continue
+		}
+		file := filepath.Base(m.Pos.File)
+		target := m.Value.Args[0].String
+		comp.fileMeta(m.Pos)
+		if _, targetExists := comp.fileMetas[target]; !targetExists {
+			comp.error(m.Pos, "overlay file %q does not exist", target)
+			continue
+		}
+		overlayTargets[file] = target
+		isOverlayBase[target] = true
+	}
+	return overlayTargets, isOverlayBase
+}
+
+func (comp *compiler) collectBaseDecls(isOverlayBase map[string]bool) map[string]map[string]ast.Node {
+	baseDecls := make(map[string]map[string]ast.Node)
+	for _, n := range comp.desc.Nodes {
+		pos, _, name := n.Info()
+		file := filepath.Base(pos.File)
+		if !isOverlayBase[file] {
+			continue
+		}
+		if kind := overrideKind(n); kind != "" {
+			if baseDecls[file] == nil {
+				baseDecls[file] = make(map[string]ast.Node)
+			}
+			baseDecls[file][kind+"/"+name] = n
+		}
+	}
+	return baseDecls
+}
+
+func (comp *compiler) applyNodeOverride(n ast.Node, targetFile string, targetDecls map[string]ast.Node,
+	overriddenBaseNodes map[ast.Node]bool) {
+	pos, typ, name := n.Info()
+	kind := overrideKind(n)
+	if !isNodeOverride(n) {
+		if targetFile != "" && kind != "" {
+			if baseDecl := targetDecls[kind+"/"+name]; baseDecl != nil {
+				basePos, baseTyp, _ := baseDecl.Info()
+				comp.error(pos, "%v %v redeclared, previously declared as %v in overlay %v (use 'override' keyword to override)",
+					typ, name, baseTyp, basePos)
+				overriddenBaseNodes[baseDecl] = true
+			}
+		}
+		return
+	}
+	if targetFile == "" {
+		comp.error(pos, "override %v is only allowed in files with meta overlay", name)
+		return
+	}
+	baseDecl := targetDecls[kind+"/"+name]
+	if baseDecl == nil {
+		for _, k := range []string{"struct", "intflags", "strflags"} {
+			if d := targetDecls[k+"/"+name]; d != nil {
+				_, baseTyp, _ := d.Info()
+				comp.error(pos, "cannot override %v %v with %v", baseTyp, name, typ)
+				return
+			}
+		}
+		comp.error(pos, "override %v does not match any definition in %v", name, targetFile)
+		return
+	}
+	if overriddenBaseNodes[baseDecl] {
+		comp.error(pos, "duplicate override of %v", name)
+		return
+	}
+	overriddenBaseNodes[baseDecl] = true
+	comp.overriddenNodes = append(comp.overriddenNodes, baseDecl)
+	switch base := baseDecl.(type) {
+	case *ast.Struct:
+		comp.overriddenStructs[name] = base
+	case *ast.IntFlags:
+		comp.overriddenIntFlags[name] = base
+	case *ast.StrFlags:
+		comp.overriddenStrFlags[name] = base
+	}
+}
+
+func isNodeOverride(n ast.Node) bool {
+	switch n := n.(type) {
+	case *ast.Struct:
+		return n.IsOverride
+	case *ast.IntFlags:
+		return n.IsOverride
+	case *ast.StrFlags:
+		return n.IsOverride
+	default:
+		return false
+	}
+}
+
+func overrideKind(n ast.Node) string {
+	switch n.(type) {
+	case *ast.Struct:
+		return "struct"
+	case *ast.IntFlags:
+		return "intflags"
+	case *ast.StrFlags:
+		return "strflags"
+	default:
+		return ""
+	}
 }
 
 func (comp *compiler) check(consts map[string]uint64) {
@@ -100,9 +239,11 @@ func (comp *compiler) checkNames() {
 				continue
 			}
 			if prev := comp.typedefs[name]; prev != nil {
-				comp.error(pos, "type %v redeclared, previously declared as type alias at %v",
-					name, prev.Pos)
-				continue
+				if !prev.Pos.Builtin() || !strings.HasPrefix(name, "auto_") {
+					comp.error(pos, "type %v redeclared, previously declared as type alias at %v",
+						name, prev.Pos)
+					continue
+				}
 			}
 			if prev := comp.structs[name]; prev != nil {
 				_, typ, _ := prev.Info()
@@ -195,6 +336,12 @@ func (comp *compiler) checkFields() {
 				comp.error(n.Pos, "syscall %v has %v arguments, allowed maximum is %v",
 					name, len(n.Args), prog.MaxArgs)
 			}
+		}
+	}
+	for _, decl := range comp.overriddenNodes {
+		if n, ok := decl.(*ast.Struct); ok {
+			_, typ, name := n.Info()
+			comp.checkStructFields(n, typ, name)
 		}
 	}
 }
@@ -307,6 +454,11 @@ func (comp *compiler) checkTypes() {
 			comp.checkStruct(checkCtx{}, n)
 		case *ast.Call:
 			comp.checkCall(n)
+		}
+	}
+	for _, decl := range comp.overriddenNodes {
+		if n, ok := decl.(*ast.Struct); ok {
+			comp.checkStruct(checkCtx{}, n)
 		}
 	}
 }
@@ -765,52 +917,91 @@ func (comp *compiler) collectUsed(all bool) (structs, flags, strflags map[string
 				break
 			}
 			for _, arg := range n.Args {
-				comp.collectUsedType(structs, flags, strflags, arg.Type, true)
+				comp.collectUsedType(structs, flags, strflags, arg.Type, true, all)
 			}
 			if n.Ret != nil {
-				comp.collectUsedType(structs, flags, strflags, n.Ret, true)
+				comp.collectUsedType(structs, flags, strflags, n.Ret, true, all)
 			}
 		}
 	}
 	return
 }
 
-func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, t *ast.Type, isArg bool) {
+func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, t *ast.Type, isArg, all bool) {
 	desc := comp.getTypeDesc(t)
-	if desc == typeResource {
+	switch desc {
+	case typeResource:
 		r := comp.resources[t.Ident]
 		for r != nil && !structs[r.Name.Name] {
 			structs[r.Name.Name] = true
 			r = comp.resources[r.Base.Ident]
 		}
 		return
-	}
-	if desc == typeStruct {
-		if structs[t.Ident] {
+	case typeStruct:
+		comp.collectUsedStruct(structs, flags, strflags, t.Ident, all)
+		return
+	case typeFlags:
+		comp.collectUsedFlag(flags, strflags, t.Args[0].Ident, false, all)
+		return
+	case typeInt:
+		if len(t.Args) > 0 && t.Args[0].Ident != "" {
+			comp.collectUsedFlag(flags, strflags, t.Args[0].Ident, false, all)
 			return
 		}
-		structs[t.Ident] = true
-		s := comp.structs[t.Ident]
-		for _, fld := range s.Fields {
-			comp.collectUsedType(structs, flags, strflags, fld.Type, false)
-		}
-		return
-	}
-	if desc == typeFlags ||
-		(desc == typeInt && len(t.Args) > 0 && t.Args[0].Ident != "") {
-		flags[t.Args[0].Ident] = true
-		return
-	}
-	if desc == typeString {
+	case typeString:
 		if len(t.Args) != 0 && t.Args[0].Ident != "" {
-			strflags[t.Args[0].Ident] = true
+			comp.collectUsedFlag(flags, strflags, t.Args[0].Ident, true, all)
 		}
 		return
 	}
 	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg)
+			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg, all)
+		}
+	}
+}
+
+func (comp *compiler) collectUsedStruct(structs, flags, strflags map[string]bool, name string, all bool) {
+	if structs[name] {
+		return
+	}
+	structs[name] = true
+	s := comp.structs[name]
+	for _, fld := range s.Fields {
+		comp.collectUsedType(structs, flags, strflags, fld.Type, false, all)
+	}
+	if all {
+		if baseStruct := comp.overriddenStructs[name]; baseStruct != nil {
+			for _, fld := range baseStruct.Fields {
+				comp.collectUsedType(structs, flags, strflags, fld.Type, false, all)
+			}
+		}
+	}
+}
+
+func (comp *compiler) collectUsedFlag(flags, strflags map[string]bool, flagName string, isStr, all bool) {
+	if isStr {
+		strflags[flagName] = true
+		if all {
+			if baseFlag := comp.overriddenStrFlags[flagName]; baseFlag != nil {
+				for _, val := range baseFlag.Values {
+					if comp.strFlags[val.Value] != nil {
+						strflags[val.Value] = true
+					}
+				}
+			}
+		}
+		return
+	}
+	flags[flagName] = true
+	if all {
+		if baseFlag := comp.overriddenIntFlags[flagName]; baseFlag != nil {
+			for _, val := range baseFlag.Values {
+				if comp.intFlags[val.Ident] != nil {
+					flags[val.Ident] = true
+				}
+			}
 		}
 	}
 }
