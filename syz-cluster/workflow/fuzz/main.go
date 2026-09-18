@@ -153,7 +153,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
 		if err != nil {
-			app.Errorf("failed to download the corpus: %v", err)
+			app.Errorf("failed to prepare the corpus: %v", err)
 		}
 	}
 
@@ -242,48 +242,65 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	return err
 }
 
+// prepareCorpus downloads the corpuses from urls and merges them into workdir/corpus.db.
 func prepareCorpus(ctx context.Context, workdir string, urls []string, target *prog.Target) error {
-	corpusFile := filepath.Join(workdir, "corpus.db")
-	var otherFiles []string
+	// Download to a temporary folder, so that a failed download never leaves a
+	// partially written corpus.db behind -- the manager opens it without the repair
+	// mode and would abort the whole fuzzing session.
+	tmpDir, err := os.MkdirTemp(workdir, "corpus-download")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+	urlByFile := map[string]string{}
+	var files []string
+	client := &http.Client{Timeout: corpusDownloadTimeout}
 	for i, url := range urls {
 		log.Logf(0, "downloading corpus #%d: %q", i+1, url)
-		downloadTo := corpusFile
-		if i > 0 {
-			downloadTo = fmt.Sprintf("%s.%d", corpusFile, i)
-			otherFiles = append(otherFiles, downloadTo)
+		file := filepath.Join(tmpDir, fmt.Sprintf("%d.db", i))
+		if err := downloadFile(ctx, client, url, file); err != nil {
+			return fmt.Errorf("failed to download %q: %w", url, err)
 		}
-		out, err := os.Create(corpusFile)
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return err
-		}
-		resp, err := (&http.Client{}).Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("status is not 200: %s", resp.Status)
-		}
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return err
-		}
+		urlByFile[file] = url
+		files = append(files, file)
 	}
-	if len(otherFiles) > 0 {
-		log.Logf(0, "merging corpuses")
-		skipped, err := db.Merge(corpusFile, otherFiles, target)
-		if err != nil {
-			return err
-		} else if len(skipped) > 0 {
-			log.Logf(0, "skipped %d entries", len(skipped))
-		}
+	failures, err := db.Merge(filepath.Join(workdir, "corpus.db"), files, target)
+	for _, failure := range failures {
+		log.Errorf("failed to deserialize the corpus from %q: %v", urlByFile[failure.File], failure.Err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to merge corpuses: %w", err)
 	}
 	return nil
+}
+
+// Corpus files are up to several hundred MBs, but we don't want a stuck
+// download to consume the whole fuzzing time budget.
+const corpusDownloadTimeout = 10 * time.Minute
+
+func downloadFile(ctx context.Context, client *http.Client, url, path string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status is not 200: %s", resp.Status)
+	}
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return err
+	}
+	// Close it explicitly to not miss the flush errors.
+	return out.Close()
 }
 
 func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Config, error) {
