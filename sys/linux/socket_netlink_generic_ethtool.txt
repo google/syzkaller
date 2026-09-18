@@ -36,6 +36,15 @@ sendmsg$ETHTOOL_MSG_PAUSE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETH
 sendmsg$ETHTOOL_MSG_EEE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_EEE_GET, header_only_ethnl_policy[ETHTOOL_A_EEE_HEADER]]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_EEE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_EEE_SET, ethnl_eee_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_TSINFO_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_TSINFO_GET, header_only_ethnl_policy[ETHTOOL_A_TSINFO_HEADER]]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_STATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_STATS_GET, ethnl_stats_get_policy]], f flags[send_flags])
+
+ethnl_stats_get_policy [
+	ETHTOOL_A_STATS_HEADER	nlnest[ETHTOOL_A_STATS_HEADER, array[ethnl_header_policy]]
+	ETHTOOL_A_STATS_GROUPS	nlnest[ETHTOOL_A_STATS_GROUPS, array[bitset_policy]]
+	ETHTOOL_A_STATS_SRC	nlattr[ETHTOOL_A_STATS_SRC, flags[ethtool_mac_stats_src, int32]]
+] [varlen]
+
+ethtool_mac_stats_src = ETHTOOL_MAC_STATS_SRC_AGGREGATE, ETHTOOL_MAC_STATS_SRC_EMAC, ETHTOOL_MAC_STATS_SRC_PMAC
 
 ethnl_header_policy [
 	ETHTOOL_A_HEADER_DEV_INDEX	nlattr[ETHTOOL_A_HEADER_DEV_INDEX, ifindex]
