@@ -410,6 +410,8 @@ type uiBug struct {
 	ImpactScore    int
 	NumCrashes     int64
 	NumCrashesBad  bool
+	NumDups        int
+	DupNumCrashes  int64
 	BisectCause    BisectStatus
 	BisectFix      BisectStatus
 	FirstTime      time.Time
@@ -1943,7 +1945,13 @@ func prepareBugGroups(ctx context.Context, bugs []*Bug, managers []string,
 		if bug == nil {
 			continue // this can be an invalid bug which we filtered above
 		}
-		mergeUIBug(ctx, bug, dup)
+		// Note: we intentionally don't merge any data of the dup into the
+		// canonical bug. The dup's crashes, reproducers and bisections are not
+		// displayed on the canonical bug page, and the rest of the code (bug
+		// filtering, repro scheduling, bisection, obsoleting) also only ever
+		// considers the bug's own data. We only show that the dups exist.
+		bug.NumDups++
+		bug.DupNumCrashes += dup.NumCrashes
 	}
 	cfg := getNsConfig(ctx, ns)
 	var uiGroups []*uiBugGroup
@@ -2269,31 +2277,6 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 		slices.Sort(uiBug.MissingOn)
 	}
 	return uiBug
-}
-
-func mergeUIBug(ctx context.Context, bug *uiBug, dup *Bug) {
-	bug.NumCrashes += dup.NumCrashes
-	bug.BisectCause = mergeBisectStatus(bug.BisectCause, dup.BisectCause)
-	bug.BisectFix = mergeBisectStatus(bug.BisectFix, dup.BisectFix)
-	if bug.LastTime.Before(dup.LastTime) {
-		bug.LastTime = dup.LastTime
-	}
-	// Note: we intentionally don't merge the repro flags of the dup.
-	// The reproducers belong to the dup bug and are not displayed on the
-	// canonical bug page, so it would only be confusing. All the rest of the
-	// code (bug filtering, repro scheduling, reporting) also only considers
-	// the bug's own reproducers.
-	updateBugBadness(ctx, bug)
-}
-
-func mergeBisectStatus(a, b BisectStatus) BisectStatus {
-	// The statuses are stored in the datastore, so we can't reorder them.
-	// But if one of bisections is Yes, then we want to show Yes.
-	bisectPriority := [bisectStatusLast]int{0, 1, 2, 6, 5, 4, 3}
-	if bisectPriority[a] >= bisectPriority[b] {
-		return a
-	}
-	return b
 }
 
 func updateBugBadness(ctx context.Context, bug *uiBug) {

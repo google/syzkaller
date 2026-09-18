@@ -497,30 +497,59 @@ func TestReproSubmitAccess(t *testing.T) {
 	}
 }
 
-// The reproducers of duplicate bugs must not be attributed to the canonical bug
-// on the bug list pages -- the bug page does not display them either.
-func TestDupReproNotShownInList(t *testing.T) {
+// No data of the duplicate bugs must be attributed to the canonical bug on the
+// bug list pages -- the bug page does not display it either. The only thing the
+// list shows is how many dups the bug has.
+func TestDupDataNotMergedInList(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
 	build := testBuild(1)
 	c.client.UploadBuild(build)
 
-	// The canonical bug has no reproducer.
+	// The canonical bug has no reproducer, so it's never bisected either.
 	crash := testCrash(build, 1)
 	crash.Title = "canonical bug"
 	c.client.ReportCrash(crash)
 
-	// The dup bug has both syz and C reproducers.
+	// This bug will be marked as a dup below; it has reproducers and crashed later.
+	c.advanceTime(time.Hour)
 	dupCrash := testCrashWithRepro(build, 2)
 	dupCrash.Title = "dup bug"
+	c.client.ReportCrash(dupCrash)
 	c.client.ReportCrash(dupCrash)
 
 	reports := map[string]*dashapi.BugReport{}
 	for _, rep := range c.globalClient.pollBugs(2) {
 		reports[rep.Title] = rep
 	}
+
+	// Both bugs are still open; only the second one has a reproducer, so the
+	// cause bisection runs for it before we mark it as a duplicate.
+	pollResp := c.globalClient.pollJobs(build.Manager)
+	require.Equal(t, dashapi.JobBisectCause, pollResp.Type)
+	require.NoError(t, c.globalClient.JobDone(&dashapi.JobDoneReq{
+		ID:          pollResp.ID,
+		Build:       *build,
+		Log:         []byte("bisect log"),
+		CrashTitle:  dupCrash.Title,
+		CrashLog:    []byte("bisect crash log"),
+		CrashReport: []byte("bisect crash report"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "36e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:      "kernel: add a bug",
+				Author:     "author@kernel.org",
+				AuthorName: "Author Kernelov",
+				Date:       time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}))
+	dupBug, _, _ := c.loadBug(reports[dupCrash.Title].ID)
+	require.Equal(t, BisectYes, dupBug.BisectCause)
+
 	c.globalClient.updateBug(reports[dupCrash.Title].ID, dashapi.BugStatusDup, reports[crash.Title].ID)
+	canonicalBug, _, _ := c.loadBug(reports[crash.Title].ID)
 
 	groups, err := fetchNamespaceBugs(c.ctx, AccessAdmin, "test1", nil)
 	require.NoError(t, err)
@@ -534,6 +563,15 @@ func TestDupReproNotShownInList(t *testing.T) {
 	require.Equal(t, crash.Title, bug.Title)
 	assert.False(t, bug.HasCRepro)
 	assert.False(t, bug.HasSyzRepro)
-	// Crashes are still merged, though.
-	assert.EqualValues(t, 2, bug.NumCrashes)
+	assert.Equal(t, BisectNot, bug.BisectCause)
+	// Neither the crash count nor the last crash time include the dup's ones.
+	assert.EqualValues(t, 1, bug.NumCrashes)
+	assert.True(t, bug.LastTime.Equal(canonicalBug.LastTime))
+	assert.True(t, bug.LastTime.Before(dupBug.LastTime))
+	assert.Equal(t, 1, bug.NumDups)
+	assert.EqualValues(t, 2, bug.DupNumCrashes)
+
+	reply, err := c.AuthGET(AccessAdmin, "/test1")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), `>1 (+2)</td>`)
 }
