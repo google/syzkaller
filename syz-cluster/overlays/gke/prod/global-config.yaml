@@ -165,10 +165,22 @@ fuzz_targets:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
   - email_lists:
+      - linux-nfs@vger.kernel.org
+      - linux-cifs@vger.kernel.org
+    path_regexps:
+      - "^fs/(nfs|nfsd|lockd|smb|cifs|afs|ceph|9p|netfs|dlm|ocfs2)/"
+    focus: net
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+  - email_lists:
       - linux-fsdevel@vger.kernel.org
       - linux-block@vger.kernel.org
       - linux-unionfs@vger.kernel.org
       - linux-ext4@vger.kernel.org
+      - linux-nfs@vger.kernel.org
+      - linux-cifs@vger.kernel.org
     path_regexps:
       - "^fs/|^block/|drivers/block"
     focus: fs
