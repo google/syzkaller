@@ -202,18 +202,31 @@ func TestParseLLMError(t *testing.T) {
 				Err:           errors.New("MALFORMED_FUNCTION_CALL"),
 			},
 		},
+		{
+			resp:      nil,
+			outputErr: errors.New("empty model response"),
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			var err error
 			if test.inputErr != nil {
 				err = parseLLMError(test.inputErr, "smarty")
-			} else if test.resp != nil {
+			} else {
 				err = parseLLMResp(test.resp)
 			}
 			require.Equal(t, test.outputErr, err)
 		})
 	}
+}
+
+func TestNilResponse(t *testing.T) {
+	err := parseLLMResp(nil)
+	require.EqualError(t, err, "empty model response")
+
+	res := fromGenaiResponse(nil)
+	require.NotNil(t, res)
+	require.Empty(t, res.Parts)
 }
 
 func TestParseLLMErrorBackoff(t *testing.T) {

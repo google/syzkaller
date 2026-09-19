@@ -269,6 +269,9 @@ func parseLLMError(err error, model string) error {
 }
 
 func parseLLMResp(resp *genai.GenerateContentResponse) error {
+	if resp == nil {
+		return fmt.Errorf("empty model response")
+	}
 	if len(resp.Candidates) == 0 || resp.Candidates[0] == nil {
 		if resp.PromptFeedback != nil {
 			reason := resp.PromptFeedback.BlockReasonMessage
@@ -367,6 +370,9 @@ func toGenaiContent(msg *backend.Message) *genai.Content {
 
 func fromGenaiResponse(resp *genai.GenerateContentResponse) *backend.GenerateResponse {
 	res := &backend.GenerateResponse{}
+	if resp == nil {
+		return res
+	}
 	if resp.UsageMetadata != nil {
 		res.UsageMetadata = &backend.UsageMetadata{
 			// We add ToolUsePromptTokenCount just in case, but Gemini does not use/set it.
