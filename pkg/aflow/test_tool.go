@@ -61,6 +61,15 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	resultChecker(gotResults)
 }
 
+// TestToolRun executes the tool on the given state/args and returns the raw results.
+// Unlike TestTool, it accepts untyped maps (the way an LLM calls the tool),
+// which allows to use tools in tests of other packages.
+func TestToolRun(tool Tool, state, args map[string]any) (map[string]any, error) {
+	ctx := &Context{state: state}
+	defer ctx.Close()
+	return tool.execute(ctx, args)
+}
+
 func TestErrorPrefix() TestToolOption {
 	return func(tctx *testToolContext) {
 		tctx.errorIsPrefix = true

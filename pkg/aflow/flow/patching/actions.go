@@ -151,8 +151,7 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	if len(files) == 0 {
 		return res, aflow.FlowError(errors.New("patch diff does not contain any modified files"))
 	}
-	// We need to run git log in the master git repo b/c out KernelSrc/KernelScratchSrc
-	// are shallow checkouts that don't have history.
+	// The action does not have a kernel checkout in the args, so we use the master repo.
 	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
 		gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
 		git := vcs.Git{Dir: kernelRepoDir, Sandbox: true}
