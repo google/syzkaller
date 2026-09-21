@@ -16,7 +16,11 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-var sinceRegex = regexp.MustCompile(`^\d+\s+(years?|months?|weeks?|days?)$`)
+var (
+	sinceRegex = regexp.MustCompile(`^\d+\s+(years?|months?|weeks?|days?)$`)
+	// Rejects values starting with '-' or containing whitespace that could smuggle CLI options.
+	revRegex = regexp.MustCompile(`^[^-\s]\S*$`)
+)
 
 func isValidSince(since string) bool {
 	return sinceRegex.MatchString(strings.TrimSpace(since))
@@ -156,6 +160,11 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 	if commitHash == "" {
 		commitHash = headCommit
 		args.Commit = headCommit + ":" + filePath
+	}
+
+	if !revRegex.MatchString(commitHash) {
+		return showResult{}, aflow.BadCallError("invalid Commit %q: it must be a git revision"+
+			" (e.g. 'HEAD', 'v6.12' or a commit hash), not a command line option", commitHash)
 	}
 
 	if _, err := runGit(state.KernelSrc, time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
