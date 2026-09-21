@@ -33,7 +33,7 @@ type result struct {
 	Output string `jsonschema:"Output of the git diff command."`
 }
 
-// Diff runs a sandboxed git diff command in the specified repository.
+// Diff runs a git diff command in the specified repository.
 func Diff(repo string, args ...string) (string, error) {
 	gitDiffArgs := append([]string{"diff"}, args...)
 	cmd := osutil.Command("git", gitDiffArgs...)

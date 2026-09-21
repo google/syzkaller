@@ -133,7 +133,7 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 		gitArgs = append(gitArgs, "--", args.PathPrefix)
 	}
 
-	output, err := runGit(state.KernelSrc, 10*time.Minute, gitArgs...)
+	output, err := osutil.RunCmd(10*time.Minute, state.KernelSrc, "git", gitArgs...)
 	if err != nil {
 		return logResult{}, gitBadCallError(err, "git log", gitAdvice{
 			Timeout: "Please specify a tighter search scope (e.g. by providing a PathPrefix).",
@@ -167,14 +167,15 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 			" (e.g. 'HEAD', 'v6.12' or a commit hash), not a command line option", commitHash)
 	}
 
-	if _, err := runGit(state.KernelSrc, time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
+	if _, err := osutil.RunCmd(time.Minute, state.KernelSrc, "git", "cat-file", "-e", commitHash+"^{commit}"); err != nil {
 		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
 			NotFound: fmt.Sprintf("commit %v does not exist", commitHash),
 		})
 	}
 
 	if filePath != "" {
-		out, err := runGit(state.KernelSrc, time.Minute, "ls-tree", "--name-only", commitHash, "--", filePath)
+		out, err := osutil.RunCmd(time.Minute, state.KernelSrc,
+			"git", "ls-tree", "--name-only", commitHash, "--", filePath)
 		if err != nil {
 			return showResult{}, gitBadCallError(err, "git show", gitAdvice{})
 		}
@@ -192,7 +193,7 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 		gitArgs = append(gitArgs, "--", args.File)
 	}
 
-	output, err := runGit(state.KernelSrc, 5*time.Minute, gitArgs...)
+	output, err := osutil.RunCmd(5*time.Minute, state.KernelSrc, "git", gitArgs...)
 	if err != nil {
 		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
 			Timeout: "Consider specifying a different commit.",
@@ -216,8 +217,8 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	args.End = max(args.End, args.Start)
 	args.End = min(args.End, args.Start+maxOutputLines)
 	lineRange := fmt.Sprintf("%d,%d", args.Start, args.End)
-	output, err := runGit(state.KernelSrc, 5*time.Minute,
-		"blame", "-s", "-L", lineRange, "--abbrev=12", headCommit, "--", args.File)
+	output, err := osutil.RunCmd(5*time.Minute, state.KernelSrc,
+		"git", "blame", "-s", "-L", lineRange, "--abbrev=12", headCommit, "--", args.File)
 	if err != nil {
 		return blameResult{}, gitBadCallError(err, "git blame", gitAdvice{
 			Timeout: "Consider specifying a smaller line range.",
@@ -269,13 +270,4 @@ func isBadCall(output []byte) bool {
 		bytes.Contains(output, []byte("no match")) ||
 		bytes.Contains(output, []byte("has only")) ||
 		bytes.Contains(output, []byte("no such path"))
-}
-
-func runGit(dir string, timeout time.Duration, args ...string) ([]byte, error) {
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = dir
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return nil, err
-	}
-	return osutil.Run(timeout, cmd)
 }
