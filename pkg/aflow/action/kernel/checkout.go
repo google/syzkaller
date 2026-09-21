@@ -57,10 +57,14 @@ var kernelBackports = []vcs.BackportCommit{
 	},
 }
 
+// checkoutVersion must be bumped whenever we change the way the checkout is created,
+// otherwise the already cached checkouts will be reused as is.
+const checkoutVersion = 2
+
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 	var res checkoutResult
 	var cacheKey strings.Builder
-	cacheKey.WriteString(args.KernelCommit)
+	fmt.Fprintf(&cacheKey, "v%v-%v", checkoutVersion, args.KernelCommit)
 	for _, bp := range kernelBackports {
 		cacheKey.WriteString("-" + bp.FixHash)
 	}
@@ -100,7 +104,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 			}
 
 			// vcs.BackportCommits cherry-picks commits but leaves them uncommitted in the index/tree.
-			// We must commit them so that the subsequent shallow clone pulls the fully prepared tree.
+			// We must commit them so that the subsequent clone picks up the fully prepared tree.
 			if applied {
 				if _, err := runSandboxedGit(time.Minute, kernelRepoDir,
 					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
@@ -108,10 +112,13 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 					return fmt.Errorf("failed to commit backports: %w", err)
 				}
 			}
-			if err := shallowGitClone(dir, kernelRepoDir); err != nil {
-				return err
+			// Pin the checkout to the revision we have just prepared, so that we don't
+			// silently depend on whatever the shared master repo's HEAD points at.
+			head, err := repo.Commit(vcs.HEAD)
+			if err != nil {
+				return fmt.Errorf("failed to resolve the prepared commit: %w", err)
 			}
-			return nil
+			return fullGitClone(dir, kernelRepoDir, head.Hash)
 		})
 		res.KernelSrc = dir
 		return err
@@ -139,6 +146,20 @@ func runSandboxedGit(timeout time.Duration, dir string, args ...string) ([]byte,
 	return osutil.Run(timeout, cmd)
 }
 
+// fullGitClone checks out the commit with the complete commit history,
+// which is required by the git tools we give to LLM agents.
+// Cloning from a local repo hardlinks the objects, so the history costs us nothing.
+func fullGitClone(dir, remoteDir, commit string) error {
+	// Clone without a checkout, otherwise git materializes the remote HEAD first.
+	if _, err := osutil.RunCmd(time.Hour, dir, "git", "clone", "--no-checkout", remoteDir, "."); err != nil {
+		return err
+	}
+	_, err := osutil.RunCmd(time.Hour, dir, "git", "checkout", commit)
+	return err
+}
+
+// shallowGitClone creates a checkout with a single commit.
+// It's only suitable for checkouts that are used for code edits and builds.
 func shallowGitClone(dir, remoteDir string) error {
 	if _, err := osutil.RunCmd(time.Hour, dir, "git", "init"); err != nil {
 		return err
