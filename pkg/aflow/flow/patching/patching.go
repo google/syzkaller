@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Inputs struct {
@@ -537,6 +538,7 @@ Search for the commit(s) that introduced this bug.
 `
 
 type fixesFinderState struct {
+	KernelSrc    string
 	KernelCommit string
 }
 
@@ -548,22 +550,24 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	if args.FixesHash == "" {
 		return args, nil
 	}
-	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		commit, err := repo.Commit(args.FixesHash)
-		if err != nil {
-			return aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
-		}
-		// LLM can provide a commit from a different branch.
-		// We want to ensure it is actually reachable from the current commit.
-		reachable, err := vcs.Git{Dir: kernelRepoDir}.ContainedIn(state.KernelCommit, commit.Hash)
-		if err != nil || !reachable {
-			return aflow.BadCallError("commit %q is not reachable from the current commit",
-				args.FixesHash)
-		}
-		args.FixesHash = commit.Hash
-		return nil
-	})
-	return args, err
+	commit, err := kernelCommit(state.KernelSrc, args.FixesHash)
+	if err != nil {
+		return args, aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
+	}
+	// LLM can provide a commit from a different branch.
+	// We want to ensure it is actually reachable from the current commit.
+	reachable, err := vcs.Git{Dir: state.KernelSrc}.ContainedIn(state.KernelCommit, commit.Hash)
+	if err != nil || !reachable {
+		return args, aflow.BadCallError("commit %q is not reachable from the current commit",
+			args.FixesHash)
+	}
+	args.FixesHash = commit.Hash
+	return args, nil
+}
+
+type formatFixesArgs struct {
+	KernelSrc string
+	FixesHash string
 }
 
 type formatFixesResult struct {
@@ -571,28 +575,31 @@ type formatFixesResult struct {
 }
 
 var formatFixes = aflow.NewFuncAction("format-fixes",
-	func(ctx *aflow.Context, args fixesFinderArgs) (formatFixesResult, error) {
+	func(ctx *aflow.Context, args formatFixesArgs) (formatFixesResult, error) {
 		if args.FixesHash == "" {
 			return formatFixesResult{}, nil
 		}
-		fix, err := queryFixesTag(ctx, args.FixesHash)
+		fix, err := queryFixesTag(args.KernelSrc, args.FixesHash)
 		return formatFixesResult{Fixes: fix}, err
 	})
 
-func queryFixesTag(ctx *aflow.Context, hash string) (ai.FixesTag, error) {
-	var fix ai.FixesTag
-	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		commit, err := repo.Commit(hash)
-		if err != nil {
-			return fmt.Errorf("failed to get commit %q: %w", hash, err)
-		}
-		fix = ai.FixesTag{
-			Hash:        commit.Hash,
-			Title:       commit.Title,
-			AuthorName:  commit.AuthorName,
-			AuthorEmail: commit.Author,
-		}
-		return nil
-	})
-	return fix, err
+func queryFixesTag(kernelSrc, hash string) (ai.FixesTag, error) {
+	commit, err := kernelCommit(kernelSrc, hash)
+	if err != nil {
+		return ai.FixesTag{}, fmt.Errorf("failed to get commit %q: %w", hash, err)
+	}
+	return ai.FixesTag{
+		Hash:        commit.Hash,
+		Title:       commit.Title,
+		AuthorName:  commit.AuthorName,
+		AuthorEmail: commit.Author,
+	}, nil
+}
+
+func kernelCommit(kernelSrc, hash string) (*vcs.Commit, error) {
+	repo, err := vcs.NewRepo(targets.Linux, "", kernelSrc)
+	if err != nil {
+		return nil, err
+	}
+	return repo.Commit(hash)
 }

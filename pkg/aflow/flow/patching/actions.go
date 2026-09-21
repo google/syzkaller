@@ -77,9 +77,9 @@ func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, 
 var getMaintainers = aflow.NewFuncAction("get-maintainers", maintainers)
 
 type maintainersArgs struct {
-	KernelCommit string
-	PatchDiff    string
-	Fixes        ai.FixesTag
+	KernelSrc string
+	PatchDiff string
+	Fixes     ai.FixesTag
 }
 
 type maintainersResult struct {
@@ -88,52 +88,46 @@ type maintainersResult struct {
 
 func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, error) {
 	res := maintainersResult{}
-	// get_maintainer.pl needs a non-shallow checkout, so we use the global one.
-	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		if _, err := repo.SwitchCommit(args.KernelCommit); err != nil {
-			return err
+	// See #1441 re --git-min-percent.
+	script := filepath.Join(args.KernelSrc, "scripts/get_maintainer.pl")
+	cmd := exec.Command(script, "--git-min-percent=15")
+	cmd.Dir = args.KernelSrc
+	cmd.Stdin = strings.NewReader(args.PatchDiff)
+	output, err := osutil.Run(time.Minute, cmd)
+	if err != nil {
+		return res, err
+	}
+	for _, recipient := range vcs.ParseMaintainersLinux(output) {
+		res.Recipients = append(res.Recipients, ai.Recipient{
+			Name:  recipient.Address.Name,
+			Email: recipient.Address.Address,
+			To:    recipient.Type == vcs.To,
+		})
+	}
+	if args.Fixes.Hash != "" && args.Fixes.AuthorEmail != "" {
+		found := false
+		canonicalFixesEmail := email.CanonicalEmail(args.Fixes.AuthorEmail)
+		for i, rec := range res.Recipients {
+			if email.CanonicalEmail(rec.Email) == canonicalFixesEmail {
+				res.Recipients[i].To = true
+				found = true
+			}
 		}
-		// See #1441 re --git-min-percent.
-		script := filepath.Join(kernelRepoDir, "scripts/get_maintainer.pl")
-		cmd := exec.Command(script, "--git-min-percent=15")
-		cmd.Dir = kernelRepoDir
-		cmd.Stdin = strings.NewReader(args.PatchDiff)
-		output, err := osutil.Run(time.Minute, cmd)
-		if err != nil {
-			return err
-		}
-		for _, recipient := range vcs.ParseMaintainersLinux(output) {
+		if !found {
 			res.Recipients = append(res.Recipients, ai.Recipient{
-				Name:  recipient.Address.Name,
-				Email: recipient.Address.Address,
-				To:    recipient.Type == vcs.To,
+				Name:  args.Fixes.AuthorName,
+				Email: args.Fixes.AuthorEmail,
+				To:    true,
 			})
 		}
-		if args.Fixes.Hash != "" && args.Fixes.AuthorEmail != "" {
-			found := false
-			canonicalFixesEmail := email.CanonicalEmail(args.Fixes.AuthorEmail)
-			for i, rec := range res.Recipients {
-				if email.CanonicalEmail(rec.Email) == canonicalFixesEmail {
-					res.Recipients[i].To = true
-					found = true
-				}
-			}
-			if !found {
-				res.Recipients = append(res.Recipients, ai.Recipient{
-					Name:  args.Fixes.AuthorName,
-					Email: args.Fixes.AuthorEmail,
-					To:    true,
-				})
-			}
-		}
-		return nil
-	})
-	return res, err
+	}
+	return res, nil
 }
 
 var getRecentCommits = aflow.NewFuncAction("get-recent-commits", recentCommits)
 
 type recentCommitsArgs struct {
+	KernelSrc    string
 	KernelCommit string
 	PatchDiff    string
 }
@@ -151,18 +145,13 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	if len(files) == 0 {
 		return res, aflow.FlowError(errors.New("patch diff does not contain any modified files"))
 	}
-	// The action does not have a kernel checkout in the args, so we use the master repo.
-	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
-		gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
-		git := vcs.Git{Dir: kernelRepoDir, Sandbox: true}
-		output, err := git.Run(gitArgs...)
-		if err != nil {
-			return aflow.FlowError(err)
-		}
-		res.RecentCommits = string(output)
-		return nil
-	})
-	return res, err
+	gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
+	output, err := vcs.Git{Dir: args.KernelSrc, Sandbox: true}.Run(gitArgs...)
+	if err != nil {
+		return res, aflow.FlowError(err)
+	}
+	res.RecentCommits = string(output)
+	return res, nil
 }
 
 var applyGitPatch = aflow.NewFuncAction("apply-git-patch", applyGitPatchFunc)
