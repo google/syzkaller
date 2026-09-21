@@ -65,6 +65,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		vmlinux: vmlinux,
 		symbols: symbols,
 	}
+	ctx.ignores = append(ctx.ignores, linuxIgnores...)
 	ctx.consoleOutputRe = regexp.MustCompile(`(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? ?`)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
@@ -165,6 +166,12 @@ const contextConsole = "console"
 var linuxPanickedRe = regexp.MustCompile(`Kernel panic - not syncing`)
 var replayRe = regexp.MustCompile(`^\n[^\n]*\*\* replaying previous printk message \*\*`)
 var linuxFaultInjectionRe = []byte("FAULT_INJECTION: forcing a failure")
+
+// Ignore these strings when detecting crashes.
+var linuxIgnores = []*regexp.Regexp{
+	// p9_fd_create_unix and p9_fd_create_tcp print user-controlled socket paths/addresses.
+	regexp.MustCompile("p9_fd_create.*: problem connecting socket"),
+}
 
 func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
