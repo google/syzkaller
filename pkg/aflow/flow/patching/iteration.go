@@ -365,6 +365,7 @@ var extractLatestPatchInfo = aflow.NewFuncAction("extract-latest-patch-info", fu
 })
 
 var resolveFixes = aflow.NewFuncAction("resolve-fixes", func(ctx *aflow.Context, args struct {
+	KernelSrc  string
 	BaseFixes  ai.FixesTag
 	FixesHash  string
 	FixesItems []string
@@ -375,7 +376,7 @@ var resolveFixes = aflow.NewFuncAction("resolve-fixes", func(ctx *aflow.Context,
 	if args.FixesHash == "" {
 		return formatFixesResult{}, nil
 	}
-	fix, err := queryFixesTag(ctx, args.FixesHash)
+	fix, err := queryFixesTag(args.KernelSrc, args.FixesHash)
 	return formatFixesResult{Fixes: fix}, err
 })
 

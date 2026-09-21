@@ -11,7 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,11 +20,8 @@ func TestRecentCommits(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("skipping on CI because of shallow git checkout")
 	}
-	dir := t.TempDir()
-	require.NoError(t, osutil.MkdirAll(filepath.Join(dir, "repo")))
-	require.NoError(t, os.Symlink(osutil.Abs(filepath.FromSlash("../../../..")),
-		filepath.Join(dir, "repo", "linux")))
-	aflow.TestAction(t, getRecentCommits, dir, recentCommitsArgs{
+	aflow.TestAction(t, getRecentCommits, "", recentCommitsArgs{
+		KernelSrc:    osutil.Abs(filepath.FromSlash("../../../..")),
 		KernelCommit: "e01a0ca6c12c9851ea7090f13879255ef82291e7",
 		PatchDiff: `
 diff --git a/dashboard/app/ai.go b/dashboard/app/ai.go
@@ -66,27 +62,18 @@ syz-cluster: rewrite fuzz config generation
 }
 
 func TestMaintainers(t *testing.T) {
-	dir := t.TempDir()
-	repoDir := filepath.Join(dir, "repo", "linux")
-	repo := vcs.MakeTestRepo(t, repoDir)
-	require.NoError(t, osutil.MkdirAll(filepath.Join(repoDir, "scripts")))
-
+	kernelSrc := t.TempDir()
+	require.NoError(t, osutil.MkdirAll(filepath.Join(kernelSrc, "scripts")))
 	// Write a fake get_maintainer.pl.
-	scriptContent := `#!/bin/sh
+	require.NoError(t, os.WriteFile(filepath.Join(kernelSrc, "scripts", "get_maintainer.pl"), []byte(
+		`#!/bin/sh
 echo "Maintainer 1 <m1@example.com> (maintainer:SUBSYSTEM)"
 echo "Fixes Author <fixes@example.com> (reviewer:SUBSYSTEM)"
-`
-	require.NoError(t, osutil.MkdirAll(filepath.Join(repoDir, "scripts")))
-	repo.CommitChangeset("init", vcs.FileContent{
-		File:    "scripts/get_maintainer.pl",
-		Content: scriptContent,
-	})
-	repo.Git("update-index", "--chmod=+x", "scripts/get_maintainer.pl")
-	commit := repo.CommitChangeset("make executable")
+`), 0755))
 
-	aflow.TestAction(t, getMaintainers, dir, maintainersArgs{
-		KernelCommit: commit.Hash,
-		PatchDiff:    "fake patch diff",
+	aflow.TestAction(t, getMaintainers, "", maintainersArgs{
+		KernelSrc: kernelSrc,
+		PatchDiff: "fake patch diff",
 		Fixes: ai.FixesTag{
 			Hash:        "123456789",
 			Title:       "some fix",
