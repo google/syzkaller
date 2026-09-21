@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,7 +146,10 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	if len(files) == 0 {
 		return res, aflow.FlowError(errors.New("patch diff does not contain any modified files"))
 	}
-	gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
+	// The patch may add new files, which don't exist in the checkout,
+	// so we must separate the paths from the revisions.
+	gitArgs := slices.Concat([]string{"log", "--format=%s", "--no-merges", "-n", "20",
+		args.KernelCommit, "--"}, files)
 	output, err := vcs.Git{Dir: args.KernelSrc, Sandbox: true}.Run(gitArgs...)
 	if err != nil {
 		return res, aflow.FlowError(err)

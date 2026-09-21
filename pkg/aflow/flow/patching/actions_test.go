@@ -40,6 +40,13 @@ index fa7d082e6..74ec57b49 100644
 -// Copyright 2025 syzkaller project authors. All rights reserved.
 +// Copyright 2026 syzkaller project authors. All rights reserved.
  // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+diff --git a/dashboard/app/brand_new_file.go b/dashboard/app/brand_new_file.go
+new file mode 100644
+index 000000000..1d7401e61
+--- /dev/null
++++ b/dashboard/app/brand_new_file.go
+@@ -0,0 +1 @@
++// Copyright 2026 syzkaller project authors. All rights reserved.
 `,
 	}, recentCommitsResult{RecentCommits: `dashboard: run patching ai jobs on custom base commits
 dashboard/app: upload AI-generated patches to gerrit
