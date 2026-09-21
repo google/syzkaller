@@ -150,7 +150,7 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	// so we must separate the paths from the revisions.
 	gitArgs := slices.Concat([]string{"log", "--format=%s", "--no-merges", "-n", "20",
 		args.KernelCommit, "--"}, files)
-	output, err := vcs.Git{Dir: args.KernelSrc, Sandbox: true}.Run(gitArgs...)
+	output, err := vcs.Git{Dir: args.KernelSrc}.Run(gitArgs...)
 	if err != nil {
 		return res, aflow.FlowError(err)
 	}

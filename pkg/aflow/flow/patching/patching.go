@@ -597,7 +597,7 @@ func queryFixesTag(kernelSrc, hash string) (ai.FixesTag, error) {
 }
 
 func kernelCommit(kernelSrc, hash string) (*vcs.Commit, error) {
-	repo, err := vcs.NewRepo(targets.Linux, "", kernelSrc)
+	repo, err := vcs.NewRepo(targets.Linux, "", kernelSrc, vcs.OptDontSandbox)
 	if err != nil {
 		return nil, err
 	}
