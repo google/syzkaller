@@ -11,6 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitShow(t *testing.T) {
@@ -128,6 +129,44 @@ diff --git a/foo\.c b/foo\.c
 		showResult{},
 		`git show failed: fatal: Invalid pathspec magic 'invalid' in ':(invalid'`,
 		aflow.TestWorkdir(tmpDir))
+
+	// Test git-show rejects attempts to smuggle command line options into Commit.
+	// Such values both abort the flow with a git usage error and can write arbitrary files.
+	outFile := filepath.Join(tmpDir, "must-not-exist")
+	for _, commit := range []string{
+		"--git-dir=/app/workdir/repo/linux/.git HEAD",
+		"--output=" + outFile,
+		" --output=" + outFile,
+		"HEAD --output=" + outFile,
+	} {
+		aflow.TestTool(t, ToolShow,
+			state{KernelSrc: repoDir},
+			showArgs{Commit: commit},
+			showResult{},
+			fmt.Sprintf("invalid Commit %q: it must be a git revision"+
+				" (e.g. 'HEAD', 'v6.12' or a commit hash), not a command line option", commit),
+			aflow.TestWorkdir(tmpDir))
+	}
+	require.NoFileExists(t, outFile)
+
+	// A revision with an interior dash is allowed by the format check and fails cleanly in git.
+	aflow.TestTool(t, ToolShow,
+		state{KernelSrc: repoDir},
+		showArgs{Commit: "v6.12-rc1"},
+		showResult{},
+		"git show failed: commit v6.12-rc1 does not exist",
+		aflow.TestWorkdir(tmpDir))
+
+	// Valid revisions must keep working.
+	for _, commit := range []string{"HEAD", "HEAD^", "HEAD~1", "HEAD^{commit}"} {
+		aflow.TestTool(t, ToolShow,
+			state{KernelSrc: repoDir},
+			showArgs{Commit: commit},
+			func(res showResult) {
+				assert.Contains(t, res.Output, "commit")
+			},
+			"", aflow.TestWorkdir(tmpDir))
+	}
 }
 
 func TestGitBlame(t *testing.T) {
