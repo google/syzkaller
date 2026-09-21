@@ -1,0 +1,14 @@
+
+[pid  5612] write(1, "executing program\n", 18) = 18
+[pid  5612] mkdirat(AT_FDCWD, "./sys", 0777) = -1 EEXIST (File exists)
+executing program
+[pid  5612] mount("./sys/module/kernel/parameters/panic", "./sys", "9p", MS_MANDLOCK, "trans=unix,") = -1 ENOENT (No such file or directory)
+[pid  5612] exit_group(0)               = ?
+[pid  5612] +++ exited with 0 +++
+--- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5612, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+[   88.737064][ T5611] =======================================================
+[   88.737064][ T5611] WARNING: The mand mount option has been deprecated and
+[   88.737064][ T5611]          and is ignored by this kernel. Remove the mand
+[   88.737064][ T5611]          option from the mount to silence this warning.
+[   88.737064][ T5611] =======================================================
+[   88.737776][ T5611] 9pnet_fd: p9_fd_create_unix (5611): problem connecting socket: ./sys/module/kernel/parameters/panic: -2
