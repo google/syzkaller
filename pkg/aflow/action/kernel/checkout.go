@@ -61,16 +61,22 @@ var kernelBackports = []vcs.BackportCommit{
 // otherwise the already cached checkouts will be reused as is.
 const checkoutVersion = 2
 
+// srcCacheDesc identifies the contents of the kernel checkout.
+// Anything that depends on the checkout location (e.g. the kernel build, which records
+// the source dir in the debug info and in compile_commands.json) must include it in its own key.
+func srcCacheDesc(kernelCommit string) string {
+	var desc strings.Builder
+	fmt.Fprintf(&desc, "v%v-%v", checkoutVersion, kernelCommit)
+	for _, bp := range kernelBackports {
+		desc.WriteString("-" + bp.FixHash)
+	}
+	return desc.String()
+}
+
 func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 	var res checkoutResult
-	var cacheKey strings.Builder
-	fmt.Fprintf(&cacheKey, "v%v-%v", checkoutVersion, args.KernelCommit)
-	for _, bp := range kernelBackports {
-		cacheKey.WriteString("-" + bp.FixHash)
-	}
-
 	err := UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
-		dir, err := ctx.Cache("src", cacheKey.String(), func(dir string) error {
+		dir, err := ctx.Cache("src", srcCacheDesc(args.KernelCommit), func(dir string) error {
 			if _, err := repo.SwitchCommit(args.KernelCommit); err != nil {
 				if _, err := repo.CheckoutCommit(args.KernelRepo, args.KernelCommit); err != nil {
 					return err

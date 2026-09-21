@@ -124,9 +124,11 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 	// The target must be part of the key: BuildKernel patches the config depending on the
 	// architecture, so the same config may produce different kernels for different targets.
-	desc := fmt.Sprintf("kernel target %v, commit %v, kernel config hash %v",
+	// The source description is part of the key as well, because the build artifacts refer
+	// to the source dir, which changes location whenever we change the way we check it out.
+	desc := fmt.Sprintf("kernel target %v, source %v, kernel config hash %v",
 		mgrconfig.FormatTarget(args.TargetOS, args.TargetVMArch, args.TargetArch),
-		args.KernelCommit, hash.String(args.KernelConfig))
+		srcCacheDesc(args.KernelCommit), hash.String(args.KernelConfig))
 	dir, err := ctx.Cache("build", desc, func(dir string) error {
 		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, args.TargetOS, args.TargetArch, args.TargetVMArch, true)
 	})
