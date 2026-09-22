@@ -837,6 +837,12 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 	if len(nameToHash) == 0 {
 		return nil, nil
 	}
+	// Without the pathspec, git has to diff the full trees of every commit against
+	// every of its parents, which takes tens of minutes on a Linux kernel checkout.
+	// Once git knows the file names, it only needs to descend into the corresponding
+	// tree objects, which is orders of magnitude faster.
+	args = append(args, "--")
+	args = append(args, fileNames...)
 	output, err := git.Run(args...)
 	if err != nil {
 		return nil, err
@@ -849,6 +855,9 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		commitBranches[commit][branch] = struct{}{}
 	}
 
+	// With -m, git prints a merge commit once per parent, so the same commits
+	// can be mentioned in the output many times.
+	checkedCandidates := map[string]struct{}{}
 	s := bufio.NewScanner(bytes.NewReader(output))
 	for s.Scan() {
 		// TODO: we can further reduce the search space by adding "--raw" to args
@@ -859,6 +868,10 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 			candidates = append(candidates, strings.Split(parents, " ")...)
 		}
 		for _, candidate := range candidates {
+			if _, checked := checkedCandidates[candidate]; checked {
+				continue
+			}
+			checkedCandidates[candidate] = struct{}{}
 			// Only focus on branches that are still alive.
 			const cutOffDays = 60
 			list, err := git.BranchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
