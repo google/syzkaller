@@ -80,7 +80,9 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
 	for _, area := range areas {
 		obj := &ProgramsList{}
-		if len(areas) > 1 && area.Name != "" && len(area.CoverPCs) > 0 {
+		if len(area.CoverPCs) == 0 {
+			obj = corpus.ProgramsList
+		} else if len(areas) > 1 && area.Name != "" {
 			// Only show extra statistics if there's more than one area.
 			stat.New("corpus ["+area.Name+"]",
 				fmt.Sprintf("Corpus programs of the focus area %q", area.Name),
@@ -203,6 +205,10 @@ func (corpus *Corpus) Save(inp NewInput) {
 
 func (corpus *Corpus) applyFocusAreas(item *Item) {
 	for _, area := range corpus.focusAreas {
+		if len(area.CoverPCs) == 0 {
+			// Already handled via corpus.ProgramsList.
+			continue
+		}
 		if _, ok := item.areas[area]; ok {
 			continue
 		}

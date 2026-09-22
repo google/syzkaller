@@ -56,7 +56,6 @@ func TestFocusAreas(t *testing.T) {
 			CoverPCs: map[uint64]struct{}{
 				0: {},
 				1: {},
-				2: {},
 			},
 			Weight: 10,
 		},
@@ -68,10 +67,7 @@ func TestFocusAreas(t *testing.T) {
 			Weight: 30,
 		},
 		{
-			CoverPCs: map[uint64]struct{}{
-				4: {},
-				5: {},
-			},
+			// An empty CoverPCs filter matches the whole corpus.
 			Weight: 60,
 		},
 	})
@@ -112,10 +108,10 @@ func TestFocusAreas(t *testing.T) {
 	}
 
 	assert.Greater(t, len(different), 25)
-	// These must be proportional to the focus area weight distribution.
-	assert.InDelta(t, firstCount, TOTAL*0.1, TOTAL/25)
-	assert.InDelta(t, secondCount, TOTAL*0.3, TOTAL/25)
-	assert.InDelta(t, thirdCount, TOTAL*0.6, TOTAL/25)
+	// The third area (weight 60%) covers all 3 groups equally (20% each).
+	assert.InDelta(t, firstCount, TOTAL*0.3, TOTAL/25)
+	assert.InDelta(t, secondCount, TOTAL*0.5, TOTAL/25)
+	assert.InDelta(t, thirdCount, TOTAL*0.2, TOTAL/25)
 }
 
 func TestFocusAreaInAreaWeighting(t *testing.T) {
