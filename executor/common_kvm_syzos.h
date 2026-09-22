@@ -6,6 +6,8 @@
 
 // Common SYZOS definitions.
 
+#include <string.h>
+
 // Prevent function inlining. This attribute is applied to every guest_handle_* function,
 // making sure they remain small so that the compiler does not attempt to be too clever
 // (e.g. generate switch tables).
@@ -52,6 +54,28 @@
 
 // Start/end of the guest section.
 extern char *__start_guest, *__stop_guest;
+
+static inline size_t install_syzos_code(void* host_mem, size_t mem_size)
+{
+	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
+	if (size > mem_size)
+		fail("SYZOS size exceeds guest memory");
+	memcpy(host_mem, &__start_guest, size);
+	return size;
+}
+
+// Flags for mem_region.
+#define MEM_REGION_FLAG_USER_CODE (1 << 0)
+#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
+#define MEM_REGION_FLAG_READONLY (1 << 2)
+#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
+#define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
+
+struct mem_region {
+	uint64 gpa;
+	int pages;
+	uint32 flags;
+};
 
 // Common SYZOS API call descriptors.
 struct api_call_header {
