@@ -8,22 +8,11 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPatchFocusAreas(t *testing.T) {
-	cfg := &mgrconfig.Config{
-		KernelSrc: t.TempDir(),
-	}
-	require.NoError(t, osutil.FillDirectory(cfg.KernelSrc, map[string]string{
-		"header.h": `Test`,
-		"a.c": `#include <header.h>
-int main(void) { }`,
-		"b.c": `int main(void) { }`,
-		"c.c": `int main(void) { }`,
-	}))
+	cfg := &mgrconfig.Config{}
 
 	baseHashes, patchedHashes := dummySymbolHashes(), dummySymbolHashes()
 	baseHashes["function"] = "hash1"
@@ -65,13 +54,6 @@ index 103167d..fbf7a68 100644
 				Files: []string{"b.c", "header.h"},
 			},
 			Weight: 3.0,
-		},
-		{
-			Name: includesArea,
-			Filter: mgrconfig.CovFilterCfg{
-				Files: []string{"a.c"},
-			},
-			Weight: 2.0,
 		},
 		{
 			Weight: 1.0,

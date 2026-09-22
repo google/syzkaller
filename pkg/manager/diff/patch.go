@@ -5,20 +5,18 @@ package diff
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
 const (
-	symbolsArea  = "symbols"
-	filesArea    = "files"
-	includesArea = "included"
+	symbolsArea = "symbols"
+	filesArea   = "files"
 )
 
 func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, patchedHashes map[string]string) {
@@ -39,9 +37,8 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 			})
 	}
 
-	direct, transitive := affectedFiles(cfg, gitPatches)
+	direct := affectedFiles(gitPatches)
 	if len(direct) > 0 {
-		slices.Sort(direct)
 		log.Logf(0, "adding directly modified files to focus areas: %q", direct)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
@@ -50,19 +47,6 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 					Files: direct,
 				},
 				Weight: 3.0,
-			})
-	}
-
-	if len(transitive) > 0 {
-		slices.Sort(transitive)
-		log.Logf(0, "adding transitively affected to focus areas: %q", transitive)
-		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
-			mgrconfig.FocusArea{
-				Name: includesArea,
-				Filter: mgrconfig.CovFilterCfg{
-					Files: transitive,
-				},
-				Weight: 2.0,
 			})
 	}
 
@@ -75,50 +59,14 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 	}
 }
 
-func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transitive []string) {
-	const maxAffectedByHeader = 50
-
+func affectedFiles(gitPatches [][]byte) []string {
 	directMap := make(map[string]struct{})
-	transitiveMap := make(map[string]struct{})
-	var allFiles []string
 	for _, patch := range gitPatches {
 		for _, diff := range vcs.ParseGitDiff(patch) {
-			allFiles = append(allFiles, diff.Name)
+			directMap[diff.Name] = struct{}{}
 		}
 	}
-	for _, file := range allFiles {
-		directMap[file] = struct{}{}
-		if !strings.HasSuffix(file, ".h") || cfg.KernelSrc == "" {
-			continue
-		}
-		// For .h files, we want to determine all the .c files that include them.
-		// Ideally, we should combine this with the recompilation process - then we know
-		// exactly which files were affected by the patch.
-		matching, err := osutil.GrepFiles(cfg.KernelSrc, `.c`,
-			[]byte(`<`+strings.TrimPrefix(file, "include/")+`>`))
-		if err != nil {
-			log.Logf(0, "failed to grep for includes: %s", err)
-			continue
-		}
-		if len(matching) >= maxAffectedByHeader {
-			// It's too widespread. It won't help us focus on anything.
-			log.Logf(0, "the header %q is included in too many files (%d)", file, len(matching))
-			continue
-		}
-		for _, name := range matching {
-			transitiveMap[name] = struct{}{}
-		}
-	}
-	for name := range directMap {
-		direct = append(direct, name)
-	}
-	for name := range transitiveMap {
-		if _, ok := directMap[name]; ok {
-			continue
-		}
-		transitive = append(transitive, name)
-	}
-	return
+	return slices.Sorted(maps.Keys(directMap))
 }
 
 // If there are too many different symbols, they are no longer specific enough.
