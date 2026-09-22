@@ -315,7 +315,8 @@ static int test_syzos()
 		return 1;
 	}
 	// Right now SYZOS testing just boils down to installing code into memory.
-	install_syzos_code(mem, mem_size);
+	size_t syzos_size = install_syzos_code(mem, mem_size);
+	validate_guest_code(mem, syzos_size);
 	munmap(mem, mem_size);
 	return 0;
 }
