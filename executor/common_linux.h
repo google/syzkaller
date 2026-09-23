@@ -3907,8 +3907,18 @@ static void checkpoint_arptables(void)
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
 		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
-		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
+		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen)) {
+#if GOARCH_386 || GOARCH_arm
+			// Linux commit 0bd7ed1a3263 ("netfilter: arp_tables: remove the 32bit
+			// compat interface") removed 32-bit compat support for ARPT_SO_GET_ENTRIES,
+			// causing it to fail with EINVAL on 64-bit kernels due to struct size mismatch.
+			if (errno == EINVAL) {
+				table->info.valid_hooks = 0;
+				continue;
+			}
+#endif
 			failmsg("arptable checkpoint: getsockopt(ARPT_SO_GET_ENTRIES) failed", "table=%s", table->name);
+		}
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
 		table->replace.size = table->info.size;
