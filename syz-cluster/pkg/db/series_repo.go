@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -53,20 +52,10 @@ func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Se
 
 var ErrSeriesExists = errors.New("the series already exists")
 
-// Insert checks whether there already exists a series with the same ExtID.
-// Since Patch content is stored elsewhere, we do not demand it be filled out before calling Insert().
-// Instead, Insert() obtains this data via a callback.
-func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
-	queryPatches func() ([]*Patch, error)) error {
-	var patches []*Patch
-	var patchesErr error
-	var patchesOnce sync.Once
-	doQueryPatches := func() {
-		if queryPatches == nil {
-			return
-		}
-		patches, patchesErr = queryPatches()
-	}
+// Insert saves the series together with its patches.
+// It returns ErrSeriesExists if a series with the same ExtID already exists.
+// Insert fills in series.ID (if it's empty) and the ID/SeriesID fields of the patches.
+func (repo *SeriesRepository) Insert(ctx context.Context, series *Series, patches []*Patch) error {
 	if series.ID == "" {
 		series.ID = uuid.NewString()
 	}
@@ -85,11 +74,6 @@ func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
 				return ErrSeriesExists
 			} else if iterErr != iterator.Done {
 				return iterErr
-			}
-			// Query patches (once).
-			patchesOnce.Do(doQueryPatches)
-			if patchesErr != nil {
-				return patchesErr
 			}
 			// Save the objects.
 			var stmts []*spanner.Mutation

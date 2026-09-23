@@ -37,9 +37,7 @@ func TestSeriesRepositoryGet(t *testing.T) {
 			BodyURI: "gcs://patch2",
 		},
 	}
-	err := repo.Insert(ctx, series, func() ([]*Patch, error) {
-		return patches, nil
-	})
+	err := repo.Insert(ctx, series, patches)
 	assert.NoError(t, err)
 	// Check that we obtain the exact object from the DB.
 	series2, err := repo.GetByID(ctx, series.ID)
@@ -74,7 +72,7 @@ func TestSeriesRepositoryList(t *testing.T) {
 			Cc:          []string{"c"},
 		},
 	} {
-		err := repo.Insert(ctx, series, func() ([]*Patch, error) { return nil, nil })
+		err := repo.Insert(ctx, series, nil)
 		assert.NoError(t, err)
 	}
 
@@ -211,9 +209,7 @@ func TestSeriesRepositorySearch(t *testing.T) {
 			Seq:   2,
 		},
 	}
-	err := repo.Insert(ctx, series1, func() ([]*Patch, error) {
-		return patches1, nil
-	})
+	err := repo.Insert(ctx, series1, patches1)
 	assert.NoError(t, err)
 
 	series2 := &Series{
@@ -227,9 +223,7 @@ func TestSeriesRepositorySearch(t *testing.T) {
 			Seq:   1,
 		},
 	}
-	err = repo.Insert(ctx, series2, func() ([]*Patch, error) {
-		return patches2, nil
-	})
+	err = repo.Insert(ctx, series2, patches2)
 	assert.NoError(t, err)
 
 	series3 := &Series{
@@ -243,9 +237,7 @@ func TestSeriesRepositorySearch(t *testing.T) {
 			Seq:   1,
 		},
 	}
-	err = repo.Insert(ctx, series3, func() ([]*Patch, error) {
-		return patches3, nil
-	})
+	err = repo.Insert(ctx, series3, patches3)
 	assert.NoError(t, err)
 
 	t.Run("by_series_name", func(t *testing.T) {
@@ -291,9 +283,7 @@ func TestSeriesRepositoryUpdate(t *testing.T) {
 		PublishedAt: time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
 		Cc:          []string{"email"},
 	}
-	err := repo.Insert(ctx, series, func() ([]*Patch, error) {
-		return nil, nil
-	})
+	err := repo.Insert(ctx, series, nil)
 	assert.NoError(t, err)
 	// Update the object.
 	err = repo.Update(ctx, series.ID, func(series *Series) error {
