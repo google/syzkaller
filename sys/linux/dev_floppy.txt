@@ -8,7 +8,7 @@
 include <uapi/linux/fd.h>
 include <uapi/linux/fcntl.h>
 
-resource fd_floppy[fd]
+resource fd_floppy[fd_block]
 
 # O_ACCMODE is used for ioctl-only opens, see FMODE_WRITE_IOCTL
 # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h?h=v5.14#n129
