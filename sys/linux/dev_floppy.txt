@@ -164,17 +164,30 @@ floppy_raw_cmd {
 	buffer_length	const[0, int32]
 
 	rate		int8
-	cmd_count	int8
-	cmd		array[int8, 16]
-# output
-	reply_count	const[0, int8]
-	reply		array[const[0, int8], 16]
+# kernel rejects cmd_count > FD_RAW_CMD_FULLSIZE (33) with -EINVAL in raw_cmd_copyin()
+	cmd_count	int8[0:33]
+	cmd		floppy_raw_cmd_cmd
 	track		int32
 # output
 	resultcode	const[0, int32]
 
 	reserved1	const[0, int32]
 	reserved2	const[0, int32]
+}
+
+# The kernel struct has an anonymous union here: a named view (cmd/reply_count/reply)
+# and a flat byte view (fullcmd) over the same FD_RAW_CMD_FULLSIZE (33) bytes.
+floppy_raw_cmd_cmd [
+	named	floppy_raw_cmd_named
+	fullcmd	array[int8, 33]
+]
+
+floppy_raw_cmd_named {
+	cmd		array[int8, 16]
+# output
+	reply_count	const[0, int8]
+# output
+	reply		array[const[0, int8], 16]
 }
 
 floppy_reset_mode = FD_RESET_IF_NEEDED, FD_RESET_IF_RAWCMD, FD_RESET_ALWAYS
