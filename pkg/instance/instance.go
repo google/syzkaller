@@ -621,5 +621,8 @@ func runManagerMode(cfg *mgrconfig.Config, mode string, extraArgs ...string) (*r
 	if err := json.Unmarshal(reportData, rep); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal test report: %w", err)
 	}
+	if rep.Type == crash.SyzFailure && len(output) != 0 {
+		rep.Output = fmt.Appendf(rep.Output, "\n\nsyz-manager output:\n%s", output)
+	}
 	return rep, nil
 }
