@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -159,7 +160,12 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 	truncate := func(log string, limit int) string {
 		lines := strings.Split(log, "\n")
 		if len(lines) > limit {
-			lines = lines[len(lines)-limit:]
+			half := limit / 2
+			lines = slices.Concat(
+				lines[:half],
+				[]string{fmt.Sprintf("... [truncated %d lines] ...", len(lines)-limit)},
+				lines[len(lines)-(limit-half):],
+			)
 		}
 		return strings.Join(lines, "\n")
 	}
