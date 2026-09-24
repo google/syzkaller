@@ -6,7 +6,8 @@
   "default_backend": "gemini",
   "safety_filters": false,
   "workflow_backends": {
-    "repro-c": "vertex"
+    "repro-c": "vertex",
+    "assessment-security": "vertex"
   },
   "cache_size": 350000000000,
   "targets": {
