@@ -105,10 +105,12 @@ func TestLoopControllerFunc(t *testing.T) {
 		IsProbe:              false,
 		CandidateReproduced:  false,
 		CapabilitiesVerified: true,
+		OracleFeedback:       "=== Attempt 1 ===\nold run",
 	}
 	res, err = LoopControllerFunc(ctx, args)
 	assert.NoError(t, err)
 	assert.True(t, res.CapabilitiesVerified)
+	assert.Equal(t, "=== Attempt 1 ===\nold run\n\n=== Attempt 2 ===\nnew run", res.OracleFeedback)
 
 	// Case 6: Terminal error propagation.
 	args = LoopControllerArgs{

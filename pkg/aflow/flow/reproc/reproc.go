@@ -219,6 +219,7 @@ type LoopControllerArgs struct {
 	// CapabilitiesVerified is the persisted capability check status across loop iterations.
 	CapabilitiesVerified bool
 	TerminalError        string
+	OracleFeedback       string
 }
 
 type LoopControllerResult struct {
@@ -262,9 +263,14 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 		if args.CandidateReproduced && !args.TitleMatches {
 			res.OracleFeedback = fmt.Sprintf(
 				"Collision detected: candidate reproducer triggered a crash with title %q, "+
-					"which does not match the expected bug.",
-				args.CandidateBugTitle,
+					"which does not match the expected bug.\n%s",
+				args.CandidateBugTitle, args.Feedback,
 			)
+		}
+		attempt := strings.Count("\n"+args.OracleFeedback, "\n=== Attempt ") + 1
+		res.OracleFeedback = fmt.Sprintf("=== Attempt %d ===\n%s", attempt, res.OracleFeedback)
+		if args.OracleFeedback != "" {
+			res.OracleFeedback = args.OracleFeedback + "\n\n" + res.OracleFeedback
 		}
 		res.ContinueSignal = "continue"
 	}
