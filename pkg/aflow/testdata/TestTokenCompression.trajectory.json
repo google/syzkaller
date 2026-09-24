@@ -32,8 +32,10 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:03Z",
 		"Finished": "0001-01-01T00:00:04Z",
+		"Thoughts": "thinking about id1",
 		"InputTokens": 150,
-		"OutputTokens": 10
+		"OutputTokens": 10,
+		"OutputThoughtsTokens": 60
 	},
 	{
 		"Seq": 3,
@@ -69,8 +71,10 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:07Z",
 		"Finished": "0001-01-01T00:00:08Z",
-		"InputTokens": 260,
-		"OutputTokens": 10
+		"Thoughts": "thinking about id2",
+		"InputTokens": 270,
+		"OutputTokens": 10,
+		"OutputThoughtsTokens": 60
 	},
 	{
 		"Seq": 5,
