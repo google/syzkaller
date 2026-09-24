@@ -553,9 +553,9 @@ and improve it. Keep your reasoning steps short and focused on the next logical 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}
 
-{{if .RawCandidateReproC}}
+{{if .CurrentCandidateReproC}}
 Previous Reproducer Attempt:
-{{.RawCandidateReproC}}
+{{.CurrentCandidateReproC}}
 {{end}}
 
 {{if .OracleFeedback}}
