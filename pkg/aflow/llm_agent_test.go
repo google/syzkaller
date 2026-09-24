@@ -93,19 +93,21 @@ func TestTokenCompression(t *testing.T) {
 			},
 		},
 		[]any{
-			// 1. Initial request. Return a tool call with a thought signature and establish the anchor token count.
-			createToolCallResponseWithSig(150, "id1", "tick", []byte("original-sig-1")),
-			// 2. Second request. Return another tool call with a thought signature and report total tokens 260.
-			// This means delta = 260 - 150 = 110. Since 110 > compressTokensValue (100), compression triggers!
-			createToolCallResponseWithSig(260, "id2", "tick", []byte("original-sig-2")),
+			// 1. Initial request: establish the anchor token count (150) and return a tool call with a thought.
+			createToolCallResponseWithSig(150, 60, "id1", "tick", []byte("original-sig-1")),
+			// 2. Second request: total tokens exceed anchor + compressTokens (150 + 100), triggering compression.
+			// id2 fits in preserveHistoryTokens (50) once its 60 thought tokens are excluded.
+			createToolCallResponseWithSig(270, 60, "id2", "tick", []byte("original-sig-2")),
 			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model),
 			// followed by the main agent resuming with the truncated history.
 			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
 				if model == string(backend.LightweightModel) {
-					// Summarizer invocation: verify single user message with XML tags.
+					// Summarizer invocation: verify single user message with XML tags and thoughts from id1.
 					require.Equal(t, 1, len(req), "Summarizer should receive a single user message")
 					require.Equal(t, backend.RoleUser, req[0].Role)
 					require.Contains(t, req[0].Parts[0].Text, "<execution_history>")
+					require.Contains(t, req[0].Parts[0].Text, "<thought>\nthinking about id1\n</thought>")
+					require.NotContains(t, req[0].Parts[0].Text, "thinking about id2")
 					require.Contains(t, req[0].Parts[0].Text, "</execution_history>")
 					require.Empty(t, req[0].Parts[0].ThoughtSignature, "thought signatures must be cleared for summarizer")
 					return &backend.GenerateResponse{
@@ -122,6 +124,8 @@ func TestTokenCompression(t *testing.T) {
 				require.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
 					req[1].Parts[0].Text)
 				require.Equal(t, backend.RoleModel, req[2].Role)
+				require.Len(t, req[2].Parts, 1, "thought part should be dropped from preserved suffix")
+				require.False(t, req[2].Parts[0].Thought)
 				require.Equal(t, "id2", req[2].Parts[0].FunctionCall.ID)
 				require.Empty(t, req[2].Parts[0].ThoughtSignature,
 					"preserved function call in generic history should have empty thought signature")
@@ -140,10 +144,18 @@ func TestTokenCompression(t *testing.T) {
 	)
 }
 
-func createToolCallResponseWithSig(tokens int, id, name string, sig []byte) *backend.GenerateResponse {
-	resp := createToolCallResponse(tokens, id, name)
-	resp.Parts[0].ThoughtSignature = sig
-	return resp
+func createToolCallResponseWithSig(tokens, thoughtTokens int, id, name string, sig []byte) *backend.GenerateResponse {
+	return &backend.GenerateResponse{
+		UsageMetadata: &backend.UsageMetadata{
+			InputTokens:          tokens,
+			OutputTokens:         10,
+			OutputThoughtsTokens: thoughtTokens,
+		},
+		Parts: []backend.Part{
+			{Thought: true, Text: "thinking about " + id, ThoughtSignature: sig},
+			{FunctionCall: &backend.FunctionCall{ID: id, Name: name}, ThoughtSignature: sig},
+		},
+	}
 }
 
 // TestTokenCompressionResetsHistory verifies that when context compression occurs,

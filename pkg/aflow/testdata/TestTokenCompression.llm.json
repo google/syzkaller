@@ -66,6 +66,11 @@
 			{
 				"parts": [
 					{
+						"text": "thinking about id1",
+						"thought": true,
+						"thoughtSignature": "b3JpZ2luYWwtc2lnLTE="
+					},
+					{
 						"thoughtSignature": "b3JpZ2luYWwtc2lnLTE=",
 						"functionCall": {
 							"id": "id1",
@@ -109,7 +114,7 @@
 			{
 				"parts": [
 					{
-						"text": "\u003csystem_instructions\u003e\nInstruction\nPrefer calling several tools at the same time to save round-trips.\n\n\u003c/system_instructions\u003e\n\n\u003cexecution_history\u003e\n[user]:\nPrompt\n\n[model]:\n  Called tool tick with args: {}\n\n[user]:\n  Tool tick returned: {\"ResFoo\":123}\n\n\u003c/execution_history\u003e\n\nTask: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response. Do NOT use any tools."
+						"text": "\u003csystem_instructions\u003e\nInstruction\nPrefer calling several tools at the same time to save round-trips.\n\n\u003c/system_instructions\u003e\n\n\u003cexecution_history\u003e\n[user]:\nPrompt\n\n[model]:\n\u003cthought\u003e\nthinking about id1\n\u003c/thought\u003e\n  Called tool tick with args: {}\n\n[user]:\n  Tool tick returned: {\"ResFoo\":123}\n\n\u003c/execution_history\u003e\n\nTask: Provide the comprehensive summary of the above execution history now.\nImportant: You must output the actual summary text in your final response. Do NOT use any tools."
 					}
 				],
 				"role": "user"
