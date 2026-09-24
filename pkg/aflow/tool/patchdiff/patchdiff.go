@@ -26,7 +26,7 @@ type state struct {
 
 type args struct {
 	// Let's add an optional File parameter to restrict the diff output.
-	File string `jsonschema:"Optional: restrict diff to a specific file. If empty, shows all changes."`
+	File string `jsonschema:"Optional: restrict diff to a specific file. If empty, shows all changes." json:",omitempty"`
 }
 
 type result struct {

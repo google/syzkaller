@@ -85,7 +85,7 @@ func getCoverageFiles(ctx *aflow.Context, state reproduceState, args CoverageFil
 type FileCoverageArgs struct {
 	ExecutionCachedID string   `jsonschema:"Cached ID returned by the reproduce-crash or execute-seed tool."`
 	Filename          string   `jsonschema:"Name of the source file to inspect."`
-	Functions         []string `jsonschema:"Optional list of functions. If empty, returns all."`
+	Functions         []string `jsonschema:"Optional list of functions. If empty, returns all." json:",omitempty"`
 }
 
 type FileCoverageResult struct {
