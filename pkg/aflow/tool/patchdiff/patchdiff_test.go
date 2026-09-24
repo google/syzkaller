@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPatchDiff(t *testing.T) {
@@ -104,6 +105,15 @@ int main() {
 			assert.Equal(t, expected, output)
 		},
 		"", aflow.TestWorkdir(tmpDir))
+
+	// Test a call without any arguments (the way an LLM calls it), File must be optional
+	// and the result must be exactly the same as with an explicitly empty File.
+	toolState := map[string]any{"KernelScratchSrc": repoDir}
+	resNoArgs, err := aflow.TestToolRun(Tool, toolState, map[string]any{})
+	require.NoError(t, err)
+	resEmptyFile, err := aflow.TestToolRun(Tool, toolState, map[string]any{"File": ""})
+	require.NoError(t, err)
+	require.Equal(t, resEmptyFile, resNoArgs)
 
 	// Test restricting diff to a specific file.
 	aflow.TestTool(t, Tool,
