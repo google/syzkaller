@@ -1,0 +1,29 @@
+# Enforces a ruleset while atomically enabling no_new_privs.
+
+# Creates a regular file before sandboxing.
+# AT_FDCWD = -100; S_IFREG | 0700 = 0x81c0.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x81c0, 0x0)
+
+# Creates a ruleset that denies reading regular files.
+# LANDLOCK_ACCESS_FS_READ_FILE = 0x4.
+
+r0 = landlock_create_ruleset(&AUTO={0x4, 0x0, 0x0, 0x0, 0x0, 0x0}, AUTO, 0x0)
+
+# Drops capabilities to require no_new_privs for ruleset enforcement.
+# _LINUX_CAPABILITY_VERSION_3 = 0x20080522.
+
+capset(&AUTO={0x20080522, 0x0}, &AUTO={0x0, 0x0, 0x0, 0x0, 0x0, 0x0})
+
+# Checks that enforcement without no_new_privs is denied.
+
+landlock_restrict_self(r0, 0x0) # EPERM
+
+# Enforces the ruleset and atomically enables no_new_privs.
+# LANDLOCK_RESTRICT_SELF_NO_NEW_PRIVS = 0x10.
+
+landlock_restrict_self(r0, 0x10)
+
+# Checks that the ruleset denies reading the file.
+
+openat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x0, 0x0) # EACCES
