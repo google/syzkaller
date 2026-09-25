@@ -6,6 +6,7 @@ package gvisor
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -13,6 +14,10 @@ import (
 )
 
 func TestExtract(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		// Extract relies on GNU tar compression auto-detection, gVisor is linux-only anyway.
+		t.Skip("gVisor images are only used on linux")
+	}
 	dir := t.TempDir()
 	extractDir := filepath.Join(dir, "extracted")
 
