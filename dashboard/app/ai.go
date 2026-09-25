@@ -164,12 +164,7 @@ func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
 				DefaultValue: targets.AMD64,
 				Required:     true,
 				Hidden:       ret[i].Type != ai.WorkflowReproC,
-				// syz-agent does not support other arches at the moment.
-				Options: []string{
-					targets.AMD64,
-					targets.ARM64,
-					targets.I386,
-				},
+				Options:      aiSupportedArches,
 			},
 			ManualWorkflowField{
 				ID:          "ExternalBugID",
@@ -2112,12 +2107,27 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 			delete(workflows, typ)
 		}
 	}
+	if len(workflows) == 0 || !bugHasSupportedAIArch(ctx, bug) {
+		return nil, nil
+	}
 	var pending []string
 	for workflow := range workflows {
 		pending = append(pending, string(workflow))
 	}
 	slices.Sort(pending)
 	return pending, nil
+}
+
+// syz-agent does not support other arches at the moment.
+var aiSupportedArches = []string{targets.AMD64, targets.ARM64, targets.ARM, targets.I386}
+
+func bugHasSupportedAIArch(ctx context.Context, bug *Bug) bool {
+	crash, _, err := findCrashForBug(ctx, bug)
+	if err != nil {
+		return false
+	}
+	build, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
+	return err == nil && build.OS == targets.Linux && slices.Contains(aiSupportedArches, build.Arch)
 }
 
 func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duration) bool {
