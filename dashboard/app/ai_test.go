@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -1903,4 +1904,27 @@ func TestAutoCreateReproCRateLimit(t *testing.T) {
 	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs), reproCFlow)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, string(ai.WorkflowReproC), resp.Workflow)
+}
+
+func TestAutoCreateAIJobUnsupportedArch(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	riscvBuild := testBuild(1)
+	riscvBuild.Arch = targets.RiscV64
+	riscvBuild.VMArch = targets.RiscV64
+	c.aiClient.UploadBuild(riscvBuild)
+
+	crash := testCrash(riscvBuild, 1)
+	crash.Title = "KASAN: slab-use-after-free Write in dev_config"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	c.advanceTime(49 * time.Hour)
+
+	// Neither repro-c nor assessment-security should be auto-created for riscv64.
+	resp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp.ID)
+	resp = c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.Empty(t, resp.ID)
 }
