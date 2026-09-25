@@ -57,9 +57,12 @@ func TestIsAutoTxt(t *testing.T) {
 	}{
 		{path: "auto.txt", want: true},
 		{path: "auto.txt.const", want: true},
+		{path: "dev_kvm_auto.txt", want: true},
+		{path: "dev_kvm_auto.txt.const", want: true},
 		{path: "test/auto.txt", want: true},
 		{path: "test/auto.txt.const", want: true},
 		{path: "sys/linux/auto.txt", want: true},
+		{path: "sys/linux/dev_kvm_auto.txt", want: true},
 		{path: "/abs/path/sys/linux/auto.txt", want: true},
 		{path: "sys.txt", want: false},
 		{path: "auto.txt.foo", want: false},

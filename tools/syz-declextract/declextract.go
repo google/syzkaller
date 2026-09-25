@@ -81,6 +81,21 @@ func run(cfg *config) (*declextract.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	dir := filepath.Dir(cfg.autoFile)
+	overlays, err := discoverOverlays(dir, cfg.autoFile)
+	if err != nil {
+		return nil, err
+	}
+	for _, spec := range overlays {
+		overlayRes, err := declextract.RunOverlay(out, probeInfo, spec.roots,
+			spec.excludeStructs, spec.excludeEnums, spec.arches, cfg.DebugTrace)
+		if err != nil {
+			return nil, err
+		}
+		if err := osutil.WriteFile(spec.overlayFile, overlayRes.Descriptions); err != nil {
+			return nil, err
+		}
+	}
 	res, err := declextract.Run(out, probeInfo, coverage, syscallRename, cfg.DebugTrace)
 	if err != nil {
 		return nil, err
@@ -96,7 +111,7 @@ func run(cfg *config) (*declextract.Result, error) {
 	// by manual descriptions (compiler.CollectUnused requires complete descriptions).
 	// This also canonicalizes them b/c new lines are added during parsing.
 	eh, errors := errorHandler()
-	desc := ast.ParseGlob(filepath.Join(filepath.Dir(cfg.autoFile), "*.txt"), eh)
+	desc := ast.ParseGlob(filepath.Join(dir, "*.txt"), eh)
 	if desc == nil {
 		return nil, fmt.Errorf("failed to parse descriptions\n%s", errors.Bytes())
 	}
@@ -113,32 +128,174 @@ func run(cfg *config) (*declextract.Result, error) {
 	if err := osutil.WriteFile(cfg.autoFile+".info", serialize(res.Interfaces)); err != nil {
 		return nil, err
 	}
-	removeUnused(desc, "", unusedNodes)
+	removeUnusedNodes(desc, unusedNodes)
 	// Second pass to remove unused defines/includes. This needs to be done after removing
 	// other garbage b/c they may be used by other garbage.
 	unusedConsts, err := compiler.CollectUnusedConsts(desc.Clone(), target, res.IncludeUse, eh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to typecheck descriptions: %w\n%s", err, errors.Bytes())
 	}
-	removeUnused(desc, cfg.autoFile, unusedConsts)
-	// We need re-parse them again b/c new lines are fixed up during parsing.
-	formatted := ast.Format(ast.Parse(ast.Format(desc), cfg.autoFile, nil))
-	if err := osutil.WriteFile(cfg.autoFile, formatted); err != nil {
-		return nil, err
+	removeUnusedNodes(desc, unusedConsts)
+
+	generatedFiles := []string{cfg.autoFile}
+	for _, spec := range overlays {
+		generatedFiles = append(generatedFiles, spec.overlayFile)
+	}
+	for _, genFile := range generatedFiles {
+		fileDesc := filterFile(desc, genFile)
+		// We need re-parse them again b/c new lines are fixed up during parsing.
+		formatted := ast.Format(ast.Parse(ast.Format(fileDesc), genFile, nil))
+		if err := osutil.WriteFile(genFile, formatted); err != nil {
+			return nil, err
+		}
 	}
 	return res, nil
 }
 
-func removeUnused(desc *ast.Description, autoFile string, unusedNodes []ast.Node) {
+type overlaySpec struct {
+	manualFile     string
+	overlayFile    string
+	roots          map[string]bool
+	excludeStructs map[string]bool
+	excludeEnums   map[string]bool
+	arches         []string
+}
+
+func discoverOverlays(dir, autoFile string) ([]overlaySpec, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.txt"))
+	if err != nil {
+		return nil, err
+	}
+	eh, errors := errorHandler()
+	parsed := make(map[string]*ast.Description)
+	autoFiles := map[string]bool{autoFile: true}
+	overlayTargets := make(map[string]string) // manualFile -> overlayFile
+	for _, f := range files {
+		if f == autoFile {
+			continue
+		}
+		data, err := os.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		desc := ast.Parse(data, f, eh)
+		if desc == nil {
+			return nil, fmt.Errorf("failed to parse %v:\n%s", f, errors.Bytes())
+		}
+		parsed[f] = desc
+		for _, n := range desc.Nodes {
+			if meta, ok := n.(*ast.Meta); ok && meta.Value.Ident == "overlay" && len(meta.Value.Args) == 1 {
+				targetFile := filepath.Join(dir, meta.Value.Args[0].String)
+				autoFiles[targetFile] = true
+				overlayTargets[f] = targetFile
+			}
+		}
+	}
+	if len(overlayTargets) == 0 {
+		return nil, nil
+	}
+	manualStructs, manualEnums := collectManualExclusions(parsed, autoFiles)
+	var specs []overlaySpec
+	for manualFile, overlayFile := range overlayTargets {
+		specs = append(specs, buildOverlaySpec(manualFile, overlayFile, parsed[manualFile], manualStructs, manualEnums))
+	}
+	slices.SortFunc(specs, func(a, b overlaySpec) int {
+		return strings.Compare(a.manualFile, b.manualFile)
+	})
+	return specs, nil
+}
+
+func collectManualExclusions(parsed map[string]*ast.Description,
+	autoFiles map[string]bool) (map[string]bool, map[string]bool) {
+	manualStructs := make(map[string]bool)
+	manualEnums := make(map[string]bool)
+	for f, desc := range parsed {
+		if autoFiles[f] {
+			continue
+		}
+		for _, n := range desc.Nodes {
+			switch decl := n.(type) {
+			case *ast.Struct:
+				if !decl.IsOverride {
+					manualStructs[decl.Name.Name] = true
+				}
+			case *ast.IntFlags:
+				if !decl.IsOverride {
+					manualEnums[decl.Name.Name] = true
+				}
+			case *ast.Resource:
+				manualStructs[decl.Name.Name] = true
+			case *ast.TypeDef:
+				manualStructs[decl.Name.Name] = true
+			}
+		}
+	}
+	return manualStructs, manualEnums
+}
+
+func buildOverlaySpec(manualFile, overlayFile string, desc *ast.Description,
+	manualStructs, manualEnums map[string]bool) overlaySpec {
+	roots := make(map[string]bool)
+	desc.Walk(ast.Recursive(func(n ast.Node) bool {
+		switch decl := n.(type) {
+		case *ast.Type:
+			if decl.Ident != "" {
+				roots[decl.Ident] = true
+			}
+		case *ast.Struct:
+			if decl.IsOverride {
+				roots[decl.Name.Name] = true
+			}
+		case *ast.IntFlags:
+			if decl.IsOverride {
+				roots[decl.Name.Name] = true
+			}
+		case *ast.StrFlags:
+			if decl.IsOverride {
+				roots[decl.Name.Name] = true
+			}
+		}
+		return true
+	}))
+	var arches []string
+	for _, n := range desc.Nodes {
+		if meta, ok := n.(*ast.Meta); ok && meta.Value.Ident == "arches" {
+			for _, arg := range meta.Value.Args {
+				arches = append(arches, arg.String)
+			}
+		}
+	}
+	return overlaySpec{
+		manualFile:     manualFile,
+		overlayFile:    overlayFile,
+		roots:          roots,
+		excludeStructs: manualStructs,
+		excludeEnums:   manualEnums,
+		arches:         arches,
+	}
+}
+
+func removeUnusedNodes(desc *ast.Description, unusedNodes []ast.Node) {
 	unused := make(map[string]bool)
 	for _, n := range unusedNodes {
-		_, typ, name := n.Info()
-		unused[typ+name] = true
+		pos, typ, name := n.Info()
+		unused[pos.File+"/"+typ+"/"+name] = true
 	}
 	desc.Nodes = slices.DeleteFunc(desc.Nodes, func(n ast.Node) bool {
 		pos, typ, name := n.Info()
-		return autoFile != "" && pos.File != autoFile || unused[typ+name]
+		return unused[pos.File+"/"+typ+"/"+name]
 	})
+}
+
+func filterFile(desc *ast.Description, targetFile string) *ast.Description {
+	var nodes []ast.Node
+	for _, n := range desc.Nodes {
+		pos, _, _ := n.Info()
+		if pos.File == targetFile {
+			nodes = append(nodes, n)
+		}
+	}
+	return &ast.Description{Nodes: nodes}
 }
 
 func prepare(cfg *config) (*declextract.Output, *ifaceprobe.Info, []*cover.FileCoverage,
