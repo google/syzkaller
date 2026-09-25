@@ -4,6 +4,7 @@
 package reproc
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -22,8 +23,8 @@ func TestFormatCFunc(t *testing.T) {
 func TestTruncateLogFunc(t *testing.T) {
 	ctx := aflow.NewTestContext(t)
 	var straceLines []string
-	for range 250 {
-		straceLines = append(straceLines, "syscall(...) = 0")
+	for i := range 250 {
+		straceLines = append(straceLines, fmt.Sprintf("syscall(%d) = 0", i))
 	}
 	args := TruncateLogArgs{
 		ConsoleOutput:        "line1\nline2\nline3",
@@ -34,7 +35,11 @@ func TestTruncateLogFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "line1\nline2\nline3", res.TruncatedConsoleOutput)
 	assert.Equal(t, "report", res.TruncatedCrashReport)
-	assert.Equal(t, 200, len(strings.Split(res.TruncatedStraceOutput, "\n")))
+	gotLines := strings.Split(res.TruncatedStraceOutput, "\n")
+	assert.Equal(t, 201, len(gotLines))
+	assert.Equal(t, "syscall(0) = 0", gotLines[0])
+	assert.Equal(t, "... [truncated 50 lines] ...", gotLines[100])
+	assert.Equal(t, "syscall(249) = 0", gotLines[200])
 }
 
 func TestLoopControllerFunc(t *testing.T) {
@@ -100,10 +105,12 @@ func TestLoopControllerFunc(t *testing.T) {
 		IsProbe:              false,
 		CandidateReproduced:  false,
 		CapabilitiesVerified: true,
+		OracleFeedback:       "=== Attempt 1 ===\nold run",
 	}
 	res, err = LoopControllerFunc(ctx, args)
 	assert.NoError(t, err)
 	assert.True(t, res.CapabilitiesVerified)
+	assert.Equal(t, "=== Attempt 1 ===\nold run\n\n=== Attempt 2 ===\nnew run", res.OracleFeedback)
 
 	// Case 6: Terminal error propagation.
 	args = LoopControllerArgs{

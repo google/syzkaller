@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -159,7 +160,12 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 	truncate := func(log string, limit int) string {
 		lines := strings.Split(log, "\n")
 		if len(lines) > limit {
-			lines = lines[len(lines)-limit:]
+			half := limit / 2
+			lines = slices.Concat(
+				lines[:half],
+				[]string{fmt.Sprintf("... [truncated %d lines] ...", len(lines)-limit)},
+				lines[len(lines)-(limit-half):],
+			)
 		}
 		return strings.Join(lines, "\n")
 	}
@@ -213,6 +219,7 @@ type LoopControllerArgs struct {
 	// CapabilitiesVerified is the persisted capability check status across loop iterations.
 	CapabilitiesVerified bool
 	TerminalError        string
+	OracleFeedback       string
 }
 
 type LoopControllerResult struct {
@@ -256,9 +263,14 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 		if args.CandidateReproduced && !args.TitleMatches {
 			res.OracleFeedback = fmt.Sprintf(
 				"Collision detected: candidate reproducer triggered a crash with title %q, "+
-					"which does not match the expected bug.",
-				args.CandidateBugTitle,
+					"which does not match the expected bug.\n%s",
+				args.CandidateBugTitle, args.Feedback,
 			)
+		}
+		attempt := strings.Count("\n"+args.OracleFeedback, "\n=== Attempt ") + 1
+		res.OracleFeedback = fmt.Sprintf("=== Attempt %d ===\n%s", attempt, res.OracleFeedback)
+		if args.OracleFeedback != "" {
+			res.OracleFeedback = args.OracleFeedback + "\n\n" + res.OracleFeedback
 		}
 		res.ContinueSignal = "continue"
 	}
@@ -553,9 +565,9 @@ and improve it. Keep your reasoning steps short and focused on the next logical 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}
 
-{{if .RawCandidateReproC}}
+{{if .CurrentCandidateReproC}}
 Previous Reproducer Attempt:
-{{.RawCandidateReproC}}
+{{.CurrentCandidateReproC}}
 {{end}}
 
 {{if .OracleFeedback}}
