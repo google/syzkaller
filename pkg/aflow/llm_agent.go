@@ -88,8 +88,9 @@ type agentSession struct {
 }
 
 type llmMessage struct {
-	content    *backend.Message
-	tokenCount int // tokens consumed by this message
+	content       *backend.Message
+	tokenCount    int // non-thought tokens consumed by this message
+	thoughtTokens int // thought tokens consumed by this message
 }
 
 type toolCallRecord struct {
@@ -421,7 +422,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 	for iter := 0; a.nextIteration(iter); iter++ {
 		var currentInputTokens int
 		for _, msg := range a.req {
-			currentInputTokens += msg.tokenCount
+			currentInputTokens += msg.tokenCount + msg.thoughtTokens
 		}
 		tokensToCompress := max(0, currentInputTokens-anchorTokens)
 		_, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
@@ -476,8 +477,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			resp.Parts = []backend.Part{{Text: "empty"}}
 		}
 		a.req = append(a.req, llmMessage{
-			content:    &backend.Message{Role: backend.RoleModel, Parts: resp.Parts},
-			tokenCount: span.OutputTokens,
+			content:       &backend.Message{Role: backend.RoleModel, Parts: resp.Parts},
+			tokenCount:    span.OutputTokens,
+			thoughtTokens: span.OutputThoughtsTokens,
 		})
 
 		if len(calls) == 0 {
@@ -518,7 +520,7 @@ func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
 	}
 	var assignedTokens int
 	for _, msg := range a.req {
-		assignedTokens += msg.tokenCount
+		assignedTokens += msg.tokenCount + msg.thoughtTokens
 	}
 	newTokens := inputTokens - assignedTokens
 	if newTokens > 0 {
@@ -793,11 +795,14 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	newReq := []llmMessage{a.req[0], {content: newSummary, tokenCount: summaryTokens}}
 	if splitIndex < len(a.req) {
 		for _, msg := range a.req[splitIndex:] {
-			// Clear thought signatures because the conversation history before the preserved
-			// suffix was truncated and modified. Stale cryptographic signatures would fail
-			// verification; clearing them allows backends to bypass signature validation.
+			// Drop thought parts and clear thought signatures because the conversation
+			// history before the preserved suffix was truncated and modified. Stale
+			// cryptographic signatures would fail verification; clearing them allows
+			// backends to bypass signature validation.
 			msgCopy := *msg.content
-			msgCopy.Parts = slices.Clone(msgCopy.Parts)
+			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
+				return p.Thought
+			})
 			for j, p := range msgCopy.Parts {
 				p.ThoughtSignature = nil
 				msgCopy.Parts[j] = p
