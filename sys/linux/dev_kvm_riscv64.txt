@@ -59,24 +59,22 @@ syzos_api_code$riscv64 {
 	ret	const[0x8067, int32]
 } [packed]
 
-syzos_api_csrr {
-	arg_reg	riscv64_csr_or_any
-}
-
-syzos_api_csrw {
-	arg_reg		riscv64_csr_or_any
-	arg_value	int64
+syzos_api_csrop {
+	csr	riscv64_csr_or_any
+	rs1_val	int64[0:31]
+	funct3	int64[0:7]
+	rd	int64[0:31]
 }
 
 riscv64_csr_or_any [
 	valid	flags[riscv64_csr, int64]
-	any	int64
+	any	int64[0:4095]
 ]
 
 # Table 5 in https://docs.riscv.org/reference/isa/_attachments/riscv-privileged.pdf .
-# Currently, only 11 CSRS are supported in Linux-6.19. See
-# https://elixir.bootlin.com/linux/v6.19-rc5/source/arch/riscv/include/uapi/asm/kvm.h#L75 .
-riscv64_csr = 0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x180, 0x106, 0x10a
+# Table 4 in https://github.com/riscv/riscv-aia/releases .
+# CSRS supported: linux/arch/riscv/include/uapi/asm/kvm.h .
+riscv64_csr = 0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x180, 0x106, 0x10a, 0x10c, 0x150, 0x114, 0x154
 
 # Valid lengths for memory operations.
 syzos_memop_len = 1, 2, 4, 8
@@ -93,8 +91,7 @@ syzos_api_memop {
 syzos_api_call$riscv64 [
 	uexit	syzos_api$riscv64[0, intptr]
 	code	syzos_api$riscv64[10, syzos_api_code$riscv64]
-	csrr	syzos_api$riscv64[100, syzos_api_csrr]
-	csrw	syzos_api$riscv64[101, syzos_api_csrw]
+	csrop	syzos_api$riscv64[100, syzos_api_csrop]
 	memop	syzos_api$riscv64[110, syzos_api_memop]
 ] [varlen]
 
