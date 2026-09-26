@@ -146,6 +146,13 @@ func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Confi
 		if err != nil {
 			return ret, err
 		}
+		if area.Filter.Empty() {
+			// An empty cover filter indicates that the user is interested in all the coverage.
+			needExecutorFilter = false
+		} else if len(pcs) == 0 {
+			log.Logf(0, "focus area %q matched no PCs, skipping", area.Name)
+			continue
+		}
 		// KCOV will point to the next instruction, so we need to adjust the map.
 		covPCs := make(map[uint64]struct{})
 		for pc := range pcs {
@@ -157,10 +164,9 @@ func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Confi
 			CoverPCs: covPCs,
 			Weight:   area.Weight,
 		})
-		if area.Filter.Empty() {
-			// An empty cover filter indicates that the user is interested in all the coverage.
-			needExecutorFilter = false
-		}
+	}
+	if len(cfg.Experimental.FocusAreas) > 0 && len(ret.Areas) == 0 {
+		return ret, fmt.Errorf("none of the focus areas matched any PCs")
 	}
 	if needExecutorFilter {
 		ret.ExecutorFilter = map[uint64]struct{}{}
