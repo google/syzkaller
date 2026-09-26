@@ -62,7 +62,7 @@ func TestRunnerManager_Basic(t *testing.T) {
 	ctx := context.Background()
 	cfg := createTestMgrConfig()
 
-	rm, err := newRunnerManager(ctx, cfg, false)
+	rm, err := newRunnerManager(ctx, cfg, false, nil)
 	require.NoError(t, err)
 	require.NotNil(t, rm)
 	require.Equal(t, cfg, rm.Config())
@@ -85,7 +85,7 @@ func TestRunnerManager_New_Error(t *testing.T) {
 	ctx := context.Background()
 	// Invalid config with no target will cause report.NewReporter to fail.
 	invalidCfg := &mgrconfig.Config{}
-	rm, err := newRunnerManager(ctx, invalidCfg, false)
+	rm, err := newRunnerManager(ctx, invalidCfg, false, nil)
 	require.Error(t, err)
 	require.Nil(t, rm)
 }
@@ -94,7 +94,7 @@ func TestRunnerManager_Submit_Empty(t *testing.T) {
 	ctx := context.Background()
 	cfg := createTestMgrConfig()
 
-	rm, err := newRunnerManager(ctx, cfg, false)
+	rm, err := newRunnerManager(ctx, cfg, false, nil)
 	require.NoError(t, err)
 
 	res, err := rm.SubmitBatch(ctx, nil)
@@ -117,7 +117,7 @@ func TestRunnerManager_Submit_Canceled(t *testing.T) {
 	// 1. Caller context canceled
 	rmCtx, rmCancel := context.WithCancel(t.Context())
 	defer rmCancel()
-	rm, err := newRunnerManager(rmCtx, cfg, false)
+	rm, err := newRunnerManager(rmCtx, cfg, false, nil)
 	require.NoError(t, err)
 
 	canceledCtx, cancel := context.WithCancel(t.Context())
@@ -129,7 +129,7 @@ func TestRunnerManager_Submit_Canceled(t *testing.T) {
 	// 2. RunnerManager internal context canceled
 	rmCtx2, rmCancel2 := context.WithCancel(t.Context())
 	rmCancel2()
-	rm2, err := newRunnerManager(rmCtx2, cfg, false)
+	rm2, err := newRunnerManager(rmCtx2, cfg, false, nil)
 	require.NoError(t, err)
 
 	_, err = rm2.SubmitBatch(t.Context(), []*prog.Prog{p})
@@ -145,7 +145,7 @@ func TestRunnerManager_Submit_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false)
+	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
 	require.NoError(t, err)
 
 	// Background worker simulating syz-executor completing requests from rm.source.
@@ -197,7 +197,7 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 	target, err := prog.GetTarget("linux", "amd64")
 	require.NoError(t, err)
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false)
+	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
 	require.NoError(t, err)
 
 	mockBackend := &mockExecBackend{}
@@ -228,7 +228,7 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 
 func TestRunnerManager_ExecutorInstance(t *testing.T) {
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false)
+	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
 	require.NoError(t, err)
 
 	mockBackend := &mockExecBackend{
@@ -252,9 +252,10 @@ func TestRunnerManager_ExecutorInstance(t *testing.T) {
 
 func TestRunIsolatedManager_InvalidConfig(t *testing.T) {
 	invalidCfg := &mgrconfig.Config{}
-	err := RunIsolatedManager(context.Background(), invalidCfg, false, func(ctx context.Context, rm *RunnerManager) error {
-		return nil
-	})
+	err := RunIsolatedManager(context.Background(), invalidCfg, false, nil,
+		func(ctx context.Context, rm *RunnerManager) error {
+			return nil
+		})
 	require.ErrorContains(t, err, "failed to create isolated RunnerManager")
 }
 
@@ -262,9 +263,10 @@ func TestRunIsolatedManager_LoopFailure(t *testing.T) {
 	cfg := createTestMgrConfig()
 	// Invalid VM type causes vm.Create inside rm.Loop to fail immediately.
 	cfg.Type = "invalid_vm_type"
-	err := RunIsolatedManager(context.Background(), cfg, false, func(ctx context.Context, rm *RunnerManager) error {
-		return nil
-	})
+	err := RunIsolatedManager(context.Background(), cfg, false, nil,
+		func(ctx context.Context, rm *RunnerManager) error {
+			return nil
+		})
 	require.ErrorContains(t, err, "isolated RunnerManager loop failed")
 }
 
@@ -272,8 +274,9 @@ func TestRunIsolatedManager_ContextCanceled(t *testing.T) {
 	cfg := createTestMgrConfig()
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	err := RunIsolatedManager(ctx, cfg, false, func(ctx context.Context, rm *RunnerManager) error {
-		return nil
-	})
+	err := RunIsolatedManager(ctx, cfg, false, nil,
+		func(ctx context.Context, rm *RunnerManager) error {
+			return nil
+		})
 	require.ErrorIs(t, err, context.Canceled)
 }

@@ -131,17 +131,18 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 			return fmt.Errorf("failed to build config: %w", err)
 		}
 
-		err = aflow.RunIsolatedManager(ctx.Context, cfg, false, func(mgrCtx context.Context, rm *aflow.RunnerManager) error {
-			return streamExecuteCorpus(mgrCtx, rm, streamCorpusParams{
-				dir:        dir,
-				records:    corpusDB.Records,
-				sortedKeys: sortedKeys,
-				target:     target,
-				sysTarget:  sysTarget,
-				vmType:     args.Type,
-				kernelObj:  args.KernelObj,
+		err = aflow.RunIsolatedManager(ctx.Context, cfg, false, ctx.Logf,
+			func(mgrCtx context.Context, rm *aflow.RunnerManager) error {
+				return streamExecuteCorpus(mgrCtx, rm, streamCorpusParams{
+					dir:        dir,
+					records:    corpusDB.Records,
+					sortedKeys: sortedKeys,
+					target:     target,
+					sysTarget:  sysTarget,
+					vmType:     args.Type,
+					kernelObj:  args.KernelObj,
+				})
 			})
-		})
 		if err != nil {
 			return fmt.Errorf("failed to execute corpus: %w", err)
 		}
