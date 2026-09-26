@@ -102,6 +102,10 @@ func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelMod
 	return modules, info.Bytes(), nil
 }
 
+func (checker *Checker) Capabilities(fileInfos []*flatrpc.FileInfo) *Capabilities {
+	return checker.capabilities(createVirtualFilesystem(fileInfos))
+}
+
 var ErrAborted = errors.New("aborted through the context")
 
 func (checker *Checker) Run(ctx context.Context, files []*flatrpc.FileInfo, featureInfos []*flatrpc.FeatureInfo) (
@@ -129,14 +133,15 @@ type checker interface {
 	parseModules(files filesystem) ([]*KernelModule, error)
 	machineInfos() []machineInfoFunc
 	syscallCheck(*checkContext, *prog.Syscall) string
+	capabilities(files filesystem) *Capabilities
 }
 
 type filesystem map[string]*flatrpc.FileInfo
 
 func createVirtualFilesystem(fileInfos []*flatrpc.FileInfo) filesystem {
-	files := make(filesystem)
+	files := make(filesystem, len(fileInfos))
 	for _, file := range fileInfos {
-		if file.Exists {
+		if file != nil && file.Exists {
 			files[file.Name] = file
 		}
 	}
@@ -194,4 +199,8 @@ func (nopChecker) machineInfos() []machineInfoFunc {
 
 func (nopChecker) syscallCheck(*checkContext, *prog.Syscall) string {
 	return ""
+}
+
+func (nopChecker) capabilities(files filesystem) *Capabilities {
+	return nil
 }
