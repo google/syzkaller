@@ -34,6 +34,7 @@ import (
 	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/bhyve"
 	_ "github.com/google/syzkaller/vm/cuttlefish"
+	_ "github.com/google/syzkaller/vm/firecracker"
 	_ "github.com/google/syzkaller/vm/gce"
 	_ "github.com/google/syzkaller/vm/gvisor"
 	_ "github.com/google/syzkaller/vm/isolated"
