@@ -6,6 +6,7 @@
 include <linux/socket.h>
 include <linux/net.h>
 include <net/bluetooth/bluetooth.h>
+include <net/bluetooth/iso.h>
 include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/l2cap.h>
 include <net/bluetooth/bnep/bnep.h>
@@ -24,6 +25,8 @@ ioctl$sock_bt_hci(fd sock_bt_hci, cmd flags[bt_hci_ioctl], arg buffer[inout])
 ioctl$HCIINQUIRY(fd sock_bt_hci, cmd const[HCIINQUIRY], arg ptr[in, hci_inquiry_req])
 setsockopt$bt_hci_HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
 setsockopt$bt_hci_HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_TIME_STAMP], arg ptr[in, int32], arglen len[arg])
+setsockopt$bt_hci_HCI_CMSG_DIR(fd sock_bt_hci, level const[0], opt const[HCI_CMSG_DIR], arg ptr[in, int32], arglen len[arg])
+setsockopt$bt_hci_HCI_CMSG_TSTAMP(fd sock_bt_hci, level const[0], opt const[HCI_CMSG_TSTAMP], arg ptr[in, int32], arglen len[arg])
 setsockopt$bt_hci_HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
 getsockopt$bt_hci(fd sock, level const[0], opt flags[bt_hci_sockopt], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 write$bt_hci(fd sock_bt_hci, data ptr[in, vhci_command_pkt], size bytesize[data])
@@ -36,8 +39,8 @@ resource sock_bt_sco[sock_bt]
 syz_init_net_socket$bt_sco(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) sock_bt_sco
 bind$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
 connect$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
-getsockopt$bt_sco_SCO_OPTIONS(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_OPTIONS], arg buffer[out], arglen ptr[inout, len[arg, int32]])
-getsockopt$bt_sco_SCO_CONNINFO(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_sco_SCO_OPTIONS(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_OPTIONS], arg ptr[out, sco_options], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_sco_SCO_CONNINFO(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_CONNINFO], arg ptr[out, sco_conninfo], arglen ptr[inout, len[arg, int32]])
 
 resource sock_bt_l2cap[sock_bt]
 
@@ -59,7 +62,19 @@ bind$bt_rfcomm(fd sock_bt_rfcomm, addr ptr[in, sockaddr_rc], addrlen len[addr])
 connect$bt_rfcomm(fd sock_bt_rfcomm, addr ptr[in, sockaddr_rc], addrlen len[addr])
 setsockopt$bt_rfcomm_RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
 getsockopt$bt_rfcomm_RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$bt_rfcomm_RFCOMM_CONNINFO(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_rfcomm_RFCOMM_CONNINFO(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_CONNINFO], arg ptr[out, rfcomm_conninfo], arglen ptr[inout, len[arg, int32]])
+ioctl$sock_bt_rfcomm_RFCOMMCREATEDEV(fd sock_bt_rfcomm, cmd const[RFCOMMCREATEDEV], arg ptr[in, rfcomm_dev_req])
+ioctl$sock_bt_rfcomm_RFCOMMRELEASEDEV(fd sock_bt_rfcomm, cmd const[RFCOMMRELEASEDEV], arg ptr[in, rfcomm_dev_req])
+ioctl$sock_bt_rfcomm_RFCOMMGETDEVLIST(fd sock_bt_rfcomm, cmd const[RFCOMMGETDEVLIST], arg ptr[inout, rfcomm_dev_list_req])
+ioctl$sock_bt_rfcomm_RFCOMMGETDEVINFO(fd sock_bt_rfcomm, cmd const[RFCOMMGETDEVINFO], arg ptr[inout, rfcomm_dev_info])
+
+resource sock_bt_iso[sock_bt]
+
+syz_init_net_socket$bt_iso(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_ISO]) sock_bt_iso
+bind$bt_iso(fd sock_bt_iso, addr ptr[in, sockaddr_iso], addrlen len[addr])
+connect$bt_iso(fd sock_bt_iso, addr ptr[in, sockaddr_iso], addrlen len[addr])
+listen$bt_iso(fd sock_bt_iso, backlog int32)
+accept4$bt_iso(fd sock_bt_iso, peer ptr[out, sockaddr_iso, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_bt_iso
 
 resource sock_bt_hidp[sock_bt]
 
@@ -102,8 +117,22 @@ setsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SND
 getsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 setsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen len[arg])
 getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_PHY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PHY], arg ptr[in, flags[bt_phy_flags, int32]], arglen len[arg])
+getsockopt$bt_BT_PHY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PHY], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_MODE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_MODE], arg ptr[in, flags[bt_mode_flags, int8]], arglen len[arg])
+getsockopt$bt_BT_MODE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_MODE], arg ptr[out, int8], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_PKT_STATUS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_STATUS], arg ptr[in, bool32], arglen len[arg])
+getsockopt$bt_BT_PKT_STATUS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_STATUS], arg ptr[out, bool32], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_PKT_SEQNUM(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_SEQNUM], arg ptr[in, bool32], arglen len[arg])
+getsockopt$bt_BT_PKT_SEQNUM(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_PKT_SEQNUM], arg ptr[out, bool32], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_ISO_QOS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_QOS], arg ptr[in, bt_iso_qos], arglen len[arg])
+getsockopt$bt_BT_ISO_QOS(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_QOS], arg ptr[out, bt_iso_qos], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_ISO_BASE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_BASE], arg ptr[in, array[int8]], arglen len[arg])
+getsockopt$bt_BT_ISO_BASE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_ISO_BASE], arg ptr[out, array[int8, 251]], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_BT_CODEC(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CODEC], arg ptr[in, bt_codecs], arglen len[arg])
+getsockopt$bt_BT_CODEC(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CODEC], arg ptr[out, bt_codecs], arglen ptr[inout, len[arg, int32]])
 
-bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT
+bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT, BT_VOICE_TRANSPARENT_16BIT
 
 type hci_dev_t int16[-1:4]
 
@@ -163,6 +192,123 @@ sockaddr_rc {
 	addr	bdaddr_t
 	chan	int8
 }
+
+sockaddr_iso [
+	ucast	sockaddr_iso_ucast
+	bcast	sockaddr_iso_bcast
+] [varlen]
+
+sockaddr_iso_ucast {
+	iso_family	const[AF_BLUETOOTH, int16]
+	iso_bdaddr	bdaddr_t
+	iso_bdaddr_type	flags[bdaddr_type, int8]
+}
+
+sockaddr_iso_bcast {
+	iso_family	const[AF_BLUETOOTH, int16]
+	iso_bdaddr	bdaddr_t
+	iso_bdaddr_type	flags[bdaddr_type, int8]
+	iso_bc		sockaddr_iso_bc
+}
+
+sockaddr_iso_bc {
+	bc_bdaddr	bdaddr_t
+	bc_bdaddr_type	flags[bdaddr_type, int8]
+	bc_sid		int8
+	bc_num_bis	int8[0:ISO_MAX_NUM_BIS]
+	bc_bis		array[int8, ISO_MAX_NUM_BIS]
+}
+
+sco_options {
+	mtu	int16
+}
+
+sco_conninfo {
+	hci_handle	int16
+	dev_class	array[int8, 3]
+}
+
+rfcomm_conninfo {
+	hci_handle	int16
+	dev_class	array[int8, 3]
+}
+
+rfcomm_dev_req {
+	dev_id	int16
+	flags	flags[rfcomm_dev_flags, int32]
+	src	bdaddr_t
+	dst	bdaddr_t
+	channel	int8
+}
+
+rfcomm_dev_info {
+	id	int16
+	flags	flags[rfcomm_dev_flags, int32]
+	state	int16
+	src	bdaddr_t
+	dst	bdaddr_t
+	channel	int8
+}
+
+rfcomm_dev_list_req {
+	dev_num		len[dev_info, int16]
+	dev_info	array[rfcomm_dev_info]
+}
+
+bt_iso_qos [
+	ucast	bt_iso_ucast_qos
+	bcast	bt_iso_bcast_qos
+] [varlen]
+
+bt_iso_ucast_qos {
+	cig	int8
+	cis	int8
+	sca	int8
+	packing	int8
+	framing	int8
+	in	bt_iso_io_qos
+	out	bt_iso_io_qos
+}
+
+bt_iso_bcast_qos {
+	big		int8
+	bis		int8
+	sync_factor	int8
+	packing		int8
+	framing		int8
+	in		bt_iso_io_qos
+	out		bt_iso_io_qos
+	encryption	int8
+	bcode		array[int8, 16]
+	options		int8
+	skip		int16
+	sync_timeout	int16
+	sync_cte_type	int8
+	mse		int8
+	timeout		int16
+}
+
+bt_iso_io_qos {
+	interval	int32
+	latency		int16
+	sdu		int16
+	phys		flags[bt_iso_phy_flags, int8]
+	rtn		int8
+}
+
+bt_codecs {
+	num_codecs	len[codecs, int8]
+	codecs		array[bt_codec]
+} [packed]
+
+bt_codec {
+	id		flags[bt_codec_ids, int8]
+	cid		int16
+	vid		int16
+	data_path	int8
+	num_caps	len[caps, int8]
+	caps		array[int8]
+} [packed]
 
 hidp_connadd_req {
 	ctrlsk	sock
@@ -255,10 +401,21 @@ bnep_connlist_req {
 
 bt_hci_chan = HCI_CHANNEL_RAW, HCI_CHANNEL_USER, HCI_CHANNEL_MONITOR, HCI_CHANNEL_CONTROL, HCI_CHANNEL_LOGGING
 bt_hci_ioctl = HCIDEVUP, HCIDEVDOWN, HCIDEVRESET, HCIDEVRESTAT, HCIGETDEVLIST, HCIGETDEVINFO, HCIGETCONNLIST, HCIGETCONNINFO, HCIGETAUTHINFO, HCISETRAW, HCISETSCAN, HCISETAUTH, HCISETENCRYPT, HCISETPTYPE, HCISETLINKPOL, HCISETLINKMODE, HCISETACLMTU, HCISETSCOMTU, HCIBLOCKADDR, HCIUNBLOCKADDR, HCIINQUIRY
-bt_hci_sockopt = HCI_DATA_DIR, HCI_TIME_STAMP, HCI_FILTER
+bt_hci_sockopt = HCI_DATA_DIR, HCI_TIME_STAMP, HCI_FILTER, HCI_CMSG_DIR, HCI_CMSG_TSTAMP
 bt_l2cap_type = SOCK_SEQPACKET, SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
 bt_l2cap_lm = L2CAP_LM_MASTER, L2CAP_LM_AUTH, L2CAP_LM_ENCRYPT, L2CAP_LM_TRUSTED, L2CAP_LM_RELIABLE, L2CAP_LM_SECURE, L2CAP_LM_FIPS
 bt_rfcomm_type = SOCK_STREAM, SOCK_RAW
+
+define RFCOMM_REUSE_DLC_BIT	1<<RFCOMM_REUSE_DLC
+define RFCOMM_RELEASE_ONHUP_BIT	1<<RFCOMM_RELEASE_ONHUP
+define RFCOMM_HANGUP_NOW_BIT	1<<RFCOMM_HANGUP_NOW
+define RFCOMM_TTY_ATTACHED_BIT	1<<RFCOMM_TTY_ATTACHED
+
+rfcomm_dev_flags = RFCOMM_REUSE_DLC_BIT, RFCOMM_RELEASE_ONHUP_BIT, RFCOMM_HANGUP_NOW_BIT, RFCOMM_TTY_ATTACHED_BIT
+bt_phy_flags = BT_PHY_BR_1M_1SLOT, BT_PHY_BR_1M_3SLOT, BT_PHY_BR_1M_5SLOT, BT_PHY_EDR_2M_1SLOT, BT_PHY_EDR_2M_3SLOT, BT_PHY_EDR_2M_5SLOT, BT_PHY_EDR_3M_1SLOT, BT_PHY_EDR_3M_3SLOT, BT_PHY_EDR_3M_5SLOT, BT_PHY_LE_1M_TX, BT_PHY_LE_1M_RX, BT_PHY_LE_2M_TX, BT_PHY_LE_2M_RX, BT_PHY_LE_CODED_TX, BT_PHY_LE_CODED_RX
+bt_mode_flags = BT_MODE_BASIC, BT_MODE_ERTM, BT_MODE_STREAMING, BT_MODE_LE_FLOWCTL, BT_MODE_EXT_FLOWCTL
+bt_iso_phy_flags = BT_ISO_PHY_1M, BT_ISO_PHY_2M, BT_ISO_PHY_CODED, BT_ISO_PHY_ANY
+bt_codec_ids = BT_CODEC_CVSD, BT_CODEC_TRANSPARENT, BT_CODEC_MSBC
 
 resource fd_6lowpan_enable[fd]
 resource fd_6lowpan_control[fd]
