@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/service"
+	"golang.org/x/sync/errgroup"
 )
 
 type dashboardHandler struct {
@@ -540,9 +541,21 @@ func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) er
 	if err != nil {
 		return fmt.Errorf("failed to query patches: %w", err)
 	}
-	for _, patch := range patches {
-		err = h.streamBlob(w, patch.BodyURI)
-		if err != nil {
+	var eg errgroup.Group
+	eg.SetLimit(service.ParallelBlobOps)
+	bodies := make([][]byte, len(patches))
+	for i, patch := range patches {
+		eg.Go(func() error {
+			var err error
+			bodies[i], err = blob.ReadAllBytes(h.blobStorage, patch.BodyURI)
+			return err
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	for _, body := range bodies {
+		if _, err := w.Write(body); err != nil {
 			return err
 		}
 	}
