@@ -85,6 +85,8 @@ var apiHandlers = map[string]APIHandler{
 	"log_to_repro":          nsHandler(apiLogToReproduce),
 	"repro_task_done":       nsHandler(apiReproTaskDone),
 	"client_info":           nsHandler(apiClientInfo),
+	"repro_batch_upload":    nsHandler(apiReproBatchUpload),
+	"repro_batch_status":    nsHandler(apiReproBatchStatus),
 }
 
 type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
@@ -851,6 +853,106 @@ func apiReportCrash(ctx context.Context, ns string, req *dashapi.Crash) (any, er
 		NeedRepro: needRepro(ctx, bug),
 	}
 	return resp, nil
+}
+
+const maxReproBatchSize = 20
+
+func apiReproBatchUpload(ctx context.Context, ns string, req *dashapi.ReproBatchUploadReq) (any, error) {
+	if stop, err := emergentlyStopped(ctx); err != nil || stop {
+		return &dashapi.ReproBatchUploadResp{}, err
+	}
+	if !getNsConfig(ctx, ns).AllowReproBatchUpload {
+		return nil, fmt.Errorf("namespace %q is not enabled for repro batch uploads", ns)
+	}
+	if len(req.Repros) == 0 {
+		return nil, fmt.Errorf("empty batch")
+	}
+	if len(req.Repros) > maxReproBatchSize {
+		return nil, fmt.Errorf("batch too large: %d > %d", len(req.Repros), maxReproBatchSize)
+	}
+	batch, err := createReproBatch(ctx, ns, req.Source, len(req.Repros))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create batch: %w", err)
+	}
+	// Synchronous for now (bounded by maxReproBatchSize above).
+	// If items get slow (repro replay, subsystem inference), move this loop to task queue - see step 4.
+	for i := range req.Repros {
+		item := processExternalRepro(ctx, ns, batch.ID, &req.Repros[i])
+		if err := saveReproBatchItem(ctx, batch.ID, item); err != nil {
+			log.Errorf(ctx, "repro batch %s: failed to save item %s: %v", batch.ID, item.ExternalID, err)
+		}
+	}
+	return &dashapi.ReproBatchUploadResp{BatchID: batch.ID}, nil
+}
+
+func apiReproBatchStatus(ctx context.Context, ns string, req *dashapi.ReproBatchStatusReq) (any, error) {
+	if req.BatchID == "" {
+		return nil, fmt.Errorf("missing batch ID")
+	}
+	resp, err := loadReproBatchStatus(ctx, ns, req.BatchID)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// processExternalRepro ingests one crash from an external pipeline and returns its outcome.
+// It reuses the existing reportCrash() pipeline when a known BuildID is supplied, and records
+// provenance (kernel config, qemu args, tool names) either way.
+func processExternalRepro(ctx context.Context, ns, batchID string, r *dashapi.ExternalRepro) *ReproBatchItem {
+	item := &ReproBatchItem{
+		BatchID:    batchID,
+		ExternalID: r.ExternalID,
+		Status:     dashapi.ReproBatchError,
+	}
+	if len(r.KernelConfig) > 0 || len(r.QEMUArgs) > 0 || len(r.Tools) > 0 {
+		provenance, err := putText(ctx, ns, textReproBatchProvenance, marshalProvenance(r))
+		if err != nil {
+			item.Error = fmt.Sprintf("failed to store provenance: %v", err)
+			return item
+		}
+		item.Provenance = provenance
+	}
+
+	if r.BuildID == "" {
+		item.Status = dashapi.ReproBatchNoBuild
+		return item
+	}
+	build, err := loadBuild(ctx, ns, r.BuildID)
+	if err != nil {
+		item.Status = dashapi.ReproBatchError
+		item.Error = fmt.Sprintf("unknown BuildID %q: %v", r.BuildID, err)
+		return item
+	}
+	if !getNsConfig(ctx, ns).TransformCrash(build, &r.Crash) {
+		item.Status = dashapi.ReproBatchError
+		item.Error = "crash rejected by TransformCrash"
+		return item
+	}
+	bug, err := reportCrash(ctx, build, &r.Crash)
+	if err != nil {
+		item.Status = dashapi.ReproBatchError
+		item.Error = err.Error()
+		return item
+	}
+	item.BugID = bug.keyHash(ctx)
+	hasC := len(r.ReproC) != 0
+	hasSyz := len(r.ReproSyz) != 0
+	if hasC || hasSyz {
+		item.Status = dashapi.ReproBatchReproduced
+	} else {
+		item.Status = dashapi.ReproBatchDuplicate
+	}
+	return item
+}
+
+func marshalProvenance(r *dashapi.ExternalRepro) []byte {
+	b, _ := json.Marshal(struct {
+		KernelConfig []byte   `json:"kernel_config"`
+		QEMUArgs     []string `json:"qemu_args"`
+		Tools        []string `json:"tools"`
+	}{r.KernelConfig, r.QEMUArgs, r.Tools})
+	return b
 }
 
 // nolint: gocyclo
