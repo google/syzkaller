@@ -90,6 +90,7 @@ func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSS
 	}
 	args = append(args,
 		"-o", "BatchMode=yes",
+		"-o", "PubkeyAcceptedAlgorithms=+ssh-rsa",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "ConnectTimeout=10",
 	)
