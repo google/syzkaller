@@ -75,15 +75,14 @@ func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	rm, err := newRunnerManager(ctx, cfg, debug)
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	rm, err := newRunnerManager(egCtx, cfg, debug)
 	if err != nil {
 		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
 	}
 
-	eg, egCtx := errgroup.WithContext(ctx)
-
 	eg.Go(func() error {
-		defer cancel()
 		if err := rm.Loop(); err != nil {
 			if egCtx.Err() != nil {
 				return nil
