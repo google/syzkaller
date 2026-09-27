@@ -117,6 +117,11 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	if err := checkJobUpstreamable(job); err != nil {
 		return err
 	}
+	// checkJobUpstreamable only catches reply-only jobs; guard against a command
+	// targeting a reply reporting on a job that also produced a patch, just in case.
+	if currentReporting != nil && currentReporting.InReplyTo != "" {
+		return &aidb.ErrCannotUpstream{Reason: "Cannot upstream a comment reply."}
+	}
 
 	upstreamedBy := email.FormatAddress(req.AuthorName, req.Author)
 
@@ -308,7 +313,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 				return nil, err
 			}
 		case ai.WorkflowPatchIteration:
-			err = populateIterationReportResult(ctx, job, version, r.Stage, stageCfg.ReplyToComments, result, authors)
+			err = populateIterationReportResult(ctx, job, r, version, stageCfg.ReplyToComments, result, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -417,14 +422,14 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	}, nil
 }
 
-func populateIterationReportResult(ctx context.Context, job *aidb.Job, version int,
-	currentStage string, replyToComments bool, result *dashapi.ReportPollResult, authors []string) error {
+func populateIterationReportResult(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
+	version int, replyToComments bool, result *dashapi.ReportPollResult, authors []string) error {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
 	if err != nil {
 		return fmt.Errorf("failed to cast job results: %w", err)
 	}
 
-	if res.PatchDiff != "" {
+	if reporting.InReplyTo == "" {
 		result.Patch, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
 			KernelRepo:       res.KernelRepo,
 			KernelBranch:     res.KernelBranch,
@@ -442,7 +447,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 		if err != nil {
 			return err
 		}
-		result.Patch.Changelog = collectChangelog(ctx, job.ID, currentStage)
+		result.Patch.Changelog = collectChangelog(ctx, job.ID, reporting.Stage)
 	} else if replyToComments && len(res.Replies) > 0 {
 		var comments []*aidb.JobComment
 		if job.ParentReportingID.Valid {
@@ -450,6 +455,9 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 		}
 
 		for _, r := range res.Replies {
+			if r.ReplyTo != reporting.InReplyTo {
+				continue
+			}
 			author := ""
 			for _, c := range comments {
 				if c.ExtID == r.ReplyTo {
@@ -466,6 +474,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, version i
 				ReplyExtID:  r.ReplyTo,
 				ReplyAuthor: author,
 			})
+			break
 		}
 	}
 	return nil

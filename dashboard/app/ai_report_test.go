@@ -1690,3 +1690,136 @@ func TestUpstreamCommandWithCommaInName(t *testing.T) {
 	require.Contains(t, pollResp.Result.Patch.Authors, `First, Second <user@email.com>`)
 	require.Contains(t, pollResp.Result.To, `"First, Second" <user@email.com>`)
 }
+
+func TestAIPatchIterationPatchAndReplies(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				ReplyToComments:    true,
+			},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+	})
+
+	_, jobID := c.setupAIPatchJob(t)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
+	c.finishAIPatchJob(t, jobID, nil)
+	c.pollAndConfirmReport(t, "lore", "<message-id-1>")
+
+	for _, comment := range []struct {
+		id, author, subject, body string
+	}{
+		{"<comment-id-1>", "rev1@email.com", "Re: [PATCH RFC] Subj 1", "Why mutex?"},
+		{"<comment-id-2>", "rev2@email.com", "Re: [PATCH RFC] Subj 2", "Please fix typo and explain X."},
+	} {
+		_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    "<message-id-1>",
+			MessageExtID: comment.id,
+			Author:       comment.author,
+			Comment:      &dashapi.CommentCommand{Subject: comment.subject, Body: comment.body},
+		})
+		require.NoError(t, err)
+	}
+
+	c.advanceTime(31 * time.Minute)
+	iterJob := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+	require.NotEmpty(t, iterJob.ID)
+
+	// Complete the iteration job with BOTH a V2 patch and replies to both comments.
+	c.finishAIPatchJob(t, iterJob.ID, map[string]any{
+		"PatchDescription": "V2 Subject\n\nV2 Body",
+		"PatchDiff":        "diff v2",
+		"NewChangeLog":     "- Fixed typo.",
+		"Replies": []map[string]any{
+			{"ReplyTo": "<comment-id-1>", "Text": "Mutex is needed because it sleeps."},
+			{"ReplyTo": "<comment-id-2>", "Text": "X handles the edge case."},
+		},
+	})
+
+	var patchReport *dashapi.ReportPollResult
+	replyReports := make(map[string]*dashapi.ReportPollResult)
+	for range 3 {
+		pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
+		require.NoError(t, err)
+		require.NotNil(t, pollResp.Result)
+		res := pollResp.Result
+		var extID string
+		if res.Patch != nil {
+			patchReport = res
+			extID = "<message-id-v2>"
+		} else {
+			require.Len(t, res.Replies, 1)
+			replyTo := res.Replies[0].ReplyExtID
+			replyReports[replyTo] = res
+			extID = "<reply-msg-" + replyTo + ">"
+		}
+		err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+			ReportID:       res.ID,
+			PublishedExtID: extID,
+		})
+		require.NoError(t, err)
+	}
+	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
+
+	require.NotNil(t, patchReport)
+	require.True(t, patchReport.CanUpstream)
+	require.Equal(t, 2, patchReport.Patch.Version)
+	require.Equal(t, "diff v2", patchReport.Patch.GitDiff)
+	require.Empty(t, patchReport.Replies)
+
+	require.Len(t, replyReports, 2)
+	require.Equal(t, &dashapi.ReportPollResult{
+		ID:              replyReports["<comment-id-1>"].ID,
+		CanUpstream:     false,
+		AddressComments: true,
+		To:              []string{"moderation@test.com"},
+		Replies: []*dashapi.ReplyResult{
+			{Body: "Mutex is needed because it sleeps.", ReplyExtID: "<comment-id-1>", ReplyAuthor: "rev1@email.com"},
+		},
+		ThreadSubject: "Re: [PATCH RFC] Subj 1",
+	}, replyReports["<comment-id-1>"])
+	require.Equal(t, &dashapi.ReportPollResult{
+		ID:              replyReports["<comment-id-2>"].ID,
+		CanUpstream:     false,
+		AddressComments: true,
+		To:              []string{"moderation@test.com"},
+		Replies: []*dashapi.ReplyResult{
+			{Body: "X handles the edge case.", ReplyExtID: "<comment-id-2>", ReplyAuthor: "rev2@email.com"},
+		},
+		ThreadSubject: "Re: [PATCH RFC] Subj 2",
+	}, replyReports["<comment-id-2>"])
+
+	// Upstreaming a comment reply reporting must be rejected even though the job produced a patch.
+	upstreamReplyResp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<reply-msg-<comment-id-1>>",
+		MessageExtID: "<upstream-reply-cmd>",
+		Author:       "approver@email.com",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Cannot upstream a comment reply.", upstreamReplyResp.Error)
+
+	// Verify upstreaming the V2 patch report succeeds.
+	upstreamPatchResp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-v2>",
+		MessageExtID: "<upstream-patch-cmd>",
+		Author:       "approver@email.com",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, upstreamPatchResp.Error)
+
+	publicPoll := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<public-msg-id>")
+	require.Equal(t, "public@test.com", publicPoll.Result.To[0])
+	require.Equal(t, 1, publicPoll.Result.Patch.Version)
+}

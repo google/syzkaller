@@ -108,6 +108,7 @@ type JobReporting struct {
 	JobID        string
 	Stage        string
 	Source       string
+	InReplyTo    string
 	ReportedAt   spanner.NullTime
 	UpstreamedAt spanner.NullTime
 	UpstreamedBy spanner.NullString

@@ -108,7 +108,7 @@ Detailed info on a single AI job execution.
 		<tbody>
 			{{range .Reportings}}
 			<tr>
-				<td>{{.Reporting.Stage}}</td>
+				<td>{{.Reporting.Stage}}{{if .Reporting.InReplyTo}} (reply){{end}}</td>
 				<td>{{.Reporting.Source}}</td>
 				<td>{{if .Reporting.ReportedAt.Valid}}{{formatTime .Reporting.ReportedAt.Time}}{{else}}-{{end}}</td>
 				<td>{{if .Link}}<a href="{{.Link}}">{{.Reporting.ExtID.StringVal}}</a>{{else if .Reporting.ExtID.Valid}}{{.Reporting.ExtID.StringVal}}{{else}}-{{end}}</td>
