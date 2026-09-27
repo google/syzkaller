@@ -1362,10 +1362,18 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 		return fmt.Errorf("failed to cast job results: %w", err)
 	}
 	hasPatch := res.PatchDiff != ""
-	hasReplies := len(res.Replies) > 0
+	var replyToIDs []string
+	seen := make(map[string]struct{})
+	for _, r := range res.Replies {
+		if _, ok := seen[r.ReplyTo]; ok || r.ReplyTo == "" {
+			return fmt.Errorf("invalid or duplicate ReplyTo %q", r.ReplyTo)
+		}
+		seen[r.ReplyTo] = struct{}{}
+		replyToIDs = append(replyToIDs, r.ReplyTo)
+	}
 
 	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal,
-		hasPatch, hasReplies, func(ns, stage string) bool {
+		hasPatch, replyToIDs, func(ns, stage string) bool {
 			nsCfg := getNsConfig(ctx, ns)
 			if nsCfg == nil || nsCfg.AI == nil {
 				return false

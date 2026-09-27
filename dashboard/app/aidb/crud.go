@@ -1260,10 +1260,10 @@ func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) er
 	return txn.BufferWrite(mutations)
 }
 
-// IterationJobDone finalizes an iteration job and creates a new reporting row if needed.
+// IterationJobDone finalizes an iteration job and creates new reporting rows if needed.
 // TODO: We pass isReplyAllowed callback to avoid a circular package dependency between aidb and package main.
 func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
-	parentReportingID string, hasPatch, hasReplies bool,
+	parentReportingID string, hasPatch bool, replyToIDs []string,
 	isReplyAllowed func(ns, stage string) bool) error {
 	client, err := dbClient(ctx)
 	if err != nil {
@@ -1327,26 +1327,44 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		if isReplyAllowed != nil {
 			replyAllowed = isReplyAllowed(parentJob.Namespace, parentRep.Stage)
 		}
-		if !hasPatch && (!hasReplies || !replyAllowed) {
+		if !replyAllowed {
+			replyToIDs = nil
+		}
+
+		var inReplyTos []string
+		if hasPatch {
+			inReplyTos = append(inReplyTos, "")
+		}
+		inReplyTos = append(inReplyTos, replyToIDs...)
+		if len(inReplyTos) == 0 {
 			return nil
 		}
 
-		reporting := &JobReporting{
-			ID:           uuid.NewString(),
-			JobID:        jobID,
-			Stage:        parentRep.Stage,
-			Source:       parentRep.Source,
-			Version:      spanner.NullInt64{Int64: int64(nextVersion), Valid: true},
-			UpstreamedBy: parentRep.UpstreamedBy,
-			ExtraCcList:  parentRep.ExtraCcList,
-			CreatedAt:    TimeNow(ctx),
+		now := TimeNow(ctx)
+		var mutations []*spanner.Mutation
+		for _, inReplyTo := range inReplyTos {
+			var version spanner.NullInt64
+			if inReplyTo == "" {
+				version = spanner.NullInt64{Int64: int64(nextVersion), Valid: true}
+			}
+			reporting := &JobReporting{
+				ID:           uuid.NewString(),
+				JobID:        jobID,
+				Stage:        parentRep.Stage,
+				Source:       parentRep.Source,
+				InReplyTo:    inReplyTo,
+				Version:      version,
+				UpstreamedBy: parentRep.UpstreamedBy,
+				ExtraCcList:  parentRep.ExtraCcList,
+				CreatedAt:    now,
+			}
+			mut, err := spanner.InsertStruct("JobReporting", reporting)
+			if err != nil {
+				return err
+			}
+			mutations = append(mutations, mut)
 		}
-
-		mut, err := spanner.InsertStruct("JobReporting", reporting)
-		if err != nil {
-			return err
-		}
-		return tx.BufferWrite([]*spanner.Mutation{mut})
+		return tx.BufferWrite(mutations)
 	})
 	return err
 }
