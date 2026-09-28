@@ -456,6 +456,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			if isInputTokenOverflowError(respErr) && a.tryAnswerNow(true) {
 				continue
 			}
+			if a.SubAgent && isBlockedError(respErr) {
+				return "", nil, BadCallError("%v", respErr)
+			}
 			return "", nil, respErr
 		}
 		reply, calls, respErr := a.parseResponse(resp, span)
