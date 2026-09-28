@@ -181,3 +181,16 @@ func (e *InputTokenOverflowError) Error() string {
 func (e *InputTokenOverflowError) Unwrap() error {
 	return e.Err
 }
+
+// BlockedError indicates that the request or response was blocked by safety filters or guardrails.
+type BlockedError struct {
+	Err error
+}
+
+func (e *BlockedError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *BlockedError) Unwrap() error {
+	return e.Err
+}

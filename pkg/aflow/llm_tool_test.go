@@ -115,6 +115,17 @@ func TestLLMTool(t *testing.T) {
 					},
 				},
 			},
+			// Sub-agent request blocked by safety filters/guardrails should return BadCallError to the parent agent.
+			backend.Part{
+				FunctionCall: &backend.FunctionCall{
+					ID:   "id5",
+					Name: "researcher",
+					Args: map[string]any{
+						"Question": "Blocked question?",
+					},
+				},
+			},
+			&backend.BlockedError{Err: fmt.Errorf("request blocked: OTHER")},
 			// Main returns result.
 			backend.Part{Text: "YES"},
 		},
