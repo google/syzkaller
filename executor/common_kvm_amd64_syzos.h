@@ -1199,7 +1199,7 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	vmwrite(VMCS_HOST_GS_BASE, rdmsr(X86_MSR_GS_BASE));
 
 	// Exit handler in RIP.
-	vmwrite(VMCS_HOST_RIP, (uintptr_t)nested_vm_exit_handler_intel_asm);
+	vmwrite(VMCS_HOST_RIP, executor_fn_guest_addr(nested_vm_exit_handler_intel_asm));
 
 	// Control Registers.
 	vmwrite(VMCS_HOST_CR0, read_cr0());
