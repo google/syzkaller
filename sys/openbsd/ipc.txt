@@ -68,8 +68,6 @@ ipc_perm {
 	gid	gid
 	mode	flags[open_mode, int32]
 	seq	int16
-	pad0	const[0, int16]
-	pad1	const[0, int32]
 	key	intptr
 }
 

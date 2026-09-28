@@ -5,6 +5,7 @@ include <sys/param.h>
 include <sys/ioctl.h>
 include <sys/fcntl.h>
 
+include <sys/disklabel.h>
 include <dev/vndioctl.h>
 
 resource fd_vnd[fd]
@@ -17,10 +18,16 @@ ioctl$VNDIOCCLR(fd fd_vnd, cmd const[VNDIOCCLR], arg ptr[in, vnd_ioctl])
 
 vnd_ioctl {
 	vnd_file	ptr[in, filename]
+	vnd_secsize	int64[0:4096]
+	vnd_nsectors	int64
+	vnd_ntracks	int64
 	vnd_size	int64
-	vnd_key		ptr[in, filename]
+	vnd_key		ptr[in, array[int8]]
 	vnd_keylen	len[vnd_key, int32]
+	vnd_type	flags[vnd_disk_types, int16]
 }
+
+vnd_disk_types = DTYPE_VND, DTYPE_SCSI, DTYPE_FLOPPY, DTYPE_ATAPI, DTYPE_RDROOT
 
 vnd_user {
 	vnufile		string[filename, VNDNLEN]

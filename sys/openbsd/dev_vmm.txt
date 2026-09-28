@@ -12,15 +12,21 @@ include <dev/vmm/vmm.h>
 
 resource fd_vmm[fd]
 
+# VMM_IOC_CREATE on /dev/vmm returns a new file descriptor referring to the VM
+# (vcp_fd); all other VM operations are ioctls on that descriptor.
+resource fd_vm[fd]
+
 openat$vmm(fd const[AT_FDCWD], file ptr[in, string["/dev/vmm"]], flags flags[open_flags], mode const[0]) fd_vmm
 
 ioctl$VMM_IOC_CREATE(fd fd_vmm, cmd const[VMM_IOC_CREATE], arg ptr[inout, vm_create_params])
-ioctl$VMM_IOC_INFO(fd fd_vmm, cmd const[VMM_IOC_INFO], arg ptr[inout, vm_info_params])
-ioctl$VMM_IOC_READREGS(fd fd_vmm, cmd const[VMM_IOC_READREGS], arg ptr[inout, vm_rwregs_params])
-ioctl$VMM_IOC_RESETCPU(fd fd_vmm, cmd const[VMM_IOC_RESETCPU], arg ptr[in, vm_resetcpu_params])
-ioctl$VMM_IOC_RUN(fd fd_vmm, cmd const[VMM_IOC_RUN], arg ptr[inout, vm_run_params])
-ioctl$VMM_IOC_TERM(fd fd_vmm, cmd const[VMM_IOC_TERM], arg ptr[in, vm_terminate_params])
-ioctl$VMM_IOC_WRITEREGS(fd fd_vmm, cmd const[VMM_IOC_WRITEREGS], arg ptr[in, vm_rwregs_params])
+ioctl$VMM_IOC_INTR(fd fd_vm, cmd const[VMM_IOC_INTR], arg ptr[in, vm_intr_params])
+ioctl$VMM_IOC_READREGS(fd fd_vm, cmd const[VMM_IOC_READREGS], arg ptr[inout, vm_rwregs_params])
+ioctl$VMM_IOC_READVMPARAMS(fd fd_vm, cmd const[VMM_IOC_READVMPARAMS], arg ptr[inout, vm_rwvmparams_params])
+ioctl$VMM_IOC_RESETCPU(fd fd_vm, cmd const[VMM_IOC_RESETCPU], arg ptr[in, vm_resetcpu_params])
+ioctl$VMM_IOC_RUN(fd fd_vm, cmd const[VMM_IOC_RUN], arg ptr[inout, vm_run_params])
+ioctl$VMM_IOC_SHAREMEM(fd fd_vm, cmd const[VMM_IOC_SHAREMEM], arg ptr[out, vm_sharemem_params])
+ioctl$VMM_IOC_WRITEREGS(fd fd_vm, cmd const[VMM_IOC_WRITEREGS], arg ptr[in, vm_rwregs_params])
+ioctl$VMM_IOC_WRITEVMPARAMS(fd fd_vm, cmd const[VMM_IOC_WRITEVMPARAMS], arg ptr[in, vm_rwvmparams_params])
 
 vcpu_reg_state {
 	vrs_gprs	array[int64, VCPU_REGS_NGPRS]
@@ -46,17 +52,23 @@ vm_create_params {
 	vcp_name	string[filename, VMM_MAX_NAME_LEN]
 	vcp_sev		int32
 	vcp_seves	int32
-# NEED: actual out parameter, syz_vmm_create(arg ptr[in, vm_create_params]) vmid
-	vcp_id		int32
-	vcp_poscbit	int32
-	vcp_asid	array[int32, VMM_MAX_VCPUS]
+	vcp_poscbit	int32	(out)
+	vcp_asid	array[int32, VMM_MAX_VCPUS]	(out)
+	vcp_fd		fd_vm	(out)
 }
 
 vm_exit {
-	vei	vm_exit_inout
+	exit	vm_exit_data
 	vrs	vcpu_reg_state
 	cpl	int32
 }
+
+vm_exit_data [
+	vei	vm_exit_inout
+	vee	vm_exit_eptviolation
+	vea	vm_exit_apicbase
+	vex	vm_exit_x2apic
+]
 
 vm_exit_inout {
 	vei_size	int8
@@ -69,21 +81,33 @@ vm_exit_inout {
 	vei_insn_len	int8
 }
 
-vm_info_params {
-	vip_size	len[vip_info, int64]
-	vip_info_ct	int64
-	vip_info	buffer[out]
+vm_exit_eptviolation {
+	vee_fault_type	int8
+	vee_insn_info	flags[vee_insn_info_flags, int8]
+	vee_insn_len	int8
+	vee_insn_bytes	array[int8, 15]
+	vee_gpa		int64
+}
+
+vm_exit_apicbase {
+	vea_value	int64
+}
+
+vm_exit_x2apic {
+	vex_msr		int32
+	vex_write	int8
+	vex_pad		array[const[0, int8], 3]
+	vex_data	int64
 }
 
 vm_mem_range {
 	vmr_gpa		vma64
 	vmr_va		vma64
 	vmr_size	int64
+	vmr_type	flags[vm_mem_types, int32]
 }
 
 vm_resetcpu_params {
-# NEED: vmid
-	vrp_vm_id	int32
 	vrp_vcpu_id	int32
 	vrp_init_state	vcpu_reg_state
 }
@@ -91,12 +115,10 @@ vm_resetcpu_params {
 vcpu_inject_event {
 	vie_vector	int8
 	vie_errorcode	int32
-	vie_type	int8
+	vie_type	flags[vcpu_inject_types, int8]
 }
 
 vm_run_params {
-# NEED: vmid
-	vrp_vm_id		int32
 	vrp_vcpu_id		int32
 	vrp_inject		vcpu_inject_event
 	vrp_intr_pending	int8
@@ -106,14 +128,29 @@ vm_run_params {
 }
 
 vm_rwregs_params {
-# NEED: vmid
-	vrwp_vm_id	int32
 	vrwp_vcpu_id	int32
-	vrwp_mask	int64
+	vrwp_mask	flags[vm_rwregs_flags, int64]
 	vrwp_regs	vcpu_reg_state
 }
 
-vm_terminate_params {
-# NEED: vmid
-	vtp_vm_id	int32
+vm_rwvmparams_params {
+	vpp_vcpu_id		int32
+	vpp_mask		flags[vm_rwvmparams_flags, int32]
+	vpp_pvclock_system_gpa	int64
+	vpp_pvclock_version	int32
 }
+
+vm_intr_params {
+	vip_vcpu_id	int32
+	vip_intr	int16
+}
+
+vm_sharemem_params {
+	vsp_va	array[intptr, VMM_MAX_MEM_RANGES]
+}
+
+vm_mem_types = VM_MEM_RAM, VM_MEM_RESERVED, VM_MEM_MMIO
+vcpu_inject_types = VCPU_INJECT_NONE, VCPU_INJECT_INTR, VCPU_INJECT_EX, VCPU_INJECT_NMI
+vm_rwregs_flags = VM_RWREGS_GPRS, VM_RWREGS_SREGS, VM_RWREGS_CRS, VM_RWREGS_MSRS, VM_RWREGS_DRS
+vm_rwvmparams_flags = VM_RWVMPARAMS_PVCLOCK_SYSTEM_GPA, VM_RWVMPARAMS_PVCLOCK_VERSION
+vee_insn_info_flags = VEE_LEN_VALID, VEE_BYTES_VALID, VEE_GPA_VALID
