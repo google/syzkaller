@@ -808,9 +808,8 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
 				return p.Thought
 			})
-			for j, p := range msgCopy.Parts {
-				p.ThoughtSignature = nil
-				msgCopy.Parts[j] = p
+			for j := range msgCopy.Parts {
+				msgCopy.Parts[j].ThoughtSignature = nil
 			}
 			newReq = append(newReq, llmMessage{
 				content:    &msgCopy,
