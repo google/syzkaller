@@ -27,7 +27,6 @@ sys/openbsd/
   *.txt           — syzlang description files
   *.txt.const     — extracted constants (generated, checked in)
   init.go         — neutralization logic (dangerous ioctls, sysctl, etc.)
-  verify/         — C programs for struct-size verification on real OpenBSD
 ```
 
 File naming follows the project-wide conventions in
@@ -106,7 +105,7 @@ Some struct sizes cannot be verified on a Linux cross-compilation host
 (padding, alignment, or type-width differences).  For critical structs,
 write a `_Static_assert` test program and run it on real OpenBSD.
 
-Example pattern (see `sys/openbsd/verify/pf_struct_sizes.c`):
+Example pattern:
 
 ```c
 #include <net/pfvar.h>
@@ -143,7 +142,18 @@ sockaddr_in {
 
 **IPC structs differ.**  `ipc_perm` on OpenBSD has field order
 `cuid, cgid, uid, gid, mode, seq, key` — different from Linux.
-Always verify against `sys/sys/ipc.h`.
+`key_t` is `long`: `key` is at offset 24 (2 bytes of alignment padding
+after `seq`), total size 32.  Always verify against `sys/sys/ipc.h`.
+
+**Other structs copied from Linux with the wrong layout** (all fixed
+once; watch for regressions):
+
+- `struct flock`: `l_start, l_len, l_pid, l_type, l_whence` (Linux
+  puts `l_type, l_whence` first).
+- `SO_PEERCRED` returns `struct sockpeercred {uid, gid, pid}`, not
+  Linux `struct ucred {pid, uid, gid}`.
+- `struct mif6ctl` is `{mif6c_mifi, mif6c_flags, mif6c_pifi}`, 6 bytes;
+  no threshold/rate-limit fields.
 
 **`struct stat` differs significantly.**  OpenBSD uses `dev_t` =
 `int32_t` (not `unsigned int` / `dev_t` on Linux) and a different
@@ -352,6 +362,8 @@ For generic extraction issues (missing include, typos), see
 | `wscons.txt` | Console/keyboard/display | 69 |
 | `dev_bpf.txt` | BPF | 24 |
 | `dev_vmm.txt` | VMM hypervisor | 9 |
+| `dev_audio.txt` | Audio/mixer | 15 |
+| `tty.txt` | TTY/PTY | 35 |
 | `dev_diskmap.txt` | Disk mapper | — |
 | `dev_klog.txt` | Kernel log | — |
 | `dev_pci.txt` | PCI access | — |
@@ -365,8 +377,132 @@ For generic extraction issues (missing include, typos), see
 | `fs.txt` | Filesystem ops | — |
 | `ktrace.txt` | Kernel tracing | — |
 | `mm.txt` | Memory management | — |
-| `tty.txt` | TTY/PTY | — |
 
 The OpenBSD syscall table has ~224 `STD` entries.  Major gaps: `futex`,
-`ptrace`, `mount`/`unmount`, audio, video, routing sockets (`AF_ROUTE`),
+`ptrace`, `mount`/`unmount`, video, routing sockets (`AF_ROUTE`),
 signals, threading primitives (`__tfork`, `__thrsleep`, `__thrwakeup`).
+
+## 12. Syncing With Upstream OpenBSD
+
+Constant extraction alone does not detect layout drift: in the
+2026-09 sync every const except two removed VMM ioctls matched, while
+six structs had wrong layouts.  Run all four checks below.
+
+### 12.1 Source checkout
+
+A sparse, blobless clone is enough (~700 MB):
+
+```sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/openbsd/src $OPENBSD_SRC
+cd $OPENBSD_SRC && git sparse-checkout set sys/sys sys/kern sys/net \
+    sys/netinet sys/netinet6 sys/dev sys/arch/amd64 sys/uvm sys/ufs \
+    sys/miscfs sys/nfs sys/crypto sys/lib sys/isofs sys/msdosfs \
+    sys/ntfs sys/tmpfs sys/ddb sys/scsi sys/net80211 sys/netmpls \
+    sys/compat common/include
+```
+
+Record the commit hash in the commit message.
+
+### 12.2 Constants
+
+`make extract TARGETOS=openbsd SOURCEDIR=$OPENBSD_SRC`.  A constant
+removed upstream is reported as `X is unsupported on all arches
+(typo?)`, `make` exits non-zero, and the `.const` gets `X = ???`.
+Look for the definition in the header: removed ioctls are often left
+commented out (e.g. `/* #define VMM_IOC_INFO ... */`), and the
+surrounding API has usually changed too — re-read the driver.
+
+A `???` in any `.const` breaks `make descriptions`, which the checks
+below need.  Fix the description first, or `git stash` the `.const`
+changes to build the checker against the old state.
+
+### 12.3 Struct sizes and field offsets
+
+Write a temporary Go program under `tools/` (it must be inside the
+module to import `prog`; delete it before committing) that:
+
+1. Loads `prog.GetTarget("openbsd", "amd64")` (import
+   `_ "github.com/google/syzkaller/sys"`; run `make descriptions` first).
+2. Walks `prog.ForeachType(target.Syscalls, ...)`, keeping
+   `*prog.StructType`/`*prog.UnionType` whose name has no `[`, `]`, `$`.
+3. Emits one C file: `#include` of every `include <...>` from all
+   `sys/openbsd/*.txt` in order, preceded by `sys/types.h`,
+   `sys/param.h`, `sys/mbuf.h`; then per type
+   `_Static_assert(sizeof(struct NAME) == t.Size(), "SZ NAME")` (skip
+   if `t.Varlen()`) and per named field
+   `_Static_assert(__builtin_offsetof(struct NAME, FIELD) == OFF, ...)`,
+   where `OFF` is the running sum of `f.Type.Size()` (compiler-inserted
+   padding fields are in `Fields`; skip bitfields; stop at the first
+   varlen field).
+4. Compiles with the extractor's flags:
+   `clang -fsyntax-only -ferror-limit=0 -nostdinc -U__linux__ -D_KERNEL
+   -D__BSD_VISIBLE=1 -I $S/sys -I $S/sys/sys -I $S/sys/arch/amd64
+   -I $S/common/include -I $S/sys/compat/linux/common -I $BUILD`,
+   where `$BUILD` contains symlinks `amd64` and `machine` →
+   `$S/sys/arch/amd64/include`.
+
+Reading the output:
+
+- `note: expression evaluates to 'A == B'`: **A is the C value, B is
+  syzlang.**
+- `incomplete type` / `no member named`: no C struct or field of that
+  name; not an error.
+- `use of 'X' with tag type that does not match previous declaration`:
+  syzlang union vs C struct (e.g. `pf_addr`, `mixer_ctrl`); map it.
+- `'1 == N'` for `udphdr`, `ip6_frag`: artifact of the combined
+  translation unit; both are correct (8 bytes).  Re-check suspicious
+  results in a small standalone file.
+
+About 150 syzlang types have no same-named C type.  Map the ones that
+correspond to a real struct explicitly, e.g. `send_msghdr`,
+`recv_msghdr` → `struct msghdr`; `iovec_in`/`iovec_out` →
+`struct iovec`; `pfioc_table_addrs`/`pfioc_table_tables` →
+`struct pfioc_table`; `pf_addr_wrap_*` → `struct pf_addr_wrap`;
+`mixer_ctrl_*` → `struct mixer_ctrl`; `sockpeercred`;
+`tone` → `tone_t`; `sigset` → `sigset_t`.  Packet structs in
+`vnet.txt` (`*_packet`, `ipv4_option_*`, ...) have no C equivalent.
+
+### 12.4 Ioctl argument sizes
+
+For each `ioctl$X` whose `cmd` is a `*prog.ConstType`, decode
+`IOCPARM_LEN = (v >> 16) & 0x1fff`, `IOC_IN = 0x80000000`,
+`IOC_OUT = 0x40000000`, and compare with the pointee `Size()` of arg 2.
+A size mismatch is a bug (it caught `vnd_ioctl` and
+`vm_create_params`).  Direction mismatches are informational: kernel
+copy-in/out is driven by the cmd bits, the syzlang direction only
+controls generation.  Accepted as of 2026-09: `DIOCCLRSTATUS`,
+`DIOCGETSTATUS`, `DIOCGETSYNFLWATS`, `DIOCMAP`, `DIOCSETDEBUG`,
+`DIOCSETHOSTID`, `DIOCSETREASS`, `DIOCSETSTATUSIF`, `DIOCSETSYNCOOKIES`,
+`DIOCXEND`, `DRM_IOCTL_MODE_ATOMIC`, `DRM_IOCTL_MODE_OBJ_SETPROPERTY`,
+`DRM_IOCTL_MODE_RMFB`, `PCIOCWRITE`, `WSMOUSEIO_GETPARAMS`.
+
+### 12.5 Syscall argument lists
+
+Parse `sys/kern/syscalls.master` (join `\`-continued lines; skip
+`OBSOL`/`UNIMPL`), strip leading `_` from `sys_` names, and compare
+argument counts with every `name$variant(...)` in `sys/openbsd/*.txt`.
+Split syzlang args at depth-0 commas only (`ptr[out, T, opt]` contains
+commas).  Expected differences: `ioctl`/`fcntl` variants without an
+arg, `*ctl$IPC_RMID`/`SHM_LOCK`/`SHM_UNLOCK` without a buffer, and
+`shmget`'s extra `unused vma`.  Any described syscall missing from
+`syscalls.master` has been removed upstream.
+
+### 12.6 Accepted deviations
+
+- `fd_set` is 64 bytes in syzlang, 128 in C (`FD_SETSIZE` 1024).
+- `cmsghdr_un_cred` is a deliberately invalid cmsg (type 0); OpenBSD
+  has no `SCM_CREDS`.
+
+### 12.7 VMM interface (changed 2026)
+
+`VMM_IOC_CREATE` on `/dev/vmm` returns a per-VM fd in `vcp_fd`
+(`fd_vm` resource); every other VMM ioctl is issued on that fd and the
+`*_vm_id` fields are gone (`sys/dev/vmm/vmm.c`: `vmmioctl` vs
+`vm_ioctl`).  Shared structs live in `sys/dev/vmm/vmm.h`; amd64-specific
+ones (`vcpu_reg_state`, `vm_exit`, `vm_intr_params`, `vm_rwregs_params`)
+in `sys/arch/amd64/include/vmmvar.h`.
+
+### 12.8 Formatting
+
+`bin/syz-fmt` is not built by `make descriptions`; use
+`make format_sys`.

@@ -69,5 +69,6 @@ tests that eventually use `prog.Target` or `targets.Target`.
 
 There exist other GEMINI.md files:
 - `sys/GEMINI.md` - consider it when you are asked to write/modify syzlang descriptions.
+- `sys/openbsd/GEMINI.md` - consider it when working on OpenBSD descriptions, including syncing them with upstream OpenBSD source.
 - `syz-cluster/GEMINI.md` - consider it when working on the syz-cluster (patch fuzzing) functionality.
 - `pkg/aflow/GEMINI.md` - consider it when working on the aflow (agentic flow) functionality.
