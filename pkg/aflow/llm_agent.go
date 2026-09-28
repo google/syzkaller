@@ -420,11 +420,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 	}
 	var anchorTokens int
 	for iter := 0; a.nextIteration(iter); iter++ {
-		var currentInputTokens int
-		for _, msg := range a.req {
-			currentInputTokens += msg.tokenCount + msg.thoughtTokens
-		}
-		tokensToCompress := max(0, currentInputTokens-anchorTokens)
+		tokensToCompress := max(0, a.totalReqTokens()-anchorTokens)
 		_, err := a.maybeCompressContext(ctx, instruction, tokensToCompress)
 		if err != nil {
 			return "", nil, err
@@ -514,15 +510,19 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 	return "", nil, a.maxIterationsError()
 }
 
+func (a *agentSession) totalReqTokens() int {
+	var total int
+	for _, msg := range a.req {
+		total += msg.tokenCount + msg.thoughtTokens
+	}
+	return total
+}
+
 func (a *agentSession) updateInputTokens(inputTokens int, anchorTokens *int) {
 	if inputTokens <= 0 {
 		return
 	}
-	var assignedTokens int
-	for _, msg := range a.req {
-		assignedTokens += msg.tokenCount + msg.thoughtTokens
-	}
-	newTokens := inputTokens - assignedTokens
+	newTokens := inputTokens - a.totalReqTokens()
 	if newTokens > 0 {
 		a.req[len(a.req)-1].tokenCount += newTokens
 	}
