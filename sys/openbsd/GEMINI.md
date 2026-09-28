@@ -351,7 +351,7 @@ For generic extraction issues (missing include, typos), see
 | `dev_dri.txt` | DRM/GPU | 53 |
 | `wscons.txt` | Console/keyboard/display | 69 |
 | `dev_bpf.txt` | BPF | 24 |
-| `dev_vmm.txt` | VMM hypervisor | 7 |
+| `dev_vmm.txt` | VMM hypervisor | 9 |
 | `dev_diskmap.txt` | Disk mapper | — |
 | `dev_klog.txt` | Kernel log | — |
 | `dev_pci.txt` | PCI access | — |

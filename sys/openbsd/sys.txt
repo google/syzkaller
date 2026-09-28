@@ -215,11 +215,11 @@ rlimit {
 }
 
 flock {
-	type	flags[flock_type, int16]
-	whence	flags[seek_whence, int16]
 	start	intptr
 	len	intptr
 	pid	pid
+	type	flags[flock_type, int16]
+	whence	flags[seek_whence, int16]
 }
 
 linger {
@@ -227,10 +227,10 @@ linger {
 	linger	int32
 }
 
-ucred {
-	pid	pid
+sockpeercred {
 	uid	uid
 	gid	gid
+	pid	pid
 }
 
 chflags_flags = UF_NODUMP, UF_IMMUTABLE, UF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_APPEND
