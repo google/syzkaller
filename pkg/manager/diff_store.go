@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 )
 
 type DiffBugStatus string
@@ -41,8 +42,9 @@ func (bug DiffBug) AffectsBoth() bool {
 }
 
 type DiffBugInfo struct {
-	Crashes    int  // Count of detected crashes.
-	NotCrashed bool // If were proven not to crash by running a repro.
+	Crashes         int  // Count of detected crashes.
+	NotCrashed      bool // If were proven not to crash by running a repro.
+	CorruptedReport bool // Whether the saved report is marked as corrupted.
 
 	// File paths.
 	Report   string
@@ -91,14 +93,15 @@ func (s *DiffFuzzerStore) BaseNotCrashed(title string) {
 	})
 }
 
-func (s *DiffFuzzerStore) PatchedCrashed(title string, report, log []byte) {
-	s.patch(title, func(obj *DiffBug) {
+func (s *DiffFuzzerStore) PatchedCrashed(rep *report.Report) {
+	s.patch(rep.Title, func(obj *DiffBug) {
 		obj.Patched.Crashes++
-		if len(report) > 0 {
-			obj.Patched.Report = s.saveFile(title, "patched_report", report)
+		obj.Patched.CorruptedReport = rep.Corrupted
+		if len(rep.Report) > 0 {
+			obj.Patched.Report = s.saveFile(rep.Title, "patched_report", rep.Report)
 		}
-		if len(log) > 0 && obj.Patched.CrashLog == "" {
-			obj.Patched.CrashLog = s.saveFile(title, "patched_crash_log", log)
+		if len(rep.Output) > 0 && obj.Patched.CrashLog == "" {
+			obj.Patched.CrashLog = s.saveFile(rep.Title, "patched_crash_log", rep.Output)
 		}
 	})
 }
