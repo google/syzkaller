@@ -877,7 +877,6 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	// Clear unused/unsupported fields.
 	// TODO(glider): do we need these?
 	vmwrite(VMCS_VIRTUAL_PROCESSOR_ID, 0);
-	vmwrite(VMCS_POSTED_INTR_NV, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MASK, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MATCH, -1);
 	vmwrite(VMCS_CR3_TARGET_COUNT, 0);
@@ -1161,7 +1160,7 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	vmwrite(VMCS_HOST_GS_BASE, rdmsr(X86_MSR_GS_BASE));
 
 	// Exit handler in RIP.
-	vmwrite(VMCS_HOST_RIP, (uintptr_t)nested_vm_exit_handler_intel_asm);
+	vmwrite(VMCS_HOST_RIP, executor_fn_guest_addr(nested_vm_exit_handler_intel_asm));
 
 	// Control Registers.
 	vmwrite(VMCS_HOST_CR0, read_cr0());
@@ -1171,7 +1170,6 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	// MSRs.
 	vmwrite(VMCS_HOST_IA32_PAT, rdmsr(X86_MSR_IA32_CR_PAT));
 	vmwrite(VMCS_HOST_IA32_EFER, rdmsr(X86_MSR_IA32_EFER));
-	vmwrite(VMCS_HOST_IA32_PERF_GLOBAL_CTRL, rdmsr(X86_MSR_CORE_PERF_GLOBAL_CTRL));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_CS, rdmsr(X86_MSR_IA32_SYSENTER_CS));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_ESP, rdmsr(X86_MSR_IA32_SYSENTER_ESP));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_EIP, rdmsr(X86_MSR_IA32_SYSENTER_EIP));
@@ -1215,7 +1213,6 @@ GUEST_CODE static noinline void init_vmcs_guest_state(uint64 cpu_id, uint64 vm_i
 	// MSRs - Copy from host or set to default.
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_EFER, VMCS_HOST_IA32_EFER);
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PAT, VMCS_HOST_IA32_PAT);
-	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL, VMCS_HOST_IA32_PERF_GLOBAL_CTRL);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_CS, VMCS_HOST_IA32_SYSENTER_CS);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_ESP, VMCS_HOST_IA32_SYSENTER_ESP);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_EIP, VMCS_HOST_IA32_SYSENTER_EIP);
