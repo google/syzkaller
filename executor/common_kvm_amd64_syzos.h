@@ -33,6 +33,7 @@ typedef enum {
 	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_NESTED_VMRESUME = 304,
 	SYZOS_API_NESTED_LOAD_SYZOS = 310,
+	SYZOS_API_NESTED_SET_STATE_PAGES = 320,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
@@ -44,6 +45,17 @@ typedef enum {
 	SYZOS_API_NESTED_AMD_VMSAVE = 387,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
+
+// Pages referenced by the nested VMCS/VMCB that SYZOS_API_NESTED_SET_STATE_PAGES can relocate.
+// MSRPM and IOPM are supported on both Intel and AMD, the rest are Intel-only.
+typedef enum {
+	NESTED_PAGE_APIC_ACCESS = 0, // Intel: APIC-access page.
+	NESTED_PAGE_VAPIC = 10, // Intel: virtual-APIC page.
+	NESTED_PAGE_MSRPM = 20, // Intel: MSR bitmap; AMD: MSR permission map.
+	NESTED_PAGE_IOPM = 30, // Intel: I/O bitmaps A and B; AMD: I/O permission map.
+	NESTED_PAGE_POSTED_INTR = 40, // Intel: posted-interrupt descriptor.
+	NESTED_PAGE_PML = 50, // Intel: page-modification log.
+} nested_page_type;
 
 struct api_call_uexit {
 	struct api_call_header header;
@@ -131,6 +143,7 @@ GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_set_state_pages(struct api_call_3* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
@@ -249,6 +262,9 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_LOAD_SYZOS) {
 			// Load SYZOS into the nested VM.
 			guest_handle_nested_load_syzos((struct api_call_nested_load_syzos*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_SET_STATE_PAGES) {
+			// Mutate nested state pages (APIC access, vAPIC, MSRPM, IOPM, PI desc, PML).
+			guest_handle_nested_set_state_pages((struct api_call_3*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_VMLAUNCH) {
 			// Launch the nested VM.
 			guest_handle_nested_vmlaunch((struct api_call_1*)cmd, cpu);
@@ -618,6 +634,16 @@ GUEST_CODE static noinline bool vmcs_field_exists(uint64 field)
 		     : "b"(field)
 		     : "rax", "cc");
 	return !error;
+}
+
+// Write a field if it exists in the current VMCS, return whether it exists.
+// Used for optional fields, e.g. the APIC-access or posted-interrupt descriptor address.
+GUEST_CODE static noinline bool vmwrite_if_exists(uint64 field, uint64 value)
+{
+	if (!vmcs_field_exists(field))
+		return false;
+	vmwrite(field, value);
+	return true;
 }
 
 GUEST_CODE static inline void nested_vmptrld(uint64 cpu_id, uint64 vm_id)
@@ -1764,6 +1790,91 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 		guest_handle_nested_vmentry_intel(vm_id, cpu_id, false);
 	} else {
 		guest_run_amd_vm(cpu_id, vm_id);
+	}
+}
+
+// Sets bits in a VMCS control field. Only used for control fields that
+// init_vmcs_control_fields() always writes, so the strict vmwrite() cannot fail.
+GUEST_CODE static noinline void vmcs_set_bits(uint64 field, uint64 bits)
+{
+	vmwrite(field, vmread(field) | bits);
+}
+
+GUEST_CODE static noinline void
+nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
+{
+	if (vm_id >= KVM_MAX_L2_VMS)
+		return;
+	nested_vmptrld(cpu_id, vm_id);
+
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 type = page_type;
+	if (type == NESTED_PAGE_APIC_ACCESS) {
+		if (vmwrite_if_exists(VMCS_APIC_ACCESS_ADDR, addr))
+			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES);
+	} else if (type == NESTED_PAGE_VAPIC) {
+		if (vmwrite_if_exists(VMCS_VIRTUAL_APIC_PAGE_ADDR, addr))
+			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
+	} else if (type == NESTED_PAGE_MSRPM) {
+		if (vmwrite_if_exists(VMCS_MSR_BITMAP, addr))
+			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_MSR_BITMAPS);
+	} else if (type == NESTED_PAGE_IOPM) {
+		// I/O bitmap B (ports 0x8000-0xffff) is placed right after bitmap A.
+		if (vmwrite_if_exists(VMCS_IO_BITMAP_A, addr) &&
+		    vmwrite_if_exists(VMCS_IO_BITMAP_B, addr + KVM_PAGE_SIZE))
+			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_IO_BITMAPS);
+	} else if (type == NESTED_PAGE_POSTED_INTR) {
+		// Posted-interrupt processing requires virtual-interrupt delivery (which
+		// requires the TPR shadow), external-interrupt exiting and acknowledging
+		// interrupts on exit. Without these VM entry fails its control checks
+		// before the descriptor is ever looked at. The notification vector is
+		// left at 0, which passes the checks.
+		if (vmwrite_if_exists(VMCS_POSTED_INTR_DESC_ADDR, addr)) {
+			vmcs_set_bits(VMCS_PIN_BASED_VM_EXEC_CONTROL, PIN_BASED_POSTED_INTR | PIN_BASED_EXT_INTR_MASK);
+			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
+			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
+			vmcs_set_bits(VMCS_VM_EXIT_CONTROLS, VM_EXIT_ACK_INTR_ON_EXIT);
+		}
+	} else if (type == NESTED_PAGE_PML) {
+		if (vmwrite_if_exists(VMCS_PML_ADDRESS, addr))
+			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_PAGE_MOD_LOGGING);
+	}
+}
+
+GUEST_CODE static noinline void
+nested_set_state_pages_amd(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
+{
+	if (vm_id >= KVM_MAX_L2_VMS)
+		return;
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+
+	// Only the MSR and I/O permission maps exist on AMD, other page types are ignored.
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 type = page_type;
+	if (type == NESTED_PAGE_MSRPM) {
+		vmcb_write64(vmcb_addr, VMCB_CTRL_MSRPM_BASE_PA, addr);
+		uint32 vec3 = vmcb_read32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3);
+		vec3 |= VMCB_INTERCEPT_MSR_PROT;
+		vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, vec3);
+	} else if (type == NESTED_PAGE_IOPM) {
+		vmcb_write64(vmcb_addr, VMCB_CTRL_IOPM_BASE_PA, addr);
+		uint32 vec3 = vmcb_read32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3);
+		vec3 |= VMCB_INTERCEPT_IOIO_PROT;
+		vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, vec3);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_set_state_pages(struct api_call_3* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->args[0];
+	uint64 page_type = cmd->args[1];
+	uint64 addr = cmd->args[2];
+
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		nested_set_state_pages_intel(cpu_id, vm_id, page_type, addr);
+	} else {
+		nested_set_state_pages_amd(cpu_id, vm_id, page_type, addr);
 	}
 }
 
