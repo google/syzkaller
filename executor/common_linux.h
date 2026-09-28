@@ -3599,10 +3599,11 @@ static long syz_mount_image(
 		goto error_clear_loop;
 	}
 	if (change_dir) {
-		res = chdir(target);
-		if (res == -1) {
+		if (chdir(target) == -1) {
 			debug("syz_mount_image > chdir error: %d\n", errno);
 			err = errno;
+			close(res);
+			res = -1;
 		}
 	}
 
