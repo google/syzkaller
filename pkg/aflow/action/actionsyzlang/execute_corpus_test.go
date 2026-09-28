@@ -32,6 +32,14 @@ func setupDummySyzkaller(t *testing.T) string {
 	return dir
 }
 
+func setupDummyKernelObj(t *testing.T) string {
+	dir := t.TempDir()
+	kernelPath := filepath.Join(dir, "arch", "x86", "boot", "bzImage")
+	require.NoError(t, os.MkdirAll(filepath.Dir(kernelPath), 0755))
+	require.NoError(t, os.WriteFile(kernelPath, []byte("dummy-kernel-image"), 0644))
+	return dir
+}
+
 func createTestCorpus(t *testing.T, targetOS, targetArch string, progStrs []string) (string, []*prog.Prog) {
 	target, err := prog.GetTarget(targetOS, targetArch)
 	require.NoError(t, err)
@@ -92,6 +100,7 @@ func TestExecuteCorpusAction_CorruptedCorpus(t *testing.T) {
 		CorpusPath:    corpusPath,
 		TargetOS:      "linux",
 		TargetArch:    "amd64",
+		KernelObj:     setupDummyKernelObj(t),
 		CorpusVMCount: 1,
 	})
 	require.ErrorContains(t, err, "failed to open corpus db")
@@ -108,6 +117,7 @@ func TestExecuteCorpusAction_EmptyCorpus(t *testing.T) {
 		CorpusPath:    corpusPath,
 		TargetOS:      "linux",
 		TargetArch:    "amd64",
+		KernelObj:     setupDummyKernelObj(t),
 		CorpusVMCount: 1,
 	})
 	require.NoError(t, err)
@@ -126,6 +136,7 @@ func TestExecuteCorpusAction_BuildConfigError(t *testing.T) {
 		CorpusPath:    corpusPath,
 		TargetOS:      "linux",
 		TargetArch:    "amd64",
+		KernelObj:     setupDummyKernelObj(t),
 		Type:          "unsupported_vm_type",
 		CorpusVMCount: 1,
 	})
@@ -150,7 +161,7 @@ func TestExecuteCorpusAction_RunIsolatedManagerFailure(t *testing.T) {
 		Image:         image,
 		KernelSrc:     t.TempDir(),
 		Type:          "qemu",
-		KernelObj:     t.TempDir(),
+		KernelObj:     setupDummyKernelObj(t),
 		CorpusVMCount: 1,
 	})
 	require.ErrorContains(t, err, "failed to execute corpus")
