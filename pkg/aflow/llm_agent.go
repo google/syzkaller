@@ -438,10 +438,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		var rawReq []*backend.Message
-		for _, msg := range a.req {
-			rawReq = append(rawReq, msg.content)
-		}
+		rawReq := extractHistoryMessages(a.req)
 		resp, respErr := a.generateContent(ctx, cfg, rawReq, candidate, a.Model, span)
 
 		if respErr != nil {
