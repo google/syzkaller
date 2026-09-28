@@ -261,9 +261,38 @@ func TestLatestCommits(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, got2, 1, "expected 1 commit")
 	assert.Equal(t, got2[0].Hash, got[0].Hash, "expected to see the HEAD commit")
+}
 
-	// TODO: test the afterDate argument.
-	// It will require setting the GIT_COMMITTER_DATE env variable.
+func TestLatestCommitsAfterDate(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	repo.Git("checkout", "-b", "branch-a")
+	repo.CommitChangeAt("old commit", time.Date(2024, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0)))
+	repo.CommitChangeAt("new commit", time.Date(2026, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0)))
+
+	got, err := repo.repo.LatestCommits("", time.Date(2023, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0)))
+	assert.NoError(t, err)
+	assert.Len(t, got, 2, "expected 2 commits")
+	for i, commit := range got {
+		contained, err := repo.repo.Contains(commit.Hash)
+		require.NoError(t, err)
+		require.Truef(t, contained, "commit %d is not contained", i)
+	}
+
+	// The cutoff falls between the two commits, so only the newer one is returned.
+	got2, err := repo.repo.LatestCommits("", time.Date(2025, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0)))
+	assert.NoError(t, err)
+	assert.Len(t, got2, 1, "expected 1 commit")
+	assert.Equal(t, got2[0].Hash, got[0].Hash, "expected to see the HEAD commit")
+	wantDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0))
+	require.Truef(t, wantDate.Equal(got[0].CommitDate),
+		"want date %v, got %v", wantDate, got[0].CommitDate)
+
+	// Now cutoff all commits.
+	got3, err := repo.repo.LatestCommits("", time.Date(2027, 1, 1, 0, 0, 0, 0, time.FixedZone("", 0)))
+	assert.NoError(t, err)
+	assert.Nil(t, got3)
 }
 
 func TestObject(t *testing.T) {
