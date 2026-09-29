@@ -433,7 +433,7 @@ patch that reviewers commented on, and the reviewers' comments.
 
 Use the {{.toolCodeeditor}} tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
-Use the {{.toolPatchDiff}} tool to review the modifications you applied (and to view the previously applied patch).
+Use the {{.toolPatchDiff}} tool to review the modifications you applied.
 
 Your objective is to address the reviewers' feedback and refine the existing patch.
 Focus ONLY on the actionable items that require code changes. Ignore items related to the commit description.
