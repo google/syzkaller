@@ -1,0 +1,37 @@
+TITLE: KASAN: invalid memory access in sysctl_sysvipc
+TYPE: KASAN-UNKNOWN
+
+lo0: can't handle af0
+lo0: can't handle af0
+lo0: can't handle af0
+lo0: can't handle af0
+lo0: can't handle af0
+lo0: can't handle af0
+KASAN: invalid write of 20 bytes at 0xffff800001807ca0 from pc 0xffffffff81e33446
+KASAN: first bad byte at 0xffff800001807ca3 (+3); shadow 0x03: partial granule (out-of-bounds)
+KASAN: 0xffff800001807ca3 is 3 bytes inside the 16-byte malloc slot [0xffff800001807ca0..0xffff800001807cb0)
+KASAN: allocated at:
+#0  malloc+0xf70
+#1  sysctl_sysvipc+0x613
+#2  kern_sysctl_dirs+0x30f
+#3  kern_sysctl+0x1ce
+#4  sys_sysctl+0x54f
+#5  syscall+0x1089
+#6  Xsyscall+0x128
+KASAN: pc: sysctl_sysvipc+0x636
+KASAN: call trace:
+#0  kasan_memcpy+0x1ca
+#1  sysctl_sysvipc+0x636
+#2  kern_sysctl_dirs+0x30f
+#3  kern_sysctl+0x1ce
+#4  sys_sysctl+0x54f
+#5  syscall+0x1089
+#6  Xsyscall+0x128
+KASAN: shadow of 0xffff800001807b80..0xffff800001807e00 (1 cell = 8 bytes):
+ 0xffff800001807b80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+ 0xffff800001807c00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+>0xffff800001807c80: fc fc 08 fb[03]fb fc fc fc fc fc fc fc fc fc fc
+ 0xffff800001807d00: fc fc fc fc fc fc 08 fb fc fc fc fc fc fc fc fc
+ 0xffff800001807d80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+KASAN: legend: 00 valid; 01..07 partial; fb malloc redzone; fc malloc freed; fd pool freed; fe kmem; fa global; f1..f4/f8 stack/scope
+panic: Caught invalid memory access at ffff800001807ca0 size 20 op
