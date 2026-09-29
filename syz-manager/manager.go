@@ -1126,7 +1126,7 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 }
 
 func (mgr *Manager) MachineChecked(features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) error {
+	enabledSyscalls map[*prog.Syscall]bool, capabilities *vminfo.Capabilities) error {
 	if len(enabledSyscalls) == 0 {
 		return fmt.Errorf("all system calls are disabled")
 	}
@@ -1223,7 +1223,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.serv.SetSource(queue.DefaultOpts(ctx, opts))
 		return nil
 	case ModeRunTests:
-		mgr.runTestsMode(features, enabledSyscalls)
+		mgr.runTestsMode(features, enabledSyscalls, capabilities)
 		return nil
 	case ModeIfaceProbe:
 		exec := queue.Plain()
@@ -1244,7 +1244,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
 }
 
-func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
+func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
+	capabilities *vminfo.Capabilities) {
 	ctx := &runtest.Context{
 		Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
 		Target:   mgr.cfg.Target,
@@ -1252,10 +1253,11 @@ func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*
 		EnabledCalls: map[string]map[*prog.Syscall]bool{
 			mgr.cfg.Sandbox: enabledSyscalls,
 		},
-		LogFunc: func(text string) { fmt.Println(text) },
-		Verbose: true,
-		Debug:   *flagDebug,
-		Tests:   *flagTests,
+		LogFunc:      func(text string) { fmt.Println(text) },
+		Verbose:      true,
+		Debug:        *flagDebug,
+		Tests:        *flagTests,
+		Capabilities: capabilities.Properties(),
 	}
 	ctx.Init()
 	go func() {
