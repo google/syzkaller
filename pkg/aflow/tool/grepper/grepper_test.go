@@ -86,9 +86,9 @@ foo.c-6-	line;
 		args{Expression: "barfoo"},
 		func(got results) {
 			assert.True(t, strings.Contains(got.Output,
-				"Full output is too long, showing 500 out of 3999 lines."),
+				"Full output is too long, showing 200 out of 3999 lines."),
 				"%v", got)
-			assert.Equal(t, 505, strings.Count(got.Output, "\n"))
+			assert.Equal(t, 205, strings.Count(got.Output, "\n"))
 		},
 		"")
 

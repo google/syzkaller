@@ -80,7 +80,7 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	// handling it with more efficient streaming. That's lots of memory,
 	// but should be bearable for syz-agent.
 	// Each match takes 3-6 lines (counting context, function lines, and -- delimiters).
-	const maxLines = 500
+	const maxLines = 200
 	// Grep can match some effectively binary files, e.g. svg.
 	// They can contain lines >100K. We mainly intend to match source/docs files
 	// which should not contain long lines, so cap at 200 chars.
