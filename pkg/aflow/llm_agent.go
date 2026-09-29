@@ -669,10 +669,15 @@ and the investigation based on <execution_history> with all relevant details req
 to continue work. Do NOT write a short summary.
 Include:
 1. A detailed list of what approaches have been tried so far and their results (including dead-ends).
-2. The current hypotheses, theories, or active lines of investigation.
-3. Any specific file paths, complete code snippets of relevant functions/structs/etc,
+2. Verified facts: questions that have already been answered and conclusions already established
+   from the source code or tool results. State them definitively so that they don't need to be
+   re-checked.
+3. The current hypotheses, theories, or active lines of investigation that are still open.
+4. Any specific file paths, complete code snippets of relevant functions/structs/etc,
    or configuration values that are critical to remember.
-4. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.
+5. Watch out for potential reasoning loops or repetitive tool calls and explicitly note them.
+6. Next steps: the concrete next action(s) the agent should take. If the agent keeps researching
+   without making progress toward its goal, say so explicitly.
 
 Write plain text in non-verbose manner: drop articles, filler words, pleasantries, hedging, etc;
 sentence fragments are OK; keep technical terms/errors exact; keep code blocks unchanged.
