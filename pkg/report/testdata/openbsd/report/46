@@ -1,0 +1,34 @@
+TITLE: KASAN: invalid memory access in sysctl_sysvipc
+TYPE: KASAN-UNKNOWN
+
+
+OpenBSD/amd64 (ci-openbsd-kasan-2.us-central1-f.c.syzkaller.internal) (tty00)
+
+login: KASAN: invalid write of 20 bytes at 0xffff800001801e40 from pc 0xffffffff81e33446
+KASAN: first bad byte at 0xffff800001801e40 (+0); shadow 0xfb: malloc redzone (out-of-bounds)
+KASAN: 0xffff800001801e40 is 0 bytes inside the 16-byte malloc slot [0xffff800001801e40..0xffff800001801e50)
+KASAN: allocated at:
+#0  malloc+0xf70
+#1  sysctl_sysvipc+0x613
+#2  kern_sysctl_dirs+0x30f
+#3  kern_sysctl+0x1ce
+#4  sys_sysctl+0x54f
+#5  syscall+0x1089
+#6  Xsyscall+0x128
+KASAN: pc: sysctl_sysvipc+0x636
+KASAN: call trace:
+#0  kasan_memcpy+0x1ca
+#1  sysctl_sysvipc+0x636
+#2  kern_sysctl_dirs+0x30f
+#3  kern_sysctl+0x1ce
+#4  sys_sysctl+0x54f
+#5  syscall+0x1089
+#6  Xsyscall+0x128
+KASAN: shadow of 0xffff800001801d00..0xffff800001801f80 (1 cell = 8 bytes):
+ 0xffff800001801d00: 08 fb fc fc fc fc fc fc fc fc fc fc fc fc 08 fb
+ 0xffff800001801d80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+>0xffff800001801e00: fc fc fc fc fc fc fc fc[fb]fc fc fc fc fc fc fc
+ 0xffff800001801e80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+ 0xffff800001801f00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+KASAN: legend: 00 valid; 01..07 partial; fb malloc redzone; fc malloc freed; fd pool freed; fe kmem; fa global; f1..f4/f8 stack/scope
+panic: C

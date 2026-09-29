@@ -57,7 +57,40 @@ const openbsdSkipFrames = `(?:(?:panic|kerntrap|usertrap|alltraps\w*|savectx|db_
 const openbsdPanicFrame = `(?:.*\n)+?` + openbsdSkipFrames +
 	`([A-Za-z0-9_]+)\([^\n]*\) at [A-Za-z_]`
 
+// Frames a KASAN fault passes through that are never the bug themselves: the
+// compiler-inserted access checks, the mem/str interceptors that panic with no
+// __asan_ frame, and the byte helpers (memcpy/strlcpy/copyin/...), so the title
+// names their caller.
+const openbsdKasanSkip = `(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|` +
+	`kasan_mem(?:cpy|move|set|cmp)|` +
+	`memcpy|memmove|memset|memcmp|` +
+	`bcmp|bcopy|bzero|kcopy|strcmp|strncmp|strlcpy|strlcat|strlen|strnlen|` +
+	`strncpy|copyin|copyinstr|copyout|copyoutstr)`
+
 var openbsdOopses = append([]*oops{
+	{
+		// The KASAN report is printed in full before panic(), so title from
+		// its own call trace. The panic line and the ddb output after it can
+		// be cut off when the VM dies ("panic: C"), and titling from them
+		// splits one bug across meaningless buckets.
+		[]byte("KASAN: invalid "),
+		[]oopsFormat{
+			{
+				title: compile(`KASAN: invalid (?:read|write) of (?Us:.*)\nKASAN: call trace:\n` +
+					`(?:#\d+ +` + openbsdKasanSkip + `\+0x[0-9a-f]+\n)*#\d+ +([A-Za-z0-9_]+)\+0x`),
+				fmt: "KASAN: invalid memory access in %[1]v",
+			},
+			{
+				title: compile(`KASAN: pc: ([A-Za-z0-9_]+)\+0x`),
+				fmt:   "KASAN: invalid memory access in %[1]v",
+			},
+			{
+				title: compile(`KASAN: invalid (?:read|write) of`),
+				fmt:   "KASAN: invalid memory access",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 	{
 		[]byte("cleaned vnode"),
 		[]oopsFormat{
@@ -89,12 +122,7 @@ var openbsdOopses = append([]*oops{
 				// losing by one line.
 				title: compile(`(?:\nddb\{\d+\}> show panic(?Us:.*)[*]cpu\d+: )?` +
 					`Caught invalid memory access(?Us:.*)\n(?:[^\n]* at ` +
-					`(?:__asan_(?:load|store)(?:[0-9]+|N)+_noabort|` +
-					`kasan_mem(?:cpy|move|set|cmp)|` +
-					`memcpy|memmove|memset|memcmp|` +
-					`bcmp|bcopy|bzero|kcopy|strcmp|strncmp|strlcpy|strlcat|strlen|strnlen|` +
-					`strncpy|copyin|copyinstr|copyout|copyoutstr)` +
-					`\+0x[0-9a-f]+[^\n]*\n)+([A-Za-z0-9_]+)`),
+					openbsdKasanSkip + `\+0x[0-9a-f]+[^\n]*\n)+([A-Za-z0-9_]+)`),
 				fmt: "KASAN: invalid memory access in %[1]v",
 			},
 			{
