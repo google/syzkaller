@@ -3,7 +3,10 @@
 
 package vminfo
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // Capabilities represents the hardware and virtualization capabilities
 // of the target environment (e.g. CPU vendor, nested virtualization support).
@@ -27,4 +30,15 @@ func (caps *Capabilities) Properties() map[string]bool {
 		props["nested"] = true
 	}
 	return props
+}
+
+// Check verifies that all capabilities specified in required are present in caps.
+func (caps *Capabilities) Check(required *Capabilities) error {
+	have := caps.Properties()
+	for prop := range required.Properties() {
+		if !have[prop] {
+			return fmt.Errorf("required capability %q is not supported by the target machine", prop)
+		}
+	}
+	return nil
 }

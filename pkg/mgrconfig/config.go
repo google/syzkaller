@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/syzkaller/pkg/asset"
+	"github.com/google/syzkaller/pkg/vminfo"
 )
 
 type Config struct {
@@ -132,6 +133,10 @@ type Config struct {
 	//      this is the most restrictive sandbox
 	// "android": emulate permissions of an untrusted Android app (supported only on Linux)
 	Sandbox string `json:"sandbox"`
+
+	// Capabilities required from the boot test environment (e.g. {"vendor": "intel", "nested": true}).
+	// Verified against the automatically detected capabilities during machine check.
+	RequiredTestCapabilities *vminfo.Capabilities `json:"required_test_capabilities"`
 
 	// This value is passed as an argument to executor and allows to adjust sandbox behavior
 	// via manager config. For example you can switch between system and user accounts based

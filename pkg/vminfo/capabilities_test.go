@@ -33,3 +33,65 @@ func TestCapabilitiesProperties(t *testing.T) {
 		})
 	}
 }
+
+func TestCapabilitiesCheck(t *testing.T) {
+	tests := []struct {
+		name     string
+		caps     *Capabilities
+		required *Capabilities
+		wantErr  bool
+	}{
+		{
+			"nil required",
+			&Capabilities{CPUVendor: "intel", Nested: true},
+			nil,
+			false,
+		},
+		{
+			"empty required",
+			&Capabilities{CPUVendor: "intel"},
+			&Capabilities{},
+			false,
+		},
+		{
+			"exact match",
+			&Capabilities{CPUVendor: "intel", Nested: true},
+			&Capabilities{CPUVendor: "intel", Nested: true},
+			false,
+		},
+		{
+			"subset match",
+			&Capabilities{CPUVendor: "intel", Nested: true},
+			&Capabilities{Nested: true},
+			false,
+		},
+		{
+			"missing nested",
+			&Capabilities{CPUVendor: "intel", Nested: false},
+			&Capabilities{Nested: true},
+			true,
+		},
+		{
+			"vendor mismatch",
+			&Capabilities{CPUVendor: "amd", Nested: true},
+			&Capabilities{CPUVendor: "intel"},
+			true,
+		},
+		{
+			"nil caps with non-empty required",
+			nil,
+			&Capabilities{Nested: true},
+			true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.caps.Check(tc.required)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

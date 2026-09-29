@@ -1223,8 +1223,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.serv.SetSource(queue.DefaultOpts(ctx, opts))
 		return nil
 	case ModeRunTests:
-		mgr.runTestsMode(features, enabledSyscalls, capabilities)
-		return nil
+		return mgr.runTestsMode(features, enabledSyscalls, capabilities)
 	case ModeIfaceProbe:
 		exec := queue.Plain()
 		go func() {
@@ -1245,7 +1244,10 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 }
 
 func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
-	capabilities *vminfo.Capabilities) {
+	capabilities *vminfo.Capabilities) error {
+	if err := capabilities.Check(mgr.cfg.RequiredTestCapabilities); err != nil {
+		return err
+	}
 	ctx := &runtest.Context{
 		Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
 		Target:   mgr.cfg.Target,
@@ -1290,6 +1292,7 @@ func (mgr *Manager) runTestsMode(features flatrpc.Feature, enabledSyscalls map[*
 		mgr.exit("tests")
 	}()
 	mgr.serv.SetSource(ctx)
+	return nil
 }
 
 type corpusRunner struct {
