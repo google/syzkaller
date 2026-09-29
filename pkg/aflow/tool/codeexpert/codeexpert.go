@@ -50,6 +50,7 @@ Use other tools provided to you for those purposes.
 Only use this tool for complex architectural or behavioral reasoning.
 DO NOT use this tool for asking questions about syzkaller or syzlang, it does not have any syzlang-specific knowledge.
 DO NOT repeatedly ask the same or slightly rephrased question if you already received an answer.
+DO NOT ask this tool to write or propose code changes/patches, it is a research tool.
 
 Formulate your question as concretely as possible, include concrete
 function/struct/field/variable names, line numbers, etc.
