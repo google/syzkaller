@@ -32,7 +32,7 @@ const (
 var (
 	batchStates = []string{stateSuccess, stateGiveUp, stateError}
 	// The file extensions written while a task is still running.
-	inProgressExts = []string{".html"}
+	inProgressExts = []string{".html", ".log"}
 )
 
 type batchTask struct {
@@ -179,6 +179,11 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 		saveHTML(inProgressHTML, spans)
 		return nil
 	}
+	taskLogf, closeLog, err := openTaskLog(r.taskPath(stateInProgress, task.ID, ".log"))
+	if err != nil {
+		return stateError, err
+	}
+	defer closeLog()
 
 	log.Printf("starting task %s", task.ID)
 	outputs, flowErr := r.flow.Execute(ctx, inputs, aflow.ExecuteOptions{
@@ -188,7 +193,9 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 		OnEvent:    onEvent,
 		Debug:      r.debug,
 		TokenLimit: r.tokenLimit,
+		Logf:       taskLogf,
 	})
+	closeLog()
 	if ctx.Err() != nil {
 		return stateError, ctx.Err()
 	}
@@ -230,8 +237,24 @@ func (r *Runner) saveResult(res batchResult, spans []*trajectory.Span) error {
 	if err := os.Remove(inProgressHTML); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove in-progress html: %w", err)
 	}
+	inProgressLog := r.taskPath(stateInProgress, res.ID, ".log")
+	if err := os.Rename(inProgressLog, r.taskPath(res.State, res.ID, ".log")); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to move log file: %w", err)
+	}
 	// The result file marks the task as completed, so write it only once everything else is in place.
 	return osutil.WriteJSON(r.taskPath(res.State, res.ID, ".json"), res)
+}
+
+func openTaskLog(path string) (func(int, string, ...any), func(), error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create log file: %w", err)
+	}
+	logger := log.New(f, "", log.Ldate|log.Ltime)
+	logf := func(v int, format string, args ...any) {
+		logger.Printf("[%d] "+format, append([]any{v}, args...)...)
+	}
+	return logf, sync.OnceFunc(func() { f.Close() }), nil
 }
 
 // prepareBatchTasks returns the pending tasks in the execution order: the tasks aborted during

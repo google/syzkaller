@@ -4,6 +4,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"testing"
@@ -59,7 +60,7 @@ func TestPrepareBatchTasks(t *testing.T) {
 		{
 			name: "aborted tasks come first",
 			files: []string{
-				"in_progress/task_2.html",
+				"in_progress/task_2.log",
 				"in_progress/net.ipv4.html",
 				// Only result files mark a task as completed.
 				"in_progress/task_3.json",
@@ -116,13 +117,19 @@ func TestPrepareBatchTasks(t *testing.T) {
 func TestSaveResult(t *testing.T) {
 	runner := &Runner{workdir: t.TempDir()}
 	inProgressHTML := runner.taskPath(stateInProgress, "task_1", ".html")
+	inProgressLog := runner.taskPath(stateInProgress, "task_1", ".log")
 	require.NoError(t, osutil.MkdirAll(filepath.Dir(inProgressHTML)))
 	require.NoError(t, osutil.WriteFile(inProgressHTML, []byte("html")))
+	require.NoError(t, osutil.WriteFile(inProgressLog, []byte("log")))
 
 	require.NoError(t, runner.saveResult(batchResult{ID: "task_1", State: stateSuccess}, nil))
 
 	require.NoFileExists(t, inProgressHTML)
+	require.NoFileExists(t, inProgressLog)
 	require.FileExists(t, runner.taskPath(stateSuccess, "task_1", ".html"))
+	logData, err := os.ReadFile(runner.taskPath(stateSuccess, "task_1", ".log"))
+	require.NoError(t, err)
+	require.Equal(t, "log", string(logData))
 	// The saved result must make the task completed.
 	ordered, _, err := runner.prepareBatchTasks([]batchTask{{ID: "task_1"}})
 	require.NoError(t, err)
