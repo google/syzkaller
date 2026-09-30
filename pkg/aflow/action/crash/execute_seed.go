@@ -11,7 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -79,7 +78,7 @@ func ExecuteSeedFunc(ctx *aflow.Context, args ExecuteSeedArgs) (string, error) {
 			return res, aflow.FlowError(fmt.Errorf("RunnerManager Submit failed: %w", err))
 		}
 
-		log.Logf(1, "VM Console Output:\n%s", runRes.Output)
+		ctx.Logf(1, "VM Console Output:\n%s", runRes.Output)
 
 		crashes := rm.RecentCrashes()
 		if len(crashes) > 0 {
