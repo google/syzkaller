@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/log"
 )
 
 var ActionConfigureRunner = aflow.NewFuncAction("configure-runner", configureRunnerAction)
@@ -65,7 +64,7 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (Config
 		return ConfigureRunnerResult{}, aflow.FlowError(fmt.Errorf("RunnerManager init failed: %w", err))
 	}
 
-	log.Logf(1, "aflow: RunnerManager configured and background VM boot started successfully")
+	ctx.Logf(1, "aflow: RunnerManager configured and background VM boot started successfully")
 	return ConfigureRunnerResult{
 		EnvironmentPrompt: formatEnvironment(args),
 	}, nil

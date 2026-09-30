@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"golang.org/x/sync/errgroup"
@@ -31,6 +32,7 @@ type ExecuteOptions struct {
 	OnEvent    onEvent
 	Debug      bool
 	TokenLimit int
+	Logf       func(int, string, ...any)
 }
 
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
@@ -59,6 +61,7 @@ func (flow *Flow) Execute(ctx context.Context, inputs map[string]any, opts Execu
 		onEvent:     opts.OnEvent,
 		runnerDebug: opts.Debug,
 		tokenLimit:  opts.TokenLimit,
+		logf:        opts.Logf,
 	}
 
 	defer c.Close()
@@ -204,7 +207,17 @@ type Context struct {
 	tokenLimit     int
 	consumedTokens int64
 	blobs          syzspec.BlobStore
+	logf           func(int, string, ...any)
 	stubContext
+}
+
+// Logf writes a formatted log message using the workflow's logger.
+func (ctx *Context) Logf(v int, msg string, args ...any) {
+	if ctx.logf != nil {
+		ctx.logf(v, msg, args...)
+	} else {
+		log.Logf(v, msg, args...)
+	}
 }
 
 type stubContext struct {
@@ -368,7 +381,7 @@ func (ctx *Context) InitRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, er
 	runnerCtx, cancel := context.WithCancel(ctx.Context)
 	eg, egCtx := errgroup.WithContext(runnerCtx)
 
-	rm, err := newRunnerManager(egCtx, cfg, ctx.runnerDebug)
+	rm, err := newRunnerManager(egCtx, cfg, ctx.runnerDebug, ctx.Logf)
 	if err != nil {
 		cancel()
 		return nil, err

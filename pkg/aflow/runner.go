@@ -39,6 +39,7 @@ type RunnerManager struct {
 	reporter *report.Reporter
 
 	debug  bool
+	logf   func(int, string, ...any)
 	readyC chan struct{}
 
 	crashes []*report.Report
@@ -46,16 +47,21 @@ type RunnerManager struct {
 	ctx context.Context
 }
 
-func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool) (*RunnerManager, error) {
+func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
+	logf func(int, string, ...any)) (*RunnerManager, error) {
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reporter: %w", err)
+	}
+	if logf == nil {
+		logf = log.Logf
 	}
 
 	rm := &RunnerManager{
 		cfg:      cfg,
 		reporter: reporter,
 		debug:    debug,
+		logf:     logf,
 		source:   queue.Plain(),
 		readyC:   make(chan struct{}),
 		ctx:      ctx,
@@ -68,16 +74,21 @@ func (rm *RunnerManager) Config() *mgrconfig.Config {
 	return rm.cfg
 }
 
+// Logf writes a log message using the logger the manager was created with.
+func (rm *RunnerManager) Logf(v int, msg string, args ...any) {
+	rm.logf(v, msg, args...)
+}
+
 // RunIsolatedManager boots a temporary, isolated RunnerManager with the specified cfg,
 // executes the provided action callback, and cleans up the manager and VMs afterwards.
-func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
+func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, logf func(int, string, ...any),
 	action func(context.Context, *RunnerManager) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	eg, egCtx := errgroup.WithContext(ctx)
 
-	rm, err := newRunnerManager(egCtx, cfg, debug)
+	rm, err := newRunnerManager(egCtx, cfg, debug, logf)
 	if err != nil {
 		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
 	}
@@ -114,6 +125,7 @@ func (rm *RunnerManager) Loop() error {
 		Manager: rm,
 		Stats:   rpcserver.NewNamedStats("aflow-runner"),
 		Debug:   rm.debug,
+		Logf:    rm.logf,
 	}
 	backend, err := execbackend.New(rpcCfg)
 	if err != nil {
@@ -151,7 +163,7 @@ func (rm *RunnerManager) Loop() error {
 	eg.Go(func() error {
 		err := rm.backend.Serve(egCtx)
 		if err != nil && egCtx.Err() == nil {
-			log.Logf(0, "aflow RunnerManager rpc server stopped: %v", err)
+			rm.logf(0, "aflow RunnerManager rpc server stopped: %v", err)
 		}
 		return err
 	})
@@ -182,13 +194,13 @@ func (rm *RunnerManager) executorInstance(ctx context.Context, inst *vm.Instance
 	reps, err := rm.backend.RunRequests(ctx, inst, rm.reporter, updInfo)
 
 	if len(reps) > 0 {
-		log.Logf(0, "RunnerManager VM crash detected: %s", reps[0].Title)
+		rm.logf(0, "RunnerManager VM crash detected: %s", reps[0].Title)
 		rm.mu.Lock()
 		rm.crashes = append(rm.crashes, reps[0])
 		rm.mu.Unlock()
 	}
 	if err != nil {
-		log.Logf(0, "RunnerManager run failed: %v", err)
+		rm.logf(0, "RunnerManager run failed: %v", err)
 	}
 }
 
