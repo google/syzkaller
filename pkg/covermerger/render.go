@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/coveragedb"
@@ -68,7 +69,13 @@ func GetMergeResult(ctx context.Context, ns, repo, forCommit, sourceCommit, file
 		return nil, fmt.Errorf("failed to InitNsRecords: %w", err)
 	}
 	defer csvReader.Close()
+	return mergeFileCSVData(ctx, config, csvReader, filePath)
+}
 
+// mergeFileCSVData merges the CSV coverage records of a single file
+// and returns the merge result for it.
+func mergeFileCSVData(ctx context.Context, config *Config, csvReader io.Reader, filePath string,
+) (*MergeResult, error) {
 	ch := make(chan *FileMergeResult, 1)
 	if err := MergeCSVData(ctx, config, csvReader, ch); err != nil {
 		return nil, fmt.Errorf("error merging coverage: %w", err)
@@ -77,13 +84,13 @@ func GetMergeResult(ctx context.Context, ns, repo, forCommit, sourceCommit, file
 	var mr *MergeResult
 	select {
 	case fmr := <-ch:
-		if fmr != nil {
+		if fmr != nil && fmr.FilePath == filePath {
 			mr = fmr.MergeResult
 		}
 	default:
 	}
 
-	if mr != nil {
+	if mr == nil {
 		return nil, fmt.Errorf("no merge result for file %s", filePath)
 	}
 	return mr, nil
