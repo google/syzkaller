@@ -1694,6 +1694,27 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
 		{name: "INFO: prefix", mod: func(b *Bug) { b.Title = "INFO: task hung in foo" }},
 		{
+			name: "panic: prefix (userspace syzkaller panic)",
+			mod:  func(b *Bug) { b.Title = "panic: runtime error: floating point error" },
+		},
+		{
+			name: "go runtime error",
+			mod:  func(b *Bug) { b.Title = "go runtime error: slice bounds out of range" },
+		},
+		{name: "SYZFAIL", mod: func(b *Bug) { b.Title = "SYZFAIL: something failed" }},
+		{name: "SYZFATAL", mod: func(b *Bug) { b.Title = "SYZFATAL: unit test error" }},
+		{name: "build error", mod: func(b *Bug) { b.Title = "bpf build error" }},
+		{name: "boot error", mod: func(b *Bug) { b.Title = "riscv/fixes boot error: can't ssh into the instance" }},
+		{name: "test error", mod: func(b *Bug) { b.Title = "upstream test error: WARNING in __queue_work" }},
+		{name: "no output", mod: func(b *Bug) { b.Title = "no output from test machine" }},
+		{name: "unexpected reboot", mod: func(b *Bug) { b.Title = "unexpected kernel reboot" }},
+		{name: "soft lockup hang", mod: func(b *Bug) { b.Title = "BUG: soft lockup in foo" }},
+		{
+			name: "kernel panic allowed",
+			mod:  func(b *Bug) { b.Title = "kernel panic: Fatal exception" },
+			want: true,
+		},
+		{
 			name: "INFORMATION prefix allowed",
 			mod:  func(b *Bug) { b.Title = "INFORMATION leak in sys_bar" },
 			want: true,
