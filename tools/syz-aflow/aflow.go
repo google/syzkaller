@@ -11,7 +11,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"maps"
 	"net/http"
 	"os"
@@ -20,10 +19,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/aflow/backend"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
-	"github.com/google/syzkaller/pkg/aflow/trajectory"
-	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"golang.org/x/oauth2/google"
@@ -48,140 +44,61 @@ func main() {
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
-		token := ""
-		if *flagAuth {
-			var err error
-			token, err = getAccessToken()
-			if err != nil {
-				tool.Fail(err)
-			}
-		}
-		if err := downloadBug(*flagDownloadBug, *flagInput, token); err != nil {
+		if err := handleDownloadBug(*flagDownloadBug, *flagInput, *flagAuth); err != nil {
 			tool.Fail(err)
 		}
 		return
 	}
 	if *flagFlow == "" {
-		fmt.Fprintf(os.Stderr, "syz-aflow usage:\n")
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "available workflows:\n")
-		for _, flow := range aflow.Flows {
-			fmt.Fprintf(os.Stderr, "\t%v: %v\n", flow.Name, flow.Description)
-		}
+		printUsage()
 		return
 	}
 	cacheSize, err := parseSize(*flagCacheSize)
 	if err != nil {
 		tool.Fail(err)
 	}
-	if err := run(context.Background(), RunArgs{
+	ctx := context.Background()
+	runner, err := newRunner(ctx, RunnerArgs{
+		FlowName:   *flagFlow,
 		Provider:   *flagProvider,
 		Model:      *flagModel,
-		FlowName:   *flagFlow,
-		InputFile:  *flagInput,
 		Workdir:    *flagWorkdir,
-		HTMLFile:   *flagHTML,
-		OutputFile: *flagOutput,
 		CacheSize:  cacheSize,
 		Debug:      *flagDebug,
 		TokenLimit: *flagTokenLimit,
-	}); err != nil {
+		HTML:       *flagHTML,
+		Output:     *flagOutput,
+	})
+	if err != nil {
+		tool.Fail(err)
+	}
+	err = runner.runSingle(ctx, *flagInput)
+	runner.Close()
+	if err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
 }
 
-type RunArgs struct {
-	Provider   string
-	Model      string
-	FlowName   string
-	InputFile  string
-	Workdir    string
-	HTMLFile   string
-	OutputFile string
-	CacheSize  uint64
-	Debug      bool
-	TokenLimit int
+func handleDownloadBug(bugID, inputFile string, useAuth bool) error {
+	token := ""
+	if useAuth {
+		var err error
+		token, err = getAccessToken()
+		if err != nil {
+			return err
+		}
+	}
+	return downloadBug(bugID, inputFile, token)
 }
 
-func run(ctx context.Context, args RunArgs) error {
-	flow := aflow.Flows[args.FlowName]
-	if flow == nil {
-		return fmt.Errorf("workflow %q is not found", args.FlowName)
+func printUsage() {
+	fmt.Fprintf(os.Stderr, "syz-aflow usage:\n")
+	flag.PrintDefaults()
+	fmt.Fprintf(os.Stderr, "available workflows:\n")
+	for _, name := range slices.Sorted(maps.Keys(aflow.Flows)) {
+		flow := aflow.Flows[name]
+		fmt.Fprintf(os.Stderr, "\t%v: %v\n", flow.Name, flow.Description)
 	}
-	inputData, err := os.ReadFile(args.InputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open -input file: %w", err)
-	}
-	var inputs map[string]any
-	if err := json.Unmarshal(inputData, &inputs); err != nil {
-		return err
-	}
-	if err := expandFileInputs(inputs, filepath.Dir(args.InputFile)); err != nil {
-		return err
-	}
-	cache, err := aflow.NewCache(filepath.Join(args.Workdir, "cache"), args.CacheSize)
-	if err != nil {
-		return err
-	}
-
-	var spans []*trajectory.Span
-	spansMap := make(map[int]*trajectory.Span)
-	onEventFunc := func(span *trajectory.Span) error {
-		if _, ok := spansMap[span.Seq]; !ok {
-			spans = append(spans, span)
-		}
-		spansMap[span.Seq] = span
-		if args.HTMLFile != "" {
-			f, err := os.Create(args.HTMLFile)
-			if err != nil {
-				log.Printf("failed to create HTML file: %v", err)
-			} else {
-				if err := aflowhtml.RenderReport(f, spans); err != nil {
-					log.Printf("failed to render trajectory: %v", err)
-				}
-				f.Close()
-			}
-		}
-		if span.Error != "" {
-			return nil
-		}
-		log.Printf("%v", span)
-		return nil
-	}
-
-	var provider backend.Provider
-	factory, ok := providers[args.Provider]
-	if !ok {
-		supported := slices.Sorted(maps.Keys(providers))
-		return fmt.Errorf("unknown provider %q (supported: %v)", args.Provider, supported)
-	}
-	provider, err = factory(ctx, args.Model)
-	if err != nil {
-		return err
-	}
-	defer provider.Close()
-
-	output, err := flow.Execute(ctx, inputs, aflow.ExecuteOptions{
-		Provider:   provider,
-		Workdir:    args.Workdir,
-		Cache:      cache,
-		OnEvent:    onEventFunc,
-		Debug:      args.Debug,
-		TokenLimit: args.TokenLimit,
-	})
-	if err != nil {
-		return err
-	}
-	if args.OutputFile != "" {
-		data, err := json.MarshalIndent(output, "", "\t")
-		if err != nil {
-			return fmt.Errorf("failed to marshal output: %w", err)
-		}
-		if err := osutil.WriteFile(args.OutputFile, data); err != nil {
-			return fmt.Errorf("failed to save output: %w", err)
-		}
-	}
-	return nil
 }
 
 func downloadBug(id, inputFile, token string) error {
