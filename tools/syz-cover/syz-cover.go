@@ -76,9 +76,9 @@ func toolFileCover() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	config := cover.DefaultTextRenderConfig()
+	config := covermerger.DefaultTextRenderConfig()
 	config.ShowLineSourceExplanation = *flagDebug
-	mr, err := cover.GetMergeResult(context.Background(),
+	mr, err := covermerger.GetMergeResult(context.Background(),
 		*flagNamespace,
 		*flagRepo,
 		*flagCommit,
@@ -89,7 +89,7 @@ func toolFileCover() {
 		tool.Fail(err)
 	}
 
-	details, err := cover.RendFileCoverage(
+	details, err := covermerger.RendFileCoverage(
 		*flagRepo,
 		*flagCommit,
 		*flagForFile,
