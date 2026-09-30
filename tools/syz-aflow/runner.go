@@ -27,6 +27,7 @@ type RunnerArgs struct {
 	CacheSize  uint64
 	Debug      bool
 	TokenLimit int
+	Parallel   int
 	HTML       string
 	Output     string
 }
@@ -40,6 +41,7 @@ type Runner struct {
 	workdir    string
 	debug      bool
 	tokenLimit int
+	parallel   int
 	html       string
 	output     string
 }
@@ -69,6 +71,7 @@ func newRunner(ctx context.Context, args RunnerArgs) (*Runner, error) {
 		workdir:    args.Workdir,
 		debug:      args.Debug,
 		tokenLimit: args.TokenLimit,
+		parallel:   args.Parallel,
 		html:       args.HTML,
 		output:     args.Output,
 	}, nil

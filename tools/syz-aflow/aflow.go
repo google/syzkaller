@@ -22,13 +22,15 @@ import (
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/vm"
 	"golang.org/x/oauth2/google"
 )
 
 func main() {
 	var (
 		flagFlow        = flag.String("workflow", "", "workflow to execute")
-		flagInput       = flag.String("input", "", "input json file with workflow arguments")
+		flagInput       = flag.String("input", "", "input JSON file or directory containing task input files")
+		flagParallel    = flag.Int("parallel", 1, "number of parallel workflows to run in batch execution")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
 		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (gemini, vertex)")
@@ -49,16 +51,22 @@ func main() {
 		}
 		return
 	}
-	if *flagFlow == "" {
+	if *flagFlow == "" || *flagInput == "" {
 		printUsage()
 		return
+	}
+	tasks, isBatch, err := findTaskFiles(*flagInput)
+	if err != nil {
+		tool.Fail(err)
+	}
+	if len(tasks) == 0 {
+		tool.Failf("no task files found in %q", *flagInput)
 	}
 	cacheSize, err := parseSize(*flagCacheSize)
 	if err != nil {
 		tool.Fail(err)
 	}
-	ctx := context.Background()
-	runner, err := newRunner(ctx, RunnerArgs{
+	args := RunnerArgs{
 		FlowName:   *flagFlow,
 		Provider:   *flagProvider,
 		Model:      *flagModel,
@@ -66,13 +74,27 @@ func main() {
 		CacheSize:  cacheSize,
 		Debug:      *flagDebug,
 		TokenLimit: *flagTokenLimit,
+		Parallel:   *flagParallel,
 		HTML:       *flagHTML,
 		Output:     *flagOutput,
-	})
+	}
+	if err := validateBatchMode(isBatch, args); err != nil {
+		tool.Fail(err)
+	}
+
+	// On SIGINT/SIGTERM, cancel running workflows and shut down their VMs gracefully.
+	// Aborted batch tasks keep their in-progress files and are resumed first on restart.
+	osutil.HandleInterrupts(vm.Shutdown)
+	ctx := vm.ShutdownCtx()
+	runner, err := newRunner(ctx, args)
 	if err != nil {
 		tool.Fail(err)
 	}
-	err = runner.runSingle(ctx, *flagInput)
+	if isBatch {
+		err = runner.runBatch(ctx, tasks)
+	} else {
+		err = runner.runSingle(ctx, tasks[0].Path)
+	}
 	runner.Close()
 	if err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
