@@ -776,12 +776,12 @@ func (a *agentSession) compressContext(
 }
 
 func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, tokensToCompress int) (bool, error) {
-	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens {
+	if a.compressTokens == 0 || tokensToCompress <= a.compressTokens || a.outputs != nil || a.answerNow {
 		// Return existing state unchanged.
 		return false, nil
 	}
 
-	preserveHistoryTokens := min(20000, a.compressTokens/2)
+	preserveHistoryTokens := min(40000, a.compressTokens/2)
 
 	// Find the split index to preserve up to preserveHistoryTokens.
 	splitIndex := len(a.req)
@@ -1075,11 +1075,9 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *backend.GenerateConf
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	if a.compressTokens == 0 {
-		// Threshold of context history accumulation after the anchor prompt before
-		// triggering summarization. Lowered to 60,000 based on empirical analysis of
-		// production workflows, where typical runs accumulate 25K-50K tokens, while
-		// runaway exploration loops accumulate 100K-950K tokens.
-		a.compressTokens = 60_000
+		// Threshold of context history accumulation (including thoughts) after the
+		// anchor prompt before triggering summarization.
+		a.compressTokens = 120_000
 	}
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	if a.ValidatedReply != nil {
