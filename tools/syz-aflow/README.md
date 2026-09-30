@@ -20,6 +20,18 @@ To run a workflow, you need to specify the workflow name, an input JSON file, an
 ./tools/syz-env ./syz-aflow -workflow <workflow_name> -input <input.json> -workdir <workdir>
 ```
 
+### Batch Execution
+
+If `-input` is a directory, each `*.json` file in it is executed as a separate task:
+
+```bash
+./tools/syz-env ./syz-aflow -workflow seed-gen-file-line -input ./tasks -workdir ./workdir -parallel 4
+```
+
+Results are saved to `<workdir>/trajectories/<state>/`. Completed tasks are skipped on restart.
+Batch execution is currently only supported for the `seed-gen-file-line` workflow and cannot be combined
+with `-html` and `-output`.
+
 ### Workflow Inputs
 
 `syz-aflow` does not require a standard `syz-manager` configuration file. Instead, it takes a JSON file containing the arguments specific to the workflow you are running.
@@ -50,7 +62,8 @@ Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or
 ### Flags
 
 - `-workflow`: The name of the workflow to execute.
-- `-input`: Path to a JSON file containing the arguments for the workflow.
+- `-input`: Path to a JSON file containing the arguments for the workflow (or a directory of them).
+- `-parallel`: Number of tasks to run concurrently in batch execution.
 - `-workdir`: Directory where the workflow can perform checkouts, builds, etc.
 - `-html`: Path to an HTML file where the execution trajectory will be rendered in real-time.
 - `-model`: Override the default LLM model.
