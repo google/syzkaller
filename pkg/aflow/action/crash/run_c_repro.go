@@ -36,7 +36,10 @@ type RunCReproResult struct {
 	TestError            string
 }
 
-var RunCRepro = aflow.NewFuncAction("run-c-repro", RunCReproFunc)
+var (
+	RunCRepro = aflow.NewFuncAction("run-c-repro", RunCReproFunc)
+	runTest   = RunTest
+)
 
 func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, error) {
 	if args.FormattedReproC == "" {
@@ -69,7 +72,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	// Run 1: without strace.
-	res1, err1 := RunTest(ctx, reproduceArgs, workdir, false)
+	res1, err1 := runTest(ctx, reproduceArgs, workdir, false)
 	if err1 != nil {
 		return RunCReproResult{}, err1
 	}
@@ -87,25 +90,20 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
 	}
 
-	// Run 2: with strace (only if first run didn't crash and didn't have boot error)
+	// Run 2: with strace (only if first run didn't crash and didn't have boot error).
+	// This pass is strictly for diagnostic strace logging. Do not overwrite Run 1's
+	// crash/boot status, as attaching strace -f (ptrace) can trigger unrelated KCSAN
+	// races (e.g. do_notify_parent_cldstop / wait_consider_task) or timeout slowdowns.
+	// If Run 2 itself crashes or hits a boot/test error, also discard its ConsoleOutput
+	// so we do not leak an unreported crash dump into StraceOutput.
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
-		res2, err2 := RunTest(ctx, reproduceArgs, workdir, false)
+		res2, err2 := runTest(ctx, reproduceArgs, workdir, false)
 		if err2 != nil {
 			return result, err2 // Return what we had from Run 1, plus the error.
 		}
-
-		result.StraceOutput = res2.ConsoleOutput
-		if res2.BootError != "" {
-			result.TestError = res2.BootError
-		}
-		if res2.Report != nil {
-			result.CandidateReproduced = true
-			result.CandidateBugTitle = res2.Report.Title
-			result.CandidateCrashReport = string(res2.Report.Report)
-		}
-		for _, rep := range res2.OtherReports {
-			result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
+		if res2.Report == nil && res2.BootError == "" {
+			result.StraceOutput = res2.ConsoleOutput
 		}
 	}
 
