@@ -446,6 +446,14 @@ However, do NOT proactively hunt for other instances of the same bug in the file
 unrelated code. Keep your changes strictly focused on fixing the specific bug reported
 and addressing the feedback provided.
 
+Work incrementally. Do not try to understand the whole file or design a complete
+solution for all review items before making your first edit. Instead, pick one
+required change, research just enough to address it, apply it with {{.toolCodeeditor}},
+and only then move on to the next one. Your conversation history may be summarized
+and raw tool outputs discarded, while the source tree is your only durable memory:
+edits persist, but research does not. Use {{.toolPatchDiff}} to see what you have
+already done instead of re-reading files. You can always revise earlier edits.
+
 Your final reply should contain an explanation of what you did in the patch and why.
 ` + commonPatchInstruction
 
