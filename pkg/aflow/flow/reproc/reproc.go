@@ -392,13 +392,14 @@ func init() {
 				kernel.Build,
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
-					Name:        "initial-researcher",
-					Model:       aflow.DeepReasoningModel,
-					Reply:       "InitialReproStrategy",
-					TaskType:    aflow.FormalReasoningTask,
-					Instruction: initialResearcherInstruction,
-					Prompt:      initialResearcherPrompt,
-					Tools:       tools,
+					Name:          "initial-researcher",
+					Model:         aflow.DeepReasoningModel,
+					Reply:         "InitialReproStrategy",
+					TaskType:      aflow.FormalReasoningTask,
+					MaxIterations: 100,
+					Instruction:   initialResearcherInstruction,
+					Prompt:        initialResearcherPrompt,
+					Tools:         tools,
 				},
 				&aflow.DoWhile{
 					MaxIterations: 10,
@@ -407,24 +408,26 @@ func init() {
 						&aflow.If{
 							Condition: "OracleFeedback",
 							Do: &aflow.LLMAgent{
-								Name:        "strategy-refiner",
-								Model:       aflow.DeepReasoningModel,
-								Reply:       "RefinedReproStrategy",
-								TaskType:    aflow.FormalReasoningTask,
-								Instruction: refinerInstruction,
-								Prompt:      refinerPrompt,
-								Tools:       tools,
+								Name:          "strategy-refiner",
+								Model:         aflow.DeepReasoningModel,
+								Reply:         "RefinedReproStrategy",
+								TaskType:      aflow.FormalReasoningTask,
+								MaxIterations: 100,
+								Instruction:   refinerInstruction,
+								Prompt:        refinerPrompt,
+								Tools:         tools,
 							},
 						},
 						MergeStrategy,
 						&aflow.LLMAgent{
-							Name:        "repro-generator",
-							Model:       aflow.DeepReasoningModel,
-							Outputs:     aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](validateGeneratorOutputs),
-							TaskType:    aflow.FormalReasoningTask,
-							Instruction: generatorInstruction,
-							Prompt:      generatorPrompt,
-							Tools:       tools,
+							Name:          "repro-generator",
+							Model:         aflow.DeepReasoningModel,
+							Outputs:       aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](validateGeneratorOutputs),
+							TaskType:      aflow.FormalReasoningTask,
+							MaxIterations: 100,
+							Instruction:   generatorInstruction,
+							Prompt:        generatorPrompt,
+							Tools:         tools,
 						},
 						&aflow.DoWhile{
 							MaxIterations: 3,
@@ -435,13 +438,14 @@ func init() {
 								&aflow.If{
 									Condition: "CompilerError",
 									Do: &aflow.LLMAgent{
-										Name:        "repro-repairer",
-										Model:       aflow.DeepReasoningModel,
-										Reply:       "RepairedCandidateReproC",
-										TaskType:    aflow.FormalReasoningTask,
-										Instruction: repairerInstruction,
-										Prompt:      repairerPrompt,
-										Tools:       tools,
+										Name:          "repro-repairer",
+										Model:         aflow.DeepReasoningModel,
+										Reply:         "RepairedCandidateReproC",
+										TaskType:      aflow.FormalReasoningTask,
+										MaxIterations: 50,
+										Instruction:   repairerInstruction,
+										Prompt:        repairerPrompt,
+										Tools:         tools,
 									},
 								},
 							),
@@ -480,7 +484,11 @@ with a minimal, standalone C program for the strictly defensive purpose of verif
 - Do NOT write long explanations. Keep your analysis and strategy proposal concise.
 - Do NOT assume that the target bug has already been fixed just because a git commit title
   or description mentions a similar bug or fix. Commit messages often reference related issues
-  or partial fixes. Proceed with proposing a reproduction strategy regardless of historical fix commits.`
+  or partial fixes. Proceed with proposing a reproduction strategy regardless of historical fix commits.
+- External user-space utilities (such as 'mkfs.*', 'ip', 'tc', 'modprobe') are NOT available in the VM.
+  If a filesystem image is required, use codesearch/read-file tools to inspect the kernel's superblock
+  validation logic (e.g., fill_super and UAPI on-disk headers) and specify how to construct a minimal
+  raw image directly in C.`
 
 const initialResearcherPrompt = `Bug Description: {{.BugDescription}}`
 
@@ -498,6 +506,9 @@ offsets, or parameters of the candidate program.
 - Do NOT repeat searches for the same symbols or files. Use information you have already gathered.
 - Do NOT write long explanations. Keep your reasoning short and focused on actionable changes.
 - Do NOT assume a bug is fixed based on git commit history.
+- External user-space binaries (e.g., 'mkfs.gfs2', 'mkfs.btrfs', 'mkfs.*', 'ip', 'modprobe') do NOT
+  exist in the VM. Never propose calling external binaries; if a filesystem image is needed, inspect the
+  kernel's superblock validation code and specify the exact on-disk structs/magic bytes to write in C.
 - If you are stuck, try a different approach or proceed to generate a candidate reproducer.`
 
 const refinerPrompt = `Bug Description: {{.BugDescription}}
@@ -510,8 +521,11 @@ purpose of verifying a bugfix in an isolated environment.
 
 To ensure that we can diagnose why a program might fail to run on the test environment,
 you MUST include detailed logging and error checking in the generated C program:
-1. Use 'printf(...)' for all progress messages and error logs.
-2. Every system call (e.g., socket, bind, listen, connect, ioctl, send) must check for a failure return value.
+1. Call 'setvbuf(stdout, NULL, _IONBF, 0);' at the very beginning of 'main()' and use 'printf(...)'
+   for all progress messages and error logs so output is never lost if the program hangs or crashes.
+2. Every system call and file operation (e.g., socket, bind, listen, connect, ioctl, send, open, fopen)
+   must check for a failure return value. Never silently ignore a failed open/fopen or fall back to a
+   default device node without logging an error.
 3. If a call fails, it must print a specific error message including the function name
    and the error string (use strerror(errno)), and then exit with a non-zero status.
 4. The program must print a message after every successful major step.
@@ -528,13 +542,22 @@ you MUST include detailed logging and error checking in the generated C program:
    compilation tools, build files, or kernel development directories.
 7. Do NOT execute shell commands or run external binaries (e.g. by using
    functions like 'system()', 'popen()', or the 'exec' family such as
-   'execve()'). All environment checks, capability probings, and reproduction
-   steps must be performed directly using standard Linux system calls (such
-   as 'open', 'socket', 'ioctl', 'stat', etc.).
-8. When reproducing asynchronous kernel timeouts or warnings, always
-   include a sufficient delay (using sleep or similar) after deleting
-   or unregistering the device to allow the kernel's asynchronous
-   timeout to trigger before program exit.
+   'execve()' or 'execlp()'). Utilities like 'mkfs.*', 'mount', 'ip', and 'modprobe'
+   do NOT exist in the VM guest. All environment checks, capability probings,
+   filesystem image creation (writing raw superblock/on-disk structures to a file
+   or loop device), and reproduction steps must be performed directly in C using
+   standard Linux system calls.
+8. Respect standard VM kernel command-line limits: 'max_loop=32', 'nbds_max=32',
+   and 'dummy_hcd.num=32'. Always use low device indices in the range 0..31
+   (e.g., '/dev/loop0', 'nbd0') rather than high indices like 100 or 200.
+9. Include standard Linux UAPI headers (e.g., '<linux/nl80211.h>', '<linux/nbd.h>')
+   or verify exact enum/macro values using codesearch tools rather than guessing
+   integer constants in '#define' directives. If using 'race_toolkit.h', write
+   '#include "race_toolkit.h"' rather than copying its definitions inline.
+10. When reproducing asynchronous kernel timeouts or warnings, always
+    include a sufficient delay (using sleep or similar) after deleting
+    or unregistering the device to allow the kernel's asynchronous
+    timeout to trigger before program exit.
 
 {{if not .CapabilitiesVerified}}
 === PHASE 1: CAPABILITY PROBING (GENERATION) ===
@@ -584,11 +607,24 @@ Set 'TerminalError' to a descriptive error message ONLY if:
    that cannot be loaded, created, or bypassed by user-space C code edits in the VM guest.
 2. The target source files or functions described in the bug description do not exist in the checked-out codebase,
    meaning the codebase version is mismatched and the target code is absent.
+3. The bug description is NOT a runtime kernel bug (for example, it is a compile-time kernel build error or
+   a user-space Go runtime panic in syzkaller itself).
 
 === CRITICAL PROHIBITIONS ===
 - Do NOT classify a run as a terminal failure or assume a bug is fixed based on git log entries, commit titles,
   or commit messages. Reproducibility can ONLY be determined by executing reproducer candidates in the VM.
+- Do NOT set 'TerminalError' because an external user-space binary or command-line utility (e.g., 'mkfs.gfs2',
+  'mkfs.btrfs', 'mkfs.*', 'ip', 'tc', 'modprobe') is missing from the VM guest (ENOENT). Executing external
+  binaries is forbidden; instruct the strategy-refiner and repro-generator to perform the setup or construct
+  minimal on-disk filesystem structures directly in C.
 - Do NOT suggest C code strategies, repairs, or namespace bypasses when setting 'TerminalError'.
+- Note on Strace Output: strace is invoked with '-e !wait4,clock_nanosleep,nanosleep', so 'sleep()', 'usleep()',
+  'nanosleep()', 'clock_nanosleep()', and 'wait4()' calls executed by the C program are intentionally omitted
+  from Strace Output. In addition, middle lines of long logs are truncated ('... [truncated N lines] ...').
+  Always inspect the Executed C Program before concluding that the program exited without sleeping or waiting.
+- Review Previous Attempts Feedback before giving instructions so you do not contradict earlier findings or
+  re-recommend an approach that already failed or hung in a previous attempt. Use code search tools only when
+  necessary to verify kernel behavior.
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
@@ -614,9 +650,10 @@ Use this to guide your classification and feedback:
      set TitleMatches to false and explain the collision in 'Feedback'.
    - If they match exactly, set TitleMatches to true and provide a brief confirmation in 'Feedback'.
 2. If the execution was successful (exit 0) WITHOUT a crash (Reproduced is false):
-   - The reproduction attempt failed to trigger the bug. Analyze the console/strace output
-     to understand why the bug did not trigger (e.g., timing, input arguments, environment setup)
-     and provide feedback on how to improve the reproducer logic to trigger the crash.
+   - The reproduction attempt failed to trigger the bug. Analyze the executed C program and the
+     console/strace output to understand why the bug did not trigger (e.g., timing, input arguments,
+     silent error handling, environment setup) and provide feedback on how to improve the reproducer
+     logic to trigger the crash.
 
 Critical Diagnostic Rule for Reproduction Failures:
 If the reproduction attempt fails (e.g., a system call returns an error, or a
@@ -630,6 +667,14 @@ warning/error message appears in the console log), you MUST:
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 IsProbe: {{.IsProbe}}
 Reproduced: {{.CandidateReproduced}}
+{{if .CurrentCandidateReproC}}
+Executed C Program:
+{{.CurrentCandidateReproC}}
+{{end}}
+{{if .OracleFeedback}}
+Previous Attempts Feedback:
+{{.OracleFeedback}}
+{{end}}
 Console Output: {{.TruncatedConsoleOutput}}
 Strace Output: {{.TruncatedStraceOutput}}
 Crash Report: {{.TruncatedCrashReport}}
