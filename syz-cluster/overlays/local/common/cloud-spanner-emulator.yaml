@@ -24,6 +24,16 @@ spec:
         ports:
         - containerPort: 9010
         - containerPort: 9020
+        # Setting requests equal to limits gives the pod the Guaranteed QoS
+        # class, which makes it the least likely victim of the OOM killer.
+        # The emulator keeps all data in memory, so a restart wipes the DB.
+        resources:
+          requests:
+            cpu: "1"
+            memory: 2Gi
+          limits:
+            cpu: "1"
+            memory: 2Gi
 ---
 apiVersion: v1
 kind: Service
