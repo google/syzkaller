@@ -105,10 +105,14 @@ func TestTokenCompression(t *testing.T) {
 					// Summarizer invocation: verify single user message with XML tags and thoughts from id1.
 					require.Equal(t, 1, len(req), "Summarizer should receive a single user message")
 					require.Equal(t, backend.RoleUser, req[0].Role)
-					require.Contains(t, req[0].Parts[0].Text, "<execution_history>")
-					require.Contains(t, req[0].Parts[0].Text, "<thought>\nthinking about id1\n</thought>")
-					require.NotContains(t, req[0].Parts[0].Text, "thinking about id2")
-					require.Contains(t, req[0].Parts[0].Text, "</execution_history>")
+					text := req[0].Parts[0].Text
+					require.Contains(t, text, "<initial_prompt>\n[user]:\nPrompt\n\n</initial_prompt>")
+					_, history, found := strings.Cut(text, "<execution_history>")
+					require.True(t, found, "missing <execution_history>")
+					require.NotContains(t, history, "Prompt\n", "anchor prompt must not be part of execution history")
+					require.Contains(t, history, "<thought>\nthinking about id1\n</thought>")
+					require.NotContains(t, text, "thinking about id2")
+					require.Contains(t, history, "</execution_history>")
 					require.Empty(t, req[0].Parts[0].ThoughtSignature, "thought signatures must be cleared for summarizer")
 					return &backend.GenerateResponse{
 						UsageMetadata: &backend.UsageMetadata{
