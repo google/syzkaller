@@ -39,11 +39,17 @@ reporting.
 
 1. Install and start minikube: https://minikube.sigs.k8s.io/docs/start/
 ```
-$ minikube start --cni=cilium
+$ minikube start --cni=cilium --container-runtime=docker --memory=128g
 ```
 
 `--cni=cilium` enables the use of a more advanced Network plugin that supports
 the emulation of network policies.
+
+`--container-runtime=docker` is needed for `minikube docker-env` (the default
+is containerd since minikube v1.39).
+
+`--memory=128g` limits the memory of the whole cluster. Fuzzing may use a lot
+of it, and on OOM random pods get killed (e.g. the Spanner emulator).
 
 2. Build all docker containers (might take a while):
 ```
