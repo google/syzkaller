@@ -7,6 +7,7 @@
 package grepper
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -88,7 +89,11 @@ foo.c-6-	line;
 			assert.True(t, strings.Contains(got.Output,
 				"Full output is too long, showing 200 out of 3999 lines."),
 				"%v", got)
-			assert.Equal(t, 205, strings.Count(got.Output, "\n"))
+			assert.True(t, strings.Contains(got.Output, `
+Number of matching lines per file (1 files in total):
+overflow.c:1000
+`), "%v", got)
+			assert.Equal(t, 208, strings.Count(got.Output, "\n"))
 		},
 		"")
 
@@ -106,8 +111,38 @@ foo.c-6-	line;
 
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
-		args{Expression: "foobar", PathPrefix: "foo.c"},
+		args{Expression: "foobar", PathPrefixes: []string{"", "foo.c"}},
 		results{Output: `foo.c=2=int some_func(void)
+--
+foo.c-4-	line;
+foo.c:5:	foobar;
+foo.c-6-	line;
+`},
+		"")
+
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: "foobar", PathPrefixes: []string{""}},
+		results{Output: `bar.c=2=int another_func(int) {
+bar.c:3:	foobar;
+bar.c-4-}
+--
+foo.c=2=int some_func(void)
+--
+foo.c-4-	line;
+foo.c:5:	foobar;
+foo.c-6-	line;
+`},
+		"")
+
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: "foobar|aaaaa", PathPrefixes: []string{"bar.c", "foo.c"}},
+		results{Output: `bar.c=2=int another_func(int) {
+bar.c:3:	foobar;
+bar.c-4-}
+--
+foo.c=2=int some_func(void)
 --
 foo.c-4-	line;
 foo.c:5:	foobar;
@@ -125,4 +160,33 @@ foo.c-6-	line;
 		args{Expression: `-\>root`},
 		results{},
 		"no matches")
+}
+
+func TestGrepperManyFiles(t *testing.T) {
+	repo := vcs.MakeTestRepo(t, t.TempDir())
+	var files []vcs.FileContent
+	for i := range 150 {
+		files = append(files, vcs.FileContent{
+			File:    fmt.Sprintf("file%03d.c", i),
+			Content: strings.Repeat("match;\n\n\n", 5),
+		})
+	}
+	repo.CommitChangeset("description", files...)
+
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: "match"},
+		func(got results) {
+			assert.True(t, strings.Contains(got.Output, `
+Number of matching lines per file (150 files in total):
+file000.c:5
+file001.c:5
+`), "%v", got)
+			assert.True(t, strings.Contains(got.Output, `
+file049.c:5
+... and 100 more files
+`), "%v", got)
+			assert.False(t, strings.Contains(got.Output, "file050.c:5"), "%v", got)
+		},
+		"")
 }

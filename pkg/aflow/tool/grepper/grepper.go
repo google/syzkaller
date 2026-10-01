@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os/exec"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -37,6 +38,15 @@ The following git grep flags are used:
 Lines with matches have ':' after the line number.
 Content lines have '-'  after the line number.
 Containing function/struct lines have '=' after the line number.
+
+Batch your searches instead of doing many similar calls one at a time:
+- Use regexp alternation to search for several identifiers at once
+  (e.g. 'phy_connect|phy_attach').
+- Pass several directories/files in PathPrefixes to search them at once
+  (e.g. ["drivers/net/usb/", "drivers/net/dummy.c"]).
+- Search a whole directory rather than each file in it separately.
+If the output is too long, it is truncated, and the number of matches per file is shown,
+use it to narrow down the next search.
 `)
 
 type state struct {
@@ -44,8 +54,8 @@ type state struct {
 }
 
 type args struct {
-	Expression string `jsonschema:"Git grep expression in extended regexp syntax."`
-	PathPrefix string `jsonschema:"Optional path prefix or file to restrict the scope of the grep." json:",omitempty"`
+	Expression   string   `jsonschema:"Git grep expression in extended regexp syntax."`
+	PathPrefixes []string `jsonschema:"Optional path prefixes or files to restrict the grep scope." json:",omitempty"`
 }
 
 type results struct {
@@ -53,13 +63,14 @@ type results struct {
 }
 
 func grepper(ctx *aflow.Context, state state, args args) (results, error) {
+	args.PathPrefixes = slices.DeleteFunc(args.PathPrefixes, func(p string) bool {
+		return p == ""
+	})
 	cmdArgs := []string{
 		"grep", "--extended-regexp", "--line-number",
 		"--show-function", "-C1", "-e", args.Expression, "--",
 	}
-	if args.PathPrefix != "" {
-		cmdArgs = append(cmdArgs, args.PathPrefix)
-	}
+	cmdArgs = append(cmdArgs, args.PathPrefixes...)
 	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", cmdArgs...)
 	if err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
@@ -110,11 +121,40 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 		}
 		return results{string(output)}, nil
 	}
+	perFile, err := matchesPerFile(state.KernelSrc, args)
+	if err != nil {
+		return results{}, err
+	}
 	res := fmt.Sprintf(`
 Full output is too long, showing %v out of %v lines.
-Use more precise expression if possible.
+Use more precise expression or PathPrefixes if possible.
 
 %s
-`, maxLines, len(lines), slices.Concat(lines[:maxLines]...))
+%s
+`, maxLines, len(lines), perFile, slices.Concat(lines[:maxLines]...))
 	return results{res}, nil
+}
+
+// matchesPerFile returns a summary of the number of matching lines in each file.
+func matchesPerFile(kernelSrc string, args args) (string, error) {
+	cmdArgs := []string{
+		"grep", "--extended-regexp", "--count", "-e", args.Expression, "--",
+	}
+	cmdArgs = append(cmdArgs, args.PathPrefixes...)
+	output, err := osutil.RunCmd(time.Hour, kernelSrc, "git", cmdArgs...)
+	if err != nil {
+		return "", err
+	}
+	// Each line is "path:count\n".
+	files := slices.Collect(bytes.Lines(output))
+	const maxFiles = 50
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Number of matching lines per file (%v files in total):\n", len(files))
+	for _, line := range files[:min(len(files), maxFiles)] {
+		sb.Write(line)
+	}
+	if len(files) > maxFiles {
+		fmt.Fprintf(&sb, "... and %v more files\n", len(files)-maxFiles)
+	}
+	return sb.String(), nil
 }
