@@ -111,7 +111,9 @@ func TestExecuteCorpusAction_EmptyCorpus(t *testing.T) {
 		CorpusVMCount: 1,
 	})
 	require.NoError(t, err)
-	require.Empty(t, res.CorpusDir)
+	data, err := osutil.ReadJSON[syzspec.CorpusData](filepath.Join(res.CorpusDir, "index.json"))
+	require.NoError(t, err)
+	require.Equal(t, syzspec.CorpusData{}, data)
 }
 
 func TestExecuteCorpusAction_BuildConfigError(t *testing.T) {
