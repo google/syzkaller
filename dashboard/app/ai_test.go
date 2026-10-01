@@ -1709,6 +1709,8 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		{name: "no output", mod: func(b *Bug) { b.Title = "no output from test machine" }},
 		{name: "unexpected reboot", mod: func(b *Bug) { b.Title = "unexpected kernel reboot" }},
 		{name: "soft lockup hang", mod: func(b *Bug) { b.Title = "BUG: soft lockup in foo" }},
+		{name: "KCSAN data race", mod: func(b *Bug) { b.Title = "KCSAN: data-race in foo / bar" }},
+		{name: "KCSAN assert", mod: func(b *Bug) { b.Title = "KCSAN: assert: race in foo" }},
 		{
 			name: "kernel panic allowed",
 			mod:  func(b *Bug) { b.Title = "kernel panic: Fatal exception" },
