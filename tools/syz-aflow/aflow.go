@@ -112,8 +112,8 @@ func run(ctx context.Context, args RunArgs) error {
 	if err != nil {
 		return fmt.Errorf("failed to open -input file: %w", err)
 	}
-	var inputs map[string]any
-	if err := json.Unmarshal(inputData, &inputs); err != nil {
+	inputs, err := aflow.DecodeJSONMap(inputData)
+	if err != nil {
 		return err
 	}
 	if err := expandFileInputs(inputs, filepath.Dir(args.InputFile)); err != nil {
