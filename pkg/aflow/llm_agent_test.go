@@ -125,8 +125,7 @@ func TestTokenCompression(t *testing.T) {
 				// Main agent resumed with the truncated history: Anchor + Summary + Preserved Suffix.
 				require.Equal(t, 4, len(req), "History should be Anchor, Summary, and preserved suffix")
 				require.Equal(t, "Prompt", req[0].Parts[0].Text)
-				require.Equal(t, "Here is the summary of the previous execution history:\n\ncompressed summary",
-					req[1].Parts[0].Text)
+				require.Equal(t, compressedHistoryPrefix+"compressed summary", req[1].Parts[0].Text)
 				require.Equal(t, backend.RoleModel, req[2].Role)
 				require.Len(t, req[2].Parts, 1, "thought part should be dropped from preserved suffix")
 				require.False(t, req[2].Parts[0].Thought)
@@ -134,7 +133,9 @@ func TestTokenCompression(t *testing.T) {
 				require.Empty(t, req[2].Parts[0].ThoughtSignature,
 					"preserved function call in generic history should have empty thought signature")
 				require.Equal(t, backend.RoleUser, req[3].Role)
-				require.Equal(t, "id2", req[3].Parts[0].FunctionResponse.ID)
+				require.Len(t, req[3].Parts, 2)
+				require.Equal(t, compressedHistoryReminder, req[3].Parts[0].Text)
+				require.Equal(t, "id2", req[3].Parts[1].FunctionResponse.ID)
 				return &backend.GenerateResponse{
 					UsageMetadata: &backend.UsageMetadata{
 						InputTokens:  20, // tokens dropped after compression
