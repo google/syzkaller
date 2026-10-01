@@ -30,6 +30,7 @@ type RunnerArgs struct {
 	Parallel   int
 	HTML       string
 	Output     string
+	Corpus     string
 }
 
 // Runner holds the state that is shared across workflow executions:
@@ -44,6 +45,8 @@ type Runner struct {
 	parallel   int
 	html       string
 	output     string
+	corpusPath string
+	corpus     *corpusWriter
 }
 
 func newRunner(ctx context.Context, args RunnerArgs) (*Runner, error) {
@@ -74,6 +77,7 @@ func newRunner(ctx context.Context, args RunnerArgs) (*Runner, error) {
 		parallel:   args.Parallel,
 		html:       args.HTML,
 		output:     args.Output,
+		corpusPath: args.Corpus,
 	}, nil
 }
 
