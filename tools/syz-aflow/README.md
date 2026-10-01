@@ -32,6 +32,10 @@ Results are saved to `<workdir>/trajectories/<state>/`. Completed tasks are skip
 Batch execution is currently only supported for the `seed-gen-file-line` workflow and cannot be combined
 with `-html` and `-output`.
 
+To spread the load over several Gemini API keys, put them one per line into `GOOGLE_API_KEY`
+(e.g. `GOOGLE_API_KEY="$(cat keys.txt)"`). Each task sticks to one key. Keys only help with rate limits
+if they belong to different projects.
+
 ### Workflow Inputs
 
 `syz-aflow` does not require a standard `syz-manager` configuration file. Instead, it takes a JSON file containing the arguments specific to the workflow you are running.
