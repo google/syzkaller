@@ -39,7 +39,7 @@ type RunnerManager struct {
 	reporter *report.Reporter
 
 	debug  bool
-	logf   func(int, string, ...any)
+	logf   LogFunc
 	readyC chan struct{}
 
 	crashes []*report.Report
@@ -47,8 +47,7 @@ type RunnerManager struct {
 	ctx context.Context
 }
 
-func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool,
-	logf func(int, string, ...any)) (*RunnerManager, error) {
+func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, logf LogFunc) (*RunnerManager, error) {
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reporter: %w", err)
@@ -81,7 +80,7 @@ func (rm *RunnerManager) Logf(v int, msg string, args ...any) {
 
 // RunIsolatedManager boots a temporary, isolated RunnerManager with the specified cfg,
 // executes the provided action callback, and cleans up the manager and VMs afterwards.
-func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, logf func(int, string, ...any),
+func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, logf LogFunc,
 	action func(context.Context, *RunnerManager) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -245,7 +245,7 @@ func (r *Runner) saveResult(res batchResult, spans []*trajectory.Span) error {
 	return osutil.WriteJSON(r.taskPath(res.State, res.ID, ".json"), res)
 }
 
-func openTaskLog(path string) (func(int, string, ...any), func(), error) {
+func openTaskLog(path string) (aflow.LogFunc, func(), error) {
 	f, err := os.Create(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create log file: %w", err)

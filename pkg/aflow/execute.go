@@ -24,6 +24,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// LogFunc is a leveled printf-style logger with the same signature as log.Logf.
+type LogFunc func(v int, msg string, args ...any)
+
 // ExecuteOptions groups the execution environment and infrastructure limits for a workflow run.
 type ExecuteOptions struct {
 	Provider   backend.Provider
@@ -32,7 +35,7 @@ type ExecuteOptions struct {
 	OnEvent    onEvent
 	Debug      bool
 	TokenLimit int
-	Logf       func(int, string, ...any)
+	Logf       LogFunc
 }
 
 // Execute executes the given AI workflow with provided inputs and returns workflow outputs.
@@ -207,7 +210,7 @@ type Context struct {
 	tokenLimit     int
 	consumedTokens int64
 	blobs          syzspec.BlobStore
-	logf           func(int, string, ...any)
+	logf           LogFunc
 	stubContext
 }
 
