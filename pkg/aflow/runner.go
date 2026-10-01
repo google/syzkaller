@@ -38,9 +38,10 @@ type RunnerManager struct {
 
 	reporter *report.Reporter
 
-	debug  bool
-	logf   LogFunc
-	readyC chan struct{}
+	debug    bool
+	logf     LogFunc
+	readyC   chan struct{}
+	stoppedC chan struct{}
 
 	crashes []*report.Report
 }
@@ -61,6 +62,7 @@ func newRunnerManager(cfg *mgrconfig.Config, debug bool, logf LogFunc) (*RunnerM
 		logf:     logf,
 		source:   queue.Plain(),
 		readyC:   make(chan struct{}),
+		stoppedC: make(chan struct{}),
 	}
 	return rm, nil
 }
@@ -116,6 +118,8 @@ func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, 
 }
 
 func (rm *RunnerManager) Loop(ctx context.Context) error {
+	defer close(rm.stoppedC)
+
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,
 		Manager: rm,
@@ -255,6 +259,12 @@ func (rm *RunnerManager) SubmitBatch(
 		return nil, nil
 	}
 
+	select {
+	case <-rm.stoppedC:
+		return nil, fmt.Errorf("RunnerManager is stopped")
+	default:
+	}
+
 	results := make([]*queue.Result, len(progs))
 	var wg sync.WaitGroup
 	wg.Add(len(progs))
@@ -276,6 +286,8 @@ func (rm *RunnerManager) SubmitBatch(
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-rm.stoppedC:
+		return nil, fmt.Errorf("RunnerManager is stopped")
 	case <-doneC:
 		return results, nil
 	}
