@@ -59,10 +59,9 @@ func createTestMgrConfig() *mgrconfig.Config {
 }
 
 func TestRunnerManager_Basic(t *testing.T) {
-	ctx := context.Background()
 	cfg := createTestMgrConfig()
 
-	rm, err := newRunnerManager(ctx, cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 	require.NotNil(t, rm)
 	require.Equal(t, cfg, rm.Config())
@@ -82,10 +81,9 @@ func TestRunnerManager_Basic(t *testing.T) {
 }
 
 func TestRunnerManager_New_Error(t *testing.T) {
-	ctx := context.Background()
 	// Invalid config with no target will cause report.NewReporter to fail.
 	invalidCfg := &mgrconfig.Config{}
-	rm, err := newRunnerManager(ctx, invalidCfg, false, nil)
+	rm, err := newRunnerManager(invalidCfg, false, nil)
 	require.Error(t, err)
 	require.Nil(t, rm)
 }
@@ -94,7 +92,7 @@ func TestRunnerManager_Submit_Empty(t *testing.T) {
 	ctx := context.Background()
 	cfg := createTestMgrConfig()
 
-	rm, err := newRunnerManager(ctx, cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 
 	res, err := rm.SubmitBatch(ctx, nil)
@@ -115,24 +113,13 @@ func TestRunnerManager_Submit_Canceled(t *testing.T) {
 	cfg := createTestMgrConfig()
 
 	// 1. Caller context canceled
-	rmCtx, rmCancel := context.WithCancel(t.Context())
-	defer rmCancel()
-	rm, err := newRunnerManager(rmCtx, cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 
 	canceledCtx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	_, err = rm.Submit(canceledCtx, p)
-	require.ErrorIs(t, err, context.Canceled)
-
-	// 2. RunnerManager internal context canceled
-	rmCtx2, rmCancel2 := context.WithCancel(t.Context())
-	rmCancel2()
-	rm2, err := newRunnerManager(rmCtx2, cfg, false, nil)
-	require.NoError(t, err)
-
-	_, err = rm2.SubmitBatch(t.Context(), []*prog.Prog{p})
 	require.ErrorIs(t, err, context.Canceled)
 }
 
@@ -145,7 +132,7 @@ func TestRunnerManager_Submit_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 
 	// Background worker simulating syz-executor completing requests from rm.source.
@@ -197,7 +184,7 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 	target, err := prog.GetTarget("linux", "amd64")
 	require.NoError(t, err)
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 
 	mockBackend := &mockExecBackend{}
@@ -228,7 +215,7 @@ func TestRunnerManager_MachineChecked(t *testing.T) {
 
 func TestRunnerManager_ExecutorInstance(t *testing.T) {
 	cfg := createTestMgrConfig()
-	rm, err := newRunnerManager(context.Background(), cfg, false, nil)
+	rm, err := newRunnerManager(cfg, false, nil)
 	require.NoError(t, err)
 
 	mockBackend := &mockExecBackend{

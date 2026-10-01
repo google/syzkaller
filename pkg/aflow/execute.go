@@ -384,7 +384,7 @@ func (ctx *Context) InitRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, er
 	runnerCtx, cancel := context.WithCancel(ctx.Context)
 	eg, egCtx := errgroup.WithContext(runnerCtx)
 
-	rm, err := newRunnerManager(egCtx, cfg, ctx.runnerDebug, ctx.Logf)
+	rm, err := newRunnerManager(cfg, ctx.runnerDebug, ctx.Logf)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -395,7 +395,7 @@ func (ctx *Context) InitRunnerManager(cfg *mgrconfig.Config) (*RunnerManager, er
 	ctx.runnerEg = eg
 
 	eg.Go(func() error {
-		return rm.Loop()
+		return rm.Loop(egCtx)
 	})
 
 	return rm, nil
