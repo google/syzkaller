@@ -43,6 +43,7 @@ func main() {
 		flagOutput     = flag.String("output", "", "save final workflow output to this JSON file")
 		flagDebug      = flag.Bool("debug", false, "enable runner debug logging")
 		flagTokenLimit = flag.Int("token-limit", 0, "maximum tokens allowed for the workflow run (0 = no limit)")
+		flagCorpus     = flag.String("corpus", "", "save all programs executed in batch execution to this corpus.db")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -77,6 +78,7 @@ func main() {
 		Parallel:   *flagParallel,
 		HTML:       *flagHTML,
 		Output:     *flagOutput,
+		Corpus:     *flagCorpus,
 	}
 	if err := validateBatchMode(isBatch, args); err != nil {
 		tool.Fail(err)

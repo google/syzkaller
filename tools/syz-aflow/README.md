@@ -36,6 +36,9 @@ To spread the load over several Gemini API keys, put them one per line into `GOO
 (e.g. `GOOGLE_API_KEY="$(cat keys.txt)"`). Each task sticks to one key. Keys only help with rate limits
 if they belong to different projects.
 
+With `-corpus <path>`, all programs executed during the batch run are also saved into the given `corpus.db`
+(without call properties such as fault injection), e.g. to be used as fuzzing seeds.
+
 ### Workflow Inputs
 
 `syz-aflow` does not require a standard `syz-manager` configuration file. Instead, it takes a JSON file containing the arguments specific to the workflow you are running.
@@ -68,6 +71,7 @@ Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or
 - `-workflow`: The name of the workflow to execute.
 - `-input`: Path to a JSON file containing the arguments for the workflow (or a directory of them).
 - `-parallel`: Number of tasks to run concurrently in batch execution.
+- `-corpus`: Path to a `corpus.db` to save all executed programs into in batch execution.
 - `-workdir`: Directory where the workflow can perform checkouts, builds, etc.
 - `-html`: Path to an HTML file where the execution trajectory will be rendered in real-time.
 - `-model`: Override the default LLM model.
