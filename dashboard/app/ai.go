@@ -2160,6 +2160,9 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		strings.Contains(title, "test error") {
 		return false
 	}
+	if typ.IsKCSAN() {
+		return false
+	}
 	switch typ {
 	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.Hang, crash.UnexpectedReboot:
 		return false
@@ -2201,7 +2204,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		// - Must have a crash report, but no existing C reproducer.
 		// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
 		// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
-		// - Skip non-fatal issues (INFO), non-kernel/syzkaller panics, and build/boot/test errors.
+		// - Skip non-fatal issues (INFO), KCSAN bugs, non-kernel/syzkaller panics, and build/boot/test errors.
 		// - Skip bugs that have recent patch candidates being discussed / tested.
 		nsCfg := getNsConfig(ctx, bug.Namespace)
 		canAutoReproC := nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
