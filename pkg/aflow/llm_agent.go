@@ -603,6 +603,7 @@ func formatMessages(messages []*backend.Message) string {
 				fmt.Fprintf(&sb, "  Tool %s returned: ", part.FunctionResponse.Name)
 				sb.WriteString(formatJSONMap(part.FunctionResponse.Response))
 				sb.WriteString("\n")
+			case part.Text == compressedHistoryReminder:
 			case part.Text != "":
 				sb.WriteString(disarmTags(part.Text))
 				sb.WriteString("\n")
@@ -699,6 +700,16 @@ Important: You must output the actual summary text in your final response. Do NO
 // deterministic summarizer of facts without hallucinating or adding creative leaps.
 const tokenCompressionTemperature = 0.1
 
+const compressedHistoryPrefix = "Here is the summary of the previous execution history:\n\n"
+
+// After compression, all previous thoughts are dropped. Empirically, models then tend to stop
+// thinking altogether and switch to mechanical repetitive tool calls, so we explicitly ask to think.
+const compressedHistoryReminder = `IMPORTANT: The previous execution history was compressed into the summary above,
+and all your previous reasoning (thoughts) has been deleted. Do NOT continue by mechanically
+repeating the pattern of the most recent tool calls. Before the next tool call, think carefully
+step by step: re-assess what is already known from the summary, what the goal is, and what
+the most efficient next step is.`
+
 func (a *agentSession) compressContext(
 	ctx *Context, instruction string, splitIndex int) (*backend.Message, int, error) {
 	// Lightweight config targeting the Flash model.
@@ -769,7 +780,7 @@ func (a *agentSession) compressContext(
 
 	newSummary := &backend.Message{
 		Role:  backend.RoleUser,
-		Parts: []backend.Part{{Text: "Here is the summary of the previous execution history:\n\n" + reply}},
+		Parts: []backend.Part{{Text: compressedHistoryPrefix + reply}},
 	}
 
 	return newSummary, span.OutputTokens, ctx.finishSpan(span, nil)
@@ -818,7 +829,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 			// backends to bypass signature validation.
 			msgCopy := *msg.content
 			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
-				return p.Thought
+				return p.Thought || p.Text == compressedHistoryReminder
 			})
 			for j := range msgCopy.Parts {
 				msgCopy.Parts[j].ThoughtSignature = nil
@@ -828,6 +839,11 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 				tokenCount: msg.tokenCount,
 			})
 		}
+		// Place the reminder before FunctionResponse parts as required by the Vertex AI API.
+		last := newReq[len(newReq)-1].content
+		last.Parts = slices.Insert(last.Parts, 0, backend.Part{Text: compressedHistoryReminder})
+	} else {
+		newSummary.Parts = append(newSummary.Parts, backend.Part{Text: compressedHistoryReminder})
 	}
 	a.req = newReq
 

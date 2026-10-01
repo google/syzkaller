@@ -251,6 +251,9 @@
 			{
 				"parts": [
 					{
+						"text": "IMPORTANT: The previous execution history was compressed into the summary above,\nand all your previous reasoning (thoughts) has been deleted. Do NOT continue by mechanically\nrepeating the pattern of the most recent tool calls. Before the next tool call, think carefully\nstep by step: re-assess what is already known from the summary, what the goal is, and what\nthe most efficient next step is."
+					},
+					{
 						"functionResponse": {
 							"id": "id3",
 							"response": {
@@ -296,6 +299,9 @@
 			},
 			{
 				"parts": [
+					{
+						"text": "IMPORTANT: The previous execution history was compressed into the summary above,\nand all your previous reasoning (thoughts) has been deleted. Do NOT continue by mechanically\nrepeating the pattern of the most recent tool calls. Before the next tool call, think carefully\nstep by step: re-assess what is already known from the summary, what the goal is, and what\nthe most efficient next step is."
+					},
 					{
 						"functionResponse": {
 							"id": "id3",
