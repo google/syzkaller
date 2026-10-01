@@ -121,6 +121,14 @@ func TestRunnerManager_Submit_Canceled(t *testing.T) {
 
 	_, err = rm.Submit(canceledCtx, p)
 	require.ErrorIs(t, err, context.Canceled)
+
+	// 2. RunnerManager stopped
+	rm2, err := newRunnerManager(cfg, false, nil)
+	require.NoError(t, err)
+	close(rm2.stoppedC)
+
+	_, err = rm2.SubmitBatch(t.Context(), []*prog.Prog{p})
+	require.ErrorContains(t, err, "RunnerManager is stopped")
 }
 
 func TestRunnerManager_Submit_Success(t *testing.T) {
