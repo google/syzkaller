@@ -76,17 +76,16 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 		return ExecuteCorpusResult{}, fmt.Errorf("unknown sys target: %s/%s", args.TargetOS, args.TargetArch)
 	}
 
-	corpusDB, err := db.OpenReadOnly(args.CorpusPath)
-	if err != nil {
-		return ExecuteCorpusResult{}, fmt.Errorf("failed to open corpus db: %w", err)
-	}
-	sortedKeys := slices.Sorted(maps.Keys(corpusDB.Records))
-	if len(sortedKeys) == 0 {
-		return ExecuteCorpusResult{}, nil
-	}
-
 	desc := fmt.Sprintf("corpus-execution-v1-%v-%v", args.KernelCommit, corpusSig)
 	dir, err := ctx.Cache("corpus-execution", desc, func(dir string) error {
+		corpusDB, err := db.OpenReadOnly(args.CorpusPath)
+		if err != nil {
+			return fmt.Errorf("failed to open corpus db: %w", err)
+		}
+		sortedKeys := slices.Sorted(maps.Keys(corpusDB.Records))
+		if len(sortedKeys) == 0 {
+			return osutil.WriteJSON(filepath.Join(dir, "index.json"), syzspec.CorpusData{})
+		}
 		ctx.Logf(1, "aflow: executing corpus from %q (%d programs)", args.CorpusPath, len(sortedKeys))
 		// Preserve custom VM settings (memory, QEMU flags, disk images) while setting instance count.
 		var vmConfig map[string]any
