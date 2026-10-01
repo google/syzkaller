@@ -264,3 +264,18 @@ func TestToGenaiContentThoughtSignature(t *testing.T) {
 	require.Equal(t, []byte(skipThoughtSignatureValidator), got.Parts[0].ThoughtSignature)
 	require.Equal(t, []byte("custom_sig"), got.Parts[1].ThoughtSignature)
 }
+
+func TestProviderAPIKeys(t *testing.T) {
+	keys := ParseAPIKeys(" key1\nkey2 \r\n\n\tkey3\n")
+	require.Equal(t, []string{"key1", "key2", "key3"}, keys)
+
+	p, err := NewProvider(t.Context(), Config{APIKeys: keys})
+	require.NoError(t, err)
+	used := map[string]int{}
+	for range 2 * len(keys) {
+		c, err := p.Client(t.Context())
+		require.NoError(t, err)
+		used[c.(*client).client.ClientConfig().APIKey]++
+	}
+	require.Equal(t, map[string]int{"key1": 2, "key2": 2, "key3": 2}, used)
+}

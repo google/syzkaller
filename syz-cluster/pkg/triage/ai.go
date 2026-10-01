@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"google.golang.org/genai"
 )
 
 type AITriageResult struct {
@@ -86,9 +85,7 @@ func NewAIClient(ctx context.Context, config *app.AppConfig, tracer debugtracer.
 	}
 
 	provider, err := gemini.NewProvider(ctx, gemini.Config{
-		ClientConfig: &genai.ClientConfig{
-			APIKey: apiKey,
-		},
+		APIKeys: gemini.ParseAPIKeys(apiKey),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
