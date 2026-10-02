@@ -1,0 +1,552 @@
+include <linux/ip.h>
+include <linux/ipv6.h>
+include <linux/route.h>
+include <uapi/linux/if_arp.h>
+include <uapi/linux/netfilter_ipv6/ip6_tables.h>
+include <uapi/linux/wireless.h>
+include <uapi/linux/in.h>
+
+# =================================
+# Stateful fuzzing model (read first)
+# =================================
+# ksmbd keeps per-CONNECTION state (negotiated dialect, authenticated session,
+# opened FIDs, granted oplocks/leases) across PDUs sent on the same TCP socket.
+# So a syzkaller program that issues several sendto$ksmbd() on the SAME
+# sock_ksmbd resource, in order, IS a stateful session:
+#
+#   r0 = socket$ksmbd(...); connect$ksmbd(r0, ...)
+#   sendto$ksmbd(r0, <NEGOTIATE>)      # -> ksmbd: conn negotiated
+#   sendto$ksmbd(r0, <SESSION_SETUP>)  # -> ksmbd: session authenticated
+#   sendto$ksmbd(r0, <TREE_CONNECT>)   # -> ksmbd: tree connected
+#   sendto$ksmbd(r0, <CREATE>)         # -> ksmbd: FID opened
+#   sendto$ksmbd(r0, <WRITE/CLOSE>)    # -> uses that FID
+#
+# The gap: ksmbd assigns SessionId (in SESSION_SETUP resp), TreeId (TREE_CONNECT
+# resp) and Persistent/VolatileFileId (CREATE resp) in the RESPONSE PDUs, and
+# syzkaller does not parse responses, so it cannot thread the real server-side
+# ids into later PDUs. Two consequences the descriptions below work with:
+#  1. SessionId/TreeId/FileId are left as plain integers seeded with the special
+#     value 0xffffffffffffffff (SMB2 "compound-related / unsolicited" sentinel)
+#     plus small values, so brute/dataflow can still land valid ids.
+#  2. True id threading needs parsing the response PDUs and feeding the
+#     server-assigned ids back as syzkaller resources. That is left for a
+#     follow-up; until it lands, sequencing gives connection state but not id
+#     threading.
+
+# =================================
+# SMB2 constant / flag sets
+# =================================
+smb2_dialects = 0x202, 0x210, 0x300, 0x302, 0x311, 0x2ff
+smb2_security_mode = 0x1, 0x2
+smb2_negotiate_caps = 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40
+smb2_hdr_flags = 0x1, 0x2, 0x4, 0x8, 0x10000000, 0x20000000, 0x40000000, 0x80000000
+# DesiredAccess (file/dir access mask)
+smb2_access_mask = 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x80, 0x100, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x1000000, 0x2000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
+smb2_share_access = 0x1, 0x2, 0x4
+smb2_create_disposition = 0, 1, 2, 3, 4, 5
+smb2_create_options = 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x100000
+smb2_oplock_level = 0x0, 0x1, 0x8, 0x9, 0xff
+smb2_impersonation = 0, 1, 2, 3
+smb2_file_attributes = 0x1, 0x2, 0x4, 0x10, 0x20, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000
+# InfoType (SMB2_QUERY_INFO / SET_INFO)
+smb2_info_type = 0x1, 0x2, 0x3, 0x4
+# FileInformationClass (subset ksmbd handles)
+smb2_file_info_class = 4, 5, 6, 7, 10, 13, 14, 18, 19, 20, 21, 22, 34, 35, 60
+# FSCTL / IOCTL control codes ksmbd dispatches
+smb2_fsctl_code = 0x60194, 0x110018, 0x11c017, 0x140078, 0x1401fc, 0x140204, 0x900a4, 0x900a8, 0x900ac, 0x900c4, 0x980c8, 0x940cf, 0x1440f2, 0x1480f2, 0x98344
+# Server-assigned id sentinels (see stateful note): 0 and the SMB2 all-ones id.
+smb2_ids = 0, 0xffffffffffffffff
+# SMB2 command opcodes
+smb2_commands = 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12
+
+# =================================
+# Common Definitions
+# =================================
+
+sync_id {
+	ProcessId	int32
+	TreeId		int32
+} [packed]
+
+union_smb_req_id [
+	sync_id		sync_id
+	async_id	int64
+] [varlen]
+
+# SMB2
+smb2_hdr {
+	ProtocolId	const[0xfe534d42, int32be]
+	StructureSize	const[0x40, int16]
+	CreditCharge	int16
+	Status		int32
+	Command		flags[smb2_commands, int16]
+	CreditRequest	int16
+	Flags		flags[smb2_hdr_flags, int32]
+	NextCommand	int32
+	MessageId	int64
+	Id		union_smb_req_id
+	SessionId	int64
+	Signature	array[int8, 16]
+} [packed]
+
+# =================================
+# SMB2 Request Definitions
+# =================================
+
+# SMB2_NEGOTIATE (0x0000)
+smb2_negotiate_req_body {
+	StructureSize		const[36, int16]
+	DialectCount		len[Dialects, int16]
+	SecurityMode		flags[smb2_security_mode, int16]
+	Reserved		int16
+	Capabilities		flags[smb2_negotiate_caps, int32]
+	ClientGUID		array[int8, 16]
+# In SMB3.02 and earlier next three were MBZ le64 ClientStartTime
+	NegotiateContextOffset	int32
+# SMB3.1.1 only. MBZ earlier
+	NegotiateContextCount	int16
+# SMB3.1.1 only. MBZ earlier
+	Reserved2		int16
+	Dialects		array[flags[smb2_dialects, int16]]
+} [packed]
+
+negotiate_message {
+	Signature			array[int8, 8]
+#  NtLmNegotiate = 1
+	MessageType			int32
+	NegotiateFlags			int32
+# MBZ unless SMB3.02 or later
+	DomainName_Length		len[DomainString, int16]
+	DomainName_MaximumLength	len[DomainString, int16]
+	DomainName_Offset		offsetof[DomainString, int32]
+# RFC 1001 and ASCII
+	WorkstationName_Length		len[Workstationname_Buffer, int16]
+	WorkstationName_MaximumLength	len[Workstationname_Buffer, int16]
+	WorkstationName_Offset		offsetof[Workstationname_Buffer, int32]
+# struct security_buffer for version info not present since we
+# do not set the version is present flag
+	DomainString			string
+# followed by WorkstationString
+	Workstationname_Buffer		string
+} [packed]
+
+smbd_buffer_descriptor_v1 {
+	offset			int64
+	token			int32
+	length			int32
+# followed by Smbd_Buffer
+	smb2_read_req_buffer	string
+} [packed]
+
+# SMB2_READ (0x0008)
+smb2_read_req_body {
+# Must be 49
+	StructureSize		const[49, int16]
+# offset from start of SMB2 header to place read
+	Padding			int8
+# MBZ unless SMB3.02 or later
+	Flags			int8
+	Length			int32
+	Offset			int64
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	MinimumCount		int32
+# MBZ except for SMB3 or later
+	Channel			int32
+	RemainingBytes		int32
+	ReadChannelInfoOffset	offsetof[Buffer, int16]
+	ReadChannelInfoLength	len[Buffer, int16]
+	Buffer			smbd_buffer_descriptor_v1
+} [packed]
+
+# SMB2_SESSION_SETUP (0x0001)
+# Header(64) + Fixed(24) = 88 bytes.
+smb2_sess_setup_req_body {
+	StructureSize		const[25, int16]
+	Flags			int8
+	SecurityMode		int8
+	Capabilities		int32
+	Channel			int32
+	SecurityBufferOffset	offsetof[Buffer, int16]
+	SecurityBufferLength	len[Buffer, int16]
+	PreviousSessionId	int64
+# variable length GSS security buffer
+	Buffer			negotiate_message
+} [packed]
+
+# SMB2_TREE_CONNECT (0x0003)
+smb2_tree_connect_req_body {
+	StructureSize	const[9, int16]
+	Reserved	int16
+	PathOffset	offsetof[Path, int16]
+	PathLength	len[Path, int16]
+	Path		string
+} [packed]
+
+# SMB2_CREATE create contexts (chained; ksmbd parses these by 4-byte tag).
+# Each context: Next | NameOffset/Len | DataOffset/Len | tag name | data.
+smb2_create_ctx_dhnq {
+	Next		const[0, int32]
+	NameOffset	const[16, int16]
+	NameLength	const[4, int16]
+	Reserved	int16
+	DataOffset	const[24, int16]
+	DataLength	const[16, int32]
+	Name		stringnoz["DHnQ"]
+	Pad		array[int8, 4]
+	Data		array[int8, 16]
+} [packed]
+
+smb2_create_ctx_dh2q {
+	Next		const[0, int32]
+	NameOffset	const[16, int16]
+	NameLength	const[4, int16]
+	Reserved	int16
+	DataOffset	const[24, int16]
+	DataLength	const[32, int32]
+	Name		stringnoz["DH2Q"]
+	Pad		array[int8, 4]
+	Timeout		int32
+	Flags		int32
+	Reserved2	int64
+	CreateGuid	array[int8, 16]
+} [packed]
+
+smb2_create_ctx_rqls {
+	Next		const[0, int32]
+	NameOffset	const[16, int16]
+	NameLength	const[4, int16]
+	Reserved	int16
+	DataOffset	const[24, int16]
+	DataLength	const[52, int32]
+	Name		stringnoz["RqLs"]
+	Pad		array[int8, 4]
+	LeaseKey	array[int8, 16]
+	LeaseState	int32
+	LeaseFlags	int32
+	LeaseDuration	int64
+	ParentLeaseKey	array[int8, 16]
+	Epoch		int16
+	Reserved2	int16
+} [packed]
+
+smb2_create_ctx_generic {
+	Next		int32
+	NameOffset	const[16, int16]
+	NameLength	len[Name, int16]
+	Reserved	int16
+	DataOffset	int16
+	DataLength	len[Data, int32]
+	Name		stringnoz
+	Data		buffer[in]
+} [packed]
+
+smb2_create_ctx [
+	dhnq	smb2_create_ctx_dhnq
+	dh2q	smb2_create_ctx_dh2q
+	rqls	smb2_create_ctx_rqls
+	mxac	smb2_create_ctx_generic
+	qfid	smb2_create_ctx_generic
+	secd	smb2_create_ctx_generic
+	alsi	smb2_create_ctx_generic
+	exta	smb2_create_ctx_generic
+] [varlen]
+
+smb2_create_buffer {
+	Name		stringnoz
+	Contexts	array[smb2_create_ctx]
+} [packed]
+
+# SMB2_CREATE (0x0005)
+# Header(64) + Fixed(56) = 120 bytes.
+smb2_create_req_body {
+	StructureSize		const[57, int16]
+	SecurityFlags		int8
+	RequestedOplockLevel	flags[smb2_oplock_level, int8]
+	ImpersonationLevel	flags[smb2_impersonation, int32]
+	SmbCreateFlags		int64
+	Reserved		int64
+	DesiredAccess		flags[smb2_access_mask, int32]
+	FileAttributes		flags[smb2_file_attributes, int32]
+	ShareAccess		flags[smb2_share_access, int32]
+	CreateDisposition	flags[smb2_create_disposition, int32]
+	CreateOptions		flags[smb2_create_options, int32]
+	NameOffset		int16
+	NameLength		int16
+	CreateContextsOffset	int32
+	CreateContextsLength	int32
+	Buffer			smb2_create_buffer
+} [packed]
+
+# SMB2_CLOSE (0x0006)
+smb2_close_req_body {
+	StructureSize		const[24, int16]
+	Flags			int16
+	Reserved		int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+} [packed]
+
+# SMB2_FLUSH (0x0007)
+smb2_flush_req_body {
+	StructureSize		const[24, int16]
+	Reserved1		int16
+	Reserved2		int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+} [packed]
+
+# SMB2_CANCEL (0x000C)
+smb2_cancel_req_body {
+	StructureSize	const[4, int16]
+	Reserved	int16
+} [packed]
+
+# SMB2_CHANGE_NOTIFY (0x000F)
+smb2_change_notify_req_body {
+	StructureSize		const[32, int16]
+	Flags			int16
+	OutputBufferLength	int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	CompletionFilter	int32
+	Reserved		int32
+} [packed]
+
+# SMB2_OPLOCK_BREAK (0x0012) — client ack of a server-initiated break
+smb2_oplock_break_req_body {
+	StructureSize		const[24, int16]
+	OplockLevel		flags[smb2_oplock_level, int8]
+	Reserved		int8
+	Reserved2		int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+} [packed]
+
+# SMB2_WRITE (0x0009)
+# Header(64) + Fixed(48) = 112 bytes.
+smb2_write_req_body {
+	StructureSize		const[49, int16]
+	DataOffset		int16
+	Length			len[Buffer, int32]
+	Offset			int64
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	Channel			int32
+	RemainingBytes		int32
+	WriteChannelInfoOffset	int16
+	WriteChannelInfoLength	int16
+	Flags			int32
+	Buffer			buffer[in]
+} [packed]
+
+# SMB2_LOCK (0x000A)
+smb2_lock_element {
+	Offset		int64
+	Length		int64
+	Flags		int32
+	Reserved	int32
+} [packed]
+
+# SMB2_LOCK (0x000A)
+smb2_lock_req_body {
+	StructureSize		const[48, int16]
+	LockCount		len[locks, int16]
+	LockSequenceNumber	int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	locks			array[smb2_lock_element]
+} [packed]
+
+# FSCTL input payloads (ksmbd fsctl dispatch)
+smb2_fsctl_copychunk {
+	SourceKey	array[int8, 24]
+	ChunkCount	len[Chunks, int32]
+	Reserved	int32
+	Chunks		array[smb2_copychunk]
+} [packed]
+
+smb2_copychunk {
+	SourceOffset	int64
+	TargetOffset	int64
+	Length		int32
+	Reserved	int32
+} [packed]
+
+smb2_fsctl_validate_negotiate {
+	Capabilities	int32
+	Guid		array[int8, 16]
+	SecurityMode	int16
+	DialectCount	len[Dialects, int16]
+	Dialects	array[int16]
+} [packed]
+
+smb2_fsctl_input [
+	copychunk	smb2_fsctl_copychunk
+	validate_neg	smb2_fsctl_validate_negotiate
+	raw		buffer[in]
+] [varlen]
+
+# SMB2_IOCTL (0x000B)
+# Header(64) + Fixed(56) = 120 bytes.
+smb2_ioctl_req_body {
+	StructureSize		const[57, int16]
+	Reserved		int16
+	CtlCode			flags[smb2_fsctl_code, int32]
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	InputOffset		int32
+	InputCount		int32
+	MaxInputResponse	int32
+	OutputOffset		int32
+	OutputCount		int32
+	MaxOutputResponse	int32
+	Flags			int32
+	Reserved2		int32
+	Buffer			smb2_fsctl_input
+} [packed]
+
+smb2_echo_req_body {
+	StructureSize	const[4, int16]
+	Reserved	int16
+} [packed]
+
+# SMB2_QUERY_DIRECTORY (0x000E)
+# Header(64) + Fixed(32) = 96 bytes.
+smb2_query_directory_req_body {
+	StructureSize		const[33, int16]
+	FileInformationClass	flags[smb2_file_info_class, int8]
+	Flags			int8
+	FileIndex		int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	FileNameOffset		int16
+	FileNameLength		len[Buffer, int16]
+	OutputBufferLength	int32
+	Buffer			buffer[in]
+} [packed]
+
+# SMB2_QUERY_INFO (0x0010)
+# Header(64) + Fixed(40) = 104 bytes.
+smb2_query_info_req_body {
+	StructureSize		const[41, int16]
+	InfoType		flags[smb2_info_type, int8]
+	FileInfoClass		flags[smb2_file_info_class, int8]
+	OutputBufferLength	int32
+	InputBufferOffset	int16
+	Reserved		int16
+	InputBufferLength	len[Buffer, int32]
+	AdditionalInformation	int32
+	Flags			int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	Buffer			buffer[in]
+} [packed]
+
+# SET_INFO file-information payloads (ksmbd smb2_set_info handlers)
+smb2_setinfo_rename {
+	ReplaceIfExists	int8
+	Reserved	array[int8, 7]
+	RootDirectory	int64
+	FileNameLength	len[FileName, int32]
+	FileName	stringnoz
+} [packed]
+
+smb2_setinfo_disposition {
+	DeletePending	int8
+} [packed]
+
+smb2_setinfo_eof {
+	EndOfFile	int64
+} [packed]
+
+smb2_setinfo_allocation {
+	AllocationSize	int64
+} [packed]
+
+smb2_setinfo_basic {
+	CreationTime	int64
+	LastAccessTime	int64
+	LastWriteTime	int64
+	ChangeTime	int64
+	FileAttributes	flags[smb2_file_attributes, int32]
+	Reserved	int32
+} [packed]
+
+smb2_setinfo_buffer [
+	rename		smb2_setinfo_rename
+	disposition	smb2_setinfo_disposition
+	eof		smb2_setinfo_eof
+	allocation	smb2_setinfo_allocation
+	basic		smb2_setinfo_basic
+	raw		buffer[in]
+] [varlen]
+
+# SMB2_SET_INFO (0x0011)
+# Header(64) + Fixed(32) = 96 bytes.
+smb2_set_info_req_body {
+	StructureSize		const[33, int16]
+	InfoType		flags[smb2_info_type, int8]
+	FileInfoClass		flags[smb2_file_info_class, int8]
+	BufferLength		len[Buffer, int32]
+	BufferOffset		int16
+	Reserved		int16
+	AdditionalInformation	int32
+	PersistentFileId	flags[smb2_ids, int64]
+	VolatileFileId		flags[smb2_ids, int64]
+	Buffer			smb2_setinfo_buffer
+} [packed]
+
+# =================================
+# PDU Definition and Syscall
+# =================================
+
+# Union of all supported SMB2 requests
+union_smb2_req_body [
+	smb2_negotiate_req_body		smb2_negotiate_req_body	(if[value[smb2_req:hdr:Command] == 0x0])
+	smb2_read_req_body		smb2_read_req_body	(if[value[smb2_req:hdr:Command] == 0x8])
+	smb2_sess_setup_req_body	smb2_sess_setup_req_body	(if[value[smb2_req:hdr:Command] == 0x1])
+	smb2_tree_connect_req_body	smb2_tree_connect_req_body	(if[value[smb2_req:hdr:Command] == 0x3])
+	smb2_create_req_body		smb2_create_req_body	(if[value[smb2_req:hdr:Command] == 0x5])
+	smb2_close_req_body		smb2_close_req_body	(if[value[smb2_req:hdr:Command] == 0x6])
+	smb2_flush_req_body		smb2_flush_req_body	(if[value[smb2_req:hdr:Command] == 0x7])
+	smb2_write_req_body		smb2_write_req_body	(if[value[smb2_req:hdr:Command] == 0x9])
+	smb2_lock_req_body		smb2_lock_req_body	(if[value[smb2_req:hdr:Command] == 0xa])
+	smb2_ioctl_req_body		smb2_ioctl_req_body	(if[value[smb2_req:hdr:Command] == 0xb])
+	smb2_cancel_req_body		smb2_cancel_req_body	(if[value[smb2_req:hdr:Command] == 0xc])
+	smb2_echo_req_body		smb2_echo_req_body	(if[value[smb2_req:hdr:Command] == 0xd])
+	smb2_query_directory_req_body	smb2_query_directory_req_body	(if[value[smb2_req:hdr:Command] == 0xe])
+	smb2_change_notify_req_body	smb2_change_notify_req_body	(if[value[smb2_req:hdr:Command] == 0xf])
+	smb2_query_info_req_body	smb2_query_info_req_body	(if[value[smb2_req:hdr:Command] == 0x10])
+	smb2_set_info_req_body		smb2_set_info_req_body	(if[value[smb2_req:hdr:Command] == 0x11])
+	smb2_oplock_break_req_body	smb2_oplock_break_req_body	(if[value[smb2_req:hdr:Command] == 0x12])
+	default				array[int8]
+] [varlen]
+
+smb2_req {
+	hdr	smb2_hdr
+	body	union_smb2_req_body
+} [packed]
+
+smb2_message {
+	req		smb2_req
+	req_andx1	smb2_req	(if[value[smb2_message:req:hdr:NextCommand] != 0])
+} [packed]
+
+smb2_req_pdu {
+	pdu_size	len[msg, int32be]
+	msg		smb2_message
+} [packed]
+
+resource sock_ksmbd[sock]
+socket$ksmbd(domain const[AF_INET], type const[SOCK_STREAM], proto const[IPPROTO_TCP]) sock_ksmbd
+
+sockaddr_in_ksmbd {
+	family	const[AF_INET, int16]
+	port	const[445, int16be]
+	addr	ipv4_addr
+	zero	array[int8, 8]
+} [packed]
+
+connect$ksmbd(fd sock_ksmbd, addr ptr[in, sockaddr_in_ksmbd], addrlen len[addr])
+sendto$ksmbd(fd sock_ksmbd, buf ptr[in, smb2_req_pdu], len len[buf], f flags[send_flags], addr const[0], addrlen const[0])
