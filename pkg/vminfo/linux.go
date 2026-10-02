@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -47,7 +48,11 @@ func (linux) machineInfos() []machineInfoFunc {
 	}
 }
 
-func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
+func (linux) RequiredCommands() []flatrpc.Command {
+	return nil
+}
+
+func (linux linux) parseModules(files filesystem, cmdResults map[flatrpc.Command][]byte) ([]*KernelModule, error) {
 	if linux.vmType == targets.GVisor || linux.vmType == targets.Starnix {
 		return nil, nil
 	}

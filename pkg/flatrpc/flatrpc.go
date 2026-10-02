@@ -124,6 +124,30 @@ func (v Feature) String() string {
 	return "Feature(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
+type Command uint32
+
+const (
+	CommandECHO_TEST Command = 0
+	CommandKLDSTAT   Command = 1
+)
+
+var EnumNamesCommand = map[Command]string{
+	CommandECHO_TEST: "ECHO_TEST",
+	CommandKLDSTAT:   "KLDSTAT",
+}
+
+var EnumValuesCommand = map[string]Command{
+	"ECHO_TEST": CommandECHO_TEST,
+	"KLDSTAT":   CommandKLDSTAT,
+}
+
+func (v Command) String() string {
+	if s, ok := EnumNamesCommand[v]; ok {
+		return s
+	}
+	return "Command(" + strconv.FormatInt(int64(v), 10) + ")"
+}
+
 type HostMessagesRaw byte
 
 const (
@@ -739,18 +763,19 @@ func ConnectRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type ConnectReplyRawT struct {
-	Debug            bool     `json:"debug"`
-	Cover            bool     `json:"cover"`
-	CoverEdges       bool     `json:"cover_edges"`
-	Kernel64Bit      bool     `json:"kernel_64_bit"`
-	Procs            int32    `json:"procs"`
-	Slowdown         int32    `json:"slowdown"`
-	SyscallTimeoutMs int32    `json:"syscall_timeout_ms"`
-	ProgramTimeoutMs int32    `json:"program_timeout_ms"`
-	LeakFrames       []string `json:"leak_frames"`
-	RaceFrames       []string `json:"race_frames"`
-	Features         Feature  `json:"features"`
-	Files            []string `json:"files"`
+	Debug            bool      `json:"debug"`
+	Cover            bool      `json:"cover"`
+	CoverEdges       bool      `json:"cover_edges"`
+	Kernel64Bit      bool      `json:"kernel_64_bit"`
+	Procs            int32     `json:"procs"`
+	Slowdown         int32     `json:"slowdown"`
+	SyscallTimeoutMs int32     `json:"syscall_timeout_ms"`
+	ProgramTimeoutMs int32     `json:"program_timeout_ms"`
+	LeakFrames       []string  `json:"leak_frames"`
+	RaceFrames       []string  `json:"race_frames"`
+	Features         Feature   `json:"features"`
+	Files            []string  `json:"files"`
+	Commands         []Command `json:"commands"`
 }
 
 func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -796,6 +821,15 @@ func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		}
 		filesOffset = builder.EndVector(filesLength)
 	}
+	commandsOffset := flatbuffers.UOffsetT(0)
+	if t.Commands != nil {
+		commandsLength := len(t.Commands)
+		ConnectReplyRawStartCommandsVector(builder, commandsLength)
+		for j := commandsLength - 1; j >= 0; j-- {
+			builder.PrependUint32(uint32(t.Commands[j]))
+		}
+		commandsOffset = builder.EndVector(commandsLength)
+	}
 	ConnectReplyRawStart(builder)
 	ConnectReplyRawAddDebug(builder, t.Debug)
 	ConnectReplyRawAddCover(builder, t.Cover)
@@ -809,6 +843,7 @@ func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 	ConnectReplyRawAddRaceFrames(builder, raceFramesOffset)
 	ConnectReplyRawAddFeatures(builder, t.Features)
 	ConnectReplyRawAddFiles(builder, filesOffset)
+	ConnectReplyRawAddCommands(builder, commandsOffset)
 	return ConnectReplyRawEnd(builder)
 }
 
@@ -836,6 +871,11 @@ func (rcv *ConnectReplyRaw) UnPackTo(t *ConnectReplyRawT) {
 	t.Files = make([]string, filesLength)
 	for j := 0; j < filesLength; j++ {
 		t.Files[j] = string(rcv.Files(j))
+	}
+	commandsLength := rcv.CommandsLength()
+	t.Commands = make([]Command, commandsLength)
+	for j := 0; j < commandsLength; j++ {
+		t.Commands[j] = rcv.Commands(j)
 	}
 }
 
@@ -1042,8 +1082,34 @@ func (rcv *ConnectReplyRaw) FilesLength() int {
 	return 0
 }
 
+func (rcv *ConnectReplyRaw) Commands(j int) Command {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return Command(rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4)))
+	}
+	return 0
+}
+
+func (rcv *ConnectReplyRaw) CommandsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *ConnectReplyRaw) MutateCommands(j int, n Command) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), uint32(n))
+	}
+	return false
+}
+
 func ConnectReplyRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(12)
+	builder.StartObject(13)
 }
 func ConnectReplyRawAddDebug(builder *flatbuffers.Builder, debug bool) {
 	builder.PrependBoolSlot(0, debug, false)
@@ -1090,14 +1156,21 @@ func ConnectReplyRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOf
 func ConnectReplyRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
+func ConnectReplyRawAddCommands(builder *flatbuffers.Builder, commands flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(commands), 0)
+}
+func ConnectReplyRawStartCommandsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
 func ConnectReplyRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
 type InfoRequestRawT struct {
-	Error    string             `json:"error"`
-	Features []*FeatureInfoRawT `json:"features"`
-	Files    []*FileInfoRawT    `json:"files"`
+	Error          string               `json:"error"`
+	Features       []*FeatureInfoRawT   `json:"features"`
+	Files          []*FileInfoRawT      `json:"files"`
+	CommandResults []*CommandResultRawT `json:"command_results"`
 }
 
 func (t *InfoRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -1134,10 +1207,24 @@ func (t *InfoRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 		}
 		filesOffset = builder.EndVector(filesLength)
 	}
+	commandResultsOffset := flatbuffers.UOffsetT(0)
+	if t.CommandResults != nil {
+		commandResultsLength := len(t.CommandResults)
+		commandResultsOffsets := make([]flatbuffers.UOffsetT, commandResultsLength)
+		for j := 0; j < commandResultsLength; j++ {
+			commandResultsOffsets[j] = t.CommandResults[j].Pack(builder)
+		}
+		InfoRequestRawStartCommandResultsVector(builder, commandResultsLength)
+		for j := commandResultsLength - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(commandResultsOffsets[j])
+		}
+		commandResultsOffset = builder.EndVector(commandResultsLength)
+	}
 	InfoRequestRawStart(builder)
 	InfoRequestRawAddError(builder, errorOffset)
 	InfoRequestRawAddFeatures(builder, featuresOffset)
 	InfoRequestRawAddFiles(builder, filesOffset)
+	InfoRequestRawAddCommandResults(builder, commandResultsOffset)
 	return InfoRequestRawEnd(builder)
 }
 
@@ -1156,6 +1243,13 @@ func (rcv *InfoRequestRaw) UnPackTo(t *InfoRequestRawT) {
 		x := FileInfoRaw{}
 		rcv.Files(&x, j)
 		t.Files[j] = x.UnPack()
+	}
+	commandResultsLength := rcv.CommandResultsLength()
+	t.CommandResults = make([]*CommandResultRawT, commandResultsLength)
+	for j := 0; j < commandResultsLength; j++ {
+		x := CommandResultRaw{}
+		rcv.CommandResults(&x, j)
+		t.CommandResults[j] = x.UnPack()
 	}
 }
 
@@ -1251,8 +1345,28 @@ func (rcv *InfoRequestRaw) FilesLength() int {
 	return 0
 }
 
+func (rcv *InfoRequestRaw) CommandResults(obj *CommandResultRaw, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *InfoRequestRaw) CommandResultsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func InfoRequestRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(4)
 }
 func InfoRequestRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(error), 0)
@@ -1267,6 +1381,12 @@ func InfoRequestRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOff
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(files), 0)
 }
 func InfoRequestRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func InfoRequestRawAddCommandResults(builder *flatbuffers.Builder, commandResults flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(commandResults), 0)
+}
+func InfoRequestRawStartCommandResultsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func InfoRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -1383,6 +1503,154 @@ func InfoReplyRawStartCoverFilterVector(builder *flatbuffers.Builder, numElems i
 	return builder.StartVector(8, numElems, 8)
 }
 func InfoReplyRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type CommandResultRawT struct {
+	Cmd    Command `json:"cmd"`
+	Output []byte  `json:"output"`
+	Error  string  `json:"error"`
+}
+
+func (t *CommandResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	outputOffset := flatbuffers.UOffsetT(0)
+	if t.Output != nil {
+		outputOffset = builder.CreateByteString(t.Output)
+	}
+	errorOffset := flatbuffers.UOffsetT(0)
+	if t.Error != "" {
+		errorOffset = builder.CreateString(t.Error)
+	}
+	CommandResultRawStart(builder)
+	CommandResultRawAddCmd(builder, t.Cmd)
+	CommandResultRawAddOutput(builder, outputOffset)
+	CommandResultRawAddError(builder, errorOffset)
+	return CommandResultRawEnd(builder)
+}
+
+func (rcv *CommandResultRaw) UnPackTo(t *CommandResultRawT) {
+	t.Cmd = rcv.Cmd()
+	t.Output = rcv.OutputBytes()
+	t.Error = string(rcv.Error())
+}
+
+func (rcv *CommandResultRaw) UnPack() *CommandResultRawT {
+	if rcv == nil {
+		return nil
+	}
+	t := &CommandResultRawT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type CommandResultRaw struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsCommandResultRaw(buf []byte, offset flatbuffers.UOffsetT) *CommandResultRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &CommandResultRaw{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func FinishCommandResultRawBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
+	builder.Finish(offset)
+}
+
+func GetSizePrefixedRootAsCommandResultRaw(buf []byte, offset flatbuffers.UOffsetT) *CommandResultRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &CommandResultRaw{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func FinishSizePrefixedCommandResultRawBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
+	builder.FinishSizePrefixed(offset)
+}
+
+func (rcv *CommandResultRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *CommandResultRaw) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *CommandResultRaw) Cmd() Command {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return Command(rcv._tab.GetUint32(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *CommandResultRaw) MutateCmd(n Command) bool {
+	return rcv._tab.MutateUint32Slot(4, uint32(n))
+}
+
+func (rcv *CommandResultRaw) Output(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *CommandResultRaw) OutputLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *CommandResultRaw) OutputBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *CommandResultRaw) MutateOutput(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *CommandResultRaw) Error() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func CommandResultRawStart(builder *flatbuffers.Builder) {
+	builder.StartObject(3)
+}
+func CommandResultRawAddCmd(builder *flatbuffers.Builder, cmd Command) {
+	builder.PrependUint32Slot(0, uint32(cmd), 0)
+}
+func CommandResultRawAddOutput(builder *flatbuffers.Builder, output flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(output), 0)
+}
+func CommandResultRawStartOutputVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func CommandResultRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(error), 0)
+}
+func CommandResultRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 

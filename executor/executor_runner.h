@@ -774,6 +774,11 @@ private:
 		setup_kcsan_filter(conn_reply.race_frames);
 #endif
 
+#if GOOS_freebsd
+		// Execute commands requested by the manager.
+		execute_remote_commands(conn_reply, info_req);
+#endif
+
 		conn_.Send(info_req);
 
 		rpc::InfoReplyRawT info_reply;
