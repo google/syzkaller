@@ -210,31 +210,42 @@ func GetJSONDescrFor(page any) ([]byte, error) {
 func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p *coverageHeatmapParams) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	// By default, return the previous month coverage. It guarantees the good numbers.
-	//
-	// The alternative is to return the current month.
-	// The numbers will jump every day, on the 1st date may drop down.
-	tps, err := coveragedb.GenNPeriodsTill(1, civil.DateOf(time.Now()).AddDays(-31), "month")
-	if err != nil {
-		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
-	}
-
-	covDBClient := getCoverageDBClient(ctx)
-	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, tps[0])
-	if err != nil {
-		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)
-	}
 	subsystem := ""
 	manager := ""
 	filepath := ""
 	withCovered := true
 	withUncovered := true
+	periodType := coveragedb.MonthPeriod
+	var dateTo civil.Date
 	if p != nil {
 		subsystem = p.subsystem
 		manager = p.manager
 		filepath = p.filepath
 		withCovered = p.withCovered
 		withUncovered = p.withUncovered
+		if p.periodType != "" {
+			periodType = p.periodType
+		}
+		dateTo = p.dateTo
+	}
+	// By default, return the previous (complete) period. It guarantees the good numbers.
+	//
+	// The alternative is to return the current period.
+	// The numbers will jump every day, on the period start may drop down.
+	n := 1
+	if dateTo.IsZero() {
+		n, dateTo = 2, civil.DateOf(timeNow(ctx))
+	}
+	tps, err := coveragedb.GenNPeriodsTill(n, dateTo, periodType)
+	if err != nil {
+		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
+	}
+	tps = tps[:1]
+
+	covDBClient := getCoverageDBClient(ctx)
+	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, tps[0])
+	if err != nil {
+		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)
 	}
 	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient,
 		&coveragedb.SelectScope{
