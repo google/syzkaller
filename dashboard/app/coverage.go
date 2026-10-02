@@ -4,6 +4,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"html/template"
@@ -75,7 +76,7 @@ type coverageHeatmapParams struct {
 const minPeriodsOnThePage = 1
 const maxPeriodsOnThePage = 12
 
-func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
+func makeHeatmapParams(r *http.Request) (*coverageHeatmapParams, error) {
 	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
 	periodType := getParam[string](r, PeriodType.ParamName())
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
@@ -94,7 +95,7 @@ func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapPa
 		onlyUnique:    onlyUnique,
 		periodType:    periodType,
 		nPeriods:      nPeriods,
-		dateTo:        getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
+		dateTo:        getParam[civil.Date](r, DateTo.ParamName()),
 		filepath:      getParam[string](r, FilePath.ParamName()),
 		withCovered:   getParam[bool](r, WithCovered.ParamName(), true),
 		withUncovered: getParam[bool](r, WithUncovered.ParamName(), true),
@@ -140,7 +141,7 @@ func handleCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.R
 	if err != nil {
 		return err
 	}
-	params, err := makeHeatmapParams(ctx, r)
+	params, err := makeHeatmapParams(r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
@@ -161,7 +162,7 @@ func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter,
 	if getNsConfig(ctx, hdr.Namespace).Subsystems.Service == nil {
 		return ErrClientNotFound
 	}
-	params, err := makeHeatmapParams(ctx, r)
+	params, err := makeHeatmapParams(r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
@@ -219,7 +220,7 @@ func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p 
 		return ErrClientNotFound
 	}
 
-	periods, err := coveragedb.GenNPeriodsTill(p.nPeriods, p.dateTo, p.periodType)
+	periods, err := coveragedb.GenNPeriodsTill(p.nPeriods, cmp.Or(p.dateTo, civil.DateOf(timeNow(ctx))), p.periodType)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
