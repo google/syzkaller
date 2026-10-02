@@ -13,6 +13,7 @@ import (
 type Meta struct {
 	Automatic bool // automatically-generated descriptions
 	NoExtract bool // do not run syz-extract on the descriptions by default
+	Overlay   string
 	Arches    map[string]bool
 }
 
@@ -56,6 +57,11 @@ func (comp *compiler) fileList() map[string]Meta {
 				meta.Automatic = true
 			case metaNoExtract.Names[0]:
 				meta.NoExtract = true
+			case metaOverlay.Names[0]:
+				if meta.Overlay != "" {
+					comp.error(n.Pos, "duplicate meta overlay")
+				}
+				meta.Overlay = n.Value.Args[0].String
 			case metaArches.Names[0]:
 				meta.Arches = make(map[string]bool)
 				for _, arg := range n.Value.Args {
@@ -65,12 +71,23 @@ func (comp *compiler) fileList() map[string]Meta {
 		}
 		files[file] = meta
 	}
+	for _, meta := range files {
+		if meta.Overlay != "" {
+			if targetMeta, ok := files[meta.Overlay]; ok {
+				if len(targetMeta.Arches) == 0 && len(meta.Arches) != 0 {
+					targetMeta.Arches = meta.Arches
+					files[meta.Overlay] = targetMeta
+				}
+			}
+		}
+	}
 	return files
 }
 
 var metaTypes = map[string]*typeDesc{
 	metaAutomatic.Names[0]: metaAutomatic,
 	metaNoExtract.Names[0]: metaNoExtract,
+	metaOverlay.Names[0]:   metaOverlay,
 	metaArches.Names[0]:    metaArches,
 }
 
@@ -82,6 +99,12 @@ var metaAutomatic = &typeDesc{
 var metaNoExtract = &typeDesc{
 	Names:     []string{"noextract"},
 	CantBeOpt: true,
+}
+
+var metaOverlay = &typeDesc{
+	Names:     []string{"overlay"},
+	CantBeOpt: true,
+	Args:      []namedArg{{Name: "file", Type: &typeArg{Kind: kindString}}},
 }
 
 var metaArches = &typeDesc{

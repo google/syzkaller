@@ -4,6 +4,7 @@
 package declextract
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/clangtool"
@@ -20,6 +21,18 @@ type Output struct {
 	IouringOps      []*IouringOp     `json:"iouring_ops,omitempty"`
 	NetlinkFamilies []*NetlinkFamily `json:"netlink_families,omitempty"`
 	NetlinkPolicies []*NetlinkPolicy `json:"netlink_policies,omitempty"`
+}
+
+func (out *Output) Clone() *Output {
+	data, err := json.Marshal(out)
+	if err != nil {
+		panic(err)
+	}
+	var clone Output
+	if err := json.Unmarshal(data, &clone); err != nil {
+		panic(err)
+	}
+	return &clone
 }
 
 type Function struct {

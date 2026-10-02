@@ -122,6 +122,23 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			comp.extractTypeConsts(ctx, decl)
 		}
 	}
+	for _, decl := range comp.overriddenNodes {
+		extractIntConsts(decl)
+		if n, ok := decl.(*ast.Struct); ok {
+			ctx.instantionStack = append(ctx.instantionStack, comp.structFiles[n])
+			for _, attr := range n.Attrs {
+				attrDesc := structOrUnionAttrs(n)[attr.Ident]
+				if attrDesc.Type == intAttr {
+					comp.addConst(ctx, attr.Pos, attr.Args[0].Ident)
+				}
+			}
+			foreachFieldAttrConst(n, func(t *ast.Type) {
+				comp.addConst(ctx, t.Pos, t.Ident)
+			})
+			comp.extractTypeConsts(ctx, decl)
+			ctx.instantionStack = ctx.instantionStack[:len(ctx.instantionStack)-1]
+		}
+	}
 	return convertConstInfo(ctx, comp.fileMetas)
 }
 
