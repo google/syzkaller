@@ -51,14 +51,13 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_aux
 
-  build:
-    runs-on: ubuntu-22.04-16core
+  lint:
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
-      GITHUB_ACTIONS: true
     steps:
       - name: checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -72,22 +71,21 @@ jobs:
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_build
-      - name: upload coverage artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: coverage-unittests
-          path: gopath/src/github.com/google/syzkaller/.coverage.txt
-          include-hidden-files: true
+          # Run build and lint without tests
+          .github/workflows/run.sh make presubmit_lint
 
-  dashboard:
-    runs-on: ubuntu-22.04-16core
+  test:
+    name: test (${{ matrix.test_shard }})
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
       GITHUB_ACTIONS: true
+    strategy:
+      matrix:
+        test_shard: ['1/5', '2/5', '3/5', '4/5', '5/5']
     steps:
       - name: checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -98,16 +96,32 @@ jobs:
         with:
           path: /syzkaller/.cache
           key: ${{ runner.os }}-syzenv-
-      - name: run
+      - name: run unit tests
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
-      - name: upload coverage artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_test
+      - name: codecov unit tests
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
-          name: coverage-dashboard
-          path: gopath/src/github.com/google/syzkaller/.coverage.txt
-          include-hidden-files: true
+          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
+          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+      - name: run dashboard tests
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
+      - name: codecov dashboard tests
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        with:
+          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
+          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
+          flags: dashboard
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   arch:
     runs-on: ubuntu-latest
@@ -134,39 +148,18 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make ${{ matrix.target }}
 
-  race:
-    runs-on: ubuntu-22.04-16core
+  race_sharded:
+    name: race (${{ matrix.test_shard }})
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
-    timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
+    timeout-minutes: 15
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
-    steps:
-      - name: checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          path: gopath/src/github.com/google/syzkaller
-
-      # https://github.com/golang/go/issues/61608 to cache -race results.
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race
-
-  race_dashboard:
-    runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      CI: true
-      TERM: dumb
+    strategy:
+      matrix:
+        test_shard: ['1/5', '2/5', '3/5', '4/5', '5/5']
     steps:
       - name: checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -177,10 +170,16 @@ jobs:
         with:
           path: /syzkaller/.cache
           key: ${{ runner.os }}-syzenv-
-      - name: run
+      - name: run race tests
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race_dashboard
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_race
+      - name: run race dashboard tests
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_race_dashboard
 
   old:
     runs-on: ubuntu-latest
@@ -230,3 +229,9 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           make
           .github/workflows/run.sh bash -xe tools/gvisor-smoke-test.sh
+
+  ci:
+    needs: [aux, lint, test, arch, race_sharded, old, gvisor]
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
