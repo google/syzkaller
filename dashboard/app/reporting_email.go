@@ -23,7 +23,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/heatmap"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
@@ -215,8 +215,8 @@ func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePerio
 	if err != nil {
 		return "", fmt.Errorf("coveragedb.FilesCoverageWithDetails: %w", err)
 	}
-	templData := cover.FilesCoverageToTemplateData(covAndDates, ns)
-	cover.FormatResult(templData, cover.Format{
+	templData := heatmap.FilesCoverageToTemplateData(covAndDates, ns)
+	heatmap.FormatResult(templData, heatmap.Format{
 		OrderByCoveredLinesDrop:   true,
 		FilterMinCoveredLinesDrop: minDrop,
 	})

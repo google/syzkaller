@@ -15,7 +15,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/heatmap"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/html/urlutil"
@@ -56,7 +56,7 @@ func getCoverageDBClient(ctx context.Context) *spanner.Client {
 
 type funcStyleBodyJS func(
 	ctx context.Context, client *spanner.Client,
-	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string, dataFilters cover.Format,
+	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string, dataFilters heatmap.Format,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 type coverageHeatmapParams struct {
@@ -69,7 +69,7 @@ type coverageHeatmapParams struct {
 	filepath      string
 	withCovered   bool
 	withUncovered bool
-	cover.Format
+	heatmap.Format
 }
 
 const minPeriodsOnThePage = 1
@@ -98,7 +98,7 @@ func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapPa
 		filepath:      getParam[string](r, FilePath.ParamName()),
 		withCovered:   getParam[bool](r, WithCovered.ParamName(), true),
 		withUncovered: getParam[bool](r, WithUncovered.ParamName(), true),
-		Format: cover.Format{
+		Format: heatmap.Format{
 			DropCoveredLines0:         onlyUnique,
 			OrderByCoveredLinesDrop:   getParam[bool](r, OrderByCoverDrop.ParamName()),
 			FilterMinCoveredLinesDrop: getParam[int](r, MinCoverLinesDrop.ParamName()),
@@ -150,7 +150,7 @@ func handleCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.R
 		w.Header().Set("Content-Type", "application/json")
 		return writeExtAPICoverageFor(ctx, w, ns, repo, params)
 	}
-	return handleHeatmap(ctx, w, hdr, params, cover.DoHeatMapStyleBodyJS)
+	return handleHeatmap(ctx, w, hdr, params, heatmap.DoHeatMapStyleBodyJS)
 }
 
 func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -165,7 +165,7 @@ func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter,
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
-	return handleHeatmap(ctx, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
+	return handleHeatmap(ctx, w, hdr, params, heatmap.DoSubsystemsHeatMapStyleBodyJS)
 }
 
 type covPageParam string
@@ -252,10 +252,10 @@ func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p 
 	}
 	return serveTemplate(w, "custom_content.html", struct {
 		Header *uiHeader
-		*cover.StyleBodyJS
+		*heatmap.StyleBodyJS
 	}{
 		Header: hdr,
-		StyleBodyJS: &cover.StyleBodyJS{
+		StyleBodyJS: &heatmap.StyleBodyJS{
 			Style: style,
 			Body:  body,
 			JS:    js,
@@ -331,15 +331,15 @@ func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		webGit = covermerger.MakeWebGit(makeProxyURIProvider(nsConfig.Coverage.WebGitURI))
 	}
 
-	content, err := cover.RendFileCoverage(
+	content, err := covermerger.RendFileCoverage(
 		mainNsRepo,
 		targetCommit,
 		kernelFilePath,
 		webGit,
 		&covermerger.MergeResult{HitCounts: covMap},
-		cover.DefaultHTMLRenderConfig())
+		covermerger.DefaultHTMLRenderConfig())
 	if err != nil {
-		return fmt.Errorf("cover.RendFileCoverage: %w", err)
+		return fmt.Errorf("covermerger.RendFileCoverage: %w", err)
 	}
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(content))

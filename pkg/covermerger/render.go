@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package cover
+package covermerger
 
 import (
 	"context"
@@ -10,10 +10,9 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/covermerger"
 )
 
-type lineRender func(string, int, *covermerger.MergeResult, *CoverageRenderConfig) string
+type lineRender func(string, int, *MergeResult, *CoverageRenderConfig) string
 
 type CoverageRenderConfig struct {
 	RendLine                  lineRender
@@ -40,9 +39,9 @@ func DefaultHTMLRenderConfig() *CoverageRenderConfig {
 	}
 }
 
-func RendFileCoverage(repo, forCommit, filePath string, fileProvider covermerger.FileVersProvider,
-	mr *covermerger.MergeResult, renderConfig *CoverageRenderConfig) (string, error) {
-	repoCommit := covermerger.RepoCommit{Repo: repo, Commit: forCommit}
+func RendFileCoverage(repo, forCommit, filePath string, fileProvider FileVersProvider,
+	mr *MergeResult, renderConfig *CoverageRenderConfig) (string, error) {
+	repoCommit := RepoCommit{Repo: repo, Commit: forCommit}
 	files, err := fileProvider.GetFileVersions(filePath, repoCommit)
 	if err != nil {
 		return "", fmt.Errorf("failed to GetFileVersions: %w", err)
@@ -53,29 +52,29 @@ func RendFileCoverage(repo, forCommit, filePath string, fileProvider covermerger
 // GetMergeResult returns the merge result.
 // nolint:revive
 func GetMergeResult(ctx context.Context, ns, repo, forCommit, sourceCommit, filePath string,
-	proxy covermerger.FuncProxyURI, tp coveragedb.TimePeriod) (*covermerger.MergeResult, error) {
-	config := &covermerger.Config{
+	proxy FuncProxyURI, tp coveragedb.TimePeriod) (*MergeResult, error) {
+	config := &Config{
 		Jobs: 1,
-		Base: covermerger.RepoCommit{
+		Base: RepoCommit{
 			Repo:   repo,
 			Commit: forCommit,
 		},
-		FileVersProvider: covermerger.MakeWebGit(proxy),
+		FileVersProvider: MakeWebGit(proxy),
 	}
 
 	fromDate, toDate := tp.DatesFromTo()
-	csvReader, err := covermerger.InitNsRecords(ctx, ns, filePath, sourceCommit, fromDate, toDate)
+	csvReader, err := InitNsRecords(ctx, ns, filePath, sourceCommit, fromDate, toDate)
 	if err != nil {
-		return nil, fmt.Errorf("failed to covermerger.InitNsRecords: %w", err)
+		return nil, fmt.Errorf("failed to InitNsRecords: %w", err)
 	}
 	defer csvReader.Close()
 
-	ch := make(chan *covermerger.FileMergeResult, 1)
-	if err := covermerger.MergeCSVData(ctx, config, csvReader, ch); err != nil {
+	ch := make(chan *FileMergeResult, 1)
+	if err := MergeCSVData(ctx, config, csvReader, ch); err != nil {
 		return nil, fmt.Errorf("error merging coverage: %w", err)
 	}
 
-	var mr *covermerger.MergeResult
+	var mr *MergeResult
 	select {
 	case fmr := <-ch:
 		if fmr != nil {
@@ -90,11 +89,11 @@ func GetMergeResult(ctx context.Context, ns, repo, forCommit, sourceCommit, file
 	return mr, nil
 }
 
-func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {
+func rendResult(content string, coverage *MergeResult, renderConfig *CoverageRenderConfig) string {
 	if coverage == nil {
-		coverage = &covermerger.MergeResult{
+		coverage = &MergeResult{
 			HitCounts:   map[int]int64{},
-			LineDetails: map[int][]*covermerger.FileRecord{},
+			LineDetails: map[int][]*FileRecord{},
 		}
 	}
 	srcLines := strings.Split(content, "\n")
@@ -105,7 +104,7 @@ func rendResult(content string, coverage *covermerger.MergeResult, renderConfig 
 	return strings.Join(resLines, "\n")
 }
 
-func RendTextLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
+func RendTextLine(code string, line int, coverage *MergeResult, config *CoverageRenderConfig) string {
 	res := ""
 	if config.ShowLineSourceExplanation {
 		explanation := ""
@@ -130,12 +129,12 @@ func RendTextLine(code string, line int, coverage *covermerger.MergeResult, conf
 	return res
 }
 
-func RendHTMLLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
+func RendHTMLLine(code string, line int, coverage *MergeResult, config *CoverageRenderConfig) string {
 	textLine := RendTextLine(code, line, coverage, config)
 	return `<pre style="margin: 0">` + html.EscapeString(textLine) + "</pre>"
 }
 
-func mainSignalSource(sources []*covermerger.FileRecord) string {
+func mainSignalSource(sources []*FileRecord) string {
 	res := ""
 	prevMax := -1
 	for _, source := range sources {

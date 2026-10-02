@@ -1,7 +1,9 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package cover
+// Package heatmap renders coverage heatmaps (per-directory/per-subsystem
+// coverage over time) from the data stored in the coverage database.
+package heatmap
 
 import (
 	"bytes"
@@ -13,6 +15,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"maps"
@@ -123,7 +126,7 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, na
 		var dateCoverage int64
 		tp := pageColumn.TimePeriod
 		if thm.instrumented[tp] != 0 {
-			dateCoverage = Percent(thm.covered[tp], thm.instrumented[tp])
+			dateCoverage = cover.Percent(thm.covered[tp], thm.instrumented[tp])
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
 		thm.Covered = append(thm.Covered, thm.covered[tp])
