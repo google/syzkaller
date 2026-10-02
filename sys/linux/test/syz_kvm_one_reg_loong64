@@ -1,0 +1,15 @@
+#
+# requires: arch=loong64
+#
+
+r0 = openat$kvm(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+
+ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@loong64_kvm={0x9030000000020003, &AUTO})
+syz_kvm_assert_reg$loong64(r2, 0x9030000000020003, 0x2b8101)
+
+ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@loong64_cpucfg={0x9030000000040000, &AUTO})
+
+ioctl$KVM_SET_ONE_REG(r2, AUTO, &AUTO=@loong64_csr={0x9030000000010180, &AUTO=0x1234})
+syz_kvm_assert_reg$loong64(r2, 0x9030000000010180, 0x1234)
