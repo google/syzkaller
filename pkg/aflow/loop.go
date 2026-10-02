@@ -205,6 +205,12 @@ func (f *ForEach) execute(ctx *Context) error {
 		return fmt.Errorf("ForEach list %q is not a slice", f.List)
 	}
 
+	for name := range f.loopVars {
+		if _, ok := ctx.state[name]; ok {
+			return fmt.Errorf("loop var %q is already defined", name)
+		}
+	}
+
 	span := &trajectory.Span{
 		Type: trajectory.SpanLoop,
 		Name: "ForEach",
@@ -214,9 +220,6 @@ func (f *ForEach) execute(ctx *Context) error {
 	}
 
 	for name, typ := range f.loopVars {
-		if _, ok := ctx.state[name]; ok {
-			return fmt.Errorf("loop var %q is already defined", name)
-		}
 		ctx.state[name] = reflect.Zero(typ).Interface()
 	}
 
@@ -228,7 +231,7 @@ func (f *ForEach) execute(ctx *Context) error {
 			Name: fmt.Sprintf("%d", i),
 		}
 		if err := ctx.startSpan(iterSpan); err != nil {
-			return err
+			return ctx.finishSpan(span, err)
 		}
 
 		ctx.state[f.Item] = itemVal
