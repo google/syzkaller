@@ -56,14 +56,28 @@
 	}
 }
 /*
- * TOPBAR CONTAINER DISPLAY
+ * TOPBAR CONTAINER LAYOUT & STICKINESS
  * 
- * Configures the topbar container to stretch with overflowing page layouts.
+ * By default (on mobile), the topbar stretches to 100% of the body width.
+ * This ensures that if the browser zooms out to fit wide tables, the header
+ * stretches with the content and does not get cut off.
+ * 
+ * On tablet/desktop screens (min-width: 768px), we make the header sticky
+ * horizontally so it remains accessible when scrolling wide tables.
+ * We cap it at max-width: 100vw to allow it to stick within the wider body,
+ * and use position: sticky with left: 0 to anchor it to the viewport.
  */
 #topbar {
-	display: table;
 	width: 100%;
 	margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+	#topbar {
+		position: sticky;
+		left: 0;
+		max-width: 100vw;
+	}
 }
 /*
  * SUB-NAVIGATION PILLS BAR
