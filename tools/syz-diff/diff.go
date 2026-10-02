@@ -48,9 +48,17 @@ func main() {
 	}
 
 	ctx := vm.ShutdownCtx()
+	// diff.Run requires a consumer of patched-only bugs. It already logs them
+	// and the store keeps their artifacts in the workdir, so they are dropped here.
+	patchedOnly := make(chan *diff.Bug)
+	go func() {
+		for range patchedOnly {
+		}
+	}()
 	err = diff.Run(ctx, baseCfg, newCfg, diff.Config{
-		Store: &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
-		Debug: *flagDebug,
+		Store:       &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
+		Debug:       *flagDebug,
+		PatchedOnly: patchedOnly,
 	})
 	if err != nil {
 		log.Fatal(err)
