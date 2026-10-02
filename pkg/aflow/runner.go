@@ -38,16 +38,15 @@ type RunnerManager struct {
 
 	reporter *report.Reporter
 
-	debug  bool
-	logf   LogFunc
-	readyC chan struct{}
+	debug    bool
+	logf     LogFunc
+	readyC   chan struct{}
+	stoppedC chan struct{}
 
 	crashes []*report.Report
-
-	ctx context.Context
 }
 
-func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, logf LogFunc) (*RunnerManager, error) {
+func newRunnerManager(cfg *mgrconfig.Config, debug bool, logf LogFunc) (*RunnerManager, error) {
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reporter: %w", err)
@@ -63,7 +62,7 @@ func newRunnerManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, lo
 		logf:     logf,
 		source:   queue.Plain(),
 		readyC:   make(chan struct{}),
-		ctx:      ctx,
+		stoppedC: make(chan struct{}),
 	}
 	return rm, nil
 }
@@ -87,13 +86,13 @@ func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, 
 
 	eg, egCtx := errgroup.WithContext(ctx)
 
-	rm, err := newRunnerManager(egCtx, cfg, debug, logf)
+	rm, err := newRunnerManager(cfg, debug, logf)
 	if err != nil {
 		return fmt.Errorf("failed to create isolated RunnerManager: %w", err)
 	}
 
 	eg.Go(func() error {
-		if err := rm.Loop(); err != nil {
+		if err := rm.Loop(egCtx); err != nil {
 			if egCtx.Err() != nil {
 				return nil
 			}
@@ -118,7 +117,9 @@ func RunIsolatedManager(ctx context.Context, cfg *mgrconfig.Config, debug bool, 
 	return eg.Wait()
 }
 
-func (rm *RunnerManager) Loop() error {
+func (rm *RunnerManager) Loop(ctx context.Context) error {
+	defer close(rm.stoppedC)
+
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  rm.cfg,
 		Manager: rm,
@@ -157,7 +158,7 @@ func (rm *RunnerManager) Loop() error {
 		return fmt.Errorf("failed to setup execbackend: %w", err)
 	}
 
-	eg, egCtx := errgroup.WithContext(rm.ctx)
+	eg, egCtx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		err := rm.backend.Serve(egCtx)
@@ -258,6 +259,12 @@ func (rm *RunnerManager) SubmitBatch(
 		return nil, nil
 	}
 
+	select {
+	case <-rm.stoppedC:
+		return nil, fmt.Errorf("RunnerManager is stopped")
+	default:
+	}
+
 	results := make([]*queue.Result, len(progs))
 	var wg sync.WaitGroup
 	wg.Add(len(progs))
@@ -277,10 +284,10 @@ func (rm *RunnerManager) SubmitBatch(
 	}()
 
 	select {
-	case <-rm.ctx.Done():
-		return nil, rm.ctx.Err()
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-rm.stoppedC:
+		return nil, fmt.Errorf("RunnerManager is stopped")
 	case <-doneC:
 		return results, nil
 	}
