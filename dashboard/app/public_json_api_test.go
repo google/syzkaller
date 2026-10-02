@@ -293,7 +293,9 @@ func TestPublicJSONAPI(t *testing.T) {
 }
 
 func TestWriteExtAPICoverageFor(t *testing.T) {
-	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+	c := NewCtx(t)
+	defer c.Close()
+	ctx := setCoverageDBClient(c.ctx, fileFuncLinesDBFixture(t, prevMonthPeriod(c),
 		[]*coveragedb.FuncLines{
 			{
 				FilePath: "/file",
@@ -359,7 +361,9 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 }
 
 func TestWriteExtAPICoverageFor_Flags(t *testing.T) {
-	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+	c := NewCtx(t)
+	defer c.Close()
+	ctx := setCoverageDBClient(c.ctx, fileFuncLinesDBFixture(t, prevMonthPeriod(c),
 		[]*coveragedb.FuncLines{
 			{
 				FilePath: "/file",
@@ -483,7 +487,9 @@ func TestWriteExtAPICoverageFor_Flags(t *testing.T) {
 }
 
 func TestWriteExtAPICoverageFor_FilePath(t *testing.T) {
-	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+	c := NewCtx(t)
+	defer c.Close()
+	ctx := setCoverageDBClient(c.ctx, fileFuncLinesDBFixture(t, prevMonthPeriod(c),
 		[]*coveragedb.FuncLines{
 			{
 				FilePath: "/dir/file1",
@@ -546,14 +552,70 @@ func TestWriteExtAPICoverageFor_FilePath(t *testing.T) {
 `, buf.String())
 }
 
-func fileFuncLinesDBFixture(t *testing.T, funcLines []*coveragedb.FuncLines,
+func TestWriteExtAPICoverageFor_PeriodType(t *testing.T) {
+	dateTo := civil.Date{Year: 2025, Month: 3, Day: 31}
+	tps, err := coveragedb.GenNPeriodsTill(1, dateTo, coveragedb.QuarterPeriod)
+	require.NoError(t, err)
+	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t, tps[0],
+		[]*coveragedb.FuncLines{
+			{
+				FilePath: "/file",
+				FuncName: "func_name",
+				Lines:    []int64{1},
+			},
+		},
+		[]*coveragedb.FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+					Filepath: "/file",
+					Commit:   "test-commit",
+				},
+				LinesInstrumented: []int64{1},
+				HitCounts:         []int64{10},
+			},
+		},
+	))
+
+	// Query for the quarter period instead of the default month.
+	var buf bytes.Buffer
+	params := &coverageHeatmapParams{
+		periodType:  coveragedb.QuarterPeriod,
+		dateTo:      dateTo,
+		withCovered: true,
+	}
+	err = writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo", params)
+	require.NoError(t, err)
+	require.Equal(t, `{
+	"repo": "test-repo",
+	"commit": "test-commit",
+	"file_path": "/file",
+	"functions": [
+		{
+			"func_name": "func_name",
+			"blocks": [
+				{
+					"hit_count": 10,
+					"from_line": 1,
+					"from_column": 0,
+					"to_line": 1,
+					"to_column": -1
+				}
+			]
+		}
+	]
+}
+`, buf.String())
+}
+
+func prevMonthPeriod(c *Ctx) coveragedb.TimePeriod {
+	tps, err := coveragedb.GenNPeriodsTill(2, civil.DateOf(timeNow(c.ctx)), coveragedb.MonthPeriod)
+	require.NoError(c.t, err)
+	return tps[0]
+}
+
+func fileFuncLinesDBFixture(t *testing.T, period coveragedb.TimePeriod, funcLines []*coveragedb.FuncLines,
 	fileCovWithLineInfo []*coveragedb.FileCoverageWithLineInfo) *spanner.Client {
 	client := testutil.SetupCoverageTestDB(t)
-
-	// Get target period: 31 days ago, monthly.
-	tps, err := coveragedb.GenNPeriodsTill(1, civil.DateOf(time.Now()).AddDays(-31), "month")
-	require.NoError(t, err)
-	period := tps[0]
 
 	// Functions are queried with namespace "test-ns" in TestWriteExtAPICoverageFor.
 	// Coverage files are queried with namespace "test-ns".
