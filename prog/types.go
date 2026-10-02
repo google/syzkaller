@@ -499,8 +499,13 @@ func (t *IntType) calcUselessHints() []uint64 {
 	align := max(1, t.Align)
 	rangeVals := (t.RangeEnd - t.RangeBegin) / align
 	if rangeVals != 0 && rangeVals <= 100 {
-		for v := t.RangeBegin; v <= t.RangeEnd; v += align {
+		// Count the values instead of comparing against RangeEnd: when the
+		// last step wraps past math.MaxUint64 (e.g. int32be[-3:-1]), v never
+		// exceeds RangeEnd and the loop appends until it runs out of memory.
+		v := t.RangeBegin
+		for i := uint64(0); i <= rangeVals; i++ {
 			res = append(res, v)
+			v += align
 		}
 	}
 	return res
