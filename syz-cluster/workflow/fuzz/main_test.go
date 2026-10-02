@@ -179,6 +179,10 @@ func TestFilterFindingCandidates(t *testing.T) {
 			Patched: manager.DiffBugInfo{Crashes: 5, Report: ""},
 		},
 		{
+			Title:   "corrupted report crash",
+			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report_corrupted", CorruptedReport: true},
+		},
+		{
 			Title:   "ignored status crash",
 			Status:  manager.DiffBugStatusIgnored,
 			Patched: manager.DiffBugInfo{Crashes: 5, Report: "report3"},

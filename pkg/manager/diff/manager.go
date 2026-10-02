@@ -235,7 +235,7 @@ loop:
 			need := !ignore && dc.NeedRepro(crash)
 			log.Logf(0, "patched crashed: %v [need repro = %v]",
 				rep.Title, need)
-			dc.store.PatchedCrashed(rep.Title, rep.Report, rep.Output)
+			dc.store.PatchedCrashed(rep)
 			if need {
 				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusVerifying)
 				reproLoop.Enqueue(crash)
