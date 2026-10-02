@@ -152,6 +152,11 @@ func isOutputTokenOverflowError(err error) bool {
 	return errors.As(err, &overflowErr)
 }
 
+func isBlockedError(err error) bool {
+	var blockedErr *backend.BlockedError
+	return errors.As(err, &blockedErr)
+}
+
 // QuotaResetTime returns the time when RPD quota will be reset
 // for a quota overflow happened at time t.
 func QuotaResetTime(t time.Time) time.Time {

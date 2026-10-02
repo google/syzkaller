@@ -381,13 +381,92 @@
 		"Finished": "0001-01-01T00:00:38Z"
 	},
 	{
+		"Seq": 20,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:39Z",
+		"Args": {
+			"Question": "Blocked question?"
+		}
+	},
+	{
+		"Seq": 21,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:40Z",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Blocked question?"
+	},
+	{
+		"Seq": 22,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:41Z"
+	},
+	{
+		"Seq": 22,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:41Z",
+		"Finished": "0001-01-01T00:00:42Z",
+		"Error": "request blocked: OTHER"
+	},
+	{
+		"Seq": 21,
+		"Nesting": 3,
+		"Type": "agent",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:40Z",
+		"Finished": "0001-01-01T00:00:43Z",
+		"Error": "request blocked: OTHER",
+		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n",
+		"Prompt": "Blocked question?"
+	},
+	{
+		"Seq": 20,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "researcher",
+		"Started": "0001-01-01T00:00:39Z",
+		"Finished": "0001-01-01T00:00:44Z",
+		"Error": "request blocked: OTHER",
+		"Args": {
+			"Question": "Blocked question?"
+		}
+	},
+	{
+		"Seq": 23,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:45Z"
+	},
+	{
+		"Seq": 23,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:45Z",
+		"Finished": "0001-01-01T00:00:46Z"
+	},
+	{
 		"Seq": 1,
 		"Nesting": 1,
 		"Type": "agent",
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:39Z",
+		"Finished": "0001-01-01T00:00:47Z",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "YES"
@@ -398,7 +477,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:40Z",
+		"Finished": "0001-01-01T00:00:48Z",
 		"Results": {
 			"Reply": "YES"
 		}

@@ -436,10 +436,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		var rawReq []*backend.Message
-		for _, msg := range a.req {
-			rawReq = append(rawReq, msg.content)
-		}
+		rawReq := extractHistoryMessages(a.req)
 		resp, respErr := a.generateContent(ctx, cfg, rawReq, candidate, a.Model, span)
 
 		if respErr != nil {
@@ -453,6 +450,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 			// It gets its own iteration budget, so no need to adjust iter here.
 			if isInputTokenOverflowError(respErr) && a.tryAnswerNow(true) {
 				continue
+			}
+			if a.SubAgent && isBlockedError(respErr) {
+				return "", nil, BadCallError("%v", respErr)
 			}
 			return "", nil, respErr
 		}

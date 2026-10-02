@@ -143,7 +143,9 @@ func TestParseLLMError(t *testing.T) {
 					BlockReason: genai.BlockedReasonSafety,
 				},
 			},
-			outputErr: errors.New("request blocked: SAFETY"),
+			outputErr: &backend.BlockedError{
+				Err: errors.New("request blocked: SAFETY"),
+			},
 		},
 		{
 			resp: &genai.GenerateContentResponse{
@@ -153,7 +155,9 @@ func TestParseLLMError(t *testing.T) {
 					},
 				},
 			},
-			outputErr: errors.New("SAFETY"),
+			outputErr: &backend.BlockedError{
+				Err: errors.New("SAFETY"),
+			},
 		},
 		{
 			resp: &genai.GenerateContentResponse{

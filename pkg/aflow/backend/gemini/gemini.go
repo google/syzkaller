@@ -316,7 +316,7 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 			if reason == "" {
 				reason = string(resp.PromptFeedback.BlockReason)
 			}
-			return fmt.Errorf("request blocked: %v", reason)
+			return &backend.BlockedError{Err: fmt.Errorf("request blocked: %v", reason)}
 		}
 		return fmt.Errorf("empty model response")
 	}
@@ -335,10 +335,21 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 			// generate the same buggy output. In either case we have maxLLMRetryIters.
 			return &backend.RetryError{Delay: 0, IsExponential: false, Err: errors.New(string(candidate.FinishReason))}
 		}
-		if candidate.FinishMessage == "" {
-			return errors.New(string(candidate.FinishReason))
+		err := errors.New(string(candidate.FinishReason))
+		if candidate.FinishMessage != "" {
+			err = fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
 		}
-		return fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
+		// Only wrap safety and guardrail block reasons in BlockedError, rather than
+		// other failure reasons like UNEXPECTED_TOOL_CALL or FINISH_REASON_UNSPECIFIED.
+		switch candidate.FinishReason {
+		case genai.FinishReasonSafety,
+			genai.FinishReasonProhibitedContent,
+			genai.FinishReasonBlocklist,
+			genai.FinishReasonSPII,
+			genai.FinishReasonOther:
+			return &backend.BlockedError{Err: err}
+		}
+		return err
 	}
 	// We don't expect to receive these fields now.
 	// Note: CitationMetadata may be present sometimes, but we don't have uses for it.
