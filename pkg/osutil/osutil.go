@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -256,6 +257,46 @@ func MkdirAll(dir string) error {
 
 func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
+}
+
+func WriteFileMode(filename string, data []byte, perm os.FileMode) error {
+	tmpFile, err := os.CreateTemp(filepath.Dir(filename), "."+filepath.Base(filename)+".tmp.")
+	if err != nil {
+		return err
+	}
+	tmpName := tmpFile.Name()
+	removeTmp := true
+	defer func() {
+		if removeTmp {
+			os.Remove(tmpName)
+		}
+	}()
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Chmod(perm); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpName, filename); err != nil {
+		if runtime.GOOS != "windows" {
+			return err
+		}
+		// Windows does not replace an existing destination in os.Rename.
+		// Remove the old file after the new file has the requested mode.
+		if removeErr := os.Remove(filename); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
+			return removeErr
+		}
+		if err := os.Rename(tmpName, filename); err != nil {
+			return err
+		}
+	}
+	removeTmp = false
+	return nil
 }
 
 // WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
