@@ -6,6 +6,7 @@ package prog
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"slices"
@@ -847,6 +848,47 @@ func TestHintsLimiter(t *testing.T) {
 		1000: 3,
 		2000: 1,
 	})
+}
+
+func TestIntTypeUselessHintsRange(t *testing.T) {
+	tests := []struct {
+		name              string
+		begin, end, align uint64
+		want              []uint64
+	}{
+		{
+			name:  "end at -1",
+			begin: math.MaxUint64 - 2,
+			end:   math.MaxUint64,
+			want:  []uint64{math.MaxUint64 - 2, math.MaxUint64 - 1, math.MaxUint64},
+		},
+		{
+			name:  "aligned, end at -1",
+			begin: math.MaxUint64 - 15,
+			end:   math.MaxUint64,
+			align: 8,
+			want:  []uint64{math.MaxUint64 - 15, math.MaxUint64 - 7},
+		},
+		{
+			name:  "aligned, last step wraps",
+			begin: math.MaxUint64 - 19,
+			end:   math.MaxUint64 - 2,
+			align: 8,
+			want:  []uint64{math.MaxUint64 - 19, math.MaxUint64 - 11, math.MaxUint64 - 3},
+		},
+		{
+			name:  "crossing zero",
+			begin: math.MaxUint64,
+			end:   1,
+			want:  []uint64{math.MaxUint64, 0, 1},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			typ := &IntType{RangeBegin: test.begin, RangeEnd: test.end, Align: test.align}
+			assert.Equal(t, test.want, typ.calcUselessHints()[len(specialInts):])
+		})
+	}
 }
 
 func perPCCount(comps CompMap) map[uint64]int {
