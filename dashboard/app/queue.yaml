@@ -1,0 +1,9 @@
+queue:
+- name: repro-batch
+  rate: 50/s
+  bucket_size: 20
+  max_concurrent_requests: 20
+  retry_parameters:
+    task_retry_limit: 5
+    min_backoff_seconds: 10
+    max_backoff_seconds: 300
