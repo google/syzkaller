@@ -1,0 +1,22 @@
+# Set and get SCTP socket options on a TCP-style socket, using the
+# SCTP_FUTURE_ASSOC (0) association id and the wildcard address.
+
+r0 = socket$inet_sctp(0x2, 0x1, 0x84)
+setsockopt$inet_sctp_SCTP_REUSE_PORT(r0, 0x84, 0x24, &AUTO=0x1, AUTO)
+getsockopt$inet_sctp_SCTP_REUSE_PORT(r0, 0x84, 0x24, &AUTO, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_AUTH_SUPPORTED(r0, 0x84, 0x81, &AUTO={0x0, 0x1}, AUTO)
+getsockopt$inet_sctp_SCTP_AUTH_SUPPORTED(r0, 0x84, 0x81, &AUTO={0x0, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_ASCONF_SUPPORTED(r0, 0x84, 0x80, &AUTO={0x0, 0x1}, AUTO)
+getsockopt$inet_sctp_SCTP_ASCONF_SUPPORTED(r0, 0x84, 0x80, &AUTO={0x0, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_ECN_SUPPORTED(r0, 0x84, 0x82, &AUTO={0x0, 0x1}, AUTO)
+getsockopt$inet_sctp_SCTP_ECN_SUPPORTED(r0, 0x84, 0x82, &AUTO={0x0, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(r0, 0x84, 0x83, &AUTO={0x0, 0x1}, AUTO)
+getsockopt$inet_sctp_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(r0, 0x84, 0x83, &AUTO={0x0, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_EVENT(r0, 0x84, 0x7f, &AUTO={0x0, 0x8001, 0x1}, AUTO)
+getsockopt$inet_sctp_SCTP_EVENT(r0, 0x84, 0x7f, &AUTO={0x0, 0x8001, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS_V2(r0, 0x84, 0x25, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x5, 0x1, 0x2}, AUTO)
+getsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS_V2(r0, 0x84, 0x25, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x0, 0x0, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(r0, 0x84, 0x84, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x4e20}, AUTO)
+getsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(r0, 0x84, 0x84, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x0}, &AUTO=AUTO)
+setsockopt$inet_sctp_SCTP_PLPMTUD_PROBE_INTERVAL(r0, 0x84, 0x85, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x1388}, AUTO)
+getsockopt$inet_sctp_SCTP_PLPMTUD_PROBE_INTERVAL(r0, 0x84, 0x85, &AUTO={0x0, @in={{AUTO, 0x4e20, @empty}}, 0x0}, &AUTO=AUTO)
