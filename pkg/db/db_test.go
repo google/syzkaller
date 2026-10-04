@@ -418,3 +418,89 @@ func TestOpenReadOnly(t *testing.T) {
 		require.Panics(t, func() { roDB.BumpVersion(3) })
 	})
 }
+
+func TestMergeVersion(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	dir := t.TempDir()
+	createDB := func(name string, version uint64, vals ...string) string {
+		fn := filepath.Join(dir, name)
+		var records []Record
+		for _, val := range vals {
+			records = append(records, Record{Val: []byte(val), Seq: 0})
+		}
+		require.NoError(t, Create(fn, version, records))
+		return fn
+	}
+	readVersion := func(fn string) uint64 {
+		db, err := OpenReadOnly(fn)
+		require.NoError(t, err)
+		return db.Version
+	}
+	rawProg := filepath.Join(dir, "prog.txt")
+	require.NoError(t, os.WriteFile(rawProg, []byte("test()\n"), osutil.DefaultFilePerm))
+
+	tests := []struct {
+		name  string
+		into  string
+		other []string
+		want  uint64
+	}{
+		{
+			name:  "fresh dst inherits min of inputs",
+			into:  filepath.Join(dir, "fresh1"),
+			other: []string{createDB("a1", 5, "a"), createDB("b1", 3, "b"), createDB("c1", 4, "c")},
+			want:  3,
+		},
+		{
+			name:  "fresh dst with only raw programs",
+			into:  filepath.Join(dir, "fresh2"),
+			other: []string{rawProg},
+			want:  0,
+		},
+		{
+			name:  "existing dst keeps version if inputs are newer",
+			into:  createDB("dst1", 2, "x"),
+			other: []string{createDB("a2", 5, "a")},
+			want:  2,
+		},
+		{
+			name:  "existing dst is downgraded by older input",
+			into:  createDB("dst2", 5, "x"),
+			other: []string{createDB("a3", 5, "a"), createDB("b3", 1, "b")},
+			want:  1,
+		},
+		{
+			name:  "raw program resets version to 0",
+			into:  createDB("dst3", 5, "x"),
+			other: []string{createDB("a4", 5, "a"), rawProg},
+			want:  0,
+		},
+		{
+			name:  "nothing merged keeps version",
+			into:  createDB("dst4", 5, "x"),
+			other: nil,
+			want:  5,
+		},
+		{
+			name:  "empty dst inherits min of inputs",
+			into:  createDB("dst5", 0),
+			other: []string{createDB("a5", 5, "a"), createDB("b5", 3, "b")},
+			want:  3,
+		},
+		{
+			name:  "empty input does not downgrade version",
+			into:  createDB("dst6", 5, "x"),
+			other: []string{createDB("a6", 0), createDB("b6", 7, "b")},
+			want:  5,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			failed, err := Merge(test.into, test.other, target)
+			require.NoError(t, err)
+			require.Empty(t, failed)
+			require.Equal(t, test.want, readVersion(test.into))
+		})
+	}
+}

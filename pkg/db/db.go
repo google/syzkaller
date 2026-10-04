@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"os"
 	"slices"
 
@@ -400,16 +401,30 @@ type DeserializeFailure struct {
 	Err  error
 }
 
+// Merge merges the other DB files and/or raw program files into the DB file 'into'.
+// The resulting DB version is the minimum of the versions of all merged non-empty
+// DB files (including 'into'). The version denotes what processing was applied to
+// all programs in the DB (see pkg/manager.versionToFlags), so the merged DB can only
+// claim the weakest guarantee among its inputs. Empty DBs contribute no programs and
+// thus don't constrain the version. Raw program files were not processed at all,
+// so merging any of them resets the version to 0.
 func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailure, error) {
 	dstDB, err := Open(into, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+	version := uint64(math.MaxUint64)
+	if len(dstDB.Records) > 0 {
+		version = dstDB.Version
+	}
 	var failed []DeserializeFailure
 	for _, add := range other {
-		_, addRecords, _, err := deserializeFile(add)
+		addVersion, addRecords, _, err := deserializeFile(add)
 		if err == nil {
 			// It's a DB file.
+			if len(addRecords) > 0 {
+				version = min(version, addVersion)
+			}
 			for _, key := range slices.Sorted(maps.Keys(addRecords)) {
 				rec := addRecords[key]
 				dstDB.Save(key, rec.Val, rec.Seq)
@@ -427,9 +442,15 @@ func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailu
 		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
 			failed = append(failed, DeserializeFailure{add, err})
 		}
+		version = 0
 		dstDB.Save(hash.String(data), data, 0)
 	}
-	if err := dstDB.Flush(); err != nil {
+	if version == math.MaxUint64 {
+		// No programs were merged, keep the destination as is.
+		if err := dstDB.Flush(); err != nil {
+			return nil, fmt.Errorf("failed to save db: %w", err)
+		}
+	} else if err := dstDB.BumpVersion(version); err != nil {
 		return nil, fmt.Errorf("failed to save db: %w", err)
 	}
 	return failed, nil
