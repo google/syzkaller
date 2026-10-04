@@ -1,0 +1,8 @@
+# Request a freeze notification for the context manager node (BR_FROZEN_BINDER),
+# acknowledge it and then clear it (BR_CLEAR_FREEZE_NOTIFICATION_DONE).
+
+r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_SET_CONTEXT_MGR_EXT(r0, AUTO, &AUTO={AUTO, 0x100, 0x0, 0x0})
+r1 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}, @increfs={AUTO, 0x0}, @request_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=""/256})
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@freeze_done={AUTO, 0x1}, @clear_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=""/256})

@@ -1,0 +1,11 @@
+# Read binderfs logs and features (binder_logs requires mounting binderfs with stats=global).
+# requires: -sandbox=namespace
+
+r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_VERSION(r0, AUTO, &AUTO)
+r1 = openat$binderfs_log(0xffffffffffffff9c, &AUTO='./binderfs/binder_logs/state\x00', 0x0, 0x0)
+read(r1, &AUTO=""/4096, AUTO)
+r2 = openat$binderfs_log(0xffffffffffffff9c, &AUTO='./binderfs/binder_logs/stats\x00', 0x0, 0x0)
+read(r2, &AUTO=""/4096, AUTO)
+r3 = openat$binderfs_feature(0xffffffffffffff9c, &AUTO='./binderfs/features/freeze_notification\x00', 0x0, 0x0)
+read(r3, &AUTO=""/16, AUTO)
