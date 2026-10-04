@@ -35,6 +35,14 @@ binderfs_device {
 	minor	int32	(out)
 }
 
+# Created if binderfs is mounted with stats=global (syz-executor tries to do so).
+# The last 4 files are only created by C binder.
+binderfs_logpath = "./binderfs/binder_logs/stats", "./binderfs/binder_logs/state", "./binderfs/binder_logs/transactions", "./binderfs/binder_logs/transaction_log", "./binderfs/binder_logs/failed_transaction_log", "./binderfs/binder_logs/state_hashed", "./binderfs/binder_logs/transactions_hashed"
+binderfs_featurepath = "./binderfs/features/oneway_spam_detection", "./binderfs/features/extended_error", "./binderfs/features/freeze_notification", "./binderfs/features/transaction_report"
+
+openat$binderfs_log(fd const[AT_FDCWD], file ptr[in, string[binderfs_logpath]], flags const[O_RDONLY], mode const[0]) fd
+openat$binderfs_feature(fd const[AT_FDCWD], file ptr[in, string[binderfs_featurepath]], flags const[O_RDONLY], mode const[0]) fd
+
 resource fd_binderfs_ctrl[fd]
 openat$binderfs_ctrl(fd const[AT_FDCWD], file ptr[in, string[binderfs_ctrlpath]], flags flags[binder_open_flags], mode const[0]) fd_binderfs_ctrl
 ioctl$BINDER_CTL_ADD(fd fd_binderfs_ctrl, cmd const[BINDER_CTL_ADD], arg ptr[inout, binderfs_device])

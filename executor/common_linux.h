@@ -4473,8 +4473,15 @@ static void setup_binderfs()
 		debug("mkdir(/dev/binderfs) failed: %d\n", errno);
 	}
 
-	if (mount("binder", "/dev/binderfs", "binder", 0, NULL)) {
-		debug("mount of binder at /dev/binderfs failed: %d\n", errno);
+	// stats=global makes binderfs create binder_logs/{stats,state,transactions,proc}.
+	// The option may be unsupported (old kernels) or require CAP_SYS_ADMIN in the
+	// initial user namespace (fails under sandbox=namespace). If it fails for any
+	// reason, mount binderfs without it.
+	if (mount("binder", "/dev/binderfs", "binder", 0, "stats=global")) {
+		debug("mount of binder at /dev/binderfs with stats=global failed: %d\n", errno);
+		if (mount("binder", "/dev/binderfs", "binder", 0, NULL)) {
+			debug("mount of binder at /dev/binderfs failed: %d\n", errno);
+		}
 	}
 #if !SYZ_EXECUTOR && !SYZ_USE_TMP_DIR
 	// Do a local symlink right away.

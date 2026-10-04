@@ -17,8 +17,9 @@ resource binder_ptr[int64]: 0
 # What's the difference between these node and handle? Do they mean the same?
 type binder_node int64[0:3]
 type binder_handle int32[0:3]
-# It seems that cookies are only checked for inequality and non-matching cookies only cover error paths.
-type binder_cookie const[0, int64]
+# Cookies are mostly checked for equality, but in Rust binder they are also
+# the keys of freeze listeners, so there should be a few distinct values.
+type binder_cookie int64[0:3]
 
 openat$binder(fd const[AT_FDCWD], file ptr[in, string["/dev/binder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
 openat$binderfs(fd const[AT_FDCWD], file ptr[in, string[binderfs_devpath]], flags flags[binder_open_flags], mode const[0]) fd_binder
@@ -39,6 +40,7 @@ ioctl$BINDER_FREEZE(fd fd_binder, cmd const[BINDER_FREEZE], arg ptr[in, binder_f
 ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], arg ptr[in, binder_frozen_status_info])
 ioctl$BINDER_ENABLE_ONEWAY_SPAM_DETECTION(fd fd_binder, cmd const[BINDER_ENABLE_ONEWAY_SPAM_DETECTION], arg ptr[in, bool32])
 ioctl$BINDER_GET_EXTENDED_ERROR(fd fd_binder, cmd const[BINDER_GET_EXTENDED_ERROR], arg ptr[out, binder_extended_error])
+ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[out, binder_version])
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 
@@ -81,7 +83,8 @@ binder_write_read {
 	write_buffer	ptr64[in, array[binder_write_cmd]]
 	read_size	bytesize[read_buffer, int64]
 	read_consumed	const[0, int64]
-	read_buffer	ptr64[in, array[int8]]
+# The buffer must be large enough to receive at least BR_TRANSACTION/BR_REPLY.
+	read_buffer	ptr64[out, array[int8, 256:4096]]
 }
 
 binder_write_cmd [
@@ -102,6 +105,9 @@ binder_write_cmd [
 	request_death		binder_cmd_request_death
 	clear_death		binder_cmd_clear_death
 	dead_binder_done	binder_cmd_dead_binder_done
+	request_freeze		binder_cmd_request_freeze
+	clear_freeze		binder_cmd_clear_freeze
+	freeze_done		binder_cmd_freeze_done
 ] [varlen]
 
 binder_cmd_transaction {
@@ -156,7 +162,7 @@ binder_offsets {
 	off2	offsetof[binder_transaction_data:buffer:obj2, int64]
 }
 
-binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS, TF_CLEAR_BUF
+binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS, TF_CLEAR_BUF, TF_UPDATE_TXN, TF_DEFER_COMPLETE
 
 binder_object [
 	flat	flat_binder_object
@@ -273,6 +279,27 @@ binder_cmd_dead_binder_done {
 	cmd	const[BC_DEAD_BINDER_DONE, int32]
 	cookie	binder_cookie
 } [packed]
+
+binder_cmd_request_freeze {
+	cmd	const[BC_REQUEST_FREEZE_NOTIFICATION, int32]
+	handle	binder_handle
+	cookie	binder_cookie
+} [packed]
+
+binder_cmd_clear_freeze {
+	cmd	const[BC_CLEAR_FREEZE_NOTIFICATION, int32]
+	handle	binder_handle
+	cookie	binder_cookie
+} [packed]
+
+binder_cmd_freeze_done {
+	cmd	const[BC_FREEZE_NOTIFICATION_DONE, int32]
+	cookie	binder_cookie
+} [packed]
+
+binder_version {
+	protocol_version	int32
+}
 
 binder_extended_error {
 	id	int32
