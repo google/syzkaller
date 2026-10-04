@@ -169,6 +169,11 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/syzkaller",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
+	if headerArch == "arm64" {
+		// arch/arm64/Makefile adds this to KBUILD_CPPFLAGS since the arm64 headers
+		// are shared with s390 (without it, e.g. asm/sysreg.h misses most definitions).
+		args = append(args, "-DARM64_S390_COMMON=1")
+	}
 	args = append(args, arch.target.CFlags...)
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+sourceDir+"/"+incdir)
