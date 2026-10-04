@@ -13,9 +13,37 @@ resource fd_block_trace[fd]
 resource fd_block[fd_block_trace]
 
 openat$nullb(fd const[AT_FDCWD], file ptr[in, string["/dev/nullb0"]], flags flags[open_flags], mode const[0]) fd_block
-openat$rnullb(fd const[AT_FDCWD], file ptr[in, string["/dev/rnullb0"]], flags flags[open_flags], mode const[0]) fd_block
+openat$rnullb(fd const[AT_FDCWD], file ptr[in, rnull_dev_node], flags flags[open_flags], mode const[0]) fd_block
 openat$md(fd const[AT_FDCWD], file ptr[in, string["/dev/md0"]], flags flags[open_flags], mode const[0]) fd_block
 openat$pmem0(fd const[AT_FDCWD], file ptr[in, string["/dev/pmem0"]], flags flags[open_flags], mode const[0]) fd_block
+
+# Rust null block driver (drivers/block/rnull) creates devices via configfs:
+# mkdir /sys/kernel/config/rnull/NAME, configure the attributes, then write 1 to
+# the power attribute to create /dev/NAME. Use per-proc names so that parallel
+# test processes do not interfere with each other.
+resource fd_rnull_attr[fd]
+
+mkdirat$rnull(fd const[AT_FDCWD], path ptr[in, rnull_path[const[0, int8]]], mode const[0x1ff])
+unlinkat$rnull(fd const[AT_FDCWD], path ptr[in, rnull_path[const[0, int8]]], flags const[AT_REMOVEDIR])
+openat$rnull_attr(fd const[AT_FDCWD], file ptr[in, rnull_path[string[rnull_attrs]]], flags const[O_RDWR], mode const[0]) fd_rnull_attr
+write$rnull_attr(fd fd_rnull_attr, buf ptr[in, stringnoz[rnull_attr_vals]], len bytesize[buf])
+
+type rnull_path[SUFFIX] {
+	prefix	stringnoz["/sys/kernel/config/rnull/syzrnull"]
+# NEED: this does not support formatting numbers larger than 9.
+	id	proc['0', 1, int8]
+	suffix	SUFFIX
+} [packed]
+
+rnull_dev_node {
+	prefix	stringnoz["/dev/syzrnull"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [packed]
+
+rnull_attrs = "/power", "/blocksize", "/rotational", "/size", "/irqmode"
+# Booleans (power, rotational), irqmode (0, 1), blocksize and size (in MiB).
+rnull_attr_vals = "0", "1", "n", "y", "off", "on", "512", "1024", "2048", "4096"
 
 ioctl$BLKTRACESETUP(fd fd_block_trace, cmd const[BLKTRACESETUP], arg ptr[inout, blk_user_trace_setup])
 ioctl$BLKTRACESTART(fd fd_block_trace, cmd const[BLKTRACESTART], arg const[0])
