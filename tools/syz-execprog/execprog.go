@@ -41,6 +41,8 @@ var (
 	flagVMArch     = flag.String("vmarch", "", "target VM arch (if different from -arch)")
 	flagType       = flag.String("type", "", "target VM type")
 	flagCoverFile  = flag.String("coverfile", "", "write coverage to the file")
+	flagDedupCover = flag.Bool("dedupcover", false, "deduplicate per-call coverage in the executor before it is sent "+
+		"(also for -coverfile dumps: a raw trace can overflow the executor output and lose later calls)")
 	flagRepeat     = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs      = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes to execute programs")
 	flagOutput     = flag.Bool("output", false, "write programs and results to stdout")
@@ -136,7 +138,7 @@ func main() {
 	if *flagThreaded {
 		exec |= flatrpc.ExecFlagThreaded
 	}
-	if *flagCoverFile == "" {
+	if *flagCoverFile == "" || *flagDedupCover {
 		exec |= flatrpc.ExecFlagDedupCover
 	}
 
