@@ -308,8 +308,6 @@ getsockopt$inet_sctp6_SCTP_ENABLE_STREAM_RESET(fd sock_sctp6, level const[SOL_SC
 
 setsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
 setsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
-getsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
-getsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
 
 setsockopt$inet_sctp_SCTP_RESET_ASSOC(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
 setsockopt$inet_sctp6_SCTP_RESET_ASSOC(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
