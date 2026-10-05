@@ -101,7 +101,7 @@ cmsghdr_sctp_dstaddrv6 {
 
 # Specific SCTP socket options
 
-resource assoc_id[int32]: 0
+resource assoc_id[int32]: SCTP_FUTURE_ASSOC, SCTP_CURRENT_ASSOC, SCTP_ALL_ASSOC
 
 setsockopt$inet_sctp_SCTP_RTOINFO(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RTOINFO], val ptr[in, sctp_rtoinfo], len len[val])
 setsockopt$inet_sctp6_SCTP_RTOINFO(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RTOINFO], val ptr[in, sctp_rtoinfo], len len[val])
