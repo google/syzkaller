@@ -532,11 +532,11 @@ func (pg *Builder) Append(c *Call) error {
 }
 
 func (pg *Builder) Allocate(size, alignment uint64) uint64 {
-	return pg.ma.alloc(nil, size, alignment)
+	return pg.ma.alloc(size, alignment)
 }
 
 func (pg *Builder) AllocateVMA(npages uint64) uint64 {
-	return pg.ma.alloc(nil, npages*pg.target.PageSize, pg.target.PageSize)
+	return pg.ma.alloc(npages*pg.target.PageSize, pg.target.PageSize)
 }
 
 func (pg *Builder) Finalize() (*Prog, error) {

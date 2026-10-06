@@ -71,7 +71,7 @@ func TestMemAlloc(t *testing.T) {
 					continue
 				}
 				t.Logf("#%v: alloc(%v) = %v", i, -op.size, op.addr)
-				addr := ma.alloc(nil, uint64(-op.size), op.alignment)
+				addr := ma.alloc(uint64(-op.size), op.alignment)
 				if addr != op.addr {
 					t.Fatalf("bad result %v, expecting %v", addr, op.addr)
 				}

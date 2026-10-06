@@ -62,7 +62,7 @@ func (s *state) analyze(c *Call) {
 func (s *state) relocateCall(c *Call) {
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		if a, ok := arg.(*PointerArg); ok && a.Res != nil {
-			a.Address = s.ma.alloc(nil, a.Res.Size(), a.Res.Type().Alignment())
+			a.Address = s.ma.alloc(a.Res.Size(), a.Res.Type().Alignment())
 		}
 	})
 }

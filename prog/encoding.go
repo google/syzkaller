@@ -1160,7 +1160,7 @@ func (p *parser) fixupAutos(prog *Prog) {
 				_ = s
 			case *PtrType:
 				a := arg.(*PointerArg)
-				a.Address = s.ma.alloc(nil, a.Res.Size(), a.Res.Type().Alignment())
+				a.Address = s.ma.alloc(a.Res.Size(), a.Res.Type().Alignment())
 			case *CsumType:
 				// Checksums are computed at runtime, no need to fixup.
 			default:
