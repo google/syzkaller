@@ -165,7 +165,7 @@ type SessionTestStep struct {
 	SessionID string             `spanner:"SessionID"`
 	TestName  string             `spanner:"TestName"`
 	Title     string             `spanner:"Title"`
-	LogURI    string             `spanner:"LogURI"`
+	LogURI    spanner.NullString `spanner:"LogURI"`
 	FindingID spanner.NullString `spanner:"FindingID"`
 	Target    string             `spanner:"Target"`
 	Result    string             `spanner:"Result"`
@@ -173,19 +173,19 @@ type SessionTestStep struct {
 }
 
 type Finding struct {
-	ID                  string           `spanner:"ID"`
-	SessionID           string           `spanner:"SessionID"`
-	TestName            string           `spanner:"TestName"`
-	Title               string           `spanner:"Title"`
-	ReportURI           string           `spanner:"ReportURI"`
-	LogURI              string           `spanner:"LogURI"`
-	SyzReproURI         string           `spanner:"SyzReproURI"`
-	SyzReproOptsURI     string           `spanner:"SyzReproOptsURI"`
-	CReproURI           string           `spanner:"CReproURI"`
-	InvalidatedAt       spanner.NullTime `spanner:"InvalidatedAt"`
-	CreatedAt           spanner.NullTime `spanner:"CreatedAt"`
-	ConfirmedByAI       spanner.NullBool `spanner:"ConfirmedByAI"`
-	TriageTrajectoryURI string           `spanner:"TriageTrajectoryURI"`
+	ID                  string             `spanner:"ID"`
+	SessionID           string             `spanner:"SessionID"`
+	TestName            string             `spanner:"TestName"`
+	Title               string             `spanner:"Title"`
+	ReportURI           string             `spanner:"ReportURI"`
+	LogURI              string             `spanner:"LogURI"`
+	SyzReproURI         string             `spanner:"SyzReproURI"`
+	SyzReproOptsURI     string             `spanner:"SyzReproOptsURI"`
+	CReproURI           string             `spanner:"CReproURI"`
+	InvalidatedAt       spanner.NullTime   `spanner:"InvalidatedAt"`
+	CreatedAt           spanner.NullTime   `spanner:"CreatedAt"`
+	ConfirmedByAI       spanner.NullBool   `spanner:"ConfirmedByAI"`
+	TriageTrajectoryURI spanner.NullString `spanner:"TriageTrajectoryURI"`
 }
 
 func (f *Finding) SetInvalidatedAt(t time.Time) {

@@ -130,7 +130,8 @@ func TestAPISaveFinding(t *testing.T) {
 		}
 		require.NotNil(t, targetFinding)
 		assert.True(t, targetFinding.ConfirmedByAI.Bool)
-		assert.NotEmpty(t, targetFinding.TriageTrajectoryURI)
+		assert.True(t, targetFinding.TriageTrajectoryURI.Valid)
+		assert.NotEmpty(t, targetFinding.TriageTrajectoryURI.StringVal)
 	})
 
 	t.Run("save unreproduced AI confirmed finding", func(t *testing.T) {

@@ -85,7 +85,7 @@ func (s *FindingService) saveAssets(finding *db.Finding, req *api.RawFinding) er
 		{&finding.SyzReproURI, req.SyzRepro, "syz_repro"},
 		{&finding.SyzReproOptsURI, req.SyzReproOpts, "syz_repro_opts"},
 		{&finding.CReproURI, req.CRepro, "c_repro"},
-		{&finding.TriageTrajectoryURI, req.TriageTrajectory, "triage_trajectory"},
+		{&finding.TriageTrajectoryURI.StringVal, req.TriageTrajectory, "triage_trajectory"},
 	} {
 		if len(asset.value) == 0 {
 			continue
@@ -96,6 +96,7 @@ func (s *FindingService) saveAssets(finding *db.Finding, req *api.RawFinding) er
 			return fmt.Errorf("failed to save %s: %w", asset.name, err)
 		}
 	}
+	finding.TriageTrajectoryURI.Valid = finding.TriageTrajectoryURI.StringVal != ""
 	return nil
 }
 
@@ -143,7 +144,7 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 		if item.CReproURI != "" {
 			finding.LinkCRepro = s.urls.FindingCRepro(item.ID)
 		}
-		if item.TriageTrajectoryURI != "" {
+		if item.TriageTrajectoryURI.StringVal != "" {
 			finding.LinkTriageTrajectory = s.urls.FindingTriageTrajectory(item.ID)
 		}
 		if !item.InvalidatedAt.IsNull() {
