@@ -1058,14 +1058,9 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 		}
 	}
 
-	// Selects a biased random length of the returned calls (more calls could offer more
-	// interesting programs). The values returned (n = len(calls): n, n-1, ..., 2.
-	biasedLen := 2 + r.biasedRand(len(calls)-1, 10)
-
-	// Removes the references that are not used anymore.
-	for i := biasedLen; i < len(calls); i++ {
-		p.RemoveCall(i)
-	}
+	// TODO: consider trimming some of the trailing calls to keep programs smaller.
+	// The call that produces the resource (and everything before it) must be kept,
+	// but it's unclear which of the following calls the new call depends on.
 	for _, c := range p.Calls {
 		s.relocateCall(c)
 	}
