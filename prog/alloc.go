@@ -54,7 +54,7 @@ func (ma *memAlloc) noteAlloc(addr0, size0 uint64) {
 }
 
 // alloc returns the next free address of size0 with respect to the given alignment.
-func (ma *memAlloc) alloc(r *randGen, size0, alignment0 uint64) uint64 {
+func (ma *memAlloc) alloc(size0, alignment0 uint64) uint64 {
 	if size0 == 0 {
 		size0 = 1
 	}
@@ -82,7 +82,7 @@ func (ma *memAlloc) alloc(r *randGen, size0, alignment0 uint64) uint64 {
 		}
 	}
 	ma.bankruptcy()
-	return ma.alloc(r, size0, alignment0)
+	return ma.alloc(size0, alignment0)
 }
 
 func (ma *memAlloc) bankruptcy() {
