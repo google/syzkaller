@@ -124,8 +124,12 @@ func (ctx *mutator) splice() bool {
 	if len(ctx.corpus) == 0 || len(p.Calls) == 0 || len(p.Calls) >= ctx.ncalls {
 		return false
 	}
+	s := analyze(ctx.ct, ctx.corpus, p, nil)
 	p0 := ctx.corpus[r.Intn(len(ctx.corpus))]
 	p0c := p0.Clone()
+	for _, c := range p0c.Calls {
+		s.relocateCall(c)
+	}
 	idx := r.Intn(len(p.Calls))
 	p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
 	for i := len(p.Calls) - 1; i >= ctx.ncalls; i-- {

@@ -59,6 +59,14 @@ func (s *state) analyze(c *Call) {
 	s.analyzeImpl(c, true)
 }
 
+func (s *state) relocateCall(c *Call) {
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+		if a, ok := arg.(*PointerArg); ok && a.Res != nil {
+			a.Address = s.ma.alloc(nil, a.Res.Size(), a.Res.Type().Alignment())
+		}
+	})
+}
+
 func (s *state) analyzeImpl(c *Call, resources bool) {
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		switch a := arg.(type) {

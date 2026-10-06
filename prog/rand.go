@@ -1066,6 +1066,9 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 	for i := biasedLen; i < len(calls); i++ {
 		p.RemoveCall(i)
 	}
+	for _, c := range p.Calls {
+		s.relocateCall(c)
+	}
 
 	return MakeResultArg(t, dir, resource, 0), p.Calls
 }
