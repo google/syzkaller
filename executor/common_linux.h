@@ -2521,8 +2521,8 @@ struct btf_header {
 	__u32 str_len;
 };
 
-#define BTF_INFO_KIND(info) (((info) >> 24) & 0x0f)
-#define BTF_INFO_VLEN(info) ((info) & 0xffff)
+#define BTF_INFO_KIND(info) (((info) >> 24) & 0x7f)
+#define BTF_INFO_VLEN(info) ((info) & 0xffffff)
 
 #define BTF_KIND_INT 1
 #define BTF_KIND_ARRAY 3
@@ -2532,6 +2532,8 @@ struct btf_header {
 #define BTF_KIND_FUNC_PROTO 13
 #define BTF_KIND_VAR 14
 #define BTF_KIND_DATASEC 15
+#define BTF_KIND_DECL_TAG 17
+#define BTF_KIND_ENUM64 19
 
 struct btf_type {
 	__u32 name_off;
@@ -2574,6 +2576,16 @@ struct btf_var_secinfo {
 	__u32 size;
 };
 
+struct btf_decl_tag {
+	__s32 component_idx;
+};
+
+struct btf_enum64 {
+	__u32 name_off;
+	__u32 val_lo32;
+	__u32 val_hi32;
+};
+
 // Set the limit on the maximum size of btf/vmlinux to be 10 MiB.
 #define VMLINUX_MAX_SUPPORT_SIZE (10 * 1024 * 1024)
 
@@ -2597,14 +2609,17 @@ static char* read_btf_vmlinux()
 		ssize_t ret = read(fd, buf + bytes_read,
 				   VMLINUX_MAX_SUPPORT_SIZE - bytes_read);
 
-		if (ret < 0 || bytes_read + ret == VMLINUX_MAX_SUPPORT_SIZE)
+		if (ret < 0 || bytes_read + ret == VMLINUX_MAX_SUPPORT_SIZE) {
+			close(fd);
 			return NULL;
+		}
 
 		if (ret == 0)
 			break;
 
 		bytes_read += ret;
 	}
+	close(fd);
 
 	is_read = true;
 	return buf;
@@ -2668,6 +2683,12 @@ static long syz_btf_id_by_name(volatile long a0)
 			break;
 		case BTF_KIND_DATASEC:
 			skip = sizeof(struct btf_var_secinfo) * vlen;
+			break;
+		case BTF_KIND_DECL_TAG:
+			skip = sizeof(struct btf_decl_tag);
+			break;
+		case BTF_KIND_ENUM64:
+			skip = sizeof(struct btf_enum64) * vlen;
 			break;
 		default:
 			skip = 0;
