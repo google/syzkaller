@@ -1,0 +1,6 @@
+# requires: arch=amd64
+
+# Create and mmap a BPF arena map.
+
+r0 = bpf$MAP_CREATE(AUTO, &AUTO=@arena={AUTO, AUTO, AUTO, 0x1, 0x400, 0x0, 0x0, "00000000000000000000000000000000", 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, @void, @value=AUTO, @void, @value=AUTO}, AUTO)
+mmap(&(0x7f0000100000/0x1000)=nil, 0x1000, 0x3, 0x11, r0, 0x0)
