@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMutationFlags(t *testing.T) {
@@ -189,6 +191,70 @@ func TestMutateNoSquash(t *testing.T) {
 			t.Fatalf("squashAny mutated a no_squash call: %s", p1.Serialize())
 		}
 	}
+}
+
+func TestMutateSplice(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	p, err := target.Deserialize([]byte(`test$recur0(&(0x7f0000000000)={&(0x7f0000000040)})`), Strict)
+	require.NoError(t, err)
+
+	p0, err := target.Deserialize([]byte(`r0 = mutate5(&(0x7f0000000000)='./file0\x00', 0x0)
+mutate6(r0, &(0x7f0000000040)='\x00', 0x1)
+test$recur0(&(0x7f0000000080)={&(0x7f00000000c0)})
+test$opt1(0x0)
+test$opt2(&(0x7f0000001000/0x1000)=nil)
+`), Strict)
+	require.NoError(t, err)
+
+	ctx := &mutator{
+		p:      p,
+		r:      newRand(target, rand.NewSource(0)),
+		ncalls: 10,
+		ct:     target.DefaultChoiceTable(),
+		corpus: []*Prog{p0},
+		opts:   DefaultMutateOpts,
+	}
+	require.True(t, ctx.splice())
+
+	want := `r0 = mutate5(&(0x7f0000000080)='./file0\x00', 0x0)
+mutate6(r0, &(0x7f00000000c0)='\x00', 0x1)
+test$recur0(&(0x7f0000000100)={&(0x7f0000000140)})
+test$opt1(0x0)
+test$opt2(&(0x7f0000001000/0x1000)=nil)
+test$recur0(&(0x7f0000000000)={&(0x7f0000000040)})
+`
+	assert.Equal(t, want, string(p.Serialize()))
+}
+
+func TestResourceCentricRelocate(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	p, err := target.Deserialize([]byte(`mutate9(&(0x7f0000000000)='./file0\x00')`), Strict)
+	require.NoError(t, err)
+
+	p0, err := target.Deserialize([]byte(`r0 = mutate5(&(0x7f0000000000)='./file0\x00', 0x0)
+mutate6(r0, &(0x7f0000000040)='\x00', 0x1)
+`), Strict)
+	require.NoError(t, err)
+
+	ct := target.DefaultChoiceTable()
+	corpus := []*Prog{p0}
+	s := analyze(ct, corpus, p, nil)
+	r := newRand(target, rand.NewSource(0))
+
+	consumerMeta := target.SyscallMap["fallback$1"]
+	resType := consumerMeta.Args[0].Type.(*ResourceType)
+	arg, calls := r.resourceCentric(s, resType, DirIn)
+	require.NotNil(t, arg)
+	require.NotEmpty(t, calls)
+
+	p.Calls = append(p.Calls, calls...)
+	p.Calls = append(p.Calls, MakeCall(consumerMeta, []Arg{arg}))
+	want := `mutate9(&(0x7f0000000000)='./file0\x00')
+r0 = mutate5(&(0x7f0000000040)='./file0\x00', 0x0)
+mutate6(r0, &(0x7f0000000080)='\x00', 0x1)
+fallback$1(r0)
+`
+	assert.Equal(t, want, string(p.Serialize()))
 }
 
 func TestSizeMutateArg(t *testing.T) {
