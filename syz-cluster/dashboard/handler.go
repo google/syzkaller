@@ -590,7 +590,7 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) e
 		return h.streamBlob(w, finding.CReproURI)
 	case "triage_trajectory":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		return h.streamBlob(w, finding.TriageTrajectoryURI)
+		return h.streamBlob(w, finding.TriageTrajectoryURI.StringVal)
 	default:
 		return fmt.Errorf("%w: unknown key value", errBadRequest)
 	}
@@ -644,7 +644,7 @@ func (h *dashboardHandler) sessionTestStepLog(w http.ResponseWriter, r *http.Req
 	} else if step == nil {
 		return fmt.Errorf("%w: step", errNotFound)
 	}
-	return h.streamBlob(w, step.LogURI)
+	return h.streamBlob(w, step.LogURI.StringVal)
 }
 
 func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {

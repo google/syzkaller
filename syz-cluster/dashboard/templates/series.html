@@ -256,7 +256,7 @@
                         <span class="badge {{if eq .Base.Result "passed"}}bg-success{{else if eq .Base.Result "failed"}}bg-danger{{else}}bg-warning text-dark{{end}}">
                             {{.Base.Result}}
                         </span>
-                        {{if .Base.LogURI}}
+                        {{if .Base.LogURI.StringVal}}
                         <a href="/test_steps/{{.Base.ID}}/log" class="modal-link-raw ms-1">[Log]</a>
                         {{end}}
                         {{else}}
@@ -268,7 +268,7 @@
                         <span class="badge {{if eq .Patched.Result "passed"}}bg-success{{else if eq .Patched.Result "failed"}}bg-danger{{else}}bg-warning text-dark{{end}}">
                             {{.Patched.Result}}
                         </span>
-                        {{if .Patched.LogURI}}
+                        {{if .Patched.LogURI.StringVal}}
                         <a href="/test_steps/{{.Patched.ID}}/log" class="modal-link-raw ms-1">[Log]</a>
                         {{end}}
                         {{else}}

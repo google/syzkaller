@@ -54,7 +54,7 @@ func (s *SessionTestStepService) Save(ctx context.Context, sessionID string, ste
 			if err != nil {
 				return nil, fmt.Errorf("failed to save log: %w", err)
 			}
-			newStep.LogURI = uri
+			newStep.LogURI = spanner.NullString{StringVal: uri, Valid: true}
 		}
 		return newStep, nil
 	})
