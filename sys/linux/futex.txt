@@ -3,11 +3,15 @@
 
 include <linux/futex.h>
 
-futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
-futex$unlock_wake_list64(addr ptr[inout, int32], op flags[futex_unlock_wake_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
-futex$unlock_wake_list32(addr ptr[inout, int32], op flags[futex_unlock_wake_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
-futex$unlock_pi_list64(addr ptr[inout, int32], op flags[futex_unlock_pi_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
-futex$unlock_pi_list32(addr ptr[inout, int32], op flags[futex_unlock_pi_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
+resource ptr_futex[intptr]
+
+syz_create_resource$futex(addr ptr[in, int32[0:2]]) ptr_futex
+
+futex(addr ptr_futex, op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr_futex, val3 int32[0:2])
+futex$unlock_wake_list64(addr ptr_futex, op flags[futex_unlock_wake_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
+futex$unlock_wake_list32(addr ptr_futex, op flags[futex_unlock_wake_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
+futex$unlock_pi_list64(addr ptr_futex, op flags[futex_unlock_pi_list64_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, intptr], val3 int32)
+futex$unlock_pi_list32(addr ptr_futex, op flags[futex_unlock_pi_list32_op], val int32, timeout ptr[in, timespec], pending_op ptr[inout, int32], val3 int32)
 set_robust_list(head ptr[in, robust_list_head], len len[head])
 get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
 
