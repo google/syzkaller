@@ -108,8 +108,7 @@ type ManagerDashapi interface {
 	UploadCommits(commits []dashapi.Commit) error
 }
 
-func createManager(cfg *Config, mgrcfg *ManagerConfig, debug bool) (*Manager, error) {
-	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
+func createManager(dir string, cfg *Config, mgrcfg *ManagerConfig, debug bool) (*Manager, error) {
 	err := osutil.MkdirAll(dir)
 	if err != nil {
 		log.Fatal(err)
