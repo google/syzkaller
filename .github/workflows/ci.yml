@@ -53,7 +53,9 @@ jobs:
 
   build:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
+    container:
+      image: gcr.io/syzkaller/env:latest
+      options: --cap-add=SYS_ADMIN
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -136,7 +138,9 @@ jobs:
 
   race:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
+    container:
+      image: gcr.io/syzkaller/env:latest
+      options: --cap-add=SYS_ADMIN
     timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
