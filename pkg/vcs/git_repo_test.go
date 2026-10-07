@@ -5,25 +5,20 @@ package vcs
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	// Disable sandboxing entirely because we create test repos without sandboxing.
-	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
-}
-
 func TestGitRepo(t *testing.T) {
-	t.Parallel()
-	baseDir := t.TempDir()
+	osutil.RequireSandbox(t)
+	baseDir := osutil.SandboxTempDir(t)
 	repo1 := CreateTestRepo(t, baseDir, "repo1")
 	repo2 := CreateTestRepo(t, baseDir, "repo2")
 	repo := newGitRepo(filepath.Join(baseDir, "repo"), nil, nil)
@@ -112,8 +107,8 @@ func TestGitRepo(t *testing.T) {
 }
 
 func TestCheckoutCommitLocal(t *testing.T) {
-	t.Parallel()
-	baseDir := t.TempDir()
+	osutil.RequireSandbox(t)
+	baseDir := osutil.SandboxTempDir(t)
 
 	// Create a remote repo and a local checkout.
 	remote := CreateTestRepo(t, baseDir, "remote")

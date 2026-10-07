@@ -399,7 +399,7 @@ func TestMergeBase(t *testing.T) {
 }
 
 func TestGitCustomRefs(t *testing.T) {
-	remoteRepoDir := t.TempDir()
+	remoteRepoDir := osutil.SandboxTempDir(t)
 	remote := MakeTestRepo(t, remoteRepoDir)
 	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
 	remote.Git("checkout", "-b", "base_branch")
@@ -418,7 +418,7 @@ func TestGitCustomRefs(t *testing.T) {
 	remote.Git("branch", "-D", "temp_branch")
 
 	// Create a local repo.
-	localRepoDir := t.TempDir()
+	localRepoDir := osutil.SandboxTempDir(t)
 	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
@@ -427,7 +427,7 @@ func TestGitCustomRefs(t *testing.T) {
 }
 
 func TestGitRemoteTags(t *testing.T) {
-	remoteRepoDir := t.TempDir()
+	remoteRepoDir := osutil.SandboxTempDir(t)
 	remote := MakeTestRepo(t, remoteRepoDir)
 	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
 	remote.Git("checkout", "-b", "base_branch")
@@ -439,7 +439,7 @@ func TestGitRemoteTags(t *testing.T) {
 	remote.Git("tag", "v2.0")
 
 	// Create a local repo.
-	localRepoDir := t.TempDir()
+	localRepoDir := osutil.SandboxTempDir(t)
 	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Ensure all tags were fetched.
@@ -452,7 +452,7 @@ func TestGitRemoteTags(t *testing.T) {
 }
 
 func TestGitFetchShortHash(t *testing.T) {
-	remoteRepoDir := t.TempDir()
+	remoteRepoDir := osutil.SandboxTempDir(t)
 	remote := MakeTestRepo(t, remoteRepoDir)
 	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
 	remote.Git("checkout", "-b", "base_branch")
@@ -462,7 +462,7 @@ func TestGitFetchShortHash(t *testing.T) {
 	refCommit, _ := remote.repo.Commit(HEAD)
 
 	// Create a local repo.
-	localRepoDir := t.TempDir()
+	localRepoDir := osutil.SandboxTempDir(t)
 	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
