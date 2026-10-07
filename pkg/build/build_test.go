@@ -5,14 +5,71 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestLinuxBuildSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	dir := t.TempDir()
+	secret := filepath.Join(dir, "secret")
+	require.NoError(t, os.WriteFile(secret, []byte("secret"), 0600))
+	t.Setenv("SYZ_TEST_FORBIDDEN", secret)
+
+	remote, _ := MakeTestKernelRepo(t, filepath.Join(dir, "remote"))
+	kernelDir := filepath.Join(dir, "kernel")
+	repo, err := vcs.NewRepo(targets.Linux, "", kernelDir)
+	require.NoError(t, err)
+	_, err = repo.Poll(remote.Dir, "master")
+	require.NoError(t, err)
+
+	image := filepath.Join(dir, "image")
+	require.NoError(t, osutil.WriteFile(image, nil))
+	params := Params{
+		TargetOS:     targets.Linux,
+		TargetArch:   targets.AMD64,
+		VMType:       "qemu",
+		KernelDir:    kernelDir,
+		OutputDir:    filepath.Join(dir, "out"),
+		UserspaceDir: image,
+		Config:       []byte("CONFIG_FOO=y\n"),
+		Tracer:       &debugtracer.TestTracer{T: t},
+	}
+	details, err := Image(params)
+	require.NoError(t, err)
+	require.Equal(t, "fake compiler", details.CompilerID)
+	require.NotEmpty(t, details.Signature)
+	require.FileExists(t, filepath.Join(params.OutputDir, "kernel"))
+	require.FileExists(t, filepath.Join(params.OutputDir, "image"))
+	require.FileExists(t, filepath.Join(params.OutputDir, "obj", "vmlinux"))
+	require.NoError(t, Clean(params))
+
+	t.Run("disabled", func(t *testing.T) {
+		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+		params.Tracer = &debugtracer.TestTracer{T: t}
+		_, err := Image(params)
+		require.Error(t, err)
+		for _, msg := range []string{
+			"user is root, want syzkaller",
+			"able to read " + secret,
+			"able to write " + secret,
+			"able to write to " + dir,
+			"able to connect to local TCP port",
+		} {
+			assert.ErrorContains(t, err, msg)
+		}
+	})
+}
 
 func TestCompilerIdentity(t *testing.T) {
 	t.Parallel()
