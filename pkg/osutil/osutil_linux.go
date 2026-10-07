@@ -8,11 +8,12 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -88,56 +89,75 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 	return nil
 }
 
-func SandboxChown(file string) error {
+// SandboxChown changes ownership of the given files or directories to the
+// sandbox user without following symlinks.
+func SandboxChown(files ...string) error {
 	enabled, uid, gid, err := initSandbox()
 	if err != nil || !enabled {
 		return err
 	}
-	return os.Chown(file, int(uid), int(gid))
+	for _, file := range files {
+		if err := os.Lchown(file, int(uid), int(gid)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var (
 	sandboxOnce     sync.Once
-	sandboxEnabled  = true
 	sandboxUsername = "syzkaller"
 	sandboxUID      = ^uint32(0)
 	sandboxGID      = ^uint32(0)
 )
 
 func initSandbox() (bool, uint32, uint32, error) {
+	if syscall.Getuid() != 0 || os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
+		return false, 0, 0, nil
+	}
 	sandboxOnce.Do(func() {
-		if syscall.Getuid() != 0 || os.Getenv("CI") != "" || os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
-			sandboxEnabled = false
-			return
+		if u, err := user.Lookup(sandboxUsername); err == nil {
+			uid, err1 := strconv.ParseUint(u.Uid, 10, 32)
+			gid, err2 := strconv.ParseUint(u.Gid, 10, 32)
+			if err1 == nil && err2 == nil {
+				sandboxUID = uint32(uid)
+				sandboxGID = uint32(gid)
+			}
 		}
-		uid, err := usernameToID("-u")
-		if err != nil {
-			return
-		}
-		gid, err := usernameToID("-g")
-		if err != nil {
-			return
-		}
-		sandboxUID = uid
-		sandboxGID = gid
 	})
-	if sandboxEnabled && sandboxUID == ^uint32(0) {
+	if sandboxUID == ^uint32(0) {
 		return false, 0, 0, fmt.Errorf("user %q is not found, can't sandbox command", sandboxUsername)
 	}
-	return sandboxEnabled, sandboxUID, sandboxGID, nil
+	return true, sandboxUID, sandboxGID, nil
 }
 
-func usernameToID(what string) (uint32, error) {
-	out, err := RunCmd(time.Minute, "", "id", what, sandboxUsername)
-	if err != nil {
-		return 0, err
+// RequireSandbox verifies that osutil.Sandbox is available for the test.
+// The test is skipped if sandboxing is not available (not running as root,
+// SYZ_DISABLE_SANDBOXING=yes, or no syzkaller user), unless CI is set: on CI
+// sandboxing must be available, so the test fails instead.
+func RequireSandbox(t *testing.T) {
+	t.Helper()
+	skip := func(msg string) {
+		t.Helper()
+		if os.Getenv("CI") != "" {
+			t.Fatalf("sandbox tests must run on CI: %v", msg)
+		}
+		t.Skipf("skipping sandbox test: %v", msg)
 	}
-	str := strings.Trim(string(out), " \t\n")
-	id, err := strconv.ParseUint(str, 10, 32)
-	if err != nil {
-		return 0, err
+	if syscall.Getuid() != 0 {
+		skip("requires root")
 	}
-	return uint32(id), nil
+	if os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
+		skip("SYZ_DISABLE_SANDBOXING is set")
+	}
+	u, err := user.Lookup(sandboxUsername)
+	if err != nil {
+		skip(err.Error())
+	}
+	// Dropping privileges via SysProcAttr.Credential does not update HOME.
+	// TODO: set HOME in cmd.Env inside Sandbox when dropping privileges once
+	// existing callers and container setups are refactored.
+	t.Setenv("HOME", u.HomeDir)
 }
 
 func setPdeathsig(cmd *exec.Cmd, hardKill bool) {

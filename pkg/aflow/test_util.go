@@ -6,12 +6,13 @@ package aflow
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
 )
 
 // NewTestContext creates an initialized dummy Context for internal aflow and tool unit tests.
 func NewTestContext(t *testing.T) *Context {
-	cache, err := NewCache(t.TempDir(), 10000000)
+	cache, err := NewCache(osutil.SandboxTempDir(t), 10000000)
 	require.NoError(t, err)
 
 	return &Context{

@@ -201,7 +201,7 @@ func createTestRepo(t *testing.T, baseDir string) string {
 }
 
 func testBisection(t *testing.T, baseDir string, test BisectionTest) {
-	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
+	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious, vcs.OptDontSandbox)
 	if err != nil {
 		t.Fatal(err)
 	}
