@@ -165,6 +165,10 @@ RUN gcloud components install --quiet app-engine-python app-engine-go app-engine
 # which has millions of files and would otherwise stall the build.
 RUN chmod 0777 /usr/local/google-cloud-sdk && chmod -R 0777 /usr/local/google-cloud-sdk/platform/google_appengine
 
+# Unprivileged user for osutil.Sandbox, used by sandbox tests.
+# The uid must match the user namespace mapping in tools/syz-env.
+RUN useradd --create-home -u 2000 syzkaller
+
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
 RUN echo "export PS1='syz-env🈴 '" > /syzkaller/.bashrc
