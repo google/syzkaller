@@ -60,10 +60,10 @@ func setLinuxTagConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 		"KCOV": "v5.4",
 		// This helps to produce stable binaries in presence of kernel tag changes.
 		"LOCALVERSION_AUTO": disableAlways,
-		// BTF fails lots of builds with:
-		// pahole version v1.9 is too old, need at least v1.13
-		// Failed to generate BTF for vmlinux. Try to disable CONFIG_DEBUG_INFO_BTF.
-		"DEBUG_INFO_BTF": disableAlways,
+		// Starting with pahole v1.24, BTF_KIND_ENUM64 is encoded by default,
+		// which breaks in-tree resolve_btfids on kernels before v6.0 (6089fb325cf7).
+		// Older kernels also had various pahole/BTF build issues (e.g. f7173090033c in v5.14-rc1).
+		"DEBUG_INFO_BTF": "v6.0",
 		// This config only adds debug output. It should not be enabled at all,
 		// but it was accidentially enabled on some instances for some periods of time,
 		// and kernel is boot-broken for prolonged ranges of commits with deadlock
