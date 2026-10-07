@@ -43,6 +43,9 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 	if err := osutil.MkdirAll(dir); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(dir, osutil.DefaultDirPerm); err != nil {
+		t.Fatal(err)
+	}
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
 	}
