@@ -3,6 +3,7 @@
 
 config:
  - BPF_SYSCALL
+ - DEBUG_INFO_BTF
  # JIT is enabled on subset of instances to get coverage for both JIT and interpreter.
  - BPF_JIT: [bpfjit]
  - BPF_JIT_ALWAYS_ON: [bpfjit]
