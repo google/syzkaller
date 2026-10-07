@@ -209,3 +209,31 @@ func TestVerboseMessage(t *testing.T) {
 	assert.Equal(t, "verbose error\nverbose text", VerboseMessage(verr))
 	assert.Equal(t, "wrapped: verbose error\nverbose text", VerboseMessage(fmt.Errorf("wrapped: %w", verr)))
 }
+
+func TestSandbox(t *testing.T) {
+	RequireSandbox(t)
+	dir := SandboxTempDir(t)
+	file := filepath.Join(dir, "file")
+	require.NoError(t, WriteFile(file, []byte("hello\n")))
+
+	run := func(name string, args ...string) (string, error) {
+		cmd := Command(name, args...)
+		require.NoError(t, Sandbox(cmd, true, true))
+		out, err := Run(time.Minute, cmd)
+		return strings.TrimSpace(string(out)), err
+	}
+
+	user, err := run("id", "-un")
+	require.NoError(t, err)
+	require.Equal(t, "syzkaller", user)
+
+	// Before SandboxChown, the root-owned file is not writable by the sandbox user.
+	_, err = run("sh", "-c", fmt.Sprintf("echo sandbox >> %q", file))
+	require.Error(t, err)
+	require.Contains(t, VerboseMessage(err), "Permission denied")
+
+	require.NoError(t, SandboxChown(file))
+	content, err := run("sh", "-c", fmt.Sprintf("echo sandbox >> %q && cat %q", file, file))
+	require.NoError(t, err)
+	require.Equal(t, "hello\nsandbox", content)
+}

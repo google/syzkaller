@@ -5,21 +5,27 @@ package kernel
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCheckout(t *testing.T) {
+	// Match the production syz-agent container setup (syz-agent/Dockerfile),
+	// which sets safe.directory='*' so unsandboxed git commands can clone from
+	// the sandboxed kernel repo.
+	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_KEY_0", "safe.directory")
+	t.Setenv("GIT_CONFIG_VALUE_0", "*")
+
 	ctx := aflow.NewTestContext(t)
 	ctx.Workdir = t.TempDir()
-	repo := vcs.MakeTestRepo(t, filepath.Join(ctx.Workdir, "repo", targets.Linux))
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
 	repo.Git("checkout", "-b", "master")
 	var hashes []string
 	for i := range 5 {

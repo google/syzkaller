@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 	_ "unsafe" // required to use go:linkname
 )
@@ -252,6 +253,21 @@ func LinkFiles(srcDir, dstDir string, files map[string]bool) error {
 
 func MkdirAll(dir string) error {
 	return os.MkdirAll(dir, DefaultDirPerm)
+}
+
+// SandboxTempDir creates a temporary directory for tests that use Sandbox.
+// Unlike t.TempDir, which creates 0700 directories, the returned directory and
+// its per-test parent remain owned by the current user, but have 0755
+// permissions so the sandbox user can traverse and view them.
+func SandboxTempDir(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	for _, p := range []string{filepath.Dir(dir), dir} {
+		if err := os.Chmod(p, DefaultDirPerm); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
 }
 
 func WriteFile(filename string, data []byte) error {
