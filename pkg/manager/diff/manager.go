@@ -65,9 +65,6 @@ type Bug struct {
 }
 
 func Run(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg Config) error {
-	if cfg.PatchedOnly == nil {
-		return fmt.Errorf("you must set up a patched only channel")
-	}
 	base, err := setup("base", baseCfg, cfg.Debug)
 	if err != nil {
 		return err
@@ -259,12 +256,14 @@ func (dc *diffContext) handleReproResult(ctx context.Context, ret reproRunnerRes
 			ret.reproReport.Title)
 	} else if ret.crashReport == nil {
 		dc.store.BaseNotCrashed(ret.reproReport.Title)
-		select {
-		case <-ctx.Done():
-		case dc.patchedOnly <- &Bug{
-			Report: ret.reproReport,
-			Repro:  ret.repro,
-		}:
+		if dc.patchedOnly != nil {
+			select {
+			case <-ctx.Done():
+			case dc.patchedOnly <- &Bug{
+				Report: ret.reproReport,
+				Repro:  ret.repro,
+			}:
+			}
 		}
 		// Now that we know this bug only affects the patch kernel, we can spend more time
 		// generating a minimalistic repro and a C repro.
