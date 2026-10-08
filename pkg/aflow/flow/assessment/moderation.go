@@ -22,7 +22,6 @@ type moderationInputs struct {
 	KernelConfig string
 }
 
-// nolint:dupl
 func init() {
 	aflow.Register[moderationInputs, ai.ModerationOutputs](
 		ai.WorkflowModeration,

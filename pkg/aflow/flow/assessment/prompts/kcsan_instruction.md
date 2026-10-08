@@ -119,6 +119,12 @@ the logic itself must change.
 **If HARMFUL:**
 - **Failure Reasoning:** Explain and provide a two-column interleaving showing
   exactly how the race leads to a failure such as corruption or kernel crash.
+- **FailureDetectableBy:** One of:
+  - `"kasan"`: memory safety bug (use-after-free, out-of-bounds, double-free).
+  - `"kmsan"`: uninitialized memory read/exposure (e.g. missing publish/subscribe ordering).
+  - `"any"`: kernel crash/hang (`BUG_ON`, `WARN_ON`, NULL deref, GPF, deadlock).
+  - `"user"`: user-visible ABI/semantic corruption detectable by userspace without a kernel crash.
+  - `"none"`: purely internal kernel state/accounting bug without crash or user-visible invariant violation.
 - **Recommended Fix (ONLY if fix is trivial):** Suggest a structural fix (e.g.,
   "Hold `mapping->i_pages` lock", "Convert to `atomic_t`") or required memory
   ordering annotations (e.g., "Wrap in `READ_ONCE()`", "Use

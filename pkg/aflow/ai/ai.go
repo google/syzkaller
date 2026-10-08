@@ -105,9 +105,18 @@ type Recipient struct {
 	To    bool // whether the recipient should be on the To or Cc line
 }
 
+const (
+	KCSANFailureDetectableByKASAN = "kasan"
+	KCSANFailureDetectableByKMSAN = "kmsan"
+	KCSANFailureDetectableByAny   = "any"
+	KCSANFailureDetectableByUser  = "user"
+	KCSANFailureDetectableByNone  = "none"
+)
+
 type AssessmentKCSANOutputs struct {
-	Benign      bool
-	Explanation string
+	Benign              bool
+	FailureDetectableBy string `json:",omitempty"`
+	Explanation         string
 }
 
 // AssessmentSecurityOutputs holds security assessment results.
