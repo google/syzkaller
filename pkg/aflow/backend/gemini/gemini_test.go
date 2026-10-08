@@ -98,10 +98,27 @@ func TestParseLLMError(t *testing.T) {
 				Message: `Resource has been exhausted (e.g. check quota).`,
 			},
 			outputErr: &backend.RetryError{
-				Delay: time.Minute,
+				Delay:         30 * time.Second,
+				IsExponential: true,
 				Err: genai.APIError{
 					Code:    429,
 					Message: `Resource has been exhausted (e.g. check quota).`,
+				},
+			},
+		},
+		{
+			inputErr: genai.APIError{
+				Code: 429,
+				// nolint:lll
+				Message: `TPM quota exhausted. No spare capacity is currently available to serve over-limit requests. Please try again later, reduce your request rate or request an increase to your PayGo TPM limit. Details: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/standard-paygo.`,
+			},
+			outputErr: &backend.RetryError{
+				Delay:         30 * time.Second,
+				IsExponential: true,
+				Err: genai.APIError{
+					Code: 429,
+					// nolint:lll
+					Message: `TPM quota exhausted. No spare capacity is currently available to serve over-limit requests. Please try again later, reduce your request rate or request an increase to your PayGo TPM limit. Details: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/standard-paygo.`,
 				},
 			},
 		},

@@ -295,9 +295,10 @@ func parseLLMError(err error, model string) error {
 		return &backend.RetryError{Delay: time.Minute, Err: err}
 	}
 	if apiErr.Code == 429 && (strings.Contains(apiErr.Message, "Resource exhausted. Please try again later.") ||
-		strings.Contains(apiErr.Message, "Resource has been exhausted")) {
+		strings.Contains(apiErr.Message, "Resource has been exhausted") ||
+		strings.Contains(apiErr.Message, "TPM quota exhausted")) {
 		// Vertex AI specific rate limit error (e.g. RPM/TPM exhausted).
-		return &backend.RetryError{Delay: time.Minute, Err: err}
+		return &backend.RetryError{Delay: 30 * time.Second, IsExponential: true, Err: err}
 	}
 	if apiErr.Code == 400 && strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
 		return &backend.InputTokenOverflowError{Err: err}
