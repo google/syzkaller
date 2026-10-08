@@ -1,0 +1,7 @@
+
+
+[  198.593334][ T4402] 8021q: adding VLAN 0 to HW filter on device eth12
+[  198.666518][ T4402] 8021q: adding VLAN 0 to HW filter on device eth13
+[  198.739710][ T4402] 8021q: adding VLAN 0 to HW filter on device eth15
+[  198.819716][ T4402] 8021q: adding VLAN 0 to HW filter on device eth14
+[  217.823293][T11879] WARNING: Unprivileged eBPF is enabled, data leaks possible via Spectre v2 BHB attacks!

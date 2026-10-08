@@ -2209,7 +2209,8 @@ var linuxOopses = append([]*oops{
 			compile("WARNING: workqueue cpumask: online intersect > possible intersect"),
 			compile("WARNING: [Tt]he mand mount option"),
 			compile("WARNING: Unsupported flag value\\(s\\) of 0x%x in DT_FLAGS_1"), // printed when glibc is dumped
-			compile("WARNING: Unprivileged eBPF is enabled with eIBRS"),
+			// Several variants printed by arch/x86/kernel/cpu/bugs.c and arch/arm64/kernel/proton-pack.c.
+			compile("WARNING: Unprivileged eBPF is enabled"),
 			compile(`WARNING: fbcon: Driver '(.*)' missed to adjust virtual screen size (\((?:\d+)x(?:\d+) vs\. (?:\d+)x(?:\d+)\))`),
 			compile(`WARNING: See https.* for mitigation options.`),
 			compile(`WARNING: kernel not compiled with CPU_SRSO`),
