@@ -8,34 +8,42 @@ Concurrency Sanitizer (KCSAN) data race report to determine if it is
 
 ### **BENIGN (Truly Benign)**
 The logic is sound and structurally tolerant to compiler optimizations or
-stale/torn reads.
+stale reads (or benign tearing on diagnostics/stats).
 
-- **Diagnostics/Stats:** Reads used only for `/proc`, `/sys`, counters, or
-  `pr_info`.
-- **Heuristic Hints:** A "hint" flag where an old value only causes a
-  slightly delayed update or a sub-optimal but safe fast-path.
+- **Diagnostics/Stats:** Reads or non-critical updates used only for `/proc`,
+  `/sys`, counters, timestamps, or `pr_info`.
+- **Heuristic Hints:** A "hint" flag or threshold where an old value only
+  causes a slightly delayed update or a sub-optimal but safe fast-path.
 - **Single-Writer Flag Updates:** A single writer updating flags where the
   concurrent read is a simple bitwise check (e.g., `flags & MASK`). These are
   historically tolerated, assuming neither "Fused Accesses" nor "Ordering
   Violations" are relevant in this context.
-- **Marked Reloads:** A load feeding into a `cmpxchg()` loop or checked
-  against a later `READ_ONCE()` reload.
-- **Safe Overwrites:** Writing the same value already present.
+- **Marked Reloads & Lock Re-checks:** A load feeding into a `cmpxchg()` loop,
+  checked against a later `READ_ONCE()` reload, or re-verified under a lock
+  (assuming no "Ordering Violations" on the lockless fast-path).
+- **Safe Overwrites & Plain Scalar Accesses:** Writing the same value already
+  present, or aligned word-sized scalar accesses (e.g., `read (marked)` vs
+  plain `write`) where observing either the old or new value is safe.
 
 ### **HARMFUL (Logic Bug or Marking Required)**
 The race causes incorrect behavior due to a synchronization failure or
-because missing annotations allow the compiler to break the algorithm.
+because missing annotations allow the compiler or CPU to break the algorithm.
 
 **Marking Required for Correctness:**
-The algorithm is logically sound but requires annotations (`READ_ONCE()`,
-`WRITE_ONCE()`, `smp_load_acquire()`, `smp_store_release()`, etc.) to be safe.
-- **Fused Accesses:** The compiler might merge accesses or hoist a load out
-  of a loop, breaking polling/wait loops (livelocks).
-- **Torn Accesses:** A large access (e.g., 64-bit on 32-bit arch) might be
-  split into multiple non-atomic accesses. Note that `READ_ONCE()` does **not**
-  guarantee atomicity for 64-bit variables on 32-bit architectures.
-- **Ordering Violations:** The race breaks a "happens-before" relationship
-  (requires primitives with implied or explicit memory barriers).
+Do **not** classify a race as HARMFUL merely because an access lacks
+`READ_ONCE()`/`WRITE_ONCE()`; you must prove one of these concrete hazards:
+- **Fused Accesses:** The compiler hoists a plain load out of a tight
+  barrier-free spin loop causing a livelock (note: non-inlined calls,
+  `schedule()`, and locks act as compiler barriers), or reloads a pointer/index
+  between check and use (TOCTOU).
+- **Torn Accesses:** An access larger than word size (e.g., 64-bit on 32-bit
+  arch, or multi-word structs; aligned `<= sizeof(long)` scalars and pointers
+  do not tear) is split into multiple non-atomic accesses. Note that
+  `READ_ONCE()` does **not** guarantee atomicity for 64-bit variables on 32-bit
+  architectures.
+- **Ordering Violations:** The race breaks a required "happens-before"
+  relationship between dependent memory accesses (requires primitives with
+  implied or explicit memory barriers).
 
 **Logic Bugs:**
 A fundamental synchronization failure. Marking accesses will **not** fix it;
@@ -104,9 +112,9 @@ the logic itself must change.
 
 **If BENIGN:**
 - **Reasoning:** Briefly explain why the race is structurally tolerant to stale
-  or torn reads.
+  reads (or benign tearing on diagnostics/stats).
 - **Recommended Annotations:** Suggest appropriate annotations (e.g.,
-  `READ_ONCE()`, `data_race()`).
+  `READ_ONCE()`, `WRITE_ONCE()`, `data_race()`).
 
 **If HARMFUL:**
 - **Failure Reasoning:** Explain and provide a two-column interleaving showing
