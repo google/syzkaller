@@ -659,17 +659,6 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 
-	// Disable CONFIG_DEBUG_INFO_BTF in the config.
-	// DEBUG_INFO_BTF requires a very new pahole binary, which we don't have on syzbot instances.
-	// Currently we don't enable DEBUG_INFO_BTF, but we have some old bugs with DEBUG_INFO_BTF enabled
-	// (at the time requirements for pahole binary were lower, or maybe the config silently disabled itself).
-	// Testing of patches for these bugs fail now because of the config, so we disable it as a work-around.
-	// Ideally we have a new pahole and then we can remove this hack. That's issue #2096.
-	// pkg/vcs/linux.go also disables it for the bisection process.
-	req.KernelConfig = bytes.ReplaceAll(req.KernelConfig,
-		[]byte("CONFIG_DEBUG_INFO_BTF=y"),
-		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"))
-
 	dt.Logf("building kernel...")
 	kernelConfig, details, err := env.BuildKernel(buildCfg)
 	resp.Build.CompilerID = details.CompilerID

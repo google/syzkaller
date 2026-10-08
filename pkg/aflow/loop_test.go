@@ -4,9 +4,14 @@
 package aflow
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDoWhile(t *testing.T) {
@@ -483,4 +488,36 @@ func TestDoWhileBool(t *testing.T) {
 		nil,
 		nil,
 	)
+}
+
+// TestForEachIterationStartError verifies that ForEach finishes its own span
+// if an iteration span fails to start, so that the enclosing spans stay balanced.
+func TestForEachIterationStartError(t *testing.T) {
+	errEvent := errors.New("event error")
+	ctx := &Context{
+		state: map[string]any{"List": []string{"a"}},
+		onEvent: func(span *trajectory.Span) error {
+			if span.Type == trajectory.SpanLoopIteration {
+				return errEvent
+			}
+			return nil
+		},
+		stubContext: stubContext{
+			timeNow: time.Now,
+		},
+	}
+	loop := &ForEach{
+		List: "List",
+		Item: "Item",
+		Do: NewFuncAction("body", func(ctx *Context, args struct{}) (struct{}, error) {
+			return struct{}{}, nil
+		}),
+	}
+	parent := &trajectory.Span{Name: "parent"}
+	require.NoError(t, ctx.startSpan(parent))
+	require.ErrorIs(t, loop.execute(ctx), errEvent)
+	var err error
+	require.NotPanics(t, func() { err = ctx.finishSpan(parent, nil) })
+	require.NoError(t, err)
+	require.Empty(t, ctx.activeSpans)
 }

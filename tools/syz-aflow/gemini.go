@@ -4,6 +4,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -11,26 +12,20 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
-	"google.golang.org/genai"
 )
 
 var flagNoSafetyFilters = flag.Bool("no-safety-filters", false, "disable safety filters for Gemini/Vertex requests")
 
 func init() {
 	RegisterProvider("gemini", func(ctx context.Context, model string) (backend.Provider, error) {
-		apiKey := os.Getenv("GOOGLE_API_KEY")
-		if apiKey == "" {
-			apiKey = os.Getenv("GEMINI_API_KEY")
-		}
-		if apiKey == "" {
+		apiKeys := gemini.ParseAPIKeys(cmp.Or(os.Getenv("GOOGLE_API_KEY"), os.Getenv("GEMINI_API_KEY")))
+		if len(apiKeys) == 0 {
 			return nil, fmt.Errorf("gemini provider requires GOOGLE_API_KEY or GEMINI_API_KEY environment variable to be set")
 		}
 		provider, err := gemini.NewProvider(ctx, gemini.Config{
 			ModelOverride:   model,
 			NoSafetyFilters: *flagNoSafetyFilters,
-			ClientConfig: &genai.ClientConfig{
-				APIKey: apiKey,
-			},
+			APIKeys:         apiKeys,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize Gemini provider: %w", err)
@@ -50,11 +45,8 @@ func init() {
 		provider, err := gemini.NewProvider(ctx, gemini.Config{
 			ModelOverride:   model,
 			NoSafetyFilters: *flagNoSafetyFilters,
-			ClientConfig: &genai.ClientConfig{
-				Backend:  genai.BackendVertexAI,
-				Project:  project,
-				Location: location,
-			},
+			VertexProject:   project,
+			VertexLocation:  location,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize Vertex provider: %w", err)

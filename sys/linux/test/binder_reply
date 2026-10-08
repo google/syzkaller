@@ -1,0 +1,13 @@
+# A sync transaction round trip: r2 sends a transaction to the context manager r0,
+# r0 receives it (BR_TRANSACTION) and replies, then r2 receives BR_REPLY.
+
+r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_SET_CONTEXT_MGR_EXT(r0, AUTO, &AUTO={AUTO, 0x100, 0x0, 0x0})
+r1 = mmap$binder(&(0x7f00000a0000), 0x2000, 0x1, 0x11, r0, 0x0)
+r2 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+r3 = mmap$binder(&(0x7f00000c0000), 0x2000, 0x1, 0x11, r2, 0x0)
+ioctl$BINDER_WRITE_READ(r2, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction={AUTO, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, AUTO, &AUTO={@flat=@binder={AUTO, 0x0, 0x1, 0x1}, @flat=@binder={AUTO, 0x0, 0x2, 0x2}, @flat=@weak_binder={AUTO, 0x0, 0x3, 0x3}}, &AUTO=AUTO}}], 0x0, AUTO, &AUTO=""/256})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}], AUTO, AUTO, &AUTO=""/256})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@reply={AUTO, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, AUTO, &AUTO={@flat=@handle={AUTO, 0x0, 0x1, 0x0}, @flat=@handle={AUTO, 0x0, 0x2, 0x0}, @flat=@weak_handle={AUTO, 0x0, 0x3, 0x0}}, &AUTO=AUTO}}, @free_buffer={AUTO, r1}], 0x0, AUTO, &AUTO=""/256})
+ioctl$BINDER_WRITE_READ(r2, AUTO, &AUTO={0x0, AUTO, &AUTO=[], AUTO, AUTO, &AUTO=""/256})
+ioctl$BINDER_WRITE_READ(r2, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@free_buffer={AUTO, r3}], 0x0, AUTO, &AUTO=""/256})

@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
@@ -23,7 +25,8 @@ import (
 
 type Provider struct {
 	mu              sync.Mutex
-	client          *genai.Client
+	clients         []*genai.Client
+	nextClient      atomic.Uint64
 	models          map[string]*modelInfo
 	modelPathPrefix string
 	modelOverride   string
@@ -41,8 +44,26 @@ type modelInfo struct {
 
 type Config struct {
 	ModelOverride   string
-	ClientConfig    *genai.ClientConfig
 	NoSafetyFilters bool
+	// APIKeys are Gemini API keys.
+	// Each workflow run sticks to a single key (to benefit from per-project implicit caching),
+	// and the keys are distributed across runs in a round-robin manner.
+	// Note that the keys only help with rate limits if they belong to different projects.
+	APIKeys []string
+	// VertexProject, if set, makes the provider use Vertex AI instead of Gemini API.
+	VertexProject  string
+	VertexLocation string
+}
+
+// ParseAPIKeys splits a newline-separated list of API keys.
+func ParseAPIKeys(keys string) []string {
+	var ret []string
+	for key := range strings.Lines(keys) {
+		if key = strings.TrimSpace(key); key != "" {
+			ret = append(ret, key)
+		}
+	}
+	return ret
 }
 
 func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
@@ -58,7 +79,7 @@ func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
 func (p *Provider) init(ctx context.Context, cfg Config) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.client != nil || p.err != nil {
+	if len(p.clients) != 0 || p.err != nil {
 		return p.err
 	}
 
@@ -94,25 +115,44 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			OutputTokenLimit: 65536,
 		},
 	}
-	if cfg.ClientConfig != nil && cfg.ClientConfig.Backend == genai.BackendVertexAI {
-		// Vertex AI backend expects the bare model name, not prefixed with "models/".
-		// E.g. "gemini-1.5-pro" instead of "models/gemini-1.5-pro".
+	// Gemini API expects model names prefixed with "models/" (e.g. "models/gemini-1.5-pro"),
+	// while Vertex AI expects bare model names.
+	p.modelPathPrefix = "models/"
+	var clientConfigs []*genai.ClientConfig
+	switch {
+	case cfg.VertexProject != "" && len(cfg.APIKeys) != 0:
+		return fmt.Errorf("APIKeys and VertexProject are mutually exclusive")
+	case cfg.VertexProject != "":
 		p.modelPathPrefix = ""
-	} else {
-		p.modelPathPrefix = "models/"
+		clientConfigs = append(clientConfigs, &genai.ClientConfig{
+			Backend:  genai.BackendVertexAI,
+			Project:  cfg.VertexProject,
+			Location: cfg.VertexLocation,
+		})
+	case len(cfg.APIKeys) != 0:
+		for _, key := range cfg.APIKeys {
+			clientConfigs = append(clientConfigs, &genai.ClientConfig{APIKey: key})
+		}
+	default:
+		// Let genai take the configuration from the environment variables.
+		clientConfigs = append(clientConfigs, nil)
 	}
-
-	client, err := genai.NewClient(ctx, cfg.ClientConfig)
-	if err != nil {
-		p.err = err
-		return err
+	for _, clientConfig := range clientConfigs {
+		client, err := genai.NewClient(ctx, clientConfig)
+		if err != nil {
+			p.err = err
+			return err
+		}
+		p.clients = append(p.clients, client)
 	}
-	p.client = client
+	// Start from a random key, so that short-lived providers don't all use the first key.
+	p.nextClient.Store(rand.Uint64())
 	return nil
 }
 
 func (p *Provider) Client(ctx context.Context) (backend.Client, error) {
-	return &client{p: p}, nil
+	idx := p.nextClient.Add(1) % uint64(len(p.clients))
+	return &client{p: p, client: p.clients[idx]}, nil
 }
 
 func (p *Provider) Models(ctx context.Context) ([]string, error) {
@@ -142,7 +182,8 @@ func (p *Provider) Close() error {
 }
 
 type client struct {
-	p *Provider
+	p      *Provider
+	client *genai.Client
 }
 
 func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend.GenerateConfig,
@@ -207,7 +248,7 @@ func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend
 	timedCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	resp, err := c.p.client.Models.GenerateContent(timedCtx, c.p.modelPathPrefix+model, req, genaiCfg)
+	resp, err := c.client.Models.GenerateContent(timedCtx, c.p.modelPathPrefix+model, req, genaiCfg)
 	if err != nil {
 		if timedCtx.Err() == context.DeadlineExceeded && ctx.Err() == nil {
 			// The internal 10-minute timeout expired, but the parent context is still alive.

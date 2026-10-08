@@ -1,0 +1,9 @@
+# requires: manual
+# Create an rnull block device via configfs and read from it.
+
+mkdirat$rnull(AUTO, &AUTO={'/sys/kernel/config/rnull/syzrnull', 0x0}, AUTO)
+r0 = openat$rnull_attr(AUTO, &AUTO={'/sys/kernel/config/rnull/syzrnull', 0x0, '/power\x00'}, AUTO, AUTO)
+write$rnull_attr(r0, &AUTO='1', AUTO)
+r1 = openat$rnullb(AUTO, &AUTO={'/dev/syzrnull', 0x0}, 0x2, AUTO)
+ioctl$BLKGETSIZE64(r1, AUTO, &AUTO)
+pread64(r1, &AUTO=""/512, AUTO, 0x0)

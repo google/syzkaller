@@ -48,7 +48,7 @@ socket(29, 3, 1) = 3
 getsockopt(-1, 132, 119, 0x200005c0, [14]) = -1 EBADF (Bad file descriptor)
 `, `
 socket$can_raw(0x1d, 0x3, 0x1)
-getsockopt$inet_sctp6_SCTP_RESET_STREAMS(0xffffffffffffffff, 0x84, 0x77, &(0x7f0000000000), &(0x7f0000000040)=0x8)
+getsockopt(0xffffffffffffffff, 0x84, 0x77, &(0x7f0000000000), &(0x7f0000000040))
 `,
 		}, {`
 inotify_init() = 2

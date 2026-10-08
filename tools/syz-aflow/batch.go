@@ -85,6 +85,9 @@ func validateBatchMode(isBatch bool, args RunnerArgs) error {
 		if args.Parallel != 1 {
 			return fmt.Errorf("-parallel can only be used in batch execution")
 		}
+		if args.Corpus != "" {
+			return fmt.Errorf("-corpus can only be used in batch execution")
+		}
 		return nil
 	}
 	// Result classification relies on the Success/GiveUp outputs of the workflow.
@@ -119,6 +122,11 @@ func (r *Runner) runBatch(ctx context.Context, tasks []batchTask) error {
 	if len(tasks) == 0 {
 		log.Printf("all tasks have already completed")
 		return nil
+	}
+	if r.corpusPath != "" {
+		if r.corpus, err = openCorpus(r.corpusPath); err != nil {
+			return err
+		}
 	}
 
 	// Workflow failures are recorded as task results, so the only errors that
@@ -174,9 +182,15 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 	// the next run could identify and prioritize such tasks.
 	inProgressHTML := r.taskPath(stateInProgress, task.ID, ".html")
 	var spans []*trajectory.Span
+	var corpusErr error
 	onEvent := func(span *trajectory.Span) error {
 		spans = appendOrUpdateSpan(spans, span)
 		saveHTML(inProgressHTML, spans)
+		// Programs are saved right away, so that they are not lost if the run is aborted.
+		if r.corpus != nil && corpusErr == nil {
+			corpusErr = r.corpus.saveSpan(inputs, span)
+			return corpusErr
+		}
 		return nil
 	}
 	taskLogf, closeLog, err := openTaskLog(r.taskPath(stateInProgress, task.ID, ".log"))
@@ -198,6 +212,9 @@ func (r *Runner) executeBatchTask(ctx context.Context, task batchTask) (string, 
 	closeLog()
 	if ctx.Err() != nil {
 		return stateError, ctx.Err()
+	}
+	if corpusErr != nil {
+		return stateError, fmt.Errorf("failed to save programs of %s to corpus: %w", task.ID, corpusErr)
 	}
 
 	duration := time.Since(startTime)

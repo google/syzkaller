@@ -658,7 +658,7 @@ func filterFindingCandidates(bugs []manager.DiffBug) []manager.DiffBug {
 		if bug.Status == manager.DiffBugStatusIgnored || bug.Base.Crashes > 0 || bug.Base.NotCrashed {
 			continue
 		}
-		if bug.Patched.Crashes == 0 || bug.Patched.Report == "" {
+		if bug.Patched.Crashes == 0 || bug.Patched.Report == "" || bug.Patched.CorruptedReport {
 			continue
 		}
 		candidates = append(candidates, bug)

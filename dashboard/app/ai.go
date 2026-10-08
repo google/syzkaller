@@ -2142,12 +2142,32 @@ func bugHasSupportedAIArch(ctx context.Context, bug *Bug) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return build.OS == targets.Linux && slices.Contains(aiSupportedArches, build.Arch), nil
+	return build.Type != BuildFailed && build.OS == targets.Linux &&
+		slices.Contains(aiSupportedArches, build.Arch), nil
 }
 
 func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duration) bool {
 	lastPatch := bug.discussionSummary().LastPatchMessage
 	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
+}
+
+func canAutoReproCBugTitle(title string, typ crash.Type) bool {
+	if strings.HasPrefix(title, "INFO:") ||
+		strings.HasPrefix(title, "panic:") ||
+		strings.HasPrefix(title, "go runtime error") ||
+		strings.Contains(title, "build error") ||
+		strings.Contains(title, "boot error") ||
+		strings.Contains(title, "test error") {
+		return false
+	}
+	if typ.IsKCSAN() {
+		return false
+	}
+	switch typ {
+	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.Hang, crash.UnexpectedReboot:
+		return false
+	}
+	return true
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2184,7 +2204,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		// - Must have a crash report, but no existing C reproducer.
 		// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
 		// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
-		// - Skip non-fatal issues (INFO).
+		// - Skip non-fatal issues (INFO), KCSAN bugs, non-kernel/syzkaller panics, and build/boot/test errors.
 		// - Skip bugs that have recent patch candidates being discussed / tested.
 		nsCfg := getNsConfig(ctx, bug.Namespace)
 		canAutoReproC := nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
@@ -2192,7 +2212,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			!bug.HasCRepro && bug.HasReport &&
 			timeSince(ctx, bug.FirstTime) > reproCMinAge &&
 			timeSince(ctx, bug.LastTime) < reproCMaxAge &&
-			!strings.HasPrefix(bug.Title, "INFO:") &&
+			canAutoReproCBugTitle(bug.Title, typ) &&
 			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 		if canAutoReproC {
 			workflows[ai.WorkflowReproC] = true

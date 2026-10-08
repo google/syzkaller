@@ -101,7 +101,7 @@ cmsghdr_sctp_dstaddrv6 {
 
 # Specific SCTP socket options
 
-resource assoc_id[int32]: 0
+resource assoc_id[int32]: SCTP_FUTURE_ASSOC, SCTP_CURRENT_ASSOC, SCTP_ALL_ASSOC
 
 setsockopt$inet_sctp_SCTP_RTOINFO(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RTOINFO], val ptr[in, sctp_rtoinfo], len len[val])
 setsockopt$inet_sctp6_SCTP_RTOINFO(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RTOINFO], val ptr[in, sctp_rtoinfo], len len[val])
@@ -308,8 +308,6 @@ getsockopt$inet_sctp6_SCTP_ENABLE_STREAM_RESET(fd sock_sctp6, level const[SOL_SC
 
 setsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
 setsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
-getsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
-getsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
 
 setsockopt$inet_sctp_SCTP_RESET_ASSOC(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
 setsockopt$inet_sctp6_SCTP_RESET_ASSOC(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
@@ -334,6 +332,59 @@ setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp, level const[SOL_S
 setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[in, sctp_stream_value], len len[val])
 getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[inout, sctp_stream_value], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[inout, sctp_stream_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_REUSE_PORT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_REUSE_PORT], val ptr[in, int32], len len[val])
+setsockopt$inet_sctp6_SCTP_REUSE_PORT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_REUSE_PORT], val ptr[in, int32], len len[val])
+getsockopt$inet_sctp_SCTP_REUSE_PORT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_REUSE_PORT], val ptr[out, int32], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_REUSE_PORT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_REUSE_PORT], val ptr[out, int32], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS_V2(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_PEER_ADDR_THLDS_V2], val ptr[in, sctp_paddrthlds_v2], len len[val])
+setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS_V2(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_PEER_ADDR_THLDS_V2], val ptr[in, sctp_paddrthlds_v2], len len[val])
+getsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS_V2(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_PEER_ADDR_THLDS_V2], val ptr[inout, sctp_paddrthlds_v2], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS_V2(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_PEER_ADDR_THLDS_V2], val ptr[inout, sctp_paddrthlds_v2], len ptr[inout, len[val, int32]])
+
+getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF_FLAGS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_PEELOFF_FLAGS], val ptr[inout, sctp_peeloff_flags_arg_t[sock_sctp]], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF_FLAGS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_PEELOFF_FLAGS], val ptr[inout, sctp_peeloff_flags_arg_t[sock_sctp6]], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_INTERLEAVING_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_INTERLEAVING_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_INTERLEAVING_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_INTERLEAVING_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_INTERLEAVING_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_INTERLEAVING_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_INTERLEAVING_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_INTERLEAVING_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_EVENT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_EVENT], val ptr[in, sctp_event], len len[val])
+setsockopt$inet_sctp6_SCTP_EVENT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_EVENT], val ptr[in, sctp_event], len len[val])
+getsockopt$inet_sctp_SCTP_EVENT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_EVENT], val ptr[inout, sctp_event], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_EVENT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_EVENT], val ptr[inout, sctp_event], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_ASCONF_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ASCONF_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_ASCONF_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ASCONF_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_ASCONF_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ASCONF_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_ASCONF_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ASCONF_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_AUTH_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_AUTH_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_AUTH_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_AUTH_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_AUTH_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_AUTH_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_AUTH_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_AUTH_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_ECN_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ECN_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_ECN_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ECN_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_ECN_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ECN_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_ECN_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ECN_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_EXPOSE_POTENTIALLY_FAILED_STATE], val ptr[in, sctp_pf_expose], len len[val])
+setsockopt$inet_sctp6_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_EXPOSE_POTENTIALLY_FAILED_STATE], val ptr[in, sctp_pf_expose], len len[val])
+getsockopt$inet_sctp_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_EXPOSE_POTENTIALLY_FAILED_STATE], val ptr[inout, sctp_pf_expose], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_EXPOSE_POTENTIALLY_FAILED_STATE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_EXPOSE_POTENTIALLY_FAILED_STATE], val ptr[inout, sctp_pf_expose], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[in, sctp_udpencaps], len len[val])
+setsockopt$inet_sctp6_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[in, sctp_udpencaps], len len[val])
+getsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[inout, sctp_udpencaps], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[inout, sctp_udpencaps], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_PLPMTUD_PROBE_INTERVAL(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_PLPMTUD_PROBE_INTERVAL], val ptr[in, sctp_probeinterval], len len[val])
+setsockopt$inet_sctp6_SCTP_PLPMTUD_PROBE_INTERVAL(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_PLPMTUD_PROBE_INTERVAL], val ptr[in, sctp_probeinterval], len len[val])
+getsockopt$inet_sctp_SCTP_PLPMTUD_PROBE_INTERVAL(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_PLPMTUD_PROBE_INTERVAL], val ptr[inout, sctp_probeinterval], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_PLPMTUD_PROBE_INTERVAL(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_PLPMTUD_PROBE_INTERVAL], val ptr[inout, sctp_probeinterval], len ptr[inout, len[val, int32]])
 
 sctp_rtoinfo {
 	srto_assoc_id	assoc_id
@@ -573,6 +624,46 @@ sctp_add_streams {
 	sas_assoc_id	assoc_id
 	sas_instrms	int16
 	sas_outstrms	int16
+}
+
+sctp_paddrthlds_v2 {
+	spt_assoc_id	assoc_id
+	spt_address	sockaddr_storage_sctp
+	spt_pathmaxrxt	int16
+	spt_pathpfthld	int16
+	spt_pathcpthld	int16
+}
+
+type sctp_peeloff_flags_arg_t[SOCK] {
+	associd	assoc_id
+	sd	SOCK	(out)
+	flags	flags[accept_flags, int32]
+}
+
+sctp_event {
+	se_assoc_id	assoc_id
+	se_type		flags[sctp_sn_type, int16]
+	se_on		int8[0:1]
+}
+
+sctp_sn_type = SCTP_DATA_IO_EVENT, SCTP_ASSOC_CHANGE, SCTP_PEER_ADDR_CHANGE, SCTP_SEND_FAILED, SCTP_REMOTE_ERROR, SCTP_SHUTDOWN_EVENT, SCTP_PARTIAL_DELIVERY_EVENT, SCTP_ADAPTATION_INDICATION, SCTP_AUTHENTICATION_EVENT, SCTP_SENDER_DRY_EVENT, SCTP_STREAM_RESET_EVENT, SCTP_ASSOC_RESET_EVENT, SCTP_STREAM_CHANGE_EVENT, SCTP_SEND_FAILED_EVENT
+
+# The value is one of SCTP_PF_EXPOSE_{UNSET,DISABLE,ENABLE} from the kernel-internal include/net/sctp/constants.h.
+sctp_pf_expose {
+	assoc_id	assoc_id
+	assoc_value	int32[0:2]
+}
+
+sctp_udpencaps {
+	sue_assoc_id	assoc_id
+	sue_address	sockaddr_storage_sctp
+	sue_port	sock_port
+}
+
+sctp_probeinterval {
+	spi_assoc_id	assoc_id
+	spi_address	sockaddr_storage_sctp
+	spi_interval	int32
 }
 
 # SCTP ioctls

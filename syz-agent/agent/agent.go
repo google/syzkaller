@@ -27,7 +27,6 @@ import (
 	"github.com/google/syzkaller/pkg/updater"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
-	"google.golang.org/genai"
 )
 
 func main() {
@@ -346,16 +345,9 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	}
 	switch backend {
 	case backendVertex:
-		geminiCfg.ClientConfig = &genai.ClientConfig{
-			Backend: genai.BackendVertexAI,
-			Project: s.cfg.CloudProject,
-		}
+		geminiCfg.VertexProject = s.cfg.CloudProject
 	case backendGemini, "":
-		if s.cfg.GeminiAPIKey != "" {
-			geminiCfg.ClientConfig = &genai.ClientConfig{
-				APIKey: s.cfg.GeminiAPIKey,
-			}
-		}
+		geminiCfg.APIKeys = gemini.ParseAPIKeys(s.cfg.GeminiAPIKey)
 	default:
 		return nil, fmt.Errorf("unknown LLM backend %q configured for workflow %q", backend, req.Workflow)
 	}

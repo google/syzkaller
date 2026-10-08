@@ -182,6 +182,116 @@ func TestToolHistorySequentialLeak(t *testing.T) {
 	require.Equal(t, 4, toolExecutionCount, "state leak bug demonstrated! (one call was blocked by leaked history)")
 }
 
+func TestToolConsecutiveBadCallErrors(t *testing.T) {
+	type toolArgs struct {
+		Query string `jsonschema:"query"`
+	}
+	failTool := NewFuncTool("test-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+		if args.Query == "ok" {
+			return struct{}{}, nil
+		}
+		return struct{}{}, BadCallError("requested entity %q does not exist", args.Query)
+	}, "test tool")
+	tools := map[string]Tool{"test-tool": failTool}
+
+	t.Run("warnings-and-hard-limit", func(t *testing.T) {
+		session := &agentSession{LLMAgent: &LLMAgent{Name: "test-agent"}}
+		ctx := newTestContext(t, nil)
+
+		// First 3 distinct failing calls produce no SYSTEM WARNING.
+		for i := 1; i <= defaultLoopDetectionLimit; i++ {
+			call := &backend.FunctionCall{
+				ID:   fmt.Sprintf("c%d", i),
+				Name: "test-tool",
+				Args: map[string]any{"Query": fmt.Sprintf("bad-%d", i)},
+			}
+			require.NoError(t, session.callTools(ctx, tools, []*backend.FunctionCall{call}))
+			lastMsg := session.req[len(session.req)-1].content
+			require.Len(t, lastMsg.Parts, 1)
+			require.NotNil(t, lastMsg.Parts[0].FunctionResponse)
+		}
+
+		// A successful call resets the consecutive error counter.
+		okCall := &backend.FunctionCall{
+			ID:   "c-ok",
+			Name: "test-tool",
+			Args: map[string]any{"Query": "ok"},
+		}
+		require.NoError(t, session.callTools(ctx, tools, []*backend.FunctionCall{okCall}))
+		require.Empty(t, session.toolErrorCounts["test-tool"])
+
+		// Now fail up to hardLoopDetectionLimit - 1 and verify warnings appear after defaultLoopDetectionLimit.
+		for i := 1; i < hardLoopDetectionLimit; i++ {
+			call := &backend.FunctionCall{
+				ID:   fmt.Sprintf("f%d", i),
+				Name: "test-tool",
+				Args: map[string]any{"Query": fmt.Sprintf("fail-%d", i)},
+			}
+			require.NoError(t, session.callTools(ctx, tools, []*backend.FunctionCall{call}))
+			lastMsg := session.req[len(session.req)-1].content
+			if i <= defaultLoopDetectionLimit {
+				require.Len(t, lastMsg.Parts, 1)
+			} else {
+				require.Len(t, lastMsg.Parts, 2)
+				require.Contains(t, lastMsg.Parts[0].Text, `SYSTEM WARNING for tool "test-tool":`)
+			}
+		}
+
+		// The 6th consecutive failing call on a non-subagent returns a hard error.
+		call6 := &backend.FunctionCall{
+			ID:   "f6",
+			Name: "test-tool",
+			Args: map[string]any{"Query": "fail-6"},
+		}
+		err := session.callTools(ctx, tools, []*backend.FunctionCall{call6})
+		require.ErrorContains(t, err, `agent got stuck in a loop making 6 consecutive failing calls to tool "test-tool"`)
+	})
+
+	t.Run("subagent-triggers-answer-now", func(t *testing.T) {
+		type outStruct struct {
+			Result string `jsonschema:"result"`
+		}
+		outputs := LLMOutputs[outStruct]()
+		session := &agentSession{
+			LLMAgent: &LLMAgent{
+				Name:     "test-subagent",
+				SubAgent: true,
+				Outputs:  outputs,
+			},
+		}
+		toolsWithOutputs := map[string]Tool{
+			"test-tool":       failTool,
+			llmSetResultsTool: outputs.tool,
+		}
+		ctx := newTestContext(t, nil)
+
+		for i := 1; i <= hardLoopDetectionLimit; i++ {
+			call := &backend.FunctionCall{
+				ID:   fmt.Sprintf("f%d", i),
+				Name: "test-tool",
+				Args: map[string]any{"Query": fmt.Sprintf("mutated-%d", i)},
+			}
+			require.NoError(t, session.callTools(ctx, toolsWithOutputs, []*backend.FunctionCall{call}))
+		}
+		require.True(t, session.answerNow)
+		require.Equal(t, answerNowIterations, session.answerNowLeft)
+		lastMsg := session.req[len(session.req)-1].content
+		require.Len(t, lastMsg.Parts, 2)
+		require.Contains(t, lastMsg.Parts[0].Text, "All of your research tools are now disabled")
+
+		// While answerNow is set or outputs are already populated, maybeCompressContext must be skipped.
+		compressed, err := session.maybeCompressContext(ctx, "inst", 200_000)
+		require.NoError(t, err)
+		require.False(t, compressed)
+
+		session.answerNow = false
+		session.outputs = map[string]any{"Result": "done"}
+		compressed, err = session.maybeCompressContext(ctx, "inst", 200_000)
+		require.NoError(t, err)
+		require.False(t, compressed)
+	})
+}
+
 func newTestContext(t *testing.T,
 	generateContent func(string, *backend.GenerateConfig, []*backend.Message) (
 		*backend.GenerateResponse, error)) *Context {

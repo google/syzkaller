@@ -73,6 +73,13 @@ if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; the
 	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
 fi
 
+# If the repo is checked out as a git worktree, its .git is a file that points
+# to the main repository .git dir (which lies outside of the repo). Mount it at
+# the same path inside of the container, otherwise git won't work there.
+if [ -f "$SCRIPT_DIR/../.git" ]; then
+	GIT_DIR="$(cd "$SCRIPT_DIR/.." && git rev-parse --path-format=absolute --git-common-dir)"
+	DOCKERARGS+=" --volume $GIT_DIR:$GIT_DIR:z"
+fi
 
 # Build or update docker image
 if [ ! -z "$SYZ_ENV_BUILD" ]; then

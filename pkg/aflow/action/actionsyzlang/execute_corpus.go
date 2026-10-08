@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/syzspec"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -76,7 +77,13 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 		return ExecuteCorpusResult{}, fmt.Errorf("unknown sys target: %s/%s", args.TargetOS, args.TargetArch)
 	}
 
-	desc := fmt.Sprintf("corpus-execution-v1-%v-%v", args.KernelCommit, corpusSig)
+	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(args.TargetArch)))
+	kernelSig, err := hash.File(kernelPath)
+	if err != nil {
+		return ExecuteCorpusResult{}, fmt.Errorf("failed to hash kernel image: %w", err)
+	}
+
+	desc := fmt.Sprintf("corpus-execution-v2-%v-%v", kernelSig.String(), corpusSig)
 	dir, err := ctx.Cache("corpus-execution", desc, func(dir string) error {
 		corpusDB, err := db.OpenReadOnly(args.CorpusPath)
 		if err != nil {

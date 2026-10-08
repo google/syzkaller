@@ -75,6 +75,8 @@ type agentSession struct {
 	*LLMAgent
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
+	// Track consecutive BadCallError failures per tool name.
+	toolErrorCounts map[string]int
 	// req stores the active conversation history slice in this execution.
 	req []llmMessage
 	// outputs stores the results returned by the final set-results tool call, if any.
@@ -853,6 +855,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	// re-query tools if needed, preventing it from getting permanently stuck
 	// when trying to re-fetch information that is no longer in its context.
 	a.toolHistory = nil
+	a.toolErrorCounts = nil
 	return true, nil
 }
 
@@ -928,6 +931,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		}
 		tool := tools[call.Name]
 		var toolErr error
+		var executed bool
 		switch {
 		case tool == nil:
 			toolErr = BadCallError("tool %q does not exist, please correct the name", call.Name)
@@ -937,6 +941,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 				call.Name, llmSetResultsTool)
 		default:
 			if toolErr = a.recordAndCheckDuplicate(call); toolErr == nil {
+				executed = true
 				span.Results, toolErr = tool.execute(ctx, call.Args)
 			}
 		}
@@ -957,9 +962,19 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 					call.Name, toolErr, call.Args)
 			}
 		}
+		var warn string
 		if isDuplicateErr(toolErr) {
+			warn = toolErr.Error()
+		} else if executed && (a.Outputs == nil || tool != a.Outputs.tool) {
+			var err error
+			warn, err = a.recordAndCheckToolError(call.Name, toolErr)
+			if err != nil {
+				return err
+			}
+		}
+		if warn != "" {
 			warnings = append(warnings, backend.Part{
-				Text: fmt.Sprintf("SYSTEM WARNING for tool %q: %s", call.Name, toolErr.Error()),
+				Text: fmt.Sprintf("SYSTEM WARNING for tool %q: %s", call.Name, warn),
 			})
 		}
 		responses = append(responses, backend.Part{
@@ -1218,6 +1233,41 @@ func (a *agentSession) recordAndCheckDuplicate(call *backend.FunctionCall) error
 	}
 
 	return nil
+}
+
+func (a *agentSession) recordAndCheckToolError(toolName string, toolErr error) (string, error) {
+	if toolErr == nil {
+		delete(a.toolErrorCounts, toolName)
+		return "", nil
+	}
+	if a.toolErrorCounts == nil {
+		a.toolErrorCounts = make(map[string]int)
+	}
+	a.toolErrorCounts[toolName]++
+	errs := a.toolErrorCounts[toolName]
+	if errs >= hardLoopDetectionLimit {
+		if a.SubAgent && !a.answerNow {
+			a.answerNow = true
+			a.answerNowLeft = answerNowIterations
+			return fmt.Sprintf("Tool %q has failed %d consecutive times. %s",
+				toolName, errs, strings.TrimSpace(llmAnswerNow)), nil
+		}
+		return "", fmt.Errorf("agent got stuck in a loop making %d consecutive failing calls to tool %q",
+			errs, toolName)
+	}
+	if errs == hardLoopDetectionLimit-1 {
+		return fmt.Sprintf("CRITICAL: Tool %q has failed %d consecutive times. "+
+			"You are stuck in a loop providing invalid arguments. You MUST change your approach, "+
+			"try a different tool, or proceed to the next step with your current knowledge. "+
+			"The next failing attempt will force-terminate your execution.",
+			toolName, errs), nil
+	}
+	if errs > defaultLoopDetectionLimit {
+		return fmt.Sprintf("Tool %q has failed %d consecutive times. "+
+			"Do NOT keep guessing arguments for this tool. Try a different tool or proceed to the next step.",
+			toolName, errs), nil
+	}
+	return "", nil
 }
 
 var toolNameRe = regexp.MustCompile(`^[a-z][a-z0-9-]+[a-z0-9]$`)
