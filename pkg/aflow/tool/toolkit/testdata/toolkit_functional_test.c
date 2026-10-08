@@ -86,6 +86,27 @@ void test_timer()
 	printf("test_timer passed (elapsed: %f, iterations: %d)\n", elapsed, iterations);
 }
 
+void test_setup_delay_bp()
+{
+	uintptr_t addr = kallsyms_lookup("init_uts_ns");
+	if (!addr) {
+		printf("setup_delay_bp skipped (kptr_restrict or unprivileged)\n");
+		return;
+	}
+	int fd = setup_delay_bp(0, addr, HW_BREAKPOINT_RW, HW_BREAKPOINT_LEN_8, 10);
+	if (fd == -1) {
+		if (errno == EPERM || errno == EACCES || errno == ENOSYS || errno == ENOENT ||
+		    errno == ENODEV || errno == EOPNOTSUPP || errno == EINVAL) {
+			printf("setup_delay_bp skipped (missing privileges or hw breakpoints unsupported)\n");
+			return;
+		}
+		perror("setup_delay_bp");
+		exit(1);
+	}
+	printf("setup_delay_bp passed\n");
+	close(fd);
+}
+
 int main()
 {
 	SETUP_UNBUFFERED_IO();
@@ -93,6 +114,7 @@ int main()
 	test_wait_on_signal();
 	test_event();
 	test_setup_uffd();
+	test_setup_delay_bp();
 	test_timer();
 	return 0;
 }
