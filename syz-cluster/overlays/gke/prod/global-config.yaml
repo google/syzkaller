@@ -189,6 +189,15 @@ fuzz_targets:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config
   - email_lists:
+      - linux-usb@vger.kernel.org
+    path_regexps:
+      - "usb"
+    focus: usb
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-usb-corpus.db
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+  - email_lists:
       - linux-mm@kvack.org
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
