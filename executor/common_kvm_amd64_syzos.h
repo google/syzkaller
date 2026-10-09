@@ -33,6 +33,7 @@ typedef enum {
 	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_NESTED_VMRESUME = 304,
 	SYZOS_API_NESTED_LOAD_SYZOS = 310,
+	SYZOS_API_NESTED_SET_STATE_PAGES = 320,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
@@ -44,6 +45,15 @@ typedef enum {
 	SYZOS_API_NESTED_AMD_VMSAVE = 387,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
+
+typedef enum {
+	NESTED_PAGE_APIC_ACCESS = 0,
+	NESTED_PAGE_VAPIC = 10,
+	NESTED_PAGE_MSRPM = 20,
+	NESTED_PAGE_IOPM = 30,
+	NESTED_PAGE_POSTED_INTR = 40,
+	NESTED_PAGE_PML = 50,
+} nested_page_type;
 
 struct api_call_uexit {
 	struct api_call_header header;
@@ -131,6 +141,7 @@ GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_set_state_pages(struct api_call_3* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
@@ -249,6 +260,9 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_LOAD_SYZOS) {
 			// Load SYZOS into the nested VM.
 			guest_handle_nested_load_syzos((struct api_call_nested_load_syzos*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_SET_STATE_PAGES) {
+			// Mutate nested state pages (APIC, MSRPM, IOPM, PDPTRs, etc.)
+			guest_handle_nested_set_state_pages((struct api_call_3*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_VMLAUNCH) {
 			// Launch the nested VM.
 			guest_handle_nested_vmlaunch((struct api_call_1*)cmd, cpu);
@@ -575,6 +589,16 @@ GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
 		guest_uexit(UEXIT_ASSERT);
 }
 
+GUEST_CODE static noinline bool vmwrite_lenient(uint64 field, uint64 value)
+{
+	uint8 error = 0; // nolint
+	asm volatile("vmwrite %%rax, %%rbx; setna %0"
+		     : "=q"(error)
+		     : "a"(value), "b"(field)
+		     : "cc", "memory");
+	return error == 0;
+}
+
 GUEST_CODE static noinline uint64 vmread(uint64 field)
 {
 	uint64 value;
@@ -877,7 +901,6 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	// Clear unused/unsupported fields.
 	// TODO(glider): do we need these?
 	vmwrite(VMCS_VIRTUAL_PROCESSOR_ID, 0);
-	vmwrite(VMCS_POSTED_INTR_NV, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MASK, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MATCH, -1);
 	vmwrite(VMCS_CR3_TARGET_COUNT, 0);
@@ -1161,7 +1184,7 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	vmwrite(VMCS_HOST_GS_BASE, rdmsr(X86_MSR_GS_BASE));
 
 	// Exit handler in RIP.
-	vmwrite(VMCS_HOST_RIP, (uintptr_t)nested_vm_exit_handler_intel_asm);
+	vmwrite(VMCS_HOST_RIP, executor_fn_guest_addr(nested_vm_exit_handler_intel_asm));
 
 	// Control Registers.
 	vmwrite(VMCS_HOST_CR0, read_cr0());
@@ -1171,7 +1194,6 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	// MSRs.
 	vmwrite(VMCS_HOST_IA32_PAT, rdmsr(X86_MSR_IA32_CR_PAT));
 	vmwrite(VMCS_HOST_IA32_EFER, rdmsr(X86_MSR_IA32_EFER));
-	vmwrite(VMCS_HOST_IA32_PERF_GLOBAL_CTRL, rdmsr(X86_MSR_CORE_PERF_GLOBAL_CTRL));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_CS, rdmsr(X86_MSR_IA32_SYSENTER_CS));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_ESP, rdmsr(X86_MSR_IA32_SYSENTER_ESP));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_EIP, rdmsr(X86_MSR_IA32_SYSENTER_EIP));
@@ -1215,7 +1237,6 @@ GUEST_CODE static noinline void init_vmcs_guest_state(uint64 cpu_id, uint64 vm_i
 	// MSRs - Copy from host or set to default.
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_EFER, VMCS_HOST_IA32_EFER);
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PAT, VMCS_HOST_IA32_PAT);
-	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL, VMCS_HOST_IA32_PERF_GLOBAL_CTRL);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_CS, VMCS_HOST_IA32_SYSENTER_CS);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_ESP, VMCS_HOST_IA32_SYSENTER_ESP);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_EIP, VMCS_HOST_IA32_SYSENTER_EIP);
@@ -1718,6 +1739,89 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 		guest_handle_nested_vmentry_intel(vm_id, cpu_id, false);
 	} else {
 		guest_run_amd_vm(cpu_id, vm_id);
+	}
+}
+
+GUEST_CODE static noinline void
+nested_set_state_pages_intel(uint64 vm_id, uint64 cpu_id, uint64 page_type, uint64 addr)
+{
+	if (vm_id >= KVM_MAX_L2_VMS)
+		return;
+	nested_vmptrld(cpu_id, vm_id);
+
+	volatile uint64 type = page_type;
+	if (type == NESTED_PAGE_APIC_ACCESS) {
+		if (vmwrite_lenient(VMCS_APIC_ACCESS_ADDR, addr)) {
+			uint64 sec_ctrl = vmread(VMCS_SECONDARY_VM_EXEC_CONTROL);
+			sec_ctrl |= SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES;
+			vmwrite(VMCS_SECONDARY_VM_EXEC_CONTROL, sec_ctrl);
+		}
+	} else if (type == NESTED_PAGE_VAPIC) {
+		if (vmwrite_lenient(VMCS_VIRTUAL_APIC_PAGE_ADDR, addr)) {
+			uint64 pri_ctrl = vmread(VMCS_CPU_BASED_VM_EXEC_CONTROL);
+			pri_ctrl |= CPU_BASED_TPR_SHADOW;
+			vmwrite(VMCS_CPU_BASED_VM_EXEC_CONTROL, pri_ctrl);
+		}
+	} else if (type == NESTED_PAGE_MSRPM) {
+		if (vmwrite_lenient(VMCS_MSR_BITMAP, addr)) {
+			uint64 pri_ctrl = vmread(VMCS_CPU_BASED_VM_EXEC_CONTROL);
+			pri_ctrl |= CPU_BASED_USE_MSR_BITMAPS;
+			vmwrite(VMCS_CPU_BASED_VM_EXEC_CONTROL, pri_ctrl);
+		}
+	} else if (type == NESTED_PAGE_IOPM) {
+		if (vmwrite_lenient(VMCS_IO_BITMAP_A, addr) &&
+		    vmwrite_lenient(VMCS_IO_BITMAP_B, addr + KVM_PAGE_SIZE)) {
+			uint64 pri_ctrl = vmread(VMCS_CPU_BASED_VM_EXEC_CONTROL);
+			pri_ctrl |= CPU_BASED_USE_IO_BITMAPS;
+			vmwrite(VMCS_CPU_BASED_VM_EXEC_CONTROL, pri_ctrl);
+		}
+	} else if (type == NESTED_PAGE_POSTED_INTR) {
+		if (vmwrite_lenient(VMCS_POSTED_INTR_DESC_ADDR, addr)) {
+			uint64 pin_ctrl = vmread(VMCS_PIN_BASED_VM_EXEC_CONTROL);
+			pin_ctrl |= PIN_BASED_POSTED_INTR;
+			vmwrite(VMCS_PIN_BASED_VM_EXEC_CONTROL, pin_ctrl);
+		}
+	} else if (type == NESTED_PAGE_PML) {
+		if (vmwrite_lenient(VMCS_PML_ADDRESS, addr)) {
+			uint64 sec_ctrl = vmread(VMCS_SECONDARY_VM_EXEC_CONTROL);
+			sec_ctrl |= SECONDARY_EXEC_PAGE_MOD_LOGGING;
+			vmwrite(VMCS_SECONDARY_VM_EXEC_CONTROL, sec_ctrl);
+		}
+	}
+}
+
+GUEST_CODE static noinline void
+nested_set_state_pages_amd(uint64 vm_id, uint64 cpu_id, uint64 page_type, uint64 addr)
+{
+	if (vm_id >= KVM_MAX_L2_VMS)
+		return;
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+
+	volatile uint64 type = page_type;
+	if (type == NESTED_PAGE_MSRPM) {
+		vmcb_write64(vmcb_addr, VMCB_CTRL_MSRPM_BASE_PA, addr);
+		uint32 vec3 = vmcb_read32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3);
+		vec3 |= VMCB_INTERCEPT_MSR_PROT;
+		vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, vec3);
+	} else if (type == NESTED_PAGE_IOPM) {
+		vmcb_write64(vmcb_addr, VMCB_CTRL_IOPM_BASE_PA, addr);
+		uint32 vec3 = vmcb_read32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3);
+		vec3 |= VMCB_INTERCEPT_IOIO_PROT;
+		vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, vec3);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_set_state_pages(struct api_call_3* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->args[0];
+	uint64 page_type = cmd->args[1];
+	uint64 addr = cmd->args[2];
+
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		nested_set_state_pages_intel(vm_id, cpu_id, page_type, addr);
+	} else {
+		nested_set_state_pages_amd(vm_id, cpu_id, page_type, addr);
 	}
 }
 
