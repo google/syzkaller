@@ -199,6 +199,9 @@ fuzz_targets:
         kernel_config: upstream-apparmor-kasan.config
   - email_lists:
       - linux-mm@kvack.org
+    path_regexps:
+      - "^mm/|include/linux/mm"
+    focus: mm
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN
