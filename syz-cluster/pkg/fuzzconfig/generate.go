@@ -209,6 +209,29 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 		)
 		return nil
 	},
+	api.FocusMM: func(mgrCfg *mgrconfig.Config) error {
+		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
+			"mmap", "munmap", "mremap", "remap_file_pages", "mprotect", "msync",
+			"madvise", "process_madvise", "process_mrelease", "fadvise64", "readahead",
+			"mincore", "mlock", "mlock2", "munlock", "mlockall", "munlockall", "brk",
+			"membarrier", "pkey_alloc", "pkey_free", "pkey_mprotect", "syz_pkey_set",
+			"process_vm_readv", "process_vm_writev", "ptrace",
+			"memfd_create", "memfd_secret", "shmget", "shmat", "shmctl", "shmdt",
+			"fallocate", "ftruncate", "truncate", "cachestat",
+			"open", "openat", "creat", "close", "read", "write",
+			"pread64", "pwrite64", "readv", "writev", "preadv", "pwritev",
+			"preadv2", "pwritev2", "lseek", "dup", "dup2", "dup3",
+			"splice", "vmsplice", "tee", "sendfile", "copy_file_range", "fcntl",
+			"mount", "umount2", "fsopen", "fsconfig", "fsmount", "move_mount",
+			"userfaultfd", "ioctl$UFFDIO*", "syz_open_procfs", "ioctl$PAGEMAP_SCAN",
+			"mbind", "set_mempolicy", "set_mempolicy_home_node", "get_mempolicy",
+			"move_pages", "migrate_pages",
+			"swapon", "swapoff", "syz_open_dev$loop", "ioctl$LOOP*", "ioctl$BLK*",
+			"mkdirat$cgroup*", "clock_gettime", "clone", "clone3", "unshare", "setns",
+			"exit", "exit_group", "wait4", "waitid",
+		)
+		return nil
+	},
 }
 
 func noFlakyFsCalls(mgrCfg *mgrconfig.Config) {

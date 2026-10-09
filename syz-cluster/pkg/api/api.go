@@ -49,6 +49,7 @@ const (
 	FocusBPF     = "bpf"
 	FocusFS      = "fs"
 	FocusUSB     = "usb"
+	FocusMM      = "mm"
 )
 
 const MaxRCFocusedPatches = 35
