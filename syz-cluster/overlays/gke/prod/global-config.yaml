@@ -129,7 +129,7 @@ fuzz_targets:
   - email_lists:
       - kvm@vger.kernel.org
     path_regexps:
-      - "kvm|virt"
+      - "^arch/.*/kvm/|^virt/kvm/|include/.*/kvm"
     focus: kvm
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
