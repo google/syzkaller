@@ -9,15 +9,26 @@ import (
 )
 
 type TypeDescription struct {
-	AllowMultiple     bool
-	GetTitle          QueryTypeTitle
-	ContentType       string
-	ContentEncoding   string
-	ReportingPrio     int // the smaller, the higher the asset is on the list during reporting
-	NoReporting       bool
-	customCompressor  Compressor
-	preserveExtension bool
+	AllowMultiple   bool
+	GetTitle        QueryTypeTitle
+	ContentType     string
+	ContentEncoding string
+	ReportingPrio   int // the smaller, the higher the asset is on the list during reporting
+	NoReporting     bool
+	// Compression to apply before uploading the asset.
+	Compression Compression
+	// Do not append the compression-specific extension to the file name.
+	PreserveExtension bool
 }
+
+// Compression specifies how an asset is compressed before being uploaded.
+type Compression int
+
+const (
+	// CompressionDefault lets the storage choose the compression method.
+	CompressionDefault Compression = iota
+	CompressionGzip
+)
 
 var assetTypes = map[dashapi.AssetType]*TypeDescription{
 	dashapi.BootableDisk: {
@@ -47,15 +58,15 @@ var assetTypes = map[dashapi.AssetType]*TypeDescription{
 		ContentType:       "text/html",
 		ContentEncoding:   "gzip", // We do want to decompress than right in the browser.
 		NoReporting:       true,
-		customCompressor:  gzipCompressor,
-		preserveExtension: true,
+		Compression:       CompressionGzip,
+		PreserveExtension: true,
 	},
 	dashapi.MountInRepro: {
 		GetTitle:      constTitle("mounted in repro"),
 		ReportingPrio: 5,
 		// It feels that such images are very well compressible, so we can just use
 		// the omnipresent gzip compression.
-		customCompressor: gzipCompressor,
+		Compression: CompressionGzip,
 	},
 }
 

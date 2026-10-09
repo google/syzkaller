@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/asset"
+	"github.com/google/syzkaller/pkg/asset/storage"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/cover"
@@ -91,7 +91,7 @@ type Manager struct {
 	cmd            *ManagerCmd
 	dash           ManagerDashapi
 	debugStorage   bool
-	storage        *asset.Storage
+	storage        *storage.Storage
 	debug          bool
 	lastBuild      *dashapi.Build
 	buildFailed    bool
@@ -125,9 +125,9 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, debug bool) (*Manager, er
 			return nil, err
 		}
 	}
-	var assetStorage *asset.Storage
+	var assetStorage *storage.Storage
 	if !cfg.AssetStorage.IsEmpty() {
-		assetStorage, err = asset.StorageFromConfig(cfg.AssetStorage, dash)
+		assetStorage, err = storage.StorageFromConfig(cfg.AssetStorage, dash)
 		if err != nil {
 			log.Fatalf("failed to create asset storage: %v", err)
 		}
@@ -861,7 +861,7 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 			log.Logf(0, "uploading an asset %s of type %s",
 				pendingAsset.path, pendingAsset.assetType)
 		}
-		extra := &asset.ExtraUploadArg{
+		extra := &storage.ExtraUploadArg{
 			SkipIfExists:      true,
 			AlreadyCompressed: pendingAsset.alreadyCompressed,
 		}

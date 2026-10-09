@@ -1,7 +1,7 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package asset
+package storage
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,7 @@ func (dm *dashMock) NeededAssetsList() (*dashapi.NeededAssetsResp, error) {
 
 func makeStorage(t *testing.T, dash Dashboard) (*Storage, *dummyStorageBackend) {
 	be := makeDummyStorageBackend()
-	cfg := &Config{
+	cfg := &asset.Config{
 		UploadTo: "dummy://test",
 	}
 	return &Storage{
@@ -298,9 +299,9 @@ func TestRecentAssetDeletionProtection(t *testing.T) {
 
 func TestAssetStorageConfiguration(t *testing.T) {
 	dashMock := newDashMock()
-	cfg := &Config{
+	cfg := &asset.Config{
 		UploadTo: "dummy://",
-		Assets: map[dashapi.AssetType]TypeConfig{
+		Assets: map[dashapi.AssetType]asset.TypeConfig{
 			dashapi.HTMLCoverageReport: {Never: true},
 			dashapi.KernelObject:       {},
 		},

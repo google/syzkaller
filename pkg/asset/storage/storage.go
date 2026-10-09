@@ -1,7 +1,7 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package asset
+package storage
 
 import (
 	"compress/gzip"
@@ -19,11 +19,12 @@ import (
 	"github.com/ulikunitz/xz"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/debugtracer"
 )
 
 type Storage struct {
-	cfg     *Config
+	cfg     *asset.Config
 	backend StorageBackend
 	dash    Dashboard
 	tracer  debugtracer.DebugTracer
@@ -34,7 +35,7 @@ type Dashboard interface {
 	NeededAssetsList() (*dashapi.NeededAssetsResp, error)
 }
 
-func StorageFromConfig(cfg *Config, dash Dashboard) (*Storage, error) {
+func StorageFromConfig(cfg *asset.Config, dash Dashboard) (*Storage, error) {
 	if dash == nil {
 		return nil, fmt.Errorf("dashboard api instance is necessary")
 	}
@@ -108,7 +109,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 	if name == "" {
 		return "", fmt.Errorf("file name is not specified")
 	}
-	typeDescr := GetTypeDescription(assetType)
+	typeDescr := asset.GetTypeDescription(assetType)
 	if typeDescr == nil {
 		return "", fmt.Errorf("asset type %s is unknown", assetType)
 	}
@@ -121,14 +122,14 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		savePath:          path,
 		contentType:       typeDescr.ContentType,
 		contentEncoding:   typeDescr.ContentEncoding,
-		preserveExtension: typeDescr.preserveExtension,
+		preserveExtension: typeDescr.PreserveExtension,
 	}
 	if req.contentType == "" {
 		req.contentType = "application/octet-stream"
 	}
 	compressor := storage.getDefaultCompressor()
-	if typeDescr.customCompressor != nil {
-		compressor = typeDescr.customCompressor
+	if typeDescr.Compression == asset.CompressionGzip {
+		compressor = gzipCompressor
 	}
 	if extra != nil && extra.AlreadyCompressed {
 		compressor = noCompressor

@@ -67,6 +67,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
+	"github.com/google/syzkaller/pkg/asset/storage"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -374,7 +375,7 @@ func deprecateAssets(ctx context.Context, cfg *Config, wg *sync.WaitGroup) {
 		log.Fatalf("failed to create dashapi during asset deprecation: %v", err)
 		return
 	}
-	storage, err := asset.StorageFromConfig(cfg.AssetStorage, dash)
+	assetStorage, err := storage.StorageFromConfig(cfg.AssetStorage, dash)
 	if err != nil {
 		log.Errorf("failed to create asset storage during asset deprecation: %v", err)
 		return
@@ -388,7 +389,7 @@ loop:
 		case <-time.After(sleepDuration):
 		}
 		log.Logf(1, "start asset deprecation")
-		stats, err := storage.DeprecateAssets()
+		stats, err := assetStorage.DeprecateAssets()
 		if err != nil {
 			log.Errorf("asset deprecation failed: %v", err)
 		}

@@ -1,8 +1,8 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package asset manages storage and upload of build assets and artifacts.
-package asset
+// Package storage manages storage and upload of build assets and artifacts.
+package storage
 
 import (
 	"fmt"
