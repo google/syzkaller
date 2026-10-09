@@ -1,6 +1,8 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package asset describes build asset types and the asset storage configuration.
+// The storage implementation itself lives in pkg/asset/storage.
 package asset
 
 import (

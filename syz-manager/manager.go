@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/asset"
+	"github.com/google/syzkaller/pkg/asset/storage"
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/execbackend"
@@ -109,7 +109,7 @@ type Manager struct {
 	benchMu   sync.Mutex
 	benchFile *os.File
 
-	assetStorage *asset.Storage
+	assetStorage *storage.Storage
 	fsckChecker  image.FsckChecker
 
 	reproLoop *manager.ReproLoop
@@ -339,7 +339,7 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	}
 
 	if !cfg.AssetStorage.IsEmpty() {
-		mgr.assetStorage, err = asset.StorageFromConfig(cfg.AssetStorage, mgr.dash)
+		mgr.assetStorage, err = storage.StorageFromConfig(cfg.AssetStorage, mgr.dash)
 		if err != nil {
 			log.Fatalf("failed to init asset storage: %v", err)
 		}
