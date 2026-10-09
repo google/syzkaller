@@ -679,18 +679,19 @@ type Text struct {
 }
 
 const (
-	textCrashLog     = "CrashLog"
-	textCrashReport  = "CrashReport"
-	textReproSyz     = "ReproSyz"
-	textReproC       = "ReproC"
-	textMachineInfo  = "MachineInfo"
-	textKernelConfig = "KernelConfig"
-	textPatch        = "Patch"
-	textLog          = "Log"
-	textError        = "Error"
-	textReproLog     = "ReproLog"
-	textFsckLog      = "FsckLog"
-	textJobComment   = "JobComment"
+	textCrashLog             = "CrashLog"
+	textCrashReport          = "CrashReport"
+	textReproSyz             = "ReproSyz"
+	textReproC               = "ReproC"
+	textMachineInfo          = "MachineInfo"
+	textKernelConfig         = "KernelConfig"
+	textPatch                = "Patch"
+	textLog                  = "Log"
+	textError                = "Error"
+	textReproLog             = "ReproLog"
+	textFsckLog              = "FsckLog"
+	textJobComment           = "JobComment"
+	textReproBatchProvenance = "ReproBatchProvenance"
 )
 
 const (
