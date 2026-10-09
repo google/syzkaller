@@ -196,6 +196,17 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 		)
 		return nil
 	},
+	api.FocusUSB: func(mgrCfg *mgrconfig.Config) error {
+		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
+			"syz_usb_connect", "syz_usb_connect_ath9k", "syz_usb_disconnect",
+			"syz_usb_control_io", "syz_usb_ep_write", "syz_usb_ep_read",
+			"syz_open_dev$char_usb", "read$char_usb", "write$char_usb",
+			"syz_open_dev$hidraw", "write$hidraw", "read$hidraw",
+			"syz_open_dev$hiddev", "read$hiddev", "ioctl$HIDIO*",
+			"syz_open_dev$evdev", "write$evdev", "ioctl$EVIO*",
+		)
+		return nil
+	},
 }
 
 func noFlakyFsCalls(mgrCfg *mgrconfig.Config) {
