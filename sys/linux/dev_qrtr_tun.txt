@@ -7,7 +7,47 @@ resource fd_qrtr_tun[fd]
 
 openat$qrtrtun(fd const[AT_FDCWD], file ptr[in, string["/dev/qrtr-tun"]], flags flags[open_flags]) fd_qrtr_tun
 
-write$qrtrtun(fd fd_qrtr_tun, data ptr[in, array[int8]], len bytesize[data])
+write$qrtrtun(fd fd_qrtr_tun, data ptr[in, qrtr_tun_pkt], len bytesize[data])
 read$qrtrtun(fd fd_qrtr_tun, data ptr[out, array[int8]], len bytesize[data])
 mmap$qrtrtun(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_qrtr_tun, offset fileoff)
 _ = __NR_mmap2
+
+qrtr_tun_pkt [
+	v1	qrtr_tun_pkt_v1
+	v2	qrtr_tun_pkt_v2
+	raw	array[int8]
+] [varlen]
+
+qrtr_tun_pkt_v1 {
+	version		const[1, int32]
+	type		flags[qrtr_pkt_types, int32]
+	src_node_id	flags[qrtr_nodes, int32]
+	src_port_id	flags[qrtr_ports, int32]
+	confirm_rx	int32[0:1]
+	size		bytesize[payload, int32]
+	dst_node_id	flags[qrtr_nodes, int32]
+	dst_port_id	flags[qrtr_ports, int32]
+	payload		qrtr_tun_payload
+} [packed]
+
+qrtr_nodes_v2 = 0xffff, 0, 1, 2, 3, 4
+qrtr_ports_v2 = 0xfffe, 0xffff, 0x3fff, 0x4000, 0x4001, 0x7ffe, 0x7fff, 0x8000, 0, 1, 2
+
+qrtr_tun_pkt_v2 {
+	version		const[3, int8]
+	type		flags[qrtr_pkt_types, int8]
+	flags		int8[0:1]
+	optlen		bytesize[opt, int8]
+	size		bytesize[payload, int32]
+	src_node_id	flags[qrtr_nodes_v2, int16]
+	src_port_id	flags[qrtr_ports_v2, int16]
+	dst_node_id	flags[qrtr_nodes_v2, int16]
+	dst_port_id	flags[qrtr_ports_v2, int16]
+	opt		array[int32, 0:4]
+	payload		qrtr_tun_payload
+} [packed]
+
+qrtr_tun_payload [
+	ctrl	qrtr_ctrl_pkt
+	data	array[int32, 1:16]
+] [varlen]
