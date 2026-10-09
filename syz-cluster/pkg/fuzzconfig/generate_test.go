@@ -50,6 +50,13 @@ func runTest(t *testing.T, cfg *api.FuzzConfig, baseName string) {
 }
 
 func compareOrSave(t *testing.T, fileName string, mgrCfg *mgrconfig.Config) {
+	syscalls, err := mgrconfig.ParseEnabledSyscalls(mgrCfg.Target,
+		mgrCfg.EnabledSyscalls, mgrCfg.DisabledSyscalls, mgrconfig.AnyDescriptions)
+	require.NoError(t, err)
+	require.NotEmpty(t, syscalls)
+	_, err = mgrconfig.ParseNoMutateSyscalls(mgrCfg.Target, mgrCfg.NoMutateSyscalls)
+	require.NoError(t, err)
+
 	targetJSON, err := json.MarshalIndent(mgrCfg, "", "\t")
 	require.NoError(t, err)
 	if *flagWrite {
