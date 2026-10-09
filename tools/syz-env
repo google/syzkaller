@@ -67,10 +67,13 @@ fi
 # If we're running rootless docker, files owned by the host user appear within the
 # container as being owned by root.
 #
-# If we're running regular rootful docker, we need to specify --user, as otherwise
-# processes within the container will create files with the wrong ownership.
+# If we're running regular rootful docker, map the host user to root (uid 0) and
+# the syzkaller sandbox user (uid 2000) in a user namespace so created/modified
+# files in the workspace keep the host user's ownership while sandbox tests can
+# switch between root and the unprivileged syzkaller user.
+DOCKERARGS+=" --cap-add=SYS_ADMIN"
 if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; then
-	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
+	DOCKERARGS+=" --env SYZ_HOST_UID=$(id -u ${USER}) --env SYZ_HOST_GID=$(id -g ${USER})"
 fi
 
 # If the repo is checked out as a git worktree, its .git is a file that points
@@ -81,16 +84,20 @@ if [ -f "$SCRIPT_DIR/../.git" ]; then
 	DOCKERARGS+=" --volume $GIT_DIR:$GIT_DIR:z"
 fi
 
-# Build or update docker image
-if [ ! -z "$SYZ_ENV_BUILD" ]; then
+# Build or update docker image.
+# SYZ_ENV_IMAGE runs the given (e.g. locally built) image as is, without pulling.
+# SYZ_ENV_BUILD builds the image from the local Dockerfile (for the host arch only).
+if [ -n "$SYZ_ENV_IMAGE" ]; then
+	IMAGE_NAME="$SYZ_ENV_IMAGE"
+elif [ -n "$SYZ_ENV_BUILD" ]; then
 	IMAGE_NAME="syz-$IMAGE"
-	docker build "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+	docker build --load "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
 else
 	IMAGE_NAME="gcr.io/syzkaller/$IMAGE"
 	docker pull -q "$IMAGE_NAME"
 fi
 
-# Run everything as the host user, this is important for created/modified files.
+# Run everything as the host user mapped to root inside the container.
 docker run \
 	--rm \
 	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
@@ -108,4 +115,12 @@ docker run \
 	--env GITHUB_PR_COMMITS \
 	--env CI \
 	${DOCKERARGS[@]} \
-	"$IMAGE_NAME" -c "$COMMAND"
+	"$IMAGE_NAME" -c '
+		if [ -n "$SYZ_HOST_UID" ] && [ "$SYZ_HOST_UID" != "0" ]; then
+			exec unshare --user --keep-caps \
+				--map-users=0:"$SYZ_HOST_UID":1 --map-users=1:0:1 --map-users=2000:2000:1 \
+				--map-groups=0:"$SYZ_HOST_GID":1 --map-groups=1:0:1 --map-groups=2000:2000:1 \
+				setpriv --reuid=0 --regid=0 --clear-groups bash -c "$1"
+		fi
+		exec bash -c "$1"
+	' -- "$COMMAND"

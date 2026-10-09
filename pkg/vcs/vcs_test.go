@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPatch(t *testing.T) {
+	osutil.RequireSandbox(t)
 	for _, repo := range []bool{false, true} {
 		t.Run(fmt.Sprintf("repo=%v", repo), func(t *testing.T) {
 			dir := t.TempDir()
@@ -23,6 +25,7 @@ func TestPatch(t *testing.T) {
 			file := filepath.Join(dir, "file.txt")
 			err := os.WriteFile(file, []byte("line1\nline2\n"), 0644)
 			require.NoError(t, err)
+			require.NoError(t, osutil.SandboxChown(dir, file))
 
 			patch := []byte("--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,3 @@\n line1\n+injected\n line2\n")
 			err = Patch(dir, patch)
@@ -39,8 +42,10 @@ func TestPatch(t *testing.T) {
 }
 
 func TestPatchForbidden(t *testing.T) {
+	osutil.RequireSandbox(t)
 	dir := t.TempDir()
 	MakeTestRepo(t, dir)
+	require.NoError(t, osutil.SandboxChown(dir, filepath.Join(dir, ".git")))
 
 	// Modification of .git/ directory must be blocked.
 	patch1 := []byte("--- /dev/null\n+++ b/.git/file.txt\n@@ -0,0 +1 @@\n+injected\n")

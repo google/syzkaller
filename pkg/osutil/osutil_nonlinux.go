@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"testing"
 	"time"
 )
 
@@ -37,8 +38,12 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 	return nil
 }
 
-func SandboxChown(file string) error {
+func SandboxChown(files ...string) error {
 	return nil
+}
+
+func RequireSandbox(t *testing.T) {
+	t.Skip("sandboxing is only supported on linux")
 }
 
 func setPdeathsig(cmd *exec.Cmd, hardKill bool) {

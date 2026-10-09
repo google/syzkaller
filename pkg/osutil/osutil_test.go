@@ -209,3 +209,34 @@ func TestVerboseMessage(t *testing.T) {
 	assert.Equal(t, "verbose error\nverbose text", VerboseMessage(verr))
 	assert.Equal(t, "wrapped: verbose error\nverbose text", VerboseMessage(fmt.Errorf("wrapped: %w", verr)))
 }
+
+func TestSandbox(t *testing.T) {
+	RequireSandbox(t)
+	dir := t.TempDir()
+	// Make a 0700 subdirectory to verify SandboxChown makes ancestor directories traversable.
+	subDir, err := os.MkdirTemp(dir, "private")
+	require.NoError(t, err)
+	file := filepath.Join(subDir, "file")
+	require.NoError(t, WriteFile(file, []byte("hello\n")))
+
+	run := func(name string, args ...string) (string, error) {
+		cmd := Command(name, args...)
+		require.NoError(t, Sandbox(cmd, true, true))
+		out, err := Run(time.Minute, cmd)
+		return strings.TrimSpace(string(out)), err
+	}
+
+	user, err := run("id", "-un")
+	require.NoError(t, err)
+	require.Equal(t, "syzkaller", user)
+
+	// Before SandboxChown, the 0700 parent directory prevents the sandbox user from accessing the file.
+	_, err = run("cat", file)
+	require.Error(t, err)
+	require.Contains(t, VerboseMessage(err), "Permission denied")
+
+	require.NoError(t, SandboxChown(file))
+	content, err := run("sh", "-c", fmt.Sprintf("echo sandbox >> %q && cat %q", file, file))
+	require.NoError(t, err)
+	require.Equal(t, "hello\nsandbox", content)
+}

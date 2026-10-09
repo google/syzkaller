@@ -304,7 +304,7 @@ func main() {
 	ctx, stop := context.WithCancel(context.Background())
 	var managers []*Manager
 	for _, mgrcfg := range cfg.Managers {
-		mgr, err := createManager(cfg, mgrcfg, *flagDebug)
+		mgr, err := createManager(osutil.Abs(filepath.Join("managers", mgrcfg.Name)), cfg, mgrcfg, *flagDebug)
 		if err != nil {
 			log.Errorf("failed to create manager %v: %v", mgrcfg.Name, err)
 			continue

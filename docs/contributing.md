@@ -143,6 +143,12 @@ You can also build the container from the respective `Dockerfile` by setting the
 SYZ_ENV_BUILD=1 syz-env
 ```
 This can be useful to test local changes that have not been pushed to the registry yet.
+The image is built only for the host architecture, which is much faster than the multi-arch build.
+
+To run an already built local image as is (without pulling or rebuilding it), set `SYZ_ENV_IMAGE`, i.e.:
+```
+SYZ_ENV_IMAGE=syz-env syz-env
+```
 
 ### Using [act](https://github.com/nektos/act)
 .github/workflows has more tests compared to `syz-env make presubmit`. To have the same tests as the workflow, we can run these workflow jobs locally.
