@@ -24,6 +24,21 @@ resource ioring_personality_id[int16]
 # the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
 # with fuzzer-provided mmap length. This wrapper ensures correct length computation.
 syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+# A bounded setup variant for focused campaigns; large rings cause guest OOM
+# before the targeted SQE lifetime paths receive useful coverage.
+syz_io_uring_setup$epoll(entries int32[1:64], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+# ZCRX requires DEFER_TASKRUN and a wide-CQE mode.  Make the combination
+# deterministic instead of depending on several independent flag mutations.
+syz_io_uring_setup$zcrx(entries int32[1:64], params ptr[inout, io_uring_params_zcrx], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+# Device-specific uring_cmd ABIs such as FUSE require the 128-byte SQE tail.
+# Keep a setup variant that always creates a compatible ring, so those SQEs do
+# not depend on a low-probability flag mutation in the generic setup call.
+syz_io_uring_setup$sqe128(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params_sqe128], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+# Keep the new mixed layout deterministic.  Generic flag mutation almost
+# never produces the required NO_SQARRAY combination.  SQ_REWIND is kept out
+# of this helper because it always consumes SQEs starting at slot zero, while
+# syz_io_uring_submit intentionally advances through a normal circular SQ.
+syz_io_uring_setup$layout(entries int32[2:64], params ptr[inout, io_uring_params_layout], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
 
 io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
@@ -104,7 +119,7 @@ munmap$IORING_OFF_CQ_RING(addr ring_ptr, len intptr)
 munmap$IORING_OFF_SQES(addr sqes_ptr, len intptr)
 
 # If no flags are specified(0), the io_uring instance is setup for interrupt driven IO.
-io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP, IORING_SETUP_ATTACH_WQ, IORING_FEAT_SINGLE_MMAP, IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE, IORING_FEAT_RW_CUR_POS, IORING_FEAT_FAST_POLL, IORING_FEAT_POLL_32BITS, IORING_SETUP_R_DISABLED, IORING_FEAT_SQPOLL_NONFIXED, IORING_FEAT_NATIVE_WORKERS, IORING_FEAT_RSRC_TAGS, IORING_FEAT_CQE_SKIP, IORING_FEAT_LINKED_FILE, IORING_FEAT_REG_REG_RING, IORING_FEAT_RECVSEND_BUNDLE, IORING_FEAT_MIN_TIMEOUT, IORING_SETUP_SUBMIT_ALL, IORING_SETUP_COOP_TASKRUN, IORING_SETUP_TASKRUN_FLAG, IORING_SETUP_SQE128, IORING_SETUP_CQE32, IORING_SETUP_SINGLE_ISSUER, IORING_SETUP_DEFER_TASKRUN, IORING_SETUP_NO_MMAP, IORING_SETUP_REGISTERED_FD_ONLY, IORING_SETUP_NO_SQARRAY, IORING_SETUP_HYBRID_IOPOLL, IORING_SETUP_CQE_MIXED, IORING_SETUP_SQE_MIXED
+io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP, IORING_SETUP_ATTACH_WQ, IORING_FEAT_SINGLE_MMAP, IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE, IORING_FEAT_RW_CUR_POS, IORING_FEAT_FAST_POLL, IORING_FEAT_POLL_32BITS, IORING_SETUP_R_DISABLED, IORING_FEAT_SQPOLL_NONFIXED, IORING_FEAT_NATIVE_WORKERS, IORING_FEAT_RSRC_TAGS, IORING_FEAT_CQE_SKIP, IORING_FEAT_LINKED_FILE, IORING_FEAT_REG_REG_RING, IORING_FEAT_RECVSEND_BUNDLE, IORING_FEAT_MIN_TIMEOUT, IORING_SETUP_SUBMIT_ALL, IORING_SETUP_COOP_TASKRUN, IORING_SETUP_TASKRUN_FLAG, IORING_SETUP_SQE128, IORING_SETUP_CQE32, IORING_SETUP_SINGLE_ISSUER, IORING_SETUP_DEFER_TASKRUN, IORING_SETUP_NO_MMAP, IORING_SETUP_REGISTERED_FD_ONLY, IORING_SETUP_NO_SQARRAY, IORING_SETUP_HYBRID_IOPOLL, IORING_SETUP_CQE_MIXED, IORING_SETUP_SQE_MIXED, IORING_SETUP_SQ_REWIND
 # watch out the being tested kernel version
 # IORING_FEAT_SINGLE_MMAP >= 5.4
 # IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE >= 5.5
@@ -228,7 +243,11 @@ io_uring_buf {
 	addr	ptr64[in, array[int8]]
 	len	len[addr, int32]
 	bid	io_uring_bid[int16]
-	resv	const[0, int16]
+# io_uring_buf_ring overlays its producer tail on the first entry's
+# resv field.  Keeping this const[0] makes every user-backed provided
+# buffer ring permanently empty and prevents bundle paths from being
+# exercised at all.
+	tail	int16
 }
 
 io_uring_buf_array {
@@ -282,6 +301,54 @@ io_uring_params {
 	cq_off		io_cqring_offsets	(out)
 }
 
+io_uring_params_sqe128 {
+	sq_entries	int32	(out)
+	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]	(inout)
+	flags		const[IORING_SETUP_SQE128, int32]	(in)
+	sq_thread_cpu	const[0, int32]	(in)
+	sq_thread_idle	const[0, int32]	(in)
+	features	int32	(out)
+	wq_fd		const[0, int32]	(in)
+	resv		array[const[0, int32], 3]
+	sq_off		io_sqring_offsets	(out)
+	cq_off		io_cqring_offsets	(out)
+}
+
+# NO_SQARRAY | SQE_MIXED | CQE_MIXED |
+# SINGLE_ISSUER | DEFER_TASKRUN | SUBMIT_ALL
+define IORING_SETUP_LAYOUT_FLAGS	0xd3080
+
+io_uring_params_layout {
+	sq_entries	int32	(out)
+	cq_entries	int32[0:128]	(inout)
+	flags		const[IORING_SETUP_LAYOUT_FLAGS, int32]	(in)
+	sq_thread_cpu	const[0, int32]	(in)
+	sq_thread_idle	const[0, int32]	(in)
+	features	int32	(out)
+	wq_fd		const[0, int32]	(in)
+	resv		array[const[0, int32], 3]
+	sq_off		io_sqring_offsets	(out)
+	cq_off		io_cqring_offsets	(out)
+}
+
+# IORING_SETUP_COOP_TASKRUN | IORING_SETUP_SUBMIT_ALL |
+# IORING_SETUP_CQE32 | IORING_SETUP_SINGLE_ISSUER |
+# IORING_SETUP_DEFER_TASKRUN
+define IORING_SETUP_ZCRX_FLAGS	0x3980
+
+io_uring_params_zcrx {
+	sq_entries	int32	(out)
+	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]	(inout)
+	flags		const[IORING_SETUP_ZCRX_FLAGS, int32]	(in)
+	sq_thread_cpu	const[0, int32]	(in)
+	sq_thread_idle	const[0, int32]	(in)
+	features	int32	(out)
+	wq_fd		const[0, int32]	(in)
+	resv		array[const[0, int32], 3]
+	sq_off		io_sqring_offsets	(out)
+	cq_off		io_cqring_offsets	(out)
+}
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Descriptions for sq_ring and cq_ring manipulation # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -294,6 +361,16 @@ syz_io_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr) fd
 
 # Submit sqe into the sq_ring
 syz_io_uring_submit(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u])
+# Focused variants keep narrow io_uring campaigns usable without pulling in
+# resource creators required by every unrelated member of io_uring_sqe_u.
+syz_io_uring_submit$epoll_ctl(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_epoll_ctl])
+syz_io_uring_submit$epoll_wait(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$epoll_wait])
+syz_io_uring_submit$bundle_send(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$send])
+syz_io_uring_submit$bundle_recv(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_recv])
+syz_io_uring_submit$recv_zc(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$recv_zc])
+syz_io_uring_submit$layout_nop(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$nop])
+syz_io_uring_submit$layout_nop128(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$nop128])
+syz_io_uring_submit$layout_pipe(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$pipe])
 
 io_uring_sqe_u [
 	IORING_OP_NOP			io_uring_sqe$nop
@@ -414,6 +491,7 @@ define SIZEOF_IO_URING_SQE_LARGE	128
 io_uring_sqe_uring_u [
 # see ublk definitions
 	ublk_cmd_sqes		ublk_cmd_sqe_u
+	fuse_cmd_sqes		fuse_uring_cmd_sqe
 	generic_cmd_sqes	io_uring_sqe$uring_cmd
 ]
 
@@ -466,7 +544,7 @@ io_uring_sqe_epoll_ctl [
 	mod	io_uring_sqe$epoll_ctl_t[EPOLL_CTL_MOD, ptr[in, epoll_event]]
 ]
 
-type io_uring_sqe$epoll_wait io_uring_sqe[IORING_OP_EPOLL_WAIT, const[0, int16], const[0, int32], const[0, int64], ptr64[in, array[epoll_event]], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$epoll_wait io_uring_sqe[IORING_OP_EPOLL_WAIT, const[0, int16], fd_epoll, const[0, int64], ptr64[in, array[epoll_event]], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 
 # IORING_OP_EPOLL_CTL, IORING_OP_SEND, IORING_OP_FALLOCATE, IORING_OP_MADVISE, IORING_OP_FADVISE, IORING_OP_RECV
 # IORING_OP_OPENAT, IORING_OP_OPENAT2, IORING_OP_CLOSE, IORING_OP_STATX, IORING_OP_READ, IORING_OP_WRITE >= 5.6
@@ -729,7 +807,10 @@ io_uring_sqe_waitid_misc {
 }
 
 io_uring_sqe_send_misc {
-	buf_index_unused		const[0, int16]
+# IORING_OP_SEND uses this union member as buf_group whenever
+# IOSQE_BUFFER_SELECT is set.  Describing it as unused prevents every
+# provided-buffer send (including bundles) from selecting its ring.
+	buf_group			io_uring_bgid[int16]
 	ioring_personality_id_unused	const[0, int16]
 	addr_len			int16
 	__pad3_unused			const[0, int16]
@@ -862,7 +943,7 @@ io_uring_query_hdr {
 	resv		array[const[0, int32], 3]
 }
 
-zcrx_ctrl_op = ZCRX_CTRL_FLUSH_RQ, ZCRX_CTRL_EXPORT
+zcrx_ctrl_op = ZCRX_CTRL_FLUSH_RQ, ZCRX_CTRL_EXPORT, ZCRX_CTRL_ARM_EVENT
 
 zcrx_ctrl {
 	zcrx_id	int32
@@ -874,6 +955,7 @@ zcrx_ctrl {
 zcrx_ctrl_union [
 	zc_flush	zcrx_ctrl_flush_rq
 	zc_export	zcrx_ctrl_export
+	zc_arm_event	zcrx_ctrl_arm_event
 ]
 
 zcrx_ctrl_flush_rq {
@@ -885,7 +967,14 @@ zcrx_ctrl_export {
 	resv	array[const[0, int32], 11]
 }
 
-zcrx_reg_flags = ZCRX_REG_IMPORT
+zcrx_ctrl_arm_event {
+	event_type	flags[zcrx_event_type, int32]
+	resv		array[const[0, int32], 11]
+}
+
+zcrx_event_type = ZCRX_EVENT_ALLOC_FAIL, ZCRX_EVENT_COPY
+
+zcrx_reg_flags = ZCRX_REG_IMPORT, ZCRX_REG_NODEV
 
 # constant defined in io_uring/zcrx.c
 define IO_RQ_MAX_ENTRIES	32768
@@ -900,8 +989,23 @@ io_uring_zcrx_ifq_reg {
 	offsets		io_uring_zcrx_offsets
 	zcrx_id		int32
 	rx_buf_len	int32
-	__resv		array[const[0, int64], 3]
+	event_desc	ptr64[in, zcrx_event_desc, opt]
+	__resv		array[const[0, int64], 2]
 }
+
+zcrx_event_desc {
+	user_data	int64
+	type_mask	flags[zcrx_event_type_mask, int32]
+	flags		flags[zcrx_event_desc_flags, int32]
+	stats_offset	int64
+	__resv2		array[const[0, int64], 9]
+}
+
+define ZCRX_EVENT_ALLOC_FAIL_BIT	1 << ZCRX_EVENT_ALLOC_FAIL
+define ZCRX_EVENT_COPY_BIT	1 << ZCRX_EVENT_COPY
+
+zcrx_event_type_mask = ZCRX_EVENT_ALLOC_FAIL_BIT, ZCRX_EVENT_COPY_BIT
+zcrx_event_desc_flags = ZCRX_EVENT_DESC_FLAG_STATS
 
 io_uring_zcrx_offsets {
 	head	int32
