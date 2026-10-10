@@ -264,6 +264,15 @@ ioctl(3, 0x4028700f, {enabled=0, pending=0, time={tm_sec=0, tm_min=0, tm_hour=0,
 			`
 r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
 ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
+		}, {
+			`
+sendmsg(3, {msg_name={sa_family=0x10, nl_pid=0, nl_groups=00000000}, msg_namelen=12, msg_iov=[{iov_base=[` +
+				`{nlmsg_len=56, nlmsg_type=0x24, nlmsg_flags=0x605, nlmsg_seq=1763113942, nlmsg_pid=0}, ` +
+				`{tcm_family=0, tcm_ifindex=1, tcm_handle=0, tcm_parent=4294967295, tcm_info=0}, ` +
+				`[[{nla_len=9, nla_type=0x1}, "\x68\x66\x73\x63\x00"...], [{nla_len=6, nla_type=0x2}, "\x00\x00"]]], ` +
+				`iov_len=56}], msg_iovlen=1, msg_controllen=0, msg_flags=0}, 0) = 56`,
+			`
+sendmsg(0x3, &(0x7f0000000100)={&(0x7f0000000000)=@nl, 0x80, &(0x7f00000000c0)=[{&(0x7f0000000080)}], 0x1}, 0x0)`,
 		},
 	}
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)

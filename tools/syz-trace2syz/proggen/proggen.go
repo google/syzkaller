@@ -339,6 +339,13 @@ func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType 
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
+	case *parser.GroupType:
+		// strace may decode buffer contents into structured data, e.g. netlink messages are printed as
+		// sendmsg(3, {..., msg_iov=[{iov_base=[{nlmsg_len=56, ...}, {tcm_family=0, ...}, ...], iov_len=56}], ...})
+		// while our descriptions have it as a plain byte buffer. The decoded values don't carry enough
+		// information to reconstruct the original bytes, so we generate a default buffer instead.
+		log.Logf(2, "generating default buffer for structured trace value: %s", a.String())
+		return syzType.DefaultArg(dir)
 	default:
 		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}
