@@ -35,11 +35,12 @@ type ReproCInputs struct {
 	KernelCommit string
 	KernelConfig string
 
-	Image     string
-	Type      string
-	VM        json.RawMessage
-	Syzkaller string
-	StraceBin string
+	Image              string
+	Type               string
+	VM                 json.RawMessage
+	Syzkaller          string
+	StraceBin          string
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 type FormatCArgs struct {

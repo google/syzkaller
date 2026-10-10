@@ -25,7 +25,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	t.Run("strace-crash-discarded", func(t *testing.T) {
 		var calls int
 		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-			collectCoverage bool) (RunTestResult, error) {
+			collectCoverage, ignoreKCSAN bool) (RunTestResult, error) {
 			calls++
 			if !args.NeedStrace {
 				return RunTestResult{
@@ -61,7 +61,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	t.Run("strace-clean-preserved", func(t *testing.T) {
 		var calls int
 		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-			collectCoverage bool) (RunTestResult, error) {
+			collectCoverage, ignoreKCSAN bool) (RunTestResult, error) {
 			calls++
 			if !args.NeedStrace {
 				return RunTestResult{
