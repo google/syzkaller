@@ -18,9 +18,11 @@ import (
 
 func TestDeflake(t *testing.T) {
 	type Test struct {
-		Info triageCall
-		Exec func(run uint64) (errno int32, signal []uint64, cover []uint64)
-		Runs uint64
+		Info      triageCall
+		Flags     ProgFlags
+		PatchTest bool
+		Exec      func(run uint64) (errno int32, signal []uint64, cover []uint64)
+		Runs      uint64
 	}
 	tests := []Test{
 		{
@@ -73,6 +75,47 @@ func TestDeflake(t *testing.T) {
 			},
 			Runs: 2,
 		},
+		{
+			Flags: ProgFromCorpus,
+			Info: triageCall{
+				newSignal: signal.FromRaw([]uint64{0}, 0),
+				cover:     cover.FromRaw([]uint64{10, 20}),
+			},
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				return 0, []uint64{run}, []uint64{10, 20}
+			},
+			// Since every run returns new signal, corpus deflake runs until deflakeTotalCorpusRuns (20).
+			// Including the initial candidate run before deflake, that leaves 20 - 1 = 19 deflake runs.
+			Runs: 19,
+		},
+		{
+			Flags:     ProgFromCorpus,
+			PatchTest: true,
+			Info: triageCall{
+				newSignal: signal.FromRaw([]uint64{0}, 0),
+				cover:     cover.FromRaw([]uint64{10, 20}),
+			},
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				return 0, []uint64{run}, []uint64{10, 20}
+			},
+			// In PatchTest mode, deflake stops at deflakeMaxRuns (5), which is 5 - 1 = 4 deflake runs.
+			Runs: 4,
+		},
+		{
+			Flags:     ProgFromCorpus,
+			PatchTest: true,
+			Info: triageCall{
+				newSignal:       signal.FromRaw([]uint64{0}, 0),
+				cover:           cover.FromRaw([]uint64{10, 20}),
+				stableSignal:    signal.FromRaw([]uint64{0}, 0),
+				newStableSignal: signal.FromRaw([]uint64{0}, 0),
+			},
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				return 0, []uint64{0}, []uint64{10, 20}
+			},
+			// In PatchTest mode, corpus deflake stops as soon as deflakeNeedCorpusRuns (2) is reached.
+			Runs: 2,
+		},
 	}
 
 	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
@@ -90,10 +133,11 @@ func TestDeflake(t *testing.T) {
 			info.newStableSignal = nil
 			testJob := &triageJob{
 				p:     prog,
+				flags: test.Flags,
 				calls: map[int]*triageCall{0: &info},
 				fuzzer: &Fuzzer{
 					Cover:  newCover(),
-					Config: &Config{},
+					Config: &Config{PatchTest: test.PatchTest},
 				},
 				info: &JobInfo{},
 			}

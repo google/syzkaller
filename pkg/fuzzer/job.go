@@ -317,8 +317,8 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 			haveSignal = false
 		}
 	}
-	if job.flags&ProgFromCorpus == 0 {
-		// For fuzzing programs we stop if we already have the right deflaked signal for all calls,
+	if job.flags&ProgFromCorpus == 0 || job.fuzzer.Config.PatchTest {
+		// By default, we stop if we already have the right deflaked signal for all calls,
 		// or there's no chance to get coverage common to needRuns for all calls.
 		if run >= deflakeMaxRuns {
 			return true
@@ -335,13 +335,13 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 		}
 	} else if run >= deflakeTotalCorpusRuns ||
 		noNewSignal && (run >= deflakeMaxCorpusRuns || run >= deflakeMinCorpusRuns && haveSignal) {
-		// For programs from the corpus we use a different condition b/c we want to extract
-		// as much flaky signal from them as possible. They have large coverage and run
-		// in the beginning, gathering flaky signal on them allows to grow max signal quickly
+		// For programs from the corpus (outside of the patch testing mode) we use a different condition
+		// b/c we want to extract as much flaky signal from them as possible. They have large coverage
+		// and run in the beginning, gathering flaky signal on them allows to grow max signal quickly
 		// and avoid lots of useless executions later. Any bit of flaky coverage discovered
 		// later will lead to triage, and if we are unlucky to conclude it's stable also
 		// to minimization+smash+hints (potentially thousands of runs).
-		// So we run them at least 5 times, or while we are still getting any new signal.
+		// So we run them at least 4 times, or while we are still getting any new signal.
 		return true
 	}
 	return false
