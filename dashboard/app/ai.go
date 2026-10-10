@@ -1805,6 +1805,9 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		args["TargetVMArch"] = mgrBuild.VMArch
 		args["VMType"] = mgrBuild.BuildEnv.VMType
 	}
+	if dashapi.CrashFlags(crash.Flags)&dashapi.CrashIgnoreKCSAN != 0 {
+		args["IgnoreKCSANReports"] = true
+	}
 	maps.Copy(args, extraArgs)
 	return aidb.CreateJob(ctx, &aidb.Job{
 		Type:        typ,
@@ -2487,7 +2490,7 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 	if err := checkAccessLevel(ctx, r, bug.sanitizeAccess(ctx, accessLevel(ctx, r))); err != nil {
 		return "", err
 	}
-	reproC, manager := extractAIJobReproC(aiJob, bug)
+	reproC, manager, ignoreKCSAN := extractAIJobReproC(aiJob, bug)
 	if len(reproC) == 0 {
 		return "", fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
 	}
@@ -2495,11 +2498,12 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 		return "", fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
 	}
 	_, _, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
-		bug:     bug,
-		bugKey:  bugKey,
-		user:    user.Email,
-		manager: manager,
-		reproC:  reproC,
+		bug:         bug,
+		bugKey:      bugKey,
+		user:        user.Email,
+		manager:     manager,
+		reproC:      reproC,
+		ignoreKCSAN: ignoreKCSAN,
 	})
 	if err != nil {
 		return "", err

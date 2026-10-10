@@ -359,6 +359,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	repoDir := filepath.Join(dir, "kernel")
 	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
+	if req.IgnoreKCSANReports {
+		// Reproducers for harmful KCSAN bugs target downstream crashes/invariant violations rather than
+		// raw KCSAN reports; clip before appending since mgrcfg shallow-copies mgr.managercfg.
+		mgrcfg.Ignores = append(slices.Clip(mgrcfg.Ignores), "BUG: KCSAN:")
+	}
 	os.RemoveAll(mgrcfg.Workdir)
 	defer os.RemoveAll(mgrcfg.Workdir)
 

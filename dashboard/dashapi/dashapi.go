@@ -199,14 +199,15 @@ type JobPollResp struct {
 	MergeBaseRepo   string
 	MergeBaseBranch string
 	// Bisection starts from KernelCommit.
-	KernelCommit      string
-	KernelCommitTitle string
-	KernelConfig      []byte
-	SyzkallerCommit   string
-	Patch             []byte
-	ReproOpts         []byte
-	ReproSyz          []byte
-	ReproC            []byte
+	KernelCommit       string
+	KernelCommitTitle  string
+	KernelConfig       []byte
+	SyzkallerCommit    string
+	Patch              []byte
+	ReproOpts          []byte
+	ReproSyz           []byte
+	ReproC             []byte
+	IgnoreKCSANReports bool
 }
 
 type JobDoneReq struct {
@@ -324,6 +325,8 @@ type CrashFlags int64
 
 const (
 	CrashUnderStrace CrashFlags = 1 << iota
+	// The repro must be run with raw KCSAN reports ignored (see JobPollResp.IgnoreKCSANReports).
+	CrashIgnoreKCSAN
 )
 
 // Crash describes a single kernel crash (potentially with repro).
