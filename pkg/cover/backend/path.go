@@ -40,8 +40,10 @@ func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimite
 		path = strings.TrimPrefix(abs, kernelDirs.BuildSrc)
 		absPath = filepath.Join(kernelDirs.Src, path)
 	default:
-		// Assume this is relative path.
-		if filepath.IsAbs(path) {
+		if rel, apath, ok := findRelativeInSrc(abs, kernelDirs.Src, osutil.IsExist); ok {
+			path = rel
+			absPath = apath
+		} else if filepath.IsAbs(path) {
 			absPath = path
 		} else {
 			absPath = filepath.Join(kernelDirs.Src, path)
@@ -49,6 +51,23 @@ func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimite
 	}
 	relPath = strings.TrimLeft(filepath.Clean(path), "/\\")
 	return relPath, absPath
+}
+
+// findRelativeInSrc finds the relative path of an absolute file path within
+// srcDir by checking for subpath existence.
+func findRelativeInSrc(absPath, srcDir string, existFn func(string) bool) (string, string, bool) {
+	if srcDir == "" || !filepath.IsAbs(absPath) {
+		return "", "", false
+	}
+	parts := strings.Split(filepath.ToSlash(absPath), "/")
+	for i := 1; i < len(parts); i++ {
+		rel := strings.Join(parts[i:], "/")
+		targetAbs := filepath.Join(srcDir, rel)
+		if existFn(targetAbs) {
+			return rel, targetAbs, true
+		}
+	}
+	return "", "", false
 }
 
 // Source files for Android may be split between two subdirectories: the common AOSP kernel
