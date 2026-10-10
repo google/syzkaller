@@ -606,6 +606,11 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		resp.Log = trace.Bytes()
 	}()
 
+	if req.IgnoreKCSANReports {
+		// Candidate C reproducers for harmful KCSAN bugs target downstream crashes/SYZFAIL rather than
+		// raw KCSAN reports; clip before appending since mgrcfg shallow-copies mgr.managercfg.
+		mgrcfg.Ignores = append(slices.Clip(mgrcfg.Ignores), "BUG: KCSAN:")
+	}
 	env, err := instance.NewEnv(mgrcfg, buildSem, testSem)
 	if err != nil {
 		dt.Logf("failed to create environment: %v", osutil.VerboseMessage(err))

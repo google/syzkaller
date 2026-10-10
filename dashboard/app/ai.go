@@ -4,6 +4,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -1511,6 +1512,9 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
+		if job.Type == ai.WorkflowAssessmentKCSAN {
+			bug.AIJobCheck = 0
+		}
 		if bug.HasUserLabel(labelType) {
 			return nil
 		}
@@ -2053,7 +2057,18 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	}
 
 	if created {
-		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, nil); createErr != nil {
+		var extraArgs map[string]any
+		if matchedReq.Type == ai.WorkflowReproC && crash.TitleToType(bug.Title) == crash.KCSANDataRace {
+			var createErr error
+			extraArgs, createErr = kcsanReproExtraArgs(ctx, bug, bugKey)
+			if createErr != nil {
+				// Don't abort the entire auto-create pass if one bug's build/config lookup fails.
+				log.Errorf(ctx, "failed to prepare kcsan repro-c args for bug %v: %v",
+					bugKey.StringID(), createErr)
+				return false, nil
+			}
+		}
+		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, extraArgs); createErr != nil {
 			return false, fmt.Errorf("failed to create ai job %v for bug %v: %w", matchedReq.Type, bugKey.StringID(), createErr)
 		}
 		return true, nil
@@ -2072,6 +2087,14 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	jobs, err := aidb.LoadBugJobs(ctx, bugKey.StringID())
 	if err != nil {
 		return nil, err
+	}
+	// Schedule repro-c only after assessment-kcsan classifies the race as harmful;
+	// defer the expensive manager/config lookup until after the attempts filter below.
+	var kcsanRes *ai.AssessmentKCSANOutputs
+	if crash.TitleToType(bug.Title) == crash.KCSANDataRace && canAutoReproBug(ctx, bug) {
+		if kcsanRes = kcsanAssessment(bug, jobs); kcsanRes != nil && !kcsanRes.Benign {
+			workflows[ai.WorkflowReproC] = true
+		}
 	}
 	workflowAttempts := map[ai.WorkflowType]struct {
 		count int
@@ -2115,6 +2138,11 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 			delete(workflows, typ)
 		}
 	}
+	// Check target manager availability last to avoid extra Datastore/blob reads for skipped jobs.
+	if workflows[ai.WorkflowReproC] && kcsanRes != nil &&
+		kcsanReproManager(ctx, bug, nil, kcsanRes) == "" {
+		delete(workflows, ai.WorkflowReproC)
+	}
 	if len(workflows) == 0 {
 		return nil, nil
 	}
@@ -2151,6 +2179,23 @@ func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duratio
 	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
 }
 
+// Automatic C reproducer generation heuristics:
+// - Namespace must have AutoReproC enabled.
+// - Open bugs only, with no fixing commits.
+// - Must have a crash report, but no existing C reproducer.
+// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
+// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
+// - Skip bugs that have recent patch candidates being discussed / tested.
+func canAutoReproBug(ctx context.Context, bug *Bug) bool {
+	nsCfg := getNsConfig(ctx, bug.Namespace)
+	return nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
+		bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		!bug.HasCRepro && bug.HasReport &&
+		timeSince(ctx, bug.FirstTime) > reproCMinAge &&
+		timeSince(ctx, bug.LastTime) < reproCMaxAge &&
+		!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
+}
+
 func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 	if strings.HasPrefix(title, "INFO:") ||
 		strings.HasPrefix(title, "panic:") ||
@@ -2161,6 +2206,7 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		return false
 	}
 	if typ.IsKCSAN() {
+		// Unassessed KCSAN bugs are skipped here; harmful ones are enabled in pendingWorkflowsForBug.
 		return false
 	}
 	switch typ {
@@ -2168,6 +2214,186 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		return false
 	}
 	return true
+}
+
+// kcsanAssessment returns the parsed outputs of the latest completed assessment-kcsan job
+// (jobs are ordered newest-first by aidb.LoadBugJobs), or nil if none succeeded or a human
+// reviewer marked the race benign or the AI job incorrect.
+func kcsanAssessment(bug *Bug, jobs []*aidb.Job) *ai.AssessmentKCSANOutputs {
+	if bug != nil && slices.ContainsFunc(bug.LabelValues(RaceLabel), func(l BugLabel) bool {
+		return l.Value == BenignRace
+	}) {
+		return nil
+	}
+	for _, job := range jobs {
+		if job.Type != ai.WorkflowAssessmentKCSAN || !job.Finished.Valid || job.Error != "" {
+			continue
+		}
+		if job.Correct.Valid && !job.Correct.Bool {
+			return nil
+		}
+		res, err := castJobResults[ai.AssessmentKCSANOutputs](job)
+		if err != nil {
+			return nil
+		}
+		return &res
+	}
+	return nil
+}
+
+// kcsanReproManager selects the target manager for reproducing a harmful KCSAN data race:
+//   - "any" / "user": prefer the active KCSAN manager where the crash occurred so KCSAN watchpoint
+//     stalls remain available to widen the race window; fall back to any same-arch KCSAN manager.
+//   - "kasan" / "kmsan": pick an active same-arch manager with the required sanitizer enabled
+//     so downstream memory corruption / uninitialized reads trigger a report without KCSAN noise.
+//   - "none": return "" so purely internal accounting/state races skip repro-c.
+func kcsanReproManager(ctx context.Context, bug *Bug, crash *Crash, assessment *ai.AssessmentKCSANOutputs) string {
+	var err error
+	if crash == nil {
+		crash, _, err = findCrashForBug(ctx, bug)
+		if err != nil {
+			return ""
+		}
+	}
+	crashBuild, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return ""
+	}
+	switch assessment.FailureDetectableBy {
+	case ai.KCSANFailureDetectableByAny, ai.KCSANFailureDetectableByUser:
+		if crash.Manager != "" {
+			if mgr, _ := activeManager(ctx, crash.Manager, bug.Namespace); mgr != "" {
+				if b, err := lastManagerBuild(ctx, bug.Namespace, mgr); err == nil &&
+					b.Type != BuildFailed && b.Arch == crashBuild.Arch {
+					return mgr
+				}
+			}
+		}
+		return findManagerByConfig(ctx, bug.Namespace, crashBuild, func(cfg string) bool {
+			return strings.Contains(cfg, "CONFIG_KCSAN=y")
+		})
+	case ai.KCSANFailureDetectableByKASAN:
+		return findManagerByConfig(ctx, bug.Namespace, crashBuild, func(cfg string) bool {
+			return strings.Contains(cfg, "CONFIG_KASAN=y") && !strings.Contains(cfg, "CONFIG_KCSAN=y")
+		})
+	case ai.KCSANFailureDetectableByKMSAN:
+		return findManagerByConfig(ctx, bug.Namespace, crashBuild, func(cfg string) bool {
+			return strings.Contains(cfg, "CONFIG_KMSAN=y")
+		})
+	default:
+		return ""
+	}
+}
+
+// findManagerByConfig returns the highest-ranked active manager in ns whose latest Linux build
+// matches crashBuild.Arch and satisfies match(kernelConfig), preferring managers on the same
+// KernelRepo before ranking by (ConfigManager.Priority DESC, Repo.ReportingPriority DESC, Name ASC).
+func findManagerByConfig(ctx context.Context, ns string, crashBuild *Build, match func(string) bool) string {
+	if !slices.Contains(aiSupportedArches, crashBuild.Arch) {
+		return ""
+	}
+	managers, _, err := loadAllManagers(ctx, ns)
+	if err != nil {
+		return ""
+	}
+	nsCfg := getNsConfig(ctx, ns)
+	var bestName string
+	var bestSameRepo, bestMgrPrio, bestRepoPrio int
+	for _, mgr := range managers {
+		build, err := lastManagerBuild(ctx, ns, mgr.Name)
+		if err != nil || build.Type == BuildFailed || build.OS != targets.Linux ||
+			build.Arch != crashBuild.Arch {
+			continue
+		}
+		// Prefer managers on the same kernel repo since repro-c applies their .config to crash.Commit.
+		sameRepo := 0
+		if build.KernelRepo == crashBuild.KernelRepo {
+			sameRepo = 1
+		}
+		mgrPrio := nsCfg.Managers[mgr.Name].Priority
+		repoPrio := kernelRepoInfo(ctx, build).ReportingPriority
+		if bestName != "" && cmp.Or(
+			cmp.Compare(sameRepo, bestSameRepo),
+			cmp.Compare(mgrPrio, bestMgrPrio),
+			cmp.Compare(repoPrio, bestRepoPrio),
+			cmp.Compare(bestName, mgr.Name),
+		) <= 0 {
+			continue
+		}
+		cfg, _, err := getText(ctx, textKernelConfig, build.KernelConfig)
+		if err != nil || !match(string(cfg)) {
+			continue
+		}
+		bestName, bestSameRepo, bestMgrPrio, bestRepoPrio = mgr.Name, sameRepo, mgrPrio, repoPrio
+	}
+	return bestName
+}
+
+// kcsanReproExtraArgs builds the extra AI job arguments for reproducing a harmful KCSAN bug.
+// Setting KernelConfigManager directs both repro-c's kernel build and the subsequent JobTestPatch
+// verification run to the target sanitizer manager; persisting IgnoreKCSANReports on the AI job
+// ensures syz-ci mirrors the agent's crash filter without breaking manual KCSAN repro-c jobs.
+func kcsanReproExtraArgs(ctx context.Context, bug *Bug, bugKey *db.Key) (map[string]any, error) {
+	jobs, err := aidb.LoadBugJobs(ctx, bugKey.StringID())
+	if err != nil {
+		return nil, err
+	}
+	assessment := kcsanAssessment(bug, jobs)
+	if assessment == nil || assessment.Benign {
+		return nil, fmt.Errorf("bug does not have a harmful KCSAN assessment")
+	}
+	crash, _, err := findCrashForBug(ctx, bug)
+	if err != nil {
+		return nil, err
+	}
+	manager := kcsanReproManager(ctx, bug, crash, assessment)
+	if manager == "" {
+		return nil, fmt.Errorf("no target manager for %q", assessment.FailureDetectableBy)
+	}
+	var crashReport []byte
+	if crash.Report != 0 {
+		crashReport, _, err = getText(ctx, textCrashReport, crash.Report)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return map[string]any{
+		"KernelConfigManager": manager,
+		"IgnoreKCSANReports":  true,
+		"BugDescription":      formatKCSANReproDescription(bug.Title, string(crashReport), assessment),
+	}, nil
+}
+
+// formatKCSANReproDescription combines the original KCSAN report with the assessment's downstream
+// failure analysis and sanitizer-specific instructions for the repro-c generator.
+// GCE images boot with panic_on_warn=1, which makes KCSAN print_report() panic the kernel;
+// instructing main() to clear it keeps standalone .c reproducers self-contained outside syz-ci.
+func formatKCSANReproDescription(bugTitle, crashReport string, assessment *ai.AssessmentKCSANOutputs) string {
+	const kcsanPrefix = "Note: The target VM runs a KCSAN kernel with raw KCSAN reports ignored by the host " +
+		`crash detector. At the very start of main(), write "0" to /proc/sys/kernel/panic_on_warn ` +
+		"(KCSAN panics otherwise). Hitting the KCSAN data race alone will NOT count as " +
+		"reproduction (though KCSAN reports will appear in console output if hit); "
+	var guidance string
+	switch assessment.FailureDetectableBy {
+	case ai.KCSANFailureDetectableByKASAN, ai.KCSANFailureDetectableByKMSAN:
+		san, kind := "KASAN", "memory corruption / KASAN"
+		if assessment.FailureDetectableBy == ai.KCSANFailureDetectableByKMSAN {
+			san, kind = "KMSAN", "uninitialized-memory / KMSAN"
+		}
+		guidance = fmt.Sprintf("Note: The target VM runs a %s kernel (CONFIG_KCSAN is disabled, so KCSAN watchpoint "+
+			"stalls are absent). Your reproducer must actively widen the race window (e.g. via "+
+			"setup_delay_bp / kallsyms_lookup in race_toolkit.h) and trigger the downstream %s "+
+			"crash described in the assessment rather than a KCSAN data-race report.", san, kind)
+	case ai.KCSANFailureDetectableByAny:
+		guidance = kcsanPrefix + "your reproducer must trigger the downstream kernel crash/BUG/WARN described " +
+			"in the assessment (you may also use setup_delay_bp / kallsyms_lookup from race_toolkit.h to widen narrow windows)."
+	case ai.KCSANFailureDetectableByUser:
+		guidance = kcsanPrefix + "the downstream failure is a user-visible invariant/ABI violation without a kernel crash. " +
+			`Check the user-visible failure condition in userspace and write "SYZFAIL: <concise failure description>\n" ` +
+			"to /dev/kmsg when detected so the test harness records the crash."
+	}
+	return fmt.Sprintf("%s\n\n%s\n\nKCSAN Assessment:\n%s\n\n%s",
+		bugTitle, crashReport, assessment.Explanation, guidance)
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2197,26 +2423,8 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		workflows[ai.WorkflowRepro] = true
 		workflows[ai.WorkflowReproC] = true
-	} else {
-		// Automatic C reproducer generation heuristics:
-		// - Namespace must have AutoReproC enabled.
-		// - Open bugs only, with no fixing commits.
-		// - Must have a crash report, but no existing C reproducer.
-		// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
-		// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
-		// - Skip non-fatal issues (INFO), KCSAN bugs, non-kernel/syzkaller panics, and build/boot/test errors.
-		// - Skip bugs that have recent patch candidates being discussed / tested.
-		nsCfg := getNsConfig(ctx, bug.Namespace)
-		canAutoReproC := nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
-			bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
-			!bug.HasCRepro && bug.HasReport &&
-			timeSince(ctx, bug.FirstTime) > reproCMinAge &&
-			timeSince(ctx, bug.LastTime) < reproCMaxAge &&
-			canAutoReproCBugTitle(bug.Title, typ) &&
-			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
-		if canAutoReproC {
-			workflows[ai.WorkflowReproC] = true
-		}
+	} else if canAutoReproBug(ctx, bug) && canAutoReproCBugTitle(bug.Title, typ) {
+		workflows[ai.WorkflowReproC] = true
 	}
 	return workflows
 }
@@ -2380,7 +2588,7 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 	if err := checkAccessLevel(ctx, r, bug.sanitizeAccess(ctx, accessLevel(ctx, r))); err != nil {
 		return "", err
 	}
-	reproC, manager := extractAIJobReproC(aiJob, bug)
+	reproC, manager, ignoreKCSAN := extractAIJobReproC(aiJob, bug)
 	if len(reproC) == 0 {
 		return "", fmt.Errorf("%w: C reproducer is empty", ErrClientBadRequest)
 	}
@@ -2388,11 +2596,12 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 		return "", fmt.Errorf("%w: could not determine target manager for bug", ErrClientBadRequest)
 	}
 	_, _, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
-		bug:     bug,
-		bugKey:  bugKey,
-		user:    user.Email,
-		manager: manager,
-		reproC:  reproC,
+		bug:         bug,
+		bugKey:      bugKey,
+		user:        user.Email,
+		manager:     manager,
+		reproC:      reproC,
+		ignoreKCSAN: ignoreKCSAN,
 	})
 	if err != nil {
 		return "", err
