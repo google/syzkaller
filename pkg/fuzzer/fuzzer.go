@@ -191,12 +191,16 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
 	}
 
-	// Corpus candidates may have flaky coverage, so we give them a second chance.
+	// Corpus candidates may have flaky coverage, so we give them up to 3 retries
+	// (or just 1 in PatchTest mode to avoid spending too much time on corpus retriage).
 	maxCandidateAttempts := 3
+	if fuzzer.Config.PatchTest {
+		maxCandidateAttempts = 1
+	}
 	if req.Risky() {
 		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
 		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
-		maxCandidateAttempts = 2
+		maxCandidateAttempts = min(maxCandidateAttempts, 2)
 		if fuzzer.Config.Snapshot || res.Status == queue.Hanged {
 			maxCandidateAttempts = 0
 		}
