@@ -29,20 +29,21 @@ var TestPatch = aflow.NewFuncAction("test-patch", testPatch)
 var TestPatchInplace = aflow.NewFuncAction("test-patch-inplace", testPatchInplace)
 
 type testArgs struct {
-	AgentName        string
-	TargetOS         string
-	TargetArch       string
-	TargetVMArch     string `json:",omitempty"`
-	Syzkaller        string
-	Image            string
-	Type             string
-	VM               json.RawMessage
-	ReproOpts        string
-	ReproSyz         string
-	ReproC           string
-	KernelScratchSrc string
-	KernelCommit     string
-	KernelConfig     string
+	AgentName          string
+	TargetOS           string
+	TargetArch         string
+	TargetVMArch       string `json:",omitempty"`
+	Syzkaller          string
+	Image              string
+	Type               string
+	VM                 json.RawMessage
+	ReproOpts          string
+	ReproSyz           string
+	ReproC             string
+	KernelScratchSrc   string
+	KernelCommit       string
+	KernelConfig       string
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 type testResult struct {
@@ -76,6 +77,9 @@ func testPatchInplace(ctx *aflow.Context, args testArgs) (testResult, error) {
 		" vm %v, vm config hash %v, C repro hash %v, patch hash %v, version 1",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC), hash.String(diff))
+	if args.IgnoreKCSANReports {
+		desc += ", ignore KCSAN"
+	}
 	type Cached struct {
 		TestError string
 	}
@@ -114,16 +118,17 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 	}
 	reproduceArgs := ReproduceArgs{
 		TargetConfig: TargetConfig{
-			AgentName:    args.AgentName,
-			Target:       Target{TargetOS: args.TargetOS, TargetArch: args.TargetArch, TargetVMArch: args.TargetVMArch},
-			Syzkaller:    args.Syzkaller,
-			Image:        args.Image,
-			Type:         args.Type,
-			VM:           args.VM,
-			KernelSrc:    args.KernelScratchSrc,
-			KernelObj:    args.KernelScratchSrc,
-			KernelCommit: args.KernelCommit,
-			KernelConfig: args.KernelConfig,
+			AgentName:          args.AgentName,
+			Target:             Target{TargetOS: args.TargetOS, TargetArch: args.TargetArch, TargetVMArch: args.TargetVMArch},
+			Syzkaller:          args.Syzkaller,
+			Image:              args.Image,
+			Type:               args.Type,
+			VM:                 args.VM,
+			KernelSrc:          args.KernelScratchSrc,
+			KernelObj:          args.KernelScratchSrc,
+			KernelCommit:       args.KernelCommit,
+			KernelConfig:       args.KernelConfig,
+			IgnoreKCSANReports: args.IgnoreKCSANReports,
 		},
 		ReproOpts: args.ReproOpts,
 		ReproSyz:  args.ReproSyz,

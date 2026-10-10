@@ -16,18 +16,19 @@ import (
 
 type RunCReproArgs struct {
 	Target
-	AgentName       string
-	Syzkaller       string
-	Image           string
-	Type            string
-	VM              json.RawMessage
-	KernelSrc       string
-	KernelObj       string
-	KernelCommit    string
-	KernelConfig    string
-	FormattedReproC string
-	StraceBin       string
-	NeedStrace      bool
+	AgentName          string
+	Syzkaller          string
+	Image              string
+	Type               string
+	VM                 json.RawMessage
+	KernelSrc          string
+	KernelObj          string
+	KernelCommit       string
+	KernelConfig       string
+	FormattedReproC    string
+	StraceBin          string
+	NeedStrace         bool
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 type RunCReproResult struct {
@@ -60,17 +61,18 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 
 	reproduceArgs := ReproduceArgs{
 		TargetConfig: TargetConfig{
-			AgentName:    args.AgentName,
-			Target:       args.Target,
-			Syzkaller:    args.Syzkaller,
-			Image:        args.Image,
-			Type:         args.Type,
-			VM:           args.VM,
-			KernelSrc:    args.KernelSrc,
-			KernelObj:    args.KernelObj,
-			KernelCommit: args.KernelCommit,
-			KernelConfig: args.KernelConfig,
-			StraceBin:    args.StraceBin,
+			AgentName:          args.AgentName,
+			Target:             args.Target,
+			Syzkaller:          args.Syzkaller,
+			Image:              args.Image,
+			Type:               args.Type,
+			VM:                 args.VM,
+			KernelSrc:          args.KernelSrc,
+			KernelObj:          args.KernelObj,
+			KernelCommit:       args.KernelCommit,
+			KernelConfig:       args.KernelConfig,
+			StraceBin:          args.StraceBin,
+			IgnoreKCSANReports: args.IgnoreKCSANReports,
 		},
 		ReproC: args.FormattedReproC,
 	}
