@@ -36,8 +36,12 @@ zx_object_get_info$ZX_INFO_PROCESS_VMOS(handle zx_process, topic const[ZX_INFO_P
 zx_object_get_info$ZX_INFO_KMEM_STATS(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_KMEM_STATS_EXTENDED(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS_EXTENDED], buffer ptr[out, zx_info_kmem_stats_extended], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_TIMER(handle zx_timer, topic const[ZX_INFO_TIMER], buffer ptr[out, zx_info_timer], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+
+# TODO: the info type for ZX_INFO_GUEST_STATS is zx_info_guest_stats, not zx_info_handle_basic.
+# TODO: the zx_info_guest_stats type has an arch-dependent definition, can we express that here?
+
 zx_object_get_info$ZX_INFO_GUEST_STATS(handle zx_handle, topic const[ZX_INFO_GUEST_STATS], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
-zx_object_get_info$ZX_INFO_TASK_RUNTIME(handle zx_handle, topic const[ZX_INFO_TASK_RUNTIME], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_TASK_RUNTIME(handle zx_handle, topic const[ZX_INFO_TASK_RUNTIME], buffer ptr[out, zx_info_task_runtime], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_RESOURCE(handle zx_resource, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_BTI(handle zx_bti, topic const[ZX_INFO_BTI], buffer ptr[out, zx_info_bti], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 
@@ -75,9 +79,9 @@ zx_object_signal_peer(handle zx_handle, clear_mask int32, set_mask int32)
 zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadline zx_time)
 zx_object_wait_one(handle zx_handle, signals int32, deadline zx_time, observed ptr[out, int32])
 zx_object_wait_async(handle zx_handle, port zx_port, key proc[1000, 4], signals int32, options flags[wait_async_options])
-zx_object_set_profile(handle zx_handle, profile zx_profile, options const[0])
+zx_object_set_profile(handle zx_thread, profile zx_profile, options const[0])
 
-wait_async_options = ZX_WAIT_ASYNC_ONCE, ZX_WAIT_ASYNC_EDGE
+wait_async_options = ZX_WAIT_ASYNC_ONCE, ZX_WAIT_ASYNC_EDGE, ZX_WAIT_ASYNC_TIMESTAMP
 
 zx_info_handle_basic {
 	koid		koid
@@ -110,18 +114,20 @@ zx_info_job {
 	exited			int8
 	kill_on_oom		int8
 	debugger_attached	int8
+	padding1		array[int8, 5]
 }
 
 zx_info_process {
-	return_code		int64
-	started			int8
-	exited			int8
-	debugger_attached	int8
+	return_code	int64
+	start_time	zx_time
+	flags		int32
+	padding1	array[int8, 4]
 }
 
 zx_info_thread {
 	state				int32
 	wait_exception_channel_type	int32
+	affinity_mask			array[int64, 8]
 }
 
 zx_exception_report {
@@ -130,7 +136,9 @@ zx_exception_report {
 }
 
 zx_info_thread_stats {
-	total_runtime	int64
+	total_runtime		int64
+	last_scheduled_cpu	int32
+	padding1		array[int8, 4]
 }
 
 zx_info_cpu_stats {
@@ -158,22 +166,25 @@ zx_info_vmar {
 }
 
 zx_info_vmo {
-	koid		koid
-	name		array[int8, ZX_MAX_NAME_LEN]
-	size_bytes	int64
-	parent_koid	koid
-	num_children	intptr
-	num_mappings	intptr
-	share_count	intptr
-	flags		int32
-	committed_bytes	int64
-	handle_rights	int32
-	create_options	int32
-	cache_policy	int32
+	koid			koid
+	name			array[int8, ZX_MAX_NAME_LEN]
+	size_bytes		int64
+	parent_koid		koid
+	num_children		intptr
+	num_mappings		intptr
+	share_count		intptr
+	flags			int32
+	padding1		array[int8, 4]
+	committed_bytes		int64
+	handle_rights		int32
+	cache_policy		int32
+	metadata_bytes		int64
+	committed_change_events	int64
 }
 
 zx_info_socket {
 	options			int32
+	padding1		array[int8, 4]
 	rx_buf_max		intptr
 	rx_buf_size		intptr
 	rx_buf_available	intptr
@@ -188,18 +199,28 @@ zx_info_task_stats {
 	mem_scaled_shared_bytes	intptr
 }
 
+zx_info_task_runtime {
+	cpu_time		int64
+	queue_time		int64
+	page_fault_time		int64
+	lock_contention_time	int64
+}
+
 zx_info_maps {
-	name	array[int8, ZX_MAX_NAME_LEN]
-	base	intptr
-	size	intptr
-	depth	intptr
-	type	int32
-	mapping	zx_info_maps_mapping
+	name		array[int8, ZX_MAX_NAME_LEN]
+	base		intptr
+	size		intptr
+	depth		intptr
+	type		int32
+	padding1	array[int8, 4]
+	mapping		zx_info_maps_mapping
 }
 
 zx_info_maps_mapping {
 	mmu_flags	int32
+	padding1	array[int8, 4]
 	vmo_koid	koid
+	vmo_offset	int64
 	committed_pages	intptr
 }
 
@@ -207,7 +228,6 @@ zx_info_kmem_stats {
 	total_bytes		int64
 	free_bytes		int64
 	wired_bytes		int64
-
 	total_heap_bytes	int64
 	free_heap_bytes		int64
 	vmo_bytes		int64
@@ -236,6 +256,7 @@ zx_info_kmem_stats_extended {
 
 zx_info_timer {
 	options		int32
+	padding1	array[int8, 4]
 	deadline	zx_time
 	slack		int64
 }
@@ -251,6 +272,8 @@ zx_info_resource {
 zx_info_bti {
 	minimum_contiguity	int64
 	aspace_size		int64
+	pmo_count		int64
+	quarantine_count	int64
 }
 
 zx_exception_header {
