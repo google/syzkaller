@@ -29,10 +29,10 @@ fi
 rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
-PKGS="bash gcc%8 git gmake go llvm%19 nano wget"
+PKGS="bash gcc%16 git gmake go llvm%22 nano wget"
 PKG_PATH=${SNAPSHOTS}packages/${ARCH}/ pkg_add -I \$PKGS
 PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
-ln -s /usr/local/bin/clang-format{-19,}
+ln -s /usr/local/bin/clang-format{-22,}
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -42,9 +42,9 @@ echo 'permit keepenv nopass syzkaller as root' > /etc/doas.conf
 mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
 
-mkdir -p /usr/lib/clang/19/lib/openbsd
-ln -s /usr/lib/clang/19/lib/libclang_rt.ubsan_minimal.a /usr/lib/clang/19/lib/openbsd/libclang_rt.ubsan_standalone-x86_64.a
-touch /usr/lib/clang/19/lib/openbsd/libclang_rt.ubsan_standalone_cxx-x86_64.a
+mkdir -p /usr/lib/clang/22/lib/openbsd
+ln -s /usr/lib/clang/22/lib/libclang_rt.ubsan_minimal.a /usr/lib/clang/22/lib/openbsd/libclang_rt.ubsan_standalone-x86_64.a
+touch /usr/lib/clang/22/lib/openbsd/libclang_rt.ubsan_standalone_cxx-x86_64.a
 EOF
 
 cat >etc/installurl <<EOF
