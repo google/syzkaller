@@ -42,9 +42,10 @@ echo 'permit keepenv nopass syzkaller as root' > /etc/doas.conf
 mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
 
-mkdir -p /usr/lib/clang/22/lib/openbsd
-ln -s /usr/lib/clang/22/lib/libclang_rt.ubsan_minimal.a /usr/lib/clang/22/lib/openbsd/libclang_rt.ubsan_standalone-x86_64.a
-touch /usr/lib/clang/22/lib/openbsd/libclang_rt.ubsan_standalone_cxx-x86_64.a
+CLANG_LIB=\$(echo /usr/lib/clang/*/lib)
+mkdir -p \$CLANG_LIB/openbsd
+ln -s \$CLANG_LIB/libclang_rt.ubsan_minimal.a \$CLANG_LIB/openbsd/libclang_rt.ubsan_standalone-x86_64.a
+touch \$CLANG_LIB/openbsd/libclang_rt.ubsan_standalone_cxx-x86_64.a
 EOF
 
 cat >etc/installurl <<EOF
