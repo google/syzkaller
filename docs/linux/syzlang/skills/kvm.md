@@ -17,15 +17,22 @@ description: KVM Virtualization and Guest Constraints (x86/amd64 Focus)
   * Use 'syz_kvm_add_vcpu$x86' to initialize the vCPU and define the sequence of guest instructions/commands
     (the SYZOS payload array) that the guest vCPU will execute inside the VM context when 'ioctl$KVM_RUN' is called.
   * For full SYZOS architecture, memory layouts, and low-level command details, consult 'docs/syzos.md'.
-- Strict KVM ioctl Sequence Order (CRITICAL INSTRUCTION):
-  When configuring a VM and vCPUs, you MUST follow this exact sequence:
-  1) Create VM ('ioctl$KVM_CREATE_VM')
-  2) Set VM-wide capabilities and CPUID leaves ('ioctl$KVM_SET_CPUID2', 'ioctl$KVM_SET_CAP')
-  3) Create vCPU ('syz_kvm_add_vcpu$x86'), passing the guest execution code payload as its 'text' argument
-  4) Set vCPU state/registers or MSRs ('ioctl$KVM_SET_MSRS', 'ioctl$KVM_SET_LAPIC', 'ioctl$KVM_SET_REGS')
-  5) Execute VM run loop ('ioctl$KVM_RUN').
-  Calling 'ioctl$KVM_SET_CPUID2' after adding a vCPU invalidates vCPU segment/register setups and causes
-  'ioctl$KVM_RUN' to abort with 'vmx_unhandleable_emulation_required'.
+- KVM ioctl Sequence Order (CRITICAL INSTRUCTION):
+  When configuring a SYZOS VM and vCPUs, follow this sequence:
+  1) Create VM ('ioctl$KVM_CREATE_VM').
+  2) Optionally set VM-wide capabilities ('ioctl$KVM_SET_CAP', 'ioctl$KVM_CREATE_IRQCHIP', ...).
+  3) Set up guest memory ('syz_kvm_setup_syzos_vm$x86').
+  4) Create vCPU ('syz_kvm_add_vcpu$x86'), passing the guest execution code payload as its 'text' argument.
+     It already sets guest CPUID (KVM_GET_SUPPORTED_CPUID -> KVM_SET_CPUID2), then the 64-bit sregs,
+     page tables, GDT/IDT and registers. Do NOT call 'ioctl$KVM_SET_CPUID2' before it: that ioctl takes
+     the 'fd_kvmcpu' returned by 'syz_kvm_add_vcpu$x86', so it cannot precede vCPU creation.
+  5) Optionally adjust vCPU state ('ioctl$KVM_SET_MSRS', 'ioctl$KVM_SET_LAPIC', ...).
+  6) Execute VM run loop ('ioctl$KVM_RUN').
+  Overriding CPUID/sregs/regs after 'syz_kvm_add_vcpu$x86' is legal before the first 'ioctl$KVM_RUN',
+  but it is usually unnecessary and can break the SYZOS environment: KVM validates EFER/CR4 bits in
+  KVM_SET_SREGS against guest CPUID, so a CPUID without LM/NX makes a later KVM_SET_SREGS fail, and
+  overwriting sregs/regs ('ioctl$KVM_SET_SREGS', 'ioctl$KVM_SET_REGS') takes the guest out of 64-bit
+  'guest_main'. After the first 'ioctl$KVM_RUN', KVM rejects any KVM_SET_CPUID2 that changes CPUID.
 - Hyper-V VP Index & Multi-vCPU Target Path Testing:
   When targeting Hyper-V TLB flush, IPI, or sparse vCPU bank set checks (e.g., 'hv_is_vp_in_sparse_set',
   'valid_bit_nr > 0'), do NOT declare the target unreachable on a single-vCPU VM. You can set the vCPU's Hyper-V
