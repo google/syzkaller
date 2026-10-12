@@ -96,8 +96,8 @@ func TestTokenCompression(t *testing.T) {
 			// 1. Initial request: establish the anchor token count (150) and return a tool call with a thought.
 			createToolCallResponseWithSig(150, 60, "id1", "tick", []byte("original-sig-1")),
 			// 2. Second request: total tokens exceed anchor + compressTokens (150 + 100), triggering compression.
-			// id2 fits in preserveHistoryTokens (50) once its 60 thought tokens are excluded.
-			createToolCallResponseWithSig(270, 60, "id2", "tick", []byte("original-sig-2")),
+			// id2 (10 output + 30 thought tokens) fits in preserveHistoryTokens (50).
+			createToolCallResponseWithSig(270, 30, "id2", "tick", []byte("original-sig-2")),
 			// 3. The loop detects threshold exceeded and invokes compressContext (Flash model),
 			// followed by the main agent resuming with the truncated history.
 			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (*backend.GenerateResponse, error) {
@@ -127,10 +127,13 @@ func TestTokenCompression(t *testing.T) {
 				require.Equal(t, "Prompt", req[0].Parts[0].Text)
 				require.Equal(t, compressedHistoryPrefix+"compressed summary", req[1].Parts[0].Text)
 				require.Equal(t, backend.RoleModel, req[2].Role)
-				require.Len(t, req[2].Parts, 1, "thought part should be dropped from preserved suffix")
-				require.False(t, req[2].Parts[0].Thought)
-				require.Equal(t, "id2", req[2].Parts[0].FunctionCall.ID)
+				require.Len(t, req[2].Parts, 2, "thought part should be kept in preserved suffix")
+				require.True(t, req[2].Parts[0].Thought)
+				require.Equal(t, "thinking about id2", req[2].Parts[0].Text)
 				require.Empty(t, req[2].Parts[0].ThoughtSignature,
+					"preserved thought in generic history should have empty thought signature")
+				require.Equal(t, "id2", req[2].Parts[1].FunctionCall.ID)
+				require.Empty(t, req[2].Parts[1].ThoughtSignature,
 					"preserved function call in generic history should have empty thought signature")
 				require.Equal(t, backend.RoleUser, req[3].Role)
 				require.Len(t, req[3].Parts, 2)
