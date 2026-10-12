@@ -133,7 +133,8 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"openat$nci", "openat$rfkill",
 			"openat$6lowpan*", "openat$pidfd", "openat$tcp*", "openat$vhost_vsock",
 			"openat$vsock", "openat$vnet",
-			"openat$ptp*", "openat$qrtrtun", "openat$uverbs0",
+			"openat$ptp*", "openat$qrtrtun", "openat$uverbs0", "openat$rdma_cm",
+			"munmap$rdma", "syz_memcpy_off$rdma",
 			"openat$capi20", "openat$proc_capi20*", "openat$misdntimer",
 			"openat$pfkey", "openat$ipvs", "openat$sysctl",
 		)
