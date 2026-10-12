@@ -6,55 +6,83 @@
 # In the meantime, add it as is.
 
 include <uapi/linux/fcntl.h>
+include <linux/mman.h>
 include <rdma/ib_verbs.h>
 include <rdma/rdma_user_ioctl.h>
 include <rdma/ib_user_ioctl_verbs.h>
 include <rdma/mlx5-abi.h>
+include <uapi/rdma/ib_user_verbs.h>
+include <uapi/rdma/rdma_user_rxe.h>
 include <uapi/rdma/ib_user_ioctl_cmds.h>
 include <uapi/rdma/mlx5_user_ioctl_cmds.h>
 
 # resources
 resource fd_rdma[fd]
+resource fd_comp_channel[fd]
 resource pd_handle[int32]
 resource mr_handle[int32]
+resource mr_lkey[int32]
 resource mr_rkey[int32]
 resource cq_handle[int32]
 resource qp_handle[int32]
+resource qp_number[int32]
 resource mw_handle[int32]
 resource srq_handle[int32]
 resource xrcd_handle[int32]
 resource wq_handle[int32]
 resource ind_tbl_handle[int32]
 resource flow_handle[int32]
+resource ah_handle[int32]
+resource ah_num[int32]: 0
+resource rdma_mmap_offset[int64]: 0x1000
+resource rdma_ring_ptr[int64]
 
-type ah_handle int32
-type mr_lkey int32
-type qp_number int32
-
-define IB_USER_VERBS_EX_CMD_QUERY_DEVICE	0x80000001
-define IB_USER_VERBS_EX_CMD_CREATE_FLOW	0x80000032
-define IB_USER_VERBS_EX_CMD_DESTROY_FLOW	0x80000033
 define MLX5_CREATE_DCT	0x8
 define MLX5_CREATE_DCI	0x16
-define IB_USER_VERBS_CMD_FLAG_EXTENDED	0x80000000
-define IB_USER_VERBS_CMD_FLAGS_SHIFT	24
-define IB_USER_VERBS_CMD_THRESHOLD	50
-define IB_USER_VERBS_CMD_CREATE_CQ	0x12
-define IB_USER_VERBS_CMD_CREATE_QP	0x18
-define EX_CREATE_CQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_CMD_CREATE_CQ
-define EX_CREATE_QP_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_CMD_CREATE_QP
+define EX_QUERY_DEVICE_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_QUERY_DEVICE
+define EX_CREATE_CQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_CREATE_CQ
+define EX_CREATE_QP_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_CREATE_QP
+define EX_CREATE_FLOW_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_CREATE_FLOW
+define EX_DESTROY_FLOW_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_DESTROY_FLOW
+define EX_CREATE_WQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_CREATE_WQ
+define EX_MODIFY_WQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_MODIFY_WQ
+define EX_DESTROY_WQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_DESTROY_WQ
+define EX_CREATE_RWQ_IND_TBL_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_CREATE_RWQ_IND_TBL
+define EX_DESTROY_RWQ_IND_TBL_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_EX_CMD_DESTROY_RWQ_IND_TBL
+
+define IB_QP_RESET_TO_INIT_RC	IB_QP_STATE | IB_QP_PKEY_INDEX | IB_QP_PORT | IB_QP_ACCESS_FLAGS
+define IB_QP_RESET_TO_INIT_UD	IB_QP_STATE | IB_QP_PKEY_INDEX | IB_QP_PORT | IB_QP_QKEY
+define IB_QP_INIT_TO_RTR_RC	IB_QP_STATE | IB_QP_AV | IB_QP_PATH_MTU | IB_QP_DEST_QPN | IB_QP_RQ_PSN | IB_QP_MAX_DEST_RD_ATOMIC | IB_QP_MIN_RNR_TIMER
+define IB_QP_INIT_TO_RTR_UC	IB_QP_STATE | IB_QP_AV | IB_QP_PATH_MTU | IB_QP_DEST_QPN | IB_QP_RQ_PSN
+define IB_QP_RTR_TO_RTS_RC	IB_QP_STATE | IB_QP_SQ_PSN | IB_QP_TIMEOUT | IB_QP_RETRY_CNT | IB_QP_RNR_RETRY | IB_QP_MAX_QP_RD_ATOMIC
+define IB_QP_RTR_TO_RTS_UC_UD	IB_QP_STATE | IB_QP_SQ_PSN
+
+define PROT_READ_WRITE	PROT_READ | PROT_WRITE
+define MAP_SHARED_FIXED	MAP_SHARED | MAP_FIXED
 
 # flags
-ib_access_flags = IB_ACCESS_LOCAL_WRITE, IB_ACCESS_REMOTE_WRITE, IB_ACCESS_REMOTE_READ, IB_ACCESS_REMOTE_ATOMIC, IB_ACCESS_MW_BIND, IB_ZERO_BASED, IB_ACCESS_ON_DEMAND
+ib_access_flags = IB_ACCESS_LOCAL_WRITE, IB_ACCESS_REMOTE_WRITE, IB_ACCESS_REMOTE_READ, IB_ACCESS_REMOTE_ATOMIC, IB_ACCESS_MW_BIND, IB_ZERO_BASED, IB_ACCESS_ON_DEMAND, IB_ACCESS_HUGETLB, IB_ACCESS_FLUSH_GLOBAL, IB_ACCESS_FLUSH_PERSISTENT, IB_ACCESS_RELAXED_ORDERING
 ib_mr_rereg_flags = IB_MR_REREG_TRANS, IB_MR_REREG_PD, IB_MR_REREG_ACCESS, IB_MR_REREG_SUPPORTED
+ib_mw_type = IB_MW_TYPE_1, IB_MW_TYPE_2
 ib_qp_type = IB_QPT_SMI, IB_QPT_GSI, IB_QPT_RC, IB_QPT_UC, IB_QPT_UD, IB_QPT_RAW_IPV6, IB_QPT_RAW_ETHERTYPE, IB_QPT_RAW_PACKET, IB_QPT_XRC_INI, IB_QPT_XRC_TGT
-ib_qp_create_flags = IB_QP_CREATE_IPOIB_UD_LSO, IB_QP_CREATE_BLOCK_MULTICAST_LOOPBACK, IB_QP_CREATE_CROSS_CHANNEL, IB_QP_CREATE_MANAGED_SEND, IB_QP_CREATE_MANAGED_RECV, IB_QP_CREATE_NETIF_QP, IB_QP_CREATE_INTEGRITY_EN, IB_QP_CREATE_SCATTER_FCS
+ib_qp_state = IB_QPS_RESET, IB_QPS_INIT, IB_QPS_RTR, IB_QPS_RTS, IB_QPS_SQD, IB_QPS_SQE, IB_QPS_ERR
+ib_mig_state = IB_MIG_MIGRATED, IB_MIG_REARM, IB_MIG_ARMED
+ib_mtu = IB_MTU_256, IB_MTU_512, IB_MTU_1024, IB_MTU_2048, IB_MTU_4096
+ib_qp_attr_mask = IB_QP_STATE, IB_QP_CUR_STATE, IB_QP_EN_SQD_ASYNC_NOTIFY, IB_QP_ACCESS_FLAGS, IB_QP_PKEY_INDEX, IB_QP_PORT, IB_QP_QKEY, IB_QP_AV, IB_QP_PATH_MTU, IB_QP_TIMEOUT, IB_QP_RETRY_CNT, IB_QP_RNR_RETRY, IB_QP_RQ_PSN, IB_QP_MAX_QP_RD_ATOMIC, IB_QP_ALT_PATH, IB_QP_MIN_RNR_TIMER, IB_QP_SQ_PSN, IB_QP_MAX_DEST_RD_ATOMIC, IB_QP_PATH_MIG_STATE, IB_QP_CAP, IB_QP_DEST_QPN, IB_QP_RATE_LIMIT, IB_QP_RESET_TO_INIT_RC, IB_QP_RESET_TO_INIT_UD, IB_QP_INIT_TO_RTR_RC, IB_QP_INIT_TO_RTR_UC, IB_QP_RTR_TO_RTS_RC, IB_QP_RTR_TO_RTS_UC_UD
+ib_uverbs_wr_opcode = IB_UVERBS_WR_RDMA_WRITE, IB_UVERBS_WR_RDMA_WRITE_WITH_IMM, IB_UVERBS_WR_SEND, IB_UVERBS_WR_SEND_WITH_IMM, IB_UVERBS_WR_RDMA_READ, IB_UVERBS_WR_ATOMIC_CMP_AND_SWP, IB_UVERBS_WR_ATOMIC_FETCH_AND_ADD, IB_UVERBS_WR_LOCAL_INV, IB_UVERBS_WR_BIND_MW, IB_UVERBS_WR_SEND_WITH_INV, IB_UVERBS_WR_TSO, IB_UVERBS_WR_RDMA_READ_WITH_INV, IB_UVERBS_WR_MASKED_ATOMIC_CMP_AND_SWP, IB_UVERBS_WR_MASKED_ATOMIC_FETCH_AND_ADD, IB_UVERBS_WR_FLUSH, IB_UVERBS_WR_ATOMIC_WRITE
 ib_send_flags = IB_SEND_FENCE, IB_SEND_SIGNALED, IB_SEND_SOLICITED, IB_SEND_INLINE, IB_SEND_IP_CSUM
+ib_placement_type = IB_FLUSH_GLOBAL, IB_FLUSH_PERSISTENT
+ib_selectivity_level = IB_FLUSH_RANGE, IB_FLUSH_MR
+rxe_network_type = RXE_NETWORK_TYPE_IPV4, RXE_NETWORK_TYPE_IPV6
+ib_srq_attr_mask = IB_SRQ_MAX_WR, IB_SRQ_LIMIT
+ib_wq_state = IB_WQS_RESET, IB_WQS_RDY, IB_WQS_ERR
+ib_flow_attr_type = IB_FLOW_ATTR_NORMAL, IB_FLOW_ATTR_ALL_DEFAULT, IB_FLOW_ATTR_MC_DEFAULT, IB_FLOW_ATTR_SNIFFER
+ib_flow_spec_tcp_udp_type = IB_FLOW_SPEC_TCP, IB_FLOW_SPEC_UDP
 ib_flow_flags = IB_FLOW_ATTR_FLAGS_DONT_TRAP
 ib_ipv4_flags = IB_IPV4_DONT_FRAG, IB_IPV4_MORE_FRAG
 mlx5_create_qp_flags = MLX5_QP_FLAG_SIGNATURE, MLX5_QP_FLAG_SCATTER_CQE, MLX5_QP_FLAG_TUNNEL_OFFLOADS, MLX5_QP_FLAG_BFREG_INDEX, MLX5_CREATE_DCT, MLX5_CREATE_DCI
 mlx5_create_cq_flags = 0
-create_cq_ex_flags = IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION, IB_UVERBS_CQ_FLAGS_IGNORE_OVERRUN
+create_cq_ex_flags = 0, IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION, IB_UVERBS_CQ_FLAGS_IGNORE_OVERRUN
 create_cq_ex_mask = 0x0, 0x1
 mlx5_comp_cqe_res_format = MLX5_IB_CQE_RES_FORMAT_HASH, MLX5_IB_CQE_RES_FORMAT_CSUM
 wq_type = IB_WQT_RQ
@@ -96,11 +124,9 @@ mlx5_get_context_cmd_resp {
 }
 
 mlx5_get_context_cmd {
-# TODO: are there named consts for commands?
-	command			const[0x0, int32]
-# TODO: these probably should be replaced with bytesize8 of something.
-	in_words		const[0xc, int16]
-	out_words		const[0x12, int16]
+	command			const[IB_USER_VERBS_CMD_GET_CONTEXT, int32]
+	in_words		bytesize4[parent, int16]
+	out_words		bytesize4[response, int16]
 	response		ptr[out, mlx5_get_context_cmd_resp]
 	total_num_uuars		int32
 	num_low_latency_uuars	int32
@@ -132,6 +158,7 @@ query_device_resp_ex {
 	max_cq				int32
 	max_cqe				int32
 	max_mr				int32
+	max_pd				int32
 	max_qp_rd_atom			int32
 	max_ee_rd_atom			int32
 	max_res_rd_atom			int32
@@ -182,15 +209,17 @@ query_device_resp_ex {
 	max_cq_moderation_period	int16
 	reserved_cq_mod			int32
 	max_dm_size			int64
+	xrc_odp_caps			int32
+	reserved_ex			const[0x0, int32]
 }
 
 query_device_cmd_ex {
-	command			const[IB_USER_VERBS_EX_CMD_QUERY_DEVICE, int32]
+	command			const[EX_QUERY_DEVICE_CMD, int32]
 	in_words		const[0x1, int16]
-	out_words		bytesize4[response, int16]
+	out_words		bytesize8[response, int16]
 	response		ptr[out, query_device_resp_ex]
 	provider_in_words	const[0x0, int16]
-	provider_out_words	const[0x8, int16]
+	provider_out_words	const[0x0, int16]
 	reserved		const[0x0, int32]
 	comp_mask		const[0x0, int32]
 	reserved1		const[0x0, int32]
@@ -200,20 +229,19 @@ query_device_cmd_ex {
 # ==============
 
 query_port_cmd {
-	command		const[0x2, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0xa, int16]
-	response	int64
-	port_num	const[0x1, int8]
-	reserved	array[int8, 7]
-	driver_data	array[int64]
+	command		const[IB_USER_VERBS_CMD_QUERY_PORT, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
+	response	ptr[out, array[int8, 40]]
+	port_num	int8[1:2]
+	reserved	array[const[0x0, int8], 7]
 }
 
 # pd
 # ======
 
 alloc_pd_cmd {
-	command		const[0x3, int32]
+	command		const[IB_USER_VERBS_CMD_ALLOC_PD, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	bytesize4[response, int16]
 	response	ptr[out, alloc_pd_cmd_resp]
@@ -221,7 +249,7 @@ alloc_pd_cmd {
 }
 
 mlx5_alloc_pd_cmd {
-	command		const[0x3, int32]
+	command		const[IB_USER_VERBS_CMD_ALLOC_PD, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	bytesize4[response, int16]
 	response	ptr[out, mlx5_alloc_pd_cmd_resp]
@@ -238,8 +266,8 @@ mlx5_alloc_pd_cmd_resp {
 }
 
 dealloc_pd_cmd {
-	command		const[0x4, int32]
-	in_words	const[0x6, int16]
+	command		const[IB_USER_VERBS_CMD_DEALLOC_PD, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0, int16]
 	pd_handle	pd_handle
 }
@@ -249,35 +277,39 @@ dealloc_pd_cmd {
 
 create_ah_cmd_resp {
 	ah_handle	ah_handle
+	ah_num		ah_num
+	reserved	const[0x0, int32]
 }
 
 create_ah_cmd {
-	command		const[0x5, int32]
+	command		const[IB_USER_VERBS_CMD_CREATE_AH, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	bytesize4[response, int16]
 	response	ptr[out, create_ah_cmd_resp]
 	user_handle	int64
 	pd_handle	pd_handle
 	reserved	const[0x0, int32]
-	dgid		array[int8, 16]
+	dgid		ipv6_addr
 	flow_label	int32
-	sgid_index	const[0x0, int8]
+	sgid_index	int8[0:4]
 	hop_limit	int8
 	traffic_class	int8
-	reserved1	int8
+	reserved1	const[0x0, int8]
 	dlid		int16
 	sl		int8
 	src_path_bits	int8
 	static_rate	int8
-	is_global	int8
-	port_num	const[0x1, int8]
-	reserved2	int8
+	is_global	int8[0:1]
+	port_num	int8[1:2]
+	reserved2	const[0x0, int8]
 }
 
 destroy_ah_cmd {
-	command		const[0x8, int32]
+	command		const[IB_USER_VERBS_CMD_DESTROY_AH, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
+	ah_handle	ah_handle
+	reserved	const[0x0, int32]
 }
 
 # mr
@@ -290,16 +322,15 @@ reg_mr_resp {
 }
 
 reg_mr_cmd {
-	command		const[0x9, int32]
-	in_words	const[0xc, int16]
-	out_words	const[0x3, int16]
+	command		const[IB_USER_VERBS_CMD_REG_MR, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, reg_mr_resp]
-	start		ptr[in, int64]
+	start		vma64
 	length		len[start, int64]
-	hca_va		ptr[out, int64]
+	hca_va		const[0, int64]
 	pd_handle	pd_handle
 	access_flags	flags[ib_access_flags, int32]
-	driver_data	array[int64]
 }
 
 rereg_mr_resp {
@@ -308,23 +339,22 @@ rereg_mr_resp {
 }
 
 rereg_mr_cmd {
-	command		const[0xb, int32]
-	in_words	const[0xe, int16]
-	out_words	const[0x2, int16]
+	command		const[IB_USER_VERBS_CMD_REREG_MR, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, rereg_mr_resp]
 	mr_handle	mr_handle
 	flags		flags[ib_mr_rereg_flags, int32]
-	start		ptr[in, int64]
+	start		vma64
 	length		len[start, int64]
-	hca_va		ptr[out, int64]
+	hca_va		const[0, int64]
 	pd_handle	pd_handle
 	access_flags	flags[ib_access_flags, int32]
-	driver_data	array[int64]
 }
 
 dereg_mr_cmd {
-	command		const[0xd, int32]
-	in_words	const[0x3, int16]
+	command		const[IB_USER_VERBS_CMD_DEREG_MR, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
 	mr_handle	mr_handle
 }
@@ -335,19 +365,19 @@ alloc_mw_resp {
 }
 
 alloc_mw_cmd {
-	command		const[0xe, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x2, int16]
+	command		const[IB_USER_VERBS_CMD_ALLOC_MW, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, alloc_mw_resp]
 	pd_handle	pd_handle
-	mw_type		int8[1:2]
+	mw_type		flags[ib_mw_type, int8]
 	reserved0	const[0x0, int8]
 	reserved1	const[0x0, int16]
 }
 
 dealloc_mw_cmd {
-	command		const[0x10, int32]
-	in_words	const[0x4, int16]
+	command		const[IB_USER_VERBS_CMD_DEALLOC_MW, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
 	mw_handle	mw_handle
 	reserved	const[0x0, int32]
@@ -357,31 +387,38 @@ dealloc_mw_cmd {
 # ==================
 
 create_comp_channel_resp {
-	fd	fd
+	fd	fd_comp_channel
 }
 
 create_comp_channel_cmd {
-	command		const[0x11, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_CREATE_COMP_CHANNEL, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, create_comp_channel_resp]
 }
 
 # cq
 # ======
 
+rxe_mminfo {
+	offset	rdma_mmap_offset
+	size	int32
+	pad	int32
+}
+
 create_cq_resp {
 	cq_handle	cq_handle
 	cqe		int32
+	mi		rxe_mminfo
 }
 
 mlx5_create_cq_cmd {
 	command			const[EX_CREATE_CQ_CMD, int32]
-	in_words		bytesize4[parent, int16]
-	out_words		bytesize4[response, int16]
-	response		ptr[out, create_cq_resp]
-	provider_in_words	const[0x5, int16]
-	provider_out_words	const[0x1, int16]
+	in_words		const[0x4, int16]
+	out_words		const[0x2, int16]
+	response		ptr[out, create_cq_ex_resp]
+	provider_in_words	const[0x3, int16]
+	provider_out_words	const[0x2, int16]
 	reserved0		const[0x0, int32]
 	user_handle		int64
 	cqe			int32
@@ -400,31 +437,38 @@ mlx5_create_cq_cmd {
 # this fails a lot on Mellanox HW. Leaving for others providers' sake and
 # adding mlx5_create_cq instead, which defines driver data properly.
 create_cq_cmd {
-	command		const[0x12, int32]
-	in_words	const[0x10, int16]
-	out_words	const[0x3, int16]
-	reponse		ptr[out, create_cq_resp]
+	command		const[IB_USER_VERBS_CMD_CREATE_CQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
+	response	ptr[out, create_cq_resp]
 	user_handle	int64
-	cqe		int32
-	comp_vector	int32
-	comp_channel	int32
+	cqe		int32[1:64]
+	comp_vector	int32[0:1]
+	comp_channel	fd_comp_channel[opt]
 	reserved	const[0x0, int32]
-	driver_data	array[int64]
+}
+
+create_cq_ex_resp {
+	cq_handle	cq_handle
+	cqe		int32
+	comp_mask	int32
+	response_length	int32
+	mi		rxe_mminfo
 }
 
 create_cq_ex_cmd {
 	command			const[EX_CREATE_CQ_CMD, int32]
 	in_words		const[0x4, int16]
 	out_words		const[0x2, int16]
-	response		ptr[out, create_cq_resp]
-	provider_in_words	const[0x5, int16]
-	provider_out_words	const[0x1, int16]
+	response		ptr[out, create_cq_ex_resp]
+	provider_in_words	const[0x0, int16]
+	provider_out_words	const[0x2, int16]
 	reserved0		const[0x0, int32]
 	user_handle		int64
-	cqe			int32
+	cqe			int32[1:64]
 	comp_vector		const[0x0, int32]
-	comp_channel		const[0xffffffff, int32]
-	comp_mask		flags[create_cq_ex_mask, int32]
+	comp_channel		fd_comp_channel[opt]
+	comp_mask		const[0x0, int32]
 	flags			flags[create_cq_ex_flags, int32]
 	reserved1		const[0x0, int32]
 }
@@ -432,17 +476,16 @@ create_cq_ex_cmd {
 resize_cq_resp {
 	cqe		int32
 	reserved	const[0x0, int32]
-	driver_data	array[int64]
+	mi		rxe_mminfo
 }
 
 resize_cq_cmd {
-	command		const[0x13, int32]
-	in_words	const[0xa, int16]
-	out_words	const[0x2, int16]
+	command		const[IB_USER_VERBS_CMD_RESIZE_CQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, resize_cq_resp]
 	cq_handle	cq_handle
-	cqe		int32
-	driver_data	array[int64]
+	cqe		int32[1:64]
 }
 
 destroy_cq_resp {
@@ -451,9 +494,9 @@ destroy_cq_resp {
 }
 
 destroy_cq_cmd {
-	command		const[0x14, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x2, int16]
+	command		const[IB_USER_VERBS_CMD_DESTROY_CQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, destroy_cq_resp]
 	cq_handle	cq_handle
 	reserved	const[0x0, int32]
@@ -466,7 +509,7 @@ kern_wc {
 	vendor_err	int32
 	byte_len	int32
 	imm_data	int32
-	qp_num		int32
+	qp_num		qp_number
 	src_qp		int32
 	wc_flags	int32
 	pkey_index	int16
@@ -484,20 +527,20 @@ poll_cq_resp {
 }
 
 poll_cq_cmd {
-	command		const[0x15, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x2, int16]
+	command		const[IB_USER_VERBS_CMD_POLL_CQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, poll_cq_resp]
 	cq_handle	cq_handle
-	ne		int32
+	ne		int32[0:16]
 }
 
 req_notify_cq_cmd {
-	command		const[0x17, int32]
-	in_words	const[0x4, int16]
+	command		const[IB_USER_VERBS_CMD_REQ_NOTIFY_CQ, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
 	cq_handle	cq_handle
-	solicited	int32[0x0:0x1]
+	solicited_only	int32[0:1]
 }
 
 # qp_ex
@@ -512,10 +555,12 @@ create_qp_resp {
 	max_recv_sge	int32
 	max_inline_data	int32
 	reserved	const[0x0, int32]
+	rq_mi		rxe_mminfo
+	sq_mi		rxe_mminfo
 }
 
 create_qp_cmd {
-	command		const[0x18, int32]
+	command		const[IB_USER_VERBS_CMD_CREATE_QP, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	bytesize4[response, int16]
 	response	ptr[out, create_qp_resp]
@@ -523,21 +568,20 @@ create_qp_cmd {
 	pd_handle	pd_handle
 	send_cq_handle	cq_handle
 	recv_cq_handle	cq_handle
-	srq_handle	srq_handle
-	max_send_wr	int32
-	max_recv_wr	int32
-	max_send_sge	int32
-	max_recv_sge	int32
-	max_inline_data	int32
-	sq_sig_all	int8
+	srq_handle	srq_handle[opt]
+	max_send_wr	int32[1:64]
+	max_recv_wr	int32[1:64]
+	max_send_sge	int32[1:3]
+	max_recv_sge	int32[1:3]
+	max_inline_data	int32[0:48]
+	sq_sig_all	int8[0:1]
 	qp_type		flags[ib_qp_type, int8]
 	is_srq		int8[0:1]
 	reserved1	const[0x0, int8]
-	driver_data	array[int64]
 }
 
 mlx5_create_qp_cmd {
-	command		const[EX_CREATE_QP_CMD, int32]
+	command		const[IB_USER_VERBS_CMD_CREATE_QP, int32]
 	in_words	bytesize4[parent, int16]
 	out_words	bytesize4[response, int16]
 	response	ptr[out, create_qp_resp]
@@ -579,9 +623,9 @@ mlx5_create_qp_resp {
 }
 
 mlx5_create_dv_qp_cmd {
-	command		const[0x18, int32]
-	in_words	const[0x1c, int16]
-	out_words	const[0x9, int16]
+	command		const[IB_USER_VERBS_CMD_CREATE_QP, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, mlx5_create_qp_resp]
 	user_handle	int64
 	pd_handle	pd_handle
@@ -594,7 +638,7 @@ mlx5_create_dv_qp_cmd {
 	max_recv_sge	int32
 	max_inline_data	int32
 	sq_sig_all	int8
-	qp_type		const[0xff, int8]
+	qp_type		const[IB_UVERBS_QPT_DRIVER, int8]
 	is_srq		int8
 	reserved0	const[0x0, int8]
 	driver_data	array[int64]
@@ -614,9 +658,9 @@ destroy_qp_resp {
 }
 
 destroy_qp_cmd {
-	command		const[0x1b, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_DESTROY_QP, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, destroy_qp_resp]
 	qp_handle	qp_handle
 	reserved	const[0x0, int32]
@@ -680,66 +724,65 @@ query_qp_resp {
 }
 
 query_qp_cmd {
-	command		const[0x19, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x20, int16]
+	command		const[IB_USER_VERBS_CMD_QUERY_QP, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, query_qp_resp]
 	qp_handle	qp_handle
-	attr_mask	flags[ib_qp_create_flags, int32]
-	driver_data	array[int64]
+	attr_mask	flags[ib_qp_attr_mask, int32]
 }
 
 modify_qp_cmd {
-	command			const[0x1a, int32]
-	in_words		const[0x1e, int16]
+	command			const[IB_USER_VERBS_CMD_MODIFY_QP, int32]
+	in_words		bytesize4[parent, int16]
 	out_words		const[0x0, int16]
-	dest_dgid		array[int8, 16]
+	dest_dgid		ipv6_addr
 	dest_flow_label		int32
 	dest_dlid		int16
-	dest_reserved		int16
-	dest_sgid_index		int8
+	dest_reserved		const[0x0, int16]
+	dest_sgid_index		int8[0:4]
 	dest_hop_limit		int8
 	dest_traffic_class	int8
 	dest_sl			int8
 	dest_src_path_bits	int8
 	dest_static_rate	int8
-	dest_is_global		int8
-	dest_port_num		int8
-	alt_dest_dgid		array[int8, 16]
+	dest_is_global		int8[0:1]
+	dest_port_num		int8[1:2]
+	alt_dest_dgid		ipv6_addr
 	alt_dest_flow_label	int32
 	alt_dest_dlid		int16
-	alt_dest_reserved	int16
-	alt_dest_sgid_index	int8
+	alt_dest_reserved	const[0x0, int16]
+	alt_dest_sgid_index	int8[0:4]
 	alt_dest_hop_limit	int8
 	alt_dest_traffic_class	int8
 	alt_dest_sl		int8
 	alt_dest_src_path_bits	int8
 	alt_dest_static_rate	int8
-	alt_dest_is_global	int8
-	alt_dest_port_num	int8
-	qp_handle		int32
-	attr_mask		int32
+	alt_dest_is_global	int8[0:1]
+	alt_dest_port_num	int8[0:2]
+	qp_handle		qp_handle
+	attr_mask		flags[ib_qp_attr_mask, int32]
 	qkey			int32
 	rq_psn			int32
 	sq_psn			int32
-	dest_qp_num		int32
-	qp_access_flags		int32
-	pkey_index		int16
-	alt_pkey_index		int16
-	qp_state		int8
-	cur_qp_state		int8
-	path_mtu		int8
-	path_mig_state		int8
-	en_sqd_async_notify	int8
-	max_rd_atomic		int8
-	max_dest_rd_atomic	int8
-	min_rnr_timer		int8
-	port_num		int8
-	timeout			int8
-	retry_cnt		int8
-	rnr_retry		int8
-	alt_port_num		int8
-	alt_timeout		int8
+	dest_qp_num		qp_number
+	qp_access_flags		flags[ib_access_flags, int32]
+	pkey_index		int16[0:1]
+	alt_pkey_index		int16[0:1]
+	qp_state		flags[ib_qp_state, int8]
+	cur_qp_state		flags[ib_qp_state, int8]
+	path_mtu		flags[ib_mtu, int8]
+	path_mig_state		flags[ib_mig_state, int8]
+	en_sqd_async_notify	int8[0:1]
+	max_rd_atomic		int8[0:16]
+	max_dest_rd_atomic	int8[0:16]
+	min_rnr_timer		int8[0:31]
+	port_num		int8[1:2]
+	timeout			int8[0:31]
+	retry_cnt		int8[0:7]
+	rnr_retry		int8[0:7]
+	alt_port_num		int8[0:2]
+	alt_timeout		int8[0:31]
 	reserved		const[0x0, int16]
 }
 
@@ -756,12 +799,12 @@ create_wq_resp {
 }
 
 create_wq_cmd {
-	command			const[0x80000034, int32]
+	command			const[EX_CREATE_WQ_CMD, int32]
 	in_words		const[0x5, int16]
-	out_words		bytesize4[response, int16]
+	out_words		bytesize8[response, int16]
 	response		ptr[out, create_wq_resp]
-	provider_in_words	const[0x6, int16]
-	provider_out_words	const[0x1, int16]
+	provider_in_words	const[0x0, int16]
+	provider_out_words	const[0x0, int16]
 	cmd_hdr_reserved	const[0x0, int32]
 	comp_mask		const[0x0, int32]
 	wq_type			flags[wq_type, int32]
@@ -776,19 +819,19 @@ create_wq_cmd {
 
 mlx5_create_wq_resp {
 	comp_mask		int32
-	response_length		const[0x6, int32]
+	response_length		const[0x18, int32]
 	wq_handle		wq_handle
 	max_wr			int32
 	max_sge			int32
 	wqn			int32
-	mlx5_response_length	bytesize4[parent, int32]
+	mlx5_response_length	bytesize[parent, int32]
 	reserver		const[0x0, int32]
 }
 
 mlx5_create_wq_cmd {
-	command				const[0x80000034, int32]
+	command				const[EX_CREATE_WQ_CMD, int32]
 	in_words			const[0x5, int16]
-	out_words			bytesize4[response, int16]
+	out_words			const[0x3, int16]
 	response			ptr[out, mlx5_create_wq_resp]
 	provider_in_words		const[0x6, int16]
 	provider_out_words		const[0x1, int16]
@@ -822,7 +865,7 @@ destroy_wq_resp {
 }
 
 destroy_wq_cmd {
-	command			const[0x80000036, int32]
+	command			const[EX_DESTROY_WQ_CMD, int32]
 	in_words		const[0x1, int16]
 	out_words		const[0x2, int16]
 	response		ptr[out, destroy_wq_resp]
@@ -834,7 +877,7 @@ destroy_wq_cmd {
 }
 
 mlx5_modify_wq_cmd {
-	command			const[0x80000035, int32]
+	command			const[EX_MODIFY_WQ_CMD, int32]
 	in_words		const[0x3, int16]
 	out_words		const[0x0, int16]
 	response		const[0x0, int64]
@@ -843,8 +886,8 @@ mlx5_modify_wq_cmd {
 	cmd_hdr_reserved	const[0x0, int32]
 	attr_mask		flags[modify_wq_attr_flags, int32]
 	wq_handle		wq_handle
-	wq_state		int32[0:3]
-	current_wq_state	int32[0:3]
+	wq_state		flags[ib_wq_state, int32]
+	current_wq_state	flags[ib_wq_state, int32]
 	flags			flags[modify_wq_flags, int32]
 	flags_mask		flags[modify_wq_flags, int32]
 	comp_mask		const[0x0, int32]
@@ -856,7 +899,7 @@ mlx5_modify_wq_cmd {
 
 create_rwq_ind_table_resp {
 	comp_mask	int32
-	response_length	bytesize4[parent, int32]
+	response_length	bytesize[parent, int32]
 	ind_tbl_handle	ind_tbl_handle
 	ind_tbl_num	int32
 }
@@ -864,7 +907,7 @@ create_rwq_ind_table_resp {
 # currently hard coded to use 2 WQs. Need to figure out how to
 # make it a variable.
 create_rwq_ind_table_cmd {
-	command			const[0x80000037, int32]
+	command			const[EX_CREATE_RWQ_IND_TBL_CMD, int32]
 	in_words		const[0x2, int16]
 	out_words		const[0x2, int16]
 	response		ptr[out, create_rwq_ind_table_resp]
@@ -877,21 +920,28 @@ create_rwq_ind_table_cmd {
 }
 
 destroy_rwq_ind_table_cmd {
-	comp_mask	int32
-	ind_tbl_handle	ind_tbl_handle
+	command			const[EX_DESTROY_RWQ_IND_TBL_CMD, int32]
+	in_words		const[0x1, int16]
+	out_words		const[0x0, int16]
+	response		const[0x0, int64]
+	provider_in_words	const[0x0, int16]
+	provider_out_words	const[0x0, int16]
+	cmd_hdr_reserved	const[0x0, int32]
+	comp_mask		const[0x0, int32]
+	ind_tbl_handle		ind_tbl_handle
 }
 
 # Send WR
 #========
 
 rdma {
-	remote_addr	int64
+	remote_addr	int64[0:1024]
 	rkey		mr_rkey
 	reserved	const[0x0, int32]
 }
 
 atomic {
-	remote_addr	int64
+	remote_addr	int64[0:1024]
 	compare_add	int64
 	swap		int64
 	rkey		mr_rkey
@@ -899,14 +949,10 @@ atomic {
 }
 
 ud {
-	ah		int32
-	remote_qpn	int32
+	ah		ah_handle
+	remote_qpn	qp_number
 	remote_qkey	int32
 	reserved	const[0x0, int32]
-}
-
-xrc {
-	remote_srqn	int32
 }
 
 wr [
@@ -915,68 +961,207 @@ wr [
 	ud	ud
 ]
 
+ib_uverbs_sge {
+	addr	int64[0:1024]
+	length	int32[0:4096]
+	lkey	mr_lkey
+}
+
 kern_send_wr {
 	wr_id		int64
-	num_sge		int32
-	opcode		int32[0:20]
+	num_sge		int32[0:2]
+	opcode		flags[ib_uverbs_wr_opcode, int32]
 	send_flags	flags[ib_send_flags, int32]
-	imm_data	int32
+	ex		mr_rkey
 	wr		wr
-	qp_type		xrc
 }
 
 post_send_cmd {
-	command		const[0x1c, int32]
-	in_words	const[0x8, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_POST_SEND, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, post_send_resp]
 	qp_handle	qp_handle
-	wr_count	int32
-	sge_count	int32
-	wqe_size	int32
-	send_wr		array[kern_send_wr]
-}
+	wr_count	len[send_wr, int32]
+	sge_count	len[sge, int32]
+	wqe_size	const[56, int32]
+	send_wr		array[kern_send_wr, 0:4]
+	sge		array[ib_uverbs_sge, 0:4]
+} [packed]
 
 post_send_resp {
 	bad_wr	int32
 }
 
 post_recv_cmd {
-	command		const[0x1d, int32]
-	in_words	const[0x8, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_POST_RECV, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, post_recv_resp]
 	qp_handle	qp_handle
-	wr_count	int32
-	sge_count	int32
-	wqe_size	int32
-	recv_wr		array[kern_recv_wr]
-}
+	wr_count	len[recv_wr, int32]
+	sge_count	len[sge, int32]
+	wqe_size	const[16, int32]
+	recv_wr		array[kern_recv_wr, 0:4]
+	sge		array[ib_uverbs_sge, 0:4]
+} [packed]
 
 post_recv_resp {
 	bad_wr	int32
 }
 
+rxe_global_route {
+	dgid		ipv6_addr
+	flow_label	int32
+	sgid_index	int8[0:4]
+	hop_limit	int8
+	traffic_class	int8
+	pad		const[0, int8]
+} [align[8]]
+
+rxe_sockaddr_in [
+	in	sockaddr_in
+	in6	sockaddr_in6
+]
+
+rxe_av {
+	port_num	int8[1:2]
+	network_type	flags[rxe_network_type, int8]
+	dmac		mac_addr
+	grh		rxe_global_route
+	sgid_addr	rxe_sockaddr_in
+	dgid_addr	rxe_sockaddr_in
+} [align[8]]
+
+rxe_send_wr_flush {
+	remote_addr	int64[0:1024]
+	length		int32
+	rkey		mr_rkey
+	type		flags[ib_placement_type, int8]
+	level		flags[ib_selectivity_level, int8]
+} [align[8]]
+
+rxe_send_wr_rdma {
+	remote_addr	int64[0:1024]
+	rkey		mr_rkey
+	reserved	const[0, int32]
+}
+
+rxe_send_wr_atomic {
+	remote_addr	int64[0:1024]
+	compare_add	int64
+	swap		int64
+	rkey		mr_rkey
+	reserved	const[0, int32]
+}
+
+rxe_send_wr_ud {
+	remote_qpn	qp_number
+	remote_qkey	int32
+	pkey_index	int16
+	reserved	const[0, int16]
+	ah_num		ah_num
+	pad		array[const[0, int32], 4]
+	av		rxe_av
+}
+
+rxe_send_wr_mw {
+	addr	int64[0:1024]
+	length	int64[0:4096]
+	mr_lkey	mr_lkey
+	mw_rkey	mr_rkey
+	rkey	mr_rkey
+	access	flags[ib_access_flags, int32]
+}
+
+rxe_send_wr_union [
+	rdma	rxe_send_wr_rdma
+	atomic	rxe_send_wr_atomic
+	ud	rxe_send_wr_ud
+	flush	rxe_send_wr_flush
+	mw	rxe_send_wr_mw
+]
+
+rxe_send_wr {
+	wr_id		int64
+	reserved	const[0, int32]
+	opcode		flags[ib_uverbs_wr_opcode, int32]
+	send_flags	flags[ib_send_flags, int32]
+	ex		mr_rkey
+	wr		rxe_send_wr_union
+}
+
+rxe_sge {
+	addr	int64[0:1024]
+	length	int32[0:4096]
+	lkey	mr_lkey
+}
+
+rxe_dma_info {
+	length		int32[0:4096]
+	resid		int32[0:4096]
+	cur_sge		int32[0:1]
+	num_sge		int32[0:2]
+	sge_offset	int32[0:64]
+	reserved	const[0, int32]
+	sge		array[rxe_sge, 2]
+}
+
+rxe_send_wqe {
+	wr		rxe_send_wr
+	status		int32
+	state		int32[0:4]
+	iova		int64[0:1024]
+	mask		int32
+	first_psn	int32
+	last_psn	int32
+	ack_length	int32
+	ssn		int32
+	has_rd_atomic	int32
+	dma		rxe_dma_info
+} [size[256]]
+
+rxe_recv_wqe {
+	wr_id		int64
+	reserved	const[0, int32]
+	padding		const[0, int32]
+	dma		rxe_dma_info
+} [size[128]]
+
+rxe_queue_data [
+	send	array[rxe_send_wqe, 1:4]
+	recv	array[rxe_recv_wqe, 1:4]
+] [varlen]
+
+rxe_queue_buf {
+	log2_elem_size	int32[6:10]
+	index_mask	int32[1:63]
+	pad_1		array[const[0, int32], 30]
+	producer_index	int32[1:8]
+	pad_2		array[const[0, int32], 31]
+	consumer_index	int32[0:8]
+	pad_3		array[const[0, int32], 31]
+	data		rxe_queue_data
+}
+
 attach_mcast_cmd {
-	command		const[0x1e, int32]
-	in_words	const[0x8, int16]
+	command		const[IB_USER_VERBS_CMD_ATTACH_MCAST, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
-	gid		array[int8, 0x10]
+	gid		ipv6_addr
 	qp_handle	qp_handle
 	mlid		int16
 	reserved	const[0x0, int16]
-	driver_data	array[int64]
 }
 
 detach_mcast_cmd {
-	command		const[0x1f, int32]
-	in_words	const[0x8, int16]
+	command		const[IB_USER_VERBS_CMD_DETACH_MCAST, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
-	gid		array[int8, 0x10]
+	gid		ipv6_addr
 	qp_handle	qp_handle
 	mlid		int16
 	reserved	const[0x0, int16]
-	driver_data	array[int64]
 }
 
 create_srq_resp {
@@ -984,30 +1169,36 @@ create_srq_resp {
 	max_wr		int32
 	max_sge		int32
 	srqn		int32
+	mi		rxe_mminfo
+	srq_num		int32
+	reserved	const[0x0, int32]
 }
 
 create_srq_cmd {
-	command		const[0x20, int32]
-	in_words	const[0xa, int16]
-	out_words	const[0x4, int16]
+	command		const[IB_USER_VERBS_CMD_CREATE_SRQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, create_srq_resp]
 	user_handle	int64
 	pd_handle	pd_handle
-	max_wr		int32
-	max_sge		int32
-	srq_limit	int32
-	driver_data	array[int64]
+	max_wr		int32[1:64]
+	max_sge		int32[1:3]
+	srq_limit	int32[0:64]
 }
 
 mlx5_ib_create_srq_resp {
+	srq_handle	srq_handle
+	max_wr		int32
+	max_sge		int32
 	srqn		int32
+	mlx5_srqn	int32
 	reserved	const[0x0, int32]
 }
 
 mlx5_create_srq_cmd {
-	command		const[0x27, int32]
-	in_words	const[0x16, int16]
-	out_words	const[0x6, int16]
+	command		const[IB_USER_VERBS_CMD_CREATE_XSRQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	reserved0	const[0x0, int32]
 	response	ptr[out, mlx5_ib_create_srq_resp]
 	user_handle	int64
@@ -1028,14 +1219,14 @@ mlx5_create_srq_cmd {
 }
 
 modify_srq_cmd {
-	command		const[0x21, int32]
-	in_words	const[0x6, int16]
+	command		const[IB_USER_VERBS_CMD_MODIFY_SRQ, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
 	srq_handle	srq_handle
-	attr_mask	int32[0x0:0x10]
-	max_wr		int32
-	srq_limit	int32
-	driver_data	array[int64]
+	attr_mask	flags[ib_srq_attr_mask, int32]
+	max_wr		int32[1:64]
+	srq_limit	int32[0:64]
+	mmap_info_addr	ptr[out, rxe_mminfo]
 }
 
 query_srq_resp {
@@ -1046,13 +1237,12 @@ query_srq_resp {
 }
 
 query_srq_cmd {
-	command		const[0x22, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x4, int16]
+	command		const[IB_USER_VERBS_CMD_QUERY_SRQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, query_srq_resp]
 	srq_handle	srq_handle
 	reserved	const[0x0, int32]
-	driver_data	array[int64]
 }
 
 destroy_srq_resp {
@@ -1060,9 +1250,9 @@ destroy_srq_resp {
 }
 
 destroy_srq_cmd {
-	command		const[0x23, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_DESTROY_SRQ, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, destroy_srq_resp]
 	srq_handle	srq_handle
 	reserved	const[0x0, int32]
@@ -1070,7 +1260,7 @@ destroy_srq_cmd {
 
 kern_recv_wr {
 	wr_id		int64
-	num_sge		int32
+	num_sge		int32[0:2]
 	reserved	const[0x0, int32]
 }
 
@@ -1079,35 +1269,36 @@ post_srq_recv_resp {
 }
 
 post_srq_recv_cmd {
-	command		const[0x24, int32]
-	in_words	const[0x7, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_POST_SRQ_RECV, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, post_srq_recv_resp]
-	wr_count	int32
-	sge_count	int32
-	wqe_size	int32
-	recv_wr		array[kern_recv_wr]
-}
+	srq_handle	srq_handle
+	wr_count	len[recv_wr, int32]
+	sge_count	len[sge, int32]
+	wqe_size	const[16, int32]
+	recv_wr		array[kern_recv_wr, 0:4]
+	sge		array[ib_uverbs_sge, 0:4]
+} [packed]
 
 open_xrcd_resp {
 	xrcd_handle	xrcd_handle
 }
 
 open_xrcd_cmd {
-	command		const[0x25, int32]
-	in_words	const[0x6, int16]
-	out_words	const[0x1, int16]
+	command		const[IB_USER_VERBS_CMD_OPEN_XRCD, int32]
+	in_words	bytesize4[parent, int16]
+	out_words	bytesize4[response, int16]
 	response	ptr[out, open_xrcd_resp]
 	fd		fd[opt]
 	oflags		flags[xrcd_flags, int32]
-	driver_data	array[int64]
 }
 
 xrcd_flags = O_CREAT, O_EXCL
 
 close_xrcd_cmd {
-	command		const[0x26, int32]
-	in_words	const[0x3, int16]
+	command		const[IB_USER_VERBS_CMD_CLOSE_XRCD, int32]
+	in_words	bytesize4[parent, int16]
 	out_words	const[0x0, int16]
 	xrcd_handle	xrcd_handle
 }
@@ -1171,7 +1362,7 @@ ib_flow_tcp_udp_filter {
 }
 
 ib_flow_spec_tcp_udp {
-	type		int32[0x40:0x41]
+	type		flags[ib_flow_spec_tcp_udp_type, int32]
 	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_tcp_udp_filter
@@ -1266,7 +1457,7 @@ union_ib_flow_spec [
 ]
 
 ib_uverbs_flow_attr {
-	type		int32[0:3]
+	type		flags[ib_flow_attr_type, int32]
 	size		bytesize[flow_specs, int16]
 	priority	int16[0:7]
 	num_of_specs	len[flow_specs, int8]
@@ -1288,7 +1479,7 @@ create_flow_resp {
 }
 
 create_flow_cmd {
-	command			const[IB_USER_VERBS_EX_CMD_CREATE_FLOW, int32]
+	command			const[EX_CREATE_FLOW_CMD, int32]
 	in_words		bytesize8[flow_ex, int16]
 	out_words		const[0x1, int16]
 	response		ptr[out, create_flow_resp]
@@ -1299,8 +1490,8 @@ create_flow_cmd {
 }
 
 destroy_flow_cmd {
-	command			const[IB_USER_VERBS_EX_CMD_DESTROY_FLOW, int32]
-	in_words		const[0x6, int16]
+	command			const[EX_DESTROY_FLOW_CMD, int32]
+	in_words		const[0x1, int16]
 	out_words		const[0x0, int16]
 	response		const[0x0, int64]
 	provider_in_words	const[0x0, int16]
@@ -1452,7 +1643,7 @@ write$ATTACH_MCAST(fd fd_rdma, buf ptr[in, attach_mcast_cmd], len len[buf])
 write$DETACH_MCAST(fd fd_rdma, buf ptr[in, detach_mcast_cmd], len len[buf])
 write$CREATE_SRQ(fd fd_rdma, buf ptr[inout, create_srq_cmd], len len[buf])
 write$MLX5_CREATE_SRQ(fd fd_rdma, buf ptr[inout, mlx5_create_srq_cmd], len len[buf])
-write$MODIFY_SRQ(fd fd_rdma, buf ptr[in, modify_srq_cmd], len len[buf])
+write$MODIFY_SRQ(fd fd_rdma, buf ptr[inout, modify_srq_cmd], len len[buf])
 write$QUERY_SRQ(fd fd_rdma, buf ptr[inout, query_srq_cmd], len len[buf])
 write$DESTROY_SRQ(fd fd_rdma, buf ptr[inout, destroy_srq_cmd], len len[buf])
 write$POST_SRQ_RECV(fd fd_rdma, buf ptr[inout, post_srq_recv_cmd], len len[buf])
@@ -1472,3 +1663,10 @@ write$DESTROY_RWQ_IND_TBL(fd fd_rdma, buf ptr[inout, destroy_rwq_ind_table_cmd],
 # create_flow
 write$CREATE_FLOW(fd fd_rdma, buf ptr[inout, create_flow_cmd], len len[buf])
 write$DESTROY_FLOW(fd fd_rdma, buf ptr[in, destroy_flow_cmd], len len[buf])
+
+# mmap ring buffers
+mmap$rdma(addr vma[1], len len[addr], prot const[PROT_READ_WRITE], flags const[MAP_SHARED_FIXED], fd fd_rdma, offset rdma_mmap_offset) rdma_ring_ptr
+munmap$rdma(addr rdma_ring_ptr, len intptr)
+_ = __NR_mmap2
+
+syz_memcpy_off$rdma(dst rdma_ring_ptr, off const[0], src ptr[in, rxe_queue_buf], src_off const[0], nbytes bytesize[src])
