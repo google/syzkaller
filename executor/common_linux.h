@@ -2705,7 +2705,6 @@ static long syz_btf_id_by_name(volatile long a0)
 
 // Same as memcpy except that it accepts offset to dest and src.
 #if SYZ_EXECUTOR || __NR_syz_memcpy_off
-#if GOARCH_386 || GOARCH_amd64 || GOARCH_arm64 || GOARCH_mips64le || GOARCH_ppc64le || GOARCH_s390x || GOARCH_riscv64
 static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
 	// C:       syz_memcpy_off(void* dest, uint32 dest_off, void* src, uint32 src_off, size_t n)
@@ -2719,7 +2718,6 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 
 	return (long)memcpy(dest + dest_off, src + src_off, n);
 }
-#endif
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_create_resource
