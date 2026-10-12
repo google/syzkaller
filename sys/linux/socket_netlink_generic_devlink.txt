@@ -214,3 +214,59 @@ devlink_nl_rate_set_policy [
 	DEVLINK_ATTR_RATE_TX_MAX		nlattr[DEVLINK_ATTR_RATE_TX_MAX, int64]
 	DEVLINK_ATTR_RATE_PARENT_NODE_NAME	nlattr[DEVLINK_ATTR_RATE_PARENT_NODE_NAME, devlink_rate_node_name]
 ] [varlen]
+
+# netdevsim sysfs and debugfs interfaces (drivers/net/netdevsim).
+
+resource fd_nsim_new_device[fd]
+resource fd_nsim_del_device[fd]
+resource fd_nsim_bool[fd]
+resource fd_nsim_qreset[fd]
+
+openat$nsim_new_device(fd const[AT_FDCWD], file ptr[in, string["/sys/bus/netdevsim/new_device"]], flags const[O_WRONLY], mode const[0]) fd_nsim_new_device
+write$nsim_new_device(fd fd_nsim_new_device, buf ptr[in, nsim_new_device], count bytesize[buf])
+
+openat$nsim_del_device(fd const[AT_FDCWD], file ptr[in, string["/sys/bus/netdevsim/del_device"]], flags const[O_WRONLY], mode const[0]) fd_nsim_del_device
+write$nsim_del_device(fd fd_nsim_del_device, buf ptr[in, nsim_del_device], count bytesize[buf])
+
+openat$nsim_dev_bool(fd const[AT_FDCWD], file ptr[in, nsim_dev_path[string[nsim_dev_bool_files]]], flags flags[open_flags], mode const[0]) fd_nsim_bool
+openat$nsim_port_pp_hold(fd const[AT_FDCWD], file ptr[in, nsim_port_path[string["/pp_hold"]]], flags flags[open_flags], mode const[0]) fd_nsim_bool
+read$nsim_bool(fd fd_nsim_bool, buf ptr[out, array[int8]], count bytesize[buf])
+write$nsim_bool(fd fd_nsim_bool, buf ptr[in, stringnoz[nsim_bool_vals]], count bytesize[buf])
+
+openat$nsim_port_qreset(fd const[AT_FDCWD], file ptr[in, nsim_port_path[string["/queue_reset"]]], flags const[O_WRONLY], mode const[0]) fd_nsim_qreset
+write$nsim_port_qreset(fd fd_nsim_qreset, buf ptr[in, nsim_qreset], count bytesize[buf])
+
+nsim_new_device {
+	id		proc['0', 1, int8]
+	space1		const[' ', int8]
+	port_count	int8['0':'4']
+	space2		const[' ', int8]
+	num_queues	int8['1':'4']
+} [packed]
+
+nsim_del_device {
+	id	proc['0', 1, int8]
+} [packed]
+
+type nsim_dev_path[SUFFIX] {
+	prefix	stringnoz["/sys/kernel/debug/netdevsim/netdevsim"]
+	id	proc['0', 1, int8]
+	suffix	SUFFIX
+} [packed]
+
+type nsim_port_path[SUFFIX] {
+	prefix	stringnoz["/sys/kernel/debug/netdevsim/netdevsim"]
+	id	proc['0', 1, int8]
+	ports	stringnoz["/ports/"]
+	port	int8['0':'3']
+	suffix	SUFFIX
+} [packed]
+
+nsim_dev_bool_files = "/dont_allow_reload", "/fail_reload"
+nsim_bool_vals = "0", "1"
+
+nsim_qreset {
+	queue	int8['0':'3']
+	space	const[' ', int8]
+	mode	int8['0':'3']
+} [packed]
