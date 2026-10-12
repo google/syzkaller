@@ -115,4 +115,6 @@ were found.
    * `CI=true ./tools/syz-env go test -count=1 ./pkg/runtest -run TestParsing`
    * `CI=true ./tools/syz-env go test -short ./sys/linux -run Test`
    * `CI=true ./tools/syz-env go test -short ./pkg/csource/...`
-
+3. When a target kernel image (`bzImage`) is available, verify the seed program inside a
+   QEMU VM by following the [`syzlang-vm-testing`](../.agents/skills/syzlang-vm-testing/SKILL.md)
+   skill.
