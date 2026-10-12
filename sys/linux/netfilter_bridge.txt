@@ -81,6 +81,7 @@ type ebt_entry[TARGETS] {
 	sourcemsk	mac_addr_mask
 	destmac		mac_addr
 	destmsk		mac_addr_mask
+	pad		const[0, int16]
 	watchers_offset	offsetof[watchers, int32]
 	target_offset	offsetof[target, int32]
 	next_offset	bytesize[parent, int32]
