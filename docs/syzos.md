@@ -67,7 +67,7 @@ This pseudo-syscall creates the VM and prepares the environment.
 This function adds a virtual CPU to the VM and configures its initial state to jump into the SYZOS entry point.
 * **Program Loading:** It parses the `syzlang`-generated argument structure, which contains the sequence of SYZOS commands, and copies them into the Guest's Command Page.
 * **Context Setup:**
-    * **x86:** Sets up SREGS (Segments, Page Tables) and IDT.
+    * **x86:** Sets guest CPUID to `KVM_GET_SUPPORTED_CPUID`, then sets up SREGS (64-bit mode, Segments, Page Tables) and IDT, and points RIP at `guest_main`. The order matters: KVM validates the EFER/CR4 bits passed to `KVM_SET_SREGS` against guest CPUID (e.g. `EFER.LME` requires `LM`, `EFER.SVME` requires `SVM`), so CPUID must be set first. If any step fails, `syz_kvm_add_vcpu` fails instead of returning a half-initialized VCPU.
     * **ARM64:** Sets PC to the entry point and SP to the stack.
 
 ### 3.3 The Handshake Mechanism (`UEXIT`)
