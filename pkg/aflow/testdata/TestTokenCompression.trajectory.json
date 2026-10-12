@@ -74,7 +74,7 @@
 		"Thoughts": "thinking about id2",
 		"InputTokens": 270,
 		"OutputTokens": 10,
-		"OutputThoughtsTokens": 60
+		"OutputThoughtsTokens": 30
 	},
 	{
 		"Seq": 5,

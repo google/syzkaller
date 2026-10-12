@@ -704,10 +704,11 @@ const tokenCompressionTemperature = 0.1
 
 const compressedHistoryPrefix = "Here is the summary of the previous execution history:\n\n"
 
-// After compression, all previous thoughts are dropped. Empirically, models then tend to stop
-// thinking altogether and switch to mechanical repetitive tool calls, so we explicitly ask to think.
-const compressedHistoryReminder = `IMPORTANT: The previous execution history was compressed into the summary above,
-and all your previous reasoning (thoughts) has been deleted. Do NOT continue by mechanically
+// After compression, thoughts from the summarized part of the history are dropped. Empirically,
+// models then tend to stop thinking altogether and switch to mechanical repetitive tool calls,
+// so we explicitly ask to think.
+const compressedHistoryReminder = `IMPORTANT: The earlier execution history was compressed into the summary above,
+and your reasoning (thoughts) from that part has been deleted. Do NOT continue by mechanically
 repeating the pattern of the most recent tool calls. Before the next tool call, think carefully
 step by step: re-assess what is already known from the summary, what the goal is, and what
 the most efficient next step is.`
@@ -800,7 +801,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	splitIndex := len(a.req)
 	var suffixTokens int
 	for i, msg := range slices.Backward(a.req) {
-		suffixTokens += msg.tokenCount
+		suffixTokens += msg.tokenCount + msg.thoughtTokens
 		if suffixTokens > preserveHistoryTokens {
 			break
 		}
@@ -825,20 +826,26 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	newReq := []llmMessage{a.req[0], {content: newSummary, tokenCount: summaryTokens}}
 	if splitIndex < len(a.req) {
 		for _, msg := range a.req[splitIndex:] {
-			// Drop thought parts and clear thought signatures because the conversation
-			// history before the preserved suffix was truncated and modified. Stale
-			// cryptographic signatures would fail verification; clearing them allows
-			// backends to bypass signature validation.
+			// Messages after the split point (including their thoughts) were not passed
+			// to the summarizer, so they are preserved as is. We only clear thought
+			// signatures because the conversation history before the preserved suffix
+			// was truncated and modified. Stale cryptographic signatures would fail
+			// verification; clearing them allows backends to bypass signature validation.
 			msgCopy := *msg.content
 			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
-				return p.Thought || p.Text == compressedHistoryReminder
+				if p.Text == compressedHistoryReminder {
+					return true
+				}
+				// Thought parts without text only carried the (now cleared) signature.
+				return p.Thought && strings.TrimSpace(p.Text) == ""
 			})
 			for j := range msgCopy.Parts {
 				msgCopy.Parts[j].ThoughtSignature = nil
 			}
 			newReq = append(newReq, llmMessage{
-				content:    &msgCopy,
-				tokenCount: msg.tokenCount,
+				content:       &msgCopy,
+				tokenCount:    msg.tokenCount,
+				thoughtTokens: msg.thoughtTokens,
 			})
 		}
 		// Place the reminder before FunctionResponse parts as required by the Vertex AI API.
