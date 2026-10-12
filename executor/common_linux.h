@@ -144,7 +144,8 @@ static void netlink_init(struct nlmsg* nlmsg, int typ, int flags,
 	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg->buf;
 	hdr->nlmsg_type = typ;
 	hdr->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | flags;
-	memcpy(hdr + 1, data, size);
+	if (size > 0)
+		memcpy(hdr + 1, data, size);
 	nlmsg->pos = (char*)(hdr + 1) + NLMSG_ALIGN(size);
 }
 
@@ -1220,6 +1221,7 @@ static int runcmdline(char* cmdline)
 #include <linux/if_tun.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <rdma/rdma_netlink.h>
 
 // Addresses are chosen to be in the same subnet as tun addresses.
 #define DEV_IPV4 "172.20.20.%d"
@@ -1718,6 +1720,37 @@ static void initialize_netdevices(void)
 	close(sock);
 }
 
+static void netlink_add_rxe(void)
+{
+	if (access("/dev/infiniband/uverbs0", F_OK) == 0)
+		return;
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock == -1)
+		return;
+	int rdma = socket(AF_NETLINK, SOCK_RAW, NETLINK_RDMA);
+	if (rdma == -1) {
+		close(sock);
+		return;
+	}
+	netlink_add_device(&nlmsg, sock, "dummy", "rxe_eth0");
+	netlink_add_addr4(&nlmsg, sock, "rxe_eth0", "172.20.20.170");
+	netlink_add_addr6(&nlmsg, sock, "rxe_eth0", "fe80::aa");
+	uint8 macaddr[ETH_ALEN] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
+	netlink_device_change(&nlmsg, sock, "rxe_eth0", true, 0, macaddr, ETH_ALEN, NULL);
+
+	uint16 type = RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_NEWLINK);
+	netlink_init(&nlmsg, type, 0, NULL, 0);
+	netlink_attr(&nlmsg, RDMA_NLDEV_ATTR_DEV_NAME, "rxe0", 5);
+	netlink_attr(&nlmsg, RDMA_NLDEV_ATTR_LINK_TYPE, "rxe", 4);
+	netlink_attr(&nlmsg, RDMA_NLDEV_ATTR_NDEV_NAME, "rxe_eth0", 9);
+	int err = netlink_send_ext(&nlmsg, rdma, 0, NULL, false);
+	if (err < 0) {
+		debug("netlink: add rxe0 on rxe_eth0: %s\n", strerror(errno));
+	}
+	close(rdma);
+	close(sock);
+}
+
 // Same as initialize_netdevices, but called in init net namespace.
 static void initialize_netdevices_init(void)
 {
@@ -1758,6 +1791,8 @@ static void initialize_netdevices_init(void)
 		netlink_device_change(&nlmsg, sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
 	}
 	close(sock);
+
+	netlink_add_rxe();
 
 #if SYZ_EXECUTOR || SYZ_NIC_VF
 	find_vf_interface();
