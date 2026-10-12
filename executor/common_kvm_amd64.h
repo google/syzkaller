@@ -469,20 +469,16 @@ static void setup_gdt_64(struct gdt_entry* gdt)
 	    .base_high = 0};
 }
 
-static void get_cpuid(uint32 eax, uint32 ecx, uint32* a, uint32* b, uint32* c, uint32* d)
-{
-	*a = *b = *c = *d = 0;
-	asm volatile("cpuid"
-		     : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d)
-		     : "a"(eax), "c"(ecx));
-}
-
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
-static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id)
+// Guest CPUID must already be set (see setup_cpuid()): KVM validates the EFER/CR4 bits passed
+// to KVM_SET_SREGS against guest CPUID, so e.g. EFER.LME is rejected until CPUID advertises LM.
+// Returns 0 on success, -1 (with errno set) on failure.
+static int setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool has_svm)
 {
 	struct kvm_sregs sregs;
-	ioctl(cpufd, KVM_GET_SREGS, &sregs);
+	if (ioctl(cpufd, KVM_GET_SREGS, &sregs))
+		return -1;
 
 	sregs.gdt.base = X86_SYZOS_ADDR_GDT;
 	sregs.gdt.limit = 5 * sizeof(struct gdt_entry) - 1;
@@ -548,9 +544,9 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id)
 	sregs.cr4 |= X86_CR4_PAE | X86_CR4_OSFXSR;
 	sregs.efer |= (X86_EFER_LME | X86_EFER_LMA | X86_EFER_NXE);
 
-	uint32 eax = 0, ebx = 0, ecx = 0, edx = 0;
-	get_cpuid(0, 0, &eax, &ebx, &ecx, &edx);
-	if (ebx == 0x68747541 && edx == 0x69746e65 && ecx == 0x444d4163) { // "AuthenticAMD"
+	// EFER.SVME is only accepted by KVM if the guest CPUID advertises SVM, which
+	// KVM_GET_SUPPORTED_CPUID only does on AMD hosts with nested virtualization enabled.
+	if (has_svm) {
 		sregs.efer |= X86_EFER_SVME;
 
 		// Zero out the HSAVE area for AMD.
@@ -560,21 +556,50 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id)
 
 	sregs.cr3 = X86_ADDR_PML4;
 
-	ioctl(cpufd, KVM_SET_SREGS, &sregs);
+	if (ioctl(cpufd, KVM_SET_SREGS, &sregs))
+		return -1;
+	return 0;
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
-static void setup_cpuid(int cpufd)
+// KVM_MAX_CPUID_ENTRIES is not part of the UAPI, so mirror the kernel value
+// (arch/x86/include/asm/kvm_host.h). KVM never returns more entries than that,
+// so KVM_GET_SUPPORTED_CPUID cannot fail with E2BIG.
+#ifndef KVM_MAX_CPUID_ENTRIES
+#define KVM_MAX_CPUID_ENTRIES 256
+#endif
+#define X86_CPUID_EXT_FEATURES 0x80000001
+#define X86_CPUID_EXT_ECX_SVM (1u << 2)
+
+// Sets guest CPUID to the one supported by KVM.
+// Must be called before KVM_SET_SREGS, as KVM validates SREGS against guest CPUID.
+// Returns 0 on success, -1 (with errno set) on failure. On success, *has_svm is set
+// if the installed CPUID advertises SVM.
+static int setup_cpuid(int cpufd, bool* has_svm)
 {
+	*has_svm = false;
 	int kvmfd = open("/dev/kvm", O_RDWR);
-	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
+	if (kvmfd == -1)
+		return -1;
+	char buf[sizeof(struct kvm_cpuid2) + KVM_MAX_CPUID_ENTRIES * sizeof(struct kvm_cpuid_entry2)];
 	memset(buf, 0, sizeof(buf));
 	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
-	cpuid->nent = 128;
-	ioctl(kvmfd, KVM_GET_SUPPORTED_CPUID, cpuid);
-	ioctl(cpufd, KVM_SET_CPUID2, cpuid);
+	cpuid->nent = KVM_MAX_CPUID_ENTRIES;
+	int ret = ioctl(kvmfd, KVM_GET_SUPPORTED_CPUID, cpuid);
+	if (ret == 0)
+		ret = ioctl(cpufd, KVM_SET_CPUID2, cpuid);
+	int err = errno;
 	close(kvmfd);
+	if (ret) {
+		errno = err;
+		return -1;
+	}
+	for (uint32 i = 0; i < cpuid->nent; i++) {
+		if (cpuid->entries[i].function == X86_CPUID_EXT_FEATURES)
+			*has_svm = cpuid->entries[i].ecx & X86_CPUID_EXT_ECX_SVM;
+	}
+	return 0;
 }
 #endif
 
@@ -1132,7 +1157,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 #define RFLAGS_1_BIT (1ULL << 1)
 #define RFLAGS_IF_BIT (1ULL << 9)
 
-static void reset_cpu_regs(int cpufd, uint64 rip, uint64 cpu_id)
+static int reset_cpu_regs(int cpufd, uint64 rip, uint64 cpu_id)
 {
 	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
@@ -1142,28 +1167,38 @@ static void reset_cpu_regs(int cpufd, uint64 rip, uint64 cpu_id)
 	regs.rip = rip;
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
 	regs.rdi = cpu_id;
-	ioctl(cpufd, KVM_SET_REGS, &regs);
+	return ioctl(cpufd, KVM_SET_REGS, &regs) ? -1 : 0;
 }
 
-static void install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, const void* text, size_t text_size)
+// Returns 0 on success, -1 (with errno set) on failure.
+static int install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, const void* text, size_t text_size)
 {
-	if ((cpu_id < 0) || (cpu_id >= KVM_MAX_VCPU))
-		return;
+	if ((cpu_id < 0) || (cpu_id >= KVM_MAX_VCPU)) {
+		errno = EINVAL;
+		return -1;
+	}
 	if (text_size > KVM_PAGE_SIZE)
 		text_size = KVM_PAGE_SIZE;
 	void* target = (void*)((uint64)vm->user_text + (KVM_PAGE_SIZE * cpu_id));
 	memcpy(target, text, text_size);
-	setup_gdt_ldt_pg(vm, cpufd, cpu_id);
-	setup_cpuid(cpufd);
+	// CPUID must be set before SREGS: KVM_SET_SREGS rejects EFER.LME/LMA/NXE/SVME
+	// unless guest CPUID advertises the corresponding features.
+	bool has_svm = false;
+	if (setup_cpuid(cpufd, &has_svm))
+		return -1;
+	if (setup_gdt_ldt_pg(vm, cpufd, cpu_id, has_svm))
+		return -1;
 
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
-	reset_cpu_regs(cpufd, entry_rip, cpu_id);
+	if (reset_cpu_regs(cpufd, entry_rip, cpu_id))
+		return -1;
 
 	// Pass the text size via the shared globals page.
 	if (vm->globals_mem) {
 		struct syzos_globals* globals = (struct syzos_globals*)vm->globals_mem;
 		globals->text_sizes[cpu_id] = text_size;
 	}
+	return 0;
 }
 #endif
 
@@ -1298,7 +1333,14 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1)
 		return -1;
 	// Only increment next_cpu_id if CPU creation succeeded.
 	vm->next_cpu_id++;
-	install_user_code(vm, cpufd, cpu_id, text, text_size);
+	if (install_user_code(vm, cpufd, cpu_id, text, text_size)) {
+		// Do not hand out a vCPU that is not in the state SYZOS expects
+		// (e.g. stuck in real mode because KVM_SET_SREGS failed).
+		int err = errno;
+		close(cpufd);
+		errno = err;
+		return -1;
+	}
 	return cpufd;
 }
 #endif
