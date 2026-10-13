@@ -94,3 +94,80 @@ echo "Fixes Author <fixes@example.com> (reviewer:SUBSYSTEM)"
 		},
 	}, "")
 }
+
+func TestNewMaintainers(t *testing.T) {
+	kernelSrc := t.TempDir()
+	require.NoError(t, osutil.MkdirAll(filepath.Join(kernelSrc, "scripts")))
+	// Write a fake get_maintainer.pl that additionally reports m2 for patches touching new.c.
+	require.NoError(t, os.WriteFile(filepath.Join(kernelSrc, "scripts", "get_maintainer.pl"), []byte(
+		`#!/bin/sh
+echo "Maintainer 1 <m1@example.com> (maintainer:SUBSYSTEM)"
+if grep -q new.c; then
+	echo "Maintainer 2 <m2@example.com> (maintainer:OTHER)"
+fi
+`), 0755))
+
+	base := []ai.Recipient{{Email: "cc@example.com"}}
+	m1 := ai.Recipient{Name: "Maintainer 1", Email: "m1@example.com", To: true}
+	m2 := ai.Recipient{Name: "Maintainer 2", Email: "m2@example.com", To: true}
+	fixes := ai.FixesTag{Hash: "123", AuthorName: "Fixes Author", AuthorEmail: "fixes@example.com"}
+	fixesAuthor := ai.Recipient{Name: "Fixes Author", Email: "fixes@example.com", To: true}
+	tests := []struct {
+		name string
+		args newMaintainersArgs
+		want []ai.Recipient
+	}{
+		{
+			name: "same diff",
+			args: newMaintainersArgs{
+				BaseRecipients:    base,
+				PreviousPatchDiff: "old.c",
+				PatchDiff:         "old.c",
+			},
+		},
+		{
+			name: "same maintainers",
+			args: newMaintainersArgs{
+				BaseRecipients:    base,
+				PreviousPatchDiff: "old.c",
+				PatchDiff:         "old.c updated",
+			},
+			want: []ai.Recipient{},
+		},
+		{
+			name: "new file",
+			args: newMaintainersArgs{
+				BaseRecipients:    base,
+				PreviousPatchDiff: "old.c",
+				PatchDiff:         "old.c new.c",
+			},
+			want: []ai.Recipient{m2},
+		},
+		{
+			name: "new fixes",
+			args: newMaintainersArgs{
+				BaseRecipients:    base,
+				PreviousPatchDiff: "old.c",
+				PatchDiff:         "old.c",
+				Fixes:             fixes,
+			},
+			want: []ai.Recipient{fixesAuthor},
+		},
+		{
+			name: "no base recipients",
+			args: newMaintainersArgs{
+				PreviousPatchDiff: "old.c",
+				PatchDiff:         "old.c",
+			},
+			want: []ai.Recipient{m1},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.args.KernelSrc = kernelSrc
+			aflow.TestAction(t, getNewMaintainers, "", test.args, newMaintainersResult{
+				NewMaintainers: test.want,
+			}, "")
+		})
+	}
+}

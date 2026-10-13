@@ -46,11 +46,12 @@ type PatchIterationInputs struct {
 	// Base fixes tag from previous version.
 	BaseFixes ai.FixesTag `json:",omitzero"`
 
-	BaseReviewedBy  []string `json:",omitempty"`
-	BaseAckedBy     []string `json:",omitempty"`
-	BaseTestedBy    []string `json:",omitempty"`
-	BaseReportedBy  []string `json:",omitempty"`
-	BaseSuggestedBy []string `json:",omitempty"`
+	BaseReviewedBy  []string       `json:",omitempty"`
+	BaseAckedBy     []string       `json:",omitempty"`
+	BaseTestedBy    []string       `json:",omitempty"`
+	BaseReportedBy  []string       `json:",omitempty"`
+	BaseSuggestedBy []string       `json:",omitempty"`
+	BaseRecipients  []ai.Recipient `json:",omitempty"`
 
 	// See patching workflow.
 	BaseRepository string
@@ -125,8 +126,6 @@ func init() {
 					Prompt:      verdictPrompt,
 					Tools:       aflow.Tools(common.CodeAccessTools, viewPatchHistoryTool),
 				},
-				tagExtractor,
-				tagsMergerAction,
 				extractTriageResults,
 				// If the verdict agent decides a new patch is needed, generate it by applying the previous
 				// patch to a scratch tree and having the LLM agent modify it.
@@ -159,6 +158,7 @@ func init() {
 							),
 						},
 						resolveFixes,
+						getNewMaintainers,
 						getRecentCommits,
 						&aflow.LLMAgent{
 							Name:        "changelog-generator",
@@ -168,9 +168,10 @@ func init() {
 							Instruction: changelogInstruction,
 							Prompt:      changelogPrompt,
 						},
-						getMaintainers,
 					),
 				},
+				tagExtractor,
+				tagsMergerAction,
 
 				// Evaluate each new thread comment individually to decide if it needs a direct reply,
 				// provided that replying to comments is enabled for this stage.
@@ -551,8 +552,8 @@ version will eventually be needed. In that case, clarifying questions can be
 asked in the generated replies instead, or the system can wait for the
 discussion to settle.
 
-IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) does NOT automatically mean that
-a new version of the patch must be generated. Do not extract tag updates as ActionableItems.
+IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) or To/Cc recipients does NOT automatically mean that
+a new version of the patch must be generated. Do not extract tag or To/Cc recipient updates as ActionableItems.
 ` + untrustedCommentsWarning
 
 const verdictPrompt = `
@@ -697,7 +698,8 @@ or "I will fix this in the next version").
 Actionable code or commit-message change requests are addressed by sending the updated patch itself,
 not by replying to the comment.
 If a comment only requests changes, points out a bug/style issue to fix, provides a supported tag,
-or is a discussion among reviewers or a request to wait, ignore the comment (Action is "ignore").
+requests adding/removing a valid email address from To/Cc, or is a discussion among reviewers or a
+request to wait, ignore the comment (Action is "ignore").
 If a comment both requests changes and asks a question, reply ONLY to answer the question without
 mentioning that a new patch version was or will be sent.
 
@@ -719,6 +721,9 @@ If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by, etc) that
 list: "Reviewed-by", "Acked-by", "Tested-by", "Reported-by", "Suggested-by", you MUST reply and explain that the
 automated system currently only supports processing this specific list of tags, so you cannot apply
 their tag automatically.
+
+If a reviewer asks to add someone to To or Cc by name only without providing a valid email address, you MUST
+reply and politely ask them to provide the exact email address to add.
 ` + untrustedCommentsWarning
 
 const commentProcessPrompt = `
