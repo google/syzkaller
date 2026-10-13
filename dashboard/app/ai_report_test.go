@@ -1823,3 +1823,184 @@ func TestAIPatchIterationPatchAndReplies(t *testing.T) {
 	require.Equal(t, "public@test.com", publicPoll.Result.To[0])
 	require.Equal(t, 1, publicPoll.Result.Patch.Version)
 }
+
+func TestAIPatchIterationRecipients(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+	c.setupAIRecipientsConfig()
+
+	m1 := ai.Recipient{Name: "Maintainer One", Email: "m1@kernel.org", To: true}
+	m2 := ai.Recipient{Name: "Maintainer Two", Email: "m2@kernel.org"}
+	newcc := ai.Recipient{Email: "newcc@kernel.org"}
+	reviewedBy := []string{"Rev <rev@test.com>"}
+
+	_, jobID := c.setupAIPatchJob(t)
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"Recipients": []ai.Recipient{m1, m2},
+	})
+	c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<v1>")
+
+	// 1. Reply-only iteration: the updates are stored as overrides of the v1 reporting.
+	iter1 := c.startAIIteration(t, "<v1>", "<c1>", []string{"discuss@test.com"})
+	assert.Equal(t, []ai.Recipient{m1, m2}, iterationArg[[]ai.Recipient](t, iter1, "BaseRecipients"))
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: iter1.ID,
+		Results: map[string]any{
+			"Recipients": []ai.Recipient{m1, newcc},
+			"ReviewedBy": reviewedBy,
+			"Replies":    []map[string]any{{"ReplyTo": "<c1>", "Text": "Clarification."}},
+		},
+	}))
+	reply1 := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<reply-1>")
+	assert.Equal(t, []string{"discuss@test.com"}, reply1.Result.Cc)
+
+	// 2. The next iteration is based on the overrides and produces v2.
+	iter2 := c.startAIIteration(t, "<v1>", "<c2>", nil)
+	assert.Equal(t, []ai.Recipient{m1, newcc}, iterationArg[[]ai.Recipient](t, iter2, "BaseRecipients"))
+	assert.Equal(t, reviewedBy, iterationArg[[]string](t, iter2, "BaseReviewedBy"))
+	c.finishAIPatchJob(t, iter2.ID, map[string]any{
+		"Recipients": []ai.Recipient{m1, newcc},
+		"ReviewedBy": reviewedBy,
+	})
+	v2 := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<v2>")
+	assert.Equal(t, []string{"moderation@test.com"}, v2.Result.To)
+	assert.Equal(t, []string{"discuss@test.com"}, v2.Result.Cc)
+	assert.Equal(t, []string{"<newcc@kernel.org>"}, v2.Result.Patch.Cc)
+	assert.Equal(t, reviewedBy, v2.Result.Patch.ReviewedBy)
+
+	// 3. Reply-only iteration on v2 before upstreaming.
+	iter3 := c.startAIIteration(t, "<v2>", "<c3>", nil)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: iter3.ID,
+		Results: map[string]any{
+			"Recipients": []ai.Recipient{m1, {Email: "final@kernel.org"}},
+			"ReviewedBy": reviewedBy,
+			"AckedBy":    []string{"Acker <ack@test.com>"},
+			"Replies":    []map[string]any{{"ReplyTo": "<c3>", "Text": "Updated."}},
+		},
+	}))
+	c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<reply-3>")
+
+	// 4. Upstream v2 to the public stage: the overrides must be carried over.
+	upstreamResp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<v2>",
+		MessageExtID: "<upstream-cmd>",
+		Author:       "approver@test.com",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, upstreamResp.Error)
+
+	publicPatch := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<public-v1>")
+	assert.Equal(t, []string{
+		"public@test.com", "approver@test.com", `"Maintainer One" <m1@kernel.org>`,
+	}, publicPatch.Result.To)
+	assert.Equal(t, []string{"<final@kernel.org>", "discuss@test.com"}, publicPatch.Result.Cc)
+	assert.Equal(t, reviewedBy, publicPatch.Result.Patch.ReviewedBy)
+	assert.Equal(t, []string{"Acker <ack@test.com>"}, publicPatch.Result.Patch.AckedBy)
+}
+
+// Patch-iteration jobs created before BaseRecipients were passed to the workflow
+// must not affect the recipients.
+func TestAIPatchIterationLegacyRecipients(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+	c.setupAIRecipientsConfig()
+
+	_, jobID := c.setupAIPatchJob(t)
+	c.finishAIPatchJob(t, jobID, nil)
+	c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<v1>")
+
+	iter := c.startAIIteration(t, "<v1>", "<c1>", nil)
+	job, err := aidb.LoadJob(c.ctx, iter.ID)
+	require.NoError(t, err)
+	args := job.Args.Value.(map[string]any)
+	delete(args, "BaseRecipients")
+	err = aidb.RunInTransaction(c.ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
+		return tx.BufferWrite([]*spanner.Mutation{spanner.Update("Jobs", []string{"ID", "Args"},
+			[]any{iter.ID, spanner.NullJSON{Value: args, Valid: true}})})
+	})
+	require.NoError(t, err)
+
+	// Without BaseRecipients, the workflow outputs only the explicitly added recipients.
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      iter.ID,
+		Results: map[string]any{"Recipients": []ai.Recipient{{Email: "added@test.com"}}},
+	}))
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+	assert.False(t, reportings[0].Overrides.Valid)
+}
+
+// Reply-only results without recipients (e.g. produced by an outdated agent) must not wipe the recipients.
+func TestAIPatchIterationNoResultRecipients(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+	c.setupAIRecipientsConfig()
+
+	m1 := ai.Recipient{Name: "Maintainer One", Email: "m1@kernel.org", To: true}
+	_, jobID := c.setupAIPatchJob(t)
+	c.finishAIPatchJob(t, jobID, map[string]any{"Recipients": []ai.Recipient{m1}})
+	c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<v1>")
+
+	iter := c.startAIIteration(t, "<v1>", "<c1>", nil)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      iter.ID,
+		Results: map[string]any{"ReviewedBy": []string{"Rev <rev@test.com>"}},
+	}))
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+	assert.False(t, reportings[0].Overrides.Valid)
+
+	iter2 := c.startAIIteration(t, "<v1>", "<c2>", nil)
+	assert.Equal(t, []ai.Recipient{m1}, iterationArg[[]ai.Recipient](t, iter2, "BaseRecipients"))
+}
+
+func (ctx *Ctx) setupAIRecipientsConfig() {
+	ctx.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AddressComments:    true,
+				ReplyToComments:    true,
+			},
+			{
+				Name:               "public",
+				ServingIntegration: "lore",
+				MailingList:        "public@test.com",
+				MergePatchCc:       true,
+			},
+		},
+	})
+}
+
+func (ctx *Ctx) startAIIteration(t *testing.T, rootExtID, msgExtID string, cc []string) *dashapi.AIJobPollResp {
+	t.Helper()
+	_, err := ctx.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    rootExtID,
+		MessageExtID: msgExtID,
+		Author:       "rev@test.com",
+		Cc:           cc,
+		Comment:      &dashapi.CommentCommand{Body: "review comment"},
+	})
+	require.NoError(t, err)
+	ctx.advanceTime(31 * time.Minute)
+	iter := ctx.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+	require.NotEmpty(t, iter.ID)
+	return iter
+}
+
+func iterationArg[T any](t *testing.T, iter *dashapi.AIJobPollResp, name string) T {
+	t.Helper()
+	data, err := json.Marshal(iter.Args[name])
+	require.NoError(t, err)
+	var val T
+	require.NoError(t, json.Unmarshal(data, &val))
+	return val
+}
