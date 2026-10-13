@@ -354,6 +354,25 @@ GUEST_CODE static noinline void guest_handle_rdmsr(uint64 reg)
 	(void)rdmsr(reg);
 }
 
+// Read IA32_PERF_GLOBAL_CTRL if it exists, return 0 otherwise.
+// KVM only exposes the MSR if the guest PMU version (CPUID.0AH:EAX[7:0]) is at least 2,
+// e.g. it is absent if the host has no PMU, and reading it would cause a #GP.
+GUEST_CODE static noinline uint64 read_perf_global_ctrl(void)
+{
+	// If leaf 0xA is above the maximum basic leaf, CPUID returns the data of the
+	// highest basic leaf instead, so check the maximum leaf first.
+	uint32 eax = 0, ecx = 0;
+	asm volatile("cpuid" : "+a"(eax), "+c"(ecx) : : "ebx", "edx");
+	if (eax < 0xa)
+		return 0;
+	eax = 0xa;
+	ecx = 0;
+	asm volatile("cpuid" : "+a"(eax), "+c"(ecx) : : "ebx", "edx");
+	if ((eax & 0xff) < 2)
+		return 0;
+	return rdmsr(X86_MSR_CORE_PERF_GLOBAL_CTRL);
+}
+
 // Write to CRn control register.
 GUEST_CODE static noinline void guest_handle_wr_crn(struct api_call_2* cmd)
 {
@@ -583,6 +602,22 @@ GUEST_CODE static noinline uint64 vmread(uint64 field)
 		     : "b"(field)
 		     : "cc");
 	return value;
+}
+
+// Check whether a field exists in the current VMCS: VMREAD fails for unsupported
+// fields. Some fields only exist if the CPU supports the corresponding feature,
+// and writing them otherwise fails as well. Probing is more reliable than checking
+// the VMX capability MSRs, because nested KVM advertises some controls (e.g.
+// loading IA32_PERF_GLOBAL_CTRL) without supporting the matching fields.
+GUEST_CODE static noinline bool vmcs_field_exists(uint64 field)
+{
+	uint8 error = 0; // nolint
+	// 'setna' sets the byte to 1 if CF=1 or ZF=1 (VMfail)
+	asm volatile("vmread %%rbx, %%rax; setna %0"
+		     : "=q"(error)
+		     : "b"(field)
+		     : "rax", "cc");
+	return !error;
 }
 
 GUEST_CODE static inline void nested_vmptrld(uint64 cpu_id, uint64 vm_id)
@@ -874,10 +909,12 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	// Intercept #UD (Invalid Opcode)
 	vmwrite(VMCS_EXCEPTION_BITMAP, (1 << 6));
 
-	// Clear unused/unsupported fields.
-	// TODO(glider): do we need these?
-	vmwrite(VMCS_VIRTUAL_PROCESSOR_ID, 0);
-	vmwrite(VMCS_POSTED_INTR_NV, 0);
+	// Initialize the fields we do not use: the SDM requires all fields to be
+	// initialized with VMWRITE. Skip the ones that do not exist on this CPU.
+	if (vmcs_field_exists(VMCS_VIRTUAL_PROCESSOR_ID))
+		vmwrite(VMCS_VIRTUAL_PROCESSOR_ID, 0);
+	if (vmcs_field_exists(VMCS_POSTED_INTR_NV))
+		vmwrite(VMCS_POSTED_INTR_NV, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MASK, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MATCH, -1);
 	vmwrite(VMCS_CR3_TARGET_COUNT, 0);
@@ -885,7 +922,8 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	vmwrite(VMCS_VM_EXIT_MSR_LOAD_COUNT, 0);
 	vmwrite(VMCS_VM_ENTRY_MSR_LOAD_COUNT, 0);
 	vmwrite(VMCS_VM_ENTRY_INTR_INFO_FIELD, 0);
-	vmwrite(VMCS_TPR_THRESHOLD, 0);
+	if (vmcs_field_exists(VMCS_TPR_THRESHOLD))
+		vmwrite(VMCS_TPR_THRESHOLD, 0);
 }
 
 // Common L2 exit reasons for Intel and AMD.
@@ -1171,7 +1209,10 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	// MSRs.
 	vmwrite(VMCS_HOST_IA32_PAT, rdmsr(X86_MSR_IA32_CR_PAT));
 	vmwrite(VMCS_HOST_IA32_EFER, rdmsr(X86_MSR_IA32_EFER));
-	vmwrite(VMCS_HOST_IA32_PERF_GLOBAL_CTRL, rdmsr(X86_MSR_CORE_PERF_GLOBAL_CTRL));
+	// The field may not exist without hardware support for loading IA32_PERF_GLOBAL_CTRL,
+	// and the MSR itself may not exist without a vPMU.
+	if (vmcs_field_exists(VMCS_HOST_IA32_PERF_GLOBAL_CTRL))
+		vmwrite(VMCS_HOST_IA32_PERF_GLOBAL_CTRL, read_perf_global_ctrl());
 	vmwrite(VMCS_HOST_IA32_SYSENTER_CS, rdmsr(X86_MSR_IA32_SYSENTER_CS));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_ESP, rdmsr(X86_MSR_IA32_SYSENTER_ESP));
 	vmwrite(VMCS_HOST_IA32_SYSENTER_EIP, rdmsr(X86_MSR_IA32_SYSENTER_EIP));
@@ -1215,7 +1256,9 @@ GUEST_CODE static noinline void init_vmcs_guest_state(uint64 cpu_id, uint64 vm_i
 	// MSRs - Copy from host or set to default.
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_EFER, VMCS_HOST_IA32_EFER);
 	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PAT, VMCS_HOST_IA32_PAT);
-	COPY_VMCS_FIELD(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL, VMCS_HOST_IA32_PERF_GLOBAL_CTRL);
+	if (vmcs_field_exists(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL) &&
+	    vmcs_field_exists(VMCS_HOST_IA32_PERF_GLOBAL_CTRL))
+		COPY_VMCS_FIELD(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL, VMCS_HOST_IA32_PERF_GLOBAL_CTRL);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_CS, VMCS_HOST_IA32_SYSENTER_CS);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_ESP, VMCS_HOST_IA32_SYSENTER_ESP);
 	COPY_VMCS_FIELD(VMCS_GUEST_SYSENTER_EIP, VMCS_HOST_IA32_SYSENTER_EIP);
@@ -1233,8 +1276,11 @@ GUEST_CODE static noinline void init_vmcs_guest_state(uint64 cpu_id, uint64 vm_i
 	vmwrite(VMCS_GUEST_ACTIVITY_STATE, 0);
 	vmwrite(VMCS_GUEST_INTERRUPTIBILITY_INFO, 0);
 	vmwrite(VMCS_GUEST_PENDING_DBG_EXCEPTIONS, 0);
+	// KVM always emulates the VMX preemption timer and PML, so their fields exist
+	// even if the CPU does not support them.
 	vmwrite(VMCS_VMX_PREEMPTION_TIMER_VALUE, 0);
-	vmwrite(VMCS_GUEST_INTR_STATUS, 0);
+	if (vmcs_field_exists(VMCS_GUEST_INTR_STATUS))
+		vmwrite(VMCS_GUEST_INTR_STATUS, 0);
 	vmwrite(VMCS_GUEST_PML_INDEX, 0);
 }
 
