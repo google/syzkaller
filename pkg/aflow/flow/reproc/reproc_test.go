@@ -72,6 +72,8 @@ func TestLoopControllerFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "continue", res.ContinueSignal)
 	assert.Contains(t, res.OracleFeedback, "Collision detected")
+	assert.Equal(t, "Collision detected: candidate reproducer triggered a crash with title \"wrong title\", "+
+		"which does not match the expected bug.\ncollision", res.LatestOracleFeedback)
 
 	// Case 3: Successful Probe Run.
 	args = LoopControllerArgs{
@@ -111,6 +113,7 @@ func TestLoopControllerFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, res.CapabilitiesVerified)
 	assert.Equal(t, "=== Attempt 1 ===\nold run\n\n=== Attempt 2 ===\nnew run", res.OracleFeedback)
+	assert.Equal(t, "new run", res.LatestOracleFeedback)
 
 	// Case 6: Terminal error propagation.
 	args = LoopControllerArgs{
