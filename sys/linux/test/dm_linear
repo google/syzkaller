@@ -1,0 +1,14 @@
+# requires: -threaded
+# Create a dm-linear device over /dev/ram0, enable dm-stats on it, and write to it.
+# DM_DEV_SUSPEND without DM_SUSPEND_FLAG resumes the device and activates the loaded table.
+# The device is removed (with DM_DEFERRED_REMOVE) at the end so repeated test runs do not hit EBUSY.
+
+r0 = openat$dm_control(AUTO, &AUTO='/dev/mapper/control\x00', 0x2, AUTO)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {<r1=>0x0, {'syz', 0x0, '0\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, [@linear={AUTO, 0x2000, AUTO, AUTO, 'linear\x00', {@ram={'/dev/ram', 0x0}, AUTO, '0'}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, ""})
+ioctl$DM_TARGET_MSG(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, {0x0, @stats_create={'@stats_create ', '-', AUTO, '/1', ''}, AUTO}})
+mknodat$dm(AUTO, &AUTO='./dm0\x00', AUTO, r1)
+r2 = openat$dm_dev(AUTO, &AUTO='./dm0\x00', 0x2, AUTO)
+pwrite64(r2, &AUTO="0102030405060708", 0x8, 0x1000)
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, ""})

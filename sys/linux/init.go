@@ -240,6 +240,8 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.neutralizeEbtables(c)
+	case "ioctl$DM_DEV_SUSPEND":
+		neutralizeDmSuspend(c.Args[2])
 	}
 	return nil
 }
@@ -336,6 +338,26 @@ func neutralizeSchedAttr(a prog.Arg) {
 		}
 	case *prog.ConstArg:
 		attr.Val = 0
+	}
+}
+
+// neutralizeDmSuspend clears DM_SUSPEND_FLAG in ioctl$DM_DEV_SUSPEND: leaving a DM device
+// suspended queues all I/O and makes close() hang in sync_blockdev().
+func neutralizeDmSuspend(a prog.Arg) {
+	const (
+		dmIoctlFlagsField = 7      // index of the flags field in dm_ioctl_t (struct dm_ioctl)
+		dmSuspendFlag     = 1 << 1 // DM_SUSPEND_FLAG in include/uapi/linux/dm-ioctl.h
+	)
+	ptr, ok := a.(*prog.PointerArg)
+	if !ok || ptr.Res == nil {
+		return
+	}
+	group, ok := ptr.Res.(*prog.GroupArg)
+	if !ok || len(group.Inner) <= dmIoctlFlagsField {
+		return
+	}
+	if flags, ok := group.Inner[dmIoctlFlagsField].(*prog.ConstArg); ok {
+		flags.Val &^= dmSuspendFlag
 	}
 }
 

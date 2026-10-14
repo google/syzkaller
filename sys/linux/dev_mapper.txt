@@ -1,0 +1,614 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Device mapper control interface (drivers/md/dm-ioctl.c) and target constructor
+# parameter strings for the targets implemented in drivers/md/dm-*.c.
+# See Documentation/admin-guide/device-mapper/ for the parameter formats.
+#
+# Underlying devices are restricted to per-proc brd ramdisks (/dev/ramN, 4MB each,
+# they keep the data) and rnull devices.
+# The root disk (sda/vda) must never be referenced.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/ioctl.h>
+include <uapi/linux/stat.h>
+include <uapi/linux/dm-ioctl.h>
+
+resource fd_dm_ctl[fd]
+resource fd_dm[fd_block]
+
+openat$dm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/mapper/control"]], flags flags[open_flags], mode const[0]) fd_dm_ctl
+
+# /dev/dm-N nodes appear only after a device is created, so they can't be opened
+# by fixed paths (the machine check disables such openat's). Instead, create a node
+# from the dev number returned by DM_DEV_CREATE/DM_DEV_STATUS (huge_encode_dev() is
+# the same as new_encode_dev() expected by mknod) and open it.
+resource dm_dev_number[int64]
+define DM_MKNOD_MODE	(S_IFBLK | S_IRUSR | S_IWUSR)
+mknodat$dm(dirfd const[AT_FDCWD], file ptr[in, string[dm_block_dev_nodes]], mode const[DM_MKNOD_MODE], dev dm_dev_number)
+openat$dm_dev(fd const[AT_FDCWD], file ptr[in, string[dm_block_dev_nodes]], flags flags[dm_open_flags], mode const[0]) fd_dm
+
+# Exclude O_CREAT so opening ./dmN before mknodat$dm never creates a regular file.
+dm_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_DIRECT, O_SYNC, O_EXCL, O_CLOEXEC
+
+ioctl$DM_VERSION(fd fd_dm_ctl, cmd const[DM_VERSION], arg ptr[inout, dm_ioctl[dm_id_empty, void]])
+ioctl$DM_LIST_DEVICES(fd fd_dm_ctl, cmd const[DM_LIST_DEVICES], arg ptr[inout, dm_ioctl[dm_id_empty, array[int8]]])
+ioctl$DM_LIST_VERSIONS(fd fd_dm_ctl, cmd const[DM_LIST_VERSIONS], arg ptr[inout, dm_ioctl[dm_id_empty, array[int8]]])
+ioctl$DM_GET_TARGET_VERSION(fd fd_dm_ctl, cmd const[DM_GET_TARGET_VERSION], arg ptr[inout, dm_ioctl[dm_id_target_version, array[int8]]])
+
+ioctl$DM_DEV_CREATE(fd fd_dm_ctl, cmd const[DM_DEV_CREATE], arg ptr[inout, dm_ioctl[dm_id_create, void]]) (no_squash)
+ioctl$DM_DEV_REMOVE(fd fd_dm_ctl, cmd const[DM_DEV_REMOVE], arg ptr[inout, dm_ioctl[dm_id_lookup, void]]) (no_squash)
+ioctl$DM_DEV_RENAME(fd fd_dm_ctl, cmd const[DM_DEV_RENAME], arg ptr[inout, dm_ioctl[dm_id_lookup, dm_rename_data]]) (no_squash)
+ioctl$DM_DEV_SUSPEND(fd fd_dm_ctl, cmd const[DM_DEV_SUSPEND], arg ptr[inout, dm_ioctl[dm_id_lookup, void]]) (no_squash)
+ioctl$DM_DEV_STATUS(fd fd_dm_ctl, cmd const[DM_DEV_STATUS], arg ptr[inout, dm_ioctl[dm_id_lookup, void]]) (no_squash)
+# Pass a large event_nr so dev_wait() returns immediately instead of blocking for an event.
+ioctl$DM_DEV_WAIT(fd fd_dm_ctl, cmd const[DM_DEV_WAIT], arg ptr[inout, dm_ioctl_t[dm_id_lookup, array[int8], const[0, int32], int32[100:1000]]]) (no_squash)
+ioctl$DM_DEV_ARM_POLL(fd fd_dm_ctl, cmd const[DM_DEV_ARM_POLL], arg ptr[inout, dm_ioctl[dm_id_lookup, void]]) (no_squash)
+ioctl$DM_TABLE_LOAD(fd fd_dm_ctl, cmd const[DM_TABLE_LOAD], arg ptr[inout, dm_ioctl_t[dm_id_lookup, array[dm_target, 1], len[data, int32], const[0, int32]]]) (no_squash)
+ioctl$DM_TABLE_CLEAR(fd fd_dm_ctl, cmd const[DM_TABLE_CLEAR], arg ptr[inout, dm_ioctl[dm_id_lookup, void]]) (no_squash)
+ioctl$DM_TABLE_DEPS(fd fd_dm_ctl, cmd const[DM_TABLE_DEPS], arg ptr[inout, dm_ioctl[dm_id_lookup, array[int8]]]) (no_squash)
+ioctl$DM_TABLE_STATUS(fd fd_dm_ctl, cmd const[DM_TABLE_STATUS], arg ptr[inout, dm_ioctl[dm_id_lookup, array[int8]]]) (no_squash)
+ioctl$DM_TARGET_MSG(fd fd_dm_ctl, cmd const[DM_TARGET_MSG], arg ptr[inout, dm_ioctl[dm_id_lookup, dm_target_msg]]) (no_squash)
+ioctl$DM_DEV_SET_GEOMETRY(fd fd_dm_ctl, cmd const[DM_DEV_SET_GEOMETRY], arg ptr[inout, dm_ioctl[dm_id_lookup, dm_geometry]]) (no_squash)
+ioctl$DM_MPATH_PROBE_PATHS(fd fd_dm, cmd const[DM_MPATH_PROBE_PATHS], arg const[0])
+
+type dm_ioctl[ID, DATA] dm_ioctl_t[ID, DATA, const[0, int32], const[0, int32]]
+
+# struct dm_ioctl followed by the command-specific payload at data_start.
+type dm_ioctl_t[ID, DATA, TARGET_COUNT, EVENT_NR] {
+	version_major	const[DM_VERSION_MAJOR, int32]
+# version[3] in struct dm_ioctl; check_version() requires major == DM_VERSION_MAJOR
+# and minor <= the kernel's DM_VERSION_MINOR, so pass 0.
+	version_minor	const[0, int32]
+	version_patch	const[0, int32]
+	data_size	bytesize[parent, int32]
+	data_start	offsetof[data, int32]
+	target_count	TARGET_COUNT
+	open_count	const[0, int32]
+	flags		flags[dm_ioctl_flags, int32]
+	event_nr	EVENT_NR
+	padding		const[0, int32]
+# Covers dev (8B), name (128B), uuid (129B) and char data[7] in struct dm_ioctl.
+	id		ID
+	data		DATA
+} [align[8]]
+
+define DM_UUID_PAD_LEN	(DM_UUID_LEN + 7)
+define DM_ID_LEN	(8 + DM_NAME_LEN + DM_UUID_PAD_LEN)
+
+# Per-proc DM device names and UUIDs so parallel executor processes do not collide.
+# __find_device_hash_cell() requires lookup ioctls to set only one of name, uuid, or dev.
+dm_dev_name {
+	prefix	stringnoz["syz"]
+	proc	proc['a', 1, int8]
+	slot	string[dm_dev_slots]
+} [packed, size[DM_NAME_LEN]]
+
+dm_dev_uuid {
+	prefix	stringnoz[dm_uuid_prefixes]
+	proc	proc['a', 1, int8]
+	slot	string[dm_dev_slots]
+} [packed, size[DM_UUID_PAD_LEN]]
+
+dm_dev_uuid_opt [
+	none	const[0, int8]
+	uuid	dm_dev_uuid
+] [size[DM_UUID_PAD_LEN]]
+
+dm_id_create {
+	dev	dm_dev_number	(out)
+	name	dm_dev_name
+	uuid	dm_dev_uuid_opt
+} [packed, size[DM_ID_LEN]]
+
+dm_id_lookup [
+	by_name	dm_id_by_name
+	by_uuid	dm_id_by_uuid
+	by_dev	dm_id_by_dev
+] [size[DM_ID_LEN]]
+
+dm_id_by_dev {
+	dev	dm_dev_number	(inout)
+} [size[DM_ID_LEN]]
+
+dm_id_by_name {
+	dev	dm_dev_number	(out)
+	name	dm_dev_name
+} [packed, size[DM_ID_LEN]]
+
+dm_id_by_uuid {
+	dev	dm_dev_number	(out)
+	name	array[const[0, int8], DM_NAME_LEN]
+	uuid	dm_dev_uuid
+} [packed, size[DM_ID_LEN]]
+
+dm_id_target_version {
+	dev	const[0, int64]
+	name	string[dm_target_names, DM_NAME_LEN]
+} [packed, size[DM_ID_LEN]]
+
+dm_id_empty {
+	dev	const[0, int64]
+} [size[DM_ID_LEN]]
+
+# DM_SUSPEND_FLAG is excluded (and stripped in neutralize) because a suspended
+# DM device queues I/O indefinitely and causes close() -> sync_blockdev() to hang.
+# DM_PERSISTENT_DEV_FLAG is excluded because DM_DEV_CREATE (the only ioctl reading it)
+# would then request minor MINOR(dev) = 0, which fails with EBUSY once any DM device has it.
+dm_ioctl_flags = DM_READONLY_FLAG, DM_STATUS_TABLE_FLAG, DM_SKIP_BDGET_FLAG, DM_SKIP_LOCKFS_FLAG, DM_NOFLUSH_FLAG, DM_QUERY_INACTIVE_TABLE_FLAG, DM_UUID_FLAG, DM_SECURE_DATA_FLAG, DM_DEFERRED_REMOVE, DM_IMA_MEASUREMENT_FLAG
+
+dm_dev_slots = "0", "1", "2", "3"
+dm_uuid_prefixes = "CRP-syz", "LVM-syz"
+dm_block_dev_nodes = "./dm0", "./dm1"
+
+# DM_DEV_RENAME: new name, or new uuid if DM_UUID_FLAG is set.
+dm_rename_data [
+	name	dm_dev_name
+	uuid	dm_dev_uuid
+] [varlen]
+
+dm_geometry {
+	cylinders	fmt[dec, int32[0:1024]]
+	sp0		const[' ', int8]
+	heads		fmt[dec, int32[0:256]]
+	sp1		const[' ', int8]
+	sectors		fmt[dec, int32[0:64]]
+	sp2		const[' ', int8]
+	start		fmt[dec, int32[0:8192]]
+	z		const[0, int8]
+} [packed]
+
+dm_target_msg {
+	sector	flags[dm_sectors, int64]
+	message	dm_message
+	z	const[0, int8]
+} [packed]
+
+dm_message [
+	core		stringnoz[dm_core_messages]
+	stats_create	dm_stats_create
+	thin_pool	stringnoz[dm_thin_pool_messages]
+	thin_create	dm_thin_msg_create
+	raid		stringnoz[dm_raid_messages]
+	mpath		stringnoz[dm_mpath_messages]
+	mpath_path	dm_mpath_msg_path
+	cache		dm_cache_msg
+	writecache	stringnoz[dm_writecache_messages]
+	clone		stringnoz[dm_clone_messages]
+	clone_param	dm_clone_msg_param
+	crypt		stringnoz[dm_crypt_messages]
+	crypt_key	dm_crypt_msg_key
+] [varlen]
+
+# Messages starting with '@' are handled by DM core (drivers/md/dm-ioctl.c:target_message).
+dm_core_messages = "@stats_list", "@stats_print 0", "@stats_print 1", "@stats_print 0 0 10", "@stats_print_clear 0", "@stats_delete 0", "@stats_delete 1", "@stats_clear 0", "@stats_set_aux 0 syz", "@cancel_deferred_remove"
+
+dm_stats_create {
+	cmd	stringnoz["@stats_create "]
+	range	stringnoz[dm_stats_ranges]
+	sp	const[' ', int8]
+	step	stringnoz[dm_stats_steps]
+	opts	stringnoz[dm_stats_opts]
+} [packed]
+
+dm_stats_ranges = "-", "0+8", "0+1024", "8+16", "1024+4096"
+dm_stats_steps = "/1", "/2", "/16", "1", "8", "512"
+dm_stats_opts = "", " 1 precise_timestamps", " 1 histogram:10,100,1000", " 2 precise_timestamps histogram:1,2", " 0 syz", " 0 syz aux"
+
+dm_thin_pool_messages = "reserve_metadata_snap", "release_metadata_snap", "delete 0", "delete 1", "set_transaction_id 0 1", "set_transaction_id 1 2"
+
+dm_thin_msg_create {
+	cmd	stringnoz[dm_thin_create_cmds]
+	id	fmt[dec, int32[0:3]]
+} [packed]
+
+dm_thin_create_cmds = "create_thin ", "create_snap 1 ", "create_snap 2 "
+
+dm_raid_messages = "idle", "frozen", "resync", "recover", "check", "repair", "reshape"
+dm_mpath_messages = "queue_if_no_path", "fail_if_no_path", "disable_group 1", "enable_group 1", "switch_group 1", "switch_group 2"
+
+dm_mpath_msg_path {
+	cmd	stringnoz[dm_mpath_path_cmds]
+	dev	dm_dev
+} [packed]
+
+dm_mpath_path_cmds = "fail_path ", "reinstate_path "
+
+dm_cache_msg {
+	key	stringnoz[dm_cache_msg_keys]
+	val	fmt[dec, int32[0:4096]]
+} [packed]
+
+dm_cache_msg_keys = "migration_threshold ", "invalidate_cblocks ", "sequential_threshold ", "random_threshold "
+dm_writecache_messages = "flush", "flush_on_suspend", "cleaner", "clear_stats"
+dm_clone_messages = "enable_hydration", "disable_hydration"
+
+dm_clone_msg_param {
+	key	stringnoz[dm_clone_msg_keys]
+	val	fmt[dec, int32[0:64]]
+} [packed]
+
+dm_clone_msg_keys = "hydration_threshold ", "hydration_batch_size "
+dm_crypt_messages = "key wipe"
+
+dm_crypt_msg_key {
+	cmd	stringnoz["key set "]
+	key	dm_crypt_key
+} [packed]
+
+# Table targets.
+# adjoin() in drivers/md/dm-table.c requires target 0 to have sector_start == 0.
+
+type dm_target_spec_t[NAME, PARAMS] {
+	sector_start	const[0, int64]
+	length		flags[dm_lengths, int64]
+	status		const[0, int32]
+	next		bytesize[parent, int32]
+	target_type	string[NAME, DM_MAX_TYPE_NAME]
+	params		PARAMS
+	z		const[0, int8]
+} [packed, align[8]]
+
+# zoned is omitted because it requires a zoned block device, which ram/rnull are not.
+dm_target [
+	linear		dm_target_spec_t[dm_target_linear, dm_dev_off]
+	striped		dm_target_spec_t[dm_target_striped, dm_striped_params]
+	zero		dm_target_spec_t[dm_target_zero, void]
+	error		dm_target_spec_t[dm_target_error, void]
+	crypt		dm_target_spec_t[dm_target_crypt, dm_crypt_params]
+	flakey		dm_target_spec_t[dm_target_flakey, dm_flakey_params]
+	snap_origin	dm_target_spec_t[dm_target_snapshot_origin, dm_dev]
+	snapshot	dm_target_spec_t[dm_target_snapshot, dm_snapshot_params]
+	mirror		dm_target_spec_t[dm_target_mirror, dm_mirror_params]
+	raid		dm_target_spec_t[dm_target_raid, dm_raid_params]
+	thin_pool	dm_target_spec_t[dm_target_thin_pool, dm_thin_pool_params]
+	thin		dm_target_spec_t[dm_target_thin, dm_thin_params]
+	cache		dm_target_spec_t[dm_target_cache, dm_cache_params]
+	writecache	dm_target_spec_t[dm_target_writecache, dm_writecache_params]
+	clone		dm_target_spec_t[dm_target_clone, dm_clone_params]
+	verity		dm_target_spec_t[dm_target_verity, dm_verity_params]
+	integrity	dm_target_spec_t[dm_target_integrity, dm_integrity_params]
+	multipath	dm_target_spec_t[dm_target_multipath, dm_multipath_params]
+] [varlen]
+
+dm_target_names = "linear", "striped", "zero", "error", "crypt", "flakey", "snapshot-origin", "snapshot", "snapshot-merge", "mirror", "raid", "thin-pool", "thin", "cache", "writecache", "clone", "verity", "integrity", "zoned", "multipath"
+dm_target_linear = "linear"
+dm_target_striped = "striped"
+dm_target_zero = "zero"
+dm_target_error = "error"
+dm_target_crypt = "crypt"
+dm_target_flakey = "flakey"
+dm_target_snapshot_origin = "snapshot-origin"
+dm_target_snapshot = "snapshot", "snapshot-merge"
+dm_target_mirror = "mirror"
+dm_target_raid = "raid"
+dm_target_thin_pool = "thin-pool"
+dm_target_thin = "thin"
+dm_target_cache = "cache"
+dm_target_writecache = "writecache"
+dm_target_clone = "clone"
+dm_target_verity = "verity"
+dm_target_integrity = "integrity"
+dm_target_multipath = "multipath"
+
+# Ramdisks are 4MB (8192 sectors) by default.
+dm_sectors = 0, 8, 16, 64, 128, 1024, 2048, 4096, 8192
+dm_lengths = 8, 16, 64, 128, 1024, 2048, 4096, 8192
+
+# Per-proc backing block devices (2 ramdisks and 1 rnull device per proc).
+# Loop devices are not used: /dev/loop<proc> belongs to the executor (syz_mount_image),
+# and DM would claim it even when it is unbound.
+# NEED: dm_dev_proc_t does not support formatting numbers larger than 9.
+dm_dev [
+	ram	dm_dev_proc_t["/dev/ram", 2]
+	ram_num	dm_ram_num
+	rnull	dm_dev_proc_t["/dev/syzrnull", 1]
+] [varlen]
+
+type dm_dev_proc_t[PREFIX, PER_PROC] {
+	prefix	stringnoz[PREFIX]
+	id	proc['0', PER_PROC, int8]
+} [packed]
+
+# "major:minor" form accepted by dm_devt_from_path(); 1 is RAMDISK_MAJOR.
+dm_ram_num {
+	major	stringnoz["1:"]
+	minor	fmt[dec, proc[0, 2]]
+} [packed]
+
+type dm_sp const[' ', int8]
+
+dm_sp_dev {
+	sp	dm_sp
+	dev	dm_dev
+} [packed]
+
+dm_dev_off {
+	dev	dm_dev
+	sp	dm_sp
+	off	stringnoz[dm_sector_strs]
+} [packed]
+
+dm_sector_strs = "0", "1", "8", "16", "128", "1024", "4096", "8191"
+dm_chunk_strs = "8", "16", "32", "64", "128", "256", "7", "0"
+
+dm_striped_params {
+	nstripes	fmt[dec, len[stripes]]
+	sp		dm_sp
+	chunk		stringnoz[dm_chunk_strs]
+	stripes		array[dm_sp_dev_off, 1:4]
+} [packed]
+
+dm_sp_dev_off {
+	sp	dm_sp
+	dev	dm_dev_off
+} [packed]
+
+# dm-crypt: <cipher> <key> <iv_offset> <device path> <offset> [<#opt_params> <opt_params>]
+dm_crypt_params {
+	cipher	stringnoz[dm_crypt_ciphers]
+	sp0	dm_sp
+	key	dm_crypt_key
+	sp1	dm_sp
+	iv_off	stringnoz[dm_sector_strs]
+	sp2	dm_sp
+	dev	dm_dev_off
+	opts	stringnoz[dm_crypt_opts]
+} [packed]
+
+dm_crypt_ciphers = "aes-cbc-essiv:sha256", "aes-xts-plain64", "aes-xts-plain", "aes-cbc-plain64", "aes-cbc-plain64be", "aes-ecb", "aes-ecb-null", "aes-cbc-benbi", "aes-cbc-null", "aes-cbc-lmk", "aes-cbc-tcw", "aes-cbc-eboiv", "aes-cbc-elephant:sha256", "aes:2-cbc-plain64", "aes:4-xts-plain64", "serpent-xts-plain64", "twofish-cbc-essiv:sha256", "xchacha12,aes-adiantum-plain64", "capi:cbc(aes)-essiv:sha256", "capi:xts(aes)-plain64", "capi:gcm(aes)-random", "capi:authenc(hmac(sha256),xts(aes))-random", "capi:rfc7539(chacha20,poly1305)-random", "capi:ccm(aes)-random", "capi:xts(aes)-random"
+
+# hexN denotes N bytes (2*N hex chars).
+dm_crypt_key [
+	fixed	stringnoz[dm_hex_keys]
+	hex16	array[flags[dm_hex_digits, int8], 32]
+	hex32	array[flags[dm_hex_digits, int8], 64]
+	hex48	array[flags[dm_hex_digits, int8], 96]
+	hex64	array[flags[dm_hex_digits, int8], 128]
+	hex80	array[flags[dm_hex_digits, int8], 160]
+	keyring	stringnoz[dm_crypt_keyring_keys]
+	none	stringnoz["-"]
+] [varlen]
+
+# Hex keys/digests of 16, 20, 32, 48, 64 bytes.
+dm_hex_keys = "0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+dm_hex_digits = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+dm_crypt_keyring_keys = ":16:logon:syz", ":32:logon:syz", ":32:user:syz", ":64:encrypted:syz", ":32:trusted:syz"
+dm_crypt_opts = "", " 0", " 1 allow_discards", " 1 same_cpu_crypt", " 1 high_priority", " 1 submit_from_crypt_cpus", " 2 no_read_workqueue no_write_workqueue", " 1 sector_size:4096", " 2 sector_size:4096 iv_large_sectors", " 1 sector_size:1024", " 1 integrity:28:aead", " 1 integrity:32:aead", " 1 integrity:8:none", " 2 integrity:32:aead integrity_key_size:32"
+
+# dm-flakey: <dev path> <offset> <up interval> <down interval> [<#feature args> [<arg>]*]
+dm_flakey_params {
+	dev	dm_dev_off
+	sp0	dm_sp
+	up	fmt[dec, int8[0:3]]
+	sp1	dm_sp
+	down	fmt[dec, int8[0:3]]
+	feat	stringnoz[dm_flakey_features]
+} [packed]
+
+dm_flakey_features = "", " 0", " 1 drop_writes", " 1 error_writes", " 1 error_reads", " 5 corrupt_bio_byte 32 r 1 0", " 5 corrupt_bio_byte 1 w 0 0", " 2 random_read_corrupt 500000000", " 2 random_write_corrupt 1000000000", " 3 error_reads drop_writes error_writes"
+
+# dm-snapshot: <origin> <COW device> <persistent?> <chunksize>
+dm_snapshot_params {
+	origin	dm_dev
+	sp0	dm_sp
+	cow	dm_dev
+	sp1	dm_sp
+	pers	stringnoz[dm_snapshot_persistence]
+	sp2	dm_sp
+	chunk	stringnoz[dm_chunk_strs]
+	feat	stringnoz[dm_snapshot_features]
+} [packed]
+
+dm_snapshot_persistence = "P", "N", "PO", "p", "n"
+dm_snapshot_features = "", " 1 discard_zeroes_cow", " 2 discard_zeroes_cow discard_passdown_origin"
+
+# dm-raid1: <log type> <#log args> <log args> <#mirrors> <dev> <offset>... [<#features> <features>]
+dm_mirror_params {
+	log	stringnoz[dm_mirror_logs]
+	sp0	dm_sp
+	nmir	fmt[dec, len[mirrors]]
+	mirrors	array[dm_sp_dev_off, 2:4]
+	feat	stringnoz[dm_mirror_features]
+} [packed]
+
+dm_mirror_logs = "core 1 64", "core 1 1024", "core 2 64 nosync", "core 2 1024 sync", "core 1 7"
+dm_mirror_features = "", " 1 handle_errors", " 2 handle_errors keep_log"
+
+# dm-raid: <raid_type> <#raid_params> <raid_params> <#raid_devs> <metadata_dev> <data_dev> ...
+dm_raid_params {
+	type	stringnoz[dm_raid_types]
+	sp0	dm_sp
+	params	stringnoz[dm_raid_param_strs]
+	sp1	dm_sp
+	ndevs	fmt[dec, len[devs]]
+	devs	array[dm_raid_dev, 1:4]
+} [packed]
+
+dm_raid_types = "raid0", "raid1", "raid10", "raid10_near", "raid10_far", "raid10_offset", "raid4", "raid5_n", "raid5_ls", "raid5_rs", "raid5_la", "raid5_ra", "raid6_zr", "raid6_nr", "raid6_nc", "raid6_n_6", "raid6_ls_6"
+dm_raid_param_strs = "1 64", "1 128", "1 8", "2 64 nosync", "2 64 sync", "3 64 region_size 1024", "3 64 rebuild 0", "3 64 write_mostly 1", "3 64 daemon_sleep 100", "3 64 stripe_cache 256", "3 64 raid10_copies 2", "3 64 raid10_format far", "3 64 max_write_behind 128", "3 64 min_recovery_rate 10", "3 64 data_offset 8", "3 64 delta_disks 1", "2 64 raid10_use_near_sets"
+
+dm_raid_dev {
+	sp0	dm_sp
+	meta	dm_raid_meta_dev
+	sp1	dm_sp
+	data	dm_dev
+} [packed]
+
+dm_raid_meta_dev [
+	none	const['-', int8]
+	dev	dm_dev
+] [varlen]
+
+# dm-thin: thin-pool <metadata dev> <data dev> <data block size> <low water mark> [<#feature args> [<arg>]*]
+dm_thin_pool_params {
+	meta	dm_dev
+	sp0	dm_sp
+	data	dm_dev
+	sp1	dm_sp
+	bsize	stringnoz[dm_thin_block_sizes]
+	sp2	dm_sp
+	lwm	fmt[dec, int8[0:32]]
+	feat	stringnoz[dm_thin_pool_features]
+} [packed]
+
+dm_thin_block_sizes = "128", "256", "1024", "2048", "64", "129"
+dm_thin_pool_features = "", " 0", " 1 skip_block_zeroing", " 1 ignore_discard", " 1 no_discard_passdown", " 1 read_only", " 1 error_if_no_space", " 2 skip_block_zeroing error_if_no_space"
+
+# thin <pool dev> <dev id> [<external origin dev>]
+# The pool must be a dm device with a thin-pool table, i.e. a node created by mknodat$dm.
+dm_thin_params {
+	pool	stringnoz[dm_block_dev_nodes]
+	sp	dm_sp
+	id	fmt[dec, int8[0:3]]
+	origin	dm_thin_origin
+} [packed]
+
+dm_thin_origin [
+	none	void
+	dev	dm_sp_dev
+] [varlen]
+
+# dm-cache: <metadata dev> <cache dev> <origin dev> <block size> <#feature args> [<feature arg>]* <policy> <#policy args> [<policy arg>]*
+dm_cache_params {
+	meta	dm_dev
+	sp0	dm_sp
+	cache	dm_dev
+	sp1	dm_sp
+	origin	dm_dev
+	sp2	dm_sp
+	bsize	stringnoz[dm_cache_block_sizes]
+	sp3	dm_sp
+	feat	stringnoz[dm_cache_features]
+	sp4	dm_sp
+	policy	stringnoz[dm_cache_policies]
+} [packed]
+
+dm_cache_block_sizes = "64", "128", "512", "1024", "65"
+dm_cache_features = "0", "1 writeback", "1 writethrough", "1 passthrough", "1 metadata2", "1 no_discard_passdown", "2 metadata2 writethrough"
+dm_cache_policies = "smq 0", "mq 0", "cleaner 0", "default 0", "smq 2 migration_threshold 1024", "mq 2 sequential_threshold 512"
+
+# dm-writecache: <p|s> <cache dev> <origin dev> <block size> <#optional args> [args]
+# Only 's' (SSD) mode is used; 'p' (PMEM) requires a DAX device.
+dm_writecache_params {
+	type	const['s', int8]
+	sp0	dm_sp
+	cache	dm_dev
+	sp1	dm_sp
+	origin	dm_dev
+	sp2	dm_sp
+	bsize	stringnoz[dm_writecache_block_sizes]
+	sp3	dm_sp
+	opts	stringnoz[dm_writecache_opts]
+} [packed]
+
+dm_writecache_block_sizes = "512", "1024", "4096", "8192"
+dm_writecache_opts = "0", "2 high_watermark 50", "2 low_watermark 10", "2 writeback_jobs 4", "2 autocommit_blocks 16", "2 autocommit_time 100", "2 max_age 1000", "1 cleaner", "1 fua", "1 nofua", "1 metadata_only", "2 pause_writeback 100", "2 start_sector 8"
+
+# dm-clone: <metadata dev> <destination dev> <source dev> <region size> [<#feature args> [<feature arg>]* [<#core args> [<core arg>]*]]
+dm_clone_params {
+	meta	dm_dev
+	sp0	dm_sp
+	dest	dm_dev
+	sp1	dm_sp
+	source	dm_dev
+	sp2	dm_sp
+	region	stringnoz[dm_chunk_strs]
+	feat	stringnoz[dm_clone_features]
+} [packed]
+
+dm_clone_features = "", " 0", " 1 no_hydration", " 1 no_discard_passdown", " 0 2 hydration_threshold 4", " 1 no_hydration 2 hydration_batch_size 2"
+
+# dm-verity: <version> <dev> <hash_dev> <data_block_size> <hash_block_size> <num_data_blocks> <hash_start_block> <algorithm> <digest> <salt> [<#opt_params> <opt_params>]
+dm_verity_params {
+	version	stringnoz[dm_verity_versions]
+	sp0	dm_sp
+	dev	dm_dev
+	sp1	dm_sp
+	hdev	dm_dev
+	sp2	dm_sp
+	dbs	stringnoz[dm_verity_block_sizes]
+	sp3	dm_sp
+	hbs	stringnoz[dm_verity_block_sizes]
+	sp4	dm_sp
+	nblk	fmt[dec, int16[0:1024]]
+	sp5	dm_sp
+	hstart	fmt[dec, int16[0:1024]]
+	sp6	dm_sp
+	alg	stringnoz[dm_verity_algs]
+	sp7	dm_sp
+	digest	dm_verity_hex
+	sp8	dm_sp
+	salt	dm_verity_salt
+	opts	stringnoz[dm_verity_opts]
+} [packed]
+
+dm_verity_versions = "0", "1"
+dm_verity_block_sizes = "512", "1024", "4096"
+dm_verity_algs = "sha256", "sha1", "sha512", "crc32c", "md5", "blake2b-256"
+
+dm_verity_hex [
+	fixed	stringnoz[dm_hex_keys]
+	hex4	array[flags[dm_hex_digits, int8], 8]
+	hex16	array[flags[dm_hex_digits, int8], 32]
+	hex20	array[flags[dm_hex_digits, int8], 40]
+	hex32	array[flags[dm_hex_digits, int8], 64]
+	hex64	array[flags[dm_hex_digits, int8], 128]
+] [varlen]
+
+dm_verity_salt [
+	none	stringnoz["-"]
+	hex	dm_verity_hex
+] [varlen]
+
+dm_verity_opts = "", " 1 ignore_corruption", " 1 ignore_zero_blocks", " 1 check_at_most_once", " 1 try_verify_in_tasklet", " 2 ignore_zero_blocks check_at_most_once"
+
+# dm-integrity: <dev> <offset> <tag size> <mode> [<#opt_params> <opt_params>]
+dm_integrity_params {
+	dev	dm_dev_off
+	sp0	dm_sp
+	tag	stringnoz[dm_integrity_tag_sizes]
+	sp1	dm_sp
+	mode	stringnoz[dm_integrity_modes]
+	opts	stringnoz[dm_integrity_opts]
+} [packed]
+
+dm_integrity_tag_sizes = "-", "1", "4", "8", "16", "32"
+dm_integrity_modes = "J", "B", "D", "R", "I"
+dm_integrity_opts = "", " 0", " 1 internal_hash:crc32c", " 1 internal_hash:sha256", " 2 block_size:4096 internal_hash:crc32c", " 1 journal_sectors:64", " 1 interleave_sectors:32768", " 1 buffer_sectors:128", " 1 journal_watermark:50", " 1 commit_time:100", " 1 sectors_per_bit:8", " 1 bitmap_flush_interval:100", " 2 internal_hash:crc32c recalculate", " 2 internal_hash:crc32c reset_recalculate", " 1 allow_discards", " 1 fix_padding", " 1 legacy_recalculate", " 2 internal_hash:hmac(sha256):0123456789abcdef0123456789abcdef fix_hmac", " 1 journal_crypt:ctr(aes):0123456789abcdef0123456789abcdef", " 1 journal_mac:hmac(sha256):0123456789abcdef"
+
+# dm-mpath: <#features> <features> <#hw_handler args> [hw_handler] <#priority groups> <initial group> {<ps name> <#ps args> <ps args> <#paths> <#path args> {<dev> <path args>}}
+dm_multipath_params {
+	feat	stringnoz[dm_mpath_features]
+	sp0	dm_sp
+	hwh	stringnoz[dm_mpath_hw_handlers]
+	sp1	dm_sp
+	ngrp	fmt[dec, len[groups]]
+	sp2	dm_sp
+	init	fmt[dec, int8[0:2]]
+	groups	array[dm_mpath_group, 1:4]
+} [packed]
+
+dm_mpath_features = "0", "1 queue_if_no_path", "2 pg_init_retries 3", "2 pg_init_delay_msecs 10", "2 queue_mode bio", "2 queue_mode rq", "1 retain_attached_hw_handler"
+dm_mpath_hw_handlers = "0", "1 alua", "1 emc", "1 rdac"
+
+dm_mpath_group {
+	sp0	dm_sp
+	ps	stringnoz[dm_mpath_selectors]
+	sp1	dm_sp
+	npath	fmt[dec, len[paths]]
+	sp2	dm_sp
+	nargs	stringnoz[dm_mpath_path_nargs]
+	paths	array[dm_mpath_path, 1:4]
+} [packed]
+
+dm_mpath_selectors = "round-robin 0", "queue-length 0", "service-time 0", "historical-service-time 0", "io-affinity 0"
+dm_mpath_path_nargs = "0", "1", "2"
+
+dm_mpath_path {
+	sp0	dm_sp
+	dev	dm_dev
+	args	stringnoz[dm_mpath_path_args]
+} [packed]
+
+dm_mpath_path_args = "", " 1000", " 1", " 1 1", " 1000 100"
