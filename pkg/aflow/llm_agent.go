@@ -78,7 +78,7 @@ type agentSession struct {
 	*LLMAgent
 	// Track recent tool calls for loop detection.
 	toolHistory []toolCallRecord
-	// Track consecutive BadCallError failures per tool name.
+	// Track BadCallError failures per tool name since the last successful call to the tool.
 	toolErrorCounts map[string]int
 	// req stores the active conversation history slice in this execution.
 	req []llmMessage
@@ -1282,6 +1282,12 @@ func (a *agentSession) recordAndCheckToolError(toolName string, toolErr error) (
 		delete(a.toolErrorCounts, toolName)
 		return "", nil
 	}
+	if isNoMatchesError(toolErr) {
+		// The call was valid, the search just returned nothing, so it's not a failure.
+		// But don't reset the failure counter either, otherwise interleaving empty searches
+		// would hide a loop of invalid calls.
+		return "", nil
+	}
 	if a.toolErrorCounts == nil {
 		a.toolErrorCounts = make(map[string]int)
 	}
@@ -1291,21 +1297,21 @@ func (a *agentSession) recordAndCheckToolError(toolName string, toolErr error) (
 		if a.allowPartialResults() && !a.answerNow {
 			a.answerNow = true
 			a.answerNowLeft = answerNowIterations
-			return fmt.Sprintf("Tool %q has failed %d consecutive times. %s",
+			return fmt.Sprintf("Tool %q has failed %d times without a successful call. %s",
 				toolName, errs, strings.TrimSpace(llmAnswerNow)), nil
 		}
-		return "", fmt.Errorf("agent got stuck in a loop making %d consecutive failing calls to tool %q",
-			errs, toolName)
+		return "", fmt.Errorf("agent got stuck in a loop making %d failing calls to tool %q "+
+			"without a successful call", errs, toolName)
 	}
 	if errs == hardLoopDetectionLimit-1 {
-		return fmt.Sprintf("CRITICAL: Tool %q has failed %d consecutive times. "+
+		return fmt.Sprintf("CRITICAL: Tool %q has failed %d times without a successful call. "+
 			"You are stuck in a loop providing invalid arguments. You MUST change your approach, "+
 			"try a different tool, or proceed to the next step with your current knowledge. "+
 			"The next failing attempt will force-terminate your execution.",
 			toolName, errs), nil
 	}
 	if errs > defaultLoopDetectionLimit {
-		return fmt.Sprintf("Tool %q has failed %d consecutive times. "+
+		return fmt.Sprintf("Tool %q has failed %d times without a successful call. "+
 			"Do NOT keep guessing arguments for this tool. Try a different tool or proceed to the next step.",
 			toolName, errs), nil
 	}
