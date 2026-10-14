@@ -1,0 +1,16 @@
+# requires: -threaded
+# Create a RAID1 array from two ramdisks with the legacy ioctl interface
+# (SET_ARRAY_INFO + ADD_NEW_DISK + RUN_ARRAY) and do I/O on it.
+# The array is stopped at the end, since md arrays persist across programs.
+
+r0 = openat$md_new_array(AUTO, &AUTO='/sys/module/md_mod/parameters/new_array\x00', AUTO, AUTO)
+write$md_new_array(r0, &AUTO={'md', @num=0x0}, AUTO)
+r1 = openat$md(AUTO, &AUTO={'/dev/md', @num=0x0, AUTO}, 0x2, AUTO)
+ioctl$SET_ARRAY_INFO(r1, AUTO, &AUTO={0x0, 0x5a, AUTO, 0x0, 0x1, 0x800, AUTO, 0x2, AUTO, 0x0, AUTO, 0x1, AUTO, AUTO, AUTO, AUTO, 0x0, 0x0})
+ioctl$ADD_NEW_DISK(r1, AUTO, &AUTO={0x0, {AUTO, 0x0}, 0x0, 0x6})
+ioctl$ADD_NEW_DISK(r1, AUTO, &AUTO={0x1, {AUTO, 0x1}, 0x1, 0x6})
+ioctl$RUN_ARRAY(r1, AUTO, &AUTO={AUTO, AUTO, AUTO})
+ioctl$GET_ARRAY_INFO(r1, AUTO, &AUTO={0x0, 0x0, AUTO, 0x0, 0x0, 0x0, AUTO, 0x0, AUTO, 0x0, AUTO, 0x0, AUTO, AUTO, AUTO, AUTO, 0x0, 0x0})
+pwrite64(r1, &AUTO="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", AUTO, 0x1000)
+ioctl$GET_DISK_INFO(r1, AUTO, &AUTO={0x1, 0x0, 0x0, 0x0, 0x0})
+ioctl$STOP_ARRAY(r1, AUTO, AUTO)

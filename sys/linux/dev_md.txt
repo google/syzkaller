@@ -1,0 +1,258 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Linux MD (software RAID) driver: drivers/md/md.c and the raid0/1/10/456 personalities.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/stat.h>
+include <uapi/linux/ioctl.h>
+include <uapi/linux/major.h>
+include <uapi/linux/raid/md_u.h>
+include <uapi/linux/raid/md_p.h>
+
+# /dev/mdN nodes do not exist until an array is allocated. Writing "mdN" or "md_NAME"
+# to the new_array module parameter allocates /dev/mdN or /dev/md_NAME, after which
+# the node can be opened. Arrays persist across test programs until stopped, so each
+# proc gets a numbered array (md<proc>, freed by STOP_ARRAY or array_state=clear) and
+# several named arrays (md_syz<'a'+proc>{0,1,2}; these have hold_active = UNTIL_STOP and
+# are never freed in the default legacy_async_del_gendisk mode).
+# The sysfs/new_array fds are not fd subtypes, so that generic write() can't be used
+# to write arbitrary values (e.g. the root disk device number to md/new_dev).
+resource fd_md_new_array[int32]: -1
+resource fd_md[fd_block]
+
+openat$md_new_array(fd const[AT_FDCWD], file ptr[in, string["/sys/module/md_mod/parameters/new_array"]], flags const[O_WRONLY], mode const[0]) fd_md_new_array
+write$md_new_array(fd fd_md_new_array, buf ptr[in, md_array_name], len bytesize[buf]) (no_squash)
+
+openat$md(fd const[AT_FDCWD], file ptr[in, md_dev_node], flags flags[md_open_flags], mode const[0]) fd_md (no_squash)
+
+# Alternatively, create an md block device node (MD_MAJOR << 8, per-proc
+# minor) and open it: md_probe() then allocates the array on open (create_on_open,
+# hold_active = UNTIL_IOCTL).
+define MD_DEVT_BASE	(MD_MAJOR << 8)
+define MD_MKNOD_MODE	(S_IFBLK | S_IRUSR | S_IWUSR)
+mknodat$md(dirfd const[AT_FDCWD], file ptr[in, string[md_block_dev_nodes]], mode const[MD_MKNOD_MODE], dev proc[MD_DEVT_BASE, 1])
+openat$md_node(fd const[AT_FDCWD], file ptr[in, string[md_block_dev_nodes]], flags flags[md_open_flags], mode const[0]) fd_md
+
+md_block_dev_nodes = "./md0", "./md1"
+# O_CREAT is excluded (and stripped in neutralize), so that opening a not-yet-allocated
+# /dev/mdN never creates a regular file in /dev.
+md_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_DIRECT, O_SYNC, O_EXCL, O_CLOEXEC
+
+md_array_name {
+	prefix	stringnoz["md"]
+	unit	md_unit
+} [packed]
+
+md_unit [
+# NEED: this does not support formatting numbers larger than 9.
+	num	proc['0', 1, int8]
+	named	md_unit_named
+] [varlen]
+
+md_unit_named {
+	prefix	stringnoz["_syz"]
+	id	proc['a', 1, int8]
+	slot	stringnoz[md_unit_slots]
+} [packed]
+
+md_unit_slots = "0", "1", "2"
+
+md_dev_node {
+	prefix	stringnoz["/dev/md"]
+	unit	md_unit
+	z	const[0, int8]
+} [packed]
+
+# Member disks.
+# IMPORTANT: member disks must never reference the VM root disk (sda, virtio, etc),
+# because md writes superblocks to member devices. So only brd ramdisks
+# (RAMDISK_MAJOR, CONFIG_BLK_DEV_RAM) are used, with per-proc minor numbers
+# (2 ramdisks per proc); the major number is also enforced in neutralize.
+# Loop devices are not used: /dev/loop<proc> belongs to the executor (syz_mount_image).
+md_member_dev {
+	major	const[RAMDISK_MAJOR, int32]
+	minor	proc[0, 2, int32]
+}
+
+# Encoded dev_t (new_encode_dev(), i.e. major << 8 | minor for small numbers)
+# passed as the ioctl argument of HOT_ADD_DISK, HOT_REMOVE_DISK, SET_DISK_FAULTY.
+define RAM_DEVT_BASE	(RAMDISK_MAJOR << 8)
+type md_ram_devt proc[RAM_DEVT_BASE, 2, intptr]
+
+# Status ioctls.
+ioctl$RAID_VERSION(fd fd_md, cmd const[RAID_VERSION], arg ptr[out, mdu_version_t])
+ioctl$GET_ARRAY_INFO(fd fd_md, cmd const[GET_ARRAY_INFO], arg ptr[out, mdu_array_info_t])
+ioctl$GET_DISK_INFO(fd fd_md, cmd const[GET_DISK_INFO], arg ptr[inout, mdu_disk_info_get_t]) (no_squash)
+ioctl$GET_BITMAP_FILE(fd fd_md, cmd const[GET_BITMAP_FILE], arg ptr[out, mdu_bitmap_file_t])
+
+# Configuration ioctls.
+ioctl$SET_ARRAY_INFO(fd fd_md, cmd const[SET_ARRAY_INFO], arg ptr[in, mdu_array_info_t]) (no_squash)
+ioctl$SET_ARRAY_INFO_NULL(fd fd_md, cmd const[SET_ARRAY_INFO], arg const[0])
+ioctl$ADD_NEW_DISK(fd fd_md, cmd const[ADD_NEW_DISK], arg ptr[in, mdu_disk_info_t]) (no_squash)
+ioctl$HOT_ADD_DISK(fd fd_md, cmd const[HOT_ADD_DISK], arg md_ram_devt)
+ioctl$HOT_REMOVE_DISK(fd fd_md, cmd const[HOT_REMOVE_DISK], arg md_ram_devt)
+ioctl$SET_DISK_FAULTY(fd fd_md, cmd const[SET_DISK_FAULTY], arg md_ram_devt)
+# The argument is a file descriptor of a regular file opened for writing, or -1 to remove the bitmap.
+ioctl$SET_BITMAP_FILE(fd fd_md, cmd const[SET_BITMAP_FILE], arg fd)
+ioctl$CLUSTERED_DISK_NACK(fd fd_md, cmd const[CLUSTERED_DISK_NACK], arg const[0])
+
+# Usage ioctls.
+ioctl$RUN_ARRAY(fd fd_md, cmd const[RUN_ARRAY], arg ptr[in, mdu_param_t])
+ioctl$STOP_ARRAY(fd fd_md, cmd const[STOP_ARRAY], arg const[0])
+ioctl$STOP_ARRAY_RO(fd fd_md, cmd const[STOP_ARRAY_RO], arg const[0])
+ioctl$RESTART_ARRAY_RW(fd fd_md, cmd const[RESTART_ARRAY_RW], arg const[0])
+
+mdu_version_t {
+	major		int32
+	minor		int32
+	patchlevel	int32
+}
+
+mdu_array_info_t {
+# Only used when raid_disks == 0 (assembling from existing superblocks):
+# index into super_types (0 = 0.90, 1 = 1.x).
+	major_version	int32[0:1]
+	minor_version	flags[md_minor_versions, int32]
+	patch_version	const[0, int32]
+	ctime		int32
+	level		flags[md_levels, int32]
+# Component size in KiB (ramdisks are 4 MiB).
+	size		int32[0:4096]
+	nr_disks	const[0, int32]
+# Each proc has only 2 member disks, so larger arrays can only run degraded (or not at all).
+	raid_disks	int32[0:4]
+	md_minor	const[0, int32]
+	not_persistent	bool32
+	utime		const[0, int32]
+	state		flags[md_array_state, int32]
+	active_disks	const[0, int32]
+	working_disks	const[0, int32]
+	failed_disks	const[0, int32]
+	spare_disks	const[0, int32]
+	layout		flags[md_layouts, int32]
+	chunk_size	flags[md_chunk_sizes, int32]
+}
+
+mdu_disk_info_t {
+	number		int32[0:MD_SB_DISKS]
+# major and minor in struct mdu_disk_info_s.
+	dev		md_member_dev
+	raid_disk	int32[-1:3]
+	state		flags[md_disk_state, int32]
+}
+
+# get_disk_info() only reads number and overwrites the rest.
+mdu_disk_info_get_t {
+	number		int32[0:MD_SB_DISKS]
+	major		int32	(out)
+	minor		int32	(out)
+	raid_disk	int32	(out)
+	state		int32	(out)
+}
+
+mdu_bitmap_file_t {
+	pathname	array[int8, 4096]
+}
+
+# All fields are ignored by the kernel.
+mdu_param_t {
+	personality	const[0, int32]
+	chunk_size	const[0, int32]
+	max_fault	const[0, int32]
+}
+
+md_minor_versions = 0, 1, 2, 90
+md_levels = LEVEL_NONE, LEVEL_LINEAR, 0, 1, 4, 5, 6, 10
+
+define MD_SB_CLEAN_BIT	(1 << MD_SB_CLEAN)
+define MD_SB_ERRORS_BIT	(1 << MD_SB_ERRORS)
+define MD_SB_CLUSTERED_BIT	(1 << MD_SB_CLUSTERED)
+define MD_SB_BITMAP_PRESENT_BIT	(1 << MD_SB_BITMAP_PRESENT)
+md_array_state = MD_SB_CLEAN_BIT, MD_SB_ERRORS_BIT, MD_SB_CLUSTERED_BIT, MD_SB_BITMAP_PRESENT_BIT
+
+define MD_DISK_FAULTY_BIT	(1 << MD_DISK_FAULTY)
+define MD_DISK_ACTIVE_BIT	(1 << MD_DISK_ACTIVE)
+define MD_DISK_SYNC_BIT	(1 << MD_DISK_SYNC)
+define MD_DISK_REMOVED_BIT	(1 << MD_DISK_REMOVED)
+define MD_DISK_CLUSTER_ADD_BIT	(1 << MD_DISK_CLUSTER_ADD)
+define MD_DISK_CANDIDATE_BIT	(1 << MD_DISK_CANDIDATE)
+define MD_DISK_WRITEMOSTLY_BIT	(1 << MD_DISK_WRITEMOSTLY)
+define MD_DISK_FAILFAST_BIT	(1 << MD_DISK_FAILFAST)
+define MD_DISK_JOURNAL_BIT	(1 << MD_DISK_JOURNAL)
+md_disk_state = MD_DISK_FAULTY_BIT, MD_DISK_ACTIVE_BIT, MD_DISK_SYNC_BIT, MD_DISK_REMOVED_BIT, MD_DISK_CLUSTER_ADD_BIT, MD_DISK_CANDIDATE_BIT, MD_DISK_WRITEMOSTLY_BIT, MD_DISK_FAILFAST_BIT, MD_DISK_JOURNAL_BIT
+
+# raid0: RAID0_ORIG_LAYOUT, RAID0_ALT_MULTIZONE_LAYOUT (drivers/md/raid0.h).
+# raid4/5/6: ALGORITHM_* (drivers/md/raid5.h).
+# raid10: near_copies | (far_copies << 8) | (far_offset << 16) | (version << 17) (drivers/md/raid10.c:setup_geo).
+# Layout version 1 (0x20000) is omitted: setup_geo() deliberately WARNs that it is unsafe.
+md_layouts = 0, 1, 2, 3, 4, 5, 8, 9, 10, 16, 17, 18, 19, 20, 0x102, 0x103, 0x201, 0x301, 0x10201, 0x10301, 0x40201, 0x80000
+md_chunk_sizes = 0, 512, 4096, 8192, 16384, 65536, 131072, 524288, 1048576
+
+# Sysfs interface: /sys/block/mdN/md/*. This is the interface used by mdadm to
+# create and manage arrays. Member disk directories are dev-<name> (e.g. dev-ram0)
+# and rd<slot> symlinks.
+resource fd_md_sysfs[int32]: -1
+
+openat$md_sysfs(fd const[AT_FDCWD], file ptr[in, md_sysfs_path], flags flags[md_sysfs_open_flags], mode const[0]) fd_md_sysfs (no_squash)
+write$md_sysfs(fd fd_md_sysfs, buf ptr[in, md_sysfs_val], len bytesize[buf]) (no_squash)
+
+md_sysfs_path {
+	prefix	stringnoz["/sys/block/md"]
+	unit	md_unit
+	md	stringnoz["/md/"]
+	file	md_sysfs_file
+} [packed]
+
+md_sysfs_file [
+	array	string[md_sysfs_array_attrs]
+	rdev	md_sysfs_rdev_file
+] [varlen]
+
+md_sysfs_rdev_file {
+	dir	md_sysfs_rdev_dir
+	attr	string[md_sysfs_rdev_attrs]
+} [packed]
+
+md_sysfs_rdev_dir [
+	ram	md_sysfs_rdev_dir_ram
+	rd	stringnoz[md_sysfs_rd_dirs]
+] [varlen]
+
+# NEED: this does not support formatting numbers larger than 9.
+md_sysfs_rdev_dir_ram {
+	prefix	stringnoz["dev-ram"]
+	id	proc['0', 2, int8]
+	slash	const['/', int8]
+} [packed]
+
+# suspend_lo and suspend_hi are excluded because writes in [suspend_lo, suspend_hi) block indefinitely.
+md_sysfs_array_attrs = "level", "new_level", "bitmap_type", "layout", "raid_disks", "chunk_size", "component_size", "resync_start", "metadata_version", "new_dev", "safe_mode_delay", "array_state", "reshape_position", "reshape_direction", "array_size", "max_read_errors", "consistency_policy", "fail_last_dev", "serialize_policy", "logical_block_size", "sync_action", "sync_speed_min", "sync_speed_max", "sync_io_depth", "sync_force_parallel", "sync_min", "sync_max", "bitmap_set_bits", "bitmap/location", "bitmap/space", "bitmap/time_base", "bitmap/backlog", "bitmap/chunksize", "bitmap/metadata", "bitmap/can_clear", "stripe_cache_size", "preread_bypass_threshold", "group_thread_cnt", "skip_copy", "rmw_level", "stripe_size", "journal_mode", "ppl_write_hint"
+md_sysfs_rd_dirs = "rd0/", "rd1/", "rd2/", "rd3/", "rd4/", "rd5/"
+# Some attributes (e.g. new_dev) are write-only and can't be opened for reading.
+md_sysfs_open_flags = O_RDONLY, O_WRONLY, O_RDWR
+md_sysfs_rdev_attrs = "state", "errors", "slot", "offset", "new_offset", "size", "recovery_start", "bad_blocks", "unacknowledged_bad_blocks", "ppl_sector", "ppl_size"
+
+md_sysfs_val [
+	str	stringnoz[md_sysfs_strs]
+	num	fmt[dec, int32[0:64]]
+	dev	md_sysfs_new_dev
+	range	md_sysfs_range
+] [varlen]
+
+# "major:minor" for new_dev. As above, only ramdisks (1 is RAMDISK_MAJOR).
+md_sysfs_new_dev {
+	major	stringnoz["1:"]
+	minor	fmt[dec, proc[0, 2]]
+} [packed]
+
+# "sector length" for bad_blocks and unacknowledged_bad_blocks.
+md_sysfs_range {
+	start	fmt[dec, int32[0:8192]]
+	sp	const[' ', int8]
+	len	fmt[dec, int32[1:512]]
+} [packed]
+
+# "blocked" (rdev state) and "external:*" metadata versions are excluded: they make writes
+# wait forever (for "-blocked"/mdmon), causing false "task hung" reports.
+md_sysfs_strs = "0", "1", "2", "3", "4", "8", "64", "512", "-1", "none", "default", "max", "linear", "raid0", "raid1", "raid4", "raid5", "raid6", "raid10", "clear", "inactive", "suspended", "readonly", "read-auto", "clean", "active", "write-pending", "active-idle", "broken", "resync", "recover", "check", "repair", "reshape", "frozen", "idle", "0.90", "1.0", "1.1", "1.2", "bitmap", "llbitmap", "ppl", "journal", "forwards", "backwards", "0.200", "faulty", "remove", "writemostly", "-writemostly", "-blocked", "insync", "-insync", "failfast", "-failfast", "write_error", "-write_error", "want_replacement", "-want_replacement", "replacement", "-replacement", "re-add", "external_bbl", "-external_bbl", "file", "+8", "-64", "internal", "external", "clustered", "true", "false", "write-through", "write-back", "y", "n"

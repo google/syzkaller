@@ -253,6 +253,12 @@ func (arch *arch) neutralizeVariant(c *prog.Call) {
 		// The node may not exist yet (it is created by mknodat$dm), so O_CREAT would create
 		// a regular file in its place.
 		arch.clearOpenCreat(c.Args[2])
+	case "openat$md", "openat$md_node":
+		// /dev/mdN does not exist until the array is allocated (./mdN until mknodat$md),
+		// and a regular file created by O_CREAT in /dev would persist and break the array.
+		arch.clearOpenCreat(c.Args[2])
+	case "ioctl$ADD_NEW_DISK":
+		neutralizeMdAddNewDisk(c)
 	}
 }
 
@@ -375,6 +381,19 @@ func neutralizeDmSuspend(a prog.Arg) {
 	if flags, ok := group.Inner[dmIoctlFlagsField].(*prog.ConstArg); ok {
 		flags.Val &^= dmSuspendFlag
 	}
+}
+
+// neutralizeMdAddNewDisk resets all const fields of ioctl$ADD_NEW_DISK to their declared values.
+// Hints may mutate const fields wider than 8 bits; this notably keeps md_member_dev.major
+// at RAMDISK_MAJOR, so that the root disk is never added to an md array.
+func neutralizeMdAddNewDisk(c *prog.Call) {
+	prog.ForeachArg(c, func(arg prog.Arg, _ *prog.ArgCtx) {
+		if constArg, ok := arg.(*prog.ConstArg); ok {
+			if typ, ok := constArg.Type().(*prog.ConstType); ok {
+				constArg.Val = typ.Val
+			}
+		}
+	})
 }
 
 func enforceIntArg(a prog.Arg) {
