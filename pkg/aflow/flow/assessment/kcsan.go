@@ -4,6 +4,8 @@
 package assessment
 
 import (
+	"slices"
+
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -27,7 +29,32 @@ The data race report is:
 {{.CrashReport}}
 `
 
-// nolint:dupl
+type kcsanOutputs struct {
+	Benign              bool   `jsonschema:"If the data race is benign or not."`
+	FailureDetectableBy string `json:",omitempty" jsonschema:"Downstream detector: kasan|kmsan|any|user|none."`
+}
+
+var validKCSANFailureDetectableBy = []string{
+	ai.KCSANFailureDetectableByKASAN,
+	ai.KCSANFailureDetectableByKMSAN,
+	ai.KCSANFailureDetectableByAny,
+	ai.KCSANFailureDetectableByUser,
+	ai.KCSANFailureDetectableByNone,
+}
+
+func validateKCSANOutputs(ctx *aflow.Context, state struct{}, args kcsanOutputs) (kcsanOutputs, error) {
+	if args.Benign {
+		args.FailureDetectableBy = ""
+		return args, nil
+	}
+	if !slices.Contains(validKCSANFailureDetectableBy, args.FailureDetectableBy) {
+		return args, aflow.BadCallError(
+			"FailureDetectableBy must be one of %v when Benign is false, got %q",
+			validKCSANFailureDetectableBy, args.FailureDetectableBy)
+	}
+	return args, nil
+}
+
 func init() {
 	aflow.Register[kcsanInputs, ai.AssessmentKCSANOutputs](
 		ai.WorkflowAssessmentKCSAN,
@@ -38,12 +65,10 @@ func init() {
 				kernel.Build,
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
-					Name:  "expert",
-					Model: aflow.CoreModel,
-					Reply: "ExplanationRaw",
-					Outputs: aflow.LLMOutputs[struct {
-						Benign bool `jsonschema:"If the data race is benign or not."`
-					}](),
+					Name:        "expert",
+					Model:       aflow.CoreModel,
+					Reply:       "ExplanationRaw",
+					Outputs:     aflow.ValidatedLLMOutputs(validateKCSANOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/kcsan_instruction.md"),
 					Prompt:      kcsanPrompt,

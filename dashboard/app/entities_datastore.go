@@ -598,11 +598,12 @@ type Job struct {
 	KernelConfig    int64 // reference to the kernel config entity
 	CandidateReproC int64 // reference to ReproC text entity (for C reproducer testing)
 
-	Attempts    int       // number of times we tried to execute this job
-	IsRunning   bool      // the job might have been started, but never finished
-	LastStarted time.Time `datastore:"Started"`
-	Finished    time.Time // if set, job is finished
-	TreeOrigin  bool      // whether the job is related to tree origin detection
+	Attempts           int       // number of times we tried to execute this job
+	IsRunning          bool      // the job might have been started, but never finished
+	LastStarted        time.Time `datastore:"Started"`
+	Finished           time.Time // if set, job is finished
+	TreeOrigin         bool      // whether the job is related to tree origin detection
+	IgnoreKCSANReports bool      // ignore raw KCSAN reports during candidate repro testing
 
 	// If patch test should be done on the merge base between two branches.
 	MergeBaseRepo   string

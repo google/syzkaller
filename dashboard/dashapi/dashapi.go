@@ -192,14 +192,15 @@ type JobPollResp struct {
 	MergeBaseRepo   string
 	MergeBaseBranch string
 	// Bisection starts from KernelCommit.
-	KernelCommit      string
-	KernelCommitTitle string
-	KernelConfig      []byte
-	SyzkallerCommit   string
-	Patch             []byte
-	ReproOpts         []byte
-	ReproSyz          []byte
-	ReproC            []byte
+	KernelCommit       string
+	KernelCommitTitle  string
+	KernelConfig       []byte
+	SyzkallerCommit    string
+	Patch              []byte
+	ReproOpts          []byte
+	ReproSyz           []byte
+	ReproC             []byte
+	IgnoreKCSANReports bool
 }
 
 type JobDoneReq struct {

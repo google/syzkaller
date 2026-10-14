@@ -11,19 +11,20 @@ import (
 )
 
 type RunCReproArgs struct {
-	AgentName       string
-	TargetArch      string
-	Syzkaller       string
-	Image           string
-	Type            string
-	VM              json.RawMessage
-	KernelSrc       string
-	KernelObj       string
-	KernelCommit    string
-	KernelConfig    string
-	FormattedReproC string
-	StraceBin       string
-	NeedStrace      bool
+	AgentName          string
+	TargetArch         string
+	Syzkaller          string
+	Image              string
+	Type               string
+	VM                 json.RawMessage
+	KernelSrc          string
+	KernelObj          string
+	KernelCommit       string
+	KernelConfig       string
+	FormattedReproC    string
+	StraceBin          string
+	NeedStrace         bool
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 type RunCReproResult struct {
@@ -38,7 +39,7 @@ type RunCReproResult struct {
 
 var (
 	RunCRepro = aflow.NewFuncAction("run-c-repro", RunCReproFunc)
-	runTest   = RunTest
+	runTest   = runTestWithOpts
 )
 
 func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, error) {
@@ -72,7 +73,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	// Run 1: without strace.
-	res1, err1 := runTest(ctx, reproduceArgs, workdir, false)
+	res1, err1 := runTest(ctx, reproduceArgs, workdir, false, args.IgnoreKCSANReports)
 	if err1 != nil {
 		return RunCReproResult{}, err1
 	}
@@ -98,7 +99,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	// so we do not leak an unreported crash dump into StraceOutput.
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
-		res2, err2 := runTest(ctx, reproduceArgs, workdir, false)
+		res2, err2 := runTest(ctx, reproduceArgs, workdir, false, args.IgnoreKCSANReports)
 		if err2 != nil {
 			return result, err2 // Return what we had from Run 1, plus the error.
 		}

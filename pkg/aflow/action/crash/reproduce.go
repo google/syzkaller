@@ -62,8 +62,29 @@ type RunTestResult struct {
 	ConsoleOutput string
 }
 
+func buildTestConfig(args TargetConfig, workdir string, ignoreKCSAN bool) (*mgrconfig.Config, error) {
+	cfg, err := BuildConfig(args, workdir)
+	if err != nil {
+		return nil, err
+	}
+	if ignoreKCSAN {
+		// Ignore raw KCSAN data-race reports so VM monitoring does not cut execution short
+		// before the downstream crash or SYZFAIL triggers, while keeping KCSAN reports in
+		// ConsoleOutput as diagnostic feedback for the agent.
+		cfg.Ignores = append(cfg.Ignores, "BUG: KCSAN:")
+	}
+	return cfg, nil
+}
+
 // RunTest boots the kernel and runs a single test program.
 func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
+	return runTestWithOpts(ctx, args, workdir, collectCoverage, false)
+}
+
+// Keep ignoreKCSAN out of ReproduceArgs so non-reproc flows using crash.Reproduce
+// (e.g. patch-iteration) do not have to provide it in aflow.Register.
+func runTestWithOpts(ctx *aflow.Context, args ReproduceArgs, workdir string,
+	collectCoverage, ignoreKCSAN bool) (RunTestResult, error) {
 	res := RunTestResult{}
 	args.ReproSyz = ctx.RestoreBlobs(args.ReproSyz)
 	if err := args.Validate(); err != nil {
@@ -73,7 +94,7 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCove
 		return res, errors.New("run test: coverage collection requires a syzkaller program")
 	}
 
-	cfg, err := BuildConfig(args.TargetConfig, workdir)
+	cfg, err := buildTestConfig(args.TargetConfig, workdir, ignoreKCSAN)
 	if err != nil {
 		return res, err
 	}
