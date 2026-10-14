@@ -236,14 +236,20 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
 		arch.neutralizePaths(c)
 	}
+	arch.neutralizeVariant(c)
+	return nil
+}
 
+// neutralizeVariant handles specific syscall variants (by full name, e.g. "ioctl$DM_DEV_SUSPEND").
+func (arch *arch) neutralizeVariant(c *prog.Call) {
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.neutralizeEbtables(c)
 	case "ioctl$DM_DEV_SUSPEND":
 		neutralizeDmSuspend(c.Args[2])
+	case "ioctl$ADD_NEW_DISK":
+		neutralizeMdAddNewDisk(c)
 	}
-	return nil
 }
 
 func (arch *arch) neutralizePaths(c *prog.Call) {
@@ -359,6 +365,19 @@ func neutralizeDmSuspend(a prog.Arg) {
 	if flags, ok := group.Inner[dmIoctlFlagsField].(*prog.ConstArg); ok {
 		flags.Val &^= dmSuspendFlag
 	}
+}
+
+// neutralizeMdAddNewDisk resets all const fields of ioctl$ADD_NEW_DISK to their declared values.
+// Hints may mutate const fields wider than 8 bits; this notably keeps md_member_dev.major
+// at RAMDISK_MAJOR, so that the root disk is never added to an md array.
+func neutralizeMdAddNewDisk(c *prog.Call) {
+	prog.ForeachArg(c, func(arg prog.Arg, _ *prog.ArgCtx) {
+		if constArg, ok := arg.(*prog.ConstArg); ok {
+			if typ, ok := constArg.Type().(*prog.ConstType); ok {
+				constArg.Val = typ.Val
+			}
+		}
+	})
 }
 
 func enforceIntArg(a prog.Arg) {

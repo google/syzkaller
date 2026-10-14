@@ -14,7 +14,6 @@ resource fd_block[fd_block_trace]
 
 openat$nullb(fd const[AT_FDCWD], file ptr[in, string["/dev/nullb0"]], flags flags[open_flags], mode const[0]) fd_block
 openat$rnullb(fd const[AT_FDCWD], file ptr[in, rnull_dev_node], flags flags[open_flags], mode const[0]) fd_block
-openat$md(fd const[AT_FDCWD], file ptr[in, string["/dev/md0"]], flags flags[open_flags], mode const[0]) fd_block
 openat$pmem0(fd const[AT_FDCWD], file ptr[in, string["/dev/pmem0"]], flags flags[open_flags], mode const[0]) fd_block
 
 # Rust null block driver (drivers/block/rnull) creates devices via configfs:
