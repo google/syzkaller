@@ -28,7 +28,7 @@ The workflow enters a `DoWhile` loop with a maximum of 10 iterations. The loop c
 In each iteration, the following steps are executed:
 1.  **Strategy Refinement**: If `OracleFeedback` is available (from previous iterations), the `strategy-refiner` agent is invoked to update the strategy, producing `RefinedReproStrategy`.
 2.  **Strategy Merge**: `MergeStrategy` merges `InitialReproStrategy` and `RefinedReproStrategy` into `CurrentReproStrategy`. If a refined strategy exists, it is preferred.
-3.  **Code Generation**: The `repro-generator` agent generates C code (`RawCandidateReproC`) and a boolean `IsProbe` flag based on `CurrentReproStrategy`.
+3.  **Code Generation**: The `repro-generator` agent generates C code (`RawCandidateReproC`) and a boolean `IsProbe` flag based on `CurrentReproStrategy`. It only sees the oracle feedback for the previous attempt (`LatestOracleFeedback`), while `strategy-refiner` and `repro-oracle` see the accumulated feedback for all attempts (`OracleFeedback`).
     *   **Structured Probe Strategy**: The generator is instructed to prioritize a simple "probe" program to verify subsystem availability and kernel privileges (both on the very first attempt, or if a previous probe failed). It sets `IsProbe` to `true` for environment probes, and `false` for full reproducer candidates attempting to trigger the crash.
 4.  **Self-Repair & Toolkit Expansion**: The workflow enters a nested `DoWhile` loop (max 3 iterations) to handle compilation failures:
     *   **Toolkit Expansion & Compilation**: `CompileCProg` action replaces `#include "race_toolkit.h"` with the
