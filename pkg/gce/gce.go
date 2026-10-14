@@ -96,6 +96,9 @@ const (
 	// StaleImageAge is for how long an image with LabelAutoDelete must stay unused
 	// (i.e. its LabelLastActive must not be refreshed) before a cleanup job may delete it.
 	StaleImageAge = 12 * time.Hour
+	// LabelImageHash holds a hash of the image file the GCE image was created from,
+	// it allows to reuse the GCE image if the file has not changed.
+	LabelImageHash = "syz-image-hash"
 )
 
 // LastActiveLabelValue returns the LabelLastActive value for the given time.
