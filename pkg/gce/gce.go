@@ -83,6 +83,26 @@ type InstanceConfig struct {
 
 var metadataURL = "http://metadata.google.internal/computeMetadata/v1/"
 
+// Labels of the GCE images created by syzkaller.
+const (
+	// LabelAutoDelete marks images that may be deleted by an external cleanup job
+	// once their LabelLastActive is older than StaleImageAge.
+	LabelAutoDelete = "syz-auto-delete"
+	// LabelLastActive holds the time (in LastActiveTimeFormat) when the image was last known to be in use.
+	LabelLastActive = "syz-last-active"
+	// LastActiveTimeFormat is a fixed-width UTC timestamp, so that lexicographic order of label values
+	// matches chronological order. Label values may only contain lowercase letters, digits, '_' and '-'.
+	LastActiveTimeFormat = "20060102-150405"
+	// StaleImageAge is for how long an image with LabelAutoDelete must stay unused
+	// (i.e. its LabelLastActive must not be refreshed) before a cleanup job may delete it.
+	StaleImageAge = 12 * time.Hour
+)
+
+// LastActiveLabelValue returns the LabelLastActive value for the given time.
+func LastActiveLabelValue(t time.Time) string {
+	return t.UTC().Format(LastActiveTimeFormat)
+}
+
 func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate:    time.NewTicker(time.Second).C,
@@ -377,7 +397,7 @@ func (ctx *Context) IsInstanceRunning(name, zone string) bool {
 	return inst.Status == "RUNNING"
 }
 
-func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
+func (ctx *Context) CreateImage(imageName, gcsFile, OS string, labels map[string]string) error {
 	var features []*compute.GuestOsFeature
 	if OS == targets.Linux {
 		features = []*compute.GuestOsFeature{
@@ -395,6 +415,7 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 			"https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx",
 		},
 		GuestOsFeatures: features,
+		Labels:          labels,
 	}
 	var op *compute.Operation
 	err := ctx.apiCall(func() (err error) {
@@ -413,6 +434,43 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 		}
 	}
 	if err := ctx.waitForGlobalCompletion("create image", op.Name, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetImage returns the image with the given name, or nil if it does not exist.
+func (ctx *Context) GetImage(imageName string) (*compute.Image, error) {
+	var image *compute.Image
+	err := ctx.apiCall(func() (err error) {
+		image, err = ctx.computeService.Images.Get(ctx.ProjectID, imageName).Do()
+		return
+	})
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == 404 {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image: %w", err)
+	}
+	return image, nil
+}
+
+// SetImageLabels replaces the labels of the image (as returned by GetImage) with the given ones.
+func (ctx *Context) SetImageLabels(image *compute.Image, labels map[string]string) error {
+	req := &compute.GlobalSetLabelsRequest{
+		LabelFingerprint: image.LabelFingerprint,
+		Labels:           labels,
+	}
+	var op *compute.Operation
+	err := ctx.apiCall(func() (err error) {
+		op, err = ctx.computeService.Images.SetLabels(ctx.ProjectID, image.Name, req).Do()
+		return
+	})
+	if err != nil {
+		return fmt.Errorf("failed to set image labels: %w", err)
+	}
+	if err := ctx.waitForGlobalCompletion("set image labels", op.Name, false); err != nil {
 		return err
 	}
 	return nil

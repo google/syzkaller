@@ -66,6 +66,10 @@ func (pool *Pool) Count() int {
 	return pool.gcePool.Count()
 }
 
+func (pool *Pool) Close() error {
+	return pool.gcePool.Close()
+}
+
 func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	gceInst, err := pool.gcePool.Create(ctx, workdir, index)
 	if err != nil {
