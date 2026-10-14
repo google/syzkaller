@@ -223,9 +223,12 @@ type LoopControllerArgs struct {
 }
 
 type LoopControllerResult struct {
-	ContinueSignal        string
-	ReproC                string
-	OracleFeedback        string
+	ContinueSignal string
+	ReproC         string
+	OracleFeedback string
+	// LatestOracleFeedback is the oracle feedback for the last attempt only,
+	// while OracleFeedback accumulates feedback for all attempts.
+	LatestOracleFeedback  string
 	Reproduced            bool
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
@@ -267,6 +270,7 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 				args.CandidateBugTitle, args.Feedback,
 			)
 		}
+		res.LatestOracleFeedback = res.OracleFeedback
 		attempt := strings.Count("\n"+args.OracleFeedback, "\n=== Attempt ") + 1
 		res.OracleFeedback = fmt.Sprintf("=== Attempt %d ===\n%s", attempt, res.OracleFeedback)
 		if args.OracleFeedback != "" {
@@ -590,9 +594,9 @@ Previous Reproducer Attempt:
 {{.CurrentCandidateReproC}}
 {{end}}
 
-{{if .OracleFeedback}}
-Execution Results & Debugging Feedback:
-{{.OracleFeedback}}
+{{if .LatestOracleFeedback}}
+Execution Results & Debugging Feedback for the Previous Attempt:
+{{.LatestOracleFeedback}}
 {{end}}`
 
 const oracleInstruction = `You are a security researcher with deep Linux kernel background.
