@@ -449,11 +449,13 @@ func init() {
 						crash.RunCRepro,
 						TruncateLog,
 						&aflow.LLMAgent{
-							Name:        "repro-oracle",
-							Model:       aflow.CoreModel,
-							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
-							Instruction: oracleInstruction,
-							Prompt:      oraclePrompt,
+							Name:          "repro-oracle",
+							Model:         aflow.CoreModel,
+							Outputs:       aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
+							Instruction:   oracleInstruction,
+							Prompt:        oraclePrompt,
+							Tools:         tools,
+							MaxIterations: 30,
 						},
 						LoopController,
 					),
@@ -618,8 +620,10 @@ Set 'TerminalError' to a descriptive error message ONLY if:
   from Strace Output. In addition, middle lines of long logs are truncated ('... [truncated N lines] ...').
   Always inspect the Executed C Program before concluding that the program exited without sleeping or waiting.
 - Review Previous Attempts Feedback before giving instructions so you do not contradict earlier findings or
-  re-recommend an approach that already failed or hung in a previous attempt. Use code search tools only when
-  necessary to verify kernel behavior.
+  re-recommend an approach that already failed or hung in a previous attempt.
+- Use the code access tools to verify kernel behavior, ioctl numbers, struct layouts and constants before
+  recommending them. Never quote such values from memory. Keep tool use focused: you only need to diagnose
+  this execution, not to re-research the whole bug.
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
