@@ -140,6 +140,13 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
 			return nil, err
 		}
+		// The tarball is only needed to create the GCE image, delete it afterwards
+		// so that such files don't accumulate in the bucket.
+		defer func() {
+			if err := deleteImageFromGCS(gcsImage); err != nil {
+				log.Logf(0, "failed to delete %v from GCS: %v", gcsImage, err)
+			}
+		}()
 		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
@@ -617,4 +624,13 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
+}
+
+func deleteImageFromGCS(gcsImage string) error {
+	GCS, err := gcs.NewClient(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %w", err)
+	}
+	defer GCS.Close()
+	return GCS.DeleteFile(gcsImage)
 }
