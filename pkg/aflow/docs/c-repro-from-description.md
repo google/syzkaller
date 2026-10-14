@@ -23,7 +23,7 @@ The workflow is registered as `repro-c` and consists of a preprocessing phase fo
 3.  **Initial Research**: The `initial-researcher` agent analyzes the bug description and generates an initial reproduction strategy (`InitialReproStrategy`). It has access to codesearch and grep tools, as well as the toolkit query tool.
 
 ### Iterative Loop
-The workflow enters a `DoWhile` loop with a maximum of 20 iterations. The loop condition is controlled by `ContinueSignal`.
+The workflow enters a `DoWhile` loop with a maximum of 10 iterations. The loop condition is controlled by `ContinueSignal`.
 
 In each iteration, the following steps are executed:
 1.  **Strategy Refinement**: If `OracleFeedback` is available (from previous iterations), the `strategy-refiner` agent is invoked to update the strategy, producing `RefinedReproStrategy`.
@@ -41,7 +41,7 @@ In each iteration, the following steps are executed:
     *   **Repair**: If compilation fails, the `repro-repairer` agent is invoked to fix the code based on the compiler error, updating `RawCandidateReproC` for the next attempt.
 5.  **Execution**: `crash.RunCRepro` runs the candidate reproducer in the VM. It returns whether it reproduced the crash, the console output, and crash report details if successful.
 6.  **Log Truncation**: `TruncateLog` keeps the last 200 lines of console output to fit LLM context limits.
-7.  **Oracle Analysis**: The `repro-oracle` agent analyzes the execution results using the structured `IsProbe` flag to branch its logic:
+7.  **Oracle Analysis**: The `repro-oracle` agent analyzes the execution results using the structured `IsProbe` flag to branch its logic. It has read-only code access tools to verify kernel behavior and constants (with a limit of 30 iterations; if it runs out of iterations, it reports a best-effort verdict):
     *   **If `IsProbe` is true**: A successful run (all capability checks passed) confirms the environment is ready. The Oracle sets `ProbePassed` to true and instructs the generator to proceed to the full reproducer. A failed run sets `ProbePassed` to false and prompts feedback on which capabilities failed to help the generator adjust its setups.
     *   **If `IsProbe` is false**: A successful execution (exit 0) WITHOUT a crash means reproduction failed to trigger the bug (NOT a successful probe). The Oracle analyzes strace/console output to tighten the race window or adjust input parameters.
     *   **Terminal Mismatches**: If the Oracle detects a terminal environmental mismatch (e.g., a core virtual device like `/dev/kvm` is physically missing and required kernel modules are missing from the guest disk image), it sets `TerminalError` to a descriptive message explaining the missing dependency, signaling that further iterations are futile.

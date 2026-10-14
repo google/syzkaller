@@ -379,7 +379,8 @@ func SaveReproCFunc(ctx *aflow.Context, args SaveReproCArgs) (SaveReproCResult, 
 var SaveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
 
 func init() {
-	tools := aflow.Tools(common.CodeAccessToolsWithGit(false), toolkit.ToolGetToolkit)
+	codeTools := common.CodeAccessToolsWithGit(false)
+	tools := aflow.Tools(codeTools, toolkit.ToolGetToolkit)
 	aflow.Register[ReproCInputs, ai.ReproCOutputs](
 		ai.WorkflowReproC,
 		"reproduce a kernel crash and generate a C reproducer",
@@ -454,6 +455,12 @@ func init() {
 							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
 							Instruction: oracleInstruction,
 							Prompt:      oraclePrompt,
+							// The oracle only diagnoses an execution: it needs code access tools, but not the toolkit.
+							// Its verdict only steers the next attempt, so it reports a best-effort verdict
+							// instead of failing the whole workflow if it runs out of iterations.
+							Tools:               aflow.Tools(codeTools),
+							MaxIterations:       30,
+							AllowPartialResults: true,
 						},
 						LoopController,
 					),
@@ -618,8 +625,12 @@ Set 'TerminalError' to a descriptive error message ONLY if:
   from Strace Output. In addition, middle lines of long logs are truncated ('... [truncated N lines] ...').
   Always inspect the Executed C Program before concluding that the program exited without sleeping or waiting.
 - Review Previous Attempts Feedback before giving instructions so you do not contradict earlier findings or
-  re-recommend an approach that already failed or hung in a previous attempt. Use code search tools only when
-  necessary to verify kernel behavior.
+  re-recommend an approach that already failed or hung in a previous attempt.
+- Use the code access tools to verify kernel behavior, ioctl numbers, struct layouts and constants before
+  recommending them. Never quote such values from memory. Keep tool use focused: you only need to diagnose
+  this execution, not to re-research the whole bug.
+- If you are asked to wrap up before finishing your analysis, set 'TitleMatches' only if the crash titles
+  match exactly, never set 'TerminalError', and describe the unverified parts in 'Feedback'.
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
