@@ -1,0 +1,15 @@
+# requires: -threaded
+# Start a degraded 3-disk RAID5 array (left-symmetric, 64K chunks) from two
+# ramdisks with the legacy ioctl interface and do I/O on it.
+# The array is allocated by opening an md device node created with mknod.
+# The array is stopped at the end, since md arrays persist across programs.
+
+mknodat$md(AUTO, &AUTO='./md0\x00', AUTO, 0x0)
+r1 = openat$md_node(AUTO, &AUTO='./md0\x00', 0x2, AUTO)
+ioctl$SET_ARRAY_INFO(r1, AUTO, &AUTO={0x0, 0x5a, AUTO, 0x0, 0x5, 0x800, AUTO, 0x3, AUTO, 0x0, AUTO, 0x1, AUTO, AUTO, AUTO, AUTO, 0x2, 0x10000})
+ioctl$ADD_NEW_DISK(r1, AUTO, &AUTO={0x0, {AUTO, 0x0}, 0x0, 0x6})
+ioctl$ADD_NEW_DISK(r1, AUTO, &AUTO={0x1, {AUTO, 0x1}, 0x1, 0x6})
+ioctl$RUN_ARRAY(r1, AUTO, &AUTO={AUTO, AUTO, AUTO})
+pwrite64(r1, &AUTO="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", AUTO, 0x1000)
+pread64(r1, &AUTO=""/512, AUTO, 0x10000)
+ioctl$STOP_ARRAY(r1, AUTO, AUTO)

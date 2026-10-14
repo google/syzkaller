@@ -1,0 +1,27 @@
+# requires: -threaded
+# Create a RAID1 array without metadata from two ramdisks via the sysfs
+# interface used by mdadm (/sys/block/mdN/md/*) and do I/O on it.
+# The array is stopped at the end, since md arrays persist across programs
+# (the block device must be closed first, otherwise array_state=clear fails with EBUSY).
+
+r0 = openat$md_new_array(AUTO, &AUTO='/sys/module/md_mod/parameters/new_array\x00', AUTO, AUTO)
+write$md_new_array(r0, &AUTO={'md', @num=0x0}, AUTO)
+r1 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @array='level\x00'}, 0x1, AUTO)
+write$md_sysfs(r1, &AUTO=@str='raid1', AUTO)
+r2 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @array='raid_disks\x00'}, 0x1, AUTO)
+write$md_sysfs(r2, &AUTO=@str='2', AUTO)
+r3 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @array='component_size\x00'}, 0x1, AUTO)
+write$md_sysfs(r3, &AUTO=@str='512', AUTO)
+r4 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @array='new_dev\x00'}, 0x1, AUTO)
+write$md_sysfs(r4, &AUTO=@dev={'1:', 0x0}, AUTO)
+write$md_sysfs(r4, &AUTO=@dev={'1:', 0x1}, AUTO)
+r5 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @rdev={@ram={'dev-ram', 0x0, AUTO}, 'slot\x00'}}, 0x1, AUTO)
+write$md_sysfs(r5, &AUTO=@str='0', AUTO)
+r6 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @rdev={@ram={'dev-ram', 0x1, AUTO}, 'slot\x00'}}, 0x1, AUTO)
+write$md_sysfs(r6, &AUTO=@str='1', AUTO)
+r7 = openat$md_sysfs(AUTO, &AUTO={'/sys/block/md', @num=0x0, '/md/', @array='array_state\x00'}, 0x1, AUTO)
+write$md_sysfs(r7, &AUTO=@str='active', AUTO)
+r8 = openat$md(AUTO, &AUTO={'/dev/md', @num=0x0, AUTO}, 0x2, AUTO)
+pwrite64(r8, &AUTO="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", AUTO, 0x1000)
+close(r8)
+write$md_sysfs(r7, &AUTO=@str='clear', AUTO)
