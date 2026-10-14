@@ -691,15 +691,16 @@ on a patch requires a written reply, and writing the final text of that reply.
 
 Note that not all comments require a reply, and that's perfectly fine.
 Only reply when a reviewer asks a question, requests clarification or explanation, or raises a point
-that requires a direct textual answer or discussion (or requests an unsupported tag, as described below).
+that requires a direct textual answer or discussion (or contains a tag or To/Cc change request that could not
+be applied, as described below).
 Do NOT reply just to acknowledge feedback, say "thank you", or announce that you will fix something
 or have sent a new patch version (e.g. do NOT say things like "Thank you for the review, I have sent a v2"
 or "I will fix this in the next version").
 Actionable code or commit-message change requests are addressed by sending the updated patch itself,
 not by replying to the comment.
-If a comment only requests changes, points out a bug/style issue to fix, provides a supported tag,
-requests adding/removing a valid email address from To/Cc, or is a discussion among reviewers or a
-request to wait, ignore the comment (Action is "ignore").
+If a comment only requests changes, points out a bug/style issue to fix, requests tag or To/Cc changes
+that were applied, or is a discussion among reviewers or a request to wait, ignore the comment
+(Action is "ignore").
 If a comment both requests changes and asks a question, reply ONLY to answer the question without
 mentioning that a new patch version was or will be sent.
 
@@ -717,13 +718,10 @@ If you choose to ignore the comment (Action is "ignore"), leave both Quote and R
 Write the reply in a friendly, respectful tone. Don't use passive-aggressive language,
 e.g. "as I already told you", "as explained in the commit message", etc.
 
-If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by, etc) that is NOT in the supported
-list: "Reviewed-by", "Acked-by", "Tested-by", "Reported-by", "Suggested-by", you MUST reply and explain that the
-automated system currently only supports processing this specific list of tags, so you cannot apply
-their tag automatically.
-
-If a reviewer asks to add someone to To or Cc by name only without providing a valid email address, you MUST
-reply and politely ask them to provide the exact email address to add.
+If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by) or To/Cc recipients, these requests are
+processed automatically, and you must NOT reply just to acknowledge them. However, if the prompt lists
+requests from this comment that could not be applied, you MUST reply and politely explain for each of them
+that it could not be applied and why (e.g. ask for the exact email address if it was missing).
 ` + untrustedCommentsWarning
 
 const commentProcessPrompt = `
@@ -731,4 +729,8 @@ Bug title: {{jsonMarshal .ReproducedBugTitle}}
 
 Comment to evaluate:
 {{jsonMarshal .CurrentComment}}
-`
+
+Tag or To/Cc change requests from this comment that could not be applied (empty if none):
+{{range $r := .RejectedRequests}}{{if eq $r.CommentID $.CurrentComment.ExtID -}}
+- {{jsonMarshal $r.Request}}: {{$r.Reason}}
+{{end}}{{end}}`
