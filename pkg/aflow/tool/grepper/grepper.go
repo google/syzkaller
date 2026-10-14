@@ -75,7 +75,8 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	if err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 			if exitErr.ExitCode() == 1 && len(output) == 0 {
-				return results{}, aflow.BadCallError("no matches")
+				// No matches is a valid result, not a bad call.
+				return results{Output: "no matches"}, nil
 			}
 			// This should mean an invalid expression.
 			if exitErr.ExitCode() == 128 && bytes.Contains(output, []byte("fatal:")) {

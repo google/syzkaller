@@ -100,8 +100,8 @@ overflow.c:1000
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
 		args{Expression: "something that never appears"},
-		results{},
-		"no matches")
+		results{Output: "no matches"},
+		"")
 
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
@@ -153,13 +153,13 @@ foo.c-6-	line;
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
 		args{Expression: "->root"},
-		results{},
-		"no matches")
+		results{Output: "no matches"},
+		"")
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
 		args{Expression: `-\>root`},
-		results{},
-		"no matches")
+		results{Output: "no matches"},
+		"")
 }
 
 func TestGrepperManyFiles(t *testing.T) {
