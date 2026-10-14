@@ -1,0 +1,13 @@
+# requires: -threaded
+# Create an AES-XTS dm-crypt device over /dev/ram1 and write to it.
+# DM_DEV_SUSPEND without DM_SUSPEND_FLAG resumes the device and activates the loaded table.
+# The device is removed (with DM_DEFERRED_REMOVE) at the end so repeated test runs do not hit EBUSY.
+
+r0 = openat$dm_control(AUTO, &AUTO='/dev/mapper/control\x00', 0x2, AUTO)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {<r1=>0x0, {'syz', 0x0, '1\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, [@crypt={AUTO, 0x2000, AUTO, AUTO, 'crypt\x00', {'aes-xts-plain64', AUTO, @fixed='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', AUTO, '0', AUTO, {@ram={'/dev/ram', 0x1}, AUTO, '0'}, ''}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, ""})
+mknodat$dm(AUTO, &AUTO='./dm0\x00', AUTO, r1)
+r2 = openat$dm_dev(AUTO, &AUTO='./dm0\x00', 0x2, AUTO)
+pwrite64(r2, &AUTO="0102030405060708", 0x8, 0x0)
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, ""})

@@ -46,6 +46,7 @@ func InitTarget(target *prog.Target) {
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
+		O_CREAT:                     target.GetConst("O_CREAT"),
 		// These are not present on all arches.
 		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
 		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
@@ -151,6 +152,7 @@ type arch struct {
 	NETLINK_GENERIC             uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
+	O_CREAT                     uint64
 }
 
 func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
@@ -236,12 +238,28 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
 		arch.neutralizePaths(c)
 	}
+	arch.neutralizeVariant(c)
+	return nil
+}
 
+// neutralizeVariant handles specific syscall variants (by full name, e.g. "ioctl$DM_DEV_SUSPEND").
+func (arch *arch) neutralizeVariant(c *prog.Call) {
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.neutralizeEbtables(c)
+	case "ioctl$DM_DEV_SUSPEND":
+		neutralizeDmSuspend(c.Args[2])
+	case "openat$dm_dev":
+		// The node may not exist yet (it is created by mknodat$dm), so O_CREAT would create
+		// a regular file in its place.
+		arch.clearOpenCreat(c.Args[2])
 	}
-	return nil
+}
+
+func (arch *arch) clearOpenCreat(a prog.Arg) {
+	if flags, ok := a.(*prog.ConstArg); ok {
+		flags.Val &^= arch.O_CREAT
+	}
 }
 
 func (arch *arch) neutralizePaths(c *prog.Call) {
@@ -336,6 +354,26 @@ func neutralizeSchedAttr(a prog.Arg) {
 		}
 	case *prog.ConstArg:
 		attr.Val = 0
+	}
+}
+
+// neutralizeDmSuspend clears DM_SUSPEND_FLAG in ioctl$DM_DEV_SUSPEND: leaving a DM device
+// suspended queues all I/O and makes close() hang in sync_blockdev().
+func neutralizeDmSuspend(a prog.Arg) {
+	const (
+		dmIoctlFlagsField = 7      // index of the flags field in dm_ioctl_t (struct dm_ioctl)
+		dmSuspendFlag     = 1 << 1 // DM_SUSPEND_FLAG in include/uapi/linux/dm-ioctl.h
+	)
+	ptr, ok := a.(*prog.PointerArg)
+	if !ok || ptr.Res == nil {
+		return
+	}
+	group, ok := ptr.Res.(*prog.GroupArg)
+	if !ok || len(group.Inner) <= dmIoctlFlagsField {
+		return
+	}
+	if flags, ok := group.Inner[dmIoctlFlagsField].(*prog.ConstArg); ok {
+		flags.Val &^= dmSuspendFlag
 	}
 }
 
