@@ -29,7 +29,6 @@ func TestLLMTool(t *testing.T) {
 				&LLMTool[inputs, DefaultLLMArgs]{
 					Name:        "researcher",
 					Model:       "sub-agent-model",
-					TaskType:    FormalReasoningTask,
 					Description: "researcher description",
 					Instruction: "researcher instruction",
 					Prompt:      `{{.Question}}`,
@@ -144,7 +143,6 @@ func researcherAgent(maxIterations int) *LLMAgent {
 			&LLMTool[struct{}, DefaultLLMArgs]{
 				Name:          "researcher",
 				Model:         "sub-agent-model",
-				TaskType:      FormalReasoningTask,
 				Description:   "researcher description",
 				Instruction:   "researcher instruction",
 				Prompt:        `{{.Question}}`,
@@ -267,7 +265,6 @@ func TestLLMToolValidation(t *testing.T) {
 				&StructuredLLMTool[struct{}, DefaultLLMArgs, testResult]{
 					Name:        "researcher",
 					Model:       "sub-agent-model",
-					TaskType:    FormalReasoningTask,
 					Description: "researcher description",
 					Instruction: "researcher instruction",
 					Prompt:      `{{.Question}}`,
@@ -339,7 +336,6 @@ func TestStructuredLLMToolWithJudge(t *testing.T) {
 				&StructuredLLMTool[struct{}, DefaultLLMArgs, testResult]{
 					Name:        "researcher",
 					Model:       "sub-agent-model",
-					TaskType:    FormalReasoningTask,
 					Description: "researcher description",
 					Instruction: "researcher instruction",
 					Prompt:      `{{.Question}}`,
@@ -416,7 +412,6 @@ func TestStructuredLLMToolWithJudgeWrapUp(t *testing.T) {
 				&StructuredLLMTool[struct{}, DefaultLLMArgs, testResult]{
 					Name:          "researcher",
 					Model:         "sub-agent-model",
-					TaskType:      FormalReasoningTask,
 					Description:   "researcher description",
 					Instruction:   "researcher instruction",
 					Prompt:        `{{.Question}}`,

@@ -184,9 +184,6 @@ func setupDefaults(a Action) {
 		if a.Model == "" {
 			a.Model = "model"
 		}
-		if a.TaskType == 0 {
-			a.TaskType = FormalReasoningTask
-		}
 		if a.Instruction == "" {
 			a.Instruction = "Instruction"
 		}

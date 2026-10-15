@@ -10,7 +10,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -72,7 +71,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -596,7 +594,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [

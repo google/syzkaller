@@ -27,9 +27,8 @@ func init() {
 			Root: aflow.Pipeline(
 				readPatchDiff,
 				&aflow.LLMAgent{
-					Name:     "patch-evaluator",
-					Model:    aflow.CoreModel,
-					TaskType: aflow.FormalReasoningTask,
+					Name:  "patch-evaluator",
+					Model: aflow.CoreModel,
 					Outputs: aflow.ValidatedLLMOutputs[patchEvalOutput](
 						func(ctx *aflow.Context, state ai.PatchTriageArgs, args patchEvalOutput) (patchEvalOutput, error) {
 							if args.Reasoning == "" {
@@ -56,10 +55,9 @@ func init() {
 				&aflow.If{
 					Condition: "WorthFuzzing",
 					Do: &aflow.LLMAgent{
-						Name:     "kmsan-evaluator",
-						Model:    aflow.CoreModel,
-						TaskType: aflow.FormalReasoningTask,
-						Outputs:  aflow.LLMOutputs[kmsanEvalOutput](),
+						Name:    "kmsan-evaluator",
+						Model:   aflow.CoreModel,
+						Outputs: aflow.LLMOutputs[kmsanEvalOutput](),
 						Tools: aflow.Tools(
 							grepper.Tool,
 							codesearcher.FilesystemTools,

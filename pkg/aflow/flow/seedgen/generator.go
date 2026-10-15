@@ -44,7 +44,6 @@ var GeneratorAgent = &aflow.LLMAgent{
 		syzlang.CorpusCodeSearch,
 		codesearcher.Tools,
 	),
-	TaskType:      aflow.FormalReasoningTask,
 	MaxIterations: 500,
 	Judge: &aflow.LLMJudge{
 		Name:               "generator-judge",

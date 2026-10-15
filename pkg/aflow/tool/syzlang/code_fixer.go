@@ -61,7 +61,6 @@ var CodeFixer = &aflow.StructuredLLMTool[codeFixerState, CodeFixerArgs, CodeFixe
 	Model:         aflow.CoreModel,
 	MaxIterations: 60,
 	Outputs:       aflow.ValidatedLLMToolOutputs[CodeFixerResult, codeFixerState, CodeFixerArgs](validateCodeFixerOutputs),
-	TaskType:      aflow.FormalReasoningTask,
 	Description: "A subagent tool that takes a syzlang program and repeatedly executes it " +
 		"until it has no compilation or unacceptable runtime call errors. " +
 		"It can handle expected call errors described by the parent, but will fail/give up on unexpected/unfixable errors.",

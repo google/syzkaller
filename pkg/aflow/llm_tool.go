@@ -16,9 +16,8 @@ import (
 // It can do complex multi-step research, and provide a concise answer to the parent LLM
 // without polluting its context window.
 type StructuredLLMTool[State, Args, Results any] struct {
-	Name     string
-	Model    backend.ModelCategory
-	TaskType TaskType
+	Name  string
+	Model backend.ModelCategory
 	// Description of the tool exposed to the parent LLM.
 	Description string
 	Instruction string
@@ -140,7 +139,6 @@ func (t *StructuredLLMTool[State, Args, Results]) verify(ctx *verifyContext) {
 	t.agent = &LLMAgent{
 		Name:          t.Name,
 		Model:         t.Model,
-		TaskType:      t.TaskType,
 		Instruction:   t.Instruction,
 		Prompt:        fmt.Sprintf("{{.%v}}", llmToolPrompt),
 		Tools:         t.Tools,

@@ -44,7 +44,6 @@ func init() {
 					Outputs: aflow.LLMOutputs[struct {
 						Benign bool `jsonschema:"If the data race is benign or not."`
 					}](),
-					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/kcsan_instruction.md"),
 					Prompt:      kcsanPrompt,
 					Tools:       common.CodeAccessTools,

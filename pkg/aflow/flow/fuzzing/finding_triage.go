@@ -25,9 +25,8 @@ func init() {
 			Root: aflow.Pipeline(
 				prepareFindingOverview,
 				&aflow.LLMAgent{
-					Name:     "finding-triage-evaluator",
-					Model:    aflow.CoreModel,
-					TaskType: aflow.FormalReasoningTask,
+					Name:  "finding-triage-evaluator",
+					Model: aflow.CoreModel,
 					Outputs: aflow.ValidatedLLMOutputs[ai.FindingTriageResult](
 						func(ctx *aflow.Context, state ai.FindingTriageArgs,
 							args ai.FindingTriageResult) (ai.FindingTriageResult, error) {

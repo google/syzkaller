@@ -31,8 +31,7 @@ It specializes in:
 4. Checking kernel build options in .config.
 DO NOT use this tool for git history/blame or generic code refactoring questions;
 use it specifically to discover reachable trigger paths from userspace into the kernel.`,
-	Model:    aflow.CoreModel,
-	TaskType: aflow.FormalReasoningTask,
+	Model: aflow.CoreModel,
 	// Over 90% of the analyses that end up being useful fit into this many iterations.
 	// The longer runs almost always mean that the agent is stuck and just wastes tokens,
 	// so cut them short and take whatever they have found by that moment.

@@ -15,10 +15,9 @@ type HistorySummarizerOutputs struct {
 }
 
 var HistorySummarizerAgent = &aflow.LLMAgent{
-	Name:     "generator-history-summarizer",
-	Model:    aflow.CoreModel,
-	TaskType: aflow.FormalReasoningTask,
-	Outputs:  aflow.LLMOutputs[HistorySummarizerOutputs](),
+	Name:    "generator-history-summarizer",
+	Model:   aflow.CoreModel,
+	Outputs: aflow.LLMOutputs[HistorySummarizerOutputs](),
 	Instruction: `You are an expert agent analyst. Your task is to analyze the conversation history of a
 failed seed generator agent that was stopped by its judge or hit an execution error.
 
