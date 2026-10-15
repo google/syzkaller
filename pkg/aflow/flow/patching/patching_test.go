@@ -118,13 +118,15 @@ func TestSetTestFailure(t *testing.T) {
 func TestPatchGenerationLoopVariants(t *testing.T) {
 	// Verify loop without reviewer targets TestError.
 	loopNoReview := patchGenerationLoop(patchGenerationConfig{
-		Instruction: "instruction",
-		Prompt:      "prompt",
+		GeneratorModel: aflow.DeepReasoningModel,
+		Instruction:    "instruction",
+		Prompt:         "prompt",
 	})
 	require.NotNil(t, loopNoReview)
 
 	// Verify loop with reviewer targets NeedsIteration.
 	loopWithReview := patchGenerationLoop(patchGenerationConfig{
+		GeneratorModel: aflow.CoreModel,
 		Instruction:    "instruction",
 		Prompt:         "prompt",
 		ReviewerPrompt: reviewerPrompt,

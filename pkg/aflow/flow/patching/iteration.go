@@ -139,10 +139,11 @@ func init() {
 							// In patch-iteration, human reviewer feedback is the sole ground truth,
 							// so we do not run an automated architectural reviewer agent.
 							Do: patchGenerationLoop(patchGenerationConfig{
-								BeforeEach:  applyGitPatch,
-								Instruction: patchIterationInstruction,
-								Prompt:      patchIterationPrompt,
-								ExtraTools:  aflow.Tools(viewPatchHistoryTool),
+								BeforeEach:     applyGitPatch,
+								GeneratorModel: aflow.DeepReasoningModel,
+								Instruction:    patchIterationInstruction,
+								Prompt:         patchIterationPrompt,
+								ExtraTools:     aflow.Tools(viewPatchHistoryTool),
 							}),
 							Else: forwardPatchDiff,
 						},

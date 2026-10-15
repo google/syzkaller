@@ -88,7 +88,7 @@ func init() {
 				},
 				&aflow.LLMAgent{
 					Name:        "history-explorer",
-					Model:       aflow.DeepReasoningModel,
+					Model:       aflow.CoreModel,
 					Reply:       "HistoricalContext",
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: historyExplorerInstruction,
@@ -97,6 +97,7 @@ func init() {
 				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(patchGenerationConfig{
+					GeneratorModel: aflow.CoreModel,
 					Instruction:    patchInstruction,
 					Prompt:         patchPrompt,
 					ReviewerPrompt: reviewerPrompt,
@@ -451,6 +452,7 @@ var setTestFailure = aflow.NewFuncAction("set-test-failure",
 
 type patchGenerationConfig struct {
 	BeforeEach     aflow.Action
+	GeneratorModel aflow.ModelCategory
 	Instruction    string
 	Prompt         string
 	ReviewerPrompt string
@@ -469,7 +471,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 	actions = append(actions,
 		&aflow.LLMAgent{
 			Name:        "patch-generator",
-			Model:       aflow.CoreModel,
+			Model:       cfg.GeneratorModel,
 			Reply:       "PatchExplanation",
 			TaskType:    aflow.FormalReasoningTask,
 			Instruction: cfg.Instruction,
@@ -488,7 +490,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 			Else: aflow.Pipeline(
 				&aflow.LLMAgent{
 					Name:        "patch-reviewer",
-					Model:       aflow.CoreModel,
+					Model:       aflow.DeepReasoningModel,
 					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),
