@@ -409,7 +409,7 @@ func init() {
 							Condition: "OracleFeedback",
 							Do: &aflow.LLMAgent{
 								Name:          "strategy-refiner",
-								Model:         aflow.DeepReasoningModel,
+								Model:         aflow.CoreModel,
 								Reply:         "RefinedReproStrategy",
 								TaskType:      aflow.FormalReasoningTask,
 								MaxIterations: 100,
@@ -421,7 +421,7 @@ func init() {
 						MergeStrategy,
 						&aflow.LLMAgent{
 							Name:          "repro-generator",
-							Model:         aflow.DeepReasoningModel,
+							Model:         aflow.CoreModel,
 							Outputs:       aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](validateGeneratorOutputs),
 							TaskType:      aflow.FormalReasoningTask,
 							MaxIterations: 100,
@@ -439,7 +439,7 @@ func init() {
 									Condition: "CompilerError",
 									Do: &aflow.LLMAgent{
 										Name:          "repro-repairer",
-										Model:         aflow.DeepReasoningModel,
+										Model:         aflow.CoreModel,
 										Reply:         "RepairedCandidateReproC",
 										TaskType:      aflow.FormalReasoningTask,
 										MaxIterations: 50,
@@ -454,7 +454,7 @@ func init() {
 						TruncateLog,
 						&aflow.LLMAgent{
 							Name:        "repro-oracle",
-							Model:       aflow.DeepReasoningModel,
+							Model:       aflow.CoreModel,
 							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: oracleInstruction,
