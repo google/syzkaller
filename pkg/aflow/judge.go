@@ -58,7 +58,6 @@ func (j *LLMJudge) verify() error {
 		Name:          j.Name,
 		Model:         j.Model,
 		MaxIterations: 3,
-		TaskType:      FormalReasoningTask,
 		Outputs:       LLMOutputs[JudgeOutputs](),
 		Instruction: j.Instruction + "\n\n" +
 			"Analyze the provided execution history of the subagent and call set-results with Stop and Reason.\n" +

@@ -38,8 +38,6 @@ type LLMAgent struct {
 	// Optional additional structured outputs besides the final text reply.
 	// Use LLMOutputs or ValidatedLLMOutputs functions to create it.
 	Outputs *llmOutputs
-	// Task type controls various LLM parameters, see TaskType consts below.
-	TaskType TaskType
 	// If set, the agent will generate that many candidates and the outputs will be arrays
 	// instead of scalars.
 	Candidates int
@@ -123,27 +121,6 @@ const (
 	// Maximum number of parallel tool calls allowed per model turn.
 	maxParallelToolCalls = 10
 )
-
-type TaskType int
-
-const (
-	FormalReasoningTask TaskType = iota + 1
-)
-
-// Currently we use task type to control temperature only,
-// but potentially we can use it to control other parameters too
-// (TopN, TopK, etc).
-// Temperature controls the degree of randomness in token selection.
-// Lower temperatures are good for prompts that require less open-ended
-// or creative responses, while higher temperatures can lead to more
-// diverse or creative results. The default temperature is 1,
-// for Gemini models in value range is [0, 2].
-var taskParameters = map[TaskType]float32{
-	// The amount of thought put into this number is low.
-	// It's basically just "we want something less random
-	// for formal tasks like coding/debugging".
-	FormalReasoningTask: 0.3,
-}
 
 // Tool represents a custom tool an LLMAgent can invoke.
 // Use NewFuncTool to create function-based tools.
@@ -700,10 +677,6 @@ You MUST provide the summary in your final response text. Do not use tools.
 const tokenCompressionPrompt = `Task: Provide the comprehensive summary of the above execution history now.
 Important: You must output the actual summary text in your final response. Do NOT use any tools.`
 
-// We use a very low temperature for the compressor to ensure it acts as a strict,
-// deterministic summarizer of facts without hallucinating or adding creative leaps.
-const tokenCompressionTemperature = 0.1
-
 const compressedHistoryPrefix = "Here is the summary of the previous execution history:\n\n"
 
 // After compression, thoughts from the summarized part of the history are dropped. Empirically,
@@ -718,9 +691,7 @@ the most efficient next step is.`
 func (a *agentSession) compressContext(
 	ctx *Context, instruction string, splitIndex int) (*backend.Message, int, error) {
 	// Lightweight config targeting the Flash model.
-	temp := float32(tokenCompressionTemperature)
 	cfg := &backend.GenerateConfig{
-		Temperature: &temp,
 		SystemInstruction: &backend.Message{
 			Role:  backend.RoleUser,
 			Parts: []backend.Part{{Text: tokenCompressionInstruction}},
@@ -894,7 +865,6 @@ func (a *LLMAgent) config(ctx *Context) (*backend.GenerateConfig, string, string
 	}
 	prompt := formatTemplate(a.Prompt, state)
 	return &backend.GenerateConfig{
-		Temperature: new(taskParameters[a.TaskType]),
 		SystemInstruction: &backend.Message{
 			Role:  backend.RoleUser,
 			Parts: []backend.Part{{Text: instruction}},
@@ -1134,9 +1104,6 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if a.SubAgent {
 			ctx.errorf(a.Name, "a sub-agent must have Outputs")
 		}
-	}
-	if _, ok := taskParameters[a.TaskType]; !ok {
-		ctx.errorf(a.Name, "bad or missing TaskType (%v)", a.TaskType)
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
 		ctx.errorf(a.Name, "Candidates must be in the range [0, 100]")

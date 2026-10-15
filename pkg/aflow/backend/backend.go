@@ -65,7 +65,6 @@ type Tool struct {
 // GenerateConfig contains parameters for content generation.
 type GenerateConfig struct {
 	SystemInstruction *Message      `json:"systemInstruction,omitempty"`
-	Temperature       *float32      `json:"temperature,omitempty"`
 	Tools             []*Tool       `json:"tools,omitempty"`
 	ThinkingLevel     ThinkingLevel `json:"thinkingLevel,omitempty"`
 	IncludeThoughts   bool          `json:"includeThoughts,omitempty"`

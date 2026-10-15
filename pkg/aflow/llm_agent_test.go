@@ -326,7 +326,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				Name:        "smarty",
 				Model:       "model",
 				Reply:       "Result",
-				TaskType:    FormalReasoningTask,
 				Instruction: "{{NonExistentFoo}}",
 				Prompt:      "Prompt",
 			},
@@ -338,7 +337,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				Name:        "smarty",
 				Model:       "model",
 				Reply:       "Result",
-				TaskType:    FormalReasoningTask,
 				Instruction: "Instruction",
 				Prompt:      "Prompt",
 				Tools: []Tool{
@@ -355,7 +353,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				Name:        "smarty",
 				Model:       "model",
 				Reply:       "Result",
-				TaskType:    FormalReasoningTask,
 				Instruction: "Instruction",
 				Prompt:      "Prompt",
 				Tools: []Tool{
@@ -378,7 +375,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				ValidatedReply: LLMReply("bar", func(*Context, struct{}, string) (string, error) {
 					return "", nil
 				}),
-				TaskType:    FormalReasoningTask,
 				Instruction: "Instructions",
 				Prompt:      "Initial Prompt",
 			},
@@ -390,7 +386,6 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				Name:        "smarty",
 				Model:       "model",
 				Reply:       "Result",
-				TaskType:    FormalReasoningTask,
 				Instruction: "Instructions",
 				Prompt:      "Initial Prompt",
 				Candidates:  2,
@@ -504,7 +499,6 @@ func TestValidatedLLMOutputsVerify(t *testing.T) {
 					func(ctx *Context, state missingState, args flowResults) (flowResults, error) {
 						return args, nil
 					}),
-				TaskType:    FormalReasoningTask,
 				Instruction: "Instructions",
 				Prompt:      "Initial Prompt",
 			},
@@ -547,10 +541,9 @@ func TestModelFallbackTrajectory(t *testing.T) {
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
 		&LLMAgent{
-			Name:     "smarty",
-			Model:    "fallback-pool",
-			Reply:    "Reply",
-			TaskType: FormalReasoningTask,
+			Name:  "smarty",
+			Model: "fallback-pool",
+			Reply: "Reply",
 		},
 		[]any{
 			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (

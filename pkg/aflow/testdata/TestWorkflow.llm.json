@@ -10,7 +10,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -334,7 +333,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -505,7 +503,6 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0.3,
 			"thinkingLevel": 3,
 			"includeThoughts": true
 		},

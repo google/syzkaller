@@ -20,9 +20,8 @@ type executionSummarizerState struct {
 }
 
 var ExecutionSummarizer = &aflow.LLMTool[executionSummarizerState, ExecutionSummarizerArgs]{
-	Name:     "execution-summarizer",
-	Model:    aflow.CoreModel,
-	TaskType: aflow.FormalReasoningTask,
+	Name:  "execution-summarizer",
+	Model: aflow.CoreModel,
 	// Past this many iterations the summarizer is no longer analyzing the execution,
 	// it just wanders around the kernel code, so cut it short and take whatever
 	// it has found by that moment.

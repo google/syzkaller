@@ -39,7 +39,6 @@ func init() {
 					Outputs: aflow.LLMOutputs[struct {
 						Actionable bool `jsonschema:"If the report is actionable or not."`
 					}](),
-					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/moderation_instruction.md"),
 					Prompt:      moderationPrompt,
 					Tools:       common.CodeAccessTools,

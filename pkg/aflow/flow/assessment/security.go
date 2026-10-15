@@ -52,7 +52,6 @@ func init() {
 					Model:       aflow.DeepReasoningModel,
 					Reply:       "ExplanationRaw",
 					Outputs:     aflow.LLMOutputs[securityOutputs](),
-					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/security_instruction.md"),
 					Prompt:      securityPrompt,
 					Tools:       common.CodeAccessTools,

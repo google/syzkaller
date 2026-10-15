@@ -37,7 +37,6 @@ type Provider struct {
 type modelInfo struct {
 	Thinking         bool
 	MinThinkingLevel backend.ThinkingLevel
-	MaxTemperature   float32
 	InputTokenLimit  int
 	OutputTokenLimit int
 }
@@ -90,7 +89,6 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			Thinking: true,
 			// Gemini 3.8 Flash does not support MINIMAL thinking.
 			MinThinkingLevel: backend.ThinkingLevelLow,
-			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
 		},
@@ -98,13 +96,11 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			Thinking: true,
 			// Gemini 3.7 Flash does not support MINIMAL thinking.
 			MinThinkingLevel: backend.ThinkingLevelLow,
-			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
 		},
 		"gemini-3.6-flash": {
 			Thinking:         true,
-			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
 		},
@@ -112,7 +108,6 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			Thinking: true,
 			// Gemini 4 Argon does not support MINIMAL thinking.
 			MinThinkingLevel: backend.ThinkingLevelLow,
-			MaxTemperature:   2.0,
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
 		},
@@ -199,10 +194,6 @@ func (c *client) GenerateContent(ctx context.Context, model string, cfg *backend
 
 	genaiCfg := &genai.GenerateContentConfig{}
 	if cfg != nil {
-		if cfg.Temperature != nil {
-			temp := min(*cfg.Temperature, info.MaxTemperature)
-			genaiCfg.Temperature = &temp
-		}
 		if cfg.SystemInstruction != nil {
 			genaiCfg.SystemInstruction = toGenaiContent(cfg.SystemInstruction)
 		}

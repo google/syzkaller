@@ -68,7 +68,6 @@ func init() {
 						syzlang.Reproduce,
 						syzlang.Coverage,
 					),
-					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
 				},
