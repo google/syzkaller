@@ -4,9 +4,12 @@
 package backend
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/stretchr/testify/require"
 )
 
 type CleanPathAndroidTest struct {
@@ -122,4 +125,25 @@ func TestPathCleanerKernelSrcPath(t *testing.T) {
 	if rel != "relative/path" || abs != "/some_src_dir/relative/path" {
 		t.Errorf("expected rel=relative/path, abs=/some_src_dir/relative/path, got %q, %q", rel, abs)
 	}
+}
+
+func TestPathCleanerFindRelativeInSrc(t *testing.T) {
+	// Test that a DWARF path with a non-matching build prefix is normalized by
+	// CleanPath if the file exists under Src. CleanPath checks file existence on
+	// disk (via osutil.IsExist), so we create a temporary directory and dummy
+	// file.
+	srcDir := t.TempDir()
+
+	targetFile := filepath.Join(srcDir, "drivers", "usb", "core", "devio.c")
+	require.NoError(t, os.MkdirAll(filepath.Dir(targetFile), 0755))
+	require.NoError(t, os.WriteFile(targetFile, []byte(""), 0644))
+
+	kernelDirs := &mgrconfig.KernelDirs{
+		Src: srcDir,
+		Obj: srcDir,
+	}
+	dwarfPath := "/syzkaller/workdir/cache/src/hash1111/drivers/usb/core/devio.c"
+	rel, abs := CleanPath(dwarfPath, kernelDirs, nil)
+	require.Equal(t, "drivers/usb/core/devio.c", rel)
+	require.Equal(t, targetFile, abs)
 }
