@@ -100,6 +100,8 @@ type toolCallRecord struct {
 	Args map[string]any
 }
 
+type ModelCategory = backend.ModelCategory
+
 const (
 	// Consts to use for LLMAgent.Model.
 	// These are aliases for the backend constants to avoid requiring users
