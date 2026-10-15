@@ -138,9 +138,12 @@ func init() {
 							Condition: "CodeItems",
 							// In patch-iteration, human reviewer feedback is the sole ground truth,
 							// so we do not run an automated architectural reviewer agent.
-							Do: patchGenerationLoop(
-								applyGitPatch, patchIterationInstruction, patchIterationPrompt,
-								"", viewPatchHistoryTool),
+							Do: patchGenerationLoop(patchGenerationConfig{
+								BeforeEach:  applyGitPatch,
+								Instruction: patchIterationInstruction,
+								Prompt:      patchIterationPrompt,
+								ExtraTools:  aflow.Tools(viewPatchHistoryTool),
+							}),
 							Else: forwardPatchDiff,
 						},
 						patchRefinementLoop(false),

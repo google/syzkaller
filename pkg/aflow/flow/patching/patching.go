@@ -96,7 +96,11 @@ func init() {
 					Tools:       common.CodeAccessTools,
 				},
 				kernel.CheckoutScratch,
-				patchGenerationLoop(nil, patchInstruction, patchPrompt, reviewerPrompt),
+				patchGenerationLoop(patchGenerationConfig{
+					Instruction:    patchInstruction,
+					Prompt:         patchPrompt,
+					ReviewerPrompt: reviewerPrompt,
+				}),
 				patchRefinementLoop(true),
 				&aflow.LLMAgent{
 					Name:        "fixes-finder",
@@ -445,15 +449,22 @@ var setTestFailure = aflow.NewFuncAction("set-test-failure",
 		}, nil
 	})
 
+type patchGenerationConfig struct {
+	BeforeEach     aflow.Action
+	Instruction    string
+	Prompt         string
+	ReviewerPrompt string
+	ExtraTools     []aflow.Tool
+}
+
 // patchGenerationLoop creates an iterative patch generation loop.
-// If reviewerPrompt is non-empty, the loop invokes patch-reviewer to evaluate architectural guidelines.
-// When reviewerPrompt is empty (e.g., in patch-iteration where human reviewer feedback is the sole
+// If ReviewerPrompt is non-empty, the loop invokes patch-reviewer to evaluate architectural guidelines.
+// When ReviewerPrompt is empty (e.g., in patch-iteration where human reviewer feedback is the sole
 // source of truth), the loop iterates strictly on test/build failures.
-func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerPrompt string,
-	extraTools ...aflow.Tool) aflow.Action {
+func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 	var actions []aflow.Action
-	if beforeEach != nil {
-		actions = append(actions, beforeEach)
+	if cfg.BeforeEach != nil {
+		actions = append(actions, cfg.BeforeEach)
 	}
 	actions = append(actions,
 		&aflow.LLMAgent{
@@ -461,15 +472,15 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerP
 			Model:       aflow.CoreModel,
 			Reply:       "PatchExplanation",
 			TaskType:    aflow.FormalReasoningTask,
-			Instruction: instruction,
-			Prompt:      prompt,
-			Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, extraTools),
+			Instruction: cfg.Instruction,
+			Prompt:      cfg.Prompt,
+			Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, cfg.ExtraTools),
 		},
 		crash.TestPatch,
 	)
 
 	while := "TestError"
-	if reviewerPrompt != "" {
+	if cfg.ReviewerPrompt != "" {
 		while = "NeedsIteration"
 		actions = append(actions, &aflow.If{
 			Condition: "TestError",
@@ -481,7 +492,7 @@ func patchGenerationLoop(beforeEach aflow.Action, instruction, prompt, reviewerP
 					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),
-					Prompt:      reviewerPrompt,
+					Prompt:      cfg.ReviewerPrompt,
 					Tools:       common.CodeAccessTools,
 				},
 				evaluatePatchReview,

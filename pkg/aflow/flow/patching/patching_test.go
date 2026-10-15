@@ -117,10 +117,17 @@ func TestSetTestFailure(t *testing.T) {
 
 func TestPatchGenerationLoopVariants(t *testing.T) {
 	// Verify loop without reviewer targets TestError.
-	loopNoReview := patchGenerationLoop(nil, "instruction", "prompt", "")
+	loopNoReview := patchGenerationLoop(patchGenerationConfig{
+		Instruction: "instruction",
+		Prompt:      "prompt",
+	})
 	require.NotNil(t, loopNoReview)
 
 	// Verify loop with reviewer targets NeedsIteration.
-	loopWithReview := patchGenerationLoop(nil, "instruction", "prompt", reviewerPrompt)
+	loopWithReview := patchGenerationLoop(patchGenerationConfig{
+		Instruction:    "instruction",
+		Prompt:         "prompt",
+		ReviewerPrompt: reviewerPrompt,
+	})
 	require.NotNil(t, loopWithReview)
 }
