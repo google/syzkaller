@@ -35,7 +35,7 @@ func TestProviderResolveModels(t *testing.T) {
 		{
 			name:     "resolves deep reasoning model pool",
 			category: backend.DeepReasoningModel,
-			want:     []string{"gemini-3.1-pro-preview"},
+			want:     []string{"gemini-4-argon"},
 		},
 		{
 			name:     "returns nil for unrecognized category",
