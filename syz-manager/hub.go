@@ -57,8 +57,10 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Sysc
 		statRecvRepro:     stat.New("hub recv repro", "", stat.Graph("hub repros")),
 		statRecvReproDrop: stat.New("hub recv repro drop", "", stat.NoGraph),
 	}
-	if mgr.cfg.Reproduce && mgr.dash != nil {
+	if mgr.cfg.Reproduce && mgr.dash != nil && mgr.cfg.ReproduceOnlyRe == nil {
 		// Request reproducers from hub only if there is nothing else to reproduce.
+		// Hub repros carry no title, so with reproduce_only set they'd always be
+		// filtered out — don't request them.
 		hc.needMoreRepros = mgr.reproLoop.Empty
 	}
 	hc.loop()
