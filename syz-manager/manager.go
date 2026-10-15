@@ -756,7 +756,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		}
 		// Don't store the crash locally even if we failed to upload it.
 		// There is 0 chance that one will ever look in the crashes/ folder of those instances.
-		return mgr.cfg.Reproduce && resp.NeedRepro
+		return mgr.cfg.Reproduce && mgr.reproAllowed(crash.Title) && resp.NeedRepro
 	}
 	first, err := mgr.crashStore.SaveCrash(crash)
 	if err != nil {
@@ -779,8 +779,17 @@ func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
 	return mgr.crashStore.MoreReproAttempts(crash.Title)
 }
 
+// reproAllowed reports whether a bug with the given title passes the reproduce_only filter.
+func (mgr *Manager) reproAllowed(title string) bool {
+	return mgr.cfg.ReproduceOnlyRe == nil || mgr.cfg.ReproduceOnlyRe.MatchString(title)
+}
+
 func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	if !mgr.cfg.Reproduce {
+		return false
+	}
+	// Manual dashboard requests are explicit, so they bypass reproduce_only.
+	if !crash.Manual && !mgr.reproAllowed(crash.Title) {
 		return false
 	}
 	if crash.FromHub || crash.FromDashboard {
