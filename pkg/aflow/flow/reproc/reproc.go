@@ -393,7 +393,7 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:          "initial-researcher",
-					Model:         aflow.DeepReasoningModel,
+					Model:         aflow.CoreModel,
 					Reply:         "InitialReproStrategy",
 					MaxIterations: 100,
 					Instruction:   initialResearcherInstruction,
