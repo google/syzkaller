@@ -97,6 +97,14 @@ func init() {
 					Prompt:      historyExplorerPrompt,
 					Tools:       codeAccessTools,
 				},
+				&aflow.LLMAgent{
+					Name:        "patch-planner",
+					Model:       aflow.DeepReasoningModel,
+					Reply:       "PatchPlan",
+					Instruction: plannerInstruction,
+					Prompt:      plannerPrompt,
+					Tools:       codeAccessTools,
+				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(patchGenerationConfig{
 					GeneratorModel: aflow.CoreModel,
@@ -185,6 +193,42 @@ The explanation of the root cause of the bug is:
 {{.BugExplanation}}
 `
 
+var plannerInstruction = `
+Design the fix strategy for a Linux kernel bug before implementation.
+You are given a crash report, a detailed root cause explanation, and historical context on how similar bugs were
+fixed in the subsystem.
+
+Your goal is to design a concrete, single-patch implementation plan for another developer who will write and test
+the code. Evaluate candidate approaches against the architectural design guidelines below and pick the best one
+that fits a single, standalone patch.
+
+Frequently the same coding mistake is done in several locations in the source code. Check if the fix should be
+extended to similar cases in the same file or closely related files in the same subsystem, and include them in
+the plan if they fit a single logical patch (do not expand to a large kernel-wide refactoring).
+` + commonPatchInstruction + `
+Your final reply must be a concise, actionable implementation plan specifying:
+1. The chosen fix approach and why it satisfies the subsystem's invariants and lifecycle rules.
+2. The exact files, functions, and structs to modify, and the specific changes to make in each.
+3. Any caller updates, locking/refcounting details, or error-unwinding ordering to follow.
+
+` + common.Prompt(prompts, "prompts/design_instruction.md")
+
+const plannerPrompt = `
+The crash that corresponds to the bug is:
+
+{{.ReproducedCrashReport}}
+
+The explanation of the root cause of the bug is:
+
+{{.BugExplanation}}
+
+{{if .HistoricalContext}}
+Historical context on how similar bugs were fixed in the past:
+
+{{.HistoricalContext}}
+{{end}}
+` + commonFaultInjectionPrompt
+
 // This part is shared between patching and patch-iteration.
 const commonFaultInjectionPrompt = `
 
@@ -199,27 +243,27 @@ The following fault injection report(s) show what was injected:
 `
 
 const patchInstruction = `
-You are an experienced Linux kernel developer tasked with creating a fix for a kernel bug.
-You will be given a crash report, an initial explanation of the root cause done by another
-kernel expert, and a summary of how similar bugs were fixed in the past.
+You are an experienced Linux kernel developer tasked with implementing a fix for a kernel bug.
+You will be given a crash report, an explanation of the root cause, historical context on how
+similar bugs were fixed in the past, and a concrete implementation plan.
 
 Use the {{.toolCodeeditor}} tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
 Use the {{.toolPatchDiff}} tool to review the modifications you applied.
 
+Follow the provided implementation plan directly. Do not re-debug the root cause, re-explore
+git history, or redesign the fix from scratch unless concrete evidence in the target functions,
+a build/test failure, or reviewer feedback shows that the planned approach cannot work. If a
+test failure or reviewer feedback conflicts with the initial implementation plan, the test
+failure or reviewer feedback takes precedence.
+
+Work incrementally. Inspect only the target code you need to edit, apply your changes with
+{{.toolCodeeditor}} promptly, and verify them with {{.toolPatchDiff}}. Your conversation
+history may be summarized and raw tool outputs discarded, while the source tree is your only
+durable memory: edits persist, but research does not. You can always revise earlier edits.
+
 Your final reply should contain explanation of what you did in the patch and why
 (details not present in the initial explanation of the bug).
-
-Your fix must not just prevent the given crash, but also be the best fix for the underlying
-root cause from the software engineering point of view. There can be several ways to fix the
-same bug. Consider alternatives, and pick the best one. For example, additional checks may be
-added at different locations/functions, it's usually better to place them earlier in the
-execution to avoid multiple checks at various locations later.
-
-Frequently the same coding mistake is done in several locations in the source code.
-Check if your fix should be extended/applied to similar cases around to fix other similar bugs.
-But don't go too wide, don't try to fix problems kernel-wide, fix similar issues
-in the same file only.
 ` + commonPatchInstruction
 
 // This part is shared between patching and patch-iteration.
@@ -253,6 +297,10 @@ Historical context on how similar bugs were fixed in the past:
 {{.HistoricalContext}}
 {{end}}
 
+The implementation plan for the fix is:
+
+{{.PatchPlan}}
+
 {{if .TestError}}
 
 Another developer tried to fix this bug, and come up with the following strategy for fixing:
@@ -271,8 +319,8 @@ However, the patch testing failed with the following error:
 
 If the error is fixable, and the fix patch is correct overall,
 then create a new fixed patch based on the provided one with the errors fixed.
-If the error points to a fundamental issue with the approach in the patch,
-then create a new patch from scratch.
+If the error points to a fundamental issue with the approach in the patch
+(or in the initial implementation plan), then create a new patch from scratch.
 Note: in both cases the source tree does not contain the patch yet
 (so if you want to create a new fixed patch, you need to recreate it
 in its entirety from scratch using the {{.toolCodeeditor}} tool).
@@ -294,11 +342,12 @@ However, a senior maintainer reviewed the patch and requested architectural/desi
 {{.ReviewFeedback}}
 
 Revise the patch to eliminate these architectural flaws, satisfy maintainer invariants,
-and address all reviewer feedback.
+and address all reviewer feedback. Where the reviewer feedback conflicts with the initial
+implementation plan above, follow the reviewer feedback.
 Note: the source tree does not contain the patch yet (so you need to recreate the complete,
 revised patch from scratch using the {{.toolCodeeditor}} tool).
 {{end}}
-`
+` + commonFaultInjectionPrompt
 
 const descriptionInstruction = `
 You are an experienced Linux kernel developer tasked with writing a commit description for
@@ -376,6 +425,23 @@ are specified, letter capitalization, style, etc.
 // Recommended description length according to
 // https://docs.kernel.org/process/submitting-patches.html
 const patchDescriptionLineLength = 75
+
+var reviewerInstruction = `
+Review a proposed Linux kernel patch that compiles and passes reproducer tests.
+Evaluate the patch diff against the crash report, root cause, and the architectural design guidelines below.
+
+Scope Constraint (Single-Patch Submissions):
+We only generate single, standalone patches (not patch series). If a comprehensive architectural redesign would
+require a multi-patch series touching many files, accept a localized single-patch fix as long as it correctly
+fixes the bug, does not introduce new issues, and avoids sentinel band-aids within its local scope.
+
+Evaluation:
+- Set ReviewApproved=true (and leave ReviewComments empty) if the patch is acceptable for upstream submission
+  as a single-patch fix.
+- Set ReviewApproved=false and list concise, actionable feedback in ReviewComments if the patch contains
+  fixable "Kernel Architectural Design & Maintainer Taste" violations.
+
+` + common.Prompt(prompts, "prompts/design_instruction.md")
 
 const reviewerPrompt = `
 Bug title:
@@ -491,7 +557,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 					Name:        "patch-reviewer",
 					Model:       aflow.DeepReasoningModel,
 					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
-					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),
+					Instruction: reviewerInstruction,
 					Prompt:      cfg.ReviewerPrompt,
 					Tools:       codeAccessTools,
 				},

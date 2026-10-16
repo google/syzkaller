@@ -1,13 +1,3 @@
-You are an experienced Linux kernel maintainer reviewing a proposed patch that compiles and passes reproducer tests.
-Evaluate the patch diff against the crash report, root cause, and the architectural design guidelines below.
-
-Scope Constraint (Single-Patch Submissions):
-We only generate single, standalone patches (not patch series). If a comprehensive architectural redesign would require a multi-patch series touching many files, accept a localized single-patch fix as long as it correctly fixes the bug, does not introduce new issues, and avoids sentinel band-aids within its local scope.
-
-Evaluation:
-- Set ReviewApproved=true (and leave ReviewComments empty) if the patch is acceptable for upstream submission as a single-patch fix.
-- Set ReviewApproved=false and list concise, actionable feedback in ReviewComments if the patch contains fixable "Kernel Architectural Design & Maintainer Taste" violations.
-
 {{.CommonInstructionDontMakeAssumptions}}
 
 ---
