@@ -1,8 +1,18 @@
 # Request a freeze notification for the context manager node (BR_FROZEN_BINDER),
-# acknowledge it and then clear it (BR_CLEAR_FREEZE_NOTIFICATION_DONE).
+# queue multiple oneway transactions (TF_ONE_WAY | TF_UPDATE_TXN) to exercise
+# Node::submit_oneway and Node::pending_oneway_finished, then acknowledge and
+# clear the notification.
 
 r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
 ioctl$BINDER_SET_CONTEXT_MGR_EXT(r0, AUTO, &AUTO={AUTO, 0x100, 0x0, 0x0})
+mmap$binder(&(0x7f00000a0000), 0x2000, 0x1, 0x11, r0, 0x0)
 r1 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
-ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}, @increfs={AUTO, 0x0}, @request_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=""/256})
-ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@freeze_done={AUTO, 0x1}, @clear_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=""/256})
+mmap$binder(&(0x7f00000c0000), 0x2000, 0x1, 0x11, r1, 0x0)
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}, @increfs={AUTO, 0x0}, @request_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+r2 = getpid()
+ioctl$BINDER_FREEZE(r0, AUTO, &AUTO={r2, 0x1, 0x0})
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}, @transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}, @transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}], 0x0, AUTO, 0x0})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, <r3=>0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@free_buffer={AUTO, r3}], 0x0, AUTO, 0x0})
+ioctl$BINDER_FREEZE(r0, AUTO, &AUTO={r2, 0x0, 0x0})
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@freeze_done={AUTO, 0x1}, @clear_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
