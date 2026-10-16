@@ -36,6 +36,8 @@ type Derived struct {
 	ExecprogBin string
 	ExecutorBin string
 
+	ReproduceOnlyRe []*regexp.Regexp // Compiled ReproduceOnly.
+
 	Syscalls      []int
 	NoMutateCalls map[int]bool // Set of IDs of syscalls which should not be mutated.
 	Timeouts      targets.Timeouts
@@ -46,6 +48,19 @@ type Derived struct {
 	VMLess bool
 
 	LocalModules []*vminfo.KernelModule
+}
+
+// ReproAllowed says whether a bug with the given title passes the reproduce_only filter.
+func (cfg *Config) ReproAllowed(title string) bool {
+	if len(cfg.ReproduceOnlyRe) == 0 {
+		return true
+	}
+	for _, re := range cfg.ReproduceOnlyRe {
+		if re.MatchString(title) {
+			return true
+		}
+	}
+	return false
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -208,6 +223,15 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	var reproduceOnlyRe []*regexp.Regexp
+	for _, str := range cfg.ReproduceOnly {
+		re, err := regexp.Compile(str)
+		if err != nil {
+			return fmt.Errorf("failed to compile reproduce_only regexp %q: %w", str, err)
+		}
+		reproduceOnlyRe = append(reproduceOnlyRe, re)
+	}
+	cfg.ReproduceOnlyRe = reproduceOnlyRe
 	if err := cfg.completeFocusAreas(); err != nil {
 		return err
 	}

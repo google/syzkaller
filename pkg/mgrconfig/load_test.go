@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/google/syzkaller/prog"
@@ -113,6 +114,21 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
 }
 
+func TestCompleteReproduceOnlyIdempotent(t *testing.T) {
+	cfg, err := LoadPartialData([]byte(`{
+		"target": "linux/amd64",
+		"type": "none",
+		"workdir": "/tmp",
+		"syzkaller": "testdata/syzkaller",
+		"reproduce": false,
+		"reproduce_only": ["^KASAN:", "^WARNING"]
+	}`))
+	require.NoError(t, err)
+	require.NoError(t, Complete(cfg))
+	require.NoError(t, Complete(cfg))
+	assert.Len(t, cfg.ReproduceOnlyRe, 2)
+}
+
 func TestFormatTarget(t *testing.T) {
 	tests := []struct {
 		os     string
@@ -128,5 +144,28 @@ func TestFormatTarget(t *testing.T) {
 	for _, tc := range tests {
 		got := FormatTarget(tc.os, tc.vmArch, tc.arch)
 		require.Equal(t, tc.want, got)
+	}
+}
+
+func TestReproAllowed(t *testing.T) {
+	tests := []struct {
+		name  string
+		only  []string
+		title string
+		want  bool
+	}{
+		{"empty list allows all", nil, "KASAN: use-after-free in foo", true},
+		{"match", []string{"^KASAN:"}, "KASAN: use-after-free in foo", true},
+		{"no match", []string{"^KASAN:"}, "WARNING in foo", false},
+		{"any of several", []string{"^KASAN:", "^WARNING"}, "WARNING in foo", true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := &Config{ReproduceOnly: test.only}
+			for _, str := range test.only {
+				cfg.ReproduceOnlyRe = append(cfg.ReproduceOnlyRe, regexp.MustCompile(str))
+			}
+			assert.Equal(t, test.want, cfg.ReproAllowed(test.title))
+		})
 	}
 }
