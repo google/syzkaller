@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Verifies that kernel build and helper scripts are executed inside osutil.Sandbox:
+# - running as the unprivileged "syzkaller" user;
+# - with a writable HOME directory;
+# - unable to read or write SYZ_TEST_FORBIDDEN or create files in its parent directory;
+# - in an isolated network namespace with only the loopback interface and no access
+#   to the host's loopback TCP listener (SYZ_TEST_TCP_PORT).
+
+set -eu
+
+failed=0
+fail() { echo "ERROR: sandbox check failed: $*" >&2; failed=1; }
+
+[ "$(id -un)" = "syzkaller" ] || fail "user is $(id -un), want syzkaller"
+[ -n "${HOME:-}" ] && [ -w "$HOME" ] || fail "HOME (${HOME:-}) is not writable"
+if [ -n "${SYZ_TEST_FORBIDDEN:-}" ]; then
+	! cat "$SYZ_TEST_FORBIDDEN" >/dev/null 2>&1 || fail "able to read $SYZ_TEST_FORBIDDEN"
+	! touch "$SYZ_TEST_FORBIDDEN" 2>/dev/null || fail "able to write $SYZ_TEST_FORBIDDEN"
+	dir="$(dirname "$SYZ_TEST_FORBIDDEN")"
+	if touch "$dir/escape" 2>/dev/null; then
+		rm -f "$dir/escape"
+		fail "able to write to $dir"
+	fi
+fi
+! (exec 3<>"/dev/tcp/127.0.0.1/${SYZ_TEST_TCP_PORT}") 2>/dev/null || fail "able to connect to local TCP port"
+# In a fresh network namespace, /proc/net/dev has 2 header lines plus 1 line for "lo".
+[ "$(wc -l < /proc/net/dev)" -le 3 ] || fail "unexpected network interfaces in /proc/net/dev"
+exit $failed
