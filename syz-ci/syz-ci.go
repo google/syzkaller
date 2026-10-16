@@ -428,6 +428,7 @@ func uploadSyzkallerBuildError(cfg *Config, commit *vcs.Commit, compilerID strin
 				CompilerID:          compilerID,
 				KernelRepo:          cfg.SyzkallerRepo,
 				KernelBranch:        cfg.SyzkallerBranch,
+				BuildEnv:            extractBuildEnv(managercfg),
 			},
 			Crash: dashapi.Crash{
 				Title: title,
@@ -543,6 +544,21 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 		}
 	}
 	return nil
+}
+
+func extractBuildEnv(managercfg *mgrconfig.Config) dashapi.BuildEnv {
+	var vm struct {
+		MachineType string `json:"machine_type"`
+		QemuArgs    string `json:"qemu_args"`
+	}
+	if len(managercfg.VM) != 0 {
+		_ = json.Unmarshal(managercfg.VM, &vm)
+	}
+	return dashapi.BuildEnv{
+		VMType:      managercfg.Type,
+		MachineType: vm.MachineType,
+		QemuArgs:    vm.QemuArgs,
+	}
 }
 
 func inferBaselineConfig(kernelConfig string) string {

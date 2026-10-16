@@ -633,6 +633,7 @@ func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Bui
 		KernelCommitDate:    req.KernelCommitDate,
 		KernelConfig:        configID,
 		Assets:              newAssets,
+		BuildEnv:            BuildEnv(req.BuildEnv),
 	}
 	if _, err := db.Put(ctx, buildKey(ctx, ns, req.ID), build); err != nil {
 		return nil, false, err

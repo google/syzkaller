@@ -717,6 +717,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 		KernelCommitTitle:   info.KernelCommitTitle,
 		KernelCommitDate:    info.KernelCommitDate,
 		KernelConfig:        kernelConfig,
+		BuildEnv:            extractBuildEnv(mgr.managercfg),
 	}
 	return build, nil
 }

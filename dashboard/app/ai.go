@@ -438,6 +438,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 		}
 		args["KernelConfigID"] = build.KernelConfig
 		args["KernelConfigManager"] = manager
+		args["VMType"] = build.BuildEnv.VMType
 	} else {
 		return fmt.Errorf("%w: either a custom kernel config or a manager is required", ErrClientBadRequest)
 	}
@@ -1679,6 +1680,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"TargetOS":        build.OS,
 		"TargetArch":      build.Arch,
 		"TargetVMArch":    build.VMArch,
+		"VMType":          build.BuildEnv.VMType,
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
@@ -1693,6 +1695,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		args["KernelConfigManager"] = manager
 		args["TargetArch"] = mgrBuild.Arch
 		args["TargetVMArch"] = mgrBuild.VMArch
+		args["VMType"] = mgrBuild.BuildEnv.VMType
 	}
 	maps.Copy(args, extraArgs)
 	return aidb.CreateJob(ctx, &aidb.Job{
