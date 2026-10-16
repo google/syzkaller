@@ -182,6 +182,7 @@ func TestAIJob(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
+	build.BuildEnv.VMType = "qemu"
 	c.aiClient.UploadBuild(build)
 	crash := testCrash(build, 1)
 	crash.Title = "KCSAN: data-race in foo / bar"
@@ -202,6 +203,7 @@ func TestAIJob(t *testing.T) {
 		"TargetOS":        "linux",
 		"TargetArch":      "amd64",
 		"TargetVMArch":    "amd64",
+		"VMType":          "qemu",
 		"ReproSyz":        "",
 		"ReproC":          "",
 		"ReproOpts":       "",
@@ -363,6 +365,7 @@ func TestAIJobActions(t *testing.T) {
 		"TargetOS":        "linux",
 		"TargetArch":      "amd64",
 		"TargetVMArch":    "amd64",
+		"VMType":          "",
 		"ReproSyz":        "syncfs(1)",
 		"ReproC":          "int main() { return 1; }",
 		"ReproOpts":       "repro opts 1",
@@ -413,6 +416,7 @@ func TestAIJobActions(t *testing.T) {
 		"TargetOS":        "linux",
 		"TargetArch":      "amd64",
 		"TargetVMArch":    "amd64",
+		"VMType":          "",
 		"ReproSyz":        "syncfs(2)",
 		"ReproC":          "",
 		"ReproOpts":       "repro opts 2",
