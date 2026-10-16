@@ -796,6 +796,7 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	}
 
 	// Truncate history to Anchor + Summary + Preserved Suffix.
+	var newToolHistory []toolCallRecord
 	newReq := []llmMessage{a.req[0], {content: newSummary, tokenCount: summaryTokens}}
 	if splitIndex < len(a.req) {
 		for _, msg := range a.req[splitIndex:] {
@@ -805,6 +806,14 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
 				return p.Text == compressedHistoryReminder
 			})
+			for _, p := range msgCopy.Parts {
+				if p.FunctionCall != nil {
+					newToolHistory = append(newToolHistory, toolCallRecord{
+						Name: p.FunctionCall.Name,
+						Args: p.FunctionCall.Args,
+					})
+				}
+			}
 			newReq = append(newReq, llmMessage{
 				content:       &msgCopy,
 				tokenCount:    msg.tokenCount,
@@ -819,12 +828,13 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	}
 	a.req = newReq
 
-	// Reset duplicate tool call history. Since the detailed conversation history
-	// is discarded during compression, the LLM loses access to past raw tool
-	// responses. We must reset the loop detection history to allow the LLM to
-	// re-query tools if needed, preventing it from getting permanently stuck
-	// when trying to re-fetch information that is no longer in its context.
-	a.toolHistory = nil
+	// Rebuild duplicate tool call history from the preserved suffix only.
+	// Calls before splitIndex lost their raw tool responses during compression,
+	// whereas calls in the preserved suffix still have their full responses in context.
+	if len(newToolHistory) > maxHistorySize {
+		newToolHistory = newToolHistory[len(newToolHistory)-maxHistorySize:]
+	}
+	a.toolHistory = newToolHistory
 	a.toolErrorCounts = nil
 	return true, nil
 }
