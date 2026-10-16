@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 
@@ -19,6 +20,7 @@ import (
 const (
 	backendGemini = "gemini"
 	backendVertex = "vertex"
+	defaultVMType = "qemu"
 )
 
 var supportedBackends = []string{backendGemini, backendVertex}
@@ -147,6 +149,38 @@ func loadConfig(configFile string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func (cfg *Config) targetConfig(args map[string]any) (*TargetConfig, error) {
+	targetOS, _ := args["TargetOS"].(string)
+	targetArch, _ := args["TargetArch"].(string)
+	targetVMArch, _ := args["TargetVMArch"].(string)
+	vmType, _ := args["VMType"].(string)
+	if vmType == "" {
+		vmType = defaultVMType
+	}
+
+	var tcfg *TargetConfig
+	for _, name := range slices.Sorted(maps.Keys(cfg.Targets)) {
+		t := cfg.Targets[name]
+		if t.TargetOS != targetOS || t.TargetArch != targetArch {
+			continue
+		}
+		if targetVMArch != "" && t.TargetVMArch != targetVMArch {
+			continue
+		}
+		if t.Type == vmType {
+			return t, nil
+		}
+		if tcfg == nil || t.Type == defaultVMType {
+			tcfg = t
+		}
+	}
+	if tcfg == nil {
+		return nil, fmt.Errorf("dashboard requested TargetOS %q TargetArch %q TargetVMArch %q,"+
+			" but agent does not support it", targetOS, targetArch, targetVMArch)
+	}
+	return tcfg, nil
 }
 
 func resolveCloudProject(ctx context.Context) (string, error) {

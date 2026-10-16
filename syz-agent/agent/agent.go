@@ -293,23 +293,9 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
-	agentOS, _ := req.Args["TargetOS"].(string)
-	agentArch, _ := req.Args["TargetArch"].(string)
-	agentVMArch, _ := req.Args["TargetVMArch"].(string)
-
-	var tcfg *TargetConfig
-	for _, t := range s.cfg.Targets {
-		if t.TargetOS == agentOS && t.TargetArch == agentArch {
-			if agentVMArch != "" && t.TargetVMArch != agentVMArch {
-				continue
-			}
-			tcfg = t
-			break
-		}
-	}
-	if tcfg == nil {
-		return nil, aflow.FlowError(fmt.Errorf("dashboard requested TargetOS %q TargetArch %q, but agent does not support it",
-			agentOS, agentArch))
+	tcfg, err := s.cfg.targetConfig(req.Args)
+	if err != nil {
+		return nil, aflow.FlowError(err)
 	}
 
 	inputs := initState(tcfg, s.syzkallerDir, s.name)
