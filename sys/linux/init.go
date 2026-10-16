@@ -41,6 +41,7 @@ func InitTarget(target *prog.Target) {
 		AF_NETROM:                   target.GetConst("AF_NETROM"),
 		AF_ROSE:                     target.GetConst("AF_ROSE"),
 		AF_IEEE802154:               target.GetConst("AF_IEEE802154"),
+		AF_QIPCRTR:                  target.GetConst("AF_QIPCRTR"),
 		AF_NETLINK:                  target.GetConst("AF_NETLINK"),
 		SOCK_RAW:                    target.GetConst("SOCK_RAW"),
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
@@ -146,6 +147,7 @@ type arch struct {
 	AF_NETROM                   uint64
 	AF_ROSE                     uint64
 	AF_IEEE802154               uint64
+	AF_QIPCRTR                  uint64
 	AF_NETLINK                  uint64
 	SOCK_RAW                    uint64
 	NETLINK_GENERIC             uint64
@@ -211,7 +213,8 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		family := c.Args[0].(*prog.ConstArg)
 		switch uint64(uint32(family.Val)) {
 		case arch.AF_NFC, arch.AF_LLC, arch.AF_BLUETOOTH, arch.AF_IEEE802154,
-			arch.AF_X25, arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE:
+			arch.AF_X25, arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE,
+			arch.AF_QIPCRTR:
 		case arch.AF_NETLINK:
 			c.Args[1].(*prog.ConstArg).Val = arch.SOCK_RAW
 			c.Args[2].(*prog.ConstArg).Val = arch.NETLINK_GENERIC

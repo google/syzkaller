@@ -31,9 +31,15 @@ resource sock_qrtr[sock]
 
 # 1 stands for qrtr_local_nid, -1 stands for QRTR_EP_NID_AUTO
 qrtr_nodes = QRTR_NODE_BCAST, -1, 0, 1, 2, 3, 4
+qrtr_ctrl_nodes = QRTR_NODE_BCAST, 1
 
 # 0x4000 and 0x7fff stands for QRTR_MIN_EPH_SOCKET and QRTR_MAX_EPH_SOCKET, respectively
-qrtr_ports = QRTR_PORT_CTRL, 0x3fff, 0x4000, 0x4001, 0x7ffe, 0x7fff, 0x8000, 0, 1, 2
+# 0xffff stands for QRTR_PORT_CTRL_LEGACY
+qrtr_ports = QRTR_PORT_CTRL, 0xffff, 0x3fff, 0x4000, 0x4001, 0x7ffe, 0x7fff, 0x8000, 0, 1, 2
+
+qrtr_pkt_types = QRTR_TYPE_DATA, QRTR_TYPE_HELLO, QRTR_TYPE_BYE, QRTR_TYPE_NEW_SERVER, QRTR_TYPE_DEL_SERVER, QRTR_TYPE_DEL_CLIENT, QRTR_TYPE_RESUME_TX, QRTR_TYPE_EXIT, QRTR_TYPE_PING, QRTR_TYPE_NEW_LOOKUP, QRTR_TYPE_DEL_LOOKUP
+
+qrtr_send_flags = 0, MSG_DONTWAIT
 
 sockaddr_qrtr {
 	sq_family	const[AF_QIPCRTR, int16]
@@ -41,7 +47,13 @@ sockaddr_qrtr {
 	sq_port		flags[qrtr_ports, int32]
 }
 
-socket$qrtr(domain const[AF_QIPCRTR], type const[SOCK_DGRAM], proto const[0]) sock_qrtr
+sockaddr_qrtr$ctrl {
+	sq_family	const[AF_QIPCRTR, int16]
+	sq_node		flags[qrtr_ctrl_nodes, int32]
+	sq_port		const[QRTR_PORT_CTRL, int32]
+}
+
+syz_init_net_socket$qrtr(domain const[AF_QIPCRTR], type const[SOCK_DGRAM], proto const[0]) sock_qrtr
 
 bind$qrtr(fd sock_qrtr, addr ptr[in, sockaddr_qrtr], addrlen len[addr])
 connect$qrtr(fd sock_qrtr, addr ptr[in, sockaddr_qrtr], addrlen len[addr])
@@ -50,13 +62,14 @@ getsockname$qrtr(fd sock_qrtr, addr ptr[out, sockaddr_qrtr], addrlen ptr[inout, 
 getpeername$qrtr(fd sock_qrtr, peer ptr[out, sockaddr_qrtr], peerlen ptr[inout, len[peer, int32]])
 
 # ioctls
-ioctl$sock_qrtr_TIOCOUTQ(fd sock_qrtr, cmd const[TIOCOUTQ], arg ptr[out, int64])
-ioctl$sock_qrtr_TIOCINQ(fd sock_qrtr, cmd const[TIOCINQ], arg ptr[out, int64])
+ioctl$sock_qrtr_TIOCOUTQ(fd sock_qrtr, cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_qrtr_TIOCINQ(fd sock_qrtr, cmd const[TIOCINQ], arg ptr[out, int32])
 ioctl$sock_qrtr_SIOCGIFADDR(fd sock_qrtr, cmd const[SIOCGIFADDR], arg ptr[out, ifreq_t[sockaddr_qrtr]])
 
 # sendmsg, recvmsg, [send|recv]_msghdr
-sendmsg$qrtr(fd sock_qrtr, msg ptr[in, send_msghdr_qrtr], msglen len[msg])
-recvmsg$qrtr(fd sock_qrtr, msg ptr[inout, recv_msghdr_qrtr], msglen len[msg], f flags[recv_flags])
+sendmsg$qrtr(fd sock_qrtr, msg ptr[in, send_msghdr_qrtr], f flags[qrtr_send_flags])
+sendmsg$qrtr_ctrl(fd sock_qrtr, msg ptr[in, send_msghdr_qrtr_ctrl], f flags[qrtr_send_flags])
+recvmsg$qrtr(fd sock_qrtr, msg ptr[inout, recv_msghdr_qrtr], f flags[recv_flags])
 
 send_msghdr_qrtr {
 	addr	ptr[in, sockaddr_qrtr, opt]
@@ -65,7 +78,39 @@ send_msghdr_qrtr {
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, array[cmsghdr], opt]
 	ctrllen	bytesize[ctrl, intptr]
-	f	flags[send_flags, int32]
+	f	flags[qrtr_send_flags, int32]
+}
+
+send_msghdr_qrtr_ctrl {
+	addr	ptr[in, sockaddr_qrtr$ctrl]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec[in, qrtr_ctrl_pkt]]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	const[0, int32]
+}
+
+qrtr_ctrl_pkt {
+	cmd	flags[qrtr_pkt_types, int32]
+	u	qrtr_ctrl_pkt_payload
+} [packed]
+
+qrtr_ctrl_pkt_payload [
+	server	qrtr_ctrl_pkt_server
+	client	qrtr_ctrl_pkt_client
+]
+
+qrtr_ctrl_pkt_server {
+	service		int32[0:4]
+	instance	int32[0:4]
+	node		flags[qrtr_nodes, int32]
+	port		flags[qrtr_ports, int32]
+}
+
+qrtr_ctrl_pkt_client {
+	node	flags[qrtr_nodes, int32]
+	port	flags[qrtr_ports, int32]
 }
 
 recv_msghdr_qrtr {
