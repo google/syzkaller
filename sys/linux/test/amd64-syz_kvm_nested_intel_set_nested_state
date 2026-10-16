@@ -1,0 +1,44 @@
+#
+# requires: arch=amd64 vendor=intel nested -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Back GPA 0xf0000000 with a separate memslot, so that it can be removed later.
+#
+ioctl$KVM_SET_USER_MEMORY_REGION(r1, AUTO, &AUTO={0x2710, 0x0, 0xf0000000, 0x1000, &(0x7f0000200000/0x1000)=nil})
+
+# Create an Intel nested VM that uses GPA 0xf0000000 as its APIC-access page.
+# L2 executes "mov dx, 0x1234; out dx, al; hlt".
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_load_code={AUTO, AUTO, {0x0, "66ba3412eef4"}}, @nested_set_state_pages={AUTO, AUTO, {0x0, 0x0, @arbitrary=0xf0000000}}, @nested_vmlaunch={AUTO, AUTO, 0x0}], AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# L1 does not intercept I/O, so L2's OUT exits to userspace with KVM_EXIT_IO (0x2)
+# while the vCPU is still in guest mode.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x2)
+
+# Save the nested state, remove the memslot backing the APIC-access page, and
+# restore the nested state. KVM_SET_NESTED_STATE re-enters L2 with
+# from_vmentry=false, which defers mapping the vmcs12 pages by pending
+# KVM_REQ_GET_NESTED_STATE_PAGES.
+#
+ioctl$KVM_GET_NESTED_STATE(r3, AUTO, &(0x7f0000100000)=@vmx={0x0, 0x0, AUTO, {0x0, 0x0, {0x0}, 0x0, 0x0}, {""/4096, ""/4096}})
+ioctl$KVM_SET_USER_MEMORY_REGION(r1, AUTO, &AUTO={0x2710, 0x0, 0xf0000000, 0x0, 0x0})
+ioctl$KVM_SET_NESTED_STATE_vma(r3, AUTO, &(0x7f0000100000/0x3000)=nil)
+
+# Mapping the APIC-access page fails, so KVM exits with KVM_EXIT_INTERNAL_ERROR (0x11).
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x11)
+
+# KVM must re-pend KVM_REQ_GET_NESTED_STATE_PAGES and fail again instead of
+# entering L2 with an unmapped APIC-access page (Linux commit 10180a277549,
+# "KVM: x86: Re-pend GET_NESTED_STATE_PAGES if getting said pages fails").
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x11)
