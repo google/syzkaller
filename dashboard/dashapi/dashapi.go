@@ -107,6 +107,13 @@ type Build struct {
 	Commits             []string // see BuilderPoll
 	FixCommits          []Commit
 	Assets              []NewAsset
+	BuildEnv
+}
+
+type BuildEnv struct {
+	VMType      string `json:"vm_type,omitempty"`
+	MachineType string `json:"machine_type,omitempty"`
+	QemuArgs    string `json:"qemu_args,omitempty"`
 }
 
 type Commit struct {

@@ -371,6 +371,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 			Arch:            mgr.managercfg.TargetArch,
 			VMArch:          mgr.managercfg.TargetVMArch,
 			SyzkallerCommit: req.SyzkallerCommit,
+			BuildEnv:        extractBuildEnv(mgr.managercfg),
 		},
 	}
 	job.resp = resp
