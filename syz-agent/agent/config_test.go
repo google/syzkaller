@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/google/syzkaller/pkg/aflow/flow/reproc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -183,5 +184,76 @@ func TestConfigSafetyFilters(t *testing.T) {
 		cfg, err := loadConfig(confFile)
 		assert.NoError(t, err)
 		assert.True(t, cfg.SafetyFilters)
+	})
+}
+
+func TestTargetConfig(t *testing.T) {
+	amd64Qemu := &TargetConfig{TargetOS: "linux", TargetArch: "amd64", TargetVMArch: "amd64", Type: "qemu"}
+	amd64GCE := &TargetConfig{TargetOS: "linux", TargetArch: "amd64", TargetVMArch: "amd64", Type: "gce"}
+	arm64GCE := &TargetConfig{TargetOS: "linux", TargetArch: "arm64", TargetVMArch: "arm64", Type: "gce"}
+	cfg := &Config{
+		Targets: map[string]*TargetConfig{
+			"linux/amd64-qemu": amd64Qemu,
+			"linux/amd64-gce":  amd64GCE,
+			"linux/arm64":      arm64GCE,
+		},
+	}
+
+	t.Run("explicit qemu", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "amd64",
+			"VMType":     "qemu",
+		})
+		require.NoError(t, err)
+		assert.Same(t, amd64Qemu, got)
+	})
+
+	t.Run("explicit gce", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "amd64",
+			"VMType":     "gce",
+		})
+		require.NoError(t, err)
+		assert.Same(t, amd64GCE, got)
+	})
+
+	t.Run("empty VMType prefers qemu when available", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "amd64",
+		})
+		require.NoError(t, err)
+		assert.Same(t, amd64Qemu, got)
+	})
+
+	t.Run("unmatched VMType falls back to available target", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "arm64",
+			"VMType":     "qemu",
+		})
+		require.NoError(t, err)
+		assert.Same(t, arm64GCE, got)
+	})
+
+	t.Run("unmatched VMType prefers qemu among multiple targets", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "amd64",
+			"VMType":     "adb",
+		})
+		require.NoError(t, err)
+		assert.Same(t, amd64Qemu, got)
+	})
+
+	t.Run("unsupported arch returns error", func(t *testing.T) {
+		_, err := cfg.targetConfig(map[string]any{
+			"TargetOS":   "linux",
+			"TargetArch": "riscv64",
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `TargetArch "riscv64"`)
 	})
 }
