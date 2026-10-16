@@ -85,6 +85,13 @@ type Build struct {
 	KernelConfig        int64     // reference to KernelConfig text entity
 	Assets              []Asset   // build-related assets
 	AssetsLastCheck     time.Time // the last time we checked the assets for deprecation
+	BuildEnv            BuildEnv
+}
+
+type BuildEnv struct {
+	VMType      string `datastore:",noindex"`
+	MachineType string `datastore:",noindex"`
+	QemuArgs    string `datastore:",noindex"`
 }
 
 // bugStructVersion is the current version of the Bug entity schema in Datastore.

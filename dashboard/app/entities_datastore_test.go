@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -124,4 +126,20 @@ func TestUpdateReproLevel(t *testing.T) {
 	bug.UpdateReproLevel(true, false, tC)
 	require.True(t, bug.HasCRepro)
 	require.Equal(t, tC, bug.FirstCReproTime)
+}
+
+func TestBuildEnv(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	env1 := dashapi.BuildEnv{
+		VMType:      "gce",
+		MachineType: "e2-standard-2",
+	}
+	build1.BuildEnv = env1
+	c.client2.UploadBuild(build1)
+	dbBuild1, err := loadBuild(c.ctx, "test2", build1.ID)
+	require.NoError(t, err)
+	assert.Equal(t, BuildEnv(env1), dbBuild1.BuildEnv)
 }
