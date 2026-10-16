@@ -13,7 +13,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
-	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/email"
 )
@@ -122,7 +121,7 @@ func init() {
 					Outputs:     aflow.ValidatedLLMOutputs[verdictAgentOutputs](validateVerdictOutputs),
 					Instruction: verdictInstruction,
 					Prompt:      verdictPrompt,
-					Tools:       aflow.Tools(common.CodeAccessTools, viewPatchHistoryTool),
+					Tools:       aflow.Tools(codeAccessTools, viewPatchHistoryTool),
 				},
 				tagExtractor,
 				tagsMergerAction,
@@ -156,7 +155,7 @@ func init() {
 									Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 									Instruction: fixesIterationInstruction,
 									Prompt:      fixesIterationPrompt,
-									Tools:       common.CodeAccessTools,
+									Tools:       codeAccessTools,
 								},
 							),
 						},

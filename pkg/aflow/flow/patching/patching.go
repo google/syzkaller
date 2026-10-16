@@ -18,11 +18,15 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
+	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+var codeAccessTools = aflow.Tools(codesearcher.Tools, grepper.Tool, gitlog.Tools)
 
 type Inputs struct {
 	AgentName    string
@@ -83,7 +87,7 @@ func init() {
 					Reply:       "BugExplanation",
 					Instruction: debuggingInstruction,
 					Prompt:      debuggingPrompt,
-					Tools:       common.CodeAccessTools,
+					Tools:       codeAccessTools,
 				},
 				&aflow.LLMAgent{
 					Name:        "history-explorer",
@@ -91,7 +95,7 @@ func init() {
 					Reply:       "HistoricalContext",
 					Instruction: historyExplorerInstruction,
 					Prompt:      historyExplorerPrompt,
-					Tools:       common.CodeAccessTools,
+					Tools:       codeAccessTools,
 				},
 				kernel.CheckoutScratch,
 				patchGenerationLoop(patchGenerationConfig{
@@ -107,7 +111,7 @@ func init() {
 					Outputs:     aflow.ValidatedLLMOutputs[fixesFinderArgs](validateFixesHashes),
 					Instruction: fixesInstruction,
 					Prompt:      fixesPrompt,
-					Tools:       common.CodeAccessTools,
+					Tools:       codeAccessTools,
 				},
 				formatFixes,
 				getMaintainers,
@@ -121,7 +125,7 @@ func init() {
 						}),
 					Instruction: descriptionInstruction,
 					Prompt:      descriptionPrompt,
-					Tools:       common.CodeAccessTools,
+					Tools:       codeAccessTools,
 				},
 			),
 		})
@@ -471,7 +475,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 			Reply:       "PatchExplanation",
 			Instruction: cfg.Instruction,
 			Prompt:      cfg.Prompt,
-			Tools:       aflow.Tools(common.CodeAccessTools, codeeditor.Tool, patchdiff.Tool, cfg.ExtraTools),
+			Tools:       aflow.Tools(codeAccessTools, codeeditor.Tool, patchdiff.Tool, cfg.ExtraTools),
 		},
 		crash.TestPatch,
 	)
@@ -489,7 +493,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 					Outputs:     aflow.ValidatedLLMOutputs[patchReviewerOutputs](validatePatchReviewerOutputs),
 					Instruction: common.Prompt(prompts, "prompts/design_instruction.md"),
 					Prompt:      cfg.ReviewerPrompt,
-					Tools:       common.CodeAccessTools,
+					Tools:       codeAccessTools,
 				},
 				evaluatePatchReview,
 			),

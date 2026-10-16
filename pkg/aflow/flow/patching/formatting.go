@@ -7,7 +7,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
-	"github.com/google/syzkaller/pkg/aflow/flow/common"
 	"github.com/google/syzkaller/pkg/aflow/tool/checkpatch"
 	"github.com/google/syzkaller/pkg/aflow/tool/clangformat"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
@@ -48,7 +47,7 @@ func patchRefinementLoop(initStyleItems bool) aflow.Action {
 							Reply:       "FormatterExplanation",
 							Instruction: formatterInstruction,
 							Prompt:      formatterPrompt,
-							Tools: aflow.Tools(common.CodeAccessTools, codeeditor.Tool,
+							Tools: aflow.Tools(codeAccessTools, codeeditor.Tool,
 								patchdiff.Tool, checkpatch.Tool, clangformat.Tool),
 						},
 						crash.TestPatchInplace, // -> PatchDiff or TestError
