@@ -167,10 +167,10 @@ func createToolCallResponseWithSig(tokens, thoughtTokens int, id, name string, s
 }
 
 // TestTokenCompressionResetsHistory verifies that when context compression occurs,
-// the duplicate tool call detection history is reset.
-// This is tested by making 3 identical calls (which fills the history up to the limit),
-// triggering compression, and then asserting that the 4th identical call is allowed
-// (whereas it would be blocked as a duplicate if history wasn't reset).
+// duplicate tool call detection drops summarized calls (id1, id2) while retaining
+// calls that remain in the preserved suffix (id3).
+// After compression, id4 and id5 are allowed (bringing the suffix + post-compression
+// count for "tick" to 3: id3, id4, id5), while id6 is blocked as the 4th duplicate call.
 func TestTokenCompressionResetsHistory(t *testing.T) {
 	type flowOutputs struct {
 		Reply string
@@ -203,11 +203,13 @@ func TestTokenCompressionResetsHistory(t *testing.T) {
 				Parts: []backend.Part{{Text: "compressed summary"}},
 			},
 			createToolCallResponse(50, "id4", "tick"),
+			createToolCallResponse(50, "id5", "tick"),
+			createToolCallResponse(50, "id6", "tick"),
 			backend.Part{Text: "Done"},
 		},
 		nil,
 	)
-	require.Equal(t, 4, toolExecutionCount, "toolHistory was not reset on compression!")
+	require.Equal(t, 5, toolExecutionCount, "expected id1..id5 to execute and id6 to be blocked as duplicate")
 }
 
 func createToolCallResponse(tokens int, id, name string) *backend.GenerateResponse {

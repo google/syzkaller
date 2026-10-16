@@ -199,7 +199,79 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:21Z",
-		"Finished": "0001-01-01T00:00:22Z"
+		"Finished": "0001-01-01T00:00:22Z",
+		"InputTokens": 50,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:25Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"InputTokens": 50,
+		"OutputTokens": 10
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z",
+		"Error": "You are repeating the same tool call with the exact same arguments.\nYou already have the result of this exact tool call in your conversation history.\nDo NOT request it again. You MUST synthesize the information you already have,\ntry a completely different tool, or proceed to the next step."
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:29Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "smarty",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:30Z"
 	},
 	{
 		"Seq": 1,
@@ -208,7 +280,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:31Z",
 		"Instruction": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "Done"
@@ -219,7 +291,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:24Z",
+		"Finished": "0001-01-01T00:00:32Z",
 		"Results": {
 			"Reply": "Done"
 		}

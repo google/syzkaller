@@ -337,5 +337,231 @@
 				"role": "user"
 			}
 		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Here is the summary of the previous execution history:\n\ncompressed summary"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "IMPORTANT: The earlier execution history was compressed into the summary above,\nwhile the most recent turns and thoughts are preserved verbatim. Treat the verified facts and\ndetails in the summary as established truth—do NOT repeat earlier tool calls just to re-verify\nthem. Before the next tool call, think carefully step by step about what remains to be done\nand take the most direct next step toward the goal."
+					},
+					{
+						"functionResponse": {
+							"id": "id3",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id4",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id5",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id5",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Here is the summary of the previous execution history:\n\ncompressed summary"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "IMPORTANT: The earlier execution history was compressed into the summary above,\nwhile the most recent turns and thoughts are preserved verbatim. Treat the verified facts and\ndetails in the summary as established truth—do NOT repeat earlier tool calls just to re-verify\nthem. Before the next tool call, think carefully step by step about what remains to be done\nand take the most direct next step toward the goal."
+					},
+					{
+						"functionResponse": {
+							"id": "id3",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id4",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id5",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id5",
+							"response": {
+								"ResFoo": 123
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id6",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "SYSTEM WARNING for tool \"tick\": You are repeating the same tool call with the exact same arguments.\nYou already have the result of this exact tool call in your conversation history.\nDo NOT request it again. You MUST synthesize the information you already have,\ntry a completely different tool, or proceed to the next step."
+					},
+					{
+						"functionResponse": {
+							"id": "id6",
+							"response": {
+								"error": "You are repeating the same tool call with the exact same arguments.\nYou already have the result of this exact tool call in your conversation history.\nDo NOT request it again. You MUST synthesize the information you already have,\ntry a completely different tool, or proceed to the next step."
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
 	}
 ]
