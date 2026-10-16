@@ -84,8 +84,41 @@ binder_write_read {
 	read_size	bytesize[read_buffer, int64]
 	read_consumed	const[0, int64]
 # The buffer must be large enough to receive at least BR_TRANSACTION/BR_REPLY.
-	read_buffer	ptr64[out, array[int8, 256:4096]]
+	read_buffer	ptr64[out, binder_read_buffer, opt]
 }
+
+binder_read_buffer [
+	transaction	binder_read_tr
+	reply		binder_read_reply
+]
+
+binder_read_tr {
+	noop	const[0, int32]
+	cmd	const[0, int32]
+	tr	binder_transaction_data_out
+	rest	array[int8, 184]
+} [packed]
+
+binder_read_reply {
+	noop		const[0, int32]
+	complete	const[0, int32]
+	cmd		const[0, int32]
+	tr		binder_transaction_data_out
+	rest		array[int8, 180]
+} [packed]
+
+binder_transaction_data_out {
+	target		const[0, int64]
+	cookie		const[0, int64]
+	code		const[0, int32]
+	flags		const[0, int32]
+	sender_pid	const[0, int32]
+	sender_euid	const[0, int32]
+	data_size	const[0, int64]
+	offsets_size	const[0, int64]
+	buffer		binder_ptr
+	offsets		const[0, int64]
+} [packed]
 
 binder_write_cmd [
 	transaction		binder_cmd_transaction
@@ -140,18 +173,18 @@ binder_transaction_data {
 # there is a union of handle with binder_uintptr_t
 	pad		const[0, int32]
 	cookie		binder_cookie
-	code		const[0, int32]
+	code		int32[0:2]
 	flags		flags[binder_transaction_flags, int32]
 	sender_pid	const[0, int32]
 	sender_euid	const[0, int32]
 	data_size	bytesize[buffer, int64]
 	offsets_size	bytesize[offsets, int64]
 	buffer		ptr64[in, binder_objects]
-	offsets		ptr64[in, binder_offsets]
+	offsets		ptr64[in, binder_offsets, opt]
 }
 
 binder_objects {
-	obj0	binder_object
+	obj0	binder_root_object
 	obj1	binder_object
 	obj2	binder_object
 } [packed, align[8]]
@@ -164,11 +197,18 @@ binder_offsets {
 
 binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS, TF_CLEAR_BUF, TF_UPDATE_TXN, TF_DEFER_COMPLETE
 
-binder_object [
+binder_root_object [
 	flat	flat_binder_object
 	fd	binder_fd_object
-	fda	binder_fd_array_object
-	ptr	binder_buffer_object
+	ptr	binder_root_buffer_object
+] [varlen]
+
+binder_object [
+	flat		flat_binder_object
+	fd		binder_fd_object
+	fda		binder_fd_array_object
+	ptr		binder_root_buffer_object
+	child_ptr	binder_child_buffer_object
 ] [varlen]
 
 flat_binder_object [
@@ -197,22 +237,30 @@ binder_fd_object {
 
 binder_fd_array_object {
 	type		const[BINDER_TYPE_FDA, int32]
-	num_fds		int64[0:10]
-	parnt		int64[0:2]
-	parent_offset	int64[0:64]
+	num_fds		int64[1:4]
+	parnt		int64[0:1]
+	parent_offset	flags[binder_parent_offset, int64]
 }
 
-binder_buffer_object {
+binder_root_buffer_object {
 	type		const[BINDER_TYPE_PTR, int32]
-# This is BINDER_BUFFER_FLAG_HAS_PARENT.
-	flags		bool32
-# The buffer is actually input, but the data is opaque.
-	buffer		ptr64[out, array[int8]]
+	flags		const[0, int32]
+	buffer		ptr64[in, array[fd, 2:10]]
 	length		bytesize[buffer, int64]
-# If flags == BINDER_BUFFER_FLAG_HAS_PARENT, this must point to another BINDER_TYPE_PTR object.
-	parnt		int64[0:2]
-	parent_offset	int64[0:64]
+	parnt		const[0, int64]
+	parent_offset	const[0, int64]
 }
+
+binder_child_buffer_object {
+	type		const[BINDER_TYPE_PTR, int32]
+	flags		const[BINDER_BUFFER_FLAG_HAS_PARENT, int32]
+	buffer		ptr64[in, array[fd, 2:10]]
+	length		bytesize[buffer, int64]
+	parnt		int64[0:1]
+	parent_offset	flags[binder_parent_offset, int64]
+}
+
+binder_parent_offset = 0, 8, 16, 24
 
 binder_cmd_free_buffer {
 	cmd	const[BC_FREE_BUFFER, int32]
