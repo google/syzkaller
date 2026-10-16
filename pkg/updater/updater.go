@@ -58,6 +58,11 @@ type Config struct {
 	SyzkallerDescriptions string
 	Targets               map[Target]bool
 	MakeTargets           []string // host make targets to build besides the targets-specific ones
+	// CheckConfigs is an optional callback invoked after a successful syzkaller build.
+	// It should validate that all manager configs are still compatible with the new revision
+	// (e.g. that enable_syscalls entries refer to syscalls that exist in the new build).
+	// Returning an error causes the build to be rejected.
+	CheckConfigs func() error
 }
 
 type Target struct {
@@ -308,6 +313,11 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 	}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("testing failed: %w", err)
+	}
+	if upd.cfg.CheckConfigs != nil {
+		if err := upd.cfg.CheckConfigs(); err != nil {
+			return fmt.Errorf("manager config check failed: %w", err)
+		}
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
