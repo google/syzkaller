@@ -181,9 +181,11 @@
 				"parts": [
 					{
 						"text": "thinking about id2",
-						"thought": true
+						"thought": true,
+						"thoughtSignature": "b3JpZ2luYWwtc2lnLTI="
 					},
 					{
+						"thoughtSignature": "b3JpZ2luYWwtc2lnLTI=",
 						"functionCall": {
 							"id": "id2",
 							"name": "tick"

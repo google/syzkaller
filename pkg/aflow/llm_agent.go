@@ -799,22 +799,12 @@ func (a *agentSession) maybeCompressContext(ctx *Context, instruction string, to
 	newReq := []llmMessage{a.req[0], {content: newSummary, tokenCount: summaryTokens}}
 	if splitIndex < len(a.req) {
 		for _, msg := range a.req[splitIndex:] {
-			// Messages after the split point (including their thoughts) were not passed
-			// to the summarizer, so they are preserved as is. We only clear thought
-			// signatures because the conversation history before the preserved suffix
-			// was truncated and modified. Stale cryptographic signatures would fail
-			// verification; clearing them allows backends to bypass signature validation.
+			// Messages after the split point (including their thoughts and thought
+			// signatures) were not passed to the summarizer, so they are preserved as is.
 			msgCopy := *msg.content
 			msgCopy.Parts = slices.DeleteFunc(slices.Clone(msgCopy.Parts), func(p backend.Part) bool {
-				if p.Text == compressedHistoryReminder {
-					return true
-				}
-				// Thought parts without text only carried the (now cleared) signature.
-				return p.Thought && strings.TrimSpace(p.Text) == ""
+				return p.Text == compressedHistoryReminder
 			})
-			for j := range msgCopy.Parts {
-				msgCopy.Parts[j].ThoughtSignature = nil
-			}
 			newReq = append(newReq, llmMessage{
 				content:       &msgCopy,
 				tokenCount:    msg.tokenCount,

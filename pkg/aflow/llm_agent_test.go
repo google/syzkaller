@@ -130,11 +130,11 @@ func TestTokenCompression(t *testing.T) {
 				require.Len(t, req[2].Parts, 2, "thought part should be kept in preserved suffix")
 				require.True(t, req[2].Parts[0].Thought)
 				require.Equal(t, "thinking about id2", req[2].Parts[0].Text)
-				require.Empty(t, req[2].Parts[0].ThoughtSignature,
-					"preserved thought in generic history should have empty thought signature")
+				require.Equal(t, []byte("original-sig-2"), req[2].Parts[0].ThoughtSignature,
+					"preserved thought in suffix should keep its thought signature")
 				require.Equal(t, "id2", req[2].Parts[1].FunctionCall.ID)
-				require.Empty(t, req[2].Parts[1].ThoughtSignature,
-					"preserved function call in generic history should have empty thought signature")
+				require.Equal(t, []byte("original-sig-2"), req[2].Parts[1].ThoughtSignature,
+					"preserved function call in suffix should keep its thought signature")
 				require.Equal(t, backend.RoleUser, req[3].Role)
 				require.Len(t, req[3].Parts, 2)
 				require.Equal(t, compressedHistoryReminder, req[3].Parts[0].Text)
