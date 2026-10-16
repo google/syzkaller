@@ -6,8 +6,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"runtime"
+	"slices"
 	"strconv"
 	"time"
 
@@ -420,6 +422,116 @@ func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.R
 	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
 	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) error {
 		bug.NeedCommitInfo = true
+		return nil
+	})
+}
+
+var (
+	gceE2Standard2  = BuildEnv{VMType: "gce", MachineType: "e2-standard-2"}
+	gceN2DStandard2 = BuildEnv{VMType: "gce", MachineType: "n2d-standard-2"}
+	gceN2Standard2  = BuildEnv{VMType: "gce", MachineType: "n2-standard-2"}
+	gceC4AStandard2 = BuildEnv{VMType: "gce", MachineType: "c4a-standard-2"}
+
+	// nolint: lll
+	managerBuildEnv = map[string]BuildEnv{
+		"ci-upstream-kasan-gce":                 gceE2Standard2,
+		"ci-upstream-kasan-gce-root":            gceN2DStandard2,
+		"ci-upstream-kasan-badwrites-root":      gceN2DStandard2,
+		"ci-upstream-kasan-gce-selinux-root":    gceN2Standard2,
+		"ci-upstream-kasan-gce-smack-root":      gceE2Standard2,
+		"ci-upstream-linux-next-kasan-gce-root": gceE2Standard2,
+		"ci-upstream-bpf-kasan-gce":             gceE2Standard2,
+		"ci-upstream-bpf-next-kasan-gce":        gceE2Standard2,
+		"ci-upstream-net-this-kasan-gce":        gceE2Standard2,
+		"ci-upstream-net-kasan-gce":             gceE2Standard2,
+		"ci-upstream-kasan-gce-386":             gceE2Standard2,
+		"ci-upstream-gce-leak":                  gceE2Standard2,
+		"ci-upstream-kmsan-gce-root":            gceE2Standard2,
+		"ci-upstream-kmsan-gce-386-root":        gceE2Standard2,
+		"ci-upstream-gce-arm64":                 gceC4AStandard2,
+		"ci-upstream-rust-kasan-gce":            gceE2Standard2,
+
+		"ci2-upstream-usb":       gceE2Standard2,
+		"ci2-upstream-kcsan-gce": gceE2Standard2,
+		"ci2-upstream-fs":        gceE2Standard2,
+
+		"ci-qemu-upstream": {
+			VMType:   "qemu",
+			QemuArgs: "-enable-kvm -machine q35,nvdimm=on,accel=kvm,kernel-irqchip=split -cpu max,migratable=off -smp 4,maxcpus=8,cores=2,threads=2,sockets=2 -device ioh3420,id=pcie.1,chassis=1 -device intel-iommu,intremap=on,device-iotlb=on -vga virtio -usb -usbdevice tablet -m 4G,slots=4,maxmem=16G -object memory-backend-file,id=pmem1,share=off,mem-path=/dev/zero,size=64M -device nvdimm,id=nvdimm1,memdev=pmem1 -net nic,model=e1000e -fdb {{TEMPLATE}}/fd -cdrom {{TEMPLATE}}/cdrom -virtfs local,path={{TEMPLATE}}/virtfs,mount_tag=syz,security_model=mapped-xattr,id=syz",
+		},
+		"ci-qemu-upstream-386": {
+			VMType:   "qemu",
+			QemuArgs: "-enable-kvm -machine q35,nvdimm=on,accel=kvm,kernel-irqchip=split -cpu max,migratable=off -smp 4,maxcpus=8,cores=2,threads=2,sockets=2 -device ioh3420,id=pcie.1,chassis=1 -device intel-iommu,intremap=on,device-iotlb=on -vga std -usb -usbdevice tablet -m 2G,slots=4,maxmem=16G -object memory-backend-file,id=pmem1,share=off,mem-path=/dev/zero,size=64M -device nvdimm,id=nvdimm1,memdev=pmem1 -net nic,model=e1000e -fdb {{TEMPLATE}}/fd -cdrom {{TEMPLATE}}/cdrom -virtfs local,path={{TEMPLATE}}/virtfs,mount_tag=syz,security_model=mapped-xattr,id=syz",
+		},
+		"ci-qemu-gce-upstream-auto": gceE2Standard2,
+
+		"ci-qemu2-arm32": {
+			VMType:   "qemu",
+			QemuArgs: "-machine vexpress-a15 -cpu cortex-a15 -dtb /syzkaller/shared/dtb/vexpress-v2p-ca15-tc1.dtb -accel tcg,thread=multi",
+		},
+		"ci-qemu2-arm64": {
+			VMType:   "qemu",
+			QemuArgs: "-machine virt,virtualization=on,graphics=on,usb=on -cpu cortex-a57 -accel tcg,thread=multi",
+		},
+		"ci-qemu2-arm64-compat": {
+			VMType:   "qemu",
+			QemuArgs: "-machine virt,virtualization=on,graphics=on,usb=on -cpu cortex-a57 -accel tcg,thread=multi",
+		},
+		"ci-qemu2-arm64-mte": {
+			VMType:   "qemu",
+			QemuArgs: "-machine virt,virtualization=on,mte=on,graphics=on,usb=on -cpu max -accel tcg,thread=multi",
+		},
+		"ci-qemu2-riscv64": {
+			VMType: "qemu",
+		},
+		"ci-qemu-native-arm64-kvm": {
+			VMType:   "qemu",
+			QemuArgs: "-machine virt,virtualization=on -cpu max,sve=off,pauth=off -machine gic-version=max -accel tcg,thread=multi",
+		},
+		"ci-snapshot-upstream-root": {
+			VMType:   "qemu",
+			QemuArgs: "-enable-kvm -machine q35,nvdimm=on,accel=kvm,kernel-irqchip=split -m 1536M,slots=4,maxmem=16G -device ioh3420,id=pcie.1,chassis=1 -device intel-iommu,intremap=on,device-iotlb=on -vga virtio -usb -usbdevice tablet -object memory-backend-file,id=pmem1,share=off,mem-path=/dev/zero,size=64M -device nvdimm,id=nvdimm1,memdev=pmem1 -net nic,model=e1000e -cdrom {{TEMPLATE}}/cdrom -virtfs local,path={{TEMPLATE}}/virtfs,mount_tag=syz,security_model=mapped-xattr,id=syz,readonly=on",
+		},
+	}
+)
+
+func populateBuildEnv(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	ns := r.FormValue("ns")
+	buildKeys := make(map[string]*db.Key)
+	if err := foreachBug(ctx, func(query *db.Query) *db.Query {
+		query = query.Filter("Status=", BugStatusOpen)
+		if ns != "" {
+			query = query.Filter("Namespace=", ns)
+		}
+		return query
+	}, func(bug *Bug, bugKey *db.Key) error {
+		crashes, _, err := queryCrashesForBug(ctx, bugKey, 3)
+		if err != nil {
+			return err
+		}
+		for _, crash := range crashes {
+			bKey := buildKey(ctx, bug.Namespace, crash.BuildID)
+			buildKeys[bKey.String()] = bKey
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return updateBatch(ctx, slices.Collect(maps.Values(buildKeys)), func(_ *db.Key, build *Build) error {
+		if build.BuildEnv != (BuildEnv{}) {
+			return nil
+		}
+		activeMgr, _ := activeManager(ctx, build.Manager, build.Namespace)
+		if env, ok := managerBuildEnv[activeMgr]; ok {
+			build.BuildEnv = env
+		} else {
+			fmt.Fprintf(w, "skipping build %v/%v: unknown manager %q (active %q)\n",
+				build.Namespace, build.ID, build.Manager, activeMgr)
+		}
 		return nil
 	})
 }

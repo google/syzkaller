@@ -1094,6 +1094,8 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		return setMissingBugFields(ctx, w, r)
 	case "force_commit_info_update":
 		return forceCommitInfoUpdate(ctx, w, r)
+	case "populate_build_env":
+		return populateBuildEnv(ctx, w, r)
 	case "emergency_stop":
 		if err := recordEmergencyStop(ctx); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
