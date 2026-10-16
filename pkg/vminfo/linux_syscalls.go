@@ -94,6 +94,8 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_io_uring_setup":            alwaysSupported,
 	"syz_io_uring_submit":           alwaysSupported,
 	"syz_io_uring_complete":         alwaysSupported,
+	"syz_fuse_uring_complete":       alwaysSupported,
+	"syz_fuse_uring_commit":         alwaysSupported,
 	"syz_ublk_setup_io_uring":       alwaysSupported,
 	"syz_ublk_add_dev":              alwaysSupported,
 	"syz_ublk_setup_queues":         alwaysSupported,
@@ -249,6 +251,12 @@ func linuxSupportedFilesystem(ctx *checkContext, call *prog.Syscall, fsarg int) 
 		if reason := ctx.canOpen("/dev/fuse"); reason != "" {
 			return reason
 		}
+		if reason := ctx.onlySandboxNoneOrNamespace(); reason != "" {
+			return reason
+		}
+	case "overlay", "tmpfs", "ramfs":
+		// These filesystems set FS_USERNS_MOUNT and are intentionally
+		// mountable with CAP_SYS_ADMIN in the namespace sandbox's userns.
 		if reason := ctx.onlySandboxNoneOrNamespace(); reason != "" {
 			return reason
 		}
