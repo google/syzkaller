@@ -1,0 +1,13 @@
+# requires: -threaded
+# Create a dm-thin-pool device over /dev/ram0 and /dev/ram1, create and delete a thin volume.
+# DM_DEV_SUSPEND without DM_SUSPEND_FLAG resumes the device and activates the loaded table.
+# The device is removed (with DM_DEFERRED_REMOVE) at the end so repeated test runs do not hit EBUSY.
+
+r0 = openat$dm_control(AUTO, &AUTO='/dev/mapper/control\x00', 0x2, AUTO)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {0x0, {'syz', 0x0, '2\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, [@thin_pool={AUTO, 0x2000, AUTO, AUTO, 'thin-pool\x00', {@ram={'/dev/ram', 0x0}, AUTO, @ram={'/dev/ram', 0x1}, AUTO, '128', AUTO, 0x0, ''}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, ""})
+ioctl$DM_TARGET_MSG(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, {0x0, @thin_create={'create_thin ', 0x0}, AUTO}})
+ioctl$DM_TABLE_STATUS(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, ""/256})
+ioctl$DM_TARGET_MSG(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, {0x0, @thin_pool='delete 0', AUTO}})
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, ""})
