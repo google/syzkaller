@@ -679,14 +679,14 @@ Important: You must output the actual summary text in your final response. Do NO
 
 const compressedHistoryPrefix = "Here is the summary of the previous execution history:\n\n"
 
-// After compression, thoughts from the summarized part of the history are dropped. Empirically,
-// models then tend to stop thinking altogether and switch to mechanical repetitive tool calls,
-// so we explicitly ask to think.
+// After compression, earlier turns are replaced with a summary while the recent suffix
+// is preserved. Remind the agent to trust the summary and continue forward rather than
+// re-verifying facts from the beginning.
 const compressedHistoryReminder = `IMPORTANT: The earlier execution history was compressed into the summary above,
-and your reasoning (thoughts) from that part has been deleted. Do NOT continue by mechanically
-repeating the pattern of the most recent tool calls. Before the next tool call, think carefully
-step by step: re-assess what is already known from the summary, what the goal is, and what
-the most efficient next step is.`
+while the most recent turns and thoughts are preserved verbatim. Treat the verified facts and
+details in the summary as established truth—do NOT repeat earlier tool calls just to re-verify
+them. Before the next tool call, think carefully step by step about what remains to be done
+and take the most direct next step toward the goal.`
 
 func (a *agentSession) compressContext(
 	ctx *Context, instruction string, splitIndex int) (*backend.Message, int, error) {

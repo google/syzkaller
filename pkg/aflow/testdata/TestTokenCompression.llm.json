@@ -197,7 +197,7 @@
 			{
 				"parts": [
 					{
-						"text": "IMPORTANT: The earlier execution history was compressed into the summary above,\nand your reasoning (thoughts) from that part has been deleted. Do NOT continue by mechanically\nrepeating the pattern of the most recent tool calls. Before the next tool call, think carefully\nstep by step: re-assess what is already known from the summary, what the goal is, and what\nthe most efficient next step is."
+						"text": "IMPORTANT: The earlier execution history was compressed into the summary above,\nwhile the most recent turns and thoughts are preserved verbatim. Treat the verified facts and\ndetails in the summary as established truth—do NOT repeat earlier tool calls just to re-verify\nthem. Before the next tool call, think carefully step by step about what remains to be done\nand take the most direct next step toward the goal."
 					},
 					{
 						"functionResponse": {
