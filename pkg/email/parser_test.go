@@ -27,74 +27,38 @@ func TestExtractCommand(t *testing.T) {
 func TestAddRemoveAddrContext(t *testing.T) {
 	email := `"Foo Bar" <foo@bar.com>`
 	email00, context00, err := RemoveAddrContext(email)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if email != email00 {
-		t.Fatalf("want: %q, got %q", email, email00)
-	}
-	if context00 != "" {
-		t.Fatalf("want context: %q, got %q", "", context00)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, email, email00)
+	assert.Empty(t, context00)
 	context1 := "context1"
 	email1, err := AddAddrContext(email, context1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	want1 := `"Foo Bar" <foo+context1@bar.com>`
-	if want1 != email1 {
-		t.Fatalf("want: %q, got %q", want1, email1)
-	}
+	require.Equal(t, want1, email1)
 	context2 := "context2"
 	email2, err := AddAddrContext(email1, context2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	want2 := `"Foo Bar" <foo+context1+context2@bar.com>`
-	if want2 != email2 {
-		t.Fatalf("want: %q, got %q", want2, email2)
-	}
+	require.Equal(t, want2, email2)
 	email1, context20, err := RemoveAddrContext(email2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want1 != email1 {
-		t.Fatalf("want: %q, got %q", want1, email1)
-	}
-	if context2 != context20 {
-		t.Fatalf("want context: %q, got %q", context2, context20)
-	}
+	require.NoError(t, err)
+	require.Equal(t, want1, email1)
+	assert.Equal(t, context2, context20)
 	email0, context10, err := RemoveAddrContext(email1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if email != email0 {
-		t.Fatalf("want: %q, got %q", email, email0)
-	}
-	if context1 != context10 {
-		t.Fatalf("want context: %q, got %q", context1, context10)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, email, email0)
+	assert.Equal(t, context1, context10)
 }
 
 func TestAddAddrContextEmptyName(t *testing.T) {
 	email := "<foo@bar.com>"
 	email1, err := AddAddrContext(email, "context")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := "foo+context@bar.com"; want != email1 {
-		t.Fatalf("want: %q, got %q", want, email1)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "foo+context@bar.com", email1)
 	email2, context1, err := RemoveAddrContext(email1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if email != email2 {
-		t.Fatalf("want: %q, got %q", email, email2)
-	}
-	if context1 != "context" {
-		t.Fatalf("got context %q", context1)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, email, email2)
+	assert.Equal(t, "context", context1)
 }
 
 func TestCanonicalEmail(t *testing.T) {
@@ -104,9 +68,7 @@ func TestCanonicalEmail(t *testing.T) {
 		"<Foo@bar.com>",
 	}
 	for _, email := range emails {
-		if got := CanonicalEmail(email); got != canonical {
-			t.Errorf("got %q, want %q", got, canonical)
-		}
+		assert.Equal(t, canonical, CanonicalEmail(email))
 	}
 }
 
@@ -118,9 +80,7 @@ func TestParse(t *testing.T) {
 				[]string{"list@googlegroups.com"},
 				[]string{"bar.com"},
 			)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			assert.Equal(t, &test.res, email)
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })

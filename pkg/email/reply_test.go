@@ -6,17 +6,15 @@ package email
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormReply(t *testing.T) {
 	for i, test := range formReplyTests {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
+		t.Run(fmt.Sprint(i), func(tt *testing.T) {
 			result := FormReply(test.email, test.reply)
-			if test.result != result {
-				t.Logf("expect:\n%s", test.result)
-				t.Logf("got:\n%s", result)
-				t.Fail()
-			}
+			assert.Equal(tt, test.result, result)
 		})
 	}
 }
