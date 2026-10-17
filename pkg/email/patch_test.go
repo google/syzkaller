@@ -13,11 +13,9 @@ import (
 
 func TestParsePatch(t *testing.T) {
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
+		t.Run(test.title, func(tt *testing.T) {
 			diff := ParsePatch([]byte(test.text))
-			if test.diff != diff {
-				t.Fatalf("diff mismatch, want:\n%v\ngot:\n%v", test.diff, diff)
-			}
+			assert.Equal(tt, test.diff, diff, "diff mismatch")
 		})
 	}
 }

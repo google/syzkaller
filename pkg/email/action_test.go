@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMessageActions(t *testing.T) {
@@ -81,9 +82,7 @@ func TestMessageActions(t *testing.T) {
 		test := _test
 		t.Run(test.name, func(tt *testing.T) {
 			got := NewMessageAction(test.msg, test.msgType, test.oldThread)
-			if got != test.result {
-				t.Fatalf("wanted %v, got %v", test.result, got)
-			}
+			assert.Equal(tt, test.result, got)
 		})
 	}
 }
