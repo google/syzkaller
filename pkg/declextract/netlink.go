@@ -23,22 +23,22 @@ func (ctx *context) serializeNetlink() {
 			continue
 		}
 		id := stringIdentifier(fam.Name)
-		ctx.fmt("resource genl_%v_family_id%v[int16]\n", id, autoSuffix)
+		ctx.fmt("resource genl_%v_family_id%v[int16]\n", id, ctx.suffix)
 		ctx.fmt("type msghdr_%v%v[CMD, POLICY] msghdr_netlink[netlink_msg_t"+
-			"[genl_%v_family_id%v, genlmsghdr_t[CMD], POLICY]]\n", id, autoSuffix, id, autoSuffix)
+			"[genl_%v_family_id%v, genlmsghdr_t[CMD], POLICY]]\n", id, ctx.suffix, id, ctx.suffix)
 		ctx.fmt("syz_genetlink_get_family_id%v_%v(name ptr[in, string[\"%v\"]],"+
-			" fd sock_nl_generic) genl_%v_family_id%v\n\n", autoSuffix, id, fam.Name, id, autoSuffix)
+			" fd sock_nl_generic) genl_%v_family_id%v\n\n", ctx.suffix, id, fam.Name, id, ctx.suffix)
 
 		for _, op := range fam.Ops {
 			policy := voidType
 			if op.Policy != "" {
-				policy = op.Policy + autoSuffix
+				policy = op.Policy + ctx.suffix
 				pq.policyUsed(op.Policy)
 			}
 			name := ctx.uniqualize("netlink op", op.Name)
 			ctx.fmt("sendmsg%v_%v(fd sock_nl_generic,"+
 				" msg ptr[in, msghdr_%v%v[%v, %v]], f flags[send_flags])\n",
-				autoSuffix, name, id, autoSuffix, op.Name, policy)
+				ctx.suffix, name, id, ctx.suffix, op.Name, policy)
 
 			ctx.noteInterface(&Interface{
 				Type:             IfaceNetlinkOp,
@@ -73,10 +73,10 @@ func (pq *policyQueue) policyUsed(name string) {
 
 func (ctx *context) serializeNetlinkPolicy(pol *NetlinkPolicy, pq *policyQueue) {
 	if len(pol.Attrs) == 0 {
-		ctx.fmt("type %v auto_todo\n", pol.Name+autoSuffix)
+		ctx.fmt("type %v auto_todo\n", pol.Name+ctx.suffix)
 		return
 	}
-	ctx.fmt("%v [\n", pol.Name+autoSuffix)
+	ctx.fmt("%v [\n", pol.Name+ctx.suffix)
 	for _, attr := range pol.Attrs {
 		ctx.fmt("%v %v\n", attr.Name, ctx.nlattrType(attr, pq))
 	}
@@ -98,7 +98,7 @@ func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 		policy := "nl_generic_attr"
 		if attr.NestedPolicy != "" {
 			pq.policyUsed(attr.NestedPolicy)
-			policy = attr.NestedPolicy + autoSuffix
+			policy = attr.NestedPolicy + ctx.suffix
 		}
 		typ = fmt.Sprintf("array[%v]", policy)
 		if attr.Kind == "NLA_NESTED_ARRAY" {
@@ -147,7 +147,7 @@ func (ctx *context) netlinkType(attr *NetlinkAttr) *Type {
 		case attr.Elem.Int != nil:
 			elemSize = attr.Elem.Int.ByteSize
 		case attr.Elem.Struct != "":
-			if str := ctx.structs[attr.Elem.Struct+autoSuffix]; str != nil {
+			if str := ctx.structs[attr.Elem.Struct+ctx.suffix]; str != nil {
 				elemSize = str.ByteSize
 			} else {
 				ctx.error("binary nlattr %v referenced non-existing struct %v",
