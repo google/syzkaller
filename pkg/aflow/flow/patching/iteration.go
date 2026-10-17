@@ -45,11 +45,12 @@ type PatchIterationInputs struct {
 	// Base fixes tag from previous version.
 	BaseFixes ai.FixesTag `json:",omitzero"`
 
-	BaseReviewedBy  []string `json:",omitempty"`
-	BaseAckedBy     []string `json:",omitempty"`
-	BaseTestedBy    []string `json:",omitempty"`
-	BaseReportedBy  []string `json:",omitempty"`
-	BaseSuggestedBy []string `json:",omitempty"`
+	BaseReviewedBy  []string       `json:",omitempty"`
+	BaseAckedBy     []string       `json:",omitempty"`
+	BaseTestedBy    []string       `json:",omitempty"`
+	BaseReportedBy  []string       `json:",omitempty"`
+	BaseSuggestedBy []string       `json:",omitempty"`
+	BaseRecipients  []ai.Recipient `json:",omitempty"`
 
 	// See patching workflow.
 	BaseRepository string
@@ -123,8 +124,6 @@ func init() {
 					Prompt:      verdictPrompt,
 					Tools:       aflow.Tools(codeAccessTools, viewPatchHistoryTool),
 				},
-				tagExtractor,
-				tagsMergerAction,
 				extractTriageResults,
 				// If the verdict agent decides a new patch is needed, generate it by applying the previous
 				// patch to a scratch tree and having the LLM agent modify it.
@@ -160,6 +159,7 @@ func init() {
 							),
 						},
 						resolveFixes,
+						getNewMaintainers,
 						getRecentCommits,
 						&aflow.LLMAgent{
 							Name:        "changelog-generator",
@@ -168,9 +168,10 @@ func init() {
 							Instruction: changelogInstruction,
 							Prompt:      changelogPrompt,
 						},
-						getMaintainers,
 					),
 				},
+				tagExtractor,
+				tagsMergerAction,
 
 				// Evaluate each new thread comment individually to decide if it needs a direct reply,
 				// provided that replying to comments is enabled for this stage.
@@ -549,8 +550,8 @@ version will eventually be needed. In that case, clarifying questions can be
 asked in the generated replies instead, or the system can wait for the
 discussion to settle.
 
-IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) does NOT automatically mean that
-a new version of the patch must be generated. Do not extract tag updates as ActionableItems.
+IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) or To/Cc recipients does NOT automatically mean that
+a new version of the patch must be generated. Do not extract tag or To/Cc recipient updates as ActionableItems.
 ` + untrustedCommentsWarning
 
 const verdictPrompt = `
@@ -688,14 +689,16 @@ on a patch requires a written reply, and writing the final text of that reply.
 
 Note that not all comments require a reply, and that's perfectly fine.
 Only reply when a reviewer asks a question, requests clarification or explanation, or raises a point
-that requires a direct textual answer or discussion (or requests an unsupported tag, as described below).
+that requires a direct textual answer or discussion (or contains a tag or To/Cc change request that could not
+be applied, as described below).
 Do NOT reply just to acknowledge feedback, say "thank you", or announce that you will fix something
 or have sent a new patch version (e.g. do NOT say things like "Thank you for the review, I have sent a v2"
 or "I will fix this in the next version").
 Actionable code or commit-message change requests are addressed by sending the updated patch itself,
 not by replying to the comment.
-If a comment only requests changes, points out a bug/style issue to fix, provides a supported tag,
-or is a discussion among reviewers or a request to wait, ignore the comment (Action is "ignore").
+If a comment only requests changes, points out a bug/style issue to fix, requests tag or To/Cc changes
+that were applied, or is a discussion among reviewers or a request to wait, ignore the comment
+(Action is "ignore").
 If a comment both requests changes and asks a question, reply ONLY to answer the question without
 mentioning that a new patch version was or will be sent.
 
@@ -713,10 +716,10 @@ If you choose to ignore the comment (Action is "ignore"), leave both Quote and R
 Write the reply in a friendly, respectful tone. Don't use passive-aggressive language,
 e.g. "as I already told you", "as explained in the commit message", etc.
 
-If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by, etc) that is NOT in the supported
-list: "Reviewed-by", "Acked-by", "Tested-by", "Reported-by", "Suggested-by", you MUST reply and explain that the
-automated system currently only supports processing this specific list of tags, so you cannot apply
-their tag automatically.
+If a reviewer asks to add or remove a tag (like Reviewed-by, Acked-by) or To/Cc recipients, these requests are
+processed automatically, and you must NOT reply just to acknowledge them. However, if the prompt lists
+requests from this comment that could not be applied, you MUST reply and politely explain for each of them
+that it could not be applied and why (e.g. ask for the exact email address if it was missing).
 ` + untrustedCommentsWarning
 
 const commentProcessPrompt = `
@@ -724,4 +727,8 @@ Bug title: {{jsonMarshal .ReproducedBugTitle}}
 
 Comment to evaluate:
 {{jsonMarshal .CurrentComment}}
-`
+
+Tag or To/Cc change requests from this comment that could not be applied (empty if none):
+{{range $r := .RejectedRequests}}{{if eq $r.CommentID $.CurrentComment.ExtID -}}
+- {{jsonMarshal $r.Request}}: {{$r.Reason}}
+{{end}}{{end}}`

@@ -1372,7 +1372,7 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 		replyToIDs = append(replyToIDs, r.ReplyTo)
 	}
 
-	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal,
+	err = aidb.IterationJobDone(ctx, job, args.TargetCommentIDs,
 		hasPatch, replyToIDs, func(ns, stage string) bool {
 			nsCfg := getNsConfig(ctx, ns)
 			if nsCfg == nil || nsCfg.AI == nil {

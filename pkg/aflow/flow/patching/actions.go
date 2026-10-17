@@ -125,6 +125,57 @@ func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, e
 	return res, nil
 }
 
+var getNewMaintainers = aflow.NewFuncAction("get-new-maintainers", newMaintainers)
+
+type newMaintainersArgs struct {
+	KernelSrc         string
+	PatchDiff         string
+	PreviousPatchDiff string
+	Fixes             ai.FixesTag
+	BaseFixes         ai.FixesTag
+	BaseRecipients    []ai.Recipient
+}
+
+type newMaintainersResult struct {
+	NewMaintainers []ai.Recipient
+}
+
+// newMaintainers returns get_maintainer.pl recipients that are relevant for the new patch version,
+// but were not relevant for the previous one (e.g. the patch now touches more files, or the Fixes
+// tag has changed). Recipients of the previous version are already in BaseRecipients, and reviewers
+// may have asked to drop some of them, so we must not return them again.
+func newMaintainers(ctx *aflow.Context, args newMaintainersArgs) (newMaintainersResult, error) {
+	if len(args.BaseRecipients) != 0 && args.PatchDiff == args.PreviousPatchDiff &&
+		args.Fixes.Hash == args.BaseFixes.Hash {
+		return newMaintainersResult{}, nil
+	}
+	cur, err := maintainers(ctx, maintainersArgs{
+		KernelSrc: args.KernelSrc,
+		PatchDiff: args.PatchDiff,
+		Fixes:     args.Fixes,
+	})
+	if err != nil {
+		return newMaintainersResult{}, err
+	}
+	if len(args.BaseRecipients) == 0 {
+		// TODO: remove once all jobs created before BaseRecipients were passed to patch-iteration are done.
+		// Such jobs don't know the previous recipients, so return all of them.
+		return newMaintainersResult{NewMaintainers: cur.Recipients}, nil
+	}
+	prev, err := maintainers(ctx, maintainersArgs{
+		KernelSrc: args.KernelSrc,
+		PatchDiff: args.PreviousPatchDiff,
+		Fixes:     args.BaseFixes,
+	})
+	if err != nil {
+		return newMaintainersResult{}, err
+	}
+	added := slices.DeleteFunc(cur.Recipients, func(r ai.Recipient) bool {
+		return containsRecipient(prev.Recipients, r.Email)
+	})
+	return newMaintainersResult{NewMaintainers: added}, nil
+}
+
 var getRecentCommits = aflow.NewFuncAction("get-recent-commits", recentCommits)
 
 type recentCommitsArgs struct {

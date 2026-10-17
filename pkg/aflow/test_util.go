@@ -22,3 +22,13 @@ func NewTestContext(t *testing.T) *Context {
 		},
 	}
 }
+
+// TestFormatTemplate renders an agent prompt/instruction template with the given state.
+// Template verification during flow registration executes templates only with zero values,
+// so this allows to test templates that e.g. range over non-empty slices.
+func TestFormatTemplate(t *testing.T, text string, state map[string]any) string {
+	t.Helper()
+	var res string
+	require.NotPanics(t, func() { res = formatTemplate(text, state) })
+	return res
+}

@@ -147,8 +147,10 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	nextStage := nextStageCfg.Name
 
 	var extraCcList []string
+	var overrides spanner.NullJSON
 	if currentReporting != nil {
 		extraCcList = currentReporting.ExtraCcList
+		overrides = currentReporting.Overrides
 	}
 	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
 	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
@@ -163,6 +165,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
 			Version:      spanner.NullInt64{Int64: 1, Valid: true},
 			ExtraCcList:  extraCcList,
+			Overrides:    overrides,
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
 		CommandSource: string(req.Source),
@@ -308,7 +311,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast job results: %w", err)
 			}
-			result.Patch, err = makeNewReportResult(ctx, job, &res, version, authors)
+			result.Patch, err = makeNewReportResult(ctx, job, r, &res, version, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -358,8 +361,16 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
-	version int, authors []string) (*dashapi.NewReportResult, error) {
+// makeNewReportResult formats the patch email.
+// Recipients and tags in res are replaced with the current ones of the reporting
+// (reviewers may have updated them after the job has finished, see JobReporting.Overrides).
+func makeNewReportResult(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
+	res *ai.PatchingOutputs, version int, authors []string) (*dashapi.NewReportResult, error) {
+	meta, err := reporting.PatchMetadata(job)
+	if err != nil {
+		return nil, err
+	}
+	meta.ApplyTo(res)
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
@@ -430,19 +441,13 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, reporting
 	}
 
 	if reporting.InReplyTo == "" {
-		result.Patch, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
+		result.Patch, err = makeNewReportResult(ctx, job, reporting, &ai.PatchingOutputs{
 			KernelRepo:       res.KernelRepo,
 			KernelBranch:     res.KernelBranch,
 			KernelCommit:     res.KernelCommit,
 			PatchDescription: res.PatchDescription,
 			PatchDiff:        res.PatchDiff,
-			Recipients:       res.Recipients,
 			Fixes:            res.Fixes,
-			ReviewedBy:       res.ReviewedBy,
-			AckedBy:          res.AckedBy,
-			TestedBy:         res.TestedBy,
-			ReportedBy:       res.ReportedBy,
-			SuggestedBy:      res.SuggestedBy,
 		}, version, authors)
 		if err != nil {
 			return err

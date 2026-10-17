@@ -1100,7 +1100,9 @@ func CreatePatchIterationJob(ctx context.Context, reportingID string, replyToCom
 			}
 		}
 
-		extractBaseCommitArgs(parentJob, argsMap)
+		if err := extractBaseCommitArgs(parentJob, reporting, argsMap); err != nil {
+			return err
+		}
 		argsMap["TargetCommentIDs"] = commentIDs
 		argsMap["ReplyToComments"] = replyToComments
 
@@ -1262,8 +1264,8 @@ func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) er
 
 // IterationJobDone finalizes an iteration job and creates new reporting rows if needed.
 // TODO: We pass isReplyAllowed callback to avoid a circular package dependency between aidb and package main.
-func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
-	parentReportingID string, hasPatch bool, replyToIDs []string,
+func IterationJobDone(ctx context.Context, job *Job, commentIDs []string,
+	hasPatch bool, replyToIDs []string,
 	isReplyAllowed func(ns, stage string) bool) error {
 	client, err := dbClient(ctx)
 	if err != nil {
@@ -1273,7 +1275,7 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		// 1. Load parent reporting to get CreatedAt, JobID, Stage, and Source.
 		stmt := spanner.Statement{
 			SQL:    selectJobReporting() + ` WHERE ID = @id`,
-			Params: map[string]any{"id": parentReportingID},
+			Params: map[string]any{"id": job.ParentReportingID.StringVal},
 		}
 		parentRep, err := readRow[JobReporting](ctx, tx, stmt)
 		if err != nil {
@@ -1336,12 +1338,21 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 			inReplyTos = append(inReplyTos, "")
 		}
 		inReplyTos = append(inReplyTos, replyToIDs...)
-		if len(inReplyTos) == 0 {
-			return nil
+
+		var mutations []*spanner.Mutation
+		if !hasPatch {
+			// Reply-only jobs are leaves (comments always refer to the patch reporting),
+			// so their recipient and tag updates are saved on the parent reporting.
+			mut, err := overridesUpdate(job, parentRep)
+			if err != nil {
+				return err
+			}
+			if mut != nil {
+				mutations = append(mutations, mut)
+			}
 		}
 
 		now := TimeNow(ctx)
-		var mutations []*spanner.Mutation
 		for _, inReplyTo := range inReplyTos {
 			var version spanner.NullInt64
 			if inReplyTo == "" {
@@ -1349,7 +1360,7 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 			}
 			reporting := &JobReporting{
 				ID:           uuid.NewString(),
-				JobID:        jobID,
+				JobID:        job.ID,
 				Stage:        parentRep.Stage,
 				Source:       parentRep.Source,
 				InReplyTo:    inReplyTo,
@@ -1560,9 +1571,9 @@ func readRow[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) 
 	return pkgspanner.ReadRow[T](iter)
 }
 
-func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
+func extractBaseCommitArgs(job *Job, reporting *JobReporting, argsMap map[string]any) error {
 	if !job.Results.Valid {
-		return
+		return nil
 	}
 	if m, ok := job.Results.Value.(map[string]any); ok {
 		if repo, ok := m["KernelRepo"].(string); ok && repo != "" {
@@ -1577,20 +1588,43 @@ func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
 		if fixes, ok := m["Fixes"].(map[string]any); ok && fixes != nil {
 			argsMap["BaseFixes"] = fixes
 		}
-		if tags, ok := m["ReviewedBy"].([]any); ok && tags != nil {
-			argsMap["BaseReviewedBy"] = tags
-		}
-		if tags, ok := m["AckedBy"].([]any); ok && tags != nil {
-			argsMap["BaseAckedBy"] = tags
-		}
-		if tags, ok := m["TestedBy"].([]any); ok && tags != nil {
-			argsMap["BaseTestedBy"] = tags
-		}
-		if tags, ok := m["ReportedBy"].([]any); ok && tags != nil {
-			argsMap["BaseReportedBy"] = tags
-		}
-		if tags, ok := m["SuggestedBy"].([]any); ok && tags != nil {
-			argsMap["BaseSuggestedBy"] = tags
-		}
 	}
+	// Recipients and tags may have been updated by reviewers after the job has finished.
+	meta, err := reporting.PatchMetadata(job)
+	if err != nil {
+		return err
+	}
+	// Note: overridesUpdate relies on BaseRecipients being present in the args (so it must not be nil).
+	if meta.Recipients == nil {
+		meta.Recipients = []ai.Recipient{}
+	}
+	argsMap["BaseRecipients"] = meta.Recipients
+	argsMap["BaseReviewedBy"] = meta.ReviewedBy
+	argsMap["BaseAckedBy"] = meta.AckedBy
+	argsMap["BaseTestedBy"] = meta.TestedBy
+	argsMap["BaseReportedBy"] = meta.ReportedBy
+	argsMap["BaseSuggestedBy"] = meta.SuggestedBy
+	return nil
+}
+
+// overridesUpdate saves recipient and tag updates made by a reply-only patch-iteration job
+// on the parent reporting, so that subsequent iterations and upstreaming use them.
+func overridesUpdate(job *Job, parentRep *JobReporting) (*spanner.Mutation, error) {
+	args, _ := job.Args.Value.(map[string]any)
+	if _, ok := args["BaseRecipients"]; !ok {
+		// TODO: remove once all jobs created before BaseRecipients were passed to patch-iteration are done.
+		// Results of such jobs don't contain the current recipients and tags.
+		return nil, nil
+	}
+	meta, err := parsePatchMetadata(job.Results)
+	if err != nil {
+		return nil, fmt.Errorf("job %v: %w", job.ID, err)
+	}
+	if len(meta.Recipients) == 0 {
+		// Most likely the job was run by an agent that predates BaseRecipients support
+		// (its reply-only results don't contain recipients). Don't wipe the current recipients.
+		return nil, nil
+	}
+	return spanner.Update("JobReporting", []string{"ID", "Overrides"},
+		[]any{parentRep.ID, spanner.NullJSON{Value: meta, Valid: true}}), nil
 }
