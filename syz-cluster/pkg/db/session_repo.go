@@ -82,12 +82,17 @@ func (repo *SessionRepository) ListInProgress(ctx context.Context) ([]*Session, 
 }
 
 func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*Session, error) {
-	// We give priority to the job-related sessions to improve user experience.
+	// We give priority to the job-related and direct sessions to improve user experience,
+	// then to LTS RC sessions.
 	// Otherwise, follow the FIFO order.
 	stmt := spanner.Statement{
-		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL " +
-			"ORDER BY CASE WHEN `JobID` IS NOT NULL OR `Direct` = TRUE THEN 0 ELSE 1 END, `CreatedAt`",
-
+		SQL: "SELECT `Sessions`.* FROM `Sessions` " +
+			"JOIN `Series` ON `Sessions`.`SeriesID` = `Series`.`ID` " +
+			"WHERE `Sessions`.`StartedAt` IS NULL " +
+			"ORDER BY CASE " +
+			"WHEN `Sessions`.`JobID` IS NOT NULL OR `Sessions`.`Direct` = TRUE THEN 0 " +
+			"WHEN `Series`.`XStable` = 'review' THEN 1 " +
+			"ELSE 2 END, `Sessions`.`CreatedAt`",
 		Params: map[string]any{},
 	}
 	addLimit(&stmt, limit)
