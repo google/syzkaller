@@ -21,50 +21,50 @@ func TestTargetConfigValidate(t *testing.T) {
 		{
 			name: "valid qemu config",
 			config: TargetConfig{
-				TargetArch: "amd64",
-				Type:       "qemu",
+				Target: Target{TargetArch: "amd64"},
+				Type:   "qemu",
 			},
 			wantErr: false,
 		},
 		{
 			name: "valid gce config",
 			config: TargetConfig{
-				TargetArch: "amd64",
-				Type:       "gce",
+				Target: Target{TargetArch: "amd64"},
+				Type:   "gce",
 			},
 			wantErr: false,
 		},
 		{
 			name: "unsupported target arch",
 			config: TargetConfig{
-				TargetArch: "invalid",
-				Type:       "qemu",
+				Target: Target{TargetArch: "invalid"},
+				Type:   "qemu",
 			},
 			wantErr: true,
 		},
 		{
 			name: "unsupported VM type",
 			config: TargetConfig{
-				TargetArch: "amd64",
-				Type:       "invalid",
+				Target: Target{TargetArch: "amd64"},
+				Type:   "invalid",
 			},
 			wantErr: true,
 		},
 		{
 			name: "valid custom sandbox",
 			config: TargetConfig{
-				TargetArch: "amd64",
-				Type:       "qemu",
-				Sandbox:    "namespace",
+				Target:  Target{TargetArch: "amd64"},
+				Type:    "qemu",
+				Sandbox: "namespace",
 			},
 			wantErr: false,
 		},
 		{
 			name: "unsupported sandbox type",
 			config: TargetConfig{
-				TargetArch: "amd64",
-				Type:       "qemu",
-				Sandbox:    "invalid",
+				Target:  Target{TargetArch: "amd64"},
+				Type:    "qemu",
+				Sandbox: "invalid",
 			},
 			wantErr: true,
 		},
@@ -116,11 +116,11 @@ func TestBuildConfig(t *testing.T) {
 	t.Run("qemu defaults", func(t *testing.T) {
 		img := createDummyImage(t)
 		cfg := TargetConfig{
-			TargetArch: "amd64",
-			Type:       "qemu",
-			Syzkaller:  syzDir,
-			Image:      img,
-			KernelObj:  "dummy_kernel_obj",
+			Target:    Target{TargetArch: "amd64"},
+			Type:      "qemu",
+			Syzkaller: syzDir,
+			Image:     img,
+			KernelObj: "dummy_kernel_obj",
 		}
 		res, err := BuildConfig(cfg, t.TempDir())
 		require.NoError(t, err)
@@ -144,7 +144,7 @@ func TestBuildConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		cfg := TargetConfig{
-			TargetArch: "amd64",
+			Target:     Target{TargetArch: "amd64"},
 			Type:       "qemu",
 			Syzkaller:  syzDir,
 			Image:      img,
@@ -172,11 +172,11 @@ func TestBuildConfig(t *testing.T) {
 	t.Run("gce image embed error", func(t *testing.T) {
 		img := createDummyImage(t)
 		cfg := TargetConfig{
-			TargetArch: "amd64",
-			Type:       "gce",
-			Syzkaller:  syzDir,
-			Image:      img,
-			KernelObj:  "dummy_kernel_obj",
+			Target:    Target{TargetArch: "amd64"},
+			Type:      "gce",
+			Syzkaller: syzDir,
+			Image:     img,
+			KernelObj: "dummy_kernel_obj",
 		}
 		_, err := BuildConfig(cfg, t.TempDir())
 		require.Error(t, err)
@@ -186,12 +186,11 @@ func TestBuildConfig(t *testing.T) {
 	t.Run("qemu 386 compat mode", func(t *testing.T) {
 		img := createDummyImage(t)
 		cfg := TargetConfig{
-			TargetArch:   "386",
-			TargetVMArch: "amd64",
-			Type:         "qemu",
-			Syzkaller:    syzDir,
-			Image:        img,
-			KernelObj:    "dummy_kernel_obj",
+			Target:    Target{TargetArch: "386", TargetVMArch: "amd64"},
+			Type:      "qemu",
+			Syzkaller: syzDir,
+			Image:     img,
+			KernelObj: "dummy_kernel_obj",
 		}
 		res, err := BuildConfig(cfg, t.TempDir())
 		require.NoError(t, err)

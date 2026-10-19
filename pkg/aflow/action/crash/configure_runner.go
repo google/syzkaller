@@ -37,15 +37,14 @@ func configureRunnerAction(ctx *aflow.Context, args ConfigureRunnerArgs) (Config
 	}
 
 	targetCfg := TargetConfig{
-		TargetArch:   args.TargetArch,
-		TargetVMArch: args.TargetVMArch,
-		Syzkaller:    args.Syzkaller,
-		Image:        args.Image,
-		Type:         args.Type,
-		VM:           args.VM,
-		KernelSrc:    args.KernelSrc,
-		KernelObj:    args.KernelObj,
-		Snapshot:     args.Snapshot,
+		Target:    Target{TargetOS: args.TargetOS, TargetArch: args.TargetArch, TargetVMArch: args.TargetVMArch},
+		Syzkaller: args.Syzkaller,
+		Image:     args.Image,
+		Type:      args.Type,
+		VM:        args.VM,
+		KernelSrc: args.KernelSrc,
+		KernelObj: args.KernelObj,
+		Snapshot:  args.Snapshot,
 	}
 
 	if err := targetCfg.Validate(); err != nil {

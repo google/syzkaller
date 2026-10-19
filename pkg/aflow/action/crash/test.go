@@ -115,8 +115,7 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 	reproduceArgs := ReproduceArgs{
 		TargetConfig: TargetConfig{
 			AgentName:    args.AgentName,
-			TargetArch:   args.TargetArch,
-			TargetVMArch: args.TargetVMArch,
+			Target:       Target{TargetOS: args.TargetOS, TargetArch: args.TargetArch, TargetVMArch: args.TargetVMArch},
 			Syzkaller:    args.Syzkaller,
 			Image:        args.Image,
 			Type:         args.Type,

@@ -13,15 +13,25 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// Target describes the OS and architectures of the test programs and of the kernel running them.
+// Actions that boot VMs should embed it into their arguments instead of declaring
+// the fields separately, so that none of them is accidentally dropped.
+type Target struct {
+	// Target OS (e.g., "linux").
+	TargetOS string
+	// Architecture of the test programs/userspace (e.g., "amd64", "arm64", "386").
+	TargetArch string
+	// Architecture of the kernel and the VM running it, if it differs from TargetArch
+	// (e.g., "amd64" for "386" programs). Empty means same as TargetArch.
+	TargetVMArch string
+}
+
 // TargetConfig defines the configuration for building a target environment for
 // running programs in a VM.
 type TargetConfig struct {
+	Target
 	// Name identifying the agent instance.
 	AgentName string
-	// Target architecture of the kernel under test (e.g., "amd64", "arm64").
-	TargetArch string
-	// Target VM architecture running the kernel (e.g., "amd64", "arm64").
-	TargetVMArch string `json:",omitempty"`
 	// Directory path containing syzkaller host/target binaries.
 	Syzkaller string
 	// Path to the disk image file used by the VM.
@@ -50,7 +60,7 @@ type TargetConfig struct {
 
 // VMArch returns the architecture of the kernel and of the VM that runs it.
 // It may differ from TargetArch, e.g. 386 programs are executed under an amd64 kernel.
-func (args TargetConfig) VMArch() string {
+func (args Target) VMArch() string {
 	if args.TargetVMArch != "" {
 		return args.TargetVMArch
 	}

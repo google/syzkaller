@@ -47,7 +47,7 @@ type reproduceState struct {
 func (s reproduceState) targetConfig(sandbox string) crash.TargetConfig {
 	return crash.TargetConfig{
 		AgentName:    s.AgentName,
-		TargetArch:   s.TargetArch,
+		Target:       crash.Target{TargetArch: s.TargetArch},
 		Syzkaller:    s.Syzkaller,
 		Image:        s.Image,
 		Type:         s.Type,

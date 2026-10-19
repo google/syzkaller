@@ -57,7 +57,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	reproduceArgs := ReproduceArgs{
 		TargetConfig: TargetConfig{
 			AgentName:    args.AgentName,
-			TargetArch:   args.TargetArch,
+			Target:       Target{TargetArch: args.TargetArch},
 			Syzkaller:    args.Syzkaller,
 			Image:        args.Image,
 			Type:         args.Type,
