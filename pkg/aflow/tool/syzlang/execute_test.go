@@ -41,8 +41,7 @@ func TestExecuteSeed_DeserializeErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := &aflow.Context{}
 			state := reproduceState{
-				TargetOS:   "linux",
-				TargetArch: "amd64",
+				Target: crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 			}
 			args := ExecuteSeedArgs{
 				ReproSyz: tc.program,
@@ -71,8 +70,7 @@ func TestExecuteSeed_BlobPlaceholder(t *testing.T) {
 	require.Contains(t, programWithPlaceholder, "$BLOB_")
 
 	state := reproduceState{
-		TargetOS:   "linux",
-		TargetArch: "amd64",
+		Target: crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 	}
 	args := ExecuteSeedArgs{
 		ReproSyz: programWithPlaceholder,
@@ -96,8 +94,7 @@ func TestExecuteSeed_BlobPlaceholderError(t *testing.T) {
 	require.Contains(t, programWithPlaceholder, "$BLOB_")
 
 	state := reproduceState{
-		TargetOS:   "linux",
-		TargetArch: "amd64",
+		Target: crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 	}
 	args := ExecuteSeedArgs{
 		ReproSyz: programWithPlaceholder,
@@ -111,9 +108,8 @@ func TestExecuteSeed_BlobPlaceholderError(t *testing.T) {
 
 func TestExecuteSeed(t *testing.T) {
 	state := reproduceState{
-		TargetOS:   "linux",
-		TargetArch: "amd64",
-		Syzkaller:  "../../../..",
+		Target:    crash.Target{TargetOS: "linux", TargetArch: "amd64"},
+		Syzkaller: "../../../..",
 	}
 
 	tests := []struct {
@@ -161,10 +157,9 @@ func TestExecuteSeedCachedErrors(t *testing.T) {
 
 	prog := "getrlimit(0x0, 0x0)\n"
 	state := reproduceState{
-		TargetOS:   "linux",
-		TargetArch: "amd64",
-		Image:      img,
-		VM:         json.RawMessage("{}"),
+		Target: crash.Target{TargetOS: "linux", TargetArch: "amd64"},
+		Image:  img,
+		VM:     json.RawMessage("{}"),
 	}
 	desc := fmt.Sprintf("seed-exec: kernel commit , kernel config hash %v, image hash %v,"+
 		" vm , vm config hash %v, syz repro hash %v",

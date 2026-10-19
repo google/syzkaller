@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/stretchr/testify/require"
@@ -34,7 +35,7 @@ func TestCoverageFiles(t *testing.T) {
 	})
 	require.NoError(t, err)
 	res, err := getCoverageFiles(ctx,
-		reproduceState{TargetOS: "linux", TargetArch: "amd64"},
+		reproduceState{Target: crash.Target{TargetOS: "linux", TargetArch: "amd64"}},
 		CoverageFilesArgs{ExecutionCachedID: reproExecCachedID})
 	require.NoError(t, err)
 
