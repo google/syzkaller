@@ -11,8 +11,8 @@ import (
 )
 
 type RunCReproArgs struct {
+	Target
 	AgentName       string
-	TargetArch      string
 	Syzkaller       string
 	Image           string
 	Type            string
@@ -57,7 +57,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	reproduceArgs := ReproduceArgs{
 		TargetConfig: TargetConfig{
 			AgentName:    args.AgentName,
-			Target:       Target{TargetArch: args.TargetArch},
+			Target:       args.Target,
 			Syzkaller:    args.Syzkaller,
 			Image:        args.Image,
 			Type:         args.Type,
