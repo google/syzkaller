@@ -31,9 +31,8 @@ type ReproduceResult struct {
 }
 
 type reproduceState struct {
+	crash.Target
 	AgentName    string
-	TargetOS     string
-	TargetArch   string
 	KernelSrc    string
 	KernelCommit string
 	KernelConfig string
@@ -47,7 +46,7 @@ type reproduceState struct {
 func (s reproduceState) targetConfig(sandbox string) crash.TargetConfig {
 	return crash.TargetConfig{
 		AgentName:    s.AgentName,
-		Target:       crash.Target{TargetArch: s.TargetArch},
+		Target:       s.Target,
 		Syzkaller:    s.Syzkaller,
 		Image:        s.Image,
 		Type:         s.Type,
