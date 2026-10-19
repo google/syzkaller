@@ -694,10 +694,14 @@ ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, 
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 ioctl$KVM_GET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_GET_NESTED_STATE], arg ptr[inout, kvm_nested_state_arg])
 ioctl$KVM_SET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg ptr[in, kvm_nested_state_arg])
-# Restores nested state previously saved by KVM_GET_NESTED_STATE into the same memory.
-# Using vma prevents the executor from overwriting the saved state, which lets programs
-# replay real nested state (as done during migration) instead of synthesizing vmcs12.
-ioctl$KVM_SET_NESTED_STATE_vma(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg vma)
+# A buffer that holds nested state. KVM_GET_NESTED_STATE saves the state into it, and
+# KVM_SET_NESTED_STATE restores it from there without the executor overwriting it.
+# This lets programs replay real nested state (as done during migration) instead of
+# synthesizing vmcs12/vmcb12.
+resource ptr_kvm_nested_state[intptr]
+syz_create_resource$kvm_nested_state(addr ptr[in, kvm_nested_state_arg]) ptr_kvm_nested_state
+ioctl$KVM_GET_NESTED_STATE_res(fd fd_kvmcpu, cmd const[KVM_GET_NESTED_STATE], arg ptr_kvm_nested_state)
+ioctl$KVM_SET_NESTED_STATE_res(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg ptr_kvm_nested_state)
 # NEED: arch constraints for syscalls. These are amd64/386-specific, but consts are present on all arches, so they are not disabled on other arches.
 ioctl$KVM_CAP_HYPERV_SYNIC(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_SYNIC, void]])
 ioctl$KVM_CAP_HYPERV_SYNIC2(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_SYNIC2, const[0, int64]]])
