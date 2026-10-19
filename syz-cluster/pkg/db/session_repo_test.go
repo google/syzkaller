@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSeriesInsertSession(t *testing.T) {
@@ -141,6 +142,63 @@ func TestPrioritizeDirectSessions(t *testing.T) {
 	assert.True(t, list[0].Direct.Bool)
 	assert.Equal(t, session2.ID, list[0].ID)
 	assert.Equal(t, session1.ID, list[1].ID)
+}
+
+func TestPrioritizeStableRCSessions(t *testing.T) {
+	client, ctx := NewTransientDB(t)
+	sessionRepo := NewSessionRepository(client)
+	seriesRepo := NewSeriesRepository(client)
+	jobRepo := NewJobRepository(client)
+
+	dummy := &dummyTestData{t: t, ctx: ctx, client: client}
+	regularSeries := dummy.dummySeries()
+	sessionBase := dummy.dummySession(regularSeries)
+	dummy.startSession(sessionBase)
+	report := dummy.dummyReport(sessionBase)
+
+	rcSeries := &Series{
+		ExtID:   "rc-series",
+		XStable: spanner.NullString{StringVal: "review", Valid: true},
+	}
+	require.NoError(t, seriesRepo.Insert(ctx, rcSeries, nil))
+
+	job := &Job{ID: "job-1", ExtID: "ext-1", Type: JobPatchTest, ReportID: report.ID}
+	require.NoError(t, jobRepo.Insert(ctx, job, nil))
+
+	now := time.Now()
+	regularSession := &Session{
+		SeriesID:  regularSeries.ID,
+		CreatedAt: now.Add(-3 * time.Hour),
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, regularSession))
+
+	rcSession := &Session{
+		SeriesID:  rcSeries.ID,
+		CreatedAt: now.Add(-2 * time.Hour),
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, rcSession))
+
+	directSession := &Session{
+		SeriesID:  regularSeries.ID,
+		CreatedAt: now.Add(-time.Hour),
+		Direct:    spanner.NullBool{Bool: true, Valid: true},
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, directSession))
+
+	jobSession := &Session{
+		SeriesID:  regularSeries.ID,
+		CreatedAt: now,
+		JobID:     spanner.NullString{StringVal: job.ID, Valid: true},
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, jobSession))
+
+	list, err := sessionRepo.ListWaiting(ctx, 4)
+	require.NoError(t, err)
+	require.Len(t, list, 4)
+	assert.Equal(t, directSession.ID, list[0].ID)
+	assert.Equal(t, jobSession.ID, list[1].ID)
+	assert.Equal(t, rcSession.ID, list[2].ID)
+	assert.Equal(t, regularSession.ID, list[3].ID)
 }
 
 func TestJobSessionDoesNotUpdateLatestSession(t *testing.T) {
