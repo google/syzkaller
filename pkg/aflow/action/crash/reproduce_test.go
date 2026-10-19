@@ -88,7 +88,7 @@ func TestAggregateTestResults(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			args := ReproduceArgs{
 				TargetConfig: TargetConfig{
-					TargetArch: "amd64",
+					Target: Target{TargetArch: "amd64"},
 				},
 			}
 			res, err := aggregateTestResults(tc.results, crashReporter, args)
@@ -141,8 +141,8 @@ func TestSymbolize(t *testing.T) {
 	}
 
 	args := TargetConfig{
-		TargetArch: "amd64",
-		Type:       "qemu",
+		Target: Target{TargetArch: "amd64"},
+		Type:   "qemu",
 	}
 	// amd64 instruction length is 5.
 	// So 0x1005 should be shifted to 0x1000.

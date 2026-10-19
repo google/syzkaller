@@ -113,7 +113,7 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 
 		targetConfig := crash.TargetConfig{
 			AgentName:    "corpus-executor",
-			TargetArch:   args.TargetArch,
+			Target:       crash.Target{TargetArch: args.TargetArch},
 			Syzkaller:    args.Syzkaller,
 			Image:        args.Image,
 			Type:         args.Type,
