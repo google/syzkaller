@@ -75,12 +75,7 @@ var prepareFindingOverview = aflow.NewFuncAction("prepare-finding-overview",
 			return res, errors.New("KernelSrc must not be empty")
 		}
 
-		cmd := osutil.Command("git", "show", "--stat", "--format=", "HEAD")
-		cmd.Dir = args.KernelSrc
-		if err := osutil.Sandbox(cmd, true, true); err != nil {
-			return res, err
-		}
-		out, err := osutil.Run(time.Minute, cmd)
+		out, err := osutil.RunCmd(time.Minute, args.KernelSrc, "git", "show", "--stat", "--format=", "HEAD")
 		if err != nil {
 			return res, fmt.Errorf("git show --stat failed: %w", err)
 		}
