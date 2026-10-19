@@ -16,7 +16,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	defer func() { runTest = oldRunTest }()
 
 	args := RunCReproArgs{
-		TargetArch:      "amd64",
+		Target:          Target{TargetArch: "amd64"},
 		FormattedReproC: "int main() { return 0; }",
 		StraceBin:       "/bin/strace",
 		NeedStrace:      true,
@@ -81,4 +81,27 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 		require.Equal(t, "strace syscall log", res.StraceOutput)
 		require.False(t, res.CandidateReproduced)
 	})
+}
+
+// TestRunCReproPassesTargetVMArch checks that TargetVMArch reaches the test config.
+// Otherwise 386 jobs (which run on an amd64 kernel) look for syz-execprog in bin/linux_386.
+func TestRunCReproPassesTargetVMArch(t *testing.T) {
+	oldRunTest := runTest
+	defer func() { runTest = oldRunTest }()
+
+	var got TargetConfig
+	runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+		collectCoverage bool) (RunTestResult, error) {
+		got = args.TargetConfig
+		return RunTestResult{}, nil
+	}
+
+	ctx := aflow.NewTestContext(t)
+	_, err := RunCReproFunc(ctx, RunCReproArgs{
+		Target:          Target{TargetArch: "386", TargetVMArch: "amd64"},
+		FormattedReproC: "int main() { return 0; }",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "386", got.TargetArch)
+	require.Equal(t, "amd64", got.VMArch())
 }
