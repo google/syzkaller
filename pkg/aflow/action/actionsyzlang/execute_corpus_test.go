@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/syzspec"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -83,8 +84,7 @@ func TestExecuteCorpusAction_InvalidTarget(t *testing.T) {
 
 	res, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    dummyPath,
-		TargetOS:      "nonexistent_os",
-		TargetArch:    "nonexistent_arch",
+		Target:        crash.Target{TargetOS: "nonexistent_os", TargetArch: "nonexistent_arch"},
 		CorpusVMCount: 1,
 	})
 	require.Empty(t, res.CorpusDir)
@@ -98,8 +98,7 @@ func TestExecuteCorpusAction_CorruptedCorpus(t *testing.T) {
 
 	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    corpusPath,
-		TargetOS:      "linux",
-		TargetArch:    "amd64",
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 		KernelObj:     setupDummyKernelObj(t),
 		CorpusVMCount: 1,
 	})
@@ -115,8 +114,7 @@ func TestExecuteCorpusAction_EmptyCorpus(t *testing.T) {
 
 	res, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    corpusPath,
-		TargetOS:      "linux",
-		TargetArch:    "amd64",
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 		KernelObj:     setupDummyKernelObj(t),
 		CorpusVMCount: 1,
 	})
@@ -134,8 +132,7 @@ func TestExecuteCorpusAction_BuildConfigError(t *testing.T) {
 
 	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    corpusPath,
-		TargetOS:      "linux",
-		TargetArch:    "amd64",
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 		KernelObj:     setupDummyKernelObj(t),
 		Type:          "unsupported_vm_type",
 		CorpusVMCount: 1,
@@ -155,8 +152,7 @@ func TestExecuteCorpusAction_RunIsolatedManagerFailure(t *testing.T) {
 	// Calling with dummy image/kernel causes RunIsolatedManager's VM creation to fail.
 	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
 		CorpusPath:    corpusPath,
-		TargetOS:      "linux",
-		TargetArch:    "amd64",
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "amd64"},
 		Syzkaller:     setupDummySyzkaller(t),
 		Image:         image,
 		KernelSrc:     t.TempDir(),
@@ -165,6 +161,83 @@ func TestExecuteCorpusAction_RunIsolatedManagerFailure(t *testing.T) {
 		CorpusVMCount: 1,
 	})
 	require.ErrorContains(t, err, "failed to execute corpus")
+}
+
+func TestExecuteCorpusAction_386CompatMode(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	corpusPath, _ := createTestCorpus(t, "linux", "386", []string{
+		"getpid()",
+	})
+
+	image := filepath.Join(t.TempDir(), "image")
+	require.NoError(t, os.WriteFile(image, nil, 0600))
+
+	// 386 programs run under an amd64 kernel: syz-execprog is taken from linux_amd64,
+	// and syz-executor from linux_386.
+	syzDir := t.TempDir()
+	for _, bin := range []string{"linux_amd64/syz-execprog", "linux_386/syz-executor"} {
+		path := filepath.Join(syzDir, "bin", filepath.FromSlash(bin))
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))
+		require.NoError(t, os.WriteFile(path, []byte("dummy"), 0644))
+	}
+
+	// The config must be built successfully, and the run must fail only at VM creation.
+	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
+		CorpusPath:    corpusPath,
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "386", TargetVMArch: "amd64"},
+		Syzkaller:     syzDir,
+		Image:         image,
+		KernelSrc:     t.TempDir(),
+		Type:          "qemu",
+		KernelObj:     setupDummyKernelObj(t),
+		CorpusVMCount: 1,
+	})
+	require.ErrorContains(t, err, "failed to execute corpus")
+	require.NotContains(t, err.Error(), "failed to build config")
+}
+
+func TestExecuteCorpusAction_InvalidVMArch(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+	corpusPath, _ := createTestCorpus(t, "linux", "amd64", []string{
+		"getpid()",
+	})
+
+	_, err := executeCorpusAction(ctx, ExecuteCorpusArgs{
+		CorpusPath:    corpusPath,
+		Target:        crash.Target{TargetOS: "linux", TargetArch: "amd64", TargetVMArch: "x86_64"},
+		KernelObj:     setupDummyKernelObj(t),
+		CorpusVMCount: 1,
+	})
+	require.EqualError(t, err, "unknown VM target: linux/x86_64")
+}
+
+func TestKernelSysTarget(t *testing.T) {
+	tests := []struct {
+		name       string
+		targetArch string
+		vmArch     string
+		wantArch   string
+		wantErr    string
+	}{
+		{name: "same arch", targetArch: "amd64", wantArch: "amd64"},
+		{name: "386 under amd64", targetArch: "386", vmArch: "amd64", wantArch: "amd64"},
+		{name: "unknown vm arch", targetArch: "amd64", vmArch: "x86_64", wantErr: "unknown VM target: linux/x86_64"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := kernelSysTarget(crash.Target{
+				TargetOS:     "linux",
+				TargetArch:   test.targetArch,
+				TargetVMArch: test.vmArch,
+			})
+			if test.wantErr != "" {
+				require.EqualError(t, err, test.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, targets.Get("linux", test.wantArch), got)
+		})
+	}
 }
 
 func TestExecuteCorpusAction_MissingVMCount(t *testing.T) {

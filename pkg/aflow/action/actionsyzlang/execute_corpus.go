@@ -29,9 +29,8 @@ import (
 )
 
 type ExecuteCorpusArgs struct {
+	crash.Target
 	CorpusPath    string `json:",omitempty"`
-	TargetOS      string
-	TargetArch    string
 	Syzkaller     string
 	Image         string
 	Type          string
@@ -72,12 +71,27 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 	if err != nil {
 		return ExecuteCorpusResult{}, fmt.Errorf("unknown target: %s/%s", args.TargetOS, args.TargetArch)
 	}
-	sysTarget := targets.Get(args.TargetOS, args.TargetArch)
-	if sysTarget == nil {
-		return ExecuteCorpusResult{}, fmt.Errorf("unknown sys target: %s/%s", args.TargetOS, args.TargetArch)
+
+	targetConfig := crash.TargetConfig{
+		AgentName:    "corpus-executor",
+		Target:       args.Target,
+		Syzkaller:    args.Syzkaller,
+		Image:        args.Image,
+		Type:         args.Type,
+		KernelSrc:    args.KernelSrc,
+		KernelObj:    args.KernelObj,
+		KernelCommit: args.KernelCommit,
+		Snapshot:     false,
+		Sandbox:      "none",
+	}
+	// Coverage PCs and vmlinux belong to the kernel, which may have a different arch
+	// than the programs (e.g. 386 programs are executed under an amd64 kernel).
+	kernelTarget, err := kernelSysTarget(args.Target)
+	if err != nil {
+		return ExecuteCorpusResult{}, err
 	}
 
-	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(args.TargetArch)))
+	kernelPath := filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(kernelTarget.Arch)))
 	kernelSig, err := hash.File(kernelPath)
 	if err != nil {
 		return ExecuteCorpusResult{}, fmt.Errorf("failed to hash kernel image: %w", err)
@@ -105,25 +119,11 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 			vmConfig = make(map[string]any)
 		}
 		vmConfig["count"] = args.CorpusVMCount
-		if b, err := json.Marshal(vmConfig); err != nil {
+		vmCfg, err := json.Marshal(vmConfig)
+		if err != nil {
 			return fmt.Errorf("failed to serialize VM config: %w", err)
-		} else {
-			args.VM = b
 		}
-
-		targetConfig := crash.TargetConfig{
-			AgentName:    "corpus-executor",
-			Target:       crash.Target{TargetArch: args.TargetArch},
-			Syzkaller:    args.Syzkaller,
-			Image:        args.Image,
-			Type:         args.Type,
-			VM:           args.VM,
-			KernelSrc:    args.KernelSrc,
-			KernelObj:    args.KernelObj,
-			KernelCommit: args.KernelCommit,
-			Snapshot:     false,
-			Sandbox:      "none",
-		}
+		targetConfig.VM = vmCfg
 
 		workdir, err := ctx.TempDir()
 		if err != nil {
@@ -139,13 +139,13 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 		err = aflow.RunIsolatedManager(ctx.Context, cfg, false, ctx.Logf,
 			func(mgrCtx context.Context, rm *aflow.RunnerManager) error {
 				return streamExecuteCorpus(mgrCtx, rm, streamCorpusParams{
-					dir:        dir,
-					records:    corpusDB.Records,
-					sortedKeys: sortedKeys,
-					target:     target,
-					sysTarget:  sysTarget,
-					vmType:     args.Type,
-					kernelObj:  args.KernelObj,
+					dir:          dir,
+					records:      corpusDB.Records,
+					sortedKeys:   sortedKeys,
+					target:       target,
+					kernelTarget: kernelTarget,
+					vmType:       args.Type,
+					kernelObj:    args.KernelObj,
 				})
 			})
 		if err != nil {
@@ -158,6 +158,15 @@ func executeCorpusAction(ctx *aflow.Context, args ExecuteCorpusArgs) (ExecuteCor
 	}
 
 	return ExecuteCorpusResult{CorpusDir: dir}, nil
+}
+
+// kernelSysTarget returns the target describing the kernel (VM) architecture.
+func kernelSysTarget(target crash.Target) (*targets.Target, error) {
+	sysTarget := targets.Get(target.TargetOS, target.VMArch())
+	if sysTarget == nil {
+		return nil, fmt.Errorf("unknown VM target: %s/%s", target.TargetOS, target.VMArch())
+	}
+	return sysTarget, nil
 }
 
 // rollingBucketWriter buffers serialized programs in memory and flushes them
@@ -265,9 +274,10 @@ type streamCorpusParams struct {
 	records    map[string]db.Record
 	sortedKeys []string
 	target     *prog.Target
-	sysTarget  *targets.Target
-	vmType     string
-	kernelObj  string
+	// kernelTarget describes the kernel (VM) arch, used for coverage and symbolization.
+	kernelTarget *targets.Target
+	vmType       string
+	kernelObj    string
 }
 
 type completedProg struct {
@@ -278,7 +288,7 @@ type completedProg struct {
 // streamExecuteCorpus streams programs continuously across the VM pool via a sliding window,
 // writes bucket files, and builds the search index.
 func streamExecuteCorpus(ctx context.Context, rm *aflow.RunnerManager, params streamCorpusParams) error {
-	symb := symbolizer.Make(params.sysTarget)
+	symb := symbolizer.Make(params.kernelTarget)
 	defer symb.Close()
 
 	streamer := newCorpusStreamer(rm, params, symb)
@@ -300,7 +310,7 @@ func newCorpusStreamer(rm *aflow.RunnerManager, params streamCorpusParams, symb 
 	return &corpusStreamer{
 		rm:           rm,
 		params:       params,
-		vmlinux:      filepath.Join(params.kernelObj, params.sysTarget.KernelObject),
+		vmlinux:      filepath.Join(params.kernelObj, params.kernelTarget.KernelObject),
 		symb:         symb,
 		bucketWriter: newRollingBucketWriter(params.dir, targetBucketSizeBytes),
 		indexBuilder: newIncrementalIndexBuilder(),
@@ -448,7 +458,7 @@ func (s *corpusStreamer) processBatch(batch []completedProg, executedCount int) 
 	if len(batch) == 0 {
 		return nil
 	}
-	pcToHashes := extractBatchCoverage(batch, s.params.sysTarget, s.params.vmType)
+	pcToHashes := extractBatchCoverage(batch, s.params.kernelTarget, s.params.vmType)
 	if err := symbolizeBatchCoverage(s.symb, s.vmlinux, pcToHashes, s.pcCache, s.indexBuilder); err != nil {
 		return err
 	}
