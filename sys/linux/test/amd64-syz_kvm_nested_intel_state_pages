@@ -5,7 +5,7 @@ r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
 r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
 
-# Create an Intel nested VM, configure an unmapped state page (page_type=0: APIC access page),
+# Create an Intel nested VM, configure an unmapped state page (page_type=0: APIC-access page),
 # and attempt to launch it.
 #
 r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_load_code={AUTO, AUTO, {0x0, "f4"}}, @nested_set_state_pages={AUTO, AUTO, {0x0, 0x0, @unmapped=0xf0000000}}, @nested_vmlaunch={AUTO, AUTO, 0x0}], AUTO})

@@ -646,6 +646,13 @@ GUEST_CODE static noinline bool vmwrite_if_exists(uint64 field, uint64 value)
 	return true;
 }
 
+// Set bits in a VMCS control field. Only used for control fields that
+// init_vmcs_control_fields() always writes, so vmwrite() cannot fail.
+GUEST_CODE static noinline void vmcs_set_bits(uint64 field, uint64 bits)
+{
+	vmwrite(field, vmread(field) | bits);
+}
+
 GUEST_CODE static inline void nested_vmptrld(uint64 cpu_id, uint64 vm_id)
 {
 	uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
@@ -1791,13 +1798,6 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 	} else {
 		guest_run_amd_vm(cpu_id, vm_id);
 	}
-}
-
-// Sets bits in a VMCS control field. Only used for control fields that
-// init_vmcs_control_fields() always writes, so the strict vmwrite() cannot fail.
-GUEST_CODE static noinline void vmcs_set_bits(uint64 field, uint64 bits)
-{
-	vmwrite(field, vmread(field) | bits);
 }
 
 GUEST_CODE static noinline void
