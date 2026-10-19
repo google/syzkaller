@@ -26,10 +26,12 @@ syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x2)
 # restore the nested state. KVM_SET_NESTED_STATE re-enters L2 with
 # from_vmentry=false, which defers mapping the vmcs12 pages by pending
 # KVM_REQ_GET_NESTED_STATE_PAGES.
+# The buffer is a resource, so that the saved state is restored unchanged.
 #
-ioctl$KVM_GET_NESTED_STATE(r3, AUTO, &(0x7f0000100000)=@vmx={0x0, 0x0, AUTO, {0x0, 0x0, {0x0}, 0x0, 0x0}, {""/4096, ""/4096}})
+r6 = syz_create_resource$kvm_nested_state(&AUTO=@vmx={0x0, 0x0, AUTO, {0x0, 0x0, {0x0}, 0x0, 0x0}, {""/4096, ""/4096}})
+ioctl$KVM_GET_NESTED_STATE_res(r3, AUTO, r6)
 ioctl$KVM_SET_USER_MEMORY_REGION(r1, AUTO, &AUTO={0x2710, 0x0, 0xf0000000, 0x0, 0x0})
-ioctl$KVM_SET_NESTED_STATE_vma(r3, AUTO, &(0x7f0000100000/0x3000)=nil)
+ioctl$KVM_SET_NESTED_STATE_res(r3, AUTO, r6)
 
 # Mapping the APIC-access page fails, so KVM exits with KVM_EXIT_INTERNAL_ERROR (0x11).
 #
