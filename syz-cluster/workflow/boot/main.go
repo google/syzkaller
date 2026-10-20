@@ -12,12 +12,10 @@ import (
 	"os"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/boot"
 	"github.com/google/syzkaller/syz-cluster/pkg/fuzzconfig"
 )
 
@@ -80,37 +78,18 @@ func main() {
 	}
 }
 
-// To prevent false positive results, demand that in order to be marked as FAILED,
-// the test must fail 3 times in a row.
-const retryCount = 3
-
-// The base config may have more VMs, but we don't need that many.
-const vmCount = 3
-
 func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTracer) (bool, error) {
 	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
 	if err != nil {
 		return false, err
 	}
-	if err := instance.OverrideVMCount(cfg, vmCount); err != nil {
+	cfg.Workdir = "/tmp/test-workdir"
+	rep, err := boot.Run(cfg, tracer)
+	if err != nil {
 		return false, err
 	}
-	cfg.Workdir = "/tmp/test-workdir"
-	if err := mgrconfig.Complete(cfg); err != nil {
-		return false, fmt.Errorf("failed to complete the config: %w", err)
-	}
-
-	var rep *report.Report
-	for i := range retryCount {
-		tracer.Logf("starting attempt #%d", i)
-		var err error
-		rep, err = instance.RunSmokeTest(cfg)
-		if err != nil {
-			return false, err
-		} else if rep == nil {
-			return true, nil
-		}
-		tracer.Logf("attempt failed: %q", rep.Title)
+	if rep == nil {
+		return true, nil
 	}
 	if *flagFindings {
 		tracer.Logf("reporting the finding")
