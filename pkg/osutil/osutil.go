@@ -38,6 +38,16 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
+// RunSandboxed runs "bin args..." in dir under Sandbox(cmd, true, true) with timeout.
+func RunSandboxed(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
+	cmd := Command(bin, args...)
+	cmd.Dir = dir
+	if err := Sandbox(cmd, true, true); err != nil {
+		return nil, err
+	}
+	return Run(timeout, cmd)
+}
+
 var ErrTimeout = errors.New("timedout")
 
 // Run runs cmd with the specified timeout.
