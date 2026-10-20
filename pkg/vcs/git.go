@@ -637,12 +637,24 @@ type Git struct {
 	ignoreCC map[string]bool
 }
 
+func SandboxedGit(dir string) Git {
+	return Git{
+		Dir:     dir,
+		Sandbox: true,
+		Env:     filterEnv(),
+	}
+}
+
 func (git Git) Run(args ...string) ([]byte, error) {
+	return git.RunTimeout(3*time.Hour, args...)
+}
+
+func (git Git) RunTimeout(timeout time.Duration, args ...string) ([]byte, error) {
 	cmd, err := git.command(args...)
 	if err != nil {
 		return nil, err
 	}
-	return osutil.Run(3*time.Hour, cmd)
+	return osutil.Run(timeout, cmd)
 }
 
 func (git Git) command(args ...string) (*exec.Cmd, error) {
@@ -673,7 +685,7 @@ func (git Git) Apply(patch []byte) error {
 		stdin.Write(patch)
 		stdin.Close()
 	}()
-	_, err = osutil.Run(3*time.Hour, cmd)
+	_, err = osutil.Run(time.Minute, cmd)
 	return err
 }
 
