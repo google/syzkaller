@@ -161,8 +161,19 @@ fuzz_targets:
     path_regexps:
       - "^net/|^drivers/net/|include/net/"
       - "^drivers/infiniband/|include/rdma/"
+    exclude_path_regexps:
+      - "^net/bluetooth/|include/net/bluetooth/"
     focus: net
     corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+  - email_lists:
+      - linux-bluetooth@vger.kernel.org
+    path_regexps:
+      - "^net/bluetooth/|^drivers/bluetooth/|include/net/bluetooth/"
+    focus: bluetooth
+    corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
     campaigns:
       - track: KASAN
         kernel_config: upstream-apparmor-kasan.config

@@ -131,12 +131,29 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"clock_gettime", "openat$tun", "openat$ppp",
 			"syz_open_procfs$namespace", "syz_80211_*", "nanosleep",
 			"openat$nci", "openat$rfkill",
-			"openat$6lowpan*", "openat$pidfd", "openat$tcp*", "openat$vhost_vsock",
+			"openat$pidfd", "openat$tcp*", "openat$vhost_vsock",
 			"openat$vsock", "openat$vnet",
 			"openat$ptp*", "openat$qrtrtun", "openat$uverbs0", "openat$rdma_cm",
 			"munmap$rdma", "syz_memcpy_off$rdma",
 			"openat$capi20", "openat$proc_capi20*", "openat$misdntimer",
 			"openat$pfkey", "openat$ipvs", "openat$sysctl",
+		)
+		return nil
+	},
+	api.FocusBluetooth: func(mgrCfg *mgrconfig.Config) error {
+		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
+			"syz_emit_vhci",
+			"syz_init_net_socket$bt*", "bind$bt*", "connect$bt*", "accept4$bt*",
+			"setsockopt$bt*", "getsockopt$bt*", "ioctl$sock_bt*", "ioctl$HCI*", "write$bt*",
+			"openat$6lowpan*", "write$6lowpan*",
+			"openat$rfkill", "write$rfkill", "read$rfkill", "ioctl$RFKILL*",
+			"accept", "accept4", "bind", "close", "connect", "epoll_create",
+			"epoll_create1", "epoll_ctl", "epoll_pwait", "epoll_wait",
+			"getpeername", "getsockname", "getsockopt", "ioctl$sock_*", "listen",
+			"poll", "ppoll", "pselect6", "read", "readv", "recvfrom", "recvmmsg",
+			"recvmsg", "select", "sendmmsg", "sendmsg", "sendto",
+			"setsockopt", "shutdown", "socket", "write", "writev",
+			"clock_gettime",
 		)
 		return nil
 	},

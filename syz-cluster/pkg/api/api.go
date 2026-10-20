@@ -43,13 +43,14 @@ type RetestTask struct {
 }
 
 const (
-	FocusNet     = "net"
-	FocusKVM     = "kvm"
-	FocusIoUring = "io_uring"
-	FocusBPF     = "bpf"
-	FocusFS      = "fs"
-	FocusUSB     = "usb"
-	FocusMM      = "mm"
+	FocusNet       = "net"
+	FocusBluetooth = "bluetooth"
+	FocusKVM       = "kvm"
+	FocusIoUring   = "io_uring"
+	FocusBPF       = "bpf"
+	FocusFS        = "fs"
+	FocusUSB       = "usb"
+	FocusMM        = "mm"
 )
 
 const MaxRCFocusedPatches = 35
