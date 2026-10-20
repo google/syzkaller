@@ -20,7 +20,7 @@ env:
 jobs:
   aux:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/env:latest
+    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -54,7 +54,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env:latest
+      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
       options: --cap-add=SYS_ADMIN
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
@@ -84,7 +84,7 @@ jobs:
 
   dashboard:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
+    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -113,7 +113,7 @@ jobs:
 
   arch:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/env:latest
+    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -139,7 +139,7 @@ jobs:
   race:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env:latest
+      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
       options: --cap-add=SYS_ADMIN
     timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
     env:
@@ -166,7 +166,7 @@ jobs:
 
   race_dashboard:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
+    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -188,7 +188,7 @@ jobs:
 
   old:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/old-env:latest
+    container: gcr.io/syzkaller/old-env@sha256:34d6afc37003a4b456de55e70daa76326bf6357d25e44531975e8324e7016493
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       GOMODCACHE: /syzkaller/.cache/gomod
@@ -211,7 +211,7 @@ jobs:
   gvisor:
     runs-on: ubuntu-latest
     container:
-      image: gcr.io/syzkaller/syzbot:latest
+      image: gcr.io/syzkaller/syzbot@sha256:eae4ac6b6abef26ed481606c0413c9b65a83de9e8823d25aefeab09587140ce0
       options: --privileged
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
