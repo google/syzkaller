@@ -83,6 +83,43 @@ func TestShouldSkipFuzzing(t *testing.T) {
 			},
 		))
 	})
+	t.Run("ignored variable only in one kernel", func(t *testing.T) {
+		assert.True(t, shouldSkipFuzzing(
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1", "vermagic": "A"},
+			},
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1"},
+			},
+		))
+	})
+	t.Run("new data symbol, same data len", func(t *testing.T) {
+		// The ignored variable in base must not hide the new symbol in patched.
+		assert.False(t, shouldSkipFuzzing(
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1", "vermagic": "A"},
+			},
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1", "D": "new"},
+			},
+		))
+	})
+	t.Run("removed data symbol", func(t *testing.T) {
+		assert.False(t, shouldSkipFuzzing(
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1", "D": "2"},
+			},
+			pkgbuild.SectionHashes{
+				Text: map[string]string{"A": "1"},
+				Data: map[string]string{"C": "1"},
+			},
+		))
+	})
 }
 
 func TestBugTitleRe(t *testing.T) {
