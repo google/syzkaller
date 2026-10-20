@@ -38,6 +38,16 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
+// RunSandboxed runs "bin args..." in dir under Sandbox(cmd, true, true) with timeout.
+func RunSandboxed(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
+	cmd := Command(bin, args...)
+	cmd.Dir = dir
+	if err := Sandbox(cmd, true, true); err != nil {
+		return nil, err
+	}
+	return Run(timeout, cmd)
+}
+
 var ErrTimeout = errors.New("timedout")
 
 // Run runs cmd with the specified timeout.
@@ -272,6 +282,16 @@ func SandboxTempDir(t *testing.T) string {
 
 func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
+}
+
+// WriteSandboxFile writes data to filename and chowns it to the sandbox user.
+// It does not guard against symlink traversal and must only be used in trusted
+// directories, not directories already modified by sandboxed processes.
+func WriteSandboxFile(filename string, data []byte) error {
+	if err := WriteFile(filename, data); err != nil {
+		return err
+	}
+	return SandboxChown(filename)
 }
 
 // WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
