@@ -7,20 +7,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/build"
 	"github.com/google/syzkaller/syz-cluster/pkg/workspace"
 )
 
@@ -96,7 +92,12 @@ func main() {
 		reportResults(ctx, client, nil, nil, []byte(err.Error()))
 		return
 	}
-	ret, err := buildKernel(tracer, req)
+	ret, err := build.Run(&build.Params{
+		Req:       req,
+		KernelDir: *flagRepository,
+		OutputDir: *flagOutput,
+		Tracer:    tracer,
+	})
 	if err != nil {
 		log.Printf("build process failed: %v", err)
 		reportResults(ctx, client, nil, nil, []byte(err.Error()))
@@ -104,14 +105,22 @@ func main() {
 	}
 	uploadReq.Compiler = ret.Compiler
 	uploadReq.Config = ret.Config
-	if ret.Finding == nil {
+	var finding *api.RawFinding
+	if ret.Success {
 		uploadReq.BuildSuccess = true
 	} else {
+		finding = &api.RawFinding{
+			SessionID: *flagSession,
+			TestName:  *flagTestName,
+			Title:     "kernel build error",
+			Report:    ret.Report,
+			Log:       ret.Log,
+		}
 		log.Printf("%s", output.Bytes())
-		log.Printf("failed: %s\n%s", ret.Finding.Title, ret.Finding.Report)
-		uploadReq.Log = ret.Finding.Log
+		log.Printf("failed: %s\n%s", finding.Title, finding.Report)
+		uploadReq.Log = ret.Log
 	}
-	reportResults(ctx, client, uploadReq, ret.Finding, output.Bytes())
+	reportResults(ctx, client, uploadReq, finding, output.Bytes())
 }
 
 func reportResults(ctx context.Context, client *api.Client,
@@ -173,113 +182,6 @@ func readRequest() *api.BuildRequest {
 		return nil
 	}
 	return &req
-}
-
-type BuildResult struct {
-	Config   []byte
-	Compiler string
-	Finding  *api.RawFinding
-}
-
-func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildResult, error) {
-	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
-	}
-	parsed, err := kconfig.ParseConfigData(kernelConfig, req.ConfigName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse kernel config: %w", err)
-	}
-	for _, cfg := range req.EnableConfigs {
-		parsed.Set(cfg, kconfig.Yes)
-	}
-	// Syzkaller builds bzImage/vmlinux and does not build or load .ko modules.
-	// Convert all module (=m) configs to built-in (=y) so tristate dependencies
-	// do not downgrade required configs back to =m during make oldconfig.
-	parsed.ModToYes()
-	kernelConfig = parsed.Serialize()
-	if req.Arch != "amd64" {
-		// TODO: lift this restriction.
-		return nil, fmt.Errorf("only amd64 builds are supported now")
-	}
-	params := build.Params{
-		TargetOS:     targets.Linux,
-		TargetArch:   req.Arch,
-		VMType:       "qemu", // TODO: support others.
-		KernelDir:    *flagRepository,
-		OutputDir:    *flagOutput,
-		Compiler:     "clang",
-		Linker:       "ld.lld",
-		UserspaceDir: "/disk-images/buildroot_amd64_2024.09", // See the Dockerfile.
-		Config:       kernelConfig,
-		Tracer:       tracer,
-	}
-	tracer.Logf("started build: %q", req)
-	info, err := build.Image(params)
-	tracer.Logf("compiler: %q", info.CompilerID)
-	tracer.Logf("signature: %q", info.Signature)
-	// We can fill this regardless of whether it succeeded.
-	ret := &BuildResult{
-		Compiler: info.CompilerID,
-	}
-	ret.Config, _ = os.ReadFile(filepath.Join(*flagOutput, "kernel.config"))
-	if err != nil {
-		ret.Finding = &api.RawFinding{
-			SessionID: *flagSession,
-			TestName:  *flagTestName,
-			Title:     "kernel build error",
-		}
-		var kernelError *build.KernelError
-		var verboseError *osutil.VerboseError
-		switch {
-		case errors.As(err, &kernelError):
-			tracer.Logf("kernel error: %q / %s", kernelError.Report, kernelError.Output)
-			ret.Finding.Report = kernelError.Report
-			ret.Finding.Log = kernelError.Output
-			return ret, nil
-		case errors.As(err, &verboseError):
-			tracer.Logf("verbose error: %s / %s", verboseError, verboseError.Output)
-			ret.Finding.Report = []byte(verboseError.Error())
-			ret.Finding.Log = verboseError.Output
-			return ret, nil
-		default:
-			tracer.Logf("other error: %v", err)
-		}
-		return nil, err
-	}
-	tracer.Logf("build finished successfully")
-
-	err = saveSymbolHashes(tracer)
-	if err != nil {
-		tracer.Logf("failed to save symbol hashes: %s", err)
-	}
-	// Note: Output directory has the following structure:
-	//   |-- image
-	//   |-- symbol_hashes.json
-	//   |-- kernel
-	//   |-- kernel.config
-	//   `-- obj
-	//      `-- vmlinux
-	return ret, nil
-}
-
-func saveSymbolHashes(tracer debugtracer.DebugTracer) error {
-	hashes, err := build.ElfSymbolHashes(filepath.Join(*flagRepository, "vmlinux.o"))
-	if err != nil {
-		return fmt.Errorf("failed to query symbol hashes: %w", err)
-	}
-	tracer.Logf("extracted hashes for %d text symbols and %d data symbols",
-		len(hashes.Text), len(hashes.Data))
-	file, err := os.Create(filepath.Join(*flagOutput, "symbol_hashes.json"))
-	if err != nil {
-		return fmt.Errorf("failed to open symbol_hashes.json: %w", err)
-	}
-	defer file.Close()
-	err = json.NewEncoder(file).Encode(hashes)
-	if err != nil {
-		return fmt.Errorf("failed to serialize: %w", err)
-	}
-	return nil
 }
 
 func ensureFlags(args ...string) {
