@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var (
@@ -133,7 +134,7 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 		gitArgs = append(gitArgs, "--", args.PathPrefix)
 	}
 
-	output, err := osutil.RunCmd(10*time.Minute, state.KernelSrc, "git", gitArgs...)
+	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(10*time.Minute, gitArgs...)
 	if err != nil {
 		return logResult{}, gitBadCallError(err, "git log", gitAdvice{
 			Timeout: "Please specify a tighter search scope (e.g. by providing a PathPrefix).",
@@ -167,15 +168,15 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 			" (e.g. 'HEAD', 'v6.12' or a commit hash), not a command line option", commitHash)
 	}
 
-	if _, err := osutil.RunCmd(time.Minute, state.KernelSrc, "git", "cat-file", "-e", commitHash+"^{commit}"); err != nil {
+	git := vcs.SandboxedGit(state.KernelSrc)
+	if _, err := git.RunTimeout(time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
 		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
 			NotFound: fmt.Sprintf("commit %v does not exist", commitHash),
 		})
 	}
 
 	if filePath != "" {
-		out, err := osutil.RunCmd(time.Minute, state.KernelSrc,
-			"git", "ls-tree", "--name-only", commitHash, "--", filePath)
+		out, err := git.RunTimeout(time.Minute, "ls-tree", "--name-only", commitHash, "--", filePath)
 		if err != nil {
 			return showResult{}, gitBadCallError(err, "git show", gitAdvice{})
 		}
@@ -193,7 +194,7 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 		gitArgs = append(gitArgs, "--", args.File)
 	}
 
-	output, err := osutil.RunCmd(5*time.Minute, state.KernelSrc, "git", gitArgs...)
+	output, err := git.RunTimeout(5*time.Minute, gitArgs...)
 	if err != nil {
 		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
 			Timeout: "Consider specifying a different commit.",
@@ -217,8 +218,8 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	args.End = max(args.End, args.Start)
 	args.End = min(args.End, args.Start+maxOutputLines)
 	lineRange := fmt.Sprintf("%d,%d", args.Start, args.End)
-	output, err := osutil.RunCmd(5*time.Minute, state.KernelSrc,
-		"git", "blame", "-s", "-L", lineRange, "--abbrev=12", headCommit, "--", args.File)
+	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(5*time.Minute,
+		"blame", "-s", "-L", lineRange, "--abbrev=12", headCommit, "--", args.File)
 	if err != nil {
 		return blameResult{}, gitBadCallError(err, "git blame", gitAdvice{
 			Timeout: "Consider specifying a smaller line range.",

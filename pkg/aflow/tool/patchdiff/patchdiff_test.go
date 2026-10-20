@@ -4,6 +4,7 @@
 package patchdiff
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestPatchDiff(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
 
@@ -47,7 +48,7 @@ int main() {
 	})
 
 	// Make an uncommitted change in the middle of a longer file.
-	osutil.WriteFile(filepath.Join(repoDir, "foo.c"), []byte(`
+	require.NoError(t, osutil.WriteSandboxFile(filepath.Join(repoDir, "foo.c"), []byte(`
 #include <stdio.h>
 
 void helper() {
@@ -68,7 +69,7 @@ int main() {
 	bar();
 	return 0;
 }
-`))
+`)))
 
 	// Test a successful diff with expanded context.
 	aflow.TestTool(t, Tool,
@@ -140,4 +141,15 @@ int main() {
 		result{},
 		"git diff failed: the file is outside the repository",
 		aflow.TestWorkdir(tmpDir))
+}
+
+func TestPatchDiffSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
+	cfg := filepath.Join(repo.Dir, ".git", "config")
+	require.NoError(t, os.Chown(cfg, 0, 0))
+	require.NoError(t, os.Chmod(cfg, 0600))
+	_, err := aflow.TestToolRun(Tool, map[string]any{"KernelScratchSrc": repo.Dir}, map[string]any{})
+	require.Error(t, err)
+	assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
 }

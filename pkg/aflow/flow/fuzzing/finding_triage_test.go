@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,7 @@ func TestWorkflowFindingTriageRegistered(t *testing.T) {
 }
 
 func TestPrepareFindingOverview(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
 
@@ -81,9 +82,10 @@ func TestPrepareFindingOverview(t *testing.T) {
 	// Test error with invalid KernelSrc directory.
 	aflow.TestAction(t, prepareFindingOverview, tmpDir,
 		prepareFindingOverviewArgs{
-			KernelSrc: t.TempDir(),
+			KernelSrc: osutil.SandboxTempDir(t),
 			Patches:   patches,
 		},
 		prepareFindingOverviewResult{},
-		`git show --stat failed: failed to run ["git" "show" "--stat" "--format=" "HEAD"]: exit status 128`)
+		`git show --stat failed: failed to run `+
+			`["git" "-c" "core.hooksPath=/dev/null" "show" "--stat" "--format=" "HEAD"]: exit status 128`)
 }

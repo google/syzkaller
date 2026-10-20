@@ -30,17 +30,19 @@ type TestRepo struct {
 
 func (repo *TestRepo) Git(args ...string) {
 	repo.t.Helper()
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = repo.Dir
-	cmd.Env = filterEnv()
-
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+	if _, err := repo.repo.Run(args...); err != nil {
 		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 }
 
 func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 	if err := osutil.MkdirAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	for p := filepath.Clean(dir); p != "/" && p != "." && p != filepath.Clean(os.TempDir()); p = filepath.Dir(p) {
+		_ = os.Chmod(p, osutil.DefaultDirPerm)
+	}
+	if err := osutil.SandboxChown(dir); err != nil {
 		t.Fatal(err)
 	}
 	ignoreCC := map[string]bool{
@@ -51,7 +53,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
+		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious}),
 	}
 	repo.Git("init")
 	repo.Git("config", "--add", "user.email", userEmail)
@@ -66,7 +68,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 func (repo *TestRepo) CommitFileChange(branch, change string) {
 	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
 	file := filepath.Join(repo.Dir, "file")
-	if err := osutil.WriteFile(file, []byte(id)); err != nil {
+	if err := osutil.WriteSandboxFile(file, []byte(id)); err != nil {
 		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 	repo.Git("add", file)
@@ -87,13 +89,15 @@ func (repo *TestRepo) CommitChange(description string) *Commit {
 
 func (repo *TestRepo) CommitChangeAt(description string, date time.Time) {
 	dateStr := date.Format(time.RFC3339)
-	cmd := osutil.Command("git", "commit", "--allow-empty", "-m", description)
-	cmd.Dir = repo.Dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_DATE="+dateStr,
-		"GIT_COMMITTER_DATE="+dateStr,
-	)
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+	git := Git{
+		Dir:     repo.Dir,
+		Sandbox: true,
+		Env: append(filterEnv(),
+			"GIT_AUTHOR_DATE="+dateStr,
+			"GIT_COMMITTER_DATE="+dateStr,
+		),
+	}
+	if _, err := git.Run("commit", "--allow-empty", "-m", description); err != nil {
 		repo.t.Fatal(err)
 	}
 }
@@ -104,7 +108,7 @@ type FileContent struct {
 }
 
 func (fc *FileContent) Apply(repo *TestRepo) error {
-	err := os.WriteFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content), 0644)
+	err := osutil.WriteSandboxFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content))
 	if err != nil {
 		return err
 	}

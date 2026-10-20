@@ -97,7 +97,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 				if ok, err := repo.Contains(badCommit); err != nil {
 					return err
 				} else if ok {
-					if _, err = runSandboxedGit(time.Minute, kernelRepoDir,
+					if _, err = vcs.SandboxedGit(kernelRepoDir).RunTimeout(time.Minute,
 						"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
 						"revert", "--no-edit", badCommit); err != nil {
 						return err
@@ -112,7 +112,7 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 			// vcs.BackportCommits cherry-picks commits but leaves them uncommitted in the index/tree.
 			// We must commit them so that the subsequent clone picks up the fully prepared tree.
 			if applied {
-				if _, err := runSandboxedGit(time.Minute, kernelRepoDir,
+				if _, err := vcs.SandboxedGit(kernelRepoDir).RunTimeout(time.Minute,
 					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
 					"commit", "-m", "aflow: apply backports"); err != nil {
 					return fmt.Errorf("failed to commit backports: %w", err)
@@ -126,8 +126,11 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 			}
 			return fullGitClone(dir, kernelRepoDir, head.Hash)
 		})
+		if err != nil {
+			return err
+		}
 		res.KernelSrc = dir
-		return err
+		return nil
 	})
 	return res, err
 }
@@ -137,43 +140,42 @@ func checkoutScratch(ctx *aflow.Context, args checkoutScratchArgs) (checkoutScra
 	if err != nil {
 		return checkoutScratchResult{}, err
 	}
+	if err := osutil.SandboxChown(dir); err != nil {
+		return checkoutScratchResult{}, err
+	}
 	if err := shallowGitClone(dir, args.KernelSrc); err != nil {
 		return checkoutScratchResult{}, err
 	}
 	return checkoutScratchResult{dir}, nil
 }
 
-func runSandboxedGit(timeout time.Duration, dir string, args ...string) ([]byte, error) {
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = dir
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
-		return nil, fmt.Errorf("failed to sandbox git: %w", err)
-	}
-	return osutil.Run(timeout, cmd)
-}
-
 // fullGitClone checks out the commit with the complete commit history,
 // which is required by the git tools we give to LLM agents.
 // Cloning from a local repo hardlinks the objects, so the history costs us nothing.
 func fullGitClone(dir, remoteDir, commit string) error {
-	// Clone without a checkout, otherwise git materializes the remote HEAD first.
-	if _, err := osutil.RunCmd(time.Hour, dir, "git", "clone", "--no-checkout", remoteDir, "."); err != nil {
+	if err := osutil.SandboxChown(dir); err != nil {
 		return err
 	}
-	_, err := osutil.RunCmd(time.Hour, dir, "git", "checkout", commit)
+	git := vcs.SandboxedGit(dir)
+	// Clone without a checkout, otherwise git materializes the remote HEAD first.
+	if _, err := git.RunTimeout(time.Hour, "clone", "--no-checkout", remoteDir, "."); err != nil {
+		return err
+	}
+	_, err := git.RunTimeout(time.Hour, "checkout", commit)
 	return err
 }
 
 // shallowGitClone creates a checkout with a single commit.
 // It's only suitable for checkouts that are used for code edits and builds.
 func shallowGitClone(dir, remoteDir string) error {
-	if _, err := osutil.RunCmd(time.Hour, dir, "git", "init"); err != nil {
+	git := vcs.SandboxedGit(dir)
+	if _, err := git.RunTimeout(time.Hour, "init"); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(time.Hour, dir, "git", "remote", "add", "origin", remoteDir); err != nil {
+	if _, err := git.RunTimeout(time.Hour, "remote", "add", "origin", remoteDir); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(time.Hour, dir, "git", "pull", "origin", "HEAD", "--depth=1",
+	if _, err := git.RunTimeout(time.Hour, "pull", "origin", "HEAD", "--depth=1",
 		"--allow-unrelated-histories"); err != nil {
 		return err
 	}

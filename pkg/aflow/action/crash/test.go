@@ -13,7 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -141,7 +141,7 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 
 func currentDiff(repo string) (string, error) {
 	// Mark the "intent to add" on all files so git diff also shows currently untracked files.
-	_, err := osutil.RunCmd(time.Minute, repo, "git", "add", "-N", ".")
+	_, err := vcs.SandboxedGit(repo).RunTimeout(time.Minute, "add", "-N", ".")
 	if err != nil {
 		return "", err
 	}
@@ -149,16 +149,15 @@ func currentDiff(repo string) (string, error) {
 }
 
 func undoChanges(repo string) error {
+	git := vcs.SandboxedGit(repo)
 	// Unset the "intent to add", otherwise git clean doesn't remove these files.
-	_, err := osutil.RunCmd(time.Minute, repo, "git", "reset")
-	if err != nil {
+	if _, err := git.RunTimeout(time.Minute, "reset"); err != nil {
 		return err
 	}
-	_, err = osutil.RunCmd(time.Minute, repo, "git", "checkout", "--", ".")
-	if err != nil {
+	if _, err := git.RunTimeout(time.Minute, "checkout", "--", "."); err != nil {
 		return err
 	}
 	// We do not use -fdx to keep object files around and make the next tool call faster.
-	_, err = osutil.RunCmd(time.Minute, repo, "git", "clean", "-fd")
+	_, err := git.RunTimeout(time.Minute, "clean", "-fd")
 	return err
 }

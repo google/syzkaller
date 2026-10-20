@@ -23,12 +23,11 @@ func TestPatch(t *testing.T) {
 				MakeTestRepo(t, dir)
 			}
 			file := filepath.Join(dir, "file.txt")
-			err := os.WriteFile(file, []byte("line1\nline2\n"), 0644)
-			require.NoError(t, err)
-			require.NoError(t, osutil.SandboxChown(dir, file))
+			require.NoError(t, osutil.WriteSandboxFile(file, []byte("line1\nline2\n")))
+			require.NoError(t, osutil.SandboxChown(dir))
 
 			patch := []byte("--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,3 @@\n line1\n+injected\n line2\n")
-			err = Patch(dir, patch)
+			err := Patch(dir, patch)
 			require.NoError(t, err)
 
 			content, err := os.ReadFile(file)
@@ -45,7 +44,6 @@ func TestPatchForbidden(t *testing.T) {
 	osutil.RequireSandbox(t)
 	dir := osutil.SandboxTempDir(t)
 	MakeTestRepo(t, dir)
-	require.NoError(t, osutil.SandboxChown(dir, filepath.Join(dir, ".git")))
 
 	// Modification of .git/ directory must be blocked.
 	patch1 := []byte("--- /dev/null\n+++ b/.git/file.txt\n@@ -0,0 +1 @@\n+injected\n")
