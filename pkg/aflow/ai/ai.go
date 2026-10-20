@@ -110,6 +110,12 @@ type AssessmentKCSANOutputs struct {
 	Explanation string
 }
 
+const (
+	InfoLeakNone      = "none"
+	InfoLeakPointers  = "pointers"
+	InfoLeakArbitrary = "arbitrary"
+)
+
 // AssessmentSecurityOutputs holds security assessment results.
 // Note: this struct is used in dashboard config predicates.
 // Adding new fields is OK, but deleting/renaming fields is likely to require special care
@@ -126,6 +132,15 @@ type AssessmentSecurityOutputs struct {
 	RemoteTrigger     bool
 	PeripheralTrigger bool
 	FilesystemTrigger bool
+
+	RootCauseSummary  string   `json:",omitempty"`
+	RootCauseAnalysis string   `json:",omitempty"`
+	RootCauseFiles    []string `json:",omitempty"`
+	MemoryCorruption  bool     `json:",omitempty"`
+	InfoLeak          string   `json:",omitempty"`
+	FuzzingArtifact   bool     `json:",omitempty"`
+	RequiredCaps      []string `json:",omitempty"`
+	NetworkNeedsSetup bool     `json:",omitempty"`
 }
 
 type ModerationOutputs struct {
