@@ -57,6 +57,8 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   --push
 ```
 
+After pushing a new `env` or `old-env` image, update the pinned container image SHA256 digests in [`.github/workflows/ci.yml`](/.github/workflows/ci.yml).
+
 ## [DEPRECATED] Github Packages
 
 Github packages are not supported (if you can't access gcr.io, please contact us).
