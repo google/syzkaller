@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var Tool = aflow.NewFuncTool("patch-diff", patchDiff, `
@@ -36,9 +37,7 @@ type result struct {
 // Diff runs a git diff command in the specified repository.
 func Diff(repo string, args ...string) (string, error) {
 	gitDiffArgs := append([]string{"diff"}, args...)
-	cmd := osutil.Command("git", gitDiffArgs...)
-	cmd.Dir = repo
-	output, err := osutil.Run(1*time.Minute, cmd)
+	output, err := vcs.SandboxedGit(repo).RunTimeout(time.Minute, gitDiffArgs...)
 	if err != nil {
 		return "", err
 	}

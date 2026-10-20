@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var Tool = aflow.NewFuncTool("grepper", grepper, `
@@ -71,7 +71,7 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 		"--show-function", "-C1", "-e", args.Expression, "--",
 	}
 	cmdArgs = append(cmdArgs, args.PathPrefixes...)
-	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", cmdArgs...)
+	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(time.Hour, cmdArgs...)
 	if err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 			if exitErr.ExitCode() == 1 && len(output) == 0 {
@@ -142,7 +142,7 @@ func matchesPerFile(kernelSrc string, args args) (string, error) {
 		"grep", "--extended-regexp", "--count", "-e", args.Expression, "--",
 	}
 	cmdArgs = append(cmdArgs, args.PathPrefixes...)
-	output, err := osutil.RunCmd(time.Hour, kernelSrc, "git", cmdArgs...)
+	output, err := vcs.SandboxedGit(kernelSrc).RunTimeout(time.Hour, cmdArgs...)
 	if err != nil {
 		return "", err
 	}

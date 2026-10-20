@@ -43,22 +43,29 @@ func MakeTestKernelRepo(t *testing.T, dir string) (*vcs.TestRepo, string) {
 
 	const prefix = "testdata/kernel"
 	err = fs.WalkDir(testKernelFS, prefix, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
+		if err != nil {
 			return err
 		}
-		rel := strings.TrimPrefix(path, prefix+"/")
+		rel := strings.TrimPrefix(path, prefix)
 		dst := filepath.Join(dir, rel)
-		if err := osutil.MkdirAll(filepath.Dir(dst)); err != nil {
-			return err
+		if d.IsDir() {
+			if err := osutil.MkdirAll(dst); err != nil {
+				return err
+			}
+			return osutil.SandboxChown(dst)
 		}
 		data, err := testKernelFS.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		if strings.HasPrefix(rel, "scripts/") {
-			return osutil.WriteExecFile(dst, data)
+		if strings.HasPrefix(rel, "/scripts/") {
+			if err := osutil.WriteExecFile(dst, data); err != nil {
+				return err
+			}
+			return osutil.SandboxChown(dst)
 		}
-		return osutil.WriteFile(dst, data)
+		osutil.WriteSandboxFile(t, dst, data)
+		return nil
 	})
 	require.NoError(t, err)
 

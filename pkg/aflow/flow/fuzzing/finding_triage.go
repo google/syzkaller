@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 func init() {
@@ -75,7 +75,7 @@ var prepareFindingOverview = aflow.NewFuncAction("prepare-finding-overview",
 			return res, errors.New("KernelSrc must not be empty")
 		}
 
-		out, err := osutil.RunCmd(time.Minute, args.KernelSrc, "git", "show", "--stat", "--format=", "HEAD")
+		out, err := vcs.SandboxedGit(args.KernelSrc).RunTimeout(time.Minute, "show", "--stat", "--format=", "HEAD")
 		if err != nil {
 			return res, fmt.Errorf("git show --stat failed: %w", err)
 		}

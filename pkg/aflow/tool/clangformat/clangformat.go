@@ -36,10 +36,8 @@ func clangFormat(ctx *aflow.Context, state state, args args) (result, error) {
 		return result{}, aflow.BadCallError("File is required")
 	}
 
-	cmd := osutil.Command("clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}", "-i", args.File)
-	cmd.Dir = state.KernelScratchSrc
-
-	output, err := osutil.Run(10*time.Minute, cmd)
+	output, err := osutil.RunSandboxed(10*time.Minute, state.KernelScratchSrc,
+		"clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}", "-i", args.File)
 	if err != nil {
 		return result{}, err
 	}

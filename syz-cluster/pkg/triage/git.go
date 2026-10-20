@@ -20,8 +20,7 @@ type GitTreeOps struct {
 func NewGitTreeOps(dir string, sandbox bool) (*GitTreeOps, error) {
 	ops := &GitTreeOps{
 		Git: &vcs.Git{
-			Dir: dir,
-			// TODO: why doesn't sandbox=true work normally under go tests?
+			Dir:     dir,
 			Sandbox: sandbox,
 			Env:     os.Environ(),
 		},

@@ -23,7 +23,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 var codeAccessTools = aflow.Tools(codesearcher.Tools, grepper.Tool, gitlog.Tools)
@@ -633,7 +632,7 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	}
 	// LLM can provide a commit from a different branch.
 	// We want to ensure it is actually reachable from the current commit.
-	reachable, err := vcs.Git{Dir: state.KernelSrc}.ContainedIn(state.KernelCommit, commit.Hash)
+	reachable, err := vcs.SandboxedGit(state.KernelSrc).ContainedIn(state.KernelCommit, commit.Hash)
 	if err != nil || !reachable {
 		return args, aflow.BadCallError("commit %q is not reachable from the current commit",
 			args.FixesHash)
@@ -674,9 +673,5 @@ func queryFixesTag(kernelSrc, hash string) (ai.FixesTag, error) {
 }
 
 func kernelCommit(kernelSrc, hash string) (*vcs.Commit, error) {
-	repo, err := vcs.NewRepo(targets.Linux, "", kernelSrc, vcs.OptDontSandbox)
-	if err != nil {
-		return nil, err
-	}
-	return repo.Commit(hash)
+	return vcs.SandboxedGit(kernelSrc).Commit(hash)
 }

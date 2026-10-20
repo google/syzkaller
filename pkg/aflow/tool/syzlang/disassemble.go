@@ -5,13 +5,14 @@ package syzlang
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 const (
@@ -76,12 +77,10 @@ func doDisassembleContext(pcs []uint64, kernelObj, kernelSrc string) (string, er
 	vmlinux := filepath.Join(kernelObj, "vmlinux")
 	startAddr, stopAddr := computeAddressBounds(pc)
 
-	cmd := exec.Command("llvm-objdump", "-d", "-S",
+	out, err := osutil.RunSandboxed(time.Minute, kernelSrc, "llvm-objdump", "-d", "-S",
 		fmt.Sprintf("--start-address=0x%x", startAddr),
 		fmt.Sprintf("--stop-address=0x%x", stopAddr),
 		vmlinux)
-	cmd.Dir = kernelSrc
-	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("llvm-objdump failed: %w\nOutput: %s", err, string(out))
 	}

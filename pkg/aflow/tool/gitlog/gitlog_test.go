@@ -5,10 +5,12 @@ package gitlog
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ import (
 
 func TestGitShow(t *testing.T) {
 	t.Parallel()
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
 	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
@@ -171,7 +173,7 @@ diff --git a/foo\.c b/foo\.c
 
 func TestGitBlame(t *testing.T) {
 	t.Parallel()
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
 	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
@@ -223,7 +225,7 @@ $`, c1.Hash[:12], c2.Hash[:12])
 
 func TestGitLog(t *testing.T) {
 	t.Parallel()
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo", "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
 	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
@@ -392,4 +394,24 @@ void foo() {
 		logResult{},
 		"invalid Since parameter format, must be like '3 years', '1 month', '5 days'",
 		aflow.TestWorkdir(tmpDir))
+}
+
+func TestGitSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
+	cfg := filepath.Join(repo.Dir, ".git", "config")
+	require.NoError(t, os.Chown(cfg, 0, 0))
+	require.NoError(t, os.Chmod(cfg, 0600))
+	for _, tc := range []struct {
+		tool aflow.Tool
+		args map[string]any
+	}{
+		{ToolShow, map[string]any{}},
+		{ToolBlame, map[string]any{"File": "foo.c", "Start": 1, "End": 1}},
+		{ToolLog, map[string]any{"MessageRegexps": []any{"commit"}}},
+	} {
+		_, err := aflow.TestToolRun(tc.tool, map[string]any{"KernelSrc": repo.Dir}, tc.args)
+		require.Error(t, err)
+		assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
+	}
 }

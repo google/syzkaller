@@ -6,7 +6,6 @@ package patching
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -91,9 +90,12 @@ func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, e
 	res := maintainersResult{}
 	// See #1441 re --git-min-percent.
 	script := filepath.Join(args.KernelSrc, "scripts/get_maintainer.pl")
-	cmd := exec.Command(script, "--git-min-percent=15")
+	cmd := osutil.Command(script, "--git-min-percent=15")
 	cmd.Dir = args.KernelSrc
 	cmd.Stdin = strings.NewReader(args.PatchDiff)
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
+		return res, err
+	}
 	output, err := osutil.Run(time.Minute, cmd)
 	if err != nil {
 		return res, err
@@ -150,7 +152,7 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	// so we must separate the paths from the revisions.
 	gitArgs := slices.Concat([]string{"log", "--format=%s", "--no-merges", "-n", "20",
 		args.KernelCommit, "--"}, files)
-	output, err := vcs.Git{Dir: args.KernelSrc}.Run(gitArgs...)
+	output, err := vcs.SandboxedGit(args.KernelSrc).Run(gitArgs...)
 	if err != nil {
 		return res, aflow.FlowError(err)
 	}
@@ -177,13 +179,15 @@ func applyGitDiff(dir, diff string) error {
 	if diff == "" {
 		return nil
 	}
-	cmd := osutil.Command("git", "apply", "-")
-	cmd.Dir = dir
-	cmd.Stdin = strings.NewReader(diff)
-	if output, err := osutil.Run(time.Minute, cmd); err != nil {
-		return fmt.Errorf("failed to apply patch: %w\n%s", err, output)
+	err := vcs.SandboxedGit(dir).Apply([]byte(diff))
+	if err == nil {
+		return nil
 	}
-	return nil
+	var output []byte
+	if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
+		output = verr.Output
+	}
+	return fmt.Errorf("failed to apply patch: %w\n%s", err, output)
 }
 
 func applyGitPatchFunc(ctx *aflow.Context, args applyGitPatchArgs) (struct{}, error) {

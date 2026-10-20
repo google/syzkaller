@@ -11,40 +11,41 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitTreeOpsHead(t *testing.T) {
 	baseDir := t.TempDir()
 	repo := vcs.MakeTestRepo(t, baseDir)
 	// Emulate the behavior of the kernel-disk machinery.
-	osutil.WriteFile(filepath.Join(baseDir, "file.txt"), []byte("Some content"))
+	osutil.WriteSandboxFile(t, filepath.Join(baseDir, "file.txt"), []byte("Some content"))
 	repo.Git("add", "file.txt")
 	head1 := repo.CommitChange("first head")
 	repo.SetTag("mainline/main")
-	osutil.WriteFile(filepath.Join(baseDir, "file.txt"), []byte("Another content"))
+	osutil.WriteSandboxFile(t, filepath.Join(baseDir, "file.txt"), []byte("Another content"))
 	repo.Git("add", "file.txt")
 	head2 := repo.CommitChange("second head")
 	repo.SetTag("second/main")
 	// Verify that the right commits are queried.
-	ops, err := NewGitTreeOps(baseDir, false)
-	assert.NoError(t, err)
+	ops, err := NewGitTreeOps(baseDir, true)
+	require.NoError(t, err)
 	commit, err := ops.HeadCommit(&api.Tree{Name: "mainline", Branch: "main"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, head1.Hash, commit.Hash)
 	commit, err = ops.HeadCommit(&api.Tree{Name: "second", Branch: "main"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, head2.Hash, commit.Hash)
 }
 
 func TestGitTreeOpsApply(t *testing.T) {
 	baseDir := t.TempDir()
 	repo := vcs.MakeTestRepo(t, baseDir)
-	osutil.WriteFile(filepath.Join(baseDir, "file.txt"), []byte("First\nSecond\nThird\n"))
+	osutil.WriteSandboxFile(t, filepath.Join(baseDir, "file.txt"), []byte("First\nSecond\nThird\n"))
 	repo.Git("add", "file.txt")
 	base := repo.CommitChange("base")
 
-	ops, err := NewGitTreeOps(baseDir, false)
-	assert.NoError(t, err)
+	ops, err := NewGitTreeOps(baseDir, true)
+	require.NoError(t, err)
 	// A series that does not apply must be distinguishable from a repository-level error.
 	err = ops.ApplySeries(base.Hash, [][]byte{goodPatch, wontApply})
 	assert.ErrorIs(t, err, ErrSeriesNotApplicable)

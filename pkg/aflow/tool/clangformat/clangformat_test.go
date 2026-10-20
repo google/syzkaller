@@ -10,13 +10,15 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClangFormat(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := osutil.SandboxTempDir(t)
 	repoDir := filepath.Join(tmpDir, "repo")
-	require.NoError(t, os.MkdirAll(filepath.Join(repoDir, "arch/arm64/kernel"), 0755))
+	kernelDir := filepath.Join(repoDir, "arch/arm64/kernel")
+	require.NoError(t, os.MkdirAll(kernelDir, 0755))
 
 	// Create a .clang-format in repo root.
 	require.NoError(t, osutil.WriteFile(filepath.Join(repoDir, ".clang-format"), []byte(`BasedOnStyle: LLVM
@@ -27,7 +29,7 @@ BreakBeforeBraces: Linux
 `)))
 
 	// Verify that a 96-character line is not wrapped, confirming the ColumnLimit: 100 override.
-	testFile := filepath.Join(repoDir, "arch/arm64/kernel/test.c")
+	testFile := filepath.Join(kernelDir, "test.c")
 	code := `
 int long_function_name(int first_argument_name, int second_argument_name, int third_argument_name) {
     int x = 1;
@@ -36,6 +38,15 @@ int long_function_name(int first_argument_name, int second_argument_name, int th
 }
 `[1:]
 	require.NoError(t, osutil.WriteFile(testFile, []byte(code)))
+	t.Run("sandbox", func(t *testing.T) {
+		osutil.RequireSandbox(t)
+		_, err := aflow.TestToolRun(Tool,
+			map[string]any{"KernelScratchSrc": repoDir},
+			map[string]any{"File": "arch/arm64/kernel/test.c"})
+		require.Error(t, err)
+		assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
+	})
+	require.NoError(t, osutil.SandboxChown(testFile, kernelDir))
 
 	aflow.TestTool(t, Tool,
 		state{KernelScratchSrc: repoDir},

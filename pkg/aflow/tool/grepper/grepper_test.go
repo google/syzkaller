@@ -8,16 +8,20 @@ package grepper
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGrepper(t *testing.T) {
-	repo := vcs.MakeTestRepo(t, t.TempDir())
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
 	repo.CommitChangeset("description",
 		vcs.FileContent{
 			File: "foo.c",
@@ -163,7 +167,7 @@ foo.c-6-	line;
 }
 
 func TestGrepperManyFiles(t *testing.T) {
-	repo := vcs.MakeTestRepo(t, t.TempDir())
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
 	var files []vcs.FileContent
 	for i := range 150 {
 		files = append(files, vcs.FileContent{
@@ -189,4 +193,15 @@ file049.c:5
 			assert.False(t, strings.Contains(got.Output, "file050.c:5"), "%v", got)
 		},
 		"")
+}
+
+func TestGrepperSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
+	cfg := filepath.Join(repo.Dir, ".git", "config")
+	require.NoError(t, os.Chown(cfg, 0, 0))
+	require.NoError(t, os.Chmod(cfg, 0600))
+	_, err := aflow.TestToolRun(Tool, map[string]any{"KernelSrc": repo.Dir}, map[string]any{"Expression": "foo"})
+	require.Error(t, err)
+	assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
 }

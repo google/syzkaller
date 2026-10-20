@@ -57,7 +57,15 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 	if target == nil {
 		return fmt.Errorf("unsupported target %v/%v", targetOS, targetVMArch)
 	}
-	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
+	root, err := os.OpenRoot(buildDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	if err := root.WriteFile(".config", []byte(cfg), osutil.DefaultFilePerm); err != nil {
+		return err
+	}
+	if err := osutil.SandboxChown(buildDir, filepath.Join(buildDir, ".config")); err != nil {
 		return err
 	}
 	configScript := filepath.Join(srcDir, "scripts", "config")
@@ -81,7 +89,7 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		}
 		configArgs = append(configArgs, "--set-str", "CMDLINE", cmdline)
 	}
-	if _, err := osutil.RunCmd(time.Hour, buildDir, configScript, configArgs...); err != nil {
+	if _, err := osutil.RunSandboxed(time.Hour, buildDir, configScript, configArgs...); err != nil {
 		return err
 	}
 	image := filepath.FromSlash(build.LinuxKernelImage(targetVMArch))
@@ -89,7 +97,7 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		"ccache", buildDir, runtime.NumCPU())
 	const compileCommands = "compile_commands.json"
 	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
-	if _, err := osutil.RunCmd(time.Hour, srcDir, "make", makeArgs...); err != nil {
+	if _, err := osutil.RunSandboxed(time.Hour, srcDir, "make", makeArgs...); err != nil {
 		buildErr := build.ExtractRootCause(err, targets.Linux, srcDir)
 		if buildErr == err {
 			return aflow.FlowError(err)
@@ -106,18 +114,14 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		target.KernelObject: true,
 		compileCommands:     true,
 	}
-	return filepath.WalkDir(buildDir, func(path string, d fs.DirEntry, err error) error {
+	return fs.WalkDir(root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		relative, err := filepath.Rel(buildDir, path)
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || keepFiles[relative] || codesearch.IsSourceFile(relative) {
+		if d.IsDir() || d.Type().IsRegular() && (keepFiles[path] || codesearch.IsSourceFile(path)) {
 			return nil
 		}
-		return os.Remove(path)
+		return root.Remove(path)
 	})
 }
 
