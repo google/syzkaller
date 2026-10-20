@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -252,28 +253,35 @@ func shouldSkipFuzzing(base, patched pkgbuild.SectionHashes) bool {
 		log.Logf(0, "skipped the binary equality check because some of them have 0 symbols")
 		return false
 	}
-	same := len(base.Text) == len(patched.Text) && len(base.Data) == len(patched.Data)
 	// For .text, demand all symbols to be equal.
-	for name, hash := range base.Text {
-		if patched.Text[name] != hash {
-			same = false
-			break
-		}
-	}
-	// For data sections ignore some of them.
-	for name, hash := range base.Data {
-		if !ignoreLinuxVariables[name] && patched.Data[name] != hash {
-			log.Logf(1, "symbol %q has different values in base vs patch", name)
-			same = false
-			break
-		}
-	}
-	if same {
+	// For data sections, ignore some of them.
+	if maps.Equal(base.Text, patched.Text) && sameDataSymbols(base.Data, patched.Data) {
 		log.Logf(0, "binaries are the same, no sense to do fuzzing")
 		return true
 	}
 	log.Logf(0, "binaries are different, continuing fuzzing")
 	return false
+}
+
+// sameDataSymbols checks that both kernels have the same set of data symbols with the same hashes,
+// except for the variables that are known to differ between builds.
+func sameDataSymbols(base, patched map[string]string) bool {
+	for name, hash := range base {
+		if ignoreLinuxVariables[name] {
+			continue
+		}
+		if patchedHash, ok := patched[name]; !ok || patchedHash != hash {
+			log.Logf(1, "symbol %q has different values in base vs patch", name)
+			return false
+		}
+	}
+	for name := range patched {
+		if _, ok := base[name]; !ok && !ignoreLinuxVariables[name] {
+			log.Logf(1, "symbol %q is only present in the patched kernel", name)
+			return false
+		}
+	}
+	return true
 }
 
 func compileTitleFilter(config *api.FuzzConfig) (*regexp.Regexp, error) {
