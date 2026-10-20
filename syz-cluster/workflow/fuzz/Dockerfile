@@ -35,5 +35,6 @@ RUN git config --system --add safe.directory '*'
 
 COPY --from=builder /build/bin/ /syzkaller/bin/
 COPY --from=builder /build/syz-cluster/bin/fuzz-action /bin/fuzz-action
+COPY sys/linux/test /syzkaller/sys/linux/test
 
 ENTRYPOINT ["/bin/fuzz-action"]

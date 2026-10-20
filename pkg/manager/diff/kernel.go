@@ -198,6 +198,12 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	kc.fuzzer.Store(fuzzerObj)
 
 	filtered := manager.FilterCandidates(candidates, syscalls, false).Candidates
+	// Static seeds from sys/*/test do not have ProgSmashed set by LoadSeeds,
+	// so mark all initial candidates as smashed to avoid spending patch fuzzing
+	// time budget on smashing them at startup.
+	for i := range filtered {
+		filtered[i].Flags |= fuzzer.ProgSmashed
+	}
 	log.Logf(0, "%s: adding %d seeds", kc.name, len(filtered))
 	fuzzerObj.AddCandidates(filtered)
 
