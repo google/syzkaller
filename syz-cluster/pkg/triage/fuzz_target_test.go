@@ -11,7 +11,8 @@ import (
 )
 
 func TestSelectFuzzConfigs(t *testing.T) {
-	bpf, bpfKmsan, net, fs, mainline := &api.KernelFuzzConfig{},
+	bpf, bpfKmsan, net, bt, fs, mainline := &api.KernelFuzzConfig{},
+		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{},
 		&api.KernelFuzzConfig{},
@@ -22,8 +23,15 @@ func TestSelectFuzzConfigs(t *testing.T) {
 			Campaigns:  []*api.KernelFuzzConfig{bpf, bpfKmsan},
 		},
 		{
-			EmailLists: []string{"net@list"},
-			Campaigns:  []*api.KernelFuzzConfig{net},
+			EmailLists:         []string{"net@list"},
+			PathRegexps:        []string{"^net/"},
+			ExcludePathRegexps: []string{"^net/bluetooth/"},
+			Campaigns:          []*api.KernelFuzzConfig{net},
+		},
+		{
+			EmailLists:  []string{"bt@list"},
+			PathRegexps: []string{"^net/bluetooth/"},
+			Campaigns:   []*api.KernelFuzzConfig{bt},
 		},
 		{
 			EmailLists:  []string{"fs@list"},
@@ -57,6 +65,29 @@ func TestSelectFuzzConfigs(t *testing.T) {
 				Cc: []string{"unknown@list"},
 				Patches: []api.SeriesPatch{
 					{Body: []byte("diff --git a/fs/ext4/super.c b/fs/ext4/super.c\n--- a/fs/ext4/super.c\n+++ b/fs/ext4/super.c\n")},
+				},
+			},
+		},
+		{
+			testName: "exclude-path-regexp",
+			result:   []*api.KernelFuzzConfig{bt},
+			series: &api.Series{
+				Cc: []string{"unknown@list"},
+				Patches: []api.SeriesPatch{
+					{Body: []byte("diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c\n" +
+						"--- a/net/bluetooth/hci.c\n+++ b/net/bluetooth/hci.c\n")},
+				},
+			},
+		},
+		{
+			testName: "exclude-and-include-path-regexp",
+			result:   []*api.KernelFuzzConfig{net, bt},
+			series: &api.Series{
+				Cc: []string{"unknown@list"},
+				Patches: []api.SeriesPatch{
+					{Body: []byte("diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c\n" +
+						"--- a/net/bluetooth/hci.c\n+++ b/net/bluetooth/hci.c\n")},
+					{Body: []byte("diff --git a/net/core/sock.c b/net/core/sock.c\n--- a/net/core/sock.c\n+++ b/net/core/sock.c\n")},
 				},
 			},
 		},
