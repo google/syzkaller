@@ -21,7 +21,8 @@ var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
 
 func TestSingularFocus(t *testing.T) {
 	focusList := []string{
-		api.FocusKVM, api.FocusIoUring, api.FocusBPF, api.FocusNet, api.FocusFS, api.FocusUSB, api.FocusMM,
+		api.FocusKVM, api.FocusIoUring, api.FocusBPF, api.FocusNet,
+		api.FocusBluetooth, api.FocusFS, api.FocusUSB, api.FocusMM,
 	}
 	for _, focus := range focusList {
 		t.Run(focus, func(t *testing.T) {
