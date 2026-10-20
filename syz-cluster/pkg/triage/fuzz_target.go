@@ -22,7 +22,7 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 		matched := slices.ContainsFunc(config.EmailLists, func(cc string) bool {
 			return seriesCc[cc]
 		})
-		matched = matched || matchesPaths(config.PathRegexps, modifiedFiles)
+		matched = matched || matchesPaths(config.PathRegexps, config.ExcludePathRegexps, modifiedFiles)
 		if matched {
 			ret = append(ret, expandCampaigns(config)...)
 		} else if len(config.EmailLists) == 0 && len(config.PathRegexps) == 0 {
@@ -36,16 +36,31 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 	return defaultRet
 }
 
-func matchesPaths(regexps, modifiedFiles []string) bool {
+func matchesPaths(regexps, excludeRegexps, modifiedFiles []string) bool {
 	if len(regexps) == 0 || len(modifiedFiles) == 0 {
 		return false
 	}
-	for _, r := range regexps {
-		re, err := regexp.Compile(r)
-		if err != nil {
-			continue
+	include := compileRegexps(regexps)
+	exclude := compileRegexps(excludeRegexps)
+	for _, file := range modifiedFiles {
+		if matchesAny(include, file) && !matchesAny(exclude, file) {
+			return true
 		}
-		if slices.ContainsFunc(modifiedFiles, re.MatchString) {
+	}
+	return false
+}
+
+func compileRegexps(regexps []string) []*regexp.Regexp {
+	var ret []*regexp.Regexp
+	for _, r := range regexps {
+		ret = append(ret, regexp.MustCompile(r))
+	}
+	return ret
+}
+
+func matchesAny(regexps []*regexp.Regexp, str string) bool {
+	for _, re := range regexps {
+		if re.MatchString(str) {
 			return true
 		}
 	}

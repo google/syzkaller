@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -162,7 +163,7 @@ func (c AppConfig) Validate() error {
 		}
 	}
 	for _, target := range c.FuzzTargets {
-		for _, r := range target.PathRegexps {
+		for _, r := range slices.Concat(target.PathRegexps, target.ExcludePathRegexps) {
 			if _, err := regexp.Compile(r); err != nil {
 				return fmt.Errorf("invalid path regexp %q: %w", r, err)
 			}

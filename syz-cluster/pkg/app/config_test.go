@@ -79,4 +79,11 @@ func TestFuzzTargetsValidation(t *testing.T) {
 		},
 	}
 	require.ErrorContains(t, cfg.Validate(), "invalid path regexp")
+
+	cfg.FuzzTargets = []*api.FuzzTriageTarget{
+		{
+			ExcludePathRegexps: []string{"[invalid("},
+		},
+	}
+	require.ErrorContains(t, cfg.Validate(), "invalid path regexp")
 }
