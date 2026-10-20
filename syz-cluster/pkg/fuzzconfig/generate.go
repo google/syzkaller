@@ -207,6 +207,11 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"syz_open_dev$hidraw", "write$hidraw", "read$hidraw",
 			"syz_open_dev$hiddev", "read$hiddev", "ioctl$HIDIO*",
 			"syz_open_dev$evdev", "write$evdev", "ioctl$EVIO*",
+			"syz_open_dev$usbfs", "read$usbfs", "mmap$usbfs", "ioctl$USBDEVFS*",
+			"syz_open_dev$usbmon", "read$usbmon", "mmap$usbmon", "ioctl$MON_IOC*",
+			"syz_usbip_server_init", "write$usbip_server",
+			"ioctl$TC*", "ioctl$TIOC*",
+			"openat", "close", "clock_gettime",
 		)
 		return nil
 	},
