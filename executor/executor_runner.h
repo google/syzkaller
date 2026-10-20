@@ -636,7 +636,7 @@ private:
 		}
 
 #if GOOS_linux
-		if (IsScheduledForLeakCheck() && AreProcsIdle()) {
+		if (IsScheduledForLeakCheck() && AreProcsFree()) {
 			debug("Running leak check...\n");
 			check_leaks(char_leak_frames_.data(), char_leak_frames_.size());
 			debug("Done running leak check\n");
@@ -669,10 +669,11 @@ private:
 		       execs_since_leak_check_ >= kRunLeakCheckEvery;
 	}
 
-	bool AreProcsIdle()
+	bool AreProcsFree()
 	{
 		return std::all_of(procs_.begin(), procs_.end(), [](const std::unique_ptr<Proc>& proc) {
-			return proc->GetState() == Proc::State::Idle;
+			return proc->GetState() == Proc::State::Idle ||
+			       proc->GetState() == Proc::State::Started;
 		});
 	}
 #else
