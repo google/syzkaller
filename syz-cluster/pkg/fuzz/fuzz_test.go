@@ -1,61 +1,41 @@
-// Copyright 2025 syzkaller project authors. All rights reserved.
+// Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package fuzz
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/google/syzkaller/pkg/build"
+	pkgbuild "github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/manager"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestReadSectionHashes(t *testing.T) {
-	hashes := build.SectionHashes{
-		Text: map[string]string{"A": "1"},
-		Data: map[string]string{"B": "2"},
-	}
-
-	jsonData, err := json.Marshal(hashes)
-	require.NoError(t, err)
-
-	file, err := osutil.WriteTempFile(jsonData)
-	require.NoError(t, err)
-	defer os.Remove(file)
-
-	fromFile, err := readSectionHashes(file)
-	require.NoError(t, err)
-	assert.Equal(t, hashes, fromFile)
-}
-
 // nolint: dupl
 func TestShouldSkipFuzzing(t *testing.T) {
 	t.Run("one empty", func(t *testing.T) {
 		assert.False(t, shouldSkipFuzzing(
-			build.SectionHashes{},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{},
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1"},
 			},
 		))
 	})
 	t.Run("equal symbols", func(t *testing.T) {
 		assert.True(t, shouldSkipFuzzing(
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "D": "2"},
 			},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "D": "2"},
 			},
@@ -63,11 +43,11 @@ func TestShouldSkipFuzzing(t *testing.T) {
 	})
 	t.Run("ignore known variables", func(t *testing.T) {
 		assert.True(t, shouldSkipFuzzing(
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "raw_data": "A", "vermagic": "A"},
 			},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "raw_data": "B", "vermagic": "B"},
 			},
@@ -75,19 +55,19 @@ func TestShouldSkipFuzzing(t *testing.T) {
 	})
 	t.Run("same len, different hashes", func(t *testing.T) {
 		assert.False(t, shouldSkipFuzzing(
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 			},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "different"},
 			},
 		))
 		assert.False(t, shouldSkipFuzzing(
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "D": "2"},
 			},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 				Data: map[string]string{"C": "1", "D": "different"},
 			},
@@ -95,10 +75,10 @@ func TestShouldSkipFuzzing(t *testing.T) {
 	})
 	t.Run("different len, same hashes", func(t *testing.T) {
 		assert.False(t, shouldSkipFuzzing(
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2"},
 			},
-			build.SectionHashes{
+			pkgbuild.SectionHashes{
 				Text: map[string]string{"A": "1", "B": "2", "C": "new"},
 			},
 		))
@@ -106,19 +86,26 @@ func TestShouldSkipFuzzing(t *testing.T) {
 }
 
 func TestBugTitleRe(t *testing.T) {
-	assert.True(t, titleMatchesFilter(&api.FuzzConfig{}, "any title must match"))
-	assert.True(t, titleMatchesFilter(&api.FuzzConfig{
+	re, err := compileTitleFilter(&api.FuzzConfig{})
+	require.NoError(t, err)
+	assert.True(t, re.MatchString("any title must match"))
+
+	re, err = compileTitleFilter(&api.FuzzConfig{
 		BugTitleRe: `^Prefix:`,
-	}, "Prefix: must pass"))
-	assert.False(t, titleMatchesFilter(&api.FuzzConfig{
-		BugTitleRe: `^Prefix:`,
-	}, "Without prefix"))
+	})
+	require.NoError(t, err)
+	assert.True(t, re.MatchString("Prefix: must pass"))
+	assert.False(t, re.MatchString("Without prefix"))
 }
 
 func TestPrepareCorpus(t *testing.T) {
 	// The "common" record is present in both corpuses.
 	first := makeCorpus(t, map[string]string{"key1": "prog1", "common": "prog"})
 	second := makeCorpus(t, map[string]string{"key2": "prog2", "common": "prog"})
+	local := makeCorpus(t, map[string]string{"key3": "prog3", "common": "prog"})
+	localFile := filepath.Join(t.TempDir(), "local.db")
+	require.NoError(t, os.WriteFile(localFile, local, 0600))
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/first", func(w http.ResponseWriter, r *http.Request) { w.Write(first) })
 	mux.HandleFunc("/second", func(w http.ResponseWriter, r *http.Request) { w.Write(second) })
@@ -127,7 +114,7 @@ func TestPrepareCorpus(t *testing.T) {
 
 	workdir := t.TempDir()
 	require.NoError(t, prepareCorpus(context.Background(), workdir,
-		[]string{server.URL + "/first", server.URL + "/second"}, nil))
+		[]string{server.URL + "/first", server.URL + "/second"}, []string{localFile}, nil))
 
 	corpus, err := db.OpenReadOnly(filepath.Join(workdir, "corpus.db"))
 	require.NoError(t, err)
@@ -135,7 +122,12 @@ func TestPrepareCorpus(t *testing.T) {
 	for key, rec := range corpus.Records {
 		records[key] = string(rec.Val)
 	}
-	assert.Equal(t, map[string]string{"key1": "prog1", "key2": "prog2", "common": "prog"}, records)
+	assert.Equal(t, map[string]string{
+		"key1":   "prog1",
+		"key2":   "prog2",
+		"key3":   "prog3",
+		"common": "prog",
+	}, records)
 
 	// The downloaded files must not be left behind.
 	entries, err := os.ReadDir(workdir)
@@ -189,7 +181,7 @@ func TestFilterFindingCandidates(t *testing.T) {
 		},
 	}
 
-	candidates := filterFindingCandidates(bugs)
+	candidates := FilterFindingCandidates(bugs)
 	require.Len(t, candidates, 1)
 	assert.Equal(t, "candidate crash 1", candidates[0].Title)
 }
