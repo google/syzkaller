@@ -30,17 +30,33 @@ type TestRepo struct {
 
 func (repo *TestRepo) Git(args ...string) {
 	repo.t.Helper()
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = repo.Dir
-	cmd.Env = filterEnv()
-
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+	if _, err := repo.repo.Run(args...); err != nil {
 		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 }
 
 func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 	if err := osutil.MkdirAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	// t.TempDir() creates 0700 dirs that the sandbox user can't traverse,
+	// so make dir and its ancestors below os.TempDir() world-traversable.
+	// dir must be under os.TempDir(), otherwise the loop would make every
+	// ancestor of dir up to / world-traversable.
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpDir := filepath.Clean(os.TempDir())
+	if rel, err := filepath.Rel(tmpDir, absDir); err != nil || rel == "." || !filepath.IsLocal(rel) {
+		t.Fatalf("test repo dir %q must be a subdir of %q", dir, tmpDir)
+	}
+	for p := absDir; p != tmpDir; p = filepath.Dir(p) {
+		if err := os.Chmod(p, osutil.DefaultDirPerm); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := osutil.SandboxChown(dir); err != nil {
 		t.Fatal(err)
 	}
 	ignoreCC := map[string]bool{
@@ -51,7 +67,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
+		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious}),
 	}
 	repo.Git("init")
 	repo.Git("config", "--add", "user.email", userEmail)
@@ -66,9 +82,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 func (repo *TestRepo) CommitFileChange(branch, change string) {
 	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
 	file := filepath.Join(repo.Dir, "file")
-	if err := osutil.WriteFile(file, []byte(id)); err != nil {
-		repo.t.Fatal(osutil.VerboseMessage(err))
-	}
+	osutil.WriteSandboxFile(repo.t, file, []byte(id))
 	repo.Git("add", file)
 	repo.Git("commit", "-m", id)
 	if repo.Commits[branch] == nil {
@@ -87,13 +101,15 @@ func (repo *TestRepo) CommitChange(description string) *Commit {
 
 func (repo *TestRepo) CommitChangeAt(description string, date time.Time) {
 	dateStr := date.Format(time.RFC3339)
-	cmd := osutil.Command("git", "commit", "--allow-empty", "-m", description)
-	cmd.Dir = repo.Dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_DATE="+dateStr,
-		"GIT_COMMITTER_DATE="+dateStr,
-	)
-	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+	git := Git{
+		Dir:     repo.Dir,
+		Sandbox: true,
+		Env: append(filterEnv(),
+			"GIT_AUTHOR_DATE="+dateStr,
+			"GIT_COMMITTER_DATE="+dateStr,
+		),
+	}
+	if _, err := git.Run("commit", "--allow-empty", "-m", description); err != nil {
 		repo.t.Fatal(err)
 	}
 }
@@ -103,20 +119,15 @@ type FileContent struct {
 	Content string
 }
 
-func (fc *FileContent) Apply(repo *TestRepo) error {
-	err := os.WriteFile(filepath.Join(repo.Dir, fc.File), []byte(fc.Content), 0644)
-	if err != nil {
-		return err
-	}
+func (fc *FileContent) Apply(repo *TestRepo) {
+	repo.t.Helper()
+	osutil.WriteSandboxFile(repo.t, filepath.Join(repo.Dir, fc.File), []byte(fc.Content))
 	repo.Git("add", fc.File)
-	return nil
 }
 
 func (repo *TestRepo) CommitChangeset(description string, actions ...FileContent) *Commit {
-	for i, action := range actions {
-		if err := action.Apply(repo); err != nil {
-			repo.t.Fatalf("failed to apply action %d: %v", i, err)
-		}
+	for _, action := range actions {
+		action.Apply(repo)
 	}
 	repo.Git("commit", "--allow-empty", "-m", description)
 	com, err := repo.repo.Commit(HEAD)

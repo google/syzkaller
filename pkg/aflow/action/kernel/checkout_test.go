@@ -5,26 +5,24 @@ package kernel
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCheckout(t *testing.T) {
-	// Match the production syz-agent container setup (syz-agent/Dockerfile),
-	// which sets safe.directory='*' so unsandboxed git commands can clone from
-	// the sandboxed kernel repo.
-	t.Setenv("GIT_CONFIG_COUNT", "1")
-	t.Setenv("GIT_CONFIG_KEY_0", "safe.directory")
-	t.Setenv("GIT_CONFIG_VALUE_0", "*")
-
 	ctx := aflow.NewTestContext(t)
-	ctx.Workdir = t.TempDir()
+	ctx.Workdir = osutil.SandboxTempDir(t)
 	repo := vcs.MakeTestRepo(t, osutil.SandboxTempDir(t))
 	repo.Git("checkout", "-b", "master")
 	var hashes []string
@@ -48,8 +46,54 @@ func TestCheckout(t *testing.T) {
 	require.Equal(t, 1, gitLogCommits(t, scratch.KernelScratchSrc))
 }
 
+func TestKernelSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	dir := osutil.SandboxTempDir(t)
+	secret := filepath.Join(dir, "secret")
+	require.NoError(t, os.WriteFile(secret, []byte("secret"), 0600))
+	t.Setenv("SYZ_TEST_FORBIDDEN", secret)
+
+	remote, commit := build.MakeTestKernelRepo(t, filepath.Join(dir, "remote"))
+	ctx := aflow.NewTestContext(t)
+	ctx.Workdir = osutil.SandboxTempDir(t)
+
+	src, err := checkout(ctx, checkoutArgs{KernelRepo: remote.Dir, KernelCommit: commit})
+	require.NoError(t, err)
+
+	_, err = buildKernel(ctx, buildArgs{
+		TargetOS:     targets.Linux,
+		TargetArch:   targets.AMD64,
+		KernelSrc:    src.KernelSrc,
+		KernelCommit: commit,
+		KernelConfig: "CONFIG_FOO=y\n",
+	})
+	require.NoError(t, err)
+
+	scratch, err := checkoutScratch(ctx, checkoutScratchArgs(src))
+	require.NoError(t, err)
+	_, hasIssues, err := Checkpatch(scratch.KernelScratchSrc)
+	require.NoError(t, err)
+	require.False(t, hasIssues)
+
+	t.Run("disabled", func(t *testing.T) {
+		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+		err := BuildKernel(osutil.SandboxTempDir(t), src.KernelSrc,
+			"CONFIG_FOO=y\n", targets.Linux, targets.AMD64, "", true)
+		require.Error(t, err)
+		for _, msg := range []string{
+			"user is root, want syzkaller",
+			"able to read " + secret,
+			"able to write " + secret,
+			"able to write to " + dir,
+			"able to connect to local TCP port",
+		} {
+			assert.Contains(t, osutil.VerboseMessage(err), msg)
+		}
+	})
+}
+
 func headCommit(t *testing.T, kernelSrc string) string {
-	output, err := vcs.Git{Dir: kernelSrc}.Run("rev-parse", "HEAD")
+	output, err := vcs.SandboxedGit(kernelSrc).Run("rev-parse", "HEAD")
 	require.NoError(t, err)
 	return strings.TrimSpace(string(output))
 }
