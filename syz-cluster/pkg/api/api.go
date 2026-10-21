@@ -8,6 +8,7 @@ package api
 import (
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/vcs"
@@ -244,7 +245,9 @@ func (s *Series) IsStableBackport() bool {
 		return false
 	}
 	if slices.ContainsFunc(s.SubjectTags, func(tag string) bool {
-		return StableVersion(tag) != ""
+		return strings.EqualFold(tag, "autosel") ||
+			strings.EqualFold(tag, "stable") ||
+			StableVersion(tag) != ""
 	}) {
 		return true
 	}
@@ -262,7 +265,9 @@ func (s *Series) IsStableRC() bool {
 	return s.GetStableRCVersion() != ""
 }
 
-var stableVersionRe = regexp.MustCompile(`^(?:linux-|stable-)?v?(\d+\.\d+)(?:\.y|\.\d+)?$`)
+var stableVersionRe = regexp.MustCompile(
+	`^(?:linux-|stable-)?v?(\d+\.\d+)(?:\.y|\.\d+)?(?:-v?\d+\.\d+(?:\.y|\.\d+)?)*$`,
+)
 
 func StableVersion(str string) string {
 	m := stableVersionRe.FindStringSubmatch(str)
