@@ -146,6 +146,24 @@ func TestCache(t *testing.T) {
 	require.True(t, osutil.IsExist(dir10))
 }
 
+func TestCacheTempDirCleanup(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	// A leftover temp dir with a valid-looking metadata file must not be treated as a cache entry.
+	tmpDir, err := c.TempDir()
+	require.NoError(t, err)
+	require.NoError(t, osutil.WriteJSON(filepath.Join(tmpDir, cacheMetaFile), cacheMeta{
+		Version:     currentCacheVersion,
+		Description: "fake",
+		DiskUsage:   1024,
+	}))
+	c, err = newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	require.False(t, osutil.IsExist(tmpDir))
+	require.Empty(t, c.entries)
+}
+
 func TestCacheObject(t *testing.T) {
 	tempDir := t.TempDir()
 	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
