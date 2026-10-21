@@ -46,6 +46,11 @@ func RequireSandbox(t *testing.T) {
 	t.Skip("sandboxing is only supported on linux")
 }
 
+func IsSandboxOwned(t *testing.T, path string) bool {
+	t.Skip("sandboxing is only supported on linux")
+	return false
+}
+
 func setPdeathsig(cmd *exec.Cmd, hardKill bool) {
 }
 
