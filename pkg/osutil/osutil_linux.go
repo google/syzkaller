@@ -160,6 +160,29 @@ func RequireSandbox(t *testing.T) {
 	t.Setenv("HOME", u.HomeDir)
 }
 
+// IsSandboxOwned reports whether path is owned by the sandbox user (as opposed to root).
+func IsSandboxOwned(t *testing.T, path string) bool {
+	t.Helper()
+	enabled, uid, gid, err := initSandbox()
+	if err != nil || !enabled {
+		t.Fatalf("sandbox is not enabled: %v", err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat := info.Sys().(*syscall.Stat_t)
+	switch {
+	case stat.Uid == uid && stat.Gid == gid:
+		return true
+	case stat.Uid == 0 && stat.Gid == 0:
+		return false
+	default:
+		t.Fatalf("%v has unexpected owner %v:%v", path, stat.Uid, stat.Gid)
+		return false
+	}
+}
+
 func setPdeathsig(cmd *exec.Cmd, hardKill bool) {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
