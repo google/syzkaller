@@ -256,50 +256,70 @@ func init() {
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:        "root-cause",
-					Model:       aflow.DeepReasoningModel,
+					Model:       aflow.CoreModel,
 					Reply:       "RootCauseAnalysis",
 					Outputs:     aflow.ValidatedLLMOutputs(validateRootCauseOutputs),
 					Instruction: common.Prompt(prompts, "prompts/root_cause_instruction.md"),
 					Prompt:      rootCausePrompt,
 					Tools:       rootCauseTools,
+					Advisor: &aflow.LLMAdvisor{
+						Name:               "root-cause-advisor",
+						Model:              aflow.DeepReasoningModel,
+						MinIterations:      20,
+						EvaluationInterval: 20,
+						Instruction:        common.Prompt(prompts, "prompts/root_cause_advisor_instruction.md"),
+					},
 				},
 				&aflow.LLMAgent{
 					Name:        "local-reachability",
-					Model:       aflow.DeepReasoningModel,
+					Model:       aflow.CoreModel,
 					Reply:       "LocalReachabilityAnalysis",
 					Outputs:     aflow.ValidatedLLMOutputs(validateLocalReachabilityOutputs),
 					Instruction: common.Prompt(prompts, "prompts/local_reachability_instruction.md"),
 					Prompt:      reachabilityPrompt,
 					Tools:       reachabilityTools,
+					Advisor:     reachabilityAdvisor("local-reachability-advisor"),
 				},
 				&aflow.If{
 					Condition: "IsNetCandidate",
 					Do: &aflow.LLMAgent{
 						Name:        "net-reachability",
-						Model:       aflow.DeepReasoningModel,
+						Model:       aflow.CoreModel,
 						Reply:       "NetReachabilityAnalysis",
 						Outputs:     aflow.ValidatedLLMOutputs(validateNetReachabilityOutputs),
 						Instruction: common.Prompt(prompts, "prompts/net_reachability_instruction.md"),
 						Prompt:      reachabilityPrompt,
 						Tools:       reachabilityTools,
+						Advisor:     reachabilityAdvisor("net-reachability-advisor"),
 					},
 				},
 				&aflow.If{
 					Condition: "IsKVMCandidate",
 					Do: &aflow.LLMAgent{
 						Name:        "kvm-reachability",
-						Model:       aflow.DeepReasoningModel,
+						Model:       aflow.CoreModel,
 						Reply:       "KVMReachabilityAnalysis",
 						Outputs:     aflow.LLMOutputs[kvmReachabilityOutputs](),
 						Instruction: common.Prompt(prompts, "prompts/kvm_reachability_instruction.md"),
 						Prompt:      reachabilityPrompt,
 						Tools:       reachabilityTools,
+						Advisor:     reachabilityAdvisor("kvm-reachability-advisor"),
 					},
 				},
 				combineAssessment,
 			),
 		},
 	)
+}
+
+func reachabilityAdvisor(name string) *aflow.LLMAdvisor {
+	return &aflow.LLMAdvisor{
+		Name:               name,
+		Model:              aflow.DeepReasoningModel,
+		MinIterations:      10,
+		EvaluationInterval: 15,
+		Instruction:        common.Prompt(prompts, "prompts/reachability_advisor_instruction.md"),
+	}
 }
 
 const rootCausePrompt = `
