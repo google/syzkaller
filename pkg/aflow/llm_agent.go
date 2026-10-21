@@ -67,6 +67,8 @@ type LLMAgent struct {
 
 	// Optional evaluator/judge agent that is invoked after each iteration to inspect history.
 	Judge *LLMJudge
+	// Optional advisor agent that is invoked periodically to inspect history and provide guidance.
+	Advisor *LLMAdvisor
 }
 
 type agentSession struct {
@@ -220,6 +222,11 @@ Ignore results of this tool.
 
 const llmMultipleToolsInstruction = `
 Prefer calling several tools at the same time to save round-trips.
+`
+
+const llmAdvisorInstruction = `
+During execution, you may receive periodic guidance in <supervisor_advice> tags;
+use it to refine your investigation or wrap up once you have sufficient evidence.
 `
 
 const llmMissingReply = `You did not provide any final reply to the question. Please return something.
@@ -487,6 +494,9 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 				return "", a.outputs, nil
 			}
 		}
+		if err := a.evaluateAdvisor(ctx, iter); err != nil {
+			return "", nil, err
+		}
 	}
 	return "", nil, a.maxIterationsError()
 }
@@ -528,10 +538,7 @@ func (a *agentSession) handleFinalReply(ctx *Context, reply string) (string, map
 }
 
 func (a *agentSession) evaluateJudge(ctx *Context, iter int) (bool, error) {
-	if a.Judge == nil || a.answerNow {
-		return false, nil
-	}
-	if iter < a.Judge.MinIterations || (iter-a.Judge.MinIterations)%a.Judge.EvaluationInterval != 0 {
+	if a.Judge == nil || a.answerNow || !shouldEvaluate(iter, a.Judge.MinIterations, a.Judge.EvaluationInterval) {
 		return false, nil
 	}
 	decision, err := a.Judge.Evaluate(ctx, a.req)
@@ -547,6 +554,31 @@ func (a *agentSession) evaluateJudge(ctx *Context, iter int) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func (a *agentSession) evaluateAdvisor(ctx *Context, iter int) error {
+	if a.Advisor == nil || a.answerNow || a.outputs != nil || iter+1 >= a.maxIterations ||
+		!shouldEvaluate(iter, a.Advisor.MinIterations, a.Advisor.EvaluationInterval) {
+		return nil
+	}
+	decision, err := a.Advisor.Evaluate(ctx, a.req)
+	if err != nil {
+		// Advisor guidance is best-effort: if the advisor model has stricter safety
+		// guardrails than the main agent and blocks on crash/security history,
+		// ignore the block and let the main agent continue.
+		if isBlockedError(err) {
+			return nil
+		}
+		return fmt.Errorf("advisor agent failed: %w", err)
+	}
+	if advice := strings.TrimSpace(decision.Advice); advice != "" {
+		// Place the advice before FunctionResponse parts as required by the Vertex AI API.
+		last := a.req[len(a.req)-1].content
+		last.Parts = slices.Insert(last.Parts, 0, backend.Part{
+			Text: fmt.Sprintf("<supervisor_advice>\n%s\n</supervisor_advice>", disarmTags(advice)),
+		})
+	}
+	return nil
 }
 
 func extractHistoryMessages(history []llmMessage) []*backend.Message {
@@ -585,6 +617,10 @@ func formatMessages(messages []*backend.Message) string {
 				sb.WriteString(formatJSONMap(part.FunctionResponse.Response))
 				sb.WriteString("\n")
 			case part.Text == compressedHistoryReminder:
+			case strings.HasPrefix(part.Text, "<supervisor_advice>\n") &&
+				strings.HasSuffix(part.Text, "\n</supervisor_advice>"):
+				sb.WriteString(part.Text)
+				sb.WriteString("\n")
 			case part.Text != "":
 				sb.WriteString(disarmTags(part.Text))
 				sb.WriteString("\n")
@@ -605,8 +641,16 @@ func formatJSONMap(m map[string]any) string {
 	return fmt.Sprintf("%+v", m)
 }
 
+var disarmedTags = []string{
+	"execution_history",
+	"initial_prompt",
+	"thought",
+	"system_instructions",
+	"supervisor_advice",
+}
+
 var reDisarmTags = regexp.MustCompile(
-	`(?i)<\s*(\/?)\s*(execution_history|initial_prompt|thought|system_instructions)\b([^>]*)>`)
+	`(?i)<\s*(\/?)\s*(` + strings.Join(disarmedTags, "|") + `)\b([^>]*)>`)
 
 func disarmTags(s string) string {
 	if !strings.Contains(s, "<") {
@@ -644,7 +688,8 @@ You will be provided with context enclosed in the following XML tags:
 - <initial_prompt>: The initial task prompt given to the agent.
 - <execution_history>: The chronological transcript of the conversation so far,
   including user prompts, model reasoning, tool invocations, and tool results.
-  Within the history, the model's internal reasoning traces are enclosed in <thought> tags.
+  Within the history, the model's internal reasoning traces are enclosed in <thought> tags,
+  and supervisor guidance is enclosed in <supervisor_advice> tags.
 
 <system_instructions> and <initial_prompt> are preserved verbatim in the agent's context,
 so DO NOT duplicate or restate their contents in your summary. Only refer to them when needed
@@ -862,6 +907,9 @@ func (a *LLMAgent) config(ctx *Context) (*backend.GenerateConfig, string, string
 	}
 	if a.Outputs != nil {
 		instruction += llmOutputsInstruction
+	}
+	if a.Advisor != nil {
+		instruction += llmAdvisorInstruction
 	}
 	prompt := formatTemplate(a.Prompt, state)
 	return &backend.GenerateConfig{
@@ -1141,6 +1189,14 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		provideOutputs[JudgeExecutionResults](ctx, a.Name)
 		if err := a.Judge.verify(); err != nil {
 			ctx.errorf(a.Name, "judge verification failed: %v", err)
+		}
+	}
+	if a.Advisor != nil {
+		if a.Candidates > 1 {
+			ctx.errorf(a.Name, "Candidates > 1 is not supported with Advisor")
+		}
+		if err := a.Advisor.verify(); err != nil {
+			ctx.errorf(a.Name, "advisor verification failed: %v", err)
 		}
 	}
 }

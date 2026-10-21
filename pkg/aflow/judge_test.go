@@ -84,6 +84,25 @@ func TestLLMJudgeVerify(t *testing.T) {
 	}
 }
 
+func TestLLMAdvisorVerify(t *testing.T) {
+	advisor := &LLMAdvisor{
+		Name:               "valid-advisor",
+		Model:              "model1",
+		EvaluationInterval: 1,
+		MinIterations:      1,
+		Instruction:        "Advise the agent",
+	}
+	require.NoError(t, advisor.verify())
+
+	badInterval := *advisor
+	badInterval.EvaluationInterval = 0
+	require.ErrorContains(t, badInterval.verify(), "EvaluationInterval must be greater than 0")
+
+	badMinIters := *advisor
+	badMinIters.MinIterations = 0
+	require.ErrorContains(t, badMinIters.verify(), "MinIterations must be greater than 0")
+}
+
 func TestLLMJudgeFormatHistory(t *testing.T) {
 	judge := &LLMJudge{
 		Name:               "test-judge",

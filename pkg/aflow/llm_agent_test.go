@@ -400,6 +400,25 @@ func TestAgentRegistrationErrors(t *testing.T) {
 				},
 			},
 		})
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action smarty: Candidates > 1 is not supported with Advisor",
+		&Flow{
+			Root: &LLMAgent{
+				Name:        "smarty",
+				Model:       "model",
+				Reply:       "Result",
+				Instruction: "Instructions",
+				Prompt:      "Initial Prompt",
+				Candidates:  2,
+				Advisor: &LLMAdvisor{
+					Name:               "advisor",
+					Model:              "model",
+					EvaluationInterval: 1,
+					MinIterations:      1,
+					Instruction:        "Advise",
+				},
+			},
+		})
 }
 
 func TestOutputOverflow(t *testing.T) {
@@ -762,15 +781,64 @@ func TestLLMJudge(t *testing.T) {
 	)
 }
 
+func TestLLMAdvisor(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	type toolResults struct {
+		Res int `jsonschema:"res"`
+	}
+
+	testFlow[struct{}, flowOutputs](t, nil, convertToMap(flowOutputs{
+		Reply: "Advised reply",
+	}),
+		&LLMAgent{
+			Reply: "Reply",
+			Tools: Tools(NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+				return toolResults{42}, nil
+			}, "ticker")),
+			Advisor: &LLMAdvisor{
+				Name:               "test-advisor",
+				Model:              "advisor-model",
+				MinIterations:      1,
+				EvaluationInterval: 2,
+				Instruction:        "Advise the history",
+			},
+		},
+		[]any{
+			// Iteration 0: LLM calls tick tool (advisor does not run yet since MinIterations=1).
+			createToolCallResponse(50, "id1", "tick"),
+			// Iteration 1: LLM calls tick tool, then advisor runs and hits BlockedError (ignored).
+			createToolCallResponse(50, "id2", "tick"),
+			&backend.BlockedError{Err: errors.New("request blocked: SAFETY")},
+			// Iteration 2: LLM calls tick tool (advisor skipped since EvaluationInterval=2).
+			createToolCallResponse(50, "id3", "tick"),
+			// Iteration 3: LLM calls tick tool, then advisor runs and gives advice.
+			createToolCallResponse(50, "id4", "tick"),
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				Name: "set-results",
+				Args: map[string]any{
+					"Advice": "Stop calling tick and answer now",
+				},
+			}},
+			// Iteration 4: Main agent receives <supervisor_advice> and returns final reply.
+			&backend.Part{Text: "Advised reply"},
+		},
+		nil,
+	)
+}
+
 func TestDisarmTags(t *testing.T) {
 	input := "text with <execution_history> and </execution_history> " +
 		"and <thought> and </thought> and <system_instructions> and </system_instructions> " +
+		"and <supervisor_advice> and </supervisor_advice> " +
 		"and </EXECUTION_HISTORY> and </ execution_history > and < thought\t> " +
 		"and <system_instructions priority=\"high\"> and <thought/> " +
 		"and unrelated <thoughtful> <stdio.h> <div> a < b"
 	got := disarmTags(input)
 	want := "text with &lt;execution_history&gt; and &lt;/execution_history&gt; " +
 		"and &lt;thought&gt; and &lt;/thought&gt; and &lt;system_instructions&gt; and &lt;/system_instructions&gt; " +
+		"and &lt;supervisor_advice&gt; and &lt;/supervisor_advice&gt; " +
 		"and &lt;/EXECUTION_HISTORY&gt; and &lt;/execution_history &gt; and &lt;thought\t&gt; " +
 		"and &lt;system_instructions priority=\"high\"&gt; and &lt;thought/&gt; " +
 		"and unrelated <thoughtful> <stdio.h> <div> a < b"
