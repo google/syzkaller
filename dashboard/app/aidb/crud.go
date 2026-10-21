@@ -6,6 +6,7 @@ package aidb
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -1101,6 +1102,11 @@ func CreatePatchIterationJob(ctx context.Context, reportingID string, replyToCom
 		}
 
 		extractBaseCommitArgs(parentJob, argsMap)
+		recipients, err := currentRecipients(parentJob, reporting)
+		if err != nil {
+			return err
+		}
+		argsMap["BaseRecipients"] = recipients
 		argsMap["TargetCommentIDs"] = commentIDs
 		argsMap["ReplyToComments"] = replyToComments
 
@@ -1260,11 +1266,21 @@ func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) er
 	return txn.BufferWrite(mutations)
 }
 
+type IterationJobDoneArgs struct {
+	JobID             string
+	ParentReportingID string
+	CommentIDs        []string
+	HasPatch          bool
+	ReplyToIDs        []string
+	// To/Cc changes requested by reviewers (see JobReporting.RecordCcChanges).
+	AddedCc   []string
+	RemovedCc []string
+	// TODO: We pass IsReplyAllowed callback to avoid a circular package dependency between aidb and package main.
+	IsReplyAllowed func(ns, stage string) bool
+}
+
 // IterationJobDone finalizes an iteration job and creates new reporting rows if needed.
-// TODO: We pass isReplyAllowed callback to avoid a circular package dependency between aidb and package main.
-func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
-	parentReportingID string, hasPatch bool, replyToIDs []string,
-	isReplyAllowed func(ns, stage string) bool) error {
+func IterationJobDone(ctx context.Context, args IterationJobDoneArgs) error {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return err
@@ -1273,7 +1289,7 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		// 1. Load parent reporting to get CreatedAt, JobID, Stage, and Source.
 		stmt := spanner.Statement{
 			SQL:    selectJobReporting() + ` WHERE ID = @id`,
-			Params: map[string]any{"id": parentReportingID},
+			Params: map[string]any{"id": args.ParentReportingID},
 		}
 		parentRep, err := readRow[JobReporting](ctx, tx, stmt)
 		if err != nil {
@@ -1287,7 +1303,7 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		if parentRep.Version.Valid {
 			nextVersion = int(parentRep.Version.Int64)
 		}
-		if hasPatch {
+		if args.HasPatch {
 			nextVersion++
 		}
 
@@ -1309,54 +1325,58 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		if err != nil {
 			return err
 		}
+		if err := markCommentsProcessedTx(tx, args.CommentIDs); err != nil {
+			return err
+		}
 		if !newest {
-			// A newer reporting exists! Abort results but mark comments processed.
-			if err := markCommentsProcessedTx(tx, commentIDs); err != nil {
-				return err
-			}
-			return nil // Commit comment updates, skip reporting.
+			// A newer reporting exists! Commit comment updates, skip reporting.
+			return nil
 		}
 
-		if err := markCommentsProcessedTx(tx, commentIDs); err != nil {
-			return err
+		var mutations []*spanner.Mutation
+		if len(args.AddedCc) != 0 || len(args.RemovedCc) != 0 {
+			// Record the changes on the parent reporting (this also covers reply-only jobs),
+			// new reportings inherit them below.
+			parentRep.RecordCcChanges(args.AddedCc, args.RemovedCc)
+			mutations = append(mutations, spanner.Update("JobReporting",
+				[]string{"ID", "AddedCcList", "RemovedCcList"},
+				[]any{parentRep.ID, parentRep.AddedCcList, parentRep.RemovedCcList}))
 		}
 
 		// If the job didn't generate a patch or replies (or replying is disabled for this stage),
 		// we don't need to report it externally.
 		replyAllowed := true
-		if isReplyAllowed != nil {
-			replyAllowed = isReplyAllowed(parentJob.Namespace, parentRep.Stage)
+		if args.IsReplyAllowed != nil {
+			replyAllowed = args.IsReplyAllowed(parentJob.Namespace, parentRep.Stage)
 		}
 		if !replyAllowed {
-			replyToIDs = nil
+			args.ReplyToIDs = nil
 		}
 
 		var inReplyTos []string
-		if hasPatch {
+		if args.HasPatch {
 			inReplyTos = append(inReplyTos, "")
 		}
-		inReplyTos = append(inReplyTos, replyToIDs...)
-		if len(inReplyTos) == 0 {
-			return nil
-		}
+		inReplyTos = append(inReplyTos, args.ReplyToIDs...)
 
 		now := TimeNow(ctx)
-		var mutations []*spanner.Mutation
 		for _, inReplyTo := range inReplyTos {
 			var version spanner.NullInt64
 			if inReplyTo == "" {
 				version = spanner.NullInt64{Int64: int64(nextVersion), Valid: true}
 			}
 			reporting := &JobReporting{
-				ID:           uuid.NewString(),
-				JobID:        jobID,
-				Stage:        parentRep.Stage,
-				Source:       parentRep.Source,
-				InReplyTo:    inReplyTo,
-				Version:      version,
-				UpstreamedBy: parentRep.UpstreamedBy,
-				ExtraCcList:  parentRep.ExtraCcList,
-				CreatedAt:    now,
+				ID:            uuid.NewString(),
+				JobID:         args.JobID,
+				Stage:         parentRep.Stage,
+				Source:        parentRep.Source,
+				InReplyTo:     inReplyTo,
+				Version:       version,
+				UpstreamedBy:  parentRep.UpstreamedBy,
+				ExtraCcList:   parentRep.ExtraCcList,
+				AddedCcList:   parentRep.AddedCcList,
+				RemovedCcList: parentRep.RemovedCcList,
+				CreatedAt:     now,
 			}
 			mut, err := spanner.InsertStruct("JobReporting", reporting)
 			if err != nil {
@@ -1558,6 +1578,26 @@ func readRow[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) 
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()
 	return pkgspanner.ReadRow[T](iter)
+}
+
+// currentRecipients returns the current To/Cc recipients of the patch reported by the reporting.
+func currentRecipients(job *Job, reporting *JobReporting) ([]ai.Recipient, error) {
+	// Recipients is a list of structs, so it's easier to parse it from JSON than from the untyped map.
+	// The job may be either a patching or a patch-iteration job, so parse only the field
+	// that's common to ai.PatchingOutputs and ai.PatchIterationOutputs.
+	var res struct {
+		Recipients []ai.Recipient
+	}
+	if job.Results.Valid {
+		data, err := json.Marshal(job.Results.Value)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(data, &res); err != nil {
+			return nil, fmt.Errorf("failed to parse job %v results: %w", job.ID, err)
+		}
+	}
+	return reporting.CurrentRecipients(appendCcRecipients(res.Recipients, reporting.ExtraCcList)), nil
 }
 
 func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
