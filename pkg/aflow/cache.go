@@ -226,16 +226,19 @@ func (c *Cache) Release(dir string) {
 }
 
 // TempDir creates a new temp dir.
-// The temp dir is within the cache, but won't have the metadata file,
-// so it will be removed on the next start (if not removed earlier).
+// The temp dir is within the cache, and will be removed on the next start (if not removed earlier).
 func (c *Cache) TempDir() (string, error) {
-	tmpDir := filepath.Join(c.dir, "tmp")
+	tmpDir := filepath.Join(c.dir, cacheTmpDir)
 	osutil.MkdirAll(tmpDir)
 	return os.MkdirTemp(tmpDir, "tmp")
 }
 
 // init reads the cached dirs (disk usage, last use time) from disk when the cache is created.
 func (c *Cache) init() error {
+	// Temp dirs may be owned by the sandbox user, so we don't look inside of them.
+	if err := osutil.RemoveAll(filepath.Join(c.dir, cacheTmpDir)); err != nil {
+		return err
+	}
 	dirs, err := filepath.Glob(filepath.Join(c.dir, "*", "*"))
 	if err != nil {
 		return err
@@ -335,5 +338,6 @@ type cacheMeta struct {
 
 const (
 	cacheMetaFile       = "aflow-meta"
+	cacheTmpDir         = "tmp"
 	currentCacheVersion = 1
 )
