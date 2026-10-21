@@ -619,6 +619,64 @@ func TestLLMAgentMaxIterations(t *testing.T) {
 	)
 }
 
+func TestLLMAgentAllowPartialResults(t *testing.T) {
+	type agentOutputs struct {
+		Verdict string `jsonschema:"verdict"`
+	}
+	type outputs struct {
+		Reply   string
+		Verdict string
+	}
+	type toolArgs struct {
+		Arg int `jsonschema:"something"`
+	}
+	testFlow[struct{}, outputs](t, nil,
+		convertToMap(outputs{
+			Reply:   "Partial reply",
+			Verdict: "partial",
+		}),
+		&LLMAgent{
+			Reply:               "Reply",
+			Outputs:             LLMOutputs[agentOutputs](),
+			MaxIterations:       2,
+			AllowPartialResults: true,
+			Tools: []Tool{
+				NewFuncTool("some-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+					return struct{}{}, nil
+				}, "some-tool description"),
+			},
+		},
+		[]any{
+			// Iteration 0 and 1: agent calls research tool until hitting MaxIterations=2.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id1",
+				Name: "some-tool",
+				Args: map[string]any{"Arg": 0},
+			}},
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id2",
+				Name: "some-tool",
+				Args: map[string]any{"Arg": 1},
+			}},
+			// Wrap-up turn 1: agent tries calling disabled research tool.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id3",
+				Name: "some-tool",
+				Args: map[string]any{"Arg": 2},
+			}},
+			// Wrap-up turn 2: agent calls set-results.
+			&backend.Part{FunctionCall: &backend.FunctionCall{
+				ID:   "id_out",
+				Name: "set-results",
+				Args: map[string]any{"Verdict": "partial"},
+			}},
+			// Wrap-up turn 3: agent provides final text reply.
+			&backend.Part{Text: "Partial reply"},
+		},
+		nil,
+	)
+}
+
 func TestMaxParallelToolCalls(t *testing.T) {
 	type outputs struct {
 		Reply string
