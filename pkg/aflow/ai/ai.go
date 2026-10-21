@@ -47,11 +47,6 @@ type PatchIterationOutputs struct {
 	Replies      []CommentReply
 }
 
-type EmailTag struct {
-	Tag   string `jsonschema:"The name of the tag, e.g., 'Reviewed-by', 'Acked-by' (without the trailing colon)."`
-	Value string `jsonschema:"The value associated with the tag, e.g., 'Name <email>'."`
-}
-
 type CommentReply struct {
 	ReplyTo string // ExtID of the original comment.
 	Quote   string
