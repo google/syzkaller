@@ -1373,8 +1373,19 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 		replyToIDs = append(replyToIDs, r.ReplyTo)
 	}
 
-	err = aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal,
-		hasPatch, replyToIDs, func(ns, stage string) bool {
+	// Don't let reviewers add our own emails or the stage mailing lists to Cc.
+	// Note: the agent may have already confirmed such additions in its replies, but this should be rare.
+	addedCc := email.SubtractEmailLists(res.AddedCc, ownEmails(ctx))
+	addedCc = filterStageEmails(getNsConfig(ctx, job.Namespace), addedCc)
+	err = aidb.IterationJobDone(ctx, aidb.IterationJobDoneArgs{
+		JobID:             job.ID,
+		ParentReportingID: job.ParentReportingID.StringVal,
+		CommentIDs:        args.TargetCommentIDs,
+		HasPatch:          hasPatch,
+		ReplyToIDs:        replyToIDs,
+		AddedCc:           addedCc,
+		RemovedCc:         res.RemovedCc,
+		IsReplyAllowed: func(ns, stage string) bool {
 			nsCfg := getNsConfig(ctx, ns)
 			if nsCfg == nil || nsCfg.AI == nil {
 				return false
@@ -1384,7 +1395,8 @@ func finishIterationJob(ctx context.Context, job *aidb.Job) error {
 				return false
 			}
 			return nsCfg.AI.Stages[idx].ReplyToComments
-		})
+		},
+	})
 	if err != nil {
 		log.Errorf(ctx, "failed to finalize iteration job %v: %v", job.ID, err)
 	}

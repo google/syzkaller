@@ -1823,3 +1823,147 @@ func TestAIPatchIterationPatchAndReplies(t *testing.T) {
 	require.Equal(t, "public@test.com", publicPoll.Result.To[0])
 	require.Equal(t, 1, publicPoll.Result.Patch.Version)
 }
+
+func TestAIPatchIterationCcChanges(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{
+				Name:               "public",
+				ServingIntegration: "lore",
+				MailingList:        "public@test.com",
+				MergePatchCc:       true,
+				AddressComments:    true,
+				ReplyToComments:    true,
+			},
+		},
+	})
+
+	_, jobID := c.setupAIPatchJob(t)
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
+	c.finishAIPatchJob(t, jobID, map[string]any{"Recipients": []ai.Recipient{
+		{Email: "m1@kernel.org", To: true},
+		{Email: "m2@kernel.org"},
+		{Email: "list@vger.kernel.org"},
+	}})
+	c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<message-id-1>")
+
+	// Post a reviewer comment to the thread (cc are the extra addresses on its Cc line).
+	comment := func(rootExtID, extID string, cc []string) {
+		_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    rootExtID,
+			MessageExtID: extID,
+			Author:       "reviewer@email.com",
+			Cc:           cc,
+			Comment:      &dashapi.CommentCommand{Subject: "Re: [PATCH RFC] Test Subject", Body: "Please Cc/drop X"},
+		})
+		require.NoError(t, err)
+	}
+	// iterationJob is a polled patch iteration job with the arguments checked by the test.
+	type iterationJob struct {
+		ID   string
+		Args struct {
+			BaseRecipients []ai.Recipient
+		}
+	}
+	// pollIteration waits for the comment debounce and returns the next patch iteration job.
+	pollIteration := func() iterationJob {
+		c.advanceTime(31 * time.Minute)
+		resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+		require.NotEmpty(t, resp.ID)
+		data, err := json.Marshal(resp)
+		require.NoError(t, err)
+		var job iterationJob
+		require.NoError(t, json.Unmarshal(data, &job))
+		return job
+	}
+
+	// The current recipients include the people who joined the discussion.
+	comment("<message-id-1>", "<comment-1>", []string{"joined@email.com"})
+	iterJob := pollIteration()
+	assert.Equal(t, []ai.Recipient{
+		{Email: "m1@kernel.org", To: true},
+		{Email: "m2@kernel.org"},
+		{Email: "list@vger.kernel.org"},
+		{Email: "joined@email.com"},
+	}, iterJob.Args.BaseRecipients)
+
+	// A reply-only job changes the recipients. Stage mailing lists cannot be added.
+	c.finishAIPatchJob(t, iterJob.ID, map[string]any{
+		"PatchDescription": "",
+		"PatchDiff":        "",
+		"AddedCc":          []string{"new@email.com", "moderation@test.com"},
+		"RemovedCc":        []string{"m2@kernel.org", "joined@email.com"},
+	})
+	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
+
+	// The next iteration sees the changes and generates a new patch version.
+	// get_maintainer.pl reports the removed m2 again, but it must stay removed.
+	comment("<message-id-1>", "<comment-2>", nil)
+	iterJob = pollIteration()
+	assert.Equal(t, []ai.Recipient{
+		{Email: "m1@kernel.org", To: true},
+		{Email: "list@vger.kernel.org"},
+		{Email: "new@email.com"},
+	}, iterJob.Args.BaseRecipients)
+	c.finishAIPatchJob(t, iterJob.ID, map[string]any{
+		"PatchDescription": "V2 Subject\n\nV2 Body",
+		"PatchDiff":        "diff v2",
+		"Recipients": []ai.Recipient{
+			{Email: "m1@kernel.org", To: true},
+			{Email: "m2@kernel.org"},
+			{Email: "list@vger.kernel.org"},
+		},
+		"RemovedCc": []string{"list@vger.kernel.org"},
+	})
+	v2 := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<message-id-v2>")
+	require.NotNil(t, v2.Result.Patch)
+	assert.Equal(t, []string{"<m1@kernel.org>"}, v2.Result.Patch.To)
+	assert.Equal(t, []string{"<new@email.com>"}, v2.Result.Patch.Cc)
+	assert.Equal(t, []string{"moderation@test.com"}, v2.Result.To)
+	assert.Empty(t, v2.Result.Cc)
+
+	// A previously removed recipient is added back.
+	comment("<message-id-v2>", "<comment-3>", nil)
+	iterJob = pollIteration()
+	c.finishAIPatchJob(t, iterJob.ID, map[string]any{
+		"PatchDescription": "",
+		"PatchDiff":        "",
+		"AddedCc":          []string{"m2@kernel.org"},
+	})
+
+	// The changes are preserved on upstreaming, and addresses in both Patch.Cc and ExtraCcList are not duplicated.
+	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-v2>",
+		MessageExtID: "<upstream-cmd>",
+		Author:       "approver@email.com",
+		Cc:           []string{"m2@kernel.org"},
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+	public := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<public-msg-id>")
+	require.NotNil(t, public.Result.Patch)
+	assert.Equal(t, []string{"approver@email.com", "<m1@kernel.org>"}, public.Result.Patch.To)
+	assert.Equal(t, []string{"<m2@kernel.org>", "<new@email.com>"}, public.Result.Patch.Cc)
+	assert.Equal(t, []string{"public@test.com", "approver@email.com", "<m1@kernel.org>"}, public.Result.To)
+	assert.Equal(t, []string{"<m2@kernel.org>", "<new@email.com>"}, public.Result.Cc)
+
+	// Comment replies on a MergePatchCc stage also include AddedCcList in Cc.
+	comment("<public-msg-id>", "<comment-4>", nil)
+	iterJob = pollIteration()
+	c.finishAIPatchJob(t, iterJob.ID, map[string]any{
+		"PatchDescription": "",
+		"PatchDiff":        "",
+		"AddedCc":          []string{"added@email.com"},
+		"Replies":          []ai.CommentReply{{ReplyTo: "<comment-4>", Text: "Added added@email.com to Cc."}},
+	})
+	reply := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<reply-msg-id>")
+	assert.Equal(t, []string{"public@test.com"}, reply.Result.To)
+	assert.Equal(t, []string{"added@email.com", "m2@kernel.org", "new@email.com"}, reply.Result.Cc)
+}
