@@ -22,6 +22,7 @@ const (
 	WorkflowSeedGen            = WorkflowType("seed-gen")
 	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
 	WorkflowFindingTriage      = WorkflowType("finding-triage")
+	WorkflowBisectCause        = WorkflowType("bisect-cause")
 )
 
 // Outputs of various workflow types.
@@ -146,6 +147,27 @@ type AssessmentSecurityOutputs struct {
 type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
+}
+
+type BisectCauseOutputs struct {
+	KernelCommit string
+	// Root cause analysis in the same form as in AssessmentSecurityOutputs.
+	// If the analysis was provided as the RootCause workflow input, RootCauseAnalysis
+	// holds that input and RootCauseSummary is empty.
+	RootCauseSummary  string `json:",omitempty"`
+	RootCauseAnalysis string `json:",omitempty"`
+	// Commits that introduced the bug (AI cause bisection), empty if they were not identified.
+	Commits         []Commit `json:",omitempty"`
+	BisectReasoning string   `json:",omitempty"`
+}
+
+type Commit struct {
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	Date       time.Time
+	Recipients []Recipient `json:",omitempty"`
 }
 
 type ReproOutputs struct {
