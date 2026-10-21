@@ -72,6 +72,8 @@ func newTestCache(t *testing.T, dir string, maxSize uint64, timeNow func() time.
 // The desc is used to identify cached entries and must fully describe the cached contents
 // (the second invocation with the same typ+desc will return dir created by the first
 // invocation with the same typ+desc).
+// The dir also holds the cache metadata, so it must not be handed over to sandboxed processes
+// (they could replace the metadata file with a symlink); use a subdir for that.
 func (c *Cache) Create(typ, desc string, populate func(string) error) (string, error) {
 	// Note: we don't populate a temp dir and then atomically rename it to the final destination,
 	// because at least kernel builds encode the current path in debug info/compile commands,
@@ -258,17 +260,10 @@ func (c *Cache) init() error {
 		}
 		meta, err := osutil.ParseJSON[cacheMeta](data)
 		if err != nil || meta.Version != currentCacheVersion {
-			// An older metadata format, update it to the current version.
-			size, err := osutil.DiskUsage(dir)
-			if err != nil {
+			if err := osutil.RemoveAll(dir); err != nil {
 				return err
 			}
-			// Assume meta.Description is present.
-			meta.Version = currentCacheVersion
-			meta.DiskUsage = size
-			if err := osutil.WriteJSON(metaFile, meta); err != nil {
-				return err
-			}
+			continue
 		}
 		stat, err := os.Stat(metaFile)
 		if err != nil {
@@ -339,5 +334,5 @@ type cacheMeta struct {
 const (
 	cacheMetaFile       = "aflow-meta"
 	cacheTmpDir         = "tmp"
-	currentCacheVersion = 1
+	currentCacheVersion = 2
 )

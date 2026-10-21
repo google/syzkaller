@@ -287,13 +287,22 @@ func (ctx *Context) ConsumeTokens(tokens int) error {
 	return nil
 }
 
+// Cache creates/returns a cached directory, see Cache.Create for details.
+// The returned dir is a subdir of the cache entry, so it can be given to sandboxed processes.
 func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string, error) {
-	dir, err := ctx.cache.Create(typ, desc, populate)
+	const dataDir = "data"
+	dir, err := ctx.cache.Create(typ, desc, func(dir string) error {
+		sub := filepath.Join(dir, dataDir)
+		if err := osutil.MkdirAll(sub); err != nil {
+			return err
+		}
+		return populate(sub)
+	})
 	if err != nil {
 		return "", err
 	}
 	ctx.cachedDirs = append(ctx.cachedDirs, dir)
-	return dir, nil
+	return filepath.Join(dir, dataDir), nil
 }
 
 func CacheObject[T any](
