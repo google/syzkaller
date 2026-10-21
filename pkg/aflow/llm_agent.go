@@ -52,6 +52,9 @@ type LLMAgent struct {
 	// Whether this agent is being run as a sub-agent by another agent.
 	// Used to control truncation behavior (sub-agents can be forced to answer now).
 	SubAgent bool
+	// If set, reaching MaxIterations or context overflow instructs the agent
+	// to stop researching and report its best-effort findings instead of failing.
+	AllowPartialResults bool
 
 	// InitChatHistoryFunc overrides the default single-prompt initialization of a.req.
 	InitChatHistoryFunc func(*Context) ([]llmMessage, error)
@@ -339,8 +342,12 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
+func (a *LLMAgent) allowPartialResults() bool {
+	return a.SubAgent || a.AllowPartialResults
+}
+
 func (a *agentSession) tryAnswerNow(overflow bool) bool {
-	if !a.SubAgent || len(a.req) < 3 || a.answerNow {
+	if !a.allowPartialResults() || len(a.req) < 3 || a.answerNow {
 		return false
 	}
 	a.answerNow = true
@@ -1012,6 +1019,9 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 			},
 		})
 		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
+			if a.answerNow && a.Reply != "" && a.outputs == nil {
+				a.answerNowLeft = max(a.answerNowLeft, 1)
+			}
 			a.outputs = span.Results
 		}
 	}
@@ -1148,9 +1158,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	if a.Outputs == nil {
 		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
 		// callTools relies on Outputs being set when it rejects
-		// non-output tool calls from a wrapping-up sub-agent.
-		if a.SubAgent {
-			ctx.errorf(a.Name, "a sub-agent must have Outputs")
+		// non-output tool calls from a wrapping-up agent.
+		if a.allowPartialResults() {
+			ctx.errorf(a.Name, "an agent with SubAgent or AllowPartialResults must have Outputs")
 		}
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
@@ -1278,7 +1288,7 @@ func (a *agentSession) recordAndCheckToolError(toolName string, toolErr error) (
 	a.toolErrorCounts[toolName]++
 	errs := a.toolErrorCounts[toolName]
 	if errs >= hardLoopDetectionLimit {
-		if a.SubAgent && !a.answerNow {
+		if a.allowPartialResults() && !a.answerNow {
 			a.answerNow = true
 			a.answerNowLeft = answerNowIterations
 			return fmt.Sprintf("Tool %q has failed %d consecutive times. %s",
