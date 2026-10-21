@@ -43,6 +43,11 @@ type PatchIterationOutputs struct {
 	ReportedBy  []string
 	SuggestedBy []string
 
+	// To/Cc changes requested by reviewers: email addresses to add to Cc and to remove from To/Cc.
+	// They are not applied to Recipients, the dashboard keeps track of them.
+	AddedCc   []string `json:",omitempty"`
+	RemovedCc []string `json:",omitempty"`
+
 	NewChangeLog string
 	Replies      []CommentReply
 }

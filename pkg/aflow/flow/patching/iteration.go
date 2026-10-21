@@ -51,6 +51,9 @@ type PatchIterationInputs struct {
 	BaseReportedBy  []string `json:",omitempty"`
 	BaseSuggestedBy []string `json:",omitempty"`
 
+	// Current To/Cc recipients of the patch (including the changes requested by reviewers).
+	BaseRecipients []ai.Recipient `json:",omitempty"`
+
 	// See patching workflow.
 	BaseRepository string
 	BaseBranch     string
@@ -549,8 +552,8 @@ version will eventually be needed. In that case, clarifying questions can be
 asked in the generated replies instead, or the system can wait for the
 discussion to settle.
 
-IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) does NOT automatically mean that
-a new version of the patch must be generated. Do not extract tag updates as ActionableItems.
+IMPORTANT: Adding or removing tags (e.g., Reviewed-by, Acked-by) or To/Cc recipients does NOT automatically
+mean that a new version of the patch must be generated. Do not extract tag or To/Cc updates as ActionableItems.
 ` + untrustedCommentsWarning
 
 const verdictPrompt = `
@@ -688,8 +691,8 @@ on a patch requires a written reply, and writing the final text of that reply.
 
 Note that not all comments require a reply, and that's perfectly fine.
 Only reply when a reviewer asks a question, requests clarification or explanation, or raises a point
-that requires a direct textual answer or discussion (or contains a tag request that could not be applied,
-as described below).
+that requires a direct textual answer or discussion (or contains applied To/Cc changes, or tag or To/Cc
+change requests that could not be applied, as described below).
 Do NOT reply just to acknowledge feedback, say "thank you", or announce that you will fix something
 or have sent a new patch version (e.g. do NOT say things like "Thank you for the review, I have sent a v2"
 or "I will fix this in the next version").
@@ -714,10 +717,12 @@ If you choose to ignore the comment (Action is "ignore"), leave both Quote and R
 Write the reply in a friendly, respectful tone. Don't use passive-aggressive language,
 e.g. "as I already told you", "as explained in the commit message", etc.
 
-Requests to add or remove tags (like Reviewed-by, Acked-by) are processed automatically, and the prompt
-lists the outcome of each such request from the comment. Do NOT reply just to acknowledge the applied ones.
-However, if some requests could not be applied, you MUST reply and politely explain for each of them
-that it could not be applied and why.
+Requests to add or remove tags (like Reviewed-by, Acked-by) or To/Cc recipients are processed automatically,
+and the prompt lists the outcome of each such request from the comment.
+Do NOT reply just to acknowledge applied tag requests. If To/Cc changes were applied, briefly confirm them
+(e.g. "Added foo@example.com to Cc."). If some requests could not be applied, you MUST reply and politely
+explain for each of them that it could not be applied and why (e.g. ask for the exact email address
+if it was missing).
 ` + untrustedCommentsWarning
 
 const commentProcessPrompt = `
@@ -726,5 +731,5 @@ Bug title: {{jsonMarshal .ReproducedBugTitle}}
 Comment to evaluate:
 {{jsonMarshal .CurrentComment}}
 
-Tag requests from this comment and their outcomes (empty if none):
+Tag and To/Cc change requests from this comment and their outcomes (empty if none):
 {{index .RequestOutcomes .CurrentComment.ExtID}}`
