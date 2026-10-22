@@ -30,7 +30,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	t.Run("strace-crash-discarded", func(t *testing.T) {
 		var calls int
 		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-			collectCoverage bool) (RunTestResult, error) {
+			opts RunTestOpts) (RunTestResult, error) {
 			calls++
 			if !args.NeedStrace {
 				return RunTestResult{
@@ -66,13 +66,16 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	t.Run("strace-clean-preserved", func(t *testing.T) {
 		var calls int
 		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-			collectCoverage bool) (RunTestResult, error) {
+			opts RunTestOpts) (RunTestResult, error) {
 			calls++
 			if !args.NeedStrace {
+				assert.Equal(t, RunTestOpts{}, opts)
 				return RunTestResult{
 					ConsoleOutput: "[+] clean run output",
 				}, nil
 			}
+			// The strace pass is diagnostics-only: a single run, no retries.
+			assert.Equal(t, RunTestOpts{MaxTotalRuns: 1}, opts)
 			return RunTestResult{
 				ConsoleOutput: "strace syscall log",
 			}, nil
@@ -99,7 +102,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var calls, straceCalls int
 			runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-				collectCoverage bool) (RunTestResult, error) {
+				opts RunTestOpts) (RunTestResult, error) {
 				calls++
 				if !args.NeedStrace {
 					return RunTestResult{
@@ -123,7 +126,7 @@ func TestRunCReproStraceDoesNotOverwriteCrashStatus(t *testing.T) {
 	t.Run("strace-other-error-propagated", func(t *testing.T) {
 		var calls, straceCalls int
 		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-			collectCoverage bool) (RunTestResult, error) {
+			opts RunTestOpts) (RunTestResult, error) {
 			calls++
 			if !args.NeedStrace {
 				return RunTestResult{
@@ -151,7 +154,7 @@ func TestRunCReproPassesTargetVMArch(t *testing.T) {
 
 	var got TargetConfig
 	runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
-		collectCoverage bool) (RunTestResult, error) {
+		opts RunTestOpts) (RunTestResult, error) {
 		got = args.TargetConfig
 		return RunTestResult{}, nil
 	}

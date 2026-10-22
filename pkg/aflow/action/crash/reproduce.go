@@ -62,14 +62,23 @@ type RunTestResult struct {
 	ConsoleOutput string
 }
 
+type RunTestOpts struct {
+	// Collect per-call coverage (requires a syzkaller program).
+	CollectCoverage bool
+	// If non-zero, limits the total number of VM runs, including retries after infra errors.
+	MaxTotalRuns int
+}
+
+const defaultTestRuns = 3
+
 // RunTest boots the kernel and runs a single test program.
-func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
+func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTestOpts) (RunTestResult, error) {
 	res := RunTestResult{}
 	args.ReproSyz = ctx.RestoreBlobs(args.ReproSyz)
 	if err := args.Validate(); err != nil {
 		return res, fmt.Errorf("run test: %w", err)
 	}
-	if collectCoverage && args.ReproSyz == "" {
+	if opts.CollectCoverage && args.ReproSyz == "" {
 		return res, errors.New("run test: coverage collection requires a syzkaller program")
 	}
 
@@ -92,13 +101,18 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCove
 	runner := &reproRunner{
 		env:             env,
 		args:            args,
-		collectCoverage: collectCoverage,
+		collectCoverage: opts.CollectCoverage,
 	}
 
+	runs, maxTotal := defaultTestRuns, 2*defaultTestRuns
+	if opts.MaxTotalRuns > 0 {
+		runs = min(runs, opts.MaxTotalRuns)
+		maxTotal = opts.MaxTotalRuns
+	}
 	validResults, err := instance.CollectRuns(ctx.Context, runner.Test, instance.CollectRunsOpts{
-		WantValid: 3,
-		MaxTotal:  6,
-		MaxVMs:    3,
+		WantValid: runs,
+		MaxTotal:  maxTotal,
+		MaxVMs:    runs,
 	})
 	if err != nil {
 		return res, err
@@ -273,7 +287,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		if err != nil {
 			return res, err
 		}
-		testRes, err := RunTest(ctx, args, workdir, collectCoverage)
+		testRes, err := RunTest(ctx, args, workdir, RunTestOpts{CollectCoverage: collectCoverage})
 		if testRes.Report != nil {
 			res.BugTitle = testRes.Report.Title
 			res.Report = string(testRes.Report.Report)
