@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // RunAttempt represents a single execution batch, returning results for numVMs.
@@ -23,6 +24,10 @@ type CollectRunsOpts struct {
 // because of infrastructure errors.
 var ErrTooManyInfraErrors = errors.New("too many infra errors")
 
+// infraErrorBackoff is the delay before the next batch if the previous one had infra errors.
+// Such errors are usually caused by a temporary lack of cloud capacity, which takes time to recover.
+const infraErrorBackoff = time.Minute
+
 // CollectRuns runs attempts to collect the requested number of valid test results.
 // It automatically retries on infrastructure errors.
 func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
@@ -35,8 +40,17 @@ func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) 
 	var lastInfraErr error
 
 	totalAttempts := 0
+	backoff := false
 
 	for totalAttempts < opts.MaxTotal && len(validResults) < opts.WantValid {
+		if backoff {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(infraErrorBackoff):
+			}
+			backoff = false
+		}
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -68,6 +82,7 @@ func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) 
 				validResults = append(validResults, res)
 			} else {
 				lastInfraErr = res.Error
+				backoff = true
 			}
 		}
 	}
