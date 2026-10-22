@@ -55,25 +55,25 @@ verbatim: |
  CONFIG_THIS_CONFIG_DOES_NOT_EXIST_YET=y
 ```
 
-Finally, fragments can specify individual config options that need to be enabled (or disabled) in the resulting config.
+Finally, fragments can specify individual config options (without the `CONFIG_` prefix) that need to be enabled (or disabled) in the resulting config.
 For example:
 ```
 config:
- - CONFIG_WILL_BE_ENABLED
- - CONFIG_WILL_BE_DISABLED: n
- - CONFIG_WITH_INTEGER_VALUE: 10
- - CONFIG_WITH_STRING_VALUE: "foo"
+ - WILL_BE_ENABLED
+ - WILL_BE_DISABLED: n
+ - WITH_INTEGER_VALUE: 10
+ - WITH_STRING_VALUE: "foo"
 ```
 
 Config options can have constraints for more precise control over target instances
 (constraints can be combined with values):
 ```
 config:
- - CONFIG_ONLY_FOR_UPSTREAM: [upstream]
- - CONFIG_STABLE_AND_ARM64: [stable, arm64]
- - CONFIG_NOT_CLANG: [-clang]
- - CONFIG_DISABLED_FOR_GCC: [n, gcc]
- - CONFIG_STRING_FOO: ["value", foo]
+ - ONLY_FOR_UPSTREAM: [upstream]
+ - STABLE_AND_ARM64: [stable, arm64]
+ - NOT_CLANG: [-clang]
+ - DISABLED_FOR_GCC: [n, gcc]
+ - STRING_FOO: ["value", foo]
 ```
 
 Instance features:
@@ -90,11 +90,15 @@ Some features/constraints are defined by `syz-kconf` itself or have special mean
  - `optional` on a config disables checking that the resulting kernel config file has the specified value for this
    config (otherwise it results in an error)
  - `weak` means both `override` and `optional`
+   * note: avoid using `override`, `optional`, and `weak` whenever possible; prefer explicit version/architecture/feature
+     constraints or extracting options into dedicated config fragments in `bits/`.
  - `clang`/`gcc` instance feature controls what compiler is used for config generation
  - kernel arch name (`x86_64`, `arm64`, etc) instance feature controls architecture of the kernel config
- - kernel release tag is automatically added to instance features and allows to specify a minimum kernel version
-   for a config (e.g. `v5.5` for a config added in that kernel release) or a maximum kernel version (e.g. `-v5.5` for
-   a config removed in that kernel release)
+ - kernel release tag is automatically added to instance features (from `VERSION` and `PATCHLEVEL` in the kernel
+   `Makefile`) and allows to specify a minimum kernel version for a config (e.g. `v5.5` for a config added in that
+   kernel release) or a maximum kernel version (e.g. `-v5.5` for a config removed in that kernel release).
+   * note: release tag features (`vX.Y`) can only be used on individual `config` entries in `bits/*.yml`, not on
+     fragment `includes` in `main.yml` (which are resolved before checking out the kernel tree).
 
 `syz-kconf` generates 2 kernel config files for each instance: one `normal` (or full) and one `baseline`.
 The `baseline` config has `-base` suffix and has `baseline` and `base-config` features added. The `baseline`
@@ -102,6 +106,11 @@ config is meant to not contain majority of subsystem configs enabled (should jus
 configs enabled), however, that is fully controlled by config fragments based on the presence of the `baseline`
 feature. In order to facilitate even smaller `-base.config` files, the `base-config` feature is automatically
 set for them. Such configs are intended to be used by the config minimization procedure.
+
+Before running `make olddefconfig`, `syz-kconf` sets all unspecified boolean/tristate Kconfig symbols to `is not set`
+and saves the pre-`olddefconfig` file to `<instance>.config.tmp`. If verification fails (e.g. a requested option is
+missing or an option set to `n` was selected by another symbol), comparing `<instance>.config.tmp` with
+`<instance>.config` helps identify which dependency was unmet.
 
 The only exception to the declarative nature of the process is USB configs. They are added procedurally, see
 `addUSBConfigs` function for details.
