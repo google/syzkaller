@@ -1,0 +1,13 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# C implementation of Android Binder IPC for non-Android/ChromeOS instances.
+# Removed in fd2bc059ed466 "binder: rm -f binder.c" (v7.4) in favor of Rust Binder.
+
+config:
+ - ANDROID_BINDER_IPC
+ # Create binder device per test process for isolation.
+ # Earlier we defined here 32 devices and syzkaller allocated one per test process.
+ # When binderfs is used, we don't need that many - 2 is enough.
+ - ANDROID_BINDER_DEVICES: "binder0,binder1"
+ - ANDROID_BINDERFS

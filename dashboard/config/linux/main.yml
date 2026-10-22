@@ -61,6 +61,10 @@ includes:
  - riscv64.yml: [riscv]
  - s390.yml: [s390]
  - subsystems.yml: [-baseline, -onlynet, -onlyusb]
+ # In fd2bc059ed466 "binder: rm -f binder.c" (v7.4), the C implementation of Binder was removed,
+ # so on linux-next Binder is only available on rust instances.
+ - binder.yml: [-baseline, -onlynet, -onlyusb, -rust, -linux-next]
+ - binder-rust.yml: [-baseline, -onlynet, -onlyusb, rust]
  - sound.yml: [-baseline, -onlynet, -onlyusb, -arm64_gce]
  - net.yml: [-baseline, -onlyusb]
  - net-extra.yml: [-baseline, -onlyusb, -reduced]
@@ -79,7 +83,7 @@ includes:
  - apparmor.yml: [apparmor]
  - selinux.yml: [selinux]
  - smack.yml: [smack]
- - lockup.yml: []
+ - lockup.yml: [-nonoise, -upstream, -linux-next]
  - debug.yml: [-nonoise]
  # lockdep is broken on arm: https://lore.kernel.org/all/0000000000004f14c105bde08f75@google.com/
  - lockdep.yml: [-nonoise, -arm]

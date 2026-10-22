@@ -59,6 +59,7 @@ config:
  # Disable whole menu "Platform selection"
  - ARCH_ACTIONS: n
  - ARCH_AGILEX: n
+ - ARCH_AIROHA: n
  - ARCH_SUNXI: n
  - ARCH_ALPINE: n
  - ARCH_BCM2835: n

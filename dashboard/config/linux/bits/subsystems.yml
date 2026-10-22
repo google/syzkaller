@@ -68,9 +68,13 @@ config:
  - CPU_FREQ_GOV_ONDEMAND: [-riscv, -s390]
  - GOOGLE_SMI: n
  - GOOGLE_MEMCONSOLE_X86_LEGACY: n
- - GOOGLE_FIRMWARE: [-s390]
- - GOOGLE_COREBOOT_TABLE: [-s390]
- - GOOGLE_MEMCONSOLE_COREBOOT: [-s390]
+ # Renamed to COREBOOT_* in 44e33a5aaa2de "firmware: Rename google firmware directory to coreboot".
+ - GOOGLE_FIRMWARE: [-s390, -linux-next]
+ - GOOGLE_COREBOOT_TABLE: [-s390, -linux-next]
+ - GOOGLE_MEMCONSOLE_COREBOOT: [-s390, -linux-next]
+ - COREBOOT_FIRMWARE: [-s390, linux-next]
+ - COREBOOT_TABLE: [-s390, linux-next]
+ - COREBOOT_MEMCONSOLE: [-s390, linux-next]
  - GOOGLE_VPD: [-s390]
  - KVM: [-arm, -riscv]
  - KVM_INTEL: [x86_64]
@@ -102,10 +106,12 @@ config:
  - BLK_CGROUP_IOCOST
  - BLK_INLINE_ENCRYPTION: [v5.8]
  - BLK_INLINE_ENCRYPTION_FALLBACK: [v5.8]
+ - BLK_ERROR_INJECTION: [v7.2]
  - IOSCHED_BFQ
  - BFQ_GROUP_IOSCHED
  - BFQ_CGROUP_DEBUG
  - BINFMT_MISC
+ - BINFMT_MISC_BPF: [v7.3, bpfjit]
  - BINFMT_SCRIPT
  - MEMORY_HOTPLUG: [-arm]
  # Replaced in "mm: add build-time option for hotplug memory default online type".
@@ -219,6 +225,7 @@ config:
  - BCACHE
  - BLK_DEV_DM
  - DM_CRYPT
+ - DM_INLINECRYPT: [v7.2]
  - DM_SNAPSHOT
  - DM_THIN_PROVISIONING
  - DM_CACHE
@@ -454,14 +461,6 @@ config:
  # The only reason to enable it is IOMMUFD_TEST, which really shouldn't
  # depend on RUNTIME_TESTING_MENU since it only adds debug checks.
  - RUNTIME_TESTING_MENU: [v6.9]
- # ANDROID_BINDER_IPC conflicts with ANDROID_BINDER_IPC_RUST.
- - ANDROID_BINDER_IPC: [-rust]
- - ANDROID_BINDER_IPC_RUST: [v6.18, rust]
- # Create binder device per test process for isolation.
- # Earlier we defined here 32 devices and syzkaller allocated one per test process.
- # When binderfs is used, we don't need that many - 2 is enough.
- - ANDROID_BINDER_DEVICES: "binder0,binder1"
- - ANDROID_BINDERFS: [-rust]
  - COUNTER
  - VALIDATE_FS_PARSER
  - PSTORE
@@ -489,7 +488,9 @@ config:
  - QFMT_V2
  - AUTOFS4_FS: [-v6.6]
  - FUSE_FS
- - FUSE_DAX: [v5.10, x86_64]
+ # Renamed to FUSE_VDAX in b6397651e5ef0 "fuse: use "vdax" naming for virtiofs DAX".
+ - FUSE_DAX: [v5.10, x86_64, -linux-next]
+ - FUSE_VDAX: [x86_64, linux-next]
  - CUSE
  - VIRTIO_FS
  - PROC_KCORE: [-arm]
@@ -590,5 +591,5 @@ config:
  - ELF_CORE
 
  - IO_URING_MOCK_FILE: [v6.17]
- - IO_URING_BPF: [linux-next]
- - FUSE_IO_URING: [linux-next]
+ - IO_URING_BPF: [v7.0]
+ - FUSE_IO_URING: [v6.14]

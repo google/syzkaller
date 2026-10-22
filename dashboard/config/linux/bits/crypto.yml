@@ -7,8 +7,8 @@ config:
  - CRYPTO_PCRYPT
  - CRYPTO_ECRDSA
  # Added in linux-next (early 2026).
- - CRYPTO_MLDSA: [linux-next]
- - CRYPTO_LIB_MLDSA: [linux-next]
+ - CRYPTO_MLDSA: [v7.0]
+ - CRYPTO_LIB_MLDSA: [v7.0]
  # Removed in "crypto: curve25519 - Remove unused kpp support"
  - CRYPTO_CURVE25519: [v5.6, -v6.18]
  - CRYPTO_CHACHA20POLY1305

@@ -19,7 +19,8 @@ config:
  - NTFS3_FS_POSIX_ACL: [v5.15]
  - HFS_FS
  - HFSPLUS_FS
- - BFS_FS
+ # Removed in e36781a626b27 "bfs: remove the filesystem".
+ - BFS_FS: [-linux-next]
  - MINIX_FS
  - VXFS_FS: [-v7.2]
  - OMFS_FS
@@ -136,6 +137,7 @@ config:
  - NFS_FSCACHE
  - NFS_DISABLE_UDP_SUPPORT: n
  - NFS_V4_2_READ_PLUS: [v5.11]
+ - PNFS_BLOCK_LAYOUT: [linux-next]
  - NFSD
  - NFSD_V3_ACL
  - NFSD_V4
