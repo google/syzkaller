@@ -2320,11 +2320,18 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 		sub := sourceFileRe.FindStringSubmatch(match)
 		line, _ := strconv.Atoi(sub[3])
 		url := vcs.FileLink(repo, commit, sub[2], line)
+		if url == "" {
+			return match
+		}
 		return fmt.Sprintf("%v<a href='%v'>%v:%v</a>%v", sub[1], url, sub[2], sub[3], sub[4])
 	}))
 }
 
-var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
+// sourceFileRe matches file:line references in crash reports and in AI-generated text
+// (where they are frequently put into backticks, or followed by a column number or punctuation).
+var sourceFileRe = regexp.MustCompile(`(^|[ \t\n(\[` + "`" + `])` +
+	`([a-zA-Z0-9/_.-]+\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)` +
+	`([ \t\n!)\]` + "`" + `,.:;]|$)`)
 
 func makeUIAssets(ctx context.Context, build *Build, crash *Crash, forReport bool) []*uiAsset {
 	var uiAssets []*uiAsset
