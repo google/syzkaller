@@ -289,7 +289,7 @@ bin/syz-fmt:
 	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
 
 configs: kconf
-	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR) -instance=$(INSTANCE)
+	SYZ_DISABLE_SANDBOXING=yes bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR) -instance=$(INSTANCE)
 
 tidy: descriptions
 	clang-tidy -quiet -header-filter=executor/[^_].* -warnings-as-errors=* \
