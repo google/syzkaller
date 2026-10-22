@@ -95,10 +95,16 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCove
 		collectCoverage: collectCoverage,
 	}
 
+	runs, maxTotal := 3, 6
+	if args.NeedStrace {
+		// Strace output is only used for diagnostics, one run is enough.
+		// It's also optional, so don't spend time retrying infra errors.
+		runs, maxTotal = 1, 1
+	}
 	validResults, err := instance.CollectRuns(ctx.Context, runner.Test, instance.CollectRunsOpts{
-		WantValid: 3,
-		MaxTotal:  6,
-		MaxVMs:    3,
+		WantValid: runs,
+		MaxTotal:  maxTotal,
+		MaxVMs:    runs,
 	})
 	if err != nil {
 		return res, err
