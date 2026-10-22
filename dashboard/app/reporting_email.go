@@ -469,6 +469,9 @@ func emailReport(ctx context.Context, rep *dashapi.BugReport) error {
 		// This is default, so don't include the info.
 		rep.UserSpaceArch = ""
 	}
+	if rep.AIRootCause != nil {
+		rep.AIRootCause.Summary = email.WordWrap(rep.AIRootCause.Summary, 80)
+	}
 	templ := ""
 	switch rep.Type {
 	case dashapi.ReportNew, dashapi.ReportRepro:

@@ -500,6 +500,16 @@ type BugReport struct {
 	Subsystems     []BugSubsystem
 	ReportElements *ReportElements
 	LabelMessages  map[string]string // notification messages for bug labels
+	AIRootCause    *AIRootCause      // AI-generated root cause analysis (if any)
+}
+
+type AIRootCause struct {
+	Summary  string
+	Analysis string // full text of the analysis
+	Link     string // link to the full text of the analysis
+	// The analysis refers to source files/lines of this kernel revision.
+	KernelRepo   string
+	KernelCommit string
 }
 
 type ReportElements struct {
