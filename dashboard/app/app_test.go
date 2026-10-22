@@ -1241,7 +1241,9 @@ pkg/sentry/fsimpl/fuse/fusefs.go:278 +0x384
  kvm_vcpu_release+0x4d/0x70 arch/x86/kvm/../../../virt/kvm/kvm_main.c:3713
 	arch/x86/entry/entry_64.S:298
 [<81751700>] (show_stack) from [<8176d3e0>] (dump_stack_lvl+0x48/0x54 lib/dump_stack.c:106)
-`
+UBSAN: shift-out-of-bounds in net/sched/sch_taprio.c:1234:56
+see fs/dcache.c:2693, and [fs/dcache.c:2694]
+not a reference: fs/dcache.c:2693x`
 	// nolint: lll
 	output := `
  tipc_topsrv_stop <a href='https://github.com/google/syzkaller/blob/111222/net/tipc/topsrv.c#L694'>net/tipc/topsrv.c:694</a> [inline]
@@ -1251,7 +1253,18 @@ kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/i
  kvm_vcpu_release+0x4d/0x70 <a href='https://github.com/google/syzkaller/blob/111222/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3713'>arch/x86/kvm/../../../virt/kvm/kvm_main.c:3713</a>
 	<a href='https://github.com/google/syzkaller/blob/111222/arch/x86/entry/entry_64.S#L298'>arch/x86/entry/entry_64.S:298</a>
 [&lt;81751700&gt;] (show_stack) from [&lt;8176d3e0&gt;] (dump_stack_lvl+0x48/0x54 <a href='https://github.com/google/syzkaller/blob/111222/lib/dump_stack.c#L106'>lib/dump_stack.c:106</a>)
-`
+UBSAN: shift-out-of-bounds in <a href='https://github.com/google/syzkaller/blob/111222/net/sched/sch_taprio.c#L1234'>net/sched/sch_taprio.c:1234</a>:56
+see <a href='https://github.com/google/syzkaller/blob/111222/fs/dcache.c#L2693'>fs/dcache.c:2693</a>, and [<a href='https://github.com/google/syzkaller/blob/111222/fs/dcache.c#L2694'>fs/dcache.c:2694</a>]
+not a reference: fs/dcache.c:2693x`
 	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
 	require.Equal(t, output, string(got))
+
+	// AI-generated text frequently puts references into backticks.
+	got = linkifyReport([]byte("at `fs/configfs/dir.c:734`."), "https://github.com/google/syzkaller", "111222")
+	require.Equal(t, "at `<a href='https://github.com/google/syzkaller/blob/111222/fs/configfs/dir.c#L734'>"+
+		"fs/configfs/dir.c:734</a>`.", string(got))
+
+	// No links are generated for unknown repositories.
+	got = linkifyReport([]byte("at fs/dcache.c:2693"), "repo1", "111222")
+	require.Equal(t, "at fs/dcache.c:2693", string(got))
 }
