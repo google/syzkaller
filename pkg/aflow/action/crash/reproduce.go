@@ -95,7 +95,7 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, collectCove
 		collectCoverage: collectCoverage,
 	}
 
-	validResults, err := instance.CollectRuns(runner.Test, instance.CollectRunsOpts{
+	validResults, err := instance.CollectRuns(ctx.Context, runner.Test, instance.CollectRunsOpts{
 		WantValid: 3,
 		MaxTotal:  6,
 		MaxVMs:    3,
