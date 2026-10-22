@@ -97,9 +97,7 @@ func TestGitRepo(t *testing.T) {
 			if _, err := repo.SwitchCommit(test.head.Hash); err != nil {
 				t.Fatal(err)
 			}
-			if contains, err := repo.Contains(test.commit.Hash); err != nil {
-				t.Fatal(err)
-			} else if contains != test.contains {
+			if contains := repo.Contains(test.commit.Hash); contains != test.contains {
 				t.Errorf("test %v: got %v, want %v", i, contains, test.contains)
 			}
 		}

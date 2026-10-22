@@ -110,7 +110,7 @@ func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
 	return ctx.repo.ReleaseTag(commit)
 }
 
-func (ctx *fuchsia) Contains(commit string) (bool, error) {
+func (ctx *fuchsia) Contains(commit string) bool {
 	return ctx.repo.Contains(commit)
 }
 

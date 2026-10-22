@@ -351,9 +351,8 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 	if err != nil {
 		return cfg.Kernel.Commit, err
 	}
-	contained, err := env.repo.Contains(cfg.Kernel.Commit)
-	if err != nil || contained {
-		return cfg.Kernel.Commit, err
+	if env.repo.Contains(cfg.Kernel.Commit) {
+		return cfg.Kernel.Commit, nil
 	}
 
 	if !cfg.Fix {
@@ -769,11 +768,7 @@ func (env *env) revisionHadBug() (bool, error) {
 		if res.rep == nil {
 			continue
 		}
-		ok, err := env.repo.Contains(hash)
-		if err != nil {
-			return false, err
-		}
-		if ok {
+		if env.repo.Contains(hash) {
 			env.logf("revision %s crashed and is reachable", hash)
 			return true, nil
 		}

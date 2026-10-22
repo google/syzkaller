@@ -223,10 +223,10 @@ func TestContains(t *testing.T) {
 	repo.Git("checkout", "-b", "branch-a")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	commitA, _ := repo.repo.Commit(HEAD)
-	if contained, _ := repo.repo.Contains(commitA.Hash); !contained {
+	if !repo.repo.Contains(commitA.Hash) {
 		t.Fatalf("contains claims commit that should be present is not")
 	}
-	if contained, _ := repo.repo.Contains("fake-hash"); contained {
+	if repo.repo.Contains("fake-hash") {
 		t.Fatalf("contains claims commit that is not present is present")
 	}
 
@@ -235,7 +235,7 @@ func TestContains(t *testing.T) {
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	commitB, _ := repo.repo.Commit(HEAD)
 	repo.Git("checkout", "branch-a")
-	if contained, _ := repo.repo.Contains(commitB.Hash); contained {
+	if repo.repo.Contains(commitB.Hash) {
 		t.Fatalf("contains found commit that is not in current branch")
 	}
 }
@@ -251,7 +251,7 @@ func TestLatestCommits(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, got, 2, "expected 2 commits")
 	for i, commit := range got {
-		if contained, _ := repo.repo.Contains(commit.Hash); !contained {
+		if !repo.repo.Contains(commit.Hash) {
 			t.Fatalf("commit %d is not contained", i)
 		}
 	}
@@ -275,9 +275,7 @@ func TestLatestCommitsAfterDate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, got, 2, "expected 2 commits")
 	for i, commit := range got {
-		contained, err := repo.repo.Contains(commit.Hash)
-		require.NoError(t, err)
-		require.Truef(t, contained, "commit %d is not contained", i)
+		require.Truef(t, repo.repo.Contains(commit.Hash), "commit %d is not contained", i)
 	}
 
 	// The cutoff falls between the two commits, so only the newer one is returned.

@@ -265,7 +265,7 @@ func (git *gitRepo) initRepo(reason error) error {
 	return nil
 }
 
-func (git *gitRepo) Contains(commit string) (bool, error) {
+func (git *gitRepo) Contains(commit string) bool {
 	return git.ContainedIn(HEAD, commit)
 }
 
@@ -923,11 +923,7 @@ func (git Git) minimizeBaseCommits(list []*BaseCommit) ([]*BaseCommit, error) {
 			lastCommit[key] = item
 			continue
 		}
-		isNewer, err := git.ContainedIn(item.Hash, prev.Hash)
-		if err != nil {
-			return nil, fmt.Errorf("topological sort step failed: %w", err)
-		}
-		if isNewer {
+		if git.ContainedIn(item.Hash, prev.Hash) {
 			lastCommit[key] = item
 		}
 	}
@@ -1003,9 +999,9 @@ func (git Git) verifyHash(hash string) (bool, error) {
 	return true, nil
 }
 
-func (git Git) ContainedIn(parent, commit string) (bool, error) {
+func (git Git) ContainedIn(parent, commit string) bool {
 	_, err := git.Run("merge-base", "--is-ancestor", commit, parent)
-	return err == nil, nil
+	return err == nil
 }
 
 func (git Git) Diff(commitA, commitB string) ([]byte, error) {

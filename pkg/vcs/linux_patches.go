@@ -37,15 +37,9 @@ func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
 func BackportCommits(repo Repo, commits []BackportCommit, remoteRepoURL string) (bool, error) {
 	applied := false
 	for _, info := range commits {
-		if info.GuiltyHash != "" {
-			contains, err := repo.Contains(info.GuiltyHash)
-			if err != nil {
-				return applied, fmt.Errorf("failed to check if %s is present: %w", info.GuiltyHash, err)
-			}
-			if !contains {
-				// There's no reason to backport a fix.
-				continue
-			}
+		if info.GuiltyHash != "" && !repo.Contains(info.GuiltyHash) {
+			// There's no reason to backport a fix.
+			continue
 		}
 		if remoteRepoURL != "" {
 			err := repo.fetchRemote(remoteRepoURL, info.FixHash)

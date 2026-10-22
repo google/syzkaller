@@ -69,7 +69,7 @@ type Repo interface {
 	// Returns true if the current tree contains the specified commit.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
 	// (e.g. do CheckoutBranch before).
-	Contains(commit string) (bool, error)
+	Contains(commit string) bool
 
 	// LatestCommits lists all latest commit hashes well as their commit dates.
 	// If afterCommit is specified, the output only includes the commits from which afterCommit is reachable.

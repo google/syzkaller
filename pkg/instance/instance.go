@@ -99,11 +99,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	// The following commit ("syz-fuzzer: support optional flags") adds support for optional flags
 	// in syz-execprog. This is required to invoke older binaries with newer flags
 	// without failing due to unknown flags.
-	optionalFlags, err := repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
-	if err != nil {
-		return "", fmt.Errorf("optional flags check failed: %w", err)
-	}
-	env.optionalFlags = optionalFlags
+	env.optionalFlags = repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
 	cmd := osutil.Command(MakeBin, "target")
 	cmd.Dir = cfg.Syzkaller
 	goEnvOptions := []string{

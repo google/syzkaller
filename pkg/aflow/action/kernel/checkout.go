@@ -91,17 +91,11 @@ func checkout(ctx *aflow.Context, args checkoutArgs) (checkoutResult, error) {
 				revertCommit = "07fe35b766a6fcd4ec8214e5066b7b0056b6ec6a"
 			)
 
-			if ok, err := repo.Contains(revertCommit); err != nil {
-				return err
-			} else if !ok {
-				if ok, err := repo.Contains(badCommit); err != nil {
+			if !repo.Contains(revertCommit) && repo.Contains(badCommit) {
+				if _, err := runSandboxedGit(time.Minute, kernelRepoDir,
+					"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
+					"revert", "--no-edit", badCommit); err != nil {
 					return err
-				} else if ok {
-					if _, err = runSandboxedGit(time.Minute, kernelRepoDir,
-						"-c", "user.name=aflow", "-c", "user.email=aflow@syzkaller.com",
-						"revert", "--no-edit", badCommit); err != nil {
-						return err
-					}
 				}
 			}
 			applied, err := vcs.BackportCommits(repo, kernelBackports, args.KernelRepo)
