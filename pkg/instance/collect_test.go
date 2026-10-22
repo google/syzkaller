@@ -38,6 +38,7 @@ func TestCollectRuns(t *testing.T) {
 		opts             CollectRunsOpts
 		expectedValid    int
 		expectErr        bool
+		expectErrIs      error
 		expectErrMessage string
 	}{
 		{
@@ -86,6 +87,7 @@ func TestCollectRuns(t *testing.T) {
 				MaxVMs:    3,
 			},
 			expectErr:     true,
+			expectErrIs:   ErrTooManyInfraErrors,
 			expectedValid: 0,
 		},
 		{
@@ -118,6 +120,7 @@ func TestCollectRuns(t *testing.T) {
 				MaxVMs:    4, // Test high parallelism.
 			},
 			expectErr:     true,
+			expectErrIs:   ErrTooManyInfraErrors,
 			expectedValid: 2, // We still return what we collected so far if it errors out.
 		},
 		{
@@ -143,6 +146,9 @@ func TestCollectRuns(t *testing.T) {
 			validResults, err := CollectRuns(t.Context(), runner.Test, tc.opts)
 			if tc.expectErr {
 				require.Error(t, err)
+				if tc.expectErrIs != nil {
+					require.ErrorIs(t, err, tc.expectErrIs)
+				}
 				if tc.expectErrMessage != "" {
 					require.Contains(t, err.Error(), tc.expectErrMessage)
 				}
