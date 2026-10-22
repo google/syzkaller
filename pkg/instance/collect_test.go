@@ -4,6 +4,7 @@
 package instance
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -139,7 +140,7 @@ func TestCollectRuns(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := &mockRunner{responses: tc.responses}
 
-			validResults, err := CollectRuns(runner.Test, tc.opts)
+			validResults, err := CollectRuns(t.Context(), runner.Test, tc.opts)
 			if tc.expectErr {
 				require.Error(t, err)
 				if tc.expectErrMessage != "" {
@@ -157,7 +158,7 @@ func TestCollectRuns(t *testing.T) {
 func TestCollectRunsSmallerBatches(t *testing.T) {
 	// The attempt runs fewer VMs than requested (e.g. the VM pool is smaller).
 	calls := 0
-	validResults, err := CollectRuns(func(int) ([]EnvTestResult, error) {
+	validResults, err := CollectRuns(t.Context(), func(int) ([]EnvTestResult, error) {
 		calls++
 		return []EnvTestResult{{RawOutput: []byte("ok")}}, nil
 	}, CollectRunsOpts{
@@ -172,7 +173,7 @@ func TestCollectRunsSmallerBatches(t *testing.T) {
 
 func TestCollectRunsNoResults(t *testing.T) {
 	attempts := 0
-	_, err := CollectRuns(func(int) ([]EnvTestResult, error) {
+	_, err := CollectRuns(t.Context(), func(int) ([]EnvTestResult, error) {
 		attempts++
 		return nil, nil
 	}, CollectRunsOpts{
@@ -182,4 +183,24 @@ func TestCollectRunsNoResults(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Equal(t, 1, attempts)
+}
+
+func TestCollectRunsCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	runner := &mockRunner{responses: []EnvTestResult{
+		{Error: &TestError{Infra: true}},
+		{RawOutput: []byte("1")},
+	}}
+	_, err := CollectRuns(ctx, func(numVMs int) ([]EnvTestResult, error) {
+		// Cancel the context during the first batch, we must not start the next one.
+		cancel()
+		return runner.Test(numVMs)
+	}, CollectRunsOpts{
+		WantValid: 1,
+		MaxTotal:  2,
+		MaxVMs:    1,
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Equal(t, 1, runner.idx)
 }
