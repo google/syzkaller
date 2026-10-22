@@ -110,9 +110,10 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTes
 		maxTotal = opts.MaxTotalRuns
 	}
 	validResults, err := instance.CollectRuns(ctx.Context, runner.Test, instance.CollectRunsOpts{
-		WantValid: runs,
-		MaxTotal:  maxTotal,
-		MaxVMs:    runs,
+		WantValid:  runs,
+		MaxTotal:   maxTotal,
+		MaxVMs:     runs,
+		MaxRetries: 1,
 	})
 	if err != nil {
 		return res, err
