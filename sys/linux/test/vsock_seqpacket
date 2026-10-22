@@ -1,0 +1,14 @@
+# requires: manual
+
+# Loopback AF_VSOCK seqpacket with a 64-bit connect timeout and an MSG_EOR record.
+
+r0 = socket$vsock_seqpacket(AUTO, AUTO, AUTO)
+bind$vsock_stream(r0, &AUTO={AUTO, AUTO, 0x2711, @local=AUTO, 0x0, ""}, AUTO)
+listen(r0, 0x4)
+r1 = socket$vsock_seqpacket(AUTO, AUTO, AUTO)
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_NEW(r1, AUTO, AUTO, &AUTO={0x1, 0x0}, AUTO)
+getsockopt$vsock(r1, AUTO, 0x8, &AUTO=""/16, &AUTO=AUTO)
+connect$vsock_stream(r1, &AUTO={AUTO, AUTO, 0x2711, @local=AUTO, 0x0, ""}, AUTO)
+r2 = accept4$vsock_stream(r0, &AUTO={0x28, 0x0, 0x0, @any=0xffffffff, 0x0, ""}, &AUTO=AUTO, 0x0)
+sendmsg$vsock_stream(r1, &AUTO={0x0, 0x0, &AUTO=[{&AUTO="7365717061636b6574", AUTO}], AUTO, 0x0, 0x0, 0x0}, 0x80)
+recvfrom(r2, &AUTO=""/64, AUTO, 0x0, 0x0, 0x0)
