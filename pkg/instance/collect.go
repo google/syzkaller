@@ -19,6 +19,10 @@ type CollectRunsOpts struct {
 	MaxVMs    int // Maximum number of VMs to run concurrently in a single batch.
 }
 
+// ErrTooManyInfraErrors is returned by CollectRuns if it could not collect enough valid runs
+// because of infrastructure errors.
+var ErrTooManyInfraErrors = errors.New("too many infra errors")
+
 // CollectRuns runs attempts to collect the requested number of valid test results.
 // It automatically retries on infrastructure errors.
 func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
@@ -69,8 +73,8 @@ func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) 
 	}
 
 	if len(validResults) < opts.WantValid {
-		return validResults, fmt.Errorf("failed to collect %d valid runs within %d total attempts. Last infra error: %w",
-			opts.WantValid, opts.MaxTotal, lastInfraErr)
+		return validResults, fmt.Errorf("%w: failed to collect %d valid runs within %d total attempts. "+
+			"Last infra error: %w", ErrTooManyInfraErrors, opts.WantValid, opts.MaxTotal, lastInfraErr)
 	}
 	return validResults[:opts.WantValid], nil // Trim just in case an attempt returned more than requested.
 }
