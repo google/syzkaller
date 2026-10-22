@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,4 +152,34 @@ func TestCollectRuns(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCollectRunsSmallerBatches(t *testing.T) {
+	// The attempt runs fewer VMs than requested (e.g. the VM pool is smaller).
+	calls := 0
+	validResults, err := CollectRuns(func(int) ([]EnvTestResult, error) {
+		calls++
+		return []EnvTestResult{{RawOutput: []byte("ok")}}, nil
+	}, CollectRunsOpts{
+		WantValid: 3,
+		MaxTotal:  3,
+		MaxVMs:    3,
+	})
+	require.NoError(t, err)
+	assert.Len(t, validResults, 3)
+	assert.Equal(t, 3, calls)
+}
+
+func TestCollectRunsNoResults(t *testing.T) {
+	attempts := 0
+	_, err := CollectRuns(func(int) ([]EnvTestResult, error) {
+		attempts++
+		return nil, nil
+	}, CollectRunsOpts{
+		WantValid: 1,
+		MaxTotal:  3,
+		MaxVMs:    1,
+	})
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts)
 }
