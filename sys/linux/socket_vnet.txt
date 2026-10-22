@@ -46,6 +46,10 @@ connect$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[
 
 openat$vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vsock"]], flags flags[open_flags], mode const[0]) fd
 
+# Unbinds the guest virtio-vsock device from vmw_vsock_virtio_transport, sleeps delay_us microseconds,
+# and rebinds it, racing device removal/probe against in-flight AF_VSOCK traffic.
+syz_vsock_virtio_reprobe(delay_us int32[0:1000])
+
 openat$vhost_vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-vsock"]], flags const[O_RDWR], mode const[0]) vhost_vsock
 ioctl$VHOST_VSOCK_SET_GUEST_CID(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_GUEST_CID], arg ptr[in, vmaddr_cid64])
 ioctl$VHOST_VSOCK_SET_RUNNING(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_RUNNING], arg ptr[in, bool32])

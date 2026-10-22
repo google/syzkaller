@@ -1,0 +1,18 @@
+# requires: manual
+
+# Races virtio-vsock device removal and probe (virtio_vsock_remove()/virtio_vsock_probe())
+# against in-flight AF_VSOCK traffic to the host. Needs a VM with a vhost-vsock-pci device
+# (the qemu "vsock" config option).
+
+r0 = socket$vsock_stream(AUTO, AUTO, AUTO)
+connect$vsock_stream(r0, &AUTO={AUTO, AUTO, 0x2710, @host=AUTO, 0x0, ""}, AUTO) (async)
+sendto(r0, &AUTO="aabbccdd", AUTO, 0x0, 0x0, 0x0) (async)
+syz_vsock_virtio_reprobe(0x64) (async)
+r1 = socket$vsock_stream(AUTO, AUTO, AUTO)
+connect$vsock_stream(r1, &AUTO={AUTO, AUTO, 0x2711, @host=AUTO, 0x0, ""}, AUTO) (async)
+write(r1, &AUTO="aabbccdd", AUTO) (async)
+syz_vsock_virtio_reprobe(0x0) (async)
+r2 = socket$vsock_seqpacket(AUTO, AUTO, AUTO)
+connect$vsock_stream(r2, &AUTO={AUTO, AUTO, 0x2710, @host=AUTO, 0x0, ""}, AUTO) (async)
+sendmsg$vsock_stream(r2, &AUTO={0x0, 0x0, &AUTO=[{&AUTO="aabbccdd", AUTO}], AUTO, 0x0, 0x0, 0x0}, 0x80) (async)
+syz_vsock_virtio_reprobe(0x3e8)
