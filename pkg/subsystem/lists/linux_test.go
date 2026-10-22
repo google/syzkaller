@@ -221,7 +221,7 @@ syz_usb_connect(0x0, 0x58, &(0x7f0000000100)=ANY=[@ANYBLOB="1201000036ee3808d30b
 syz_mount_image$ntfs(&AUTO, &AUTO, AUTO, &AUTO, AUTO, AUTO, &AUTO)`),
 				},
 			},
-			expect: []string{"ntfs3"},
+			expect: []string{"ntfs"},
 		},
 		{
 			// "p9" is no longer in "net".
