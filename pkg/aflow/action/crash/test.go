@@ -129,7 +129,7 @@ func testPatchRepro(ctx *aflow.Context, args testArgs) (string, error) {
 		ReproSyz:  args.ReproSyz,
 		ReproC:    args.ReproC,
 	}
-	testRes, err := RunTest(ctx, reproduceArgs, workdir, false)
+	testRes, err := RunTest(ctx, reproduceArgs, workdir, RunTestOpts{})
 	if err != nil {
 		return "", err
 	}

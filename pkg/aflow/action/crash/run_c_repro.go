@@ -76,7 +76,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	// Run 1: without strace.
-	res1, err1 := runTest(ctx, reproduceArgs, workdir, false)
+	res1, err1 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{})
 	if err1 != nil {
 		return RunCReproResult{}, err1
 	}
@@ -102,7 +102,9 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	// so we do not leak an unreported crash dump into StraceOutput.
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
-		res2, err2 := runTest(ctx, reproduceArgs, workdir, false)
+		// Strace output is only used for diagnostics, one run is enough.
+		// It's also optional, so don't spend time retrying infra errors.
+		res2, err2 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{MaxTotalRuns: 1})
 		if isInfraError(err2) {
 			// We failed to get a VM. Don't fail the action, Run 1 results are still valid.
 			log.Logf(0, "failed to collect strace output: %v", err2)
