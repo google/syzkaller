@@ -39,11 +39,14 @@ func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, err
 		batchSize = min(batchSize, opts.MaxTotal-totalAttempts)
 
 		results, err := attempt(batchSize)
-		totalAttempts += batchSize
-
 		if err != nil {
 			return nil, err
 		}
+		if len(results) == 0 {
+			return nil, fmt.Errorf("collectRuns: attempt returned no results")
+		}
+		// The attempt may run fewer VMs than requested (e.g. if the VM pool is smaller).
+		totalAttempts += len(results)
 
 		for _, res := range results {
 			if res.Error == nil {
