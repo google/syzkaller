@@ -2217,6 +2217,8 @@ var linuxOopses = append([]*oops{
 			compile(`EXT4-[Ff][Ss](?: \(.*\))?:`), // printed in __ext4_msg
 			compile(`(?i)warning: .* uses (deprecated v2 capabilities|wireless extensions)`),
 			compile(`XFS \(\w+\): WARNING`),
+			// Printed by md_run() when two members of an array are on the same disk.
+			compile(`WARNING: \S+ appears to be on the same physical disk as`),
 		},
 	},
 	{
