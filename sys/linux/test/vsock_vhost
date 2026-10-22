@@ -1,0 +1,17 @@
+# requires: manual
+
+# Start a vhost-vsock device, then connect to its CID with and without
+# VMADDR_FLAG_TO_HOST to exercise transport selection. Both connects are
+# expected to fail because nothing services the vrings.
+
+r0 = openat$vhost_vsock(AUTO, &AUTO, AUTO, AUTO)
+ioctl$VHOST_SET_OWNER(r0, AUTO, AUTO)
+ioctl$VHOST_SET_MEM_TABLE(r0, AUTO, &AUTO={AUTO, AUTO, [{0x0, AUTO, &AUTO=""/4096, AUTO}]})
+ioctl$VHOST_SET_VRING_ADDR(r0, AUTO, &AUTO={0x0, 0x0, &AUTO=""/4096, &AUTO=""/4096, &AUTO=""/4096, 0x0})
+ioctl$VHOST_SET_VRING_ADDR(r0, AUTO, &AUTO={0x1, 0x0, &AUTO=""/4096, &AUTO=""/4096, &AUTO=""/4096, 0x0})
+ioctl$VHOST_VSOCK_SET_GUEST_CID(r0, AUTO, &AUTO={@my=0x0, AUTO})
+ioctl$VHOST_VSOCK_SET_RUNNING(r0, AUTO, &AUTO=0x1)
+r1 = socket$vsock_stream(AUTO, AUTO, AUTO)
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD(r1, AUTO, AUTO, &AUTO={0x0, 0x1}, AUTO)
+connect$vsock_stream(r1, &AUTO={AUTO, AUTO, 0x2710, @my=0x0, 0x0, ""}, AUTO)
+connect$vsock_stream(r1, &AUTO={AUTO, AUTO, 0x2710, @my=0x0, 0x1, ""}, AUTO)

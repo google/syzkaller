@@ -9,6 +9,8 @@ include <linux/virtio_vsock.h>
 include <uapi/linux/fcntl.h>
 include <uapi/linux/vhost.h>
 include <uapi/linux/vm_sockets.h>
+include <uapi/linux/sock_diag.h>
+include <uapi/linux/vm_sockets_diag.h>
 include <uapi/linux/virtio_net.h>
 include <uapi/linux/virtio_config.h>
 
@@ -21,13 +23,22 @@ resource vhost_vsock[fd_vhost]
 resource vhost_net[fd_vhost]
 
 socket$vsock_stream(domain const[AF_VSOCK], type const[SOCK_STREAM], proto const[0]) sock_vsock_stream
+# SOCK_SEQPACKET shares bind/connect/accept/listen and the AF_VSOCK sockopts with SOCK_STREAM.
+socket$vsock_seqpacket(domain const[AF_VSOCK], type const[SOCK_SEQPACKET], proto const[0]) sock_vsock_stream
 bind$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr])
 connect$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr])
-accept4$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr], flags flags[accept_flags]) sock_vsock_stream
+accept4$vsock_stream(fd sock_vsock_stream, addr ptr[out, sockaddr_vm, opt], addrlen ptr[inout, len[addr, int32]], flags flags[accept_flags]) sock_vsock_stream
 setsockopt$SO_VM_SOCKETS_BUFFER_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_SIZE], val ptr[in, int64], len len[val])
 setsockopt$SO_VM_SOCKETS_BUFFER_MAX_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MAX_SIZE], val ptr[in, int64], len len[val])
 setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MIN_SIZE], val ptr[in, int64], len len[val])
 setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD], val ptr[in, timeval], len len[val])
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_NEW(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_CONNECT_TIMEOUT_NEW], val ptr[in, vsock_sock_timeval], len len[val])
+# The kernel only requires optlen >= the option size, so 16 bytes fit every option.
+getsockopt$vsock(fd sock_vsock_stream, level const[AF_VSOCK], opt flags[vsock_sockopts], val ptr[out, array[int8, 16]], len ptr[inout, len[val, int32]])
+
+# MSG_ZEROCOPY is honored once SO_ZEROCOPY is set; completions are read with recvmsg(MSG_ERRQUEUE).
+setsockopt$SO_ZEROCOPY_vsock(fd sock_vsock_stream, level const[SOL_SOCKET], opt const[SO_ZEROCOPY], val ptr[in, bool32], len len[val])
+sendmsg$vsock_stream(fd sock_vsock_stream, msg ptr[in, send_msghdr], f flags[vsock_send_flags])
 
 socket$vsock_dgram(domain const[AF_VSOCK], type const[SOCK_DGRAM], proto const[0]) sock_vsock_dgram
 bind$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
@@ -83,7 +94,32 @@ sockaddr_vm {
 	svm_reserved1	const[0, int16]
 	svm_port	flags[vmaddr_port, int32]
 	svm_cid		vmaddr_cid
-	svm_zero	const[0, int32]
+	svm_flags	flags[vmaddr_flags, int8]
+	svm_zero	array[const[0, int8], 3]
+}
+
+vmaddr_flags = VMADDR_FLAG_TO_HOST
+
+# tv_usec includes USEC_PER_SEC to reach -ERANGE; tv_sec stays small to avoid long blocking connects.
+vsock_sock_timeval {
+	tv_sec	int64[0:2]
+	tv_usec	int64[0:1000000]
+}
+
+vsock_sockopts = SO_VM_SOCKETS_BUFFER_SIZE, SO_VM_SOCKETS_BUFFER_MAX_SIZE, SO_VM_SOCKETS_BUFFER_MIN_SIZE, SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD, SO_VM_SOCKETS_CONNECT_TIMEOUT_NEW
+vsock_send_flags = MSG_DONTWAIT, MSG_EOR, MSG_NOSIGNAL, MSG_ZEROCOPY
+
+# struct vsock_diag_req is 24 bytes; the generic 2-byte sock_diag_req is rejected by vsock_diag_handler_dump().
+sendmsg$vsock_diag(fd sock_diag, msg ptr[in, msghdr_netlink[netlink_msg[SOCK_DIAG_BY_FAMILY, vsock_diag_req, void]]], f flags[send_flags])
+
+vsock_diag_req {
+	sdiag_family	const[AF_VSOCK, int8]
+	sdiag_protocol	const[0, int8]
+	pad		const[0, int16]
+	vdiag_states	int32
+	vdiag_ino	const[0, int32]
+	vdiag_show	const[0, int32]
+	vdiag_cookie	array[const[0, int32], 2]
 }
 
 vmaddr_cid [
