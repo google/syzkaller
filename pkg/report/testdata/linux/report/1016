@@ -1,0 +1,10 @@
+
+
+[  301.112233][ T5123] device-mapper: raid: Choosing default region size of 4MiB
+[  301.113344][ T5123] mdX: WARNING: ram8 appears to be on the same physical disk as ram8.
+[  301.114455][ T5123] True protection against single-disk failure might be compromised.
+[  301.115566][ T5123] md/raid10:mdX: unsupported raid10 layout: 0x       2
+[  301.116677][ T5123] md: pers->run() failed ...
+[  301.117788][ T5123] device-mapper: table: 248:1: raid: Failed to run raid array (-EINVAL)
+[  301.118899][ T5123] device-mapper: ioctl: error adding target to table
+[  301.311111][ T5130] md0: WARNING: ram2 appears to be on the same physical disk as ram3.
