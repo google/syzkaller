@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/stretchr/testify/assert"
@@ -65,9 +67,10 @@ func TestCollectRuns(t *testing.T) {
 				{RawOutput: []byte("3")},
 			},
 			opts: CollectRunsOpts{
-				WantValid: 3,
-				MaxTotal:  6,
-				MaxVMs:    2,
+				WantValid:  3,
+				MaxTotal:   6,
+				MaxVMs:     2,
+				MaxRetries: 2,
 			},
 			expectedValid: 3,
 		},
@@ -82,9 +85,10 @@ func TestCollectRuns(t *testing.T) {
 				{Error: &TestError{Infra: true}},
 			},
 			opts: CollectRunsOpts{
-				WantValid: 3,
-				MaxTotal:  6,
-				MaxVMs:    3,
+				WantValid:  3,
+				MaxTotal:   6,
+				MaxVMs:     3,
+				MaxRetries: 1,
 			},
 			expectErr:     true,
 			expectErrIs:   ErrTooManyInfraErrors,
@@ -100,9 +104,10 @@ func TestCollectRuns(t *testing.T) {
 				{Error: &CrashError{Report: &report.Report{Title: "crash3"}}},
 			},
 			opts: CollectRunsOpts{
-				WantValid: 3,
-				MaxTotal:  6,
-				MaxVMs:    1, // Test sequential.
+				WantValid:  3,
+				MaxTotal:   6,
+				MaxVMs:     1, // Test sequential.
+				MaxRetries: 2,
 			},
 			expectedValid: 3,
 		},
@@ -115,9 +120,10 @@ func TestCollectRuns(t *testing.T) {
 				{RawOutput: []byte("2")},
 			},
 			opts: CollectRunsOpts{
-				WantValid: 3,
-				MaxTotal:  4, // Stop after 4 total.
-				MaxVMs:    4, // Test high parallelism.
+				WantValid:  3,
+				MaxTotal:   4, // Stop after 4 total.
+				MaxVMs:     4, // Test high parallelism.
+				MaxRetries: 10,
 			},
 			expectErr:     true,
 			expectErrIs:   ErrTooManyInfraErrors,
@@ -141,22 +147,25 @@ func TestCollectRuns(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			runner := &mockRunner{responses: tc.responses}
+			// Use synctest to not actually wait for the backoff.
+			synctest.Test(t, func(t *testing.T) {
+				runner := &mockRunner{responses: tc.responses}
 
-			validResults, err := CollectRuns(t.Context(), runner.Test, tc.opts)
-			if tc.expectErr {
-				require.Error(t, err)
-				if tc.expectErrIs != nil {
-					require.ErrorIs(t, err, tc.expectErrIs)
+				validResults, err := CollectRuns(t.Context(), runner.Test, tc.opts)
+				if tc.expectErr {
+					require.Error(t, err)
+					if tc.expectErrIs != nil {
+						require.ErrorIs(t, err, tc.expectErrIs)
+					}
+					if tc.expectErrMessage != "" {
+						require.Contains(t, err.Error(), tc.expectErrMessage)
+					}
+					require.Len(t, validResults, tc.expectedValid)
+				} else {
+					require.NoError(t, err)
+					require.Len(t, validResults, tc.expectedValid)
 				}
-				if tc.expectErrMessage != "" {
-					require.Contains(t, err.Error(), tc.expectErrMessage)
-				}
-				require.Len(t, validResults, tc.expectedValid)
-			} else {
-				require.NoError(t, err)
-				require.Len(t, validResults, tc.expectedValid)
-			}
+			})
 		})
 	}
 }
@@ -192,21 +201,93 @@ func TestCollectRunsNoResults(t *testing.T) {
 }
 
 func TestCollectRunsCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	runner := &mockRunner{responses: []EnvTestResult{
-		{Error: &TestError{Infra: true}},
-		{RawOutput: []byte("1")},
-	}}
-	_, err := CollectRuns(ctx, func(numVMs int) ([]EnvTestResult, error) {
-		// Cancel the context during the first batch, we must not start the next one.
-		cancel()
-		return runner.Test(numVMs)
-	}, CollectRunsOpts{
-		WantValid: 1,
-		MaxTotal:  2,
-		MaxVMs:    1,
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		runner := &mockRunner{responses: []EnvTestResult{
+			{Error: &TestError{Infra: true}},
+			{RawOutput: []byte("1")},
+		}}
+		start := time.Now()
+		_, err := CollectRuns(ctx, func(numVMs int) ([]EnvTestResult, error) {
+			// Cancel the context during the first batch, we must not wait for the backoff.
+			cancel()
+			return runner.Test(numVMs)
+		}, CollectRunsOpts{
+			WantValid:  1,
+			MaxTotal:   2,
+			MaxVMs:     1,
+			MaxRetries: 1,
+		})
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Equal(t, 1, runner.idx)
+		assert.Zero(t, time.Since(start))
 	})
-	require.ErrorIs(t, err, context.Canceled)
-	assert.Equal(t, 1, runner.idx)
+}
+
+func TestCollectRunsBackoff(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		runner := &mockRunner{responses: []EnvTestResult{
+			{Error: &TestError{Infra: true}}, // We back off only after this one.
+			{RawOutput: []byte("1")},
+			{Error: &CrashError{Report: &report.Report{Title: "crash"}}},
+			{RawOutput: []byte("3")},
+		}}
+		start := time.Now()
+		validResults, err := CollectRuns(t.Context(), runner.Test, CollectRunsOpts{
+			WantValid:  3,
+			MaxTotal:   4,
+			MaxVMs:     1,
+			MaxRetries: 1,
+		})
+		require.NoError(t, err)
+		assert.Len(t, validResults, 3)
+		// Inside the synctest bubble, time only advances while we wait for the backoff.
+		assert.Equal(t, infraErrorBackoff, time.Since(start))
+	})
+}
+
+func TestCollectRunsMaxRetries(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// After a partial success, each next batch has only 1 VM, but it's still a retry.
+		runner := &mockRunner{responses: []EnvTestResult{
+			{RawOutput: []byte("1")},
+			{RawOutput: []byte("2")},
+			{Error: &TestError{Infra: true}},
+			{Error: &TestError{Infra: true}},
+			{Error: &TestError{Infra: true}},
+			{Error: &TestError{Infra: true}},
+		}}
+		start := time.Now()
+		validResults, err := CollectRuns(t.Context(), runner.Test, CollectRunsOpts{
+			WantValid:  3,
+			MaxTotal:   9,
+			MaxVMs:     3,
+			MaxRetries: 2,
+		})
+		require.ErrorIs(t, err, ErrTooManyInfraErrors)
+		assert.Len(t, validResults, 2)
+		// The first batch of 3 VMs and 2 retries of 1 VM.
+		assert.Equal(t, 5, runner.idx)
+		assert.Equal(t, 2*infraErrorBackoff, time.Since(start))
+	})
+}
+
+func TestCollectRunsNoRetries(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		runner := &mockRunner{responses: []EnvTestResult{
+			{Error: &TestError{Infra: true}},
+			{RawOutput: []byte("1")},
+		}}
+		start := time.Now()
+		_, err := CollectRuns(t.Context(), runner.Test, CollectRunsOpts{
+			WantValid: 1,
+			MaxTotal:  2,
+			MaxVMs:    1,
+		})
+		require.ErrorIs(t, err, ErrTooManyInfraErrors)
+		assert.Equal(t, 1, runner.idx)
+		// We must not wait for the backoff if we are not going to retry.
+		assert.Zero(t, time.Since(start))
+	})
 }
