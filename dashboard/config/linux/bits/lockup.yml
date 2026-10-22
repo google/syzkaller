@@ -1,12 +1,11 @@
 # Copyright 2026 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# This file contains configuration options to enforce panics on soft lockups.
-# We want the kernel to panic on soft lockups to ensure that syzkaller can
-# reliably detect them as crashes.
-# This is enabled everywhere by default, except on s390 where it is disabled.
-# This 'override' logic (extracting to a separate file) is needed to deal with
-# the option type change from y/n to int in the kernel (see commit 67fca000e1e17 ("lib/Kconfig.debug: remove more CONFIG_..._VALUE indirections")).
+# Configuration options to enforce panics on hung tasks and soft lockups on
+# pre-7.0 kernels, where these options were bools rather than ints (see commits
+# 9544f9e6947f6 ("hung_task: panic when there are more than N hung tasks at the same time")
+# and e700f5d156079 ("watchdog: softlockup: panic when lockup duration exceeds N thresholds")).
 
 config:
- - BOOTPARAM_SOFTLOCKUP_PANIC: [y, weak, -s390]
+ - BOOTPARAM_HUNG_TASK_PANIC
+ - BOOTPARAM_SOFTLOCKUP_PANIC: [-s390]

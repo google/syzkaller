@@ -35,9 +35,10 @@ config:
  - BATMAN_ADV_MCAST
 
  - OPENVSWITCH
- - OPENVSWITCH_GRE
- - OPENVSWITCH_VXLAN
- - OPENVSWITCH_GENEVE
+ # Removed in d26dcf73a8f15 "openvswitch: remove support for legacy tunnel types".
+ - OPENVSWITCH_GRE: [-v7.3]
+ - OPENVSWITCH_VXLAN: [-v7.3]
+ - OPENVSWITCH_GENEVE: [-v7.3]
 
  # Removed in 6d5431555de03 "caif: remove CAIF NETWORK LAYER".
  - CAIF: [-v7.1]

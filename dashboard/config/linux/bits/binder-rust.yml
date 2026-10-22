@@ -1,0 +1,9 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Rust implementation of Android Binder IPC for non-Android/ChromeOS instances.
+
+config:
+ - ANDROID_BINDER_IPC_RUST: [v6.18]
+ # Create binder device per test process for isolation.
+ - ANDROID_BINDER_DEVICES: "binder0,binder1"

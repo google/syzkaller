@@ -3,7 +3,8 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
- tag: v7.1-rc4
+ tag: v7.3
 config:
- # Parameter was changed from y/n to the count of hangs before panic.
- - BOOTPARAM_HUNG_TASK_PANIC: [1, weak]
+ # Parameters were changed from y/n to the count of hangs/lockups before panic.
+ - BOOTPARAM_HUNG_TASK_PANIC: [1, -nonoise]
+ - BOOTPARAM_SOFTLOCKUP_PANIC: [1, -nonoise, -s390]

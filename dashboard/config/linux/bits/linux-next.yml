@@ -3,8 +3,9 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next-history.git
- tag: next-20260805
+ tag: next-20261022
 config:
- - BOOTPARAM_HUNG_TASK_PANIC: [1, weak]
- - BOOTPARAM_SOFTLOCKUP_PANIC: [1, weak]
+ # Parameters were changed from y/n to the count of hangs/lockups before panic.
+ - BOOTPARAM_HUNG_TASK_PANIC: [1, -nonoise]
+ - BOOTPARAM_SOFTLOCKUP_PANIC: [1, -nonoise, -s390]
  - DRM_VKMS: [n, weak] # Temporarily disable DRM_VKMS in linux-next until a fix is merged. See #7733.

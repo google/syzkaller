@@ -75,6 +75,7 @@ config:
  - TCP_CONG_ILLINOIS
  - TCP_CONG_DCTCP
  - TCP_CONG_CDG
+ - TCP_CONG_ROCCET: [linux-next]
  - TCP_CONG_BBR
  - TCP_MD5SIG
  - IPV6_ROUTER_PREF
@@ -300,7 +301,8 @@ config:
  - VLAN_8021Q
  - VLAN_8021Q_GVRP
  - VLAN_8021Q_MVRP
- - LLC2
+ # Removed in 003f21868b2b0 "llc: move the type 2 sockets out of tree".
+ - LLC2: [-linux-next]
  - NET_SCHED
  - NET_SCH_CBQ: n
  - NET_SCH_HTB
@@ -405,6 +407,7 @@ config:
  - CAN_GW
  - CAN_ISOTP: [v5.10]
  - CAN_CALC_BITTIMING
+ - CAN_VIRTIO_CAN: [v7.2]
  - AF_KCM
  - RFKILL
  - RFKILL_INPUT
@@ -449,7 +452,6 @@ config:
  - VSOCKMON: [-onlynet]
  - E100: [-s390, -arm64_gce]
  - E1000E: [-s390, -arm64_gce]
- - NET_VENDOR_GOOGLE
  - NET_VENDOR_3COM: n
  - NET_VENDOR_ADAPTEC: n
  - NET_VENDOR_AGERE: n
