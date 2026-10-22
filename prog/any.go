@@ -199,7 +199,13 @@ func (target *Target) squashConst(arg *ConstArg, elems *[]Arg) {
 			v >>= 8
 		}
 	case FormatStrDec:
-		data = []byte(fmt.Sprintf("%020v", v))
+		data = []byte(fmt.Sprintf("%0*d", int(arg.Size()), v))
+	case FormatStrDecNoPad:
+		data = []byte(fmt.Sprintf("%d", v))
+		if uint64(len(data)) > arg.Size() {
+			panic("formatted decimal value exceeds field size")
+		}
+		data = append(data, make([]byte, int(arg.Size())-len(data))...)
 	case FormatStrHex:
 		data = []byte(fmt.Sprintf("0x%016x", v))
 	case FormatStrOct:
@@ -231,7 +237,7 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 		default:
 			panic(fmt.Sprintf("bad size %v", arg.Size()))
 		}
-	case FormatStrDec:
+	case FormatStrDec, FormatStrDecNoPad:
 		typ, index = target.any.resdec, 5
 	case FormatStrHex:
 		typ, index = target.any.reshex, 6

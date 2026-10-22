@@ -321,6 +321,7 @@ const uint64 binary_format_bigendian = 1;
 const uint64 binary_format_strdec = 2;
 const uint64 binary_format_strhex = 3;
 const uint64 binary_format_stroct = 4;
+const uint64 binary_format_strdec_nopad = 5;
 
 const uint64 no_copyout = -1;
 
@@ -1684,10 +1685,26 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint6
 		});
 		break;
 	case binary_format_strdec:
-		if (size != 20)
+	case binary_format_strdec_nopad: {
+		if (!size || size > 20)
 			failmsg("bad strdec size", "size=%llu", size);
-		NONFAILING(sprintf((char*)addr, "%020llu", val));
+		char digits[20];
+		uint64_t value = val;
+		uint64_t len = 0;
+		do {
+			digits[len++] = '0' + value % 10;
+			value /= 10;
+		} while (value);
+		if (len > size)
+			failmsg("strdec value too large", "size=%llu", size);
+		NONFAILING({
+			uint64_t offset = bf == binary_format_strdec ? size - len : 0;
+			memset((char*)addr, bf == binary_format_strdec ? '0' : 0, size);
+			for (uint64_t i = 0; i < len; i++)
+				((char*)addr)[offset + i] = digits[len - i - 1];
+		});
 		break;
+	}
 	case binary_format_strhex:
 		if (size != 18)
 			failmsg("bad strhex size", "size=%llu", size);

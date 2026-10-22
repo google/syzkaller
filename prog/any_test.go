@@ -14,6 +14,34 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
+func TestFormatDecimal(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	tests := []struct {
+		call  string
+		value uint64
+		want  string
+	}{
+		{"foo$fmt6", 5, "5\x00"},
+		{"foo$fmt6", 10, "10"},
+		{"foo$fmt7", 5, "0005"},
+		{"foo$fmt8", 31, "41"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%d", test.call, test.value), func(t *testing.T) {
+			typ := target.SyscallMap[test.call].Args[0].Type.(*PtrType).Elem
+			arg := MakeConstArg(typ, DirIn, test.value)
+			var elems []Arg
+			target.squashConst(arg, &elems)
+			if len(elems) != 1 {
+				t.Fatalf("got %d data elements, want 1", len(elems))
+			}
+			if got := string(elems[0].(*UnionArg).Option.(*DataArg).Data()); got != test.want {
+				t.Fatalf("got %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 func TestIsComplexPtr(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		allComplex := make(map[string]bool)

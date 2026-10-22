@@ -76,19 +76,17 @@ openat$smackfs_change_rule(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smac
 write$smackfs_change_rule(fd fd_smackfs_change_rule, buf ptr[in, smackfs_change_access], count len[buf])
 
 smackfs_cipso_category {
-	cat	fmt[dec, int8[0:SMACK_CIPSO_MAXCATNUM]]
+	cat	fmt[dec0, int8[0:SMACK_CIPSO_MAXCATNUM], 4]
 	sp	const[' ', int8]
 }
 
 smackfs_cipso {
 	label	smack_labelnoz
 	sp0	const[' ', int8]
-# NEED: format specifiers with the given len ("%04d").
-# Kernel expects level to take exactly 4 (SMK_DIGITLEN) chars.
-# This affects lots of other fmt's in this file too.
-	level	fmt[dec, int8[0:SMACK_CIPSO_MAXLEVEL]]
+# The kernel expects these decimal fields to be zero-padded to SMK_DIGITLEN.
+	level	fmt[dec0, int8[0:SMACK_CIPSO_MAXLEVEL], 4]
 	sp1	const[' ', int8]
-	num	fmt[dec, len[cats]]
+	num	fmt[dec0, len[cats], 4]
 	sp2	const[' ', int8]
 	cats	array[smackfs_cipso_category]
 	z	const[0, int8]
