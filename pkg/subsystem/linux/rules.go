@@ -61,7 +61,8 @@ var (
 			"jfs":      {"syz_mount_image$jfs"},
 			"kvm":      {"syz_kvm_setup_cpu", "syz_kvm_vgic_v3_setup", "syz_kvm_setup_syzos_vm", "syz_kvm_add_vcpu"},
 			"nilfs":    {"syz_mount_image$nilfs2"},
-			"ntfs3":    {"syz_mount_image$ntfs", "syz_mount_image$ntfs3"},
+			"ntfs":     {"syz_mount_image$ntfs"},
+			"ntfs3":    {"syz_mount_image$ntfs3"},
 			"ocfs2":    {"syz_mount_image$ocfs2"},
 			"karma":    {"syz_mount_image$omfs"},
 			"squashfs": {"syz_mount_image$squashfs"},
@@ -95,7 +96,6 @@ var (
 		extraSubsystems: map[string][]string{
 			"bfs":     {"BFS FILE SYSTEM"},
 			"exfat":   {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
-			"fuse":    {"FUSE: FILESYSTEM IN USERSPACE"},
 			"hfs":     {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
 			"isofs":   {"ISOFS FILESYSTEM"},
 			"kernfs":  {"KERNFS"},
