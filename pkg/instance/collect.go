@@ -4,6 +4,7 @@
 package instance
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -20,7 +21,7 @@ type CollectRunsOpts struct {
 
 // CollectRuns runs attempts to collect the requested number of valid test results.
 // It automatically retries on infrastructure errors.
-func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
+func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
 	if opts.MaxTotal < opts.WantValid {
 		return nil, fmt.Errorf("collectRuns: MaxTotal (%d) cannot be less than WantValid (%d)", opts.MaxTotal, opts.WantValid)
 	}
@@ -32,6 +33,9 @@ func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, err
 	totalAttempts := 0
 
 	for totalAttempts < opts.MaxTotal && len(validResults) < opts.WantValid {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		// Run as many as we need, up to MaxVMs.
 		need := opts.WantValid - len(validResults)
 		batchSize := min(need, opts.MaxVMs)
