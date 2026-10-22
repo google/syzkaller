@@ -1,0 +1,20 @@
+# requires: manual
+
+# Loopback AF_VSOCK stream: listen/connect/accept, data transfer, MSG_ZEROCOPY with
+# its error-queue completion, and a vsock_diag dump of all socket states.
+
+r0 = socket$vsock_stream(AUTO, AUTO, AUTO)
+getsockopt$vsock(r0, AUTO, 0x6, &AUTO=""/16, &AUTO=AUTO)
+bind$vsock_stream(r0, &AUTO={AUTO, AUTO, 0x2710, @local=AUTO, 0x0, ""}, AUTO)
+listen(r0, 0x4)
+r1 = socket$vsock_stream(AUTO, AUTO, AUTO)
+connect$vsock_stream(r1, &AUTO={AUTO, AUTO, 0x2710, @local=AUTO, 0x0, ""}, AUTO)
+r2 = accept4$vsock_stream(r0, &AUTO={0x28, 0x0, 0x0, @any=0xffffffff, 0x0, ""}, &AUTO=AUTO, 0x0)
+sendto(r1, &AUTO="68656c6c6f5f76736f636b", AUTO, 0x0, 0x0, 0x0)
+recvfrom(r2, &AUTO=""/64, AUTO, 0x0, 0x0, 0x0)
+setsockopt$SO_ZEROCOPY_vsock(r1, AUTO, AUTO, &AUTO=0x1, AUTO)
+sendmsg$vsock_stream(r1, &AUTO={0x0, 0x0, &AUTO=[{&AUTO="7a65726f636f7079", AUTO}], AUTO, 0x0, 0x0, 0x0}, 0x4000000)
+recvfrom(r2, &AUTO=""/64, AUTO, 0x0, 0x0, 0x0)
+recvmsg(r1, &AUTO={0x0, 0x0, &AUTO=[{&AUTO=""/64, AUTO}], AUTO, &AUTO=""/64, AUTO, 0x0}, 0x2000)
+r3 = socket$nl_sock_diag(AUTO, AUTO, AUTO)
+sendmsg$vsock_diag(r3, &AUTO={&AUTO={AUTO, AUTO, 0x0, 0x0}, AUTO, &AUTO={&AUTO={AUTO, AUTO, 0x301, 0x0, 0x0, {AUTO, AUTO, AUTO, 0xffffffff, AUTO, AUTO, ""}, []}, AUTO}, 0x1, 0x0, 0x0, 0x0}, 0x0)
