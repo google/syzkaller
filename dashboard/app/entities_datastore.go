@@ -156,6 +156,18 @@ type Bug struct {
 	AIJobCheck int64
 	// AIPendingWorkflows holds the list of AI workflow types that are pending for this bug.
 	AIPendingWorkflows []string
+	// AIRootCause holds the AI-generated root cause analysis of the bug (if any).
+	AIRootCause BugAIRootCause
+}
+
+// BugAIRootCause holds the AI-generated root cause analysis of a bug.
+type BugAIRootCause struct {
+	Summary string `datastore:",noindex"`
+	// The analysis refers to source files/lines of this kernel revision.
+	KernelRepo   string `datastore:",noindex"`
+	KernelCommit string `datastore:",noindex"`
+	// Text is a reference to the textAIRootCause entity with the full analysis.
+	Text int64 `datastore:",noindex"`
 }
 
 type BugTreeTestInfo struct {
@@ -698,6 +710,7 @@ const (
 	textReproLog     = "ReproLog"
 	textFsckLog      = "FsckLog"
 	textJobComment   = "JobComment"
+	textAIRootCause  = "AIRootCause"
 )
 
 const (

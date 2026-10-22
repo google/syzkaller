@@ -69,6 +69,7 @@ func dropNamespace(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		{textError, ""},
 		{textCrashLog, ""},
 		{textCrashReport, ""},
+		{textAIRootCause, ""},
 		{"Build", ""},
 		{"Manager", "ManagerStats"},
 		{"Bug", "Crash"},

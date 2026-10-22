@@ -679,6 +679,15 @@ func fillBugReport(ctx context.Context, rep *dashapi.BugReport, bug *Bug, bugRep
 	rep.KernelConfigLink = externalLink(ctx, textKernelConfig, build.KernelConfig)
 	rep.SyzkallerCommit = build.SyzkallerCommit
 	rep.NoRepro = build.Type == BuildFailed
+	if rc := &bug.AIRootCause; rc.Summary != "" {
+		rep.AIRootCause = &dashapi.AIRootCause{
+			Summary:      rc.Summary,
+			Analysis:     loadAIRootCauseAnalysis(ctx, bug),
+			Link:         aiRootCauseLink(ctx, bugReporting.ID),
+			KernelRepo:   rc.KernelRepo,
+			KernelCommit: rc.KernelCommit,
+		}
+	}
 	for _, item := range bug.LabelValues(SubsystemLabel) {
 		rep.Subsystems = append(rep.Subsystems, dashapi.BugSubsystem{
 			Name:  item.Value,

@@ -39,6 +39,11 @@ bisection log:  {{.BisectCause.LogLink}}
 {{if .BisectCause.CrashReportLink}}final oops:     {{.BisectCause.CrashReportLink}}
 {{end}}{{if .BisectCause.CrashLogLink}}console output: {{.BisectCause.CrashLogLink}}
 {{end}}
+{{end}}{{with .AIRootCause}}AI-generated root cause summary:
+{{.Summary}}
+
+full analysis:  {{.Link}}
+
 {{end}}IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")

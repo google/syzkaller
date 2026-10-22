@@ -21,6 +21,8 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -1954,4 +1956,157 @@ func TestAutoCreateAIJobUnsupportedArch(t *testing.T) {
 	require.Empty(t, resp.ID)
 	resp = c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 	require.Empty(t, resp.ID)
+}
+
+func TestAIAssessmentSecurityRootCause(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	// Use a known repo, so that source references are linkified.
+	build.KernelRepo = "https://github.com/google/syzkaller"
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "KASAN: slab-use-after-free Write in dev_config"
+	c.aiClient.ReportCrash(crash)
+	initialMsg := c.aiClient.pollEmailBug()
+	require.NotContains(t, initialMsg.Body, "AI-generated root cause summary:")
+	_, extID, err := email.RemoveAddrContext(initialMsg.Sender)
+	require.NoError(t, err)
+
+	c.advanceTime(49 * time.Hour)
+
+	resp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, resp.ID)
+	require.Equal(t, string(ai.WorkflowAssessmentSecurity), resp.Workflow)
+
+	summary := "A use-after-free occurs in dev_config() because dev_release() frees " +
+		"the device while config_write() holds an uncounted pointer."
+	analysis := `Detailed analysis:
+1. Thread A opens the device and calls write().
+2. Thread B unregisters the device, freeing struct my_dev (drivers/foo/dev.c:123).
+3. Thread A dereferences the freed struct my_dev in dev_config().`
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"Exploitable":       true,
+			"RootCauseSummary":  summary,
+			"RootCauseAnalysis": analysis,
+		},
+	}))
+
+	// Report a reproducer so syzbot sends a second email report and verify the AI root cause snippet is included.
+	crashWithRepro := testCrashWithRepro(build, 1)
+	crashWithRepro.Title = crash.Title
+	c.aiClient.ReportCrash(crashWithRepro)
+	reproMsg := c.aiClient.pollEmailBug()
+	bug, dbCrash, dbBuild := c.loadBug(extID)
+	require.Equal(t, BugAIRootCause{
+		Summary:      summary,
+		KernelRepo:   build.KernelRepo,
+		KernelCommit: build.KernelCommit,
+		Text:         bug.AIRootCause.Text,
+	}, bug.AIRootCause)
+	require.NotZero(t, bug.AIRootCause.Text)
+	rootCauseLink := aiRootCauseLink(c.ctx, extID)
+	require.Equal(t, fmt.Sprintf("%v/x/ai_root_cause?x=%v", appURL(c.ctx), extID), rootCauseLink)
+	// The short link redirects to the bug page.
+	_, err = c.GET(rootCauseLink)
+	var httpErr *HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	require.Equal(t, http.StatusFound, httpErr.Code)
+	bugPageLink := httpErr.Headers.Get("Location")
+	require.Equal(t, fmt.Sprintf("/bug?extid=%v&ai_root_cause=1#ai-root-cause", extID), bugPageLink)
+
+	// External reportings get the full analysis text.
+	rep := new(dashapi.BugReport)
+	require.NoError(t, fillBugReport(c.ctx, rep, bug, &bug.Reporting[0], dbBuild))
+	require.Equal(t, &dashapi.AIRootCause{
+		Summary:      summary,
+		Analysis:     analysis,
+		Link:         rootCauseLink,
+		KernelRepo:   build.KernelRepo,
+		KernelCommit: build.KernelCommit,
+	}, rep.AIRootCause)
+
+	// The bug page shows the summary and the full analysis with file:line references linkified.
+	// The full analysis is expanded only when the page is opened via the AI root cause link.
+	aiBlock := func(link string) (string, string) {
+		page, err := c.GET(link)
+		require.NoError(t, err)
+		_, block, found := strings.Cut(html.UnescapeString(string(page)), `id="ai-root-cause"`)
+		require.True(t, found)
+		head, _, _ := strings.Cut(block, "Full AI root cause analysis")
+		return head, block
+	}
+	checkAnalysis := func(block string) {
+		require.Contains(t, block, summary)
+		require.Contains(t, block, fmt.Sprintf("<a href=\"%v\">%v</a>",
+			vcs.CommitLink(build.KernelRepo, build.KernelCommit), build.KernelCommit[:12]))
+		require.Contains(t, block, fmt.Sprintf("(<a href='%v'>drivers/foo/dev.c:123</a>)",
+			vcs.FileLink(build.KernelRepo, build.KernelCommit, "drivers/foo/dev.c", 123)))
+	}
+	head, block := aiBlock("/bug?extid=" + extID)
+	require.Contains(t, head, "collapsible-hide")
+	checkAnalysis(block)
+	head, block = aiBlock(bugPageLink)
+	require.Contains(t, head, "collapsible-show")
+	checkAnalysis(block)
+
+	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
+	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
+	reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+	reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
+	creditEmail, err := email.AddAddrContext(ownEmail(c.ctx), extID)
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
+
+HEAD commit:    111111111111 kernel_commit_title1
+git tree:       https://github.com/google/syzkaller branch1
+console output: %[2]v
+kernel config:  %[3]v
+dashboard link: %[4]v/bug?extid=%[1]v
+compiler:       compiler1
+syz repro:      %[5]v
+C reproducer:   %[6]v
+
+AI-generated root cause summary:
+A use-after-free occurs in dev_config() because dev_release() frees the device
+while config_write() holds an uncounted pointer.
+
+full analysis:  %[7]v
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: %[8]v
+
+report1
+
+---
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+`, extID, crashLogLink, kernelConfigLink, appURL(c.ctx), reproSyzLink, reproCLink, rootCauseLink, creditEmail),
+		reproMsg.Body)
+
+	// Marking the job as correct keeps everything as is.
+	jobURL := fmt.Sprintf("/ai_job?id=%v", resp.ID)
+	values := url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessCorrect}}
+	_, err = c.POSTForm(jobURL, values)
+	require.NoError(t, err)
+	_, block = aiBlock(bugPageLink)
+	checkAnalysis(block)
+
+	// Marking the job as incorrect drops the root cause from the bug,
+	// and the already published link says that it's no longer available.
+	c.advanceTime(time.Second)
+	values.Set("correct", aiCorrectnessIncorrect)
+	_, err = c.POSTForm(jobURL, values)
+	require.NoError(t, err)
+	_, block = aiBlock(bugPageLink)
+	require.Contains(t, block, "no longer available")
+	require.NotContains(t, block, summary)
+	// The text entity is never deleted.
+	_, _, err = getText(c.ctx, textAIRootCause, bug.AIRootCause.Text)
+	require.NoError(t, err)
 }
