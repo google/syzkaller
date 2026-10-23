@@ -1502,8 +1502,28 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 		return err
 	}
 	labelType, labelValue, labelAdd, err := aiBugLabel(ctx, bug, job)
-	if err != nil || labelType == EmptyLabel {
+	if err != nil {
 		return err
+	}
+	var rootCause *BugAIRootCause
+	if job.Type == ai.WorkflowAssessmentSecurity {
+		rc, analysis, err := aiBugRootCause(job)
+		if err != nil {
+			// The root cause is best-effort information, don't fail the whole update.
+			log.Errorf(ctx, "failed to extract AI root cause from job %v: %v", job.ID, err)
+		} else {
+			if analysis != "" {
+				// Text entities are deduplicated, so applying the same result again
+				// (e.g. when it's marked as correct) does not create new entities.
+				if rc.Text, err = putText(ctx, bug.Namespace, textAIRootCause, []byte(analysis)); err != nil {
+					return err
+				}
+			}
+			rootCause = &rc
+		}
+	}
+	if labelType == EmptyLabel && rootCause == nil {
+		return nil
 	}
 	label := BugLabel{
 		Label: labelType,
@@ -1512,7 +1532,10 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
-		if bug.HasUserLabel(labelType) {
+		if rootCause != nil {
+			bug.AIRootCause = *rootCause
+		}
+		if labelType == EmptyLabel || bug.HasUserLabel(labelType) {
 			return nil
 		}
 		if labelAdd {
@@ -1521,6 +1544,64 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 		bug.UnsetLabels(labelType)
 		return nil
 	})
+}
+
+// aiBugRootCause extracts the root cause and the full analysis from an assessment-security job result.
+// Both are empty if there is no analysis, or if the job result was marked as incorrect.
+// Text in the returned root cause is not set.
+func aiBugRootCause(job *aidb.Job) (BugAIRootCause, string, error) {
+	if job.Correct.Valid && !job.Correct.Bool {
+		return BugAIRootCause{}, "", nil
+	}
+	res, err := castJobResults[ai.AssessmentSecurityOutputs](job)
+	if err != nil {
+		return BugAIRootCause{}, "", err
+	}
+	if res.RootCauseSummary == "" || res.RootCauseAnalysis == "" {
+		return BugAIRootCause{}, "", nil
+	}
+	// The analysis refers to specific files and lines, so remember the kernel revision it was done on.
+	args, _ := job.Args.Value.(map[string]any)
+	repo, _ := args["KernelRepo"].(string)
+	commit, _ := args["KernelCommit"].(string)
+	if repo == "" || commit == "" {
+		return BugAIRootCause{}, "", fmt.Errorf("the job has no KernelRepo/KernelCommit arguments")
+	}
+	rootCause := BugAIRootCause{
+		Summary:      res.RootCauseSummary,
+		KernelRepo:   repo,
+		KernelCommit: commit,
+	}
+	return rootCause, res.RootCauseAnalysis, nil
+}
+
+// loadAIRootCauseAnalysis returns the full AI root cause analysis for the bug (if any).
+// The analysis is best-effort information, so errors are only logged.
+func loadAIRootCauseAnalysis(ctx context.Context, bug *Bug) string {
+	data, _, err := getText(ctx, textAIRootCause, bug.AIRootCause.Text)
+	if err != nil {
+		log.Errorf(ctx, "failed to load AI root cause text for bug %v: %v", bug.keyHash(ctx), err)
+	}
+	return string(data)
+}
+
+// The bug page shows the full AI root cause analysis expanded if aiRootCauseParam is set.
+const aiRootCauseParam = "ai_root_cause"
+
+// aiRootCauseLink returns a short link to the AI root cause analysis of the bug with the given reporting ID.
+// It redirects to the bug page, which always shows the current state of the analysis,
+// so the links that were already published don't break if the analysis is later replaced or dropped.
+func aiRootCauseLink(ctx context.Context, extID string) string {
+	return fmt.Sprintf("%v/x/ai_root_cause?x=%v", appURL(ctx), extID)
+}
+
+func handleAIRootCause(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	extID := r.FormValue("x")
+	if !looksLikeReportingHash(extID) {
+		return fmt.Errorf("%w: bad bug id %q", ErrClientBadRequest, extID)
+	}
+	http.Redirect(w, r, fmt.Sprintf("/bug?extid=%v&%v=1#ai-root-cause", extID, aiRootCauseParam), http.StatusFound)
+	return nil
 }
 
 func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {

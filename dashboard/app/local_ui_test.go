@@ -140,11 +140,12 @@ const (
 	localUIPassword       = "localuipasswordlocaluipasswordlocaluipassword"
 	localUIGlobalClient   = "local_ui_global_client"
 	localUIGlobalPassword = "localuiglobalpasswordlocaluiglobalpasswordlocaluiglobalpassword"
+	localUIKASANBugTitle  = "KASAN: slab-use-after-free Write in nr_neigh_put"
 )
 
 func populateBuildsAndCrashes(t *testing.T, client *apiClient) {
 	bugTitles := []string{
-		"KASAN: slab-use-after-free Write in nr_neigh_put",
+		localUIKASANBugTitle,
 		"KCSAN: data-race in mISDN_ioctl / mISDN_read",
 		"WARNING in raw_ioctl",
 	}
@@ -233,7 +234,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		})
 	}
 
-	var lastBugExtID string
+	var lastBugExtID, kasanBugExtID string
 	for i := range 4 {
 		t.Logf("polling bugs iteration %v", i)
 		respBugs, err := globalClient.ReportingPollBugs("email")
@@ -246,6 +247,9 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		var fixCommits []dashapi.Commit
 		for _, rep := range respBugs.Reports {
 			lastBugExtID = rep.ID
+			if rep.Title == localUIKASANBugTitle {
+				kasanBugExtID = rep.ID
+			}
 			isFixed := false
 			for _, bug := range fixedBugs {
 				if rep.Title == bug.Title {
@@ -488,6 +492,8 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		})
 	}
 
+	populateLocalUIRootCause(t, c, globalClient, kasanBugExtID)
+
 	// This should be last so that the app allows creation of all job types.
 	globalClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "agent-local-ui",
@@ -502,6 +508,36 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)},
 		},
 	})
+}
+
+// populateLocalUIRootCause adds a finished assessment-security job with a root cause analysis.
+func populateLocalUIRootCause(t *testing.T, c *Ctx, client *apiClient, bugExtID string) {
+	require.NotEmpty(t, bugExtID)
+	bug, _, _ := c.loadBug(bugExtID)
+	// Use a real kernel tree, so that source references in the analysis lead somewhere.
+	jobID, err := bugJobCreate(c.ctx, string(ai.WorkflowAssessmentSecurity), ai.WorkflowAssessmentSecurity, bug,
+		map[string]any{
+			"KernelRepo":   "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+			"KernelCommit": "v6.12",
+		})
+	require.NoError(t, err)
+	// The analysis is usually in Markdown, which uses backticks for code.
+	// Backticks can't be used in raw string literals, so we use single quotes instead.
+	analysis := strings.ReplaceAll(`### Root Cause Analysis
+
+1. 'foo()' frees the object ('mm/slub.c:100').
+2. 'bar()' still uses it afterwards (mm/slub.c:200):
+   '''c
+   obj->field = 1;
+   '''`, "'", "`")
+	require.NoError(t, client.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"Exploitable":       true,
+			"RootCauseSummary":  "foo() frees the object, but bar() still uses it afterwards.",
+			"RootCauseAnalysis": analysis,
+		},
+	}))
 }
 
 // Advance the timer with random duration. Return the (copied) old time.

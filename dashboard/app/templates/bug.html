@@ -46,6 +46,31 @@ Page with details about a single bug.
 		{{if .Bug.BisectFixJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectFixJob}}</div>{{end}}
 		<div class="bug-bisection-stop"></div>
 	</div>
+	{{with .AIRootCause}}
+		<div class="ai-root-cause-block" id="ai-root-cause">
+			<b>✨ AI-generated root cause summary:</b>
+			<div class="ai-root-cause">{{.Summary}}</div>
+			<div class="collapsible {{if .Expanded}}collapsible-show{{else}}collapsible-hide{{end}}">
+				<div class="head">
+					<span class="show-icon">&#9654;</span>
+					<span class="hide-icon">&#9660;</span>
+					<span>✨ Full AI root cause analysis</span>
+				</div>
+				<div class="content">
+					{{if .KernelCommit}}
+						<div class="ai-root-cause">Based on kernel commit {{link .KernelCommitLink (formatTagHash .KernelCommit)}}:</div>
+					{{end}}
+					<div class="ai-root-cause">{{.Analysis}}</div>
+				</div>
+			</div>
+		</div>
+	{{end}}
+	{{if .AIRootCauseMissing}}
+		<div class="ai-root-cause-block" id="ai-root-cause">
+			The AI-generated root cause analysis is no longer available for this bug
+			(it may have been marked as incorrect).
+		</div>
+	{{end}}
 	{{if .AIWorkflows}}
 		<form method="POST">
 			<select name="ai-job-create" onchange="displayAICreateJobArgs(this)">

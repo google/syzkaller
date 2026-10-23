@@ -1626,6 +1626,7 @@ func needReproForBug(ctx context.Context, bug *Bug) bool {
 var dedupTextFor = map[string]bool{
 	textKernelConfig: true,
 	textMachineInfo:  true,
+	textAIRootCause:  true,
 }
 
 func putText(ctx context.Context, ns, tag string, data []byte) (int64, error) {

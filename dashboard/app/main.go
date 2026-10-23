@@ -62,6 +62,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
+	http.Handle("/x/ai_root_cause", handlerWrapper(handleAIRootCause))
 	http.Handle("/{ns}", handlerWrapper(handleMain))
 	http.Handle("/{ns}/fixed", handlerWrapper(handleFixed))
 	http.Handle("/{ns}/invalid", handlerWrapper(handleInvalid))
@@ -309,6 +310,17 @@ type uiBugPage struct {
 	AIJobs          []*uiAIJob
 	Managers        []string
 	DefaultManager  string
+	AIRootCause     *uiAIRootCause
+	// Set if the AI root cause analysis was requested, but the bug doesn't have it (anymore).
+	AIRootCauseMissing bool
+}
+
+type uiAIRootCause struct {
+	Summary          template.HTML
+	Analysis         template.HTML
+	KernelCommit     string
+	KernelCommitLink string
+	Expanded         bool
 }
 
 func (p *uiBugPage) GetJobs() []*uiAIJob {
@@ -1270,6 +1282,18 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		AIJobs:         aiJobs,
 		Managers:       managers,
 		DefaultManager: bugDefaultManager(ctx, bug, bugDetails),
+	}
+	aiRootCauseRequested := r.FormValue(aiRootCauseParam) != ""
+	if rc := &bug.AIRootCause; rc.Summary != "" {
+		data.AIRootCause = &uiAIRootCause{
+			Summary:          linkifyReport([]byte(rc.Summary), rc.KernelRepo, rc.KernelCommit),
+			Analysis:         linkifyReport([]byte(loadAIRootCauseAnalysis(ctx, bug)), rc.KernelRepo, rc.KernelCommit),
+			KernelCommit:     rc.KernelCommit,
+			KernelCommitLink: vcs.CommitLink(rc.KernelRepo, rc.KernelCommit),
+			Expanded:         aiRootCauseRequested,
+		}
+	} else {
+		data.AIRootCauseMissing = aiRootCauseRequested
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
@@ -2320,11 +2344,18 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 		sub := sourceFileRe.FindStringSubmatch(match)
 		line, _ := strconv.Atoi(sub[3])
 		url := vcs.FileLink(repo, commit, sub[2], line)
+		if url == "" {
+			return match
+		}
 		return fmt.Sprintf("%v<a href='%v'>%v:%v</a>%v", sub[1], url, sub[2], sub[3], sub[4])
 	}))
 }
 
-var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
+// sourceFileRe matches file:line references in crash reports and in AI-generated text
+// (where they are frequently put into backticks, or followed by a column number or punctuation).
+var sourceFileRe = regexp.MustCompile(`(^|[ \t\n(\[` + "`" + `])` +
+	`([a-zA-Z0-9/_.-]+\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)` +
+	`([ \t\n!)\]` + "`" + `,.:;]|$)`)
 
 func makeUIAssets(ctx context.Context, build *Build, crash *Crash, forReport bool) []*uiAsset {
 	var uiAssets []*uiAsset

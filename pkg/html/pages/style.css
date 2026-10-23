@@ -512,6 +512,26 @@ aside {
 	display: none;
 }
 
+.ai-root-cause-block {
+	background: #eef2fb;
+	border: 1px solid #c9d4ef;
+	border-radius: 4px;
+	padding: 5pt;
+	margin-bottom: 15px;
+}
+
+.ai-root-cause-block .collapsible {
+	background: white;
+	margin-bottom: 0;
+}
+
+.ai-root-cause {
+	margin: 5pt;
+	max-width: 120ch;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
 .ai-jobs-form {
 	padding: 15px;
 	box-sizing: border-box;
