@@ -1,7 +1,8 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+// Package app implements the syzbot dashboard App Engine application.
+package app
 
 import (
 	"cloud.google.com/go/profiler"
