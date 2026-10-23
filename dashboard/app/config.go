@@ -150,9 +150,10 @@ type AIConfig struct {
 	// Whether to upload generated patches to gerrit.
 	UploadPatchesToGerrit bool
 	// Whether to automatically create C reproducer generation jobs for eligible bugs.
-	AutoReproC   bool
-	Stages       []AIPatchStageConfig
-	SecurityPrio func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
+	AutoReproC bool
+	Stages     []AIPatchStageConfig
+	// SecurityAssessment maps the results of the security assessment workflow to bug labels.
+	SecurityAssessment func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels `json:"-"`
 
 	// Emails or domains allowed to execute external AI commands (#syz upstream, reject, etc).
 	AllowedCommandAuthors []string
@@ -161,6 +162,14 @@ type AIConfig struct {
 	BaseRepository string
 	BaseBranch     string
 	BaseCommit     string
+}
+
+// SecurityAssessmentLabels holds the bug labels derived from the security assessment results.
+// Empty values mean that the corresponding labels are not changed.
+// Labels that were manually set by users are never overwritten.
+type SecurityAssessmentLabels struct {
+	Prio  BugPrio
+	Route string
 }
 
 // AIPatchStageConfig describes a single stage in the AI patch reporting pipeline.
@@ -764,9 +773,9 @@ func checkAIConfig(ns string, cfg *AIConfig) {
 			cfg.Stages[i].IterationDebounce = 30 * time.Minute
 		}
 	}
-	if cfg.SecurityPrio == nil {
-		cfg.SecurityPrio = func(*Bug, ai.AssessmentSecurityOutputs) BugPrio {
-			return "" // don't apply any security labels
+	if cfg.SecurityAssessment == nil {
+		cfg.SecurityAssessment = func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels {
+			return SecurityAssessmentLabels{} // don't apply any security labels
 		}
 	}
 }

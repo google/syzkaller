@@ -1330,7 +1330,9 @@ func TestAIAssessmentNoReport(t *testing.T) {
 		Stages: []AIPatchStageConfig{
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
-		SecurityPrio: func(*Bug, ai.AssessmentSecurityOutputs) BugPrio { return "" },
+		SecurityAssessment: func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels {
+			return SecurityAssessmentLabels{}
+		},
 	})
 
 	build := testBuild(1)

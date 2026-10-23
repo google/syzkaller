@@ -509,6 +509,59 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	require.Len(t, labels, 0)
 }
 
+func TestAIAssessmentSecurity(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		SecurityAssessment: func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels {
+			return SecurityAssessmentLabels{Prio: HighPrioBug, Route: "route-a"}
+		},
+	})
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "WARNING: route label bug"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	jobID := c.runSecurityAssessment(t)
+	bug, _, _ := c.loadBug(extID)
+	require.Equal(t, []BugLabel{{Label: PriorityLabel, Value: string(HighPrioBug), Link: jobID}},
+		bug.LabelValues(PriorityLabel))
+	require.Equal(t, []BugLabel{{Label: RouteLabel, Value: "route-a", Link: jobID}},
+		bug.LabelValues(RouteLabel))
+
+	// Manually set labels are not overwritten by subsequent assessments.
+	require.NoError(t, updateSingleBug(c.ctx, bug.key(c.ctx), func(bug *Bug) error {
+		labelSet := makeLabelSet(c.ctx, bug)
+		if err := bug.SetLabels(labelSet, []BugLabel{
+			{Label: PriorityLabel, Value: string(LowPrioBug), SetBy: "user@email.com"},
+		}); err != nil {
+			return err
+		}
+		return bug.SetLabels(labelSet, []BugLabel{
+			{Label: RouteLabel, Value: "route-b", SetBy: "user@email.com"},
+		})
+	}))
+	jobID = c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
+	require.Equal(t, jobID, c.runSecurityAssessment(t))
+	bug, _, _ = c.loadBug(extID)
+	assert.True(t, bug.HasLabel(PriorityLabel, string(LowPrioBug)))
+	assert.True(t, bug.HasLabel(RouteLabel, "route-b"))
+}
+
+func (ctx *Ctx) runSecurityAssessment(t *testing.T) string {
+	resp := ctx.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      resp.ID,
+		Results: map[string]any{"Explanation": "Test"},
+	}))
+	return resp.ID
+}
+
 func TestAIJobsFiltering(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
