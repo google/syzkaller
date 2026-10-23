@@ -244,7 +244,40 @@ func TestToolConsecutiveBadCallErrors(t *testing.T) {
 			Args: map[string]any{"Query": "fail-6"},
 		}
 		err := session.callTools(ctx, tools, []*backend.FunctionCall{call6})
-		require.ErrorContains(t, err, `agent got stuck in a loop making 6 consecutive failing calls to tool "test-tool"`)
+		require.ErrorContains(t, err,
+			`agent got stuck in a loop making 6 failing calls to tool "test-tool" without a successful call`)
+	})
+
+	t.Run("no-matches-not-counted", func(t *testing.T) {
+		searchTool := NewFuncTool("search-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+			if args.Query == "bad" {
+				return struct{}{}, BadCallError("bad expression")
+			}
+			return struct{}{}, NoMatchesError("no matches")
+		}, "search tool")
+		searchTools := map[string]Tool{"search-tool": searchTool}
+		session := &agentSession{LLMAgent: &LLMAgent{Name: "test-agent"}}
+		ctx := newTestContext(t, nil)
+
+		// A real failure is counted.
+		badCall := &backend.FunctionCall{ID: "b1", Name: "search-tool", Args: map[string]any{"Query": "bad"}}
+		require.NoError(t, session.callTools(ctx, searchTools, []*backend.FunctionCall{badCall}))
+		require.Equal(t, 1, session.toolErrorCounts["search-tool"])
+
+		// Many empty search results neither fail the agent, nor reset the failure counter.
+		for i := 1; i <= 2*hardLoopDetectionLimit; i++ {
+			call := &backend.FunctionCall{
+				ID:   fmt.Sprintf("n%d", i),
+				Name: "search-tool",
+				Args: map[string]any{"Query": fmt.Sprintf("missing-%d", i)},
+			}
+			require.NoError(t, session.callTools(ctx, searchTools, []*backend.FunctionCall{call}))
+			lastMsg := session.req[len(session.req)-1].content
+			require.Len(t, lastMsg.Parts, 1)
+			require.Equal(t, "no matches", lastMsg.Parts[0].FunctionResponse.Response["error"])
+		}
+		require.Equal(t, 1, session.toolErrorCounts["search-tool"])
+		require.False(t, session.answerNow)
 	})
 
 	t.Run("subagent-triggers-answer-now", func(t *testing.T) {

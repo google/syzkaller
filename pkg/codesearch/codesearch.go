@@ -271,7 +271,7 @@ func (index *Index) FindFunctionAtLine(file string, line int) (*EntityInfo, erro
 func (index *Index) definitionSource(contextFile, name string, comment bool) (*EntityInfo, error) {
 	def := index.findDefinition(contextFile, name)
 	if def == nil {
-		return nil, aflow.BadCallError("requested entity does not exist")
+		return nil, aflow.NoMatchesError("requested entity does not exist")
 	}
 	lineRange := def.Body
 	if comment {
@@ -308,7 +308,7 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 	isField := strings.Contains(name, "::")
 	target := index.findDefinition(contextFile, name)
 	if target == nil && !isField {
-		return nil, 0, aflow.BadCallError("requested entity does not exist")
+		return nil, 0, aflow.NoMatchesError("requested entity does not exist")
 	}
 	if srcPrefix != "" {
 		srcPrefix = filepath.Clean(srcPrefix)
@@ -396,7 +396,7 @@ func (index *Index) findDefinition(contextFile, name string) *Definition {
 func (index *Index) GetStructLayout(contextFile, name string, fieldOffset *uint) ([]FieldInfo, error) {
 	def := index.findDefinition(contextFile, name)
 	if def == nil {
-		return nil, aflow.BadCallError("requested entity does not exist")
+		return nil, aflow.NoMatchesError("requested entity does not exist")
 	}
 	if def.Kind != EntityKindStruct && def.Kind != EntityKindUnion {
 		return nil, aflow.BadCallError("requested entity %v is not a struct/union (is %v)", name, def.Kind)
