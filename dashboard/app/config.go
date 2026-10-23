@@ -915,6 +915,13 @@ func checkNamespaceReporting(ns string, cfg *Config) {
 		checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
 			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
 		parentAccessLevel = reporting.AccessLevel
+		for label := range reporting.Labels {
+			labelType, _ := splitLabel(label)
+			if labelAccessLevel(labelType) > reporting.AccessLevel {
+				panic(fmt.Sprintf("reporting %q/%q: label %q is not visible at the reporting access level",
+					ns, reporting.Name, label))
+			}
+		}
 		if reporting.DailyLimit < 0 || reporting.DailyLimit > 1000 {
 			panic(fmt.Sprintf("reporting %v: bad daily limit %v", reporting.Name, reporting.DailyLimit))
 		}
