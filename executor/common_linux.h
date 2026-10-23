@@ -75,7 +75,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
     SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
     ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
-    __NR_syz_usbip_server_init
+    __NR_syz_usbip_server_init || __NR_syz_vsock_virtio_reprobe
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -6415,4 +6415,79 @@ static long syz_kfuzztest_run(volatile long test_name_ptr, volatile long input_d
 	return 0;
 }
 
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_vsock_virtio_reprobe
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#define VIRTIO_BUS_DEVICES_DIR "/sys/bus/virtio/devices"
+#define VSOCK_VIRTIO_DRIVER_DIR "/sys/bus/virtio/drivers/vmw_vsock_virtio_transport"
+// VIRTIO_ID_VSOCK as formatted by the virtio bus "device" sysfs attribute.
+#define VIRTIO_ID_VSOCK_SYSFS "0x0013"
+
+// Finds the virtio-vsock device by its virtio device ID rather than by its current driver binding,
+// so that a device left unbound by an earlier failed rebind is still found and rebound.
+static bool find_virtio_vsock_device(char* name, size_t size)
+{
+	DIR* dir = opendir(VIRTIO_BUS_DEVICES_DIR);
+	if (!dir) {
+		debug("syz_vsock_virtio_reprobe: opendir(%s) failed: %d\n", VIRTIO_BUS_DEVICES_DIR, errno);
+		return false;
+	}
+	bool found = false;
+	struct dirent* ent;
+	while (!found && (ent = readdir(dir))) {
+		if (ent->d_name[0] == '.')
+			continue;
+		char path[512];
+		snprintf(path, sizeof(path), VIRTIO_BUS_DEVICES_DIR "/%s/device", ent->d_name);
+		int fd = open(path, O_RDONLY);
+		if (fd == -1)
+			continue;
+		char id[16] = {};
+		ssize_t n = read(fd, id, sizeof(id) - 1);
+		close(fd);
+		if (n > 0 && strncmp(id, VIRTIO_ID_VSOCK_SYSFS, strlen(VIRTIO_ID_VSOCK_SYSFS)) == 0) {
+			snprintf(name, size, "%s", ent->d_name);
+			found = true;
+		}
+	}
+	closedir(dir);
+	return found;
+}
+
+// Unbinds the virtio-vsock device from vmw_vsock_virtio_transport, waits delay_us microseconds,
+// and binds it again. This runs virtio_vsock_remove() and virtio_vsock_probe() concurrently
+// with AF_VSOCK traffic issued by other calls. Rebinding is always attempted so that the VM
+// keeps a working vsock transport.
+static long syz_vsock_virtio_reprobe(volatile long a0)
+{
+	long delay_us = a0;
+	if (delay_us < 0)
+		delay_us = 0;
+	if (delay_us > 1000)
+		delay_us = 1000;
+	char dev[256];
+	if (!find_virtio_vsock_device(dev, sizeof(dev))) {
+		debug("syz_vsock_virtio_reprobe: no virtio-vsock device\n");
+		errno = ENODEV;
+		return -1;
+	}
+	bool unbound = write_file(VSOCK_VIRTIO_DRIVER_DIR "/unbind", "%s", dev);
+	if (!unbound) {
+		debug("syz_vsock_virtio_reprobe: unbind(%s) failed: %d\n", dev, errno);
+	}
+	if (delay_us)
+		usleep(delay_us);
+	bool rebound = write_file(VSOCK_VIRTIO_DRIVER_DIR "/bind", "%s", dev);
+	if (!rebound) {
+		debug("syz_vsock_virtio_reprobe: bind(%s) failed: %d\n", dev, errno);
+	}
+	return unbound && rebound ? 0 : -1;
+}
 #endif
