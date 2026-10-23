@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +27,17 @@ func TestZoneToRegion(t *testing.T) {
 func TestDiskSizeGB(t *testing.T) {
 	assert.Equal(t, 10, diskSizeGB("c4a-standard-2"))
 	assert.Equal(t, 0, diskSizeGB("e2-standard-2"))
+}
+
+func TestLastActiveLabelValue(t *testing.T) {
+	assert.Equal(t, "20260102-030405", LastActiveLabelValue(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)))
+	// The value must be in UTC regardless of the time zone.
+	tz := time.FixedZone("UTC+2", 2*60*60)
+	assert.Equal(t, "20261231-220000", LastActiveLabelValue(time.Date(2027, 1, 1, 0, 0, 0, 0, tz)))
+	// Lexicographic order must match chronological order.
+	earlier := LastActiveLabelValue(time.Date(2026, 9, 30, 23, 59, 59, 0, time.UTC))
+	later := LastActiveLabelValue(time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+	assert.Less(t, earlier, later)
 }
 
 func TestLocalZone(t *testing.T) {

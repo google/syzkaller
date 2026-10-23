@@ -69,10 +69,13 @@ func Run(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg Config) err
 	if err != nil {
 		return err
 	}
+	// The Loop() methods return only after all VM instances are closed, so it's safe to close the pools here.
+	defer base.close()
 	new, err := setup("new", newCfg, cfg.Debug)
 	if err != nil {
 		return err
 	}
+	defer new.close()
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		info, err := manager.LoadSeeds(newCfg, true)

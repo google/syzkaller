@@ -41,6 +41,7 @@ type kernelContext struct {
 	serv       execbackend.Server
 	servStats  rpcserver.Stats
 	crashes    chan *report.Report
+	vmPool     *vm.Pool
 	pool       *vm.Dispatcher
 	features   flatrpc.Feature
 	candidates chan []fuzzer.Candidate
@@ -84,13 +85,21 @@ func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, erro
 		return nil, fmt.Errorf("failed to create rpc server for %q: %w", name, err)
 	}
 
-	vmPool, err := vm.Create(cfg, debug)
+	kernelCtx.vmPool, err = vm.Create(cfg, debug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create vm.Pool for %q: %w", name, err)
 	}
 
-	kernelCtx.pool = vm.NewDispatcher(vmPool, kernelCtx.fuzzerInstance)
+	kernelCtx.pool = vm.NewDispatcher(kernelCtx.vmPool, kernelCtx.fuzzerInstance)
 	return kernelCtx, nil
+}
+
+// close releases the resources held by the kernel context.
+// It must only be called once Loop has returned (or if Loop was never started).
+func (kc *kernelContext) close() {
+	if err := kc.vmPool.Close(); err != nil {
+		log.Logf(0, "%s: failed to close the vm pool: %v", kc.name, err)
+	}
 }
 
 func (kc *kernelContext) Loop(ctx context.Context) error {

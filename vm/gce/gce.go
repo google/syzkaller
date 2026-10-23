@@ -28,12 +28,14 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/kd"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -56,6 +58,16 @@ type Config struct {
 	DisplayDevice        bool   `json:"display_device"`        // enable a virtual display device
 	NicType              string `json:"nic_type"`              // type of vNIC to be used (e.g. GVNIC).
 	NestedVirtualization bool   `json:"nested_virtualization"` // Whether to enable nested virtualization or not.
+	// Mark the created image for deletion once no manager has used it for a while.
+	// Requires gce_image to be empty.
+	//
+	// Every image created from the image file gets the gce.LabelLastActive label, which is refreshed
+	// every labelRefreshPeriod while a pool uses the image. With this option the image also gets
+	// the gce.LabelAutoDelete label, and an external job (in syz-cluster, an Argo CronWorkflow)
+	// deletes such images once their gce.LabelLastActive is older than gce.StaleImageAge.
+	// The image is intentionally not deleted in Pool.Close(): the same image may be reused
+	// by the next pool of the same manager.
+	AutoDeleteImage bool `json:"auto_delete_image"`
 	// Username to connect to ssh-serialport.googleapis.com.
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise take the user from `gcloud compute connect-to-serial-port --dry-run`.
@@ -74,6 +86,8 @@ type Pool struct {
 	GCE            *gce.Context
 	consoleReadCmd string   // optional: command to read non-standard kernel console
 	alreadyCreated sync.Map // Tracks the first creation per instance.
+	closed         chan struct{}
+	wg             sync.WaitGroup // background goroutines, see Close()
 }
 
 type instance struct {
@@ -97,6 +111,117 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 }
 
 func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
+	cfg, err := parseConfig(env)
+	if err != nil {
+		return nil, err
+	}
+
+	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
+		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
+
+	createdImage := cfg.GCEImage == ""
+	if createdImage {
+		cfg.GCEImage = env.Name
+		if err := createImage(GCE, cfg, env); err != nil {
+			return nil, err
+		}
+	}
+	pool := &Pool{
+		cfg:            cfg,
+		env:            env,
+		GCE:            GCE,
+		consoleReadCmd: consoleReadCmd,
+		closed:         make(chan struct{}),
+	}
+	// Keep the last-active label of our own image fresh, see Config.AutoDeleteImage.
+	// It's cheap (a few API calls every labelRefreshPeriod), so it's done regardless of the option.
+	if createdImage {
+		pool.wg.Go(pool.refreshImageLabelLoop)
+	}
+	return pool, nil
+}
+
+// createImage creates the GCE image cfg.GCEImage from the env.Image file.
+// If an image with that name already exists and was created from the same file
+// (gce.LabelImageHash), it's reused instead: uploading and converting a multi-GB image
+// takes minutes, and e.g. pkg/instance creates several pools from the same image in a row.
+func createImage(GCE *gce.Context, cfg *Config, env *vmimpl.Env) error {
+	sig, err := hash.File(env.Image)
+	if err != nil {
+		return fmt.Errorf("failed to hash image %v: %w", env.Image, err)
+	}
+	imageHash := sig.String()
+	image, err := GCE.GetImage(cfg.GCEImage)
+	if err != nil {
+		return fmt.Errorf("failed to get GCE image: %w", err)
+	}
+	if canReuseImage(image, imageHash, time.Now()) {
+		log.Logf(0, "reusing GCE image %v created from the same image file", cfg.GCEImage)
+		// Refresh the last-active label right away rather than after the first labelRefreshPeriod,
+		// and mark the image for auto-deletion if this config asks for it (the image may have been
+		// created by a config that did not).
+		image.Labels[gce.LabelLastActive] = gce.LastActiveLabelValue(time.Now())
+		if cfg.AutoDeleteImage {
+			image.Labels[gce.LabelAutoDelete] = "true"
+		}
+		if err := GCE.SetImageLabels(image, image.Labels); err != nil {
+			return fmt.Errorf("failed to update the labels of GCE image %v: %w", cfg.GCEImage, err)
+		}
+		return nil
+	}
+	gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
+	log.Logf(0, "uploading image %v to %v...", env.Image, gcsImage)
+	if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
+		return err
+	}
+	// The tarball is only needed to create the GCE image, delete it afterwards
+	// so that such files don't accumulate in the bucket.
+	defer func() {
+		if err := deleteImageFromGCS(gcsImage); err != nil {
+			log.Logf(0, "failed to delete %v from GCS: %v", gcsImage, err)
+		}
+	}()
+	log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
+	if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
+		return fmt.Errorf("failed to delete GCE image: %w", err)
+	}
+	labels := map[string]string{
+		gce.LabelImageHash:  imageHash,
+		gce.LabelLastActive: gce.LastActiveLabelValue(time.Now()),
+	}
+	if cfg.AutoDeleteImage {
+		labels[gce.LabelAutoDelete] = "true"
+	}
+	if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS, labels); err != nil {
+		return fmt.Errorf("failed to create GCE image: %w", err)
+	}
+	return nil
+}
+
+// maxReuseAge is the maximum age of the gce.LabelLastActive label of an auto-deleted image
+// for it to be reused. Such an image may be deleted by the cleanup job at any moment once
+// the label is older than gce.StaleImageAge, and we don't want to race with it.
+const maxReuseAge = gce.StaleImageAge / 2
+
+// canReuseImage returns whether the existing image (nil if it does not exist) is ready,
+// was created from an image file with the given hash and is not about to be deleted.
+func canReuseImage(image *compute.Image, imageHash string, now time.Time) bool {
+	if image == nil || image.Status != "READY" || image.Labels[gce.LabelImageHash] != imageHash {
+		return false
+	}
+	if _, autoDelete := image.Labels[gce.LabelAutoDelete]; !autoDelete {
+		return true
+	}
+	lastActive, err := time.Parse(gce.LastActiveTimeFormat, image.Labels[gce.LabelLastActive])
+	return err == nil && now.Sub(lastActive) < maxReuseAge
+}
+
+func parseConfig(env *vmimpl.Env) (*Config, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
@@ -124,37 +249,10 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 	if cfg.GCEImage != "" && env.Image != "" {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
-
-	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
-	if err != nil {
-		return nil, err
+	if cfg.AutoDeleteImage && cfg.GCEImage != "" {
+		return nil, fmt.Errorf("auto_delete_image requires gce_image to be empty")
 	}
-
-	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
-		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
-
-	if cfg.GCEImage == "" {
-		cfg.GCEImage = env.Name
-		gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
-		log.Logf(0, "uploading image %v to %v...", env.Image, gcsImage)
-		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
-			return nil, err
-		}
-		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
-		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
-			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
-		}
-		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS); err != nil {
-			return nil, fmt.Errorf("failed to create GCE image: %w", err)
-		}
-	}
-	pool := &Pool{
-		cfg:            cfg,
-		env:            env,
-		GCE:            GCE,
-		consoleReadCmd: consoleReadCmd,
-	}
-	return pool, nil
+	return cfg, nil
 }
 
 func initGCE(zoneID, projectID string) (*gce.Context, error) {
@@ -183,6 +281,52 @@ func initGCE(zoneID, projectID string) (*gce.Context, error) {
 
 func (pool *Pool) Count() int {
 	return pool.cfg.Count
+}
+
+// Close stops the background goroutines. The GCE image is not deleted here:
+// callers such as pkg/instance.Env.Test create and close multiple pools for
+// the same manager/image in a row, and an external cleanup job is needed anyway
+// in case the process crashes or is killed before Close runs.
+func (pool *Pool) Close() error {
+	close(pool.closed)
+	pool.wg.Wait()
+	return nil
+}
+
+// labelRefreshPeriod is how often the gce.LabelLastActive label of the image is refreshed
+// while the pool is alive (see Config.AutoDeleteImage). It must be much smaller than gce.StaleImageAge.
+const labelRefreshPeriod = 30 * time.Minute
+
+func (pool *Pool) refreshImageLabelLoop() {
+	ticker := time.NewTicker(labelRefreshPeriod)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-pool.closed:
+			return
+		case <-ticker.C:
+		}
+		if err := refreshLastActiveLabel(pool.GCE, pool.cfg.GCEImage); err != nil {
+			log.Logf(0, "GCE: failed to refresh the %v label of image %v: %v",
+				gce.LabelLastActive, pool.cfg.GCEImage, err)
+		}
+	}
+}
+
+// refreshLastActiveLabel sets the gce.LabelLastActive label of the image to the current time.
+func refreshLastActiveLabel(GCE *gce.Context, imageName string) error {
+	image, err := GCE.GetImage(imageName)
+	if err != nil {
+		return err
+	}
+	if image == nil {
+		return fmt.Errorf("image does not exist")
+	}
+	if image.Labels == nil {
+		image.Labels = make(map[string]string)
+	}
+	image.Labels[gce.LabelLastActive] = gce.LastActiveLabelValue(time.Now())
+	return GCE.SetImageLabels(image, image.Labels)
 }
 
 func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
@@ -617,4 +761,13 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
+}
+
+func deleteImageFromGCS(gcsImage string) error {
+	GCS, err := gcs.NewClient(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %w", err)
+	}
+	defer GCS.Close()
+	return GCS.DeleteFile(gcsImage)
 }
