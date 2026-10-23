@@ -21,6 +21,7 @@ include <uapi/linux/tc_act/tc_csum.h>
 include <uapi/linux/tc_act/tc_ctinfo.h>
 include <uapi/linux/tc_act/tc_defact.h>
 include <uapi/linux/tc_act/tc_gact.h>
+include <uapi/linux/tc_act/tc_gate.h>
 include <uapi/linux/tc_act/tc_ife.h>
 include <uapi/linux/tc_act/tc_mirred.h>
 include <uapi/linux/tc_act/tc_mpls.h>
@@ -34,6 +35,7 @@ include <uapi/linux/tc_act/tc_vlan.h>
 include <uapi/linux/tc_ematch/tc_em_cmp.h>
 include <uapi/linux/tc_ematch/tc_em_ipt.h>
 include <uapi/linux/tc_ematch/tc_em_meta.h>
+include <uapi/linux/tc_ematch/tc_em_text.h>
 
 sendmsg$nl_route_sched(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg_route_sched]], f flags[send_flags])
 
@@ -99,6 +101,11 @@ type tca_kind_options_t[NAME, VALUES] {
 	TCA_KIND	nlattr[TCA_KIND, string[NAME]]
 	TCA_OPTIONS	nlattr[TCA_OPTIONS, VALUES]
 }
+
+type tca_kind_options_nested_t[NAME, VALUES] {
+	TCA_KIND	nlattr[TCA_KIND, string[NAME]]
+	TCA_OPTIONS	nlnest[TCA_OPTIONS, VALUES]
+}
 # ------------------------------ tc qdisc ------------------------------
 qdisc_kind_options [
 	q_cake			tca_kind_options_t["cake", array[cake_policy]]
@@ -130,12 +137,14 @@ qdisc_kind_options [
 	q_skbprio		tca_kind_options_t["skbprio", int32]
 	q_taprio		tca_kind_options_t["taprio", array[taprio_policy]]
 	q_tbf			tca_kind_options_t["tbf", array[tbf_policy]]
+	q_dualpi2		tca_kind_options_nested_t["dualpi2", array[dualpi2_policy]]
+	q_ets			tca_kind_options_nested_t["ets", array[ets_policy]]
 	q_atm			nlattr[TCA_KIND, string["atm"]]
 	q_drr			nlattr[TCA_KIND, string["drr"]]
 	q_blackhole		nlattr[TCA_KIND, string["blackhole"]]
 	q_clsact		nlattr[TCA_KIND, string["clsact"]]
 	q_pfifo_fast		nlattr[TCA_KIND, string["pfifo_fast"]]
-	q_qfg			nlattr[TCA_KIND, string["qfq"]]
+	q_qfq			nlattr[TCA_KIND, string["qfq"]]
 	q_ingress		nlattr[TCA_KIND, string["ingress"]]
 	q_mq			nlattr[TCA_KIND, string["mq"]]
 ] [varlen]
@@ -187,6 +196,31 @@ tc_etf_qopt {
 	clockid	flags[tc_etf_clock_id, int32]
 	flags	flags[tc_etf_flags, int32]
 }
+
+dualpi2_policy [
+	TCA_DUALPI2_LIMIT		nlattr[TCA_DUALPI2_LIMIT, int32]
+	TCA_DUALPI2_MEMORY_LIMIT	nlattr[TCA_DUALPI2_MEMORY_LIMIT, int32]
+	TCA_DUALPI2_TARGET		nlattr[TCA_DUALPI2_TARGET, int32]
+	TCA_DUALPI2_TUPDATE		nlattr[TCA_DUALPI2_TUPDATE, int32]
+	TCA_DUALPI2_ALPHA		nlattr[TCA_DUALPI2_ALPHA, int32]
+	TCA_DUALPI2_BETA		nlattr[TCA_DUALPI2_BETA, int32]
+	TCA_DUALPI2_STEP_THRESH_PKTS	nlattr[TCA_DUALPI2_STEP_THRESH_PKTS, int32]
+	TCA_DUALPI2_STEP_THRESH_US	nlattr[TCA_DUALPI2_STEP_THRESH_US, int32]
+	TCA_DUALPI2_MIN_QLEN_STEP	nlattr[TCA_DUALPI2_MIN_QLEN_STEP, int32]
+	TCA_DUALPI2_COUPLING		nlattr[TCA_DUALPI2_COUPLING, int8]
+	TCA_DUALPI2_DROP_OVERLOAD	nlattr[TCA_DUALPI2_DROP_OVERLOAD, flags[tc_dualpi2_drop_overload, int8]]
+	TCA_DUALPI2_DROP_EARLY		nlattr[TCA_DUALPI2_DROP_EARLY, flags[tc_dualpi2_drop_early, int8]]
+	TCA_DUALPI2_C_PROTECTION	nlattr[TCA_DUALPI2_C_PROTECTION, int8[0:100]]
+	TCA_DUALPI2_ECN_MASK		nlattr[TCA_DUALPI2_ECN_MASK, flags[tc_dualpi2_ecn_mask, int8]]
+	TCA_DUALPI2_SPLIT_GSO		nlattr[TCA_DUALPI2_SPLIT_GSO, flags[tc_dualpi2_split_gso, int8]]
+] [varlen]
+
+ets_policy [
+	TCA_ETS_NBANDS	nlattr[TCA_ETS_NBANDS, int8[1:TCQ_ETS_MAX_BANDS]]
+	TCA_ETS_NSTRICT	nlattr[TCA_ETS_NSTRICT, int8[0:TCQ_ETS_MAX_BANDS]]
+	TCA_ETS_QUANTA	nlnest[TCA_ETS_QUANTA, array[nlattr[TCA_ETS_QUANTA_BAND, int32]]]
+	TCA_ETS_PRIOMAP	nlnest[TCA_ETS_PRIOMAP, array[nlattr[TCA_ETS_PRIOMAP_BAND, int8[0:TCQ_ETS_MAX_BANDS]]]]
+] [varlen]
 
 fq_policy [
 	TCA_FQ_PLIMIT			nlattr[TCA_FQ_PLIMIT, int32]
@@ -336,15 +370,23 @@ entry_policy$taprio [
 	TCA_TAPRIO_SCHED_ENTRY_INTERVAL		nlattr[TCA_TAPRIO_SCHED_ENTRY_INTERVAL, int32]
 ] [varlen]
 
+taprio_tc_entry_policy [
+	TCA_TAPRIO_TC_ENTRY_INDEX	nlattr[TCA_TAPRIO_TC_ENTRY_INDEX, int32]
+	TCA_TAPRIO_TC_ENTRY_MAX_SDU	nlattr[TCA_TAPRIO_TC_ENTRY_MAX_SDU, int32]
+	TCA_TAPRIO_TC_ENTRY_FP		nlattr[TCA_TAPRIO_TC_ENTRY_FP, int32]
+] [varlen]
+
 taprio_policy [
 	TCA_TAPRIO_ATTR_PRIOMAP				nlattr[TCA_TAPRIO_ATTR_PRIOMAP, tc_mqprio_qopt]
 	TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST		nlnest[TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST, array[nlnest[TCA_TAPRIO_SCHED_ENTRY, array[entry_policy$taprio]]]]
 	TCA_TAPRIO_ATTR_SCHED_BASE_TIME			nlattr[TCA_TAPRIO_ATTR_SCHED_BASE_TIME, int64]
-	TCA_TAPRIO_ATTR_SCHED_CLOCKID			nlattr[TCA_TAPRIO_ATTR_SCHED_CLOCKID, int32]
+	TCA_TAPRIO_ATTR_SCHED_SINGLE_ENTRY		nlnest[TCA_TAPRIO_ATTR_SCHED_SINGLE_ENTRY, array[entry_policy$taprio]]
+	TCA_TAPRIO_ATTR_SCHED_CLOCKID			nlattr[TCA_TAPRIO_ATTR_SCHED_CLOCKID, flags[tc_etf_clock_id, int32]]
 	TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME		nlattr[TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME, int64]
 	TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME_EXTENSION	nlattr[TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME_EXTENSION, int64]
 	TCA_TAPRIO_ATTR_FLAGS				nlattr[TCA_TAPRIO_ATTR_FLAGS, int32]
 	TCA_TAPRIO_ATTR_TXTIME_DELAY			nlattr[TCA_TAPRIO_ATTR_TXTIME_DELAY, int32]
+	TCA_TAPRIO_ATTR_TC_ENTRY			nlnest[TCA_TAPRIO_ATTR_TC_ENTRY, array[taprio_tc_entry_policy]]
 ] [varlen]
 
 tbf_policy [
@@ -567,12 +609,18 @@ tclass_kind_options [
 	c_skbprio	nlattr[TCA_KIND, string["skbprio"]]
 	c_taprio	nlattr[TCA_KIND, string["taprio"]]
 	c_tbf		nlattr[TCA_KIND, string["tbf"]]
+	c_dualpi2	nlattr[TCA_KIND, string["dualpi2"]]
+	c_ets		tca_kind_options_nested_t["ets", array[ets_class_policy]]
 	c_ingress	nlattr[TCA_KIND, string["ingress"]]
 	c_clsact	nlattr[TCA_KIND, string["clsact"]]
 ] [varlen]
 
 drr_policy [
 	TCA_DRR_QUANTUM	nlattr[TCA_DRR_QUANTUM, int32]
+] [varlen]
+
+ets_class_policy [
+	TCA_ETS_QUANTA_BAND	nlattr[TCA_ETS_QUANTA_BAND, int32]
 ] [varlen]
 
 htb_policy$class [
@@ -886,6 +934,7 @@ tca_actions [
 	m_skbmod	nlattr_tca_actions[tcf_action_policy["skbmod", skbmod_policy]]
 	m_tunnel_key	nlattr_tca_actions[tcf_action_policy["tunnel_key", tunnel_key_policy]]
 	m_vlan		nlattr_tca_actions[tcf_action_policy["vlan", vlan_policy$act]]
+	m_gate		nlattr_tca_actions[tcf_action_policy["gate", gate_policy]]
 ] [varlen]
 
 type tcf_action_policy[NAME, VALUES] {
@@ -942,6 +991,25 @@ ctinfo_policy [
 gact_policy [
 	TCA_GACT_PARMS	nlattr[TCA_GACT_PARMS, tc_gen]
 	TCA_GACT_PROB	nlattr[TCA_GACT_PROB, tc_gact_p]
+] [varlen]
+
+gate_policy [
+	TCA_GATE_PARMS		nlattr[TCA_GATE_PARMS, tc_gen]
+	TCA_GATE_PRIORITY	nlattr[TCA_GATE_PRIORITY, int32]
+	TCA_GATE_ENTRY_LIST	nlnest[TCA_GATE_ENTRY_LIST, array[nlnest[TCA_GATE_ONE_ENTRY, array[gate_entry_policy]]]]
+	TCA_GATE_BASE_TIME	nlattr[TCA_GATE_BASE_TIME, int64]
+	TCA_GATE_CYCLE_TIME	nlattr[TCA_GATE_CYCLE_TIME, int64]
+	TCA_GATE_CYCLE_TIME_EXT	nlattr[TCA_GATE_CYCLE_TIME_EXT, int64]
+	TCA_GATE_FLAGS		nlattr[TCA_GATE_FLAGS, int32]
+	TCA_GATE_CLOCKID	nlattr[TCA_GATE_CLOCKID, flags[tc_etf_clock_id, int32]]
+] [varlen]
+
+gate_entry_policy [
+	TCA_GATE_ENTRY_INDEX		nlattr[TCA_GATE_ENTRY_INDEX, int32]
+	TCA_GATE_ENTRY_GATE		nlattr[TCA_GATE_ENTRY_GATE, void]
+	TCA_GATE_ENTRY_INTERVAL		nlattr[TCA_GATE_ENTRY_INTERVAL, int32]
+	TCA_GATE_ENTRY_IPV		nlattr[TCA_GATE_ENTRY_IPV, int32]
+	TCA_GATE_ENTRY_MAX_OCTETS	nlattr[TCA_GATE_ENTRY_MAX_OCTETS, int32]
 ] [varlen]
 
 ife_policy [
@@ -1206,6 +1274,7 @@ tca_ematch_tree_list [
 	TCF_EM_NBYTE		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_NBYTE, tcf_em_nbyte]]
 	TCF_EM_U32		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_U32, tc_u32_key]]
 	TCF_EM_META		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_META, array[meta_policy]]]
+	TCF_EM_TEXT		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_TEXT, tcf_em_text]]
 	TCF_EM_CANID		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_CANID, can_filter]]
 	TCF_EM_IPSET		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_IPSET, xt_set_info]]
 	TCF_EM_IPT		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_IPT, array[em_ipt_policy]]]
@@ -1238,6 +1307,17 @@ tcf_em_nbyte {
 	len	bytesize[payload, int16:12]
 	layer	flags[tcf_layers, int8:4]
 	payload	array[int8, 0:10]
+} [align[4]]
+
+tcf_em_text {
+	algo		string[tcf_em_text_algo, TC_EM_TEXT_ALGOSIZ]
+	from_offset	int16
+	to_offset	int16
+	pattern_len	bytesize[pattern, int16]
+	from_layer	flags[tcf_layers, int8:4]
+	to_layer	flags[tcf_layers, int8:4]
+	pad		const[0, int8]
+	pattern		array[int8]
 } [align[4]]
 
 tc_u32_key {
@@ -1307,7 +1387,7 @@ tcf_em_opnds = TCF_EM_OPND_EQ, TCF_EM_OPND_GT, TCF_EM_OPND_LT
 nf_inet_hooks = NF_INET_PRE_ROUTING, NF_INET_LOCAL_IN, NF_INET_FORWARD, NF_INET_LOCAL_OUT, NF_INET_POST_ROUTING
 linklayer = TC_LINKLAYER_UNAWARE, TC_LINKLAYER_ETHERNET, TC_LINKLAYER_ATM
 tc_actions = TC_ACT_UNSPEC, TC_ACT_OK, TC_ACT_RECLASSIFY, TC_ACT_SHOT, TC_ACT_PIPE, TC_ACT_STOLEN, TC_ACT_QUEUED, TC_ACT_REPEAT, TC_ACT_REDIRECT, TC_ACT_TRAP, TC_ACT_JUMP, TC_ACT_GOTO_CHAIN
-tca_actions_kinds = "bpf", "connmark", "csum", "gact", "ife", "ipt", "mirred", "nat", "pedit", "police", "sample", "skbedit", "skbmod", "tunnel_key", "vlan", "xt"
+tca_actions_kinds = "bpf", "connmark", "csum", "gact", "gate", "ife", "ipt", "mirred", "nat", "pedit", "police", "sample", "skbedit", "skbmod", "tunnel_key", "vlan", "xt"
 tc_flow_modes = FLOW_MODE_MAP, FLOW_MODE_HASH
 tca_dsmark_ind = 1, 2, 4, 8, 16, 32
 tc_mqprio_modes = TC_MQPRIO_MODE_DCB, TC_MQPRIO_MODE_CHANNEL
@@ -1328,3 +1408,8 @@ tc_plug_actions = TCQ_PLUG_BUFFER, TCQ_PLUG_RELEASE_ONE, TCQ_PLUG_RELEASE_INDEFI
 tc_flower_flags = TCA_CLS_FLAGS_SKIP_HW, TCA_CLS_FLAGS_SKIP_SW, TCA_CLS_FLAGS_IN_HW, TCA_CLS_FLAGS_NOT_IN_HW, TCA_CLS_FLAGS_VERBOSE
 tca_ct_actions = TCA_CT_ACT_COMMIT, TCA_CT_ACT_FORCE, TCA_CT_ACT_CLEAR, TCA_CT_ACT_NAT, TCA_CT_ACT_NAT_SRC, TCA_CT_ACT_NAT_DST
 tca_mpls_actions = TCA_MPLS_ACT_POP, TCA_MPLS_ACT_PUSH, TCA_MPLS_ACT_MODIFY, TCA_MPLS_ACT_DEC_TTL
+tc_dualpi2_drop_overload = TC_DUALPI2_DROP_OVERLOAD_OVERFLOW, TC_DUALPI2_DROP_OVERLOAD_DROP
+tc_dualpi2_drop_early = TC_DUALPI2_DROP_EARLY_DROP_DEQUEUE, TC_DUALPI2_DROP_EARLY_DROP_ENQUEUE
+tc_dualpi2_ecn_mask = TC_DUALPI2_ECN_MASK_L4S_ECT, TC_DUALPI2_ECN_MASK_CLA_ECT, TC_DUALPI2_ECN_MASK_ANY_ECT
+tc_dualpi2_split_gso = TC_DUALPI2_SPLIT_GSO_NO_SPLIT_GSO, TC_DUALPI2_SPLIT_GSO_SPLIT_GSO
+tcf_em_text_algo = "linear", "kmp", "bm"
