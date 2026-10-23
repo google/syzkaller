@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -39,6 +40,26 @@ func BadCallError(message string, args ...any) error {
 
 type badCallError struct {
 	error
+}
+
+// NoMatchesError is returned by search tools when a valid query found nothing.
+// It is reported to the LLM like BadCallError, but is not counted towards the limit
+// of failing calls to the same tool.
+func NoMatchesError(message string, args ...any) error {
+	return &noMatchesError{&badCallError{fmt.Errorf(message, args...)}}
+}
+
+type noMatchesError struct {
+	*badCallError
+}
+
+func (e *noMatchesError) Unwrap() error {
+	return e.badCallError
+}
+
+func isNoMatchesError(err error) bool {
+	var noMatchesErr *noMatchesError
+	return errors.As(err, &noMatchesErr)
 }
 
 type funcTool[State, Args, Results any] struct {

@@ -1,0 +1,387 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "some-tool description",
+							"name": "some-tool",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Arg": {
+										"type": "integer",
+										"description": "something"
+									}
+								},
+								"required": [
+									"Arg"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"additionalProperties": false
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer"
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Answer": {
+										"type": "string",
+										"description": "Answer"
+									}
+								},
+								"required": [
+									"Answer"
+								],
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 2
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					},
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 0
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 1
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Arg": 2
+							},
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					},
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "some-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "Found half of the answer."
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\nNote: if you already provided you final reply, you will need to provide it again after calling set-results tool.\nOr did you want to call some other tools, but did not actually do that?\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

@@ -223,9 +223,12 @@ type LoopControllerArgs struct {
 }
 
 type LoopControllerResult struct {
-	ContinueSignal        string
-	ReproC                string
-	OracleFeedback        string
+	ContinueSignal string
+	ReproC         string
+	OracleFeedback string
+	// LatestOracleFeedback is the oracle feedback for the last attempt only,
+	// while OracleFeedback accumulates feedback for all attempts.
+	LatestOracleFeedback  string
 	Reproduced            bool
 	ReproducedBugTitle    string
 	ReproducedCrashReport string
@@ -267,6 +270,7 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 				args.CandidateBugTitle, args.Feedback,
 			)
 		}
+		res.LatestOracleFeedback = res.OracleFeedback
 		attempt := strings.Count("\n"+args.OracleFeedback, "\n=== Attempt ") + 1
 		res.OracleFeedback = fmt.Sprintf("=== Attempt %d ===\n%s", attempt, res.OracleFeedback)
 		if args.OracleFeedback != "" {
@@ -392,13 +396,14 @@ func init() {
 				kernel.Build,
 				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
-					Name:          "initial-researcher",
-					Model:         aflow.CoreModel,
-					Reply:         "InitialReproStrategy",
-					MaxIterations: 100,
-					Instruction:   initialResearcherInstruction,
-					Prompt:        initialResearcherPrompt,
-					Tools:         tools,
+					Name:                "initial-researcher",
+					Model:               aflow.CoreModel,
+					Reply:               "InitialReproStrategy",
+					MaxIterations:       100,
+					AllowPartialResults: true,
+					Instruction:         initialResearcherInstruction,
+					Prompt:              initialResearcherPrompt,
+					Tools:               tools,
 				},
 				&aflow.DoWhile{
 					MaxIterations: 10,
@@ -407,24 +412,27 @@ func init() {
 						&aflow.If{
 							Condition: "OracleFeedback",
 							Do: &aflow.LLMAgent{
-								Name:          "strategy-refiner",
-								Model:         aflow.CoreModel,
-								Reply:         "RefinedReproStrategy",
-								MaxIterations: 100,
-								Instruction:   refinerInstruction,
-								Prompt:        refinerPrompt,
-								Tools:         tools,
+								Name:                "strategy-refiner",
+								Model:               aflow.CoreModel,
+								Reply:               "RefinedReproStrategy",
+								MaxIterations:       100,
+								AllowPartialResults: true,
+								Instruction:         refinerInstruction,
+								Prompt:              refinerPrompt,
+								Tools:               tools,
 							},
 						},
 						MergeStrategy,
 						&aflow.LLMAgent{
-							Name:          "repro-generator",
-							Model:         aflow.CoreModel,
-							Outputs:       aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](validateGeneratorOutputs),
-							MaxIterations: 100,
-							Instruction:   generatorInstruction,
-							Prompt:        generatorPrompt,
-							Tools:         tools,
+							Name:  "repro-generator",
+							Model: aflow.CoreModel,
+							Outputs: aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](
+								validateGeneratorOutputs),
+							MaxIterations:       100,
+							AllowPartialResults: true,
+							Instruction:         generatorInstruction,
+							Prompt:              generatorPrompt,
+							Tools:               tools,
 						},
 						&aflow.DoWhile{
 							MaxIterations: 3,
@@ -449,11 +457,13 @@ func init() {
 						crash.RunCRepro,
 						TruncateLog,
 						&aflow.LLMAgent{
-							Name:        "repro-oracle",
-							Model:       aflow.CoreModel,
-							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
-							Instruction: oracleInstruction,
-							Prompt:      oraclePrompt,
+							Name:          "repro-oracle",
+							Model:         aflow.CoreModel,
+							Outputs:       aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
+							Instruction:   oracleInstruction,
+							Prompt:        oraclePrompt,
+							Tools:         tools,
+							MaxIterations: 30,
 						},
 						LoopController,
 					),
@@ -588,9 +598,9 @@ Previous Reproducer Attempt:
 {{.CurrentCandidateReproC}}
 {{end}}
 
-{{if .OracleFeedback}}
-Execution Results & Debugging Feedback:
-{{.OracleFeedback}}
+{{if .LatestOracleFeedback}}
+Execution Results & Debugging Feedback for the Previous Attempt:
+{{.LatestOracleFeedback}}
 {{end}}`
 
 const oracleInstruction = `You are a security researcher with deep Linux kernel background.
@@ -618,8 +628,10 @@ Set 'TerminalError' to a descriptive error message ONLY if:
   from Strace Output. In addition, middle lines of long logs are truncated ('... [truncated N lines] ...').
   Always inspect the Executed C Program before concluding that the program exited without sleeping or waiting.
 - Review Previous Attempts Feedback before giving instructions so you do not contradict earlier findings or
-  re-recommend an approach that already failed or hung in a previous attempt. Use code search tools only when
-  necessary to verify kernel behavior.
+  re-recommend an approach that already failed or hung in a previous attempt.
+- Use the code access tools to verify kernel behavior, ioctl numbers, struct layouts and constants before
+  recommending them. Never quote such values from memory. Keep tool use focused: you only need to diagnose
+  this execution, not to re-research the whole bug.
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
