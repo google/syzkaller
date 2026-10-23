@@ -1442,7 +1442,7 @@ Blocks diff,	Path
 }
 
 func TestSkipStage(t *testing.T) {
-	// The test ensures that manuallyUpstreamed works as intended in reporting filters.
+	// The test ensures that ManuallyUpstreamed works as intended in reporting filters.
 	c := NewCtx(t)
 	defer c.Close()
 	client := c.makeClient(clientSkipStage, keySkipStage, true)

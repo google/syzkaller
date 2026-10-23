@@ -524,7 +524,7 @@ var (
 )
 
 func installConfig(cfg *GlobalConfig) {
-	checkConfig(cfg)
+	CheckConfig(cfg)
 	if configDontUse != nil {
 		panic("another config is already installed")
 	}
@@ -569,7 +569,7 @@ func getNsConfig(ctx context.Context, ns string) *Config {
 	return getConfig(ctx).Namespaces[ns]
 }
 
-func checkConfig(cfg *GlobalConfig) {
+func CheckConfig(cfg *GlobalConfig) {
 	if cfg == nil {
 		panic("installing nil config")
 	}

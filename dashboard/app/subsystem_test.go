@@ -543,7 +543,7 @@ func TestSubsystemRemindersSkipModeration(t *testing.T) {
 		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
 			ret := *cfg
 			r := *ret.Subsystems.Reminder
-			r.SkipModeration = isWorthMonthlyReport
+			r.SkipModeration = IsWorthMonthlyReport
 			ret.Subsystems.Reminder = &r
 			return &ret
 		})

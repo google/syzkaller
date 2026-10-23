@@ -46,7 +46,7 @@ func init() {
 			testConfig.Namespaces[ns] = cfg
 		}
 	}
-	checkConfig(localUIConfig)
+	CheckConfig(localUIConfig)
 	installConfig(testConfig)
 }
 
@@ -404,7 +404,7 @@ var testConfig = &GlobalConfig{
 					Name:       "wait-repro",
 					DailyLimit: 1000,
 					Filter: func(bug *Bug) FilterResult {
-						if canBeVfsBug(bug) &&
+						if CanBeVfsBug(bug) &&
 							!bug.HasRepro() {
 							return FilterReport
 						}
@@ -695,7 +695,7 @@ var testConfig = &GlobalConfig{
 					DailyLimit: 1000,
 					Config:     &TestConfig{Index: 2},
 					Filter: func(bug *Bug) FilterResult {
-						if bug.manuallyUpstreamed("reporting1") {
+						if bug.ManuallyUpstreamed("reporting1") {
 							return FilterSkip
 						}
 						return FilterReport
