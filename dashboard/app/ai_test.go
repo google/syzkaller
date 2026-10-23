@@ -509,6 +509,78 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	require.Len(t, labels, 0)
 }
 
+func TestAIAssessmentSecurity(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	nextAssessment := SecurityAssessmentLabels{Prio: HighPrioBug, Route: "route-a"}
+	c.SetAIConfig("ains", &AIConfig{
+		SecurityAssessment: func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels {
+			return nextAssessment
+		},
+	})
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "WARNING: route label bug"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	firstJobID := c.runSecurityAssessment(t)
+	bug, _, _ := c.loadBug(extID)
+	require.Equal(t, []BugLabel{{Label: PriorityLabel, Value: string(HighPrioBug), Link: firstJobID}},
+		bug.LabelValues(PriorityLabel))
+	require.Equal(t, []BugLabel{{Label: RouteLabel, Value: "route-a", Link: firstJobID}},
+		bug.LabelValues(RouteLabel))
+
+	// Subsequent assessments can update non-user prio, but never overwrite route once set.
+	nextAssessment = SecurityAssessmentLabels{Prio: NormalPrioBug, Route: "route-b"}
+	secondJobID := c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
+	require.Equal(t, secondJobID, c.runSecurityAssessment(t))
+	bug, _, _ = c.loadBug(extID)
+	assert.Equal(t, []BugLabel{{Label: PriorityLabel, Value: string(NormalPrioBug), Link: secondJobID}},
+		bug.LabelValues(PriorityLabel))
+	assert.Equal(t, []BugLabel{{Label: RouteLabel, Value: "route-a", Link: firstJobID}},
+		bug.LabelValues(RouteLabel))
+
+	// Marking the first job as incorrect neither unsets route nor reverts prio.
+	_, err := c.POSTForm(fmt.Sprintf("/ai_job?id=%v", firstJobID), url.Values{
+		"action":  {"set_correctness"},
+		"correct": {aiCorrectnessIncorrect},
+	})
+	require.NoError(t, err)
+	bug, _, _ = c.loadBug(extID)
+	assert.Equal(t, []BugLabel{{Label: PriorityLabel, Value: string(NormalPrioBug), Link: secondJobID}},
+		bug.LabelValues(PriorityLabel))
+	assert.Equal(t, []BugLabel{{Label: RouteLabel, Value: "route-a", Link: firstJobID}},
+		bug.LabelValues(RouteLabel))
+
+	// Manually set labels are not overwritten by subsequent assessments.
+	require.NoError(t, updateSingleBug(c.ctx, bug.key(c.ctx), func(bug *Bug) error {
+		labelSet := makeLabelSet(c.ctx, bug)
+		return bug.SetLabels(labelSet, []BugLabel{
+			{Label: PriorityLabel, Value: string(LowPrioBug), SetBy: "user@email.com"},
+		})
+	}))
+	nextAssessment = SecurityAssessmentLabels{Prio: HighPrioBug, Route: "route-c"}
+	thirdJobID := c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
+	require.Equal(t, thirdJobID, c.runSecurityAssessment(t))
+	bug, _, _ = c.loadBug(extID)
+	assert.True(t, bug.HasLabel(PriorityLabel, string(LowPrioBug)))
+	assert.True(t, bug.HasLabel(RouteLabel, "route-a"))
+}
+
+func (ctx *Ctx) runSecurityAssessment(t *testing.T) string {
+	resp := ctx.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      resp.ID,
+		Results: map[string]any{"Explanation": "Test"},
+	}))
+	return resp.ID
+}
+
 func TestAIJobsFiltering(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
