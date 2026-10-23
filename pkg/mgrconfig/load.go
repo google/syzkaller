@@ -36,6 +36,8 @@ type Derived struct {
 	ExecprogBin string
 	ExecutorBin string
 
+	ReproduceOnlyRe *regexp.Regexp // Compiled ReproduceOnly (nil if unset).
+
 	Syscalls      []int
 	NoMutateCalls map[int]bool // Set of IDs of syscalls which should not be mutated.
 	Timeouts      targets.Timeouts
@@ -207,6 +209,21 @@ func Complete(cfg *Config) error {
 	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
 	if err != nil {
 		return err
+	}
+	cfg.ReproduceOnlyRe = nil
+	if len(cfg.ReproduceOnly) != 0 {
+		// Join the regexps into one alternation so a title matches if any of them does.
+		parts := make([]string, len(cfg.ReproduceOnly))
+		for i, str := range cfg.ReproduceOnly {
+			if _, err := regexp.Compile(str); err != nil {
+				return fmt.Errorf("failed to compile reproduce_only regexp %q: %w", str, err)
+			}
+			parts[i] = "(?:" + str + ")"
+		}
+		cfg.ReproduceOnlyRe, err = regexp.Compile(strings.Join(parts, "|"))
+		if err != nil {
+			return err
+		}
 	}
 	if err := cfg.completeFocusAreas(); err != nil {
 		return err

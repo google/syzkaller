@@ -192,6 +192,10 @@ type Config struct {
 	// If this list is not empty and none of the regexps match a bug, it's suppressed.
 	// Regexps are matched against bug title, guilty file and maintainer emails.
 	Interests []string `json:"interests,omitempty"`
+	// List of regexps to select bugs to reproduce (optional).
+	// If this list is not empty, only bugs whose title matches at least one of the regexps are reproduced.
+	// Other bugs are still fuzzed for and saved, just not reproduced.
+	ReproduceOnly []string `json:"reproduce_only,omitempty"`
 
 	// Path to the strace binary compiled for the target architecture.
 	// If set, for each reproducer syzkaller will run it once more under strace and save
