@@ -52,8 +52,9 @@ type LLMAgent struct {
 	// Whether this agent is being run as a sub-agent by another agent.
 	// Used to control truncation behavior (sub-agents can be forced to answer now).
 	SubAgent bool
-	// If set, reaching MaxIterations or context overflow instructs the agent
-	// to stop researching and report its best-effort findings instead of failing.
+	// If set, reaching MaxIterations, context overflow, or a loop of failing tool calls
+	// instructs the agent to stop researching and report its best-effort findings
+	// (via set-results if the agent has Outputs, otherwise as a plain reply) instead of failing.
 	AllowPartialResults bool
 
 	// InitChatHistoryFunc overrides the default single-prompt initialization of a.req.
@@ -248,16 +249,24 @@ Note: if you already provided you final reply, you will need to provide it again
 Or did you want to call some other tools, but did not actually do that?
 `
 
-// Sent to a sub-agent that must wrap up right now (it either ran out of iterations,
-// or overflowed the context).
-const llmAnswerNow = `
+// Common prefix of the orders sent to an agent that must wrap up right now
+// (it ran out of iterations, got stuck in a tool loop, or overflowed the context).
+const llmAnswerNowPrefix = `
 Provide a best-effort answer to the original question with all of the information
 you have so far without doing any more research!
 IMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON
 to call them. Base the answer strictly on the information you have already gathered,
 and explicitly state which parts of it are incomplete or were not verified.
-The set-results tool is the only tool you may still call.
+`
+
+// Sent to an agent that must report its results via the set-results tool.
+const llmSetResultsNow = llmAnswerNowPrefix + `The set-results tool is the only tool you may still call.
 Call it with the results you have so far, including any caveats or unverified parts.
+`
+
+// Sent to an agent that must report its results as a plain text reply.
+const llmReplyNow = llmAnswerNowPrefix + `Reply with your final answer now, without calling any tools,
+in the format requested by the original instructions.
 `
 
 const llmDuplicateCallWarning = `You are repeating the same tool call with the exact same arguments.
@@ -357,7 +366,7 @@ func (a *agentSession) tryAnswerNow(overflow bool) bool {
 	// non-output tool call while wrapping up.
 	request := llmMessage{content: &backend.Message{
 		Role:  backend.RoleUser,
-		Parts: []backend.Part{{Text: llmAnswerNow}},
+		Parts: []backend.Part{{Text: a.answerNowMessage()}},
 	}}
 	if overflow {
 		a.req[len(a.req)-1] = request
@@ -381,6 +390,35 @@ func (a *agentSession) nextIteration(iter int) bool {
 		a.answerNowLeft--
 	}
 	return true
+}
+
+// answerNowMessage returns the wrap-up order suitable for the agent:
+// agents that still need to call set-results are told to do so,
+// other agents are told to reply with plain text.
+func (a *agentSession) answerNowMessage() string {
+	if a.needsOutputs() {
+		return llmSetResultsNow
+	}
+	return llmReplyNow
+}
+
+// answerNowHint says how a wrapping-up agent must report its findings
+// (used in the "tool is disabled" error).
+func (a *agentSession) answerNowHint() string {
+	if a.needsOutputs() {
+		return fmt.Sprintf("report what you have via %q", llmSetResultsTool)
+	}
+	return "report what you have in your final reply"
+}
+
+// needsOutputs returns whether the agent still has to call set-results.
+func (a *agentSession) needsOutputs() bool {
+	return a.Outputs != nil && a.outputs == nil
+}
+
+// isOutputsTool returns whether the tool is the set-results tool of the agent.
+func (a *agentSession) isOutputsTool(tool Tool) bool {
+	return a.Outputs != nil && tool == a.Outputs.tool
 }
 
 // maxIterationsError returns a recoverable BadCallError for subagents, or a
@@ -440,7 +478,7 @@ func (a *agentSession) chat(ctx *Context, cfg *backend.GenerateConfig, tools map
 				return "", nil, err
 			}
 			// Input overflows maximum number of tokens.
-			// If this is an LLMTool, we remove the last tool reply,
+			// If the agent may return partial results, we remove the last tool reply,
 			// and replace it with an order to answer right now.
 			// It gets its own iteration budget, so no need to adjust iter here.
 			if isInputTokenOverflowError(respErr) && a.tryAnswerNow(true) {
@@ -969,10 +1007,9 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		switch {
 		case tool == nil:
 			toolErr = BadCallError("tool %q does not exist, please correct the name", call.Name)
-		case a.answerNow && tool != a.Outputs.tool:
-			toolErr = BadCallError(
-				"tool %q is disabled: you must stop the research now and report what you have via %q",
-				call.Name, llmSetResultsTool)
+		case a.answerNow && !a.isOutputsTool(tool):
+			toolErr = BadCallError("tool %q is disabled: you must stop the research now and %s",
+				call.Name, a.answerNowHint())
 		default:
 			if toolErr = a.recordAndCheckDuplicate(call); toolErr == nil {
 				executed = true
@@ -999,7 +1036,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 		var warn string
 		if isDuplicateErr(toolErr) {
 			warn = toolErr.Error()
-		} else if executed && (a.Outputs == nil || tool != a.Outputs.tool) {
+		} else if executed && !a.isOutputsTool(tool) {
 			var err error
 			warn, err = a.recordAndCheckToolError(call.Name, toolErr)
 			if err != nil {
@@ -1018,7 +1055,7 @@ func (a *agentSession) callTools(ctx *Context, tools map[string]Tool, calls []*b
 				Response: span.Results,
 			},
 		})
-		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
+		if toolErr == nil && a.isOutputsTool(tool) {
 			if a.answerNow && a.Reply != "" && a.outputs == nil {
 				a.answerNowLeft = max(a.answerNowLeft, 1)
 			}
@@ -1157,10 +1194,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	}
 	if a.Outputs == nil {
 		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
-		// callTools relies on Outputs being set when it rejects
-		// non-output tool calls from a wrapping-up agent.
-		if a.allowPartialResults() {
-			ctx.errorf(a.Name, "an agent with SubAgent or AllowPartialResults must have Outputs")
+		// LLMTool returns sub-agent results to the parent agent via Outputs.
+		if a.SubAgent {
+			ctx.errorf(a.Name, "a sub-agent must have Outputs")
 		}
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
@@ -1292,7 +1328,7 @@ func (a *agentSession) recordAndCheckToolError(toolName string, toolErr error) (
 			a.answerNow = true
 			a.answerNowLeft = answerNowIterations
 			return fmt.Sprintf("Tool %q has failed %d consecutive times. %s",
-				toolName, errs, strings.TrimSpace(llmAnswerNow)), nil
+				toolName, errs, strings.TrimSpace(a.answerNowMessage())), nil
 		}
 		return "", fmt.Errorf("agent got stuck in a loop making %d consecutive failing calls to tool %q",
 			errs, toolName)

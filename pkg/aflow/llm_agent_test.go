@@ -584,36 +584,79 @@ func TestModelFallbackTrajectory(t *testing.T) {
 	)
 }
 
-func TestLLMAgentMaxIterations(t *testing.T) {
-	type outputs struct {
-		Reply string
+type maxIterationsToolArgs struct {
+	Arg int `jsonschema:"something"`
+}
+
+// maxIterationsAgent returns an agent with a tool that fails if called after
+// the agent ran out of iterations (i.e. if a disabled tool call is executed).
+func maxIterationsAgent(maxIterations int) *LLMAgent {
+	return &LLMAgent{
+		MaxIterations: maxIterations,
+		Tools: []Tool{
+			NewFuncTool("some-tool", func(ctx *Context, state struct{}, args maxIterationsToolArgs) (
+				struct{}, error) {
+				if args.Arg >= maxIterations {
+					return struct{}{}, fmt.Errorf("disabled tool executed")
+				}
+				return struct{}{}, nil
+			}, "some-tool description"),
+		},
 	}
-	type toolArgs struct {
-		Arg int `jsonschema:"something"`
-	}
-	replies := []any{}
-	for i := range 3 {
+}
+
+// maxIterationsReplies returns toolCalls replies calling some-tool with distinct arguments
+// starting from first.
+func maxIterationsReplies(first, toolCalls int) []any {
+	var replies []any
+	for i := range toolCalls {
 		replies = append(replies, &backend.Part{
 			FunctionCall: &backend.FunctionCall{
 				ID:   "id1",
 				Name: "some-tool",
 				Args: map[string]any{
-					"Arg": i,
+					"Arg": first + i,
 				},
 			},
 		})
 	}
+	return replies
+}
+
+// TestLLMAgentMaxIterations checks that a main agent that may not provide partial answers
+// fails on reaching the iteration limit.
+func TestLLMAgentMaxIterations(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	const maxIterations = 3
+	agent := maxIterationsAgent(maxIterations)
+	agent.Reply = "Reply"
 	testFlow[struct{}, outputs](t, nil,
 		"agent reached max iterations limit (3)",
-		&LLMAgent{
-			Reply:         "Reply",
-			MaxIterations: 3,
-			Tools: []Tool{
-				NewFuncTool("some-tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
-					return struct{}{}, nil
-				}, "some-tool description"),
-			},
-		},
+		agent,
+		maxIterationsReplies(0, maxIterations),
+		nil,
+	)
+}
+
+// TestLLMAgentMaxIterationsNoAnswer checks that a main agent that may provide partial answers
+// is asked to wrap up on reaching the iteration limit, and fails only if it does not provide
+// an answer within answerNowIterations more iterations.
+func TestLLMAgentMaxIterationsNoAnswer(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	const maxIterations = 3
+	agent := maxIterationsAgent(maxIterations)
+	agent.Reply = "Reply"
+	agent.AllowPartialResults = true
+	replies := maxIterationsReplies(0, maxIterations)
+	// The agent ignores the wrap-up order and keeps calling (now disabled) tools.
+	replies = append(replies, maxIterationsReplies(maxIterations, answerNowIterations)...)
+	testFlow[struct{}, outputs](t, nil,
+		fmt.Sprintf("agent reached max iterations limit (%v)", maxIterations),
+		agent,
 		replies,
 		nil,
 	)
@@ -675,6 +718,113 @@ func TestLLMAgentAllowPartialResults(t *testing.T) {
 		},
 		nil,
 	)
+}
+
+func TestLLMAgentMaxIterationsReplyNow(t *testing.T) {
+	type outputs struct {
+		Reply string
+	}
+	const maxIterations = 3
+	agent := maxIterationsAgent(maxIterations)
+	agent.Reply = "Reply"
+	agent.AllowPartialResults = true
+	replies := append(maxIterationsReplies(0, maxIterations),
+		// Attempt 1: ignores the order to wrap up and calls a disabled tool.
+		&backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   "id_disabled",
+				Name: "some-tool",
+				Args: map[string]any{"Arg": 100},
+			},
+		},
+		// Attempt 2: provides the final reply.
+		&backend.Part{Text: "Partial strategy based on what I found so far."},
+	)
+	testFlow[struct{}, outputs](t, nil,
+		map[string]any{"Reply": "Partial strategy based on what I found so far."},
+		agent,
+		replies,
+		nil,
+	)
+}
+
+func TestLLMAgentMaxIterationsSetResultsNow(t *testing.T) {
+	type results struct {
+		Answer string `jsonschema:"Answer"`
+	}
+	type outputs struct {
+		Answer string
+	}
+	const maxIterations = 3
+	agent := maxIterationsAgent(maxIterations)
+	agent.Outputs = LLMOutputs[results]()
+	agent.AllowPartialResults = true
+	replies := append(maxIterationsReplies(0, maxIterations),
+		// Attempt 1: replies with plain text instead of calling set-results.
+		&backend.Part{Text: "Found half of the answer."},
+		// Attempt 2: calls set-results.
+		&backend.Part{
+			FunctionCall: &backend.FunctionCall{
+				ID:   "id_out",
+				Name: llmSetResultsTool,
+				Args: map[string]any{"Answer": "Found half of the answer."},
+			},
+		},
+	)
+	testFlow[struct{}, outputs](t, nil,
+		map[string]any{"Answer": "Found half of the answer."},
+		agent,
+		replies,
+		nil,
+	)
+}
+
+// TestTryAnswerNow checks which wrap-up order is injected into the history.
+func TestTryAnswerNow(t *testing.T) {
+	toolResponses := &backend.Message{
+		Role: backend.RoleUser,
+		Parts: []backend.Part{{
+			FunctionResponse: &backend.FunctionResponse{ID: "id1", Name: "some-tool"},
+		}},
+	}
+	newSession := func(agent *LLMAgent) *agentSession {
+		return &agentSession{
+			LLMAgent: agent,
+			req: []llmMessage{
+				{content: &backend.Message{Role: backend.RoleUser, Parts: []backend.Part{{Text: "prompt"}}}},
+				{content: &backend.Message{
+					Role:  backend.RoleModel,
+					Parts: []backend.Part{{FunctionCall: &backend.FunctionCall{ID: "id1", Name: "some-tool"}}},
+				}},
+				{content: toolResponses},
+			},
+		}
+	}
+
+	// Main agents that may not provide partial answers are not asked to wrap up.
+	session := newSession(&LLMAgent{Reply: "Reply"})
+	require.False(t, session.tryAnswerNow(false))
+	require.False(t, session.answerNow)
+
+	// Agents without Outputs are told to reply with plain text.
+	session = newSession(&LLMAgent{Reply: "Reply", AllowPartialResults: true})
+	require.True(t, session.tryAnswerNow(false))
+	require.True(t, session.answerNow)
+	require.Equal(t, answerNowIterations, session.answerNowLeft)
+	require.Len(t, session.req, 4)
+	require.Equal(t, []backend.Part{{Text: llmReplyNow}}, session.req[3].content.Parts)
+	// Repeated requests are ignored.
+	require.False(t, session.tryAnswerNow(false))
+
+	// Agents with Outputs are told to call set-results,
+	// on context overflows the order replaces the last message.
+	type results struct {
+		Answer string `jsonschema:"Answer"`
+	}
+	session = newSession(&LLMAgent{SubAgent: true, Outputs: LLMOutputs[results]()})
+	require.True(t, session.tryAnswerNow(true))
+	require.Len(t, session.req, 3)
+	require.Equal(t, []backend.Part{{Text: llmSetResultsNow}}, session.req[2].content.Parts)
 }
 
 func TestMaxParallelToolCalls(t *testing.T) {
