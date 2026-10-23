@@ -23,8 +23,8 @@ func enableProfiling() {
 	}
 }
 
-func main() {
+func Main(cfg *GlobalConfig) {
 	enableProfiling()
-	installConfig(mainConfig)
+	installConfig(cfg)
 	appengine.Main()
 }
