@@ -97,7 +97,7 @@ func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.Send
 }
 
 func filterStageEmails(nsCfg *Config, emails []string) []string {
-	if nsCfg.AI == nil {
+	if nsCfg == nil || nsCfg.AI == nil {
 		return emails
 	}
 	var stageEmails []string
@@ -146,9 +146,11 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	}
 	nextStage := nextStageCfg.Name
 
-	var extraCcList []string
+	var extraCcList, addedCcList, removedCcList []string
 	if currentReporting != nil {
 		extraCcList = currentReporting.ExtraCcList
+		addedCcList = currentReporting.AddedCcList
+		removedCcList = currentReporting.RemovedCcList
 	}
 	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
 	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
@@ -157,12 +159,14 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
 		Job: job,
 		Reporting: &aidb.JobReporting{
-			Stage:        nextStage,
-			Source:       nextStageCfg.ServingIntegration,
-			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
-			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
-			Version:      spanner.NullInt64{Int64: 1, Valid: true},
-			ExtraCcList:  extraCcList,
+			Stage:         nextStage,
+			Source:        nextStageCfg.ServingIntegration,
+			UpstreamedAt:  spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+			UpstreamedBy:  spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
+			Version:       spanner.NullInt64{Int64: 1, Valid: true},
+			ExtraCcList:   extraCcList,
+			AddedCcList:   addedCcList,
+			RemovedCcList: removedCcList,
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
 		CommandSource: string(req.Source),
@@ -308,7 +312,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast job results: %w", err)
 			}
-			result.Patch, err = makeNewReportResult(ctx, job, &res, version, authors)
+			result.Patch, err = makeNewReportResult(ctx, job, r, &res, version, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -337,12 +341,18 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		}
 
 		result.To = []string{stageCfg.MailingList}
-		if stageCfg.MergePatchCc && result.Patch != nil {
-			result.To = append(result.To, result.Patch.To...)
-			result.Cc = append(result.Cc, result.Patch.Cc...)
+		if stageCfg.MergePatchCc {
+			if result.Patch != nil {
+				result.To = append(result.To, result.Patch.To...)
+				result.Cc = append(result.Cc, result.Patch.Cc...)
+			} else {
+				result.Cc = append(result.Cc, r.AddedCcList...)
+			}
 		}
 
-		result.Cc = append(result.Cc, r.ExtraCcList...)
+		result.Cc = append(result.Cc, email.SubtractEmailLists(r.ExtraCcList, result.Cc)...)
+		// Reviewers may have asked to drop some of the people who joined the discussion.
+		result.Cc = email.SubtractEmailLists(result.Cc, r.RemovedCcList)
 		result.Cc = email.SubtractEmailLists(unique(result.Cc), result.To)
 
 		result.CanUpstream = idx < len(nsCfg.AI.Stages)-1
@@ -358,8 +368,8 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
-	version int, authors []string) (*dashapi.NewReportResult, error) {
+func makeNewReportResult(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
+	res *ai.PatchingOutputs, version int, authors []string) (*dashapi.NewReportResult, error) {
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
@@ -388,7 +398,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 		gitAuthors = append(gitAuthors, vcs.FormatGitAuthor(a))
 	}
 
-	for _, rec := range res.Recipients {
+	for _, rec := range reporting.CurrentRecipients(res.Recipients) {
 		if seen[email.CanonicalEmail(rec.Email)] {
 			continue
 		}
@@ -430,7 +440,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, reporting
 	}
 
 	if reporting.InReplyTo == "" {
-		result.Patch, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
+		result.Patch, err = makeNewReportResult(ctx, job, reporting, &ai.PatchingOutputs{
 			KernelRepo:       res.KernelRepo,
 			KernelBranch:     res.KernelBranch,
 			KernelCommit:     res.KernelCommit,
