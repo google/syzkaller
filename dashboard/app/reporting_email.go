@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1635,4 +1636,7 @@ func appURL(ctx context.Context) string {
 	return fmt.Sprintf("https://%v.appspot.com", appengine.AppID(ctx))
 }
 
-var mailTemplates = html.CreateTextGlob("mail_*.txt")
+//go:embed templates/mail_*.txt
+var mailTemplatesFS embed.FS
+
+var mailTemplates = html.CreateTextGlob(mailTemplatesFS, "templates/mail_*.txt")
