@@ -508,13 +508,9 @@ func (reporting *Reporting) EmbargoForBug(bug *Bug) time.Duration {
 }
 
 // configDontUse holds the configuration object that is installed either by tests
-// or from mainConfig in main function (a separate file should install mainConfig
-// in an init function).
+// or from Main function.
 // Please access it via the getConfig(context.Context) method.
-var (
-	configDontUse *GlobalConfig
-	mainConfig    *GlobalConfig
-)
+var configDontUse *GlobalConfig
 
 // To ensure config integrity during tests, we marshal config after it's installed
 // and optionally verify it during execution.
