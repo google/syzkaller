@@ -62,6 +62,34 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
+func TestFmtDecimalCustomSize(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	tests := []struct {
+		program string
+		pattern string
+	}{
+		{
+			"foo$fmt6(&(0x7f0000000000)=0x5)",
+			"memcpy(_fmt_dst, _fmt_buf, _fmt_len); memset(_fmt_dst + _fmt_len, 0, 2 - _fmt_len)",
+		},
+		{
+			"foo$fmt7(&(0x7f0000000000)=0x5)",
+			"memset(_fmt_dst, '0', 4 - _fmt_len)",
+		},
+	}
+	for _, test := range tests {
+		p, err := target.Deserialize([]byte(test.program), prog.Strict)
+		require.NoError(t, err)
+		src, err := Write(p, Options{Slowdown: 1})
+		require.NoError(t, err)
+		assert.Contains(t, string(src), test.pattern)
+		bin, err := Build(target, src)
+		require.NoError(t, err)
+		require.NoError(t, os.Remove(bin))
+	}
+}
+
 func testPseudoSyscalls(t *testing.T, target *prog.Target, ct *prog.ChoiceTable) {
 	// Use options that are as minimal as possible.
 	// We want to ensure that the code can always be compiled.

@@ -506,11 +506,17 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 	switch bf {
 	case prog.FormatNative, prog.FormatBigEndian:
 		fmt.Fprintf(w, "\tNONFAILING(*(uint%v*)0x%x = %v);\n", size*8, addr, val)
-	case prog.FormatStrDec:
-		if size != 20 {
+	case prog.FormatStrDec, prog.FormatStrDecNoPad:
+		if size == 0 || size > 20 {
 			panic("bad strdec size")
 		}
-		fmt.Fprintf(w, "\tNONFAILING(sprintf((char*)0x%x, \"%%020llu\", (long long)%v));\n", addr, val)
+		if bf == prog.FormatStrDecNoPad {
+			fmt.Fprintf(w, "\tNONFAILING({ char _fmt_buf[21]; int _fmt_len = sprintf(_fmt_buf, \"%%llu\", (unsigned long long)(%v)); char* _fmt_dst = (char*)0x%x; if (_fmt_len <= %d) { memcpy(_fmt_dst, _fmt_buf, _fmt_len); memset(_fmt_dst + _fmt_len, 0, %d - _fmt_len); } });\n",
+				val, addr, size, size)
+		} else {
+			fmt.Fprintf(w, "\tNONFAILING({ char _fmt_buf[21]; int _fmt_len = sprintf(_fmt_buf, \"%%llu\", (unsigned long long)(%v)); char* _fmt_dst = (char*)0x%x; if (_fmt_len <= %d) { memset(_fmt_dst, '0', %d - _fmt_len); memcpy(_fmt_dst + %d - _fmt_len, _fmt_buf, _fmt_len); } });\n",
+				val, addr, size, size, size)
+		}
 	case prog.FormatStrHex:
 		if size != 18 {
 			panic("bad strdec size")
