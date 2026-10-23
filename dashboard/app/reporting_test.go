@@ -100,6 +100,7 @@ func TestReportBug(t *testing.T) {
 				Link: "https://testapp.appspot.com/test1/s/subsystemA",
 			},
 		},
+		Labels: []dashapi.BugLabel{{Label: "subsystems", Value: "subsystemA"}},
 	}
 	c.expectEQ(want, rep)
 
@@ -269,6 +270,40 @@ func TestInvalidBug(t *testing.T) {
 	}
 	c.expectEQ(want, rep)
 	c.client.ReportFailedRepro(testCrashID(crash1))
+}
+
+func TestReportingLabels(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// The first reporting is AccessUser, the second one is AccessPublic.
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	client.UploadBuild(build)
+	client.ReportCrash(testCrash(build, 1))
+
+	_, bugKey := c.loadSingleBug()
+	require.NoError(t, updateSingleBug(c.ctx, bugKey, func(bug *Bug) error {
+		labelSet := makeLabelSet(c.ctx, bug)
+		if err := bug.SetLabels(labelSet, []BugLabel{
+			{Label: PriorityLabel, Value: string(HighPrioBug)},
+		}); err != nil {
+			return err
+		}
+		return bug.SetLabels(labelSet, []BugLabel{
+			{Label: RouteLabel, Value: "route-a"},
+		})
+	}))
+	rep := c.globalClient.pollBug()
+	assert.Equal(t, []dashapi.BugLabel{
+		{Label: "prio", Value: "high"},
+		{Label: "route", Value: "route-a"},
+	}, rep.Labels)
+
+	// The public reporting only gets public labels.
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+	rep = c.globalClient.pollBug()
+	assert.Equal(t, []dashapi.BugLabel{{Label: "prio", Value: "high"}}, rep.Labels)
 }
 
 func TestReportingQuota(t *testing.T) {
