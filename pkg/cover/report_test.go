@@ -646,3 +646,23 @@ int main() {
 		})
 	}
 }
+
+func TestCoverageCallbackMismatch(t *testing.T) {
+	const tail = " PCs returned by kcov do not have matching coverage callbacks." +
+		" Check the discoverModules() code. Use ?force=1 to disable this message.\n\nUnmatched PCs:\n"
+	unmatched := map[uint64]bool{
+		0xb0: true, 0x10: true, 0x90: true, 0x20: true, 0xa0: true, 0x30: true,
+		0x80: true, 0x40: true, 0x70: true, 0x50: true, 0x60: true,
+	}
+
+	got := coverageCallbackMismatch(false, 418664, map[uint64]bool{0xdeadbeef: true}).Error()
+	assert.Equal(t, "1 out of 418664"+tail+"deadbeef\n", got)
+
+	got = coverageCallbackMismatch(false, len(unmatched), unmatched).Error()
+	assert.Equal(t, "11 out of 11"+tail+
+		"10\n20\n30\n40\n50\n60\n70\n80\n"+
+		"3 unmatched PCs omitted. Use ?debug=1 to list them.\n", got)
+
+	got = coverageCallbackMismatch(true, len(unmatched), unmatched).Error()
+	assert.Equal(t, "11 out of 11"+tail+"10\n20\n30\n40\n50\n60\n70\n80\n90\na0\nb0\n", got)
+}
