@@ -222,14 +222,14 @@ func TestNeedReproIsolated(t *testing.T) {
 		{
 			// Corrupted bug.
 			bug: &Bug{
-				Title: corruptedReportTitle,
+				Title: CorruptedReportTitle,
 			},
 			needRepro: false,
 		},
 		{
 			// Suppressed bug.
 			bug: &Bug{
-				Title: suppressedReportTitle,
+				Title: SuppressedReportTitle,
 			},
 			needRepro: false,
 		},

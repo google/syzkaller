@@ -393,7 +393,7 @@ func (bug *Bug) managerConfig(ctx context.Context) *ConfigManager {
 	return &mgr
 }
 
-func (bug *Bug) manuallyUpstreamed(name string) bool {
+func (bug *Bug) ManuallyUpstreamed(name string) bool {
 	reporting := bugReportingByName(bug, name)
 	if reporting == nil {
 		return false
