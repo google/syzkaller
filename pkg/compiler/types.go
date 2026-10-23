@@ -924,6 +924,9 @@ func fmtMaxValue(typ prog.Type) (uint64, bool) {
 			return ^uint64(0), true
 		}
 		return uint64(1)<<(t.Size()*8) - 1, true
+	case *prog.LenType:
+		// Formatted lengths can be mutated across the full uint64 range.
+		return ^uint64(0), true
 	case *prog.FlagsType:
 		var max uint64
 		for _, value := range t.Vals {

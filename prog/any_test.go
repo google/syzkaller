@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatDecimal(t *testing.T) {
@@ -32,12 +34,9 @@ func TestFormatDecimal(t *testing.T) {
 			arg := MakeConstArg(typ, DirIn, test.value)
 			var elems []Arg
 			target.squashConst(arg, &elems)
-			if len(elems) != 1 {
-				t.Fatalf("got %d data elements, want 1", len(elems))
-			}
-			if got := string(elems[0].(*UnionArg).Option.(*DataArg).Data()); got != test.want {
-				t.Fatalf("got %q, want %q", got, test.want)
-			}
+			require.Len(t, elems, 1)
+			got := string(elems[0].(*UnionArg).Option.(*DataArg).Data())
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
