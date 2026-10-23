@@ -93,30 +93,11 @@ func TestManagersGraphs(t *testing.T) {
 		}
 	}
 
-	reply, err := c.AuthGET(AccessAdmin, "/test2/graph/bugs")
-	c.expectOK(err)
-	// TODO: check reply
-	_ = reply
-
-	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/lifetimes")
-	c.expectOK(err)
-	// TODO: check reply
-	_ = reply
-
-	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/fuzzing")
-	c.expectOK(err)
-	// TODO: check reply
-	_ = reply
-
-	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/crashes")
-	c.expectOK(err)
-	// TODO: check reply
-	_ = reply
-
-	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/found-bugs")
-	c.expectOK(err)
-	// TODO: check reply
-	_ = reply
+	c.expectGraphPage(t, "/test2/graph/bugs", "health</title>")
+	c.expectGraphPage(t, "/test2/graph/lifetimes", "bug lifetimes</title>")
+	c.expectGraphPage(t, "/test2/graph/fuzzing", "fuzzing stats</title>")
+	c.expectGraphPage(t, "/test2/graph/crashes", "crash stats</title>")
+	c.expectGraphPage(t, "/test2/graph/found-bugs", "bugs found per month</title>")
 }
 
 func managersGraphFixture(t *testing.T) *Ctx {
@@ -344,4 +325,11 @@ func TestCreateBugsGraphWithRepros(t *testing.T) {
 		{Val: 2}, // open bugs with syz repro
 		{Val: 3}, // open bugs with C repro
 	}, graph.Columns[2].Vals)
+}
+
+func (c *Ctx) expectGraphPage(t *testing.T, url, marker string) {
+	t.Helper()
+	reply, err := c.AuthGET(AccessAdmin, url)
+	c.expectOK(err)
+	require.Contains(t, string(reply), marker, "graph page %s", url)
 }
