@@ -24,7 +24,7 @@ import (
 
 // GlobalConfig stores multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
 // The exact config is stored in a global config variable and is read-only.
-// Also see config_stub.go.
+// Also see config/stub.go.
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
