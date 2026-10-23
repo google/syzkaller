@@ -5,10 +5,13 @@ package syzlang
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,4 +133,20 @@ func TestDisassembleSnippetMissingDebugSymbols(t *testing.T) {
 	out := strings.Join(lines, "\n")
 	snippet := formatDisassemblySnippet(out, []uint64{0x1000})
 	require.Contains(t, snippet, "WARNING: Missing debug symbols")
+}
+
+func TestDisassembleContextSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	dir := osutil.SandboxTempDir(t)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "vmlinux"), []byte("vmlinux"), 0600))
+	objdump := filepath.Join(dir, "llvm-objdump")
+	require.NoError(t, osutil.WriteExecFile(objdump, []byte("#!/bin/sh\ncat \"$5\"\n")))
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+	ctx := aflow.NewTestContext(t)
+	_, err := disassembleContext(ctx, reproduceState{
+		KernelObj: dir,
+		KernelSrc: dir,
+	}, DisassembleContextArgs{PCs: []string{"0x1000"}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Permission denied")
 }

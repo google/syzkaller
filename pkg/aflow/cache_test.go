@@ -146,6 +146,56 @@ func TestCache(t *testing.T) {
 	require.True(t, osutil.IsExist(dir10))
 }
 
+func TestCacheTempDirCleanup(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	// A leftover temp dir with a valid-looking metadata file must not be treated as a cache entry.
+	tmpDir, err := c.TempDir()
+	require.NoError(t, err)
+	require.NoError(t, osutil.WriteJSON(filepath.Join(tmpDir, cacheMetaFile), cacheMeta{
+		Version:     currentCacheVersion,
+		Description: "fake",
+		DiskUsage:   1024,
+	}))
+	c, err = newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	require.False(t, osutil.IsExist(tmpDir))
+	require.Empty(t, c.entries)
+}
+
+func TestCacheOldVersionCleanup(t *testing.T) {
+	tempDir := t.TempDir()
+	oldDir := filepath.Join(tempDir, "foo", "old")
+	require.NoError(t, osutil.MkdirAll(oldDir))
+	require.NoError(t, osutil.WriteJSON(filepath.Join(oldDir, cacheMetaFile), cacheMeta{
+		Version:     1,
+		Description: "old",
+		DiskUsage:   1024,
+	}))
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	require.False(t, osutil.IsExist(oldDir))
+	require.Empty(t, c.entries)
+}
+
+func TestContextCacheLayout(t *testing.T) {
+	ctx := NewTestContext(t)
+	var populated string
+	dir, err := ctx.Cache("foo", "1", func(dir string) error {
+		populated = dir
+		return osutil.WriteFile(filepath.Join(dir, "bar"), []byte("abc"))
+	})
+	require.NoError(t, err)
+	require.Equal(t, populated, dir)
+	// The metadata must be outside of the dir given to the caller.
+	require.False(t, osutil.IsExist(filepath.Join(dir, cacheMetaFile)))
+	require.True(t, osutil.IsExist(filepath.Join(filepath.Dir(dir), cacheMetaFile)))
+	data, err := os.ReadFile(filepath.Join(dir, "bar"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("abc"), data)
+}
+
 func TestCacheObject(t *testing.T) {
 	tempDir := t.TempDir()
 	c, err := newTestCache(t, tempDir, 1<<40, time.Now)

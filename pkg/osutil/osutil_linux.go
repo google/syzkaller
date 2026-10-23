@@ -43,7 +43,7 @@ func RemoveAll(dir string) error {
 		if f.IsDir() {
 			RemoveAll(name)
 		}
-		unix.Unmount(name, unix.MNT_FORCE)
+		unix.Unmount(name, unix.MNT_FORCE|unix.UMOUNT_NOFOLLOW)
 	}
 	if err := os.RemoveAll(dir); err != nil {
 		removeImmutable(dir)

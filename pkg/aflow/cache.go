@@ -72,6 +72,8 @@ func newTestCache(t *testing.T, dir string, maxSize uint64, timeNow func() time.
 // The desc is used to identify cached entries and must fully describe the cached contents
 // (the second invocation with the same typ+desc will return dir created by the first
 // invocation with the same typ+desc).
+// The dir also holds the cache metadata, so it must not be handed over to sandboxed processes
+// (they could replace the metadata file with a symlink); use a subdir for that.
 func (c *Cache) Create(typ, desc string, populate func(string) error) (string, error) {
 	// Note: we don't populate a temp dir and then atomically rename it to the final destination,
 	// because at least kernel builds encode the current path in debug info/compile commands,
@@ -226,16 +228,19 @@ func (c *Cache) Release(dir string) {
 }
 
 // TempDir creates a new temp dir.
-// The temp dir is within the cache, but won't have the metadata file,
-// so it will be removed on the next start (if not removed earlier).
+// The temp dir is within the cache, and will be removed on the next start (if not removed earlier).
 func (c *Cache) TempDir() (string, error) {
-	tmpDir := filepath.Join(c.dir, "tmp")
+	tmpDir := filepath.Join(c.dir, cacheTmpDir)
 	osutil.MkdirAll(tmpDir)
 	return os.MkdirTemp(tmpDir, "tmp")
 }
 
 // init reads the cached dirs (disk usage, last use time) from disk when the cache is created.
 func (c *Cache) init() error {
+	// Temp dirs may be owned by the sandbox user, so we don't look inside of them.
+	if err := osutil.RemoveAll(filepath.Join(c.dir, cacheTmpDir)); err != nil {
+		return err
+	}
 	dirs, err := filepath.Glob(filepath.Join(c.dir, "*", "*"))
 	if err != nil {
 		return err
@@ -255,17 +260,10 @@ func (c *Cache) init() error {
 		}
 		meta, err := osutil.ParseJSON[cacheMeta](data)
 		if err != nil || meta.Version != currentCacheVersion {
-			// An older metadata format, update it to the current version.
-			size, err := osutil.DiskUsage(dir)
-			if err != nil {
+			if err := osutil.RemoveAll(dir); err != nil {
 				return err
 			}
-			// Assume meta.Description is present.
-			meta.Version = currentCacheVersion
-			meta.DiskUsage = size
-			if err := osutil.WriteJSON(metaFile, meta); err != nil {
-				return err
-			}
+			continue
 		}
 		stat, err := os.Stat(metaFile)
 		if err != nil {
@@ -335,5 +333,6 @@ type cacheMeta struct {
 
 const (
 	cacheMetaFile       = "aflow-meta"
-	currentCacheVersion = 1
+	cacheTmpDir         = "tmp"
+	currentCacheVersion = 2
 )

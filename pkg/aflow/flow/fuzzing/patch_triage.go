@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/kconfig"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -113,7 +113,7 @@ type readPatchDiffResult struct {
 
 var readPatchDiff = aflow.NewFuncAction("read-patch-diff",
 	func(ctx *aflow.Context, args readPatchDiffArgs) (readPatchDiffResult, error) {
-		patch, err := osutil.RunCmd(time.Minute, args.KernelSrc, "git", "show", "HEAD")
+		patch, err := vcs.SandboxedGit(args.KernelSrc).RunTimeout(time.Minute, "show", "HEAD")
 		if err != nil {
 			return readPatchDiffResult{}, err
 		}

@@ -64,7 +64,7 @@ Reported-by: foo+abcd000@bar.com`,
 		lastCommit = repo.CommitChange(title)
 	}
 
-	vcsRepo, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious, vcs.OptDontSandbox)
+	vcsRepo, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
 	if err != nil {
 		t.Fatal(err)
 	}

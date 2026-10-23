@@ -10,7 +10,9 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,17 +71,15 @@ syz-cluster: rewrite fuzz config generation
 }
 
 func TestMaintainers(t *testing.T) {
-	kernelSrc := t.TempDir()
-	require.NoError(t, osutil.MkdirAll(filepath.Join(kernelSrc, "scripts")))
-	// Write a fake get_maintainer.pl.
-	require.NoError(t, os.WriteFile(filepath.Join(kernelSrc, "scripts", "get_maintainer.pl"), []byte(
-		`#!/bin/sh
-echo "Maintainer 1 <m1@example.com> (maintainer:SUBSYSTEM)"
-echo "Fixes Author <fixes@example.com> (reviewer:SUBSYSTEM)"
-`), 0755))
+	osutil.RequireSandbox(t)
+	dir := osutil.SandboxTempDir(t)
+	secret := filepath.Join(dir, "secret")
+	require.NoError(t, os.WriteFile(secret, []byte("secret"), 0600))
+	t.Setenv("SYZ_TEST_FORBIDDEN", secret)
 
-	aflow.TestAction(t, getMaintainers, "", maintainersArgs{
-		KernelSrc: kernelSrc,
+	repo, _ := build.MakeTestKernelRepo(t, filepath.Join(dir, "repo"))
+	args := maintainersArgs{
+		KernelSrc: repo.Dir,
 		PatchDiff: "fake patch diff",
 		Fixes: ai.FixesTag{
 			Hash:        "123456789",
@@ -87,10 +87,26 @@ echo "Fixes Author <fixes@example.com> (reviewer:SUBSYSTEM)"
 			AuthorName:  "Fixes Author",
 			AuthorEmail: "fixes@example.com",
 		},
-	}, maintainersResult{
+	}
+	aflow.TestAction(t, getMaintainers, "", args, maintainersResult{
 		Recipients: []ai.Recipient{
+			{Name: "Foo Maintainer", Email: "foo@kernel.org", To: true},
 			{Name: "Fixes Author", Email: "fixes@example.com", To: true},
-			{Name: "Maintainer 1", Email: "m1@example.com", To: true},
 		},
 	}, "")
+
+	t.Run("disabled", func(t *testing.T) {
+		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+		_, err := maintainers(aflow.NewTestContext(t), args)
+		require.Error(t, err)
+		for _, msg := range []string{
+			"user is root, want syzkaller",
+			"able to read " + secret,
+			"able to write " + secret,
+			"able to write to " + dir,
+			"able to connect to local TCP port",
+		} {
+			assert.Contains(t, osutil.VerboseMessage(err), msg)
+		}
+	})
 }

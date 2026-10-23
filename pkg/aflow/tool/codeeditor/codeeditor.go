@@ -43,15 +43,20 @@ func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
 	file := filepath.Join(state.KernelScratchSrc, args.SourceFile)
 	// Filter out not source files too (e.g. .git, etc),
 	// LLM have not seen them and should not be messing with them.
-	if !osutil.IsExist(file) || !codesearch.IsSourceFile(file) {
+	if !codesearch.IsSourceFile(file) {
 		return struct{}{}, aflow.BadCallError("SourceFile %q does not exist", args.SourceFile)
 	}
 	if strings.TrimSpace(args.CurrentCode) == "" {
 		return struct{}{}, aflow.BadCallError("CurrentCode snippet is empty")
 	}
-	fileData, err := os.ReadFile(file)
+	root, err := os.OpenRoot(state.KernelScratchSrc)
 	if err != nil {
 		return struct{}{}, err
+	}
+	defer root.Close()
+	fileData, err := root.ReadFile(args.SourceFile)
+	if err != nil {
+		return struct{}{}, aflow.BadCallError("SourceFile %q does not exist", args.SourceFile)
 	}
 	if len(fileData) == 0 || fileData[len(fileData)-1] != '\n' {
 		// Generally shouldn't happen, but just in case.
@@ -84,8 +89,7 @@ func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
 	if bytes.Equal(fileData, newFileData) {
 		return struct{}{}, aflow.BadCallError("The edit does not change the code.")
 	}
-	err = osutil.WriteFile(file, newFileData)
-	return struct{}{}, err
+	return struct{}{}, root.WriteFile(args.SourceFile, newFileData, osutil.DefaultFilePerm)
 }
 
 func replace(lines, src, dst [][]byte, fuzzy bool) (newLines [][]byte, matches int) {
