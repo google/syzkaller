@@ -217,8 +217,10 @@ func (pr *prober) submitFile(file string) {
 		for _, req := range reqs {
 			res := req.Wait(pr.ctx)
 			if res.Status != queue.Success {
-				pr.noteError(fmt.Errorf("failed to execute prog: %w (%v)\n%s\n%s",
-					res.Err, res.Status, req.Prog.Serialize(), res.Output))
+				if res.Err != nil {
+					pr.noteError(fmt.Errorf("failed to execute prog: %w (%v)\n%s\n%s",
+						res.Err, res.Status, req.Prog.Serialize(), res.Output))
+				}
 				continue
 			}
 			desc.results = append(desc.results, res)
