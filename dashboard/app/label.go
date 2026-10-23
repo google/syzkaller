@@ -22,6 +22,8 @@ const (
 	MissingBackportLabel BugLabelType = "missing-backport"
 	RaceLabel            BugLabelType = "race"
 	ActionableLabel      BugLabelType = "actionable"
+	// RouteLabel determines how the bug is routed (values are defined by the config).
+	RouteLabel BugLabelType = "route"
 )
 
 type BugPrio string
@@ -40,6 +42,43 @@ const (
 type oneOf []string
 type subsetOf []string
 type trueFalse struct{}
+type anyString struct{}
+
+type labelConfig struct {
+	// The minimal access level required to see the label.
+	// Labels that are not public cannot be set or unset via emails.
+	Access AccessLevel
+}
+
+var labelConfigs = map[BugLabelType]labelConfig{
+	SubsystemLabel:       {Access: AccessPublic},
+	PriorityLabel:        {Access: AccessPublic},
+	NoRemindersLabel:     {Access: AccessPublic},
+	OriginLabel:          {Access: AccessPublic},
+	MissingBackportLabel: {Access: AccessPublic},
+	RaceLabel:            {Access: AccessPublic},
+	ActionableLabel:      {Access: AccessPublic},
+	RouteLabel:           {Access: AccessUser},
+}
+
+// labelAccessLevel returns the minimal access level required to see the label.
+func labelAccessLevel(label BugLabelType) AccessLevel {
+	if cfg, ok := labelConfigs[label]; ok {
+		return cfg.Access
+	}
+	return AccessPublic
+}
+
+// visibleLabels returns the bug labels that may be displayed at the given access level.
+func (bug *Bug) visibleLabels(accessLevel AccessLevel) []BugLabel {
+	var ret []BugLabel
+	for _, label := range bug.Labels {
+		if labelAccessLevel(label.Label) <= accessLevel {
+			ret = append(ret, label)
+		}
+	}
+	return ret
+}
 
 func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 	ret := map[BugLabelType]any{
@@ -51,6 +90,7 @@ func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
 		ActionableLabel:      trueFalse{},
+		RouteLabel:           anyString{},
 	}
 	typ := crash.TitleToType(bug.Title)
 	if typ == crash.KCSANDataRace {
@@ -121,6 +161,10 @@ func (s *labelSet) ValidateValues(label BugLabelType, values []BugLabel) string 
 		if len(values) != 1 || values[0].Value != "" {
 			return "This label does not support any values"
 		}
+	case anyString:
+		if len(values) != 1 || values[0].Value == "" {
+			return "You must specify exactly one non-empty value"
+		}
 	}
 	return ""
 }
@@ -130,6 +174,10 @@ func (s *labelSet) Help() string {
 
 	var help strings.Builder
 	for _, key := range sortedKeys {
+		// Help is only shown in emails.
+		if labelAccessLevel(key) != AccessPublic {
+			continue
+		}
 		if help.Len() > 0 {
 			help.WriteString(", ")
 		}

@@ -999,7 +999,8 @@ func handleSetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 	}
 	label, values := BugLabelType(match[1]), match[2]
 	log.Infof(ctx, "bug=%q label=%s values=%s", bug.displayTitle(), label, values)
-	if !labelSet.FindLabel(label) {
+	// Email senders are not authenticated, so only public labels can be managed via emails.
+	if !labelSet.FindLabel(label) || labelAccessLevel(label) != AccessPublic {
 		return fmt.Sprintf(setCmdUnknownLabel, label, labelSet.Help())
 	}
 	var labels []BugLabel
@@ -1043,14 +1044,23 @@ func handleUnsetCommand(ctx context.Context, bug *Bug, msg *email.Email,
 		return unsetBugCmdFormat
 	}
 	var labels []BugLabelType
+	// Labels that cannot be managed via emails are reported as not found
+	// in order not to reveal their presence.
+	hidden := map[BugLabelType]struct{}{}
 	for _, name := range unique(setCmdArgSplitRe.Split(command.Args, -1)) {
-		labels = append(labels, BugLabelType(name))
+		label := BugLabelType(name)
+		if labelAccessLevel(label) != AccessPublic {
+			hidden[label] = struct{}{}
+			continue
+		}
+		labels = append(labels, label)
 	}
 
 	var notFound map[BugLabelType]struct{}
 	var notFoundErr = fmt.Errorf("some labels were not found")
 	err := updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
 		notFound = bug.UnsetLabels(labels...)
+		maps.Copy(notFound, hidden)
 		if len(notFound) > 0 {
 			return notFoundErr
 		}
