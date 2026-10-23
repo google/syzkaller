@@ -622,6 +622,12 @@ func crashBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.Ke
 		}
 		rep.LabelMessages[label.String()] = text
 	}
+	for _, label := range bug.visibleLabels(reporting.AccessLevel) {
+		rep.Labels = append(rep.Labels, dashapi.BugLabel{
+			Label: string(label.Label),
+			Value: label.Value,
+		})
+	}
 	if err := fillBugReport(ctx, rep, bug, bugReporting, build); err != nil {
 		return nil, err
 	}
