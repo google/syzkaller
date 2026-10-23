@@ -1393,6 +1393,14 @@ You must specify only one of the allowed values.`), true)
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	syzbotReply := c.pollEmailBug()
 	c.expectEQ(strings.Contains(syzbotReply.Body, "The following labels did not exist: tag2"), true)
+
+	// Non-public labels cannot be managed via emails.
+	c.incomingEmail(sender, "#syz set route: route-a\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	assert.Contains(t, c.pollEmailBug().Body, `The specified label "route" is unknown.`)
+	c.incomingEmail(sender, "#syz unset route\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	assert.Contains(t, c.pollEmailBug().Body, "The following labels did not exist: route")
 }
 
 func expectLabels(t *testing.T, client *apiClient, extID string, labels ...string) {
