@@ -4,11 +4,15 @@
 package instance
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,6 +40,7 @@ func TestCollectRuns(t *testing.T) {
 		opts             CollectRunsOpts
 		expectedValid    int
 		expectErr        bool
+		expectErrIs      error
 		expectErrMessage string
 	}{
 		{
@@ -84,6 +89,7 @@ func TestCollectRuns(t *testing.T) {
 				MaxVMs:    3,
 			},
 			expectErr:     true,
+			expectErrIs:   ErrTooManyInfraErrors,
 			expectedValid: 0,
 		},
 		{
@@ -116,6 +122,7 @@ func TestCollectRuns(t *testing.T) {
 				MaxVMs:    4, // Test high parallelism.
 			},
 			expectErr:     true,
+			expectErrIs:   ErrTooManyInfraErrors,
 			expectedValid: 2, // We still return what we collected so far if it errors out.
 		},
 		{
@@ -136,19 +143,100 @@ func TestCollectRuns(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			runner := &mockRunner{responses: tc.responses}
+			// Use synctest to not actually wait for the backoff.
+			synctest.Test(t, func(t *testing.T) {
+				runner := &mockRunner{responses: tc.responses}
 
-			validResults, err := CollectRuns(runner.Test, tc.opts)
-			if tc.expectErr {
-				require.Error(t, err)
-				if tc.expectErrMessage != "" {
-					require.Contains(t, err.Error(), tc.expectErrMessage)
+				validResults, err := CollectRuns(t.Context(), runner.Test, tc.opts)
+				if tc.expectErr {
+					require.Error(t, err)
+					if tc.expectErrIs != nil {
+						require.ErrorIs(t, err, tc.expectErrIs)
+					}
+					if tc.expectErrMessage != "" {
+						require.Contains(t, err.Error(), tc.expectErrMessage)
+					}
+					require.Len(t, validResults, tc.expectedValid)
+				} else {
+					require.NoError(t, err)
+					require.Len(t, validResults, tc.expectedValid)
 				}
-				require.Len(t, validResults, tc.expectedValid)
-			} else {
-				require.NoError(t, err)
-				require.Len(t, validResults, tc.expectedValid)
-			}
+			})
 		})
 	}
+}
+
+func TestCollectRunsSmallerBatches(t *testing.T) {
+	// The attempt runs fewer VMs than requested (e.g. the VM pool is smaller).
+	calls := 0
+	validResults, err := CollectRuns(t.Context(), func(int) ([]EnvTestResult, error) {
+		calls++
+		return []EnvTestResult{{RawOutput: []byte("ok")}}, nil
+	}, CollectRunsOpts{
+		WantValid: 3,
+		MaxTotal:  3,
+		MaxVMs:    3,
+	})
+	require.NoError(t, err)
+	assert.Len(t, validResults, 3)
+	assert.Equal(t, 3, calls)
+}
+
+func TestCollectRunsNoResults(t *testing.T) {
+	attempts := 0
+	_, err := CollectRuns(t.Context(), func(int) ([]EnvTestResult, error) {
+		attempts++
+		return nil, nil
+	}, CollectRunsOpts{
+		WantValid: 1,
+		MaxTotal:  3,
+		MaxVMs:    1,
+	})
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts)
+}
+
+func TestCollectRunsCancel(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		runner := &mockRunner{responses: []EnvTestResult{
+			{Error: &TestError{Infra: true}},
+			{RawOutput: []byte("1")},
+		}}
+		start := time.Now()
+		_, err := CollectRuns(ctx, func(numVMs int) ([]EnvTestResult, error) {
+			// Cancel the context during the first batch, we must not wait for the backoff.
+			cancel()
+			return runner.Test(numVMs)
+		}, CollectRunsOpts{
+			WantValid: 1,
+			MaxTotal:  2,
+			MaxVMs:    1,
+		})
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Equal(t, 1, runner.idx)
+		assert.Zero(t, time.Since(start))
+	})
+}
+
+func TestCollectRunsBackoff(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		runner := &mockRunner{responses: []EnvTestResult{
+			{Error: &TestError{Infra: true}}, // We back off only after this one.
+			{RawOutput: []byte("1")},
+			{Error: &CrashError{Report: &report.Report{Title: "crash"}}},
+			{RawOutput: []byte("3")},
+		}}
+		start := time.Now()
+		validResults, err := CollectRuns(t.Context(), runner.Test, CollectRunsOpts{
+			WantValid: 3,
+			MaxTotal:  4,
+			MaxVMs:    1,
+		})
+		require.NoError(t, err)
+		assert.Len(t, validResults, 3)
+		// Inside the synctest bubble, time only advances while we wait for the backoff.
+		assert.Equal(t, infraErrorBackoff, time.Since(start))
+	})
 }

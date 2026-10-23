@@ -5,9 +5,13 @@ package crash
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/vm"
 )
 
 type RunCReproArgs struct {
@@ -99,6 +103,11 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
 		res2, err2 := runTest(ctx, reproduceArgs, workdir, false)
+		if isInfraError(err2) {
+			// We failed to get a VM. Don't fail the action, Run 1 results are still valid.
+			log.Logf(0, "failed to collect strace output: %v", err2)
+			return result, nil
+		}
 		if err2 != nil {
 			return result, err2 // Return what we had from Run 1, plus the error.
 		}
@@ -108,4 +117,16 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	return result, nil
+}
+
+// isInfraError checks whether the error was caused by the infrastructure rather than by the kernel.
+func isInfraError(err error) bool {
+	if errors.Is(err, instance.ErrTooManyInfraErrors) {
+		return true
+	}
+	if _, ok := errors.AsType[vm.InfraError](err); ok {
+		return true
+	}
+	testErr, ok := errors.AsType[*instance.TestError](err)
+	return ok && testErr.Infra
 }

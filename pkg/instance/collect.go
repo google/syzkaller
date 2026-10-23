@@ -4,8 +4,10 @@
 package instance
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // RunAttempt represents a single execution batch, returning results for numVMs.
@@ -18,9 +20,17 @@ type CollectRunsOpts struct {
 	MaxVMs    int // Maximum number of VMs to run concurrently in a single batch.
 }
 
+// ErrTooManyInfraErrors is returned by CollectRuns if it could not collect enough valid runs
+// because of infrastructure errors.
+var ErrTooManyInfraErrors = errors.New("too many infra errors")
+
+// infraErrorBackoff is the delay before the next batch if the previous one had infra errors.
+// Such errors are usually caused by a temporary lack of cloud capacity, which takes time to recover.
+const infraErrorBackoff = time.Minute
+
 // CollectRuns runs attempts to collect the requested number of valid test results.
 // It automatically retries on infrastructure errors.
-func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
+func CollectRuns(ctx context.Context, attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, error) {
 	if opts.MaxTotal < opts.WantValid {
 		return nil, fmt.Errorf("collectRuns: MaxTotal (%d) cannot be less than WantValid (%d)", opts.MaxTotal, opts.WantValid)
 	}
@@ -30,8 +40,20 @@ func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, err
 	var lastInfraErr error
 
 	totalAttempts := 0
+	backoff := false
 
 	for totalAttempts < opts.MaxTotal && len(validResults) < opts.WantValid {
+		if backoff {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(infraErrorBackoff):
+			}
+			backoff = false
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		// Run as many as we need, up to MaxVMs.
 		need := opts.WantValid - len(validResults)
 		batchSize := min(need, opts.MaxVMs)
@@ -39,11 +61,14 @@ func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, err
 		batchSize = min(batchSize, opts.MaxTotal-totalAttempts)
 
 		results, err := attempt(batchSize)
-		totalAttempts += batchSize
-
 		if err != nil {
 			return nil, err
 		}
+		if len(results) == 0 {
+			return nil, fmt.Errorf("collectRuns: attempt returned no results")
+		}
+		// The attempt may run fewer VMs than requested (e.g. if the VM pool is smaller).
+		totalAttempts += len(results)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -57,13 +82,14 @@ func CollectRuns(attempt RunAttempt, opts CollectRunsOpts) ([]EnvTestResult, err
 				validResults = append(validResults, res)
 			} else {
 				lastInfraErr = res.Error
+				backoff = true
 			}
 		}
 	}
 
 	if len(validResults) < opts.WantValid {
-		return validResults, fmt.Errorf("failed to collect %d valid runs within %d total attempts. Last infra error: %w",
-			opts.WantValid, opts.MaxTotal, lastInfraErr)
+		return validResults, fmt.Errorf("%w: failed to collect %d valid runs within %d total attempts. "+
+			"Last infra error: %w", ErrTooManyInfraErrors, opts.WantValid, opts.MaxTotal, lastInfraErr)
 	}
 	return validResults[:opts.WantValid], nil // Trim just in case an attempt returned more than requested.
 }
