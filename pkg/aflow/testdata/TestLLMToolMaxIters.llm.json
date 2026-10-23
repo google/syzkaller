@@ -325,18 +325,13 @@
 			{
 				"parts": [
 					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					},
+					{
 						"functionResponse": {
 							"id": "id1",
 							"name": "researcher-tool"
 						}
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
 					}
 				],
 				"role": "user"
@@ -421,18 +416,13 @@
 			{
 				"parts": [
 					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					},
+					{
 						"functionResponse": {
 							"id": "id1",
 							"name": "researcher-tool"
 						}
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
 					}
 				],
 				"role": "user"
@@ -533,18 +523,13 @@
 			{
 				"parts": [
 					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
+					},
+					{
 						"functionResponse": {
 							"id": "id1",
 							"name": "researcher-tool"
 						}
-					}
-				],
-				"role": "user"
-			},
-			{
-				"parts": [
-					{
-						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without doing any more research!\nIMPORTANT: All of your research tools are now disabled, do NOT attempt to output JSON\nto call them. Base the answer strictly on the information you have already gathered,\nand explicitly state which parts of it are incomplete or were not verified.\nThe set-results tool is the only tool you may still call.\nCall it with the results you have so far, including any caveats or unverified parts.\n"
 					}
 				],
 				"role": "user"
