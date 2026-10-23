@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"compress/gzip"
 	"context"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -346,7 +347,10 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 	http.SetCookie(w, cookie)
 }
 
-var templates = html.CreateGlob("*.html")
+//go:embed templates/*.html
+var htmlTemplates embed.FS
+
+var templates = html.CreateGlob(htmlTemplates, "templates/*.html")
 
 // gzipResponseWriterCloser accumulates the gzipped result.
 // In case of error during the handler processing, we'll drop this gzipped data.

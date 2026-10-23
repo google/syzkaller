@@ -7,54 +7,24 @@ package html
 import (
 	"fmt"
 	"html/template"
-	"path/filepath"
+	"io/fs"
 	"reflect"
-	"runtime"
 	"strings"
 	texttemplate "text/template"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/vcs"
-	"google.golang.org/appengine/v2"
 )
 
-// search path differs for the tests and AppEngine because we don't follow
-// the recommended folder structure (my best guess).
-// When you run the dashboard/app tests, CWD is syzkaller/dashboard/app.
-// When you deploy AppEngine in the GOPATH mode, CWD is syzkaller/dashboard/app.
-// When you deploy AppEngine in the  GOMOD, CWD is syzkaller/.
-var globSearchPath = func() string {
-	if appengine.IsAppEngine() {
-		return "dashboard/app/templates/"
-	}
-	return "templates/"
-}()
-
-// SetGlobSearchPath overrides the default path where syzkaller looks for templates.
-func SetGlobSearchPath(path string) {
-	globSearchPath = path
-}
-
-func init() {
-	// Used externally - do not remove.
-	runtime.KeepAlive(SetGlobSearchPath)
-}
-
-func CreateGlob(glob string) *template.Template {
-	if strings.Contains(glob, string(filepath.Separator)) {
-		panic("glob can't be a path, the files mask is expected")
-	}
+func CreateGlob(fsys fs.FS, glob string) *template.Template {
 	return template.Must(
-		template.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
+		template.New("").Funcs(Funcs).ParseFS(fsys, glob))
 }
 
-func CreateTextGlob(glob string) *texttemplate.Template {
-	if strings.Contains(glob, string(filepath.Separator)) {
-		panic("glob can't be a path, the files mask is expected")
-	}
+func CreateTextGlob(fsys fs.FS, glob string) *texttemplate.Template {
 	return texttemplate.Must(
-		texttemplate.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
+		texttemplate.New("").Funcs(Funcs).ParseFS(fsys, glob))
 }
 
 var Funcs = template.FuncMap{
