@@ -18,12 +18,13 @@ import (
 )
 
 const (
-	backendGemini = "gemini"
-	backendVertex = "vertex"
-	defaultVMType = "qemu"
+	backendGemini     = "gemini"
+	backendVertex     = "vertex"
+	backendOrcaRouter = "orcarouter"
+	defaultVMType     = "qemu"
 )
 
-var supportedBackends = []string{backendGemini, backendVertex}
+var supportedBackends = []string{backendGemini, backendVertex, backendOrcaRouter}
 
 type TargetConfig struct {
 	Target       string          `json:"target"`
@@ -52,23 +53,27 @@ type Config struct {
 	Targets         map[string]*TargetConfig `json:"targets"`
 	CacheSize       uint64                   `json:"cache_size"`
 	Model           string                   `json:"model"`
-	// Mapping from workflow name to LLM backend (e.g. "gemini", "vertex").
+	// Mapping from workflow name to LLM backend (e.g. "gemini", "vertex", "orcarouter").
 	WorkflowBackends map[string]string `json:"workflow_backends"`
 	// The default LLM backend to use if not specified in WorkflowBackends. Defaults to "gemini".
 	DefaultBackend string `json:"default_backend"`
 	GeminiAPIKey   string `json:"gemini_api_key"`
-	CloudProject   string `json:"-"`
-	SafetyFilters  bool   `json:"safety_filters"`
+	// OrcaRouterAPIKey is an OrcaRouter API key (sk-orca-...). It uses the same
+	// "env:VAR" / "gcp-secret:NAME" resolution as GeminiAPIKey.
+	OrcaRouterAPIKey string `json:"orcarouter_api_key"`
+	CloudProject     string `json:"-"`
+	SafetyFilters    bool   `json:"safety_filters"`
 }
 
 func loadConfig(configFile string) (*Config, error) {
 	cfg := &Config{
-		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
-		SyzkallerBranch: "master",
-		CacheSize:       1 << 40, // 1TB
-		GeminiAPIKey:    "env:GOOGLE_API_KEY",
-		DefaultBackend:  backendGemini,
-		SafetyFilters:   true,
+		SyzkallerRepo:    "https://github.com/google/syzkaller.git",
+		SyzkallerBranch:  "master",
+		CacheSize:        1 << 40, // 1TB
+		GeminiAPIKey:     "env:GOOGLE_API_KEY",
+		OrcaRouterAPIKey: "env:ORCAROUTER_API_KEY",
+		DefaultBackend:   backendGemini,
+		SafetyFilters:    true,
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
@@ -133,6 +138,12 @@ func loadConfig(configFile string) (*Config, error) {
 		return nil, fmt.Errorf("failed to resolve CloudProject: %w", err)
 	}
 	cfg.CloudProject = resolvedCloudProject
+
+	resolvedOrcaKey, err := gcpsecret.Resolve(context.Background(), cfg.OrcaRouterAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve OrcaRouterAPIKey: %w", err)
+	}
+	cfg.OrcaRouterAPIKey = resolvedOrcaKey
 
 	if !slices.Contains(supportedBackends, cfg.DefaultBackend) {
 		return nil, fmt.Errorf("default_backend must be one of %v, got %q", supportedBackends, cfg.DefaultBackend)
