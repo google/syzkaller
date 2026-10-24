@@ -20,10 +20,11 @@ import (
 const autoTxt = "auto.txt"
 
 // IsAutoTxt reports whether name or its base filename is an auto-generated description file
-// ("auto.txt" or "auto.txt.const").
+// ("auto.txt", "auto.txt.const", "*_auto.txt", or "*_auto.txt.const").
 func IsAutoTxt(name string) bool {
 	base := filepath.Base(filepath.ToSlash(name))
-	return base == autoTxt || base == autoTxt+".const"
+	return base == autoTxt || base == autoTxt+".const" ||
+		strings.HasSuffix(base, "_"+autoTxt) || strings.HasSuffix(base, "_"+autoTxt+".const")
 }
 
 // SyzFS provides a filesystem view of syzkaller files for a specific OS target

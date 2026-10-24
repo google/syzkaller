@@ -33,10 +33,11 @@ type StructInfo struct {
 func Run(out *Output, probe *ifaceprobe.Info, coverage []*cover.FileCoverage,
 	syscallRename map[string][]string, trace io.Writer) (*Result, error) {
 	ctx := &context{
-		Output:        out,
+		Output:        out.Clone(),
 		probe:         probe,
 		coverage:      coverage,
 		syscallRename: syscallRename,
+		suffix:        autoSuffix,
 		structs:       make(map[string]*Struct),
 		funcs:         make(map[string]*Function),
 		ioctls:        make(map[string]*Type),
@@ -65,11 +66,90 @@ func Run(out *Output, probe *ifaceprobe.Info, coverage []*cover.FileCoverage,
 	}, nil
 }
 
+func RunOverlay(out *Output, probe *ifaceprobe.Info, roots, excludeStructs, excludeEnums map[string]bool,
+	arches []string, trace io.Writer) (*Result, error) {
+	ctx := &context{
+		Output:      out.Clone(),
+		probe:       probe,
+		suffix:      "",
+		structs:     make(map[string]*Struct),
+		funcs:       make(map[string]*Function),
+		ioctls:      make(map[string]*Type),
+		facts:       make(map[string]*typingNode),
+		uniqualizer: make(map[string]int),
+		debugTrace:  trace,
+	}
+	ctx.processFunctions()
+	ctx.processTypingFacts()
+	includeUse := ctx.processConsts()
+	ctx.processEnums()
+	structInfo := ctx.processStructs()
+
+	keepStructs := make(map[string]bool)
+	keepEnums := make(map[string]bool)
+	enums := make(map[string]*Enum)
+	for _, enum := range ctx.Enums {
+		enums[enum.Name] = enum
+	}
+	var queue []string
+	for name := range roots {
+		queue = append(queue, name)
+	}
+	for len(queue) > 0 {
+		name := queue[len(queue)-1]
+		queue = queue[:len(queue)-1]
+		if str := ctx.structs[name]; str != nil && !excludeStructs[name] && !keepStructs[name] {
+			keepStructs[name] = true
+			for _, f := range str.Fields {
+				collectFieldTypes(f.Type, &queue)
+			}
+		}
+		if enum := enums[name]; enum != nil && !excludeEnums[name] && !keepEnums[name] {
+			keepEnums[name] = true
+		}
+	}
+	ctx.Enums = slices.DeleteFunc(ctx.Enums, func(e *Enum) bool {
+		return !keepEnums[e.Name]
+	})
+	ctx.Structs = slices.DeleteFunc(ctx.Structs, func(s *Struct) bool {
+		return !keepStructs[s.Name]
+	})
+
+	ctx.serializeOverlay(arches)
+	if len(ctx.errs) != 0 {
+		return nil, errors.Join(ctx.errs...)
+	}
+	return &Result{
+		Descriptions: ctx.descriptions.Bytes(),
+		IncludeUse:   includeUse,
+		StructInfo:   structInfo,
+	}, nil
+}
+
+func collectFieldTypes(t *Type, queue *[]string) {
+	if t == nil {
+		return
+	}
+	if t.Struct != "" {
+		*queue = append(*queue, t.Struct)
+	}
+	if t.Int != nil && t.Int.Enum != "" {
+		*queue = append(*queue, t.Int.Enum)
+	}
+	if t.Ptr != nil {
+		collectFieldTypes(t.Ptr.Elem, queue)
+	}
+	if t.Array != nil {
+		collectFieldTypes(t.Array.Elem, queue)
+	}
+}
+
 type context struct {
 	*Output
 	probe         *ifaceprobe.Info
 	coverage      []*cover.FileCoverage
 	syscallRename map[string][]string // syscall function -> syscall names
+	suffix        string
 	structs       map[string]*Struct
 	funcs         map[string]*Function
 	ioctls        map[string]*Type
@@ -158,7 +238,7 @@ func (ctx *context) processConsts() map[string]string {
 
 func (ctx *context) processEnums() {
 	for _, enum := range ctx.Enums {
-		enum.Name += autoSuffix
+		enum.Name += ctx.suffix
 	}
 }
 
@@ -220,7 +300,7 @@ func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall,
 			scopeVal:         scopeVal,
 		})
 		newCall := *call
-		newCall.Func = name + autoSuffix + suffix
+		newCall.Func = name + ctx.suffix + suffix
 		*syscalls = append(*syscalls, &newCall)
 	}
 }
@@ -242,7 +322,7 @@ func (ctx *context) processIouring() {
 func (ctx *context) processStructs() map[string]*StructInfo {
 	structInfo := make(map[string]*StructInfo)
 	for _, str := range ctx.Structs {
-		str.Name += autoSuffix
+		str.Name += ctx.suffix
 		ctx.structs[str.Name] = str
 		structInfo[str.Name] = &StructInfo{
 			Size:  str.ByteSize,
@@ -251,7 +331,7 @@ func (ctx *context) processStructs() map[string]*StructInfo {
 	}
 	for _, str := range ctx.Structs {
 		ctx.processFields(str.Fields, str.Name, true)
-		name := strings.TrimSuffix(str.Name, autoSuffix)
+		name := strings.TrimSuffix(str.Name, ctx.suffix)
 		for _, f := range str.Fields {
 			typ := ctx.inferFieldType(name, f.Name)
 			refineFieldType(f, typ, true)
@@ -316,7 +396,7 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 		return constType
 	}
 	if t.Enum != "" {
-		t.Enum += autoSuffix
+		t.Enum += ctx.suffix
 		return fmt.Sprintf("flags[%v %v]", t.Enum, maybeBaseType(baseType, needBase))
 	}
 	if counts != nil {
@@ -438,7 +518,7 @@ func (ctx *context) fieldTypePtr(f, counts *Field, parent string) string {
 	// Use an opt pointer if the direct parent is the same as this node, or if the field name is next.
 	// Looking at the field name is a hack, but it's enough to avoid some recursion cases,
 	// e.g. for struct adf_user_cfg_section.
-	if f.Name == "next" || parent != "" && parent == t.Elem.Struct+autoSuffix {
+	if f.Name == "next" || parent != "" && parent == t.Elem.Struct+ctx.suffix {
 		opt = ", opt"
 	}
 	elem := &Field{
@@ -521,8 +601,8 @@ func (ctx *context) fieldTypeStruct(f *Field) string {
 		return "sockaddr_storage"
 	}
 	// We can get here several times for the same struct.
-	if !strings.HasSuffix(f.Type.Struct, autoSuffix) {
-		f.Type.Struct += autoSuffix
+	if !strings.HasSuffix(f.Type.Struct, ctx.suffix) {
+		f.Type.Struct += ctx.suffix
 	}
 	str := ctx.structs[f.Type.Struct]
 	if str == nil {

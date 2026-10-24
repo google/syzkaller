@@ -1,6 +1,8 @@
 # Copyright 2026 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+meta overlay["fs_ioctl_xfs_auto.txt"]
+
 include <linux/fs.h>
 include <uapi/linux/fsmap.h>
 include <fs/xfs/xfs_platform.h>
@@ -62,25 +64,14 @@ xfs_scrub_metadata_flags = XFS_SCRUB_IFLAG_REPAIR, XFS_SCRUB_OFLAG_CORRUPT, XFS_
 xfs_bulk_ireq_flags = XFS_BULK_IREQ_AGNO, XFS_BULK_IREQ_SPECIAL, XFS_BULK_IREQ_NREXT64
 xfs_geom_flags = XFS_FSOP_GEOM_FLAGS_ATTR, XFS_FSOP_GEOM_FLAGS_NLINK, XFS_FSOP_GEOM_FLAGS_QUOTA, XFS_FSOP_GEOM_FLAGS_IALIGN, XFS_FSOP_GEOM_FLAGS_DALIGN, XFS_FSOP_GEOM_FLAGS_SHARED, XFS_FSOP_GEOM_FLAGS_EXTFLG, XFS_FSOP_GEOM_FLAGS_DIRV2, XFS_FSOP_GEOM_FLAGS_LOGV2, XFS_FSOP_GEOM_FLAGS_SECTOR, XFS_FSOP_GEOM_FLAGS_ATTR2, XFS_FSOP_GEOM_FLAGS_PROJID32, XFS_FSOP_GEOM_FLAGS_DIRV2CI, XFS_FSOP_GEOM_FLAGS_LAZYSB, XFS_FSOP_GEOM_FLAGS_V5SB, XFS_FSOP_GEOM_FLAGS_FTYPE, XFS_FSOP_GEOM_FLAGS_FINOBT, XFS_FSOP_GEOM_FLAGS_SPINODES, XFS_FSOP_GEOM_FLAGS_RMAPBT, XFS_FSOP_GEOM_FLAGS_REFLINK, XFS_FSOP_GEOM_FLAGS_BIGTIME, XFS_FSOP_GEOM_FLAGS_INOBTCNT, XFS_FSOP_GEOM_FLAGS_NREXT64, XFS_FSOP_GEOM_FLAGS_EXCHANGE_RANGE, XFS_FSOP_GEOM_FLAGS_PARENT, XFS_FSOP_GEOM_FLAGS_METADIR, XFS_FSOP_GEOM_FLAGS_ZONED
 
-dioattr {
-	d_mem		int32
-	d_miniosz	int32
-	d_maxiosz	int32
-}
-
-xfs_fsop_bulkreq {
+override xfs_fsop_bulkreq {
 	lastip	ptr[inout, int64]
 	icount	int32
 	ubuffer	ptr[out, array[xfs_bulkstat]]
 	ocount	ptr[out, int32]
 }
 
-xfs_bulkstat_req {
-	hdr		xfs_bulk_ireq
-	bulkstat	ptr[out, array[xfs_bulkstat]]
-}
-
-xfs_bulk_ireq {
+override xfs_bulk_ireq {
 	ino		int64
 	flags		flags[xfs_bulk_ireq_flags, int32]
 	icount		int32
@@ -89,101 +80,7 @@ xfs_bulk_ireq {
 	reserved	array[const[0, int64], 5]
 }
 
-xfs_bulkstat {
-	bs_ino			int64
-	bs_size			int64
-	bs_blocks		int64
-	bs_xflags		int64
-	bs_atime		int64
-	bs_mtime		int64
-	bs_ctime		int64
-	bs_btime		int64
-	bs_gen			int32
-	bs_uid			int32
-	bs_gid			int32
-	bs_projectid		int32
-	bs_atime_nsec		int32
-	bs_mtime_nsec		int32
-	bs_ctime_nsec		int32
-	bs_btime_nsec		int32
-	bs_blksize		int32
-	bs_rdev			int32
-	bs_cowextsize_blks	int32
-	bs_extsize_blks		int32
-	bs_nlink		int32
-	bs_extents		int32
-	bs_aextents		int32
-	bs_version		int16
-	bs_forkoff		int16
-	bs_sick			int16
-	bs_checked		int16
-	bs_mode			int16
-	bs_pad2			const[0, int16]
-	bs_extents64		int64
-	bs_pad			array[const[0, int64], 6]
-}
-
-xfs_inumbers_req {
-	hdr		xfs_bulk_ireq
-	inumbers	array[xfs_inumbers]
-}
-
-xfs_inumbers {
-	xi_startino	int64
-	xi_allocmask	int64
-	xi_alloccount	int8
-	xi_version	int8
-	xi_padding	array[const[0, int8], 6]
-}
-
-xfs_fsop_geom_v1 {
-	blocksize	int32
-	rtextsize	int32
-	agblocks	int32
-	agcount		int32
-	logblocks	int32
-	sectsize	int32
-	inodesize	int32
-	imaxpct		int32
-	datablocks	int64
-	rtblocks	int64
-	rtextents	int64
-	logstart	int64
-	uuid		array[int8, 16]
-	sunit		int32
-	swidth		int32
-	version		int32
-	flags		int32
-	logsectsize	int32
-	rtsectsize	int32
-	dirblocksize	int32
-}
-
-xfs_fsop_geom_v4 {
-	blocksize	int32
-	rtextsize	int32
-	agblocks	int32
-	agcount		int32
-	logblocks	int32
-	sectsize	int32
-	inodesize	int32
-	imaxpct		int32
-	datablocks	int64
-	rtblocks	int64
-	rtextents	int64
-	logstart	int64
-	uuid		array[int8, 16]
-	sunit		int32
-	swidth		int32
-	version		int32
-	flags		int32
-	logsectsize	int32
-	rtsectsize	int32
-	dirblocksize	int32
-	logsunit	int32
-}
-
-xfs_fsop_geom {
+override xfs_fsop_geom {
 	blocksize	int32
 	rtextsize	int32
 	agblocks	int32
@@ -214,52 +111,6 @@ xfs_fsop_geom {
 	reserved	array[const[0, int64], 14]
 }
 
-xfs_ag_geometry {
-	ag_number	int32
-	ag_length	int32
-	ag_freeblks	int32
-	ag_icount	int32
-	ag_ifree	int32
-	ag_sick		int32
-	ag_checked	int32
-	ag_flags	int32
-	ag_reserved	array[const[0, int64], 12]
-}
-
-xfs_rtgroup_geometry {
-	rg_number	int32
-	rg_length	int32
-	rg_sick		int32
-	rg_checked	int32
-	rg_flags	int32
-	rg_reserved	array[const[0, int32], 27]
-}
-
-xfs_attrlist_cursor {
-	opaque	array[int32, 4]
-}
-
-xfs_fsid {
-	val	array[int32, 2]
-}
-
-xfs_fid {
-	fid_len	int16
-	fid_pad	int16
-	fid_gen	int32
-	fid_ino	int64
-}
-
-xfs_handle {
-	ha_u	xfs_handle_union
-	ha_fid	xfs_fid
-}
-
-xfs_handle_union [
-	align		int64
-	_ha_fsid	xfs_fsid
-]
-
 xfs_getparents_rec {
 	gpr_parent	xfs_handle
 	gpr_reclen	int32
@@ -267,26 +118,13 @@ xfs_getparents_rec {
 	gpr_name	string
 }
 
-xfs_getparents {
+override xfs_getparents {
 	gp_cursor	xfs_attrlist_cursor
 	gp_iflags	flags[xfs_getparents_iflags, int16]
 	gp_oflags	flags[xfs_getparents_oflags, int16]
 	gp_bufsize	int32
 	gp_reserved	const[0, int64]
 	gp_buffer	ptr[inout, array[xfs_getparents_rec]]
-}
-
-xfs_getparents_by_handle {
-	gph_handle	xfs_handle
-	gph_request	xfs_getparents
-}
-
-getbmap {
-	bmv_offset	int64
-	bmv_block	int64
-	bmv_length	int64
-	bmv_count	int32
-	bmv_entries	int32
 }
 
 getbmapx {
@@ -301,7 +139,7 @@ getbmapx {
 	bmv_unused2	const[0, int32]
 }
 
-xfs_scrub_vec_head {
+override xfs_scrub_vec_head {
 	svh_ino		int64
 	svh_gen		int32
 	svh_agno	int32
@@ -312,7 +150,7 @@ xfs_scrub_vec_head {
 	svh_vectors	ptr[inout, array[xfs_scrub_vec]]
 }
 
-xfs_scrub_metadata {
+override xfs_scrub_metadata {
 	sm_type		flags[xfs_scrub_type, int32]
 	sm_flags	flags[xfs_scrub_metadata_flags, int32]
 	sm_ino		int64
@@ -328,7 +166,7 @@ xfs_scrub_vec {
 	sv_reserved	const[0, int32]
 }
 
-xfs_fsop_handlereq {
+override xfs_fsop_handlereq {
 	fd		fd
 	path		ptr[in, string]
 	oflags		flags[open_flags, int32]
@@ -338,7 +176,7 @@ xfs_fsop_handlereq {
 	ohandlen	ptr[inout, int32]
 }
 
-xfs_fsop_attrlist_handlereq {
+override xfs_fsop_attrlist_handlereq {
 	hreq	xfs_fsop_handlereq
 	pos	xfs_attrlist_cursor
 	flags	int32
@@ -346,7 +184,7 @@ xfs_fsop_attrlist_handlereq {
 	buffer	ptr[out, array[int8]]
 }
 
-xfs_attr_multiop {
+override xfs_attr_multiop {
 	am_opcode	flags[attr_op_flags, int32]
 	am_error	int32
 	am_attrname	ptr[in, string]
@@ -355,13 +193,13 @@ xfs_attr_multiop {
 	am_flags	flags[xfs_ioc_attr_flags, int32]
 }
 
-xfs_fsop_attrmulti_handlereq {
+override xfs_fsop_attrmulti_handlereq {
 	hreq	xfs_fsop_handlereq
 	opcount	len[ops, int32]
 	ops	ptr[inout, array[xfs_attr_multiop]]
 }
 
-xfs_swapext {
+override xfs_swapext {
 	sx_version	const[0, int64]
 	sx_fdtarget	fd
 	sx_fdtmp	fd
@@ -371,84 +209,7 @@ xfs_swapext {
 	sx_stat		xfs_bstat
 }
 
-xfs_bstat {
-	bs_ino		int64
-	bs_mode		int16
-	bs_nlink	int16
-	bs_uid		int32
-	bs_gid		int32
-	bs_rdev		int32
-	bs_blksize	int32
-	bs_size		int64
-	bs_atime	xfs_bstime
-	bs_mtime	xfs_bstime
-	bs_ctime	xfs_bstime
-	bs_blocks	int64
-	bs_xflags	int32
-	bs_extsize	int32
-	bs_extents	int32
-	bs_gen		int32
-	bs_projid_lo	int16
-	bs_forkoff	int16
-	bs_projid_hi	int16
-	bs_sick		int16
-	bs_checked	int16
-	bs_pad		array[const[0, int8], 2]
-	bs_cowextsize	int32
-	bs_dmevmask	int32
-	bs_dmstate	int16
-	bs_aextents	int16
-}
-
-xfs_bstime {
-	tv_sec	intptr
-	tv_nsec	int32
-}
-
-xfs_fsop_counts {
-	freedata	int64
-	freertx		int64
-	freeino		int64
-	allocino	int64
-}
-
-xfs_fsop_resblks {
-	resblks		int64
-	resblks_avail	int64
-}
-
-xfs_growfs_data {
-	newblocks	int64
-	imaxpct		int32
-}
-
-xfs_growfs_log {
-	newblocks	int32
-	isint		int32
-}
-
-xfs_growfs_rt {
-	newblocks	int64
-	extsize		int32
-}
-
-xfs_error_injection {
-	fd	fd
-	errtag	int32
-}
-
-xfs_fs_eofblocks {
-	eof_version		int32
-	eof_flags		int32
-	eof_uid			int32
-	eof_gid			int32
-	eof_prid		int32
-	pad32			const[0, int32]
-	eof_min_file_size	int64
-	pad64			array[const[0, int64], 12]
-}
-
-xfs_exchange_range {
+override xfs_exchange_range {
 	file1_fd	fd
 	pad		const[0, int32]
 	file1_offset	int64
@@ -457,7 +218,7 @@ xfs_exchange_range {
 	flags		flags[xfs_exchange_range_flags, int64]
 }
 
-xfs_commit_range {
+override xfs_commit_range {
 	file1_fd	fd
 	pad		const[0, int32]
 	file1_offset	int64
