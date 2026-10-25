@@ -33,6 +33,7 @@ const (
 	maxInlineError             = 16 << 10
 	notifyResendPeriod         = 14 * 24 * time.Hour
 	notifyAboutBadCommitPeriod = 90 * 24 * time.Hour
+	maxReproInactivityPeriod   = 180 * 24 * time.Hour
 	never                      = 100 * 365 * 24 * time.Hour
 	internalError              = "internal error"
 	// This is embedded as first line of syzkaller reproducer files.
@@ -337,14 +338,17 @@ func (bug *Bug) canBeObsoleted(ctx context.Context) bool {
 	}
 	if obsoleteWhatWontBeFixBisected {
 		cfg := getNsConfig(ctx, bug.Namespace)
-		for _, mgr := range bug.HappenedOn {
-			if !cfg.Managers[mgr].FixBisectionDisabled {
-				return false
-			}
+		if !slices.ContainsFunc(bug.HappenedOn, func(mgr string) bool {
+			return !cfg.Managers[mgr].FixBisectionDisabled
+		}) {
+			return true
 		}
-		return true
 	}
-	return false
+	// A reproducer can stay marked as current if retesting fails or produces a
+	// different crash. Don't let that keep a report open forever: a matching
+	// crash refreshes LastTime, and normal obsoletion rules apply after 180 days
+	// without one.
+	return timeSince(ctx, bug.LastTime) > maxReproInactivityPeriod
 }
 
 func (bug *Bug) obsoletePeriod(ctx context.Context) time.Duration {
