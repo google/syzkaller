@@ -6,6 +6,7 @@ package flow
 
 import (
 	_ "github.com/google/syzkaller/pkg/aflow/flow/assessment"
+	_ "github.com/google/syzkaller/pkg/aflow/flow/bisect"
 	_ "github.com/google/syzkaller/pkg/aflow/flow/fuzzing"
 	_ "github.com/google/syzkaller/pkg/aflow/flow/patching"
 	_ "github.com/google/syzkaller/pkg/aflow/flow/repro"
