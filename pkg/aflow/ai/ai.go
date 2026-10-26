@@ -22,6 +22,8 @@ const (
 	WorkflowSeedGen            = WorkflowType("seed-gen")
 	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
 	WorkflowFindingTriage      = WorkflowType("finding-triage")
+	WorkflowBisectCause        = WorkflowType("bisect-cause")
+	WorkflowBisectFix          = WorkflowType("bisect-fix")
 )
 
 // Outputs of various workflow types.
@@ -146,6 +148,37 @@ type AssessmentSecurityOutputs struct {
 type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
+}
+
+// BisectOutputs holds the results common to the bisect-cause and bisect-fix workflows.
+type BisectOutputs struct {
+	// KernelCommit is the commit the bisection ran on (for bisect-fix, the newer commit
+	// the fix was searched up to).
+	KernelCommit string
+	// Candidate commits that introduced (bisect-cause) or fixed (bisect-fix) the bug,
+	// ordered by relevance with the primary commit first; empty if not identified.
+	Commits         []Commit `json:",omitempty"`
+	BisectReasoning string   `json:",omitempty"`
+}
+
+type BisectCauseOutputs struct {
+	BisectOutputs
+}
+
+type BisectFixOutputs struct {
+	BisectOutputs
+	// BugStillPresent is set if the bug is determined to still be present at KernelCommit,
+	// in which case Commits is empty.
+	BugStillPresent bool `json:",omitempty"`
+}
+
+type Commit struct {
+	Hash        string
+	Title       string
+	AuthorName  string
+	AuthorEmail string
+	Date        time.Time
+	Recipients  []Recipient `json:",omitempty"`
 }
 
 type ReproOutputs struct {
