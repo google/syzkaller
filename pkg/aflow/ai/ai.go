@@ -22,6 +22,8 @@ const (
 	WorkflowSeedGen            = WorkflowType("seed-gen")
 	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
 	WorkflowFindingTriage      = WorkflowType("finding-triage")
+	WorkflowBisectCause        = WorkflowType("bisect-cause")
+	WorkflowBisectFix          = WorkflowType("bisect-fix")
 )
 
 // Outputs of various workflow types.
@@ -146,6 +148,23 @@ type AssessmentSecurityOutputs struct {
 type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
+}
+
+type BisectOutputs struct {
+	KernelCommit string
+	// Candidate commits that introduced or fixed the bug (AI bisection), ordered by
+	// relevance with the primary commit first; empty if not identified.
+	Commits         []Commit `json:",omitempty"`
+	BisectReasoning string   `json:",omitempty"`
+}
+
+type Commit struct {
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	Date       time.Time
+	Recipients []Recipient `json:",omitempty"`
 }
 
 type ReproOutputs struct {
