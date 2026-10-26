@@ -229,10 +229,11 @@ gcloud app deploy ./dashboard/app/cron.yaml --project $PROJECT --quiet
 # generate before they (and hence syzbot) become usable
 gcloud datastore indexes create ./dashboard/app/index.yaml --project $PROJECT --quiet
 
-cat <<EOF > ./dashboard/app/config_not_prod.go
-package main
+cat <<EOF > ./dashboard/app/config/stub.go
+package config
 import (
         "time"
+        . "github.com/google/syzkaller/dashboard/app"
         "github.com/google/syzkaller/dashboard/dashapi"
 )
 const (
@@ -242,9 +243,8 @@ const (
         reportingDelay       = 0
         domainLinux          = "linux"
 )
-func init() {
-        checkConfig(prodConfig)
-        mainConfig = prodConfig
+func Get() *GlobalConfig {
+        return prodConfig
 }
 var prodConfig = &GlobalConfig{
         AccessLevel:         AccessPublic,

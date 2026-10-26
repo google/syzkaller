@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"context"
@@ -1442,7 +1442,7 @@ Blocks diff,	Path
 }
 
 func TestSkipStage(t *testing.T) {
-	// The test ensures that manuallyUpstreamed works as intended in reporting filters.
+	// The test ensures that ManuallyUpstreamed works as intended in reporting filters.
 	c := NewCtx(t)
 	defer c.Close()
 	client := c.makeClient(clientSkipStage, keySkipStage, true)
