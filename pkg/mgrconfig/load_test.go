@@ -113,6 +113,25 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
 }
 
+func TestCompleteReproduceOnlyIdempotent(t *testing.T) {
+	cfg, err := LoadPartialData([]byte(`{
+		"target": "linux/amd64",
+		"type": "none",
+		"workdir": "/tmp",
+		"syzkaller": "testdata/syzkaller",
+		"reproduce": false,
+		"reproduce_only": ["^KASAN:", "^WARNING"]
+	}`))
+	require.NoError(t, err)
+	require.NoError(t, Complete(cfg))
+	require.NoError(t, Complete(cfg))
+	require.NotNil(t, cfg.ReproduceOnlyRe)
+	// Any of the joined regexps matches; others don't.
+	assert.True(t, cfg.ReproduceOnlyRe.MatchString("KASAN: use-after-free"))
+	assert.True(t, cfg.ReproduceOnlyRe.MatchString("WARNING in foo"))
+	assert.False(t, cfg.ReproduceOnlyRe.MatchString("INFO: task hung"))
+}
+
 func TestFormatTarget(t *testing.T) {
 	tests := []struct {
 		os     string
