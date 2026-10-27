@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"maps"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -176,6 +177,9 @@ func Complete(cfg *Config) error {
 	default:
 		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace/android")
 	}
+	if err := cfg.completeHTTPPublicURL(); err != nil {
+		return err
+	}
 	if err := cfg.checkSSHParams(); err != nil {
 		return err
 	}
@@ -281,6 +285,25 @@ func checkNonEmpty(fields ...string) error {
 			return fmt.Errorf("config param %v is empty", fields[i+1])
 		}
 	}
+	return nil
+}
+
+// completeHTTPPublicURL validates the http_public_url config param and normalizes it
+// (e.g. escapes special characters in the path).
+func (cfg *Config) completeHTTPPublicURL() error {
+	if cfg.HTTPPublicURL == "" {
+		return nil
+	}
+	u, err := url.Parse(cfg.HTTPPublicURL)
+	if err != nil {
+		return fmt.Errorf("bad config param http_public_url: %w", err)
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil ||
+		u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+		return fmt.Errorf("bad config param http_public_url: %q, want http(s)://host[:port][/path]",
+			cfg.HTTPPublicURL)
+	}
+	cfg.HTTPPublicURL = u.String()
 	return nil
 }
 
