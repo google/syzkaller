@@ -18,6 +18,11 @@ type Config struct {
 	RawTarget string `json:"target"`
 	// URL that will display information about the running syz-manager process (e.g. "localhost:50000").
 	HTTP string `json:"http"`
+	// Externally reachable URL of the web UI reported to the dashboard and syz-hub (optional,
+	// e.g. "https://example.com:8080"). Use it if the manager cannot determine its own public address,
+	// e.g. when running behind a proxy. The URL is published, so it must not contain credentials.
+	// Ignored if "http" is empty.
+	HTTPPublicURL string `json:"http_public_url,omitempty"`
 	// TCP address to serve RPC for fuzzer processes (optional).
 	RPC string `json:"rpc,omitempty"`
 	// Location of a working directory for the syz-manager process. Outputs here include:

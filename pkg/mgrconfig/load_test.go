@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/syzkaller/prog"
@@ -111,6 +112,50 @@ func TestCompleteDescriptionsMode(t *testing.T) {
 	_, err := LoadData(data)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `invalid descriptions_mode "invalid", must be one of: any, auto, manual`)
+}
+
+func TestCompleteHTTPPublicURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    string
+		wantErr bool
+	}{
+		{name: "empty", url: "", want: ""},
+		{name: "host", url: "http://example.com", want: "http://example.com"},
+		{name: "host-port", url: "http://example.com:8080", want: "http://example.com:8080"},
+		{name: "https-path", url: "https://example.com:8080/ui/", want: "https://example.com:8080/ui/"},
+		{name: "escaped-path", url: `http://example.com/"><script>`, want: "http://example.com/%22%3E%3Cscript%3E"},
+		{name: "no-scheme", url: "example.com:8080", wantErr: true},
+		{name: "ftp", url: "ftp://example.com", wantErr: true},
+		{name: "javascript", url: "javascript:alert(1)", wantErr: true},
+		{name: "no-host", url: "http://", wantErr: true},
+		{name: "bad-host", url: "http://bad host", wantErr: true},
+		{name: "credentials", url: "http://user:pass@example.com", wantErr: true},
+		{name: "query", url: "http://example.com/?token=secret", wantErr: true},
+		{name: "fragment", url: "http://example.com/#frag", wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data := []byte(fmt.Sprintf(`{
+				"target": "linux/amd64",
+				"type": "none",
+				"workdir": "/tmp",
+				"syzkaller": "testdata/syzkaller",
+				"reproduce": false,
+				"http": "localhost:1234",
+				"http_public_url": %q
+			}`, test.url))
+			cfg, err := LoadData(data)
+			if test.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "http_public_url")
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, test.want, cfg.HTTPPublicURL)
+		})
+	}
 }
 
 func TestFormatTarget(t *testing.T) {

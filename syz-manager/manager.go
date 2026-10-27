@@ -1446,7 +1446,7 @@ func (mgr *Manager) trackUsedFiles() {
 }
 
 func (mgr *Manager) dashboardReporter() {
-	webAddr := publicWebAddr(mgr.cfg.HTTP)
+	webAddr := publicWebAddr(mgr.cfg)
 	triageInfoSent := false
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
@@ -1535,10 +1535,14 @@ func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, er
 	return pcs, nil
 }
 
-func publicWebAddr(addr string) string {
-	if addr == "" {
-		return ""
+func publicWebAddr(cfg *mgrconfig.Config) string {
+	if cfg.HTTP == "" {
+		return "" // Web UI is disabled.
 	}
+	if cfg.HTTPPublicURL != "" {
+		return cfg.HTTPPublicURL
+	}
+	addr := cfg.HTTP
 	_, port, err := net.SplitHostPort(addr)
 	if err == nil && port != "" {
 		if host, err := os.Hostname(); err == nil {

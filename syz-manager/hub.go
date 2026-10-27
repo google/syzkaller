@@ -155,7 +155,7 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	if err != nil {
 		return nil, err
 	}
-	http := publicWebAddr(hc.cfg.HTTP)
+	http := publicWebAddr(hc.cfg)
 	a := &rpctype.HubConnectArgs{
 		Client:  hc.cfg.HubClient,
 		Key:     key,
