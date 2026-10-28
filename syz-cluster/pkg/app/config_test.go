@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,9 +34,7 @@ func TestConfigs(t *testing.T) {
 
 		t.Run(path, func(t *testing.T) {
 			_, err := loadConfig(path)
-			if err != nil {
-				t.Fatalf("validation failed: %v", err)
-			}
+			require.NoError(t, err)
 		})
 		return nil
 	})
@@ -67,23 +64,4 @@ func TestOwnEmails(t *testing.T) {
 	got := cfg.OwnEmails()
 	want := []string{"bot@dashapi.com", "bot@kernel.org", "bot@smtp.com"}
 	require.Equal(t, want, got)
-}
-
-func TestFuzzTargetsValidation(t *testing.T) {
-	cfg := AppConfig{
-		URL: "http://example.com",
-		FuzzTargets: []*api.FuzzTriageTarget{
-			{
-				PathRegexps: []string{"[invalid("},
-			},
-		},
-	}
-	require.ErrorContains(t, cfg.Validate(), "invalid path regexp")
-
-	cfg.FuzzTargets = []*api.FuzzTriageTarget{
-		{
-			ExcludePathRegexps: []string{"[invalid("},
-		},
-	}
-	require.ErrorContains(t, cfg.Validate(), "invalid path regexp")
 }

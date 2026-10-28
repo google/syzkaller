@@ -54,9 +54,6 @@ func TestEnvironment(t *testing.T) (*AppEnvironment, context.Context) {
 			Trees: []*api.Tree{
 				{Name: "test-tree", URL: "http://test", Branch: "master"},
 			},
-			FuzzTargets: []*api.FuzzTriageTarget{
-				{EmailLists: []string{"test@email"}, Campaigns: []*api.KernelFuzzConfig{{Track: "test-track"}}},
-			},
 		},
 		URLs: api.NewURLGenerator("http://dashboard"),
 	}, ctx

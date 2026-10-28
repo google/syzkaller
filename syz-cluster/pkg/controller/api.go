@@ -252,7 +252,7 @@ func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
 func (c APIServer) getTrees(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON(w, &api.TreesResp{
 		Trees:       c.config.Trees,
-		FuzzTargets: c.config.FuzzTargets,
+		FuzzTargets: api.DefaultFuzzTargets(),
 	})
 }
 

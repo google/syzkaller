@@ -4,10 +4,12 @@
 package triage
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelectFuzzConfigs(t *testing.T) {
@@ -216,4 +218,127 @@ func TestMergeFuzzConfigs(t *testing.T) {
 			},
 		}))
 	})
+}
+
+func TestDefaultFuzzTargetsSelection(t *testing.T) {
+	targets := api.DefaultFuzzTargets()
+	tests := []struct {
+		name           string
+		files          []string
+		cc             []string
+		wantFocus      []string
+		skipCoverCheck bool
+	}{
+		{
+			name:      "kvm-by-path",
+			files:     []string{"arch/x86/kvm/vmx/vmx.c"},
+			wantFocus: []string{api.FocusKVM},
+		},
+		{
+			name:      "kvm-by-cc",
+			cc:        []string{"kvm@vger.kernel.org"},
+			wantFocus: []string{api.FocusKVM},
+		},
+		{
+			name:      "io_uring",
+			files:     []string{"io_uring/io_uring.c"},
+			wantFocus: []string{api.FocusIoUring},
+		},
+		{
+			name:      "bpf-by-path",
+			files:     []string{"kernel/bpf/verifier.c"},
+			wantFocus: []string{api.FocusBPF},
+		},
+		{
+			name:      "bpf-by-cc",
+			cc:        []string{"bpf@vger.kernel.org"},
+			wantFocus: []string{api.FocusBPF},
+		},
+		{
+			name:      "net-by-path",
+			files:     []string{"net/ipv4/tcp.c"},
+			wantFocus: []string{api.FocusNet},
+		},
+		{
+			name:      "net-by-cc",
+			cc:        []string{"netdev@vger.kernel.org"},
+			wantFocus: []string{api.FocusNet},
+		},
+		{
+			name:      "bluetooth-excluded-from-net",
+			files:     []string{"net/bluetooth/hci_core.c"},
+			wantFocus: []string{api.FocusBluetooth},
+		},
+		{
+			name:      "bluetooth-and-net",
+			files:     []string{"net/bluetooth/hci_core.c", "net/ipv4/tcp.c"},
+			wantFocus: []string{api.FocusBluetooth, api.FocusNet},
+		},
+		{
+			name:      "network-fs-by-path",
+			files:     []string{"fs/smb/client/cifsfs.c"},
+			wantFocus: []string{api.FocusFS, api.FocusNet},
+		},
+		{
+			name:      "network-fs-by-cc",
+			cc:        []string{"linux-nfs@vger.kernel.org"},
+			wantFocus: []string{api.FocusFS, api.FocusNet},
+		},
+		{
+			name:      "local-fs",
+			files:     []string{"fs/ext4/inode.c"},
+			wantFocus: []string{api.FocusFS},
+		},
+		{
+			name:      "usb",
+			files:     []string{"drivers/usb/core/hub.c"},
+			wantFocus: []string{api.FocusUSB},
+		},
+		{
+			name:           "mm-by-path",
+			files:          []string{"mm/mmap.c"},
+			wantFocus:      []string{api.FocusMM},
+			skipCoverCheck: true,
+		},
+		{
+			name:           "mm-by-cc",
+			cc:             []string{"linux-mm@kvack.org"},
+			wantFocus:      []string{api.FocusMM},
+			skipCoverCheck: true,
+		},
+		{
+			name:      "multi-subsystem-files",
+			files:     []string{"net/ipv4/tcp.c", "kernel/bpf/verifier.c"},
+			wantFocus: []string{api.FocusBPF, api.FocusNet},
+		},
+		{
+			name:      "matched-and-unmatched-files",
+			files:     []string{"net/ipv4/tcp.c", "kernel/sched/core.c"},
+			wantFocus: []string{api.FocusNet},
+		},
+		{
+			name:      "fallback",
+			files:     []string{"kernel/sched/core.c", "lib/string.c"},
+			cc:        []string{"linux-kernel@vger.kernel.org"},
+			wantFocus: nil,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := MergeKernelFuzzConfigs(SelectFuzzConfigs(makeTestSeries(tc.files, tc.cc), targets))
+			require.Len(t, configs, 1)
+			assert.Equal(t, tc.wantFocus, configs[0].FuzzConfig.Focus)
+			assert.Equal(t, tc.skipCoverCheck, configs[0].FuzzConfig.SkipCoverCheck)
+			assert.NotEmpty(t, configs[0].FuzzConfig.CorpusURLs)
+		})
+	}
+}
+
+func makeTestSeries(files, cc []string) *api.Series {
+	series := &api.Series{Cc: cc}
+	for _, file := range files {
+		diff := fmt.Sprintf("diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n", file, file, file, file)
+		series.Patches = append(series.Patches, api.SeriesPatch{Body: []byte(diff)})
+	}
+	return series
 }

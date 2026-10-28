@@ -462,7 +462,7 @@ func TestAPIGetTrees(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, env.Config.Trees, resp.Trees)
-	assert.Equal(t, env.Config.FuzzTargets, resp.FuzzTargets)
+	assert.Equal(t, api.DefaultFuzzTargets(), resp.FuzzTargets)
 }
 
 func TestAPISubmitJob(t *testing.T) {
