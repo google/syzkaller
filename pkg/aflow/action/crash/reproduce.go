@@ -104,7 +104,7 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTes
 		collectCoverage: opts.CollectCoverage,
 	}
 
-	runs, maxTotal := defaultTestRuns, 2*defaultTestRuns
+	runs, maxTotal := defaultTestRuns, 3*defaultTestRuns
 	if opts.MaxTotalRuns > 0 {
 		runs = min(runs, opts.MaxTotalRuns)
 		maxTotal = opts.MaxTotalRuns
@@ -113,7 +113,7 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTes
 		WantValid:  runs,
 		MaxTotal:   maxTotal,
 		MaxVMs:     runs,
-		MaxRetries: 1,
+		MaxRetries: 2,
 	})
 	if err != nil {
 		return res, err
