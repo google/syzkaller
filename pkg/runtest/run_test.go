@@ -232,6 +232,43 @@ func testCover(t *testing.T, target *prog.Target) {
 			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
 			Cover: []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
 		},
+		{
+			Is64Bit: true,
+			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
+				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
+			Flags:  flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover:  []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
+			Signal: []uint64{0xc0dec0dec0000022, 0xc0dec0dec0000000, 0xc0dec0dec0000011, 0xc0dec0dec0000033},
+		},
+		{
+			Is64Bit: false,
+			Input:   makeCover32(0xc0000033, 0xc0000022, 0xc0000011, 0xc0000011, 0xc0000022, 0xc0000033),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover:   []uint64{0xc0000011, 0xc0000022, 0xc0000033},
+			Signal:  []uint64{0xc0000000, 0xc0000011, 0xc0000033},
+		},
+		// The executor deduplicates in chunks of 4 elements in tests, check chunk boundaries.
+		{
+			Is64Bit: true,
+			Input:   makeCover64(),
+			Flags:   flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+		},
+		{
+			Is64Bit: true,
+			Input: makeCover64(0xc0dec0dec0000100, 0xc0dec0dec00000ff, 0xc0dec0dec0000100,
+				0xc0dec0dec0000011),
+			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover: []uint64{0xc0dec0dec0000011, 0xc0dec0dec00000ff, 0xc0dec0dec0000100},
+		},
+		{
+			Is64Bit: true,
+			Input: makeCover64(0xc0dec0dec0000044, 0xc0dec0dec0000033, 0xc0dec0dec0000022,
+				0xc0dec0dec0000011, 0xc0dec0dec0000033, 0xc0dec0dec0000055, 0xc0dec0dec0000011,
+				0xc0dec0dec0000044),
+			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover: []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033,
+				0xc0dec0dec0000044, 0xc0dec0dec0000055},
+		},
 		// Signal hashing.
 		{
 			Is64Bit: true,
@@ -292,6 +329,54 @@ func testCover(t *testing.T, target *prog.Target) {
 				{Pc: 1, Op1: 0x3333, Op2: 0, IsConst: false},
 				{Pc: 1, Op1: 0xabcd, Op2: 0xda1a0010, IsConst: true},
 			},
+		},
+		// Duplicates in different deduplication chunks and a discarded comparison at the end.
+		{
+			Is64Bit: true,
+			Input: makeComps(
+				Comparison{CmpSize8 | CmpConst, 0x11, 0x21, 1},
+				Comparison{CmpSize8 | CmpConst, 0x12, 0x22, 1},
+				Comparison{CmpSize8 | CmpConst, 0x13, 0x23, 1},
+				Comparison{CmpSize8 | CmpConst, 0x14, 0x24, 1},
+				Comparison{CmpSize8 | CmpConst, 0x11, 0x21, 1},
+				Comparison{CmpSize8 | CmpConst, 0x15, 0x25, 1},
+				Comparison{CmpSize8, 0x1111, 0x1111, 1},
+			),
+			Flags: flatrpc.ExecFlagCollectComps,
+			Comps: []*flatrpc.Comparison{
+				{Pc: 1, Op1: 0x21, Op2: 0x11, IsConst: true},
+				{Pc: 1, Op1: 0x22, Op2: 0x12, IsConst: true},
+				{Pc: 1, Op1: 0x23, Op2: 0x13, IsConst: true},
+				{Pc: 1, Op1: 0x24, Op2: 0x14, IsConst: true},
+				{Pc: 1, Op1: 0x25, Op2: 0x15, IsConst: true},
+			},
+		},
+		// A full chunk followed only by discarded comparisons.
+		{
+			Is64Bit: true,
+			Input: makeComps(
+				Comparison{CmpSize8 | CmpConst, 0x11, 0x21, 1},
+				Comparison{CmpSize8 | CmpConst, 0x12, 0x22, 1},
+				Comparison{CmpSize8 | CmpConst, 0x13, 0x23, 1},
+				Comparison{CmpSize8 | CmpConst, 0x14, 0x24, 1},
+				Comparison{CmpSize8, 0x1111, 0x1111, 1},
+			),
+			Flags: flatrpc.ExecFlagCollectComps,
+			Comps: []*flatrpc.Comparison{
+				{Pc: 1, Op1: 0x21, Op2: 0x11, IsConst: true},
+				{Pc: 1, Op1: 0x22, Op2: 0x12, IsConst: true},
+				{Pc: 1, Op1: 0x23, Op2: 0x13, IsConst: true},
+				{Pc: 1, Op1: 0x24, Op2: 0x14, IsConst: true},
+			},
+		},
+		// Only discarded comparisons.
+		{
+			Is64Bit: true,
+			Input: makeComps(
+				Comparison{CmpSize8, 0x1111, 0x1111, 1},
+				Comparison{CmpSize8, 0, 0, 1},
+			),
+			Flags: flatrpc.ExecFlagCollectComps,
 		},
 		// 32-bit comparisons must be the same, so test only a subset.
 		{
