@@ -1338,19 +1338,13 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.Title = "WARNING: any type of bug"
 	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-	// Register the workflow first.
-	c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	c.aiClient.pollEmailBug()
 
-	// Manually create the job since it's not automatically created for generic bugs.
-	jobID := c.createAIJob(extID, string(ai.WorkflowAssessmentSecurity), "")
-
-	// Poll again to pick up the job and assign it to the agent.
-	pollResp2 := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
-	require.Equal(t, jobID, pollResp2.ID)
+	pollResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, pollResp.ID)
 
 	err := c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID: jobID,
+		ID: pollResp.ID,
 		Results: map[string]any{
 			"Explanation": "Test",
 			"Exploitable": false,
@@ -1361,7 +1355,7 @@ func TestAIAssessmentNoReport(t *testing.T) {
 	values := url.Values{}
 	values.Set("action", "set_correctness")
 	values.Set("correct", aiCorrectnessCorrect)
-	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", pollResp.ID), values)
 	require.NoError(t, err)
 
 	c.assertNoPendingReport(t, "lore")
