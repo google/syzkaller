@@ -5,6 +5,7 @@
 package fuzzer
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math/rand"
@@ -38,6 +39,8 @@ type Fuzzer struct {
 
 	ct           *prog.ChoiceTable
 	ctProgs      int
+	ctAllProgs   int
+	ctRelated    []*prog.Prog
 	ctMu         sync.RWMutex
 	ctRegenerate chan struct{}
 
@@ -66,7 +69,7 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		ctRegenerate: make(chan struct{}),
 	}
 	f.execQueues = newExecQueues(f)
-	f.updateChoiceTable(nil)
+	f.updateChoiceTable()
 	go f.choiceTableUpdater()
 	if cfg.Debug {
 		go f.logCurrentStats()
@@ -84,35 +87,125 @@ func (fuzzer *Fuzzer) RecommendedCalls() int {
 type execQueues struct {
 	triageCandidateQueue *queue.DynamicOrderer
 	candidateQueue       *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	smashQueue           *queue.PlainQueue
+	tiers                []focusTier
 	source               queue.Source
+}
+
+type focusTier struct {
+	coverPCs    map[uint64]struct{}
+	weight      float64
+	inFocus     bool
+	triageQueue *queue.DynamicOrderer
+	smashQueue  *queue.PlainQueue
+	hintsQueue  *queue.PlainQueue
 }
 
 func newExecQueues(fuzzer *Fuzzer) execQueues {
 	ret := execQueues{
 		triageCandidateQueue: queue.DynamicOrder(),
 		candidateQueue:       queue.Plain(),
-		triageQueue:          queue.DynamicOrder(),
-		smashQueue:           queue.Plain(),
 	}
-	// Alternate smash jobs with exec/fuzz to spread attention to the wider area.
-	skipQueue := 3
+	catchAllWeight := 1.0
+	if fuzzer.Config.PatchTest && fuzzer.Config.Corpus != nil {
+		areas := fuzzer.Config.Corpus.FocusAreas()
+		slices.SortStableFunc(areas, func(a, b corpus.FocusArea) int {
+			return cmp.Compare(b.Weight, a.Weight)
+		})
+		for _, area := range areas {
+			if area.Weight <= 0 {
+				continue
+			}
+			if len(area.CoverPCs) == 0 {
+				catchAllWeight = area.Weight
+				continue
+			}
+			ret.tiers = append(ret.tiers, focusTier{
+				coverPCs:    area.CoverPCs,
+				weight:      area.Weight,
+				inFocus:     true,
+				triageQueue: queue.DynamicOrder(),
+				smashQueue:  queue.Plain(),
+				hintsQueue:  queue.Plain(),
+			})
+		}
+	}
+	// Always append a catch-all tier at the end.
+	ret.tiers = append(ret.tiers, focusTier{
+		weight:      catchAllWeight,
+		inFocus:     !fuzzer.Config.PatchTest || len(ret.tiers) == 0,
+		triageQueue: queue.DynamicOrder(),
+		smashQueue:  queue.Plain(),
+		hintsQueue:  queue.Plain(),
+	})
+
+	// Alternate smash/hints jobs with exec/fuzz to spread attention to the wider area.
+	fuzzShare := 0.5
 	if fuzzer.Config.PatchTest {
 		// When we do patch fuzzing, we do not focus on finding and persisting
 		// new coverage that much, so it's reasonable to spend more time just
 		// mutating various corpus programs.
-		skipQueue = 2
+		fuzzShare = 1.0
 	}
-	// Sources are listed in the order, in which they will be polled.
-	ret.source = queue.Order(
+	var weighted []queue.WeightedSource
+	var totalWeight float64
+	for _, tier := range ret.tiers {
+		weighted = append(weighted,
+			queue.WeightedSource{
+				Source: tier.smashQueue,
+				Weight: tier.weight * 0.7,
+			},
+			queue.WeightedSource{
+				Source: tier.hintsQueue,
+				Weight: tier.weight * 0.3,
+			},
+		)
+		totalWeight += tier.weight
+	}
+	weighted = append(weighted, queue.WeightedSource{
+		Source: queue.Callback(fuzzer.genFuzz),
+		Weight: totalWeight * fuzzShare,
+	})
+
+	sources := []queue.Source{
 		ret.triageCandidateQueue,
 		ret.candidateQueue,
-		ret.triageQueue,
-		queue.Alternate(ret.smashQueue, skipQueue),
-		queue.Callback(fuzzer.genFuzz),
-	)
+	}
+	for _, tier := range ret.tiers {
+		sources = append(sources, tier.triageQueue)
+	}
+	sources = append(sources, queue.Weighted(fuzzer.rand(), weighted...))
+	// Sources are listed in the order, in which they will be polled.
+	ret.source = queue.Order(sources...)
 	return ret
+}
+
+func (fuzzer *Fuzzer) triageQueueForCalls(triage map[int]*triageCall) *queue.DynamicOrderer {
+	for _, tier := range fuzzer.tiers[:len(fuzzer.tiers)-1] {
+		for _, call := range triage {
+			if call.newSignal.HasAny(tier.coverPCs) {
+				return tier.triageQueue
+			}
+		}
+	}
+	return fuzzer.tiers[len(fuzzer.tiers)-1].triageQueue
+}
+
+func (fuzzer *Fuzzer) tierForCall(info *triageCall) *focusTier {
+	for i := range len(fuzzer.tiers) - 1 {
+		tier := &fuzzer.tiers[i]
+		if info.newStableSignal.HasAny(tier.coverPCs) {
+			return tier
+		}
+	}
+	for i := range len(fuzzer.tiers) - 1 {
+		tier := &fuzzer.tiers[i]
+		for pc := range info.cover {
+			if _, ok := tier.coverPCs[pc]; ok {
+				return tier
+			}
+		}
+	}
+	return &fuzzer.tiers[len(fuzzer.tiers)-1]
 }
 
 func (fuzzer *Fuzzer) CandidatesToTriage() int {
@@ -158,7 +251,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
 
 		if len(triage) != 0 {
-			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
+			queue, stat := fuzzer.triageQueueForCalls(triage), fuzzer.statJobsTriage
 			jobType := JobTriage
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
@@ -389,15 +482,35 @@ func (fuzzer *Fuzzer) rand() *rand.Rand {
 	return rand.New(rand.NewSource(fuzzer.rnd.Int63()))
 }
 
-func (fuzzer *Fuzzer) updateChoiceTable(programs []*prog.Prog) {
-	newCt := fuzzer.target.BuildChoiceTable(programs, fuzzer.Config.EnabledCalls)
+func (fuzzer *Fuzzer) updateChoiceTable() {
+	var progs, focused, all []*prog.Prog
+	if fuzzer.Config.Corpus != nil {
+		focused = fuzzer.Config.Corpus.FocusedPrograms()
+		all = fuzzer.Config.Corpus.Programs()
+	}
+	progs = all
+	var related []*prog.Prog
+	if len(focused) > 0 {
+		fuzzer.ctMu.RLock()
+		baseCt := fuzzer.ct
+		fuzzer.ctMu.RUnlock()
+		if baseCt == nil {
+			baseCt = fuzzer.target.BuildChoiceTable(nil, fuzzer.Config.EnabledCalls)
+		}
+		related = baseCt.RelatedPrograms(focused, all)
+		progs = related
+	}
+	newCt := fuzzer.target.BuildChoiceTable(progs, fuzzer.Config.EnabledCalls)
 
 	fuzzer.ctMu.Lock()
 	defer fuzzer.ctMu.Unlock()
-	if len(programs) >= fuzzer.ctProgs {
-		fuzzer.ctProgs = len(programs)
-		fuzzer.ct = newCt
+	fuzzer.ctProgs = len(focused)
+	if len(focused) == 0 {
+		fuzzer.ctProgs = len(all)
 	}
+	fuzzer.ctAllProgs = len(all)
+	fuzzer.ctRelated = related
+	fuzzer.ct = newCt
 }
 
 func (fuzzer *Fuzzer) choiceTableUpdater() {
@@ -407,22 +520,37 @@ func (fuzzer *Fuzzer) choiceTableUpdater() {
 			return
 		case <-fuzzer.ctRegenerate:
 		}
-		fuzzer.updateChoiceTable(fuzzer.Config.Corpus.Programs())
+		fuzzer.updateChoiceTable()
 	}
 }
 
 func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
-	progs := fuzzer.Config.Corpus.Programs()
+	var focusedLen, allLen int
+	if fuzzer.Config.Corpus != nil {
+		focusedLen = len(fuzzer.Config.Corpus.FocusedPrograms())
+		allLen = len(fuzzer.Config.Corpus.Programs())
+	}
+	progsLen := allLen
+	if focusedLen > 0 {
+		progsLen = focusedLen
+	}
 
 	fuzzer.ctMu.RLock()
 	defer fuzzer.ctMu.RUnlock()
 
 	// There were no deep ideas nor any calculations behind these numbers.
 	regenerateEveryProgs := 333
-	if len(progs) < 100 {
+	if fuzzer.Config.PatchTest {
+		regenerateEveryProgs = max(1, progsLen/10)
+	} else if progsLen < 100 {
 		regenerateEveryProgs = 33
 	}
-	if fuzzer.ctProgs+regenerateEveryProgs < len(progs) {
+	needRegen := progsLen < fuzzer.ctProgs || fuzzer.ctProgs+regenerateEveryProgs <= progsLen
+	if focusedLen > 0 {
+		allStep := max(333, allLen/5)
+		needRegen = needRegen || allLen < fuzzer.ctAllProgs || fuzzer.ctAllProgs+allStep <= allLen
+	}
+	if needRegen {
 		select {
 		case fuzzer.ctRegenerate <- struct{}{}:
 		default:
@@ -431,6 +559,12 @@ func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
 		}
 	}
 	return fuzzer.ct
+}
+
+func (fuzzer *Fuzzer) relatedPrograms() []*prog.Prog {
+	fuzzer.ctMu.RLock()
+	defer fuzzer.ctMu.RUnlock()
+	return fuzzer.ctRelated
 }
 
 func (fuzzer *Fuzzer) RunningJobs() []*JobInfo {

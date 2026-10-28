@@ -18,14 +18,17 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFuzz(t *testing.T) {
@@ -40,13 +43,27 @@ func TestFuzz(t *testing.T) {
 		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
 	executor := csource.BuildExecutor(t, target, "../..", "-fsanitize-coverage=trace-pc", "-g")
+	var pcs []uint64
+	t.Run("normal", func(t *testing.T) {
+		pcs = testFuzz(t, target, executor, false, nil)
+	})
+	t.Run("patch_test", func(t *testing.T) {
+		testFuzz(t, target, executor, true, []corpus.FocusArea{
+			{Name: "high", CoverPCs: map[uint64]struct{}{pcs[0]: {}}, Weight: 6.0},
+			{Name: "low", CoverPCs: map[uint64]struct{}{pcs[len(pcs)-1]: {}}, Weight: 3.0},
+			{Weight: 1.0},
+		})
+	})
+}
 
+func testFuzz(t *testing.T, target *prog.Target, executor string, patchTest bool, areas []corpus.FocusArea) []uint64 {
 	ctx := t.Context()
 
 	corpusUpdates := make(chan corpus.NewItemEvent)
 	fuzzer := NewFuzzer(ctx, &Config{
-		Debug:  true,
-		Corpus: corpus.NewMonitoredCorpus(ctx, corpusUpdates),
+		Debug:     true,
+		Corpus:    corpus.NewFocusedCorpus(ctx, corpusUpdates, areas),
+		PatchTest: patchTest,
 		Logf: func(level int, msg string, args ...any) {
 			if level > 1 {
 				return
@@ -88,6 +105,134 @@ func TestFuzz(t *testing.T) {
 		t.Logf("-----")
 		t.Logf("%s", p.Serialize())
 	}
+	return fuzzer.Config.Corpus.Cover()
+}
+
+func TestFocusTiers(t *testing.T) {
+	t.Cleanup(checkGoroutineLeaks)
+
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	areas := []corpus.FocusArea{
+		{Name: "low", CoverPCs: map[uint64]struct{}{10: {}}, Weight: 3.0},
+		{Name: "high", CoverPCs: map[uint64]struct{}{20: {}}, Weight: 6.0},
+		{Name: "zero", CoverPCs: map[uint64]struct{}{30: {}}, Weight: 0},
+		{Weight: 1.0},
+	}
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus:    corpus.NewFocusedCorpus(ctx, nil, areas),
+		PatchTest: true,
+		Coverage:  true,
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$res0"]: true,
+			target.SyscallMap["test$int"]:  true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	require.Len(t, fuzzer.tiers, 3)
+	assert.Equal(t, 6.0, fuzzer.tiers[0].weight)
+	assert.True(t, fuzzer.tiers[0].inFocus)
+	assert.Equal(t, 3.0, fuzzer.tiers[1].weight)
+	assert.True(t, fuzzer.tiers[1].inFocus)
+	assert.Equal(t, 1.0, fuzzer.tiers[2].weight)
+	assert.False(t, fuzzer.tiers[2].inFocus)
+
+	// Verify triageQueueForCalls routes to the highest-weight matching tier.
+	assert.Same(t, fuzzer.tiers[0].triageQueue, fuzzer.triageQueueForCalls(map[int]*triageCall{
+		0: {newSignal: signal.FromRaw([]uint64{10}, 1)},
+		1: {newSignal: signal.FromRaw([]uint64{20}, 1)},
+	}))
+	assert.Same(t, fuzzer.tiers[1].triageQueue, fuzzer.triageQueueForCalls(map[int]*triageCall{
+		0: {newSignal: signal.FromRaw([]uint64{10}, 1)},
+	}))
+	assert.Same(t, fuzzer.tiers[2].triageQueue, fuzzer.triageQueueForCalls(map[int]*triageCall{
+		0: {newSignal: signal.FromRaw([]uint64{99}, 1)},
+	}))
+
+	// Verify tierForCall routes to the highest-weight matching tier.
+	var bothCover, lowCover, otherCover cover.Cover
+	bothCover.Merge([]uint64{10, 20})
+	lowCover.Merge([]uint64{10})
+	otherCover.Merge([]uint64{99})
+	assert.Same(t, &fuzzer.tiers[0], fuzzer.tierForCall(&triageCall{cover: bothCover}))
+	assert.Same(t, &fuzzer.tiers[1], fuzzer.tierForCall(&triageCall{cover: lowCover}))
+	assert.Same(t, &fuzzer.tiers[2], fuzzer.tierForCall(&triageCall{cover: otherCover}))
+
+	// Verify triage queues are drained strictly in decreasing weight order.
+	reqCatchAll, reqLow, reqHigh := &queue.Request{}, &queue.Request{}, &queue.Request{}
+	fuzzer.tiers[2].triageQueue.Append().Submit(reqCatchAll)
+	fuzzer.tiers[1].triageQueue.Append().Submit(reqLow)
+	fuzzer.tiers[0].triageQueue.Append().Submit(reqHigh)
+	assert.Same(t, reqHigh, fuzzer.Next())
+	assert.Same(t, reqLow, fuzzer.Next())
+	assert.Same(t, reqCatchAll, fuzzer.Next())
+
+	// Verify smashQueue and hintsQueue are separate per-tier queues and both are served
+	// without hintsQueue starving smashQueue.
+	for i := range fuzzer.tiers {
+		require.NotNil(t, fuzzer.tiers[i].smashQueue)
+		require.NotNil(t, fuzzer.tiers[i].hintsQueue)
+		assert.NotSame(t, fuzzer.tiers[i].smashQueue, fuzzer.tiers[i].hintsQueue)
+	}
+	smashReqs := make(map[*queue.Request]bool)
+	hintsReqs := make(map[*queue.Request]bool)
+	for range 20 {
+		sReq := &queue.Request{Type: flatrpc.RequestTypeProgram}
+		hReq := &queue.Request{Type: flatrpc.RequestTypeProgram}
+		smashReqs[sReq] = true
+		hintsReqs[hReq] = true
+		fuzzer.tiers[0].smashQueue.Submit(sReq)
+		fuzzer.tiers[0].hintsQueue.Submit(hReq)
+	}
+	smashServed, hintsServed := 0, 0
+	for range 40 {
+		req := fuzzer.Next()
+		if smashReqs[req] {
+			smashServed++
+		} else if hintsReqs[req] {
+			hintsServed++
+		}
+	}
+	assert.Positive(t, smashServed, "smashQueue must be served")
+	assert.Positive(t, hintsServed, "hintsQueue must be served")
+
+	// Verify ChoiceTable regenerates when transitioning from many unfocused programs
+	// to a smaller set of focused programs.
+	ct := fuzzer.ChoiceTable()
+	for i := range 20 {
+		p := target.Generate(rand.NewSource(int64(i)), 3, ct)
+		fuzzer.Config.Corpus.Save(corpus.NewInput{
+			Prog:   p,
+			Call:   0,
+			Signal: signal.FromRaw([]uint64{uint64(100 + i)}, 0),
+			Cover:  []uint64{uint64(100 + i)},
+		})
+	}
+	fuzzer.updateChoiceTable()
+	assert.Greater(t, fuzzer.ctProgs, 5)
+
+	focusedProg := target.Generate(rand.NewSource(999), 2, ct)
+	fuzzer.Config.Corpus.Save(corpus.NewInput{
+		Prog:   focusedProg,
+		Call:   0,
+		Signal: signal.FromRaw([]uint64{20}, 0),
+		Cover:  []uint64{20},
+	})
+	require.Len(t, fuzzer.Config.Corpus.FocusedPrograms(), 1)
+	assert.Eventually(t, func() bool {
+		fuzzer.ChoiceTable()
+		fuzzer.ctMu.RLock()
+		defer fuzzer.ctMu.RUnlock()
+		return fuzzer.ctProgs == 1 && len(fuzzer.ctRelated) >= 1
+	}, time.Second, 5*time.Millisecond)
+
+	tj := &triageJob{fuzzer: fuzzer}
+	assert.True(t, tj.shouldStartHints(), "should start hints when backlog is small")
+	fuzzer.statJobsHints.Add(30)
+	assert.False(t, tj.shouldStartHints(), "should cap hints when backlog >= 30 in PatchTest mode")
+	fuzzer.statJobsHints.Add(-30)
 }
 
 func BenchmarkFuzzer(b *testing.B) {
