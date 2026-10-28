@@ -6,6 +6,7 @@ package corpus
 import (
 	"sort"
 
+	pkgcover "github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/signal"
 )
 
@@ -41,15 +42,15 @@ func (corpus *Corpus) Minimize(cover bool) {
 
 	// Clear the program lists in-place to keep statistics references valid.
 	corpus.ProgramsList.clear()
+	corpus.focusedProgs = nil
 	for _, area := range corpus.focusAreas {
-		area.ProgramsList.clear()
+		area.clear()
 	}
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)
 		corpus.progsMap[inp.Sig] = inp
 		corpus.saveProgram(inp.Prog, len(inp.Signal))
-		for area := range inp.areas {
-			area.saveProgram(inp.Prog, area.inAreaPCs(inp.Cover))
-		}
+		var cov pkgcover.Cover
+		corpus.applyFocusAreas(inp, cov.MergeDiff(inp.Cover))
 	}
 }

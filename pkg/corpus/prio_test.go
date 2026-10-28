@@ -122,7 +122,7 @@ func TestFocusAreaInAreaWeighting(t *testing.T) {
 	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
 		{
 			Name:     "patch",
-			CoverPCs: map[uint64]struct{}{10: {}, 11: {}},
+			CoverPCs: map[uint64]struct{}{10: {}, 11: {}, 12: {}},
 			Weight:   1.0,
 		},
 	})
@@ -133,7 +133,7 @@ func TestFocusAreaInAreaWeighting(t *testing.T) {
 
 	// inp2 has only 2 global signal entries, but both of its PCs are in the focus area.
 	inp2 := generateRangedInput(target, rs, 101, 102)
-	inp2.Cover = []uint64{10, 11}
+	inp2.Cover = []uint64{11, 12}
 
 	corpus.Save(inp1)
 	corpus.Save(inp2)
@@ -154,4 +154,51 @@ func TestFocusAreaInAreaWeighting(t *testing.T) {
 	verifySampling("before minimization")
 	corpus.Minimize(true)
 	verifySampling("after minimization")
+}
+
+func TestFocusAreaPCRaritySaturation(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+	rnd := rand.New(rs)
+
+	// Save 100 redundant programs that all cover the same 4 hot PCs (10..13),
+	// plus 1 program that covers 2 rare PCs (20, 21) AND was added after the 100 redundant ones.
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name:     "symbols",
+			CoverPCs: map[uint64]struct{}{10: {}, 11: {}, 12: {}, 13: {}, 20: {}, 21: {}},
+			Weight:   1.0,
+		},
+	})
+	var firstHot *prog.Prog
+	for i := range 100 {
+		inp := generateRangedInput(target, rs, i+1, i+1)
+		inp.Cover = []uint64{10, 11, 12, 13}
+		if i == 0 {
+			firstHot = inp.Prog
+		}
+		corpus.Save(inp)
+	}
+
+	rare := generateRangedInput(target, rs, 200, 200)
+	rare.Cover = []uint64{10, 20, 21}
+	corpus.Save(rare)
+
+	rareCount := 0
+	firstHotCount := 0
+	const iters = 10000
+	for range iters {
+		switch corpus.ChooseProgram(rnd) {
+		case rare.Prog:
+			rareCount++
+		case firstHot:
+			firstHotCount++
+		}
+	}
+	// Despite 100 programs covering {10..13}, inverse-frequency PC weighting keeps the single
+	// program covering {20, 21} above 25% selection share, and the first hot program does not
+	// retain an insertion-order advantage.
+	assert.Greater(t, float64(rareCount)/iters, 0.25)
+	assert.Less(t, float64(firstHotCount)/iters, 0.02)
+	assert.Contains(t, corpus.FocusedPrograms(), rare.Prog)
 }
