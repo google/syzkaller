@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/gerrit"
+	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -1594,7 +1595,13 @@ func makeUIAIRootCause(ctx context.Context, bug *Bug, requested bool) (*uiAIRoot
 		return nil, requested
 	}
 	render := func(text string) template.HTML {
-		return linkifyText(ctx, text, rc.KernelRepo, rc.KernelCommit)
+		md, err := html.LinkifyMarkdown(text, rc.KernelRepo, rc.KernelCommit)
+		if err != nil {
+			// The links are only cosmetic, so show the analysis without them.
+			log.Errorf(ctx, "failed to linkify AI root cause for bug %v: %v", bug.keyHash(ctx), err)
+			md = text
+		}
+		return html.RenderMarkdown(md)
 	}
 	return &uiAIRootCause{
 		Summary:          render(rc.Summary),

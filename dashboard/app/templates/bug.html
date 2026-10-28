@@ -49,7 +49,7 @@ Page with details about a single bug.
 	{{with .AIRootCause}}
 		<div class="ai-root-cause-block" id="ai-root-cause">
 			<b>✨ AI-generated root cause summary:</b>
-			<div class="ai-root-cause">{{.Summary}}</div>
+			<div class="ai-root-cause ai-markdown">{{.Summary}}</div>
 			<div class="collapsible {{if .Expanded}}collapsible-show{{else}}collapsible-hide{{end}}">
 				<div class="head">
 					<span class="show-icon">&#9654;</span>
@@ -60,7 +60,7 @@ Page with details about a single bug.
 					{{if .KernelCommit}}
 						<div class="ai-root-cause">Based on kernel commit {{link .KernelCommitLink (formatTagHash .KernelCommit)}}:</div>
 					{{end}}
-					<div class="ai-root-cause">{{.Analysis}}</div>
+					<div class="ai-root-cause ai-markdown">{{.Analysis}}</div>
 				</div>
 			</div>
 		</div>
