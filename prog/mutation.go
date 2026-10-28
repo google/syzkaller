@@ -48,6 +48,7 @@ type MutateOpts struct {
 	InsertWeight       int
 	MutateArgWeight    int
 	RemoveCallWeight   int
+	FocusProducer      bool
 }
 
 func (o MutateOpts) weight() int {
@@ -203,10 +204,95 @@ func (ctx *mutator) insertCall() bool {
 	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p, idx)
 	p.insertBefore(c, calls)
+	removed := 0
 	for len(p.Calls) > ctx.ncalls {
 		p.RemoveCall(idx)
+		removed++
+	}
+	if idx > 0 && removed < len(calls) && len(p.Calls) < ctx.ncalls {
+		ctx.mutateResourceProducer(idx, calls[removed:])
 	}
 	return true
+}
+
+// mutateResourceProducer finds a preceding call that produced a resource consumed by
+// newly inserted calls and mutates one of its configuration arguments.
+func (ctx *mutator) mutateResourceProducer(idx int, newCalls []*Call) {
+	p, r := ctx.p, ctx.r
+	var consumed []*ResultArg
+	for _, newCall := range newCalls {
+		ForeachArg(newCall, func(arg Arg, _ *ArgCtx) {
+			if root := rootResource(arg); root != nil && !slices.Contains(consumed, root) {
+				consumed = append(consumed, root)
+			}
+		})
+	}
+	if len(consumed) == 0 {
+		return
+	}
+	var producers []*Call
+	for _, prev := range p.Calls[:min(idx, len(p.Calls))] {
+		ForeachArg(prev, func(arg Arg, _ *ArgCtx) {
+			if a, ok := arg.(*ResultArg); ok && a.Dir() != DirIn && slices.Contains(consumed, a) {
+				if !slices.Contains(producers, prev) {
+					producers = append(producers, prev)
+				}
+			}
+		})
+	}
+	if len(producers) == 0 {
+		return
+	}
+	prod := producers[r.Intn(len(producers))]
+	denom := 4
+	if isProducerShared(p, prod, newCalls) {
+		denom = 10
+	}
+	if ctx.opts.FocusProducer {
+		denom /= 2
+	}
+	if !r.oneOf(denom) {
+		return
+	}
+	if prodIdx := slices.Index(p.Calls, prod); prodIdx >= 0 {
+		ctx.mutateCallAtWithOpts(prodIdx, 1, true)
+	}
+}
+
+func rootResource(arg Arg) *ResultArg {
+	a, ok := arg.(*ResultArg)
+	if !ok || a.Res == nil {
+		return nil
+	}
+	root := a.Res
+	for root.Res != nil {
+		root = root.Res
+	}
+	return root
+}
+
+func isProducerShared(p *Prog, prod *Call, newCalls []*Call) bool {
+	var prodResources []*ResultArg
+	ForeachArg(prod, func(arg Arg, _ *ArgCtx) {
+		if a, ok := arg.(*ResultArg); ok && a.Dir() != DirIn {
+			prodResources = append(prodResources, a)
+		}
+	})
+	shared := false
+	for _, call := range p.Calls {
+		if call == prod || slices.Contains(newCalls, call) {
+			continue
+		}
+		ForeachArg(call, func(arg Arg, _ *ArgCtx) {
+			if root := rootResource(arg); root != nil && slices.Contains(prodResources, root) {
+				shared = true
+			}
+		})
+		if shared {
+			return true
+		}
+	}
+	return false
 }
 
 // Removes a random call from program.
@@ -231,6 +317,15 @@ func (ctx *mutator) mutateArg() bool {
 	if idx < 0 {
 		return false
 	}
+	return ctx.mutateCallAt(idx, ctx.opts.MutateArgCount)
+}
+
+func (ctx *mutator) mutateCallAt(idx, maxArgs int) bool {
+	return ctx.mutateCallAtWithOpts(idx, maxArgs, false)
+}
+
+func (ctx *mutator) mutateCallAtWithOpts(idx, maxArgs int, producerConfigOnly bool) bool {
+	p, r := ctx.p, ctx.r
 	c := p.Calls[idx]
 	if c.Meta.Attrs.KFuzzTest {
 		tmp := r.genKFuzzTest
@@ -243,9 +338,13 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 	updateSizes := true
-	for stop, ok := false, false; !stop; stop = ok && r.oneOf(ctx.opts.MutateArgCount) {
+	for stop, ok := false, false; !stop; stop = ok && (maxArgs <= 1 || r.oneOf(maxArgs)) {
 		ok = true
-		ma := &mutationArgs{target: p.Target, ignoreLengths: c.Meta.Attrs.KFuzzTest}
+		ma := &mutationArgs{
+			target:             p.Target,
+			ignoreLengths:      c.Meta.Attrs.KFuzzTest,
+			producerConfigOnly: producerConfigOnly,
+		}
 		ForeachArg(c, ma.collectArg)
 		if len(ma.args) == 0 {
 			return false
@@ -578,12 +677,13 @@ func (t *ConstType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 }
 
 type mutationArgs struct {
-	target        *Target
-	ignoreSpecial bool
-	ignoreLengths bool
-	prioSum       float64
-	args          []mutationArg
-	argsBuffer    [16]mutationArg
+	target             *Target
+	ignoreSpecial      bool
+	ignoreLengths      bool
+	producerConfigOnly bool
+	prioSum            float64
+	args               []mutationArg
+	argsBuffer         [16]mutationArg
 }
 
 type mutationArg struct {
@@ -608,6 +708,15 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 
 	if prio == dontMutate {
 		return
+	}
+	if ma.producerConfigOnly {
+		if _, ok := typ.(*ResourceType); ok {
+			return
+		}
+		if buf, ok := typ.(*BufferType); ok &&
+			(buf.Kind == BufferFilename || buf.Kind == BufferString || buf.Kind == BufferGlob) {
+			return
+		}
 	}
 
 	_, isArrayTyp := typ.(*ArrayType)
