@@ -491,6 +491,18 @@ func GetBadges() []BadgeDefinition {
 				})
 			},
 		},
+		{
+			Emoji:       "🎃",
+			Name:        "Harvest Reaper",
+			Description: "The Autumn Scythe. Fixed a bug on Halloween (October 31).",
+			Predicate: func(bug BugInfo, totalBugs int) bool {
+				if bug.FixTime.IsZero() {
+					return false
+				}
+				utc := bug.FixTime.UTC()
+				return utc.Month() == time.October && utc.Day() == 31
+			},
+		},
 	}
 }
 

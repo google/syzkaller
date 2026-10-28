@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -126,6 +127,37 @@ func TestIntegrationBadges(t *testing.T) {
 			require.True(t, b.Predicate(bug, 0))
 		})
 	}
+
+	t.Run("Harvest Reaper", func(t *testing.T) {
+		b, ok := badgeMap["Harvest Reaper"]
+		require.True(t, ok)
+		assert.Equal(t, "🎃", b.Emoji)
+
+		// Missing FixTime -> false.
+		assert.False(t, b.Predicate(BugInfo{}, 0))
+
+		// Halloween in different years (UTC) -> true.
+		assert.True(t, b.Predicate(BugInfo{
+			FixTime: time.Date(2019, time.October, 31, 0, 34, 35, 0, time.UTC),
+		}, 0))
+		assert.True(t, b.Predicate(BugInfo{
+			FixTime: time.Date(2024, time.October, 31, 23, 59, 59, 0, time.UTC),
+		}, 0))
+
+		// Timezone conversion: Nov 1 01:00+02:00 is Oct 31 23:00 UTC -> true.
+		locPlus2 := time.FixedZone("UTC+2", 2*3600)
+		assert.True(t, b.Predicate(BugInfo{
+			FixTime: time.Date(2024, time.November, 1, 1, 0, 0, 0, locPlus2),
+		}, 0))
+
+		// Non-Halloween dates (UTC) -> false.
+		assert.False(t, b.Predicate(BugInfo{
+			FixTime: time.Date(2024, time.October, 30, 23, 59, 59, 0, time.UTC),
+		}, 0))
+		assert.False(t, b.Predicate(BugInfo{
+			FixTime: time.Date(2024, time.November, 1, 0, 0, 0, 0, time.UTC),
+		}, 0))
+	})
 }
 
 func TestGetKingdom(t *testing.T) {
