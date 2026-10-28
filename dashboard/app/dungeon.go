@@ -549,6 +549,7 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 				NumCrashes:        int(bug.NumCrashes),
 				LacksReproducer:   !bug.HasRepro(),
 				HoursToFix:        -1,
+				FixTime:           bug.FixTime,
 			}
 			if !bug.FixTime.IsZero() && !bug.FirstTime.IsZero() {
 				bugInfo.HoursToFix = int(bug.FixTime.Sub(bug.FirstTime).Hours())

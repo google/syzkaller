@@ -150,6 +150,7 @@ Contributors earn badges for specific achievements. **Badges are purely cosmetic
 *   **🕳️ Abyss Walker**: Fixed a *NULL pointer dereference*. (String match: `null-ptr-deref` or `null pointer` anywhere in bug title/commit titles).
 *   **⚗️ Alchemist**: Fixed an *uninitialized value* bug. (String match: `uninit` or `kmsan` anywhere in bug title/commit titles).
 *   **🪓 Executioner**: Fixed a *double free* bug. (String match: `double-free` or `double free` anywhere in bug title/commit titles).
+*   **🎃 Harvest Reaper**: Fixed a bug on Halloween (October 31, UTC, based on `FixTime`).
 
 ### 5. General Rules
 
@@ -221,7 +222,7 @@ Players can view aggregate statistics via two toggles in the dashboard menu:
         * `Title`: For "Sealer", "Keeper of Secrets", and "Master of Time" badge logic.
         * `NumCrashes`: For "Boss Bonus", "Dragon Slayer" badge, and **STR**.
         * `ReproLevel`: For "Blind Bonus", "Diviner" badge, and **INT**.
-        * `FirstTime` & `FixTime`: For "Ancient Evil" bonus, "Windwalker"/"Necromancer" badges, and **WIS**.
+        * `FirstTime` & `FixTime`: For "Ancient Evil" bonus, "Windwalker"/"Necromancer"/"Harvest Reaper" badges, and **WIS**.
 * **Caching**: Results are cached in shared **App Engine Memcache** (using compressed JSON) for 1 hour. The cache is segregated by the viewer's `AccessLevel` so that privileged bug data (like undisclosed bugs visible to admins) does not leak to public viewers.
     *   *Warm-up/Preheating*: A cron job (`/cron/dungeon_preheat`) runs hourly to precompute and warm the cache for all access levels simultaneously, ensuring fast page loads for all users across multiple live instances.
 * **Logic**:

@@ -28,7 +28,7 @@ func TestHashEmailID(t *testing.T) {
 }
 
 func TestProcessPlayers(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2026, time.October, 29, 12, 0, 0, 0, time.UTC)
 
 	bug1 := &Bug{
 		NumCrashes: 1500, // Dragon Slayer.
@@ -42,7 +42,7 @@ func TestProcessPlayers(t *testing.T) {
 		HasCRepro:   true,
 		HasSyzRepro: true,
 		FirstTime:   now,
-		FixTime:     now.Add(24 * 2 * time.Hour), // 2 days -> Windwalker
+		FixTime:     now.Add(24 * 2 * time.Hour), // 2 days -> Windwalker, Oct 31 -> Harvest Reaper
 	}
 
 	bugDays := map[*Bug]int{
@@ -91,7 +91,9 @@ func TestProcessPlayers(t *testing.T) {
 		badges[b.Name] = true
 	}
 
-	expectedBadges := []string{"Dragon Vanquisher", "Necromancer", "Diviner", "Windwalker", "Sealer"}
+	expectedBadges := []string{
+		"Dragon Vanquisher", "Necromancer", "Diviner", "Windwalker", "Sealer", "Harvest Reaper",
+	}
 	for _, eb := range expectedBadges {
 		require.True(t, badges[eb])
 	}
