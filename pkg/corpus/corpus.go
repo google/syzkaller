@@ -7,7 +7,6 @@ package corpus
 import (
 	"context"
 	"fmt"
-	"maps"
 	"slices"
 	"sync"
 
@@ -33,28 +32,14 @@ type Corpus struct {
 	StatSignal *stat.Val
 	StatCover  *stat.Val
 
-	focusAreas []*focusAreaState
-}
-
-type focusAreaState struct {
-	FocusArea
-	*ProgramsList
+	focusAreas   []*focusAreaState
+	focusedProgs []*prog.Prog
 }
 
 type FocusArea struct {
 	Name     string // can be empty
 	CoverPCs map[uint64]struct{}
 	Weight   float64
-}
-
-func (fa *FocusArea) inAreaPCs(cover []uint64) int {
-	var count int
-	for _, pc := range cover {
-		if _, ok := fa.CoverPCs[pc]; ok {
-			count++
-		}
-	}
-	return count
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -116,8 +101,6 @@ type Item struct {
 	Signal  signal.Signal
 	Cover   []uint64
 	Updates []ItemUpdate
-
-	areas map[*focusAreaState]struct{}
 }
 
 func (item Item) StringCall() string {
@@ -157,7 +140,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 		newSignal.Merge(inp.Signal)
 		var newCover cover.Cover
 		newCover.Merge(old.Cover)
-		newCover.Merge(inp.Cover)
+		addedCover := newCover.MergeDiff(inp.Cover)
 		newItem := &Item{
 			Sig:     sig,
 			Prog:    old.Prog,
@@ -166,26 +149,28 @@ func (corpus *Corpus) Save(inp NewInput) {
 			Signal:  newSignal,
 			Cover:   newCover.Serialize(),
 			Updates: slices.Clone(old.Updates),
-			areas:   maps.Clone(old.areas),
 		}
 		const maxUpdates = 32
 		if len(newItem.Updates) < maxUpdates {
 			newItem.Updates = append(newItem.Updates, update)
 		}
 		corpus.progsMap[sig] = newItem
-		corpus.applyFocusAreas(newItem)
+		corpus.applyFocusAreas(newItem, addedCover)
+		corpus.addProgramPrio(old.Prog, len(newSignal)-len(old.Signal))
 	} else {
+		var dedupCover cover.Cover
+		addedCover := dedupCover.MergeDiff(inp.Cover)
 		item := &Item{
 			Sig:     sig,
 			Call:    inp.Call,
 			Prog:    inp.Prog,
 			HasAny:  inp.Prog.ContainsAny(),
 			Signal:  inp.Signal,
-			Cover:   inp.Cover,
+			Cover:   slices.Clone(addedCover),
 			Updates: []ItemUpdate{update},
 		}
 		corpus.progsMap[sig] = item
-		corpus.applyFocusAreas(item)
+		corpus.applyFocusAreas(item, addedCover)
 		corpus.saveProgram(inp.Prog, len(inp.Signal))
 	}
 	corpus.signal.Merge(inp.Signal)
@@ -203,24 +188,19 @@ func (corpus *Corpus) Save(inp NewInput) {
 	}
 }
 
-func (corpus *Corpus) applyFocusAreas(item *Item) {
+func (corpus *Corpus) applyFocusAreas(item *Item, addedCover []uint64) {
+	inFocusedArea := false
 	for _, area := range corpus.focusAreas {
 		if len(area.CoverPCs) == 0 {
 			// Already handled via corpus.ProgramsList.
 			continue
 		}
-		if _, ok := item.areas[area]; ok {
-			continue
+		if area.addProgPCs(item.Prog, addedCover) && area.Weight > 0 {
+			inFocusedArea = true
 		}
-		prio := area.inAreaPCs(item.Cover)
-		if prio == 0 {
-			continue
-		}
-		area.saveProgram(item.Prog, prio)
-		if item.areas == nil {
-			item.areas = make(map[*focusAreaState]struct{})
-		}
-		item.areas[area] = struct{}{}
+	}
+	if inFocusedArea && !slices.Contains(corpus.focusedProgs, item.Prog) {
+		corpus.focusedProgs = append(corpus.focusedProgs, item.Prog)
 	}
 }
 
@@ -265,6 +245,16 @@ func (corpus *Corpus) CallCover() map[string]*CallCov {
 		cc.Cover.Merge(inp.Cover)
 	}
 	return calls
+}
+
+func (corpus *Corpus) FocusAreas() []FocusArea {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	ret := make([]FocusArea, 0, len(corpus.focusAreas))
+	for _, item := range corpus.focusAreas {
+		ret = append(ret, item.FocusArea)
+	}
+	return ret
 }
 
 func (corpus *Corpus) ProgsPerArea() map[string]int {
