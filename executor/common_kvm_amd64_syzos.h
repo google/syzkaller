@@ -35,6 +35,7 @@ typedef enum {
 	SYZOS_API_NESTED_LOAD_SYZOS = 310,
 	SYZOS_API_NESTED_SET_STATE_PAGES = 320,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
+	SYZOS_API_NESTED_INTEL_MSR_LIST_ADD = 341,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
@@ -159,6 +160,7 @@ GUEST_CODE static void guest_handle_nested_set_state_pages(struct api_call_3* cm
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
@@ -286,6 +288,9 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) {
 			// Write to a VMCS field using masks.
 			guest_handle_nested_intel_vmwrite_mask((struct api_call_5*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) {
+			// Append an entry to one of the VMX MSR load/store lists.
+			guest_handle_nested_intel_msr_list_add((struct api_call_4*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
@@ -1909,6 +1914,68 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
 	vmwrite(field, new_value);
+}
+
+// VMX MSR load/store lists, see Intel SDM vol. 3C, "VM-Entry Controls for MSRs"
+// and "VM-Exit Controls for MSRs".
+typedef enum {
+	NESTED_MSR_LIST_ENTRY_LOAD = 0, // MSRs loaded into L2 on VM entry.
+	NESTED_MSR_LIST_EXIT_LOAD = 1, // MSRs loaded into L1 on VM exit.
+	NESTED_MSR_LIST_EXIT_STORE = 2, // L2 MSRs stored on VM exit.
+} nested_msr_list_type;
+
+struct vmx_msr_entry {
+	uint32 index;
+	uint32 reserved;
+	uint64 value;
+};
+
+// Append an entry to one of the VMX MSR lists of an L2 VM and point the VMCS at
+// the list. The number of entries is kept in the VMCS count field itself, so
+// the lists persist across VM entries and can be corrupted with
+// nested_intel_vmwrite_mask. Bits 63:32 of msr end up in the reserved field,
+// which must be zero for a valid entry.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 vm_id = cmd->args[0];
+	uint64 msr = cmd->args[2];
+	uint64 value = cmd->args[3];
+	if (vm_id >= KVM_MAX_L2_VMS)
+		return;
+
+	uint64 offset = 0, addr_field = 0, count_field = 0;
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 type = cmd->args[1];
+	if (type == NESTED_MSR_LIST_ENTRY_LOAD) {
+		offset = X86_SYZOS_MSR_LIST_OFFSET_ENTRY_LOAD;
+		addr_field = VMCS_VM_ENTRY_MSR_LOAD_ADDR;
+		count_field = VMCS_VM_ENTRY_MSR_LOAD_COUNT;
+	} else if (type == NESTED_MSR_LIST_EXIT_LOAD) {
+		offset = X86_SYZOS_MSR_LIST_OFFSET_EXIT_LOAD;
+		addr_field = VMCS_VM_EXIT_MSR_LOAD_ADDR;
+		count_field = VMCS_VM_EXIT_MSR_LOAD_COUNT;
+	} else if (type == NESTED_MSR_LIST_EXIT_STORE) {
+		offset = X86_SYZOS_MSR_LIST_OFFSET_EXIT_STORE;
+		addr_field = VMCS_VM_EXIT_MSR_STORE_ADDR;
+		count_field = VMCS_VM_EXIT_MSR_STORE_COUNT;
+	} else {
+		return;
+	}
+
+	nested_vmptrld(cpu_id, vm_id);
+	uint64 count = vmread(count_field);
+	if (count >= X86_SYZOS_MSR_LIST_MAX_ENTRIES)
+		return;
+	uint64 list_addr = X86_SYZOS_ADDR_MSR_LISTS(cpu_id, vm_id) + offset;
+	volatile struct vmx_msr_entry* entry = (volatile struct vmx_msr_entry*)list_addr + count;
+	entry->index = (uint32)msr;
+	entry->reserved = (uint32)(msr >> 32);
+	entry->value = value;
+	vmwrite(addr_field, list_addr);
+	vmwrite(count_field, count + 1);
 }
 
 GUEST_CODE static noinline void
