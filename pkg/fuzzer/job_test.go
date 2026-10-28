@@ -4,9 +4,12 @@
 package fuzzer
 
 import (
+	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -14,6 +17,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeflake(t *testing.T) {
@@ -164,4 +168,132 @@ func TestDeflake(t *testing.T) {
 			assert.ElementsMatch(t, info.newStableSignal.ToRaw(), test.Info.newStableSignal.ToRaw())
 		})
 	}
+}
+
+func TestHandleCallSmashDedup(t *testing.T) {
+	t.Cleanup(checkGoroutineLeaks)
+
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte(`test$res0()
+test$int(0x1, 0x2, 0x3, 0x4, 0x5)
+`), prog.Strict)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus:         corpus.NewCorpus(ctx),
+		Comparisons:    true,
+		FaultInjection: true,
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$res0"]: true,
+			target.SyscallMap["test$int"]:  true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	tj := &triageJob{
+		p:      p,
+		flags:  ProgMinimized,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	tj.handleCall(0, &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{1}, 0),
+		newStableSignal: signal.FromRaw([]uint64{1}, 0),
+		cover:           cover.FromRaw([]uint64{1}),
+	})
+	tj.handleCall(1, &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{2}, 0),
+		newStableSignal: signal.FromRaw([]uint64{2}, 0),
+		cover:           cover.FromRaw([]uint64{2}),
+	})
+
+	// Both calls save the same program to the corpus: only one smashJob should be
+	// started, while per-call hintsJob and faultInjectionJob run for both calls.
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 2, fuzzer.statJobsHints.Val())
+	assert.Equal(t, 2, fuzzer.statJobsFaultInjection.Val())
+	cancel()
+}
+
+func TestFocusedCandidateSmashAndHints(t *testing.T) {
+	t.Cleanup(checkGoroutineLeaks)
+
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte(`test$res0()
+test$int(0x1, 0x2, 0x3, 0x4, 0x5)
+`), prog.Strict)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	focusCorpus := corpus.NewFocusedCorpus(ctx, nil, []corpus.FocusArea{
+		{
+			Name:     "symbols",
+			CoverPCs: map[uint64]struct{}{0x100: {}},
+			Weight:   6.0,
+		},
+		{
+			Name:     "files",
+			CoverPCs: map[uint64]struct{}{0x200: {}},
+			Weight:   3.0,
+		},
+	})
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus:      focusCorpus,
+		Comparisons: true,
+		PatchTest:   true,
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$res0"]: true,
+			target.SyscallMap["test$int"]:  true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	// Simulate an initial diff-fuzzer candidate (which has ProgSmashed pre-set) where
+	// call 0 hits unfocused kernel code and call 1 hits the focused "symbols" tier.
+	tj := &triageJob{
+		p:      p,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	tj.handleCall(0, &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{0x1}, 0),
+		newStableSignal: signal.FromRaw([]uint64{0x1}, 0),
+		cover:           cover.FromRaw([]uint64{0x1}),
+	})
+	assert.Equal(t, 0, fuzzer.statJobsSmash.Val(), "unfocused call must not start smashJob")
+	assert.Equal(t, 0, fuzzer.statJobsHints.Val(), "unfocused call must not start hintsJob")
+
+	// Saturate the lower-priority "files" tier hints queue (as happens during candidate triage)
+	// and verify that the "symbols" tier candidate still starts both smashJob and hintsJob.
+	fuzzer.tiers[1].hintsJobs.Store(30)
+	tj.handleCall(1, &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{0x100}, 0),
+		newStableSignal: signal.FromRaw([]uint64{0x100}, 0),
+		cover:           cover.FromRaw([]uint64{0x100}),
+	})
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val(),
+		"focused candidate call must start smashJob despite ProgSmashed and prior unfocused save")
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val(),
+		"focused candidate call in symbols tier must not be starved by files tier hints")
+	assert.Equal(t, int64(1), fuzzer.tiers[0].hintsJobs.Load())
+
+	// A candidate in the saturated "files" tier still gets smashed (if a new prog), but its hints are capped.
+	p2 := p.Clone()
+	p2.Calls = p2.Calls[:1]
+	tjFiles := &triageJob{
+		p:      p2,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	tjFiles.handleCall(0, &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{0x200}, 0),
+		newStableSignal: signal.FromRaw([]uint64{0x200}, 0),
+		cover:           cover.FromRaw([]uint64{0x200}),
+	})
+	assert.Equal(t, 2, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val(), "files tier hints should be capped at 30")
 }

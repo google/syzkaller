@@ -16,3 +16,10 @@ func TestIntersectsWith(t *testing.T) {
 	// The other signal has a lower priority.
 	assert.False(t, base.IntersectsWith(FromRaw([]uint64{0, 1, 2}, 0)))
 }
+
+func TestHasAny(t *testing.T) {
+	sig := FromRaw([]uint64{10, 20, 30}, 1)
+	assert.True(t, sig.HasAny(map[uint64]struct{}{20: {}, 40: {}}))
+	assert.False(t, sig.HasAny(map[uint64]struct{}{40: {}, 50: {}}))
+	assert.False(t, sig.HasAny(nil))
+}

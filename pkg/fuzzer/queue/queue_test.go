@@ -4,11 +4,13 @@
 package queue
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPlainQueue(t *testing.T) {
@@ -78,4 +80,31 @@ func TestTee(t *testing.T) {
 	assert.Equal(t, req.GlobPattern, copy.GlobPattern)
 	assert.Empty(t, copy.ReturnOutput)
 	assert.Empty(t, copy.Important)
+}
+
+func TestWeighted(t *testing.T) {
+	req1, req2 := &Request{}, &Request{}
+	empty := Plain()
+	src1 := Callback(func() *Request { return req1 })
+	src2 := Callback(func() *Request { return req2 })
+
+	w := Weighted(rand.New(rand.NewSource(0)),
+		WeightedSource{Source: empty, Weight: 100},
+		WeightedSource{Source: src1, Weight: 1},
+		WeightedSource{Source: src2, Weight: 3},
+	)
+	counts := map[*Request]int{}
+	const iters = 4000
+	for range iters {
+		req := w.Next()
+		require.NotNil(t, req)
+		counts[req]++
+	}
+	assert.InDelta(t, iters*0.25, counts[req1], iters*0.05)
+	assert.InDelta(t, iters*0.75, counts[req2], iters*0.05)
+
+	allEmpty := Weighted(rand.New(rand.NewSource(0)),
+		WeightedSource{Source: empty, Weight: 10},
+	)
+	assert.Nil(t, allEmpty.Next())
 }

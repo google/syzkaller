@@ -10,6 +10,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 	"sync"
@@ -326,25 +327,71 @@ func (cb *callback) Next() *Request {
 	return cb.cb()
 }
 
-type alternate struct {
-	base Source
-	nth  int
-	seq  atomic.Int64
+type WeightedSource struct {
+	Source Source
+	Weight float64
 }
 
-// Alternate proxies base, but returns nil every nth Next() call.
-func Alternate(base Source, nth int) Source {
-	return &alternate{
-		base: base,
-		nth:  nth,
+type weighted struct {
+	mu      sync.Mutex
+	rnd     *rand.Rand
+	sources []WeightedSource
+}
+
+// Weighted randomly polls sources with probability proportional to their weights,
+// sampling without replacement until a source returns a non-nil Request.
+func Weighted(rnd *rand.Rand, sources ...WeightedSource) Source {
+	if len(sources) > 64 {
+		panic("too many weighted sources")
+	}
+	var active []WeightedSource
+	for _, s := range sources {
+		if math.IsNaN(s.Weight) || math.IsInf(s.Weight, 0) {
+			panic("invalid source weight")
+		}
+		if s.Weight > 0 && s.Source != nil {
+			active = append(active, s)
+		}
+	}
+	return &weighted{
+		rnd:     rnd,
+		sources: active,
 	}
 }
 
-func (a *alternate) Next() *Request {
-	if a.seq.Add(1)%int64(a.nth) == 0 {
-		return nil
+func (w *weighted) Next() *Request {
+	var tried uint64
+	for range w.sources {
+		sum := 0.0
+		for i, s := range w.sources {
+			if tried&(1<<i) == 0 {
+				sum += s.Weight
+			}
+		}
+		if sum <= 0 {
+			return nil
+		}
+		w.mu.Lock()
+		val := w.rnd.Float64() * sum
+		w.mu.Unlock()
+
+		chosen := -1
+		curr := 0.0
+		for i, s := range w.sources {
+			if tried&(1<<i) != 0 {
+				continue
+			}
+			if chosen == -1 || val >= curr {
+				chosen = i
+			}
+			curr += s.Weight
+		}
+		if req := w.sources[chosen].Source.Next(); req != nil {
+			return req
+		}
+		tried |= 1 << chosen
 	}
-	return a.base.Next()
+	return nil
 }
 
 type DynamicOrderer struct {

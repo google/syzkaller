@@ -5,12 +5,14 @@
 package fuzzer
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math/rand"
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pkgfeatures "github.com/google/syzkaller/pkg/vminfo/features"
@@ -18,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
@@ -35,6 +38,7 @@ type Fuzzer struct {
 	target       *prog.Target
 	hintsLimiter prog.HintsLimiter
 	runningJobs  map[jobIntrospector]struct{}
+	smashed      map[hash.Sig]struct{}
 
 	ct           *prog.ChoiceTable
 	ctProgs      int
@@ -60,13 +64,14 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		rnd:         rnd,
 		target:      target,
 		runningJobs: map[jobIntrospector]struct{}{},
+		smashed:     map[hash.Sig]struct{}{},
 
 		// We're okay to lose some of the messages -- if we are already
 		// regenerating the table, we don't want to repeat it right away.
 		ctRegenerate: make(chan struct{}),
 	}
 	f.execQueues = newExecQueues(f)
-	f.updateChoiceTable(nil)
+	f.updateChoiceTable()
 	go f.choiceTableUpdater()
 	if cfg.Debug {
 		go f.logCurrentStats()
@@ -84,35 +89,128 @@ func (fuzzer *Fuzzer) RecommendedCalls() int {
 type execQueues struct {
 	triageCandidateQueue *queue.DynamicOrderer
 	candidateQueue       *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	smashQueue           *queue.PlainQueue
+	tiers                []focusTier
 	source               queue.Source
+}
+
+type focusTier struct {
+	coverPCs    map[uint64]struct{}
+	weight      float64
+	inFocus     bool
+	triageQueue *queue.DynamicOrderer
+	smashQueue  *queue.PlainQueue
+	hintsQueue  *queue.PlainQueue
+	hintsJobs   *atomic.Int64
 }
 
 func newExecQueues(fuzzer *Fuzzer) execQueues {
 	ret := execQueues{
 		triageCandidateQueue: queue.DynamicOrder(),
 		candidateQueue:       queue.Plain(),
-		triageQueue:          queue.DynamicOrder(),
-		smashQueue:           queue.Plain(),
 	}
-	// Alternate smash jobs with exec/fuzz to spread attention to the wider area.
-	skipQueue := 3
+	catchAllWeight := 1.0
+	if fuzzer.Config.PatchTest && fuzzer.Config.Corpus != nil {
+		areas := fuzzer.Config.Corpus.FocusAreas()
+		slices.SortStableFunc(areas, func(a, b corpus.FocusArea) int {
+			return cmp.Compare(b.Weight, a.Weight)
+		})
+		for _, area := range areas {
+			if area.Weight <= 0 {
+				continue
+			}
+			if len(area.CoverPCs) == 0 {
+				catchAllWeight = area.Weight
+				continue
+			}
+			ret.tiers = append(ret.tiers, focusTier{
+				coverPCs:    area.CoverPCs,
+				weight:      area.Weight,
+				inFocus:     true,
+				triageQueue: queue.DynamicOrder(),
+				smashQueue:  queue.Plain(),
+				hintsQueue:  queue.Plain(),
+				hintsJobs:   new(atomic.Int64),
+			})
+		}
+	}
+	// Always append a catch-all tier at the end.
+	ret.tiers = append(ret.tiers, focusTier{
+		weight:      catchAllWeight,
+		inFocus:     !fuzzer.Config.PatchTest || len(ret.tiers) == 0,
+		triageQueue: queue.DynamicOrder(),
+		smashQueue:  queue.Plain(),
+		hintsQueue:  queue.Plain(),
+		hintsJobs:   new(atomic.Int64),
+	})
+
+	// Alternate smash/hints jobs with exec/fuzz to spread attention to the wider area.
+	fuzzShare := 0.5
 	if fuzzer.Config.PatchTest {
 		// When we do patch fuzzing, we do not focus on finding and persisting
 		// new coverage that much, so it's reasonable to spend more time just
 		// mutating various corpus programs.
-		skipQueue = 2
+		fuzzShare = 1.0
 	}
-	// Sources are listed in the order, in which they will be polled.
-	ret.source = queue.Order(
+	var weighted []queue.WeightedSource
+	var totalWeight float64
+	for _, tier := range ret.tiers {
+		weighted = append(weighted,
+			queue.WeightedSource{
+				Source: tier.smashQueue,
+				Weight: tier.weight * 0.85,
+			},
+			queue.WeightedSource{
+				Source: tier.hintsQueue,
+				Weight: tier.weight * 0.15,
+			},
+		)
+		totalWeight += tier.weight
+	}
+	weighted = append(weighted, queue.WeightedSource{
+		Source: queue.Callback(fuzzer.genFuzz),
+		Weight: totalWeight * fuzzShare,
+	})
+
+	sources := []queue.Source{
 		ret.triageCandidateQueue,
 		ret.candidateQueue,
-		ret.triageQueue,
-		queue.Alternate(ret.smashQueue, skipQueue),
-		queue.Callback(fuzzer.genFuzz),
-	)
+	}
+	for _, tier := range ret.tiers {
+		sources = append(sources, tier.triageQueue)
+	}
+	sources = append(sources, queue.Weighted(fuzzer.rand(), weighted...))
+	// Sources are listed in the order, in which they will be polled.
+	ret.source = queue.Order(sources...)
 	return ret
+}
+
+func (fuzzer *Fuzzer) triageQueueForCalls(triage map[int]*triageCall) *queue.DynamicOrderer {
+	for _, tier := range fuzzer.tiers[:len(fuzzer.tiers)-1] {
+		for _, call := range triage {
+			if call.newSignal.HasAny(tier.coverPCs) {
+				return tier.triageQueue
+			}
+		}
+	}
+	return fuzzer.tiers[len(fuzzer.tiers)-1].triageQueue
+}
+
+func (fuzzer *Fuzzer) tierForCall(info *triageCall) *focusTier {
+	for i := range len(fuzzer.tiers) - 1 {
+		tier := &fuzzer.tiers[i]
+		if info.newStableSignal.HasAny(tier.coverPCs) {
+			return tier
+		}
+	}
+	for i := range len(fuzzer.tiers) - 1 {
+		tier := &fuzzer.tiers[i]
+		for pc := range info.cover {
+			if _, ok := tier.coverPCs[pc]; ok {
+				return tier
+			}
+		}
+	}
+	return &fuzzer.tiers[len(fuzzer.tiers)-1]
 }
 
 func (fuzzer *Fuzzer) CandidatesToTriage() int {
@@ -158,7 +256,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
 
 		if len(triage) != 0 {
-			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
+			queue, stat := fuzzer.triageQueueForCalls(triage), fuzzer.statJobsTriage
 			jobType := JobTriage
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
@@ -312,13 +410,23 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	return req
 }
 
+func (fuzzer *Fuzzer) claimSmash(p *prog.Prog) bool {
+	sig := hash.Hash(p.Serialize())
+	fuzzer.mu.Lock()
+	defer fuzzer.mu.Unlock()
+	if _, ok := fuzzer.smashed[sig]; ok {
+		return false
+	}
+	fuzzer.smashed[sig] = struct{}{}
+	return true
+}
+
 func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
+	stat.Add(1)
+	fuzzer.statJobs.Add(1)
 	go func() {
-		stat.Add(1)
 		defer stat.Add(-1)
-
-		fuzzer.statJobs.Add(1)
 		defer fuzzer.statJobs.Add(-1)
 
 		if obj, ok := newJob.(jobIntrospector); ok {
@@ -389,15 +497,20 @@ func (fuzzer *Fuzzer) rand() *rand.Rand {
 	return rand.New(rand.NewSource(fuzzer.rnd.Int63()))
 }
 
-func (fuzzer *Fuzzer) updateChoiceTable(programs []*prog.Prog) {
-	newCt := fuzzer.target.BuildChoiceTable(programs, fuzzer.Config.EnabledCalls)
+func (fuzzer *Fuzzer) updateChoiceTable() {
+	var progs []*prog.Prog
+	if fuzzer.Config.Corpus != nil {
+		progs = fuzzer.Config.Corpus.FocusedPrograms()
+		if len(progs) == 0 {
+			progs = fuzzer.Config.Corpus.Programs()
+		}
+	}
+	newCt := fuzzer.target.BuildChoiceTable(progs, fuzzer.Config.EnabledCalls)
 
 	fuzzer.ctMu.Lock()
 	defer fuzzer.ctMu.Unlock()
-	if len(programs) >= fuzzer.ctProgs {
-		fuzzer.ctProgs = len(programs)
-		fuzzer.ct = newCt
-	}
+	fuzzer.ctProgs = len(progs)
+	fuzzer.ct = newCt
 }
 
 func (fuzzer *Fuzzer) choiceTableUpdater() {
@@ -407,22 +520,30 @@ func (fuzzer *Fuzzer) choiceTableUpdater() {
 			return
 		case <-fuzzer.ctRegenerate:
 		}
-		fuzzer.updateChoiceTable(fuzzer.Config.Corpus.Programs())
+		fuzzer.updateChoiceTable()
 	}
 }
 
 func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
-	progs := fuzzer.Config.Corpus.Programs()
+	var progsLen int
+	if fuzzer.Config.Corpus != nil {
+		progsLen = len(fuzzer.Config.Corpus.FocusedPrograms())
+		if progsLen == 0 {
+			progsLen = len(fuzzer.Config.Corpus.Programs())
+		}
+	}
 
 	fuzzer.ctMu.RLock()
 	defer fuzzer.ctMu.RUnlock()
 
 	// There were no deep ideas nor any calculations behind these numbers.
 	regenerateEveryProgs := 333
-	if len(progs) < 100 {
+	if fuzzer.Config.PatchTest {
+		regenerateEveryProgs = max(1, progsLen/10)
+	} else if progsLen < 100 {
 		regenerateEveryProgs = 33
 	}
-	if fuzzer.ctProgs+regenerateEveryProgs < len(progs) {
+	if progsLen < fuzzer.ctProgs || fuzzer.ctProgs+regenerateEveryProgs <= progsLen {
 		select {
 		case fuzzer.ctRegenerate <- struct{}{}:
 		default:

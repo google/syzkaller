@@ -62,6 +62,15 @@ func (s Signal) IntersectsWith(other Signal) bool {
 	return false
 }
 
+func (s Signal) HasAny(pcs map[uint64]struct{}) bool {
+	for e := range s {
+		if _, ok := pcs[uint64(e)]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Signal) Intersection(s1 Signal) Signal {
 	if s1.Empty() {
 		return nil

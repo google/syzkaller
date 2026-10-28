@@ -57,6 +57,9 @@ type kernelContext struct {
 }
 
 func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, error) {
+	if cfg.Experimental.CoverEdges {
+		return nil, fmt.Errorf("experimental.cover_edges is not supported for diff fuzzing")
+	}
 	osutil.MkdirAll(cfg.Workdir)
 
 	kernelCtx := &kernelContext{
