@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
-	"regexp"
-	"slices"
 	"strings"
 	"sync"
 
@@ -32,9 +30,8 @@ type AppConfig struct {
 	DirectList string `yaml:"directList"`
 	// Parameters used for sending/generating emails.
 	EmailReporting *EmailConfig `yaml:"emailReporting"`
-	// Trees and Fuzzer configuration.
-	Trees       []*api.Tree             `yaml:"trees"`
-	FuzzTargets []*api.FuzzTriageTarget `yaml:"fuzz_targets"`
+	// Trees configuration.
+	Trees []*api.Tree `yaml:"trees"`
 	// AI configuration (e.g. LLM secrets).
 	AI *AIConfig `yaml:"aiConfig"`
 }
@@ -160,19 +157,6 @@ func (c AppConfig) Validate() error {
 	if c.EmailReporting != nil {
 		if err := c.EmailReporting.Validate(); err != nil {
 			return fmt.Errorf("emailReporting: %w", err)
-		}
-	}
-	for _, target := range c.FuzzTargets {
-		for _, r := range slices.Concat(target.PathRegexps, target.ExcludePathRegexps) {
-			if _, err := regexp.Compile(r); err != nil {
-				return fmt.Errorf("invalid path regexp %q: %w", r, err)
-			}
-		}
-		for _, campaign := range target.Campaigns {
-			if campaign.Track != string(api.TrackKASAN) && campaign.Track != string(api.TrackKMSAN) {
-				return fmt.Errorf("unsupported fuzzing track %q, must be %q or %q",
-					campaign.Track, api.TrackKASAN, api.TrackKMSAN)
-			}
 		}
 	}
 	return nil

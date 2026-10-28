@@ -36,6 +36,18 @@ func TestNoFocus(t *testing.T) {
 	runTest(t, &api.FuzzConfig{}, filepath.Join("testdata", "singular", "default"))
 }
 
+func TestDefaultFuzzTargetsFocus(t *testing.T) {
+	for _, target := range api.DefaultFuzzTargets() {
+		for _, campaign := range target.Campaigns {
+			for _, focus := range []string{target.Focus, campaign.Focus} {
+				if focus != "" {
+					assert.Contains(t, setFocus, focus, "unknown focus in the default fuzz targets")
+				}
+			}
+		}
+	}
+}
+
 func TestMultipleFocus(t *testing.T) {
 	runTest(t, &api.FuzzConfig{
 		Focus: []string{api.FocusBPF, api.FocusIoUring},
