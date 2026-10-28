@@ -10,6 +10,9 @@ import (
 	"math/rand"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNotEscaping(t *testing.T) {
@@ -248,4 +251,153 @@ func TestNoGenerate(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestChooseUnionIndexOptionalResource(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	resArg := target.SyscallMap["test$consume_subtype_of_common"].Args[0].Type.(*ResourceType)
+	voidType := &BufferType{TypeCommon: TypeCommon{TypeName: "void", IsVarlen: true}}
+	optUnion := &UnionType{
+		Fields: []Field{
+			{Name: "val", Type: resArg},
+			{Name: "void", Type: voidType},
+		},
+	}
+
+	r := newRand(target, rand.NewSource(0))
+	// Even when s.resources is completely empty (e.g. first call of a program),
+	// optional[res] (and optional[union_wrapping_res]) should prefer "void" (index 1, 75%).
+	sEmpty := newState(target, target.DefaultChoiceTable(), nil)
+	nestedUnion := &UnionType{
+		Fields: []Field{
+			{Name: "res", Type: resArg},
+			{Name: "other", Type: voidType},
+		},
+	}
+	optNestedUnion := &UnionType{
+		Fields: []Field{
+			{Name: "val", Type: nestedUnion},
+			{Name: "void", Type: voidType},
+		},
+	}
+	const iters = 1000
+	valEmpty := 0
+	valNestedEmpty := 0
+	for range iters {
+		if r.chooseUnionIndex(sEmpty, optUnion, DirIn) == 0 {
+			valEmpty++
+		}
+		if r.chooseUnionIndex(sEmpty, optNestedUnion, DirIn) == 0 {
+			valNestedEmpty++
+		}
+	}
+	assert.InDelta(t, iters*0.25, valEmpty, iters*0.07)
+	assert.InDelta(t, iters*0.25, valNestedEmpty, iters*0.07)
+
+	// When state has some unrelated resource (r104), subtype_of_common is absent and should prefer "void" (index 1).
+	pOther, err := target.Deserialize([]byte("test$r104_producer(&(0x7f0000000000)=<r0=>0x0)\n"), Strict)
+	require.NoError(t, err)
+	sAbsent := analyze(target.DefaultChoiceTable(), nil, pOther, nil)
+
+	valAbsent := 0
+	for range iters {
+		if r.chooseUnionIndex(sAbsent, optUnion, DirIn) == 0 {
+			valAbsent++
+		}
+	}
+	assert.InDelta(t, iters*0.25, valAbsent, iters*0.07)
+
+	// When state has a compatible resource (subtype_of_common), it should prefer "val" (index 0).
+	pPresent, err := target.Deserialize([]byte("r0 = test$produce_subtype_of_common()\n"), Strict)
+	require.NoError(t, err)
+	sPresent := analyze(target.DefaultChoiceTable(), nil, pPresent, nil)
+
+	valPresent := 0
+	for range iters {
+		if r.chooseUnionIndex(sPresent, optUnion, DirIn) == 0 {
+			valPresent++
+		}
+	}
+	assert.InDelta(t, iters*0.80, valPresent, iters*0.07)
+}
+
+func TestArrayUnionPermutation(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	arrType := target.SyscallMap["test$array0"].Args[0].Type.(*PtrType).Elem.(*StructType).Fields[1].Type.(*ArrayType)
+	r := newRand(target, rand.NewSource(0))
+	s := newState(target, target.DefaultChoiceTable(), nil)
+
+	distinctPairs := 0
+	twoElemArrays := 0
+	const iters = 400
+	for range iters {
+		arg, _ := arrType.generate(r, s, DirIn)
+		inner := arg.(*GroupArg).Inner
+		if len(inner) == 2 {
+			twoElemArrays++
+			if inner[0].(*UnionArg).Index != inner[1].(*UnionArg).Index {
+				distinctPairs++
+			}
+		}
+	}
+	require.Greater(t, twoElemArrays, 100)
+	// With 2 union fields, uniform independent choice gives distinct pairs 50% of the time,
+	// whereas 75% permutation sampling + 25% uniform gives ~87.5% distinct pairs.
+	assert.Greater(t, distinctPairs, twoElemArrays*3/4)
+}
+
+func TestNestedUnionArrayDepth(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	voidType := &BufferType{TypeCommon: TypeCommon{TypeName: "void", IsVarlen: true}}
+	voidType.setRef(1)
+	makeFiveWayUnionArray := func(elem Type) *ArrayType {
+		fields := []Field{{Name: "child", Type: elem}}
+		for i := range 4 {
+			fields = append(fields, Field{Name: fmt.Sprintf("f%d", i), Type: voidType})
+		}
+		u := &UnionType{Fields: fields}
+		u.setRef(1)
+		arr := &ArrayType{
+			TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true},
+			Elem:       u,
+			Kind:       ArrayRandLen,
+		}
+		arr.setRef(1)
+		return arr
+	}
+	// Build 4 nested levels of ArrayRandLen[Union] (depths 0, 1, 2, 3).
+	leafArr := makeFiveWayUnionArray(voidType)
+	depth2Arr := makeFiveWayUnionArray(leafArr)
+	depth1Arr := makeFiveWayUnionArray(depth2Arr)
+	depth0Arr := makeFiveWayUnionArray(depth1Arr)
+
+	r := newRand(target, rand.NewSource(0))
+	s := newState(target, target.DefaultChoiceTable(), nil)
+
+	const iters = 300
+	var boostDepth1, boostDepth2, boostDepth3 int
+	for range iters {
+		r.unionArrayDepth = 1
+		a1, _ := leafArr.generate(r, s, DirIn)
+		if len(a1.(*GroupArg).Inner) >= 3 {
+			boostDepth1++
+		}
+		r.unionArrayDepth = 2
+		a2, _ := leafArr.generate(r, s, DirIn)
+		if len(a2.(*GroupArg).Inner) >= 3 {
+			boostDepth2++
+		}
+		r.unionArrayDepth = 3
+		a3, _ := leafArr.generate(r, s, DirIn)
+		if len(a3.(*GroupArg).Inner) >= 3 {
+			boostDepth3++
+		}
+	}
+	r.unionArrayDepth = 0
+	arg, _ := depth0Arr.generate(r, s, DirIn)
+	require.NotNil(t, arg)
+	assert.Equal(t, 0, r.unionArrayDepth)
+	// Depths 1 and 2 get the 50% multi-attribute boost, whereas depth >= 3 does not.
+	assert.Greater(t, boostDepth1, boostDepth3+40)
+	assert.Greater(t, boostDepth2, boostDepth3+25)
 }

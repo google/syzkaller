@@ -40,6 +40,7 @@ type randGen struct {
 	target                *Target
 	inGenerateResource    bool
 	patchConditionalDepth int
+	unionArrayDepth       int
 	genKFuzzTest          bool
 	recDepth              map[Type]int
 	genDefaultResource    bool
@@ -924,6 +925,29 @@ func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 		count = 1
 	}
 	var inner []Arg
+	if u, ok := a.Elem.(*UnionType); ok && !u.isConditional() && len(u.Fields) > 1 &&
+		dir != DirOut && r.target.SpecialTypes[u.Name()] == nil && r.nOutOf(3, 4) {
+		if r.unionArrayDepth <= 2 && a.Kind == ArrayRandLen && count < 3 && r.oneOf(2) {
+			minCount, maxCount := 3, 5
+			if r.unionArrayDepth == 2 {
+				minCount, maxCount = 2, 4
+			}
+			count = r.randRange(uint64(min(minCount, len(u.Fields))), uint64(min(len(u.Fields), maxCount)))
+		}
+		r.unionArrayDepth++
+		defer func() {
+			r.unionArrayDepth--
+		}()
+		perm := r.Perm(len(u.Fields))
+		for i := uint64(0); i < count; i++ {
+			index := perm[int(i)%len(perm)]
+			optType, optDir := u.Fields[index].Type, u.Fields[index].Dir(dir)
+			opt, calls1 := r.generateArg(s, optType, optDir)
+			inner = append(inner, MakeUnionArg(u, dir, opt, index))
+			calls = append(calls, calls1...)
+		}
+		return MakeGroupArg(a, dir, inner), calls
+	}
 	for i := uint64(0); i < count; i++ {
 		arg1, calls1 := r.generateArg(s, a.Elem, dir)
 		inner = append(inner, arg1)
@@ -944,10 +968,67 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 		// been generated. We'll fill them in later.
 		return a.DefaultArg(dir), nil
 	}
-	index := r.Intn(len(a.Fields))
+	index := r.chooseUnionIndex(s, a, dir)
 	optType, optDir := a.Fields[index].Type, a.Fields[index].Dir(dir)
 	opt, calls := r.generateArg(s, optType, optDir)
 	return MakeUnionArg(a, dir, opt, index), calls
+}
+
+const maxOptionalResourceDepth = 4
+
+// chooseUnionIndex biases syzlang optional[T] unions (represented as a 2-field union
+// with fields "val" and "void") that wrap a resource: if a compatible resource already
+// exists in s, prefer "val" (80%); otherwise prefer "void" (75%) to avoid recursive
+// resource constructor chains for optional fields.
+func (r *randGen) chooseUnionIndex(s *state, a *UnionType, dir Dir) int {
+	if dir != DirOut && len(a.Fields) == 2 &&
+		a.Fields[0].Name == "val" && a.Fields[1].Name == "void" {
+		if hasRes, hasExisting := r.optionalResourceStatus(s, a.Fields[0].Type, 0); hasRes {
+			if hasExisting {
+				if r.nOutOf(4, 5) {
+					return 0
+				}
+				return 1
+			}
+			if r.nOutOf(3, 4) {
+				return 1
+			}
+			return 0
+		}
+	}
+	return r.Intn(len(a.Fields))
+}
+
+func (r *randGen) optionalResourceStatus(s *state, t Type, depth int) (hasRes, hasExisting bool) {
+	if depth > maxOptionalResourceDepth {
+		return false, false
+	}
+	switch a := t.(type) {
+	case *ResourceType:
+		for _, res1 := range s.resources {
+			if len(res1) > 0 && r.target.isCompatibleResource(a.Desc.Name, res1[0].Type().Name()) {
+				return true, true
+			}
+		}
+		return true, false
+	case *StructType:
+		for _, f := range a.Fields {
+			hr, he := r.optionalResourceStatus(s, f.Type, depth+1)
+			hasRes = hasRes || hr
+			hasExisting = hasExisting || he
+		}
+	case *UnionType:
+		for _, f := range a.Fields {
+			hr, he := r.optionalResourceStatus(s, f.Type, depth+1)
+			hasRes = hasRes || hr
+			hasExisting = hasExisting || he
+		}
+	case *PtrType:
+		return r.optionalResourceStatus(s, a.Elem, depth+1)
+	case *ArrayType:
+		return r.optionalResourceStatus(s, a.Elem, depth+1)
+	}
+	return hasRes, hasExisting
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
