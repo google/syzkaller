@@ -532,6 +532,32 @@ aside {
 	overflow-wrap: break-word;
 }
 
+/* AI-generated text rendered from Markdown. */
+.ai-markdown {
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
+.ai-markdown > :first-child {
+	margin-top: 0;
+}
+
+.ai-markdown > :last-child {
+	margin-bottom: 0;
+}
+
+.ai-markdown h1, .ai-markdown h2, .ai-markdown h3, .ai-markdown h4 {
+	margin: 0.8em 0 0.4em;
+}
+
+.ai-markdown pre {
+	white-space: pre-wrap;
+	background: #f6f8fa;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 5pt;
+}
+
 .ai-jobs-form {
 	padding: 15px;
 	box-sizing: border-box;

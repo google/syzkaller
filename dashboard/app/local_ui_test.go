@@ -525,11 +525,26 @@ func populateLocalUIRootCause(t *testing.T, c *Ctx, client *apiClient, bugExtID 
 	// Backticks can't be used in raw string literals, so we use single quotes instead.
 	analysis := strings.ReplaceAll(`### Root Cause Analysis
 
+#### 1. Use-after-free in **'bar()'** ('mm/slub.c')
+
 1. 'foo()' frees the object ('mm/slub.c:100').
 2. 'bar()' still uses it afterwards (mm/slub.c:200):
    '''c
    obj->field = 1;
-   '''`, "'", "`")
+   '''
+
+#### 2. Crash site ('mm/slub.c:300-320')
+
+'''
+bar+0x10/0x20 mm/slub.c:310
+'''
+In 'mm/slub.c', 'bar()' does not take a reference:
+'''c
+static void bar(struct obj *obj)
+{
+	obj->field = 1;
+}
+'''`, "'", "`")
 	require.NoError(t, client.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
