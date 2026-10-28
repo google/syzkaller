@@ -2266,11 +2266,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
 	}
-	// A reproducer increases chances of a correct assessment, so wait for it for a day.
-	if manual || bug.HasRepro() ||
-		timeSince(ctx, bug.FirstTime) > 24*time.Hour {
-		workflows[ai.WorkflowAssessmentSecurity] = true
-	}
+	workflows[ai.WorkflowAssessmentSecurity] = true
 	if manual {
 		// Workflows created only manually, or manual overrides bypassing auto-creation filters.
 		if typ.IsUAF() {

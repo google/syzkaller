@@ -1975,8 +1975,6 @@ func TestAIAssessmentSecurityRootCause(t *testing.T) {
 	_, extID, err := email.RemoveAddrContext(initialMsg.Sender)
 	require.NoError(t, err)
 
-	c.advanceTime(49 * time.Hour)
-
 	resp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, string(ai.WorkflowAssessmentSecurity), resp.Workflow)
