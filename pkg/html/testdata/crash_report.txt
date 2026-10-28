@@ -1,0 +1,10 @@
+ tipc_topsrv_stop net/tipc/topsrv.c:694 [inline]
+ tipc_topsrv_exit_net+0x149/0x340 net/tipc/topsrv.c:715
+kernel BUG at fs/ext4/inode.c:2753!
+pkg/sentry/fsimpl/fuse/fusefs.go:278 +0x384
+ kvm_vcpu_release+0x4d/0x70 arch/x86/kvm/../../../virt/kvm/kvm_main.c:3713
+	arch/x86/entry/entry_64.S:298
+[<81751700>] (show_stack) from [<8176d3e0>] (dump_stack_lvl+0x48/0x54 lib/dump_stack.c:106)
+UBSAN: shift-out-of-bounds in net/sched/sch_taprio.c:1234:56
+see fs/dcache.c:2693, and [fs/dcache.c:2694]
+not a reference: fs/dcache.c:2693x

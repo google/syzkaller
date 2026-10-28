@@ -14,7 +14,6 @@ import (
 	_ "net/http/pprof" // app.yaml restricts this to admins
 	"net/url"
 	"os"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -1283,18 +1282,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		Managers:       managers,
 		DefaultManager: bugDefaultManager(ctx, bug, bugDetails),
 	}
-	aiRootCauseRequested := r.FormValue(aiRootCauseParam) != ""
-	if rc := &bug.AIRootCause; rc.Summary != "" {
-		data.AIRootCause = &uiAIRootCause{
-			Summary:          linkifyReport([]byte(rc.Summary), rc.KernelRepo, rc.KernelCommit),
-			Analysis:         linkifyReport([]byte(loadAIRootCauseAnalysis(ctx, bug)), rc.KernelRepo, rc.KernelCommit),
-			KernelCommit:     rc.KernelCommit,
-			KernelCommitLink: vcs.CommitLink(rc.KernelRepo, rc.KernelCommit),
-			Expanded:         aiRootCauseRequested,
-		}
-	} else {
-		data.AIRootCauseMissing = aiRootCauseRequested
-	}
+	data.AIRootCause, data.AIRootCauseMissing = makeUIAIRootCause(ctx, bug, r.FormValue(aiRootCauseParam) != "")
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
@@ -2334,28 +2322,20 @@ func loadCrashesForBug(ctx context.Context, bug *Bug) ([]*uiCrash, template.HTML
 		return nil, "", err
 	}
 	sampleBuild := builds[crashes[0].BuildID]
-	linkifiedReport := linkifyReport(sampleReport, sampleBuild.KernelRepo, sampleBuild.KernelCommit)
+	linkifiedReport := linkifyText(ctx, string(sampleReport), sampleBuild.KernelRepo, sampleBuild.KernelCommit)
 	return results, linkifiedReport, nil
 }
 
-func linkifyReport(report []byte, repo, commit string) template.HTML {
-	escaped := template.HTMLEscapeString(string(report))
-	return template.HTML(sourceFileRe.ReplaceAllStringFunc(escaped, func(match string) string {
-		sub := sourceFileRe.FindStringSubmatch(match)
-		line, _ := strconv.Atoi(sub[3])
-		url := vcs.FileLink(repo, commit, sub[2], line)
-		if url == "" {
-			return match
-		}
-		return fmt.Sprintf("%v<a href='%v'>%v:%v</a>%v", sub[1], url, sub[2], sub[3], sub[4])
-	}))
+// linkifyText turns source file references in plain text into links.
+// The links are only cosmetic, so errors are logged and the text is shown as is.
+func linkifyText(ctx context.Context, text, repo, commit string) template.HTML {
+	res, err := html.LinkifyHTML(text, repo, commit)
+	if err != nil {
+		log.Errorf(ctx, "failed to linkify source references: %v", err)
+		return template.HTML(template.HTMLEscapeString(text))
+	}
+	return res
 }
-
-// sourceFileRe matches file:line references in crash reports and in AI-generated text
-// (where they are frequently put into backticks, or followed by a column number or punctuation).
-var sourceFileRe = regexp.MustCompile(`(^|[ \t\n(\[` + "`" + `])` +
-	`([a-zA-Z0-9/_.-]+\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)` +
-	`([ \t\n!)\]` + "`" + `,.:;]|$)`)
 
 func makeUIAssets(ctx context.Context, build *Build, crash *Crash, forReport bool) []*uiAsset {
 	var uiAssets []*uiAsset

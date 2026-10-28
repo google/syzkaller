@@ -872,7 +872,7 @@ func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, t
 				}
 				repo, _ := args["KernelRepo"].(string)
 				commit, _ := args["KernelCommit"].(string)
-				crashReport = linkifyReport(report, repo, commit)
+				crashReport = linkifyText(ctx, string(report), repo, commit)
 			}
 		}
 	}
@@ -1583,6 +1583,26 @@ func loadAIRootCauseAnalysis(ctx context.Context, bug *Bug) string {
 		log.Errorf(ctx, "failed to load AI root cause text for bug %v: %v", bug.keyHash(ctx), err)
 	}
 	return string(data)
+}
+
+// makeUIAIRootCause returns the AI root cause analysis of the bug for the bug page,
+// or whether the analysis was requested, but the bug does not have it.
+// Source file references in the analysis are linked to the kernel revision the analysis was done on.
+func makeUIAIRootCause(ctx context.Context, bug *Bug, requested bool) (*uiAIRootCause, bool) {
+	rc := &bug.AIRootCause
+	if rc.Summary == "" {
+		return nil, requested
+	}
+	render := func(text string) template.HTML {
+		return linkifyText(ctx, text, rc.KernelRepo, rc.KernelCommit)
+	}
+	return &uiAIRootCause{
+		Summary:          render(rc.Summary),
+		Analysis:         render(loadAIRootCauseAnalysis(ctx, bug)),
+		KernelCommit:     rc.KernelCommit,
+		KernelCommitLink: vcs.CommitLink(rc.KernelRepo, rc.KernelCommit),
+		Expanded:         requested,
+	}, false
 }
 
 // The bug page shows the full AI root cause analysis expanded if aiRootCauseParam is set.
