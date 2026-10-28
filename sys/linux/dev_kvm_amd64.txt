@@ -146,6 +146,17 @@ vmcb_offset [
 	save_area	int64[0x400:0x698]
 ]
 
+# VMX MSR load/store lists: 0 - loaded into L2 on VM entry, 1 - loaded into L1 on VM exit,
+# 2 - stored from L2 on VM exit. Each list holds up to 64 entries.
+nested_msr_list_types = 0, 1, 2
+
+syzos_api_nested_intel_msr_list_add {
+	vm_id	syzos_api_vm_id
+	list	int64[nested_msr_list_types]
+	msr	flags[msr_index, int64]
+	value	int64
+}
+
 syzos_api_nested_amd_vmcb_write_mask {
 	vm_id		syzos_api_vm_id
 	offset		vmcb_offset
@@ -213,6 +224,7 @@ syzos_api_call$x86 [
 	nested_load_syzos		syzos_api$x86[310, syzos_api_nested_load_syzos]
 	nested_set_state_pages		syzos_api$x86[320, syzos_api_nested_set_state_pages]
 	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
+	nested_intel_msr_list_add	syzos_api$x86[341, syzos_api_nested_intel_msr_list_add]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
 	nested_amd_stgi			syzos_api$x86[382, void]
