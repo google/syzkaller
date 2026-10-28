@@ -177,7 +177,7 @@ static void PopulateMemory(void* ptr, size_t size)
 		failmsg("populate madvise failed", "ptr=%p size=%zu", ptr, size);
 }
 
-// TouchMemory prefaults non-anon shared memory.
+// TouchMemory prefaults read-only or non-anon shared memory.
 static void TouchMemory(void* ptr, size_t size)
 {
 	size_t const kPageSize = getpagesize();
@@ -212,8 +212,12 @@ static void SnapshotStart()
 	for (size_t i = 0; i < kThreadsPopulate; i++) {
 		thread_t* th = &threads[i];
 		thread_create(th, i, flag_coverage);
-		if (flag_coverage)
-			PopulateMemory(th->cov.data, kCoveragePopulate);
+		if (flag_coverage) {
+			TouchMemory(th->cov.data, kCoveragePopulate);
+			// Also fault the writable first page with a write for cover_reset().
+			if (!flag_read_only_coverage)
+				*(volatile uint64*)th->cov.data = 0;
+		}
 	}
 	TouchMemory((char*)output_data + output_size - kOutputPopulate, kOutputPopulate);
 	TouchMemory(ivs.input, kInputPopulate);
