@@ -2044,7 +2044,7 @@ func TestAIAssessmentSecurityRootCause(t *testing.T) {
 		require.Contains(t, block, summary)
 		require.Contains(t, block, fmt.Sprintf("<a href=\"%v\">%v</a>",
 			vcs.CommitLink(build.KernelRepo, build.KernelCommit), build.KernelCommit[:12]))
-		require.Contains(t, block, fmt.Sprintf("(<a href='%v'>drivers/foo/dev.c:123</a>)",
+		require.Contains(t, block, fmt.Sprintf(`(<a href="%v">drivers/foo/dev.c:123</a>)`,
 			vcs.FileLink(build.KernelRepo, build.KernelCommit, "drivers/foo/dev.c", 123)))
 	}
 	head, block := aiBlock("/bug?extid=" + extID)
