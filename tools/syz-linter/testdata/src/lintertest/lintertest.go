@@ -344,3 +344,30 @@ func testStructLayout() {
 		C: 3,
 	}
 }
+
+func testMultilineStrings() {
+	_ = "first line\n" + // want "Use raw string literals \\(`\\.\\.\\.`\\) for multi-line strings instead of concatenation"
+		"second line\n"
+	_ = `first line
+second line
+`
+	// Wrapped single-line strings or strings starting with \n are OK.
+	_ = "a long single line string wrapped across two lines " +
+		"without internal newlines\n"
+	_ = "a long single line string wrapped across two lines " +
+		"with a trailing newline parameter\n%s"
+	_ = "\n" +
+		"first line\n" +
+		"second line\n"
+	// Concatenation with non-literal expressions is OK.
+	v := "var"
+	_ = "first line\n" +
+		v +
+		"second line\n" +
+		"third line\n"
+	// Non-printable escapes or backticks are OK.
+	_ = "first line\r\n" +
+		"second line\r\n"
+	_ = "first `line`\n" +
+		"second line\n"
+}

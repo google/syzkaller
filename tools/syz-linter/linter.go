@@ -67,6 +67,7 @@ func run(p *analysis.Pass) (any, error) {
 	pass := (*Pass)(p)
 	for _, file := range pass.Files {
 		stmts := make(map[int]bool)
+		visitedAdd := make(map[*ast.BinaryExpr]bool)
 		ast.Inspect(file, func(n ast.Node) bool {
 			if n == nil {
 				return true
@@ -75,6 +76,7 @@ func run(p *analysis.Pass) (any, error) {
 			switch n := n.(type) {
 			case *ast.BinaryExpr:
 				pass.checkStringLenCompare(n)
+				pass.checkMultilineString(n, visitedAdd)
 			case *ast.FuncDecl:
 				pass.checkFuncArgs(n)
 				pass.checkContextArgs(n)
@@ -843,4 +845,66 @@ func (pass *Pass) checkCompositeLit(n *ast.CompositeLit) {
 	if len(lines) < len(n.Elts) {
 		pass.report(n, "multi-line struct initialization must have one field per line")
 	}
+}
+
+// checkMultilineString warns about multi-line string concatenations ("a\n" + "b\n")
+// that can be written as raw string literals (`...`).
+func (pass *Pass) checkMultilineString(n *ast.BinaryExpr, visited map[*ast.BinaryExpr]bool) {
+	if n.Op != token.ADD || visited[n] {
+		return
+	}
+	var lits []*ast.BasicLit
+	ok := true
+	var collect func(e ast.Expr)
+	collect = func(e ast.Expr) {
+		if bin, isBin := e.(*ast.BinaryExpr); isBin && bin.Op == token.ADD {
+			visited[bin] = true
+			collect(bin.X)
+			collect(bin.Y)
+			return
+		}
+		lit, isLit := e.(*ast.BasicLit)
+		if !isLit || lit.Kind != token.STRING || !strings.HasPrefix(lit.Value, `"`) {
+			ok = false
+			return
+		}
+		lits = append(lits, lit)
+	}
+	collect(n)
+	if ok {
+		pass.checkStringLitRun(lits)
+	}
+}
+
+func (pass *Pass) checkStringLitRun(lits []*ast.BasicLit) {
+	if len(lits) < 2 {
+		return
+	}
+	startPos := pass.Fset.Position(lits[0].Pos())
+	endPos := pass.Fset.Position(lits[len(lits)-1].End())
+	if startPos.Line == endPos.Line {
+		return
+	}
+	var full strings.Builder
+	for i, lit := range lits {
+		val, err := strconv.Unquote(lit.Value)
+		if err != nil || strings.Contains(val, "`") {
+			return
+		}
+		for _, r := range val {
+			if r != '\n' && !unicode.IsPrint(r) {
+				return
+			}
+		}
+		if i < len(lits)-1 && !strings.HasSuffix(val, "\n") {
+			return
+		}
+		full.WriteString(val)
+	}
+	str := full.String()
+	// Ignore strings that start with a newline or only have trailing newlines.
+	if strings.HasPrefix(str, "\n") || !strings.Contains(strings.TrimRight(str, "\n"), "\n") {
+		return
+	}
+	pass.report(lits[0], "Use raw string literals (`...`) for multi-line strings instead of concatenation")
 }
