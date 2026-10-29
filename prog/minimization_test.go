@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // nolint:gocyclo
@@ -470,4 +472,53 @@ func TestMinimizeCallIndex(t *testing.T) {
 			t.Fatalf("bad call index after minimization")
 		}
 	}
+}
+
+func TestMinimizeDuplicateArrayElements(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	orig, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1])\n"), Strict)
+	require.NoError(t, err)
+
+	statBefore := statMinArray.Val()
+	calls := 0
+	p1, _ := Minimize(orig, 0, MinimizeCorpus, func(p *Prog, callIndex int) bool {
+		calls++
+		// Reject empty array and nil pointer, and reject length < 8.
+		return false
+	})
+	statDelta := statMinArray.Val() - statBefore
+	assert.Equal(t, string(orig.Serialize()), string(p1.Serialize()))
+	// Only 3 predicate evaluations should occur:
+	// 1. PtrType minimize to nil
+	// 2. ArrayType minimizeAll to []
+	// 3. ArrayType minimizeElements removing the last 0x1 (preceding 7 identical 0x1s are skipped).
+	assert.Equal(t, 3, calls)
+	assert.Equal(t, 2, statDelta)
+
+	// Verify that when an interior distinct element is removed, subsequent equal elements
+	// can still be reduced further.
+	mixed, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1, 0x2, 0x1])\n"), Strict)
+	require.NoError(t, err)
+	want, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1])\n"), Strict)
+	require.NoError(t, err)
+	p2, _ := Minimize(mixed, 0, MinimizeCorpus, func(p *Prog, callIndex int) bool {
+		ptr := p.Calls[0].Args[2].(*PointerArg)
+		if ptr.Res == nil {
+			return false
+		}
+		arr := ptr.Res.(*GroupArg).Inner
+		if len(arr) < 2 {
+			return false
+		}
+		for _, elem := range arr {
+			if elem.(*ConstArg).Val != 0x1 {
+				return false
+			}
+		}
+		return true
+	})
+	assert.Equal(t, string(want.Serialize()), string(p2.Serialize()))
 }

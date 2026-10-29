@@ -58,11 +58,11 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 	dedup := make(map[string]bool)
 	pred := func(p *Prog, callIndex int, what *stat.Val, path string) bool {
 		// Note: path is unused, but is useful for manual debugging.
-		what.Add(1)
 		p.sanitizeFix()
 		p.debugValidate()
 		id := hash.String(p.Serialize())
 		if _, ok := dedup[id]; !ok {
+			what.Add(1)
 			dedup[id] = pred0(p, callIndex)
 		}
 		return dedup[id]
@@ -436,20 +436,78 @@ func (typ *ArrayType) minimizeElements(ctx *minimizeArgsCtx, a *GroupArg, path s
 			(typ.Kind == ArrayRandLen ||
 				typ.Kind == ArrayRangeLen && uint64(len(a.Inner)) > typ.RangeBegin) {
 			ctx.triedPaths[elemPath] = true
+			samePrefix := 0
+			for i-1-samePrefix >= 0 && equalArgs(a.Inner[i-1-samePrefix], elem) {
+				samePrefix++
+			}
 			copy(a.Inner[i:], a.Inner[i+1:])
 			a.Inner = a.Inner[:len(a.Inner)-1]
 			removeArg(elem)
 			ctx.target.assignSizesCall(ctx.call)
 			if ctx.pred(ctx.p, ctx.callIndex0, statMinArray, elemPath) {
 				*ctx.p0 = ctx.p
+			} else {
+				// Skipping contiguous identical preceding elements avoids O(K^2) clones
+				// when removing any of them would produce the exact same candidate.
+				for j := i - 1; j >= i-samePrefix; j-- {
+					ctx.triedPaths[fmt.Sprintf("%v-%v", path, j)] = true
+				}
 			}
 			return true
+		}
+		if a.Dir() == DirOut && i+1 < len(a.Inner) && equalArgs(elem, a.Inner[i+1]) {
+			continue
 		}
 		if ctx.do(elem, "", elemPath) {
 			return true
 		}
 	}
 	return false
+}
+
+func equalArgs(a, b Arg) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.Type() != b.Type() || a.Dir() != b.Dir() {
+		return false
+	}
+	switch x := a.(type) {
+	case *ConstArg:
+		return x.Val == b.(*ConstArg).Val
+	case *ResultArg:
+		y := b.(*ResultArg)
+		return x.Res == y.Res && x.OpDiv == y.OpDiv && x.OpAdd == y.OpAdd &&
+			x.Val == y.Val && len(x.uses) == 0 && len(y.uses) == 0
+	case *PointerArg:
+		y := b.(*PointerArg)
+		return x.Address == y.Address && x.VmaSize == y.VmaSize && equalArgs(x.Res, y.Res)
+	case *DataArg:
+		y := b.(*DataArg)
+		if x.Size() != y.Size() {
+			return false
+		}
+		if x.Dir() == DirOut {
+			return true
+		}
+		return bytes.Equal(x.Data(), y.Data())
+	case *GroupArg:
+		y := b.(*GroupArg)
+		if len(x.Inner) != len(y.Inner) {
+			return false
+		}
+		for i := range x.Inner {
+			if !equalArgs(x.Inner[i], y.Inner[i]) {
+				return false
+			}
+		}
+		return true
+	case *UnionArg:
+		y := b.(*UnionArg)
+		return x.Index == y.Index && equalArgs(x.Option, y.Option)
+	default:
+		panic(fmt.Sprintf("equalArgs: unknown arg type %#v", a))
+	}
 }
 
 func (typ *IntType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
