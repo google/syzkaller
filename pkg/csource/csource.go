@@ -685,17 +685,20 @@ func (ctx *context) resultArgToStr(arg prog.ExecArgResult) string {
 func (ctx *context) postProcess(result []byte) []byte {
 	// Remove NONFAILING, debug, fail, etc calls.
 	if !ctx.opts.HandleSegv {
-		result = regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`).ReplaceAll(result, []byte("$1;\n"))
+		result = regexp.MustCompile(`\t*\bNONFAILING\((.*)\);\n`).ReplaceAll(result, []byte("$1;\n"))
 	}
+	// NORETURN is a function attribute, not a call, so it has no word-boundary
+	// hazard; the rest rewrite calls and are \b-anchored so they don't match a
+	// token that merely ends with the name (e.g. a *_mp_fail() helper).
 	result = bytes.ReplaceAll(result, []byte("NORETURN"), nil)
-	result = bytes.ReplaceAll(result, []byte("doexit("), []byte("exit("))
+	result = regexp.MustCompile(`\bdoexit\(`).ReplaceAll(result, []byte("exit("))
 	// TODO: Figure out what would be the right replacement for doexit_thread().
-	result = bytes.ReplaceAll(result, []byte("doexit_thread("), []byte("exit("))
-	result = regexp.MustCompile(`PRINTF\(.*?\)`).ReplaceAll(result, nil)
-	result = regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
-	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
-	result = regexp.MustCompile(`\t*exitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
-	result = regexp.MustCompile(`\t*fail(msg)?\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
+	result = regexp.MustCompile(`\bdoexit_thread\(`).ReplaceAll(result, []byte("exit("))
+	result = regexp.MustCompile(`\bPRINTF\(.*?\)`).ReplaceAll(result, nil)
+	result = regexp.MustCompile(`\t*\bdebug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
+	result = regexp.MustCompile(`\t*\bdebug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
+	result = regexp.MustCompile(`\t*\bexitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
+	result = regexp.MustCompile(`\t*\bfail(msg)?\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
 
 	// Remove executor include guards.
 	result = regexp.MustCompile(`#define\s+[A-Z0-9_]*_H\s*\n`).ReplaceAll(result, nil)
