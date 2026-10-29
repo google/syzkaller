@@ -170,6 +170,36 @@ func TestDeflake(t *testing.T) {
 	}
 }
 
+func TestDeterministicMinimizeFailure(t *testing.T) {
+	newStable := signal.FromRaw([]uint64{100, 101}, 0)
+	makeInfo := func(errno int32, sig ...uint64) *flatrpc.ProgInfo {
+		return &flatrpc.ProgInfo{
+			Calls: []*flatrpc.CallInfo{{Error: errno, Signal: sig}},
+		}
+	}
+
+	// Two consecutive identical non-zero errors without target signal stop early.
+	var prevErr int32
+	var prevSig signal.Signal
+	assert.False(t, deterministicMinimizeFailure(makeInfo(22, 1, 2), newStable, 0, &prevErr, &prevSig))
+	assert.True(t, deterministicMinimizeFailure(makeInfo(22, 1, 2), newStable, 0, &prevErr, &prevSig))
+
+	// Successful calls (errno == 0) never trigger early stop so flaky coverage keeps all retries.
+	prevSig = nil
+	assert.False(t, deterministicMinimizeFailure(makeInfo(0, 1, 2), newStable, 0, &prevErr, &prevSig))
+	assert.False(t, deterministicMinimizeFailure(makeInfo(0, 1, 2), newStable, 0, &prevErr, &prevSig))
+
+	// Any overlap with newStableSignal keeps retrying.
+	prevSig = nil
+	assert.False(t, deterministicMinimizeFailure(makeInfo(22, 1, 100), newStable, 0, &prevErr, &prevSig))
+	assert.False(t, deterministicMinimizeFailure(makeInfo(22, 1, 100), newStable, 0, &prevErr, &prevSig))
+
+	// Different error signals or errnos keep retrying.
+	prevSig = nil
+	assert.False(t, deterministicMinimizeFailure(makeInfo(22, 1, 2), newStable, 0, &prevErr, &prevSig))
+	assert.False(t, deterministicMinimizeFailure(makeInfo(22, 1, 3), newStable, 0, &prevErr, &prevSig))
+}
+
 func TestHandleCallSmashDedup(t *testing.T) {
 	t.Cleanup(checkGoroutineLeaks)
 

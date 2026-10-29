@@ -389,6 +389,8 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			return false
 		}
 		var mergedSignal signal.Signal
+		var prevFailErrno int32
+		var prevFailSig signal.Signal
 		for range minimizeAttempts {
 			result := job.execute(&queue.Request{
 				Prog:            p1,
@@ -399,6 +401,10 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			if result.Stop() {
 				stop = true
 				return false
+			}
+			if deterministicMinimizeFailure(result.Info, info.newStableSignal, call1,
+				&prevFailErrno, &prevFailSig) {
+				break
 			}
 			if !reexecutionSuccess(result.Info, info.errno, call1) {
 				// The call was not executed or failed.
@@ -425,11 +431,39 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 	return p, call
 }
 
+func deterministicMinimizeFailure(res *flatrpc.ProgInfo, newStable signal.Signal, call int,
+	prevErrno *int32, prevSig *signal.Signal) bool {
+	if call == -1 || res == nil || len(res.Calls) <= call {
+		*prevSig = nil
+		return false
+	}
+	ci := res.Calls[call]
+	if ci.Error == 0 || len(ci.Signal) == 0 {
+		*prevSig = nil
+		return false
+	}
+	sig := signal.FromRaw(ci.Signal, 0)
+	if newStable.IntersectsWith(sig) {
+		*prevSig = nil
+		return false
+	}
+	if *prevSig != nil && *prevErrno == ci.Error &&
+		prevSig.Len() == sig.Len() && prevSig.Intersection(sig).Len() == sig.Len() {
+		return true
+	}
+	*prevErrno = ci.Error
+	*prevSig = sig
+	return false
+}
+
 func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
 	if info == nil || len(info.Calls) == 0 {
 		return false
 	}
 	if call != -1 {
+		if len(info.Calls) <= call {
+			return false
+		}
 		// Don't minimize calls from successful to unsuccessful.
 		// Successful calls are much more valuable.
 		if oldErrno == 0 && info.Calls[call].Error != 0 {
