@@ -282,7 +282,9 @@ Players can view aggregate statistics via two toggles in the dashboard menu:
               "bug_count": "int",
               "str": "int",
               "int": "int",
-              "wis": "int"
+              "wis": "int",
+              "kingdom": "string",
+              "kingdom_id": "string"
             }
           ],
           "heroes_all": [ ... ],
@@ -327,7 +329,9 @@ Players can view aggregate statistics via two toggles in the dashboard menu:
           "bug_count": "int",
           "str": "int",
           "int": "int",
-          "wis": "int"
+          "wis": "int",
+          "kingdom": "string",
+          "kingdom_id": "string"
         }
         ```
     *   **Kingdom Profile Schema** (`/syz-dungeon/kingdom/{id}?json=1`): Returns a single JSON object mirroring the `kingdoms_1y` / `kingdoms_all` definition depending on the evaluated `?era=` query parameter.
