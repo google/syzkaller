@@ -20,6 +20,7 @@ var (
 	flagNewConfig  = flag.String("new", "", "new config (treated as the main one)")
 	flagDebug      = flag.Bool("debug", false, "dump all VM output to console")
 	flagPatch      = flag.String("patch", "", "a git patch")
+	flagSaveCorpus = flag.Bool("save_corpus", false, "save the new kernel's corpus to its workdir's corpus.db")
 )
 
 func main() {
@@ -49,8 +50,9 @@ func main() {
 
 	ctx := vm.ShutdownCtx()
 	err = diff.Run(ctx, baseCfg, newCfg, diff.Config{
-		Store: &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
-		Debug: *flagDebug,
+		Store:      &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
+		Debug:      *flagDebug,
+		SaveCorpus: *flagSaveCorpus,
 	})
 	if err != nil {
 		log.Fatal(err)
