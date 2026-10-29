@@ -211,6 +211,11 @@ struct kvm_syz_vm {
 // The most common reason for using data relocaions is accessing global variables and constants.
 // Sometimes the compiler may choose to emit a read-only constant to zero-initialize a structure
 // or to generate a jump table for a switch statement.
+// TODO(glider): the guest code contains compressed (16-bit) instructions, so 32-bit instructions
+// may be only 2-byte aligned. Scanning 4-byte words misses AUIPC instructions at such addresses
+// and may report false positives on words that straddle two instructions. Walk the code in
+// 2-byte steps and use the low two bits of each halfword to determine the instruction length.
+// tools/check-syzos.sh performs a precise objdump-based check at build time in the meantime.
 static void validate_guest_code(void* mem, size_t size)
 {
 	uint32* insns = (uint32*)mem;
