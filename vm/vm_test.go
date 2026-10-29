@@ -175,15 +175,17 @@ var tests = []*Test{
 		Report: &report.Report{
 			Title: "BUG: bad",
 			Report: []byte(
-				"BUG: bad\n" +
-					"other output\n",
+				`BUG: bad
+other output
+`,
 			),
 			Output: []byte(
-				"BUG: bad\n" +
-					"other output\n" +
-					"\n" +
-					"VM DIAGNOSIS:\n" +
-					"DIAGNOSE\n",
+				`BUG: bad
+other output
+
+VM DIAGNOSIS:
+DIAGNOSE
+`,
 			),
 		},
 	},
@@ -197,9 +199,10 @@ var tests = []*Test{
 		Report: &report.Report{
 			Title: "BUG: bad",
 			Report: []byte(
-				"BUG: bad\n" +
-					"DIAGNOSE\n" +
-					"other output\n",
+				`BUG: bad
+DIAGNOSE
+other output
+`,
 			),
 		},
 	},
@@ -221,8 +224,9 @@ var tests = []*Test{
 		Report: &report.Report{
 			Title: "BUG: bad",
 			Report: []byte(
-				"BUG: bad\n" +
-					"DIAGNOSE\n",
+				`BUG: bad
+DIAGNOSE
+`,
 			),
 		},
 	},

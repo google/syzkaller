@@ -76,8 +76,10 @@ func TestSelectFuzzConfigs(t *testing.T) {
 			series: &api.Series{
 				Cc: []string{"unknown@list"},
 				Patches: []api.SeriesPatch{
-					{Body: []byte("diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c\n" +
-						"--- a/net/bluetooth/hci.c\n+++ b/net/bluetooth/hci.c\n")},
+					{Body: []byte(`diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c
+--- a/net/bluetooth/hci.c
++++ b/net/bluetooth/hci.c
+`)},
 				},
 			},
 		},
@@ -87,8 +89,10 @@ func TestSelectFuzzConfigs(t *testing.T) {
 			series: &api.Series{
 				Cc: []string{"unknown@list"},
 				Patches: []api.SeriesPatch{
-					{Body: []byte("diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c\n" +
-						"--- a/net/bluetooth/hci.c\n+++ b/net/bluetooth/hci.c\n")},
+					{Body: []byte(`diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c
+--- a/net/bluetooth/hci.c
++++ b/net/bluetooth/hci.c
+`)},
 					{Body: []byte("diff --git a/net/core/sock.c b/net/core/sock.c\n--- a/net/core/sock.c\n+++ b/net/core/sock.c\n")},
 				},
 			},

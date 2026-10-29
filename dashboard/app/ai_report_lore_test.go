@@ -417,11 +417,13 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	assert.Contains(t, body, "Tested-by: Tester One <test1@test.com>")
 
 	// 3. Send a plain comment.
-	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Subject\n"+
-		"Message-ID: <comment1>\n"+
-		"In-Reply-To: <mock@msgid-1>\n\n"+
-		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
+	loreArchive.SaveMessageAt(t, `From: reviewer@email.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <comment1>
+In-Reply-To: <mock@msgid-1>
+
+This is just a normal review comment with some context.
+`, now.Add(time.Minute))
 
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
@@ -430,21 +432,25 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	require.Len(t, mockSnd.sent, 1)
 
 	// 3.5. Duplicate comment (e.g. from another list) should be ignored without 500 error.
-	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Subject\n"+
-		"Message-ID: <comment1>\n"+
-		"In-Reply-To: <mock@msgid-1>\n\n"+
-		"This is just a normal review comment with some context.\n", now.Add(time.Minute*2))
+	loreArchive.SaveMessageAt(t, `From: reviewer@email.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <comment1>
+In-Reply-To: <mock@msgid-1>
+
+This is just a normal review comment with some context.
+`, now.Add(time.Minute*2))
 
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// 4. Send a reply from the bot itself.
-	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
-		"Subject: Re: [PATCH RFC] Test Subject\n"+
-		"Message-ID: <bot-reply>\n"+
-		"In-Reply-To: <comment1>\n\n"+
-		"This is a generated bot reply.\n", now.Add(time.Minute*2))
+	loreArchive.SaveMessageAt(t, `From: syzbot@testapp.appspotmail.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <bot-reply>
+In-Reply-To: <comment1>
+
+This is a generated bot reply.
+`, now.Add(time.Minute*2))
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
@@ -584,21 +590,25 @@ func TestAILoreIteration(t *testing.T) {
 	assert.Contains(t, body, "Tested-by: Tester One <test1@test.com>")
 
 	// 3. Send a plain comment.
-	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH RFC] Test Subject\n"+
-		"Message-ID: <comment1>\n"+
-		"In-Reply-To: <mock@msgid-1>\n\n"+
-		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
+	loreArchive.SaveMessageAt(t, `From: reviewer@email.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <comment1>
+In-Reply-To: <mock@msgid-1>
+
+This is just a normal review comment with some context.
+`, now.Add(time.Minute))
 
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// 4. Send a reply from the bot itself.
-	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
-		"Subject: Re: [PATCH RFC] Test Subject\n"+
-		"Message-ID: <bot-reply>\n"+
-		"In-Reply-To: <comment1>\n\n"+
-		"This is a generated bot reply.\n", now.Add(time.Minute*2))
+	loreArchive.SaveMessageAt(t, `From: syzbot@testapp.appspotmail.com
+Subject: Re: [PATCH RFC] Test Subject
+Message-ID: <bot-reply>
+In-Reply-To: <comment1>
+
+This is a generated bot reply.
+`, now.Add(time.Minute*2))
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
@@ -666,11 +676,13 @@ In-Reply-To: <mock@msgid-2>
 	assert.Contains(t, string(mockSnd.sent[2].Body), "Signed-off-by: User Name <user@email>")
 
 	// 10. Comment on public V1 patch to trigger iteration.
-	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
-		"Subject: Re: [PATCH] Test Description\n"+
-		"Message-ID: <comment2>\n"+
-		"In-Reply-To: <mock@msgid-3>\n\n"+
-		"Please change something else.\n", now.Add(time.Minute*33))
+	loreArchive.SaveMessageAt(t, `From: reviewer@email.com
+Subject: Re: [PATCH] Test Description
+Message-ID: <comment2>
+In-Reply-To: <mock@msgid-3>
+
+Please change something else.
+`, now.Add(time.Minute*33))
 
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)

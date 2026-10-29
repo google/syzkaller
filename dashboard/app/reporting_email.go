@@ -62,23 +62,23 @@ const (
 	// treat it as a comment for a previous patch.
 	replySubjectPrefix = "Re: "
 
-	replyNoBugID = "I see the command but can't find the corresponding bug.\n" +
-		"Please resend the email to %[1]v address\n" +
-		"that is the sender of the bug report (also present in the Reported-by tag)."
-	replyAmbiguousBugID = "I see the command, but I cannot identify the bug that was meant.\n" +
-		"Several bugs with the exact same title were earlier sent to the mailing list.\n" +
-		"Please resend the email to %[1]v address\n" +
-		"that is the sender of the original bug report (also present in the Reported-by tag)."
-	replyBadBugID = "I see the command but can't find the corresponding bug.\n" +
-		"The email is sent to  %[1]v address\n" +
-		"but the HASH does not correspond to any known bug.\n" +
-		"Please double check the address."
-	replyMalformedSyzTest = "I've failed to parse your command.\n" +
-		"Did you perhaps forget to provide the branch name, or added an extra ':'?\n" +
-		"Please use one of the two supported formats:\n" +
-		"1. #syz test\n" +
-		"2. #syz test: repo branch-or-commit-hash\n" +
-		"Note the lack of ':' in option 1."
+	replyNoBugID = `I see the command but can't find the corresponding bug.
+Please resend the email to %[1]v address
+that is the sender of the bug report (also present in the Reported-by tag).`
+	replyAmbiguousBugID = `I see the command, but I cannot identify the bug that was meant.
+Several bugs with the exact same title were earlier sent to the mailing list.
+Please resend the email to %[1]v address
+that is the sender of the original bug report (also present in the Reported-by tag).`
+	replyBadBugID = `I see the command but can't find the corresponding bug.
+The email is sent to  %[1]v address
+but the HASH does not correspond to any known bug.
+Please double check the address.`
+	replyMalformedSyzTest = `I've failed to parse your command.
+Did you perhaps forget to provide the branch name, or added an extra ':'?
+Please use one of the two supported formats:
+1. #syz test
+2. #syz test: repo branch-or-commit-hash
+Note the lack of ':' in option 1.`
 )
 
 var mailingLists map[string]bool

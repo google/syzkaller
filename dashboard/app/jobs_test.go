@@ -114,9 +114,9 @@ func TestJob(t *testing.T) {
 	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts"))
 	c.expectEQ(pollResp.ReproSyz, []byte(
-		"# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"+
-			"#repro opts\n"+
-			"repro syz"))
+		`# See https://goo.gl/kgGztJ for information about syzkaller reproducers.
+#repro opts
+repro syz`))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
 
 	jobDoneReq := &dashapi.JobDoneReq{

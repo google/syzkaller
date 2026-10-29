@@ -63,8 +63,9 @@ func TestPrepareFindingOverview(t *testing.T) {
 		},
 		prepareFindingOverviewResult{
 			DiffStat: "foo.c | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)",
-			PatchList: "The patch series contains 1 patch and a cover letter:\n" +
-				"[0] (Cover letter) net: fix bugs\n[1] net: fix foo",
+			PatchList: `The patch series contains 1 patch and a cover letter:
+[0] (Cover letter) net: fix bugs
+[1] net: fix foo`,
 			PatchCount: 1,
 			HasCover:   true,
 		},

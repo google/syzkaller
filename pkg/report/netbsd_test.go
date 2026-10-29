@@ -17,8 +17,9 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 		// Inlined frames.
 		{
 			"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22\n",
-			"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 sleep_finish_timeout kern_synch.c:336 [inline]\n" +
-				"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 kern_synch.c:157\n",
+			`sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 sleep_finish_timeout kern_synch.c:336 [inline]
+sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 kern_synch.c:157
+`,
 		},
 		// Missing symbol.
 		{
