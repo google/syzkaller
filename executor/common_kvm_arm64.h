@@ -23,50 +23,9 @@
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
 #define KVM_ARM64_REGS_TPIDR_EL1 0x603000000013c684
-
-struct kvm_text {
-	uintptr_t typ;
-	const void* text;
-	uintptr_t size;
-};
-
-struct kvm_opt {
-	uint64 typ;
-	uint64 val;
-};
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
-struct addr_size {
-	void* addr;
-	size_t size;
-};
-
-static struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
-{
-	struct addr_size ret = {.addr = NULL, .size = 0};
-
-	if (free->size < size)
-		return ret;
-	ret.addr = free->addr;
-	ret.size = size;
-	free->addr = (void*)((char*)free->addr + size);
-	free->size -= size;
-	return ret;
-}
-
-// Call KVM_SET_USER_MEMORY_REGION for the given pages.
-static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
-{
-	struct kvm_userspace_memory_region memreg;
-	memreg.slot = slot;
-	memreg.flags = flags;
-	memreg.guest_phys_addr = guest_phys_addr;
-	memreg.memory_size = memory_size;
-	memreg.userspace_addr = userspace_addr;
-	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
-}
-
 #define ADRP_OPCODE 0x90000000
 #define ADRP_OPCODE_MASK 0x9f000000
 

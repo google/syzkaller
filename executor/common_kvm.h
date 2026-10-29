@@ -37,6 +37,55 @@ uintptr_t static always_inline executor_fn_guest_addr(__addrspace_guest R (*fn)(
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
+// Argument descriptors of syz_kvm_setup_cpu and syz_kvm_add_vcpu, see sys/linux/dev_kvm*.txt.
+struct kvm_text {
+	uintptr_t typ;
+	const void* text;
+	uintptr_t size;
+};
+
+struct kvm_opt {
+	uint64 typ;
+	uint64 val;
+};
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
+// Simple bump allocator for carving guest memory regions out of a host buffer.
+struct addr_size {
+	void* addr;
+	size_t size;
+};
+
+// These helpers are inline, because not every architecture uses them for syz_kvm_setup_cpu,
+// and unused static functions would break the build of C reproducers.
+static inline struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
+{
+	struct addr_size ret = {.addr = NULL, .size = 0};
+
+	if (free->size < size)
+		return ret;
+	ret.addr = free->addr;
+	ret.size = size;
+	free->addr = (void*)((char*)free->addr + size);
+	free->size -= size;
+	return ret;
+}
+
+// Call KVM_SET_USER_MEMORY_REGION for the given pages.
+static inline void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
+{
+	struct kvm_userspace_memory_region memreg;
+	memreg.slot = slot;
+	memreg.flags = flags;
+	memreg.guest_phys_addr = guest_phys_addr;
+	memreg.memory_size = memory_size;
+	memreg.userspace_addr = userspace_addr;
+	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_kvm_exit
 static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 {

@@ -303,21 +303,6 @@ static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
-struct kvm_text {
-	uintptr_t typ;
-	const void* text;
-	uintptr_t size;
-};
-#endif
-
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
-struct kvm_opt {
-	uint64 typ;
-	uint64 val;
-};
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 #define PAGE_MASK GENMASK_ULL(51, 12)
 
@@ -1203,36 +1188,6 @@ static int install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, const
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
-struct addr_size {
-	void* addr;
-	size_t size;
-};
-
-static struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
-{
-	struct addr_size ret = {.addr = NULL, .size = 0};
-
-	if (free->size < size)
-		return ret;
-	ret.addr = free->addr;
-	ret.size = size;
-	free->addr = (void*)((char*)free->addr + size);
-	free->size -= size;
-	return ret;
-}
-
-// Call KVM_SET_USER_MEMORY_REGION for the given pages.
-static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
-{
-	struct kvm_userspace_memory_region memreg;
-	memreg.slot = slot;
-	memreg.flags = flags;
-	memreg.guest_phys_addr = guest_phys_addr;
-	memreg.memory_size = memory_size;
-	memreg.userspace_addr = userspace_addr;
-	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
-}
-
 static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 {
 	struct addr_size allocator = {.addr = vm->host_mem, .size = vm->total_pages * KVM_PAGE_SIZE};
