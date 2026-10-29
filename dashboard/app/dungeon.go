@@ -43,8 +43,8 @@ type uiDungeonPlayer struct {
 	Int        int              `json:"int"`
 	Wis        int              `json:"wis"`
 	Email      string           `json:"-"`
-	Kingdom    string           `json:"-"`
-	KingdomID  string           `json:"-"`
+	Kingdom    string           `json:"kingdom"`
+	KingdomID  string           `json:"kingdom_id"`
 	Names      map[string]int   `json:"-"`
 	Subsystems map[string]int   `json:"-"`
 	Bugs       []*Bug           `json:"-"`
@@ -556,7 +556,11 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 			}
 			for _, def := range dungeon.GetBadges() {
 				if !awardedBadges[def.Name] && def.Predicate(bugInfo, len(p.Bugs)) {
-					badges = append(badges, uiDungeonBadge{Emoji: def.Emoji, Name: def.Name})
+					badges = append(badges, uiDungeonBadge{
+						Emoji: def.Emoji,
+						Name:  def.Name,
+						Desc:  def.Description,
+					})
 					awardedBadges[def.Name] = true
 				}
 			}

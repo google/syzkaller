@@ -4,9 +4,11 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,6 +90,7 @@ func TestProcessPlayers(t *testing.T) {
 	// Verify Hero 1 badges.
 	badges := make(map[string]bool)
 	for _, b := range hero1.Badges {
+		assert.NotEmpty(t, b.Desc)
 		badges[b.Name] = true
 	}
 
@@ -101,9 +104,26 @@ func TestProcessPlayers(t *testing.T) {
 	// Verify Hero 2 badges (Hydra Hunter).
 	badges2 := make(map[string]bool)
 	for _, b := range hero2.Badges {
+		assert.NotEmpty(t, b.Desc)
 		badges2[b.Name] = true
 	}
 	require.True(t, badges2["Hydra Hunter"])
+
+	// Verify Kingdom and KingdomID survive JSON cache round-trip + rebuildMaps().
+	page := uiDungeonPage{
+		HeroesAll: players,
+	}
+	encoded, err := json.Marshal(&page)
+	require.NoError(t, err)
+	var cachedPage uiDungeonPage
+	require.NoError(t, json.Unmarshal(encoded, &cachedPage))
+	cachedPage.rebuildMaps()
+
+	cachedHero1 := cachedPage.HeroMapAll[hero1.ID]
+	require.NotNil(t, cachedHero1)
+	assert.Equal(t, "The Independent Mercenaries", cachedHero1.Kingdom)
+	assert.Equal(t, hashEmailID("The Independent Mercenaries"), cachedHero1.KingdomID)
+	assert.Equal(t, hero1.Badges, cachedHero1.Badges)
 
 	// Verify Attribute scaling.
 	// Hero 1 Str raw = 1500 -> int(3 + 4*log10(1500)) = int(3 + 4*3.176) = 15
