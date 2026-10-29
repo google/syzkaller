@@ -1,0 +1,22 @@
+# requires: manual
+
+# Host-side vhost-vsock: the executor plays the guest. A guest REQUEST connects to a host
+# listener, data flows both ways and the guest shuts down. Then a host socket bound to a known
+# port connects to the guest, which completes the connection with a RESPONSE. If the RESPONSE
+# outruns the async connect, the host answers it with RST and the connect times out instead.
+
+r0 = socket$vsock_stream(AUTO, AUTO, AUTO)
+bind$vsock_stream(r0, &AUTO={AUTO, AUTO, 0x2710, @any=AUTO, 0x0, ""}, AUTO)
+listen(r0, 0x4)
+r1 = syz_vhost_vsock_setup(0x0)
+syz_vhost_vsock_send(r1, &AUTO={0x3e8, 0x2710, AUTO, 0x1, 0x1, 0x0, 0x40000, 0x0, ""}, AUTO)
+r2 = accept4$vsock_stream(r0, 0x0, 0x0, 0x0)
+syz_vhost_vsock_send(r1, &AUTO={0x3e8, 0x2710, AUTO, 0x1, 0x5, 0x0, 0x40000, 0x0, "68656c6c6f"}, AUTO)
+recvfrom(r2, &AUTO=""/64, AUTO, 0x0, 0x0, 0x0)
+sendto(r2, &AUTO="776f726c64", AUTO, 0x0, 0x0, 0x0)
+syz_vhost_vsock_send(r1, &AUTO={0x3e8, 0x2710, AUTO, 0x1, 0x4, 0x3, 0x40000, 0x0, ""}, AUTO)
+r3 = socket$vsock_stream(AUTO, AUTO, AUTO)
+bind$vsock_stream(r3, &AUTO={AUTO, AUTO, 0x2711, @any=AUTO, 0x0, ""}, AUTO)
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD(r3, AUTO, AUTO, &AUTO={0x0, 0x186a0}, AUTO)
+connect$vsock_stream(r3, &AUTO={AUTO, AUTO, 0x2710, @my=0x0, 0x0, ""}, AUTO) (async)
+syz_vhost_vsock_send(r1, &AUTO={0x2710, 0x2711, AUTO, 0x1, 0x2, 0x0, 0x40000, 0x0, ""}, AUTO)
