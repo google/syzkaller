@@ -194,3 +194,23 @@ func TestFormatTarget(t *testing.T) {
 		require.Equal(t, tc.want, got)
 	}
 }
+
+func TestInitTimeoutsSlowdown(t *testing.T) {
+	target := targets.Get("linux", "amd64")
+	require.NotNil(t, target)
+	tests := []struct {
+		typ  string
+		want int
+	}{
+		{typ: "none", want: 1},
+		{typ: "simics", want: 10},
+	}
+	for _, test := range tests {
+		t.Run(test.typ, func(t *testing.T) {
+			cfg := &Config{Derived: Derived{SysTarget: target}, Type: test.typ}
+			cfg.initTimeouts()
+			require.Equal(t, test.want, cfg.Timeouts.Slowdown)
+			require.Equal(t, target.Timeouts(test.want), cfg.Timeouts)
+		})
+	}
+}
