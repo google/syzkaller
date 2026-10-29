@@ -115,6 +115,13 @@ overflow.c:1000
 
 	aflow.TestTool(t, Tool,
 		state{KernelSrc: repo.Dir},
+		args{Expression: "foobar", PathPrefixes: []string{"../outside.c"}},
+		results{},
+		"git grep failed: fatal: ../outside.c:",
+		aflow.TestErrorPrefix())
+
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
 		args{Expression: "foobar", PathPrefixes: []string{"", "foo.c"}},
 		results{Output: `foo.c=2=int some_func(void)
 --
@@ -202,6 +209,6 @@ func TestGrepperSandbox(t *testing.T) {
 	require.NoError(t, os.Chown(cfg, 0, 0))
 	require.NoError(t, os.Chmod(cfg, 0600))
 	_, err := aflow.TestToolRun(Tool, map[string]any{"KernelSrc": repo.Dir}, map[string]any{"Expression": "foo"})
-	require.Error(t, err)
+	require.ErrorAs(t, err, new(*osutil.VerboseError))
 	assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
 }

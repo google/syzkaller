@@ -8,12 +8,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os/exec"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -73,17 +73,7 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	cmdArgs = append(cmdArgs, args.PathPrefixes...)
 	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(time.Hour, cmdArgs...)
 	if err != nil {
-		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
-			if exitErr.ExitCode() == 1 && len(output) == 0 {
-				// No matches is a valid result, not a bad call.
-				return results{Output: "no matches"}, nil
-			}
-			// This should mean an invalid expression.
-			if exitErr.ExitCode() == 128 && bytes.Contains(output, []byte("fatal:")) {
-				return results{}, aflow.BadCallError("bad expression: %s", bytes.TrimSpace(output))
-			}
-		}
-		return results{}, err
+		return grepError(err)
 	}
 	// There is a potential DoS by LLM is it searches for ".*",
 	// "kmalloc" would be pretty bad (and useless) too.
@@ -158,4 +148,28 @@ func matchesPerFile(kernelSrc string, args args) (string, error) {
 		fmt.Fprintf(&sb, "... and %v more files\n", len(files)-maxFiles)
 	}
 	return sb.String(), nil
+}
+
+func grepError(err error) (results, error) {
+	if errors.Is(err, osutil.ErrTimeout) {
+		return results{}, aflow.BadCallError("git grep timed out")
+	}
+	verr, ok := errors.AsType[*osutil.VerboseError](err)
+	if !ok {
+		return results{}, err
+	}
+	if verr.ExitCode == 1 && len(verr.Output) == 0 {
+		// No matches is a valid result, not a bad call.
+		return results{Output: "no matches"}, nil
+	}
+	if verr.ExitCode == 128 {
+		if bytes.Contains(verr.Output, []byte("fatal: -e option, ")) {
+			return results{}, aflow.BadCallError("bad expression: %s", bytes.TrimSpace(verr.Output))
+		}
+		if bytes.Contains(verr.Output, []byte("outside repository")) ||
+			bytes.Contains(verr.Output, []byte("Invalid pathspec magic")) {
+			return results{}, aflow.BadCallError("git grep failed: %s", bytes.TrimSpace(verr.Output))
+		}
+	}
+	return results{}, err
 }

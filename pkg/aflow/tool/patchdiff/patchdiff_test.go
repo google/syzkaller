@@ -150,6 +150,6 @@ func TestPatchDiffSandbox(t *testing.T) {
 	require.NoError(t, os.Chown(cfg, 0, 0))
 	require.NoError(t, os.Chmod(cfg, 0600))
 	_, err := aflow.TestToolRun(Tool, map[string]any{"KernelScratchSrc": repo.Dir}, map[string]any{})
-	require.Error(t, err)
+	require.ErrorAs(t, err, new(*osutil.VerboseError))
 	assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
 }

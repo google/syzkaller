@@ -136,9 +136,8 @@ func gitLog(ctx *aflow.Context, state state, args logArgs) (logResult, error) {
 
 	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(10*time.Minute, gitArgs...)
 	if err != nil {
-		return logResult{}, gitBadCallError(err, "git log", gitAdvice{
-			Timeout: "Please specify a tighter search scope (e.g. by providing a PathPrefix).",
-		})
+		return logResult{}, gitBadCallError(err, "git log",
+			"Please specify a tighter search scope (e.g. by providing a PathPrefix).")
 	}
 	return logResult{Output: string(output)}, nil
 }
@@ -169,16 +168,18 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 	}
 
 	git := vcs.SandboxedGit(state.KernelSrc)
-	if _, err := git.RunTimeout(time.Minute, "cat-file", "-e", commitHash+"^{commit}"); err != nil {
-		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
-			NotFound: fmt.Sprintf("commit %v does not exist", commitHash),
-		})
+	exists, err := git.VerifyCommit(commitHash)
+	if err != nil {
+		return showResult{}, err
+	}
+	if !exists {
+		return showResult{}, aflow.BadCallError("git show failed: commit %v does not exist", commitHash)
 	}
 
 	if filePath != "" {
 		out, err := git.RunTimeout(time.Minute, "ls-tree", "--name-only", commitHash, "--", filePath)
 		if err != nil {
-			return showResult{}, gitBadCallError(err, "git show", gitAdvice{})
+			return showResult{}, gitBadCallError(err, "git show", "")
 		}
 		if len(bytes.TrimSpace(out)) == 0 {
 			return showResult{}, aflow.BadCallError("file %q is not present on commit %q", filePath, commitHash)
@@ -196,9 +197,7 @@ func gitShow(ctx *aflow.Context, state state, args showArgs) (showResult, error)
 
 	output, err := git.RunTimeout(5*time.Minute, gitArgs...)
 	if err != nil {
-		return showResult{}, gitBadCallError(err, "git show", gitAdvice{
-			Timeout: "Consider specifying a different commit.",
-		})
+		return showResult{}, gitBadCallError(err, "git show", "Consider specifying a different commit.")
 	}
 	return showResult{Output: aflow.TruncateText(string(output), maxOutputLines)}, nil
 }
@@ -221,36 +220,24 @@ func gitBlame(ctx *aflow.Context, state state, args blameArgs) (blameResult, err
 	output, err := vcs.SandboxedGit(state.KernelSrc).RunTimeout(5*time.Minute,
 		"blame", "-s", "-L", lineRange, "--abbrev=12", headCommit, "--", args.File)
 	if err != nil {
-		return blameResult{}, gitBadCallError(err, "git blame", gitAdvice{
-			Timeout: "Consider specifying a smaller line range.",
-		})
+		return blameResult{}, gitBadCallError(err, "git blame", "Consider specifying a smaller line range.")
 	}
 	return blameResult{Output: aflow.TruncateText(string(output), maxOutputLines)}, nil
 }
 
-type gitAdvice struct {
-	Timeout  string
-	NotFound string
-}
-
-func gitBadCallError(err error, name string, advice gitAdvice) error {
-	var verr *osutil.VerboseError
-	if !errors.As(err, &verr) {
+func gitBadCallError(err error, name, timeoutAdvice string) error {
+	verr, ok := errors.AsType[*osutil.VerboseError](err)
+	if !ok {
 		return err
 	}
 	if errors.Is(err, osutil.ErrTimeout) {
-		if advice.Timeout != "" {
-			return aflow.BadCallError("%s timed out. %s", name, advice.Timeout)
+		if timeoutAdvice != "" {
+			return aflow.BadCallError("%s timed out. %s", name, timeoutAdvice)
 		}
 		return aflow.BadCallError("%s timed out", name)
 	}
-	if verr.ExitCode == 128 {
-		if advice.NotFound != "" && isNotFound(verr.Output) {
-			return aflow.BadCallError("%s failed: %s", name, advice.NotFound)
-		}
-		if isBadCall(verr.Output) || bytes.Contains(verr.Output, []byte("fatal:")) {
-			return aflow.BadCallError("%s failed: %s", name, bytes.TrimSpace(verr.Output))
-		}
+	if verr.ExitCode == 128 && isBadCall(verr.Output) {
+		return aflow.BadCallError("%s failed: %s", name, bytes.TrimSpace(verr.Output))
 	}
 	if verr.ExitCode == 1 && len(verr.Output) == 0 {
 		return nil // No matches is a valid result.
@@ -258,17 +245,21 @@ func gitBadCallError(err error, name string, advice gitAdvice) error {
 	return err
 }
 
-func isNotFound(output []byte) bool {
-	return bytes.Contains(output, []byte("bad object")) ||
-		bytes.Contains(output, []byte("Not a valid object name")) ||
-		bytes.Contains(output, []byte("bad revision")) ||
-		bytes.Contains(output, []byte("unknown revision"))
-}
-
 func isBadCall(output []byte) bool {
-	return isNotFound(output) ||
-		bytes.Contains(output, []byte("ambiguous argument")) ||
-		bytes.Contains(output, []byte("no match")) ||
-		bytes.Contains(output, []byte("has only")) ||
-		bytes.Contains(output, []byte("no such path"))
+	for _, pattern := range []string{
+		"no such path",           // git blame: missing file, empty path, or directory
+		"has only",               // git blame: Start line past EOF
+		"There is no path",       // git log -L: missing SourcePath
+		"Cannot read blob",       // git log -L: SourcePath is a directory
+		"-L parameter",           // git log -L: symbol not found or invalid -L regex
+		"invalid regex",          // git log -G: invalid regex
+		"command line, ",         // git log --grep: invalid regex
+		"outside repository",     // path traversal (e.g. ../outside)
+		"Invalid pathspec magic", // invalid :(...) pathspec
+	} {
+		if bytes.Contains(output, []byte(pattern)) {
+			return true
+		}
+	}
+	return false
 }

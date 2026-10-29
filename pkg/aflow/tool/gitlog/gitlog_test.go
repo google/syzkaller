@@ -411,7 +411,7 @@ func TestGitSandbox(t *testing.T) {
 		{ToolLog, map[string]any{"MessageRegexps": []any{"commit"}}},
 	} {
 		_, err := aflow.TestToolRun(tc.tool, map[string]any{"KernelSrc": repo.Dir}, tc.args)
-		require.Error(t, err)
+		require.ErrorAs(t, err, new(*osutil.VerboseError))
 		assert.Contains(t, osutil.VerboseMessage(err), "Permission denied")
 	}
 }
