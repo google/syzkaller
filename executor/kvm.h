@@ -514,10 +514,13 @@
 #define VMCB_GUEST_DEBUGCTL 0x670
 #define VMCB_RAX 0x5f8
 
-// SVM Segment Attribute Defines
-#define SVM_ATTR_G (1 << 15)
-#define SVM_ATTR_DB (1 << 14)
-#define SVM_ATTR_L (1 << 13)
+// SVM Segment Attribute Defines.
+// The VMCB stores segment attributes in a compressed 12-bit format: bits 0-7 hold
+// descriptor bits 40-47 (type, S, DPL, P) and bits 8-11 hold descriptor bits 52-55
+// (AVL, L, D/B, G). See AMD APM vol. 2, "VMCB Layout, State Save Area".
+#define SVM_ATTR_G (1 << 11)
+#define SVM_ATTR_DB (1 << 10)
+#define SVM_ATTR_L (1 << 9)
 #define SVM_ATTR_P (1 << 7)
 #define SVM_ATTR_S (1 << 4)
 // Type bits.
