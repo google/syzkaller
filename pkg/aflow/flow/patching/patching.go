@@ -6,6 +6,7 @@ package patching
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -626,13 +627,17 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	if args.FixesHash == "" {
 		return args, nil
 	}
-	commit, err := kernelCommit(state.KernelSrc, args.FixesHash)
-	if err != nil {
+	git := vcs.SandboxedGit(state.KernelSrc)
+	commit, err := git.Commit(args.FixesHash)
+	if errors.Is(err, vcs.ErrCommitNotFound) {
 		return args, aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
+	}
+	if err != nil {
+		return args, err
 	}
 	// LLM can provide a commit from a different branch.
 	// We want to ensure it is actually reachable from the current commit.
-	reachable, err := vcs.SandboxedGit(state.KernelSrc).ContainedIn(state.KernelCommit, commit.Hash)
+	reachable, err := git.ContainedIn(state.KernelCommit, commit.Hash)
 	if err != nil {
 		return args, err
 	}
@@ -663,7 +668,7 @@ var formatFixes = aflow.NewFuncAction("format-fixes",
 	})
 
 func queryFixesTag(kernelSrc, hash string) (ai.FixesTag, error) {
-	commit, err := kernelCommit(kernelSrc, hash)
+	commit, err := vcs.SandboxedGit(kernelSrc).Commit(hash)
 	if err != nil {
 		return ai.FixesTag{}, fmt.Errorf("failed to get commit %q: %w", hash, err)
 	}
@@ -673,8 +678,4 @@ func queryFixesTag(kernelSrc, hash string) (ai.FixesTag, error) {
 		AuthorName:  commit.AuthorName,
 		AuthorEmail: commit.Author,
 	}, nil
-}
-
-func kernelCommit(kernelSrc, hash string) (*vcs.Commit, error) {
-	return vcs.SandboxedGit(kernelSrc).Commit(hash)
 }
