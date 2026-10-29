@@ -286,6 +286,10 @@ var titleToType = []struct {
 		},
 		crashType: SyzFailure,
 	},
+	{
+		includePrefixes: []string{"INVARIANT VIOLATION:"},
+		crashType:       InvariantViolation,
+	},
 
 	// DEFAULTS.
 	{

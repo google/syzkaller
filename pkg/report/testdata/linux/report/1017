@@ -1,0 +1,6 @@
+TITLE: INVARIANT VIOLATION: corrupted si_status
+TYPE: INVARIANT_VIOLATION
+
+[   42.123456][ T5123] random: crng init done
+[   43.234567][ T5124] INVARIANT VIOLATION: corrupted si_status
+[   43.345678][ T5124] serial8250: too much work for irq4
