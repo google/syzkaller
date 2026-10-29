@@ -96,6 +96,21 @@ func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.Send
 	}
 }
 
+func filterOwnEmails(ctx context.Context, emails []string) []string {
+	own := make(map[string]bool)
+	for _, addr := range ownEmails(ctx) {
+		own[email.CanonicalEmail(addr)] = true
+	}
+	// Use CanonicalEmail so syzbot+<extid>@... addresses are also matched.
+	res := slices.DeleteFunc(slices.Clone(emails), func(addr string) bool {
+		return own[email.CanonicalEmail(addr)]
+	})
+	if len(res) == 0 {
+		return nil
+	}
+	return res
+}
+
 func filterStageEmails(nsCfg *Config, emails []string) []string {
 	if nsCfg.AI == nil {
 		return emails
@@ -106,7 +121,7 @@ func filterStageEmails(nsCfg *Config, emails []string) []string {
 			stageEmails = append(stageEmails, stage.MailingList)
 		}
 	}
-	return email.SubtractEmailLists(emails, stageEmails)
+	return email.SubtractEmails(emails, stageEmails)
 }
 
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
@@ -151,7 +166,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 		extraCcList = currentReporting.ExtraCcList
 	}
 	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
-	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
+	extraCcList = filterOwnEmails(ctx, extraCcList)
 	extraCcList = filterStageEmails(nsCfg, extraCcList)
 
 	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
@@ -325,9 +340,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
 				closes = append(closes, link)
-				if reporter != "" && !slices.ContainsFunc(result.Patch.ReportedBy, func(val string) bool {
-					return email.EmailsMatch(val, reporter)
-				}) {
+				if reporter != "" && !email.ContainsEmail(result.Patch.ReportedBy, reporter) {
 					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
 				}
 			}
@@ -343,7 +356,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		}
 
 		result.Cc = append(result.Cc, r.ExtraCcList...)
-		result.Cc = email.SubtractEmailLists(unique(result.Cc), result.To)
+		result.Cc = email.SubtractEmails(unique(result.Cc), result.To)
 
 		result.CanUpstream = idx < len(nsCfg.AI.Stages)-1
 		if result.Patch == nil {
@@ -379,20 +392,20 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	models := extractExecutedModels(trajectory)
 	var to, cc []string
 	var gitAuthors []string
-	seen := make(map[string]bool)
+	var seen []string
 	for _, a := range authors {
 		// Email recipients ('To'/'Cc') must adhere to RFC 5322 (quoting special characters like commas).
 		to = append(to, a)
-		seen[email.CanonicalEmail(a)] = true
+		seen = append(seen, a)
 		// Git patch metadata ('Authors') must be unquoted (e.g. for in-body 'From:' and 'Signed-off-by:').
 		gitAuthors = append(gitAuthors, vcs.FormatGitAuthor(a))
 	}
 
 	for _, rec := range res.Recipients {
-		if seen[email.CanonicalEmail(rec.Email)] {
+		if email.ContainsEmail(seen, rec.Email) {
 			continue
 		}
-		seen[email.CanonicalEmail(rec.Email)] = true
+		seen = append(seen, rec.Email)
 
 		addr := mail.Address{Name: rec.Name, Address: rec.Email}
 		if rec.To {
@@ -578,7 +591,7 @@ func handleCommentCommand(ctx context.Context,
 		return nil, fmt.Errorf("failed to store comment body: %w", err)
 	}
 
-	extraCc := email.SubtractEmailLists(req.Cc, ownEmails(ctx))
+	extraCc := filterOwnEmails(ctx, req.Cc)
 	nsCfg := getNsConfig(ctx, job.Namespace)
 	extraCc = filterStageEmails(nsCfg, extraCc)
 
