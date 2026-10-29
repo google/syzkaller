@@ -23,14 +23,24 @@ func TestToolSeriesPatches(t *testing.T) {
 		{
 			Seq:   1,
 			Title: "net: tcp: fix retransmission timeout",
-			Body: "Subject: [PATCH 1/2] net: tcp: fix retransmission timeout\n\n" +
-				"Fix RTO calculation.\n\n--- a/net/ipv4/tcp.c\n+++ b/net/ipv4/tcp.c\n@@ -1 +1 @@\n-old\n+new\n",
+			Body: `Subject: [PATCH 1/2] net: tcp: fix retransmission timeout
+
+Fix RTO calculation.
+
+--- a/net/ipv4/tcp.c
++++ b/net/ipv4/tcp.c
+@@ -1 +1 @@
+-old
++new
+`,
 		},
 		{
 			Seq:   2,
 			Title: "net: tcp: optimize window calculation",
-			Body: "Subject: [PATCH 2/2] net: tcp: optimize window calculation\n\n" +
-				"Optimize window scale.\n",
+			Body: `Subject: [PATCH 2/2] net: tcp: optimize window calculation
+
+Optimize window scale.
+`,
 		},
 	}
 
@@ -152,10 +162,10 @@ func TestFormatPatchList(t *testing.T) {
 				{Seq: 1, Title: "fix bug 1"},
 				{Seq: 2, Title: "fix bug 2"},
 			},
-			want: "The patch series contains 2 patches and a cover letter:\n" +
-				"[0] (Cover letter) cover\n" +
-				"[1] fix bug 1\n" +
-				"[2] fix bug 2",
+			want: `The patch series contains 2 patches and a cover letter:
+[0] (Cover letter) cover
+[1] fix bug 1
+[2] fix bug 2`,
 		},
 	}
 	for _, tt := range tests {

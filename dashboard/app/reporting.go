@@ -922,13 +922,13 @@ func checkDupBug(ctx context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey, 
 		if bugReporting.Name == dupReporting.Name {
 			return nil, false, "Can't dup bug to itself.", nil
 		}
-		return nil, false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
-			"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
+		return nil, false, fmt.Sprintf(`Can't dup bug to itself in different reporting (%v->%v).
+Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.`,
 			bugReporting.Name, dupReporting.Name), nil
 	}
 	if bug.Namespace != dup.Namespace {
-		return nil, false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
-			"Please dup syzbot bugs only onto syzbot bugs for the same kernel.",
+		return nil, false, fmt.Sprintf(`Duplicate bug corresponds to a different kernel (%v->%v).
+Please dup syzbot bugs only onto syzbot bugs for the same kernel.`,
 			bug.Namespace, dup.Namespace), nil
 	}
 	if !allowCrossReportingDup(ctx, bug, dup, bugReporting, dupReporting) {

@@ -80,9 +80,9 @@ func TestBisectCause(t *testing.T) {
 	c.expectEQ(pollResp.SyzkallerCommit, build.SyzkallerCommit)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 3"))
 	c.expectEQ(pollResp.ReproSyz, []byte(
-		"# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"+
-			"#repro opts 3\n"+
-			"syncfs(3)"))
+		`# See https://goo.gl/kgGztJ for information about syzkaller reproducers.
+#repro opts 3
+syncfs(3)`))
 	c.expectEQ(pollResp.ReproC, []byte("int main() { return 3; }"))
 
 	// Bisection failed with an error.

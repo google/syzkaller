@@ -1084,8 +1084,14 @@ func (stats *Stats) FullLog() []byte {
 	if stats == nil {
 		return nil
 	}
-	return []byte(fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
-		"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
+	return []byte(fmt.Sprintf(`Extracting prog: %v
+Minimizing prog: %v
+Simplifying prog options: %v
+Extracting C: %v
+Simplifying C: %v
+
+
+%s`,
 		stats.ExtractProgTime, stats.MinimizeProgTime,
 		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }

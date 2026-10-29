@@ -20,9 +20,10 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			0xffffffff8180a42e,
-			"0xffffffff8180a42e\n" +
-				"__asan_report_load2_noabort\n" +
-				"mm/kasan/report.c:320\n",
+			`0xffffffff8180a42e
+__asan_report_load2_noabort
+mm/kasan/report.c:320
+`,
 			[]Frame{
 				{
 					PC:     0xffffffff8180a42e,
@@ -35,11 +36,12 @@ func TestParse(t *testing.T) {
 		},
 		{
 			0xffffffff8180a42d,
-			"0xffffffff8180a42d\n" +
-				"kasan_report\n" +
-				"mm/kasan/report.c:301\n" +
-				"__asan_report_load2_noabort\n" +
-				"mm/kasan/report.c:320\n",
+			`0xffffffff8180a42d
+kasan_report
+mm/kasan/report.c:301
+__asan_report_load2_noabort
+mm/kasan/report.c:320
+`,
 			[]Frame{
 				{
 					PC:     0xffffffff8180a42d,
@@ -59,9 +61,10 @@ func TestParse(t *testing.T) {
 		},
 		{
 			0xffffffff82fdbe0b,
-			"0xffffffff82fdbe0b\n" +
-				"fbcon_invert_region\n" +
-				"drivers/video/console/fbcon.c:2750\n",
+			`0xffffffff82fdbe0b
+fbcon_invert_region
+drivers/video/console/fbcon.c:2750
+`,
 			[]Frame{
 				{
 					PC:     0xffffffff82fdbe0b,
@@ -74,9 +77,10 @@ func TestParse(t *testing.T) {
 		},
 		{
 			0xffffffff82fdbe1b,
-			"0xffffffff82fdbe1b\n" +
-				"fbcon_invert_region\n" +
-				"drivers/video/console/fbcon.c:0\n",
+			`0xffffffff82fdbe1b
+fbcon_invert_region
+drivers/video/console/fbcon.c:0
+`,
 			[]Frame{
 				{
 					PC:     0xffffffff82fdbe1b,
@@ -89,23 +93,26 @@ func TestParse(t *testing.T) {
 		},
 		{
 			0x123124,
-			"0x0000000000123124\n" +
-				"??\n" +
-				"??:0\n",
+			`0x0000000000123124
+??
+??:0
+`,
 			nil,
 		},
 		{
 			0xffffffffffffffff,
-			"0xffffffffffffffff\n" +
-				"??\n" +
-				"??:0\n",
+			`0xffffffffffffffff
+??
+??:0
+`,
 			nil,
 		},
 		{
 			0xffffffff81a2aff9,
-			"0xffffffff81a2aff9\n" +
-				"devpts_get_priv\n" +
-				"fs/devpts/inode.c:588 (discriminator 3)\n",
+			`0xffffffff81a2aff9
+devpts_get_priv
+fs/devpts/inode.c:588 (discriminator 3)
+`,
 			[]Frame{
 				{
 					PC:     0xffffffff81a2aff9,

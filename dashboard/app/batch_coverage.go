@@ -90,10 +90,10 @@ func batchCoverageScript(ns, repo, branch string, periods []coveragedb.TimePerio
 	}
 	var script strings.Builder
 	script.WriteString(jobInitScript + "\n")
-	script.WriteString("git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
-		"cd syzkaller\n" +
-		"export CI=1\n" +
-		"./tools/syz-env \"")
+	script.WriteString(`git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller
+cd syzkaller
+export CI=1
+./tools/syz-env "`)
 	if syzEnvInitScript != "" {
 		script.WriteString(syzEnvInitScript + "; ")
 	}

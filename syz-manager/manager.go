@@ -1435,10 +1435,10 @@ func (mgr *Manager) trackUsedFiles() {
 				log.Fatalf("failed to stat %v: %v", f, err)
 			}
 			if mod != stat.ModTime() {
-				log.Fatalf("file %v that syz-manager uses has been modified by an external program\n"+
-					"this can lead to arbitrary syz-manager misbehavior\n"+
-					"modification time has changed: %v -> %v\n"+
-					"don't modify files that syz-manager uses. exiting to prevent harm",
+				log.Fatalf(`file %v that syz-manager uses has been modified by an external program
+this can lead to arbitrary syz-manager misbehavior
+modification time has changed: %v -> %v
+don't modify files that syz-manager uses. exiting to prevent harm`,
 					f, mod, stat.ModTime())
 			}
 		}

@@ -469,8 +469,8 @@ func (pass *Pass) checkVarDecl(n *ast.GenDecl) {
 		if !ok || spec.Type == nil || len(spec.Values) == 0 || spec.Names[0].Name == "_" {
 			continue
 		}
-		pass.report(n, "Don't use both var, type and value in variable declarations\n"+
-			"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"")
+		pass.report(n, `Don't use both var, type and value in variable declarations
+Use either "var x type" or "x := val" or "x := type(val)"`)
 	}
 }
 

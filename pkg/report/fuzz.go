@@ -56,8 +56,10 @@ func Fuzz(data []byte) int {
 			if rep1 != nil {
 				title, startPos = rep1.Title, rep1.StartPos
 			}
-			panic(fmt.Sprintf("%v: did not find the same reports at StartPos\n"+
-				"StartPos=%v/%v\nTitle0=%q\nTitle1=%q",
+			panic(fmt.Sprintf(`%v: did not find the same reports at StartPos
+StartPos=%v/%v
+Title0=%q
+Title1=%q`,
 				typ, rep.StartPos, startPos, rep.Title, title))
 		}
 	}

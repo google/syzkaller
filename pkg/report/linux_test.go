@@ -189,9 +189,10 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 		// Inlined frames.
 		{
 			"    [<ffffffff84e5bea0>] foo+0x141/0x185\n",
-			"    [<ffffffff84e5bea0>] inlined1 net.c:111 [inline]\n" +
-				"    [<ffffffff84e5bea0>] inlined2 mm.c:222 [inline]\n" +
-				"    [<ffffffff84e5bea0>] foo+0x141/0x185 kasan.c:333\n",
+			`    [<ffffffff84e5bea0>] inlined1 net.c:111 [inline]
+    [<ffffffff84e5bea0>] inlined2 mm.c:222 [inline]
+    [<ffffffff84e5bea0>] foo+0x141/0x185 kasan.c:333
+`,
 		},
 		// Several symbols with the same name.
 		{

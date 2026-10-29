@@ -75,12 +75,13 @@ func TestCallSet(t *testing.T) {
 			1,
 		},
 		{
-			"getpid()\n" +
-				"open(0x1, something that this package may not understand)\n" +
-				"getpid()\n" +
-				"#read()\n" +
-				"\n" +
-				"close$foo(&(0x0000) = {})\n",
+			`getpid()
+open(0x1, something that this package may not understand)
+getpid()
+#read()
+
+close$foo(&(0x0000) = {})
+`,
 			true,
 			[]string{"getpid", "open", "close$foo"},
 			4,

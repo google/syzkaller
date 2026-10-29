@@ -32,9 +32,10 @@ func TestMinimize(t *testing.T) {
 			"linux",
 			"amd64",
 			MinimizeCorpus,
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"sched_yield()\n" +
-				"pipe2(&(0x7f0000000000), 0x0)\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+sched_yield()
+pipe2(&(0x7f0000000000), 0x0)
+`,
 			2,
 			func(p *Prog, callIndex int) bool {
 				if len(p.Calls) == 0 {
@@ -45,9 +46,10 @@ func TestMinimize(t *testing.T) {
 				}
 				return false
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"sched_yield()\n" +
-				"pipe2(&(0x7f0000000000), 0x0)\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+sched_yield()
+pipe2(&(0x7f0000000000), 0x0)
+`,
 			2,
 		},
 		// Remove a call.
@@ -55,16 +57,18 @@ func TestMinimize(t *testing.T) {
 			"linux",
 			"amd64",
 			MinimizeCorpus,
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"sched_yield()\n" +
-				"pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+sched_yield()
+pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)
+`,
 			2,
 			func(p *Prog, callIndex int) bool {
 				// Aim at removal of sched_yield.
 				return len(p.Calls) == 2 && p.Calls[0].Meta.Name == "mmap" && p.Calls[1].Meta.Name == "pipe2"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"pipe2(0x0, 0x0)\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+pipe2(0x0, 0x0)
+`,
 			1,
 		},
 		// Remove two dependent calls.
@@ -72,9 +76,10 @@ func TestMinimize(t *testing.T) {
 			"linux",
 			"amd64",
 			MinimizeCorpus,
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n" +
-				"sched_yield()\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)
+sched_yield()
+`,
 			2,
 			func(p *Prog, callIndex int) bool {
 				// Aim at removal of pipe2 and then mmap.
@@ -94,17 +99,19 @@ func TestMinimize(t *testing.T) {
 			"linux",
 			"amd64",
 			MinimizeCorpus,
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"pipe2(&(0x7f0000000000)={<r0=>0x0, 0x0}, 0x0)\n" +
-				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
-				"sched_yield()\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+pipe2(&(0x7f0000000000)={<r0=>0x0, 0x0}, 0x0)
+write(r0, &(0x7f0000000000)="1155", 0x2)
+sched_yield()
+`,
 			3,
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, 0x0, 0x0)\n" +
-				"sched_yield()\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+write(0xffffffffffffffff, 0x0, 0x0)
+sched_yield()
+`,
 			2,
 		},
 		// Remove a call and replace results.
@@ -112,17 +119,19 @@ func TestMinimize(t *testing.T) {
 			"linux",
 			"amd64",
 			MinimizeCorpus,
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"r0=open(&(0x7f0000000000)=\"1155\", 0x0, 0x0)\n" +
-				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
-				"sched_yield()\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+r0=open(&(0x7f0000000000)="1155", 0x0, 0x0)
+write(r0, &(0x7f0000000000)="1155", 0x2)
+sched_yield()
+`,
 			-1,
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, 0x0, 0x0)\n" +
-				"sched_yield()\n",
+			`mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+write(0xffffffffffffffff, 0x0, 0x0)
+sched_yield()
+`,
 			-1,
 		},
 		// Minimize pointer.
@@ -156,14 +165,16 @@ func TestMinimize(t *testing.T) {
 			"test",
 			"64",
 			MinimizeCorpus,
-			"r0 = test$res0()\n" +
-				"test$res1(r0)\n",
+			`r0 = test$res0()
+test$res1(r0)
+`,
 			-1,
 			func(p *Prog, callIndex int) bool {
 				return false
 			},
-			"r0 = test$res0()\n" +
-				"test$res1(r0)\n",
+			`r0 = test$res0()
+test$res1(r0)
+`,
 			-1,
 		},
 		{
