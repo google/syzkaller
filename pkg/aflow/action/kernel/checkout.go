@@ -4,6 +4,7 @@
 package kernel
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -191,4 +192,31 @@ func UseLinuxRepo(ctx *aflow.Context, fn func(string, vcs.Repo) error) error {
 		return err
 	}
 	return fn(kernelRepoDir, repo)
+}
+
+// ValidateCommit checks that hash is a valid commit in kernelSrc and is an ancestor of
+// headCommit, returning its canonical 40-character hash. Invalid or unreachable hashes
+// are returned as aflow.BadCallError so LLM agents can self-correct; repository or system
+// failures are returned as regular errors.
+func ValidateCommit(kernelSrc, headCommit, hash string) (string, error) {
+	if hash == "" {
+		return "", aflow.BadCallError("commit hash must not be empty")
+	}
+	out, err := osutil.RunCmd(time.Minute, kernelSrc, "git", "rev-parse", "--verify", "--quiet",
+		"--end-of-options", hash+"^{commit}")
+	if err != nil {
+		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok && verr.ExitCode == 1 {
+			return "", aflow.BadCallError("commit hash %q not found in the repository", hash)
+		}
+		return "", err
+	}
+	canonical := strings.TrimSpace(string(out))
+	reachable, err := vcs.Git{Dir: kernelSrc}.ContainedIn(headCommit, canonical)
+	if err != nil {
+		return "", err
+	}
+	if !reachable {
+		return "", aflow.BadCallError("commit %q is not reachable from the current commit", hash)
+	}
+	return canonical, nil
 }

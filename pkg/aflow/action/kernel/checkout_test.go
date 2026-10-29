@@ -5,6 +5,7 @@ package kernel
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -62,4 +63,36 @@ func gitLogCommits(t *testing.T, kernelSrc string) int {
 		map[string]any{"MessageRegexps": []any{"commit"}})
 	require.NoError(t, err)
 	return strings.Count(res["Output"].(string), "\n")
+}
+
+func TestValidateCommit(t *testing.T) {
+	t.Parallel()
+	repoDir := filepath.Join(t.TempDir(), "linux")
+	repo := vcs.MakeTestRepo(t, repoDir)
+	repo.Git("checkout", "-b", "main")
+	c1 := repo.CommitChange("first")
+	c2 := repo.CommitChange("second")
+
+	repo.Git("checkout", "-b", "other", c1.Hash)
+	unreachable := repo.CommitChange("unreachable")
+	repo.Git("checkout", "main")
+
+	got, err := ValidateCommit(repoDir, c2.Hash, c1.Hash[:12])
+	require.NoError(t, err)
+	require.Equal(t, c1.Hash, got)
+
+	_, err = ValidateCommit(repoDir, c2.Hash, "")
+	require.EqualError(t, err, "commit hash must not be empty")
+
+	badHash := "0123456789abcdef0123456789abcdef01234567"
+	_, err = ValidateCommit(repoDir, c2.Hash, badHash)
+	require.EqualError(t, err, fmt.Sprintf("commit hash %q not found in the repository", badHash))
+
+	_, err = ValidateCommit(repoDir, c2.Hash, unreachable.Hash)
+	require.EqualError(t, err, fmt.Sprintf("commit %q is not reachable from the current commit", unreachable.Hash))
+
+	// Broken/non-git directory should return an infra error rather than a BadCallError.
+	_, err = ValidateCommit(t.TempDir(), c2.Hash, c1.Hash)
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "not found in the repository")
 }

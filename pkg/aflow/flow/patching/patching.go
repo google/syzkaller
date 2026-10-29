@@ -627,18 +627,11 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	if args.FixesHash == "" {
 		return args, nil
 	}
-	commit, err := kernelCommit(state.KernelSrc, args.FixesHash)
+	hash, err := kernel.ValidateCommit(state.KernelSrc, state.KernelCommit, args.FixesHash)
 	if err != nil {
-		return args, aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
+		return args, err
 	}
-	// LLM can provide a commit from a different branch.
-	// We want to ensure it is actually reachable from the current commit.
-	reachable, err := vcs.Git{Dir: state.KernelSrc}.ContainedIn(state.KernelCommit, commit.Hash)
-	if err != nil || !reachable {
-		return args, aflow.BadCallError("commit %q is not reachable from the current commit",
-			args.FixesHash)
-	}
-	args.FixesHash = commit.Hash
+	args.FixesHash = hash
 	return args, nil
 }
 
