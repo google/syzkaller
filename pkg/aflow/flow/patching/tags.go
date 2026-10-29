@@ -105,7 +105,7 @@ func mergeTags(ctx *aflow.Context, args tagsMergerArgs) (tagsMergerResult, error
 	}
 	for _, tag := range args.AddTags {
 		s := tagsMap[tag.Tag]
-		if !slices.ContainsFunc(s, func(val string) bool { return email.EmailsMatch(val, tag.Value) }) {
+		if !email.ContainsEmail(s, tag.Value) {
 			s = append(s, tag.Value)
 		}
 		tagsMap[tag.Tag] = s

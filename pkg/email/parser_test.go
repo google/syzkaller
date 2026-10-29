@@ -1316,3 +1316,27 @@ func TestFormatAddress(t *testing.T) {
 		require.Equal(t, tc.want, got)
 	}
 }
+
+func TestContainsEmail(t *testing.T) {
+	list := []string{
+		`"User One" <user+a@Example.com>`,
+		`user+b@example.com`,
+		`user@example.com`,
+	}
+	assert.True(t, ContainsEmail(list, "USER+A@example.com"))
+	assert.True(t, ContainsEmail(list, "Other Name <user+b@example.com>"))
+	assert.False(t, ContainsEmail(list, "user+c@example.com"))
+}
+
+func TestSubtractEmails(t *testing.T) {
+	list := []string{
+		`"User One" <user+a@Example.com>`,
+		`user+b@example.com`,
+		`user@example.com`,
+	}
+	assert.Equal(t, []string{
+		`"User One" <user+a@Example.com>`,
+		`user@example.com`,
+	}, SubtractEmails(list, []string{"User Two <USER+B@example.com>"}))
+	assert.Nil(t, SubtractEmails([]string{"a+1@b.com"}, []string{"A+1@B.COM"}))
+}
