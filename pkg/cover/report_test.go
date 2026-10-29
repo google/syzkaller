@@ -656,13 +656,32 @@ func TestCoverageCallbackMismatch(t *testing.T) {
 	}
 
 	got := coverageCallbackMismatch(false, 418664, map[uint64]bool{0xdeadbeef: true}).Error()
-	assert.Equal(t, "1 out of 418664"+tail+"deadbeef\n", got)
+	assert.Equal(t, "1 out of 418664"+tail+`deadbeef
+`, got)
 
 	got = coverageCallbackMismatch(false, len(unmatched), unmatched).Error()
-	assert.Equal(t, "11 out of 11"+tail+
-		"10\n20\n30\n40\n50\n60\n70\n80\n"+
-		"3 unmatched PCs omitted. Use ?debug=1 to list them.\n", got)
+	assert.Equal(t, "11 out of 11"+tail+`10
+20
+30
+40
+50
+60
+70
+80
+3 unmatched PCs omitted. Use ?debug=1 to list them.
+`, got)
 
 	got = coverageCallbackMismatch(true, len(unmatched), unmatched).Error()
-	assert.Equal(t, "11 out of 11"+tail+"10\n20\n30\n40\n50\n60\n70\n80\n90\na0\nb0\n", got)
+	assert.Equal(t, "11 out of 11"+tail+`10
+20
+30
+40
+50
+60
+70
+80
+90
+a0
+b0
+`, got)
 }
