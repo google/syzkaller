@@ -275,6 +275,21 @@ func EmailsMatch(val1, val2 string) bool {
 	return val1 == val2
 }
 
+// ContainsEmail reports whether list contains an address matching addr (using EmailsMatch, preserving +tags).
+func ContainsEmail(list []string, addr string) bool {
+	return slices.ContainsFunc(list, func(val string) bool { return EmailsMatch(val, addr) })
+}
+
+// SubtractEmails returns elements of list that do not match any address in remove
+// (using EmailsMatch, preserving +tags).
+func SubtractEmails(list, remove []string) []string {
+	res := slices.DeleteFunc(slices.Clone(list), func(addr string) bool { return ContainsEmail(remove, addr) })
+	if len(res) == 0 {
+		return nil
+	}
+	return res
+}
+
 // FormatAddress formats name and email as an RFC 5322 address.
 // Multi-word display names like "First Last <user@email.com>" are valid unquoted in RFC 5322,
 // but names containing delimiters (such as commas in "Last, First") require double quotes.
@@ -615,21 +630,6 @@ func RemoveFromEmailList(list []string, toRemove string) []string {
 	toRemove = CanonicalEmail(toRemove)
 	for _, email := range list {
 		if CanonicalEmail(email) != toRemove {
-			result = append(result, email)
-		}
-	}
-	return result
-}
-
-// SubtractEmailLists subtracts all emails in 'toRemove' from 'list'.
-func SubtractEmailLists(list, toRemove []string) []string {
-	removeMap := make(map[string]bool)
-	for _, email := range toRemove {
-		removeMap[CanonicalEmail(email)] = true
-	}
-	var result []string
-	for _, email := range list {
-		if !removeMap[CanonicalEmail(email)] {
 			result = append(result, email)
 		}
 	}
