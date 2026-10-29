@@ -269,6 +269,9 @@ func (cfg *Config) initTimeouts() {
 		// Assuming qemu emulation.
 		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
 		slowdown = 10
+	case cfg.Type == "simics":
+		// Full-system simulation of the whole platform (firmware, devices, CPUs).
+		slowdown = 10
 	case cfg.Type == targets.GVisor && cfg.Cover && strings.Contains(cfg.Name, "-race"):
 		// Go coverage+race has insane slowdown of ~350x. We can't afford such large value,
 		// but a smaller value should be enough to finish at least some syscalls.

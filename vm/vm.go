@@ -39,6 +39,7 @@ import (
 	_ "github.com/google/syzkaller/vm/isolated"
 	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
+	_ "github.com/google/syzkaller/vm/simics"
 	_ "github.com/google/syzkaller/vm/starnix"
 	_ "github.com/google/syzkaller/vm/virtualbox"
 	_ "github.com/google/syzkaller/vm/vmm"
