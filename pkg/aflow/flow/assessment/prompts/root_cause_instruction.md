@@ -7,13 +7,15 @@ Use the provided tools to examine the source code and understand the exact natur
   code itself is ambiguous and cannot be understood without a commit description.
 - You can check the kernel build configuration and "CONFIG_CMDLINE=" using the {{.toolKernelConfigGrep}} tool (do not
   try to read or grep ".config" as a file in the source tree). Assume sysctl parameters have default values.
-- Evaluate the bug's consequences for a corresponding production build WITHOUT debugging sanitizers enabled
+- When classifying consequences, consider real-world setups WITHOUT debugging sanitizers enabled
   (KASAN, KMSAN, KCSAN, UBSAN, lockdep) and without panic_on_warn enabled.
 
-In your final reply, provide a clear, detailed technical explanation of the root cause:
+In your final reply, write a clear, detailed technical explanation of the root cause aimed at kernel developers
+investigating and fixing the bug:
 - The exact functions, structs, fields, and files involved.
-- How the bug is triggered and what invariant or lifecycle rule is violated.
-- What happens at runtime in a production kernel after the bug is triggered, and why you chose each output value.
+- How the bug is triggered, what invariant or lifecycle rule is violated, and how that leads to the reported failure.
+- Keep the final reply strictly focused on the bug's technical mechanism and root cause; put all impact evaluation and
+  classification reasoning into `ImpactAnalysis` when calling `set-results`.
 - Pinpointing the exact root cause is best-effort: try your best, but if the problem turns out to be too complicated or
   inconclusive after thoroughly inspecting the functions in the crash, allocation, and free stacks (for example, an
   elusive race or external/deferred memory corruption where the offending caller is not recorded in the report), it is
@@ -21,14 +23,14 @@ In your final reply, provide a clear, detailed technical explanation of the root
   crash site, object lifecycle, invariants checked, and hypotheses ruled out), note what remains inconclusive, and
   provide best-effort output values so downstream steps have enough context to assess the impact and reachability of the
   problem.
-Another engineer will use your explanation to trace caller reachability and attack surfaces.
+Another engineer will use your explanation and `ImpactAnalysis` to trace caller reachability and attack surfaces.
 
 Analysis dimensions (in output schema order):
 
 * RootCauseSummary:
-Provide a concise (up to 4-5 sentences), self-contained summary of the root cause (or verified crash mechanism if the
-exact trigger is inconclusive) and its direct runtime impact, suitable for displaying at the top of a report or email
-above the full technical breakdown.
+Provide a concise (up to 4-5 sentences), self-contained technical summary of the root cause (or verified crash
+mechanism if the exact trigger is inconclusive) and how it leads to the reported failure, suitable for displaying at the
+top of a bug report or email above the full technical breakdown.
 
 * RootCauseFiles:
 Provide a short non-empty list (typically 1-3 files) of kernel source file paths (relative to the kernel tree root,
@@ -40,9 +42,14 @@ Distinguish where the crash *manifests* from where the actual *bug* is:
 - Instead, inspect the call trace, allocation/free stacks, and object lifecycle to identify the specific
   subsystem, protocol, or driver file(s) containing the faulty logic.
 
+* ImpactAnalysis:
+Explain what happens at runtime in real-world setups (without debugging sanitizers or panic_on_warn) after the bug is
+triggered, and why you chose each of the remaining output values (`MemoryCorruption`, `InfoLeak`,
+`RawDenialOfService`, `IsNetCandidate`, `IsKVMCandidate`).
+
 * MemoryCorruption:
 Set to true if the bug can result in memory corruption, use-after-free, out-of-bounds write, invalid/double free,
-control-flow hijack, or direct privilege escalation in a production kernel.
+control-flow hijack, or direct privilege escalation in real-world setups.
 - Memory safety issues (KASAN or UBSAN reports for use-after-free, out-of-bounds write, invalid free; refcounting
   imbalances, corrupted linked lists, etc.) are almost always true.
 - When the kernel crashes on a wild pointer access (e.g., a user-space address or non-canonical address, including
@@ -66,9 +73,9 @@ Determine whether the bug can leak kernel memory contents to userspace or an ext
   strict guarantee that only pointer values can be read, use "arbitrary".
 
 * RawDenialOfService:
-Set to true if the bug can result in denial-of-service in a production build (system crash/panic/BUG, NULL-pointer
+Set to true if the bug can result in denial-of-service in real-world setups (system crash/panic/BUG, NULL-pointer
 dereference, hang, deadlock, infinite loop, CPU/network saturation, or memory/resource leak).
-- Note that WARNING reports (WARN_ON / WARN_ON_ONCE) and sanitizer splats do NOT halt execution in production builds.
+- Note that WARNING reports (WARN_ON / WARN_ON_ONCE) and sanitizer splats do NOT halt execution in real-world setups.
   For WARNINGs, check what happens in the code after the macro: if the unexpected condition is gracefully handled
   by normal error recovery (e.g., "if (WARN_ON(...)) return -EINVAL;") without leaking resources or leaving locks/state
   inconsistent, set RawDenialOfService to false.
