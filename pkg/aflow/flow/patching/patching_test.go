@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -132,4 +133,42 @@ func TestPatchGenerationLoopVariants(t *testing.T) {
 		ReviewerPrompt: reviewerPrompt,
 	})
 	require.NotNil(t, loopWithReview)
+}
+
+func TestValidateFixesHashes(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := vcs.MakeTestRepo(t, baseDir)
+	repo.Git("checkout", "-b", "branch-a")
+	commitA := repo.CommitChange("commit A")
+	repo.Git("checkout", "-b", "branch-b")
+	commitB := repo.CommitChange("commit B")
+	repo.Git("checkout", "branch-a")
+
+	state := fixesFinderState{
+		KernelSrc:    baseDir,
+		KernelCommit: commitA.Hash,
+	}
+
+	got, err := validateFixesHashes(nil, state, fixesFinderArgs{FixesHash: ""})
+	require.NoError(t, err)
+	require.Equal(t, "", got.FixesHash)
+
+	got, err = validateFixesHashes(nil, state, fixesFinderArgs{FixesHash: commitA.Hash[:12]})
+	require.NoError(t, err)
+	require.Equal(t, commitA.Hash, got.FixesHash)
+
+	_, err = validateFixesHashes(nil, state, fixesFinderArgs{FixesHash: "0000000000000000000000000000000000000000"})
+	require.ErrorContains(t, err, "not found in the repository")
+
+	_, err = validateFixesHashes(nil, state, fixesFinderArgs{FixesHash: commitB.Hash})
+	require.ErrorContains(t, err, "is not reachable from the current commit")
+
+	// A bad KernelCommit is not an LLM mistake and must not be reported as BadCallError.
+	badState := fixesFinderState{
+		KernelSrc:    baseDir,
+		KernelCommit: "invalid-kernel-commit",
+	}
+	_, err = validateFixesHashes(nil, badState, fixesFinderArgs{FixesHash: commitA.Hash})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "is not reachable from the current commit")
 }

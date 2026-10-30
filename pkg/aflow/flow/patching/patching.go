@@ -633,7 +633,10 @@ func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesF
 	// LLM can provide a commit from a different branch.
 	// We want to ensure it is actually reachable from the current commit.
 	reachable, err := vcs.SandboxedGit(state.KernelSrc).ContainedIn(state.KernelCommit, commit.Hash)
-	if err != nil || !reachable {
+	if err != nil {
+		return args, err
+	}
+	if !reachable {
 		return args, aflow.BadCallError("commit %q is not reachable from the current commit",
 			args.FixesHash)
 	}

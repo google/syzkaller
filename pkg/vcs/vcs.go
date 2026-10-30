@@ -69,6 +69,8 @@ type Repo interface {
 	// Returns true if the current tree contains the specified commit.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
 	// (e.g. do CheckoutBranch before).
+	// A commit that is missing from the repository is reported as not contained,
+	// a malformed revision is reported as an error.
 	Contains(commit string) (bool, error)
 
 	// LatestCommits lists all latest commit hashes well as their commit dates.
