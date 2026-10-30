@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFixBackport(t *testing.T) {
@@ -107,4 +108,37 @@ func TestConditionalFixBackport(t *testing.T) {
 	if !osutil.IsExist(filePath) {
 		t.Fatalf("the commit was not backported, but should have been")
 	}
+}
+
+func TestMissingGuiltyFixBackport(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	repo.Git("checkout", "-b", "main")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "starting commit")
+
+	repo.Git("checkout", "-b", "branch-with-fix")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "fix title")
+	fixCommit, err := repo.repo.Commit(HEAD)
+	require.NoError(t, err)
+	repo.Git("checkout", "main")
+
+	// A guilty commit that is missing from the repository is not an error.
+	applied, err := BackportCommits(repo.repo, []BackportCommit{
+		{
+			GuiltyHash: "0000000000000000000000000000000000000000",
+			FixHash:    fixCommit.Hash,
+		},
+	}, "")
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	// A malformed guilty commit is.
+	_, err = BackportCommits(repo.repo, []BackportCommit{
+		{
+			GuiltyHash: "fake-hash",
+			FixHash:    fixCommit.Hash,
+		},
+	}, "")
+	require.Error(t, err)
 }

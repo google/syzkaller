@@ -267,8 +267,9 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 	res, err := runImpl(cfg, r, inst)
 	checkBisectionError(test, res, err)
 	if !test.crossTree && !test.noFakeHashTest {
+		// Use a well-formed but missing hash, a malformed one is an error in Contains.
 		// Should be mitigated via GetCommitByTitle during bisection.
-		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
+		cfg.Kernel.Commit = "0000000000000000000000000000000000000000"
 		res, err = runImpl(cfg, r, inst)
 		checkBisectionError(test, res, err)
 	}

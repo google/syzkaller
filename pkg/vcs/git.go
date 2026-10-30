@@ -266,7 +266,15 @@ func (git *gitRepo) initRepo(reason error) error {
 }
 
 func (git *gitRepo) Contains(commit string) (bool, error) {
-	return git.ContainedIn(HEAD, commit)
+	contained, err := git.ContainedIn(HEAD, commit)
+	if err == nil {
+		return contained, nil
+	}
+	// A commit that is missing from the repository is not contained in HEAD.
+	if exists, existsErr := git.CommitExists(commit); existsErr == nil && !exists {
+		return false, nil
+	}
+	return false, err
 }
 
 const gitDateFormat = "Mon Jan 2 15:04:05 2006 -0700"
@@ -1015,9 +1023,20 @@ func (git Git) verifyHash(hash string) (bool, error) {
 	return true, nil
 }
 
+// ContainedIn returns true if commit is reachable from parent.
+// A commit that is missing from the repository is reported as an error (see CommitExists).
 func (git Git) ContainedIn(parent, commit string) (bool, error) {
+	// 'git merge-base --is-ancestor' exits with 0 if commit is an ancestor of parent,
+	// 1 if it's not, and 128 on errors (e.g. if either revision can't be resolved).
 	_, err := git.Run("merge-base", "--is-ancestor", commit, parent)
-	return err == nil, nil
+	if err == nil {
+		return true, nil
+	}
+	var verboseErr *osutil.VerboseError
+	if errors.As(err, &verboseErr) && verboseErr.ExitCode == 1 {
+		return false, nil
+	}
+	return false, err
 }
 
 func (git Git) Diff(commitA, commitB string) ([]byte, error) {
