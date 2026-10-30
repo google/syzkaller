@@ -4,7 +4,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 */}}
 
 <table class="list_table">
-	<caption>Priorities for {{$.Call}}:</caption>
+	<caption>Static priorities for {{$.Call}}:</caption>
 	<thead>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Prio', floatSort)" href="#">Prio</a></th>
@@ -14,7 +14,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tbody>
 	{{range $p := $.Prios}}
 	<tr>
-		<td>{{printf "%5v" $p.Prio}}</td>
+		<td>{{printf "%.4f" $p.Prio}}</td>
 		<td><a href='/prio?call={{$p.Call}}'>{{$p.Call}}</a></td>
 	</tr>
 	{{end}}
