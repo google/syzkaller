@@ -42,6 +42,10 @@ func SandboxChown(files ...string) error {
 	return nil
 }
 
+func SandboxChownFile(file *os.File) error {
+	return nil
+}
+
 func RequireSandbox(t *testing.T) {
 	t.Skip("sandboxing is only supported on linux")
 }
