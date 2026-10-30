@@ -34,8 +34,9 @@ type assessmentSecurityInputs struct {
 }
 
 type rootCauseOutputs struct {
-	RootCauseSummary   string   `jsonschema:"Short (up to 4-5 sentences) summary of the root cause and its direct impact."`
+	RootCauseSummary   string   `jsonschema:"Short (up to 4-5 sentences) technical summary of the root cause."`
 	RootCauseFiles     []string `jsonschema:"Kernel source file paths containing the bug."`
+	ImpactAnalysis     string   `jsonschema:"Runtime consequences in real-world setups and classification reasoning."`
 	MemoryCorruption   bool     `jsonschema:"Analysis result: Memory Corruption."`
 	InfoLeak           string   `jsonschema:"Analysis result: Information Leak (none, pointers, or arbitrary)."`
 	RawDenialOfService bool     `jsonschema:"Analysis result: Denial Of Service."`
@@ -52,6 +53,10 @@ func validateRootCauseOutputs(ctx *aflow.Context, state rootCauseValidationState
 	args.RootCauseSummary = strings.TrimSpace(args.RootCauseSummary)
 	if args.RootCauseSummary == "" {
 		return args, aflow.BadCallError("RootCauseSummary must not be empty")
+	}
+	args.ImpactAnalysis = strings.TrimSpace(args.ImpactAnalysis)
+	if args.ImpactAnalysis == "" {
+		return args, aflow.BadCallError("ImpactAnalysis must not be empty")
 	}
 	if len(args.RootCauseFiles) == 0 {
 		return args, aflow.BadCallError("RootCauseFiles must not be empty")
@@ -200,6 +205,7 @@ var combineAssessment = aflow.NewFuncAction("combine-assessment", combineAssessm
 
 type combineAssessmentArgs struct {
 	RootCauseAnalysis         string
+	ImpactAnalysis            string
 	LocalReachabilityAnalysis string
 	NetReachabilityAnalysis   string
 	KVMReachabilityAnalysis   string
@@ -222,8 +228,11 @@ type combineAssessmentResult struct {
 
 func combineAssessmentFunc(ctx *aflow.Context, args combineAssessmentArgs) (combineAssessmentResult, error) {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "Root Cause Analysis:\n\n%s\n\nLocal Reachability Analysis:\n\n%s",
-		strings.TrimSpace(args.RootCauseAnalysis), strings.TrimSpace(args.LocalReachabilityAnalysis))
+	fmt.Fprintf(&sb, "Root Cause Analysis:\n\n%s", strings.TrimSpace(args.RootCauseAnalysis))
+	if impactAnalysis := strings.TrimSpace(args.ImpactAnalysis); impactAnalysis != "" {
+		fmt.Fprintf(&sb, "\n\nImpact Analysis:\n\n%s", impactAnalysis)
+	}
+	fmt.Fprintf(&sb, "\n\nLocal Reachability Analysis:\n\n%s", strings.TrimSpace(args.LocalReachabilityAnalysis))
 	if netAnalysis := strings.TrimSpace(args.NetReachabilityAnalysis); netAnalysis != "" {
 		fmt.Fprintf(&sb, "\n\nNetwork Reachability Analysis:\n\n%s", netAnalysis)
 	}
@@ -352,4 +361,9 @@ const reachabilityPrompt = rootCausePrompt + `
 The root-cause analysis of the bug is:
 
 {{.RootCauseAnalysis}}
-`
+{{if .ImpactAnalysis}}
+
+The impact analysis of the bug is:
+
+{{.ImpactAnalysis}}
+{{end}}`

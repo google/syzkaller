@@ -23,26 +23,45 @@ func TestValidateRootCauseOutputs(t *testing.T) {
 	got, err := validateRootCauseOutputs(nil, state, rootCauseOutputs{
 		RootCauseSummary: "  UAF in tcp_input  ",
 		RootCauseFiles:   []string{"/net/ipv4/tcp_input.c", "net/ipv4/tcp_input.c", "net/ipv4/nonexistent.c", "net/ipv4"},
+		ImpactAnalysis:   "  Writes to freed skb in real-world setups.  ",
 		InfoLeak:         ai.InfoLeakPointers,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "UAF in tcp_input", got.RootCauseSummary)
 	assert.Equal(t, []string{"net/ipv4/tcp_input.c"}, got.RootCauseFiles)
+	assert.Equal(t, "Writes to freed skb in real-world setups.", got.ImpactAnalysis)
 
 	_, err = validateRootCauseOutputs(nil, state, rootCauseOutputs{
 		RootCauseSummary: "summary",
 		RootCauseFiles:   []string{"net/ipv4"},
+		ImpactAnalysis:   "impact",
 		InfoLeak:         ai.InfoLeakNone,
 	})
 	require.ErrorContains(t, err, `"net/ipv4" is a directory, expected a file`)
 
 	for _, bad := range []rootCauseOutputs{
-		{RootCauseFiles: []string{"net/ipv4/tcp_input.c"}, InfoLeak: ai.InfoLeakNone},
-		{RootCauseSummary: "summary", InfoLeak: ai.InfoLeakNone},
-		{RootCauseSummary: "summary", RootCauseFiles: []string{"net/ipv4/nonexistent.c"}, InfoLeak: ai.InfoLeakNone},
-		{RootCauseSummary: "summary", RootCauseFiles: []string{"."}, InfoLeak: ai.InfoLeakNone},
-		{RootCauseSummary: "summary", RootCauseFiles: []string{"../etc/passwd"}, InfoLeak: ai.InfoLeakNone},
-		{RootCauseSummary: "summary", RootCauseFiles: []string{"net/ipv4/tcp_input.c"}, InfoLeak: "yes"},
+		{RootCauseFiles: []string{"net/ipv4/tcp_input.c"}, ImpactAnalysis: "impact", InfoLeak: ai.InfoLeakNone},
+		{RootCauseSummary: "summary", ImpactAnalysis: "impact", InfoLeak: ai.InfoLeakNone},
+		{RootCauseSummary: "summary", RootCauseFiles: []string{"net/ipv4/tcp_input.c"}, InfoLeak: ai.InfoLeakNone},
+		{
+			RootCauseSummary: "summary",
+			RootCauseFiles:   []string{"net/ipv4/nonexistent.c"},
+			ImpactAnalysis:   "impact",
+			InfoLeak:         ai.InfoLeakNone,
+		},
+		{RootCauseSummary: "summary", RootCauseFiles: []string{"."}, ImpactAnalysis: "impact", InfoLeak: ai.InfoLeakNone},
+		{
+			RootCauseSummary: "summary",
+			RootCauseFiles:   []string{"../etc/passwd"},
+			ImpactAnalysis:   "impact",
+			InfoLeak:         ai.InfoLeakNone,
+		},
+		{
+			RootCauseSummary: "summary",
+			RootCauseFiles:   []string{"net/ipv4/tcp_input.c"},
+			ImpactAnalysis:   "impact",
+			InfoLeak:         "yes",
+		},
 	} {
 		_, err := validateRootCauseOutputs(nil, state, bad)
 		require.Error(t, err, "%+v", bad)
@@ -76,6 +95,7 @@ func TestValidateReachabilityOutputs(t *testing.T) {
 func TestCombineAssessment(t *testing.T) {
 	res, err := combineAssessmentFunc(nil, combineAssessmentArgs{
 		RootCauseAnalysis:         "UAF in foo.",
+		ImpactAnalysis:            "Corrupts slab object in real-world setups.",
 		LocalReachabilityAnalysis: "Reachable via userns CAP_NET_ADMIN.",
 		NetReachabilityAnalysis:   "Also reachable via ingress TCP packets.",
 		MemoryCorruption:          true,
@@ -88,6 +108,7 @@ func TestCombineAssessment(t *testing.T) {
 	assert.True(t, res.DenialOfService)
 	assert.False(t, res.FuzzingArtifact)
 	assert.Contains(t, res.Explanation, "Root Cause Analysis:\n\nUAF in foo.")
+	assert.Contains(t, res.Explanation, "Impact Analysis:\n\nCorrupts slab object in real-world setups.")
 	assert.Contains(t, res.Explanation, "Network Reachability Analysis:\n\nAlso reachable via ingress TCP")
 	assert.NotContains(t, res.Explanation, "Virtualization Reachability Analysis:")
 
