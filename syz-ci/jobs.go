@@ -505,6 +505,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Config:         req.KernelConfig,
 			BaselineConfig: baseline,
 			Userspace:      mgr.mgrcfg.Userspace,
+			BuilderImage:   mgr.mgrcfg.KernelBuilderImage,
 			Backports:      mgr.backportCommits(),
 		},
 		Syzkaller: bisect.SyzkallerConfig{
@@ -643,9 +644,11 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		LinkerBin:    mgr.mgrcfg.Linker,
 		CcacheBin:    mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
+		BuilderImage: mgr.mgrcfg.KernelBuilderImage,
 		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		KernelConfig: req.KernelConfig,
+		BuildCPUs:    jp.cfg.BuildCPUs,
 	}
 	dt.Logf("cleaning kernel...")
 	if err := env.CleanKernel(buildCfg); err != nil {

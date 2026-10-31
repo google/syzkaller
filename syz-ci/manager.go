@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -395,6 +396,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
+		BuilderImage: mgr.mgrcfg.KernelBuilderImage,
 		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
@@ -1206,6 +1208,18 @@ func (mgr *ManagerConfig) validate(cfg *Config) error {
 	}
 	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
 		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
+	}
+	if mgr.KernelBuilderImage != "" && !osutil.IsExist(mgr.KernelBuilderImage) {
+		return fmt.Errorf("manager %v: kernel_builder_image %v does not exist", mgr.Name, mgr.KernelBuilderImage)
+	}
+	// Linux hosts cross-compile syz-executor for BSD targets against a sysroot (SOURCEDIR_*),
+	// so fail early if it's not usable instead of failing every syzkaller build later.
+	// Don't do this for other targets: e.g. Fuchsia builds the executor as part of the kernel build.
+	sysTarget := mgr.managercfg.SysTarget
+	if mgr.Disabled == "" && runtime.GOOS == targets.Linux && sysTarget.BuildOS == targets.Linux &&
+		(sysTarget.OS == targets.FreeBSD || sysTarget.OS == targets.OpenBSD) && sysTarget.BrokenCompiler != "" {
+		return fmt.Errorf("manager %v: broken compiler for %v/%v: %v",
+			mgr.Name, sysTarget.OS, sysTarget.Arch, sysTarget.BrokenCompiler)
 	}
 	return nil
 }

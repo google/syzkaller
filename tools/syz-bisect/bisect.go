@@ -60,6 +60,8 @@ type Config struct {
 	// Directory with user-space system for building kernel images
 	// (for linux that's the input to tools/create-gce-image.sh).
 	Userspace string `json:"userspace"`
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	KernelBuilderImage string `json:"kernel_builder_image"`
 	// Sysctl/cmdline files used to build the image which was used to crash the kernel, e.g. see:
 	// dashboard/config/upstream.sysctl
 	// dashboard/config/upstream-selinux.cmdline
@@ -110,14 +112,15 @@ func main() {
 		Ccache:          mycfg.Ccache,
 		CrossTree:       mycfg.CrossTree,
 		Kernel: bisect.KernelConfig{
-			Repo:        mycfg.KernelRepo,
-			Branch:      mycfg.KernelBranch,
-			Commit:      *flagKernelCommit,
-			CommitTitle: *flagKernelCommitTitle,
-			Userspace:   mycfg.Userspace,
-			Sysctl:      mycfg.Sysctl,
-			Cmdline:     mycfg.Cmdline,
-			Backports:   mycfg.Backports,
+			Repo:         mycfg.KernelRepo,
+			Branch:       mycfg.KernelBranch,
+			Commit:       *flagKernelCommit,
+			CommitTitle:  *flagKernelCommitTitle,
+			Userspace:    mycfg.Userspace,
+			BuilderImage: mycfg.KernelBuilderImage,
+			Sysctl:       mycfg.Sysctl,
+			Cmdline:      mycfg.Cmdline,
+			Backports:    mycfg.Backports,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,
