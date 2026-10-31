@@ -1368,49 +1368,104 @@ func TestAIPatchIterationEmptyResult(t *testing.T) {
 	c.SetAIConfig("ains", &AIConfig{
 		Stages: []AIPatchStageConfig{
 			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
 	})
 
-	// 1. Setup bug and job.
+	initialAckedBy := "Original Reviewer <original@test.com>"
+	addedAckedBy := "Reviewer <reviewer@test.com>"
+	addedReviewedBy := "Reviewer <reviewer@test.com>"
+
+	// 1. Publish an initial patch with one tag.
 	_, jobID := c.setupAIPatchJob(t)
 	c.pollAIWorkflow(t, ai.WorkflowPatching)
-	c.finishAIPatchJob(t, jobID, nil)
+	c.finishAIPatchJob(t, jobID, map[string]any{
+		"AckedBy": []string{initialAckedBy},
+	})
 	c.pollAndConfirmReport(t, "lore", "<message-id-1>")
 
-	// 2. Simulate comment arrival.
+	// 2. The reviewer adds a tag, but the iteration doesn't produce a new patch.
 	_, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		Source:       dashapi.AIJobSourceLore,
 		RootExtID:    "<message-id-1>",
 		MessageExtID: "<comment-id-1>",
 		Author:       "reviewer@email.com",
-		Comment:      &dashapi.CommentCommand{Body: "This is a comment"},
+		Comment:      &dashapi.CommentCommand{Body: "Acked-by: " + addedAckedBy},
 	})
 	require.NoError(t, err)
-
-	// 3. Advance time to pass debounce (30 mins).
 	c.advanceTime(31 * time.Minute)
 
-	// 4. Poll should return the job.
 	resp := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
+	require.Equal(t, []any{initialAckedBy}, resp.Args["BaseAckedBy"])
 
-	// 5. Complete the job with no output (empty diff, no replies).
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
+		Results: map[string]any{
+			"PatchDiff":  "",
+			"Replies":    []any{},
+			"AckedBy":    []string{initialAckedBy, addedAckedBy},
+			"ReviewedBy": []string{addedReviewedBy},
+		},
+	})
+	require.NoError(t, err)
+	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
+
+	// The original patch job remains the source of reports and future iterations.
+	parentJob, err := aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	parentOutputs, err := castJobResults[ai.PatchingOutputs](parentJob)
+	require.NoError(t, err)
+	require.Equal(t, []string{initialAckedBy, addedAckedBy}, parentOutputs.AckedBy)
+	require.Equal(t, []string{addedReviewedBy}, parentOutputs.ReviewedBy)
+
+	// 3. A later comment starts an iteration with the merged tags in its base args.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-1>",
+		MessageExtID: "<comment-id-2>",
+		Author:       "reviewer@email.com",
+		Comment:      &dashapi.CommentCommand{Body: "Please update the patch"},
+	})
+	require.NoError(t, err)
+	c.advanceTime(31 * time.Minute)
+
+	resp2 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+	require.NotEmpty(t, resp2.ID)
+	data, err := json.Marshal(resp2.Args["BaseAckedBy"])
+	require.NoError(t, err)
+	var gotBaseAckedBy []string
+	require.NoError(t, json.Unmarshal(data, &gotBaseAckedBy))
+	require.Equal(t, []string{initialAckedBy, addedAckedBy}, gotBaseAckedBy)
+
+	// Finish without a new version, then upstream the original patch.
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp2.ID,
 		Results: map[string]any{
 			"PatchDiff": "",
 			"Replies":   []any{},
 		},
 	})
 	require.NoError(t, err)
-
-	// 6. Verify AIPollReport returns nothing because the job had no output.
 	c.assertNoPendingReport(t, dashapi.AIJobSourceLore)
-
-	// 7. Advance time again to ensure the comment doesn't re-trigger a job (it should be marked as processed).
 	c.advanceTime(31 * time.Minute)
-	resp2 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
-	require.Empty(t, resp2.ID)
+	resp3 := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+	require.Empty(t, resp3.ID)
+
+	respCmd, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<message-id-1>",
+		MessageExtID: "<upstream-command>",
+		Author:       "approver@email.com",
+		Upstream:     &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, respCmd.Error)
+
+	upstream := c.pollAndConfirmReport(t, dashapi.AIJobSourceLore, "<message-id-2>")
+	require.NotNil(t, upstream.Result.Patch)
+	require.Equal(t, []string{initialAckedBy, addedAckedBy}, upstream.Result.Patch.AckedBy)
+	require.Equal(t, []string{addedReviewedBy}, upstream.Result.Patch.ReviewedBy)
 }
 
 func TestAIPatchFilter(t *testing.T) {
