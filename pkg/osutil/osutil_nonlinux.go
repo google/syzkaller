@@ -6,6 +6,7 @@
 package osutil
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -25,6 +26,10 @@ func fileTimes(file string) (time.Time, time.Time, error) {
 
 func SystemMemorySize() uint64 {
 	return 0
+}
+
+func AvailableMemorySize() (uint64, error) {
+	return 0, errors.New("AvailableMemorySize is only supported on linux")
 }
 
 func prolongPipe(r, w *os.File) {
