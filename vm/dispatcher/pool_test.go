@@ -238,6 +238,53 @@ func TestPoolPause(t *testing.T) {
 	<-done
 }
 
+func TestPoolReserveDuringBoot(t *testing.T) {
+	// Reserving an instance while it boots cancels its context. The job submitted
+	// for the reserved instance must then run on a fresh instance with a live context.
+	for range 50 {
+		booting := make(chan struct{})
+		release := make(chan struct{})
+		var boots atomic.Int64
+		mgr := NewPool[*nilInstance](
+			1,
+			func(_ context.Context, _ int) (*nilInstance, error) {
+				if boots.Add(1) == 1 {
+					close(booting)
+					<-release
+				}
+				return &nilInstance{}, nil
+			},
+			func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+				<-ctx.Done()
+			},
+		)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan bool)
+		go func() {
+			mgr.Loop(ctx)
+			close(done)
+		}()
+
+		<-booting
+		mgr.ReserveForRun(1)
+		jobErr := make(chan error, 1)
+		go func() {
+			assert.NoError(t, mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+				jobErr <- ctx.Err()
+			}))
+		}()
+		// Let Run block on submitting the job, so that it is ready together with
+		// the canceled context once the boot completes.
+		time.Sleep(time.Millisecond)
+		close(release)
+
+		assert.NoError(t, <-jobErr)
+		cancel()
+		<-done
+	}
+}
+
 func TestPoolCancelRun(t *testing.T) {
 	// The test to aid the race detector.
 	mgr := NewPool[*nilInstance](
