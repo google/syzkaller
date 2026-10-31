@@ -1,0 +1,16 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["mips64le"]
+
+include <uapi/linux/kvm.h>
+
+ioctl$KVM_GET_REGS_mips64le(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$mips64le])
+ioctl$KVM_SET_REGS_mips64le(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$mips64le])
+
+kvm_regs$mips64le {
+	gpr	array[int64, 32]
+	hi	int64
+	lo	int64
+	pc	int64
+}

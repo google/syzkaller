@@ -8,6 +8,14 @@ meta arches["loong64"]
 include <uapi/linux/kvm.h>
 include <asm/kvm.h>
 
+kvm_regs$loong64 {
+	gpr	array[int64, 32]
+	pc	int64
+}
+
+ioctl$KVM_GET_REGS_loong64(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$loong64])
+ioctl$KVM_SET_REGS_loong64(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$loong64])
+
 ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[void]])
 ioctl$KVM_SET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
 ioctl$KVM_GET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])

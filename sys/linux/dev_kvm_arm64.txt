@@ -11,6 +11,28 @@ include <linux/arm-smccc.h>
 include <uapi/linux/psci.h>
 include <asm/kvm.h>
 
+kvm_regs$arm64 {
+	regs	user_pt_regs
+	sp_el1	int64
+	elr_el1	int64
+	spsr	array[int64, 5]
+	fp_regs	user_fpsimd_state
+}
+
+user_pt_regs {
+	regs	array[int64, 31]
+	sp	int64
+	pc	int64
+	pstate	int64
+}
+
+user_fpsimd_state {
+	vregs		array[int64, 64]
+	fpsr		int32
+	fpcr		int32
+	__reserved	array[int32, 2]
+} [align[16]]
+
 # kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
 resource kvm_syz_vm$arm64[int64]
 
@@ -66,6 +88,9 @@ kvm_guest_debug_arch_arm64 {
 }
 
 ioctl$KVM_SET_GUEST_DEBUG_arm64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_arm64]])
+
+ioctl$KVM_GET_REGS_arm64(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$arm64])
+ioctl$KVM_SET_REGS_arm64(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$arm64])
 
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
 ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET], arg ptr[out, kvm_vcpu_init])
