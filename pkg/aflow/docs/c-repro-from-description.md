@@ -9,6 +9,8 @@ The workflow is registered as `repro-c` and consists of a preprocessing phase fo
 
 ### Inputs
 - `BugDescription`: Textual description of the bug.
+- `CrashLog` (optional): Console log of the crash. For syzbot bugs it contains the syzkaller programs
+  executed before the crash.
 - `KernelRepo`: Git repository URL.
 - `KernelCommit`: Commit hash to checkout.
 - `KernelConfig`: Kernel configuration.
@@ -20,7 +22,12 @@ The workflow is registered as `repro-c` and consists of a preprocessing phase fo
 ### Preprocessing
 1.  **Kernel Setup**: The workflow starts by checking out the kernel source (`kernel.Checkout`) and building it (`kernel.Build`).
 2.  **Index Preparation**: Prepares the codesearch index (`codesearcher.PrepareIndex`).
-3.  **Initial Research**: The `initial-researcher` agent analyzes the bug description and generates an initial reproduction strategy (`InitialReproStrategy`). It has access to codesearch and grep tools, as well as the toolkit query tool.
+3.  **Crash Log Programs**: `ExtractCrashLogPrograms` extracts the last (up to 10) distinct syzkaller
+    programs executed before the crash (at most 16 KiB) from `CrashLog` (if any) into `CrashLogPrograms`.
+    Large data (e.g. filesystem images) and calls that are too long are omitted, the agents are told that
+    the omitted data is not available. The programs are included in the prompts of `initial-researcher`,
+    `strategy-refiner`, and `repro-generator`.
+4.  **Initial Research**: The `initial-researcher` agent analyzes the bug description and generates an initial reproduction strategy (`InitialReproStrategy`). It has access to codesearch and grep tools, as well as the toolkit query tool.
 
 ### Iterative Loop
 The workflow enters a `DoWhile` loop with a maximum of 10 iterations. The loop condition is controlled by `ContinueSignal`.
