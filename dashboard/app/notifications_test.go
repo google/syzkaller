@@ -460,6 +460,38 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	c.expectEQ(notif.Sender, report3.Sender)
 }
 
+func TestEmailNotifObsoletedStaleRepro(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	_, extBugID, err := email.RemoveAddrContext(report.Sender)
+	require.NoError(t, err)
+	c.incomingEmail(report.Sender, "#syz upstream")
+	c.pollEmailBug()
+
+	// A matching crash near the inactivity limit resets the obsoletion timer.
+	c.advanceTime(maxReproInactivityPeriod - time.Hour)
+	c.expectNoEmail()
+	c.client2.ReportCrash(crash)
+	c.expectNoEmail()
+
+	c.advanceTime(maxReproInactivityPeriod - time.Hour)
+	c.expectNoEmail()
+	c.advanceTime(2 * time.Hour)
+	notif := c.pollEmailBug()
+	require.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
+	require.Contains(t, notif.Body, "No matching crashes have been reported for a while")
+	bug, _, _ := c.loadBug(extBugID)
+	require.Equal(t, BugStatusInvalid, bug.Status)
+	require.Equal(t, dashapi.InvalidatedByNoActivity, bug.StatusReason)
+}
+
 func TestEmailNotifObsoletedManager(t *testing.T) {
 	// Crashes with repro are auto-obsoleted if happen on a particular manager only.
 	c := NewCtx(t)

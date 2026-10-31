@@ -358,7 +358,7 @@ func emailSendBugNotif(ctx context.Context, notif *dashapi.BugNotification) erro
 		if statusReason == dashapi.InvalidatedByRevokedRepro {
 			body += "No recent activity, existing reproducers are no longer triggering the issue."
 		} else {
-			body += "Crashes did not happen for a while, no reproducer and no activity."
+			body += "No matching crashes have been reported for a while, and the report has had no activity."
 		}
 		status = dashapi.BugStatusInvalid
 	case dashapi.BugNotifLabel:
