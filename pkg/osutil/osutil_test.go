@@ -265,3 +265,13 @@ func TestReadInRoot(t *testing.T) {
 	_, err = ReadDirInRoot(rootDir, "escapedir")
 	require.Error(t, err)
 }
+
+func TestAvailableMemorySize(t *testing.T) {
+	avail, err := AvailableMemorySize()
+	if runtime.GOOS != "linux" {
+		require.Error(t, err)
+		return
+	}
+	require.NoError(t, err)
+	assert.Greater(t, avail, uint64(0))
+}

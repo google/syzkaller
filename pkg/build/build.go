@@ -35,6 +35,8 @@ type Params struct {
 	Linker       string
 	Ccache       string
 	UserspaceDir string
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	BuilderImage string
 	CmdlineFile  string
 	SysctlFile   string
 	Config       []byte
@@ -97,7 +99,10 @@ func Image(params Params) (details ImageDetails, err error) {
 		}
 	}
 	details, err = builder.build(params)
-	if details.CompilerID == "" {
+	// For kernels built inside a VM, the host compiler has nothing to do with the build.
+	// TODO: report the guest compiler identity for failed VM builds as well
+	// (e.g. the guest build script could print it before building the kernel).
+	if details.CompilerID == "" && !bsdBuildsInVM(params) {
 		// Fill in the compiler info even if the build failed.
 		var idErr error
 		details.CompilerID, idErr = compilerIdentity(params.Compiler)
