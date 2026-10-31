@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -56,6 +57,33 @@ func SystemMemorySize() uint64 {
 	var info syscall.Sysinfo_t
 	syscall.Sysinfo(&info)
 	return uint64(info.Totalram) // nolint:unconvert
+}
+
+func AvailableMemorySize() (uint64, error) {
+	data, err := os.ReadFile("/proc/meminfo")
+	if err != nil {
+		return 0, err
+	}
+	return parseMemAvailable(string(data))
+}
+
+func parseMemAvailable(meminfo string) (uint64, error) {
+	for line := range strings.SplitSeq(meminfo, "\n") {
+		rest, ok := strings.CutPrefix(line, "MemAvailable:")
+		if !ok {
+			continue
+		}
+		fields := strings.Fields(rest)
+		if len(fields) == 0 {
+			break
+		}
+		kb, err := strconv.ParseUint(fields[0], 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse MemAvailable %q: %w", fields[0], err)
+		}
+		return kb << 10, nil
+	}
+	return 0, fmt.Errorf("MemAvailable not found in /proc/meminfo")
 }
 
 func removeImmutable(fname string) error {
