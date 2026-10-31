@@ -6,10 +6,12 @@ package targets
 
 import (
 	"bytes"
+	"debug/elf"
 	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -183,6 +185,7 @@ func GetEx(OS, arch string, clang bool) *Target {
 	target.initOther.Do(func() {
 		other := new(Target)
 		*other = *target
+		other.CFlags = slices.Clone(target.CFlags)
 		other.setCompiler(clang)
 		other.lazyInit()
 		target.other = other
@@ -723,6 +726,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.DataOffset = target.defaultDataOffset()
 	}
 	target.NumPages = (16 << 20) / target.PageSize
+	target.initCrossBuildFlags()
 	sourceDir := getSourceDir(target)
 	for sourceDir != "" && sourceDir[len(sourceDir)-1] == '/' {
 		sourceDir = sourceDir[:len(sourceDir)-1]
@@ -756,7 +760,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.CxxCompiler = strings.TrimSuffix(strings.TrimSuffix(target.CCompiler, "cc"), "++") + "++"
 	}
 	if target.CPP == "" {
-		target.CPP = "cpp"
+		target.CPP = DefaultCPP
 	}
 	if target.Objdump == "" {
 		target.Objdump = "objdump"
@@ -895,6 +899,7 @@ func (target *Target) Timeouts(slowdown int) Timeouts {
 const (
 	DefaultLLVMCompiler = "clang"
 	DefaultLLVMLinker   = "ld.lld"
+	DefaultCPP          = "cpp"
 )
 
 func (target *Target) setCompiler(clang bool) {
@@ -903,7 +908,7 @@ func (target *Target) setCompiler(clang bool) {
 	pos := 0
 	for _, flag := range target.CFlags {
 		if flag == "-ferror-limit=0" ||
-			strings.HasPrefix(flag, "--target=") {
+			(target.Triple != "" && strings.HasPrefix(flag, "--target=")) {
 			continue
 		}
 		target.CFlags[pos] = flag
@@ -939,8 +944,33 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 	*param = strings.ReplaceAll(*param, sourceDirVar, sourceDir)
 }
 
+func (target *Target) initCrossBuildFlags() {
+	if runtime.GOOS != Linux {
+		return
+	}
+	var extraFlags []string
+	switch {
+	case target.OS == FreeBSD && (target.Arch == AMD64 || target.Arch == I386):
+		// Native FreeBSD hosts use g++ as the preprocessor (base clang-cpp lacks
+		// -fdirectives-only), but on Linux the system cpp works and avoids the g++ dependency.
+		target.CPP = DefaultCPP
+		if target.Arch == I386 {
+			extraFlags = append(extraFlags, "-B"+sourceDirVar+"/usr/lib32", "-L"+sourceDirVar+"/usr/lib32")
+		}
+	default:
+		return
+	}
+	target.BuildOS = Linux
+	target.CFlags = append(target.CFlags, "--sysroot="+sourceDirVar, "-fuse-ld=lld")
+	target.CFlags = append(target.CFlags, extraFlags...)
+}
+
 func (target *Target) lazyInit() {
 	if runtime.GOOS != target.BuildOS || target.BrokenCompiler != "" {
+		return
+	}
+	if reason := target.checkCrossBuildDeps(); reason != "" {
+		target.BrokenCompiler = reason
 		return
 	}
 	// Only fail on CI for native build.
@@ -1033,6 +1063,48 @@ func checkFlagSupported(target *Target, targetCFlags []string, flag string) bool
 	cmd := exec.Command(target.CCompiler, args...)
 	cmd.Stdin = strings.NewReader(simpleCProg)
 	return cmd.Run() == nil
+}
+
+func (target *Target) checkCrossBuildDeps() string {
+	if runtime.GOOS != Linux || target.OS != FreeBSD {
+		return ""
+	}
+	for _, bin := range []string{target.CCompiler, target.CxxCompiler, target.CPP, DefaultLLVMLinker} {
+		if _, err := exec.LookPath(bin); err != nil {
+			return fmt.Sprintf("%v is missing", bin)
+		}
+	}
+	return checkBSDSysroot(target.OS, target.Arch, getSourceDir(target))
+}
+
+func checkBSDSysroot(osName, arch, sourceDir string) string {
+	type sysrootSpec struct {
+		abi        elf.OSABI
+		machine    elf.Machine
+		candidates []string
+	}
+	spec, ok := map[string]sysrootSpec{
+		FreeBSD + "/" + AMD64: {elf.ELFOSABI_FREEBSD, elf.EM_X86_64, []string{"usr/lib/crt1.o"}},
+		FreeBSD + "/" + I386:  {elf.ELFOSABI_FREEBSD, elf.EM_386, []string{"usr/lib32/crt1.o", "usr/lib/crt1.o"}},
+	}[osName+"/"+arch]
+	if !ok {
+		return fmt.Sprintf("%v/%v cross-build is unsupported", osName, arch)
+	}
+	for _, rel := range spec.candidates {
+		if hasELFObject(filepath.Join(sourceDir, filepath.FromSlash(rel)), spec.abi, spec.machine) {
+			return ""
+		}
+	}
+	return fmt.Sprintf("%v/%v sysroot is missing in %v", osName, arch, sourceDir)
+}
+
+func hasELFObject(path string, wantABI elf.OSABI, wantMachine elf.Machine) bool {
+	f, err := elf.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	return f.OSABI == wantABI && f.Machine == wantMachine
 }
 
 // Split an arch into a pair of related 32 and 64 bit arch names.
