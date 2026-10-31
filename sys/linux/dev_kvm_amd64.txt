@@ -10,6 +10,17 @@ include <linux/kvm_host.h>
 include <asm/kvm.h>
 include <asm/mce.h>
 
+kvm_regs {
+	gp	array[int64, 16]
+	rip	flags[kvm_guest_addrs, int64]
+	rflags	flags[kvm_x86_rflags, int64]
+}
+
+kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152
+
+ioctl$KVM_GET_REGS(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs])
+ioctl$KVM_SET_REGS(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs])
+
 # kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
 resource kvm_syz_vm$x86[int64]
 resource fd_sgx_provision[fd]

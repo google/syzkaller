@@ -7,6 +7,14 @@ meta arches["riscv64"]
 
 include <uapi/linux/kvm.h>
 
+# The UAPI struct is empty; RISC-V accesses registers through ONE_REG.
+kvm_regs$riscv64 {
+	unused	void
+}
+
+ioctl$KVM_GET_REGS_riscv64(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$riscv64])
+ioctl$KVM_SET_REGS_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$riscv64])
+
 ioctl$KVM_SET_GUEST_DEBUG_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_riscv64]])
 
 kvm_guest_debug_arch_riscv64 {

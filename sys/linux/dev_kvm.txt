@@ -60,8 +60,6 @@ ioctl$KVM_CAP_DIRTY_LOG_RING_WITH_BITMAP(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP],
 ioctl$KVM_CAP_PTP_KVM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PTP_KVM, void]])
 
 ioctl$KVM_RUN(fd fd_kvmcpu, cmd const[KVM_RUN], arg const[0])
-ioctl$KVM_GET_REGS(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs])
-ioctl$KVM_SET_REGS(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs])
 ioctl$KVM_GET_SREGS(fd fd_kvmcpu, cmd const[KVM_GET_SREGS], arg ptr[out, kvm_sregs])
 ioctl$KVM_SET_SREGS(fd fd_kvmcpu, cmd const[KVM_SET_SREGS], arg ptr[in, kvm_sregs])
 ioctl$KVM_INTERRUPT(fd fd_kvmcpu, cmd const[KVM_INTERRUPT], arg ptr[in, int32])
@@ -120,7 +118,6 @@ kvm_guest_addr_offsets = 0, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_x86_cr0 = 1, 2, 4, 8, 16, 32, 65536, 262144, 536870912, 1073741824, 2147483648
 kvm_x86_cr4 = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 131072, 262144, 1048576, 2097152, 4194304
 kvm_x86_efer = 1, 256, 1024, 2048, 4096, 8192, 16384, 32768
-kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152
 
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
@@ -680,12 +677,6 @@ kvm_clear_dirty_log {
 	first_page	int32[0:1024, 64]
 # Allocate 1024 bits regardless of num_pages.
 	bitmap		ptr[in, array[int64, 128]]
-}
-
-kvm_regs {
-	gp	array[int64, 16]
-	rip	flags[kvm_guest_addrs, int64]
-	rflags	flags[kvm_x86_rflags, int64]
 }
 
 kvm_sregs {

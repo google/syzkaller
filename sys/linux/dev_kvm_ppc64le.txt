@@ -1,0 +1,30 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["ppc64le"]
+
+include <uapi/linux/kvm.h>
+
+ioctl$KVM_GET_REGS_ppc64le(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$ppc64le])
+ioctl$KVM_SET_REGS_ppc64le(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$ppc64le])
+
+kvm_regs$ppc64le {
+	pc	int64
+	cr	int64
+	ctr	int64
+	lr	int64
+	xer	int64
+	msr	int64
+	srr0	int64
+	srr1	int64
+	pid	int64
+	sprg0	int64
+	sprg1	int64
+	sprg2	int64
+	sprg3	int64
+	sprg4	int64
+	sprg5	int64
+	sprg6	int64
+	sprg7	int64
+	gpr	array[int64, 32]
+}
