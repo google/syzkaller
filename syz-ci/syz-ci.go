@@ -201,7 +201,9 @@ type ManagerConfig struct {
 	Linker       string `json:"linker"`
 	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
-	KernelConfig string `json:"kernel_config"`
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	KernelBuilderImage string `json:"kernel_builder_image"`
+	KernelConfig       string `json:"kernel_config"`
 	// KernelSrcSuffix adds a suffix to the kernel_src manager config. This is needed for cases where
 	// the kernel source root as reported in the coverage UI is a subdirectory of the VCS root.
 	KernelSrcSuffix string `json:"kernel_src_suffix"`
@@ -523,6 +525,7 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
 	// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
 	mgr.Userspace = osutil.Abs(mgr.Userspace)
+	mgr.KernelBuilderImage = osutil.Abs(mgr.KernelBuilderImage)
 	mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
 	mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
 	mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
