@@ -2811,5 +2811,18 @@ var linuxOopses = append([]*oops{
 		},
 		[]*regexp.Regexp{},
 	},
+	{
+		// Written to /dev/kmsg by reproducers that detect a kernel misbehavior
+		// from userspace (corrupted ABI results, network packets, disk, etc.).
+		[]byte("INVARIANT VIOLATION:"),
+		[]oopsFormat{
+			{
+				title:        compile("INVARIANT VIOLATION:(.*)"),
+				fmt:          "INVARIANT VIOLATION:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 	&groupGoRuntimeErrors,
 }, commonOopses...)

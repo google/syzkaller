@@ -56,6 +56,10 @@ type TargetConfig struct {
 	Sandbox string
 	// Whether to run VM in snapshot mode (only supported with qemu VM type).
 	Snapshot bool
+	// Ignore raw KCSAN reports during VM monitoring, so that execution is not cut short
+	// before a downstream crash or invariant violation triggers. KCSAN reports are
+	// still preserved in console output as diagnostic feedback.
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 // VMArch returns the architecture of the kernel and of the VM that runs it.
@@ -147,6 +151,9 @@ func BuildConfig(args TargetConfig, workdir string) (*mgrconfig.Config, error) {
 	if args.NeedStrace && args.StraceBin != "" {
 		cfg.StraceBin = args.StraceBin
 		cfg.StraceBinOnTarget = false
+	}
+	if args.IgnoreKCSANReports {
+		cfg.Ignores = append(cfg.Ignores, "BUG: KCSAN:")
 	}
 
 	if err := mgrconfig.SetTargets(cfg); err != nil {

@@ -29,6 +29,9 @@ type PatchIterationInputs struct {
 	VM           json.RawMessage
 	KernelConfig string
 
+	// Ignore raw KCSAN reports when running the reproducer (see crash.TargetConfig).
+	IgnoreKCSANReports bool `json:",omitempty"`
+
 	// Standard bug context.
 	BugTitle    string
 	CrashReport string
