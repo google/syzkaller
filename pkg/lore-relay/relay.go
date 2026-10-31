@@ -196,7 +196,7 @@ func (r *Relay) PollDashboardOnce(ctx context.Context) error {
 	if r.cfg.LoreArchive != "" {
 		cc = email.MergeEmailLists(cc, []string{r.cfg.LoreArchive})
 	}
-	cc = email.SubtractEmailLists(cc, to)
+	cc = email.SubtractEmails(cc, to)
 	email := &sender.Email{
 		To:        to,
 		Cc:        cc,

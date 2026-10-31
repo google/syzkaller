@@ -96,8 +96,23 @@ func checkActionAuthorized(ctx context.Context, job *aidb.Job, req *dashapi.Send
 	}
 }
 
+func filterOwnEmails(ctx context.Context, emails []string) []string {
+	own := make(map[string]bool)
+	for _, addr := range ownEmails(ctx) {
+		own[email.CanonicalEmail(addr)] = true
+	}
+	// Use CanonicalEmail so syzbot+<extid>@... addresses are also matched.
+	res := slices.DeleteFunc(slices.Clone(emails), func(addr string) bool {
+		return own[email.CanonicalEmail(addr)]
+	})
+	if len(res) == 0 {
+		return nil
+	}
+	return res
+}
+
 func filterStageEmails(nsCfg *Config, emails []string) []string {
-	if nsCfg.AI == nil {
+	if nsCfg == nil || nsCfg.AI == nil {
 		return emails
 	}
 	var stageEmails []string
@@ -106,7 +121,7 @@ func filterStageEmails(nsCfg *Config, emails []string) []string {
 			stageEmails = append(stageEmails, stage.MailingList)
 		}
 	}
-	return email.SubtractEmailLists(emails, stageEmails)
+	return email.SubtractEmails(emails, stageEmails)
 }
 
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
@@ -146,23 +161,27 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	}
 	nextStage := nextStageCfg.Name
 
-	var extraCcList []string
+	var extraCcList, addedCcList, removedCcList []string
 	if currentReporting != nil {
 		extraCcList = currentReporting.ExtraCcList
+		addedCcList = currentReporting.AddedCcList
+		removedCcList = currentReporting.RemovedCcList
 	}
 	extraCcList = email.MergeEmailLists(extraCcList, req.Cc)
-	extraCcList = email.SubtractEmailLists(extraCcList, ownEmails(ctx))
+	extraCcList = filterOwnEmails(ctx, extraCcList)
 	extraCcList = filterStageEmails(nsCfg, extraCcList)
 
 	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
 		Job: job,
 		Reporting: &aidb.JobReporting{
-			Stage:        nextStage,
-			Source:       nextStageCfg.ServingIntegration,
-			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
-			UpstreamedBy: spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
-			Version:      spanner.NullInt64{Int64: 1, Valid: true},
-			ExtraCcList:  extraCcList,
+			Stage:         nextStage,
+			Source:        nextStageCfg.ServingIntegration,
+			UpstreamedAt:  spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+			UpstreamedBy:  spanner.NullString{StringVal: upstreamedBy, Valid: upstreamedBy != ""},
+			Version:       spanner.NullInt64{Int64: 1, Valid: true},
+			ExtraCcList:   extraCcList,
+			AddedCcList:   addedCcList,
+			RemovedCcList: removedCcList,
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
 		CommandSource: string(req.Source),
@@ -308,7 +327,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast job results: %w", err)
 			}
-			result.Patch, err = makeNewReportResult(ctx, job, &res, version, authors)
+			result.Patch, err = makeNewReportResult(ctx, job, r, &res, version, authors)
 			if err != nil {
 				return nil, err
 			}
@@ -325,9 +344,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			if job.BugID.Valid {
 				link, reporter := jobBugInfo(ctx, job.BugID)
 				closes = append(closes, link)
-				if reporter != "" && !slices.ContainsFunc(result.Patch.ReportedBy, func(val string) bool {
-					return email.EmailsMatch(val, reporter)
-				}) {
+				if reporter != "" && !email.ContainsEmail(result.Patch.ReportedBy, reporter) {
 					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
 				}
 			}
@@ -337,13 +354,19 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		}
 
 		result.To = []string{stageCfg.MailingList}
-		if stageCfg.MergePatchCc && result.Patch != nil {
-			result.To = append(result.To, result.Patch.To...)
-			result.Cc = append(result.Cc, result.Patch.Cc...)
+		if stageCfg.MergePatchCc {
+			if result.Patch != nil {
+				result.To = append(result.To, result.Patch.To...)
+				result.Cc = append(result.Cc, result.Patch.Cc...)
+			} else {
+				result.Cc = append(result.Cc, r.AddedCcList...)
+			}
 		}
 
-		result.Cc = append(result.Cc, r.ExtraCcList...)
-		result.Cc = email.SubtractEmailLists(unique(result.Cc), result.To)
+		result.Cc = append(result.Cc, email.SubtractEmails(r.ExtraCcList, result.Cc)...)
+		// Reviewers may have asked to drop some of the people who joined the discussion.
+		result.Cc = email.SubtractEmails(result.Cc, r.RemovedCcList)
+		result.Cc = email.SubtractEmails(unique(result.Cc), result.To)
 
 		result.CanUpstream = idx < len(nsCfg.AI.Stages)-1
 		if result.Patch == nil {
@@ -358,8 +381,8 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
-	version int, authors []string) (*dashapi.NewReportResult, error) {
+func makeNewReportResult(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,
+	res *ai.PatchingOutputs, version int, authors []string) (*dashapi.NewReportResult, error) {
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
@@ -379,20 +402,20 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOut
 	models := extractExecutedModels(trajectory)
 	var to, cc []string
 	var gitAuthors []string
-	seen := make(map[string]bool)
+	var seen []string
 	for _, a := range authors {
 		// Email recipients ('To'/'Cc') must adhere to RFC 5322 (quoting special characters like commas).
 		to = append(to, a)
-		seen[email.CanonicalEmail(a)] = true
+		seen = append(seen, a)
 		// Git patch metadata ('Authors') must be unquoted (e.g. for in-body 'From:' and 'Signed-off-by:').
 		gitAuthors = append(gitAuthors, vcs.FormatGitAuthor(a))
 	}
 
-	for _, rec := range res.Recipients {
-		if seen[email.CanonicalEmail(rec.Email)] {
+	for _, rec := range reporting.CurrentRecipients(res.Recipients) {
+		if email.ContainsEmail(seen, rec.Email) {
 			continue
 		}
-		seen[email.CanonicalEmail(rec.Email)] = true
+		seen = append(seen, rec.Email)
 
 		addr := mail.Address{Name: rec.Name, Address: rec.Email}
 		if rec.To {
@@ -430,7 +453,7 @@ func populateIterationReportResult(ctx context.Context, job *aidb.Job, reporting
 	}
 
 	if reporting.InReplyTo == "" {
-		result.Patch, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
+		result.Patch, err = makeNewReportResult(ctx, job, reporting, &ai.PatchingOutputs{
 			KernelRepo:       res.KernelRepo,
 			KernelBranch:     res.KernelBranch,
 			KernelCommit:     res.KernelCommit,
@@ -578,7 +601,7 @@ func handleCommentCommand(ctx context.Context,
 		return nil, fmt.Errorf("failed to store comment body: %w", err)
 	}
 
-	extraCc := email.SubtractEmailLists(req.Cc, ownEmails(ctx))
+	extraCc := filterOwnEmails(ctx, req.Cc)
 	nsCfg := getNsConfig(ctx, job.Namespace)
 	extraCc = filterStageEmails(nsCfg, extraCc)
 

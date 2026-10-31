@@ -4,11 +4,13 @@
 package aidb
 
 import (
+	"slices"
 	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 )
 
@@ -116,6 +118,40 @@ type JobReporting struct {
 	Version      spanner.NullInt64
 	ExtraCcList  []string
 	CreatedAt    time.Time
+	// To/Cc changes requested by reviewers in patch iteration: written by RecordCcChanges,
+	// applied by CurrentRecipients on top of the recipients of the patch and ExtraCcList, so a removed address
+	// stays removed even if it's Cc'd again on the discussion (only a reviewer's request can add it back).
+	AddedCcList   []string
+	RemovedCcList []string
+}
+
+// RecordCcChanges records To/Cc changes requested by reviewers.
+// The latest request for an address takes precedence, so an address is never present in both lists.
+func (r *JobReporting) RecordCcChanges(added, removed []string) {
+	r.AddedCcList = email.SubtractEmails(email.MergeEmailLists(r.AddedCcList, added), removed)
+	r.RemovedCcList = email.SubtractEmails(email.MergeEmailLists(r.RemovedCcList, removed), added)
+}
+
+// CurrentRecipients returns the current recipients of the patch: patchRecipients
+// with the To/Cc changes requested by reviewers applied.
+func (r *JobReporting) CurrentRecipients(patchRecipients []ai.Recipient) []ai.Recipient {
+	var res []ai.Recipient
+	for _, rec := range patchRecipients {
+		if !email.ContainsEmail(r.RemovedCcList, rec.Email) {
+			res = append(res, rec)
+		}
+	}
+	return appendCcRecipients(res, r.AddedCcList)
+}
+
+// appendCcRecipients appends the addresses that are not yet among the recipients as Cc recipients.
+func appendCcRecipients(recipients []ai.Recipient, addrs []string) []ai.Recipient {
+	for _, addr := range addrs {
+		if !slices.ContainsFunc(recipients, func(rec ai.Recipient) bool { return email.EmailsMatch(rec.Email, addr) }) {
+			recipients = append(recipients, ai.Recipient{Email: addr})
+		}
+	}
+	return recipients
 }
 
 func (r *JobReporting) ExternalLink() string {
