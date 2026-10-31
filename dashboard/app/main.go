@@ -571,6 +571,18 @@ func MakeBugFilter(r *http.Request) (*userBugFilter, error) {
 	}, nil
 }
 
+// checkAccess verifies that the filter does not refer to labels hidden from the current user.
+// Otherwise, filtering could be used to find out which bugs have the hidden labels.
+func (filter *userBugFilter) checkAccess(ctx context.Context, r *http.Request) error {
+	for _, rawLabel := range filter.Labels {
+		label, _ := splitLabel(rawLabel)
+		if err := checkAccessLevel(ctx, r, labelAccessLevel(label)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (filter *userBugFilter) MatchManagerName(name string) bool {
 	target := filter.ManagerName()
 	return target == "" || target == name
@@ -642,6 +654,9 @@ func handleMain(ctx context.Context, w http.ResponseWriter, r *http.Request) err
 	filter, err := MakeBugFilter(r)
 	if err != nil {
 		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+	}
+	if err := filter.checkAccess(ctx, r); err != nil {
+		return err
 	}
 	if err := filter.InitializeAI(ctx, hdr.Namespace); err != nil {
 		return err
@@ -1053,6 +1068,9 @@ func handleTerminalBugList(ctx context.Context, w http.ResponseWriter, r *http.R
 	if err != nil {
 		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
 	}
+	if err := typ.Filter.checkAccess(ctx, r); err != nil {
+		return err
+	}
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
 		// Mix in bugs that have pending fixes.
@@ -1273,7 +1291,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		Header:         hdr,
 		Now:            timeNow(ctx),
 		Sections:       sections,
-		LabelGroups:    getLabelGroups(ctx, bug),
+		LabelGroups:    getLabelGroups(ctx, bug, accessLevel),
 		Crashes:        crashesTable,
 		Bug:            bugDetails,
 		PatchVersions:  patchVersions,
@@ -1568,14 +1586,14 @@ var labelGroupOrder = []labelGroupInfo{
 	},
 }
 
-func getLabelGroups(ctx context.Context, bug *Bug) []*uiBugLabelGroup {
+func getLabelGroups(ctx context.Context, bug *Bug, accessLevel AccessLevel) []*uiBugLabelGroup {
 	var ret []*uiBugLabelGroup
 	seenLabel := map[string]bool{}
 	for _, info := range labelGroupOrder {
 		obj := &uiBugLabelGroup{
 			Name: info.Name,
 		}
-		for _, entry := range bug.Labels {
+		for _, entry := range bug.visibleLabels(accessLevel) {
 			if seenLabel[entry.String()] {
 				continue
 			}
@@ -2260,7 +2278,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 		Discussions:    bug.discussionSummary(),
 		ID:             bug.keyHash(ctx),
 	}
-	for _, entry := range bug.Labels {
+	// Non-public labels are only displayed on the bug page.
+	for _, entry := range bug.visibleLabels(AccessPublic) {
 		uiBug.Labels = append(uiBug.Labels, makeBugLabelUI(ctx, bug, entry))
 	}
 	updateBugBadness(ctx, uiBug)

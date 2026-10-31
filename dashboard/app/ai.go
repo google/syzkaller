@@ -1502,7 +1502,7 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	if err != nil {
 		return err
 	}
-	labelType, labelValue, labelAdd, err := aiBugLabel(ctx, bug, job)
+	labels, labelAdd, err := aiBugLabels(ctx, bug, job)
 	if err != nil {
 		return err
 	}
@@ -1523,26 +1523,27 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 			rootCause = &rc
 		}
 	}
-	if labelType == EmptyLabel && rootCause == nil {
+	if len(labels) == 0 && rootCause == nil {
 		return nil
-	}
-	label := BugLabel{
-		Label: labelType,
-		Value: labelValue,
-		Link:  job.ID,
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
 		if rootCause != nil {
 			bug.AIRootCause = *rootCause
 		}
-		if labelType == EmptyLabel || bug.HasUserLabel(labelType) {
-			return nil
+		for _, label := range labels {
+			if bug.HasUserLabel(label.Label) {
+				continue
+			}
+			if !labelAdd {
+				bug.UnsetLabels(label.Label)
+				continue
+			}
+			label.Link = job.ID
+			if err := bug.SetLabels(labelSet, []BugLabel{label}); err != nil {
+				return err
+			}
 		}
-		if labelAdd {
-			return bug.SetLabels(labelSet, []BugLabel{label})
-		}
-		bug.UnsetLabels(labelType)
 		return nil
 	})
 }
@@ -1631,11 +1632,12 @@ func handleAIRootCause(ctx context.Context, w http.ResponseWriter, r *http.Reque
 	return nil
 }
 
-func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {
+// aiBugLabels returns the labels to set (or to unset, if set is false) based on the AI job results.
+func aiBugLabels(ctx context.Context, bug *Bug, job *aidb.Job) (labels []BugLabel, set bool, err0 error) {
 	switch job.Type {
 	case ai.WorkflowAssessmentKCSAN:
 		if job.Correct.Valid && !job.Correct.Bool {
-			return RaceLabel, "", false, nil
+			return []BugLabel{{Label: RaceLabel}}, false, nil
 		}
 		res, err := castJobResults[ai.AssessmentKCSANOutputs](job)
 		if err != nil {
@@ -1643,30 +1645,33 @@ func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType,
 			return
 		}
 		if res.Benign {
-			return RaceLabel, BenignRace, true, nil
+			return []BugLabel{{Label: RaceLabel, Value: BenignRace}}, true, nil
 		}
-		return RaceLabel, HarmfulRace, true, nil
+		return []BugLabel{{Label: RaceLabel, Value: HarmfulRace}}, true, nil
 	case ai.WorkflowAssessmentSecurity:
 		res, err := castJobResults[ai.AssessmentSecurityOutputs](job)
 		if err != nil {
 			err0 = err
 			return
 		}
-		prio := getNsConfig(ctx, job.Namespace).AI.SecurityPrio(bug, res)
-		if prio == "" {
-			return
+		assessment := getNsConfig(ctx, job.Namespace).AI.SecurityAssessment(bug, res)
+		if assessment.Prio != "" {
+			labels = append(labels, BugLabel{Label: PriorityLabel, Value: string(assessment.Prio)})
 		}
-		return PriorityLabel, string(prio), true, nil
+		if assessment.Route != "" {
+			labels = append(labels, BugLabel{Label: RouteLabel, Value: assessment.Route})
+		}
+		return labels, true, nil
 	case ai.WorkflowModeration:
 		if job.Correct.Valid && !job.Correct.Bool {
-			return ActionableLabel, "", false, nil
+			return []BugLabel{{Label: ActionableLabel}}, false, nil
 		}
 		res, err := castJobResults[ai.ModerationOutputs](job)
 		if err != nil {
 			err0 = err
 			return
 		}
-		return ActionableLabel, "", res.Actionable, nil
+		return []BugLabel{{Label: ActionableLabel}}, res.Actionable, nil
 	}
 	return
 }

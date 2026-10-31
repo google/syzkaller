@@ -501,6 +501,8 @@ type BugReport struct {
 	ReportElements *ReportElements
 	LabelMessages  map[string]string // notification messages for bug labels
 	AIRootCause    *AIRootCause      // AI-generated root cause analysis (if any)
+	// Bug labels visible at the reporting's access level.
+	Labels []BugLabel
 }
 
 type AIRootCause struct {
@@ -510,6 +512,11 @@ type AIRootCause struct {
 	// The analysis refers to source files/lines of this kernel revision.
 	KernelRepo   string
 	KernelCommit string
+}
+
+type BugLabel struct {
+	Label string
+	Value string // empty for flag labels
 }
 
 type ReportElements struct {

@@ -263,6 +263,44 @@ func TestSubsystemPage(t *testing.T) {
 	assert.NotContains(t, string(reply), crash2.Title)
 }
 
+func TestRouteLabelVisibility(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	build := testBuild(1)
+	client.UploadBuild(build)
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	extID := c.pollEmailExtID()
+
+	_, bugKey, err := findBugByReportingID(c.ctx, extID)
+	require.NoError(t, err)
+	require.NoError(t, updateSingleBug(c.ctx, bugKey, func(bug *Bug) error {
+		return bug.SetLabels(makeLabelSet(c.ctx, bug), []BugLabel{{Label: RouteLabel, Value: "route-a"}})
+	}))
+
+	// The label is only displayed on the bug page and only to authorized users.
+	bugURL := "/bug?extid=" + extID
+	reply, err := c.AuthGET(AccessPublic, bugURL)
+	require.NoError(t, err)
+	assert.NotContains(t, string(reply), "route:")
+	reply, err = c.AuthGET(AccessUser, bugURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(reply), "route:route-a")
+	reply, err = c.AuthGET(AccessUser, "/access-public-email")
+	require.NoError(t, err)
+	assert.Contains(t, string(reply), crash.Title)
+	assert.NotContains(t, string(reply), "route:")
+
+	// Filtering by the label is also restricted.
+	filterURL := "/access-public-email?label=route:route-a"
+	checkLoginRedirect(c, AccessPublic, filterURL)
+	reply, err = c.AuthGET(AccessUser, filterURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(reply), crash.Title)
+}
+
 func TestMultiLabelFilter(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
