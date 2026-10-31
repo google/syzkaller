@@ -1233,8 +1233,8 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	fbb.StartVector<uint64_t>(0);
-	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
-	if ((char*)(cover_data + cov->size) > cov->data_end)
+	const cover_data_t* cover_data = (const cover_data_t*)(cov->data + cov->data_offset);
+	if (cov->size > (cov->data_end - (const char*)cover_data) / sizeof(cover_data_t))
 		failmsg("too much cover", "cov=%u", cov->size);
 	uint32 nsig = 0;
 	cover_data_t prev_pc = 0;
@@ -1267,49 +1267,78 @@ template <typename cover_data_t>
 uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 {
 	uint32 cover_size = cov->size;
-	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
-	if (flag_dedup_cover) {
-		cover_data_t* end = cover_data + cover_size;
-		std::sort(cover_data, end);
-		cover_size = std::unique(cover_data, end) - cover_data;
+	const cover_data_t* cover_data = (const cover_data_t*)(cov->data + cov->data_offset);
+	if (cover_size > (cov->data_end - (const char*)cover_data) / sizeof(cover_data_t))
+		failmsg("too much cover", "cov=%u", cover_size);
+	if (!flag_dedup_cover) {
+		fbb.StartVector<uint64_t>(cover_size);
+		// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
+		for (uint32 i = 0; i < cover_size; i++)
+			fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
+		return fbb.EndVector(cover_size);
 	}
 	fbb.StartVector<uint64_t>(cover_size);
-	// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
-	for (uint32 i = 0; i < cover_size; i++)
-		fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
-	return fbb.EndVector(cover_size);
+	uint32 count = 0;
+	const uint32 kDedupChunk = 64 << 10;
+	for (uint32 i = 0; i < cover_size; i++) {
+		fbb.PushElement(uint64(cover_data[i] + cov->pc_offset));
+		count++;
+		if (i == cover_size - 1 || (i % kDedupChunk) == kDedupChunk - 1) {
+			uint64* start = (uint64*)fbb.GetCurrentBufferPointer();
+			uint64* end = start + count;
+			std::sort(start, end);
+			auto rbegin = std::make_reverse_iterator(end);
+			auto rend = std::make_reverse_iterator(start);
+			uint32 dedup_size = std::unique(rbegin, rend) - rbegin;
+			fbb.PopBytes((count - dedup_size) * sizeof(uint64));
+			count = dedup_size;
+		}
+	}
+	return fbb.EndVector(count);
 }
 
 uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 {
 	// Collect only the comparisons
 	uint64 ncomps = *(uint64_t*)cov->data;
-	kcov_comparison_t* cov_start = (kcov_comparison_t*)(cov->data + sizeof(uint64));
-	if ((char*)(cov_start + ncomps) > cov->data_end)
+	const kcov_comparison_t* cov_start = (const kcov_comparison_t*)(cov->data + sizeof(uint64));
+	uint64 max_comps = (cov->data_end - (const char*)cov_start) / sizeof(kcov_comparison_t);
+	// ncomps > max_comps means the count in cov->data[0] is corrupted (kernel caps at max_comps).
+	// ncomps == max_comps means the kernel filled the buffer and dropped further comparisons.
+	if (ncomps > max_comps)
 		failmsg("too many comparisons", "ncomps=%llu", ncomps);
-	cov->overflow = ((char*)(cov_start + ncomps + 1) > cov->data_end);
-	rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)cov_start;
-	rpc::ComparisonRaw* end = start;
-	// We will convert kcov_comparison_t to ComparisonRaw inplace.
-	static_assert(sizeof(kcov_comparison_t) >= sizeof(rpc::ComparisonRaw));
+	cov->overflow = (ncomps == max_comps);
+	fbb.StartVector<flatbuffers::Offset, uint32_t>(1, sizeof(rpc::ComparisonRaw), alignof(rpc::ComparisonRaw));
+	uint32 count = 0;
+	uint32 dedup_size = 0;
+	const uint32 kDedupChunk = 16 << 10;
 	for (uint32 i = 0; i < ncomps; i++) {
 		auto raw = convert(cov_start[i]);
-		if (!raw.pc())
-			continue;
-		*end++ = raw;
+		if (raw.pc()) {
+			fbb.PushBytes((const uint8_t*)&raw, sizeof(raw));
+			count++;
+		}
+		if ((i == ncomps - 1 && count != dedup_size) || count >= dedup_size + kDedupChunk) {
+			rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)fbb.GetCurrentBufferPointer();
+			rpc::ComparisonRaw* end = start + count;
+			std::sort(start, end, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
+				if (a.pc() != b.pc())
+					return a.pc() < b.pc();
+				if (a.op1() != b.op1())
+					return a.op1() < b.op1();
+				return a.op2() < b.op2();
+			});
+			auto rbegin = std::make_reverse_iterator(end);
+			auto rend = std::make_reverse_iterator(start);
+			dedup_size = std::unique(rbegin, rend, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
+					     return a.pc() == b.pc() && a.op1() == b.op1() && a.op2() == b.op2();
+				     }) -
+				     rbegin;
+			fbb.PopBytes((count - dedup_size) * sizeof(rpc::ComparisonRaw));
+			count = dedup_size;
+		}
 	}
-	std::sort(start, end, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
-		if (a.pc() != b.pc())
-			return a.pc() < b.pc();
-		if (a.op1() != b.op1())
-			return a.op1() < b.op1();
-		return a.op2() < b.op2();
-	});
-	ncomps = std::unique(start, end, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
-			 return a.pc() == b.pc() && a.op1() == b.op1() && a.op2() == b.op2();
-		 }) -
-		 start;
-	return fbb.CreateVectorOfStructs(start, ncomps).o;
+	return fbb.EndVector(count);
 }
 
 bool coverage_filter(uint64 pc)
