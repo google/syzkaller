@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/execbackend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
@@ -47,6 +48,9 @@ type kernelContext struct {
 	candidates chan []fuzzer.Candidate
 	// Once candidates is assigned, candidatesCount holds their original count.
 	candidatesCount atomic.Int64
+	// Set in Run when corpus persistence is enabled; the corpus sends new items here
+	// and the saveCorpus goroutine writes them to corpus.db.
+	corpusUpdates chan corpus.NewItemEvent
 
 	coverFilters    manager.CoverageFilters
 	reportGenerator *manager.ReportGeneratorWrapper
@@ -170,7 +174,7 @@ func (kc *kernelContext) MachineChecked(features flatrpc.Feature,
 
 func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	corpusObj := corpus.NewFocusedCorpus(kc.ctx, nil, kc.coverFilters.Areas)
+	corpusObj := corpus.NewFocusedCorpus(kc.ctx, kc.corpusUpdates, kc.coverFilters.Areas)
 	fuzzerObj := fuzzer.NewFuzzer(kc.ctx, &fuzzer.Config{
 		Corpus:   corpusObj,
 		Coverage: kc.cfg.Cover,
@@ -234,6 +238,26 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 		}
 	}()
 	return fuzzerObj
+}
+
+// saveCorpus persists new corpus programs, so that the next run resumes from them
+// and corpora of several runs can be merged with syz-db.
+func (kc *kernelContext) saveCorpus(ctx context.Context, corpusDB *db.DB, updates <-chan corpus.NewItemEvent) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case update := <-updates:
+			if update.Exists {
+				// We only save new progs into the corpus.db file.
+				continue
+			}
+			corpusDB.Save(update.Sig, update.ProgData, 0)
+			if err := corpusDB.Flush(); err != nil {
+				log.Errorf("%s: failed to save corpus database: %v", kc.name, err)
+			}
+		}
+	}
 }
 
 func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
