@@ -112,6 +112,8 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_pidfd_open":                alwaysSupported,
 	"syz_create_resource":           alwaysSupported,
 	"syz_kfuzztest_run":             alwaysSupported,
+	"syz_vhost_vsock_setup":         linuxSyzVhostVsockSupported,
+	"syz_vhost_vsock_send":          linuxSyzVhostVsockSupported,
 }
 
 func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
@@ -337,6 +339,10 @@ func linuxBtfVmlinuxSupported(ctx *checkContext, call *prog.Syscall) string {
 
 func linuxSyzUsbIPSupported(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.canWrite("/sys/devices/platform/vhci_hcd.0/attach")
+}
+
+func linuxSyzVhostVsockSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.canOpen("/dev/vhost-vsock")
 }
 
 func linuxWifiEmulationSupported(ctx *checkContext, call *prog.Syscall) string {

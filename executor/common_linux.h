@@ -6416,3 +6416,275 @@ static long syz_kfuzztest_run(volatile long test_name_ptr, volatile long input_d
 }
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_vhost_vsock_setup || __NR_syz_vhost_vsock_send
+#include <errno.h>
+#include <fcntl.h>
+// linux/vhost.h pulls in linux/virtio_ring.h, whose legacy vring_init() does not compile as C++.
+#define VIRTIO_RING_NO_LEGACY
+#include <linux/vhost.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <string.h>
+#include <sys/eventfd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+// The fuzzed kernel is the vhost-vsock host and the executor plays the guest: it owns the two
+// split virtqueues (rx = host->guest, tx = guest->host) and their buffers in an identity-mapped
+// VHOST_SET_MEM_TABLE region. Each descriptor owns one fixed buffer; a tx descriptor carries one
+// packet and rx descriptors are handed back to the host once it has used them.
+#define VHOST_VSOCK_VQ_RX 0
+#define VHOST_VSOCK_VQ_TX 1
+#define VHOST_VSOCK_RING_NUM 16
+#define VHOST_VSOCK_RING_BYTES 4096
+#define VHOST_VSOCK_BUF_SIZE 4096
+#define VHOST_VSOCK_VQ_BYTES (VHOST_VSOCK_RING_BYTES + VHOST_VSOCK_RING_NUM * VHOST_VSOCK_BUF_SIZE)
+#define VHOST_VSOCK_VIRTIO_F_VERSION_1 32
+#define VHOST_VSOCK_VIRTIO_F_SEQPACKET 1
+#define VHOST_VSOCK_DESC_F_WRITE 2
+#define VHOST_VSOCK_HOST_CID 2
+
+// Split virtqueue layout (virtio 1.x, all fields little-endian). The used ring only needs
+// 4-byte alignment, which the struct layout provides.
+struct vhost_vsock_vring {
+	struct {
+		uint64 addr;
+		uint32 len;
+		uint16 flags;
+		uint16 next;
+	} desc[VHOST_VSOCK_RING_NUM];
+	struct {
+		uint16 flags;
+		uint16 idx;
+		uint16 ring[VHOST_VSOCK_RING_NUM];
+	} avail;
+	struct {
+		uint16 flags;
+		uint16 idx;
+		struct {
+			uint32 id;
+			uint32 len;
+		} ring[VHOST_VSOCK_RING_NUM];
+	} used;
+};
+
+struct vhost_vsock_hdr {
+	uint64 src_cid;
+	uint64 dst_cid;
+	uint32 src_port;
+	uint32 dst_port;
+	uint32 len;
+	uint16 type;
+	uint16 op;
+	uint32 flags;
+	uint32 buf_alloc;
+	uint32 fwd_cnt;
+} __attribute__((packed));
+
+struct vhost_vsock_guest {
+	int fd;
+	int kick[2];
+	uint64 cid;
+	char* mem;
+	struct vhost_vsock_vring* vq[2];
+	uint16 avail_idx[2];
+	uint16 rx_used_idx;
+};
+
+static struct vhost_vsock_guest vhost_vsock_guests[4];
+#define VHOST_VSOCK_GUESTS (sizeof(vhost_vsock_guests) / sizeof(vhost_vsock_guests[0]))
+
+static struct vhost_vsock_guest* vhost_vsock_guest_find(int fd)
+{
+	for (unsigned i = 0; i < VHOST_VSOCK_GUESTS; i++) {
+		if (vhost_vsock_guests[i].mem && vhost_vsock_guests[i].fd == fd)
+			return &vhost_vsock_guests[i];
+	}
+	return NULL;
+}
+
+static void vhost_vsock_guest_free(struct vhost_vsock_guest* guest)
+{
+	for (int vq = 0; vq < 2; vq++) {
+		if (guest->kick[vq] != -1)
+			close(guest->kick[vq]);
+	}
+	munmap(guest->mem, 2 * VHOST_VSOCK_VQ_BYTES);
+	guest->mem = NULL;
+}
+
+static char* vhost_vsock_guest_buf(struct vhost_vsock_guest* guest, int vq, unsigned id)
+{
+	return guest->mem + vq * VHOST_VSOCK_VQ_BYTES + VHOST_VSOCK_RING_BYTES + id * VHOST_VSOCK_BUF_SIZE;
+}
+
+static void vhost_vsock_guest_kick(struct vhost_vsock_guest* guest, int vq)
+{
+	uint64 one = 1;
+	__sync_synchronize();
+	guest->vq[vq]->avail.idx = htole16(guest->avail_idx[vq]);
+	__sync_synchronize();
+	if (write(guest->kick[vq], &one, sizeof(one)) != sizeof(one)) {
+		debug("syz_vhost_vsock: kick(%d) failed: %d\n", vq, errno);
+	}
+}
+
+static int vhost_vsock_guest_setup_vq(struct vhost_vsock_guest* guest, int vq)
+{
+	struct vhost_vsock_vring* vr = (struct vhost_vsock_vring*)(guest->mem + vq * VHOST_VSOCK_VQ_BYTES);
+	guest->vq[vq] = vr;
+	for (unsigned i = 0; i < VHOST_VSOCK_RING_NUM; i++) {
+		vr->desc[i].addr = htole64((uintptr_t)vhost_vsock_guest_buf(guest, vq, i));
+		vr->desc[i].len = htole32(VHOST_VSOCK_BUF_SIZE);
+		vr->desc[i].flags = htole16(vq == VHOST_VSOCK_VQ_RX ? VHOST_VSOCK_DESC_F_WRITE : 0);
+	}
+	guest->kick[vq] = eventfd(0, 0);
+	if (guest->kick[vq] == -1)
+		return -1;
+	struct vhost_vring_state num = {(unsigned)vq, VHOST_VSOCK_RING_NUM};
+	struct vhost_vring_addr addr = {};
+	addr.index = vq;
+	addr.desc_user_addr = (uintptr_t)&vr->desc;
+	addr.avail_user_addr = (uintptr_t)&vr->avail;
+	addr.used_user_addr = (uintptr_t)&vr->used;
+	struct vhost_vring_file kick = {(unsigned)vq, guest->kick[vq]};
+	if (ioctl(guest->fd, VHOST_SET_VRING_NUM, &num) || ioctl(guest->fd, VHOST_SET_VRING_ADDR, &addr) ||
+	    ioctl(guest->fd, VHOST_SET_VRING_KICK, &kick))
+		return -1;
+	return 0;
+}
+
+// syz_vhost_vsock_setup(cid) opens /dev/vhost-vsock, assigns guest CID cid, sets up the
+// virtqueues, posts all rx buffers and starts the device. Returns the vhost fd.
+static long syz_vhost_vsock_setup(volatile long a0)
+{
+	int err = 0;
+	int fd = open("/dev/vhost-vsock", O_RDWR);
+	if (fd == -1)
+		return -1;
+	// A slot with the same fd belongs to a device the program has closed since.
+	struct vhost_vsock_guest* guest = vhost_vsock_guest_find(fd);
+	if (guest)
+		vhost_vsock_guest_free(guest);
+	for (unsigned i = 0; !guest && i < VHOST_VSOCK_GUESTS; i++) {
+		if (!vhost_vsock_guests[i].mem)
+			guest = &vhost_vsock_guests[i];
+	}
+	if (!guest) {
+		close(fd);
+		errno = EMFILE;
+		return -1;
+	}
+	memset(guest, 0, sizeof(*guest));
+	guest->fd = fd;
+	guest->cid = a0;
+	guest->kick[0] = guest->kick[1] = -1;
+	guest->mem = (char*)mmap(NULL, 2 * VHOST_VSOCK_VQ_BYTES, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (guest->mem == MAP_FAILED) {
+		guest->mem = NULL;
+		close(fd);
+		return -1;
+	}
+	// The host reaches the buffers through this table. Guest physical addresses equal our
+	// virtual addresses, so descriptors can point straight at the buffers.
+	union {
+		struct vhost_memory mem;
+		char buf[sizeof(struct vhost_memory) + sizeof(struct vhost_memory_region)];
+	} table = {};
+	table.mem.nregions = 1;
+	table.mem.regions[0].guest_phys_addr = (uintptr_t)guest->mem;
+	table.mem.regions[0].userspace_addr = (uintptr_t)guest->mem;
+	table.mem.regions[0].memory_size = 2 * VHOST_VSOCK_VQ_BYTES;
+	// VIRTIO_F_VERSION_1 makes the rings and packet headers little-endian on every arch.
+	uint64 features = (1ULL << VHOST_VSOCK_VIRTIO_F_VERSION_1) | (1ULL << VHOST_VSOCK_VIRTIO_F_SEQPACKET);
+	int running = 1;
+	if (ioctl(fd, VHOST_SET_OWNER, 0))
+		goto fail;
+	if (ioctl(fd, VHOST_SET_FEATURES, &features)) {
+		// Kernels before 5.14 do not know VIRTIO_VSOCK_F_SEQPACKET.
+		features = 1ULL << VHOST_VSOCK_VIRTIO_F_VERSION_1;
+		if (ioctl(fd, VHOST_SET_FEATURES, &features))
+			goto fail;
+	}
+	if (ioctl(fd, VHOST_SET_MEM_TABLE, &table))
+		goto fail;
+	if (vhost_vsock_guest_setup_vq(guest, VHOST_VSOCK_VQ_RX) || vhost_vsock_guest_setup_vq(guest, VHOST_VSOCK_VQ_TX))
+		goto fail;
+	// Give the host all rx buffers for the packets it sends to the guest.
+	for (unsigned i = 0; i < VHOST_VSOCK_RING_NUM; i++)
+		guest->vq[VHOST_VSOCK_VQ_RX]->avail.ring[i] = htole16(i);
+	guest->avail_idx[VHOST_VSOCK_VQ_RX] = VHOST_VSOCK_RING_NUM;
+	guest->vq[VHOST_VSOCK_VQ_RX]->avail.idx = htole16(VHOST_VSOCK_RING_NUM);
+	if (ioctl(fd, VHOST_VSOCK_SET_GUEST_CID, &guest->cid) || ioctl(fd, VHOST_VSOCK_SET_RUNNING, &running))
+		goto fail;
+	return fd;
+fail:
+	err = errno;
+	debug("syz_vhost_vsock_setup: failed: %d\n", err);
+	vhost_vsock_guest_free(guest);
+	close(fd);
+	errno = err;
+	return -1;
+}
+
+// syz_vhost_vsock_send(fd, pkt, len) puts one packet on the tx virtqueue of a device created by
+// syz_vhost_vsock_setup() and kicks the host. pkt is a virtio_vsock_hdr without the two CIDs,
+// which the executor fills in, followed by the payload.
+static long syz_vhost_vsock_send(volatile long a0, volatile long a1, volatile long a2)
+{
+	struct vhost_vsock_guest* guest = vhost_vsock_guest_find(a0);
+	const char* pkt = (const char*)a1;
+	size_t len = a2;
+	const size_t cids = offsetof(struct vhost_vsock_hdr, src_port);
+	if (!guest) {
+		errno = EBADF;
+		return -1;
+	}
+	if (len > VHOST_VSOCK_BUF_SIZE - cids) {
+		errno = EMSGSIZE;
+		return -1;
+	}
+	// Hand back the rx buffers the host has filled since the last call so that it never runs
+	// out of space for replies.
+	struct vhost_vsock_vring* rx = guest->vq[VHOST_VSOCK_VQ_RX];
+	bool rx_added = false;
+	while (guest->rx_used_idx != le16toh(rx->used.idx)) {
+		__sync_synchronize();
+		uint16 id = le32toh(rx->used.ring[guest->rx_used_idx++ % VHOST_VSOCK_RING_NUM].id);
+		rx->avail.ring[guest->avail_idx[VHOST_VSOCK_VQ_RX]++ % VHOST_VSOCK_RING_NUM] = htole16(id);
+		rx_added = true;
+	}
+	if (rx_added)
+		vhost_vsock_guest_kick(guest, VHOST_VSOCK_VQ_RX);
+	// The host consumes tx descriptors in order, so a slot is free once the used index has
+	// moved past it. A descriptor the host rejects without marking it used stays busy.
+	struct vhost_vsock_vring* tx = guest->vq[VHOST_VSOCK_VQ_TX];
+	if ((uint16)(guest->avail_idx[VHOST_VSOCK_VQ_TX] - le16toh(tx->used.idx)) >= VHOST_VSOCK_RING_NUM) {
+		errno = ENOBUFS;
+		return -1;
+	}
+	uint16 id = guest->avail_idx[VHOST_VSOCK_VQ_TX] % VHOST_VSOCK_RING_NUM;
+	struct vhost_vsock_hdr* hdr = (struct vhost_vsock_hdr*)vhost_vsock_guest_buf(guest, VHOST_VSOCK_VQ_TX, id);
+	hdr->src_cid = htole64(guest->cid);
+	hdr->dst_cid = htole64(VHOST_VSOCK_HOST_CID);
+	memcpy(&hdr->src_port, pkt, len);
+	// The descriptions use host byte order for the header; the wire format is little-endian.
+	if (len >= sizeof(*hdr) - cids) {
+		hdr->src_port = htole32(hdr->src_port);
+		hdr->dst_port = htole32(hdr->dst_port);
+		hdr->len = htole32(hdr->len);
+		hdr->type = htole16(hdr->type);
+		hdr->op = htole16(hdr->op);
+		hdr->flags = htole32(hdr->flags);
+		hdr->buf_alloc = htole32(hdr->buf_alloc);
+		hdr->fwd_cnt = htole32(hdr->fwd_cnt);
+	}
+	tx->desc[id].len = htole32(cids + len);
+	tx->avail.ring[id] = htole16(id);
+	guest->avail_idx[VHOST_VSOCK_VQ_TX]++;
+	vhost_vsock_guest_kick(guest, VHOST_VSOCK_VQ_TX);
+	return 0;
+}
+#endif

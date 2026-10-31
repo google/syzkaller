@@ -61,6 +61,34 @@ openat$vhost_vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-vsock"]],
 ioctl$VHOST_VSOCK_SET_GUEST_CID(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_GUEST_CID], arg ptr[in, vmaddr_cid64])
 ioctl$VHOST_VSOCK_SET_RUNNING(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_RUNNING], arg ptr[in, bool32])
 
+# Host-side vhost-vsock fuzzing: the fuzzed kernel is the host and the executor plays the guest.
+# syz_vhost_vsock_setup() opens /dev/vhost-vsock, maps the virtqueues and starts the device with
+# guest CID cid (the vmaddr_cid "my" range, so host sockets can connect to the guest).
+# syz_vhost_vsock_send() puts one packet on the tx virtqueue; the executor fills in the CIDs.
+resource vhost_vsock_guest[vhost_vsock]
+
+syz_vhost_vsock_setup(cid vmaddr_cid_my[int64]) vhost_vsock_guest
+syz_vhost_vsock_send(fd vhost_vsock_guest, pkt ptr[in, virtio_vsock_pkt], len bytesize[pkt])
+
+# virtio_vsock_hdr without src_cid/dst_cid, followed by the payload. The payload is bounded by
+# the executor's per-descriptor buffer.
+virtio_vsock_pkt {
+	src_port	flags[vmaddr_port, int32]
+	dst_port	flags[vmaddr_port, int32]
+	len		bytesize[data, int32]
+	type		flags[virtio_vsock_type, int16]
+	op		flags[virtio_vsock_op, int16]
+	flags		flags[virtio_vsock_flags, int32]
+	buf_alloc	int32
+	fwd_cnt		int32
+	data		array[int8, 0:4052]
+} [packed]
+
+virtio_vsock_type = VIRTIO_VSOCK_TYPE_STREAM, VIRTIO_VSOCK_TYPE_SEQPACKET
+virtio_vsock_op = VIRTIO_VSOCK_OP_INVALID, VIRTIO_VSOCK_OP_REQUEST, VIRTIO_VSOCK_OP_RESPONSE, VIRTIO_VSOCK_OP_RST, VIRTIO_VSOCK_OP_SHUTDOWN, VIRTIO_VSOCK_OP_RW, VIRTIO_VSOCK_OP_CREDIT_UPDATE, VIRTIO_VSOCK_OP_CREDIT_REQUEST
+# The flags' meaning depends on op: VIRTIO_VSOCK_SHUTDOWN_* for OP_SHUTDOWN, VIRTIO_VSOCK_SEQ_* for OP_RW.
+virtio_vsock_flags = VIRTIO_VSOCK_SHUTDOWN_RCV, VIRTIO_VSOCK_SHUTDOWN_SEND, VIRTIO_VSOCK_SEQ_EOM, VIRTIO_VSOCK_SEQ_EOR
+
 openat$vnet(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-net"]], flags const[O_RDWR], mode const[0]) vhost_net
 write$vhost_msg(fd vhost_net, buf ptr[in, vhost_msg], size len[buf])
 write$vhost_msg_v2(fd vhost_net, buf ptr[in, vhost_msg_v2], size len[buf])
@@ -138,8 +166,10 @@ vmaddr_cid [
 	hyper	const[VMADDR_CID_HYPERVISOR, int32]
 	local	const[VMADDR_CID_LOCAL, int32]
 	host	const[VMADDR_CID_HOST, int32]
-	my	proc[1234, 2, int32]
+	my	vmaddr_cid_my[int32]
 ]
+
+type vmaddr_cid_my[BASE] proc[1234, 2, BASE]
 
 vmaddr_cid64 {
 	cid	vmaddr_cid
