@@ -395,6 +395,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
+		BuilderImage: mgr.mgrcfg.KernelBuilderImage,
 		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
@@ -1206,6 +1207,14 @@ func (mgr *ManagerConfig) validate(cfg *Config) error {
 	}
 	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
 		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
+	}
+	if mgr.KernelBuilderImage != "" && !osutil.IsExist(mgr.KernelBuilderImage) {
+		return fmt.Errorf("manager %v: kernel_builder_image %v does not exist", mgr.Name, mgr.KernelBuilderImage)
+	}
+	if mgr.Disabled == "" && mgr.managercfg.SysTarget.BrokenCompiler != "" {
+		return fmt.Errorf("manager %v: broken compiler for %v/%v: %v",
+			mgr.Name, mgr.managercfg.SysTarget.OS, mgr.managercfg.SysTarget.Arch,
+			mgr.managercfg.SysTarget.BrokenCompiler)
 	}
 	return nil
 }
