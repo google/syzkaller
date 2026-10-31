@@ -263,6 +263,10 @@ static int test_cover_filter()
 	};
 
 	int ret = 0;
+	for (uint64 i = 10; i < 500; i++) {
+		pcs.push_back((i << 30) + (i << 20) + 16);
+		dont_contain.push_back((i << 30) + (i << 20) + 24);
+	}
 	for (auto pc : pcs)
 		filter.Insert(pc);
 	pcs.insert(pcs.end(), also_contain.begin(), also_contain.end());
