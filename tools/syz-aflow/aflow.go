@@ -33,7 +33,8 @@ func main() {
 		flagParallel    = flag.Int("parallel", 1, "number of parallel workflows to run in batch execution")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
-		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (gemini, vertex)")
+		flagProvider    = flag.String("provider", "gemini", "LLM provider to use (gemini, vertex, orcarouter)")
+		flagListModels  = flag.Bool("list-models", false, "list models available for -provider and exit")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid or id of a bug to download from the dashboard"+
 			" and save into -input file")
@@ -48,6 +49,12 @@ func main() {
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
 		if err := handleDownloadBug(*flagDownloadBug, *flagInput, *flagAuth); err != nil {
+			tool.Fail(err)
+		}
+		return
+	}
+	if *flagListModels {
+		if err := listModels(context.Background(), *flagProvider); err != nil {
 			tool.Fail(err)
 		}
 		return
