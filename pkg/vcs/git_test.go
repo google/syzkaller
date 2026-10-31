@@ -222,22 +222,41 @@ func TestContains(t *testing.T) {
 	// We expect Contains to return true, if commit is in current checkout.
 	repo.Git("checkout", "-b", "branch-a")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	commitA, _ := repo.repo.Commit(HEAD)
-	if contained, _ := repo.repo.Contains(commitA.Hash); !contained {
-		t.Fatalf("contains claims commit that should be present is not")
-	}
-	if contained, _ := repo.repo.Contains("fake-hash"); contained {
-		t.Fatalf("contains claims commit that is not present is present")
-	}
+	commitA, err := repo.repo.Commit(HEAD)
+	require.NoError(t, err)
+	contained, err := repo.repo.Contains(commitA.Hash)
+	require.NoError(t, err)
+	require.True(t, contained, "contains claims commit that should be present is not")
+
+	// A missing commit is not contained, a malformed one is an error.
+	const missingHash = "0000000000000000000000000000000000000000"
+	contained, err = repo.repo.Contains(missingHash)
+	require.NoError(t, err)
+	require.False(t, contained, "contains claims commit that is not present is present")
+
+	contained, err = repo.repo.Contains("fake-hash")
+	require.Error(t, err)
+	require.False(t, contained)
+
+	// Unlike Contains, ContainedIn reports a missing commit as an error.
+	contained, err = repo.repo.ContainedIn(HEAD, missingHash)
+	require.Error(t, err)
+	require.False(t, contained)
 
 	// Commits must only be searched for from the checkedout HEAD.
 	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	commitB, _ := repo.repo.Commit(HEAD)
+	commitB, err := repo.repo.Commit(HEAD)
+	require.NoError(t, err)
 	repo.Git("checkout", "branch-a")
-	if contained, _ := repo.repo.Contains(commitB.Hash); contained {
-		t.Fatalf("contains found commit that is not in current branch")
-	}
+	contained, err = repo.repo.Contains(commitB.Hash)
+	require.NoError(t, err)
+	require.False(t, contained, "contains found commit that is not in current branch")
+
+	// A missing or malformed parent is an error as well.
+	contained, err = repo.repo.ContainedIn("fake-parent", commitA.Hash)
+	require.Error(t, err)
+	require.False(t, contained)
 }
 
 func TestLatestCommits(t *testing.T) {
@@ -251,9 +270,9 @@ func TestLatestCommits(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, got, 2, "expected 2 commits")
 	for i, commit := range got {
-		if contained, _ := repo.repo.Contains(commit.Hash); !contained {
-			t.Fatalf("commit %d is not contained", i)
-		}
+		contained, err := repo.repo.Contains(commit.Hash)
+		require.NoError(t, err)
+		require.Truef(t, contained, "commit %d is not contained", i)
 	}
 
 	// Now ignore the first commit.
