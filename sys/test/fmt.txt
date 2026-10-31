@@ -9,6 +9,9 @@ foo$fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
 foo$fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
 foo$fmt4(a ptr[in, fmt[dec, r_any]])
 foo$fmt5(a ptr[in, struct$fmt0])
+foo$fmt6(a ptr[in, fmt[dec, int8[0:9], 2]])
+foo$fmt7(a ptr[in, fmt[dec0, int8[0:255], 4]])
+foo$fmt8(a ptr[in, fmt[dec, proc[10, 1], 2]])
 
 struct$fmt0 {
 	f0	fmt[dec, int8]
