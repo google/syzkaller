@@ -33,6 +33,17 @@ func TestCheckBSDSysroot(t *testing.T) {
 		assert.NotEmpty(t, checkBSDSysroot(FreeBSD, ARM64, dir))
 		assert.NotEmpty(t, checkBSDSysroot(FreeBSD, RiscV64, dir))
 	})
+	t.Run("openbsd", func(t *testing.T) {
+		dir := t.TempDir()
+		assert.NotEmpty(t, checkBSDSysroot(OpenBSD, AMD64, dir))
+
+		writeMinimalELF(t, filepath.Join(dir, "usr", "lib", "rcrt0.o"), elf.ELFOSABI_NONE, elf.EM_X86_64, elf.ELFCLASS64)
+		assert.NotEmpty(t, checkBSDSysroot(OpenBSD, AMD64, dir))
+
+		writeMinimalELF(t, filepath.Join(dir, "usr", "lib", "rcrt0.o"), elf.ELFOSABI_OPENBSD, elf.EM_X86_64, elf.ELFCLASS64)
+		assert.Empty(t, checkBSDSysroot(OpenBSD, AMD64, dir))
+		assert.NotEmpty(t, checkBSDSysroot(OpenBSD, ARM64, dir))
+	})
 }
 
 func TestBSDCrossTargetScoping(t *testing.T) {
@@ -55,6 +66,21 @@ func TestBSDCrossTargetScoping(t *testing.T) {
 		assert.Equal(t, Linux, Get(FreeBSD, I386).BuildOS)
 		assert.Equal(t, FreeBSD, Get(FreeBSD, ARM64).BuildOS)
 		assert.Equal(t, FreeBSD, Get(FreeBSD, RiscV64).BuildOS)
+
+		openbsd64 := Get(OpenBSD, AMD64)
+		require.NotNil(t, openbsd64)
+		openbsdOrigFlags := slices.Clone(openbsd64.CFlags)
+		assert.Equal(t, Linux, openbsd64.BuildOS)
+		assert.Equal(t, "clang", openbsd64.CCompiler)
+		assert.Equal(t, "clang++", openbsd64.CxxCompiler)
+		assert.Equal(t, "cpp", openbsd64.CPP)
+		assert.Contains(t, openbsdOrigFlags, "--target=x86_64-unknown-openbsd")
+		assert.Contains(t, openbsdOrigFlags, "-pie")
+
+		openbsdClang := GetEx(OpenBSD, AMD64, true)
+		require.NotNil(t, openbsdClang)
+		assert.Contains(t, openbsdClang.CFlags, "--target=x86_64-unknown-openbsd")
+		assert.Equal(t, openbsdOrigFlags, openbsd64.CFlags)
 	}
 }
 

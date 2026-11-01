@@ -953,6 +953,12 @@ func (target *Target) initCrossBuildFlags() {
 		if target.Arch == I386 {
 			extraFlags = append(extraFlags, "-B"+sourceDirVar+"/usr/lib32", "-L"+sourceDirVar+"/usr/lib32")
 		}
+	case target.OS == OpenBSD && target.Arch == AMD64:
+		target.CCompiler = DefaultLLVMCompiler
+		target.CPP = "cpp"
+		// Upstream clang links OpenBSD -static binaries against rcrt0.o (static PIE),
+		// which requires -pie on non-OpenBSD hosts (OpenBSD's local lld enables -pie by default).
+		extraFlags = append(extraFlags, "--target=x86_64-unknown-openbsd", "-pie")
 	default:
 		return
 	}
@@ -1062,7 +1068,7 @@ func checkFlagSupported(target *Target, targetCFlags []string, flag string) bool
 }
 
 func (target *Target) checkCrossBuildDeps() string {
-	if runtime.GOOS != Linux || target.OS != FreeBSD {
+	if runtime.GOOS != Linux || (target.OS != FreeBSD && target.OS != OpenBSD) {
 		return ""
 	}
 	for _, bin := range []string{target.CCompiler, target.CxxCompiler, target.CPP, DefaultLLVMLinker} {
@@ -1082,6 +1088,7 @@ func checkBSDSysroot(osName, arch, sourceDir string) string {
 	spec, ok := map[string]sysrootSpec{
 		FreeBSD + "/" + AMD64: {elf.ELFOSABI_FREEBSD, elf.EM_X86_64, []string{"usr/lib/crt1.o"}},
 		FreeBSD + "/" + I386:  {elf.ELFOSABI_FREEBSD, elf.EM_386, []string{"usr/lib32/crt1.o", "usr/lib/crt1.o"}},
+		OpenBSD + "/" + AMD64: {elf.ELFOSABI_OPENBSD, elf.EM_X86_64, []string{"usr/lib/rcrt0.o"}},
 	}[osName+"/"+arch]
 	if !ok {
 		return fmt.Sprintf("%v/%v cross-build is unsupported", osName, arch)
