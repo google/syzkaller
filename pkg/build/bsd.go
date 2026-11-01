@@ -35,8 +35,11 @@ const (
 )
 
 type bsdVMBuildSpec struct {
-	ScratchGB       int64
-	OutTarMB        int64
+	ScratchGB int64
+	OutTarMB  int64
+	// Optional subdirectory under KernelDir to archive into src.tar (instead of the whole tree)
+	// when the kernel build only needs part of a larger OS source repository.
+	SourceSubdir    string
 	Config          []byte
 	ExpectedOutputs map[string]string
 	BuildScript     string
@@ -115,7 +118,7 @@ func bsdVMBuild(params Params, spec bsdVMBuildSpec) (ImageDetails, error) {
 
 	t0 := time.Now()
 	params.Tracer.Logf("bsd-vm-build: archiving kernel tree %v", params.KernelDir)
-	if err := writeKernelSourceTar(srcTar, params.KernelDir); err != nil {
+	if err := writeKernelSourceTar(srcTar, params.KernelDir, spec.SourceSubdir); err != nil {
 		return ImageDetails{}, bsdInfraError("failed to archive kernel source: %w", err)
 	}
 	params.Tracer.Logf("bsd-vm-build: source archive created in %v", time.Since(t0).Round(time.Millisecond))
@@ -340,16 +343,20 @@ func runBSDVM(params Params, mgrCfg *mgrconfig.Config, scriptFile, configFile st
 	}
 }
 
-// writeKernelSourceTar archives kernelDir into dstPath without dereferencing symlinks
-// inside kernelDir or modifying kernelDir.
-func writeKernelSourceTar(dstPath, kernelDir string) error {
+// writeKernelSourceTar archives kernelDir (or subdir under it) into dstPath without
+// dereferencing inner symlinks or modifying kernelDir.
+func writeKernelSourceTar(dstPath, kernelDir, subdir string) error {
 	root, err := filepath.EvalSymlinks(kernelDir)
 	if err != nil {
 		return err
 	}
+	target := "."
+	if subdir != "" {
+		target = "./" + strings.TrimPrefix(filepath.ToSlash(subdir), "./")
+	}
 	_, err = osutil.RunCmd(10*time.Minute, "", "tar",
 		"--anchored", "--exclude=./.git", "--exclude=./obj",
-		"-C", root, "-cf", dstPath, ".")
+		"-C", root, "-cf", dstPath, target)
 	return err
 }
 

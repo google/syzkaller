@@ -5,6 +5,8 @@ package build
 
 import (
 	"archive/tar"
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"io"
 	"os"
@@ -43,6 +45,66 @@ func TestFreeBSDVMBuildScript(t *testing.T) {
 	}
 }
 
+func TestOpenBSDVMBuildScript(t *testing.T) {
+	// sys/arch/amd64/conf/Makefile.amd64 has "COPTS?= -O2", so a command-line COPTS
+	// must keep -O2, otherwise the kernel silently gets built without optimizations.
+	assert.Equal(t, "COPTS='-O2 -ffile-prefix-map=/build/src=/syzkaller/kernel' ",
+		openbsdCOptsArg("/syzkaller/kernel"))
+	assert.Empty(t, openbsdCOptsArg("/path with spaces"))
+	assert.Empty(t, openbsdCOptsArg("/path$HOME"))
+
+	tests := []struct {
+		name    string
+		data    openbsdScriptData
+		want    []string
+		notWant []string
+	}{
+		{
+			name: "plain",
+			data: openbsdScriptData{
+				KernelName:      "SYZKALLER",
+				CPUs:            12,
+				COptsArg:        openbsdCOptsArg("/syzkaller/kernel"),
+				CompilerIDEntry: bsdCompilerIDEntry,
+			},
+			want: []string{
+				"COMPILE_DIR=/build/src/sys/arch/amd64/compile/SYZKALLER",
+				"make -j 12 COPTS='-O2 -ffile-prefix-map=/build/src=/syzkaller/kernel' all",
+				`tar -cf /dev/rsd3c -C "$KERN_OBJ_DIR" bsd bsd.gdb compiler.id`,
+			},
+			notWant: []string{"__SYZ_OVERLAY_EOF__", "__SYZ_SYSCTL_EOF__"},
+		},
+		{
+			name: "overlay_and_sysctl",
+			data: openbsdScriptData{
+				KernelName:      "SYZKALLER",
+				CPUs:            12,
+				CompilerIDEntry: bsdCompilerIDEntry,
+				OverlayB64:      "SGVsbG8=",
+				ExtraSysctl:     "kern.pool_debug=1\nkern.splassert=3",
+			},
+			want: []string{
+				"make -j 12 all",
+				"b64decode -r <<'__SYZ_OVERLAY_EOF__' | tar -C /mnt/target -xf -\nSGVsbG8=\n__SYZ_OVERLAY_EOF__\n",
+				"<<'__SYZ_SYSCTL_EOF__'\nkern.pool_debug=1\nkern.splassert=3\n__SYZ_SYSCTL_EOF__\n",
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			script, err := openbsdVMBuildScript(tc.data)
+			require.NoError(t, err)
+			checkShellSyntax(t, script)
+			for _, s := range tc.want {
+				assert.Contains(t, script, s)
+			}
+			for _, s := range tc.notWant {
+				assert.NotContains(t, script, s)
+			}
+		})
+	}
+}
+
 func TestBSDInfraError(t *testing.T) {
 	err := bsdInfraError("failed to boot build VM: %w", vmimpl.BootError{Title: "no kvm", Output: []byte("qemu log")})
 	infra, ok := errors.AsType[*InfraError](err)
@@ -75,7 +137,7 @@ func TestWriteKernelSourceTar(t *testing.T) {
 	require.NoError(t, os.Symlink("nonexistent_target", filepath.Join(realSrcDir, "dangling_link")))
 
 	tarPath := filepath.Join(t.TempDir(), "src.tar")
-	require.NoError(t, writeKernelSourceTar(tarPath, srcDir))
+	require.NoError(t, writeKernelSourceTar(tarPath, srcDir, ""))
 	entries := readTarFile(t, tarPath)
 
 	for _, excluded := range []string{".git", ".git/", ".git/config", "obj", "obj/", "obj/old.o"} {
@@ -86,6 +148,12 @@ func TestWriteKernelSourceTar(t *testing.T) {
 	assert.Equal(t, tarEntry{name: "escape_link", typ: tar.TypeSymlink, link: secretFile}, entries["escape_link"])
 	assert.Equal(t, tarEntry{name: "dangling_link", typ: tar.TypeSymlink, link: "nonexistent_target"},
 		entries["dangling_link"])
+
+	subTarPath := filepath.Join(t.TempDir(), "sub.tar")
+	require.NoError(t, writeKernelSourceTar(subTarPath, srcDir, "sys"))
+	subEntries := readTarFile(t, subTarPath)
+	assert.Contains(t, subEntries, "sys/amd64/conf/GENERIC")
+	assert.NotContains(t, subEntries, "sub/obj/keep.c")
 }
 
 func TestExtractExpectedTarOutputs(t *testing.T) {
@@ -175,6 +243,24 @@ func TestBSDUserspaceAndConfig(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
 		assert.Equal(t, filepath.Join(userspaceDir, "image"), disks.bootImage)
+	})
+
+	t.Run("openbsd_overlay_encoding", func(t *testing.T) {
+		userspaceDir := t.TempDir()
+		encoded, err := openbsdEncodeOverlay(userspaceDir)
+		require.NoError(t, err)
+		assert.Empty(t, encoded)
+
+		realOverlay := t.TempDir()
+		require.NoError(t, osutil.FillDirectory(realOverlay, map[string]string{"etc/rc.conf.local": "pf=YES\n"}))
+		require.NoError(t, os.Symlink(realOverlay, filepath.Join(userspaceDir, "overlay")))
+
+		encoded, err = openbsdEncodeOverlay(userspaceDir)
+		require.NoError(t, err)
+		rawTar, err := base64.StdEncoding.DecodeString(encoded)
+		require.NoError(t, err)
+		entries := readTar(t, bytes.NewReader(rawTar))
+		assert.Equal(t, "pf=YES\n", entries["etc/rc.conf.local"].body)
 	})
 }
 
