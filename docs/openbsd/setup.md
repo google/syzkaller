@@ -1,9 +1,55 @@
 # Setup
 
-Instructions for running OpenBSD host, OpenBSD vm, amd64 kernel.
-In addition, the host must be running `-current`.
+Instructions for fuzzing an `amd64` OpenBSD kernel from either an OpenBSD `-current` host (via `vmd`) or an `amd64` Linux host (via QEMU or GCE).
 
-Variables used throughout the instructions:
+## Linux Host Setup
+
+On an `amd64` Linux host, you can cross-compile OpenBSD userspace binaries (`syz-executor`, C reproducers) and build OpenBSD `amd64` kernels inside an isolated QEMU VM without needing a separate OpenBSD machine.
+
+Prerequisites on Debian/Ubuntu: `clang`, `lld`, `llvm`, `cpp`, `qemu-system-x86`, `openssh-client`, `expect`, `curl`, and `/dev/kvm` access.
+
+1. Prepare an OpenBSD artifact bundle (`userspace/{image,key,key.pub}`, keyless QEMU `builder.raw`, and userspace `sysroot/`) from official OpenBSD snapshots:
+
+   ```sh
+   $ ./tools/create-openbsd-image.sh -o ~/openbsd-env
+   ```
+
+   By default, this downloads the snapshot once, extracts `sysroot/`, and builds both the minimal target `userspace/image` and the toolchain-equipped `builder.raw` in parallel. Pass `-U`, `-B`, or `-S` to skip building `userspace/`, `builder.raw`, or `sysroot/` respectively (see `-h` for sizing and `OPENBSD_CACHE_DIR` options).
+
+2. Build host binaries (`syz-manager`, `syz-repro`, etc.) and cross-compile OpenBSD target binaries (`syz-execprog`, `syz-executor`) using the extracted sysroot (`SOURCEDIR_OPENBSD` or `SOURCEDIR`):
+
+   ```sh
+   $ export SOURCEDIR_OPENBSD=~/openbsd-env/sysroot
+   $ make host target TARGETOS=openbsd TARGETARCH=amd64
+   ```
+
+3. Build a `SYZKALLER` OpenBSD kernel inside an isolated ephemeral QEMU VM using `builder.raw`:
+
+   ```sh
+   $ git clone --depth=1 https://github.com/openbsd/src.git ~/openbsd-src
+   $ make syz-build
+   $ mkdir -p ~/openbsd-build && cd ~/openbsd-build
+   $ /path/to/syzkaller/bin/syz-build \
+       -os openbsd -arch amd64 -vm qemu \
+       -kernel_src ~/openbsd-src \
+       -userspace ~/openbsd-env/userspace \
+       -builder_image ~/openbsd-env/builder.raw \
+       -trace
+   ```
+
+   This produces `~/openbsd-build/image` (with the new kernel installed as `/bsd`), `~/openbsd-build/key` (if present in `userspace`), `~/openbsd-build/kernel.config` (when `-config` is omitted), and `~/openbsd-build/obj/bsd.gdb` (used by `syz-manager` via `"kernel_obj": "~/openbsd-build/obj"` and `"kernel_src": "~/openbsd-src"`).
+
+4. For `syz-ci` on a Linux host, sync `~/openbsd-env/` to the host (e.g. `rsync -azS --delete ~/openbsd-env/ syz-ci:/syzkaller/openbsd/`) and set `"userspace": "/syzkaller/openbsd/userspace"` and `"kernel_builder_image": "/syzkaller/openbsd/builder.raw"` in the manager config. Requirements for the `syz-ci` host itself:
+
+   - `clang`, `lld`, `llvm`, `cpp` and `qemu-system-x86` must be installed, and the `syz-ci` process must have access to `/dev/kvm` (the kernel is built inside a local KVM-accelerated QEMU VM requiring 8 GiB of available RAM and up to 12 vCPUs; `syz-ci` runs one kernel build at a time).
+   - `SOURCEDIR_OPENBSD=/syzkaller/openbsd/sysroot` must be set in the environment of the `syz-ci` process (e.g. in its systemd unit), otherwise `syz-ci` refuses to start since it cannot build `syz-executor` for the target.
+   - Infrastructure failures of the build VM (QEMU/KVM/SSH problems, a builder image without a compiler, disk setup, packaging of the results) are classified as `build.InfraError` and are not reported to the dashboard as kernel build errors; only failures of the kernel config/build steps inside the VM are.
+
+   **Warning:** `builder.raw` has an empty root password and must only be used as a local QEMU `kernel_builder_image` (where the VM has no network access). Never use it as a fuzzing `userspace/image` on GCE or any other network-reachable VM.
+
+## OpenBSD Host Setup
+
+Variables used throughout the OpenBSD host instructions:
 
 - `$KERNEL` - Custom built kernel, see [Compile Kernel](#compile-kernel).
               Defaults to `/sys/arch/amd64/compile/SYZKALLER/obj/bsd` if the
