@@ -364,6 +364,17 @@ func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string)
 	}
 }
 
+// isBuildInfraError returns true if the kernel build failed because of the infrastructure
+// (host tooling, build VMs, etc.) rather than because of the kernel itself.
+// pkg/build and pkg/bisect return both build.InfraError values and pointers.
+func isBuildInfraError(err error) bool {
+	if _, ok := errors.AsType[build.InfraError](err); ok {
+		return true
+	}
+	_, ok := errors.AsType[*build.InfraError](err)
+	return ok
+}
+
 func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
@@ -406,7 +417,9 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		case errors.As(err, &verboseError):
 			rep.Report = []byte(verboseError.Error())
 			rep.Output = verboseError.Output
-		case errors.As(err, &build.InfraError{}):
+		case isBuildInfraError(err):
+			// Infrastructure problems (host tooling, build VMs, etc.) are not
+			// attributed to the kernel and are not reported to the dashboard.
 			return err
 		default:
 			rep.Report = []byte(err.Error())
