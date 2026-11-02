@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,9 +17,11 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/cover"
 	gcsmocks "github.com/google/syzkaller/pkg/gcs/mocks"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -271,4 +274,13 @@ func TestGetNamespace(t *testing.T) {
 	assert.Equal(t, "dash-namespace", ns)
 
 	mockDash.AssertExpectations(t)
+}
+
+func TestIsBuildInfraError(t *testing.T) {
+	assert.True(t, isBuildInfraError(&build.InfraError{Title: "ptr"}))
+	assert.True(t, isBuildInfraError(build.InfraError{Title: "value"}))
+	assert.True(t, isBuildInfraError(fmt.Errorf("wrapped: %w", &build.InfraError{Title: "ptr"})))
+	assert.False(t, isBuildInfraError(errors.New("plain")))
+	assert.False(t, isBuildInfraError(&build.KernelError{Report: []byte("kernel")}))
+	assert.False(t, isBuildInfraError(&osutil.VerboseError{Err: errors.New("make failed")}))
 }
