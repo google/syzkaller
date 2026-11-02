@@ -1,0 +1,16 @@
+# Exercise CritIncrWrapper (NodeWrapper) by creating a weak 0->1 ref increment
+# followed by a strong 0->1 ref increment before reading, then complete the
+# BC_INCREFS_DONE / BC_ACQUIRE_DONE / BC_RELEASE / BC_DECREFS -> BR_RELEASE /
+# BR_DECREFS lifecycle.
+
+r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_SET_CONTEXT_MGR(r0, AUTO, AUTO)
+mmap$binder(&(0x7f00000a0000/0x2000)=nil, AUTO, AUTO, AUTO, r0, 0x0)
+r1 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+mmap$binder(&(0x7f00000c0000/0x2000)=nil, AUTO, AUTO, AUTO, r1, 0x0)
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}, @transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x1, 0x0, 0x0, AUTO, AUTO, &AUTO={@flat=@weak_binder={AUTO, 0x0, 0x1, 0x1}, @flat=@weak_binder={AUTO, 0x0, 0x2, 0x2}, @flat=@weak_binder={AUTO, 0x0, 0x3, 0x3}}, &AUTO={AUTO, AUTO, AUTO}}}, @transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x1, 0x0, 0x0, AUTO, AUTO, &AUTO={@flat=@binder={AUTO, 0x0, 0x1, 0x1}, @flat=@binder={AUTO, 0x0, 0x2, 0x2}, @flat=@binder={AUTO, 0x0, 0x3, 0x3}}, &AUTO={AUTO, AUTO, AUTO}}}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@increfs_done={AUTO, 0x1, 0x1}, @acquire_done={AUTO, 0x1, 0x1}, @increfs_done={AUTO, 0x2, 0x2}, @acquire_done={AUTO, 0x2, 0x2}], 0x0, AUTO, 0x0})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, <r2=>0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@free_buffer={AUTO, r2}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, <r3=>0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@release={AUTO, 0x1}, @decrefs={AUTO, 0x1}, @release={AUTO, 0x2}, @decrefs={AUTO, 0x2}, @free_buffer={AUTO, r3}], 0x0, AUTO, 0x0})
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={0x0, AUTO, 0x0, AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})

@@ -35,9 +35,9 @@ ioctl$BINDER_SET_CONTEXT_MGR_EXT(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR_
 ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[0])
 ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
-ioctl$BINDER_GET_NODE_INFO_FOR_REF(fd fd_binder, cmd const[BINDER_GET_NODE_INFO_FOR_REF], arg ptr[in, binder_node_info_for_ref])
+ioctl$BINDER_GET_NODE_INFO_FOR_REF(fd fd_binder, cmd const[BINDER_GET_NODE_INFO_FOR_REF], arg ptr[inout, binder_node_info_for_ref])
 ioctl$BINDER_FREEZE(fd fd_binder, cmd const[BINDER_FREEZE], arg ptr[in, binder_freeze_info])
-ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], arg ptr[in, binder_frozen_status_info])
+ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], arg ptr[inout, binder_frozen_status_info])
 ioctl$BINDER_ENABLE_ONEWAY_SPAM_DETECTION(fd fd_binder, cmd const[BINDER_ENABLE_ONEWAY_SPAM_DETECTION], arg ptr[in, bool32])
 ioctl$BINDER_GET_EXTENDED_ERROR(fd fd_binder, cmd const[BINDER_GET_EXTENDED_ERROR], arg ptr[out, binder_extended_error])
 ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[out, binder_version])
@@ -56,7 +56,7 @@ binder_freeze_info {
 }
 
 binder_frozen_status_info {
-	pid		pid
+	pid		pid	(in)
 	sync_recv	int32	(out)
 	async_recv	int32	(out)
 }
@@ -88,8 +88,10 @@ binder_write_read {
 }
 
 binder_read_buffer [
-	transaction	binder_read_tr
-	reply		binder_read_reply
+	transaction		binder_read_tr
+	reply			binder_read_reply
+	tr_acquire		binder_read_tr_acquire
+	tr_increfs_acquire	binder_read_tr_increfs_acquire
 ]
 
 binder_read_tr {
@@ -105,6 +107,22 @@ binder_read_reply {
 	cmd		const[0, int32]
 	tr		binder_transaction_data_out
 	rest		array[int8, 180]
+} [packed]
+
+binder_read_tr_acquire {
+	noop	const[0, int32]
+	acquire	array[int8, 20]
+	cmd	const[0, int32]
+	tr	binder_transaction_data_out
+	rest	array[int8, 164]
+} [packed]
+
+binder_read_tr_increfs_acquire {
+	noop	const[0, int32]
+	refs	array[int8, 40]
+	cmd	const[0, int32]
+	tr	binder_transaction_data_out
+	rest	array[int8, 144]
 } [packed]
 
 binder_transaction_data_out {
@@ -166,7 +184,7 @@ binder_cmd_reply_sg {
 } [packed]
 
 # NEED: buffers_size should be multiple of 8 and must be no less than size of all BINDER_TYPE_PTR buffers.
-binder_sg_size = 0, 64, 1024, 4096
+binder_sg_size = 0, 64, 1024, 4096, 8192, 16384
 
 binder_transaction_data {
 	handle		binder_handle
@@ -195,12 +213,13 @@ binder_offsets {
 	off2	offsetof[binder_transaction_data:buffer:obj2, int64]
 }
 
-binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS, TF_CLEAR_BUF, TF_UPDATE_TXN, TF_DEFER_COMPLETE
+binder_transaction_flags = TF_ONE_WAY, TF_ROOT_OBJECT, TF_STATUS_CODE, TF_ACCEPT_FDS, TF_CLEAR_BUF, TF_UPDATE_TXN, TF_DEFER_COMPLETE
 
 binder_root_object [
 	flat	flat_binder_object
 	fd	binder_fd_object
 	ptr	binder_root_buffer_object
+	raw_ptr	binder_raw_buffer_object
 ] [varlen]
 
 binder_object [
@@ -209,6 +228,7 @@ binder_object [
 	fda		binder_fd_array_object
 	ptr		binder_root_buffer_object
 	child_ptr	binder_child_buffer_object
+	raw_ptr		binder_raw_buffer_object
 ] [varlen]
 
 flat_binder_object [
@@ -237,6 +257,7 @@ binder_fd_object {
 
 binder_fd_array_object {
 	type		const[BINDER_TYPE_FDA, int32]
+	pad		const[0, int32]
 	num_fds		int64[1:4]
 	parnt		int64[0:1]
 	parent_offset	flags[binder_parent_offset, int64]
@@ -246,6 +267,15 @@ binder_root_buffer_object {
 	type		const[BINDER_TYPE_PTR, int32]
 	flags		const[0, int32]
 	buffer		ptr64[in, array[fd, 2:10]]
+	length		bytesize[buffer, int64]
+	parnt		const[0, int64]
+	parent_offset	const[0, int64]
+}
+
+binder_raw_buffer_object {
+	type		const[BINDER_TYPE_PTR, int32]
+	flags		const[0, int32]
+	buffer		ptr64[in, array[int8]]
 	length		bytesize[buffer, int64]
 	parnt		const[0, int64]
 	parent_offset	const[0, int64]
