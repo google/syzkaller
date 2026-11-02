@@ -23,12 +23,7 @@ func TestProcessor(t *testing.T) {
 	workflows := newMockedWorkflows()
 	processor, client, ctx := prepareProcessorTest(t, workflows)
 
-	// Start the loop.
-	var wg sync.WaitGroup
-	ctx2, cancel := context.WithCancel(ctx)
-	wg.Go(func() {
-		processor.Loop(ctx2)
-	})
+	stop := startTestLoop(t, ctx, processor)
 
 	// Add some series.
 	var allSeries []*api.Series
@@ -53,16 +48,8 @@ func TestProcessor(t *testing.T) {
 	// Emulate the service restart by aborting the loop.
 	// This may break the execution in arbitrary places, which actually resembles the environment in which the code
 	// will actually work. The bugs it triggers may be difficult to reproduce though.
-	cancel()
-	wg.Wait()
-
-	ctx3, cancel := context.WithCancel(ctx)
-	wg.Add(1)
-	defer wg.Wait()
-	go func() {
-		processor.Loop(ctx3)
-		wg.Done()
-	}()
+	stop()
+	stop = startTestLoop(t, ctx, processor)
 
 	// Add some more series.
 	for _, series := range allSeries[5:10] {
@@ -75,19 +62,14 @@ func TestProcessor(t *testing.T) {
 	}
 
 	awaitFinishedSessions(t, processor.seriesRepo, 10)
-	cancel()
+	stop()
 }
 
 func TestFinishRunningSteps(t *testing.T) {
 	workflows := newMockedWorkflows()
 	processor, client, ctx := prepareProcessorTest(t, workflows)
 
-	// Start the loop.
-	var wg sync.WaitGroup
-	ctx2, cancel := context.WithCancel(ctx)
-	wg.Go(func() {
-		processor.Loop(ctx2)
-	})
+	stop := startTestLoop(t, ctx, processor)
 
 	series := &api.Series{
 		ExtID: "ext-id",
@@ -111,7 +93,7 @@ func TestFinishRunningSteps(t *testing.T) {
 	// Let the workflow finish.
 	workflows.finish <- struct{}{}
 	awaitFinishedSessions(t, processor.seriesRepo, 1)
-	cancel()
+	stop()
 
 	// Verify that the session test is finished.
 	// A bit hacky, but it works.
@@ -193,11 +175,7 @@ func TestParallelWorkflowsLimit(t *testing.T) {
 	processor, client, ctx := prepareProcessorTest(t, workflows)
 	processor.parallelWorkflows = 1
 
-	var wg sync.WaitGroup
-	ctx2, cancel := context.WithCancel(ctx)
-	wg.Go(func() {
-		processor.Loop(ctx2)
-	})
+	stop := startTestLoop(t, ctx, processor)
 
 	// Add 3 series.
 	for i := range 3 {
@@ -249,8 +227,21 @@ func TestParallelWorkflowsLimit(t *testing.T) {
 	workflows.finish <- struct{}{}
 	workflows.finish <- struct{}{}
 	awaitFinishedSessions(t, processor.seriesRepo, 3)
-	cancel()
-	wg.Wait()
+	stop()
+}
+
+func startTestLoop(t *testing.T, ctx context.Context, processor *SeriesProcessor) func() {
+	loopCtx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		processor.Loop(loopCtx)
+	})
+	stop := func() {
+		cancel()
+		wg.Wait()
+	}
+	t.Cleanup(stop)
+	return stop
 }
 
 func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor,
