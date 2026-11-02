@@ -91,18 +91,16 @@ type Tree struct {
 // KernelFuzzConfig is a specific fuzzing assignment.
 // Based on it, the triage step will construct FuzzTasks.
 type KernelFuzzConfig struct {
-	EmailLists     []string `json:"email_lists" yaml:"email_lists"`
-	Track          string   `json:"track" yaml:"track"` // E.g. KASAN.
-	KernelConfig   string   `json:"kernel_config" yaml:"kernel_config"`
-	Focus          string   `json:"focus" yaml:"focus"`
-	CorpusURL      string   `json:"corpus_url" yaml:"corpus_url"`
-	SkipCoverCheck bool     `json:"skip_cover_check" yaml:"skip_cover_check"`
-	BugTitleRe     string   `json:"bug_title_re" yaml:"bug_title_re"`
+	Track          string `json:"track" yaml:"track"` // E.g. KASAN.
+	KernelConfig   string `json:"kernel_config" yaml:"kernel_config"`
+	Focus          string `json:"focus" yaml:"focus"`
+	CorpusURL      string `json:"corpus_url" yaml:"corpus_url"`
+	SkipCoverCheck bool   `json:"skip_cover_check" yaml:"skip_cover_check"`
+	BugTitleRe     string `json:"bug_title_re" yaml:"bug_title_re"`
 }
 
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
 type FuzzTriageTarget struct {
-	EmailLists         []string            `json:"email_lists" yaml:"email_lists"`
 	PathRegexps        []string            `json:"path_regexps" yaml:"path_regexps"`
 	ExcludePathRegexps []string            `json:"exclude_path_regexps,omitempty" yaml:"exclude_path_regexps,omitempty"`
 	Focus              string              `json:"focus" yaml:"focus"`
