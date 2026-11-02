@@ -1,0 +1,13 @@
+# Free multi-page binder buffers into the binder LRU shrinker and trigger slab
+# reclaim via /proc/sys/vm/drop_caches to exercise ShrinkablePageRange shrink callbacks.
+# requires: sandbox=none
+
+r0 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_SET_CONTEXT_MGR(r0, AUTO, AUTO)
+mmap$binder(&(0x7f00000a0000/0x6000)=nil, AUTO, AUTO, AUTO, r0, 0x0)
+r1 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction_sg={AUTO, {0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, AUTO, 0x8, &AUTO={@raw_ptr={AUTO, AUTO, &AUTO=""/8192, AUTO, AUTO, AUTO}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, &AUTO={0x0, 0x0, 0x0}}, 0x2000}], 0x0, AUTO, 0x0})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, <r2=>0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@free_buffer={AUTO, r2}], 0x0, AUTO, 0x0})
+r3 = openat$sysctl(0xffffffffffffff9c, &AUTO='/proc/sys/vm/drop_caches\x00', AUTO, AUTO)
+write$sysctl(r3, &AUTO='2\x00', 0x1)
