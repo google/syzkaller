@@ -6,7 +6,6 @@ package triage
 import (
 	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
@@ -16,18 +15,7 @@ func SelectFuzzConfigs(series *api.Series, targets []*api.FuzzTriageTarget) []*a
 	if series.IsStableRC() && len(series.Patches) > api.MaxRCFocusedPatches {
 		return defaultTargets(targets)
 	}
-	seriesCc := map[string]bool{}
-	for _, cc := range series.Cc {
-		seriesCc[strings.ToLower(cc)] = true
-	}
-	modifiedFiles := series.ModifiedFiles()
-	ret := filterTargets(targets, func(t *api.FuzzTriageTarget) bool {
-		matched := slices.ContainsFunc(t.EmailLists, func(cc string) bool {
-			return seriesCc[cc]
-		})
-		return matched || matchesPaths(t.PathRegexps, t.ExcludePathRegexps, modifiedFiles)
-	})
-	if len(ret) > 0 {
+	if ret := selectByPaths(targets, series.ModifiedFiles()); len(ret) > 0 {
 		return ret
 	}
 	return defaultTargets(targets)
@@ -45,7 +33,13 @@ func filterTargets(targets []*api.FuzzTriageTarget, match func(*api.FuzzTriageTa
 
 func defaultTargets(targets []*api.FuzzTriageTarget) []*api.KernelFuzzConfig {
 	return filterTargets(targets, func(t *api.FuzzTriageTarget) bool {
-		return len(t.EmailLists) == 0 && len(t.PathRegexps) == 0
+		return len(t.PathRegexps) == 0
+	})
+}
+
+func selectByPaths(targets []*api.FuzzTriageTarget, files []string) []*api.KernelFuzzConfig {
+	return filterTargets(targets, func(t *api.FuzzTriageTarget) bool {
+		return matchesPaths(t.PathRegexps, t.ExcludePathRegexps, files)
 	})
 }
 

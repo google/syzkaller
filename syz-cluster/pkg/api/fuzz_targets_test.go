@@ -21,7 +21,7 @@ func TestDefaultFuzzTargets(t *testing.T) {
 	hasFallback := false
 	for _, target := range targets {
 		require.NotNil(t, target)
-		if len(target.EmailLists) == 0 && len(target.PathRegexps) == 0 {
+		if len(target.PathRegexps) == 0 {
 			hasFallback = true
 		}
 		for _, r := range slices.Concat(target.PathRegexps, target.ExcludePathRegexps) {
@@ -37,7 +37,7 @@ func TestDefaultFuzzTargets(t *testing.T) {
 			assert.True(t, osutil.IsExist(config), "kernel config %q does not exist", campaign.KernelConfig)
 		}
 	}
-	assert.True(t, hasFallback, "there must be a fallback target without email lists and path regexps")
+	assert.True(t, hasFallback, "there must be a fallback target without path regexps")
 }
 
 func TestDefaultFuzzTargetsCopy(t *testing.T) {

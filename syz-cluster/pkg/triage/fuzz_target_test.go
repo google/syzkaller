@@ -21,28 +21,24 @@ func TestSelectFuzzConfigs(t *testing.T) {
 		&api.KernelFuzzConfig{}
 	configs := []*api.FuzzTriageTarget{
 		{
-			EmailLists: []string{"bpf@list"},
-			Campaigns:  []*api.KernelFuzzConfig{bpf, bpfKmsan},
+			PathRegexps: []string{"^kernel/bpf/"},
+			Campaigns:   []*api.KernelFuzzConfig{bpf, bpfKmsan},
 		},
 		{
-			EmailLists:         []string{"net@list"},
 			PathRegexps:        []string{"^net/"},
 			ExcludePathRegexps: []string{"^net/bluetooth/"},
 			Campaigns:          []*api.KernelFuzzConfig{net},
 		},
 		{
-			EmailLists:  []string{"bt@list"},
 			PathRegexps: []string{"^net/bluetooth/"},
 			Campaigns:   []*api.KernelFuzzConfig{bt},
 		},
 		{
-			EmailLists:  []string{"fs@list"},
 			PathRegexps: []string{"^fs/|include/linux/fs"},
 			Campaigns:   []*api.KernelFuzzConfig{fs},
 		},
 		{
-			EmailLists: nil,
-			Campaigns:  []*api.KernelFuzzConfig{mainline},
+			Campaigns: []*api.KernelFuzzConfig{mainline},
 		},
 	}
 	tests := []struct {
@@ -51,71 +47,34 @@ func TestSelectFuzzConfigs(t *testing.T) {
 		series   *api.Series
 	}{
 		{
-			testName: "select-by-email",
-			result:   []*api.KernelFuzzConfig{net},
-			series:   &api.Series{Cc: []string{"net@list"}},
-		},
-		{
-			testName: "select-both-by-email",
-			result:   []*api.KernelFuzzConfig{bpf, bpfKmsan, net},
-			series:   &api.Series{Cc: []string{"bpf@list", "net@list"}},
-		},
-		{
-			testName: "select-by-path-only",
+			testName: "select-by-path",
 			result:   []*api.KernelFuzzConfig{fs},
-			series: &api.Series{
-				Cc: []string{"unknown@list"},
-				Patches: []api.SeriesPatch{
-					{Body: []byte("diff --git a/fs/ext4/super.c b/fs/ext4/super.c\n--- a/fs/ext4/super.c\n+++ b/fs/ext4/super.c\n")},
-				},
-			},
+			series:   makeTestSeries([]string{"fs/ext4/super.c"}),
+		},
+		{
+			testName: "select-multiple-targets",
+			result:   []*api.KernelFuzzConfig{bpf, bpfKmsan, net},
+			series:   makeTestSeries([]string{"kernel/bpf/verifier.c", "net/core/sock.c"}),
 		},
 		{
 			testName: "exclude-path-regexp",
 			result:   []*api.KernelFuzzConfig{bt},
-			series: &api.Series{
-				Cc: []string{"unknown@list"},
-				Patches: []api.SeriesPatch{
-					{Body: []byte(`diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c
---- a/net/bluetooth/hci.c
-+++ b/net/bluetooth/hci.c
-`)},
-				},
-			},
+			series:   makeTestSeries([]string{"net/bluetooth/hci.c"}),
 		},
 		{
 			testName: "exclude-and-include-path-regexp",
 			result:   []*api.KernelFuzzConfig{net, bt},
-			series: &api.Series{
-				Cc: []string{"unknown@list"},
-				Patches: []api.SeriesPatch{
-					{Body: []byte(`diff --git a/net/bluetooth/hci.c b/net/bluetooth/hci.c
---- a/net/bluetooth/hci.c
-+++ b/net/bluetooth/hci.c
-`)},
-					{Body: []byte("diff --git a/net/core/sock.c b/net/core/sock.c\n--- a/net/core/sock.c\n+++ b/net/core/sock.c\n")},
-				},
-			},
+			series:   makeTestSeries([]string{"net/bluetooth/hci.c", "net/core/sock.c"}),
 		},
 		{
-			testName: "select-by-email-and-path",
-			result:   []*api.KernelFuzzConfig{net, fs},
-			series: &api.Series{
-				Cc: []string{"net@list"},
-				Patches: []api.SeriesPatch{
-					{Body: []byte("diff --git a/fs/ext4/super.c b/fs/ext4/super.c\n--- a/fs/ext4/super.c\n+++ b/fs/ext4/super.c\n")},
-				},
-			},
-		},
-		{
-			testName: "fallback-when-neither-matches",
+			testName: "fallback-when-unmatched",
 			result:   []*api.KernelFuzzConfig{mainline},
-			series: &api.Series{
-				Cc: []string{"unknown@list"},
-				Patches: []api.SeriesPatch{
-					{Body: []byte("diff --git a/mm/vma.c b/mm/vma.c\n--- a/mm/vma.c\n+++ b/mm/vma.c\n")},
-				},
-			},
+			series:   makeTestSeries([]string{"mm/vma.c"}),
+		},
+		{
+			testName: "fallback-when-empty",
+			result:   []*api.KernelFuzzConfig{mainline},
+			series:   makeTestSeries(nil),
 		},
 		{
 			testName: "small-stable-rc-stays-focused",
@@ -239,18 +198,12 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 	tests := []struct {
 		name           string
 		files          []string
-		cc             []string
 		wantFocus      []string
 		skipCoverCheck bool
 	}{
 		{
-			name:      "kvm-by-path",
+			name:      "kvm",
 			files:     []string{"arch/x86/kvm/vmx/vmx.c"},
-			wantFocus: []string{api.FocusKVM},
-		},
-		{
-			name:      "kvm-by-cc",
-			cc:        []string{"kvm@vger.kernel.org"},
 			wantFocus: []string{api.FocusKVM},
 		},
 		{
@@ -259,23 +212,13 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			wantFocus: []string{api.FocusIoUring},
 		},
 		{
-			name:      "bpf-by-path",
+			name:      "bpf",
 			files:     []string{"kernel/bpf/verifier.c"},
 			wantFocus: []string{api.FocusBPF},
 		},
 		{
-			name:      "bpf-by-cc",
-			cc:        []string{"bpf@vger.kernel.org"},
-			wantFocus: []string{api.FocusBPF},
-		},
-		{
-			name:      "net-by-path",
+			name:      "net",
 			files:     []string{"net/ipv4/tcp.c"},
-			wantFocus: []string{api.FocusNet},
-		},
-		{
-			name:      "net-by-cc",
-			cc:        []string{"netdev@vger.kernel.org"},
 			wantFocus: []string{api.FocusNet},
 		},
 		{
@@ -289,13 +232,8 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			wantFocus: []string{api.FocusBluetooth, api.FocusNet},
 		},
 		{
-			name:      "network-fs-by-path",
+			name:      "network-fs",
 			files:     []string{"fs/smb/client/cifsfs.c"},
-			wantFocus: []string{api.FocusFS, api.FocusNet},
-		},
-		{
-			name:      "network-fs-by-cc",
-			cc:        []string{"linux-nfs@vger.kernel.org"},
 			wantFocus: []string{api.FocusFS, api.FocusNet},
 		},
 		{
@@ -309,14 +247,8 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			wantFocus: []string{api.FocusUSB},
 		},
 		{
-			name:           "mm-by-path",
+			name:           "mm",
 			files:          []string{"mm/mmap.c"},
-			wantFocus:      []string{api.FocusMM},
-			skipCoverCheck: true,
-		},
-		{
-			name:           "mm-by-cc",
-			cc:             []string{"linux-mm@kvack.org"},
 			wantFocus:      []string{api.FocusMM},
 			skipCoverCheck: true,
 		},
@@ -333,13 +265,12 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 		{
 			name:      "fallback",
 			files:     []string{"kernel/sched/core.c", "lib/string.c"},
-			cc:        []string{"linux-kernel@vger.kernel.org"},
 			wantFocus: nil,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := MergeKernelFuzzConfigs(SelectFuzzConfigs(makeTestSeries(tc.files, tc.cc), targets))
+			configs := MergeKernelFuzzConfigs(SelectFuzzConfigs(makeTestSeries(tc.files), targets))
 			require.Len(t, configs, 1)
 			assert.Equal(t, tc.wantFocus, configs[0].FuzzConfig.Focus)
 			assert.Equal(t, tc.skipCoverCheck, configs[0].FuzzConfig.SkipCoverCheck)
@@ -348,8 +279,8 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 	}
 }
 
-func makeTestSeries(files, cc []string) *api.Series {
-	series := &api.Series{Cc: cc}
+func makeTestSeries(files []string) *api.Series {
+	series := &api.Series{}
 	for _, file := range files {
 		diff := fmt.Sprintf("diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n", file, file, file, file)
 		series.Patches = append(series.Patches, api.SeriesPatch{Body: []byte(diff)})
@@ -362,7 +293,7 @@ func makeStableRCSeries(file string, numPatches int) *api.Series {
 	for i := range files {
 		files[i] = file
 	}
-	series := makeTestSeries(files, nil)
+	series := makeTestSeries(files)
 	series.XStable = "review"
 	series.XKernelTestBranch = "linux-6.12.y"
 	return series
