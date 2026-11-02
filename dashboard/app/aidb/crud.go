@@ -1321,6 +1321,28 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 			return err
 		}
 
+		var mutations []*spanner.Mutation
+		if !hasPatch {
+			// The reporting still points at parentJob when an iteration only adds tags.
+			// Merge them there so later iterations and upstream reports see them.
+			stmt = spanner.Statement{
+				SQL:    selectJobs() + " WHERE ID = @id",
+				Params: map[string]any{"id": jobID},
+			}
+			iterationJob, err := readRow[Job](ctx, tx, stmt)
+			if err != nil {
+				return err
+			}
+			if iterationJob == nil {
+				return ErrNotFound
+			}
+			if mergePatchIterationTags(parentJob, iterationJob) {
+				mut := spanner.Update("Jobs", []string{"ID", "Results"},
+					[]any{parentJob.ID, parentJob.Results})
+				mutations = append(mutations, mut)
+			}
+		}
+
 		// If the job didn't generate a patch or replies (or replying is disabled for this stage),
 		// we don't need to report it externally.
 		replyAllowed := true
@@ -1337,11 +1359,10 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		}
 		inReplyTos = append(inReplyTos, replyToIDs...)
 		if len(inReplyTos) == 0 {
-			return nil
+			return tx.BufferWrite(mutations)
 		}
 
 		now := TimeNow(ctx)
-		var mutations []*spanner.Mutation
 		for _, inReplyTo := range inReplyTos {
 			var version spanner.NullInt64
 			if inReplyTo == "" {
@@ -1367,6 +1388,62 @@ func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
 		return tx.BufferWrite(mutations)
 	})
 	return err
+}
+
+func mergePatchIterationTags(parentJob, iterationJob *Job) bool {
+	if !parentJob.Results.Valid || !iterationJob.Results.Valid {
+		return false
+	}
+	parentResults, ok := parentJob.Results.Value.(map[string]any)
+	if !ok {
+		return false
+	}
+	iterationResults, ok := iterationJob.Results.Value.(map[string]any)
+	if !ok {
+		return false
+	}
+
+	parentResults = maps.Clone(parentResults)
+	changed := false
+	for _, field := range []string{"ReviewedBy", "AckedBy", "TestedBy", "ReportedBy", "SuggestedBy"} {
+		incoming, ok := jsonArray(iterationResults[field])
+		if !ok {
+			continue
+		}
+		current, _ := jsonArray(parentResults[field])
+		merged := slices.Clone(current)
+		fieldChanged := false
+		for _, tag := range incoming {
+			if _, ok := tag.(string); !ok || slices.Contains(merged, tag) {
+				continue
+			}
+			merged = append(merged, tag)
+			fieldChanged = true
+		}
+		if fieldChanged {
+			parentResults[field] = merged
+			changed = true
+		}
+	}
+	if changed {
+		parentJob.Results = toNullJSON(parentResults)
+	}
+	return changed
+}
+
+func jsonArray(value any) ([]any, bool) {
+	switch value := value.(type) {
+	case []any:
+		return value, true
+	case []string:
+		result := make([]any, len(value))
+		for i, item := range value {
+			result[i] = item
+		}
+		return result, true
+	default:
+		return nil, false
+	}
 }
 
 func JobReportingPublished(ctx context.Context, id, extID string) error {
