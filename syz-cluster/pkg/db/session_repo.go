@@ -75,24 +75,19 @@ func (repo *SessionRepository) Insert(ctx context.Context, session *Session) err
 	return repo.genericEntityOps.Insert(ctx, session)
 }
 
-func (repo *SessionRepository) ListInProgress(ctx context.Context) ([]*Session, error) {
-	return repo.readEntities(ctx, spanner.Statement{
-		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NOT NULL AND `FinishedAt` IS NULL",
-	})
-}
-
-func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*Session, error) {
-	// We give priority to the job-related and direct sessions to improve user experience,
-	// then to LTS RC sessions.
+func (repo *SessionRepository) ListUnfinished(ctx context.Context, limit int) ([]*Session, error) {
+	// Resume already started sessions first, then give priority to the job-related
+	// and direct sessions to improve user experience, then to LTS RC sessions.
 	// Otherwise, follow the FIFO order.
 	stmt := spanner.Statement{
 		SQL: "SELECT `Sessions`.* FROM `Sessions` " +
 			"JOIN `Series` ON `Sessions`.`SeriesID` = `Series`.`ID` " +
-			"WHERE `Sessions`.`StartedAt` IS NULL " +
+			"WHERE `Sessions`.`FinishedAt` IS NULL " +
 			"ORDER BY CASE " +
-			"WHEN `Sessions`.`JobID` IS NOT NULL OR `Sessions`.`Direct` = TRUE THEN 0 " +
-			"WHEN `Series`.`XStable` = 'review' THEN 1 " +
-			"ELSE 2 END, `Sessions`.`CreatedAt`",
+			"WHEN `Sessions`.`StartedAt` IS NOT NULL THEN 0 " +
+			"WHEN `Sessions`.`JobID` IS NOT NULL OR `Sessions`.`Direct` = TRUE THEN 1 " +
+			"WHEN `Series`.`XStable` = 'review' THEN 2 " +
+			"ELSE 3 END, `Sessions`.`CreatedAt`, `Sessions`.`ID`",
 		Params: map[string]any{},
 	}
 	addLimit(&stmt, limit)

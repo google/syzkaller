@@ -50,7 +50,7 @@ func TestSeriesInsertSession(t *testing.T) {
 	withSession(1)
 }
 
-func TestQueryWaitingSessions(t *testing.T) {
+func TestQueryUnfinishedSessions(t *testing.T) {
 	client, ctx := NewTransientDB(t)
 	sessionRepo := NewSessionRepository(client)
 
@@ -69,13 +69,56 @@ func TestQueryWaitingSessions(t *testing.T) {
 		err := sessionRepo.Insert(ctx, session)
 		assert.NoError(t, err)
 	}
+	// Tie-break equal CreatedAt by ID.
+	for _, id := range []string{"session-b", "session-a"} {
+		require.NoError(t, sessionRepo.Insert(ctx, &Session{
+			ID:        id,
+			SeriesID:  series.ID,
+			CreatedAt: nthTime(5),
+		}))
+	}
 
-	list, err := sessionRepo.ListWaiting(ctx, 5)
-	assert.NoError(t, err)
-	assert.Len(t, list, 5)
+	list, err := sessionRepo.ListUnfinished(ctx, 7)
+	require.NoError(t, err)
+	require.Len(t, list, 7)
 	for i := range 5 {
 		assert.Equal(t, nthTime(i), list[i].CreatedAt)
 	}
+	assert.Equal(t, "session-a", list[5].ID)
+	assert.Equal(t, "session-b", list[6].ID)
+}
+
+func TestPrioritizeStartedSessions(t *testing.T) {
+	client, ctx := NewTransientDB(t)
+	sessionRepo := NewSessionRepository(client)
+
+	dummy := &dummyTestData{t: t, ctx: ctx, client: client}
+	series := dummy.dummySeries()
+
+	finishedSession := dummy.dummySession(series)
+	dummy.startSession(finishedSession)
+	dummy.finishSession(finishedSession)
+
+	now := time.Now()
+	directSession := &Session{
+		SeriesID:  series.ID,
+		CreatedAt: now.Add(-time.Hour),
+		Direct:    spanner.NullBool{Bool: true, Valid: true},
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, directSession))
+
+	startedSession := &Session{
+		SeriesID:  series.ID,
+		CreatedAt: now,
+	}
+	require.NoError(t, sessionRepo.Insert(ctx, startedSession))
+	dummy.startSession(startedSession)
+
+	list, err := sessionRepo.ListUnfinished(ctx, 5)
+	require.NoError(t, err)
+	require.Len(t, list, 2)
+	assert.Equal(t, startedSession.ID, list[0].ID)
+	assert.Equal(t, directSession.ID, list[1].ID)
 }
 
 func TestPrioritizeJobSessions(t *testing.T) {
@@ -86,6 +129,8 @@ func TestPrioritizeJobSessions(t *testing.T) {
 	dummy := &dummyTestData{t: t, ctx: ctx, client: client}
 	series := dummy.dummySeries()
 	sessionBase := dummy.dummySession(series)
+	dummy.startSession(sessionBase)
+	dummy.finishSession(sessionBase)
 	report := dummy.dummyReport(sessionBase)
 
 	job := &Job{ID: "job-1", ExtID: "ext-1", Type: JobPatchTest, ReportID: report.ID}
@@ -107,7 +152,7 @@ func TestPrioritizeJobSessions(t *testing.T) {
 	err = sessionRepo.Insert(ctx, session2)
 	assert.NoError(t, err)
 
-	list, err := sessionRepo.ListWaiting(ctx, 2)
+	list, err := sessionRepo.ListUnfinished(ctx, 2)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)
 	assert.Equal(t, "job-1", list[0].JobID.StringVal)
@@ -136,7 +181,7 @@ func TestPrioritizeDirectSessions(t *testing.T) {
 	err = sessionRepo.Insert(ctx, session2)
 	assert.NoError(t, err)
 
-	list, err := sessionRepo.ListWaiting(ctx, 2)
+	list, err := sessionRepo.ListUnfinished(ctx, 2)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)
 	assert.True(t, list[0].Direct.Bool)
@@ -154,6 +199,7 @@ func TestPrioritizeStableRCSessions(t *testing.T) {
 	regularSeries := dummy.dummySeries()
 	sessionBase := dummy.dummySession(regularSeries)
 	dummy.startSession(sessionBase)
+	dummy.finishSession(sessionBase)
 	report := dummy.dummyReport(sessionBase)
 
 	rcSeries := &Series{
@@ -192,7 +238,7 @@ func TestPrioritizeStableRCSessions(t *testing.T) {
 	}
 	require.NoError(t, sessionRepo.Insert(ctx, jobSession))
 
-	list, err := sessionRepo.ListWaiting(ctx, 4)
+	list, err := sessionRepo.ListUnfinished(ctx, 4)
 	require.NoError(t, err)
 	require.Len(t, list, 4)
 	assert.Equal(t, directSession.ID, list[0].ID)

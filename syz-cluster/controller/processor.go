@@ -27,11 +27,8 @@ type SeriesProcessor struct {
 	dbPollInterval    time.Duration
 	parallelWorkflows int
 
-	// activeSessions tracks sessions currently queued in memory or running in worker goroutines.
-	// We track active sessions in memory because session.StartedAt in the database is only set
-	// right before the workflow is actually started. Tracking active sessions in memory prevents
-	// streamSeries from re-querying and re-dispatching waiting sessions before their StartedAt
-	// timestamp is committed to the database.
+	// activeSessions tracks sessions currently queued in memory or running in worker goroutines
+	// so streamSeries does not re-dispatch them before their FinishedAt timestamp is committed.
 	activeSessions sync.Map
 }
 
@@ -51,7 +48,11 @@ func NewSeriesProcessor(env *app.AppEnvironment, cfg *app.AppConfig) *SeriesProc
 	}
 }
 
-func (sp *SeriesProcessor) Loop(ctx context.Context) error {
+func (sp *SeriesProcessor) Loop(ctx context.Context) {
+	if sp.parallelWorkflows <= 0 {
+		<-ctx.Done()
+		return
+	}
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -61,47 +62,42 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 			sp.seriesRunner(ctx, ch)
 		})
 	}
-	// First pick up the previously started sessions.
-	inProgress, err := sp.sessionRepo.ListInProgress(ctx)
-	if err != nil {
-		return err
-	}
-	log.Printf("queried %d unfinished sessions", len(inProgress))
-	for _, session := range inProgress {
-		sp.activeSessions.Store(session.ID, struct{}{})
-		select {
-		case ch <- session:
-		case <-ctx.Done():
-			sp.activeSessions.Delete(session.ID)
-			return ctx.Err()
-		}
-	}
-	// Then, monitor the DB for the new series.
-	wg.Go(func() {
-		sp.streamSeries(ctx, ch)
-		close(ch)
-	})
-	return nil
+	sp.streamSeries(ctx, ch)
+	close(ch)
 }
 
 func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Session) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(sp.dbPollInterval):
+	for first := true; ; first = false {
+		if !first {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(sp.dbPollInterval):
+			}
 		}
-		// Query waiting sessions up to the parallel workflow capacity.
-		list, err := sp.sessionRepo.ListWaiting(ctx, sp.parallelWorkflows)
+		// Snapshot activeSessions before querying Spanner and check that snapshot below.
+		// streamSeries is the only goroutine that adds to activeSessions, while workers
+		// remove a session only after committing FinishedAt in Spanner. If a session
+		// finishes while ListUnfinished is running, ListUnfinished may still return it
+		// even though the worker has already removed it from activeSessions; checking
+		// the pre-query snapshot prevents re-dispatching that finished session.
+		wasActive := make(map[string]bool)
+		sp.activeSessions.Range(func(key, _ any) bool {
+			wasActive[key.(string)] = true
+			return true
+		})
+		// If k sessions are in activeSessions, k workers are busy and parallelWorkflows-k
+		// are free, so querying parallelWorkflows sessions is enough to fill free workers.
+		list, err := sp.sessionRepo.ListUnfinished(ctx, sp.parallelWorkflows)
 		if err != nil {
 			// Do not log context cancellation errors during shutdown.
 			if ctx.Err() == nil {
-				app.Errorf("failed to query series: %v", err)
+				app.Errorf("failed to query sessions: %v", err)
 			}
 			continue
 		}
 		for _, session := range list {
-			if _, ok := sp.activeSessions.Load(session.ID); ok {
+			if wasActive[session.ID] {
 				continue
 			}
 			sp.activeSessions.Store(session.ID, struct{}{})

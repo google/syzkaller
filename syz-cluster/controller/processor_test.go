@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/workflow"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // It's a bit too long for a unit test, but it captures the whole main scenario of operation.
@@ -227,6 +228,36 @@ func TestParallelWorkflowsLimit(t *testing.T) {
 	workflows.finish <- struct{}{}
 	workflows.finish <- struct{}{}
 	awaitFinishedSessions(t, processor.seriesRepo, 3)
+	stop()
+}
+
+func TestRecoverStartedSession(t *testing.T) {
+	workflows := newMockedWorkflows()
+	processor, client, ctx := prepareProcessorTest(t, workflows)
+
+	stop := startTestLoop(t, ctx, processor)
+
+	// Process one normal series first so Loop is guaranteed to be past its initial poll.
+	controller.UploadTestSeries(t, ctx, client, &api.Series{
+		ExtID: "series-1",
+		Title: "series-1",
+	})
+	workflows.finish <- struct{}{}
+	awaitFinishedSessions(t, processor.seriesRepo, 1)
+
+	// Simulate an in-flight Start commit from a previous controller instance that became
+	// visible only after the new Loop had already started polling.
+	series := &db.Series{ExtID: "series-2", PublishedAt: time.Now()}
+	require.NoError(t, processor.seriesRepo.Insert(ctx, series, nil))
+	session := &db.Session{SeriesID: series.ID, CreatedAt: time.Now()}
+	session.SetStartedAt(time.Now())
+	require.NoError(t, processor.sessionRepo.Insert(ctx, session))
+
+	workflows.finish <- struct{}{}
+	require.Eventually(t, func() bool {
+		updated, err := processor.sessionRepo.GetByID(ctx, session.ID)
+		return err == nil && !updated.FinishedAt.IsNull()
+	}, 2*time.Second, 50*time.Millisecond)
 	stop()
 }
 
