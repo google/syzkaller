@@ -1,0 +1,25 @@
+# Freeze the context manager process using its init_pid_ns PID from binder netlink
+# report, exercise cleared+recreated duplicate freeze notifications, supersede queued
+# async transactions (TF_ONE_WAY | TF_UPDATE_TXN), query BINDER_GET_FROZEN_INFO, and unfreeze.
+# requires: sandbox=none
+
+r0 = syz_init_net_socket$nl_generic(AUTO, AUTO, AUTO)
+sendmsg$binder_nlctrl_getfamily(r0, &AUTO={0x0, 0x0, &AUTO={&AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, {AUTO, AUTO, AUTO}, {AUTO, AUTO, 'binder\x00', nil}}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+recvfrom$binder_nlctrl_getfamily(r0, &AUTO={""/76, <r1=>0x0, ""/48}, AUTO, 0x40, AUTO, AUTO)
+setsockopt$binder_NETLINK_ADD_MEMBERSHIP(r0, AUTO, AUTO, &AUTO=r1, AUTO)
+r2 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+ioctl$BINDER_SET_CONTEXT_MGR(r2, AUTO, AUTO)
+mmap$binder(&(0x7f00000a0000/0x2000)=nil, AUTO, AUTO, AUTO, r2, 0x0)
+ioctl$BINDER_WRITE_READ(r2, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@reply={AUTO, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+recvfrom$binder_report(r0, &AUTO={""/44, <r3=>0x0, ""/12, 0x0, ""/64}, AUTO, 0x40, AUTO, AUTO)
+r4 = openat$binderfs(0xffffffffffffff9c, &AUTO='./binderfs/binder0\x00', 0x0, 0x0)
+mmap$binder(&(0x7f00000c0000/0x2000)=nil, AUTO, AUTO, AUTO, r4, 0x0)
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}, @increfs={AUTO, 0x0}, @request_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@clear_freeze={AUTO, 0x0, 0x1}, @request_freeze={AUTO, 0x0, 0x1}, @freeze_done={AUTO, 0x1}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_FREEZE(r2, AUTO, &AUTO={r3, 0x1, 0x64})
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction={AUTO, {0x0, 0x0, 0x0, 0x1, 0x41, 0x0, 0x0, AUTO, 0x0, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}, @flat=@binder={AUTO, 0x0, 0x0, 0x0}}, 0x0}}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_GET_FROZEN_INFO(r2, AUTO, &AUTO={r3, 0x0, 0x0})
+ioctl$BINDER_WRITE_READ(r4, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@freeze_done={AUTO, 0x1}, @clear_freeze={AUTO, 0x0, 0x1}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO}, ""/184}})
+ioctl$BINDER_FREEZE(r2, AUTO, &AUTO={r3, 0x0, 0x0})
