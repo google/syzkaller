@@ -10,9 +10,14 @@
 include <linux/android/binder.h>
 include <linux/fcntl.h>
 include <linux/mman.h>
+include <linux/net.h>
+include <linux/socket.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
+resource genl_binder_mcgrp_id[int32]
 
 # What's the difference between these node and handle? Do they mean the same?
 type binder_node int64[0:3]
@@ -41,6 +46,11 @@ ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], ar
 ioctl$BINDER_ENABLE_ONEWAY_SPAM_DETECTION(fd fd_binder, cmd const[BINDER_ENABLE_ONEWAY_SPAM_DETECTION], arg ptr[in, bool32])
 ioctl$BINDER_GET_EXTENDED_ERROR(fd fd_binder, cmd const[BINDER_GET_EXTENDED_ERROR], arg ptr[out, binder_extended_error])
 ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[out, binder_version])
+
+sendmsg$binder_nlctrl_getfamily(fd sock_nl_generic_init, msg ptr[in, msghdr_netlink[binder_nlctrl_getfamily_msg]], f flags[send_flags])
+recvfrom$binder_nlctrl_getfamily(fd sock_nl_generic_init, buf ptr[out, binder_nlctrl_reply], len len[buf], f flags[recv_flags], addr const[0], addrlen const[0])
+setsockopt$binder_NETLINK_ADD_MEMBERSHIP(fd sock_nl_generic_init, level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, genl_binder_mcgrp_id], arglen len[arg])
+recvfrom$binder_report(fd sock_nl_generic_init, buf ptr[out, binder_report_msg], len len[buf], f flags[recv_flags], addr const[0], addrlen const[0])
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 
@@ -384,3 +394,29 @@ binder_extended_error {
 	command	int32
 	param	int32
 }
+
+binder_nlctrl_getfamily_msg {
+	len	len[parent, int32]
+	type	const[GENL_ID_CTRL, int16]
+	flags	const[NLM_F_REQUEST, int16]
+	seq	const[0, int32]
+	pid	const[0, int32]
+	hdr	genlmsghdr_t[CTRL_CMD_GETFAMILY]
+	attr	nlattr[CTRL_ATTR_FAMILY_NAME, string["binder"]]
+} [packed, align[4]]
+
+binder_nlctrl_reply {
+	hdr		array[int8, 76]
+	mcgrp_id	genl_binder_mcgrp_id
+	rest		array[int8, 48]
+} [packed]
+
+# Offsets assume a 4-7 char context name (e.g. "binder", "binder0", "custom0");
+# to_pid is present at offset 60 when the failed transaction had a target proc.
+binder_report_msg {
+	hdr		array[int8, 44]
+	from_pid	pid
+	mid		array[int8, 12]
+	to_pid		pid
+	rest		array[int8, 64]
+} [packed]
