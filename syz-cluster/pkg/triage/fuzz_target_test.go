@@ -200,11 +200,17 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 		files          []string
 		wantFocus      []string
 		skipCoverCheck bool
+		wantCorpora    []string
 	}{
 		{
 			name:      "kvm",
 			files:     []string{"arch/x86/kvm/vmx/vmx.c"},
 			wantFocus: []string{api.FocusKVM},
+		},
+		{
+			name:      "kvm-arm64-not-matched-as-kvm",
+			files:     []string{"arch/arm64/kvm/sys_regs.c", "include/kvm/arm_vgic.h"},
+			wantFocus: nil,
 		},
 		{
 			name:      "io_uring",
@@ -247,10 +253,25 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			wantFocus: []string{api.FocusUSB},
 		},
 		{
+			name:      "usb-wireless-ath9k-wmi",
+			files:     []string{"drivers/net/wireless/ath/ath9k/wmi.c"},
+			wantFocus: []string{api.FocusNet, api.FocusUSB},
+		},
+		{
+			name:      "pci-wireless-ath9k-excluded-from-usb",
+			files:     []string{"drivers/net/wireless/ath/ath9k/pci.c"},
+			wantFocus: []string{api.FocusNet},
+		},
+		{
 			name:           "mm",
 			files:          []string{"mm/mmap.c"},
 			wantFocus:      []string{api.FocusMM},
 			skipCoverCheck: true,
+		},
+		{
+			name:      "mmc-and-mmiotrace-headers-not-mm",
+			files:     []string{"include/linux/mmc/host.h", "include/linux/mmiotrace.h"},
+			wantFocus: nil,
 		},
 		{
 			name:      "multi-subsystem-files",
@@ -261,6 +282,20 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			name:      "matched-and-unmatched-files",
 			files:     []string{"net/ipv4/tcp.c", "kernel/sched/core.c"},
 			wantFocus: []string{api.FocusNet},
+		},
+		{
+			name: "selftest-and-doc-do-not-hijack-core-series",
+			files: []string{
+				"include/linux/spinlock.h",
+				"kernel/locking/spinlock.c",
+				"rust/kernel/sync/lock/spinlock.rs",
+				"tools/testing/selftests/bpf/bpf_experimental.h",
+				"Documentation/usb/raw-gadget.rst",
+			},
+			wantFocus: nil,
+			wantCorpora: []string{
+				"https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db",
+			},
 		},
 		{
 			name:      "fallback",
@@ -275,6 +310,9 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			assert.Equal(t, tc.wantFocus, configs[0].FuzzConfig.Focus)
 			assert.Equal(t, tc.skipCoverCheck, configs[0].FuzzConfig.SkipCoverCheck)
 			assert.NotEmpty(t, configs[0].FuzzConfig.CorpusURLs)
+			if tc.wantCorpora != nil {
+				assert.Equal(t, tc.wantCorpora, configs[0].FuzzConfig.CorpusURLs)
+			}
 		})
 	}
 }
