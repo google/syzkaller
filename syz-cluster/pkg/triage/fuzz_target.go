@@ -11,29 +11,42 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
-func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) []*api.KernelFuzzConfig {
+func SelectFuzzConfigs(series *api.Series, targets []*api.FuzzTriageTarget) []*api.KernelFuzzConfig {
+	// Large stable RCs touch many subsystems across the kernel; fuzz them unfocused.
+	if series.IsStableRC() && len(series.Patches) > api.MaxRCFocusedPatches {
+		return defaultTargets(targets)
+	}
 	seriesCc := map[string]bool{}
 	for _, cc := range series.Cc {
 		seriesCc[strings.ToLower(cc)] = true
 	}
 	modifiedFiles := series.ModifiedFiles()
-	var ret, defaultRet []*api.KernelFuzzConfig
-	for _, config := range fuzzConfigs {
-		matched := slices.ContainsFunc(config.EmailLists, func(cc string) bool {
+	ret := filterTargets(targets, func(t *api.FuzzTriageTarget) bool {
+		matched := slices.ContainsFunc(t.EmailLists, func(cc string) bool {
 			return seriesCc[cc]
 		})
-		matched = matched || matchesPaths(config.PathRegexps, config.ExcludePathRegexps, modifiedFiles)
-		if matched {
-			ret = append(ret, expandCampaigns(config)...)
-		} else if len(config.EmailLists) == 0 && len(config.PathRegexps) == 0 {
-			defaultRet = append(defaultRet, expandCampaigns(config)...)
-		}
-	}
-	// We want to return the fallback option only if no element matched exactly.
+		return matched || matchesPaths(t.PathRegexps, t.ExcludePathRegexps, modifiedFiles)
+	})
 	if len(ret) > 0 {
 		return ret
 	}
-	return defaultRet
+	return defaultTargets(targets)
+}
+
+func filterTargets(targets []*api.FuzzTriageTarget, match func(*api.FuzzTriageTarget) bool) []*api.KernelFuzzConfig {
+	var ret []*api.KernelFuzzConfig
+	for _, t := range targets {
+		if match(t) {
+			ret = append(ret, expandCampaigns(t)...)
+		}
+	}
+	return ret
+}
+
+func defaultTargets(targets []*api.FuzzTriageTarget) []*api.KernelFuzzConfig {
+	return filterTargets(targets, func(t *api.FuzzTriageTarget) bool {
+		return len(t.EmailLists) == 0 && len(t.PathRegexps) == 0
+	})
 }
 
 func matchesPaths(regexps, excludeRegexps, modifiedFiles []string) bool {

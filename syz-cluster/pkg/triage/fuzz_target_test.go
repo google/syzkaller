@@ -117,6 +117,16 @@ func TestSelectFuzzConfigs(t *testing.T) {
 				},
 			},
 		},
+		{
+			testName: "small-stable-rc-stays-focused",
+			result:   []*api.KernelFuzzConfig{net},
+			series:   makeStableRCSeries("net/core/sock.c", api.MaxRCFocusedPatches),
+		},
+		{
+			testName: "large-stable-rc-uses-unfocused-fallback",
+			result:   []*api.KernelFuzzConfig{mainline},
+			series:   makeStableRCSeries("net/core/sock.c", api.MaxRCFocusedPatches+1),
+		},
 	}
 
 	for _, test := range tests {
@@ -344,5 +354,16 @@ func makeTestSeries(files, cc []string) *api.Series {
 		diff := fmt.Sprintf("diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n", file, file, file, file)
 		series.Patches = append(series.Patches, api.SeriesPatch{Body: []byte(diff)})
 	}
+	return series
+}
+
+func makeStableRCSeries(file string, numPatches int) *api.Series {
+	files := make([]string, numPatches)
+	for i := range files {
+		files[i] = file
+	}
+	series := makeTestSeries(files, nil)
+	series.XStable = "review"
+	series.XKernelTestBranch = "linux-6.12.y"
 	return series
 }
