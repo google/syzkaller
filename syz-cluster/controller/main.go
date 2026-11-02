@@ -29,9 +29,7 @@ func main() {
 
 	sp := NewSeriesProcessor(env, env.Config)
 	g.Go(func() error {
-		if err := sp.Loop(ctx); err != nil {
-			return fmt.Errorf("processor loop failed: %w", err)
-		}
+		sp.Loop(ctx)
 		return nil
 	})
 
