@@ -6,66 +6,83 @@
 # If no target matches, the targets without path_regexps are used.
 
 - path_regexps:
-    - "^arch/.*/kvm/|^virt/kvm/|include/.*/kvm"
+    - "^arch/x86/(kvm/|include/.*/(kvm|svm|vmx))|^virt/kvm/|^include/(.*/)?kvm"
+  exclude_path_regexps:
+    - "^include/kvm/arm_"
   focus: kvm
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "io_uring"
+    - "^io_uring/|^include/.*io_uring"
+    - "^drivers/block/ublk|^include/uapi/linux/ublk"
   focus: io_uring
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "bpf"
+    - "^(kernel|net|fs|mm|io_uring|crypto|lib|security|arch/x86/net|drivers/(hid|net|media/rc))/.*(bpf|xdp)"
+    - "^net/core/(filter|sock_map|skmsg)\\.c$|^drivers/net/netkit\\.c$"
+    - "^kernel/(sched/ext/|trace/trace_btf)"
+    - "^include/(linux|net|uapi|trace)/.*(bpf|btf|xdp)"
+    - "^include/(uapi/)?linux/(filter|skmsg|sched/ext)\\.h$|^include/net/netkit\\.h$"
   focus: bpf
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^net/|^drivers/net/|include/net/"
-    - "^drivers/infiniband/|include/rdma/"
+    - "^net/|^drivers/net/|^include/net/"
+    - "^drivers/infiniband/|^include/rdma/"
+    - "^drivers/block/(nbd|rnbd|drbd)|^include/uapi/linux/nbd"
+    - "^io_uring/(zcrx|net|cmd_net|napi|notif)|^include/(linux|uapi/linux)/io_uring/(zcrx|net)"
   exclude_path_regexps:
-    - "^net/bluetooth/|include/net/bluetooth/"
+    - "^net/bluetooth/|^include/net/bluetooth/"
   focus: net
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^net/bluetooth/|^drivers/bluetooth/|include/net/bluetooth/"
+    - "^net/bluetooth/|^drivers/bluetooth/|^include/net/bluetooth/"
   focus: bluetooth
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^fs/(nfs|nfsd|lockd|smb|cifs|afs|ceph|9p|netfs|dlm|ocfs2)/"
+    - "^fs/(nfs|nfsd|nfs_common|lockd|smb|cifs|afs|ceph|9p|netfs|dlm|ocfs2)/"
   focus: net
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^fs/|^block/|drivers/block"
+    - "^fs/|^block/|^drivers/block/"
   focus: fs
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "usb"
+    - "^(drivers|sound|include|net|rust)/.*usb"
+    - "^drivers/net/wireless/ath/(ath9k/|carl9170|ath6kl|ath10k|ar5523)"
+    - "^drivers/net/wireless/(ralink/rt2x00|zydas/zd1211rw|rsi|mediatek/mt76|marvell/libertas|purelifi/plfxlc)"
+    - "^drivers/net/wireless/realtek/(rtl818x/rtl8187|rtl8xxxu|rtlwifi|rtw88|rtw89)"
+    - "^drivers/bluetooth/(ath3k|bcm203x|bpa10x|btmtk|btrtl)\\.c$"
+  exclude_path_regexps:
+    - "^drivers/net/wireless/ath/ath9k/(pci|ahb)\\.c$"
   focus: usb
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-usb-corpus.db
   campaigns:
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^mm/|include/linux/mm"
+    - "^mm/|^include/linux/mm"
+  exclude_path_regexps:
+    - "^include/linux/(mmc/|mmiotrace\\.h$)"
   focus: mm
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
   campaigns:
