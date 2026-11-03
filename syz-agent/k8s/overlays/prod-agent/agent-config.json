@@ -73,6 +73,29 @@
         "mem": 2048,
         "qemu_args": "-machine vexpress-a15 -cpu cortex-a15 -dtb /dtb-files/vexpress-v2p-ca15-tc1.dtb -accel tcg,thread=multi"
       }
+    },
+    "linux/arm64-compat": {
+      "target": "linux/arm64/arm",
+      "image": "/disk-images/buildroot_arm64",
+      "kernel_config": "/kernel-configs/upstream-arm64-kasan.config",
+      "type": "qemu",
+      "vm": {
+        "count": 3,
+        "cpu": 2,
+        "mem": 4096,
+        "qemu_args": "-machine virt,virtualization=on -cpu max -accel tcg,thread=multi"
+      }
+    },
+    "linux/riscv64": {
+      "image": "/disk-images/buildroot-riscv64.fs",
+      "kernel_config": "/kernel-configs/upstream-riscv64-kasan.config",
+      "type": "qemu",
+      "vm": {
+        "count": 3,
+        "cpu": 2,
+        "mem": 4096,
+        "qemu_args": "-machine virt -cpu rv64,sv48=on -accel tcg,thread=multi"
+      }
     }
   }
 }

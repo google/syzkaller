@@ -191,11 +191,15 @@ func TestTargetConfig(t *testing.T) {
 	amd64Qemu := &TargetConfig{TargetOS: "linux", TargetArch: "amd64", TargetVMArch: "amd64", Type: "qemu"}
 	amd64GCE := &TargetConfig{TargetOS: "linux", TargetArch: "amd64", TargetVMArch: "amd64", Type: "gce"}
 	arm64GCE := &TargetConfig{TargetOS: "linux", TargetArch: "arm64", TargetVMArch: "arm64", Type: "gce"}
+	armQemu := &TargetConfig{TargetOS: "linux", TargetArch: "arm", TargetVMArch: "arm", Type: "qemu"}
+	armCompat := &TargetConfig{TargetOS: "linux", TargetArch: "arm", TargetVMArch: "arm64", Type: "qemu"}
 	cfg := &Config{
 		Targets: map[string]*TargetConfig{
-			"linux/amd64-qemu": amd64Qemu,
-			"linux/amd64-gce":  amd64GCE,
-			"linux/arm64":      arm64GCE,
+			"linux/amd64-qemu":   amd64Qemu,
+			"linux/amd64-gce":    amd64GCE,
+			"linux/arm64":        arm64GCE,
+			"linux/arm":          armQemu,
+			"linux/arm64-compat": armCompat,
 		},
 	}
 
@@ -246,6 +250,16 @@ func TestTargetConfig(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Same(t, amd64Qemu, got)
+	})
+
+	t.Run("arm on arm64 selects compat target", func(t *testing.T) {
+		got, err := cfg.targetConfig(map[string]any{
+			"TargetOS":     "linux",
+			"TargetArch":   "arm",
+			"TargetVMArch": "arm64",
+		})
+		require.NoError(t, err)
+		assert.Same(t, armCompat, got)
 	})
 
 	t.Run("unsupported arch returns error", func(t *testing.T) {
