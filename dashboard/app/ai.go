@@ -880,6 +880,11 @@ func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, t
 		args["KernelConfig"] = config
 		delete(args, "KernelConfigID")
 	}
+	analysis, err := loadTextArg(ctx, args["RootCauseAnalysisID"], textAIRootCause)
+	if err == nil && analysis != "" {
+		args["RootCauseAnalysis"] = analysis
+		delete(args, "RootCauseAnalysisID")
+	}
 
 	const maxArgLength = 100
 	var uiArgs []*uiAIJobArg
@@ -1230,11 +1235,12 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 	}
 	args := make(map[string]any)
 	textFields := map[string]struct{ tag, name string }{
-		"ReproSyzID":     {textReproSyz, "ReproSyz"},
-		"ReproCID":       {textReproC, "ReproC"},
-		"CrashReportID":  {textCrashReport, "CrashReport"},
-		"CrashLogID":     {textCrashLog, "CrashLog"},
-		"KernelConfigID": {textKernelConfig, "KernelConfig"},
+		"ReproSyzID":          {textReproSyz, "ReproSyz"},
+		"ReproCID":            {textReproC, "ReproC"},
+		"CrashReportID":       {textCrashReport, "CrashReport"},
+		"CrashLogID":          {textCrashLog, "CrashLog"},
+		"KernelConfigID":      {textKernelConfig, "KernelConfig"},
+		"RootCauseAnalysisID": {textAIRootCause, "RootCauseAnalysis"},
 	}
 	for name, val := range job.Args.Value.(map[string]any) {
 		if text, ok := textFields[name]; ok {
@@ -1813,6 +1819,10 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
+	}
+	if (typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) && bug.AIRootCause.Text != 0 {
+		args["RootCauseAnalysisID"] = bug.AIRootCause.Text
+		args["RootCauseCommit"] = bug.AIRootCause.KernelCommit
 	}
 	if manager, ok := extraArgs["KernelConfigManager"].(string); ok && manager != "" {
 		manager, _ = activeManager(ctx, manager, bug.Namespace)
