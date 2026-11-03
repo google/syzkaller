@@ -710,12 +710,17 @@ func (git Git) Reset() error {
 	return err
 }
 
+var ErrCommitNotFound = errors.New("commit not found")
+
 // Commit extracts the information about the particular git commit.
 func (git Git) Commit(hash string) (*Commit, error) {
 	const patchSeparator = "---===syzkaller-patch-separator===---"
 	output, err := git.Run("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b"+patchSeparator,
-		"-n", "1", "-p", "-U0", hash)
+		"-n", "1", "-p", "-U0", "--end-of-options", hash+"^{commit}", "--")
 	if err != nil {
+		if exists, existsErr := git.VerifyCommit(hash); existsErr == nil && !exists {
+			return nil, fmt.Errorf("%w: %w", ErrCommitNotFound, err)
+		}
 		return nil, err
 	}
 	before, after, ok := bytes.Cut(output, []byte(patchSeparator))
@@ -1011,13 +1016,25 @@ func (git Git) BranchesThatContain(commit string, since time.Time) ([]branchComm
 	return ret, nil
 }
 
+// VerifyCommit reports whether rev resolves to a commit object in the repository.
+// Unlike CommitExists, which checks raw object presence via 'git cat-file -e' and
+// treats malformed or abbreviated missing revisions as errors, VerifyCommit returns
+// false, nil for missing, malformed, or non-commit revisions and only returns an
+// error on repository or sandbox failures.
+func (git Git) VerifyCommit(rev string) (bool, error) {
+	return git.verifyObject(rev + "^{commit}")
+}
+
 func (git Git) verifyHash(hash string) (bool, error) {
-	_, err := git.Run("rev-parse", "--quiet", "--verify", hash)
+	return git.verifyObject(hash)
+}
+
+func (git Git) verifyObject(rev string) (bool, error) {
+	_, err := git.RunTimeout(time.Minute, "rev-parse", "--quiet", "--verify", "--end-of-options", rev)
+	if verr, ok := errors.AsType[*osutil.VerboseError](err); ok && verr.ExitCode == 1 {
+		return false, nil
+	}
 	if err != nil {
-		var verboseErr *osutil.VerboseError
-		if errors.As(err, &verboseErr) && verboseErr.ExitCode == 1 {
-			return false, nil
-		}
 		return false, err
 	}
 	return true, nil

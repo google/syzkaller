@@ -5,8 +5,10 @@ package vcs
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -257,6 +259,51 @@ func TestContains(t *testing.T) {
 	contained, err = repo.repo.ContainedIn("fake-parent", commitA.Hash)
 	require.Error(t, err)
 	require.False(t, contained)
+}
+
+func TestCommit(t *testing.T) {
+	baseDir := osutil.SandboxTempDir(t)
+	repo := MakeTestRepo(t, baseDir)
+	commitA := repo.CommitChangeset("target", FileContent{File: "foo.c", Content: "int x;\n"})
+
+	got, err := repo.repo.Commit(commitA.Hash[:12])
+	require.NoError(t, err)
+	assert.Equal(t, commitA.Hash, got.Hash)
+
+	for _, missing := range []string{
+		"fake-hash",
+		"0123456789abcdef0123456789abcdef01234567",
+		"0123456789ab",
+		"v6.12-rc1",
+		"foo.c",
+		"--output=" + filepath.Join(baseDir, "must-not-exist"),
+	} {
+		exists, err := repo.repo.VerifyCommit(missing)
+		require.NoError(t, err)
+		assert.False(t, exists, "missing=%q", missing)
+
+		_, err = repo.repo.Commit(missing)
+		assert.ErrorIs(t, err, ErrCommitNotFound, "missing=%q", missing)
+	}
+	assert.NoFileExists(t, filepath.Join(baseDir, "must-not-exist"))
+
+	// A blob hash exists in the object database, but is not a commit.
+	blobOut, err := repo.repo.Run("rev-parse", "HEAD:foo.c")
+	require.NoError(t, err)
+	blobHash := strings.TrimSpace(string(blobOut))
+	exists, err := repo.repo.VerifyCommit(blobHash)
+	require.NoError(t, err)
+	assert.False(t, exists)
+	_, err = repo.repo.Commit(blobHash)
+	assert.ErrorIs(t, err, ErrCommitNotFound)
+
+	// Non-repository directory must return an error rather than false, nil or ErrCommitNotFound.
+	nonRepo := SandboxedGit(osutil.SandboxTempDir(t))
+	_, err = nonRepo.VerifyCommit(commitA.Hash)
+	require.Error(t, err)
+	_, err = nonRepo.Commit(commitA.Hash)
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, ErrCommitNotFound)
 }
 
 func TestLatestCommits(t *testing.T) {
