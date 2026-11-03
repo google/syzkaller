@@ -2232,3 +2232,60 @@ If you attach or paste a git patch, syzbot will apply it before testing.
 	_, _, err = getText(c.ctx, textAIRootCause, bug.AIRootCause.Text)
 	require.NoError(t, err)
 }
+
+func TestAIRootCausePassedToBisect(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.Title = "KASAN: slab-use-after-free Write in dev_config"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Register the bisect-cause workflow on a separate agent so that its jobs can be created
+	// manually (polls replace the set of workflows registered for the polling agent).
+	const bisectAgent = "bisect-agent"
+	bisectWorkflow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)}
+	resp := c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Empty(t, resp.ID)
+
+	secResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, secResp.ID)
+	assert.NotContains(t, secResp.Args, "RootCauseAnalysis")
+	assert.NotContains(t, secResp.Args, "RootCauseCommit")
+
+	analysis := "Detailed root cause analysis of UAF in dev_config."
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: secResp.ID,
+		Results: map[string]any{
+			"Exploitable":       true,
+			"RootCauseSummary":  "Short summary.",
+			"RootCauseAnalysis": analysis,
+		},
+	}))
+
+	// Bisection jobs receive the saved root cause analysis and the commit it was done on.
+	jobID := c.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	resp = c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Equal(t, jobID, resp.ID)
+	assert.Equal(t, analysis, resp.Args["RootCauseAnalysis"])
+	assert.Equal(t, build.KernelCommit, resp.Args["RootCauseCommit"])
+	assert.NotContains(t, resp.Args, "RootCauseAnalysisID")
+	jobPage, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/ai_job?id=%v", jobID))
+	require.NoError(t, err)
+	assert.Contains(t, string(jobPage), analysis)
+	assert.NotContains(t, string(jobPage), "RootCauseAnalysisID")
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobID, Error: "stopped"}))
+
+	// Marking the assessment job as incorrect stops passing the analysis to new jobs.
+	values := url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}}
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", secResp.ID), values)
+	require.NoError(t, err)
+	jobID2 := c.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	resp2 := c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Equal(t, jobID2, resp2.ID)
+	assert.NotContains(t, resp2.Args, "RootCauseAnalysis")
+	assert.NotContains(t, resp2.Args, "RootCauseCommit")
+}
