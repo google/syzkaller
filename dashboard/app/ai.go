@@ -2265,8 +2265,8 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	return pending, nil
 }
 
-// syz-agent does not support other arches at the moment.
-var aiSupportedArches = []string{targets.AMD64, targets.ARM64, targets.ARM, targets.I386}
+// Arches supported by syz-agent (see syz-agent/k8s/overlays/prod-agent/agent-config.json).
+var aiSupportedArches = []string{targets.AMD64, targets.ARM64, targets.ARM, targets.I386, targets.RiscV64}
 
 func bugHasSupportedAIArch(ctx context.Context, bug *Bug) (bool, error) {
 	crash, _, err := findCrashForBug(ctx, bug)
