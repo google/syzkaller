@@ -2011,6 +2011,29 @@ func TestAutoCreateAIJobUnsupportedArch(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
+	s390xBuild := testBuild(1)
+	s390xBuild.Arch = targets.S390x
+	s390xBuild.VMArch = targets.S390x
+	c.aiClient.UploadBuild(s390xBuild)
+
+	crash := testCrash(s390xBuild, 1)
+	crash.Title = "KASAN: slab-use-after-free Write in dev_config"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	c.advanceTime(49 * time.Hour)
+
+	// Neither repro-c nor assessment-security should be auto-created for s390x.
+	resp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	require.Empty(t, resp.ID)
+	resp = c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.Empty(t, resp.ID)
+}
+
+func TestAutoCreateAIJobRiscV64(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
 	riscvBuild := testBuild(1)
 	riscvBuild.Arch = targets.RiscV64
 	riscvBuild.VMArch = targets.RiscV64
@@ -2021,13 +2044,10 @@ func TestAutoCreateAIJobUnsupportedArch(t *testing.T) {
 	c.aiClient.ReportCrash(crash)
 	c.aiClient.pollEmailBug()
 
-	c.advanceTime(49 * time.Hour)
-
-	// Neither repro-c nor assessment-security should be auto-created for riscv64.
-	resp := c.pollAIWorkflow(t, ai.WorkflowReproC)
-	require.Empty(t, resp.ID)
-	resp = c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
-	require.Empty(t, resp.ID)
+	resp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, resp.ID)
+	assert.Equal(t, targets.RiscV64, resp.Args["TargetArch"])
+	assert.Equal(t, targets.RiscV64, resp.Args["TargetVMArch"])
 }
 
 func TestAIAssessmentSecurityRootCause(t *testing.T) {
