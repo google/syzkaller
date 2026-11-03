@@ -77,7 +77,6 @@ Even when `syz-query-subsystems` succeeds without errors, **always inspect the d
    CI=true ./tools/syz-env go test ./pkg/subsystem/... ./dashboard/app/...
    ```
    - If [`TestLinuxUpstreamSubsystems`](../../../pkg/subsystem/lists/linux_test.go) fails after regeneration, investigate whether a subsystem's path rules or parent hierarchy regressed.
-   - If a subsystem referenced in `dashboard/app` (e.g., `SubsystemEmbargo`) was renamed or removed, update the dashboard config or `Redirect` map accordingly.
 
 2. **Commit Conventions**:
    - Separate any parser/logic changes in `pkg/subsystem/` or `tools/syz-query-subsystems/` into their own commit(s) first.
