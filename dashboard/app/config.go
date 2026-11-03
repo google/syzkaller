@@ -385,8 +385,9 @@ type Reporting struct {
 	DailyLimit int
 	// Upstream reports into next reporting after this period.
 	Embargo time.Duration
-	// SubsystemEmbargo overrides/customizes the embargo duration for specific subsystems.
-	SubsystemEmbargo map[string]time.Duration
+	// EmbargoFunc, if set, determines the embargo for each bug individually (Embargo must be 0 then).
+	// Returning 0 means the bug is never upstreamed automatically.
+	EmbargoFunc func(bug *Bug) time.Duration `json:"-"`
 	// Type of reporting and its configuration.
 	// The app has one built-in type, EmailConfig, which reports bugs by email.
 	// The user can implement other types to attach to external reporting systems (e.g. Bugzilla).
@@ -500,22 +501,10 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 }
 
 func (reporting *Reporting) EmbargoForBug(bug *Bug) time.Duration {
-	if len(reporting.SubsystemEmbargo) == 0 {
-		return reporting.Embargo
+	if reporting.EmbargoFunc != nil {
+		return reporting.EmbargoFunc(bug)
 	}
-	subsystems := bug.LabelValues(SubsystemLabel)
-	if len(subsystems) == 0 {
-		return reporting.Embargo
-	}
-	var maxEmbargo time.Duration
-	for _, sub := range subsystems {
-		embargo, ok := reporting.SubsystemEmbargo[sub.Value]
-		if !ok {
-			embargo = reporting.Embargo
-		}
-		maxEmbargo = max(maxEmbargo, embargo)
-	}
-	return maxEmbargo
+	return reporting.Embargo
 }
 
 // configDontUse holds the configuration object that is installed either by tests
@@ -909,19 +898,14 @@ func checkNamespaceReporting(ns string, cfg *Config) {
 			reporting.DisplayTitle = reporting.Name
 		}
 		reporting.moderation = ri < len(cfg.Reporting)-1
-		if !reporting.moderation && (reporting.Embargo != 0 || len(reporting.SubsystemEmbargo) > 0) {
+		if !reporting.moderation && (reporting.Embargo != 0 || reporting.EmbargoFunc != nil) {
 			panic(fmt.Sprintf("embargo in the last reporting %v", reporting.Name))
 		}
 		if reporting.Embargo < 0 {
 			panic(fmt.Sprintf("negative embargo %v in %v", reporting.Embargo, reporting.Name))
 		}
-		for sub, embargo := range reporting.SubsystemEmbargo {
-			if embargo <= 0 {
-				panic(fmt.Sprintf("non-positive embargo %v for subsystem %q in reporting %q", embargo, sub, reporting.Name))
-			}
-			if cfg.Subsystems.Service != nil && cfg.Subsystems.Service.ByName(sub) == nil {
-				panic(fmt.Sprintf("unknown subsystem %q in reporting %q embargo", sub, reporting.Name))
-			}
+		if reporting.Embargo != 0 && reporting.EmbargoFunc != nil {
+			panic(fmt.Sprintf("both Embargo and EmbargoFunc are set in %v", reporting.Name))
 		}
 		checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
 			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
