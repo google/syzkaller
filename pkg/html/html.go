@@ -88,7 +88,7 @@ func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
 func link(url, text string) template.HTML {
 	text = template.HTMLEscapeString(text)
 	if url != "" {
-		text = fmt.Sprintf(`<a href="%v">%v</a>`, url, text)
+		text = fmt.Sprintf(`<a href="%v">%v</a>`, template.HTMLEscapeString(url), text)
 	}
 	return template.HTML(text)
 }
