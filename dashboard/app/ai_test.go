@@ -330,6 +330,38 @@ func TestTruncateAIJobError(t *testing.T) {
 	require.True(t, strings.HasSuffix(truncated, "\n... [truncated]"))
 }
 
+func TestLoadTextArg(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	textID, err := putText(c.ctx, "test1", textKernelConfig, []byte("config"))
+	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		arg     any
+		text    string
+		wantErr bool
+	}{
+		{name: "text", arg: json.Number(fmt.Sprint(textID)), text: "config"},
+		{name: "zero", arg: json.Number("0")},
+		{name: "unset"},
+		{name: "missing", arg: json.Number("999999"), wantErr: true},
+		{name: "float", arg: json.Number("1.5"), wantErr: true},
+		{name: "string", arg: "1", wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			text, err := loadTextArg(c.ctx, test.arg, textKernelConfig)
+			if test.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, test.text, text)
+		})
+	}
+}
+
 func TestAIJobActions(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()

@@ -863,31 +863,22 @@ func handleAIJobPageJSON(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, template.HTML, error) {
+	args = maps.Clone(args)
 	var crashReport template.HTML
-	if val, ok := args["CrashReportID"]; ok {
-		if num, ok := val.(json.Number); ok {
-			if reportID, _ := num.Int64(); reportID != 0 {
-				report, _, err := getText(ctx, textCrashReport, reportID)
-				if err != nil {
-					return nil, "", err
-				}
-				repo, _ := args["KernelRepo"].(string)
-				commit, _ := args["KernelCommit"].(string)
-				crashReport = linkifyText(ctx, string(report), repo, commit)
-			}
-		}
+	report, err := loadTextArg(ctx, args["CrashReportID"], textCrashReport)
+	if err != nil {
+		return nil, "", err
+	}
+	if report != "" {
+		repo, _ := args["KernelRepo"].(string)
+		commit, _ := args["KernelCommit"].(string)
+		crashReport = linkifyText(ctx, report, repo, commit)
 	}
 
-	if val, ok := args["KernelConfigID"]; ok {
-		if num, ok := val.(json.Number); ok {
-			if configID, _ := num.Int64(); configID != 0 {
-				config, _, err := getText(ctx, textKernelConfig, configID)
-				if err == nil {
-					args["KernelConfig"] = string(config)
-					delete(args, "KernelConfigID")
-				}
-			}
-		}
+	config, err := loadTextArg(ctx, args["KernelConfigID"], textKernelConfig)
+	if err == nil && config != "" {
+		args["KernelConfig"] = config
+		delete(args, "KernelConfigID")
 	}
 
 	const maxArgLength = 100
@@ -904,6 +895,27 @@ func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, t
 		return strings.Compare(a.Key, b.Key)
 	})
 	return uiArgs, crashReport, nil
+}
+
+// loadTextArg loads the text referenced by a text ID job argument.
+// It returns an empty string if the argument is not set or is 0.
+func loadTextArg(ctx context.Context, arg any, tag string) (string, error) {
+	if arg == nil {
+		return "", nil
+	}
+	num, ok := arg.(json.Number)
+	if !ok {
+		return "", fmt.Errorf("unexpected text ID type %T", arg)
+	}
+	id, err := num.Int64()
+	if err != nil {
+		return "", err
+	}
+	if id == 0 {
+		return "", nil
+	}
+	text, _, err := getText(ctx, tag, id)
+	return string(text), err
 }
 
 func loadJobReportingsWithComments(ctx context.Context, jobID string) ([]*uiJobReporting, error) {
@@ -1217,22 +1229,6 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 		return map[string]any{}, nil
 	}
 	args := make(map[string]any)
-	var textErr error
-	assignText := func(anyID any, tag, name string) {
-		id, err := anyID.(json.Number).Int64()
-		if err != nil {
-			textErr = err
-		}
-		if id == 0 {
-			args[name] = ""
-			return
-		}
-		data, _, err := getText(ctx, tag, id)
-		if err != nil {
-			textErr = err
-		}
-		args[name] = string(data)
-	}
 	textFields := map[string]struct{ tag, name string }{
 		"ReproSyzID":     {textReproSyz, "ReproSyz"},
 		"ReproCID":       {textReproC, "ReproC"},
@@ -1242,13 +1238,14 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 	}
 	for name, val := range job.Args.Value.(map[string]any) {
 		if text, ok := textFields[name]; ok {
-			assignText(val, text.tag, text.name)
+			data, err := loadTextArg(ctx, val, text.tag)
+			if err != nil {
+				return nil, err
+			}
+			args[text.name] = data
 		} else {
 			args[name] = val
 		}
-	}
-	if textErr != nil {
-		return nil, textErr
 	}
 
 	if spec := getManualWorkflowSpec(getNsConfig(ctx, job.Namespace), job.Workflow); spec != nil {
