@@ -109,6 +109,13 @@ func TestCheckBranch(t *testing.T) {
 		"@":                       false,
 		"":                        false,
 	})
+	// A leading '-' must be rejected: such a value would be passed to git as a
+	// positional argument and interpreted as a command-line option.
+	for _, branch := range []string{"-oProxyCommand", "--dry-run", "--upload-pack", "-fkv"} {
+		if CheckBranch(branch) {
+			t.Errorf("%v: got true, want false", branch)
+		}
+	}
 }
 
 func TestCheckCommitHash(t *testing.T) {

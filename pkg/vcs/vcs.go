@@ -340,7 +340,11 @@ var (
 	gitRemoteRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps|sso)://[a-zA-Z0-9-_.]+(:[0-9]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
 	// nolint: lll
 	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps|sso)@[a-zA-Z0-9-_.]+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
-	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
+	// The first character must not be '-': branch names are passed to git as positional
+	// arguments (e.g. the fetch refspec in CheckoutBranch), and a leading '-' would make
+	// git interpret an attacker-controlled value as a command-line option. git itself
+	// also disallows ref names starting with '-', so no valid branch is rejected.
+	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9_/.][a-zA-Z0-9-_/.]{1,199}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
 	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
 	// CC: is intentionally not on this list, see #1441.
