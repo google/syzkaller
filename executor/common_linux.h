@@ -651,8 +651,6 @@ static struct nlmsg nlmsg;
 static int tunfd = -1;
 
 #define TUN_IFACE "syz_tun"
-#define LOCAL_MAC 0xaaaaaaaaaaaa
-#define REMOTE_MAC 0xaaaaaaaaaabb
 #define LOCAL_IPV4 "172.20.20.170"
 #define REMOTE_IPV4 "172.20.20.187"
 #define LOCAL_IPV6 "fe80::aa"
@@ -759,17 +757,17 @@ static void initialize_tun(void)
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed");
 
+	const uint8 local_mac[ETH_ALEN] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
+	const uint8 remote_mac[ETH_ALEN] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb};
 	netlink_add_addr4(&nlmsg, sock, TUN_IFACE, LOCAL_IPV4);
 	netlink_add_addr6(&nlmsg, sock, TUN_IFACE, LOCAL_IPV6);
-	uint64 macaddr = REMOTE_MAC;
+	netlink_device_change(&nlmsg, sock, TUN_IFACE, true, 0, local_mac, ETH_ALEN, NULL);
 	struct in_addr in_addr;
 	inet_pton(AF_INET, REMOTE_IPV4, &in_addr);
-	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in_addr, sizeof(in_addr), &macaddr, ETH_ALEN);
+	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in_addr, sizeof(in_addr), remote_mac, ETH_ALEN);
 	struct in6_addr in6_addr;
 	inet_pton(AF_INET6, REMOTE_IPV6, &in6_addr);
-	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), &macaddr, ETH_ALEN);
-	macaddr = LOCAL_MAC;
-	netlink_device_change(&nlmsg, sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN, NULL);
+	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), remote_mac, ETH_ALEN);
 	close(sock);
 }
 #endif
@@ -1617,8 +1615,10 @@ static void initialize_netdevices(void)
 	    {"vlan1", ETH_ALEN},
 	    {"macvlan0", ETH_ALEN},
 	    {"macvlan1", ETH_ALEN},
-	    {"ipvlan0", ETH_ALEN},
-	    {"ipvlan1", ETH_ALEN},
+	    // ipvlan/ipvtap do not support changing MAC (they share the MAC of the lower device),
+	    // so requesting a MAC change fails the whole link change request and keeps them down.
+	    {"ipvlan0", 0},
+	    {"ipvlan1", 0},
 	    {"veth0_macvtap", ETH_ALEN},
 	    {"veth1_macvtap", ETH_ALEN},
 	    {"macvtap0", ETH_ALEN},
@@ -1632,6 +1632,7 @@ static void initialize_netdevices(void)
 	    {"wg0", 0},
 	    {"wg1", 0},
 	    {"wg2", 0},
+	    {"ipvtap0", 0},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -1677,6 +1678,7 @@ static void initialize_netdevices(void)
 	netlink_add_vlan(&nlmsg, sock, "vlan1", "veth0_vlan", 1, htons(ETH_P_8021AD));
 	netlink_add_macvlan(&nlmsg, sock, "macvlan0", "veth1_vlan");
 	netlink_add_macvlan(&nlmsg, sock, "macvlan1", "veth1_vlan");
+	netlink_add_linked(&nlmsg, sock, "ipvtap", "ipvtap0", "veth0_vlan");
 	netlink_add_ipvlan(&nlmsg, sock, "ipvlan0", "veth0_vlan", IPVLAN_MODE_L2, 0);
 	netlink_add_ipvlan(&nlmsg, sock, "ipvlan1", "veth0_vlan", IPVLAN_MODE_L3S, IPVLAN_F_VEPA);
 
@@ -2814,36 +2816,38 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
 	// Rest of the packet (if any) will be silently truncated which is fine.
 	char data[1000];
-	int rv = read_tun(&data[0], sizeof(data));
-	if (rv == -1)
-		return (uintptr_t)-1;
-	size_t length = rv;
-	debug_dump_data(data, length);
-
-	if (length < sizeof(struct ethhdr))
-		return (uintptr_t)-1;
-	struct ethhdr* ethhdr = (struct ethhdr*)&data[0];
-
 	struct tcphdr* tcphdr = 0;
-	if (ethhdr->h_proto == htons(ETH_P_IP)) {
-		if (length < sizeof(struct ethhdr) + sizeof(struct iphdr))
+	while (!tcphdr) {
+		int rv = read_tun(&data[0], sizeof(data));
+		if (rv <= 0)
 			return (uintptr_t)-1;
-		struct iphdr* iphdr = (struct iphdr*)&data[sizeof(struct ethhdr)];
-		if (iphdr->protocol != IPPROTO_TCP)
-			return (uintptr_t)-1;
-		if (length < sizeof(struct ethhdr) + iphdr->ihl * 4 + sizeof(struct tcphdr))
-			return (uintptr_t)-1;
-		tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + iphdr->ihl * 4];
-	} else {
-		if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr))
-			return (uintptr_t)-1;
-		struct ipv6hdr* ipv6hdr = (struct ipv6hdr*)&data[sizeof(struct ethhdr)];
-		// TODO: parse and skip extension headers.
-		if (ipv6hdr->nexthdr != IPPROTO_TCP)
-			return (uintptr_t)-1;
-		if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct tcphdr))
-			return (uintptr_t)-1;
-		tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + sizeof(struct ipv6hdr)];
+		size_t length = rv;
+		debug_dump_data(data, length);
+
+		if (length < sizeof(struct ethhdr))
+			continue;
+		struct ethhdr* ethhdr = (struct ethhdr*)&data[0];
+
+		if (ethhdr->h_proto == htons(ETH_P_IP)) {
+			if (length < sizeof(struct ethhdr) + sizeof(struct iphdr))
+				continue;
+			struct iphdr* iphdr = (struct iphdr*)&data[sizeof(struct ethhdr)];
+			if (iphdr->protocol != IPPROTO_TCP || iphdr->ihl < 5)
+				continue;
+			if (length < sizeof(struct ethhdr) + iphdr->ihl * 4 + sizeof(struct tcphdr))
+				continue;
+			tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + iphdr->ihl * 4];
+		} else if (ethhdr->h_proto == htons(ETH_P_IPV6)) {
+			if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr))
+				continue;
+			struct ipv6hdr* ipv6hdr = (struct ipv6hdr*)&data[sizeof(struct ethhdr)];
+			// TODO: parse and skip extension headers.
+			if (ipv6hdr->nexthdr != IPPROTO_TCP)
+				continue;
+			if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct tcphdr))
+				continue;
+			tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + sizeof(struct ipv6hdr)];
+		}
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
@@ -4405,6 +4409,68 @@ static void initialize_cgroups()
 static void setup_gadgetfs();
 static void setup_binderfs();
 static void setup_fusectl();
+#if SYZ_EXECUTOR || (SYZ_NET_DEVICES && SYZ_SANDBOX_NONE)
+#include <fcntl.h>
+#include <net/if.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+
+static void setup_tap_dev(const char* cls, const char* dev, const char* node)
+{
+	unsigned ifindex = if_nametoindex(dev);
+	if (!ifindex) {
+		debug("setup_tap_dev: %s does not exist\n", dev);
+		return;
+	}
+	char path[128], buf[32] = {};
+	snprintf(path, sizeof(path), "./syz-tmp/net_sys/class/%s/tap%u/dev", cls, ifindex);
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		debug("setup_tap_dev: open(%s) failed: %d\n", path, errno);
+		return;
+	}
+	ssize_t n = read(fd, buf, sizeof(buf) - 1);
+	close(fd);
+	unsigned maj = 0, min = 0;
+	if (n <= 0 || sscanf(buf, "%u:%u", &maj, &min) != 2) {
+		debug("setup_tap_dev: failed to parse %s\n", path);
+		return;
+	}
+	if (mknod(node, S_IFCHR | 0666, makedev(maj, min))) {
+		debug("setup_tap_dev: mknod(%s) failed: %d\n", node, errno);
+	}
+}
+
+static void setup_tap_devs(void)
+{
+#if SYZ_EXECUTOR
+	// mknod() of character devices requires CAP_MKNOD in the initial user namespace,
+	// so the nodes can only be created with sandbox=none.
+	if (!flag_net_devices || !flag_sandbox_none)
+		return;
+#endif
+	// Note: the nodes become stale if a program deletes and re-creates the devices.
+	// macvtap0 and ipvtap0 are created per executor proc after unshare(CLONE_NEWNET),
+	// and tap_get_minor() allocates their minor numbers from a global IDR across all procs.
+	// Because sysfs pins its superblock to the network namespace active at mount() time,
+	// the global /sys (mounted in init_net) hides macvtap/ipvtap entries for this netns,
+	// so we temporarily mount a netns-local sysfs to read tap<ifindex>/dev.
+	if (mkdir("./syz-tmp/net_sys", 0700)) {
+		debug("setup_tap_devs: mkdir(./syz-tmp/net_sys) failed: %d\n", errno);
+		return;
+	}
+	if (mount("sysfs", "./syz-tmp/net_sys", "sysfs", 0, NULL)) {
+		debug("setup_tap_devs: mount(sysfs) failed: %d\n", errno);
+		rmdir("./syz-tmp/net_sys");
+		return;
+	}
+	setup_tap_dev("macvtap", "macvtap0", "./syz-tmp/newroot/macvtap0");
+	setup_tap_dev("ipvtap", "ipvtap0", "./syz-tmp/newroot/ipvtap0");
+	umount2("./syz-tmp/net_sys", MNT_DETACH);
+	rmdir("./syz-tmp/net_sys");
+}
+#endif
 // Mount tmpfs and chroot into it in sandbox=none and sandbox=namespace.
 // This is to prevent persistent changes to the root file system (e.g. setting attributes) that may
 // hinder fuzzing.
@@ -4461,6 +4527,9 @@ static void sandbox_common_mount_tmpfs(void)
 
 #if SYZ_EXECUTOR || SYZ_CGROUPS
 	initialize_cgroups();
+#endif
+#if SYZ_EXECUTOR || (SYZ_NET_DEVICES && SYZ_SANDBOX_NONE)
+	setup_tap_devs();
 #endif
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");

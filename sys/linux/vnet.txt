@@ -55,11 +55,11 @@ mac_addr_link_local {
 mac_addr_link_local_values = 0x0, 0x1, 0x2, 0x3, 0xe
 
 # This corresponds to the last digit in DEV_MAC/DEV_IPV4/DEV_IPV6 in executor/common_linux.h
-type netdev_addr_id int8[10:68]
+type netdev_addr_id int8[10:69]
 
 mac_addr [
 	empty		array[const[0x0, int8], 6]
-# These correspond to LOCAL_MAC/REMOTE_MAC/DEV_MAC in executor/common_linux.h
+# These correspond to local_mac/remote_mac/DEV_MAC in executor/common_linux.h
 	local		mac_addr_t[const[0xaa, int8]]
 	remote		mac_addr_t[const[0xbb, int8]]
 	dev		mac_addr_t[netdev_addr_id]
