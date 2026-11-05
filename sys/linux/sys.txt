@@ -676,9 +676,9 @@ write$yama_ptrace_scope(fd fd_yama_ptrace_scope, data ptr[in, string[yama_modes]
 resource fd_sysctl[fd]
 
 openat$sysctl(fd const[AT_FDCWD], file ptr[in, string[sysctl_file]], flags const[O_WRONLY], mode const[0]) fd_sysctl
-write$sysctl(fd fd_sysctl, val ptr[in, string[sysctl_value]], len len[val])
+write$sysctl(fd fd_sysctl, val ptr[in, stringnoz[sysctl_value]], len len[val])
 
-sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_dsack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/sys/net/ipv4/tcp_recovery", "/proc/sys/net/ipv4/tcp_mtu_probing", "/proc/sys/net/ipv4/tcp_rfc1337", "/proc/self/clear_refs"
+sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_dsack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/sys/net/ipv4/tcp_recovery", "/proc/sys/net/ipv4/tcp_mtu_probing", "/proc/sys/net/ipv4/tcp_rfc1337", "/proc/sys/net/mptcp/pm_type", "/proc/sys/net/mptcp/checksum_enabled", "/proc/self/clear_refs"
 # Most of these values are suitable for all sysctl_file files.
 sysctl_value = "0", "1", "2", "3", "4", "5", "6", "7"
 
