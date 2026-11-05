@@ -60,7 +60,6 @@ func InitTarget(target *prog.Target) {
 		"timeval":                       arch.generateTimespec,
 		"sockaddr_alg":                  arch.generateSockaddrAlg,
 		"alg_name":                      arch.generateAlgName,
-		"alg_aead_name":                 arch.generateAlgAeadName,
 		"alg_hash_name":                 arch.generateAlgHashName,
 		"alg_skcipher_name":             arch.generateAlgSkcipherhName,
 		"ipt_replace":                   arch.generateIptables,
