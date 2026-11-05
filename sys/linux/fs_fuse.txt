@@ -7,6 +7,7 @@ include <uapi/linux/fuse.h>
 include <uapi/linux/fcntl.h>
 
 resource fuse_unique[int64]
+resource fuse_commit_id[int64]
 resource fd_fuse[fd]
 
 openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
@@ -93,7 +94,7 @@ fuse_init_out {
 	flags			flags[fuse_init_flags, int32]
 	max_background		int16
 	congestion_threshold	int16
-	max_write		int32
+	max_write		int32[4096:262144]
 	time_gran		int32
 	max_pages		const[0, int16]
 	map_alignment		const[0, int16]
@@ -103,7 +104,7 @@ fuse_init_out {
 }
 
 fuse_init_flags = FUSE_ASYNC_READ, FUSE_POSIX_LOCKS, FUSE_FILE_OPS, FUSE_ATOMIC_O_TRUNC, FUSE_EXPORT_SUPPORT, FUSE_BIG_WRITES, FUSE_DONT_MASK, FUSE_SPLICE_WRITE, FUSE_SPLICE_MOVE, FUSE_SPLICE_READ, FUSE_FLOCK_LOCKS, FUSE_HAS_IOCTL_DIR, FUSE_AUTO_INVAL_DATA, FUSE_DO_READDIRPLUS, FUSE_READDIRPLUS_AUTO, FUSE_ASYNC_DIO, FUSE_WRITEBACK_CACHE, FUSE_NO_OPEN_SUPPORT, FUSE_PARALLEL_DIROPS, FUSE_HANDLE_KILLPRIV, FUSE_POSIX_ACL, FUSE_ABORT_ERROR, FUSE_MAX_PAGES, FUSE_CACHE_SYMLINKS, FUSE_NO_OPENDIR_SUPPORT, FUSE_EXPLICIT_INVAL_DATA, FUSE_MAP_ALIGNMENT, FUSE_SUBMOUNTS, FUSE_HANDLE_KILLPRIV_V2, FUSE_SETXATTR_EXT, FUSE_INIT_EXT, FUSE_INIT_RESERVED
-fuse_init_flags2 = FUSE_SECURITY_CTX_FLAG2, FUSE_HAS_INODE_DAX_FLAG2, FUSE_CREATE_SUPP_GROUP_FLAG2, FUSE_HAS_EXPIRE_ONLY_FLAG2, FUSE_DIRECT_IO_ALLOW_MMAP_FLAG2, FUSE_PASSTHROUGH_FLAG2, FUSE_NO_EXPORT_SUPPORT_FLAG2, FUSE_HAS_RESEND_FLAG2, FUSE_DIRECT_IO_RELAX_FLAG2, FUSE_ALLOW_IDMAP_FLAG2
+fuse_init_flags2 = FUSE_SECURITY_CTX_FLAG2, FUSE_HAS_INODE_DAX_FLAG2, FUSE_CREATE_SUPP_GROUP_FLAG2, FUSE_HAS_EXPIRE_ONLY_FLAG2, FUSE_DIRECT_IO_ALLOW_MMAP_FLAG2, FUSE_PASSTHROUGH_FLAG2, FUSE_NO_EXPORT_SUPPORT_FLAG2, FUSE_HAS_RESEND_FLAG2, FUSE_DIRECT_IO_RELAX_FLAG2, FUSE_ALLOW_IDMAP_FLAG2, FUSE_OVER_IO_URING_FLAG2
 
 define FUSE_SECURITY_CTX_FLAG2	FUSE_SECURITY_CTX >> 32
 define FUSE_HAS_INODE_DAX_FLAG2	FUSE_HAS_INODE_DAX >> 32
@@ -115,6 +116,96 @@ define FUSE_NO_EXPORT_SUPPORT_FLAG2	FUSE_NO_EXPORT_SUPPORT >> 32
 define FUSE_HAS_RESEND_FLAG2	FUSE_HAS_RESEND >> 32
 define FUSE_DIRECT_IO_RELAX_FLAG2	FUSE_DIRECT_IO_RELAX >> 32
 define FUSE_ALLOW_IDMAP_FLAG2	FUSE_ALLOW_IDMAP >> 32 
+define FUSE_OVER_IO_URING_FLAG2	FUSE_OVER_IO_URING >> 32
+
+# FUSE-over-io_uring requires a 128-byte SQE.  Unlike most generic
+# IORING_OP_URING_CMD users, FUSE also consumes sqe->addr as a two-element
+# iovec.  Keep this device-specific shape here so the fuzzer can reach the
+# actual registration and commit paths instead of failing at SQE validation.
+fuse_uring_cmd_ops = FUSE_IO_URING_CMD_REGISTER, FUSE_IO_URING_CMD_COMMIT_AND_FETCH
+
+fuse_uring_cmd_req {
+	flags		int64
+	commit_id	int64[0:32]
+	qid		int16[0:3]
+	padding		array[const[0, int8], 6]
+}
+
+fuse_uring_commit_cmd_req {
+	flags		int64
+	commit_id	fuse_commit_id
+	qid		int16[0:3]
+	padding		array[const[0, int8], 6]
+}
+
+fuse_uring_req_header {
+	data	array[int8, 288]
+}
+
+fuse_uring_iovecs {
+	headers	iovec[inout, fuse_uring_req_header]
+	payload	iovec[inout, array[int8, 262144]]
+}
+
+fuse_uring_cmd_sqe {
+	opcode			const[IORING_OP_URING_CMD, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio			const[0, int16]
+	fd			fd_fuse
+	cmd_op			flags[fuse_uring_cmd_ops, int32]
+	pad1			const[0, int32]
+	addr			ptr[in, fuse_uring_iovecs]
+	len			const[2, int32]
+	uring_flags		const[0, int32]
+	user_data		int64
+	buf_index_unused	const[0, int16]
+	personality_unused	const[0, int16]
+	pad_unused		array[const[0, int8], 4]
+	cmd			fuse_uring_cmd_req
+} [size[128]]
+
+fuse_uring_commit_sqe {
+	opcode			const[IORING_OP_URING_CMD, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio			const[0, int16]
+	fd			fd_fuse
+	cmd_op			const[FUSE_IO_URING_CMD_COMMIT_AND_FETCH, int32]
+	pad1			const[0, int32]
+	addr_unused		const[0, intptr]
+	len_unused		const[0, int32]
+	uring_flags		const[0, int32]
+	user_data		int64
+	buf_index_unused	const[0, int16]
+	personality_unused	const[0, int16]
+	pad_unused		array[const[0, int8], 4]
+	cmd			fuse_uring_commit_cmd_req
+} [size[128]]
+
+# The generic submit call has a union containing every uring_cmd device ABI.
+# This focused variant avoids transitive resource requirements from unrelated
+# branches and guarantees that a generated submission carries the FUSE shape.
+syz_io_uring_submit$fuse(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, fuse_uring_cmd_sqe])
+syz_io_uring_submit$fuse_commit(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, fuse_uring_commit_sqe])
+syz_io_uring_submit$fuse_openat(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$openat])
+syz_io_uring_submit$fuse_cancel(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe$async_cancel])
+
+# Consume a completed FUSE registration CQE, prepare a generic -ENOSYS
+# response in its registered header, and expose the asynchronously generated
+# commit ID as a resource for a dependent commit-and-fetch SQE.
+syz_fuse_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, headers ptr[out, fuse_uring_req_header]) fuse_commit_id
+
+# Deterministically complete the pending registration CQE and immediately
+# submit the corresponding COMMIT_AND_FETCH command.  This keeps the
+# asynchronously produced commit ID inside one executor operation.  The reply
+# prefix controls fuse_out_header.error and payload_sz; the same registered
+# buffer supplies arbitrary operation-specific reply bytes.
+syz_fuse_uring_commit(fd fd_io_uring, fusefd fd_fuse, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, headers ptr[out, fuse_uring_req_header], qid int16[0:3], reply ptr[inout, fuse_uring_reply]) fuse_commit_id
+
+fuse_uring_reply {
+	data		array[int8, 248]
+	error		int32
+	payload_sz	int32[0:262144]
+}
 
 fuse_lseek_out {
 	offset	int64
