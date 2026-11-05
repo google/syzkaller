@@ -320,19 +320,20 @@ func parseProg(target *prog.Target, dir, filename string, requires map[string]bo
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %w", filename, err)
 	}
 	errnos := map[string]int32{
-		"":           0,
-		"EPERM":      1,
-		"ENOENT":     2,
-		"E2BIG":      7,
-		"ENOEXEC":    8,
-		"EBADF":      9,
-		"ENOMEM":     12,
-		"EACCES":     13,
-		"EFAULT":     14,
-		"EXDEV":      18,
-		"EINVAL":     22,
-		"ENOTTY":     25,
-		"EOPNOTSUPP": 95,
+		"":            0,
+		"EPERM":       1,
+		"ENOENT":      2,
+		"E2BIG":       7,
+		"ENOEXEC":     8,
+		"EBADF":       9,
+		"ENOMEM":      12,
+		"EACCES":      13,
+		"EFAULT":      14,
+		"EXDEV":       18,
+		"EINVAL":      22,
+		"ENOTTY":      25,
+		"EOPNOTSUPP":  95,
+		"EINPROGRESS": 115,
 
 		// Fuchsia specific errors.
 		"ZX_ERR_NO_RESOURCES":   3,
