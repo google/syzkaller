@@ -15,19 +15,25 @@ recvmsg$kcm(fd sock_kcm, msg ptr[inout, recv_msghdr], f flags[recv_flags])
 
 ioctl$sock_kcm_SIOCKCMATTACH(fd sock_kcm, cmd const[SIOCKCMATTACH], arg ptr[in, kcm_attach])
 ioctl$sock_kcm_SIOCKCMUNATTACH(fd sock_kcm, cmd const[SIOCKCMUNATTACH], arg ptr[in, kcm_unattach])
-ioctl$sock_kcm_SIOCKCMCLONE(fd sock_kcm, cmd const[SIOCKCMCLONE], arg ptr[inout, kcm_clone])
+ioctl$sock_kcm_SIOCKCMCLONE(fd sock_kcm, cmd const[SIOCKCMCLONE], arg ptr[out, kcm_clone])
 
 kcm_socket_type = SOCK_DGRAM, SOCK_SEQPACKET
 
+# kcm_attach_ioctl() accepts AF_INET and AF_INET6 TCP sockets.
+kcm_csock [
+	tcp	sock_tcp
+	tcp6	sock_tcp6
+]
+
 kcm_attach {
-	fd	sock
+	fd	kcm_csock
 	bpf_fd	fd_bpf_prog
 }
 
 kcm_unattach {
-	fd	sock
+	fd	kcm_csock
 }
 
 kcm_clone {
-	fd	sock
+	fd	sock_kcm
 }

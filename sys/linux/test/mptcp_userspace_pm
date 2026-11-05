@@ -1,0 +1,19 @@
+# Switch the netns to the userspace MPTCP path manager, establish an MP_CAPABLE v1 connection over syz_tun,
+# extract the connection token via MPTCP_INFO, send MPTCP data and announce an address using the token.
+# requires: arch=amd64 -sandbox=setuid
+
+r0 = openat$sysctl(AUTO, &AUTO='/proc/sys/net/mptcp/pm_type\x00', AUTO, AUTO)
+write$sysctl(r0, &AUTO='1', AUTO)
+r1 = socket$inet_mptcp(AUTO, AUTO, AUTO)
+fcntl$setstatus(r1, AUTO, 0x800)
+setsockopt$sock_linger(r1, AUTO, AUTO, &AUTO={0x1, 0x0}, AUTO)
+setsockopt$SO_BINDTODEVICE(r1, AUTO, AUTO, &AUTO='syz_tun\x00', AUTO)
+bind$inet(r1, &AUTO={AUTO, 0x4e20, @local}, AUTO)
+connect$inet(r1, &AUTO={AUTO, 0x4e21, @remote}, AUTO)	# EINPROGRESS
+syz_extract_tcp_res$synack(&AUTO={<r2=>0x0, 0x0}, AUTO, AUTO)
+syz_emit_ethernet(AUTO, &AUTO={@local, @remote, @void, {@ipv4={AUTO, @tcp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x64, 0x0, 0x40, AUTO, AUTO, @remote, @local, {[]}}, {{0x4e21, 0x4e20, 0x44434241, r2, 0x0, AUTO, AUTO, 0x12, 0x1000, AUTO, 0x0, {[@mptcp=@capable_synack={AUTO, AUTO, AUTO, AUTO, 0x1, 0x1122334455667788}]}}, {""}}}}}}, 0x0)
+getsockopt$inet_mptcp_MPTCP_INFO(r1, AUTO, AUTO, &AUTO={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, <r3=>0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &AUTO=AUTO)
+sendto$inet(r1, &AUTO="45464748", AUTO, 0x40, 0x0, 0x0)
+r4 = socket$nl_generic(AUTO, AUTO, AUTO)
+r5 = syz_genetlink_get_family_id$mptcp(&AUTO='mptcp_pm\x00', r4)
+sendmsg$MPTCP_PM_CMD_ANNOUNCE(r4, &AUTO={&AUTO={AUTO, 0x0, 0x0, 0x0}, AUTO, &AUTO={&AUTO={AUTO, r5, 0x5, 0x0, 0x0, {AUTO, AUTO, AUTO}, [@MPTCP_PM_ATTR_TOKEN={AUTO, AUTO, r3, ""}, @MPTCP_PM_ATTR_ADDR={AUTO, AUTO, AUTO, AUTO, [@MPTCP_PM_ADDR_ATTR_FAMILY={AUTO, AUTO, 0x2, ""}, @MPTCP_PM_ADDR_ATTR_ID={AUTO, AUTO, 0x1, ""}, @MPTCP_PM_ADDR_ATTR_ADDR4={AUTO, AUTO, @local, ""}, @MPTCP_PM_ADDR_ATTR_FLAGS={AUTO, AUTO, 0x1, ""}], ""}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
