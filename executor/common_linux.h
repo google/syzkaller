@@ -2899,9 +2899,21 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 		char* hash;
 		strncpy(buf, (char*)a0, sizeof(buf) - 1);
 		buf[sizeof(buf) - 1] = 0;
-		while ((hash = strchr(buf, '#'))) {
-			*hash = '0' + (char)(nb % 10); // 10 devices should be enough for everyone.
-			nb /= 10;
+		hash = strchr(buf, '#');
+		if (hash && hash == strrchr(buf, '#')) {
+			char id[sizeof(unsigned long) * 3 + 1];
+			int id_len = snprintf(id, sizeof(id), "%lu", nb);
+			size_t prefix_len = hash - buf;
+			size_t suffix_len = strlen(hash + 1);
+			if (id_len < 0 || (size_t)id_len > sizeof(buf) - 1 - prefix_len - suffix_len)
+				return -1;
+			memmove(hash + id_len, hash + 1, suffix_len + 1);
+			memcpy(hash, id, id_len);
+		} else {
+			while ((hash = strchr(buf, '#'))) {
+				*hash = '0' + (char)(nb % 10);
+				nb /= 10;
+			}
 		}
 		return open(buf, a2 & ~O_CREAT, 0);
 	}

@@ -29,14 +29,13 @@ write$rnull_attr(fd fd_rnull_attr, buf ptr[in, stringnoz[rnull_attr_vals]], len 
 
 type rnull_path[SUFFIX] {
 	prefix	stringnoz["/sys/kernel/config/rnull/syzrnull"]
-# NEED: this does not support formatting numbers larger than 9.
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	suffix	SUFFIX
 } [packed]
 
 rnull_dev_node {
 	prefix	stringnoz["/dev/syzrnull"]
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	z	const[0, int8]
 } [packed]
 
