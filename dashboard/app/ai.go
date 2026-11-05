@@ -1801,8 +1801,11 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		return "", fmt.Errorf("addCrashReference failed: %w", err)
 	}
 	cfg := getNsConfig(ctx, bug.Namespace)
+	// CrashCommit is the commit the crash happened on: bisection workflows need it in addition
+	// to KernelCommit (fix bisection searches for the fix in CrashCommit..KernelCommit).
 	args := map[string]any{
 		"BugTitle":        bug.Title,
+		"CrashCommit":     build.KernelCommit,
 		"ReproOpts":       string(crash.ReproOpts),
 		"ReproSyzID":      crash.ReproSyz,
 		"ReproCID":        crash.ReproC,
