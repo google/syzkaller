@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 )
 
@@ -28,7 +29,10 @@ var (
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
 	flagUserspace     = flag.String("userspace", "", "path to userspace for build")
-	flagTrace         = flag.Bool("trace", false, "trace build process and save debug artefacts")
+	flagBuilderImage  = flag.String("builder_image", "",
+		"optional VM image used to build the kernel, needed for some cross-compilation targets")
+	flagCPUs  = flag.Int("cpus", 0, "number of CPUs to use for build (0 = all)")
+	flagTrace = flag.Bool("trace", false, "trace build process and save debug artefacts")
 )
 
 func main() {
@@ -60,9 +64,11 @@ func main() {
 		Linker:       *flagLinker,
 		Ccache:       *flagCcache,
 		UserspaceDir: *flagUserspace,
+		BuilderImage: *flagBuilderImage,
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,
 		Config:       kernelConfig,
+		BuildCPUs:    *flagCPUs,
 		Tracer:       &debugtracer.NullTracer{},
 	}
 	if *flagTrace {
@@ -73,7 +79,7 @@ func main() {
 	}
 	details, err := build.Image(params)
 	if err != nil {
-		tool.Fail(err)
+		tool.Fail(fmt.Errorf("%w\n%s", err, osutil.VerboseMessage(err)))
 	}
 	params.Tracer.Logf("signature: %v", details.Signature)
 	params.Tracer.Logf("compiler: %v", details.CompilerID)

@@ -237,3 +237,13 @@ func TestSandbox(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "hello\nsandbox", content)
 }
+
+func TestAvailableMemorySize(t *testing.T) {
+	avail, err := AvailableMemorySize()
+	if runtime.GOOS != "linux" {
+		require.Error(t, err)
+		return
+	}
+	require.NoError(t, err)
+	assert.Greater(t, avail, uint64(0))
+}

@@ -51,6 +51,8 @@ type BuildKernelConfig struct {
 	LinkerBin    string
 	CcacheBin    string
 	UserspaceDir string
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	BuilderImage string
 	CmdlineFile  string
 	SysctlFile   string
 	KernelConfig []byte
@@ -151,6 +153,7 @@ func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
 		Linker:       buildCfg.LinkerBin,
 		Ccache:       buildCfg.CcacheBin,
 		UserspaceDir: buildCfg.UserspaceDir,
+		BuilderImage: buildCfg.BuilderImage,
 		CmdlineFile:  buildCfg.CmdlineFile,
 		SysctlFile:   buildCfg.SysctlFile,
 		Config:       buildCfg.KernelConfig,

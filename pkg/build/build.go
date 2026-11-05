@@ -35,6 +35,8 @@ type Params struct {
 	Linker       string
 	Ccache       string
 	UserspaceDir string
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	BuilderImage string
 	CmdlineFile  string
 	SysctlFile   string
 	Config       []byte

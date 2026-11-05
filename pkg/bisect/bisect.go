@@ -63,6 +63,8 @@ type KernelConfig struct {
 	// this minimized one.
 	BaselineConfig []byte
 	Userspace      string
+	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
+	BuilderImage string
 	// Extra commits to cherry pick to older kernel revisions.
 	Backports []vcs.BackportCommit
 }
@@ -182,6 +184,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 			LinkerBin:    cfg.Linker,
 			CcacheBin:    cfg.Ccache,
 			UserspaceDir: cfg.Kernel.Userspace,
+			BuilderImage: cfg.Kernel.BuilderImage,
 			CmdlineFile:  cfg.Kernel.Cmdline,
 			SysctlFile:   cfg.Kernel.Sysctl,
 			KernelConfig: cfg.Kernel.Config,

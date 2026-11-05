@@ -34,15 +34,46 @@ Once this completes, a `syz-manager` executable should be available under `bin/`
 
 ### Setting up a Linux host
 
-To build Go binaries do:
+On an `amd64` Linux host, you can cross-compile FreeBSD userspace binaries (`syz-executor`, C reproducers) and build FreeBSD `amd64` kernels without a separate FreeBSD host machine.
+
+Prerequisites on Debian/Ubuntu: `clang`, `lld`, `llvm`, `g++`, `qemu-system-x86`, `openssh-client`, `expect`, `curl`, `xz-utils`, and `/dev/kvm` access.
+
+1. Prepare a base FreeBSD VM image (`userspace/image` + `userspace/key`) and userspace sysroot (`sysroot/`) from official FreeBSD snapshots:
+```console
+$ ./tools/create-freebsd-image.sh -o ~/freebsd-env
 ```
-make manager fuzzer execprog TARGETOS=freebsd
+Pass `-k` if you want a keyless/passwordless VM image (for example, to use as a reusable QEMU `builder_image`), and `-S` to skip extracting `sysroot/`.
+
+2. Build host binaries (`syz-manager`, `syz-repro`, etc.) and cross-compile FreeBSD target binaries (`syz-execprog`, `syz-executor`) using the extracted sysroot (`SOURCEDIR_FREEBSD` or `SOURCEDIR`):
+```console
+$ export SOURCEDIR_FREEBSD=~/freebsd-env/sysroot
+$ make host target TARGETOS=freebsd TARGETARCH=amd64
 ```
-To build C `syz-executor` binary, copy `executor/*` files to a FreeBSD machine and build there with:
+
+3. Build a `SYZKALLER` FreeBSD kernel (`KCOV` + `KASAN` + `COVERAGE`) and install it into a bootable VM image inside an isolated ephemeral QEMU VM:
+```console
+$ git clone --depth=1 --branch=main https://github.com/freebsd/freebsd-src.git ~/freebsd-src
+$ make syz-build
+$ mkdir -p ~/freebsd-build && cd ~/freebsd-build
+$ /path/to/syzkaller/bin/syz-build \
+	-os freebsd -arch amd64 -vm qemu \
+	-kernel_src ~/freebsd-src \
+	-userspace ~/freebsd-env/userspace \
+	-trace
 ```
-c++ executor/executor.cc -o syz-executor -O1 -lpthread -DGOOS_freebsd=1 -DGOARCH_amd64=1 -DGIT_REVISION=\"CURRENT_GIT_REVISION\"
+This produces `~/freebsd-build/image`, `~/freebsd-build/key` (if present in `userspace`), `~/freebsd-build/kernel.config`, and `~/freebsd-build/obj/kernel.full` (used by `syz-manager` via `"kernel_obj": "~/freebsd-build/obj"` and `"kernel_src": "~/freebsd-src"`).
+
+For `syz-ci` on a Linux host (e.g. targeting GCE or QEMU where `userspace/image` may not carry a prebaked SSH key), create a keyless builder image once with `./tools/create-freebsd-image.sh -k -S -o ~/freebsd-builder` and set `"kernel_builder_image"` in the manager config (or pass `-builder_image` to `bin/syz-build`):
+```json
+	"kernel_builder_image": "/path/to/freebsd-builder/userspace/image"
 ```
-Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
+
+Requirements for the `syz-ci` host itself:
+- `clang`, `lld` and `qemu-system-x86` must be installed, and the `syz-ci` process must have access to `/dev/kvm` (the kernel is built inside a local KVM-accelerated QEMU VM requiring 8 GiB of available RAM and up to 16 vCPUs).
+- `SOURCEDIR_FREEBSD` must be set in the environment of the `syz-ci` process (e.g. in its systemd unit), otherwise `syz-ci` refuses to start since it cannot build `syz-executor` for the target.
+- Infrastructure failures of the build VM (QEMU/KVM/SSH problems) are classified as `build.InfraError` and are not reported to the dashboard as kernel build errors; only a failing build inside the VM is.
+
+**Warning:** images created with `-k` have an empty root password and must only be used as a local QEMU `kernel_builder_image` (where the VM has no network access). Never use them as a fuzzing `userspace/image` on GCE or any other network-reachable VM.
 
 ## Setting up the FreeBSD VM
 
@@ -226,5 +257,5 @@ If something does not work, try adding the `-debug` flag to `syz-manager`.
 - We should support fuzzing the Linux compatibility subsystem.
 - We should provide instructions for fuzzing a FreeBSD system on ZFS
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
-- KASAN and KCSAN for FreeBSD would be useful.
+- KCSAN for FreeBSD would be useful.
 - On Linux we have emission of external networking/USB traffic into kernel using tun/gadgetfs. Implementing these for FreeBSD could uncover a number of high-profile bugs.

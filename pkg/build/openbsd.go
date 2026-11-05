@@ -4,22 +4,216 @@
 package build
 
 import (
+	"encoding/base64"
 	"fmt"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type openbsd struct{}
 
+func openbsdDefaultConfig(arch string) string {
+	return fmt.Sprintf(`include "arch/%v/conf/GENERIC.MP"
+
+pseudo-device kcov 1
+
+option KQUEUE_DEBUG
+option SPLASSERT_WATCH
+option VFSLCKDEBUG
+option WITNESS
+option WITNESS_LOCKTRACE
+option WITNESS_WATCH
+`, arch)
+}
+
 func (ctx openbsd) build(params Params) (ImageDetails, error) {
+	params.KernelDir = osutil.Abs(params.KernelDir)
+	config, err := bsdEnsureConfig(params, openbsdDefaultConfig(params.TargetArch))
+	if err != nil {
+		return ImageDetails{}, err
+	}
+	if runtime.GOOS != targets.OpenBSD {
+		return ctx.buildInVM(params, config)
+	}
+	return ctx.buildNative(params, config)
+}
+
+func (ctx openbsd) buildInVM(params Params, config []byte) (ImageDetails, error) {
+	if params.CmdlineFile != "" {
+		return ImageDetails{}, fmt.Errorf("cmdline file is not supported for openbsd kernel builds")
+	}
+	const kernelName = "SYZKALLER"
+
+	var extraSysctl string
+	if params.SysctlFile != "" {
+		data, err := os.ReadFile(params.SysctlFile)
+		if err != nil {
+			return ImageDetails{}, fmt.Errorf("failed to read sysctl file: %w", err)
+		}
+		extraSysctl = strings.TrimSpace(string(data))
+	}
+	overlayB64, err := openbsdEncodeOverlay(params.UserspaceDir)
+	if err != nil {
+		return ImageDetails{}, err
+	}
+	// OpenBSD's KERNEL_LOCK contends heavily at high vCPU counts (e.g. 14m25s at 64 vCPUs vs
+	// 4m27s at 12 vCPUs), so cap VM build parallelism to 12 vCPUs.
+	cpus := min(bsdBuildCPUs(params.BuildCPUs), 12)
+	params.BuildCPUs = cpus
+
+	script, err := openbsdVMBuildScript(openbsdScriptData{
+		KernelName:      kernelName,
+		CPUs:            cpus,
+		COptsArg:        openbsdCOptsArg(params.KernelDir),
+		CompilerIDEntry: bsdCompilerIDEntry,
+		OverlayB64:      overlayB64,
+		ExtraSysctl:     extraSysctl,
+	})
+	if err != nil {
+		return ImageDetails{}, err
+	}
+	return bsdVMBuild(params, bsdVMBuildSpec{
+		ScratchGB: 10,
+		OutTarMB:  8192,
+		// OpenBSD's src repo includes the full base userland and LLVM (~94k files);
+		// kernel builds only read sys/, so archiving just sys/ avoids untarring ~83k unrelated files on FFS.
+		SourceSubdir: "sys",
+		Config:       config,
+		ExpectedOutputs: map[string]string{
+			"bsd":     "kernel",
+			"bsd.gdb": "obj/bsd.gdb",
+		},
+		BuildScript: script,
+	})
+}
+
+// openbsdCOptsArg returns the "COPTS=..." make argument that remaps /build/src paths in debug
+// info to the host kernel directory, or "" if the path can't be safely passed through make.
+// Note: sys/arch/amd64/conf/Makefile.amd64 defines "COPTS?= -O2", so a command-line COPTS
+// completely replaces the default and we must keep -O2 ourselves.
+func openbsdCOptsArg(hostKernelDir string) string {
+	if strings.ContainsAny(hostKernelDir, " \t\n$") {
+		return ""
+	}
+	return "COPTS=" + shellQuote("-O2 -ffile-prefix-map=/build/src="+hostKernelDir) + " "
+}
+
+func openbsdEncodeOverlay(userspaceDir string) (string, error) {
+	info, err := os.Stat(userspaceDir)
+	if err != nil || !info.IsDir() {
+		return "", nil
+	}
+	overlayDir := filepath.Join(userspaceDir, "overlay")
+	if !osutil.IsExist(overlayDir) {
+		return "", nil
+	}
+	tmpFile, err := os.CreateTemp("", "openbsd-overlay-*.tar")
+	if err != nil {
+		return "", err
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	if err := writeKernelSourceTar(tmpPath, overlayDir, ""); err != nil {
+		return "", fmt.Errorf("failed to archive userspace overlay: %w", err)
+	}
+	data, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
+}
+
+type openbsdScriptData struct {
+	KernelName string
+	CPUs       int
+	// Either "" or "COPTS='...' " (with the trailing space), see openbsdCOptsArg.
+	COptsArg        string
+	CompilerIDEntry string
+	// Base64-encoded tar of the userspace overlay, or "" if there is none.
+	OverlayB64 string
+	// Extra lines to append to /etc/sysctl.conf on the target image, or "".
+	ExtraSysctl string
+}
+
+// Disk layout inside the builder VM (see buildBSDMgrConfig):
+// sd0 - builder boot image (snapshot=on), sd1 - scratch, sd2 - src.tar, sd3 - out.tar,
+// sd4 - target image that receives the kernel.
+var openbsdVMBuildTemplate = template.Must(template.New("openbsd-vm-build.sh").Parse(`set -eu
+if [ ! -x /usr/bin/cc ]; then
+	echo "missing /usr/bin/cc in builder VM (pass builder.raw via -builder_image / kernel_builder_image)" >&2
+	exit 1
+fi
+mkdir -p /build
+printf '/ *\n' > /tmp/syz.disklabel
+fdisk -iy sd1 >/dev/null
+disklabel -Aw -T /tmp/syz.disklabel sd1 >/dev/null
+newfs /dev/rsd1a >/dev/null
+mount -o async,noatime /dev/sd1a /build
+mkdir -p /build/src /build/obj
+tar -C /build/src -xf /dev/rsd2c
+
+CONF_DIR=/build/src/sys/arch/amd64/conf
+COMPILE_DIR=/build/src/sys/arch/amd64/compile/{{.KernelName}}
+rm -f "${CONF_DIR}/{{.KernelName}}"
+cp "$1" "${CONF_DIR}/{{.KernelName}}"
+mkdir -p "$COMPILE_DIR"
+printf '.include "../Makefile.inc"\n' > "${COMPILE_DIR}/Makefile"
+
+(
+	cd "$COMPILE_DIR"
+	export BSDSRCDIR=/build/src BSDOBJDIR=/build/obj BUILDUSER=root
+	for tgt in clean obj config; do
+		make -j {{.CPUs}} "$tgt"
+	done
+	make -j {{.CPUs}} {{.COptsArg}}all
+)
+
+KERN_OBJ_DIR="${COMPILE_DIR}/obj"
+/usr/bin/cc --version | head -n 1 > "${KERN_OBJ_DIR}/{{.CompilerIDEntry}}"
+
+mkdir -p /mnt/target
+mount -o noatime /dev/sd4a /mnt/target
+install -F -m 700 "${KERN_OBJ_DIR}/bsd" /mnt/target/bsd
+sha256 /mnt/target/bsd | (umask 077; sed 's,/mnt/target,,' > /mnt/target/var/db/kernel.SHA256) || true
+{{if .OverlayB64 -}}
+b64decode -r <<'__SYZ_OVERLAY_EOF__' | tar -C /mnt/target -xf -
+{{.OverlayB64}}
+__SYZ_OVERLAY_EOF__
+{{end -}}
+{{if .ExtraSysctl -}}
+cat >> /mnt/target/etc/sysctl.conf <<'__SYZ_SYSCTL_EOF__'
+{{.ExtraSysctl}}
+__SYZ_SYSCTL_EOF__
+{{end -}}
+tar -cf /dev/rsd3c -C "$KERN_OBJ_DIR" bsd bsd.gdb {{.CompilerIDEntry}}
+
+cd /
+umount /mnt/target
+umount /build
+sync
+sync
+`))
+
+func openbsdVMBuildScript(data openbsdScriptData) (string, error) {
+	return renderBSDScript(openbsdVMBuildTemplate, data)
+}
+
+func (ctx openbsd) buildNative(params Params, config []byte) (ImageDetails, error) {
 	const kernelName = "SYZKALLER"
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", params.KernelDir, params.TargetArch, kernelName)
 
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), config); err != nil {
 		return ImageDetails{}, err
 	}
 
