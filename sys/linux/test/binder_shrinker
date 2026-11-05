@@ -10,4 +10,4 @@ ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction_sg={AUT
 ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@enter_looper={AUTO}], AUTO, AUTO, &AUTO=@transaction={AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, <r2=>0x0, AUTO}, ""/184}})
 ioctl$BINDER_WRITE_READ(r0, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@free_buffer={AUTO, r2}], 0x0, AUTO, 0x0})
 r3 = openat$sysctl(0xffffffffffffff9c, &AUTO='/proc/sys/vm/drop_caches\x00', AUTO, AUTO)
-write$sysctl(r3, &AUTO='2\x00', 0x1)
+write$sysctl(r3, &AUTO='2', AUTO)

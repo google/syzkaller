@@ -217,7 +217,7 @@ getsockopt$inet6_tcp_TLS(fd sock_tcp6, level const[SOL_TLS], optname flags[tls_g
 tls_bool_opts = TLS_TX_ZEROCOPY_RO, TLS_RX_EXPECT_NO_PAD
 tls_get_opts = TLS_TX, TLS_RX, TLS_TX_ZEROCOPY_RO, TLS_RX_EXPECT_NO_PAD, TLS_TX_MAX_PAYLOAD_LEN
 
-tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr", "roccet"
+tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "bbr", "roccet"
 
 tcp_ulp_names = "tls"
 
