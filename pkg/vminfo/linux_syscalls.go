@@ -62,7 +62,7 @@ func linuxSupportedLSM(ctx *checkContext, call *prog.Syscall) string {
 }
 
 var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
-	"openat":                        supportedOpenat,
+	"openat":                        linuxSupportedOpenat,
 	"mount":                         linuxSupportedMount,
 	"socket":                        linuxSupportedSocket,
 	"socketpair":                    linuxSupportedSocket,
@@ -174,6 +174,25 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 
 func linuxNetInjectionSupported(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.rootCanOpen("/dev/net/tun")
+}
+
+// linuxTapClasses maps openat calls for the /macvtap0 and /ipvtap0 nodes to the corresponding sysfs classes.
+// The nodes are created by the executor in the sandbox root only for sandbox=none (mknod requires
+// CAP_MKNOD in the initial user namespace) and only when net devices are enabled, which is not
+// the case during the machine check, so we cannot check them with a plain openat.
+var linuxTapClasses = map[string]string{
+	"openat$macvtap": "/sys/class/macvtap",
+	"openat$ipvtap":  "/sys/class/ipvtap",
+}
+
+func linuxSupportedOpenat(ctx *checkContext, call *prog.Syscall) string {
+	if class, ok := linuxTapClasses[call.Name]; ok {
+		if reason := ctx.onlySandboxNone(); reason != "" {
+			return reason
+		}
+		return ctx.canOpen(class)
+	}
+	return supportedOpenat(ctx, call)
 }
 
 func linuxSyzOpenProcfsSupported(ctx *checkContext, call *prog.Syscall) string {
