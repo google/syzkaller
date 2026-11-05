@@ -119,12 +119,13 @@ func (n *Call) Info() (Pos, string, string) {
 }
 
 type Struct struct {
-	Pos      Pos
-	Name     *Ident
-	Fields   []*Field
-	Attrs    []*Type
-	Comments []*Comment
-	IsUnion  bool
+	Pos        Pos
+	Name       *Ident
+	Fields     []*Field
+	Attrs      []*Type
+	Comments   []*Comment
+	IsUnion    bool
+	IsOverride bool
 }
 
 func (n *Struct) Info() (Pos, string, string) {
@@ -136,9 +137,10 @@ func (n *Struct) Info() (Pos, string, string) {
 }
 
 type IntFlags struct {
-	Pos    Pos
-	Name   *Ident
-	Values []*Int
+	Pos        Pos
+	Name       *Ident
+	Values     []*Int
+	IsOverride bool
 }
 
 func (n *IntFlags) Info() (Pos, string, string) {
@@ -158,9 +160,10 @@ func (n *IntFlags) GetPos() Pos {
 }
 
 type StrFlags struct {
-	Pos    Pos
-	Name   *Ident
-	Values []*String
+	Pos        Pos
+	Name       *Ident
+	Values     []*String
+	IsOverride bool
 }
 
 func (n *StrFlags) Info() (Pos, string, string) {

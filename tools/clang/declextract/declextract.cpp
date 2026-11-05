@@ -983,7 +983,7 @@ void Extractor::matchFileOps() {
 void Extractor::extractIoctl(const Expr* Cmd, const ConstDesc& Const) {
   // This is old style ioctl defined directly via a number.
   // We can't infer anything about it.
-  if (Const.Value.find("_IO") != 0)
+  if (Const.Value.find("_IO") == std::string::npos)
     return;
   FieldType Type;
   auto Dir = _IOC_DIR(Const.IntValue);
