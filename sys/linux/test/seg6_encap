@@ -1,0 +1,9 @@
+# Add an IPv6 route with SRv6 (seg6) encapsulation via syz_tun and send a UDP packet through it,
+# so that it is encapsulated with an outer IPv6 header and a segment routing header.
+# requires: -sandbox=setuid
+
+r0 = socket$nl_route(AUTO, AUTO, AUTO)
+ioctl$sock_SIOCGIFINDEX(r0, AUTO, &AUTO={'syz_tun\x00', <r1=>0x0})
+sendmsg$nl_route(r0, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO=@ipv6_newroute={AUTO, AUTO, 0x405, 0x0, 0x0, {AUTO, 0x80, 0x0, 0x0, 0xfe, 0x3, 0x0, 0x1, 0x0}, [@RTA_DST={AUTO, AUTO, @private0={AUTO, AUTO, "", 0x1}, ""}, @RTA_OIF={AUTO, AUTO, r1, ""}, @RTA_ENCAP_TYPE={AUTO, AUTO, 0x5, ""}, @RTA_ENCAP={AUTO, AUTO, AUTO, AUTO, @seg6={{AUTO, AUTO, {0x1, {0x11, AUTO, AUTO, 0x0, AUTO, 0x0, 0x0, {@remote, []}}}, ""}, []}, ""}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+r2 = socket$inet6_udp(AUTO, AUTO, AUTO)
+sendto$inet6(r2, &AUTO="aabbccdd", AUTO, 0x0, &AUTO={AUTO, 0x4e20, 0x0, @private0={AUTO, AUTO, "", 0x1}, 0x0}, AUTO)

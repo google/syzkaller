@@ -277,7 +277,7 @@ type ifla_info_policy$t[TYPE, DATA_TYPE, DATA] {
 	IFLA_INFO_DATA	nlnest[DATA_TYPE, DATA]
 }
 
-# TODO: can, dummy, geneve, ifb, netdevsim, nlmon, vrf, vxlan
+# TODO: can, dummy, ifb, netdevsim, nlmon
 ifla_info_policy [
 	bond		ifla_info_policy$t["bond", IFLA_INFO_DATA, array[bond_policy]]
 	bond_slave	ifla_info_policy$t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
@@ -304,15 +304,72 @@ ifla_info_policy [
 	vxcan		ifla_info_policy$t["vxcan", IFLA_INFO_DATA, optional[nlattr[VXCAN_INFO_PEER, peer_info]]]
 	vlan		ifla_info_policy$t["vlan", IFLA_INFO_DATA, array[vlan_policy]]
 	ipvlan		ifla_info_policy$t["ipvlan", IFLA_INFO_DATA, array[ipvlan_nl_policy]]
+	ipvtap		ifla_info_policy$t["ipvtap", IFLA_INFO_DATA, array[ipvlan_nl_policy]]
 	macvlan		ifla_info_policy$t["macvlan", IFLA_INFO_DATA, array[macvlan_policy]]
-	macvtap		ifla_info_policy$t["macvtap", IFLA_INFO_DATA, void]
+	macvtap		ifla_info_policy$t["macvtap", IFLA_INFO_DATA, array[macvlan_policy]]
+	vrf		ifla_info_policy$t["vrf", IFLA_INFO_DATA, nlattr[IFLA_VRF_TABLE, int32[1:254]]]
 	macsec		ifla_info_policy$t["macsec", IFLA_INFO_DATA, array[macsec_rtnl_policy]]
 	lowpan		ifla_info_policy$t["lowpan", IFLA_INFO_DATA, void]
 	ipoib		ifla_info_policy$t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
 	geneve		ifla_info_policy$t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
+	vxlan		ifla_info_policy$t["vxlan", IFLA_INFO_DATA, array[vxlan_policy]]
 	wireguard	ifla_info_policy$t["wireguard", IFLA_INFO_DATA, void]
 	batadv		ifla_info_policy$t["batadv", IFLA_INFO_DATA, array[batadv_policy]]
 ] [varlen]
+
+vxlan_policy [
+	IFLA_VXLAN_ID			nlattr[IFLA_VXLAN_ID, int32[0:4]]
+	IFLA_VXLAN_GROUP		nlattr[IFLA_VXLAN_GROUP, ipv4_addr]
+	IFLA_VXLAN_LINK			nlattr[IFLA_VXLAN_LINK, ifindex]
+	IFLA_VXLAN_LOCAL		nlattr[IFLA_VXLAN_LOCAL, ipv4_addr]
+	IFLA_VXLAN_TTL			nlattr[IFLA_VXLAN_TTL, int8]
+	IFLA_VXLAN_TOS			nlattr[IFLA_VXLAN_TOS, int8]
+	IFLA_VXLAN_LEARNING		nlattr[IFLA_VXLAN_LEARNING, bool8]
+	IFLA_VXLAN_AGEING		nlattr[IFLA_VXLAN_AGEING, int32]
+	IFLA_VXLAN_LIMIT		nlattr[IFLA_VXLAN_LIMIT, int32]
+	IFLA_VXLAN_PORT_RANGE		nlattr[IFLA_VXLAN_PORT_RANGE, ifla_vxlan_port_range]
+	IFLA_VXLAN_PROXY		nlattr[IFLA_VXLAN_PROXY, bool8]
+	IFLA_VXLAN_RSC			nlattr[IFLA_VXLAN_RSC, bool8]
+	IFLA_VXLAN_L2MISS		nlattr[IFLA_VXLAN_L2MISS, bool8]
+	IFLA_VXLAN_L3MISS		nlattr[IFLA_VXLAN_L3MISS, bool8]
+	IFLA_VXLAN_PORT			nlattr[IFLA_VXLAN_PORT, sock_port]
+	IFLA_VXLAN_GROUP6		nlattr[IFLA_VXLAN_GROUP6, ipv6_addr]
+	IFLA_VXLAN_LOCAL6		nlattr[IFLA_VXLAN_LOCAL6, ipv6_addr]
+	IFLA_VXLAN_UDP_CSUM		nlattr[IFLA_VXLAN_UDP_CSUM, bool8]
+	IFLA_VXLAN_UDP_ZERO_CSUM6_TX	nlattr[IFLA_VXLAN_UDP_ZERO_CSUM6_TX, bool8]
+	IFLA_VXLAN_UDP_ZERO_CSUM6_RX	nlattr[IFLA_VXLAN_UDP_ZERO_CSUM6_RX, bool8]
+	IFLA_VXLAN_REMCSUM_TX		nlattr[IFLA_VXLAN_REMCSUM_TX, bool8]
+	IFLA_VXLAN_REMCSUM_RX		nlattr[IFLA_VXLAN_REMCSUM_RX, bool8]
+	IFLA_VXLAN_GBP			nlattr[IFLA_VXLAN_GBP, void]
+	IFLA_VXLAN_REMCSUM_NOPARTIAL	nlattr[IFLA_VXLAN_REMCSUM_NOPARTIAL, void]
+	IFLA_VXLAN_COLLECT_METADATA	nlattr[IFLA_VXLAN_COLLECT_METADATA, bool8]
+	IFLA_VXLAN_LABEL		nlnetw[IFLA_VXLAN_LABEL, int32be]
+	IFLA_VXLAN_GPE			nlattr[IFLA_VXLAN_GPE, void]
+	IFLA_VXLAN_TTL_INHERIT		nlattr[IFLA_VXLAN_TTL_INHERIT, void]
+	IFLA_VXLAN_DF			nlattr[IFLA_VXLAN_DF, flags[vxlan_df, int8]]
+	IFLA_VXLAN_VNIFILTER		nlattr[IFLA_VXLAN_VNIFILTER, bool8]
+	IFLA_VXLAN_LOCALBYPASS		nlattr[IFLA_VXLAN_LOCALBYPASS, bool8]
+	IFLA_VXLAN_LABEL_POLICY		nlattr[IFLA_VXLAN_LABEL_POLICY, flags[vxlan_label_policy, int32]]
+	IFLA_VXLAN_RESERVED_BITS	nlattr[IFLA_VXLAN_RESERVED_BITS, vxlan_reserved_bits]
+	IFLA_VXLAN_MC_ROUTE		nlattr[IFLA_VXLAN_MC_ROUTE, bool8]
+] [varlen]
+
+vxlan_df = VXLAN_DF_UNSET, VXLAN_DF_SET, VXLAN_DF_INHERIT
+vxlan_label_policy = VXLAN_LABEL_FIXED, VXLAN_LABEL_INHERIT
+
+# vxlan_nl2conf() rejects bits overlapping VXLAN_HF_VNI (0x08 in byte 0) or VXLAN_VNI_MASK (bytes 4..6).
+vxlan_reserved_bits {
+	flags		int8[0:7]
+	reserved1	int8
+	reserved2	int16be
+	vni		array[const[0, int8], 3]
+	reserved3	int8
+} [packed]
+
+ifla_vxlan_port_range {
+	low	sock_port
+	high	sock_port
+}
 
 batadv_policy [
 	IFLA_BATADV_ALGO_NAME	nlattr[IFLA_BATADV_ALGO_NAME, stringnoz[batadv_algo]]
@@ -685,7 +742,7 @@ rtm_ipv4_policy [
 	RTA_PREFSRC	nlattr[RTA_PREFSRC, ipv4_addr]
 # TODO: what's this? is this interesting?
 	RTA_METRICS	nlnest[RTA_METRICS, array[int8]]
-	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
+	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, array[rtnexthop_ipv4, 1:4]]
 	RTA_FLOW	nlattr[RTA_FLOW, int32]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 	RTA_ENCAP	nlnest[RTA_ENCAP, lwtunnel_policy]
@@ -701,19 +758,29 @@ rtm_ipv4_policy [
 rta_ip_protos = IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_ICMPV6
 
 rtm_ipv6_policy [
+	RTA_DST		nlattr[RTA_DST, ipv6_addr]
+	RTA_SRC		nlattr[RTA_SRC, ipv6_addr]
+	RTA_PREFSRC	nlattr[RTA_PREFSRC, ipv6_addr]
+	RTA_TABLE	nlattr[RTA_TABLE, int32]
 	RTA_GATEWAY	nlattr[RTA_GATEWAY, ipv6_addr]
 	RTA_IIF		nlattr[RTA_IIF, ifindex]
 	RTA_OIF		nlattr[RTA_OIF, ifindex]
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
 # TODO: what's this? is this interesting?
 	RTA_METRICS	nlnest[RTA_METRICS, array[int8]]
-	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
+	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, array[rtnexthop_ipv6, 1:4]]
 	RTA_PREF	nlattr[RTA_PREF, int8]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 	RTA_ENCAP	nlnest[RTA_ENCAP, lwtunnel_policy]
 	RTA_EXPIRES	nlattr[RTA_EXPIRES, int32]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
+	RTA_IP_PROTO	nlattr[RTA_IP_PROTO, flags[rta_ip_protos, int8]]
+	RTA_SPORT	nlattr[RTA_SPORT, sock_port]
+	RTA_DPORT	nlattr[RTA_DPORT, sock_port]
+	RTA_NH_ID	nlattr[RTA_NH_ID, int32]
+# Only accepted by RTM_GETROUTE (rtm_to_fib6_config() rejects it), and must fit IPV6_FLOWLABEL_MASK.
+	RTA_FLOWLABEL	nlattr[RTA_FLOWLABEL, int32be[0:0xfffff]]
 ] [varlen]
 
 rtm_mpls_policy [
@@ -840,11 +907,28 @@ nda_cacheinfo {
 }
 
 rtnexthop {
-	rtnh_len	int16
+	rtnh_len	len[parent, int16]
 	rtnh_flags	flags[rtnh_flags, int8]
 	rtnh_hops	int8
 	rtnh_ifindex	ifindex
 }
+
+rtnexthop_ipv4 {
+	rtnh_len	len[parent, int16]
+	rtnh_flags	flags[rtnh_flags, int8]
+	rtnh_hops	int8
+	rtnh_ifindex	ifindex
+	gateway		optional[nlattr[RTA_GATEWAY, ipv4_addr]]
+} [align[4]]
+
+rtnexthop_ipv6 {
+	rtnh_len	len[parent, int16]
+	rtnh_flags	flags[rtnh_flags, int8]
+	rtnh_hops	int8
+	rtnh_ifindex	ifindex
+# ip6_route_multipath_add() rejects nexthops without a gateway.
+	gateway		nlattr[RTA_GATEWAY, ipv6_addr]
+} [align[4]]
 
 ifa_cacheinfo {
 	ifa_prefered	int32
@@ -1065,10 +1149,24 @@ rtcanmsg {
 
 rtcanmsg_flags = CGW_FLAGS_CAN_ECHO, CGW_FLAGS_CAN_SRC_TSTAMP, CGW_FLAGS_CAN_IIF_TX_OK
 
+# The nested attributes are parsed according to RTA_ENCAP_TYPE/NHA_ENCAP_TYPE.
 lwtunnel_policy [
+	mpls		array[mpls_iptunnel_policy]
+	ip		array[ip_tun_policy]
+	ila		array[ila_nl_policy]
+	ip6		array[ip6_tun_policy]
+	seg6		lwtunnel_seg6
+	bpf		array[bpf_nl_policy]
+	seg6_local	lwtunnel_seg6_local
+	rpl		nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
+] [varlen]
+
+mpls_iptunnel_policy [
 	MPLS_IPTUNNEL_DST	nlattr[MPLS_IPTUNNEL_DST, array[mpls_label]]
 	MPLS_IPTUNNEL_TTL	nlattr[MPLS_IPTUNNEL_TTL, int8]
+] [varlen]
 
+ip_tun_policy [
 	LWTUNNEL_IP_ID		nlattr[LWTUNNEL_IP_ID, int64be]
 	LWTUNNEL_IP_DST		nlattr[LWTUNNEL_IP_DST, ipv4_addr]
 	LWTUNNEL_IP_SRC		nlattr[LWTUNNEL_IP_SRC, ipv4_addr]
@@ -1076,37 +1174,61 @@ lwtunnel_policy [
 	LWTUNNEL_IP_TOS		nlattr[LWTUNNEL_IP_TOS, int8]
 	LWTUNNEL_IP_FLAGS	nlattr[LWTUNNEL_IP_FLAGS, flags[lwtunnel_ip_flags, int16be]]
 	LWTUNNEL_IP_OPTS	nlnest[LWTUNNEL_IP_OPTS, ip_opts_policy]
+] [varlen]
 
+ila_nl_policy [
 	ILA_ATTR_LOCATOR	nlattr[ILA_ATTR_LOCATOR, int64be]
 	ILA_ATTR_CSUM_MODE	nlattr[ILA_ATTR_CSUM_MODE, flags[ila_attr_csum_mode, int8]]
 	ILA_ATTR_IDENT_TYPE	nlattr[ILA_ATTR_IDENT_TYPE, flags[ila_attr_ident_type, int8]]
 	ILA_ATTR_HOOK_TYPE	nlattr[ILA_ATTR_HOOK_TYPE, flags[ila_attr_hook_type, int8]]
+] [varlen]
 
+ip6_tun_policy [
 	LWTUNNEL_IP6_ID		nlattr[LWTUNNEL_IP6_ID, int64be]
 	LWTUNNEL_IP6_DST	nlattr[LWTUNNEL_IP6_DST, ipv6_addr]
 	LWTUNNEL_IP6_SRC	nlattr[LWTUNNEL_IP6_SRC, ipv6_addr]
 	LWTUNNEL_IP6_HOPLIMIT	nlattr[LWTUNNEL_IP6_HOPLIMIT, int8]
 	LWTUNNEL_IP6_TC		nlattr[LWTUNNEL_IP6_TC, int8]
 	LWTUNNEL_IP6_FLAGS	nlattr[LWTUNNEL_IP6_FLAGS, flags[lwtunnel_ip_flags, int16be]]
-	LWTUNNEL_IP6_OPTS	nlattr[LWTUNNEL_IP6_OPTS, ip_opts_policy]
+	LWTUNNEL_IP6_OPTS	nlnest[LWTUNNEL_IP6_OPTS, ip_opts_policy]
+] [varlen]
 
-	SEG6_IPTUNNEL_SRH	nlattr[SEG6_IPTUNNEL_SRH, seg6_tuninfo]
+# seg6_build_state() requires SEG6_IPTUNNEL_SRH.
+lwtunnel_seg6 {
+	srh	nlattr[SEG6_IPTUNNEL_SRH, seg6_iptunnel_encap]
+	attrs	array[seg6_iptunnel_policy]
+} [packed]
 
+seg6_iptunnel_policy [
+	SEG6_IPTUNNEL_SRC	nlattr[SEG6_IPTUNNEL_SRC, ipv6_addr]
+	SEG6_IPTUNNEL_TABLE	nlattr[SEG6_IPTUNNEL_TABLE, int32[1:255]]
+] [varlen]
+
+bpf_nl_policy [
 	LWT_BPF_IN		nlnest[LWT_BPF_IN, bpf_prog_policy]
 	LWT_BPF_OUT		nlnest[LWT_BPF_OUT, bpf_prog_policy]
 	LWT_BPF_XMIT		nlnest[LWT_BPF_XMIT, bpf_prog_policy]
 	LWT_BPF_XMIT_HEADROOM	nlattr[LWT_BPF_XMIT_HEADROOM, int32[0:LWT_BPF_MAX_HEADROOM]]
+] [varlen]
 
-	SEG6_LOCAL_ACTION	nlattr[SEG6_LOCAL_ACTION, int32[SEG6_LOCAL_ACTION_END:SEG6_LOCAL_ACTION_END_BPF]]
+# seg6_local_build_state() requires SEG6_LOCAL_ACTION, and then the attributes required by the action
+# (e.g. SEG6_LOCAL_VRFTABLE for END_DT4/END_DT46, SEG6_LOCAL_NH6 for END_X, SEG6_LOCAL_SRH for END_B6).
+lwtunnel_seg6_local {
+	action	nlattr[SEG6_LOCAL_ACTION, int32[SEG6_LOCAL_ACTION_END:SEG6_LOCAL_ACTION_END_DT46]]
+	attrs	array[seg6_local_policy]
+} [packed]
+
+seg6_local_policy [
 	SEG6_LOCAL_SRH		nlattr[SEG6_LOCAL_SRH, ipv6_sr_hdr]
-	SEG6_LOCAL_TABLE	nlattr[SEG6_LOCAL_TABLE, int32]
+	SEG6_LOCAL_TABLE	nlattr[SEG6_LOCAL_TABLE, int32[1:255]]
 	SEG6_LOCAL_NH4		nlattr[SEG6_LOCAL_NH4, ipv4_addr]
 	SEG6_LOCAL_NH6		nlattr[SEG6_LOCAL_NH6, ipv6_addr]
-	SEG6_LOCAL_IIF		nlattr[SEG6_LOCAL_IIF, int32]
-	SEG6_LOCAL_OIF		nlattr[SEG6_LOCAL_OIF, int32]
+	SEG6_LOCAL_IIF		nlattr[SEG6_LOCAL_IIF, ifindex]
+	SEG6_LOCAL_OIF		nlattr[SEG6_LOCAL_OIF, ifindex]
 	SEG6_LOCAL_BPF		nlnest[SEG6_LOCAL_BPF, bpf_prog_policy$seg6_local]
-
-	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
+	SEG6_LOCAL_VRFTABLE	nlattr[SEG6_LOCAL_VRFTABLE, int32[1:254]]
+	SEG6_LOCAL_COUNTERS	nlnest[SEG6_LOCAL_COUNTERS, seg6_local_counters]
+	SEG6_LOCAL_FLAVORS	nlnest[SEG6_LOCAL_FLAVORS, seg6_local_flavors]
 ] [varlen]
 
 # 5832c4a77d693 ("ip_tunnel: convert __be16 tunnel flags to bitmaps") put the constants below
@@ -1166,17 +1288,37 @@ ila_attr_ident_type = ILA_ATYPE_IID, ILA_ATYPE_LUID, ILA_ATYPE_USE_FORMAT
 
 ila_attr_hook_type = ILA_HOOK_ROUTE_INPUT, ILA_HOOK_ROUTE_OUTPUT
 
-seg6_tuninfo {
-	tuninfo		seg6_iptunnel_encap
-	segments	array[ipv6_addr, 0:128]
-} [packed]
-
 seg6_iptunnel_encap {
 	mode	flags[seg6_iptun_mode, int32]
 	srh	ipv6_sr_hdr
-}
+} [packed]
 
-seg6_iptun_mode = SEG6_IPTUN_MODE_INLINE, SEG6_IPTUN_MODE_ENCAP, SEG6_IPTUN_MODE_L2ENCAP
+seg6_iptun_mode = SEG6_IPTUN_MODE_INLINE, SEG6_IPTUN_MODE_ENCAP, SEG6_IPTUN_MODE_L2ENCAP, SEG6_IPTUN_MODE_ENCAP_RED, SEG6_IPTUN_MODE_L2ENCAP_RED
+
+# parse_nla_counters() requires all three counter attributes.
+seg6_local_counters {
+	packets	nlattr[SEG6_LOCAL_CNT_PACKETS, int64]
+	bytes	nlattr[SEG6_LOCAL_CNT_BYTES, int64]
+	errors	nlattr[SEG6_LOCAL_CNT_ERRORS, int64]
+} [packed]
+
+# parse_nla_flavors() requires SEG6_LOCAL_FLV_OPERATION.
+seg6_local_flavors {
+	op	nlattr[SEG6_LOCAL_FLV_OPERATION, flags[seg6_local_flv_ops, int32]]
+	attrs	array[seg6_local_flavors_policy]
+} [packed]
+
+seg6_local_flavors_policy [
+	SEG6_LOCAL_FLV_LCBLOCK_BITS	nlattr[SEG6_LOCAL_FLV_LCBLOCK_BITS, int8[8:64, 8]]
+	SEG6_LOCAL_FLV_LCNODE_FN_BITS	nlattr[SEG6_LOCAL_FLV_LCNODE_FN_BITS, int8[8:64, 8]]
+] [varlen]
+
+# SEG6_F_LOCAL_FLV_* are not part of uapi (see net/ipv6/seg6_local.c).
+# USP and USD flavors are not supported by the kernel (EOPNOTSUPP), so they are omitted.
+define SEG6_F_LOCAL_FLV_PSP	1 << SEG6_LOCAL_FLV_OP_PSP
+define SEG6_F_LOCAL_FLV_NEXT_CSID	1 << SEG6_LOCAL_FLV_OP_NEXT_CSID
+
+seg6_local_flv_ops = SEG6_F_LOCAL_FLV_PSP, SEG6_F_LOCAL_FLV_NEXT_CSID
 
 cgw_policy [
 	CGW_MOD_AND	nlattr[CGW_MOD_AND, cgw_frame_mod]
