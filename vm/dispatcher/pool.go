@@ -142,6 +142,12 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 	job, jobChan := inst.job, inst.jobChan
 	inst.mu.Unlock()
 
+	// The instance may have been stopped while booting, e.g. because it was reserved.
+	// Check it before waiting for a job: select picks randomly among the ready cases,
+	// so a job received below could otherwise start with an already canceled context.
+	if ctx.Err() != nil {
+		return
+	}
 	if job == nil {
 		select {
 		case newJob := <-jobChan:
@@ -151,8 +157,6 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 		case <-ctx.Done():
 			return
 		}
-	} else if ctx.Err() != nil {
-		return
 	}
 
 	inst.status(StateRunning)
