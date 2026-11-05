@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -1266,4 +1269,66 @@ func TestBisectCauseReproC(t *testing.T) {
 	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
 	c.expectEQ(pollResp.ReproC, []byte("int main() { return 1; }"))
 	c.expectEQ(pollResp.ReproSyz, []byte(nil))
+}
+
+func TestBisectCauseNoReproToSyz(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+	extID := c.client2.pollEmailExtID()
+
+	bug, _, _ := c.loadBug(extID)
+	bugKey := bug.key(c.ctx)
+	_, crashKey, err := findCrashForBug(c.ctx, bug)
+	require.NoError(t, err)
+
+	finished := timeNow(c.ctx)
+	job := &Job{
+		Type:         JobBisectCause,
+		Created:      finished,
+		Finished:     finished,
+		Namespace:    bug.Namespace,
+		Manager:      build.Manager,
+		KernelRepo:   build.KernelRepo,
+		KernelBranch: build.KernelBranch,
+		BugTitle:     bug.displayTitle(),
+		CrashID:      crashKey.IntID(),
+		Reported:     true,
+	}
+	saveJobCommits(c.ctx, job, []dashapi.Commit{{
+		Hash:       "1234567890abcdef1234567890abcdef12345678",
+		Title:      "kernel: add a bug",
+		Author:     "author@kernel.org",
+		AuthorName: "Kernel Author",
+		Date:       finished,
+	}})
+	require.NoError(t, runInTransaction(c.ctx, func(ctx context.Context) error {
+		txBug := new(Bug)
+		if err := db.Get(ctx, bugKey, txBug); err != nil {
+			return err
+		}
+		txBug.BisectCause = BisectYes
+		txBug.LastCauseBisect = finished
+		if _, err := db.Put(ctx, bugKey, txBug); err != nil {
+			return err
+		}
+		_, err := saveJob(ctx, job, bugKey)
+		return err
+	}, &db.TransactionOptions{XG: true}))
+
+	crashSyz := testCrashWithRepro(build, 1)
+	crashSyz.ReproC = nil
+	c.client2.ReportCrash(crashSyz)
+
+	msg := c.client2.pollEmailBug()
+	assert.Contains(t, msg.Body, "syzbot has found a reproducer for the following issue")
+	assert.Contains(t, msg.Body, "syz repro:")
+	assert.NotContains(t, msg.Body, "C reproducer:")
+	assert.Contains(t, msg.Body, "The issue was bisected to:")
+	assert.Contains(t, msg.Body, "kernel: add a bug")
+	c.expectNoEmail()
 }

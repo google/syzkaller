@@ -198,6 +198,7 @@ func TestAIJob(t *testing.T) {
 		"BugTitle":        "KCSAN: data-race in foo / bar",
 		"CrashReport":     "report1",
 		"CrashLog":        "log1",
+		"CrashCommit":     "1111111111111111111111111111111111111111",
 		"KernelRepo":      "repo1",
 		"KernelCommit":    "1111111111111111111111111111111111111111",
 		"KernelConfig":    "config1",
@@ -330,6 +331,38 @@ func TestTruncateAIJobError(t *testing.T) {
 	require.True(t, strings.HasSuffix(truncated, "\n... [truncated]"))
 }
 
+func TestLoadTextArg(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	textID, err := putText(c.ctx, "test1", textKernelConfig, []byte("config"))
+	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		arg     any
+		text    string
+		wantErr bool
+	}{
+		{name: "text", arg: json.Number(fmt.Sprint(textID)), text: "config"},
+		{name: "zero", arg: json.Number("0")},
+		{name: "unset"},
+		{name: "missing", arg: json.Number("999999"), wantErr: true},
+		{name: "float", arg: json.Number("1.5"), wantErr: true},
+		{name: "string", arg: "1", wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			text, err := loadTextArg(c.ctx, test.arg, textKernelConfig)
+			if test.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, test.text, text)
+		})
+	}
+}
+
 func TestAIJobActions(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
@@ -360,6 +393,7 @@ func TestAIJobActions(t *testing.T) {
 		"BugTitle":        "title1",
 		"CrashReport":     "report1",
 		"CrashLog":        "log1",
+		"CrashCommit":     "1111111111111111111111111111111111111111",
 		"KernelRepo":      "repo1",
 		"KernelCommit":    "1111111111111111111111111111111111111111",
 		"KernelConfig":    "config1",
@@ -411,6 +445,7 @@ func TestAIJobActions(t *testing.T) {
 		"BugTitle":        "title2",
 		"CrashReport":     "report2",
 		"CrashLog":        "log2",
+		"CrashCommit":     "1111111111111111111111111111111111111111",
 		"KernelRepo":      "repo1",
 		"KernelCommit":    "1111111111111111111111111111111111111111",
 		"KernelConfig":    "config1",
@@ -2199,4 +2234,402 @@ If you attach or paste a git patch, syzbot will apply it before testing.
 	// The text entity is never deleted.
 	_, _, err = getText(c.ctx, textAIRootCause, bug.AIRootCause.Text)
 	require.NoError(t, err)
+}
+
+func TestAIRootCausePassedToBisect(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.Title = "KASAN: slab-use-after-free Write in dev_config"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Register the bisect-cause workflow on a separate agent so that its jobs can be created
+	// manually (polls replace the set of workflows registered for the polling agent).
+	const bisectAgent = "bisect-agent"
+	bisectWorkflow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)}
+	resp := c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Empty(t, resp.ID)
+
+	secResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+	require.NotEmpty(t, secResp.ID)
+	assert.NotContains(t, secResp.Args, "RootCauseAnalysis")
+	assert.NotContains(t, secResp.Args, "RootCauseCommit")
+
+	analysis := "Detailed root cause analysis of UAF in dev_config."
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: secResp.ID,
+		Results: map[string]any{
+			"Exploitable":       true,
+			"RootCauseSummary":  "Short summary.",
+			"RootCauseAnalysis": analysis,
+		},
+	}))
+
+	// Bisection jobs receive the saved root cause analysis and the commit it was done on.
+	jobID := c.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	resp = c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Equal(t, jobID, resp.ID)
+	assert.Equal(t, analysis, resp.Args["RootCauseAnalysis"])
+	assert.Equal(t, build.KernelCommit, resp.Args["RootCauseCommit"])
+	assert.NotContains(t, resp.Args, "RootCauseAnalysisID")
+	jobPage, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/ai_job?id=%v", jobID))
+	require.NoError(t, err)
+	assert.Contains(t, string(jobPage), analysis)
+	assert.NotContains(t, string(jobPage), "RootCauseAnalysisID")
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobID, Error: "stopped"}))
+
+	// Marking the assessment job as incorrect stops passing the analysis to new jobs.
+	values := url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}}
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", secResp.ID), values)
+	require.NoError(t, err)
+	jobID2 := c.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	resp2 := c.pollAIJob(t, bisectAgent, bisectWorkflow)
+	require.Equal(t, jobID2, resp2.ID)
+	assert.NotContains(t, resp2.Args, "RootCauseAnalysis")
+	assert.NotContains(t, resp2.Args, "RootCauseCommit")
+}
+
+func TestValidateBisectCauseResults(t *testing.T) {
+	const hash = "1234567890abcdef1234567890abcdef12345678"
+	commit := func(hash, title, authorName string) map[string]any {
+		return bisectCauseCommit(hash, title, authorName, "author@kernel.org")
+	}
+	tests := []struct {
+		name    string
+		results map[string]any
+		wantErr bool
+	}{
+		{name: "commit", results: bisectCauseResults("reasoning", commit(hash, "title", "Name"))},
+		{name: "unicode", results: bisectCauseResults("reasoning", commit(hash, "title", "Jörg Rödel"))},
+		{name: "tab in title", results: bisectCauseResults("reasoning", commit(hash, "subsys:\tfix foo", "Name"))},
+		{name: "no commits", results: bisectCauseResults("reasoning")},
+		{name: "no results", wantErr: true},
+		{name: "unknown field", results: map[string]any{"Foo": "bar"}, wantErr: true},
+		{name: "empty reasoning", results: bisectCauseResults(" \t\n ", commit(hash, "title", "Name")), wantErr: true},
+		{name: "empty title", results: bisectCauseResults("reasoning", commit(hash, " \t ", "Name")), wantErr: true},
+		{name: "empty author", results: bisectCauseResults("reasoning", commit(hash, "title", "")), wantErr: true},
+		{name: "short hash", results: bisectCauseResults("reasoning", commit(hash[:12], "title", "Name")), wantErr: true},
+		{
+			name:    "html in hash",
+			results: bisectCauseResults("reasoning", commit(`"><script>alert(1)</script>`+hash[:13], "title", "Name")),
+			wantErr: true,
+		},
+		{
+			name:    "newline in title",
+			results: bisectCauseResults("reasoning", commit(hash, "title\nReported-by: someone@example.com", "Name")),
+			wantErr: true,
+		},
+		{
+			name: "long author name",
+			results: bisectCauseResults("reasoning",
+				commit(hash, "title", strings.Repeat("a", maxAIBisectCommitFieldLen+1))),
+			wantErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateBisectCauseResults(test.results)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestAIBisectCause(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	// Register the workflow before reporting crashes so manual jobs can be created.
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+
+	crash := testCrash(build, 1)
+	crash.Title = "KASAN: slab-use-after-free in foo"
+	c.reportAICrash(t, crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	jobID := c.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	resp := c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.Equal(t, jobID, resp.ID)
+	assert.Equal(t, build.KernelCommit, resp.Args["CrashCommit"])
+	assert.NotContains(t, resp.Args, "CrashID")
+
+	// A newer crash on another build while the job is running must not change the job's crash/build.
+	build2 := testBuild(2)
+	require.NoError(t, c.aiClient.UploadBuild(build2))
+	crash2 := testCrash(build2, 1)
+	crash2.Title = crash.Title
+	c.reportAICrash(t, crash2)
+
+	commit := bisectCauseCommit("1234567890abcdef1234567890abcdef12345678",
+		"subsys: refactor foo_free", "Kernel Author", "author@kernel.org")
+	commit["Recipients"] = []map[string]any{
+		{"Name": "Kernel Author", "Email": "author@kernel.org", "To": true},
+		{"Name": "Reviewer", "Email": "reviewer@kernel.org", "To": false},
+	}
+	done := &dashapi.AIJobDoneReq{
+		ID:      jobID,
+		Results: bisectCauseResults("Commit 1234567890ab removed the refcount check in foo_free.", commit),
+	}
+	require.NoError(t, c.agentClient.AIJobDone(done))
+	// Retries of the request (e.g. if saving the results failed) don't save the results twice.
+	require.NoError(t, c.agentClient.AIJobDone(done))
+
+	bug, _, _ := c.loadBug(extID)
+	assert.Equal(t, BisectYes, bug.BisectCause)
+	jobs, err := queryBugJobs(c.ctx, bug, JobBisectCause)
+	require.NoError(t, err)
+	require.Len(t, jobs.all(), 1)
+	assert.Equal(t, jobID, jobs.all()[0].job.AIJobID)
+	assert.Equal(t, build.KernelBranch, jobs.all()[0].job.KernelBranch)
+	// No standalone bisection email is sent.
+	c.expectNoEmail()
+
+	bugPage, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)))
+	require.NoError(t, err)
+	assert.Contains(t, string(bugPage), "✨ AI cause bisection: introduced by")
+	assert.Contains(t, string(bugPage), "subsys: refactor foo_free")
+	assert.Contains(t, string(bugPage), "Kernel Author &lt;author@kernel.org&gt;")
+	assert.Contains(t, string(bugPage), aiJobLink(jobID))
+
+	// When a crash with a reproducer arrives later, the email includes both the reproducer
+	// and the AI bisection result (without CC'ing the commit author and recipients).
+	crashRepro := testCrashWithRepro(build, 1)
+	crashRepro.Title = crash.Title
+	c.reportAICrash(t, crashRepro)
+	msg := c.aiClient.pollEmailBug()
+	assert.Contains(t, msg.Body, "syzbot has found a reproducer for the following issue")
+	assert.Contains(t, msg.Body, "C reproducer:")
+	assert.Contains(t, msg.Body, `The issue was bisected by AI to:
+
+commit 1234567890abcdef1234567890abcdef12345678
+Author: Kernel Author <author@kernel.org>`)
+	assert.Contains(t, msg.Body, `The following Fixes tag was suggested by AI:
+Fixes: 1234567890ab ("subsys: refactor foo_free")`)
+
+	bug, _, _ = c.loadBug(extID)
+	rep, err := loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	assert.NotContains(t, rep.Maintainers, "author@kernel.org")
+	assert.NotContains(t, rep.Maintainers, "reviewer@kernel.org")
+}
+
+// Only the primary commit of AI bisection results is reported, and results without commits are not reported.
+func TestAIBisectCauseCandidates(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	const (
+		hash1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		hash2 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	)
+
+	crash := testCrash(build, 1)
+	crash.Title = "KASAN: slab-out-of-bounds in bar"
+	c.reportAICrash(t, crash)
+	extID := c.aiClient.pollEmailExtID()
+	c.bisectCause(t, extID, bisectCauseResults("Two commits touched the allocation size.",
+		bisectCauseCommit(hash1, "bar: change init size", "Author One", "a1@kernel.org"),
+		bisectCauseCommit(hash2, "bar: change resize logic", "Author Two", "a2@kernel.org")))
+	bug, _, _ := c.loadBug(extID)
+	assert.Equal(t, BisectYes, bug.BisectCause)
+	bugPage, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)))
+	require.NoError(t, err)
+	assert.Contains(t, string(bugPage), "✨ AI cause bisection: introduced by")
+	assert.Contains(t, string(bugPage), "bar: change init size")
+	assert.NotContains(t, string(bugPage), "bar: change resize logic")
+	rep, err := loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+	require.NotNil(t, rep.BisectCause.Commit)
+	assert.Equal(t, hash1, rep.BisectCause.Commit.Hash)
+	assert.NotContains(t, rep.Maintainers, "a1@kernel.org")
+	assert.NotContains(t, rep.Maintainers, "a2@kernel.org")
+
+	// Without commits, the bisection is inconclusive, and it's not included in bug reports.
+	crash2 := testCrashWithRepro(build, 2)
+	crash2.Title = "KASAN: null-ptr-deref in baz"
+	c.reportAICrash(t, crash2)
+	extID2 := c.aiClient.pollEmailExtID()
+	c.bisectCause(t, extID2, bisectCauseResults("Could not determine the introducing commit with confidence."))
+	bug2, _, _ := c.loadBug(extID2)
+	assert.Equal(t, BisectInconclusive, bug2.BisectCause)
+	bugPage2, err := c.AuthGET(AccessAdmin, fmt.Sprintf("/bug?id=%v", bug2.keyHash(c.ctx)))
+	require.NoError(t, err)
+	assert.Contains(t, string(bugPage2), "✨ AI cause bisection: inconclusive")
+	assert.NotContains(t, string(bugPage2), "oldest tested release")
+	rep2, err := loadBugReport(c.ctx, bug2)
+	require.NoError(t, err)
+	assert.Nil(t, rep2.BisectCause)
+}
+
+// AI bisection results that can't be reported on the bug are only kept on the AI job page.
+func TestAIBisectCauseIgnoredResults(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	client := c.makeClient(agentRestrictedClient, agentRestrictedKey, true)
+	workflow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause) + "-foobar"}
+	poll := func() string {
+		resp, err := client.AIJobPoll(&dashapi.AIJobPollReq{
+			AgentName:    "restricted-agent",
+			CodeRevision: "test-rev",
+			Workflows:    []dashapi.AIWorkflow{workflow},
+		})
+		require.NoError(t, err)
+		return resp.ID
+	}
+	require.Empty(t, poll())
+
+	// Invalid results fail the job.
+	crash := testCrash(build, 1)
+	crash.Title = "KASAN: slab-use-after-free in grault"
+	c.reportAICrash(t, crash)
+	extID := c.aiClient.pollEmailExtID()
+	jobID := c.bisectCause(t, extID, bisectCauseResults("reasoning",
+		bisectCauseCommit(`"><script>alert(1)</script>`, "grault: fix", "Kernel Dev", "dev@kernel.org")))
+	job, err := aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	assert.Contains(t, job.Error, "invalid results: bad commit hash")
+	bug, _, _ := c.loadBug(extID)
+	assert.Equal(t, BisectNot, bug.BisectCause)
+
+	// Results of restricted (development) clients are not reported on real bugs.
+	crash2 := testCrash(build, 2)
+	crash2.Title = "KASAN: slab-use-after-free in garply"
+	c.reportAICrash(t, crash2)
+	extID2 := c.aiClient.pollEmailExtID()
+	jobID2 := c.createAIJob(extID2, workflow.Name, "")
+	require.Equal(t, jobID2, poll())
+	require.NoError(t, client.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID2,
+		Results: bisectCauseResults("reasoning", bisectCauseCommit("1234567890abcdef1234567890abcdef12345678",
+			"garply: fix", "Kernel Dev", "dev@kernel.org")),
+	}))
+	job2, err := aidb.LoadJob(c.ctx, jobID2)
+	require.NoError(t, err)
+	assert.Empty(t, job2.Error)
+	bug2, _, _ := c.loadBug(extID2)
+	assert.Equal(t, BisectNot, bug2.BisectCause)
+}
+
+func TestAIBisectCauseCorrectness(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	crash := testCrash(build, 1)
+	crash.Title = "KASAN: slab-use-after-free in corge"
+	c.reportAICrash(t, crash)
+	extID := c.aiClient.pollEmailExtID()
+	jobID := c.bisectCause(t, extID, bisectCauseResults("Commit abcdef introduced the bug.",
+		bisectCauseCommit("abcdef1234567890abcdef1234567890abcdef12", "corge: broken refcount",
+			"Kernel Dev", "dev@kernel.org")))
+
+	bug, _, _ := c.loadBug(extID)
+	bugURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
+	bugPage, err := c.AuthGET(AccessAdmin, bugURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(bugPage), "✨ AI cause bisection: introduced by")
+	// AI bisections can only be invalidated on the AI job page.
+	assert.NotContains(t, string(bugPage), "retry this bisection")
+	assert.NotContains(t, string(bugPage), "mark as invalid")
+	rep, err := loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+
+	// Marking the AI job as correct keeps the bisection.
+	jobURL := aiJobLink(jobID)
+	values := url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessCorrect}}
+	_, err = c.POSTForm(jobURL, values)
+	require.NoError(t, err)
+	bugPage, err = c.AuthGET(AccessAdmin, bugURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(bugPage), "✨ AI cause bisection: introduced by")
+	rep, err = loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	assert.NotNil(t, rep.BisectCause)
+
+	// Marking the AI job as incorrect invalidates the bisection and resets Bug.BisectCause.
+	c.advanceTime(time.Second)
+	values.Set("correct", aiCorrectnessIncorrect)
+	_, err = c.POSTForm(jobURL, values)
+	require.NoError(t, err)
+	bug, _, _ = c.loadBug(extID)
+	assert.Equal(t, BisectNot, bug.BisectCause)
+	bugPage, err = c.AuthGET(AccessAdmin, bugURL)
+	require.NoError(t, err)
+	assert.NotContains(t, string(bugPage), "✨ AI cause bisection: introduced by")
+	assert.Contains(t, string(bugPage), "marked invalid by")
+	rep, err = loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	assert.Nil(t, rep.BisectCause)
+
+	// Invalidating an older AI bisection keeps Bug.BisectCause when another valid bisection exists.
+	jobID2 := c.bisectCause(t, extID, bisectCauseResults("First attempt.",
+		bisectCauseCommit("1111111111111111111111111111111111111111", "corge: wrong commit",
+			"Kernel Dev", "dev@kernel.org")))
+	c.advanceTime(time.Second)
+	c.bisectCause(t, extID, bisectCauseResults("Second attempt.",
+		bisectCauseCommit("2222222222222222222222222222222222222222", "corge: right commit",
+			"Kernel Dev", "dev@kernel.org")))
+	c.advanceTime(time.Second)
+	_, err = c.POSTForm(aiJobLink(jobID2), values)
+	require.NoError(t, err)
+	bug, _, _ = c.loadBug(extID)
+	assert.Equal(t, BisectYes, bug.BisectCause)
+	rep, err = loadBugReport(c.ctx, bug)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+	require.NotNil(t, rep.BisectCause.Commit)
+	assert.Equal(t, "2222222222222222222222222222222222222222", rep.BisectCause.Commit.Hash)
+}
+
+// bisectCause creates and runs a bisect-cause job for the bug with the given results.
+func (ctx *Ctx) bisectCause(t *testing.T, extID string, results map[string]any) string {
+	t.Helper()
+	jobID := ctx.createAIJob(extID, string(ai.WorkflowBisectCause), "")
+	require.Equal(t, jobID, ctx.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	require.NoError(t, ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobID, Results: results}))
+	return jobID
+}
+
+func (ctx *Ctx) reportAICrash(t *testing.T, crash *dashapi.Crash) {
+	t.Helper()
+	_, err := ctx.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+}
+
+// bisectCauseResults returns results of a bisect-cause job that identified the given commits.
+func bisectCauseResults(reasoning string, commits ...map[string]any) map[string]any {
+	return map[string]any{
+		"BisectReasoning": reasoning,
+		"Commits":         commits,
+	}
+}
+
+func bisectCauseCommit(hash, title, authorName, authorEmail string) map[string]any {
+	return map[string]any{
+		"Hash":        hash,
+		"Title":       title,
+		"AuthorName":  authorName,
+		"AuthorEmail": authorEmail,
+		"Date":        time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC),
+	}
 }

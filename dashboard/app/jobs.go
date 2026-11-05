@@ -305,8 +305,8 @@ func invalidateBisection(ctx context.Context, jobKey *db.Key, restart bool) erro
 			return fmt.Errorf("failed to get job: %w", err)
 		}
 
-		if job.Type != JobBisectCause && job.Type != JobBisectFix {
-			return fmt.Errorf("can only invalidate bisection jobs")
+		if !job.IsBisection() || job.IsAIBisection() {
+			return fmt.Errorf("can only invalidate classic bisection jobs")
 		}
 
 		// Update the job.
@@ -1458,6 +1458,7 @@ func bisectFromJob(ctx context.Context, job *Job) (*dashapi.BisectResult, []stri
 		CrashReportLink: externalLink(ctx, textCrashReport, job.CrashReport),
 		Fix:             job.Type == JobBisectFix,
 		CrossTree:       job.IsCrossTree(),
+		AI:              job.IsAIBisection(),
 	}
 	for _, com := range job.Commits {
 		bisect.Commits = append(bisect.Commits, com.toDashapi())

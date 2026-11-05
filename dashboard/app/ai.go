@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/app/aidb"
@@ -633,6 +634,13 @@ func handleAIJobPageCorrectness(ctx context.Context, job *aidb.Job, correct, use
 			return cmdErr
 		}
 	case aiCorrectnessIncorrect:
+		if job.Type == ai.WorkflowBisectCause {
+			// Invalidate the bisection first: rejecting the job again fails,
+			// so invalidation that failed after rejecting could not be retried.
+			if err := invalidateAIBisection(ctx, job, userEmail); err != nil {
+				return err
+			}
+		}
 		err := aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
 			Job:           job,
 			CommandSource: SourceWebUI,
@@ -863,31 +871,27 @@ func handleAIJobPageJSON(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, template.HTML, error) {
+	args = maps.Clone(args)
 	var crashReport template.HTML
-	if val, ok := args["CrashReportID"]; ok {
-		if num, ok := val.(json.Number); ok {
-			if reportID, _ := num.Int64(); reportID != 0 {
-				report, _, err := getText(ctx, textCrashReport, reportID)
-				if err != nil {
-					return nil, "", err
-				}
-				repo, _ := args["KernelRepo"].(string)
-				commit, _ := args["KernelCommit"].(string)
-				crashReport = linkifyText(ctx, string(report), repo, commit)
-			}
-		}
+	report, err := loadTextArg(ctx, args["CrashReportID"], textCrashReport)
+	if err != nil {
+		return nil, "", err
+	}
+	if report != "" {
+		repo, _ := args["KernelRepo"].(string)
+		commit, _ := args["KernelCommit"].(string)
+		crashReport = linkifyText(ctx, report, repo, commit)
 	}
 
-	if val, ok := args["KernelConfigID"]; ok {
-		if num, ok := val.(json.Number); ok {
-			if configID, _ := num.Int64(); configID != 0 {
-				config, _, err := getText(ctx, textKernelConfig, configID)
-				if err == nil {
-					args["KernelConfig"] = string(config)
-					delete(args, "KernelConfigID")
-				}
-			}
-		}
+	config, err := loadTextArg(ctx, args["KernelConfigID"], textKernelConfig)
+	if err == nil && config != "" {
+		args["KernelConfig"] = config
+		delete(args, "KernelConfigID")
+	}
+	analysis, err := loadTextArg(ctx, args["RootCauseAnalysisID"], textAIRootCause)
+	if err == nil && analysis != "" {
+		args["RootCauseAnalysis"] = analysis
+		delete(args, "RootCauseAnalysisID")
 	}
 
 	const maxArgLength = 100
@@ -904,6 +908,30 @@ func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, t
 		return strings.Compare(a.Key, b.Key)
 	})
 	return uiArgs, crashReport, nil
+}
+
+// parseIDArg parses an entity ID job argument.
+// It returns 0 if the argument is not set.
+func parseIDArg(arg any) (int64, error) {
+	if arg == nil {
+		return 0, nil
+	}
+	num, ok := arg.(json.Number)
+	if !ok {
+		return 0, fmt.Errorf("unexpected ID type %T", arg)
+	}
+	return num.Int64()
+}
+
+// loadTextArg loads the text referenced by a text ID job argument.
+// It returns an empty string if the argument is not set or is 0.
+func loadTextArg(ctx context.Context, arg any, tag string) (string, error) {
+	id, err := parseIDArg(arg)
+	if err != nil || id == 0 {
+		return "", err
+	}
+	text, _, err := getText(ctx, tag, id)
+	return string(text), err
 }
 
 func loadJobReportingsWithComments(ctx context.Context, jobID string) ([]*uiJobReporting, error) {
@@ -1217,38 +1245,27 @@ func buildAIJobPollArgs(ctx context.Context, job *aidb.Job) (map[string]any, err
 		return map[string]any{}, nil
 	}
 	args := make(map[string]any)
-	var textErr error
-	assignText := func(anyID any, tag, name string) {
-		id, err := anyID.(json.Number).Int64()
-		if err != nil {
-			textErr = err
-		}
-		if id == 0 {
-			args[name] = ""
-			return
-		}
-		data, _, err := getText(ctx, tag, id)
-		if err != nil {
-			textErr = err
-		}
-		args[name] = string(data)
-	}
 	textFields := map[string]struct{ tag, name string }{
-		"ReproSyzID":     {textReproSyz, "ReproSyz"},
-		"ReproCID":       {textReproC, "ReproC"},
-		"CrashReportID":  {textCrashReport, "CrashReport"},
-		"CrashLogID":     {textCrashLog, "CrashLog"},
-		"KernelConfigID": {textKernelConfig, "KernelConfig"},
+		"ReproSyzID":          {textReproSyz, "ReproSyz"},
+		"ReproCID":            {textReproC, "ReproC"},
+		"CrashReportID":       {textCrashReport, "CrashReport"},
+		"CrashLogID":          {textCrashLog, "CrashLog"},
+		"KernelConfigID":      {textKernelConfig, "KernelConfig"},
+		"RootCauseAnalysisID": {textAIRootCause, "RootCauseAnalysis"},
 	}
 	for name, val := range job.Args.Value.(map[string]any) {
+		if name == "CrashID" {
+			continue
+		}
 		if text, ok := textFields[name]; ok {
-			assignText(val, text.tag, text.name)
+			data, err := loadTextArg(ctx, val, text.tag)
+			if err != nil {
+				return nil, err
+			}
+			args[text.name] = data
 		} else {
 			args[name] = val
 		}
-	}
-	if textErr != nil {
-		return nil, textErr
 	}
 
 	if spec := getManualWorkflowSpec(getNsConfig(ctx, job.Namespace), job.Workflow); spec != nil {
@@ -1429,10 +1446,21 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, err
 	}
 	if job.Finished.Valid {
+		if job.Type == ai.WorkflowBisectCause {
+			// Saving the results may have failed after the job was marked as finished
+			// (e.g. on a transient datastore error), and this is a retry of the request.
+			return nil, finishBisectCauseJob(ctx, job)
+		}
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
 	finished := timeNow(ctx)
 	jobError := truncateAIJobError(req.Error)
+	if jobError == "" && job.Type == ai.WorkflowBisectCause {
+		if err := validateBisectCauseResults(req.Results); err != nil {
+			// Keep the results for debugging, but don't use them.
+			jobError = truncateAIJobError(fmt.Sprintf("invalid results: %v", err))
+		}
+	}
 	job, err = aidb.SetJobDone(ctx, req.ID, finished, jobError, req.Results)
 	if err != nil {
 		return nil, err
@@ -1445,6 +1473,9 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 			return nil, err
 		}
 		return nil, nil
+	}
+	if job.Type == ai.WorkflowBisectCause {
+		return nil, finishBisectCauseJob(ctx, job)
 	}
 	if !shouldReportJob(job) {
 		return nil, nil
@@ -1475,6 +1506,209 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		log.Errorf(ctx, "failed to add initial job reporting for job %v: %v", job.ID, err)
 	}
 	return nil, nil
+}
+
+func aiJobLink(id string) string {
+	return fmt.Sprintf("/ai_job?id=%v", id)
+}
+
+// maxAIBisectCommitFieldLen bounds the commit fields of AI bisection results
+// (datastore can't index strings longer than 1500 bytes).
+const maxAIBisectCommitFieldLen = 1000
+
+// validateBisectCauseResults checks the results of a bisect-cause job before they are saved.
+// The reported commit is shown on the bug page and in bug report emails, so it must be a full
+// commit hash, and the other commit fields must be non-empty single-line text.
+func validateBisectCauseResults(results map[string]any) error {
+	if results == nil {
+		return errors.New("no results")
+	}
+	res, err := parseJSON[ai.BisectCauseOutputs](spanner.NullJSON{Value: results, Valid: true})
+	if err != nil {
+		return err
+	}
+	isSingleLine := func(s string) bool {
+		return strings.TrimSpace(s) != "" &&
+			strings.IndexFunc(s, func(r rune) bool { return r != '\t' && !unicode.IsGraphic(r) }) == -1
+	}
+	for _, com := range res.Commits {
+		if len(com.Hash) != 40 || !vcs.CheckCommitHash(com.Hash) {
+			return fmt.Errorf("bad commit hash %.50q", com.Hash)
+		}
+		for _, val := range []string{com.Title, com.AuthorName, com.AuthorEmail} {
+			if len(val) > maxAIBisectCommitFieldLen || !isSingleLine(val) {
+				return fmt.Errorf("commit %v: bad title or author %.50q", com.Hash, val)
+			}
+		}
+	}
+	if strings.TrimSpace(res.BisectReasoning) == "" {
+		return errors.New("empty bisection reasoning")
+	}
+	return nil
+}
+
+// loadAIJobCrash loads the crash the AI job was created for.
+func loadAIJobCrash(ctx context.Context, bugKey *db.Key, job *aidb.Job) (*Crash, *db.Key, error) {
+	args, _ := job.Args.Value.(map[string]any)
+	crashID, err := parseIDArg(args["CrashID"])
+	if err != nil {
+		return nil, nil, err
+	}
+	if crashID == 0 {
+		return nil, nil, fmt.Errorf("job %v does not have the CrashID argument", job.ID)
+	}
+	crashKey := db.NewKey(ctx, "Crash", "", crashID, bugKey)
+	crash := new(Crash)
+	if err := db.Get(ctx, crashKey, crash); err != nil {
+		return nil, nil, fmt.Errorf("failed to load crash %v: %w", crashID, err)
+	}
+	return crash, crashKey, nil
+}
+
+// finishBisectCauseJob saves the results of a finished bisect-cause job as a cause bisection
+// of the bug, so that they are shown on the bug page and included in bug reports.
+// It does nothing if the results are already saved, so it can be retried.
+func finishBisectCauseJob(ctx context.Context, job *aidb.Job) error {
+	if !job.BugID.Valid || !job.Finished.Valid || job.Error != "" {
+		return nil
+	}
+	if job.Correct.Valid && !job.Correct.Bool {
+		// The job was marked as incorrect before a retry managed to save its results.
+		return nil
+	}
+	if apiContext(ctx).client.AIWorkflowSuffix != "" {
+		// Don't report results of restricted (development) clients on real bugs.
+		return nil
+	}
+	res, err := castJobResults[ai.BisectCauseOutputs](job)
+	if err != nil {
+		return err
+	}
+	bug, err := loadBug(ctx, job.BugID.StringVal)
+	if err != nil {
+		return err
+	}
+	bugKey := bug.key(ctx)
+	crash, crashKey, err := loadAIJobCrash(ctx, bugKey, job)
+	if err != nil {
+		return err
+	}
+	build, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return err
+	}
+	logID, err := putText(ctx, bug.Namespace, textLog, []byte(res.BisectReasoning))
+	if err != nil {
+		return err
+	}
+	finished := nullTime(job.Finished)
+	bisectJob := &Job{
+		Type:         JobBisectCause,
+		Created:      job.Created,
+		LastStarted:  nullTime(job.Started),
+		Finished:     finished,
+		Link:         aiJobLink(job.ID),
+		AIJobID:      job.ID,
+		Namespace:    bug.Namespace,
+		Manager:      crash.Manager,
+		KernelRepo:   build.KernelRepo,
+		KernelBranch: build.KernelBranch,
+		BugTitle:     bug.displayTitle(),
+		CrashID:      crashKey.IntID(),
+		Log:          logID,
+		// The results are only included in bug reports, they are never reported on their own.
+		Reported: true,
+	}
+	// Commits are ordered by relevance with the primary commit first. Report only the primary
+	// commit, the remaining candidates are available on the AI job page (bisectJob.Link).
+	bisectStatus := BisectInconclusive
+	if len(res.Commits) != 0 {
+		com := res.Commits[0]
+		// TODO: once AI bisection is confirmed reliable, populate CC from com.Recipients
+		// and stop dropping the emails of AI bisections in createBugReport.
+		saveJobCommits(ctx, bisectJob, []dashapi.Commit{{
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.AuthorEmail,
+			AuthorName: com.AuthorName,
+			Date:       com.Date,
+		}})
+		bisectStatus = BisectYes
+	}
+	tx := func(ctx context.Context) error {
+		keys, err := db.NewQuery("Job").
+			Ancestor(bugKey).
+			Filter("AIJobID=", job.ID).
+			KeysOnly().
+			GetAll(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to query jobs: %w", err)
+		}
+		if len(keys) != 0 {
+			// Saved by a previous attempt.
+			return nil
+		}
+		txBug := new(Bug)
+		if err := db.Get(ctx, bugKey, txBug); err != nil {
+			return fmt.Errorf("failed to get bug: %w", err)
+		}
+		txBug.BisectCause = bisectStatus
+		txBug.LastCauseBisect = finished
+		if _, err := db.Put(ctx, bugKey, txBug); err != nil {
+			return fmt.Errorf("failed to put bug: %w", err)
+		}
+		_, err = saveJob(ctx, bisectJob, bugKey)
+		return err
+	}
+	return runInTransaction(ctx, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+}
+
+// invalidateAIBisection invalidates the cause bisection saved from the results of the AI job.
+// This is the only way to invalidate AI bisections (the bug page does not offer it),
+// so that the bisection and the AI job correctness don't contradict each other.
+// It can't be undone, but neither can marking the AI job as incorrect.
+func invalidateAIBisection(ctx context.Context, job *aidb.Job, userEmail string) error {
+	if !job.BugID.Valid {
+		return nil
+	}
+	bugKey := db.NewKey(ctx, "Bug", job.BugID.StringVal, 0, nil)
+	return runInTransaction(ctx, func(ctx context.Context) error {
+		var jobs []*Job
+		keys, err := db.NewQuery("Job").
+			Ancestor(bugKey).
+			Filter("Type=", JobBisectCause).
+			GetAll(ctx, &jobs)
+		if err != nil {
+			return fmt.Errorf("failed to query jobs: %w", err)
+		}
+		var invalidated, hasValid bool
+		for i, bisectJob := range jobs {
+			if bisectJob.AIJobID == job.ID && bisectJob.InvalidatedBy == "" {
+				bisectJob.InvalidatedBy = userEmail
+				if _, err := db.Put(ctx, keys[i], bisectJob); err != nil {
+					return fmt.Errorf("failed to put job: %w", err)
+				}
+				invalidated = true
+			}
+			if bisectJob.IsFinished() && bisectJob.InvalidatedBy == "" && !bisectJob.IsCrossTree() {
+				hasValid = true
+			}
+		}
+		if !invalidated || hasValid {
+			return nil
+		}
+		bug := new(Bug)
+		if err := db.Get(ctx, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug: %w", err)
+		}
+		if bug.BisectCause > BisectPending {
+			bug.BisectCause = BisectNot
+			if _, err := db.Put(ctx, bugKey, bug); err != nil {
+				return fmt.Errorf("failed to put bug: %w", err)
+			}
+		}
+		return nil
+	}, nil)
 }
 
 func truncateAIJobError(err string) string {
@@ -1798,8 +2032,13 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		return "", fmt.Errorf("addCrashReference failed: %w", err)
 	}
 	cfg := getNsConfig(ctx, bug.Namespace)
+	// CrashID is the crash the job is created for (bisection results are attached to it).
+	// CrashCommit is the commit the crash happened on: bisection workflows need it in addition
+	// to KernelCommit (fix bisection searches for the fix in CrashCommit..KernelCommit).
 	args := map[string]any{
 		"BugTitle":        bug.Title,
+		"CrashID":         crashKey.IntID(),
+		"CrashCommit":     build.KernelCommit,
 		"ReproOpts":       string(crash.ReproOpts),
 		"ReproSyzID":      crash.ReproSyz,
 		"ReproCID":        crash.ReproC,
@@ -1816,6 +2055,10 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"BaseRepository":  cfg.AI.BaseRepository,
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
+	}
+	if (typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) && bug.AIRootCause.Text != 0 {
+		args["RootCauseAnalysisID"] = bug.AIRootCause.Text
+		args["RootCauseCommit"] = bug.AIRootCause.KernelCommit
 	}
 	if manager, ok := extraArgs["KernelConfigManager"].(string); ok && manager != "" {
 		manager, _ = activeManager(ctx, manager, bug.Namespace)
@@ -2328,6 +2571,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		workflows[ai.WorkflowRepro] = true
 		workflows[ai.WorkflowReproC] = true
+		workflows[ai.WorkflowBisectCause] = true
 	} else {
 		// Automatic C reproducer generation heuristics:
 		// - Namespace must have AutoReproC enabled.

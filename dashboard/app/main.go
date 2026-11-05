@@ -488,6 +488,7 @@ type uiJob struct {
 	InvalidateJobLink string
 	RestartJobLink    string
 	FixCandidate      bool
+	AIBisection       bool
 }
 
 type uiBackportGroup struct {
@@ -2675,6 +2676,7 @@ func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *C
 		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey, false),
 		RestartJobLink:    invalidateJobLink(ctx, job, jobKey, true),
 		FixCandidate:      job.IsCrossTree(),
+		AIBisection:       job.IsAIBisection(),
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(ctx, crash, build)
@@ -2689,7 +2691,7 @@ func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bo
 	if job.InvalidatedBy != "" || job.Finished.IsZero() {
 		return ""
 	}
-	if job.Type != JobBisectCause && job.Type != JobBisectFix {
+	if !job.IsBisection() || job.IsAIBisection() {
 		return ""
 	}
 	params := url.Values{}

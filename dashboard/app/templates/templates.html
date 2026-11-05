@@ -406,7 +406,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<b>({{link .ErrorLink "error log"}}{{if .LogLink}}, {{link .LogLink "bisect log"}}{{end}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
-			<b>Cause bisection: introduced by</b>
+			<b>{{if .AIBisection}}✨ AI cause bisection{{else}}Cause bisection{{end}}: introduced by</b>
 		{{else if eq .Type $fixJob}}
 			{{if .FixCandidate}}
 				<b>Fix commit to backport</b>
@@ -414,7 +414,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<b>Fix bisection: fixed by</b>
 			{{end}}
 		{{end}}
-		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
+		<b>({{link .LogLink "bisect log"}}{{if .AIBisection}}, {{link .ExternalLink "AI job"}}{{end}})</b> <span class="bad">{{print .Flags}}</span>:<br>
 		<span class="mono">
 		{{if .FixCandidate}}tree: {{link .KernelLink .KernelAlias}}<br>{{end}}
 		commit {{.Commit.Hash}}<br>
@@ -438,12 +438,16 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</span>
 	{{else}}
 		{{if eq .Type $causeJob}}
-			<b>Cause bisection: the issue happens on the oldest tested release</b>
+			{{if .AIBisection}}
+				<b>✨ AI cause bisection: inconclusive</b>
+			{{else}}
+				<b>Cause bisection: the issue happens on the oldest tested release</b>
+			{{end}}
 		{{else if eq .Type $fixJob}}
 			<b>{{if .FixCandidate}}Fix candidate detection:{{else}}Fix bisection:{{end}}
 			the issue occurs on the latest tested release</b>
 		{{end}}
-		<b>({{link .LogLink "bisect log"}})</b><br>
+		<b>({{link .LogLink "bisect log"}}{{if .AIBisection}}, {{link .ExternalLink "AI job"}}{{end}})</b><br>
 	{{end}}
 	{{if .CrashLogLink}}
 		Crash: {{link .CrashReportLink .CrashTitle}} ({{link .CrashLogLink "log"}})<br>
