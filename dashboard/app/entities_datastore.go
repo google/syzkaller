@@ -473,6 +473,10 @@ func (crash *Crash) Save() ([]db.Property, error) {
 	return db.SaveStruct(crash)
 }
 
+func (crash *Crash) ReproLevel() dashapi.ReproLevel {
+	return dashapi.ReproLevelFromCAndSyz(crash.ReproC != 0, crash.ReproSyz != 0)
+}
+
 type Discussion struct {
 	ID      string // the base message ID
 	Source  string

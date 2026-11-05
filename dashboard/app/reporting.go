@@ -513,9 +513,9 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 		// (e.g. when we did bisected with a syz repro and then notified about a C repro).
 		if causeBisect != nil && !causeBisect.job.isUnreliableBisect() {
 			job = causeBisect.job
-			if causeBisect.crash.ReproC != 0 || crash.ReproC == 0 {
-				// Don't override the crash in this case,
-				// otherwise we will always think that we haven't reported the C repro.
+			// Report the bisected crash only if its repro level is not lower than the current one,
+			// otherwise we will always think that we haven't reported the C/syz repro.
+			if causeBisect.crash.ReproLevel() >= crash.ReproLevel() {
 				crash, crashKey = causeBisect.crash, causeBisect.crashKey
 			}
 		}
