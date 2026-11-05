@@ -37,8 +37,13 @@ func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult
 	if err != nil {
 		return createCReproResult{}, fmt.Errorf("failed to get target %s/%s: %w", args.TargetOS, args.TargetArch, err)
 	}
-	p, err := pt.Deserialize([]byte(args.ReproSyz), prog.NonStrict)
+	// The program is only converted to C for the LLM to read, it's never executed.
+	// So use the unsafe mode to preserve the original semantics (e.g. disabled calls,
+	// prohibited ioctls, etc).
+	p, err := pt.Deserialize([]byte(args.ReproSyz), prog.NonStrictUnsafe)
 	if err != nil {
+		// TODO: build the syzkaller revision that generated the reproducer
+		// and use its descriptions/prog2c to convert the program.
 		return createCReproResult{}, fmt.Errorf("failed to deserialize syz repro: %w", err)
 	}
 	cData, err := csource.WriteLLM(p)

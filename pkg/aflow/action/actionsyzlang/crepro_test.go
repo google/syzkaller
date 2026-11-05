@@ -30,6 +30,25 @@ write(r0, &AUTO="01010101", 0x4)
 	}
 }
 
+func TestSyzlangToC_DisabledCall(t *testing.T) {
+	if runtime.GOOS != targets.Get("linux", "amd64").BuildOS {
+		t.Skip("cannot build linux/amd64 on this host")
+	}
+	// The clone call is disabled in the descriptions, but old reproducers may still use it.
+	progWithDisabled := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+clone(0x0, 0x0, 0x0, 0x0, 0x0)
+write(r0, &AUTO="01010101", 0x4)
+`
+	res, err := createCRepro(nil, createCReproArgs{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		ReproSyz:   progWithDisabled,
+	})
+	require.NoError(t, err)
+	require.Contains(t, res.SimplifiedCRepro, "int main")
+	require.Contains(t, res.SimplifiedCRepro, "__NR_clone")
+}
+
 func TestSyzlangToC_Invalid(t *testing.T) {
 	invalidProg := `r0 = unknown_syscall(0x123)`
 	res, err := createCRepro(nil, createCReproArgs{TargetOS: "linux", TargetArch: "amd64", ReproSyz: invalidProg})
