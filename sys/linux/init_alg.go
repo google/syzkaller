@@ -41,11 +41,6 @@ func (arch *arch) generateAlgName(g *prog.Gen, typ prog.Type, dir prog.Dir, old 
 	return generateAlgNameStruct(g, typ, dir, allTypes[g.Rand().Intn(len(allTypes))].typ)
 }
 
-func (arch *arch) generateAlgAeadName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
-	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, dir, ALG_AEAD)
-}
-
 func (arch *arch) generateAlgHashName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
 	return generateAlgNameStruct(g, typ, dir, ALG_HASH)
