@@ -237,3 +237,21 @@ func TestSandbox(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "hello\nsandbox", content)
 }
+
+func TestSandboxChownFile(t *testing.T) {
+	RequireSandbox(t)
+	dir := SandboxTempDir(t)
+	path := filepath.Join(dir, "file")
+	file, err := os.Create(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, file.Close()) })
+	// Changing the pathname must not redirect the ownership change to another file.
+	renamed := filepath.Join(dir, "renamed")
+	require.NoError(t, os.Rename(path, renamed))
+	target := filepath.Join(dir, "target")
+	require.NoError(t, WriteFile(target, []byte("data")))
+	require.NoError(t, os.Symlink(target, path))
+	require.NoError(t, SandboxChownFile(file))
+	assert.True(t, IsSandboxOwned(t, renamed))
+	assert.False(t, IsSandboxOwned(t, target))
+}
