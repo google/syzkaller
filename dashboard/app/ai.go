@@ -871,7 +871,12 @@ func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, t
 	}
 	if report != "" {
 		repo, _ := args["KernelRepo"].(string)
-		commit, _ := args["KernelCommit"].(string)
+		// The report refers to the sources of the kernel that crashed, which is CrashCommit.
+		// KernelCommit differs from it for fix bisection jobs; older jobs have only KernelCommit.
+		commit, _ := args["CrashCommit"].(string)
+		if commit == "" {
+			commit, _ = args["KernelCommit"].(string)
+		}
 		crashReport = linkifyText(ctx, report, repo, commit)
 	}
 
@@ -1801,15 +1806,18 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		return "", fmt.Errorf("addCrashReference failed: %w", err)
 	}
 	cfg := getNsConfig(ctx, bug.Namespace)
+	// CrashCommit is the commit the crash happened on: bisection workflows need it in addition
+	// to KernelCommit (fix bisection searches for the fix in CrashCommit..KernelCommit).
 	args := map[string]any{
 		"BugTitle":        bug.Title,
+		"CrashCommit":     build.KernelCommit,
 		"ReproOpts":       string(crash.ReproOpts),
 		"ReproSyzID":      crash.ReproSyz,
 		"ReproCID":        crash.ReproC,
 		"CrashReportID":   crash.Report,
 		"CrashLogID":      crash.Log,
 		"KernelRepo":      build.KernelRepo,
-		"KernelCommit":    build.KernelCommit,
+		"KernelCommit":    build.KernelCommit, // overridden below for fix bisection jobs
 		"KernelConfigID":  build.KernelConfig,
 		"SyzkallerCommit": build.SyzkallerCommit,
 		"TargetOS":        build.OS,
@@ -1823,6 +1831,14 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	if (typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) && bug.AIRootCause.Text != 0 {
 		args["RootCauseAnalysisID"] = bug.AIRootCause.Text
 		args["RootCauseCommit"] = bug.AIRootCause.KernelCommit
+	}
+	if typ == ai.WorkflowBisectFix {
+		manager, _ := activeManager(ctx, crash.Manager, bug.Namespace)
+		mgrBuild, err := lastManagerBuild(ctx, bug.Namespace, manager)
+		if err != nil {
+			return "", fmt.Errorf("failed to get manager build for fix bisection: %w", err)
+		}
+		args["KernelCommit"] = mgrBuild.KernelCommit
 	}
 	if manager, ok := extraArgs["KernelConfigManager"].(string); ok && manager != "" {
 		manager, _ = activeManager(ctx, manager, bug.Namespace)
