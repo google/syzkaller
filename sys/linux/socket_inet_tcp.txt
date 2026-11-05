@@ -27,6 +27,13 @@ socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]
 resource sock_mptcp6[sock_tcp6]
 socket$inet6_mptcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_mptcp6
 
+# Accepted connections are TCP sockets as well, so they can be used with TCP-specific
+# socket options, ULPs and e.g. KCM attach (which accepts any established TCP socket).
+accept$inet_tcp(fd sock_tcp, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_tcp
+accept4$inet_tcp(fd sock_tcp, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_tcp
+accept$inet6_tcp(fd sock_tcp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_tcp6
+accept4$inet6_tcp(fd sock_tcp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_tcp6
+
 # Generic TCP socket options
 
 tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_CORK, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_SYNCNT, TCP_LINGER2, TCP_DEFER_ACCEPT, TCP_WINDOW_CLAMP, TCP_QUICKACK, TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, TCP_USER_TIMEOUT, TCP_FASTOPEN, TCP_FASTOPEN_CONNECT, TCP_FASTOPEN_NO_COOKIE, TCP_TIMESTAMP, TCP_NOTSENT_LOWAT, TCP_SAVE_SYN, TCP_INQ, TCP_TX_DELAY, TCP_IS_MPTCP, TCP_RTO_MAX_MS, TCP_RTO_MIN_US, TCP_DELACK_MAX_US
@@ -45,10 +52,95 @@ setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[t
 
 # Generic MPTCP socket options
 
+resource mptcp_token[int32]
+
 mptcp_option_types_buf = MPTCP_INFO, MPTCP_FULL_INFO, MPTCP_TCPINFO, MPTCP_SUBFLOW_ADDRS
 
 getsockopt$inet_mptcp_buf(fd sock_mptcp, level const[SOL_MPTCP], optname flags[mptcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 getsockopt$inet6_mptcp_buf(fd sock_mptcp6, level const[SOL_MPTCP], optname flags[mptcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+
+getsockopt$inet_mptcp_MPTCP_INFO(fd sock_mptcp, level const[SOL_MPTCP], optname const[MPTCP_INFO], optval ptr[out, mptcp_info], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_mptcp_MPTCP_INFO(fd sock_mptcp6, level const[SOL_MPTCP], optname const[MPTCP_INFO], optval ptr[out, mptcp_info], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet_mptcp_MPTCP_TCPINFO(fd sock_mptcp, level const[SOL_MPTCP], optname const[MPTCP_TCPINFO], optval ptr[inout, mptcp_tcpinfo], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_mptcp_MPTCP_TCPINFO(fd sock_mptcp6, level const[SOL_MPTCP], optname const[MPTCP_TCPINFO], optval ptr[inout, mptcp_tcpinfo], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet_mptcp_MPTCP_SUBFLOW_ADDRS(fd sock_mptcp, level const[SOL_MPTCP], optname const[MPTCP_SUBFLOW_ADDRS], optval ptr[inout, mptcp_subflow_addrs_opt], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_mptcp_MPTCP_SUBFLOW_ADDRS(fd sock_mptcp6, level const[SOL_MPTCP], optname const[MPTCP_SUBFLOW_ADDRS], optval ptr[inout, mptcp_subflow_addrs_opt], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet_mptcp_MPTCP_FULL_INFO(fd sock_mptcp, level const[SOL_MPTCP], optname const[MPTCP_FULL_INFO], optval ptr[inout, mptcp_full_info], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_mptcp_MPTCP_FULL_INFO(fd sock_mptcp6, level const[SOL_MPTCP], optname const[MPTCP_FULL_INFO], optval ptr[inout, mptcp_full_info], optlen ptr[inout, len[optval, int32]])
+
+mptcp_info {
+	mptcpi_subflows			int8
+	mptcpi_add_addr_signal		int8
+	mptcpi_add_addr_accepted	int8
+	mptcpi_subflows_max		int8
+	mptcpi_add_addr_signal_max	int8
+	mptcpi_add_addr_accepted_max	int8
+	pad0				const[0, int16]
+	mptcpi_flags			int32
+	mptcpi_token			mptcp_token
+	mptcpi_write_seq		int64
+	mptcpi_snd_una			int64
+	mptcpi_rcv_nxt			int64
+	mptcpi_local_addr_used		int8
+	mptcpi_local_addr_max		int8
+	mptcpi_csum_enabled		int8
+	pad1				const[0, int8]
+	mptcpi_retransmits		int32
+	mptcpi_bytes_retrans		int64
+	mptcpi_bytes_sent		int64
+	mptcpi_bytes_received		int64
+	mptcpi_bytes_acked		int64
+	mptcpi_subflows_total		int8
+	mptcpi_endp_laminar_max		int8
+	mptcpi_endp_fullmesh_max	int8
+	reserved			const[0, int8]
+	mptcpi_last_data_sent		int32
+	mptcpi_last_data_recv		int32
+	mptcpi_last_ack_recv		int32
+}
+
+mptcp_subflow_data {
+	size_subflow_data	const[MPTCP_SUBFLOW_DATA_SIZE, int32]
+	num_subflows		const[0, int32]
+	size_kernel		const[0, int32]
+	size_user		int32[1:512]
+} [align[8]]
+
+mptcp_tcpinfo {
+	sfd		mptcp_subflow_data
+	tcp_info	array[int8, 512]	(out)
+}
+
+mptcp_subflow_addrs {
+	ss_local	sockaddr_storage_tcp
+	ss_remote	sockaddr_storage_tcp
+}
+
+mptcp_subflow_addrs_opt {
+	sfd	mptcp_subflow_data
+	addrs	array[mptcp_subflow_addrs, 2]	(out)
+}
+
+mptcp_subflow_info {
+	id	int32
+	addrs	mptcp_subflow_addrs
+}
+
+mptcp_full_info {
+	size_tcpinfo_kernel	const[0, int32]
+	size_tcpinfo_user	int32[1:512]
+	size_sfinfo_kernel	const[0, int32]
+	size_sfinfo_user	const[MPTCP_SUBFLOW_INFO_SIZE, int32]
+	num_subflows		const[0, int32]
+	size_arrays_user	len[subflow_info, int32]
+	subflow_info		ptr64[out, array[mptcp_subflow_info, 1:4]]
+# Up to 4 subflows (size_arrays_user) with up to 512 bytes of tcp_info each (size_tcpinfo_user).
+	tcp_info		ptr64[out, array[int8, 2048]]
+	mptcp_info		mptcp_info	(out)
+}
+
+define MPTCP_SUBFLOW_DATA_SIZE	sizeof(struct mptcp_subflow_data)
+define MPTCP_SUBFLOW_INFO_SIZE	sizeof(struct mptcp_subflow_info)
 
 # Specific TCP socket options
 
@@ -81,6 +173,8 @@ setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optn
 
 setsockopt$inet_tcp_TCP_ULP(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz[tcp_ulp_names]], optlen len[optval])
 setsockopt$inet6_tcp_TCP_ULP(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz[tcp_ulp_names]], optlen len[optval])
+setsockopt$inet_tcp_TCP_ULP_espintcp(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz["espintcp"]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_ULP_espintcp(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz["espintcp"]], optlen len[optval])
 
 setsockopt$inet_tcp_TCP_MD5SIG(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
 setsockopt$inet6_tcp_TCP_MD5SIG(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
@@ -113,8 +207,17 @@ setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[SOL_TLS], optname const[TLS_
 setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[SOL_TLS], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
 setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[SOL_TLS], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
 setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[SOL_TLS], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet_tcp_TLS_bool(fd sock_tcp, level const[SOL_TLS], optname flags[tls_bool_opts], optval ptr[in, bool32], optlen len[optval])
+setsockopt$inet6_tcp_TLS_bool(fd sock_tcp6, level const[SOL_TLS], optname flags[tls_bool_opts], optval ptr[in, bool32], optlen len[optval])
+setsockopt$inet_tcp_TLS_TX_MAX_PAYLOAD_LEN(fd sock_tcp, level const[SOL_TLS], optname const[TLS_TX_MAX_PAYLOAD_LEN], optval ptr[in, int16[63:16384]], optlen len[optval])
+setsockopt$inet6_tcp_TLS_TX_MAX_PAYLOAD_LEN(fd sock_tcp6, level const[SOL_TLS], optname const[TLS_TX_MAX_PAYLOAD_LEN], optval ptr[in, int16[63:16384]], optlen len[optval])
+getsockopt$inet_tcp_TLS(fd sock_tcp, level const[SOL_TLS], optname flags[tls_get_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_tcp_TLS(fd sock_tcp6, level const[SOL_TLS], optname flags[tls_get_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 
-tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr"
+tls_bool_opts = TLS_TX_ZEROCOPY_RO, TLS_RX_EXPECT_NO_PAD
+tls_get_opts = TLS_TX, TLS_RX, TLS_TX_ZEROCOPY_RO, TLS_RX_EXPECT_NO_PAD, TLS_TX_MAX_PAYLOAD_LEN
+
+tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr", "roccet"
 
 tcp_ulp_names = "tls"
 
@@ -176,9 +279,14 @@ type tls_crypto_info[TYP] {
 tls_crypto_version = TLS_1_2_VERSION, TLS_1_3_VERSION
 
 tls_crypto_info_u [
-	gcm_128	tls12_crypto_info_aes_gcm_128
-	gcm_256	tls12_crypto_info_aes_gcm_256
-	ccm_128	tls12_crypto_info_aes_ccm_128
+	gcm_128			tls12_crypto_info_aes_gcm_128
+	gcm_256			tls12_crypto_info_aes_gcm_256
+	ccm_128			tls12_crypto_info_aes_ccm_128
+	chacha20_poly1305	tls12_crypto_info_chacha20_poly1305
+	sm4_gcm			tls12_crypto_info_sm4_gcm
+	sm4_ccm			tls12_crypto_info_sm4_ccm
+	aria_gcm_128		tls12_crypto_info_aria_gcm_128
+	aria_gcm_256		tls12_crypto_info_aria_gcm_256
 ] [varlen]
 
 tls12_crypto_info_aes_gcm_128 {
@@ -203,6 +311,45 @@ tls12_crypto_info_aes_ccm_128 {
 	key	array[int8, TLS_CIPHER_AES_CCM_128_KEY_SIZE]
 	salt	array[int8, TLS_CIPHER_AES_CCM_128_SALT_SIZE]
 	rec_seq	array[int8, TLS_CIPHER_AES_CCM_128_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_chacha20_poly1305 {
+	info	tls_crypto_info[TLS_CIPHER_CHACHA20_POLY1305]
+	iv	array[int8, TLS_CIPHER_CHACHA20_POLY1305_IV_SIZE]
+	key	array[int8, TLS_CIPHER_CHACHA20_POLY1305_KEY_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_CHACHA20_POLY1305_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_sm4_gcm {
+	info	tls_crypto_info[TLS_CIPHER_SM4_GCM]
+	iv	array[int8, TLS_CIPHER_SM4_GCM_IV_SIZE]
+	key	array[int8, TLS_CIPHER_SM4_GCM_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_SM4_GCM_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_SM4_GCM_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_sm4_ccm {
+	info	tls_crypto_info[TLS_CIPHER_SM4_CCM]
+	iv	array[int8, TLS_CIPHER_SM4_CCM_IV_SIZE]
+	key	array[int8, TLS_CIPHER_SM4_CCM_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_SM4_CCM_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_SM4_CCM_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aria_gcm_128 {
+	info	tls_crypto_info[TLS_CIPHER_ARIA_GCM_128]
+	iv	array[int8, TLS_CIPHER_ARIA_GCM_128_IV_SIZE]
+	key	array[int8, TLS_CIPHER_ARIA_GCM_128_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_ARIA_GCM_128_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_ARIA_GCM_128_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aria_gcm_256 {
+	info	tls_crypto_info[TLS_CIPHER_ARIA_GCM_256]
+	iv	array[int8, TLS_CIPHER_ARIA_GCM_256_IV_SIZE]
+	key	array[int8, TLS_CIPHER_ARIA_GCM_256_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_ARIA_GCM_256_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_ARIA_GCM_256_REC_SEQ_SIZE]
 }
 
 # TCP ioctls
