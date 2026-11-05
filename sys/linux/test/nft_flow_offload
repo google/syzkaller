@@ -1,0 +1,21 @@
+# Configure an nftables inet flowtable across syzkaller0 and syzkaller1, then route bidirectional UDP packets to trigger flow offload and fastpath lookup.
+# requires: -sandbox=setuid
+
+r0 = openat$sysctl(AUTO, &AUTO='/proc/sys/net/ipv4/ip_forward\x00', AUTO, AUTO)
+write$sysctl(r0, &AUTO='1', AUTO)
+r1 = openat$tun(AUTO, &AUTO, 0x2, AUTO)
+ioctl$TUNSETIFF(r1, AUTO, &AUTO={'syzkaller0\x00', 0x1001})
+r2 = openat$tun(AUTO, &AUTO, 0x2, AUTO)
+ioctl$TUNSETIFF(r2, AUTO, &AUTO={'syzkaller1\x00', 0x1001})
+r3 = socket$nl_route(AUTO, AUTO, AUTO)
+ioctl$sock_SIOCGIFINDEX(r3, AUTO, &AUTO={'syzkaller0\x00', <r4=>0x0})
+ioctl$sock_SIOCGIFINDEX(r3, AUTO, &AUTO={'syzkaller1\x00', <r5=>0x0})
+sendmsg$nl_route(r3, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO=@setlink={AUTO, AUTO, 0x5, 0x70bc95, 0x0, {AUTO, AUTO, AUTO, r4, 0x1, 0x1}, []}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+sendmsg$nl_route(r3, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO=@ipv4_newaddr={AUTO, AUTO, 0x405, 0x70bc96, 0x0, {AUTO, 0x18, 0x0, 0x0, r4}, [@IFA_LOCAL={AUTO, AUTO, @private=0xa010101, ""}, @IFA_ADDRESS={AUTO, AUTO, @private=0xa010101, ""}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+sendmsg$nl_route(r3, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO=@setlink={AUTO, AUTO, 0x5, 0x70bc97, 0x0, {AUTO, AUTO, AUTO, r5, 0x1, 0x1}, []}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+sendmsg$nl_route(r3, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO=@ipv4_newaddr={AUTO, AUTO, 0x405, 0x70bc98, 0x0, {AUTO, 0x18, 0x0, 0x0, r5}, [@IFA_LOCAL={AUTO, AUTO, @rand_addr=0x64010101, ""}, @IFA_ADDRESS={AUTO, AUTO, @rand_addr=0x64010101, ""}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+r6 = socket$nl_netfilter(AUTO, AUTO, AUTO)
+sendmsg$NFT_BATCH(r6, &AUTO={&AUTO={AUTO, AUTO, AUTO, 0x0}, AUTO, &AUTO={&AUTO={{AUTO, AUTO, AUTO, AUTO, AUTO, {0x1, AUTO, AUTO}}, [@NFT_MSG_NEWTABLE={AUTO, AUTO, AUTO, 0x405, AUTO, AUTO, {0x1, AUTO, 0x0}, [@NFTA_TABLE_NAME={AUTO, AUTO, 'syz0\x00', ""}]}, @NFT_MSG_NEWFLOWTABLE={AUTO, AUTO, AUTO, 0x405, AUTO, AUTO, {0x1, AUTO, 0x0}, [@NFTA_FLOWTABLE_TABLE={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_FLOWTABLE_NAME={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_FLOWTABLE_HOOK={AUTO, AUTO, AUTO, AUTO, [@NFTA_FLOWTABLE_HOOK_NUM={AUTO, AUTO, AUTO, AUTO, AUTO, ""}, @NFTA_FLOWTABLE_HOOK_PRIORITY={AUTO, AUTO, AUTO, AUTO, 0x0, ""}, @NFTA_FLOWTABLE_HOOK_DEVS={AUTO, AUTO, AUTO, AUTO, [{AUTO, AUTO, 'syzkaller0\x00', ""}, {AUTO, AUTO, 'syzkaller1\x00', ""}], ""}], ""}]}, @NFT_MSG_NEWCHAIN={AUTO, AUTO, AUTO, 0x405, AUTO, AUTO, {0x1, AUTO, 0x0}, [@NFTA_CHAIN_TABLE={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_CHAIN_NAME={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_CHAIN_TYPE={AUTO, AUTO, 'filter\x00', ""}, @NFTA_CHAIN_HOOK={AUTO, AUTO, AUTO, AUTO, [@NFTA_HOOK_HOOKNUM={AUTO, AUTO, AUTO, AUTO, 0x2, ""}, @NFTA_HOOK_PRIORITY={AUTO, AUTO, AUTO, AUTO, 0x0, ""}], ""}]}, @NFT_MSG_NEWRULE={AUTO, AUTO, AUTO, 0xc05, AUTO, AUTO, {0x1, AUTO, 0x0}, [@NFTA_RULE_TABLE={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_RULE_CHAIN={AUTO, AUTO, 'syz0\x00', ""}, @NFTA_RULE_EXPRESSIONS={AUTO, AUTO, AUTO, AUTO, [{AUTO, AUTO, AUTO, AUTO, @flow_offload={{AUTO, AUTO, 'flow_offload\x00', ""}, @val={AUTO, AUTO, AUTO, AUTO, [@NFTA_FLOW_TABLE_NAME={AUTO, AUTO, 'syz0\x00', ""}], ""}}, ""}], ""}]}], {AUTO, AUTO, AUTO, AUTO, AUTO, {0x1, AUTO, AUTO}}}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+write$tun(r1, &AUTO={@void, @void, @ipv4=@udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x64, 0x0, 0x40, AUTO, AUTO, @private=0xa010102, @rand_addr=0x64010102, {[]}}, {0x4e20, 0x4e21, AUTO, AUTO, @opaque="41424344"}}}, AUTO)
+write$tun(r2, &AUTO={@void, @void, @ipv4=@udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x65, 0x0, 0x40, AUTO, AUTO, @rand_addr=0x64010102, @private=0xa010102, {[]}}, {0x4e21, 0x4e20, AUTO, AUTO, @opaque="45464748"}}}, AUTO)
+write$tun(r1, &AUTO={@void, @void, @ipv4=@udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x66, 0x0, 0x40, AUTO, AUTO, @private=0xa010102, @rand_addr=0x64010102, {[]}}, {0x4e20, 0x4e21, AUTO, AUTO, @opaque="494a4b4c"}}}, AUTO)

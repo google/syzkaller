@@ -678,9 +678,10 @@ resource fd_sysctl[fd]
 openat$sysctl(fd const[AT_FDCWD], file ptr[in, string[sysctl_file]], flags const[O_WRONLY], mode const[0]) fd_sysctl
 write$sysctl(fd fd_sysctl, val ptr[in, stringnoz[sysctl_value]], len len[val])
 
-sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_dsack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/sys/net/ipv4/tcp_recovery", "/proc/sys/net/ipv4/tcp_mtu_probing", "/proc/sys/net/ipv4/tcp_rfc1337", "/proc/sys/net/mptcp/pm_type", "/proc/sys/net/mptcp/checksum_enabled", "/proc/self/clear_refs"
+sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_dsack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/sys/net/ipv4/tcp_recovery", "/proc/sys/net/ipv4/tcp_mtu_probing", "/proc/sys/net/ipv4/tcp_rfc1337", "/proc/sys/net/ipv4/tcp_fastopen", "/proc/sys/net/ipv4/tcp_plb_enabled", "/proc/sys/net/ipv4/ip_forward", "/proc/sys/net/ipv6/conf/all/forwarding", "/proc/sys/net/mptcp/pm_type", "/proc/sys/net/mptcp/checksum_enabled", "/proc/self/clear_refs"
 # Most of these values are suitable for all sysctl_file files.
-sysctl_value = "0", "1", "2", "3", "4", "5", "6", "7"
+# 1027 (TFO_CLIENT_ENABLE | TFO_SERVER_ENABLE | TFO_SERVER_WO_SOCKOPT1) is meant for tcp_fastopen.
+sysctl_value = "0", "1", "2", "3", "4", "5", "6", "7", "1027"
 
 # Write to this file triggers khugepaged scan.
 # We don't want to write small values as we only want the explicitly triggered scan.
@@ -694,7 +695,7 @@ resource fd_tcp_congestion[fd]
 openat$tcp_congestion(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/net/ipv4/tcp_congestion_control"]], flags const[O_WRONLY], mode const[0]) fd_tcp_congestion
 write$tcp_congestion(fd fd_tcp_congestion, val ptr[in, string[tcp_congestion]], len len[val])
 
-tcp_congestion = "reno", "bbr", "bic", "cdg", "cubic", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois"
+tcp_congestion = "reno", "bbr", "bic", "cdg", "cubic", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "roccet"
 
 resource fd_tcp_mem[fd]
 
