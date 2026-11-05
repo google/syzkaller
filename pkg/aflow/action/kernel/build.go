@@ -95,6 +95,12 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 	image := filepath.FromSlash(build.LinuxKernelImage(targetVMArch))
 	makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
 		"ccache", buildDir, runtime.NumCPU())
+	// Newer LLVM versions transform some loops into wcslen() calls, which breaks linking
+	// of kernels older than commit 84ffc79bfbf7 ("kbuild: Add '-fno-builtin-wcslen'"):
+	// ld.lld: error: undefined symbol: wcslen
+	// The fix does not cherry-pick cleanly, so pass the flag explicitly.
+	// For newer kernels this is a no-op.
+	makeArgs = append(makeArgs, "KCFLAGS=-fno-builtin-wcslen")
 	const compileCommands = "compile_commands.json"
 	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
 	if _, err := osutil.RunSandboxed(time.Hour, srcDir, "make", makeArgs...); err != nil {
