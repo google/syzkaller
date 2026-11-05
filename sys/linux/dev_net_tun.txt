@@ -8,6 +8,9 @@ include <uapi/linux/if_arp.h>
 resource fd_tun[fd]
 
 openat$tun(fd const[AT_FDCWD], file ptr[in, string["/dev/net/tun"]], flags flags[open_flags], mode const[0]) fd_tun
+openat$macvtap(fd const[AT_FDCWD], file ptr[in, string["/macvtap0"]], flags flags[open_flags], mode const[0]) fd_tun
+openat$ipvtap(fd const[AT_FDCWD], file ptr[in, string["/ipvtap0"]], flags flags[open_flags], mode const[0]) fd_tun
+read$tun(fd fd_tun, buf buffer[out], count len[buf])
 write$tun(fd fd_tun, buf ptr[in, tun_buffer], count len[buf])
 ioctl$TUNGETFEATURES(fd fd_tun, cmd const[TUNGETFEATURES], arg ptr[out, int32])
 ioctl$TUNSETQUEUE(fd fd_tun, cmd const[TUNSETQUEUE], arg ptr[in, ifreq_t[flags[tun_queue_flags, int16]]])

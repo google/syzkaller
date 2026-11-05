@@ -13,6 +13,7 @@ include <uapi/linux/sock_diag.h>
 include <uapi/linux/vm_sockets_diag.h>
 include <uapi/linux/virtio_net.h>
 include <uapi/linux/virtio_config.h>
+include <uapi/linux/virtio_ring.h>
 
 resource sock_vsock[sock]
 resource sock_vsock_stream[sock_vsock]
@@ -65,6 +66,8 @@ openat$vnet(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-net"]], flags co
 write$vhost_msg(fd vhost_net, buf ptr[in, vhost_msg], size len[buf])
 write$vhost_msg_v2(fd vhost_net, buf ptr[in, vhost_msg_v2], size len[buf])
 ioctl$VHOST_NET_SET_BACKEND(fd vhost_net, cmd const[VHOST_NET_SET_BACKEND], arg ptr[in, vhost_vring_file])
+ioctl$VHOST_NET_SET_BACKEND_tun(fd vhost_net, cmd const[VHOST_NET_SET_BACKEND], arg ptr[in, vhost_vring_file_tun])
+ioctl$VHOST_NET_SET_BACKEND_pkt(fd vhost_net, cmd const[VHOST_NET_SET_BACKEND], arg ptr[in, vhost_vring_file_pkt])
 
 ioctl$VHOST_GET_FEATURES(fd fd_vhost, cmd const[VHOST_GET_FEATURES], arg ptr[out, int64])
 ioctl$VHOST_SET_FEATURES(fd fd_vhost, cmd const[VHOST_SET_FEATURES], arg ptr[in, flags[vhost_features, int64]])
@@ -74,9 +77,12 @@ ioctl$VHOST_SET_MEM_TABLE(fd fd_vhost, cmd const[VHOST_SET_MEM_TABLE], arg ptr[i
 ioctl$VHOST_SET_LOG_BASE(fd fd_vhost, cmd const[VHOST_SET_LOG_BASE], arg ptr[in, ptr64[out, int8]])
 ioctl$VHOST_SET_LOG_FD(fd fd_vhost, cmd const[VHOST_SET_LOG_FD], arg ptr[in, fd_event[opt]])
 ioctl$VHOST_SET_VRING_NUM(fd fd_vhost, cmd const[VHOST_SET_VRING_NUM], arg ptr[in, vhost_vring_state])
+# vhost_vring_set_num() only accepts non-zero power-of-two sizes up to 0xffff.
+ioctl$VHOST_SET_VRING_NUM_pow2(fd fd_vhost, cmd const[VHOST_SET_VRING_NUM], arg ptr[in, vhost_vring_state_num])
 ioctl$VHOST_SET_VRING_BASE(fd fd_vhost, cmd const[VHOST_SET_VRING_BASE], arg ptr[in, vhost_vring_state])
 ioctl$VHOST_GET_VRING_BASE(fd fd_vhost, cmd const[VHOST_GET_VRING_BASE], arg ptr[out, vhost_vring_state])
 ioctl$VHOST_SET_VRING_ADDR(fd fd_vhost, cmd const[VHOST_SET_VRING_ADDR], arg ptr[in, vhost_vring_addr])
+ioctl$VHOST_SET_VRING_ADDR_ring(fd fd_vhost, cmd const[VHOST_SET_VRING_ADDR], arg ptr[in, vhost_vring_addr_ring])
 ioctl$VHOST_SET_VRING_KICK(fd fd_vhost, cmd const[VHOST_SET_VRING_KICK], arg ptr[in, vhost_vring_file])
 ioctl$VHOST_SET_VRING_CALL(fd fd_vhost, cmd const[VHOST_SET_VRING_CALL], arg ptr[in, vhost_vring_file])
 ioctl$VHOST_SET_VRING_ERR(fd fd_vhost, cmd const[VHOST_SET_VRING_ERR], arg ptr[in, vhost_vring_file])
@@ -155,7 +161,7 @@ vhost_memory {
 vhost_memory_region {
 	guest_phys_addr	flags[kvm_guest_addrs, int64]
 	memory_size	bytesize[userspace_addr, int64]
-	userspace_addr	ptr64[out, array[int8]]
+	userspace_addr	ptr64[inout, array[int8]]
 	flags_padding	const[0, int64]
 }
 
@@ -164,18 +170,78 @@ vhost_vring_state {
 	num	int32
 }
 
+vhost_vring_state_num {
+	index	flags[vhost_vring_index, int32]
+	num	flags[vhost_vring_nums, int32]
+}
+
+# vhost_vring_set_num() requires a non-zero power of 2. The leading 0 also prevents the compiler
+# from treating the values as a bitmask (which would make the fuzzer OR them together).
+vhost_vring_nums = 0, 1, 2, 4, 8, 16, 32, 64, 128, 256
+
 vhost_vring_addr {
 	index		flags[vhost_vring_index, int32]
 	flags		int32[0:1]
-	desc_user_addr	ptr64[out, array[int8]]
-	used_user_addr	ptr64[out, array[int8]]
-	avail_user_addr	ptr64[out, array[int8]]
+	desc_user_addr	ptr64[inout, array[int8]]
+	used_user_addr	ptr64[inout, array[int8]]
+	avail_user_addr	ptr64[inout, array[int8]]
 	log_guest_addr	flags[kvm_guest_addrs, int64]
 }
+
+# The rings below have 16 entries, while vhost_vring_nums allows sizes up to 256.
+# For larger sizes the kernel accesses memory past the described rings, which is fine.
+vhost_vring_addr_ring {
+	index		flags[vhost_vring_index, int32]
+	flags		int32[0:1]
+	desc_user_addr	ptr64[in, array[vhost_vring_desc, 1:16]]
+	used_user_addr	ptr64[inout, vhost_vring_used]
+	avail_user_addr	ptr64[in, vhost_vring_avail]
+	log_guest_addr	int64[0:0x10000, 4]
+}
+
+vhost_vring_desc {
+	addr	flags[kvm_guest_addrs, int64]
+	len	int32[0:4096]
+	flags	flags[vring_desc_flags, int16]
+	next	int16[0:15]
+}
+
+vhost_vring_avail {
+	flags		flags[vring_avail_flags, int16]
+	idx		int16[0:16]
+	ring		array[int16[0:15], 16]
+	used_event	int16
+}
+
+vhost_vring_used_elem {
+	id	int32
+	len	int32
+}
+
+vhost_vring_used {
+	flags		flags[vring_used_flags, int16]
+	idx		int16
+	ring		array[vhost_vring_used_elem, 16]
+	avail_event	int16
+}
+
+vring_desc_flags = VRING_DESC_F_NEXT, VRING_DESC_F_WRITE, VRING_DESC_F_INDIRECT
+vring_avail_flags = VRING_AVAIL_F_NO_INTERRUPT
+vring_used_flags = VRING_USED_F_NO_NOTIFY
 
 vhost_vring_file {
 	index	flags[vhost_vring_index, int32]
 	fd	fd_event[opt]
+}
+
+vhost_vring_file_tun {
+	index	int32[0:1]
+	fd	fd_tun[opt]
+}
+
+vhost_vring_file_pkt {
+	index	int32[0:1]
+	fd	sock_packet_raw[opt]
 }
 
 vhost_msg {

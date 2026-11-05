@@ -14,8 +14,11 @@ include <linux/if_arp.h>
 define ETH_P_ALL_BE	htons(ETH_P_ALL)
 
 resource sock_packet[sock]
+resource sock_packet_raw[sock_packet]
 
 socket$packet(domain const[AF_PACKET], type flags[packet_socket_type], proto const[ETH_P_ALL_BE]) sock_packet
+# vhost-net only accepts SOCK_RAW packet sockets as a backend (see get_raw_socket()).
+socket$packet_raw(domain const[AF_PACKET], type const[SOCK_RAW], proto const[ETH_P_ALL_BE]) sock_packet_raw
 bind$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
 connect$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
 accept$packet(fd sock_packet, peer ptr[out, sockaddr_ll, opt], peerlen ptr[inout, len[peer, int32]]) sock_packet
