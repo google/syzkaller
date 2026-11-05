@@ -540,19 +540,19 @@ ipv6_sr_hdr {
 	nexthdr		flags[ipv6_types, int8]
 	hdrlen		bytesize8[segments, int8]
 	type		const[IPV6_SRCRT_TYPE_4, int8]
-	segments_left	len[segments, int8]
-	first_segment	int8
+	segments_left	int8[0:4]
+	first_segment	len[segments:more, int8]
 	flags		flags[ipv6_sr_flags, int8]
 	tag		int16
-	segments	array[ipv6_addr]
-# TODO: this may be followed by sr6_tlv_hmac if SR6_FLAG1_HMAC is set.
-# However, if we place it here, we won't be able to calculate hdrlen (len of 2 fields),
-# and if we move segments and sr6_tlv_hmac into a separate struct,
-# we won't be able to calculate segments_left because it will need to
-# refer to a field of a subobject. What may help is allowing specifying
-# subfields as len/bytesize targets, e.g. "len[payload.segments]", or "bytesize[parent_struct.foo]".
-} [packed, align[8]]
+	segments	ipv6_sr_segments
+} [packed]
 
+ipv6_sr_segments {
+	first	ipv6_addr
+	more	array[ipv6_addr, 0:3]
+} [packed]
+
+# TODO: SR6_FLAG1_HMAC should be followed by an HMAC TLV (struct sr6_tlv_hmac) after the segments.
 ipv6_sr_flags = SR6_FLAG1_PROTECTED, SR6_FLAG1_OAM, SR6_FLAG1_ALERT, SR6_FLAG1_HMAC
 
 ipv6_fragment_ext_header {
