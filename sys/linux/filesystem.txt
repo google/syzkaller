@@ -10,6 +10,10 @@ umount2(path ptr[in, filename], flags flags[umount_flags])
 
 mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flags flags[mount_flags], opts ptr[in, fs_options[bpf_options]])
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
+# Keep a raw-string variant for deterministic overlay seeds.  The structured
+# fs_options form is valuable for option-level mutation, but it cannot express
+# a prebuilt complete option string in a hand-written seed.
+mount$overlay_raw(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, string])
 mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
 mount$tmpfs(src const[0], dst ptr[in, filename], type ptr[in, string["tmpfs"]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
 mount$cgroup(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup_options]])
@@ -59,7 +63,7 @@ move_mount(from_dfd fd_dir[opt], from_pathname ptr[in, filename], to_dfd fd_dir[
 open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags]) fd
 mount_setattr(dfd fd_dir[opt], filename ptr[in, filename], flags flags[mount_setattr_flags], args ptr[in, mount_attr], size bytesize[args])
 
-open_tree_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW, OPEN_TREE_CLONE, OPEN_TREE_CLOEXEC
+open_tree_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW, OPEN_TREE_CLONE, OPEN_TREE_CLOEXEC, OPEN_TREE_NAMESPACE
 
 mount_setattr_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW
 
@@ -72,7 +76,7 @@ mount_attr {
 
 mount_attr_flags = MOUNT_ATTR_IDMAP, fsmount_attr_flags
 mount_attr_propagation_flags = MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED
-fsmount_flags = FSMOUNT_CLOEXEC
+fsmount_flags = FSMOUNT_CLOEXEC, FSMOUNT_NAMESPACE
 fsopen_flags = FSOPEN_CLOEXEC
 fspick_flags = FSPICK_CLOEXEC
 fsmount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME
