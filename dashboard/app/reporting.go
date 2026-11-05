@@ -502,16 +502,16 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 		if err != nil {
 			return nil, err
 		}
-		if causeBisect != nil {
-			err := causeBisect.loadCrash(ctx)
-			if err != nil {
-				return nil, err
-			}
-		}
 		// If we didn't check whether the bisect is unreliable, even though it would not be
 		// reported anyway, we could still eventually Cc people from those commits later
 		// (e.g. when we did bisected with a syz repro and then notified about a C repro).
-		if causeBisect != nil && !causeBisect.job.isUnreliableBisect() {
+		// AI bisections that did not identify any commit are not reported at all
+		// (for classic bisections, no commits mean that the issue happens on the oldest release).
+		if causeBisect != nil && !causeBisect.job.isUnreliableBisect() &&
+			(!causeBisect.job.IsAIBisection() || len(causeBisect.job.Commits) > 0) {
+			if err := causeBisect.loadCrash(ctx); err != nil {
+				return nil, err
+			}
 			job = causeBisect.job
 			// Report the bisected crash only if its repro level is not lower than the current one,
 			// otherwise we will always think that we haven't reported the C/syz repro.
@@ -527,7 +527,11 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 	if job != nil {
 		cause, emails := bisectFromJob(ctx, job)
 		rep.BisectCause = cause
-		rep.Maintainers = append(rep.Maintainers, emails...)
+		// Don't CC commit authors/recipients from AI bisection jobs
+		// until AI bisection is confirmed reliable (see finishBisectCauseJob).
+		if !job.IsAIBisection() {
+			rep.Maintainers = append(rep.Maintainers, emails...)
+		}
 	}
 	return rep, nil
 }

@@ -23,7 +23,7 @@ Downloadable assets:
   fsck result: {{if $asset.FsIsClean}}OK{{else}}failed{{end}} (log: {{$asset.FsckLogURL}})
 {{- end}}
 {{end}}{{end}}
-{{if .BisectCause}}{{if .BisectCause.Commit}}The issue was bisected to:
+{{if .BisectCause}}{{if .BisectCause.Commit}}The issue was bisected{{if .BisectCause.AI}} by AI{{end}} to:
 
 commit {{.BisectCause.Commit.Hash}}
 Author: {{.BisectCause.Commit.AuthorName}} <{{.BisectCause.Commit.Author}}>
@@ -46,7 +46,8 @@ full analysis:  {{.Link}}
 
 {{end}}IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
-{{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
+{{if .BisectCause}}{{if .BisectCause.Commit}}{{if .BisectCause.AI}}The following Fixes tag was suggested by AI:
+{{end}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
 {{end}}{{end}}
 {{- range $label, $text := .LabelMessages}}
 {{$text}}

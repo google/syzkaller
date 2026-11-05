@@ -608,7 +608,8 @@ type Job struct {
 	CC        []string
 	Reporting string
 	ExtID     string // email Message-ID
-	Link      string // web link for the job (e.g. email in the group)
+	Link      string // web link for the job (e.g. email in the group, or the AI job page)
+	AIJobID   string // ID of the AI job, if the job is an AI bisection
 	Namespace string
 	Manager   string
 	BugTitle  string
@@ -652,6 +653,12 @@ type Job struct {
 
 func (job *Job) IsBisection() bool {
 	return job.Type == JobBisectCause || job.Type == JobBisectFix
+}
+
+// IsAIBisection returns whether the job holds the results of an AI bisection job
+// (see finishBisectCauseJob).
+func (job *Job) IsAIBisection() bool {
+	return job.IsBisection() && job.AIJobID != ""
 }
 
 func (job *Job) IsFinished() bool {
@@ -749,7 +756,7 @@ const (
 	BisectError
 	BisectYes          // have 1 commit
 	BisectUnreliable   // have 1 commit, but suspect it's wrong
-	BisectInconclusive // multiple commits due to skips
+	BisectInconclusive // multiple commits due to skips (for AI bisection, no commit identified)
 	BisectHorizont     // happens on the oldest commit we can test (or HEAD for fix bisection)
 	bisectStatusLast   // this value can be changed (not stored in datastore)
 )

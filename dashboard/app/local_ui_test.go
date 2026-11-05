@@ -506,6 +506,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			{Type: ai.WorkflowAssessmentSecurity, Name: string(ai.WorkflowAssessmentSecurity)},
 			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
 			{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)},
+			{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)},
 		},
 	})
 }
