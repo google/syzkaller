@@ -99,7 +99,7 @@ bind(0x5, &(0x7f0000000040)=@nl=@proc={0x10, 0x2, 0x3}, 0x80)
 socket(17, 3, 768)  = 3
 ioctl(3, 35111, {ifr_name="\x6c\x6f", ifr_hwaddr=00:00:00:00:00:00}) = 0
 `, `
-r0 = socket$packet(0x11, 0x3, 0x300)
+r0 = socket$packet_raw(0x11, 0x3, 0x300)
 ioctl$sock_ifreq(r0, 0x8927, &(0x7f0000000000)={'lo\x00'})
 `,
 		}, {`
@@ -132,7 +132,7 @@ setsockopt$sock_int(r0, 0x1, 0x2, &(0x7f0000000000)=0x1, 0x4)
 9795  socket(17, 3, 768)  = 3
 9795  ioctl(3, 35123, {ifr_name="\x6c\x6f", }) = 0
 `, `
-r0 = socket$packet(0x11, 0x3, 0x300)
+r0 = socket$packet_raw(0x11, 0x3, 0x300)
 ioctl$ifreq_SIOCGIFINDEX_batadv_hard(r0, 0x8933, &(0x7f0000000000)={'lo\x00'})
 `,
 		}, {`
