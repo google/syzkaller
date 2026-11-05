@@ -42,6 +42,9 @@ func checkSchemaType(typ reflect.Type) error {
 		return nil
 	}
 	for _, field := range reflect.VisibleFields(typ) {
+		if !field.IsExported() || field.Anonymous {
+			continue
+		}
 		if field.Tag.Get("jsonschema") == "" {
 			return fmt.Errorf("%v.%v does not have a jsonschema tag with description",
 				typ.Name(), field.Name)
@@ -255,7 +258,7 @@ func foreachField(data any) iter.Seq2[string, reflect.Value] {
 	return func(yield func(string, reflect.Value) bool) {
 		v := reflect.ValueOf(data).Elem()
 		for _, field := range reflect.VisibleFields(v.Type()) {
-			if field.Anonymous {
+			if !field.IsExported() || field.Anonymous {
 				continue
 			}
 			if !yield(field.Name, v.FieldByIndex(field.Index)) {
