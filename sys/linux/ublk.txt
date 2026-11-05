@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <uapi/linux/ublk_cmd.h>
+include <uapi/linux/fs.h>
 include <io_uring/io_uring.h>
 
 resource fd_ublk_ctrl[fd]
@@ -19,6 +20,7 @@ define UBLK_MAX_IO_BYTES	4096
 
 ioctl$UBLK_U_CMD_GET_QUEUE_AFFINITY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_QUEUE_AFFINITY], arg ptr[out, ublk_ctrl_cmd$get_queue_affinity])
 ioctl$UBLK_U_CMD_GET_DEV_INFO(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_DEV_INFO], arg ptr[out, ublk_ctrl_cmd$get_device_info])
+ioctl$UBLK_U_CMD_GET_DEV_INFO2(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_DEV_INFO2], arg ptr[out, ublk_ctrl_cmd$get_device_info2])
 ioctl$UBLK_U_CMD_GET_PARAMS(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_PARAMS], arg ptr[out, ublk_ctrl_cmd$get_params])
 ioctl$UBLK_U_CMD_GET_FEATURES(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_FEATURES], arg ptr[out, ublk_ctrl_cmd$get_features])
 
@@ -29,10 +31,21 @@ ioctl$UBLK_U_CMD_STOP_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_STOP_DEV], arg p
 ioctl$UBLK_U_CMD_START_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_START_USER_RECOVERY], arg ptr[inout, ublk_ctrl_cmd$start_user_recovery])
 ioctl$UBLK_U_CMD_END_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_END_USER_RECOVERY], arg ptr[inout, ublk_ctrl_cmd$end_user_recovery])
 ioctl$UBLK_U_CMD_DEL_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_DEL_DEV], arg ptr[inout, ublk_ctrl_cmd$del_dev])
+ioctl$UBLK_U_CMD_DEL_DEV_ASYNC(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_DEL_DEV_ASYNC], arg ptr[inout, ublk_ctrl_cmd$del_dev_async])
+ioctl$UBLK_U_CMD_UPDATE_SIZE(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_UPDATE_SIZE], arg ptr[inout, ublk_ctrl_cmd$update_size])
+ioctl$UBLK_U_CMD_QUIESCE_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_QUIESCE_DEV], arg ptr[inout, ublk_ctrl_cmd$quiesce_dev])
+ioctl$UBLK_U_CMD_TRY_STOP_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_TRY_STOP_DEV], arg ptr[inout, ublk_ctrl_cmd$try_stop_dev])
+ioctl$UBLK_U_CMD_REG_BUF(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_REG_BUF], arg ptr[inout, ublk_ctrl_cmd$reg_buf])
+ioctl$UBLK_U_CMD_UNREG_BUF(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_UNREG_BUF], arg ptr[inout, ublk_ctrl_cmd$unreg_buf])
 
 ioctl$UBLK_U_IO_FETCH_REQ(fd fd_ublk_ch, cmd const[UBLK_U_IO_FETCH_REQ], arg ptr[inout, ublk_io_cmd$fetch_req])
 ioctl$UBLK_U_IO_COMMIT_AND_FETCH_REQ(fd fd_ublk_ch, cmd const[UBLK_U_IO_COMMIT_AND_FETCH_REQ], arg ptr[inout, ublk_io_cmd$commit_and_fetch_req])
 ioctl$UBLK_U_IO_NEED_GET_DATA(fd fd_ublk_ch, cmd const[UBLK_U_IO_NEED_GET_DATA], arg ptr[inout, ublk_io_cmd$need_get_data])
+ioctl$UBLK_U_IO_REGISTER_IO_BUF(fd fd_ublk_ch, cmd const[UBLK_U_IO_REGISTER_IO_BUF], arg ptr[inout, ublk_io_cmd$reg_io_buf])
+ioctl$UBLK_U_IO_UNREGISTER_IO_BUF(fd fd_ublk_ch, cmd const[UBLK_U_IO_UNREGISTER_IO_BUF], arg ptr[inout, ublk_io_cmd$unreg_io_buf])
+ioctl$UBLK_U_IO_PREP_IO_CMDS(fd fd_ublk_ch, cmd const[UBLK_U_IO_PREP_IO_CMDS], arg ptr[inout, ublk_batch_io])
+ioctl$UBLK_U_IO_COMMIT_IO_CMDS(fd fd_ublk_ch, cmd const[UBLK_U_IO_COMMIT_IO_CMDS], arg ptr[inout, ublk_batch_io])
+ioctl$UBLK_U_IO_FETCH_IO_CMDS(fd fd_ublk_ch, cmd const[UBLK_U_IO_FETCH_IO_CMDS], arg ptr[inout, ublk_batch_io])
 
 openat$ublk_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ublk-control"]], flags const[O_RDWR], mode const[0]) fd_ublk_ctrl
 
@@ -80,9 +93,16 @@ type ublk_ctrl_cmd$stop_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0,
 type ublk_ctrl_cmd$start_user_recovery ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
 type ublk_ctrl_cmd$end_user_recovery ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], pid]
 type ublk_ctrl_cmd$del_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+type ublk_ctrl_cmd$del_dev_async ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+type ublk_ctrl_cmd$update_size ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], int64]
+type ublk_ctrl_cmd$quiesce_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], int64]
+type ublk_ctrl_cmd$try_stop_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+type ublk_ctrl_cmd$reg_buf ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[in, ublk_shmem_buf_reg], const[0, int64]]
+type ublk_ctrl_cmd$unreg_buf ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], int64]
 
 type ublk_ctrl_cmd$get_queue_affinity ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, int64], int64[0:UBLK_MAX_HW_QUEUES]]
 type ublk_ctrl_cmd$get_device_info ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, ublk_ctrl_dev_info_all], const[0, int64]]
+type ublk_ctrl_cmd$get_device_info2 ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, ublk_ctrl_dev_info_all], const[0, int64]]
 type ublk_ctrl_cmd$get_params ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, ublk_params], const[0, int64]]
 type ublk_ctrl_cmd$get_features ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, int64], const[0, int64]]
 
@@ -94,11 +114,18 @@ ublk_ctrl_cmd_u [
 	start_dev_cmd		ublk_ctrl_cmd$start_dev
 	stop_dev_cmd		ublk_ctrl_cmd$stop_dev
 	del_dev_cmd		ublk_ctrl_cmd$del_dev
+	del_dev_async_cmd	ublk_ctrl_cmd$del_dev_async
 	start_user_recovery_cmd	ublk_ctrl_cmd$start_user_recovery
 	end_user_recovery_cmd	ublk_ctrl_cmd$end_user_recovery
+	update_size_cmd		ublk_ctrl_cmd$update_size
+	quiesce_dev_cmd		ublk_ctrl_cmd$quiesce_dev
+	try_stop_dev_cmd	ublk_ctrl_cmd$try_stop_dev
+	reg_buf_cmd		ublk_ctrl_cmd$reg_buf
+	unreg_buf_cmd		ublk_ctrl_cmd$unreg_buf
 
 	get_queue_affinity_cmd	ublk_ctrl_cmd$get_queue_affinity
 	get_dev_info_cmd	ublk_ctrl_cmd$get_device_info
+	get_dev_info2_cmd	ublk_ctrl_cmd$get_device_info2
 	get_params_cmd		ublk_ctrl_cmd$get_params
 	get_features_cmd	ublk_ctrl_cmd$get_features
 
@@ -109,7 +136,7 @@ type ublk_ctrl_dev_info[DEV_ID] {
 	nr_hw_queues		int16[1:UBLK_MAX_HW_QUEUES]
 	queue_depth		int16[1:UBLK_MAX_QUEUE_DEPTH]
 	state			const[0, int16]
-	pad0			const[0, int16]
+	io_desc_size		int16
 	max_io_buf_bytes	const[UBLK_MAX_IO_BYTES, int32]
 	dev_id			DEV_ID
 	ublk_pid		pid
@@ -122,7 +149,16 @@ type ublk_ctrl_dev_info[DEV_ID] {
 	reserved2		const[0, int64]
 }
 
-ublk_f_flags = UBLK_F_SUPPORT_ZERO_COPY, UBLK_F_URING_CMD_COMP_IN_TASK, UBLK_F_NEED_GET_DATA, UBLK_F_USER_RECOVERY, UBLK_F_USER_RECOVERY_REISSUE, UBLK_F_UNPRIVILEGED_DEV, UBLK_F_CMD_IOCTL_ENCODE, UBLK_F_USER_COPY, UBLK_F_ZONED
+ublk_f_flags = UBLK_F_SUPPORT_ZERO_COPY, UBLK_F_URING_CMD_COMP_IN_TASK, UBLK_F_NEED_GET_DATA, UBLK_F_USER_RECOVERY, UBLK_F_USER_RECOVERY_REISSUE, UBLK_F_UNPRIVILEGED_DEV, UBLK_F_CMD_IOCTL_ENCODE, UBLK_F_USER_COPY, UBLK_F_ZONED, UBLK_F_USER_RECOVERY_FAIL_IO, UBLK_F_UPDATE_SIZE, UBLK_F_AUTO_BUF_REG, UBLK_F_QUIESCE, UBLK_F_PER_IO_DAEMON, UBLK_F_BUF_REG_OFF_DAEMON, UBLK_F_BATCH_IO, UBLK_F_INTEGRITY, UBLK_F_SAFE_STOP_DEV, UBLK_F_NO_AUTO_PART_SCAN, UBLK_F_SHMEM_ZC, UBLK_F_IO_DESC_SIZE
+
+ublk_shmem_buf_reg {
+	addr		int64
+	len		int64
+	flags		flags[ublk_shmem_flags, int32]
+	reserved	const[0, int32]
+}
+
+ublk_shmem_flags = UBLK_SHMEM_BUF_READ_ONLY
 
 ublk_ctrl_dev_info_new [
 	new_dev	ublk_ctrl_dev_info[const[-1, int32]]
@@ -138,15 +174,21 @@ define UBLK_PARAM_TYPE_BASIC	(1 << 0)
 define UBLK_PARAM_TYPE_DISCARD	(1 << 1)
 define UBLK_PARAM_TYPE_DEVT	(1 << 2)
 define UBLK_PARAM_TYPE_ZONED	(1 << 3)
-ublk_param_types = UBLK_PARAM_TYPE_BASIC, UBLK_PARAM_TYPE_DISCARD, UBLK_PARAM_TYPE_DEVT, UBLK_PARAM_TYPE_ZONED
+define UBLK_PARAM_TYPE_DMA_ALIGN	(1 << 4)
+define UBLK_PARAM_TYPE_SEGMENT	(1 << 5)
+define UBLK_PARAM_TYPE_INTEGRITY	(1 << 6)
+ublk_param_types = UBLK_PARAM_TYPE_BASIC, UBLK_PARAM_TYPE_DISCARD, UBLK_PARAM_TYPE_DEVT, UBLK_PARAM_TYPE_ZONED, UBLK_PARAM_TYPE_DMA_ALIGN, UBLK_PARAM_TYPE_SEGMENT, UBLK_PARAM_TYPE_INTEGRITY
 
 ublk_params {
-	len	len[parent, int32]
-	types	flags[ublk_param_types, int32]
-	basic	ublk_param_basic
-	discard	ublk_param_discard
-	devt	ublk_param_devt
-	zoned	ublk_param_zoned
+	len		len[parent, int32]
+	types		flags[ublk_param_types, int32]
+	basic		ublk_param_basic
+	discard		ublk_param_discard
+	devt		ublk_param_devt
+	zoned		ublk_param_zoned
+	dma		ublk_param_dma_align
+	seg		ublk_param_segment
+	integrity	ublk_param_integrity
 }
 
 define UBLK_ATTR_READ_ONLY	(1 << 0)
@@ -190,12 +232,41 @@ ublk_param_zoned {
 	reserved		array[const[0, int8], 20]
 }
 
+ublk_param_dma_align {
+	alignment	int32
+	pad		array[const[0, int8], 4]
+}
+
+ublk_param_segment {
+	seg_boundary_mask	int64
+	max_segment_size	int32
+	max_segments		int16
+	pad			array[const[0, int8], 2]
+}
+
+ublk_param_integrity {
+	flags			flags[lbmd_pi_cap_flags, int32]
+	max_integrity_segments	int16
+	interval_exp		int8
+	metadata_size		int8
+	pi_offset		int8
+	csum_type		flags[lbmd_pi_csum_types, int8]
+	tag_size		int8
+	pad			array[const[0, int8], 5]
+}
+
+lbmd_pi_cap_flags = LBMD_PI_CAP_INTEGRITY, LBMD_PI_CAP_REFTAG
+lbmd_pi_csum_types = LBMD_PI_CSUM_NONE, LBMD_PI_CSUM_IP, LBMD_PI_CSUM_CRC16_T10DIF, LBMD_PI_CSUM_CRC64_NVME
+
 # --------------------------------------- Data types for ublk IO commands ---------------------------------------
 
 ublk_io_cmd_u [
 	fetch_req_cmd		ublk_io_cmd$fetch_req
 	commit_and_fetch_cmd	ublk_io_cmd$commit_and_fetch_req
 	need_get_data_cmd	ublk_io_cmd$need_get_data
+	reg_io_buf_cmd		ublk_io_cmd$reg_io_buf
+	unreg_io_buf_cmd	ublk_io_cmd$unreg_io_buf
+	batch_io_cmd		ublk_batch_io
 ]
 
 type ublk_io_cmd[Q_ID, TAG, RESULT, ADDR] {
@@ -209,6 +280,23 @@ type ublk_io_cmd[Q_ID, TAG, RESULT, ADDR] {
 type ublk_io_cmd$fetch_req ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], const[0, int32], ptr64[inout, ublk_io_buf_u]]
 type ublk_io_cmd$commit_and_fetch_req ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, ptr64[inout, ublk_io_buf_u]]
 type ublk_io_cmd$need_get_data ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, ptr64[inout, ublk_io_buf_u]]
+type ublk_io_cmd$reg_io_buf ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, int64]
+type ublk_io_cmd$unreg_io_buf ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, int64]
+
+define UBLK_BATCH_F_HAS_ZONE_LBA	(1 << 0)
+define UBLK_BATCH_F_HAS_BUF_ADDR	(1 << 1)
+define UBLK_BATCH_F_AUTO_BUF_REG_FALLBACK	(1 << 2)
+ublk_batch_flags = UBLK_BATCH_F_HAS_ZONE_LBA, UBLK_BATCH_F_HAS_BUF_ADDR, UBLK_BATCH_F_AUTO_BUF_REG_FALLBACK
+
+ublk_batch_io {
+	q_id		int16[0:UBLK_MAX_HW_QUEUES]
+	flags		flags[ublk_batch_flags, int16]
+	nr_elem		int16
+	elem_bytes	int8
+	reserved	const[0, int8]
+	reserved2	const[0, int64]
+	pad		array[const[0, int32], 16]
+}
 
 ublk_io_buf_u [
 	buf_512		array[int8, 512]
@@ -232,8 +320,8 @@ ublk_queue {
 }
 
 # Command SQEs for both control and I/O commands
-ublk_ctrl_cmd_flags = UBLK_U_CMD_ADD_DEV, UBLK_U_CMD_SET_PARAMS, UBLK_U_CMD_START_DEV, UBLK_U_CMD_STOP_DEV, UBLK_U_CMD_START_USER_RECOVERY, UBLK_U_CMD_END_USER_RECOVERY, UBLK_U_CMD_DEL_DEV, UBLK_U_CMD_GET_QUEUE_AFFINITY, UBLK_U_CMD_GET_DEV_INFO, UBLK_U_CMD_GET_PARAMS, UBLK_U_CMD_GET_FEATURES
-ublk_io_cmd_flags = UBLK_U_IO_FETCH_REQ, UBLK_U_IO_COMMIT_AND_FETCH_REQ, UBLK_U_IO_NEED_GET_DATA
+ublk_ctrl_cmd_flags = UBLK_U_CMD_ADD_DEV, UBLK_U_CMD_SET_PARAMS, UBLK_U_CMD_START_DEV, UBLK_U_CMD_STOP_DEV, UBLK_U_CMD_START_USER_RECOVERY, UBLK_U_CMD_END_USER_RECOVERY, UBLK_U_CMD_DEL_DEV, UBLK_U_CMD_GET_QUEUE_AFFINITY, UBLK_U_CMD_GET_DEV_INFO, UBLK_U_CMD_GET_DEV_INFO2, UBLK_U_CMD_GET_PARAMS, UBLK_U_CMD_GET_FEATURES, UBLK_U_CMD_DEL_DEV_ASYNC, UBLK_U_CMD_UPDATE_SIZE, UBLK_U_CMD_QUIESCE_DEV, UBLK_U_CMD_TRY_STOP_DEV, UBLK_U_CMD_REG_BUF, UBLK_U_CMD_UNREG_BUF
+ublk_io_cmd_flags = UBLK_U_IO_FETCH_REQ, UBLK_U_IO_COMMIT_AND_FETCH_REQ, UBLK_U_IO_NEED_GET_DATA, UBLK_U_IO_REGISTER_IO_BUF, UBLK_U_IO_UNREGISTER_IO_BUF, UBLK_U_IO_PREP_IO_CMDS, UBLK_U_IO_COMMIT_IO_CMDS, UBLK_U_IO_FETCH_IO_CMDS
 
 type io_uring_sqe_uring$ublk_add_dev io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_ADD_DEV, int32], ublk_ctrl_cmd$add_dev, int64]
 
@@ -245,11 +333,21 @@ type user_data[CMD] {
 type io_uring_sqe_uring$ublk_io_fetch io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_FETCH_REQ, int32], ublk_io_cmd$fetch_req, user_data[UBLK_U_IO_FETCH_REQ]]
 type io_uring_sqe_uring$ublk_io_commit_and_fetch io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_COMMIT_AND_FETCH_REQ, int32], ublk_io_cmd$commit_and_fetch_req, user_data[UBLK_U_IO_COMMIT_AND_FETCH_REQ]]
 type io_uring_sqe_uring$ublk_io_need_get_data io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_NEED_GET_DATA, int32], ublk_io_cmd$need_get_data, user_data[UBLK_U_IO_NEED_GET_DATA]]
+type io_uring_sqe_uring$ublk_io_reg_io_buf io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_REGISTER_IO_BUF, int32], ublk_io_cmd$reg_io_buf, user_data[UBLK_U_IO_REGISTER_IO_BUF]]
+type io_uring_sqe_uring$ublk_io_unreg_io_buf io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_UNREGISTER_IO_BUF, int32], ublk_io_cmd$unreg_io_buf, user_data[UBLK_U_IO_UNREGISTER_IO_BUF]]
+type io_uring_sqe_uring$ublk_io_prep_io_cmds io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_PREP_IO_CMDS, int32], ublk_batch_io, int64]
+type io_uring_sqe_uring$ublk_io_commit_io_cmds io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_COMMIT_IO_CMDS, int32], ublk_batch_io, int64]
+type io_uring_sqe_uring$ublk_io_fetch_io_cmds io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_FETCH_IO_CMDS, int32], ublk_batch_io, int64]
 
 ublk_io_cmd_sqe_u [
 	ublk_io_fetch_sqe		io_uring_sqe_uring$ublk_io_fetch
 	ublk_io_commit_and_fetch_sqe	io_uring_sqe_uring$ublk_io_commit_and_fetch
 	ublk_io_need_get_data_sqe	io_uring_sqe_uring$ublk_io_need_get_data
+	ublk_io_reg_io_buf_sqe		io_uring_sqe_uring$ublk_io_reg_io_buf
+	ublk_io_unreg_io_buf_sqe	io_uring_sqe_uring$ublk_io_unreg_io_buf
+	ublk_io_prep_io_cmds_sqe	io_uring_sqe_uring$ublk_io_prep_io_cmds
+	ublk_io_commit_io_cmds_sqe	io_uring_sqe_uring$ublk_io_commit_io_cmds
+	ublk_io_fetch_io_cmds_sqe	io_uring_sqe_uring$ublk_io_fetch_io_cmds
 ]
 
 ublk_cmd_sqe_u [
@@ -265,9 +363,16 @@ ublk_cmd_sqe_u [
 	ublk_end_user_recovery_sqe	io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_END_USER_RECOVERY, int32], ublk_ctrl_cmd$end_user_recovery, int64]
 	ublk_stop_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_STOP_DEV, int32], ublk_ctrl_cmd$stop_dev, int64]
 	ublk_del_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_DEL_DEV, int32], ublk_ctrl_cmd$del_dev, int64]
+	ublk_del_dev_async_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_DEL_DEV_ASYNC, int32], ublk_ctrl_cmd$del_dev_async, int64]
+	ublk_update_size_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_UPDATE_SIZE, int32], ublk_ctrl_cmd$update_size, int64]
+	ublk_quiesce_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_QUIESCE_DEV, int32], ublk_ctrl_cmd$quiesce_dev, int64]
+	ublk_try_stop_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_TRY_STOP_DEV, int32], ublk_ctrl_cmd$try_stop_dev, int64]
+	ublk_reg_buf_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_REG_BUF, int32], ublk_ctrl_cmd$reg_buf, int64]
+	ublk_unreg_buf_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_UNREG_BUF, int32], ublk_ctrl_cmd$unreg_buf, int64]
 
 	ublk_get_queue_affinity_sqe	io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_QUEUE_AFFINITY, int32], ublk_ctrl_cmd$get_queue_affinity, int64]
 	ublk_get_dev_info_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_DEV_INFO, int32], ublk_ctrl_cmd$get_device_info, int64]
+	ublk_get_dev_info2_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_DEV_INFO2, int32], ublk_ctrl_cmd$get_device_info2, int64]
 	ublk_get_params_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_PARAMS, int32], ublk_ctrl_cmd$get_params, int64]
 	ublk_get_features_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_FEATURES, int32], ublk_ctrl_cmd$get_features, int64]
 
@@ -275,4 +380,9 @@ ublk_cmd_sqe_u [
 	ublk_io_fetch_sqe		io_uring_sqe_uring$ublk_io_fetch
 	ublk_io_commit_and_fetch_sqe	io_uring_sqe_uring$ublk_io_commit_and_fetch
 	ublk_io_need_get_data_sqe	io_uring_sqe_uring$ublk_io_need_get_data
+	ublk_io_reg_io_buf_sqe		io_uring_sqe_uring$ublk_io_reg_io_buf
+	ublk_io_unreg_io_buf_sqe	io_uring_sqe_uring$ublk_io_unreg_io_buf
+	ublk_io_prep_io_cmds_sqe	io_uring_sqe_uring$ublk_io_prep_io_cmds
+	ublk_io_commit_io_cmds_sqe	io_uring_sqe_uring$ublk_io_commit_io_cmds
+	ublk_io_fetch_io_cmds_sqe	io_uring_sqe_uring$ublk_io_fetch_io_cmds
 ]
