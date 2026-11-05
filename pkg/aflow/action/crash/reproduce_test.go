@@ -160,3 +160,22 @@ func TestSymbolize(t *testing.T) {
 	require.Equal(t, uint64(0x1000), res[0][0].PC)
 	require.Equal(t, uint64(0x2000), res[0][1].PC)
 }
+
+func TestBuildConfigIgnoresKCSAN(t *testing.T) {
+	syzDir := setupDummySyzkaller(t)
+	tc := TargetConfig{
+		Target:       Target{TargetArch: "amd64"},
+		Type:         "qemu",
+		Syzkaller:    syzDir,
+		KernelConfig: "CONFIG_KCSAN=y",
+	}
+
+	cfg, err := BuildConfig(tc, t.TempDir())
+	require.NoError(t, err)
+	require.Empty(t, cfg.Ignores)
+
+	tc.IgnoreKCSANReports = true
+	cfg, err = BuildConfig(tc, t.TempDir())
+	require.NoError(t, err)
+	require.Equal(t, []string{"BUG: KCSAN:"}, cfg.Ignores)
+}

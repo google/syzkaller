@@ -17,6 +17,7 @@ const (
 	Bug                     = Type("BUG")
 	DoS                     = Type("DoS")
 	Hang                    = Type("HANG")
+	InvariantViolation      = Type("INVARIANT_VIOLATION")
 	KASANInvalidFree        = Type("KASAN-INVALID-FREE")
 	KASANNullPtrDerefRead   = Type("KASAN-NULL-POINTER-DEREFERENCE-READ")
 	KASANNullPtrDerefWrite  = Type("KASAN-NULL-POINTER-DEREFERENCE-WRITE")

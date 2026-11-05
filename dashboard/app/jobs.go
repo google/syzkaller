@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -102,6 +103,7 @@ type testJobArgs struct {
 	configRef     int64
 	configAppend  string
 	treeOrigin    bool
+	ignoreKCSAN   bool
 	inTransaction bool
 	testReqArgs
 }
@@ -159,25 +161,26 @@ func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		reportingName = args.bugReporting.Name
 	}
 	job := &Job{
-		Type:            JobTestPatch,
-		Created:         now,
-		User:            args.user,
-		CC:              args.jobCC,
-		Reporting:       reportingName,
-		ExtID:           args.extID,
-		Link:            args.link,
-		Namespace:       args.bug.Namespace,
-		Manager:         manager,
-		BugTitle:        args.bug.displayTitle(),
-		CrashID:         args.crashKey.IntID(),
-		KernelRepo:      args.repo,
-		KernelBranch:    args.branch,
-		MergeBaseRepo:   args.mergeBaseRepo,
-		MergeBaseBranch: args.mergeBaseBranch,
-		Patch:           patchID,
-		CandidateReproC: reproCID,
-		KernelConfig:    configRef,
-		TreeOrigin:      args.treeOrigin,
+		Type:               JobTestPatch,
+		Created:            now,
+		User:               args.user,
+		CC:                 args.jobCC,
+		Reporting:          reportingName,
+		ExtID:              args.extID,
+		Link:               args.link,
+		Namespace:          args.bug.Namespace,
+		Manager:            manager,
+		BugTitle:           args.bug.displayTitle(),
+		CrashID:            args.crashKey.IntID(),
+		KernelRepo:         args.repo,
+		KernelBranch:       args.branch,
+		MergeBaseRepo:      args.mergeBaseRepo,
+		MergeBaseBranch:    args.mergeBaseBranch,
+		Patch:              patchID,
+		CandidateReproC:    reproCID,
+		KernelConfig:       configRef,
+		TreeOrigin:         args.treeOrigin,
+		IgnoreKCSANReports: args.ignoreKCSAN,
 	}
 
 	var jobKey *db.Key
@@ -940,19 +943,20 @@ func createJobResp(ctx context.Context, job *Job, jobKey *db.Key) (*dashapi.JobP
 		return nil, true, nil
 	}
 	resp := &dashapi.JobPollResp{
-		ID:              jobID,
-		Manager:         job.Manager,
-		KernelRepo:      job.KernelRepo,
-		KernelBranch:    job.KernelBranch,
-		MergeBaseRepo:   job.MergeBaseRepo,
-		MergeBaseBranch: job.MergeBaseBranch,
-		KernelCommit:    job.BisectFrom,
-		KernelConfig:    kernelConfig,
-		SyzkallerCommit: build.SyzkallerCommit,
-		Patch:           patch,
-		ReproOpts:       crash.ReproOpts,
-		ReproSyz:        reproSyz,
-		ReproC:          reproC,
+		ID:                 jobID,
+		Manager:            job.Manager,
+		KernelRepo:         job.KernelRepo,
+		KernelBranch:       job.KernelBranch,
+		MergeBaseRepo:      job.MergeBaseRepo,
+		MergeBaseBranch:    job.MergeBaseBranch,
+		KernelCommit:       job.BisectFrom,
+		KernelConfig:       kernelConfig,
+		SyzkallerCommit:    build.SyzkallerCommit,
+		Patch:              patch,
+		ReproOpts:          crash.ReproOpts,
+		ReproSyz:           reproSyz,
+		ReproC:             reproC,
+		IgnoreKCSANReports: job.IgnoreKCSANReports || dashapi.CrashFlags(crash.Flags)&dashapi.CrashIgnoreKCSAN != 0,
 	}
 	if resp.KernelCommit == "" {
 		resp.KernelCommit = build.KernelCommit
@@ -1168,11 +1172,11 @@ func doneJob(ctx context.Context, req *dashapi.JobDoneReq) error {
 	if err = runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
-	reportCandidateReproCrash(ctx, job, req)
+	reportCandidateReproCrash(ctx, job, jobKey, req)
 	return postJob(ctx, jobKey, job)
 }
 
-func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDoneReq) {
+func reportCandidateReproCrash(ctx context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq) {
 	if job.Type != JobTestPatch || job.CandidateReproC == 0 || req.CrashTitle == "" ||
 		len(req.Error) > 0 || req.Build.ID == "" {
 		return
@@ -1185,6 +1189,11 @@ func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDo
 	if err != nil {
 		return
 	}
+	parent := new(Crash)
+	if err := db.Get(ctx, db.NewKey(ctx, "Crash", "", job.CrashID, jobKey.Parent()), parent); err != nil {
+		log.Errorf(ctx, "job %v: failed to get crash: %v", req.ID, err)
+		return
+	}
 	crashReq := &dashapi.Crash{
 		BuildID:   req.Build.ID,
 		Title:     req.CrashTitle,
@@ -1192,6 +1201,28 @@ func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDo
 		Log:       req.CrashLog,
 		Report:    req.CrashReport,
 		ReproC:    reproC,
+	}
+	if job.IgnoreKCSANReports {
+		// Subsequent jobs (retests, patch tests, bisections, AI workflows) must run the repro the same way.
+		crashReq.Flags |= dashapi.CrashIgnoreKCSAN
+	}
+	// Concrete kernel crashes (KASAN/KMSAN/panics) file under their own crash title;
+	// invariant violations are the reproducer's own check for the target bug and lack
+	// kernel stacks, so attach them to the target bug, preceded by its original report.
+	bugTitle, _, _ := splitDisplayTitle(job.BugTitle)
+	if crash.TitleToType(req.CrashTitle) == crash.InvariantViolation {
+		parentReport, _, err := getText(ctx, textCrashReport, parent.Report)
+		if err != nil {
+			log.Errorf(ctx, "job %v: failed to get crash report: %v", req.ID, err)
+			return
+		}
+		crashReq.Title, crashReq.AltTitles = bugTitle, nil
+		crashReq.Report = slices.Concat(parentReport, []byte("\n"), req.CrashReport)
+	}
+	// syz-ci does not determine recipients for job crashes, so inherit them from the target bug.
+	if crashReq.Title == bugTitle {
+		crashReq.Maintainers = parent.Maintainers
+		crashReq.GuiltyFiles = parent.ReportElements.GuiltyFiles
 	}
 	if _, err := reportCrash(ctx, build, crashReq); err != nil {
 		log.Errorf(ctx, "job %v: failed to report candidate repro crash: %v", req.ID, err)
@@ -2012,11 +2043,12 @@ func loadBugsWithHeadRepro(ctx context.Context) ([]bugItem, error) {
 }
 
 type testReproCReqArgs struct {
-	bug     *Bug
-	bugKey  *db.Key
-	user    string
-	manager string
-	reproC  []byte
+	bug         *Bug
+	bugKey      *db.Key
+	user        string
+	manager     string
+	reproC      []byte
+	ignoreKCSAN bool
 }
 
 // handleTestReproCRequest creates a JobTestPatch job to test a C reproducer on a manager.
@@ -2043,9 +2075,10 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 		return nil, nil, fmt.Errorf("failed to load build: %w", err)
 	}
 	return addTestJob(ctx, &testJobArgs{
-		crash:     crash,
-		crashKey:  crashKey,
-		configRef: build.KernelConfig,
+		crash:       crash,
+		crashKey:    crashKey,
+		configRef:   build.KernelConfig,
+		ignoreKCSAN: args.ignoreKCSAN,
 		testReqArgs: testReqArgs{
 			bug:     args.bug,
 			bugKey:  args.bugKey,
@@ -2058,19 +2091,20 @@ func handleTestReproCRequest(ctx context.Context, args *testReproCReqArgs) (*Job
 	})
 }
 
-// extractAIJobReproC extracts raw C reproducer bytes and target manager from an AI job.
-func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) (reproC []byte, manager string) {
+// extractAIJobReproC extracts raw C reproducer bytes, target manager, and KCSAN ignore mode from an AI job.
+func extractAIJobReproC(aiJob *aidb.Job, bug *Bug) (reproC []byte, manager string, ignoreKCSAN bool) {
 	outputs, err := castJobResults[ai.ReproCOutputs](aiJob)
 	if err != nil || outputs.ReproC == "" {
-		return nil, ""
+		return nil, "", false
 	}
 	if argsMap, ok := aiJob.Args.Value.(map[string]any); ok {
 		manager, _ = argsMap["KernelConfigManager"].(string)
+		ignoreKCSAN, _ = argsMap["IgnoreKCSANReports"].(bool)
 	}
 	if manager == "" && bug != nil && len(bug.HappenedOn) > 0 {
 		manager = bug.HappenedOn[0]
 	}
-	return []byte(outputs.ReproC), manager
+	return []byte(outputs.ReproC), manager, ignoreKCSAN
 }
 
 // findTestReproCJob queries Datastore for an existing JobTestPatch job matching reproC under bugKey.
@@ -2136,7 +2170,7 @@ func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.Manag
 			getNsConfig(ctx, bug.Namespace).Decommissioned {
 			continue
 		}
-		reproC, manager := extractAIJobReproC(aiJob, bug)
+		reproC, manager, ignoreKCSAN := extractAIJobReproC(aiJob, bug)
 		if len(reproC) == 0 || manager == "" {
 			continue
 		}
@@ -2152,10 +2186,11 @@ func createCReproTestJobs(ctx context.Context, managers map[string]dashapi.Manag
 			continue
 		}
 		job, jobKey, err := handleTestReproCRequest(ctx, &testReproCReqArgs{
-			bug:     bug,
-			bugKey:  bugKey,
-			manager: activeMgr,
-			reproC:  reproC,
+			bug:         bug,
+			bugKey:      bugKey,
+			manager:     activeMgr,
+			reproC:      reproC,
+			ignoreKCSAN: ignoreKCSAN,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to create test repro c job for bug %v: %w", bugKey.StringID(), err)

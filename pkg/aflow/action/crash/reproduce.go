@@ -281,6 +281,9 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC),
 		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
+	if args.IgnoreKCSANReports {
+		desc += ", ignore KCSAN"
+	}
 
 	cached, cachedID, err := aflow.CacheObject(ctx, "repro", desc, func() (cachedExecution, error) {
 		var res cachedExecution

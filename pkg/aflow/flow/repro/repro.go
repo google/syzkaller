@@ -51,6 +51,7 @@ func init() {
 				"ReproC":                       "", // is needed by crash.Reproduce
 				"NeedStrace":                   false,
 				"Snapshot":                     false,
+				"IgnoreKCSANReports":           false,
 			},
 			Root: aflow.Pipeline(
 				kernel.Checkout,

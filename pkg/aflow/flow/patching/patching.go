@@ -54,6 +54,9 @@ type Inputs struct {
 	BaseBranch     string
 	BaseCommit     string
 	StraceBin      string
+
+	// Ignore raw KCSAN reports when running the reproducer (see crash.TargetConfig).
+	IgnoreKCSANReports bool `json:",omitempty"`
 }
 
 func init() {
