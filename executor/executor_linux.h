@@ -207,13 +207,20 @@ static void cover_mmap(cover_t* cov)
 	if (cov->mmap_alloc_ptr == MAP_FAILED)
 		exitf("failed to preallocate kcov buffer");
 	// Now map the kcov buffer to the file, overwriting the existing mapping above.
-	int prot = flag_read_only_coverage ? PROT_READ : (PROT_READ | PROT_WRITE);
-	void* data_buf = (char*)mmap(cov->mmap_alloc_ptr + SYZ_PAGE_SIZE, cov->data_size,
-				     prot, MAP_SHARED | MAP_FIXED, cov->fd, 0);
+	void* data_buf = mmap(cov->mmap_alloc_ptr + SYZ_PAGE_SIZE, cov->data_size,
+			      PROT_READ, MAP_SHARED | MAP_FIXED, cov->fd, 0);
 	if (data_buf == MAP_FAILED)
 		exitf("cover mmap failed");
-	if (pkeys_enabled && pkey_mprotect(data_buf, cov->data_size, prot, RESERVED_PKEY))
-		exitf("failed to pkey_mprotect kcov buffer");
+	if (!flag_read_only_coverage) {
+		// Only the first page needs to be writable to reset the coverage count in cover_reset().
+		if (pkeys_enabled) {
+			if (pkey_mprotect(data_buf, SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+				exitf("failed to pkey_mprotect kcov buffer");
+		} else {
+			if (mprotect(data_buf, SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE))
+				exitf("failed to mprotect kcov buffer");
+		}
+	}
 	cov->data = (char*)data_buf;
 	cov->data_end = cov->data + cov->data_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);

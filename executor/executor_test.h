@@ -36,7 +36,8 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 
 extern "C" notrace void __sanitizer_cov_trace_pc(void)
 {
-	if (current_thread == nullptr || current_thread->cov.data == nullptr || current_thread->cov.collect_comps)
+	if (current_thread == nullptr || current_thread->cov.data == nullptr ||
+	    current_thread->cov.collect_comps || !current_thread->cov.enabled)
 		return;
 	uint64 pc = (uint64)__builtin_return_address(0);
 	// Convert to what is_kernel_pc will accept as valid coverage;
@@ -85,7 +86,10 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
+	if (mprotect(cov->data, cov->data_size, PROT_READ | PROT_WRITE))
+		fail("mprotect failed");
 	*(uint64*)(cov->data) = 0;
+	cov->enabled = true;
 }
 
 static void cover_collect(cover_t* cov)
@@ -94,6 +98,11 @@ static void cover_collect(cover_t* cov)
 		cov->size = *(uint64*)cov->data;
 	else
 		cov->size = *(uint32*)cov->data;
+	if (cov == &extra_cov && !cov->size)
+		return;
+	cov->enabled = false;
+	if (mprotect(cov->data, cov->data_size, PROT_READ))
+		fail("mprotect failed");
 }
 
 static void cover_protect(cover_t* cov)
@@ -108,7 +117,7 @@ static void cover_mmap(cover_t* cov)
 		fail("cover_t structure is corrupted");
 	cov->mmap_alloc_size = cov->data_size;
 	cov->mmap_alloc_ptr = (char*)mmap(NULL, cov->mmap_alloc_size,
-					  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+					  PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (cov->mmap_alloc_ptr == MAP_FAILED)
 		exitf("cover mmap failed");
 	cov->data = cov->mmap_alloc_ptr;
@@ -125,7 +134,7 @@ static void cover_unprotect(cover_t* cov)
 
 static long inject_cover(cover_t* cov, long a, long b)
 {
-	if (cov->data == nullptr)
+	if (cov->data == nullptr || !cov->enabled)
 		return ENOENT;
 	uint32 size = std::min((uint32)b, cov->data_size);
 	memcpy(cov->data, (void*)a, size);
