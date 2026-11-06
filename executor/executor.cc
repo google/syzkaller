@@ -501,9 +501,6 @@ static void mmap_input();
 #include "syscalls.h"
 
 #if GOOS_linux
-#ifndef MAP_FIXED_NOREPLACE
-#define MAP_FIXED_NOREPLACE 0x100000
-#endif
 #define MAP_FIXED_EXCLUSIVE MAP_FIXED_NOREPLACE
 #elif GOOS_freebsd
 #define MAP_FIXED_EXCLUSIVE (MAP_FIXED | MAP_EXCL)

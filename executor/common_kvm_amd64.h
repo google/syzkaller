@@ -15,10 +15,6 @@
 #include "kvm.h"
 #include "kvm_amd64.S.h"
 
-#ifndef KVM_SMI
-#define KVM_SMI _IO(KVMIO, 0xb7)
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct tss16 {
 	uint16 prev;

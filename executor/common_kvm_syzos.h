@@ -17,26 +17,12 @@
 #define always_inline __attribute__((always_inline)) inline
 
 // __no_stack_protector disables -fstack-protector which may introduce unwanted global accesses.
-// TODO(glider): once syz-env-old migrates to GCC>11 we can just use
-// __attribute__((no_stack_protector)).
+// Supported by Clang and by GCC since 11.1.
+#define __no_stack_protector __attribute__((no_stack_protector))
+
 #if defined(__clang__)
-
-// Clang supports the no_stack_protector attribute.
-#define __no_stack_protector __attribute__((no_stack_protector))
 #define __addrspace_guest __attribute__((address_space(10)))
-
-#elif defined(__GNUC__)
-// The no_stack_protector attribute was introduced in GCC 11.1.
-#if __GNUC__ > 11
-#define __no_stack_protector __attribute__((no_stack_protector))
 #else
-// Fallback to the optimize attribute for older GCC versions.
-#define __no_stack_protector __attribute__((__optimize__("-fno-stack-protector")))
-#endif
-#define __addrspace_guest
-
-#else
-#define __no_stack_protector
 #define __addrspace_guest
 #endif
 
