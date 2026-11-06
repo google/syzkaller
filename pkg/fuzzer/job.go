@@ -404,6 +404,9 @@ func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
 		return false
 	}
 	if call != -1 {
+		if len(info.Calls) <= call {
+			return false
+		}
 		// Don't minimize calls from successful to unsuccessful.
 		// Successful calls are much more valuable.
 		if oldErrno == 0 && info.Calls[call].Error != 0 {
@@ -542,7 +545,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	job.info.Logf("\n%s", p.Serialize())
 
 	var comps prog.CompMap
-	for i := range 3 {
+	for range 3 {
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),
@@ -552,14 +555,17 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			return
 		}
 		job.info.Execs.Add(1)
-		if result.Info == nil || len(result.Info.Calls[job.call].Comps) == 0 {
+		if result.Info == nil || len(result.Info.Calls) <= job.call ||
+			len(result.Info.Calls[job.call].Comps) == 0 {
 			continue
 		}
 		got := make(prog.CompMap)
 		for _, cmp := range result.Info.Calls[job.call].Comps {
 			got.Add(cmp.Pc, cmp.Op1, cmp.Op2, cmp.IsConst)
 		}
-		if i == 0 {
+		// Runs without comparisons are skipped above, so the first run that has
+		// them (not necessarily the first run) defines the initial set.
+		if comps == nil {
 			comps = got
 		} else {
 			comps.InplaceIntersect(got)

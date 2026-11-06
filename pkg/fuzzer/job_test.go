@@ -5,8 +5,10 @@ package fuzzer
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -14,6 +16,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeflake(t *testing.T) {
@@ -164,4 +167,49 @@ func TestDeflake(t *testing.T) {
 			assert.ElementsMatch(t, info.newStableSignal.ToRaw(), test.Info.newStableSignal.ToRaw())
 		})
 	}
+}
+
+// syncExecutor is a queue.Executor for job unit tests that executes
+// requests synchronously within Submit via the given function.
+type syncExecutor func(req *queue.Request) *queue.Result
+
+func (exec syncExecutor) Submit(req *queue.Request) {
+	req.Done(exec(req))
+}
+
+func TestHintsJobSkipsRunsWithoutComps(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte("test$int(0x1, 0x2, 0x3, 0x4, 0x5)\n"), prog.Strict)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus: corpus.NewCorpus(ctx),
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$int"]: true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	seedRuns, hintRuns := 0, 0
+	exec := syncExecutor(func(req *queue.Request) *queue.Result {
+		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps == 0 {
+			hintRuns++
+			return &queue.Result{Status: queue.Success}
+		}
+		seedRuns++
+		call := &flatrpc.CallInfo{}
+		// The first run returns no comparisons, which must not discard the following ones.
+		if seedRuns > 1 {
+			call.Comps = []*flatrpc.Comparison{{Pc: 1, Op1: 0x5, Op2: 0x12345678}}
+		}
+		return &queue.Result{
+			Status: queue.Success,
+			Info:   &flatrpc.ProgInfo{Calls: []*flatrpc.CallInfo{call}},
+		}
+	})
+	job := &hintsJob{exec: exec, p: p, call: 0, info: &JobInfo{}}
+	job.run(fuzzer)
+	assert.Equal(t, 3, seedRuns)
+	assert.Positive(t, hintRuns)
 }
