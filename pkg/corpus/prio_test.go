@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,37 @@ func TestChooseProgram(t *testing.T) {
 			t.Fatalf("the difference (%f) is higher than %f%%", diff, eps*100)
 		}
 	}
+}
+
+func TestChooseProgramExistingItemUpdate(t *testing.T) {
+	rs := rand.NewSource(0)
+	r := rand.New(rs)
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	corpus := NewCorpus(context.Background())
+
+	inp1 := generateRangedInput(target, rs, 1, 10)
+	inp2 := generateRangedInput(target, rs, 11, 20)
+	corpus.Save(inp1)
+	corpus.Save(inp2)
+	// inp1 gives 20 more signal on re-execution, so its priority grows from 10 to 30.
+	upd := inp1
+	upd.Signal = signal.FromRaw(makeRange(21, 40), 0)
+	corpus.Save(upd)
+	assert.Equal(t, int64(40), corpus.sumPrios)
+
+	shares := chooseShares(corpus, r)
+	assert.InDelta(t, 0.75, shares[inp1.Prog], 0.05)
+	assert.InDelta(t, 0.25, shares[inp2.Prog], 0.05)
+}
+
+// chooseShares returns the share of ChooseProgram() calls that returned each program.
+func chooseShares(corpus *Corpus, r *rand.Rand) map[*prog.Prog]float64 {
+	const iters = 10000
+	shares := make(map[*prog.Prog]float64)
+	for range iters {
+		shares[corpus.ChooseProgram(r)] += 1.0 / iters
+	}
+	return shares
 }
 
 func TestFocusAreas(t *testing.T) {
@@ -139,19 +171,84 @@ func TestFocusAreaInAreaWeighting(t *testing.T) {
 	corpus.Save(inp2)
 
 	verifySampling := func(stage string) {
-		counts := make(map[*prog.Prog]int)
-		const iters = 10000
-		for range iters {
-			counts[corpus.ChooseProgram(rnd)]++
-		}
-		// inp2 has 2 focus PCs, inp1 has 1 focus PC.
-		// inp2 should be chosen ~2/3 (66.7%) of the time, inp1 ~1/3 (33.3%).
+		shares := chooseShares(corpus, rnd)
+		// PC 10 is covered by both programs and PC 11 only by inp2, so PC 10 contributes
+		// half as much as PC 11: inp2 should be chosen ~75% of the time, inp1 ~25%.
 		// Under the old bug (len(signal)), inp1 would be chosen ~98% of the time.
-		assert.InDelta(t, 2.0/3.0, float64(counts[inp2.Prog])/iters, 0.05, stage)
-		assert.InDelta(t, 1.0/3.0, float64(counts[inp1.Prog])/iters, 0.05, stage)
+		assert.InDelta(t, 0.75, shares[inp2.Prog], 0.05, stage)
+		assert.InDelta(t, 0.25, shares[inp1.Prog], 0.05, stage)
 	}
 
 	verifySampling("before minimization")
 	corpus.Minimize(true)
 	verifySampling("after minimization")
+}
+
+func TestFocusAreaPCRarity(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+	rnd := rand.New(rs)
+
+	// Save 100 programs that all cover the same 4 hot PCs (10..13),
+	// and then 1 program that covers 2 rare PCs (20, 21).
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name:     "symbols",
+			CoverPCs: map[uint64]struct{}{10: {}, 11: {}, 12: {}, 13: {}, 20: {}, 21: {}},
+			Weight:   1.0,
+		},
+	})
+	var firstHot *prog.Prog
+	for i := range 100 {
+		inp := generateRangedInput(target, rs, i+1, i+1)
+		inp.Cover = []uint64{10, 11, 12, 13}
+		if i == 0 {
+			firstHot = inp.Prog
+		}
+		corpus.Save(inp)
+	}
+	rare := generateRangedInput(target, rs, 200, 200)
+	rare.Cover = []uint64{10, 20, 21}
+	corpus.Save(rare)
+
+	verifySampling := func(stage string) {
+		shares := chooseShares(corpus, rnd)
+		// Despite 100 programs covering {10..13}, the single program covering {20, 21}
+		// keeps a large selection share, and the first hot program has no insertion-order advantage.
+		assert.Greater(t, shares[rare.Prog], 0.25, stage)
+		assert.Less(t, shares[firstHot], 0.02, stage)
+	}
+	verifySampling("before minimization")
+	corpus.Minimize(true)
+	verifySampling("after minimization")
+}
+
+func TestFocusAreaExistingItemUpdate(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+	rnd := rand.New(rs)
+
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{
+			Name:     "patch",
+			CoverPCs: map[uint64]struct{}{10: {}, 11: {}},
+			Weight:   1.0,
+		},
+	})
+	inp1 := generateRangedInput(target, rs, 1, 1)
+	inp1.Cover = []uint64{10}
+	inp2 := generateRangedInput(target, rs, 2, 2)
+	inp2.Cover = []uint64{10}
+	corpus.Save(inp1)
+	corpus.Save(inp2)
+
+	// The same program covers a new focus PC on re-execution.
+	upd := inp1
+	upd.Signal = signal.FromRaw([]uint64{3}, 0)
+	upd.Cover = []uint64{10, 11}
+	corpus.Save(upd)
+
+	shares := chooseShares(corpus, rnd)
+	assert.InDelta(t, 0.75, shares[inp1.Prog], 0.05)
+	assert.InDelta(t, 0.25, shares[inp2.Prog], 0.05)
 }
