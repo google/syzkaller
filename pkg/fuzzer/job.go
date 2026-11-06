@@ -6,6 +6,7 @@ package fuzzer
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math/rand"
 	"strings"
 	"sync"
@@ -379,6 +380,7 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			return false
 		}
 		var mergedSignal signal.Signal
+		var prevFailure *callFailure
 		for range minimizeAttempts {
 			result := job.execute(&queue.Request{
 				Prog:            p1,
@@ -390,6 +392,13 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 				stop = true
 				return false
 			}
+			// If the call fails the same way twice without giving any of the new signal,
+			// the failure is most likely deterministic, and further attempts are pointless.
+			failure := minimizeFailure(result.Info, call1, info.newStableSignal)
+			if failure != nil && failure.same(prevFailure) {
+				break
+			}
+			prevFailure = failure
 			if !reexecutionSuccess(result.Info, info.errno, call1) {
 				// The call was not executed or failed.
 				continue
@@ -413,6 +422,36 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 		return nil, 0
 	}
 	return p, call
+}
+
+// callFailure describes how a call failed during minimization.
+type callFailure struct {
+	errno  int32
+	signal signal.Signal
+}
+
+// minimizeFailure returns the failure of the call if it failed and did not give any of newSignal,
+// or nil otherwise.
+func minimizeFailure(info *flatrpc.ProgInfo, call int, newSignal signal.Signal) *callFailure {
+	if info == nil || call < 0 || call >= len(info.Calls) {
+		return nil
+	}
+	ci := info.Calls[call]
+	if ci.Error == 0 || len(ci.Signal) == 0 {
+		return nil
+	}
+	failure := &callFailure{
+		errno:  ci.Error,
+		signal: signal.FromRaw(ci.Signal, 0),
+	}
+	if newSignal.IntersectsWith(failure.signal) {
+		return nil
+	}
+	return failure
+}
+
+func (f *callFailure) same(other *callFailure) bool {
+	return other != nil && f.errno == other.errno && maps.Equal(f.signal, other.signal)
 }
 
 func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {

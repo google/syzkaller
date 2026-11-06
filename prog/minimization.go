@@ -58,11 +58,11 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 	dedup := make(map[string]bool)
 	pred := func(p *Prog, callIndex int, what *stat.Val, path string) bool {
 		// Note: path is unused, but is useful for manual debugging.
-		what.Add(1)
 		p.sanitizeFix()
 		p.debugValidate()
 		id := hash.String(p.Serialize())
 		if _, ok := dedup[id]; !ok {
+			what.Add(1)
 			dedup[id] = pred0(p, callIndex)
 		}
 		return dedup[id]
@@ -345,6 +345,15 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 		return false
 	}
 	if path1 := path + ">"; !ctx.triedPaths[path1] {
+		// In corpus minimization, if the pointee produces resources used outside of it
+		// (e.g. pipe fds used by the following calls), nulling the pointer would most
+		// likely break the program and waste an execution. Note: this may make
+		// minimization less precise if the resource users are not actually important.
+		if ctx.mode == MinimizeCorpus && ctx.callIndex0 >= 0 &&
+			ctx.call != ctx.p.Calls[ctx.callIndex0] && hasExternalResultUse(a.Res) {
+			ctx.triedPaths[path1] = true
+			return ctx.do(a.Res, "", path)
+		}
 		removeArg(a.Res)
 		replaceArg(a, MakeSpecialPointerArg(a.Type(), a.Dir(), 0))
 		ctx.target.assignSizesCall(ctx.call)
@@ -355,6 +364,25 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 		return true
 	}
 	return ctx.do(a.Res, "", path)
+}
+
+// hasExternalResultUse returns whether arg produces resources that are used outside of it.
+// See also isSharedProducer in mutation.go, which checks the same for a whole call.
+func hasExternalResultUse(arg Arg) bool {
+	inner := make(map[*ResultArg]bool)
+	ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+		if res, ok := arg.(*ResultArg); ok {
+			inner[res] = true
+		}
+	})
+	for res := range inner {
+		for use := range res.uses {
+			if !inner[use] {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
@@ -428,20 +456,34 @@ func (typ *ArrayType) minimizeChunks(ctx *minimizeArgsCtx, a *GroupArg, path str
 	return false
 }
 
+// canRemoveElem returns whether an element can be removed from an array of n elements.
+func (typ *ArrayType) canRemoveElem(n int) bool {
+	return typ.Kind == ArrayRandLen || typ.Kind == ArrayRangeLen && uint64(n) > typ.RangeBegin
+}
+
 func (typ *ArrayType) minimizeElements(ctx *minimizeArgsCtx, a *GroupArg, path string) bool {
 	// Try to remove individual elements one-by-one.
 	for i, elem := range slices.Backward(a.Inner) {
 		elemPath := fmt.Sprintf("%v-%v", path, i)
-		if ctx.mode != MinimizeCrash && !ctx.triedPaths[elemPath] &&
-			(typ.Kind == ArrayRandLen ||
-				typ.Kind == ArrayRangeLen && uint64(len(a.Inner)) > typ.RangeBegin) {
+		if ctx.mode != MinimizeCrash && !ctx.triedPaths[elemPath] && typ.canRemoveElem(len(a.Inner)) {
 			ctx.triedPaths[elemPath] = true
+			samePrefix := 0
+			for i-1-samePrefix >= 0 && equalArgs(a.Inner[i-1-samePrefix], elem) {
+				samePrefix++
+			}
 			copy(a.Inner[i:], a.Inner[i+1:])
 			a.Inner = a.Inner[:len(a.Inner)-1]
 			removeArg(elem)
 			ctx.target.assignSizesCall(ctx.call)
 			if ctx.pred(ctx.p, ctx.callIndex0, statMinArray, elemPath) {
 				*ctx.p0 = ctx.p
+			} else {
+				// Removing any of the preceding identical elements gives the same program.
+				// The predicate result would be reused, but we would still clone and
+				// serialize the program for each of them, which is O(K^2) for K elements.
+				for j := i - samePrefix; j < i; j++ {
+					ctx.triedPaths[fmt.Sprintf("%v-%v", path, j)] = true
+				}
 			}
 			return true
 		}
@@ -450,6 +492,41 @@ func (typ *ArrayType) minimizeElements(ctx *minimizeArgsCtx, a *GroupArg, path s
 		}
 	}
 	return false
+}
+
+// equalArgs returns whether adjacent array elements a and b are interchangeable for
+// the minimization purposes (removing either of them gives the same program): they are
+// of the same type and have identical values, and neither of them produces a resource
+// used by other arguments (removing such an argument breaks the program differently
+// even if the values are identical).
+func equalArgs(a, b Arg) bool {
+	if a == nil || b == nil || a.Type() != b.Type() || a.Dir() != b.Dir() {
+		return a == b
+	}
+	switch x := a.(type) {
+	case *ConstArg:
+		return x.Val == b.(*ConstArg).Val
+	case *ResultArg:
+		y := b.(*ResultArg)
+		return len(x.uses) == 0 && len(y.uses) == 0 &&
+			x.Res == y.Res && x.Val == y.Val && x.OpDiv == y.OpDiv && x.OpAdd == y.OpAdd
+	case *PointerArg:
+		y := b.(*PointerArg)
+		return x.Address == y.Address && x.VmaSize == y.VmaSize && equalArgs(x.Res, y.Res)
+	case *DataArg:
+		y := b.(*DataArg)
+		if x.Dir() == DirOut {
+			return x.Size() == y.Size()
+		}
+		return bytes.Equal(x.Data(), y.Data())
+	case *GroupArg:
+		return slices.EqualFunc(x.Inner, b.(*GroupArg).Inner, equalArgs)
+	case *UnionArg:
+		y := b.(*UnionArg)
+		return x.Index == y.Index && equalArgs(x.Option, y.Option)
+	default:
+		panic(fmt.Sprintf("equalArgs: unknown arg type %#v", a))
+	}
 }
 
 func (typ *IntType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {

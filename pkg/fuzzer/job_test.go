@@ -313,3 +313,29 @@ func TestFocusedCandidateSmashAndHints(t *testing.T) {
 	assert.Equal(t, 2, fuzzer.statJobsSmash.Val())
 	assert.Equal(t, 1, fuzzer.statJobsHints.Val())
 }
+
+func TestMinimizeFailure(t *testing.T) {
+	newSignal := signal.FromRaw([]uint64{100, 101}, 0)
+	makeInfo := func(errno int32, sig ...uint64) *flatrpc.ProgInfo {
+		return &flatrpc.ProgInfo{
+			Calls: []*flatrpc.CallInfo{{Error: errno, Signal: sig}},
+		}
+	}
+	failure := func(info *flatrpc.ProgInfo) *callFailure {
+		return minimizeFailure(info, 0, newSignal)
+	}
+	assert.Nil(t, minimizeFailure(nil, 0, newSignal))
+	assert.Nil(t, minimizeFailure(makeInfo(22, 1, 2), -1, newSignal))
+	assert.Nil(t, minimizeFailure(makeInfo(22, 1, 2), 1, newSignal))
+	// Successful calls are not failures, even if they don't give the new signal.
+	assert.Nil(t, failure(makeInfo(0, 1, 2)))
+	// Failed calls that give some of the new signal are not failures.
+	assert.Nil(t, failure(makeInfo(22, 1, 100)))
+
+	f1 := failure(makeInfo(22, 1, 2))
+	require.NotNil(t, f1)
+	assert.True(t, f1.same(failure(makeInfo(22, 2, 1))))
+	assert.False(t, f1.same(failure(makeInfo(22, 1, 3))))
+	assert.False(t, f1.same(failure(makeInfo(11, 1, 2))))
+	assert.False(t, f1.same(nil))
+}
