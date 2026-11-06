@@ -74,12 +74,15 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 }
 
 func (fuzzer *Fuzzer) mutateProg(p *prog.Prog, rnd *rand.Rand) *prog.Prog {
+	opts := prog.DefaultMutateOpts
+	opts.FocusProducer = fuzzer.Config.PatchTest
 	newP := p.Clone()
-	newP.Mutate(rnd,
+	newP.MutateWithOpts(rnd,
 		prog.RecommendedCalls,
 		fuzzer.ChoiceTable(),
 		fuzzer.Config.NoMutateCalls,
 		fuzzer.spliceCorpus(rnd),
+		opts,
 	)
 	return newP
 }
