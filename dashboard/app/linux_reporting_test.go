@@ -1,7 +1,7 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"testing"
@@ -191,7 +191,7 @@ func TestIsWorthMonthlyReport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isWorthMonthlyReport(tt.bugs)
+			got := IsWorthMonthlyReport(tt.bugs)
 			require.Equal(t, tt.want, got)
 		})
 	}

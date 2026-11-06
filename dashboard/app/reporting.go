@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"bytes"
@@ -393,7 +393,7 @@ func (bug *Bug) managerConfig(ctx context.Context) *ConfigManager {
 	return &mgr
 }
 
-func (bug *Bug) manuallyUpstreamed(name string) bool {
+func (bug *Bug) ManuallyUpstreamed(name string) bool {
 	reporting := bugReportingByName(bug, name)
 	if reporting == nil {
 		return false

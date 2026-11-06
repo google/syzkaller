@@ -1,7 +1,7 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"context"
@@ -543,7 +543,7 @@ func TestSubsystemRemindersSkipModeration(t *testing.T) {
 		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
 			ret := *cfg
 			r := *ret.Subsystems.Reminder
-			r.SkipModeration = isWorthMonthlyReport
+			r.SkipModeration = IsWorthMonthlyReport
 			ret.Subsystems.Reminder = &r
 			return &ret
 		})
