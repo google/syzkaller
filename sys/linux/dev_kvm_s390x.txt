@@ -1,0 +1,13 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["s390x"]
+
+include <uapi/linux/kvm.h>
+
+ioctl$KVM_GET_REGS_s390x(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs$s390x])
+ioctl$KVM_SET_REGS_s390x(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$s390x])
+
+kvm_regs$s390x {
+	gprs	array[int64, 16]
+}
