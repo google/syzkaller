@@ -337,11 +337,12 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 
 func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
+	// Account the job before starting the goroutine, so that the stats
+	// reflect all started jobs right away.
+	stat.Add(1)
+	fuzzer.statJobs.Add(1)
 	go func() {
-		stat.Add(1)
 		defer stat.Add(-1)
-
-		fuzzer.statJobs.Add(1)
 		defer fuzzer.statJobs.Add(-1)
 
 		if obj, ok := newJob.(jobIntrospector); ok {

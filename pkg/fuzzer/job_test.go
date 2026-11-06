@@ -213,3 +213,53 @@ func TestHintsJobSkipsRunsWithoutComps(t *testing.T) {
 	assert.Equal(t, 3, seedRuns)
 	assert.Positive(t, hintRuns)
 }
+
+// newTriageTestFuzzer creates a fuzzer for triageJob.handleCall() tests and returns it
+// with a 2-call test program. Nothing executes the requests of the started jobs, so they
+// block until the test context is cancelled, and the job stats count the started jobs.
+// cfg.Corpus must be created with t.Context().
+func newTriageTestFuzzer(t *testing.T, cfg *Config) (*Fuzzer, *prog.Prog) {
+	t.Cleanup(checkGoroutineLeaks)
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte(`test$res0()
+test$int(0x1, 0x2, 0x3, 0x4, 0x5)
+`), prog.Strict)
+	require.NoError(t, err)
+	cfg.EnabledCalls = map[*prog.Syscall]bool{
+		target.SyscallMap["test$res0"]: true,
+		target.SyscallMap["test$int"]:  true,
+	}
+	return NewFuzzer(t.Context(), cfg, rand.New(rand.NewSource(0)), target), p
+}
+
+// triageCallWithPC returns a triageCall whose new signal and cover consist of the single pc.
+func triageCallWithPC(pc uint64) *triageCall {
+	return &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{pc}, 0),
+		newStableSignal: signal.FromRaw([]uint64{pc}, 0),
+		cover:           cover.FromRaw([]uint64{pc}),
+	}
+}
+
+func TestHandleCallSmashDedup(t *testing.T) {
+	fuzzer, p := newTriageTestFuzzer(t, &Config{
+		Corpus:         corpus.NewCorpus(t.Context()),
+		Comparisons:    true,
+		FaultInjection: true,
+	})
+	job := &triageJob{
+		p:      p,
+		flags:  ProgMinimized,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	for call := range 2 {
+		job.handleCall(call, triageCallWithPC(uint64(call+1)))
+	}
+	// Both calls save the same program to the corpus: only one smash job should be
+	// started, while per-call hints and fault injection jobs run for both calls.
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 2, fuzzer.statJobsHints.Val())
+	assert.Equal(t, 2, fuzzer.statJobsFaultInjection.Val())
+}

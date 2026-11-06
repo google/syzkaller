@@ -92,6 +92,8 @@ type triageJob struct {
 	queue    queue.Executor
 	// Set of calls that gave potential new coverage.
 	calls map[int]*triageCall
+	// Whether a smash job was started for p (calls are handled concurrently).
+	smashed atomic.Bool
 
 	info *JobInfo
 }
@@ -186,15 +188,19 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 	}
 	tier := job.fuzzer.catchAllTier()
 	if job.flags&ProgSmashed == 0 {
-		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
-			exec: tier.smashQueue,
-			p:    p.Clone(),
-			info: &JobInfo{
-				Name:  p.String(),
-				Type:  JobSmash,
-				Calls: []string{p.CallName(call)},
-			},
-		})
+		// If the program was not minimized, all calls share the same program,
+		// and it's enough to smash it once. Hints and fault injection are per-call.
+		if p != job.p || job.smashed.CompareAndSwap(false, true) {
+			job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
+				exec: tier.smashQueue,
+				p:    p.Clone(),
+				info: &JobInfo{
+					Name:  p.String(),
+					Type:  JobSmash,
+					Calls: []string{p.CallName(call)},
+				},
+			})
+		}
 		if job.fuzzer.Config.Comparisons && call >= 0 {
 			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
 				exec: tier.hintsQueue,
