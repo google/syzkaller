@@ -497,6 +497,8 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 
 func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
+	// Signal elements keep the upper bits of PCs (see signal.PCRange),
+	// so they are converted the same way.
 	call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
 
 	call.Comps = slices.DeleteFunc(call.Comps, func(cmp *flatrpc.Comparison) bool {

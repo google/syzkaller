@@ -16,3 +16,9 @@ func TestIntersectsWith(t *testing.T) {
 	// The other signal has a lower priority.
 	assert.False(t, base.IntersectsWith(FromRaw([]uint64{0, 1, 2}, 0)))
 }
+
+func TestPCRange(t *testing.T) {
+	begin, end := PCRange(0xffffffff81234567)
+	assert.Equal(t, uint64(0xffffffff81234000), begin)
+	assert.Equal(t, uint64(0xffffffff81235000), end)
+}

@@ -1244,6 +1244,7 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 		uint64 sig = pc;
 		if (use_cover_edges) {
 			// Only hash the lower 12 bits so the hash is independent of any module offsets.
+			// Keep in sync with PCRange in pkg/signal.
 			const uint64 mask = (1 << 12) - 1;
 			sig ^= hash(prev_pc & mask) & mask;
 		}
