@@ -86,6 +86,40 @@ func TestAllPatches(t *testing.T) {
 	assert.Equal(t, "first content\nsecond content\n", string(body))
 }
 
+func TestPatchContentType(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+	testSeries := &api.Series{
+		ExtID: "ext-id",
+		Title: "test series name",
+		Patches: []api.SeriesPatch{
+			{
+				Seq:   1,
+				Title: "patch title",
+				Body:  []byte("<html><script>alert(1)</script>\n"),
+			},
+		},
+	}
+	ids := controller.UploadTestSeries(t, ctx, client, testSeries)
+	handler, baseURL := testServer(t, env)
+	series, err := handler.seriesRepo.GetByID(ctx, ids.SeriesID)
+	require.NoError(t, err)
+	patches, err := handler.seriesRepo.ListPatches(ctx, series)
+	require.NoError(t, err)
+	require.Len(t, patches, 1)
+
+	for _, url := range []string{
+		baseURL + "/series/" + ids.SeriesID + "/all_patches",
+		baseURL + "/patches/" + patches[0].ID,
+	} {
+		resp, err := http.Get(url)
+		require.NoError(t, err)
+		resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode, url)
+		assert.Equal(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"), url)
+	}
+}
+
 func testServer(t *testing.T, env *app.AppEnvironment) (*dashboardHandler, string) {
 	handler, err := newHandler(env)
 	require.NoError(t, err)
