@@ -3,7 +3,7 @@
 
 # See /tools/docker/README.md for details.
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL homepage="https://github.com/google/syzkaller"
 
@@ -24,8 +24,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends g++-mips64el-linux-gnuabi64
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends g++-s390x-linux-gnu
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends linux-libc-dev:i386
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends lib32gcc-9-dev
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends lib32stdc++-9-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends lib32gcc-11-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends lib32stdc++-11-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends clang
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 RUN DEBIAN_FRONTEND=noninteractive apt-get clean autoclean
 RUN DEBIAN_FRONTEND=noninteractive rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
@@ -35,14 +36,6 @@ RUN DEBIAN_FRONTEND=noninteractive rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log
 RUN curl https://dl.google.com/go/go1.22.7.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
-
-# Install clang-12 from llvm.org.
-# The distro-provided clang is too old for Go fuzzing.
-RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-12 main"
-RUN apt-get update
-RUN apt-get install -y -q --no-install-recommends clang-12
-RUN ln -s /usr/bin/clang-12 /usr/bin/clang
 
 # Pre-create dirs for syz-env.
 # This is necessary to make docker work with the current user,
