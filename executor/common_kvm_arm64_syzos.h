@@ -392,17 +392,6 @@ GUEST_CODE static noinline void guest_handle_svc(struct api_call_smccc* cmd)
 #define GICR_WAKER_ProcessorSleep (1U << 1)
 #define GICR_WAKER_ChildrenAsleep (1U << 2)
 
-// When building with tools/syz-old-env, GCC doesn't recognize the names of ICC registers.
-// Replace them with generic S3_* names until we get a newer toolchain.
-#define ICC_SRE_EL1 "S3_0_C12_C12_5"
-#define ICC_PMR_EL1 "S3_0_C4_C6_0"
-#define ICC_IGRPEN1_EL1 "S3_0_C12_C12_7"
-#define ICC_IAR0_EL1 "S3_0_C12_C8_0"
-#define ICC_IAR1_EL1 "S3_0_C12_C12_0"
-#define ICC_EOIR0_EL1 "S3_0_C12_C8_1"
-#define ICC_EOIR1_EL1 "S3_0_C12_C12_1"
-#define ICC_DIR_EL1 "S3_0_C12_C11_1"
-
 GUEST_CODE static __always_inline void __raw_writel(uint32 val, uint64 addr)
 {
 	asm volatile("str %w0, [%1]"
@@ -573,22 +562,22 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 
 	// Enable the GIC system register (ICC_*) access.
 	uint64 icc_sre_el1 = 0;
-	asm volatile("mrs %0, " ICC_SRE_EL1
+	asm volatile("mrs %0, icc_sre_el1"
 		     : "=r"(icc_sre_el1));
 	icc_sre_el1 |= ICC_SRE_EL1_SRE;
-	asm volatile("msr " ICC_SRE_EL1 ", %0"
+	asm volatile("msr icc_sre_el1, %0"
 		     :
 		     : "r"(icc_sre_el1));
 
 	// Set a default priority threshold.
 	uint64 value = ICC_PMR_DEF_PRIO;
-	asm volatile("msr " ICC_PMR_EL1 ", %0"
+	asm volatile("msr icc_pmr_el1, %0"
 		     :
 		     : "r"(value));
 
 	// Enable non-secure Group-1 interrupts.
 	value = ICC_IGRPEN1_EL1_ENABLE;
-	asm volatile("msr " ICC_IGRPEN1_EL1 ", %0"
+	asm volatile("msr icc_igrpen1_el1, %0"
 		     :
 		     : "r"(value));
 }
@@ -764,9 +753,9 @@ guest_irq_handler(struct ex_regs* regs)
 	// Depending on the particular interrupt's Group (0 or 1), its number will appear in either ICC_IAR0_EL1, or ICC_IAR1_EL1.
 	// The other register will contain a special interrupt number between 1020 and 1023.
 	// Numbers below 1020 are SGIs, PPIs and SPIs, numbers above 1023 are reserved interrupts and LPIs.
-	asm volatile("mrs %0, " ICC_IAR0_EL1
+	asm volatile("mrs %0, icc_iar0_el1"
 		     : "=r"(iar0));
-	asm volatile("mrs %0, " ICC_IAR1_EL1
+	asm volatile("mrs %0, icc_iar1_el1"
 		     : "=r"(iar1));
 	if ((iar0 < 1020) || (iar0 > 1023)) {
 		irq_num = iar0;
@@ -783,16 +772,16 @@ guest_irq_handler(struct ex_regs* regs)
 
 	// Signal End of Interrupt (EOI) by writing back to the EOIR.
 	if (is_group0) {
-		asm volatile("msr " ICC_EOIR0_EL1 ", %0"
+		asm volatile("msr icc_eoir0_el1, %0"
 			     :
 			     : "r"(irq_num));
 	} else {
-		asm volatile("msr " ICC_EOIR1_EL1 ", %0"
+		asm volatile("msr icc_eoir1_el1, %0"
 			     :
 			     : "r"(irq_num));
 	}
 	// Deactivate the interrupt.
-	asm volatile("msr " ICC_DIR_EL1 ", %0"
+	asm volatile("msr icc_dir_el1, %0"
 		     :
 		     : "r"(irq_num));
 }

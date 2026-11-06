@@ -7,6 +7,8 @@
 
 #include "common_usb.h"
 
+// Local copy of linux/usb/raw_gadget.h: newer headers declare data[] as flexible array members,
+// which cannot be embedded into usb_raw_control_event/usb_raw_ep_io_data below.
 #define UDC_NAME_LENGTH_MAX 128
 
 struct usb_raw_init {
