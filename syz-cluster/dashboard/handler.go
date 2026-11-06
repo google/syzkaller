@@ -554,6 +554,7 @@ func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) er
 	if err := eg.Wait(); err != nil {
 		return err
 	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	for _, body := range bodies {
 		if _, err := w.Write(body); err != nil {
 			return err
@@ -583,6 +584,7 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) e
 		if err != nil {
 			return err
 		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		fmt.Fprintf(w, "# %s\n", opts)
 		_, err = w.Write(repro)
 		return err
@@ -656,6 +658,11 @@ func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {
 		return err
 	}
 	defer reader.Close()
+	// Blobs contain patches, logs and reproducers that may come from untrusted sources.
+	// Don't let net/http sniff them as HTML unless the caller asked for a specific type.
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	}
 	_, err = io.Copy(w, reader)
 	return err
 }
