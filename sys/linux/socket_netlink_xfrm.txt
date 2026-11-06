@@ -6,6 +6,7 @@
 include <linux/net.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/in.h>
+include <uapi/linux/udp.h>
 include <uapi/linux/xfrm.h>
 include <uapi/linux/ipsec.h>
 
@@ -129,7 +130,7 @@ xfrma_policy [
 	algo_comp		nlattr[XFRMA_ALG_COMP, xfrm_algo_compress]
 	srcaddr			nlattr[XFRMA_SRCADDR, xfrm_address_t]
 	coaddr			nlattr[XFRMA_COADDR, xfrm_address_t]
-	extra_flags		nlattr[XFRMA_SA_EXTRA_FLAGS, int32]
+	extra_flags		nlattr[XFRMA_SA_EXTRA_FLAGS, flags[xfrm_sa_extra_flags, int32]]
 	tfcpad			nlattr[XFRMA_TFCPAD, int32]
 	replay_thresh		nlattr[XFRMA_REPLAY_THRESH, int32]
 	etimer_thresh		nlattr[XFRMA_ETIMER_THRESH, int32]
@@ -156,8 +157,12 @@ xfrma_policy [
 	iptfs_max_qsize		nlattr[XFRMA_IPTFS_MAX_QSIZE, int32]
 	iptfs_pkt_size		nlattr[XFRMA_IPTFS_PKT_SIZE, int32]
 	sa_dir			nlattr[XFRMA_SA_DIR, flags[xfrm_sa_dir, int8]]
+	nat_keepalive		nlattr[XFRMA_NAT_KEEPALIVE_INTERVAL, int32]
+# Must be less than num_possible_cpus().
+	sa_pcpu			nlattr[XFRMA_SA_PCPU, int32[0:3]]
 ] [varlen]
 
+xfrm_sa_extra_flags = XFRM_SA_XFLAG_DONT_ENCAP_DSCP, XFRM_SA_XFLAG_OSEQ_MAY_WRAP
 xfrm_sa_dir = XFRM_SA_DIR_IN, XFRM_SA_DIR_OUT
 
 define XFRM_MAX_DEPTH	6
@@ -317,12 +322,29 @@ xfrm_algo_auth {
 	alg_key		array[int8]
 }
 
-xfrm_algo_aead {
-	alg_name	alg_aead_name
+type xfrm_algo_aead_t[NAME, ICV, KEY] {
+	alg_name	string[NAME, 64]
 	alg_key_len	bitsize[alg_key, int32]
-	alg_icv_len	flags[xfrm_algo_truncbits, int32]
-	alg_key		array[int8]
+	alg_icv_len	ICV
+	alg_key		KEY
 }
+
+# Key sizes (cipher key + salt) and ICV lengths required by the AEAD implementations
+# in net/xfrm/xfrm_algo.c (rfc4106, rfc4309, rfc4543, rfc7539esp).
+xfrm_algo_aead [
+	rfc4106_128	xfrm_algo_aead_t["rfc4106(gcm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 20]]
+	rfc4106_192	xfrm_algo_aead_t["rfc4106(gcm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 28]]
+	rfc4106_256	xfrm_algo_aead_t["rfc4106(gcm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 36]]
+	rfc4309_128	xfrm_algo_aead_t["rfc4309(ccm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 19]]
+	rfc4309_192	xfrm_algo_aead_t["rfc4309(ccm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 27]]
+	rfc4309_256	xfrm_algo_aead_t["rfc4309(ccm(aes))", flags[xfrm_aead_icv_bits, int32], array[int8, 35]]
+	rfc4543_128	xfrm_algo_aead_t["rfc4543(gcm(aes))", const[128, int32], array[int8, 20]]
+	rfc4543_192	xfrm_algo_aead_t["rfc4543(gcm(aes))", const[128, int32], array[int8, 28]]
+	rfc4543_256	xfrm_algo_aead_t["rfc4543(gcm(aes))", const[128, int32], array[int8, 36]]
+	rfc7539esp	xfrm_algo_aead_t["rfc7539esp(chacha20,poly1305)", const[128, int32], array[int8, 36]]
+] [varlen]
+
+xfrm_aead_icv_bits = 64, 96, 128
 
 xfrm_algo_truncbits = 0, 64, 96, 128, 160, 192, 256, 384, 512
 
@@ -377,4 +399,5 @@ xfrm_policy_flags = XFRM_POLICY_LOCALOK, XFRM_POLICY_ICMP
 xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_SHARE_UNIQUE
 xfrm_policy_dir = XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_POLICY_FWD
 xfrm_prefixlens = 32, 128
-xfrm_encap_type = -3, -2, -1, 0, 1, 2, 3
+# UDP_ENCAP_ESPINUDP_NON_IKE is no longer supported by esp_init_state(), it is kept for negative testing.
+xfrm_encap_type = 0, UDP_ENCAP_ESPINUDP_NON_IKE, UDP_ENCAP_ESPINUDP, TCP_ENCAP_ESPINTCP

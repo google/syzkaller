@@ -4,6 +4,7 @@
 # IP Virtual Server support.
 
 include <linux/socket.h>
+include <uapi/linux/in.h>
 include <uapi/linux/fcntl.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/genetlink.h>
@@ -63,7 +64,7 @@ ip_vs_cmd_policy [
 
 ip_vs_svc_policy [
 	IPVS_SVC_ATTR_AF		nlattr[IPVS_SVC_ATTR_AF, flags[ip_vs_af, int16]]
-	IPVS_SVC_ATTR_PROTOCOL		nlattr[IPVS_SVC_ATTR_PROTOCOL, flags[ipv6_types, int16]]
+	IPVS_SVC_ATTR_PROTOCOL		nlattr[IPVS_SVC_ATTR_PROTOCOL, flags[ipvs_protocols, int16]]
 	IPVS_SVC_ATTR_ADDR		nlattr[IPVS_SVC_ATTR_ADDR, nf_inet_addr]
 	IPVS_SVC_ATTR_PORT		nlattr[IPVS_SVC_ATTR_PORT, sock_port]
 	IPVS_SVC_ATTR_FWMARK		nlattr[IPVS_SVC_ATTR_FWMARK, int32[0:4]]
@@ -101,7 +102,7 @@ ip_vs_dest_policy [
 	IPVS_DEST_ATTR_TUN_FLAGS	nlattr[IPVS_DEST_ATTR_TUN_FLAGS, int16]
 ] [varlen]
 
-ipvs_tun_type = IP_VS_CONN_F_TUNNEL_TYPE_IPIP, IP_VS_CONN_F_TUNNEL_TYPE_GUE
+ipvs_tun_type = IP_VS_CONN_F_TUNNEL_TYPE_IPIP, IP_VS_CONN_F_TUNNEL_TYPE_GUE, IP_VS_CONN_F_TUNNEL_TYPE_GRE
 
 ip_vs_flags {
 	flags	flags[ip_vs_flags, int32]
@@ -109,7 +110,7 @@ ip_vs_flags {
 }
 
 ip_vs_service_user {
-	protocol	flags[ipv6_types, int16]
+	protocol	flags[ipvs_sockopt_protocols, int16]
 	addr		ipv4_addr
 	port		sock_port
 	fwmark		int32[0:4]
@@ -150,7 +151,9 @@ openat$ipvs(fd const[AT_FDCWD], file ptr[in, string[ipvs_proc_files]], flags con
 ipvs_proc_files = "/proc/sys/net/ipv4/vs/sync_qlen_max", "/proc/sys/net/ipv4/vs/sync_refresh_period", "/proc/sys/net/ipv4/vs/sync_retries", "/proc/sys/net/ipv4/vs/sync_sock_size", "/proc/sys/net/ipv4/vs/sync_threshold", "/proc/sys/net/ipv4/vs/sync_version", "/proc/sys/net/ipv4/vs/am_droprate", "/proc/sys/net/ipv4/vs/amemthresh", "/proc/sys/net/ipv4/vs/backup_only", "/proc/sys/net/ipv4/vs/cache_bypass", "/proc/sys/net/ipv4/vs/conn_reuse_mode", "/proc/sys/net/ipv4/vs/conntrack", "/proc/sys/net/ipv4/vs/drop_entry", "/proc/sys/net/ipv4/vs/drop_packet", "/proc/sys/net/ipv4/vs/expire_nodest_conn", "/proc/sys/net/ipv4/vs/expire_quiescent_template", "/proc/sys/net/ipv4/vs/ignore_tunneled", "/proc/sys/net/ipv4/vs/lblc_expiration", "/proc/sys/net/ipv4/vs/lblcr_expiration", "/proc/sys/net/ipv4/vs/nat_icmp_send", "/proc/sys/net/ipv4/vs/pmtu_disc", "/proc/sys/net/ipv4/vs/schedule_icmp", "/proc/sys/net/ipv4/vs/secure_tcp", "/proc/sys/net/ipv4/vs/sloppy_sctp", "/proc/sys/net/ipv4/vs/sloppy_tcp", "/proc/sys/net/ipv4/vs/snat_reroute", "/proc/sys/net/ipv4/vs/sync_persist_mode", "/proc/sys/net/ipv4/vs/sync_ports"
 
 ip_vs_af = AF_INET, AF_INET6
-ipvs_sched_names = "none", "dh", "fo", "lblc", "lblcr", "lc", "nq", "ovf", "rr", "sed", "sh", "wlc", "wrr"
+ipvs_protocols = IPPROTO_TCP, IPPROTO_UDP, IPPROTO_SCTP, IPPROTO_AH, IPPROTO_ESP
+ipvs_sockopt_protocols = IPPROTO_TCP, IPPROTO_UDP, IPPROTO_SCTP
+ipvs_sched_names = "none", "dh", "fo", "lblc", "lblcr", "lc", "mh", "nq", "ovf", "rr", "sed", "sh", "twos", "wlc", "wrr"
 ipvs_pe_names = "sip"
 ipvs_daemon_states = IP_VS_STATE_NONE, IP_VS_STATE_MASTER, IP_VS_STATE_BACKUP
 ip_vs_flags = IP_VS_SVC_F_PERSISTENT, IP_VS_SVC_F_HASHED, IP_VS_SVC_F_ONEPACKET, IP_VS_SVC_F_SCHED1, IP_VS_SVC_F_SCHED2, IP_VS_SVC_F_SCHED3
