@@ -33,6 +33,9 @@ type Corpus struct {
 	StatCover  *stat.Val
 
 	focusAreas []*focusAreaState
+	// Programs that belong to focus areas with CoverPCs and a positive weight.
+	focusedProgs []*prog.Prog
+	focusedSet   map[*prog.Prog]struct{}
 }
 
 type FocusArea struct {
@@ -189,10 +192,24 @@ func (corpus *Corpus) Save(inp NewInput) {
 // and updates the program priorities in the affected areas.
 func (corpus *Corpus) applyFocusAreas(p *prog.Prog, newCover []uint64) {
 	for _, area := range corpus.focusAreas {
-		if area.addProgPCs(p, newCover) {
+		if corpus.addFocusAreaPCs(area, p, newCover) {
 			area.recalcPrios()
 		}
 	}
+}
+
+func (corpus *Corpus) addFocusAreaPCs(area *focusAreaState, p *prog.Prog, newCover []uint64) bool {
+	if !area.addProgPCs(p, newCover) {
+		return false
+	}
+	if _, ok := corpus.focusedSet[p]; !ok && area.Weight > 0 {
+		if corpus.focusedSet == nil {
+			corpus.focusedSet = make(map[*prog.Prog]struct{})
+		}
+		corpus.focusedSet[p] = struct{}{}
+		corpus.focusedProgs = append(corpus.focusedProgs, p)
+	}
+	return true
 }
 
 func (corpus *Corpus) Signal() signal.Signal {
@@ -236,6 +253,16 @@ func (corpus *Corpus) CallCover() map[string]*CallCov {
 		cc.Cover.Merge(inp.Cover)
 	}
 	return calls
+}
+
+func (corpus *Corpus) FocusAreas() []FocusArea {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	var ret []FocusArea
+	for _, area := range corpus.focusAreas {
+		ret = append(ret, area.FocusArea)
+	}
+	return ret
 }
 
 func (corpus *Corpus) ProgsPerArea() map[string]int {

@@ -6,6 +6,7 @@ package fuzzer
 import (
 	"fmt"
 	"math/rand"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/corpus"
@@ -208,8 +209,11 @@ func TestHintsJobSkipsRunsWithoutComps(t *testing.T) {
 			Info:   &flatrpc.ProgInfo{Calls: []*flatrpc.CallInfo{call}},
 		}
 	})
-	job := &hintsJob{exec: exec, p: p, call: 0, info: &JobInfo{}}
+	running := new(atomic.Int64)
+	running.Add(1)
+	job := &hintsJob{exec: exec, p: p, call: 0, running: running, info: &JobInfo{}}
 	job.run(fuzzer)
+	assert.Zero(t, running.Load())
 	assert.Equal(t, 3, seedRuns)
 	assert.Positive(t, hintRuns)
 }
@@ -262,4 +266,50 @@ func TestHandleCallSmashDedup(t *testing.T) {
 	assert.Equal(t, 1, fuzzer.statJobsSmash.Val())
 	assert.Equal(t, 2, fuzzer.statJobsHints.Val())
 	assert.Equal(t, 2, fuzzer.statJobsFaultInjection.Val())
+}
+
+func TestFocusedCandidateSmashAndHints(t *testing.T) {
+	const symbolsPC, filesPC, otherPC = 0x100, 0x200, 0x1
+	fuzzer, p := newTriageTestFuzzer(t, &Config{
+		Corpus: corpus.NewFocusedCorpus(t.Context(), nil, []corpus.FocusArea{
+			{Name: "symbols", CoverPCs: map[uint64]struct{}{symbolsPC: {}}, Weight: 6.0},
+			{Name: "files", CoverPCs: map[uint64]struct{}{filesPC: {}}, Weight: 3.0},
+		}),
+		Comparisons: true,
+		PatchTest:   true,
+	})
+	symbols, files := fuzzer.tiers[0], fuzzer.tiers[1]
+
+	// Simulate an initial diff fuzzing candidate (which has ProgSmashed set) where
+	// call 0 reaches unfocused kernel code and call 1 reaches the "symbols" focus area.
+	job := &triageJob{
+		p:      p,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	job.handleCall(0, triageCallWithPC(otherPC))
+	assert.Equal(t, 0, fuzzer.statJobsSmash.Val(), "unfocused call must not start smash job")
+	assert.Equal(t, 0, fuzzer.statJobsHints.Val(), "unfocused call must not start hints job")
+
+	// Saturate the hints jobs of the lower priority "files" tier and verify that
+	// the "symbols" tier candidate still starts both smash and hints jobs.
+	files.hintsJobs.Store(maxPatchTestHintsJobs)
+	job.handleCall(1, triageCallWithPC(symbolsPC))
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val(), "focused candidate must be smashed despite ProgSmashed")
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val())
+	assert.Equal(t, int64(1), symbols.hintsJobs.Load())
+
+	// A candidate in the saturated "files" tier is smashed, but does not start hints jobs.
+	p2 := p.Clone()
+	p2.Calls = p2.Calls[:1]
+	job2 := &triageJob{
+		p:      p2,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	job2.handleCall(0, triageCallWithPC(filesPC))
+	assert.Equal(t, 2, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val())
 }

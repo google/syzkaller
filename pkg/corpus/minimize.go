@@ -44,12 +44,15 @@ func (corpus *Corpus) Minimize(cover bool) {
 	for _, area := range corpus.focusAreas {
 		area.clear()
 	}
+	// Don't reuse the slice: FocusedPrograms() callers may still use it.
+	corpus.focusedProgs = nil
+	corpus.focusedSet = nil
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)
 		corpus.progsMap[inp.Sig] = inp
 		corpus.saveProgram(inp.Prog, len(inp.Signal))
 		for _, area := range corpus.focusAreas {
-			area.addProgPCs(inp.Prog, inp.Cover)
+			corpus.addFocusAreaPCs(area, inp.Prog, inp.Cover)
 		}
 	}
 	// Recalculating priorities is linear in the area size, so do it once at the end.

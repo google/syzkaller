@@ -143,32 +143,47 @@ func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
 	if len(corpus.progsMap) == 0 {
 		return nil
 	}
-	// We could have used an approach similar to chooseProgram(), but for small number
-	// of focus areas that is an overkill.
-	var randArea *focusAreaState
-	if len(corpus.focusAreas) > 0 {
-		sum := 0.0
-		nonEmpty := make([]*focusAreaState, 0, len(corpus.focusAreas))
-		for _, area := range corpus.focusAreas {
-			if len(area.progs) == 0 {
-				continue
-			}
-			sum += area.Weight
-			nonEmpty = append(nonEmpty, area)
-		}
-		val := r.Float64() * sum
-		currSum := 0.0
-		for _, area := range nonEmpty {
-			if val >= currSum {
-				randArea = area
-			}
-			currSum += area.Weight
-		}
-	}
-	if randArea != nil {
-		return randArea.chooseProgram(r)
+	if area := corpus.chooseFocusArea(r); area != nil {
+		return area.chooseProgram(r)
 	}
 	return corpus.chooseProgram(r)
+}
+
+// ChoosePrograms returns all programs of a random focus area (or of the whole corpus).
+func (corpus *Corpus) ChoosePrograms(r *rand.Rand) []*prog.Prog {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	if area := corpus.chooseFocusArea(r); area != nil {
+		return area.progs
+	}
+	return corpus.progs
+}
+
+func (corpus *Corpus) chooseFocusArea(r *rand.Rand) *focusAreaState {
+	if len(corpus.focusAreas) == 0 {
+		return nil
+	}
+	// We could have used an approach similar to chooseProgram(), but for small number
+	// of focus areas that is an overkill.
+	sum := 0.0
+	nonEmpty := make([]*focusAreaState, 0, len(corpus.focusAreas))
+	for _, area := range corpus.focusAreas {
+		if len(area.progs) == 0 {
+			continue
+		}
+		sum += area.Weight
+		nonEmpty = append(nonEmpty, area)
+	}
+	val := r.Float64() * sum
+	currSum := 0.0
+	var randArea *focusAreaState
+	for _, area := range nonEmpty {
+		if val >= currSum {
+			randArea = area
+		}
+		currSum += area.Weight
+	}
+	return randArea
 }
 
 func (corpus *Corpus) Programs() []*prog.Prog {
@@ -177,7 +192,15 @@ func (corpus *Corpus) Programs() []*prog.Prog {
 	return corpus.progs
 }
 
+// FocusedPrograms returns programs that belong to focus areas with CoverPCs and a positive weight.
+func (corpus *Corpus) FocusedPrograms() []*prog.Prog {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	return corpus.focusedProgs
+}
+
 func (pl *ProgramsList) clear() {
+	// Don't reuse the slices: Programs() and ChoosePrograms() callers may still use them.
 	pl.progs = nil
 	pl.accPrios = nil
 	pl.sumPrios = 0

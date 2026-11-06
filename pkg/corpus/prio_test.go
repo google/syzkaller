@@ -252,3 +252,40 @@ func TestFocusAreaExistingItemUpdate(t *testing.T) {
 	assert.InDelta(t, 0.75, shares[inp1.Prog], 0.05)
 	assert.InDelta(t, 0.25, shares[inp2.Prog], 0.05)
 }
+
+func TestFocusedPrograms(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	rs := rand.NewSource(0)
+	rnd := rand.New(rs)
+
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
+		{Name: "focused", CoverPCs: map[uint64]struct{}{10: {}}, Weight: 1.0},
+		{Name: "zero", CoverPCs: map[uint64]struct{}{20: {}}, Weight: 0},
+		{Weight: 1.0},
+	})
+	focused := generateRangedInput(target, rs, 1, 1)
+	focused.Cover = []uint64{10, 20}
+	zero := generateRangedInput(target, rs, 2, 2)
+	zero.Cover = []uint64{20}
+	other := generateRangedInput(target, rs, 3, 3)
+	other.Cover = []uint64{30}
+	corpus.Save(focused)
+	corpus.Save(zero)
+	corpus.Save(other)
+
+	verify := func(stage string) {
+		assert.Equal(t, []*prog.Prog{focused.Prog}, corpus.FocusedPrograms(), stage)
+		chosen := make(map[int]int)
+		for range 1000 {
+			chosen[len(corpus.ChoosePrograms(rnd))]++
+		}
+		// ChoosePrograms returns either the "focused" area (1 program), or the "zero" area
+		// (never, since its weight is 0), or the whole corpus (3 programs).
+		assert.Len(t, chosen, 2, stage)
+		assert.InDelta(t, 500, chosen[1], 100, stage)
+		assert.InDelta(t, 500, chosen[3], 100, stage)
+	}
+	verify("before minimization")
+	corpus.Minimize(true)
+	verify("after minimization")
+}
