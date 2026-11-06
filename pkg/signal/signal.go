@@ -14,6 +14,20 @@ type (
 // Signal was hard to refactor when we enabled recvcheck.
 type Signal map[elemType]prioType // nolint: recvcheck
 
+// Signal elements produced by syz-executor are either raw PCs (if cover edges are disabled),
+// or PCs with the lower pcHashBits bits replaced by a hash of the previous PC (CFG edges,
+// see write_signal in executor/executor.cc). The hash is confined to the lower bits so that
+// the elements don't depend on the (page-aligned) load addresses of kernel modules:
+// pkg/cover.Canonicalizer converts signal between VMs the same way as PCs,
+// and PCRange allows to approximately match signal against PCs.
+const pcHashBits = 12
+
+// PCRange returns the range [begin, end) of PCs that may produce the signal element.
+func PCRange(elem uint64) (begin, end uint64) {
+	begin = elem &^ (1<<pcHashBits - 1)
+	return begin, begin + 1<<pcHashBits
+}
+
 func (s Signal) Len() int {
 	return len(s)
 }

@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // nolint:gocyclo
@@ -470,4 +472,107 @@ func TestMinimizeCallIndex(t *testing.T) {
 			t.Fatalf("bad call index after minimization")
 		}
 	}
+}
+
+func TestMinimizeDuplicateArrayElements(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	orig, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1])\n"), Strict)
+	require.NoError(t, err)
+
+	statBefore := statMinArray.Val()
+	calls := 0
+	p1, _ := Minimize(orig, 0, MinimizeCorpus, func(p *Prog, callIndex int) bool {
+		calls++
+		return false
+	})
+	statDelta := statMinArray.Val() - statBefore
+	assert.Equal(t, string(orig.Serialize()), string(p1.Serialize()))
+	// Only 3 predicate evaluations should occur:
+	// 1. PtrType minimize to nil
+	// 2. ArrayType minimizeAll to []
+	// 3. ArrayType minimizeElements removing the last 0x1 (preceding 7 identical 0x1s are skipped).
+	assert.Equal(t, 3, calls)
+	assert.Equal(t, 2, statDelta)
+
+	// Verify that when an interior distinct element is removed, subsequent equal elements
+	// can still be reduced further.
+	mixed, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1, 0x2, 0x1])\n"), Strict)
+	require.NoError(t, err)
+	want, err := target.Deserialize([]byte(
+		"mutate_array(0x1, 0x30, &(0x7f0000000000)=[0x1, 0x1])\n"), Strict)
+	require.NoError(t, err)
+	p2, _ := Minimize(mixed, 0, MinimizeCorpus, func(p *Prog, callIndex int) bool {
+		ptr := p.Calls[0].Args[2].(*PointerArg)
+		if ptr.Res == nil {
+			return false
+		}
+		arr := ptr.Res.(*GroupArg).Inner
+		if len(arr) < 2 {
+			return false
+		}
+		for _, elem := range arr {
+			if elem.(*ConstArg).Val != 0x1 {
+				return false
+			}
+		}
+		return true
+	})
+	assert.Equal(t, string(want.Serialize()), string(p2.Serialize()))
+}
+
+func TestMinimizeSetupOutputPtr(t *testing.T) {
+	target := initTargetTest(t, "linux", "amd64")
+	orig, err := target.Deserialize([]byte(`pipe2(&(0x7f0000000000)={<r0=>0x0, <r1=>0x0}, 0x0)
+write(r0, &(0x7f0000000100)="1155", 0x2)
+`), Strict)
+	require.NoError(t, err)
+
+	nulledPipePtr := false
+	p1, ci := Minimize(orig, 1, MinimizeCorpus, func(p *Prog, callIndex int) bool {
+		if len(p.Calls) == 2 && p.Calls[0].Meta.Name == "pipe2" &&
+			p.Calls[0].Args[0].(*PointerArg).Res == nil {
+			nulledPipePtr = true
+		}
+		return false
+	})
+	assert.False(t, nulledPipePtr, "setup call pointer producing live resource must not be nulled")
+	assert.Equal(t, 1, ci)
+	assert.Equal(t, string(orig.Serialize()), string(p1.Serialize()))
+}
+
+// Verify that equalArgs only considers args equal if they are interchangeable:
+// replacing one of them with a copy of the other must not change the program.
+func TestEqualArgs(t *testing.T) {
+	target, rs, iters := initTest(t)
+	iters /= 10 // Long test.
+	r := rand.New(rs)
+	ct := target.DefaultChoiceTable()
+	equal := 0
+	for range iters {
+		p := target.Generate(rs, 5, ct)
+		want := string(p.Serialize())
+		// Compare each arg with the previous arg of the same type.
+		prevArgs := make(map[Type]Arg)
+		for _, c := range p.Calls {
+			ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+				prev := prevArgs[arg.Type()]
+				prevArgs[arg.Type()] = arg
+				// Serialization is slow for large programs, so check only a sample of args.
+				if prev == nil || !equalArgs(prev, arg) || r.Intn(8) != 0 {
+					return
+				}
+				equal++
+				// replaceArg only removes the old arg for unions.
+				if _, ok := arg.(*UnionArg); !ok {
+					removeArg(arg)
+				}
+				replaceArg(arg, CloneArg(prev))
+				assert.Equal(t, want, string(p.Serialize()), "after replacing %v in call %v", arg.Type().Name(), c.Meta.Name)
+			})
+		}
+	}
+	t.Logf("checked %v equal pairs", equal)
+	assert.Positive(t, equal)
 }

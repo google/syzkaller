@@ -779,12 +779,6 @@ func (serv *HTTPServer) httpFileCover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
-	corpus := serv.Corpus.Load()
-	if corpus == nil {
-		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
-		return
-	}
-
 	callName := r.FormValue("call")
 	call := serv.Cfg.Target.SyscallMap[callName]
 	if call == nil {
@@ -792,24 +786,20 @@ func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var progs []*prog.Prog
-	for _, inp := range corpus.Items() {
-		progs = append(progs, inp.Prog)
-	}
-
 	var enabled map[*prog.Syscall]bool
 	if obj := serv.EnabledSyscalls.Load(); obj != nil {
 		enabled = obj.(map[*prog.Syscall]bool)
 	}
-	prios, generatable := serv.Cfg.Target.CalculatePriorities(progs, enabled)
+	ct := serv.Cfg.Target.BuildChoiceTable(nil, enabled)
+	prios := ct.StaticPriorities(call)
 
 	data := &UIPrioData{
-		UIPageHeader: serv.pageHeader(r, "syscall priorities"),
+		UIPageHeader: serv.pageHeader(r, "static syscall priorities"),
 		Call:         callName,
 	}
-	for i, p := range prios[call.ID] {
+	for i, p := range prios {
 		syscall := serv.Cfg.Target.Syscalls[i]
-		if !generatable[syscall] {
+		if !ct.Generatable(syscall.ID) {
 			continue
 		}
 		data.Prios = append(data.Prios, UIPrio{syscall.Name, p})
@@ -1288,7 +1278,7 @@ type UIPrioData struct {
 
 type UIPrio struct {
 	Call string
-	Prio int32
+	Prio float64
 }
 
 type UIFallbackCoverData struct {

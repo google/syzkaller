@@ -42,14 +42,21 @@ func (corpus *Corpus) Minimize(cover bool) {
 	// Clear the program lists in-place to keep statistics references valid.
 	corpus.ProgramsList.clear()
 	for _, area := range corpus.focusAreas {
-		area.ProgramsList.clear()
+		area.clear()
 	}
+	// Don't reuse the slice: FocusedPrograms() callers may still use it.
+	corpus.focusedProgs = nil
+	corpus.focusedSet = nil
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)
 		corpus.progsMap[inp.Sig] = inp
 		corpus.saveProgram(inp.Prog, len(inp.Signal))
-		for area := range inp.areas {
-			area.saveProgram(inp.Prog, area.inAreaPCs(inp.Cover))
+		for _, area := range corpus.focusAreas {
+			corpus.addFocusAreaPCs(area, inp.Prog, inp.Cover)
 		}
+	}
+	// Recalculating priorities is linear in the area size, so do it once at the end.
+	for _, area := range corpus.focusAreas {
+		area.recalcPrios()
 	}
 }

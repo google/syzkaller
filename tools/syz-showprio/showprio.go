@@ -1,7 +1,7 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// syz-showprio visualizes the call to call priorities from the prog package.
+// syz-showprio visualizes the static call-to-call priorities from the prog package.
 package main
 
 import (
@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 )
@@ -20,7 +19,6 @@ var (
 	flagOS     = flag.String("os", runtime.GOOS, "target os")
 	flagArch   = flag.String("arch", runtime.GOARCH, "target arch")
 	flagEnable = flag.String("enable", "", "comma-separated list of enabled syscalls")
-	flagCorpus = flag.String("corpus", "", "name of the corpus file")
 )
 
 func main() {
@@ -40,22 +38,18 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 		os.Exit(1)
 	}
-	corpus, err := db.ReadCorpus(*flagCorpus, target)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read corpus: %v\n", err)
-		os.Exit(1)
-	}
-	matrix, _ := target.CalculatePriorities(corpus, nil)
-	showPriorities(enabled, matrix, target)
+	ct := target.DefaultChoiceTable()
+	showPriorities(enabled, ct, target)
 }
 
-func showPriorities(calls []string, prios [][]int32, target *prog.Target) {
+func showPriorities(calls []string, ct *prog.ChoiceTable, target *prog.Target) {
 	printLine(append([]string{"CALLS"}, calls...))
 	for _, callRow := range calls {
 		line := []string{callRow}
+		rowPrios := ct.StaticPriorities(target.SyscallMap[callRow])
 		for _, callCol := range calls {
-			val := prios[target.SyscallMap[callRow].ID][target.SyscallMap[callCol].ID]
-			line = append(line, fmt.Sprintf("%v", val))
+			val := rowPrios[target.SyscallMap[callCol].ID]
+			line = append(line, fmt.Sprintf("%.4f", val))
 		}
 		printLine(line)
 	}

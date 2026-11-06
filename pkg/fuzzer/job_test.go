@@ -5,8 +5,11 @@ package fuzzer
 
 import (
 	"fmt"
+	"math/rand"
+	"sync/atomic"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
@@ -14,6 +17,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeflake(t *testing.T) {
@@ -164,4 +168,174 @@ func TestDeflake(t *testing.T) {
 			assert.ElementsMatch(t, info.newStableSignal.ToRaw(), test.Info.newStableSignal.ToRaw())
 		})
 	}
+}
+
+// syncExecutor is a queue.Executor for job unit tests that executes
+// requests synchronously within Submit via the given function.
+type syncExecutor func(req *queue.Request) *queue.Result
+
+func (exec syncExecutor) Submit(req *queue.Request) {
+	req.Done(exec(req))
+}
+
+func TestHintsJobSkipsRunsWithoutComps(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte("test$int(0x1, 0x2, 0x3, 0x4, 0x5)\n"), prog.Strict)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus: corpus.NewCorpus(ctx),
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$int"]: true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	seedRuns, hintRuns := 0, 0
+	exec := syncExecutor(func(req *queue.Request) *queue.Result {
+		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps == 0 {
+			hintRuns++
+			return &queue.Result{Status: queue.Success}
+		}
+		seedRuns++
+		call := &flatrpc.CallInfo{}
+		// The first run returns no comparisons, which must not discard the following ones.
+		if seedRuns > 1 {
+			call.Comps = []*flatrpc.Comparison{{Pc: 1, Op1: 0x5, Op2: 0x12345678}}
+		}
+		return &queue.Result{
+			Status: queue.Success,
+			Info:   &flatrpc.ProgInfo{Calls: []*flatrpc.CallInfo{call}},
+		}
+	})
+	running := new(atomic.Int64)
+	running.Add(1)
+	job := &hintsJob{exec: exec, p: p, call: 0, running: running, info: &JobInfo{}}
+	job.run(fuzzer)
+	assert.Zero(t, running.Load())
+	assert.Equal(t, 3, seedRuns)
+	assert.Positive(t, hintRuns)
+}
+
+// newTriageTestFuzzer creates a fuzzer for triageJob.handleCall() tests and returns it
+// with a 2-call test program. Nothing executes the requests of the started jobs, so they
+// block until the test context is cancelled, and the job stats count the started jobs.
+// cfg.Corpus must be created with t.Context().
+func newTriageTestFuzzer(t *testing.T, cfg *Config) (*Fuzzer, *prog.Prog) {
+	t.Cleanup(checkGoroutineLeaks)
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	p, err := target.Deserialize([]byte(`test$res0()
+test$int(0x1, 0x2, 0x3, 0x4, 0x5)
+`), prog.Strict)
+	require.NoError(t, err)
+	cfg.EnabledCalls = map[*prog.Syscall]bool{
+		target.SyscallMap["test$res0"]: true,
+		target.SyscallMap["test$int"]:  true,
+	}
+	return NewFuzzer(t.Context(), cfg, rand.New(rand.NewSource(0)), target), p
+}
+
+// triageCallWithPC returns a triageCall whose new signal and cover consist of the single pc.
+func triageCallWithPC(pc uint64) *triageCall {
+	return &triageCall{
+		stableSignal:    signal.FromRaw([]uint64{pc}, 0),
+		newStableSignal: signal.FromRaw([]uint64{pc}, 0),
+		cover:           cover.FromRaw([]uint64{pc}),
+	}
+}
+
+func TestHandleCallSmashDedup(t *testing.T) {
+	fuzzer, p := newTriageTestFuzzer(t, &Config{
+		Corpus:         corpus.NewCorpus(t.Context()),
+		Comparisons:    true,
+		FaultInjection: true,
+	})
+	job := &triageJob{
+		p:      p,
+		flags:  ProgMinimized,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	for call := range 2 {
+		job.handleCall(call, triageCallWithPC(uint64(call+1)))
+	}
+	// Both calls save the same program to the corpus: only one smash job should be
+	// started, while per-call hints and fault injection jobs run for both calls.
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 2, fuzzer.statJobsHints.Val())
+	assert.Equal(t, 2, fuzzer.statJobsFaultInjection.Val())
+}
+
+func TestFocusedCandidateSmashAndHints(t *testing.T) {
+	const symbolsPC, filesPC, otherPC = 0x100, 0x200, 0x1
+	fuzzer, p := newTriageTestFuzzer(t, &Config{
+		Corpus: corpus.NewFocusedCorpus(t.Context(), nil, []corpus.FocusArea{
+			{Name: "symbols", CoverPCs: map[uint64]struct{}{symbolsPC: {}}, Weight: 6.0},
+			{Name: "files", CoverPCs: map[uint64]struct{}{filesPC: {}}, Weight: 3.0},
+		}),
+		Comparisons: true,
+		PatchTest:   true,
+	})
+	symbols, files := fuzzer.tiers[0], fuzzer.tiers[1]
+
+	// Simulate an initial diff fuzzing candidate (which has ProgSmashed set) where
+	// call 0 reaches unfocused kernel code and call 1 reaches the "symbols" focus area.
+	job := &triageJob{
+		p:      p,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	job.handleCall(0, triageCallWithPC(otherPC))
+	assert.Equal(t, 0, fuzzer.statJobsSmash.Val(), "unfocused call must not start smash job")
+	assert.Equal(t, 0, fuzzer.statJobsHints.Val(), "unfocused call must not start hints job")
+
+	// Saturate the hints jobs of the lower priority "files" tier and verify that
+	// the "symbols" tier candidate still starts both smash and hints jobs.
+	files.hintsJobs.Store(maxPatchTestHintsJobs)
+	job.handleCall(1, triageCallWithPC(symbolsPC))
+	assert.Equal(t, 1, fuzzer.statJobsSmash.Val(), "focused candidate must be smashed despite ProgSmashed")
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val())
+	assert.Equal(t, int64(1), symbols.hintsJobs.Load())
+
+	// A candidate in the saturated "files" tier is smashed, but does not start hints jobs.
+	p2 := p.Clone()
+	p2.Calls = p2.Calls[:1]
+	job2 := &triageJob{
+		p:      p2,
+		flags:  ProgFromCorpus | ProgMinimized | ProgSmashed,
+		fuzzer: fuzzer,
+		info:   &JobInfo{},
+	}
+	job2.handleCall(0, triageCallWithPC(filesPC))
+	assert.Equal(t, 2, fuzzer.statJobsSmash.Val())
+	assert.Equal(t, 1, fuzzer.statJobsHints.Val())
+}
+
+func TestMinimizeFailure(t *testing.T) {
+	newSignal := signal.FromRaw([]uint64{100, 101}, 0)
+	makeInfo := func(errno int32, sig ...uint64) *flatrpc.ProgInfo {
+		return &flatrpc.ProgInfo{
+			Calls: []*flatrpc.CallInfo{{Error: errno, Signal: sig}},
+		}
+	}
+	failure := func(info *flatrpc.ProgInfo) *callFailure {
+		return minimizeFailure(info, 0, newSignal)
+	}
+	assert.Nil(t, minimizeFailure(nil, 0, newSignal))
+	assert.Nil(t, minimizeFailure(makeInfo(22, 1, 2), -1, newSignal))
+	assert.Nil(t, minimizeFailure(makeInfo(22, 1, 2), 1, newSignal))
+	// Successful calls are not failures, even if they don't give the new signal.
+	assert.Nil(t, failure(makeInfo(0, 1, 2)))
+	// Failed calls that give some of the new signal are not failures.
+	assert.Nil(t, failure(makeInfo(22, 1, 100)))
+
+	f1 := failure(makeInfo(22, 1, 2))
+	require.NotNil(t, f1)
+	assert.True(t, f1.same(failure(makeInfo(22, 2, 1))))
+	assert.False(t, f1.same(failure(makeInfo(22, 1, 3))))
+	assert.False(t, f1.same(failure(makeInfo(11, 1, 2))))
+	assert.False(t, f1.same(nil))
 }
