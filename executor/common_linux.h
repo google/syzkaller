@@ -432,8 +432,7 @@ static void netlink_add_xfrm(struct nlmsg* nlmsg, int sock, const char* name)
 	netlink_add_device_impl(nlmsg, "xfrm", name, true);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	int if_id = 1;
-	// This is IFLA_XFRM_IF_ID attr which is not present in older kernel headers.
-	netlink_attr(nlmsg, 2, &if_id, sizeof(if_id));
+	netlink_attr(nlmsg, IFLA_XFRM_IF_ID, &if_id, sizeof(if_id));
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
@@ -519,11 +518,6 @@ static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, 
 		debug("netlink: add %s type geneve vni %u: %s\n", name, vni, strerror(errno));
 	}
 }
-
-#define IFLA_IPVLAN_FLAGS 2
-#define IPVLAN_MODE_L3S 2
-#undef IPVLAN_F_VEPA
-#define IPVLAN_F_VEPA 2
 
 static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 mode, uint16 flags)
 {
@@ -658,14 +652,8 @@ static int tunfd = -1;
 #define LOCAL_IPV6 "fe80::aa"
 #define REMOTE_IPV6 "fe80::bb"
 
-#ifndef IFF_NAPI
-#define IFF_NAPI 0x0010
-#endif
 #if ENABLE_NAPI_FRAGS
 static int tun_frags_enabled;
-#ifndef IFF_NAPI_FRAGS
-#define IFF_NAPI_FRAGS 0x0020
-#endif
 #endif
 
 // Sometimes, executors like to delete or replace /dev/net/tun and this causes
@@ -780,21 +768,9 @@ const int kInitNetNsFd = 201; // see kMaxFd
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI || SYZ_NET_DEVICES
 
+#include <linux/devlink.h>
 #include <linux/genetlink.h>
 #include <stdbool.h>
-
-#define DEVLINK_FAMILY_NAME "devlink"
-
-#define DEVLINK_CMD_PORT_GET 5
-#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
-#define DEVLINK_CMD_RELOAD 37
-#endif
-#define DEVLINK_ATTR_BUS_NAME 1
-#define DEVLINK_ATTR_DEV_NAME 2
-#define DEVLINK_ATTR_NETDEV_NAME 7
-#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
-#define DEVLINK_ATTR_NETNS_FD 138
-#endif
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
@@ -807,7 +783,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME, true);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_GENL_NAME, true);
 	if (id == -1)
 		goto error;
 
@@ -844,7 +820,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	if (rtsock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME, true);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_GENL_NAME, true);
 	if (id == -1)
 		goto error;
 
@@ -865,7 +841,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	while ((len = netlink_next_msg(&nlmsg, offset, total_len)) != -1) {
 		struct nlattr* attr = (struct nlattr*)(nlmsg.buf + offset + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 		for (; (char*)attr < nlmsg.buf + offset + len; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
-			if (attr->nla_type == DEVLINK_ATTR_NETDEV_NAME) {
+			if (attr->nla_type == DEVLINK_ATTR_PORT_NETDEV_NAME) {
 				char* port_name;
 				char netdev_name[IFNAMSIZ];
 				port_name = (char*)(attr + 1);
@@ -1240,41 +1216,7 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 	}
 }
 
-#define WG_GENL_NAME "wireguard"
-enum wg_cmd {
-	WG_CMD_GET_DEVICE,
-	WG_CMD_SET_DEVICE,
-};
-enum wgdevice_attribute {
-	WGDEVICE_A_UNSPEC,
-	WGDEVICE_A_IFINDEX,
-	WGDEVICE_A_IFNAME,
-	WGDEVICE_A_PRIVATE_KEY,
-	WGDEVICE_A_PUBLIC_KEY,
-	WGDEVICE_A_FLAGS,
-	WGDEVICE_A_LISTEN_PORT,
-	WGDEVICE_A_FWMARK,
-	WGDEVICE_A_PEERS,
-};
-enum wgpeer_attribute {
-	WGPEER_A_UNSPEC,
-	WGPEER_A_PUBLIC_KEY,
-	WGPEER_A_PRESHARED_KEY,
-	WGPEER_A_FLAGS,
-	WGPEER_A_ENDPOINT,
-	WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL,
-	WGPEER_A_LAST_HANDSHAKE_TIME,
-	WGPEER_A_RX_BYTES,
-	WGPEER_A_TX_BYTES,
-	WGPEER_A_ALLOWEDIPS,
-	WGPEER_A_PROTOCOL_VERSION,
-};
-enum wgallowedip_attribute {
-	WGALLOWEDIP_A_UNSPEC,
-	WGALLOWEDIP_A_FAMILY,
-	WGALLOWEDIP_A_IPADDR,
-	WGALLOWEDIP_A_CIDR_MASK,
-};
+#include <linux/wireguard.h>
 
 static void netlink_wireguard_setup(void)
 {

@@ -56,9 +56,6 @@
 #define LPCR_UPRT PPC_BIT(41) // Use Process Table
 #define LPCR_EVIRT PPC_BIT(42) // Enhanced Virtualisation
 #define LPCR_HR PPC_BIT(43) // Host Radix
-#ifndef KVM_REG_PPC_LPCR_64
-#define KVM_REG_PPC_LPCR_64 (KVM_REG_PPC | KVM_REG_SIZE_U64 | 0xb5)
-#endif
 
 #define PRTB_SIZE_SHIFT 12 // log2((64 << 10) / 16)
 #define PATB_GR (1UL << 63) // guest uses radix; must match HR
@@ -67,23 +64,6 @@
 
 #define ALIGNUP(p, q) ((void*)(((unsigned long)(p) + (q) - 1) & ~((q) - 1)))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-#ifndef KVM_REG_PPC_DEC_EXPIRY
-#define KVM_REG_PPC_DEC_EXPIRY (KVM_REG_PPC | KVM_REG_SIZE_U64 | 0xbe)
-#endif
-
-#ifndef KVM_PPC_CONFIGURE_V3_MMU
-// Available with KVM_CAP_PPC_RADIX_MMU or KVM_CAP_PPC_HASH_MMU_V3
-#define KVM_PPC_CONFIGURE_V3_MMU _IOW(KVMIO, 0xaf, struct kvm_ppc_mmuv3_cfg)
-
-// Flag values for KVM_PPC_CONFIGURE_V3_MMU
-#define KVM_PPC_MMUV3_RADIX 1 // 1 = radix mode, 0 = HPT
-#define KVM_PPC_MMUV3_GTSE 2 // global translation shootdown enb
-#endif
-
-#ifndef KVM_CAP_PPC_NESTED_HV
-#define KVM_CAP_PPC_NESTED_HV 160
-#endif
 
 struct kvm_text {
 	uintptr_t typ;
