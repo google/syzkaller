@@ -26,7 +26,45 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestSmashAndHintsQueues(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	ctx := t.Context()
+	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus: corpus.NewCorpus(ctx),
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["test$res0"]: true,
+		},
+	}, rand.New(rand.NewSource(0)), target)
+
+	const iters = 1000
+	smashReqs := make(map[*queue.Request]bool)
+	hintsReqs := make(map[*queue.Request]bool)
+	require.Len(t, fuzzer.tiers, 1)
+	for range iters {
+		req := &queue.Request{}
+		fuzzer.tiers[0].smashQueue.Submit(req)
+		smashReqs[req] = true
+		req = &queue.Request{}
+		fuzzer.tiers[0].hintsQueue.Submit(req)
+		hintsReqs[req] = true
+	}
+	smash, hints := 0, 0
+	for range iters {
+		req := fuzzer.Next()
+		if smashReqs[req] {
+			smash++
+		} else if hintsReqs[req] {
+			hints++
+		}
+	}
+	// Smash : hints : new fuzzing = smashShare : hintsShare : 0.5.
+	assert.InDelta(t, iters*smashShare/1.5, smash, iters*0.05)
+	assert.InDelta(t, iters*hintsShare/1.5, hints, iters*0.05)
+}
 
 func TestFuzz(t *testing.T) {
 	t.Cleanup(checkGoroutineLeaks)

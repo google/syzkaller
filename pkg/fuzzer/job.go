@@ -184,9 +184,10 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 	if !job.fuzzer.Config.NewInputFilter(callName) {
 		return
 	}
+	tier := job.fuzzer.catchAllTier()
 	if job.flags&ProgSmashed == 0 {
 		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
-			exec: job.fuzzer.smashQueue,
+			exec: tier.smashQueue,
 			p:    p.Clone(),
 			info: &JobInfo{
 				Name:  p.String(),
@@ -196,7 +197,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		})
 		if job.fuzzer.Config.Comparisons && call >= 0 {
 			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
-				exec: job.fuzzer.smashQueue,
+				exec: tier.hintsQueue,
 				p:    p.Clone(),
 				call: call,
 				info: &JobInfo{
@@ -208,7 +209,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		}
 		if job.fuzzer.Config.FaultInjection && call >= 0 {
 			job.fuzzer.startJob(job.fuzzer.statJobsFaultInjection, &faultInjectionJob{
-				exec: job.fuzzer.smashQueue,
+				exec: tier.smashQueue,
 				p:    p.Clone(),
 				call: call,
 			})
