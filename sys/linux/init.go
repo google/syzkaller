@@ -5,7 +5,8 @@
 package linux
 
 import (
-	"path/filepath"
+	"bytes"
+	"path"
 	"slices"
 	"strings"
 
@@ -56,6 +57,7 @@ func InitTarget(target *prog.Target) {
 
 	target.MakeDataMmap = targets.MakePosixMmap(target, true, true)
 	target.Neutralize = arch.neutralize
+	target.AllowFilePath = AllowFilePath
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 		prog.Arg, []*prog.Call){
 		"timespec":                      arch.generateTimespec,
@@ -230,19 +232,29 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	case "sched_setattr":
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
-	case "open", "openat", "openat2", "creat",
-		"symlink", "symlinkat", "link", "linkat":
-		// Manually binding/unbinding drivers via sysfs, forcing driver_override,
-		// or adding dynamic driver IDs via new_id attaches drivers to incompatible
-		// devices or unbinds core platform hardware, triggering nonsensical crashes
-		// that maintainers reject as invalid root operations.
-		// See the discussions at:
-		// https://lore.kernel.org/all/6a88012e.dbb3a75c.13dd47.0007.GAE@google.com/T/
-		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
-		arch.neutralizePaths(c)
 	}
+	arch.neutralizePaths(c)
 	arch.neutralizeVariant(c)
 	return nil
+}
+
+// neutralizePaths rewrites forbidden file paths (see isForbiddenPath) in path-accepting syscalls.
+func (arch *arch) neutralizePaths(c *prog.Call) {
+	switch c.Meta.CallName {
+	case "open", "creat", "chdir":
+		arch.neutralizePathArg(c.Args[0])
+	case "openat", "openat2", "open_tree", "open_tree_attr", "name_to_handle_at":
+		arch.neutralizePathArg(c.Args[1])
+	case "symlink", "link", "mount":
+		arch.neutralizePathArg(c.Args[0])
+		arch.neutralizePathArg(c.Args[1])
+	case "symlinkat":
+		arch.neutralizePathArg(c.Args[0])
+		arch.neutralizePathArg(c.Args[2])
+	case "linkat", "move_mount":
+		arch.neutralizePathArg(c.Args[1])
+		arch.neutralizePathArg(c.Args[3])
+	}
 }
 
 // neutralizeVariant handles specific syscall variants (by full name, e.g. "ioctl$DM_DEV_SUSPEND").
@@ -271,53 +283,65 @@ func (arch *arch) clearOpenCreat(a prog.Arg) {
 	}
 }
 
-func (arch *arch) neutralizePaths(c *prog.Call) {
-	prog.ForeachArg(c, func(arg prog.Arg, _ *prog.ArgCtx) {
-		dataArg, ok := arg.(*prog.DataArg)
+func (arch *arch) neutralizePathArg(arg prog.Arg) {
+	prog.ForeachSubArg(arg, func(sub prog.Arg, ctx *prog.ArgCtx) {
+		dataArg, ok := sub.(*prog.DataArg)
 		if !ok || dataArg.Dir() == prog.DirOut {
 			return
 		}
-		bufType, _ := dataArg.Type().(*prog.BufferType)
+		bufType := dataArg.Type().(*prog.BufferType)
 		// If the argument has a fixed set of allowed values, rewriting to ./file0
 		// would break serialization and deserialization validation.
-		if bufType != nil && len(bufType.Values) > 0 {
+		if len(bufType.Values) > 0 {
 			return
 		}
-		data := dataArg.Data()
-		if len(data) == 0 {
+		raw := dataArg.Data()
+		cstr, _, _ := bytes.Cut(raw, []byte{0})
+		if len(cstr) == 0 || !isForbiddenPath(string(cstr)) {
 			return
 		}
-		str := strings.TrimRight(string(data), "\x00")
-		clean := filepath.Clean(str)
-		if isForbiddenBindingPath(clean) {
-			var safe []byte
-			if bufType != nil && !bufType.Varlen() {
-				safe = make([]byte, bufType.Size())
-				copy(safe, "./file0")
-			} else if bufType != nil && bufType.NoZ {
-				safe = []byte("./file0")
-			} else {
-				safe = []byte("./file0\x00")
+		// Never grow the buffer: fixed-size buffers must keep their size, and a longer
+		// string may not fit into the data region anymore.
+		safe := []byte("./file0\x00")
+		if !bufType.Varlen() || len(raw) < len(safe) {
+			safe = make([]byte, len(raw))
+			copy(safe, "./file0")
+			if len(cstr) < len(raw) {
+				// The original string was NUL-terminated, keep it that way.
+				safe[len(safe)-1] = 0
 			}
-			dataArg.SetData(safe)
 		}
+		dataArg.SetData(safe)
 	})
 }
 
-// isForbiddenBindingPath checks whether a path targets sysfs driver binding/unbinding controls
-// (e.g. /sys/bus/.../bind, /sys/devices/.../driver_override, /sys/bus/.../drivers_probe,
-// /sys/bus/.../new_id).
-func isForbiddenBindingPath(clean string) bool {
-	if !strings.Contains(clean, "/bus/") &&
-		!strings.Contains(clean, "/devices/") &&
-		!strings.Contains(clean, "/device/") {
+// AllowFilePath reports whether a discovered Linux target path (e.g. from runtime globs
+// or interface probing) is safe to expose to fuzzing.
+func AllowFilePath(file string) bool {
+	file, _, _ = strings.Cut(file, "\x00")
+	if file == "" {
 		return false
 	}
-	return strings.HasSuffix(clean, "/bind") ||
-		strings.HasSuffix(clean, "/unbind") ||
-		strings.HasSuffix(clean, "/driver_override") ||
-		strings.HasSuffix(clean, "/drivers_probe") ||
-		strings.HasSuffix(clean, "/new_id")
+	return !isForbiddenPath(file)
+}
+
+// isForbiddenPath reports whether the path refers to a sysfs endpoint that must not be fuzzed.
+// Only the trailing path components are checked, so that accesses split across
+// openat$dir + openat are caught as well. The matching is textual and is not a security
+// boundary: programs deliberately laid out to defeat it (a path split across buffers or left
+// in memory by another call, io_uring) are not caught.
+func isForbiddenPath(raw string) bool {
+	switch path.Base(path.Clean(raw)) {
+	case "bind", "unbind", "driver_override", "drivers_probe", "new_id", "remove_id":
+		// Manually binding/unbinding drivers, forcing driver_override, or adding dynamic
+		// driver IDs attaches drivers to incompatible devices or unbinds core platform
+		// hardware, triggering nonsensical crashes that maintainers reject.
+		// See the discussions at:
+		// https://lore.kernel.org/all/6a88012e.dbb3a75c.13dd47.0007.GAE@google.com/T/
+		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
+		return true
+	}
+	return false
 }
 
 func neutralizeSchedAttr(a prog.Arg) {

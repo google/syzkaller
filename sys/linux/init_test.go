@@ -9,6 +9,8 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNeutralize(t *testing.T) {
@@ -154,28 +156,99 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
 		},
 		{
-			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)=` +
-				`'./sys/bus/platform/devices/pcspkr/driver_override\x00', 0x1, 0x0)`,
-			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
-		},
-		{
 			In:  `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='/sys/bus/pci/drivers_probe\x00', 0x1, 0x0)`,
 			Out: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
 		},
 		{
-			In: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)=` +
-				`'/sys/devices/platform/pcspkr/driver_override\x00', 0x1, 0x0)`,
-			Out: `openat$sysfs(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./sys/bus/platform/drivers/foo/uevent\x00', 0x1, 0x0)`,
+		},
+		{
+			// Non-ASCII bytes in the path must not confuse the matching.
+			In: `openat(0xffffffffffffff9c, ` +
+				`&(0x7f0000000100)='./sys/bus/pci/drivers/CAF\xc3\x89 NAND/bind\x00', 0x1, 0x0)`,
+			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			// The directory and the attribute may be opened in separate calls.
+			In: `
+r0 = openat$dir(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/pci/drivers/e1000\x00', 0x0, 0x0)
+openat(r0, &(0x7f0000000080)='bind\x00', 0x1, 0x0)
+`,
+			Out: `
+r0 = openat$dir(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/pci/drivers/e1000\x00', 0x0, 0x0)
+openat(r0, &(0x7f0000000080)='./fi\x00', 0x1, 0x0)
+`,
+		},
+		{
+			// Embedded NUL byte with trailing garbage must still be caught.
+			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)=` +
+				`"2e2f7379732f6275732f7063692f647269766572735f70726f6265006761726261676500", 0x1, 0x0)`,
+			Out: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x1, 0x0)`,
+		},
+		{
+			// The replacement must not grow the buffer (it would not fit into the data region here).
+			In:  `openat(0xffffffffffffff9c, &(0x7f0000fffffb)='bind\x00', 0x1, 0x0)`,
+			Out: `openat(0xffffffffffffff9c, &(0x7f0000fffffb)='./fi\x00', 0x1, 0x0)`,
+		},
+		{
+			// One case per syscall to verify the path argument indices.
+			In:  `open(&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', 0x2, 0x0)`,
+			Out: `open(&(0x7f0000000040)='./file0\x00', 0x2, 0x0)`,
+		},
+		{
+			In: `openat2(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/pci/drivers/e1000/unbind\x00', ` +
+				`&(0x7f0000000080)={0x2, 0x0, 0x0}, 0x18)`,
+			Out: `openat2(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', &(0x7f0000000080)={0x2}, 0x18)`,
+		},
+		{
+			In:  `chdir(&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/foo/../bind/\x00')`,
+			Out: `chdir(&(0x7f0000000040)='./file0\x00')`,
+		},
+		{
+			In: `mount$bind(&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', ` +
+				`&(0x7f0000000080)='./file1\x00', 0x0, 0x1000, 0x0)`,
+			Out: `mount$bind(&(0x7f0000000040)='./file0\x00', ` +
+				`&(0x7f0000000080)='./file1\x00', 0x0, 0x1000, 0x0)`,
+		},
+		{
+			In:  `open_tree(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/pci/drivers/e1000/remove_id\x00', 0x1)`,
+			Out: `open_tree(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1)`,
+		},
+		{
+			In: `open_tree_attr$auto(0xffffffffffffff9c, ` +
+				`&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', 0x1, 0x0, 0x0)`,
+			Out: `open_tree_attr$auto(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1, 0x0, 0x0)`,
+		},
+		{
+			In: `name_to_handle_at(0xffffffffffffff9c, ` +
+				`&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', 0x0, 0x0, 0x0)`,
+			Out: `name_to_handle_at(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x0, 0x0, 0x0)`,
 		},
 		{
 			In:  `symlink(&(0x7f0000000100)='./sys/bus/platform/drivers/foo/unbind\x00', &(0x7f0000000200)='./link0\x00')`,
 			Out: `symlink(&(0x7f0000000100)='./file0\x00', &(0x7f0000000200)='./link0\x00')`,
 		},
 		{
-			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./sys/bus/platform/drivers/foo/uevent\x00', 0x1, 0x0)`,
+			In: `symlinkat(&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./unbind\x00')`,
+			Out: `symlinkat(&(0x7f0000000040)='./file0\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./file0\x00')`,
 		},
 		{
-			In: `openat(0xffffffffffffff9c, &(0x7f0000000100)='./bind\x00', 0x1, 0x0)`,
+			In: `linkat(0xffffffffffffff9c, &(0x7f0000000040)='./bind\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./new_id\x00', 0x0)`,
+			Out: `linkat(0xffffffffffffff9c, &(0x7f0000000040)='./file\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./file0\x00', 0x0)`,
+		},
+		{
+			In: `move_mount(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/pci/drivers/e1000/unbind\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./file1\x00', 0x0)`,
+			Out: `move_mount(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', ` +
+				`0xffffffffffffff9c, &(0x7f0000000080)='./file1\x00', 0x0)`,
+		},
+		{
+			// Mount data (arg 4) must not be treated as a path even if it contains 'bind'.
+			In: `mount(0x0, &(0x7f0000000040)='./file0\x00', &(0x7f0000000080)='tmpfs\x00', 0x0, &(0x7f00000000c0)='bind\x00')`,
 		},
 		{
 			In: `
@@ -275,5 +348,35 @@ func TestDeserializeNonStrictUnsafe(t *testing.T) {
 	_, err := target.Deserialize([]byte("clone()"), prog.NonStrictUnsafe)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAllowFilePath(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
+	require.NoError(t, err)
+	require.NotNil(t, target.AllowFilePath)
+
+	for _, p := range []string{
+		"",
+		"/sys/bus/pci/drivers_probe",
+		"/sys/bus/pci/drivers_probe\x00trailing",
+		"/sys/bus/pci/drivers/e1000/bind",
+		"/sys/bus/pci/drivers/e1000/bind/",
+		"/sys/bus/pci/drivers/e1000/foo/../unbind",
+		"/sys/bus/pci/drivers/e1000/new_id",
+		"/sys/bus/pci/drivers/e1000/remove_id",
+		"/sys/devices/platform/pcspkr/driver_override",
+		"bind",
+	} {
+		assert.False(t, target.AllowFilePath(p), "path: %q", p)
+	}
+	for _, p := range []string{
+		"/sys/bus/pci/rescan",
+		"/sys/bus/pci/devices",
+		"/sys/bus/pci/drivers/CAFÉ NAND/uevent",
+		"/sys/bus/platform/drivers/foo/uevent",
+	} {
+		assert.True(t, target.AllowFilePath(p), "path: %q", p)
 	}
 }
