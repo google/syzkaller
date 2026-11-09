@@ -34,6 +34,13 @@ type FileInfo struct {
 	Cover []int  // Combined coverage for operations on the file.
 }
 
+// FilterFiles drops probed files for which allow returns false.
+func (info *Info) FilterFiles(allow func(string) bool) {
+	info.Files = slices.DeleteFunc(info.Files, func(file FileInfo) bool {
+		return !allow(file.Name)
+	})
+}
+
 type PCInfo struct {
 	Func string
 	File string
@@ -169,7 +176,7 @@ func (pr *prober) onGlobDone(req *queue.Request, res *queue.Result) bool {
 	files := res.GlobFiles()
 	log.Logf(0, "glob %v expanded to %v files", req.GlobPattern, len(files))
 	for _, file := range files {
-		if extractFileFilter(file) {
+		if extractFileFilter(file, pr.cfg.Target.AllowFilePath) {
 			pr.submitFile(file)
 		}
 	}
@@ -252,7 +259,10 @@ func globList() []string {
 	return globs
 }
 
-func extractFileFilter(file string) bool {
+func extractFileFilter(file string, allow func(string) bool) bool {
+	if !allow(file) {
+		return false
+	}
 	if strings.HasPrefix(file, "/dev/") ||
 		strings.HasPrefix(file, "/selinux/") ||
 		strings.HasPrefix(file, "./") {
