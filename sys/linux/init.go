@@ -7,6 +7,7 @@ package linux
 import (
 	"bytes"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -241,7 +242,7 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 // neutralizePaths rewrites forbidden file paths (see isForbiddenPath) in path-accepting syscalls.
 func (arch *arch) neutralizePaths(c *prog.Call) {
 	switch c.Meta.CallName {
-	case "open", "creat", "chdir":
+	case "open", "creat", "chdir", "chroot":
 		arch.neutralizePathArg(c.Args[0])
 	case "openat", "openat2", "open_tree", "open_tree_attr", "name_to_handle_at":
 		arch.neutralizePathArg(c.Args[1])
@@ -297,7 +298,7 @@ func (arch *arch) neutralizePathArg(arg prog.Arg) {
 		}
 		raw := dataArg.Data()
 		cstr, _, _ := bytes.Cut(raw, []byte{0})
-		if len(cstr) == 0 || !isForbiddenPath(string(cstr)) {
+		if len(cstr) == 0 || !isForbiddenPath(string(cstr)) && !isPCIDevDirRef(string(cstr)) {
 			return
 		}
 		// Never grow the buffer: fixed-size buffers must keep their size, and a longer
@@ -325,13 +326,25 @@ func AllowFilePath(file string) bool {
 	return !isForbiddenPath(file)
 }
 
-// isForbiddenPath reports whether the path refers to a sysfs endpoint that must not be fuzzed.
-// Only the trailing path components are checked, so that accesses split across
+var (
+	// Sysfs PCI device directories: "%04x:%02x:%02x.%d" (the domain may be 32-bit).
+	pciBDFRe = regexp.MustCompile(`^[0-9a-f]{4,8}:[0-9a-f]{2}:[01][0-9a-f]\.[0-7]$`)
+	// Procfs PCI config space files: "%02x.%x" (see drivers/pci/proc.c).
+	pciDevFnRe = regexp.MustCompile(`^[01][0-9a-f]\.[0-7]$`)
+	// Procfs PCI bus directories: "%02x" or "%04x:%02x". The pattern does not match
+	// sysfs /sys/bus/pci/{devices,drivers,slots,rescan} or the read-only /proc/bus/pci/devices.
+	procBusPCIDirRe = regexp.MustCompile(`/bus/pci/([0-9a-f]{4,8}:)?[0-9a-f]{2}(/|$)`)
+)
+
+// isForbiddenPath reports whether the path refers to a sysfs/procfs endpoint that must not
+// be fuzzed. Only the trailing path components are checked, so that accesses split across
 // openat$dir + openat are caught as well. The matching is textual and is not a security
 // boundary: programs deliberately laid out to defeat it (a path split across buffers or left
 // in memory by another call, io_uring) are not caught.
 func isForbiddenPath(raw string) bool {
-	switch path.Base(path.Clean(raw)) {
+	clean := path.Clean(raw)
+	base := path.Base(clean)
+	switch base {
 	case "bind", "unbind", "driver_override", "drivers_probe", "new_id", "remove_id":
 		// Manually binding/unbinding drivers, forcing driver_override, or adding dynamic
 		// driver IDs attaches drivers to incompatible devices or unbinds core platform
@@ -340,8 +353,60 @@ func isForbiddenPath(raw string) bool {
 		// https://lore.kernel.org/all/6a88012e.dbb3a75c.13dd47.0007.GAE@google.com/T/
 		// https://lore.kernel.org/all/6a88066b.ae6ddae5.3da009.002d.GAE@google.com/T/
 		return true
+	case "rom", "legacy_io", "legacy_io_sparse", "legacy_mem", "legacy_mem_sparse", "reset_subordinate":
+		// Raw PCI ROM/legacy I/O and memory windows. Writing or mmapping them reprograms
+		// live virtual devices and, without an IOMMU, causes silent DMA corruption.
+		// Also the secondary bus reset, an attribute name that only PCI bridges have.
+		return true
+	case "config", "reset", "remove":
+		// PCI config space and device reset/removal controls (e.g. removing the root
+		// disk controller). These names are also used by many non-PCI interfaces
+		// (/proc/net/vlan/config, zram's reset, USB device remove), so only block them
+		// inside a PCI device directory.
+		return isPCIDevAttr(raw, clean)
+	case "power":
+		// PCI hotplug slots (/sys/bus/pci/slots/N/power): writing 0 unplugs the device.
+		return path.Base(path.Dir(path.Dir(clean))) == "slots"
 	}
-	return false
+	// Raw PCI BARs: resourceN, resourceN_wc, resourceN_resize.
+	if isPCIResourceAttr(base) {
+		return true
+	}
+	// Procfs PCI config space: /proc/bus/pci/NN/DD.F (and its bus directories).
+	// The path is anchored to catch relative paths like ../bus/pci/00/00.0.
+	return pciDevFnRe.MatchString(base) || procBusPCIDirRe.MatchString(path.Join("/", clean))
+}
+
+// isPCIDevAttr reports whether the path may refer to an attribute of a PCI device directory:
+// the parent is such a directory or a "device" symlink of a class device. The parent is also
+// treated as unknown when the path starts at the root ("/config") or contains "..": the kernel
+// resolves ".." after symlinks, so e.g. /sys/bus/virtio/devices/virtio0/../config is the PCI
+// device's config. Names relative to the cwd or a directory fd ("./config") are not matched:
+// programs use them for other things (e.g. a configfs mount), and isPCIDevDirRef keeps PCI
+// device directories out of their reach.
+func isPCIDevAttr(raw, clean string) bool {
+	parent := path.Base(path.Dir(clean))
+	return parent == "/" || parent == "device" || pciBDFRe.MatchString(parent) ||
+		slices.Contains(strings.Split(raw, "/"), "..")
+}
+
+// isPCIDevDirRef reports whether a path passed to a syscall may itself refer to a PCI device
+// directory, which programs must not obtain as the cwd, a directory fd, a bind mount or
+// a symlink target. The last component is not taken from path.Clean() as it folds
+// "virtio0/..", while the kernel follows the virtio0 symlink first.
+func isPCIDevDirRef(raw string) bool {
+	last := ""
+	for elem := range strings.SplitSeq(raw, "/") {
+		if elem != "" && elem != "." {
+			last = elem
+		}
+	}
+	return last == ".." || pciBDFRe.MatchString(last)
+}
+
+func isPCIResourceAttr(base string) bool {
+	rest, ok := strings.CutPrefix(base, "resource")
+	return ok && rest != "" && rest[0] >= '0' && rest[0] <= '9'
 }
 
 func neutralizeSchedAttr(a prog.Arg) {
