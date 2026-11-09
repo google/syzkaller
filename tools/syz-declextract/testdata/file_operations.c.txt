@@ -10,7 +10,8 @@ include <linux/usbdevice_fs.h>
 include <include/uapi/file_operations.h>
 
 resource fd_foo_file_operations[fd]
-openat$auto_foo_file_operations(fd const[AT_FDCWD], file ptr[in, string["/dev/foo"]], flags flags[open_flags], mode const[0]) fd_foo_file_operations
+foo_file_operations_files = "/dev/foo", "/sys/bus/pci/rescan"
+openat$auto_foo_file_operations(fd const[AT_FDCWD], file ptr[in, string[foo_file_operations_files]], flags flags[open_flags], mode const[0]) fd_foo_file_operations
 read$auto_foo_file_operations(fd fd_foo_file_operations, buf ptr[out, array[int8]], len bytesize[buf])
 write$auto_foo_file_operations(fd fd_foo_file_operations, buf ptr[in, array[int8]], len bytesize[buf])
 mmap$auto_foo_file_operations(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_foo_file_operations, offset fileoff)

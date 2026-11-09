@@ -466,4 +466,32 @@ func TestAllowFilePath(t *testing.T) {
 	} {
 		assert.True(t, target.AllowFilePath(p), "path: %q", p)
 	}
+
+	// Check the fixed paths in the descriptions, including the ones nested in structs.
+	for _, sc := range target.Syscalls {
+		argIdx := -1
+		prefix := ""
+		switch sc.CallName {
+		case "open", "creat", "chdir", "syz_open_dev":
+			argIdx = 0
+		case "openat", "openat2", "open_tree", "open_tree_attr", "name_to_handle_at":
+			argIdx = 1
+		case "syz_open_procfs":
+			argIdx = 1
+			prefix = "/proc/self/"
+		}
+		if argIdx < 0 || len(sc.Args) <= argIdx {
+			continue
+		}
+		prog.ForeachArgType(sc.Args[argIdx].Type, func(typ prog.Type, ctx *prog.TypeCtx) {
+			bufType, ok := typ.(*prog.BufferType)
+			if !ok || bufType.Kind != prog.BufferString {
+				return
+			}
+			for _, rawVal := range bufType.Values {
+				assert.True(t, target.AllowFilePath(prefix+rawVal),
+					"syscall %s exposes forbidden path %q", sc.Name, rawVal)
+			}
+		})
+	}
 }

@@ -7,6 +7,26 @@
 		{
 			"Name": "/dev/CAFÉ NAND",
 			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/proc/bus/pci/00/00.0",
+			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/sys/devices/pci0000:00/0000:00:02.0/resource0",
+			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/sys/devices/pci0000:00/0000:00:02.0/config",
+			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/sys/bus/pci/drivers/e1000/bind",
+			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/sys/bus/pci/rescan",
+			"Cover": [0, 1, 2, 3, 4]
 		}
 	],
 	"PCs": [

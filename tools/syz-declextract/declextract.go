@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/sys/linux"
 	"github.com/google/syzkaller/sys/targets"
 	clangtoolimpl "github.com/google/syzkaller/tools/clang/declextract"
 	"golang.org/x/sync/errgroup"
@@ -164,6 +165,9 @@ func prepare(cfg *config) (*declextract.Output, *ifaceprobe.Info, []*cover.FileC
 		if err != nil {
 			return fmt.Errorf("kernel probing failed: %w", err)
 		}
+		// iface-probe already filters files, but cached or pre-recorded probe results
+		// may still contain paths that must not be exposed to fuzzing.
+		probeInfo.FilterFiles(linux.AllowFilePath)
 		return nil
 	})
 	var syscallRename map[string][]string
