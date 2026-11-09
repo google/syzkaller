@@ -252,6 +252,52 @@ openat(r0, &(0x7f0000000080)='./fi\x00', 0x1, 0x0)
 		},
 		{
 			In: `
+openat(0xffffffffffffff9c, &(0x7f0000000000)='./sys/devices/pci0000:00/0000:00:02.0/resource0\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000100)='./sys/bus/pci/devices/0000:00:02.0/config\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000200)='./proc/bus/pci/00/02.0\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000300)='./sys/bus/pci/slots/3/power\x00', 0x1, 0x0)
+`,
+			Out: `
+openat(0xffffffffffffff9c, &(0x7f0000000000)='./file0\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000200)='./file0\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000300)='./file0\x00', 0x1, 0x0)
+`,
+		},
+		{
+			// PCI attribute names are fine outside of PCI device directories.
+			In: `
+mkdirat(0xffffffffffffff9c, &(0x7f0000000000)='./config\x00', 0x1ff)
+mount(0x0, &(0x7f0000000000)='./config\x00', &(0x7f0000000040)='configfs\x00', 0x0, 0x0)
+mkdirat(0xffffffffffffff9c, &(0x7f0000000080)='./config/usb_gadget/g1\x00', 0x1ff)
+r0 = openat$dir(0xffffffffffffff9c, &(0x7f0000000100)='./sys/block/zram0\x00', 0x0, 0x0)
+openat(r0, &(0x7f0000000140)='reset\x00', 0x1, 0x0)
+openat(0xffffffffffffff9c, &(0x7f0000000180)='./sys/block/zram0/reset\x00', 0x1, 0x0)
+`,
+		},
+		{
+			// Programs must not get hold of a PCI device directory (directly or as the parent
+			// of a child device), otherwise its attributes could be opened via paths that
+			// do not look like PCI ones.
+			In: `
+openat$dir(0xffffffffffffff9c, &(0x7f0000000000)='./sys/devices/pci0000:00/0000:00:02.0\x00', 0x0, 0x0)
+mount$bind(&(0x7f0000000100)='./file3/0000:00:03.0/\x00', &(0x7f0000000200)='./file1\x00', 0x0, 0x1000, 0x0)
+symlink(&(0x7f0000000300)='./sys/bus/pci/devices/0000:00:02.0/.\x00', &(0x7f0000000400)='./file2\x00')
+chdir(&(0x7f0000000500)='./sys/bus/virtio/devices/virtio0/..\x00')
+chroot(&(0x7f0000000700)='./sys/devices/pci0000:00/0000:00:02.0\x00')
+chdir(&(0x7f0000000600)='./sys/devices/pci0000:00\x00')
+`,
+			Out: `
+openat$dir(0xffffffffffffff9c, &(0x7f0000000000)='./file0\x00', 0x0, 0x0)
+mount$bind(&(0x7f0000000100)='./file0\x00', &(0x7f0000000200)='./file1\x00', 0x0, 0x1000, 0x0)
+symlink(&(0x7f0000000300)='./file0\x00', &(0x7f0000000400)='./file2\x00')
+chdir(&(0x7f0000000500)='./file0\x00')
+chroot(&(0x7f0000000700)='./file0\x00')
+chdir(&(0x7f0000000600)='./sys/devices/pci0000:00\x00')
+`,
+		},
+		{
+			In: `
 r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./sys/bus/usb/drivers/cdc_ether/new_id\x00', 0x1, 0x0)
 write(r0, &(0x7f0000000080)='0424 9514\x00', 0xa)
 `,
@@ -368,6 +414,30 @@ func TestAllowFilePath(t *testing.T) {
 		"/sys/bus/pci/drivers/e1000/remove_id",
 		"/sys/devices/platform/pcspkr/driver_override",
 		"bind",
+		"/proc/bus/pci/00",
+		"/proc/bus/pci/00/00.0",
+		"/proc/bus/pci/0000:00/1f.7",
+		"/proc/bus/pci/00010000:ff/00.0",
+		"../bus/pci/00/00.0",
+		"00.0",
+		"/sys/devices/pci0000:00/0000:00:02.0/resource0",
+		"/sys/devices/pci0000:00/0000:00:02.0/resource0_wc",
+		"/sys/devices/pci0000:00/0000:00:02.0/resource13_resize",
+		"/sys/devices/pci0000:00/0000:00:02.0/rom",
+		"/sys/class/pci_bus/0000:00/legacy_io",
+		"/sys/class/pci_bus/0000:00/legacy_mem_sparse",
+		"/sys/devices/pci0000:00/0000:00:02.0/config",
+		"/sys/bus/pci/devices/0000:00:02.0/config",
+		"/sys/class/wakeup/wakeup0/device/config",
+		"/sys/bus/virtio/devices/virtio0/../config",
+		"/sys/devices/pci0000:00/0000:00:01.0/remove",
+		"/sys/devices/pci0000:00/0000:00:01.0/reset",
+		"/sys/devices/pci0000:00/0000:00:01.0/reset_subordinate",
+		"/sys/class/net/eth0/device/remove",
+		"reset_subordinate",
+		"/sys/bus/pci/slots/3/power",
+		"/config",
+		"../reset",
 	} {
 		assert.False(t, target.AllowFilePath(p), "path: %q", p)
 	}
@@ -376,6 +446,23 @@ func TestAllowFilePath(t *testing.T) {
 		"/sys/bus/pci/devices",
 		"/sys/bus/pci/drivers/CAFÉ NAND/uevent",
 		"/sys/bus/platform/drivers/foo/uevent",
+		"/proc/bus/pci/devices",
+		"/sys/devices/pci0000:00/0000:00:01.0/resource",
+		"/sys/devices/pci0000:00/0000:00:01.0/enable",
+		"/sys/devices/pci0000:00/0000:00:01.0/msi_bus",
+		"/sys/devices/pci0000:00/0000:00:01.0/d3cold_allowed",
+		"/sys/devices/pci0000:00/0000:00:01.0/reset_method",
+		"/sys/devices/pci0000:00/0000:00:01.0/power/control",
+		"/sys/devices/virtual/bluetooth/hci1/power",
+		"/sys/devices/pci0000:00/0000:00:04.0/usb1/1-1/remove",
+		"/sys/devices/pnp0/00:05/resources",
+		"/sys/block/zram0/reset",
+		"/sys/kernel/config",
+		"/sys/devices/ap/card00/config",
+		"/proc/net/vlan/config",
+		"/proc/self/net/vlan/config",
+		"config",
+		"reset",
 	} {
 		assert.True(t, target.AllowFilePath(p), "path: %q", p)
 	}
