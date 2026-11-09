@@ -1138,6 +1138,17 @@ type bool32 int32[0:1]
 type bool64 int64[0:1]
 type boolptr intptr[0:1]
 
+type auto_todo int8
+
+type auto_union[INFERRED, RAW] [
+	inferred	INFERRED
+	raw		RAW
+]
+
+type auto_aligner[N] {
+	void	void
+} [align[N]]
+
 type fileoff[BASE] BASE
 
 type filename string[filename]

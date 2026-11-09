@@ -82,7 +82,7 @@ func (ctx *context) createFops(fops *FileOps, files, ioctlCmds []string) {
 		fdt = fmt.Sprintf("fd_%v", name)
 		ctx.fmt("resource %v[fd]\n", fdt)
 	}
-	suffix := autoSuffix + "_" + name
+	suffix := ctx.suffix + "_" + name
 	fileFlags := fmt.Sprintf("\"%s\"", files[0])
 	if len(files) > 1 {
 		fileFlags = fmt.Sprintf("%v_files", name)
@@ -139,7 +139,7 @@ func (ctx *context) createIoctls(fops *FileOps, ioctlCmds []string, suffix, fdt 
 		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, ioctlCmdArg, cmd)
 		name := ctx.uniqualize("ioctl cmd", cmd)
 		ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v) %v\n",
-			autoSuffix, name, fdt, cmd, argType, retType)
+			ctx.suffix, name, fdt, cmd, argType, retType)
 	}
 }
 

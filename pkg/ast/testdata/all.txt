@@ -4,11 +4,23 @@
 meta automatic
 meta noextract
 meta arches["foo", "bar", "386"]
+meta overlay["auto.txt"]
 
 incdir <some/path>
 
 strflags0 = "foo", strflags1
 strflags1 = "bar"
+override strflags_ov = "a", "b"
+override intflags_ov = 1, 2
+
+override struct_ov {
+	f0	int8
+}
+
+override union_ov [
+	f0	int8
+	f1	int16
+]
 
 expressions {
 	f0	int8	(if[value[X] & Y])
