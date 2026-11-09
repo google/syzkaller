@@ -43,6 +43,10 @@ type Target struct {
 	// arguments.
 	Neutralize func(c *Call, fixStructure bool) error
 
+	// AllowFilePath reports whether a discovered target path (e.g. from runtime globs
+	// or interface probing) is safe to expose to fuzzing.
+	AllowFilePath func(path string) bool
+
 	// AnnotateCall annotates a syscall invocation in C reproducers.
 	// The returned string will be placed inside a comment except for the
 	// empty string which will omit the comment.
@@ -143,6 +147,7 @@ func (target *Target) Extend(syscalls []*Syscall, types []Type, resources []*Res
 
 func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
+	target.AllowFilePath = func(path string) bool { return true }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.fillArch(target)
 	target.initTarget()
@@ -418,7 +423,7 @@ func (target *Target) UpdateGlobs(globFiles map[string][]string) {
 		switch a := typ.(type) {
 		case *BufferType:
 			if a.Kind == BufferGlob {
-				a.Values = populateGlob(a.SubKind, globFiles)
+				a.Values = populateGlob(a.SubKind, globFiles, target.AllowFilePath)
 			}
 		}
 	})
@@ -434,13 +439,15 @@ func requiredGlobs(pattern string) []string {
 	return res
 }
 
-func populateGlob(pattern string, globFiles map[string][]string) []string {
+func populateGlob(pattern string, globFiles map[string][]string, allow func(string) bool) []string {
 	files := make(map[string]bool)
 	parts := strings.Split(pattern, ":")
 	for _, tok := range parts {
 		if tok[0] != '-' {
 			for _, file := range globFiles[tok] {
-				files[file] = true
+				if allow(file) {
+					files[file] = true
+				}
 			}
 		}
 	}
