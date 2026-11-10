@@ -73,8 +73,8 @@ static inline struct addr_size alloc_guest_mem(struct addr_size* free, size_t si
 	return ret;
 }
 
-// Call KVM_SET_USER_MEMORY_REGION for the given pages.
-static inline void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
+// Call KVM_SET_USER_MEMORY_REGION for the given pages and return its status.
+static inline int vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
 {
 	struct kvm_userspace_memory_region memreg;
 	memreg.slot = slot;
@@ -82,7 +82,7 @@ static inline void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags
 	memreg.guest_phys_addr = guest_phys_addr;
 	memreg.memory_size = memory_size;
 	memreg.userspace_addr = userspace_addr;
-	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
 }
 #endif
 

@@ -250,7 +250,7 @@ static const struct mem_region syzos_mem_regions[] = {
     {RISCV64_ADDR_STACK_BASE, 1, 0},
 };
 
-static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
+static int setup_vm(int vmfd, struct kvm_syz_vm* vm)
 {
 	struct addr_size allocator = {.addr = vm->host_mem, .size = vm->total_pages * KVM_PAGE_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
@@ -273,14 +273,18 @@ static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			size_t syzos_size = install_syzos_code(next.addr, next.size);
 			validate_guest_code(next.addr, syzos_size);
 		}
-		vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size, (uintptr_t)next.addr);
+		if (vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size,
+					      (uintptr_t)next.addr))
+			return -1;
 	}
 
 	// Map the remaining pages at an unused address.
 	if (allocator.size > 0) {
 		struct addr_size next = alloc_guest_mem(&allocator, allocator.size);
-		vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+		if (vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr))
+			return -1;
 	}
+	return 0;
 }
 
 static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
@@ -290,7 +294,8 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
 	ret->host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
 	ret->total_pages = KVM_GUEST_PAGES - 1;
-	setup_vm(vmfd, ret);
+	if (setup_vm(vmfd, ret))
+		return -1;
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;
 

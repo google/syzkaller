@@ -44,7 +44,7 @@ static void validate_guest_code(void* mem, size_t size)
 	}
 }
 
-static void setup_vm(int vmfd, void* host_mem, void** text_slot)
+static int setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
@@ -62,31 +62,45 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
 	size_t syzos_size = install_syzos_code(host_text.addr, host_text.size);
 	validate_guest_code(host_text.addr, syzos_size);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE,
+				      host_text.size, (uintptr_t)host_text.addr))
+		return -1;
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES,
+				      next.size, (uintptr_t)next.addr))
+		return -1;
 
 	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE,
+				      next.size, (uintptr_t)next.addr))
+		return -1;
 	if (text_slot)
 		*text_slot = next.addr;
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM,
+				      next.size, (uintptr_t)next.addr))
+		return -1;
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE,
+				      next.size, (uintptr_t)next.addr))
+		return -1;
 
 	// Allocate memory for the ITS tables: 64K for the device table, collection table, command queue, property table,
 	// plus 64K * 4 CPUs for the pending tables, and 64K * 16 devices for the ITT tables.
 	int its_size = SZ_64K * (4 + 4 + 16);
 	next = alloc_guest_mem(&allocator, its_size);
-	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES,
+				      next.size, (uintptr_t)next.addr))
+		return -1;
 
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
-	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+	if (vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr))
+		return -1;
+	return 0;
 }
 #endif
 
@@ -172,7 +186,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	(void)text_type;
 
 	void* user_text_slot = NULL;
-	setup_vm(vmfd, host_mem, &user_text_slot);
+	if (setup_vm(vmfd, host_mem, &user_text_slot))
+		return -1;
 	setup_cpu_with_opts(vmfd, cpufd, opt_array_ptr, opt_count);
 
 	// Assume CPU is 0.
@@ -199,7 +214,8 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	void* user_text_slot = NULL;
 	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
 	host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
-	setup_vm(vmfd, host_mem, &user_text_slot);
+	if (setup_vm(vmfd, host_mem, &user_text_slot))
+		return -1;
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;
 	ret->user_text = user_text_slot;
