@@ -4,10 +4,12 @@
 package state
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,11 +51,11 @@ func (ts *TestState) Sync(name string, add [][]byte, del []string) (string, []rp
 	if err != nil {
 		ts.t.Fatalf("Sync failed: %v", err)
 	}
-	sort.Slice(inputs, func(i, j int) bool {
-		if inputs[i].Domain != inputs[j].Domain {
-			return inputs[i].Domain < inputs[j].Domain
+	slices.SortFunc(inputs, func(a, b rpctype.HubInput) int {
+		if a.Domain != b.Domain {
+			return cmp.Compare(a.Domain, b.Domain)
 		}
-		return string(inputs[i].Prog) < string(inputs[j].Prog)
+		return cmp.Compare(string(a.Prog), string(b.Prog))
 	})
 	return domain, inputs, pending
 }
@@ -177,4 +179,26 @@ func TestDomain(t *testing.T) {
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
 		}, inputs)
 	}
+}
+
+func TestNewCallsAfterConnect(t *testing.T) {
+	st := MakeTestState(t)
+
+	// mgr1 connects knowing only "open".
+	st.Connect("mgr1", "d1", true, []string{"open"}, nil)
+	// mgr2 connects later introducing a previously unseen call "ioctl".
+	st.Connect("mgr2", "d2", true, []string{"open", "ioctl"}, [][]byte{
+		[]byte("open(0x0)\nioctl(0x1)"),
+		[]byte("open(0x2)"),
+	})
+
+	// mgr1 should only receive the program that uses "open", not "ioctl".
+	_, inputs, _ := st.Sync("mgr1", nil, nil)
+	require.Equal(t, []rpctype.HubInput{
+		{Domain: "d2", Prog: []byte("open(0x2)")},
+	}, inputs)
+
+	// Same for repros: a repro with "ioctl" is skipped for mgr1.
+	st.AddRepro("mgr2", []byte("ioctl(0x1)"))
+	assert.Empty(t, st.PendingRepro("mgr1"))
 }

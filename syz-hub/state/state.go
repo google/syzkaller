@@ -26,12 +26,15 @@ import (
 // reproducers and information about managers.
 // It is persisted to and can be restored from a directory.
 type State struct {
-	corpusSeq uint64
-	reproSeq  uint64
-	dir       string
-	Corpus    *db.DB
-	Repros    *db.DB
-	Managers  map[string]*Manager
+	corpusSeq   uint64
+	reproSeq    uint64
+	dir         string
+	Corpus      *db.DB
+	Repros      *db.DB
+	Managers    map[string]*Manager
+	callIDs     map[string]uint32
+	corpusCalls map[string][]uint32
+	reproCalls  map[string][]uint32
 }
 
 // Manager represents one syz-manager instance.
@@ -53,7 +56,7 @@ type Manager struct {
 	New           int
 	SentRepros    int
 	RecvRepros    int
-	Calls         map[string]struct{}
+	calls         []bool
 	Corpus        *db.DB
 }
 
@@ -62,17 +65,18 @@ func Make(dir string) (*State, error) {
 	st := &State{
 		dir:      dir,
 		Managers: make(map[string]*Manager),
+		callIDs:  make(map[string]uint32),
 	}
 
 	osutil.MkdirAll(st.dir)
 	var err error
-	st.Corpus, st.corpusSeq, err = loadDB(filepath.Join(st.dir, "corpus.db"), "corpus", true)
+	st.Corpus, st.corpusSeq, st.corpusCalls, err = st.loadProgsDB(filepath.Join(st.dir, "corpus.db"), "corpus")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	st.Repros, st.reproSeq, err = loadDB(filepath.Join(st.dir, "repro.db"), "repro", true)
+	st.Repros, st.reproSeq, st.reproCalls, err = st.loadProgsDB(filepath.Join(st.dir, "repro.db"), "repro")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	managersDir := filepath.Join(st.dir, "manager")
@@ -96,12 +100,15 @@ func Make(dir string) (*State, error) {
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
 	log.Logf(0, "done, %v programs", len(st.Corpus.Records))
-	return st, err
+	return st, nil
 }
 
 func (st *State) Flush() {
 	if err := st.Corpus.Flush(); err != nil {
 		log.Logf(0, "failed to flush corpus database: %v", err)
+	}
+	if err := st.Repros.Flush(); err != nil {
+		log.Logf(0, "failed to flush repro database: %v", err)
 	}
 	for _, mgr := range st.Managers {
 		if err := mgr.Corpus.Flush(); err != nil {
@@ -110,39 +117,57 @@ func (st *State) Flush() {
 	}
 }
 
-func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
+func (st *State) loadProgsDB(file, name string) (*db.DB, uint64, map[string][]uint32, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file, true)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to open %v database: %w", name, err)
+		return nil, 0, nil, fmt.Errorf("failed to open %v database: %w", name, err)
 	}
 	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
+	progCalls := make(map[string][]uint32, len(db.Records))
 	for key, rec := range db.Records {
-		if progs {
-			_, ncalls, err := prog.CallSet(rec.Val)
-			if err != nil {
-				log.Logf(0, "bad file: can't parse call set: %v\n%q", err, rec.Val)
-				db.Delete(key)
-				continue
-			}
-			if ncalls > prog.MaxCalls {
-				log.Logf(0, "bad file: too many calls: %v", ncalls)
-				db.Delete(key)
-				continue
-			}
-			if sig := hash.Hash(rec.Val); sig.String() != key {
-				log.Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
-				db.Delete(key)
-				continue
-			}
+		calls, ncalls, err := prog.CallSet(rec.Val)
+		if err != nil {
+			log.Logf(0, "bad file: can't parse call set: %v\n%q", err, rec.Val)
+			db.Delete(key)
+			continue
 		}
+		if ncalls > prog.MaxCalls {
+			log.Logf(0, "bad file: too many calls: %v", ncalls)
+			db.Delete(key)
+			continue
+		}
+		if sig := hash.Hash(rec.Val); sig.String() != key {
+			log.Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
+			db.Delete(key)
+			continue
+		}
+		progCalls[key] = st.internCalls(calls)
 		maxSeq = max(maxSeq, rec.Seq)
 	}
 	if err := db.Flush(); err != nil {
-		return nil, 0, fmt.Errorf("failed to flush corpus database: %w", err)
+		return nil, 0, nil, fmt.Errorf("failed to flush %v database: %w", name, err)
 	}
-	return db, maxSeq, nil
+	return db, maxSeq, progCalls, nil
+}
+
+func (st *State) callID(name string) uint32 {
+	if id, ok := st.callIDs[name]; ok {
+		return id
+	}
+	id := uint32(len(st.callIDs))
+	st.callIDs[name] = id
+	return id
+}
+
+func (st *State) internCalls(calls map[string]struct{}) []uint32 {
+	ids := make([]uint32, 0, len(calls))
+	for c := range calls {
+		ids = append(ids, st.callID(c))
+	}
+	slices.Sort(ids)
+	return ids
 }
 
 func (st *State) createManager(name string) (*Manager, error) {
@@ -166,10 +191,12 @@ func (st *State) createManager(name string) (*Manager, error) {
 	st.reproSeq = max(st.reproSeq, mgr.reproSeq)
 	domainData, _ := os.ReadFile(mgr.domainFile)
 	mgr.Domain = string(domainData)
-	corpus, _, err := loadDB(mgr.corpusFile, name, false)
+	log.Logf(0, "reading %v...", name)
+	corpus, err := db.Open(mgr.corpusFile, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open manager corpus %v: %w", mgr.corpusFile, err)
 	}
+	log.Logf(0, "read %v programs", len(corpus.Records))
 	mgr.Corpus = corpus
 	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
 		mgr.name, mgr.Domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
@@ -231,9 +258,12 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
 	saveSeqFile(mgr.reproSeqFile, mgr.reproSeq)
 
-	mgr.Calls = make(map[string]struct{})
 	for _, c := range calls {
-		mgr.Calls[c] = struct{}{}
+		st.callID(c)
+	}
+	mgr.calls = make([]bool, len(st.callIDs))
+	for _, c := range calls {
+		mgr.calls[st.callIDs[c]] = true
 	}
 
 	os.Remove(mgr.corpusFile)
@@ -277,13 +307,18 @@ func (st *State) AddRepro(name string, repro []byte) error {
 	if mgr == nil || mgr.Connected.IsZero() {
 		return fmt.Errorf("unconnected manager %v", name)
 	}
-	if _, _, err := prog.CallSet(repro); err != nil {
+	sig := hash.String(repro)
+	if _, ok := st.Repros.Records[sig]; ok {
+		return nil
+	}
+	calls, ncalls, err := prog.CallSet(repro)
+	if err != nil {
 		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v",
 			mgr.name, err, string(repro))
 		return nil
 	}
-	sig := hash.String(repro)
-	if _, ok := st.Repros.Records[sig]; ok {
+	if want := prog.MaxCalls; ncalls > want {
+		log.Logf(0, "manager %v: too long repro, ignoring (%v/%v)", mgr.name, ncalls, want)
 		return nil
 	}
 	mgr.ownRepros[sig] = true
@@ -294,6 +329,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 	}
 	st.reproSeq++
 	st.Repros.Save(sig, repro, st.reproSeq)
+	st.reproCalls[sig] = st.internCalls(calls)
 	if err := st.Repros.Flush(); err != nil {
 		log.Logf(0, "failed to flush repro database: %v", err)
 	}
@@ -317,11 +353,7 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 		if mgr.ownRepros[key] {
 			continue
 		}
-		calls, _, err := prog.CallSet(rec.Val)
-		if err != nil {
-			return nil, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
-		}
-		if !managerSupportsAllCalls(mgr.Calls, calls) {
+		if !managerSupportsAllCalls(mgr.calls, st.reproCalls[key]) {
 			continue
 		}
 		if minSeq > rec.Seq {
@@ -357,11 +389,7 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		if _, ok := mgr.Corpus.Records[key]; ok {
 			continue
 		}
-		calls, _, err := prog.CallSet(rec.Val)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
-		}
-		if !managerSupportsAllCalls(mgr.Calls, calls) {
+		if !managerSupportsAllCalls(mgr.calls, st.corpusCalls[key]) {
 			continue
 		}
 		records = append(records, Record{key, rec.Val, rec.Seq})
@@ -439,20 +467,21 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 }
 
 func (st *State) addInput(mgr *Manager, input []byte) {
-	_, ncalls, err := prog.CallSet(input)
-	if err != nil {
-		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
-		return
-	}
-	if want := prog.MaxCalls; ncalls > want {
-		log.Logf(0, "manager %v: too long program, ignoring (%v/%v)", mgr.name, ncalls, want)
-		return
-	}
 	sig := hash.String(input)
-	mgr.Corpus.Save(sig, nil, 0)
 	if _, ok := st.Corpus.Records[sig]; !ok {
+		calls, ncalls, err := prog.CallSet(input)
+		if err != nil {
+			log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
+			return
+		}
+		if want := prog.MaxCalls; ncalls > want {
+			log.Logf(0, "manager %v: too long program, ignoring (%v/%v)", mgr.name, ncalls, want)
+			return
+		}
 		st.Corpus.Save(sig, input, st.corpusSeq)
+		st.corpusCalls[sig] = st.internCalls(calls)
 	}
+	mgr.Corpus.Save(sig, nil, 0)
 }
 
 func (st *State) purgeCorpus() {
@@ -466,6 +495,7 @@ func (st *State) purgeCorpus() {
 		if used[key] {
 			continue
 		}
+		delete(st.corpusCalls, key)
 		st.Corpus.Delete(key)
 	}
 	if err := st.Corpus.Flush(); err != nil {
@@ -473,9 +503,9 @@ func (st *State) purgeCorpus() {
 	}
 }
 
-func managerSupportsAllCalls(mgr, prog map[string]struct{}) bool {
-	for c := range prog {
-		if _, ok := mgr[c]; !ok {
+func managerSupportsAllCalls(mgrCalls []bool, progCalls []uint32) bool {
+	for _, id := range progCalls {
+		if int(id) >= len(mgrCalls) || !mgrCalls[id] {
 			return false
 		}
 	}
