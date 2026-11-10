@@ -189,7 +189,7 @@ static void TouchMemory(void* ptr, size_t size)
 static void SnapshotPrepareParent()
 {
 	// This allows access to the output region.
-	CoverAccessScope scope(nullptr);
+	CoverAccessScope scope;
 	TouchMemory((char*)output_data + output_size - kOutputPopulate, kOutputPopulate);
 	// Notify SnapshotStart that we finished prefaulting memory in the parent.
 	output_data->completed = 1;
@@ -203,7 +203,7 @@ static void SnapshotPrepareParent()
 static void SnapshotStart()
 {
 	debug("SnapshotStart\n");
-	CoverAccessScope scope(nullptr);
+	CoverAccessScope scope;
 	// Prefault as much memory as we can before the snapshot is taken.
 	// Also pre-create some threads and let them block.
 	// This is intended to make execution after each snapshot restore faster,
@@ -262,7 +262,7 @@ static void SnapshotStart()
 NORETURN static void SnapshotDone(bool failed)
 {
 	debug("SnapshotDone\n");
-	CoverAccessScope scope(nullptr);
+	CoverAccessScope scope;
 	uint32 num_calls = output_data->num_calls.load(std::memory_order_relaxed);
 	auto data = finish_output(output_data, 0, 0, num_calls, 0, 0, failed ? kFailStatus : 0, false, nullptr);
 	ivs.hdr->output_offset = data.data() - reinterpret_cast<volatile uint8_t*>(ivs.hdr);
