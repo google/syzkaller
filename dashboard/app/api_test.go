@@ -43,6 +43,18 @@ func TestClientOauthOK(t *testing.T) {
 	}
 }
 
+func TestClientOauthFail(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	_, got, err := checkClient(contextWithConfig(c.ctx, &GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "OauthSubject:public"},
+		}}),
+		"user", "OauthSubject:public", "", "method")
+	assert.ErrorIs(t, err, ErrAccess)
+	assert.Empty(t, got)
+}
+
 func TestClientSecretFail(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

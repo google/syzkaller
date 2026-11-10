@@ -1730,14 +1730,10 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 func checkClient(ctx context.Context, name0, secretPassword, oauthSubject, method string) (
 	APIClient, string, error) {
 	checkAuth := func(client APIClient) bool {
-		if strings.HasPrefix(client.Key, auth.OauthMagic) &&
-			subtle.ConstantTimeCompare([]byte(client.Key), []byte(oauthSubject)) == 1 {
-			return true
+		if strings.HasPrefix(client.Key, auth.OauthMagic) {
+			return subtle.ConstantTimeCompare([]byte(client.Key), []byte(oauthSubject)) == 1
 		}
-		if subtle.ConstantTimeCompare([]byte(client.Key), []byte(secretPassword)) == 1 {
-			return true
-		}
-		return false
+		return subtle.ConstantTimeCompare([]byte(client.Key), []byte(secretPassword)) == 1
 	}
 	checkClient := func(client APIClient, ns string) (APIClient, string, error) {
 		if !checkAuth(client) {
