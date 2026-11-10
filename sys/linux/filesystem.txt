@@ -43,11 +43,19 @@ mount$nfs(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["nfs"]
 mount$nfs4(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["nfs4"]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]])
 
 resource fd_fscontext[fd]
+resource fd_fscontext_ext4[fd_fscontext]
+resource fd_ext4_mnt[fd_dir]
 
 fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
+fsopen$ext4(type ptr[in, string[ext4_types]], flags flags[fsopen_flags]) fd_fscontext_ext4 (no_squash)
 fspick(dfd fd_dir[opt], path ptr[in, filename], flags flags[fspick_flags]) fd_fscontext
+fspick$ext4(dfd fd_ext4_mnt, path ptr[in, string["."]], flags flags[fspick_flags]) fd_fscontext_ext4 (no_squash)
 fsconfig$FSCONFIG_SET_FLAG(fd fd_fscontext, cmd const[FSCONFIG_SET_FLAG], key ptr[in, string[fsconfig_flag_params]], value const[0], aux const[0])
 fsconfig$FSCONFIG_SET_STRING(fd fd_fscontext, cmd const[FSCONFIG_SET_STRING], key ptr[in, string], value ptr[in, string], aux const[0])
+fsconfig$ext4_flag(fd fd_fscontext_ext4, cmd const[FSCONFIG_SET_FLAG], key ptr[in, string[ext4_fsconfig_flags]], value const[0], aux const[0]) (no_squash)
+fsconfig$ext4_string(fd fd_fscontext_ext4, cmd const[FSCONFIG_SET_STRING], key ptr[in, string[ext4_fsconfig_keys]], value ptr[in, string[ext4_fsconfig_vals]], aux const[0]) (no_squash)
+fsconfig$ext4_source(fd fd_fscontext_ext4, cmd const[FSCONFIG_SET_STRING], key ptr[in, string["source"]], value ptr[in, loop_filename], aux const[0])
+fsconfig$ext4_reconfigure(fd fd_fscontext_ext4, cmd const[FSCONFIG_CMD_RECONFIGURE], key const[0], value const[0], aux const[0])
 fsconfig$FSCONFIG_SET_BINARY(fd fd_fscontext, cmd const[FSCONFIG_SET_BINARY], key ptr[in, string], value ptr[in, array[int8]], aux bytesize[value])
 fsconfig$FSCONFIG_SET_PATH(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
 fsconfig$FSCONFIG_SET_PATH_EMPTY(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH_EMPTY], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
@@ -55,6 +63,7 @@ fsconfig$FSCONFIG_SET_FD(fd fd_fscontext, cmd const[FSCONFIG_SET_FD], key ptr[in
 fsconfig$FSCONFIG_CMD_CREATE(fd fd_fscontext, cmd const[FSCONFIG_CMD_CREATE], key const[0], value const[0], aux const[0])
 fsconfig$FSCONFIG_CMD_RECONFIGURE(fd fd_fscontext, cmd const[FSCONFIG_CMD_RECONFIGURE], key const[0], value const[0], aux const[0])
 fsmount(fs_fd fd_fscontext, flags flags[fsmount_flags], attr_flags flags[fsmount_attr_flags]) fd
+fsmount$ext4(fs_fd fd_fscontext_ext4, flags flags[fsmount_flags], attr_flags flags[fsmount_attr_flags]) fd_ext4_mnt
 move_mount(from_dfd fd_dir[opt], from_pathname ptr[in, filename], to_dfd fd_dir[opt], to_pathname ptr[in, filename], flags flags[move_mount_flags])
 open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags]) fd
 mount_setattr(dfd fd_dir[opt], filename ptr[in, filename], flags flags[mount_setattr_flags], args ptr[in, mount_attr], size bytesize[args])
@@ -74,7 +83,7 @@ mount_attr_flags = MOUNT_ATTR_IDMAP, fsmount_attr_flags
 mount_attr_propagation_flags = MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED
 fsmount_flags = FSMOUNT_CLOEXEC
 fsopen_flags = FSOPEN_CLOEXEC
-fspick_flags = FSPICK_CLOEXEC
+fspick_flags = FSPICK_CLOEXEC, FSPICK_SYMLINK_NOFOLLOW, FSPICK_NO_AUTOMOUNT, FSPICK_EMPTY_PATH
 fsmount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME
 move_mount_flags = MOVE_MOUNT_F_SYMLINKS, MOVE_MOUNT_F_AUTOMOUNTS, MOVE_MOUNT_F_EMPTY_PATH, MOVE_MOUNT_T_SYMLINKS, MOVE_MOUNT_T_AUTOMOUNTS, MOVE_MOUNT_T_EMPTY_PATH, MOVE_MOUNT_SET_GROUP, MOVE_MOUNT_BENEATH
 fsconfig_flag_params = "dirsync", "lazytime", "mand", "posixacl", "ro", "sync", "async", "nolazytime", "nomand", "rw", "silent"
@@ -124,7 +133,7 @@ syz_mount_image$jfs(fs ptr[in, string["jfs"]], dir ptr[in, filename], flags flag
 syz_mount_image$btrfs(fs ptr[in, string["btrfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[btrfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["btrfsck --readonly"])
 syz_mount_image$ntfs(fs ptr[in, string["ntfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ntfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$ntfs3(fs ptr[in, string["ntfs3"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ntfs3_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["fsck.ext4 -n"])
+syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_ext4_mnt (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["fsck.ext4 -n"])
 syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["fsck.f2fs"])
 syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ocfs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["fsck.ocfs2 -n"])
 syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize, fsck["fsck.erofs"])
@@ -714,7 +723,12 @@ ext4_options [
 	noinit_itable			stringnoz["noinit_itable"]
 	test_dummy_encryption		stringnoz["test_dummy_encryption"]
 	test_dummy_encryption_v1	stringnoz["test_dummy_encryption=v1"]
+	test_dummy_encryption_v2	stringnoz["test_dummy_encryption=v2"]
 	nombcache			stringnoz["nombcache"]
+	no_prefetch_block_bitmaps	stringnoz["no_prefetch_block_bitmaps"]
+	nowarn_on_error			stringnoz["nowarn_on_error"]
+	buffered_iomap			stringnoz["buffered_iomap"]
+	nobuffered_iomap		stringnoz["nobuffered_iomap"]
 	inlinecrypt			stringnoz["inlinecrypt"]
 	mb_optimize_scan		fs_opt_hex["mb_optimize_scan", int32[0:1]]
 	resgid				fs_opt_hex["resgid", gid]
@@ -739,6 +753,9 @@ ext4_options [
 
 ext4_types = "ext4", "ext3", "ext2"
 ext4_inode_readahead_blks = 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000
+ext4_fsconfig_flags = "bsddf", "minixdf", "grpid", "bsdgroups", "nogrpid", "sysvgroups", "nouid32", "debug", "user_xattr", "acl", "norecovery", "noload", "journal_checksum", "nojournal_checksum", "journal_async_commit", "grpquota", "quota", "noquota", "usrquota", "prjquota", "barrier", "nobarrier", "dax", "delalloc", "nodelalloc", "nowarn_on_error", "block_validity", "noblock_validity", "auto_da_alloc", "noauto_da_alloc", "dioread_nolock", "nodioread_nolock", "dioread_lock", "discard", "nodiscard", "init_itable", "noinit_itable", "test_dummy_encryption", "inlinecrypt", "nombcache", "no_prefetch_block_bitmaps", "buffered_iomap", "nobuffered_iomap", fsconfig_flag_params
+ext4_fsconfig_keys = "errors", "data", "data_err", "jqfmt", "dax", "commit", "min_batch_time", "max_batch_time", "stripe", "inode_readahead_blks", "journal_ioprio", "init_itable", "max_dir_size_kb", "mb_optimize_scan", "test_dummy_encryption", "resuid", "resgid", "debug_want_extra_isize"
+ext4_fsconfig_vals = "continue", "remount-ro", "journal", "ordered", "writeback", "abort", "ignore", "vfsold", "vfsv0", "vfsv1", "always", "inode", "never", "v1", "v2", "0", "1", "4", "16", "64"
 
 f2fs_options [
 	background_gc_sync		stringnoz["background_gc=sync"]
@@ -1280,4 +1297,4 @@ file_attr {
 	fa_cowextsize	int32
 }
 
-file_attr_flags = FS_XFLAG_REALTIME, FS_XFLAG_PREALLOC, FS_XFLAG_IMMUTABLE, FS_XFLAG_APPEND, FS_XFLAG_SYNC, FS_XFLAG_NOATIME, FS_XFLAG_NODUMP, FS_XFLAG_RTINHERIT, FS_XFLAG_PROJINHERIT, FS_XFLAG_NOSYMLINKS, FS_XFLAG_EXTSIZE, FS_XFLAG_EXTSZINHERIT, FS_XFLAG_NODEFRAG, FS_XFLAG_FILESTREAM, FS_XFLAG_DAX, FS_XFLAG_COWEXTSIZE, FS_XFLAG_HASATTR
+file_attr_flags = FS_XFLAG_REALTIME, FS_XFLAG_PREALLOC, FS_XFLAG_IMMUTABLE, FS_XFLAG_APPEND, FS_XFLAG_SYNC, FS_XFLAG_NOATIME, FS_XFLAG_NODUMP, FS_XFLAG_RTINHERIT, FS_XFLAG_PROJINHERIT, FS_XFLAG_NOSYMLINKS, FS_XFLAG_EXTSIZE, FS_XFLAG_EXTSZINHERIT, FS_XFLAG_NODEFRAG, FS_XFLAG_FILESTREAM, FS_XFLAG_DAX, FS_XFLAG_COWEXTSIZE, FS_XFLAG_VERITY, FS_XFLAG_CASEFOLD, FS_XFLAG_CASENONPRESERVING, FS_XFLAG_HASATTR

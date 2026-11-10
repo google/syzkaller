@@ -11,11 +11,12 @@ ioctl$FS_IOC_MEASURE_VERITY(fd fd, cmd const[FS_IOC_MEASURE_VERITY], arg ptr[ino
 ioctl$FS_IOC_READ_VERITY_METADATA(fd fd, cmd const[FS_IOC_READ_VERITY_METADATA], arg ptr[in, fsverity_read_metadata_arg])
 
 fsverity_hash_alg = FS_VERITY_HASH_ALG_SHA256, FS_VERITY_HASH_ALG_SHA512
+fsverity_block_sizes = 0, 1024, 2048, 4096
 
 fsverity_enable_arg {
 	version		const[1, int32]
 	hash_algorithm	flags[fsverity_hash_alg, int32]
-	block_size	const[4096, int32]
+	block_size	flags[fsverity_block_sizes, int32]
 	salt_size	len[salt_ptr, int32]
 	salt_ptr	ptr64[in, array[int8]]
 	sig_size	len[sig_ptr, int32]
