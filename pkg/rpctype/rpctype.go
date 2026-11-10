@@ -5,6 +5,10 @@
 // between syz-manager and syz-hub.
 package rpctype
 
+type AuthChecker interface {
+	CheckAuth(client, key, manager string) error
+}
+
 type HubConnectArgs struct {
 	// Client/Key are used for authentication.
 	Client string

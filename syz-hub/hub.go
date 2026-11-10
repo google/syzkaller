@@ -89,6 +89,11 @@ func main() {
 	hub.st.Flush()
 }
 
+func (hub *Hub) CheckAuth(client, key, manager string) error {
+	_, err := hub.checkManager(client, key, manager)
+	return err
+}
+
 func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
 	name, err := hub.checkManager(a.Client, a.Key, a.Manager)
 	if err != nil {
