@@ -17,7 +17,7 @@ static void cover_collect(cover_t* cov)
 {
 }
 
-static void cover_protect(cover_t* cov)
+static void cover_protect()
 {
 }
 
@@ -25,6 +25,6 @@ static void cover_mmap(cover_t* cov)
 {
 }
 
-static void cover_unprotect(cover_t* cov)
+static void cover_unprotect()
 {
 }
