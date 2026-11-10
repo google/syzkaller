@@ -488,6 +488,10 @@ type uiJob struct {
 	InvalidateJobLink string
 	RestartJobLink    string
 	FixCandidate      bool
+	// AIBisection is set if this is not a syz-ci job, but a result of an AI bisection job.
+	AIBisection bool
+	// StillPresent is set if AI fix bisection determined that the bug is not fixed yet.
+	StillPresent bool
 }
 
 type uiBackportGroup struct {
@@ -1472,12 +1476,12 @@ func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
-	if len(bugDetails.BisectFixJobs) > 1 || len(bugDetails.BisectFixJobs) > 0 && bugDetails.BisectFixJob == nil {
+	if showBisectAttempts(bugDetails.BisectFixJob, bugDetails.BisectFixJobs) {
 		sections = append(sections, makeCollapsibleBugJobs(
 			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
-	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
+	if showBisectAttempts(bugDetails.BisectCauseJob, bugDetails.BisectCauseJobs) {
 		sections = append(sections, makeCollapsibleBugJobs(
 			"Cause bisection attempts", bugDetails.BisectCauseJobs))
 	}
@@ -1525,7 +1529,10 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
-	if bug.BisectCause > BisectPending {
+	// AI bisection results take priority over syz-ci ones, see Bug.AIBisectCause.
+	if bug.AIBisectCause.present() {
+		ret.BisectCauseJob = makeUIAIBisectJob(dashapi.JobBisectCause, &bug.AIBisectCause)
+	} else if bug.BisectCause > BisectPending {
 		ret.BisectCauseJob, err = causeBisections.uiBestBisection(ctx)
 		if err != nil {
 			return nil, err
@@ -1539,7 +1546,9 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
-	if bug.BisectFix > BisectPending {
+	if bug.AIBisectFix.present() {
+		ret.BisectFixJob = makeUIAIBisectJob(dashapi.JobBisectFix, &bug.AIBisectFix)
+	} else if bug.BisectFix > BisectPending {
 		ret.BisectFixJob, err = fixBisections.uiBestBisection(ctx)
 		if err != nil {
 			return nil, err
@@ -2258,8 +2267,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
 		ImpactScore:    report.TitlesToImpact(bug.Title, bug.AltTitles...),
-		BisectCause:    bug.BisectCause,
-		BisectFix:      bug.BisectFix,
+		BisectCause:    bug.AIBisectCause.status(bug.BisectCause),
+		BisectFix:      bug.AIBisectFix.status(bug.BisectFix),
 		NumCrashes:     bug.NumCrashes,
 		FirstTime:      bug.FirstTime,
 		LastTime:       bug.LastTime,
@@ -2680,6 +2689,41 @@ func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *C
 		ui.Crash = makeUICrash(ctx, crash, build)
 	}
 	return ui
+}
+
+// makeUIAIBisectJob presents an AI bisection result in the form the bug page shows bisections in.
+func makeUIAIBisectJob(typ dashapi.JobType, res *BugAIBisect) *uiJob {
+	info := &dashapi.JobInfo{
+		Type:       typ,
+		KernelRepo: res.KernelRepo,
+		LogLink:    fmt.Sprintf("/ai_job?id=%v", res.JobID),
+		// There is no syz-ci job behind the result, so there is no pending report either.
+		Reported: true,
+	}
+	for _, com := range res.Commits {
+		info.Commits = append(info.Commits, &dashapi.Commit{
+			Hash:   com.Hash,
+			Title:  com.Title,
+			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
+			Date:   com.Date,
+			Link:   vcs.CommitLink(res.KernelRepo, com.Hash),
+		})
+	}
+	if len(info.Commits) == 1 {
+		info.Commit = info.Commits[0]
+		info.Commits = nil
+	}
+	return &uiJob{
+		JobInfo:      info,
+		AIBisection:  true,
+		StillPresent: res.StillPresent,
+	}
+}
+
+// showBisectAttempts says if the syz-ci bisection jobs need to be listed in a separate section:
+// that is the case if there are several of them, or if the only one is not what is shown at the top.
+func showBisectAttempts(shown *uiJob, all []*uiJob) bool {
+	return len(all) > 1 || len(all) == 1 && (shown == nil || shown.AIBisection)
 }
 
 func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bool) string {

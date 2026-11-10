@@ -30,10 +30,12 @@ import (
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
 	pkgspanner "github.com/google/syzkaller/pkg/spanner"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
@@ -882,4 +884,97 @@ func (ctx *Ctx) SetAIConfig(ns string, aiCfg *AIConfig) {
 		}
 		return contextWithConfig(ctx, &newCfg)
 	}
+}
+
+const aiBisectAgent = "bisect-agent"
+
+// startAIBisect creates an AI bisection job for the bug and lets the agent pick it up.
+func (ctx *Ctx) startAIBisect(extID string, typ ai.WorkflowType) *dashapi.AIJobPollResp {
+	ctx.t.Helper()
+	workflow := dashapi.AIWorkflow{Type: typ, Name: string(typ)}
+	// A workflow needs to be registered by an agent before jobs can be created for it.
+	ctx.pollAIJob(ctx.t, aiBisectAgent, workflow)
+	jobID := ctx.createAIJob(extID, workflow.Name, "")
+	resp := ctx.pollAIJob(ctx.t, aiBisectAgent, workflow)
+	require.Equal(ctx.t, jobID, resp.ID)
+	return resp
+}
+
+// finishAIJob reports outputs of the workflow (one of the ai.*Outputs structs) for the job.
+func (ctx *Ctx) finishAIJob(jobID string, outputs any) {
+	ctx.t.Helper()
+	require.NoError(ctx.t, ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      jobID,
+		Results: aiJobResults(outputs),
+	}))
+}
+
+// aiJobResults converts outputs of a workflow to the results map the same way syz-agent does it
+// (see convertToMap in pkg/aflow): the map has all fields of the struct, including the zero ones.
+func aiJobResults(outputs any) map[string]any {
+	res := make(map[string]any)
+	val := reflect.ValueOf(outputs)
+	for _, field := range reflect.VisibleFields(val.Type()) {
+		if !field.Anonymous {
+			res[field.Name] = val.FieldByIndex(field.Index).Interface()
+		}
+	}
+	return res
+}
+
+// The commit found by the syz-ci cause bisection in reportBugWithCIBisect.
+const ciBisectCommitHash = "36e65cb4a0448942ec316b2deb56fd04eadbbd55"
+
+// reportBugWithCIBisect reports a bug with a reproducer and completes a syz-ci cause bisection for it.
+// Returns the build the bug was found on and the external ID of the bug.
+func (ctx *Ctx) reportBugWithCIBisect() (*dashapi.Build, string) {
+	ctx.t.Helper()
+	build := testBuild(1)
+	require.NoError(ctx.t, ctx.aiClient.UploadBuild(build))
+	crash := testCrash(build, 1)
+	crash.ReproSyz = []byte("getpid()\n")
+	_, err := ctx.aiClient.ReportCrash(crash)
+	require.NoError(ctx.t, err)
+	extID := ctx.aiClient.pollEmailExtID()
+
+	ctx.advanceTime(24 * time.Hour)
+	pollResp := ctx.globalClient.pollJobs(build.Manager)
+	require.Equal(ctx.t, dashapi.JobBisectCause, pollResp.Type)
+	require.NoError(ctx.t, ctx.globalClient.JobDone(&dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *testBuild(2),
+		Log:   []byte("ci bisect log"),
+		Commits: []dashapi.Commit{{
+			Hash:       ciBisectCommitHash,
+			Title:      "kernel: ci bisected commit",
+			Author:     "ci-author@kernel.org",
+			AuthorName: "CI Author",
+			Date:       time.Date(2000, 2, 1, 4, 5, 6, 0, time.UTC),
+		}},
+	}))
+	ctx.pollEmailBug() // consume the email about the syz-ci bisection
+	return build, extID
+}
+
+// runAIBisectCause completes an AI cause bisection job for the bug with the commits as the result
+// (no commits means that the job did not determine anything). Returns the link to the job page.
+func (ctx *Ctx) runAIBisectCause(extID string, commits ...ai.Commit) string {
+	ctx.t.Helper()
+	resp := ctx.startAIBisect(extID, ai.WorkflowBisectCause)
+	ctx.finishAIJob(resp.ID, ai.BisectCauseOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit:    resp.Args["KernelCommit"].(string),
+		Commits:         commits,
+		BisectReasoning: "Analysis.",
+	}})
+	return fmt.Sprintf("/ai_job?id=%v", resp.ID)
+}
+
+// checkBisectStatus checks the cause and fix bisection statuses that the main page of the namespace
+// shows for its only bug.
+func (ctx *Ctx) checkBisectStatus(ns, cause, fix string) {
+	ctx.t.Helper()
+	page, err := ctx.AuthGET(AccessAdmin, "/"+ns)
+	require.NoError(ctx.t, err)
+	assert.Regexp(ctx.t, `<td class="bisect_status">`+cause+`</td>\s*<td class="bisect_status">`+fix+`</td>`,
+		string(page))
 }

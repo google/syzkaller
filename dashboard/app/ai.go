@@ -1543,13 +1543,19 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 			rootCause = &rc
 		}
 	}
-	if len(labels) == 0 && rootCause == nil {
+	// What to do with the bisection result depends on the result stored on the bug,
+	// so that is decided in the transaction.
+	bisect, updateBisect := aiJobBisectUpdate(ctx, job)
+	if len(labels) == 0 && rootCause == nil && !updateBisect {
 		return nil
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
 		if rootCause != nil {
 			bug.AIRootCause = *rootCause
+		}
+		if updateBisect {
+			bug.updateAIBisect(job, bisect)
 		}
 		for _, label := range labels {
 			if bug.HasUserLabel(label.Label) {
@@ -1599,6 +1605,99 @@ func aiBugRootCause(job *aidb.Job) (BugAIRootCause, string, error) {
 		KernelCommit: commit,
 	}
 	return rootCause, res.RootCauseAnalysis, nil
+}
+
+// aiJobBisectUpdate returns what the finished job contributes to the AI bisection result of its bug.
+// For a bisection job it returns the result of the job and true; the result is nil if the job was marked
+// as incorrect. It returns false if there is nothing to apply: this is not a bisection job, or its result
+// can't be extracted (the error is logged). Whether the bug changes is decided by Bug.updateAIBisect.
+func aiJobBisectUpdate(ctx context.Context, job *aidb.Job) (*BugAIBisect, bool) {
+	if job.Type != ai.WorkflowBisectCause && job.Type != ai.WorkflowBisectFix {
+		return nil, false
+	}
+	if job.Correct.Valid && !job.Correct.Bool {
+		return nil, true
+	}
+	res, err := aiBisectResult(job)
+	if err != nil {
+		// As with the root cause, don't fail the whole update:
+		// the job is already finished, so failing the request would not help.
+		log.Errorf(ctx, "failed to extract AI bisection result from job %v: %v", job.ID, err)
+		return nil, false
+	}
+	return &res, true
+}
+
+// aiBisectResult extracts the result of a finished bisect-cause or bisect-fix job.
+func aiBisectResult(job *aidb.Job) (BugAIBisect, error) {
+	// Each workflow has its own output type, and unknown fields are rejected when parsing,
+	// so the results need to be parsed as the type of the job's workflow.
+	var outputs ai.BisectOutputs
+	stillPresent := false
+	switch job.Type {
+	case ai.WorkflowBisectCause:
+		res, err := castJobResults[ai.BisectCauseOutputs](job)
+		if err != nil {
+			return BugAIBisect{}, err
+		}
+		outputs = res.BisectOutputs
+	case ai.WorkflowBisectFix:
+		res, err := castJobResults[ai.BisectFixOutputs](job)
+		if err != nil {
+			return BugAIBisect{}, err
+		}
+		outputs, stillPresent = res.BisectOutputs, res.BugStillPresent
+	default:
+		return BugAIBisect{}, fmt.Errorf("%v is not a bisection job", job.Type)
+	}
+	args, _ := job.Args.Value.(map[string]any)
+	repo, _ := args["KernelRepo"].(string)
+	res := BugAIBisect{
+		JobID:        job.ID,
+		KernelRepo:   repo,
+		StillPresent: stillPresent,
+	}
+	for _, com := range outputs.Commits {
+		var cc []string
+		for _, r := range com.Recipients {
+			cc = append(cc, r.Email)
+		}
+		res.Commits = append(res.Commits, Commit{
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.AuthorEmail,
+			AuthorName: com.AuthorName,
+			CC:         strings.Join(email.MergeEmailLists(cc), "|"),
+			Date:       com.Date,
+		})
+	}
+	return res, nil
+}
+
+// updateAIBisect updates the AI bisection result of the bug when a bisection job is finished,
+// or when its correctness is changed. The res argument is the result of the job,
+// or nil if the job was marked as incorrect.
+//
+// The job that was finished or marked as correct last wins, except that a job that did not
+// determine anything does not replace a result of another job that did.
+// A job marked as incorrect only removes its own result (and the bug is left without an AI result,
+// even if it has other suitable jobs).
+//
+// This must be called in the transaction that updates the bug.
+func (bug *Bug) updateAIBisect(job *aidb.Job, res *BugAIBisect) {
+	cur := &bug.AIBisectCause
+	if job.Type == ai.WorkflowBisectFix {
+		cur = &bug.AIBisectFix
+	}
+	if res == nil {
+		if cur.JobID == job.ID {
+			*cur = BugAIBisect{}
+		}
+		return
+	}
+	if res.determined() || !cur.determined() || cur.JobID == job.ID {
+		*cur = *res
+	}
 }
 
 // loadAIRootCauseAnalysis returns the full AI root cause analysis for the bug (if any).
@@ -2351,6 +2450,8 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		workflows[ai.WorkflowRepro] = true
 		workflows[ai.WorkflowReproC] = true
+		workflows[ai.WorkflowBisectCause] = true
+		workflows[ai.WorkflowBisectFix] = true
 	} else {
 		// Automatic C reproducer generation heuristics:
 		// - Namespace must have AutoReproC enabled.
