@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -1866,6 +1867,14 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		got := workflowsForBug(c.ctx, b, true)
 		require.True(t, got[ai.WorkflowReproC])
 	})
+
+	t.Run("bisection is manual only", func(t *testing.T) {
+		b := base()
+		for _, typ := range []ai.WorkflowType{ai.WorkflowBisectCause, ai.WorkflowBisectFix} {
+			require.True(t, workflowsForBug(c.ctx, b, true)[typ])
+			require.False(t, workflowsForBug(c.ctx, b, false)[typ])
+		}
+	})
 }
 
 func TestAutoCreateReproCJob(t *testing.T) {
@@ -2291,4 +2300,447 @@ func TestAIRootCausePassedToBisect(t *testing.T) {
 	require.Equal(t, jobID2, resp2.ID)
 	assert.NotContains(t, resp2.Args, "RootCauseAnalysis")
 	assert.NotContains(t, resp2.Args, "RootCauseCommit")
+}
+
+func TestAIBisectCause(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+	c.transformContext = func(ctx context.Context) context.Context {
+		return contextWithConfig(ctx, replaceReporting(ctx, "ains", "ai-email-reporting",
+			func(r Reporting) Reporting {
+				cfg := *r.Config.(*EmailConfig)
+				cfg.MailMaintainers = true
+				cfg.DefaultMaintainers = []string{"default@maintainers.com"}
+				r.Config = &cfg
+				return r
+			}))
+	}
+
+	build, extID := c.reportBugWithCIBisect()
+	bug, _, _ := c.loadBug(extID)
+	bugID := bug.keyHash(c.ctx)
+	bugPageURL := fmt.Sprintf("/bug?extid=%v", extID)
+
+	// A single commit is a conclusive result. It overrides the syz-ci bisection on the bug list,
+	// on the bug page and in bug reports; the syz-ci bisection is still listed among the attempts.
+	const (
+		commitHash  = "9999999999999999999999999999999999999999"
+		commitTitle = "kernel: break everything"
+	)
+	botEmail := ownEmail(c.ctx)
+	jobLink := c.runAIBisectCause(extID, ai.Commit{
+		Hash:        commitHash,
+		Title:       commitTitle,
+		AuthorEmail: "ai-author@kernel.org",
+		AuthorName:  "AI Author",
+		Date:        time.Date(2000, 2, 2, 4, 5, 6, 0, time.UTC),
+		Recipients: []ai.Recipient{
+			{Email: "ai-reviewer@kernel.org"},
+			{Email: botEmail},
+		},
+	})
+	c.expectNoEmail() // AI bisection results are not reported separately
+	page, err := c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI cause bisection: introduced by</b>")
+	assert.Contains(t, string(page), commitHash)
+	assert.Contains(t, string(page), commitTitle)
+	assert.Contains(t, string(page), `<a href="`+jobLink+`">AI job</a>`)
+	assert.Contains(t, string(page), "Cause bisection attempts (1)")
+	c.checkBisectStatus(bug.Namespace, "done", "")
+
+	rep, err := c.aiClient.LoadBug(bugID)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+	assert.True(t, rep.BisectCause.AI)
+	assert.Equal(t, commitHash, rep.BisectCause.Commit.Hash)
+	assert.Equal(t, commitTitle, rep.BisectCause.Commit.Title)
+	assert.Equal(t, appURL(c.ctx)+jobLink, rep.BisectCause.LogLink)
+	// The author and CCs of the AI commit are CC'ed; those of the overridden syz-ci commit are not.
+	assert.Contains(t, rep.Maintainers, "ai-author@kernel.org")
+	assert.Contains(t, rep.Maintainers, "ai-reviewer@kernel.org")
+	assert.NotContains(t, rep.Maintainers, botEmail)
+	assert.NotContains(t, rep.Maintainers, "ci-author@kernel.org")
+
+	// The public JSON API also exports the AI cause commit rather than the overridden syz-ci one.
+	bugJSON, err := c.GET(bugPageURL + "&json=1")
+	require.NoError(t, err)
+	assert.Contains(t, string(bugJSON), commitHash)
+	assert.NotContains(t, string(bugJSON), ciBisectCommitHash)
+
+	// Reporting a C reproducer sends a bug report email containing the AI bisection.
+	_, err = c.aiClient.ReportCrash(testCrashWithRepro(build, 1))
+	require.NoError(t, err)
+	msg := c.pollEmailBug()
+	assert.Contains(t, msg.Body, "The issue was bisected by AI to:\n\ncommit "+commitHash)
+	assert.Contains(t, msg.Body, "AI reasoning:   "+appURL(c.ctx)+jobLink)
+	assert.Contains(t, msg.Body, "The cause commit was identified by AI and may be wrong.\n")
+	assert.Contains(t, msg.Body, fmt.Sprintf("\nFixes: %v (%q)\n", commitHash[:12], commitTitle))
+	assert.Contains(t, msg.To, "ai-author@kernel.org")
+	assert.Contains(t, msg.To, "ai-reviewer@kernel.org")
+	assert.NotContains(t, msg.To, botEmail)
+	assert.NotContains(t, msg.To, "ci-author@kernel.org")
+
+	// Marking the AI job as incorrect reverts the bug to the syz-ci bisection.
+	_, err = c.POSTForm(jobLink, url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
+	require.NoError(t, err)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.NotContains(t, string(page), "✨ AI cause bisection")
+	assert.Contains(t, string(page), "<b>Cause bisection: introduced by</b>")
+	c.checkBisectStatus(bug.Namespace, "done", "")
+	rep, err = c.aiClient.LoadBug(bugID)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+	assert.False(t, rep.BisectCause.AI)
+	assert.Equal(t, ciBisectCommitHash, rep.BisectCause.Commit.Hash)
+
+	// A job whose result can't be parsed (here: outputs of another workflow) still finishes successfully,
+	// but nothing is stored on the bug.
+	resp := c.startAIBisect(extID, ai.WorkflowBisectCause)
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BugStillPresent: true})
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.NotContains(t, string(page), "✨ AI cause bisection")
+	assert.NotContains(t, string(page), "✨ AI fix bisection")
+}
+
+func TestAIBisectCauseInconclusive(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	_, extID := c.reportBugWithCIBisect()
+	bug, _, _ := c.loadBug(extID)
+	bugID := bug.keyHash(c.ctx)
+	bugPageURL := fmt.Sprintf("/bug?extid=%v", extID)
+
+	// A job that did not determine anything is shown as inconclusive on the bug list and on the bug page
+	// (it overrides the syz-ci bisection there as well). Bug reports then have no bisection at all.
+	jobLink := c.runAIBisectCause(extID)
+	page, err := c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI cause bisection: inconclusive</b>")
+	assert.Contains(t, string(page), jobLink)
+	assert.Contains(t, string(page), "Cause bisection attempts (1)")
+	c.checkBisectStatus(bug.Namespace, "inconclusive", "")
+	rep, err := c.aiClient.LoadBug(bugID)
+	require.NoError(t, err)
+	assert.Nil(t, rep.BisectCause)
+
+	// Several candidate commits are all shown, the most relevant one first.
+	jobLink2 := c.runAIBisectCause(extID,
+		ai.Commit{
+			Hash:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			Title:       "kernel: first candidate",
+			AuthorEmail: "candidate@kernel.org",
+			Recipients:  []ai.Recipient{{Email: "candidate-cc@kernel.org"}},
+		},
+		ai.Commit{Hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Title: "kernel: second candidate"},
+	)
+	const candidates = "<b>✨ AI cause bisection: candidate commits (most relevant first)</b>"
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), candidates)
+	assert.Regexp(t, `(?s)kernel: first candidate.*kernel: second candidate`, string(page))
+	assert.Contains(t, string(page), jobLink2)
+	c.checkBisectStatus(bug.Namespace, "inconclusive", "")
+	rep, err = c.aiClient.LoadBug(bugID)
+	require.NoError(t, err)
+	require.NotNil(t, rep.BisectCause)
+	assert.True(t, rep.BisectCause.AI)
+	assert.Nil(t, rep.BisectCause.Commit)
+	require.Len(t, rep.BisectCause.Commits, 2)
+	assert.Equal(t, "kernel: first candidate", rep.BisectCause.Commits[0].Title)
+	assert.Equal(t, "kernel: second candidate", rep.BisectCause.Commits[1].Title)
+	assert.NotContains(t, rep.Maintainers, "candidate@kernel.org")
+	assert.NotContains(t, rep.Maintainers, "candidate-cc@kernel.org")
+	assert.NotContains(t, rep.Maintainers, "ci-author@kernel.org")
+
+	// A later job that did not determine anything does not replace that result.
+	c.runAIBisectCause(extID)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), candidates)
+	assert.Contains(t, string(page), jobLink2)
+}
+
+func TestAIBisectFix(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	build1.KernelRepo = "https://github.com/torvalds/linux"
+	require.NoError(t, c.aiClient.UploadBuild(build1))
+	crash := testCrashWithRepro(build1, 1)
+	crash.Report = []byte("BUG: bad access in fs/foo.c:123\n")
+	_, err := c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+	extID := c.aiClient.pollEmailExtID()
+	bug, _, _ := c.loadBug(extID)
+	bugPageURL := fmt.Sprintf("/bug?extid=%v", extID)
+
+	// The fix is searched for between the crash commit and the latest build of the manager.
+	build2 := testBuild(2)
+	build2.Manager = build1.Manager
+	require.NoError(t, c.aiClient.UploadBuild(build2))
+	resp := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	jobLink := fmt.Sprintf("/ai_job?id=%v", resp.ID)
+	assert.Equal(t, build1.KernelCommit, resp.Args["CrashCommit"])
+	assert.Equal(t, build2.KernelCommit, resp.Args["KernelCommit"])
+	// The crash report on the job page links to the sources of the crashed kernel, not of the newer one.
+	jobPage, err := c.AuthGET(AccessAdmin, jobLink)
+	require.NoError(t, err)
+	assert.Contains(t, string(jobPage), build1.KernelRepo+"/blob/"+build1.KernelCommit+"/fs/foo.c#L123")
+
+	const (
+		fixHash  = "8888888888888888888888888888888888888888"
+		fixTitle = "kernel: fix everything"
+	)
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build2.KernelCommit,
+		Commits: []ai.Commit{{
+			Hash:        fixHash,
+			Title:       fixTitle,
+			AuthorEmail: "fix-author@kernel.org",
+			AuthorName:  "Fix Author",
+			Date:        time.Date(2000, 2, 3, 4, 5, 6, 0, time.UTC),
+		}},
+		BisectReasoning: "Fixed by commit 888888888888.",
+	}})
+	page, err := c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI fix bisection: fixed by</b>")
+	assert.Contains(t, string(page), fixHash)
+	assert.Contains(t, string(page), fixTitle)
+	assert.Contains(t, string(page), jobLink)
+	c.checkBisectStatus(bug.Namespace, "", "done")
+
+	// A later job has verified that the bug is still present, this replaces the result.
+	resp2 := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	c.finishAIJob(resp2.ID, ai.BisectFixOutputs{
+		BisectOutputs: ai.BisectOutputs{
+			KernelCommit:    build2.KernelCommit,
+			BisectReasoning: "The bug is still present.",
+		},
+		BugStillPresent: true,
+	})
+	jobLink2 := fmt.Sprintf("/ai_job?id=%v", resp2.ID)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI fix bisection: the issue is still present on the analyzed commit</b>")
+	assert.Contains(t, string(page), jobLink2)
+	assert.NotContains(t, string(page), fixTitle)
+	c.checkBisectStatus(bug.Namespace, "", "")
+
+	// Marking the job as incorrect clears the AI fix bisection.
+	_, err = c.POSTForm(jobLink2, url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
+	require.NoError(t, err)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.NotContains(t, string(page), "✨ AI fix bisection")
+}
+
+func TestAIBisectResult(t *testing.T) {
+	commit := ai.Commit{
+		Hash:        "9999999999999999999999999999999999999999",
+		Title:       "kernel: break everything",
+		AuthorName:  "AI Author",
+		AuthorEmail: "ai-author@kernel.org",
+		Date:        time.Date(2000, 2, 2, 4, 5, 6, 0, time.UTC),
+		Recipients: []ai.Recipient{
+			{Email: "reviewer@kernel.org"},
+			{Email: "ai-author@kernel.org"},
+		},
+	}
+	stored := Commit{
+		Hash:       commit.Hash,
+		Title:      commit.Title,
+		Author:     commit.AuthorEmail,
+		AuthorName: commit.AuthorName,
+		CC:         "ai-author@kernel.org|reviewer@kernel.org",
+		Date:       commit.Date,
+	}
+	cause := func(commits ...ai.Commit) any {
+		return ai.BisectCauseOutputs{BisectOutputs: ai.BisectOutputs{Commits: commits}}
+	}
+	fix := func(stillPresent bool, commits ...ai.Commit) any {
+		return ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{Commits: commits}, BugStillPresent: stillPresent}
+	}
+	tests := []struct {
+		name    string
+		typ     ai.WorkflowType
+		outputs any
+		want    BugAIBisect
+		wantErr string
+	}{
+		{
+			name:    "cause: one commit",
+			typ:     ai.WorkflowBisectCause,
+			outputs: cause(commit),
+			want:    BugAIBisect{Commits: []Commit{stored}},
+		},
+		{
+			name:    "cause: several commits",
+			typ:     ai.WorkflowBisectCause,
+			outputs: cause(commit, commit),
+			want:    BugAIBisect{Commits: []Commit{stored, stored}},
+		},
+		{
+			name:    "cause: nothing determined",
+			typ:     ai.WorkflowBisectCause,
+			outputs: cause(),
+		},
+		{
+			name:    "fix: one commit",
+			typ:     ai.WorkflowBisectFix,
+			outputs: fix(false, commit),
+			want:    BugAIBisect{Commits: []Commit{stored}},
+		},
+		{
+			name:    "fix: bug is still present",
+			typ:     ai.WorkflowBisectFix,
+			outputs: fix(true),
+			want:    BugAIBisect{StillPresent: true},
+		},
+		{
+			name:    "fix: nothing determined",
+			typ:     ai.WorkflowBisectFix,
+			outputs: fix(false),
+		},
+		{
+			name:    "outputs of another workflow",
+			typ:     ai.WorkflowBisectCause,
+			outputs: fix(false, commit),
+			wantErr: "unknown field",
+		},
+		{
+			name:    "not a bisection job",
+			typ:     ai.WorkflowRepro,
+			outputs: cause(commit),
+			wantErr: "not a bisection job",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			job := &aidb.Job{
+				ID:      "job-id",
+				Type:    test.typ,
+				Args:    spanner.NullJSON{Valid: true, Value: map[string]any{"KernelRepo": "repo1"}},
+				Results: spanner.NullJSON{Valid: true, Value: aiJobResults(test.outputs)},
+			}
+			got, err := aiBisectResult(job)
+			if test.wantErr != "" {
+				require.ErrorContains(t, err, test.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			test.want.JobID = "job-id"
+			test.want.KernelRepo = "repo1"
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
+
+func TestUpdateAIBisect(t *testing.T) {
+	commits := []Commit{{Hash: "9999999999999999999999999999999999999999"}}
+	result := func(jobID string, commits []Commit) *BugAIBisect {
+		return &BugAIBisect{JobID: jobID, KernelRepo: "repo1", Commits: commits}
+	}
+	causeJob := func(id string) *aidb.Job {
+		return &aidb.Job{ID: id, Type: ai.WorkflowBisectCause}
+	}
+	bug := new(Bug)
+
+	// The first result is stored, even if the job did not determine anything.
+	bug.updateAIBisect(causeJob("job1"), result("job1", nil))
+	assert.Equal(t, *result("job1", nil), bug.AIBisectCause)
+
+	// The job that finished last wins.
+	bug.updateAIBisect(causeJob("job2"), result("job2", commits))
+	assert.Equal(t, *result("job2", commits), bug.AIBisectCause)
+
+	// But a job that did not determine anything does not replace a result of another job.
+	bug.updateAIBisect(causeJob("job3"), result("job3", nil))
+	assert.Equal(t, *result("job2", commits), bug.AIBisectCause)
+
+	// A job marked as incorrect removes only its own result.
+	bug.updateAIBisect(causeJob("job3"), nil)
+	assert.Equal(t, *result("job2", commits), bug.AIBisectCause)
+	bug.updateAIBisect(causeJob("job2"), nil)
+	assert.Equal(t, BugAIBisect{}, bug.AIBisectCause)
+
+	// Cause and fix bisection results are independent.
+	fixJob := &aidb.Job{ID: "job4", Type: ai.WorkflowBisectFix}
+	bug.updateAIBisect(fixJob, &BugAIBisect{JobID: "job4", KernelRepo: "repo1", StillPresent: true})
+	assert.Equal(t, BugAIBisect{}, bug.AIBisectCause)
+	assert.Equal(t, BugAIBisect{JobID: "job4", KernelRepo: "repo1", StillPresent: true}, bug.AIBisectFix)
+}
+
+func TestAIBisectMail(t *testing.T) {
+	commit := func(hash, title string) *dashapi.Commit {
+		return &dashapi.Commit{
+			Hash:       strings.Repeat(hash, 40),
+			Title:      title,
+			Author:     "ai-author@kernel.org",
+			AuthorName: "AI Author",
+			Date:       time.Date(2000, 2, 2, 4, 5, 6, 0, time.UTC),
+		}
+	}
+	render := func(bisect *dashapi.BisectResult) string {
+		bisect.AI = true
+		bisect.LogLink = "https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555"
+		buf := new(bytes.Buffer)
+		require.NoError(t, mailTemplates.ExecuteTemplate(buf, "mail_bug.txt", &dashapi.BugReport{
+			First:       true,
+			CreditEmail: "syzbot+abcdef@testapp.appspotmail.com",
+			Report:      []byte("the report"),
+			BisectCause: bisect,
+		}))
+		return buf.String()
+	}
+
+	body := render(&dashapi.BisectResult{Commit: commit("9", "kernel: break everything")})
+	assert.Contains(t, body, `
+The issue was bisected by AI to:
+
+commit 9999999999999999999999999999999999999999
+Author: AI Author <ai-author@kernel.org>
+Date:   Wed Feb 2 04:05:06 2000 +0000
+
+    kernel: break everything
+
+AI reasoning:   https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+abcdef@testapp.appspotmail.com
+
+The cause commit was identified by AI and may be wrong.
+If you agree with it, please also add:
+Fixes: 999999999999 ("kernel: break everything")
+
+the report
+`)
+	assert.Contains(t, body, "\nFor information about AI bisection see: https://goo.gl/tpsmEJ#ai-bisection\n")
+	assert.NotContains(t, body, "bisection log:")
+	assert.NotContains(t, body, "#bisection")
+
+	// No Fixes tag is suggested if AI could not choose between several commits.
+	body = render(&dashapi.BisectResult{Commits: []*dashapi.Commit{
+		commit("a", "kernel: first candidate"),
+		commit("b", "kernel: second candidate"),
+	}})
+	assert.Contains(t, body, `
+The issue was bisected by AI to candidate commits (most relevant first):
+
+aaaaaaaaaaaa kernel: first candidate
+bbbbbbbbbbbb kernel: second candidate
+
+AI reasoning:   https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+abcdef@testapp.appspotmail.com
+
+the report
+`)
+	assert.NotContains(t, body, "Fixes:")
 }

@@ -558,6 +558,9 @@ type BisectResult struct {
 	CrashReportLink string
 	Fix             bool
 	CrossTree       bool
+	// AI is set if the commits were identified by an AI bisection job rather than by testing.
+	// LogLink then points to the page of the AI job.
+	AI bool
 	// In case a missing backport was backported.
 	Backported *Commit
 }

@@ -496,7 +496,10 @@ func reproStr(level dashapi.ReproLevel) string {
 func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
 	var job *Job
-	if bug.BisectCause == BisectYes || bug.BisectCause == BisectInconclusive || bug.BisectCause == BisectHorizont {
+	// An AI bisection result takes priority over the syz-ci ones (see Bug.AIBisectCause),
+	// even if it has no commits to report: the syz-ci bisection is not reported then either.
+	if !bug.AIBisectCause.present() &&
+		(bug.BisectCause == BisectYes || bug.BisectCause == BisectInconclusive || bug.BisectCause == BisectHorizont) {
 		// If we have bisection results, report the crash/repro used for bisection.
 		causeBisect, err := queryBestBisection(ctx, bug, JobBisectCause)
 		if err != nil {
@@ -524,12 +527,37 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 	if err != nil {
 		return nil, err
 	}
-	if job != nil {
-		cause, emails := bisectFromJob(ctx, job)
-		rep.BisectCause = cause
-		rep.Maintainers = append(rep.Maintainers, emails...)
+	var emails []string
+	if res := &bug.AIBisectCause; len(res.Commits) != 0 {
+		rep.BisectCause, emails = aiBisectReport(ctx, res)
+	} else if job != nil {
+		rep.BisectCause, emails = bisectFromJob(ctx, job)
 	}
+	for _, addr := range bug.UNCC {
+		emails = email.RemoveFromEmailList(emails, addr)
+	}
+	rep.Maintainers = append(rep.Maintainers, emails...)
 	return rep, nil
+}
+
+// aiBisectReport converts an AI bisection result that has commits to the form used in bug reports,
+// and returns the email addresses to CC when the result identifies a single commit.
+func aiBisectReport(ctx context.Context, res *BugAIBisect) (*dashapi.BisectResult, []string) {
+	bisect := &dashapi.BisectResult{
+		LogLink: fmt.Sprintf("%v/ai_job?id=%v", appURL(ctx), res.JobID),
+		AI:      true,
+	}
+	for _, com := range res.Commits {
+		bisect.Commits = append(bisect.Commits, com.toDashapi())
+	}
+	var emails []string
+	if len(bisect.Commits) == 1 {
+		bisect.Commit = bisect.Commits[0]
+		bisect.Commits = nil
+		com := res.Commits[0]
+		emails = sanitizeCC(ctx, email.MergeEmailLists([]string{com.Author}, strings.Split(com.CC, "|")))
+	}
+	return bisect, emails
 }
 
 // crashBugReport fills in crash and build related fields into *dashapi.BugReport.

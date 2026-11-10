@@ -158,6 +158,54 @@ type Bug struct {
 	AIPendingWorkflows []string
 	// AIRootCause holds the AI-generated root cause analysis of the bug (if any).
 	AIRootCause BugAIRootCause
+	// AIBisectCause holds the AI cause bisection result of the bug (if any).
+	// If present, it takes priority over syz-ci cause bisections on bug lists, on the bug page
+	// and in bug reports, even if the AI job did not identify any commit.
+	AIBisectCause BugAIBisect
+	// AIBisectFix is the same as AIBisectCause, but for fix bisection.
+	AIBisectFix BugAIBisect
+}
+
+// BugAIBisect holds the result of an AI cause or fix bisection job of a bug.
+// A present result (see present) is one of the following:
+//   - the job identified one commit, or several candidate commits (Commits),
+//   - fix bisection verified that the bug is still present (StillPresent),
+//   - the job did not determine anything (neither of the above).
+type BugAIBisect struct {
+	// JobID is the AI job that produced the result, empty if there is no result.
+	JobID string `datastore:",noindex"`
+	// KernelRepo is the repository Commits belong to.
+	KernelRepo string `datastore:",noindex"`
+	// Commits are the candidate commits ordered by relevance, the primary one first.
+	Commits []Commit `datastore:",noindex"`
+	// StillPresent is set if fix bisection determined that the bug is not fixed yet.
+	StillPresent bool `datastore:",noindex"`
+}
+
+// present says if the bug has an AI bisection result at all.
+func (res *BugAIBisect) present() bool {
+	return res.JobID != ""
+}
+
+// determined says if the AI job came to some conclusion (as opposed to not determining anything).
+func (res *BugAIBisect) determined() bool {
+	return len(res.Commits) != 0 || res.StillPresent
+}
+
+// status returns the bisection status to show for the bug:
+// the status of the AI result if it is present, otherwise the syz-ci bisection status.
+func (res *BugAIBisect) status(syzCI BisectStatus) BisectStatus {
+	switch {
+	case !res.present():
+		return syzCI
+	case len(res.Commits) == 1:
+		return BisectYes
+	case res.StillPresent:
+		// As with syz-ci fix bisections, there is nothing to show if the bug is not fixed yet.
+		return BisectNot
+	default:
+		return BisectInconclusive
+	}
 }
 
 // BugAIRootCause holds the AI-generated root cause analysis of a bug.

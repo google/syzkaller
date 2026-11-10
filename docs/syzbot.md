@@ -298,6 +298,18 @@ on HEAD upon fix bisection, it will be retried in another 30 days.
 If you receive an email with fix bisection results you think is correct, please
 reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
 
+<div id="ai-bisection"/>
+
+### AI bisection
+
+`syzbot` also uses LLM-based agents to look for the commit that introduced or
+fixed a bug (`bisected by AI`). Unlike the regular bisection described above,
+AI bisection does not test kernel revisions: it analyzes the crash report, the
+kernel sources and the git history. The result is therefore a hypothesis rather
+than a test result, and it may be wrong. You can check the `AI reasoning` link
+in the report for the full analysis, and please add a suggested `Fixes:` tag
+only if you agree with it.
+
 <div id="syzkaller-reproducers"/>
 
 ## Running reproducers

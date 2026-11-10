@@ -23,19 +23,20 @@ Downloadable assets:
   fsck result: {{if $asset.FsIsClean}}OK{{else}}failed{{end}} (log: {{$asset.FsckLogURL}})
 {{- end}}
 {{end}}{{end}}
-{{if .BisectCause}}{{if .BisectCause.Commit}}The issue was bisected to:
+{{if .BisectCause}}{{if .BisectCause.Commit}}The issue was bisected{{if .BisectCause.AI}} by AI{{end}} to:
 
 commit {{.BisectCause.Commit.Hash}}
 Author: {{.BisectCause.Commit.AuthorName}} <{{.BisectCause.Commit.Author}}>
 Date:   {{formatKernelTime .BisectCause.Commit.Date}}
 
     {{.BisectCause.Commit.Title}}
-{{else if .BisectCause.Commits}}Bisection is inconclusive: the first bad commit could be any of:
+{{else if .BisectCause.Commits}}{{if .BisectCause.AI}}The issue was bisected by AI to candidate commits (most relevant first):
+{{- else}}Bisection is inconclusive: the first bad commit could be any of:{{end}}
 {{range $com := .BisectCause.Commits}}
 {{formatTagHash $com.Hash}} {{$com.Title}}{{end}}
 {{else}}Bisection is inconclusive: the issue happens on the oldest tested release.
 {{end}}
-bisection log:  {{.BisectCause.LogLink}}
+{{if .BisectCause.AI}}AI reasoning:   {{else}}bisection log:  {{end}}{{.BisectCause.LogLink}}
 {{if .BisectCause.CrashReportLink}}final oops:     {{.BisectCause.CrashReportLink}}
 {{end}}{{if .BisectCause.CrashLogLink}}console output: {{.BisectCause.CrashLogLink}}
 {{end}}
@@ -46,7 +47,10 @@ full analysis:  {{.Link}}
 
 {{end}}IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
-{{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
+{{if .BisectCause}}{{if .BisectCause.Commit}}{{if .BisectCause.AI}}
+The cause commit was identified by AI and may be wrong.
+If you agree with it, please also add:
+{{end}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
 {{end}}{{end}}
 {{- range $label, $text := .LabelMessages}}
 {{$text}}
@@ -62,7 +66,8 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.{{if .BisectCause}}
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection{{end}}
+{{if .BisectCause.AI}}For information about AI bisection see: https://goo.gl/tpsmEJ#ai-bisection
+{{- else}}For information about bisection process see: https://goo.gl/tpsmEJ#bisection{{end}}{{end}}
 
 If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
