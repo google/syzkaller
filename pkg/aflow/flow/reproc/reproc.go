@@ -570,8 +570,11 @@ you MUST include detailed logging and error checking in the generated C program:
     timeout to trigger before program exit.
 11. Never write to kernel log or console devices (e.g. '/dev/kmsg', '/dev/console',
     '/dev/tty*'), never trigger sysrq (e.g. '/proc/sysrq-trigger'), and never print
-    text that imitates a kernel crash, oops, BUG, WARNING, or sanitizer report.
-    Only trigger the genuine kernel bug through standard kernel interfaces.
+    the bug title or kernel crash markers (such as 'kernel BUG', 'BUG:', 'WARNING',
+    'KASAN', 'general protection fault', 'possible deadlock', 'INFO:', 'panic:') or
+    text that imitates a kernel crash, oops, or sanitizer report: printing them causes
+    false crash reports and aborts the run early. Only trigger the genuine kernel bug
+    through standard kernel interfaces.
 
 {{if not .CapabilitiesVerified}}
 === PHASE 1: CAPABILITY PROBING (GENERATION) ===

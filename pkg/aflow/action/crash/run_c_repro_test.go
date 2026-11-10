@@ -4,6 +4,7 @@
 package crash
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/report"
+	reportcrash "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -167,4 +169,128 @@ func TestRunCReproPassesTargetVMArch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "386", got.TargetArch)
 	require.Equal(t, "amd64", got.VMArch())
+}
+
+func TestRunCReproPrintedByProgram(t *testing.T) {
+	oldRunTest := runTest
+	defer func() { runTest = oldRunTest }()
+
+	output := []byte(`[   80.000000][ T1] loop0: detected capacity change
+[+] Starting reproducer for kernel BUG in foo...
+[   83.000000][ T2] kernel BUG at fs/super.c:733!
+`)
+	printed := &report.Report{
+		Title:    "kernel BUG in foo...",
+		Report:   []byte("[+] Starting reproducer for kernel BUG in foo..."),
+		Output:   output,
+		StartPos: bytes.Index(output, []byte("[+] Starting")),
+	}
+	kernel := &report.Report{
+		Title:    "kernel BUG in generic_shutdown_super",
+		Report:   []byte("kernel BUG at fs/super.c:733!"),
+		Output:   output,
+		StartPos: bytes.Index(output, []byte("[   83")),
+	}
+	assert.True(t, printedByProgram(printed, false))
+	assert.False(t, printedByProgram(kernel, false))
+	// Synthetic fallback reports (e.g. lost connection / timeout) have no Report and StartPos=0.
+	assert.False(t, printedByProgram(&report.Report{
+		Title:  "lost connection to test machine",
+		Output: output,
+	}, true))
+	// Unexpected kernel reboot ("Booting the kernel.") has no printk timestamp.
+	assert.False(t, printedByProgram(&report.Report{
+		Title:    "unexpected kernel reboot",
+		Type:     reportcrash.UnexpectedReboot,
+		Report:   []byte("Booting the kernel."),
+		Output:   []byte("Booting the kernel.\n[    0.000000] Linux version 6.8\n"),
+		StartPos: 0,
+	}, true))
+	// Serial prefix without newline before a real kernel timestamp is still a kernel crash.
+	for _, line := range []string{
+		"syzkaller login: [   59.806466][ T6792] BUG: using smp_processor_id()\n",
+		"** 93 printk messages dropped ** [  322.962139] BUG: KASAN: slab-out-of-bounds\n",
+	} {
+		assert.False(t, printedByProgram(&report.Report{
+			Report: []byte(line),
+			Output: []byte(line),
+		}, true))
+	}
+	// Non-6-digit "[1.0]" in program output is not a kernel timestamp.
+	assert.True(t, printedByProgram(&report.Report{
+		Title:  "kernel BUG in foo...",
+		Report: []byte("[1.0] kernel BUG in foo..."),
+		Output: []byte("[1.0] kernel BUG in foo...\n"),
+	}, true))
+	// Quiet console (no kernel lines) relies on CONFIG_PRINTK_TIME=y; without it, trust the report.
+	quietPrinted := &report.Report{
+		Title:  "kernel BUG in foo...",
+		Report: printed.Report,
+		Output: []byte("[+] Starting reproducer for kernel BUG in foo...\n"),
+	}
+	assert.False(t, printedByProgram(quietPrinted, false))
+	assert.True(t, printedByProgram(quietPrinted, true))
+
+	baseArgs := RunCReproArgs{
+		Target:          Target{TargetArch: "amd64"},
+		FormattedReproC: "int main() { return 0; }",
+		KernelConfig:    "CONFIG_PRINTK_TIME=y\n",
+	}
+
+	t.Run("printed-and-kernel-crash", func(t *testing.T) {
+		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+			opts RunTestOpts) (RunTestResult, error) {
+			return RunTestResult{
+				ConsoleOutput: string(output),
+				Report:        printed,
+				OtherReports:  []*report.Report{printed, kernel},
+			}, nil
+		}
+		res, err := RunCReproFunc(aflow.NewTestContext(t), baseArgs)
+		require.NoError(t, err)
+		assert.True(t, res.CandidateReproduced)
+		assert.Equal(t, "kernel BUG in generic_shutdown_super", res.CandidateBugTitle)
+		assert.Empty(t, res.OtherCrashReports)
+		assert.Contains(t, res.ConsoleOutput, `detected as "kernel BUG in foo..."`)
+		assert.NotContains(t, res.ConsoleOutput, `"kernel BUG in foo...", "kernel BUG in foo..."`)
+	})
+
+	t.Run("only-printed-marker", func(t *testing.T) {
+		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+			opts RunTestOpts) (RunTestResult, error) {
+			return RunTestResult{ConsoleOutput: string(quietPrinted.Output), Report: quietPrinted}, nil
+		}
+		res, err := RunCReproFunc(aflow.NewTestContext(t), baseArgs)
+		require.NoError(t, err)
+		assert.False(t, res.CandidateReproduced)
+		assert.Empty(t, res.CandidateBugTitle)
+		assert.Contains(t, res.ConsoleOutput, `detected as "kernel BUG in foo..."`)
+	})
+
+	straceCases := []struct {
+		name         string
+		straceReport *report.Report
+		wantStrace   string
+	}{
+		{name: "printed-marker", straceReport: quietPrinted, wantStrace: "strace output"},
+		{name: "kernel-crash", straceReport: kernel, wantStrace: ""},
+	}
+	for _, tc := range straceCases {
+		t.Run("strace-"+tc.name, func(t *testing.T) {
+			straceArgs := baseArgs
+			straceArgs.StraceBin = "/bin/strace"
+			straceArgs.NeedStrace = true
+			runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+				opts RunTestOpts) (RunTestResult, error) {
+				if args.NeedStrace {
+					return RunTestResult{ConsoleOutput: "strace output", Report: tc.straceReport}, nil
+				}
+				return RunTestResult{ConsoleOutput: string(quietPrinted.Output), Report: quietPrinted}, nil
+			}
+			res, err := RunCReproFunc(aflow.NewTestContext(t), straceArgs)
+			require.NoError(t, err)
+			assert.False(t, res.CandidateReproduced)
+			assert.Equal(t, tc.wantStrace, res.StraceOutput)
+		})
+	}
 }

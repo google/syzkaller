@@ -4,13 +4,20 @@
 package crash
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/report"
+	reportcrash "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -85,21 +92,30 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		ConsoleOutput: res1.ConsoleOutput,
 		TestError:     res1.BootError,
 	}
-	if res1.Report != nil {
-		result.CandidateReproduced = true
-		result.CandidateBugTitle = res1.Report.Title
-		result.CandidateCrashReport = string(res1.Report.Report)
+	hasPrintkTimestamps := strings.Contains(args.KernelConfig, "CONFIG_PRINTK_TIME=y")
+	kernelReps, printedTitles := splitReports(res1, hasPrintkTimestamps)
+	if len(printedTitles) > 0 {
+		result.ConsoleOutput += fmt.Sprintf("\nNOTE: the program printed a kernel crash marker"+
+			" (detected as %s), which is not a kernel crash and caused the VM monitor to stop"+
+			" the run early. Do not print bug titles or kernel crash markers in the program"+
+			" output.\n", strings.Join(printedTitles, ", "))
 	}
-	for _, rep := range res1.OtherReports {
-		result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
+	if len(kernelReps) > 0 {
+		result.CandidateReproduced = true
+		result.CandidateBugTitle = kernelReps[0].Title
+		result.CandidateCrashReport = string(kernelReps[0].Report)
+		for _, rep := range kernelReps[1:] {
+			result.OtherCrashReports = append(result.OtherCrashReports, string(rep.Report))
+		}
 	}
 
 	// Run 2: with strace (only if first run didn't crash and didn't have boot error).
 	// This pass is strictly for diagnostic strace logging. Do not overwrite Run 1's
 	// crash/boot status, as attaching strace -f (ptrace) can trigger unrelated KCSAN
 	// races (e.g. do_notify_parent_cldstop / wait_consider_task) or timeout slowdowns.
-	// If Run 2 itself crashes or hits a boot/test error, also discard its ConsoleOutput
-	// so we do not leak an unreported crash dump into StraceOutput.
+	// If Run 2 itself has a kernel crash or hits a boot/test error (markers printed by
+	// the program don't count as crashes), also discard its ConsoleOutput so we do not
+	// leak an unreported crash dump into StraceOutput.
 	if !result.CandidateReproduced && result.TestError == "" && args.NeedStrace && args.StraceBin != "" {
 		reproduceArgs.NeedStrace = true
 		// Strace output is only used for diagnostics, one run is enough.
@@ -113,12 +129,52 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		if err2 != nil {
 			return result, err2 // Return what we had from Run 1, plus the error.
 		}
-		if res2.Report == nil && res2.BootError == "" {
+		if kernelReps, _ := splitReports(res2, hasPrintkTimestamps); len(kernelReps) == 0 && res2.BootError == "" {
 			result.StraceOutput = res2.ConsoleOutput
 		}
 	}
 
 	return result, nil
+}
+
+// splitReports splits the crash reports of a test run into kernel crash reports
+// and unique quoted titles of reports triggered by the program printing crash markers.
+func splitReports(res RunTestResult, hasTimestamps bool) ([]*report.Report, []string) {
+	var kernel []*report.Report
+	var printed []string
+	for _, rep := range append([]*report.Report{res.Report}, res.OtherReports...) {
+		if rep == nil {
+			continue
+		}
+		if printedByProgram(rep, hasTimestamps) {
+			if title := strconv.Quote(rep.Title); !slices.Contains(printed, title) {
+				printed = append(printed, title)
+			}
+		} else {
+			kernel = append(kernel, rep)
+		}
+	}
+	return kernel, printed
+}
+
+// consoleTimestampRe matches Linux printk timestamps (e.g. "[   83.153006]").
+// Unanchored because serial output without a trailing newline (e.g. "syzkaller login: "
+// or "** N printk messages dropped ** ") can precede the timestamp on the same line.
+var consoleTimestampRe = regexp.MustCompile(`\[ *[0-9]+\.[0-9]{6}\]`)
+
+// printedByProgram returns whether the crash report was triggered by a line printed by the program
+// itself (e.g. the program printed the bug title), rather than by the kernel: kernel console lines
+// have timestamps, while the program output doesn't. The check is done only if kernel timestamps
+// are enabled or present in the console output. Note that the VM monitor still stops the run early
+// when it sees the printed marker, so the generator is also instructed not to print crash markers.
+func printedByProgram(rep *report.Report, hasTimestamps bool) bool {
+	if rep == nil || len(rep.Report) == 0 || rep.Type == reportcrash.UnexpectedReboot ||
+		rep.StartPos < 0 || rep.StartPos >= len(rep.Output) {
+		return false
+	}
+	start := bytes.LastIndexByte(rep.Output[:rep.StartPos], '\n') + 1
+	line, _, _ := bytes.Cut(rep.Output[start:], []byte{'\n'})
+	return !consoleTimestampRe.Match(line) && (hasTimestamps || consoleTimestampRe.Match(rep.Output))
 }
 
 // isInfraError checks whether the error was caused by the infrastructure rather than by the kernel.
