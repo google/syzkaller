@@ -4,6 +4,7 @@
 package crash
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"testing"
@@ -167,4 +168,114 @@ func TestRunCReproPassesTargetVMArch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "386", got.TargetArch)
 	require.Equal(t, "amd64", got.VMArch())
+}
+
+func TestRunCReproPrintedByProgram(t *testing.T) {
+	oldRunTest := runTest
+	defer func() { runTest = oldRunTest }()
+
+	output := []byte(`[   80.000000][ T1] loop0: detected capacity change
+[+] Starting reproducer for kernel BUG in foo...
+[   83.000000][ T2] kernel BUG at fs/super.c:733!
+`)
+	printed := &report.Report{
+		Title:    "kernel BUG in foo...",
+		Report:   []byte("[+] Starting reproducer for kernel BUG in foo..."),
+		Output:   output,
+		StartPos: bytes.Index(output, []byte("[+] Starting")),
+		EndPos:   len(output),
+	}
+	kernel := &report.Report{
+		Title:    "kernel BUG in generic_shutdown_super",
+		Report:   []byte("kernel BUG at fs/super.c:733!"),
+		Output:   output,
+		StartPos: bytes.Index(output, []byte("[   83")),
+		EndPos:   len(output),
+	}
+	assert.True(t, printedByProgram(printed))
+	assert.False(t, printedByProgram(kernel))
+	// Synthetic fallback reports (e.g. lost connection / timeout) have no Report and StartPos=0.
+	assert.False(t, printedByProgram(&report.Report{
+		Title:  "lost connection to test machine",
+		Output: output,
+	}))
+	// Mid-line "[1.0]" in program output is not a kernel timestamp.
+	midlineOutput := []byte(`[   80.000000][ T1] loop0: detected capacity change
+[+] step [1.0] kernel BUG in foo...
+`)
+	assert.True(t, printedByProgram(&report.Report{
+		Title:    "kernel BUG in foo...",
+		Report:   []byte("[+] step [1.0] kernel BUG in foo..."),
+		Output:   midlineOutput,
+		StartPos: bytes.Index(midlineOutput, []byte("[+] step")),
+	}))
+	// Without timestamps in the console output we can't tell, so the report is trusted.
+	assert.False(t, printedByProgram(&report.Report{
+		Report:   printed.Report,
+		Output:   []byte("[+] Starting reproducer for kernel BUG in foo...\n"),
+		StartPos: 0,
+	}))
+
+	t.Run("printed-and-kernel-crash", func(t *testing.T) {
+		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+			opts RunTestOpts) (RunTestResult, error) {
+			return RunTestResult{
+				ConsoleOutput: string(output),
+				Report:        printed,
+				OtherReports:  []*report.Report{printed, kernel},
+			}, nil
+		}
+		ctx := aflow.NewTestContext(t)
+		res, err := RunCReproFunc(ctx, RunCReproArgs{
+			Target:          Target{TargetArch: "amd64"},
+			FormattedReproC: "int main() { return 0; }",
+		})
+		require.NoError(t, err)
+		assert.True(t, res.CandidateReproduced)
+		assert.Equal(t, "kernel BUG in generic_shutdown_super", res.CandidateBugTitle)
+		assert.Empty(t, res.OtherCrashReports)
+		assert.Contains(t, res.ConsoleOutput, `detected as "kernel BUG in foo..."`)
+		assert.NotContains(t, res.ConsoleOutput, `"kernel BUG in foo...", "kernel BUG in foo..."`)
+	})
+
+	t.Run("only-printed-marker", func(t *testing.T) {
+		runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+			opts RunTestOpts) (RunTestResult, error) {
+			return RunTestResult{ConsoleOutput: string(output), Report: printed}, nil
+		}
+		ctx := aflow.NewTestContext(t)
+		res, err := RunCReproFunc(ctx, RunCReproArgs{
+			Target:          Target{TargetArch: "amd64"},
+			FormattedReproC: "int main() { return 0; }",
+		})
+		require.NoError(t, err)
+		assert.False(t, res.CandidateReproduced)
+		assert.Empty(t, res.CandidateBugTitle)
+	})
+
+	t.Run("strace-with-printed-marker", func(t *testing.T) {
+		for _, straceReport := range []*report.Report{printed, kernel} {
+			runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+				opts RunTestOpts) (RunTestResult, error) {
+				if args.NeedStrace {
+					return RunTestResult{ConsoleOutput: "strace output", Report: straceReport}, nil
+				}
+				return RunTestResult{ConsoleOutput: string(output), Report: printed}, nil
+			}
+			ctx := aflow.NewTestContext(t)
+			res, err := RunCReproFunc(ctx, RunCReproArgs{
+				Target:          Target{TargetArch: "amd64"},
+				FormattedReproC: "int main() { return 0; }",
+				StraceBin:       "/bin/strace",
+				NeedStrace:      true,
+			})
+			require.NoError(t, err)
+			assert.False(t, res.CandidateReproduced)
+			if straceReport == printed {
+				assert.Equal(t, "strace output", res.StraceOutput)
+			} else {
+				assert.Empty(t, res.StraceOutput)
+			}
+		}
+	})
 }
