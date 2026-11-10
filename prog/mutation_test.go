@@ -555,6 +555,72 @@ func buildTestContext(test [2]string, target *Target) (rs rand.Source, ct *Choic
 	return
 }
 
+func TestInsertCallMutatesProducer(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	p, err := target.Deserialize([]byte("r0 = mutate5(&(0x7f0000000000)='./file0\\x00', 0x3)\n"), Strict)
+	require.NoError(t, err)
+	enabled := map[*Syscall]bool{
+		target.SyscallMap["mutate5"]: true,
+		target.SyscallMap["mutate6"]: true,
+	}
+	ct := target.BuildChoiceTable(nil, enabled)
+	opts := MutateOpts{
+		ExpectedIterations: 1,
+		InsertWeight:       100,
+	}
+	focusOpts := opts
+	focusOpts.FocusProducer = true
+
+	// producerMutated returns whether p1 is the result of inserting mutate6 after mutate5
+	// with the flags of mutate5 co-mutated.
+	producerMutated := func(p1 *Prog) bool {
+		if len(p1.Calls) != 2 || p1.Calls[0].Meta.Name != "mutate5" || p1.Calls[1].Meta.Name != "mutate6" {
+			return false
+		}
+		filename := p1.Calls[0].Args[0].(*PointerArg).Res.(*DataArg).Data()
+		assert.Equal(t, []byte("./file0\x00"), filename, "configOnly mutation must not mutate the filename")
+		return p1.Calls[0].Args[1].(*ConstArg).Val != 0x3
+	}
+
+	coMutated, focusMutated := 0, 0
+	for i := range 400 {
+		p1 := p.Clone()
+		p1.MutateWithOpts(rand.NewSource(int64(i)), 4, ct, nil, nil, opts)
+		if producerMutated(p1) {
+			coMutated++
+		}
+		p2 := p.Clone()
+		p2.MutateWithOpts(rand.NewSource(int64(i)), 4, ct, nil, nil, focusOpts)
+		if producerMutated(p2) {
+			focusMutated++
+		}
+	}
+	require.Positive(t, coMutated, "expected insertCall to co-mutate producer call")
+	assert.Greater(t, focusMutated, coMutated, "FocusProducer should co-mutate more frequently")
+
+	// When inserting reaches ncalls (ncalls == 2), mutateResourceProducer must not run.
+	rs := rand.NewSource(0)
+	for range 100 {
+		p1 := p.Clone()
+		p1.MutateWithOpts(rs, 2, ct, nil, nil, opts)
+		require.False(t, producerMutated(p1), "must not co-mutate producer when len(p.Calls) == ncalls")
+	}
+}
+
+func TestIsConfigArg(t *testing.T) {
+	target := initTargetTest(t, "linux", "amd64")
+	p, err := target.Deserialize([]byte(`pipe2(&(0x7f0000000000)={<r0=>0x0, <r1=>0x0}, 0x80000)
+r2 = openat(0xffffffffffffff9c, &(0x7f0000000100)='./file0\x00', 0x42, 0x0)
+`), Strict)
+	require.NoError(t, err)
+	pipe, open := p.Calls[0], p.Calls[1]
+	assert.False(t, isConfigArg(pipe.Args[0]), "pointer to produced fds")
+	assert.True(t, isConfigArg(pipe.Args[1]), "flags")
+	assert.False(t, isConfigArg(open.Args[0]), "fd")
+	assert.False(t, isConfigArg(open.Args[1].(*PointerArg).Res), "file name")
+	assert.True(t, isConfigArg(open.Args[2]), "flags")
+}
+
 func BenchmarkStoreLoadInt(b *testing.B) {
 	// To get unaligned data on heap (compiler manages to align it on stack).
 	data := make([]byte, 9)

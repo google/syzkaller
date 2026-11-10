@@ -10,6 +10,9 @@ import (
 	"math/rand"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNotEscaping(t *testing.T) {
@@ -248,4 +251,89 @@ func TestNoGenerate(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Arrays of unions must combine distinct options rather than repeat the same one:
+// with 4 options, independent uniform choice would give 75% distinct adjacent pairs.
+func TestGenerateUnionArray(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	r := newRand(target, rand.NewSource(0))
+	s := newState(target, target.DefaultChoiceTable(), nil)
+	arrType := target.SyscallMap["test$union_array"].Args[0].Type.(*PtrType).Elem.(*ArrayType)
+	pairs, distinct := 0, 0
+	for range 1000 {
+		arg, _ := arrType.generate(r, s, DirIn)
+		elems := arg.(*GroupArg).Inner
+		for i := range len(elems) - 1 {
+			pairs++
+			if elems[i].(*UnionArg).Index != elems[i+1].(*UnionArg).Index {
+				distinct++
+			}
+		}
+	}
+	assert.Greater(t, float64(distinct)/float64(pairs), 0.85)
+}
+
+// Single-element arrays of unions must be extended to several elements, but only up to
+// the maxUnionArrayExtendDepth nesting level, so that nested arrays don't blow up the program.
+func TestGenerateUnionArrayDepth(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	r := newRand(target, rand.NewSource(0))
+	s := newState(target, target.DefaultChoiceTable(), nil)
+	arrType := target.SyscallMap["test$union_array"].Args[0].Type.(*PtrType).Elem.(*ArrayType)
+	// singleShare returns the share of single-element arrays generated at the given nesting depth.
+	singleShare := func(depth int) float64 {
+		const iters = 2000
+		r.unionArrayDepth = depth
+		single := 0
+		for range iters {
+			arg, _ := arrType.generate(r, s, DirIn)
+			if len(arg.(*GroupArg).Inner) == 1 {
+				single++
+			}
+		}
+		return float64(single) / iters
+	}
+	// Single-element arrays are extended in 3/4 (generateUnionArray) * 1/2 of the cases.
+	assert.Less(t, singleShare(0), 0.75*singleShare(3))
+	assert.Less(t, singleShare(maxUnionArrayExtendDepth), 0.75*singleShare(3))
+}
+
+// optional[T] that wraps a resource must mostly be set when a compatible resource already
+// exists in the program, and mostly be left empty otherwise (to avoid generating resource
+// producers for optional fields). Other unions must not be affected.
+func TestGenerateOptionalResource(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	r := newRand(target, rand.NewSource(0))
+	fields := target.SyscallMap["test$optional_union"].Args[0].Type.(*PtrType).Elem.(*StructType).Fields
+	optRes := fields[0].Type.(*UnionType)       // optional[subtype_of_common]
+	optNestedRes := fields[1].Type.(*UnionType) // optional[union_gen_res], union_gen_res has a resource option
+	plainUnion := fields[2].Type.(*UnionType)   // union_gen_res itself
+	// stateAfter returns the generation state after the given program.
+	stateAfter := func(prog string) *state {
+		p, err := target.Deserialize([]byte(prog), Strict)
+		require.NoError(t, err)
+		return analyze(target.DefaultChoiceTable(), nil, p, nil)
+	}
+	// valShare returns the share of chooseUnionIndex() calls that chose the first ("val") option.
+	valShare := func(s *state, u *UnionType) float64 {
+		const iters = 1000
+		val := 0
+		for range iters {
+			if r.chooseUnionIndex(s, u, DirIn) == 0 {
+				val++
+			}
+		}
+		return float64(val) / iters
+	}
+	noResources := newState(target, target.DefaultChoiceTable(), nil)
+	unrelatedResource := stateAfter("test$r104_producer(&(0x7f0000000000)=<r0=>0x0)\n")
+	compatibleResource := stateAfter("r0 = test$produce_subtype_of_common()\n")
+
+	assert.InDelta(t, 0.25, valShare(noResources, optRes), 0.07)
+	assert.InDelta(t, 0.25, valShare(noResources, optNestedRes), 0.07)
+	assert.InDelta(t, 0.25, valShare(unrelatedResource, optRes), 0.07)
+	assert.InDelta(t, 0.80, valShare(compatibleResource, optRes), 0.07)
+	assert.InDelta(t, 0.80, valShare(compatibleResource, optNestedRes), 0.07)
+	assert.InDelta(t, 0.50, valShare(compatibleResource, plainUnion), 0.07)
 }

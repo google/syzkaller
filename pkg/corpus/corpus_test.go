@@ -111,16 +111,22 @@ func generateRangedInput(target *prog.Target, rs rand.Source, sigFrom, sigTo int
 	}
 	ct := target.BuildChoiceTable(nil, enabled)
 	p := target.Generate(rs, 5, ct)
-	var raw []uint64
-	for i := sigFrom; i <= sigTo; i++ {
-		raw = append(raw, uint64(i))
-	}
+	raw := makeRange(sigFrom, sigTo)
 	return NewInput{
 		Prog:   p,
 		Call:   int(rs.Int63() % int64(len(p.Calls))),
 		Signal: signal.FromRaw(raw, 0),
 		Cover:  raw,
 	}
+}
+
+// makeRange returns [from, from+1, ..., to].
+func makeRange(from, to int) []uint64 {
+	var ret []uint64
+	for i := from; i <= to; i++ {
+		ret = append(ret, uint64(i))
+	}
+	return ret
 }
 
 func getTarget(t *testing.T, os, arch string) *prog.Target {

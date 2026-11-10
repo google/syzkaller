@@ -1021,3 +1021,52 @@ test_recur_struct {
 }
 
 test$recur_ptr(a0 ptr[in, test_recur_struct])
+
+# Union generation tests.
+
+# 4 nesting levels of arrays of unions (the top one is union_gen_l0).
+union_gen_l3 [
+	a	int8
+	b	int16
+	c	int32
+	d	int64
+] [varlen]
+
+union_gen_l2 [
+	child	array[union_gen_l3]
+	a	int8
+	b	int16
+	c	int32
+	d	int64
+] [varlen]
+
+union_gen_l1 [
+	child	array[union_gen_l2]
+	a	int8
+	b	int16
+	c	int32
+	d	int64
+] [varlen]
+
+union_gen_l0 [
+	child	array[union_gen_l1]
+	a	int8
+	b	int16
+	c	int32
+	d	int64
+] [varlen]
+
+test$union_array(a ptr[in, array[union_gen_l0]])
+
+union_gen_res [
+	res	subtype_of_common
+	other	int32
+]
+
+test_optional_union {
+	val	optional[subtype_of_common]
+	nested	optional[union_gen_res]
+	plain	union_gen_res
+} [packed]
+
+test$optional_union(a ptr[in, test_optional_union])

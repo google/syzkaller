@@ -6,6 +6,7 @@ package fuzzer
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math/rand"
 	"strings"
 	"sync"
@@ -66,18 +67,25 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	if p == nil {
 		return nil
 	}
-	newP := p.Clone()
-	newP.Mutate(rnd,
-		prog.RecommendedCalls,
-		fuzzer.ChoiceTable(),
-		fuzzer.Config.NoMutateCalls,
-		fuzzer.Config.Corpus.Programs(),
-	)
 	return &queue.Request{
-		Prog:     newP,
+		Prog:     fuzzer.mutateProg(p, rnd),
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:     fuzzer.statExecFuzz,
 	}
+}
+
+func (fuzzer *Fuzzer) mutateProg(p *prog.Prog, rnd *rand.Rand) *prog.Prog {
+	opts := prog.DefaultMutateOpts
+	opts.FocusProducer = fuzzer.Config.PatchTest
+	newP := p.Clone()
+	newP.MutateWithOpts(rnd,
+		prog.RecommendedCalls,
+		fuzzer.ChoiceTable(),
+		fuzzer.Config.NoMutateCalls,
+		fuzzer.spliceCorpus(rnd),
+		opts,
+	)
+	return newP
 }
 
 // triageJob are programs for which we noticed potential new coverage during
@@ -92,6 +100,8 @@ type triageJob struct {
 	queue    queue.Executor
 	// Set of calls that gave potential new coverage.
 	calls map[int]*triageCall
+	// Whether a smash job was started for p (calls are handled concurrently).
+	smashed atomic.Bool
 
 	info *JobInfo
 }
@@ -174,7 +184,8 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 	}
 
 	p := job.p
-	if job.flags&ProgMinimized == 0 {
+	tier := job.fuzzer.tierForCall(info)
+	if job.flags&ProgMinimized == 0 && tier.inFocus {
 		p, call = job.minimize(call, info)
 		if p == nil {
 			return
@@ -184,21 +195,27 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 	if !job.fuzzer.Config.NewInputFilter(callName) {
 		return
 	}
-	if job.flags&ProgSmashed == 0 {
-		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
-			exec: job.fuzzer.smashQueue,
-			p:    p.Clone(),
-			info: &JobInfo{
-				Name:  p.String(),
-				Type:  JobSmash,
-				Calls: []string{p.CallName(call)},
-			},
-		})
-		if job.fuzzer.Config.Comparisons && call >= 0 {
-			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
-				exec: job.fuzzer.smashQueue,
+	if tier.shouldSmash(job.flags) {
+		// If the program was not minimized, all calls share the same program,
+		// and it's enough to smash it once. Hints and fault injection are per-call.
+		if p != job.p || job.smashed.CompareAndSwap(false, true) {
+			job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
+				exec: tier.smashQueue,
 				p:    p.Clone(),
-				call: call,
+				info: &JobInfo{
+					Name:  p.String(),
+					Type:  JobSmash,
+					Calls: []string{p.CallName(call)},
+				},
+			})
+		}
+		if job.fuzzer.Config.Comparisons && call >= 0 && tier.shouldStartHints() {
+			tier.hintsJobs.Add(1)
+			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
+				exec:    tier.hintsQueue,
+				p:       p.Clone(),
+				call:    call,
+				running: &tier.hintsJobs,
 				info: &JobInfo{
 					Name:  p.String(),
 					Type:  JobHints,
@@ -208,7 +225,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		}
 		if job.fuzzer.Config.FaultInjection && call >= 0 {
 			job.fuzzer.startJob(job.fuzzer.statJobsFaultInjection, &faultInjectionJob{
-				exec: job.fuzzer.smashQueue,
+				exec: tier.smashQueue,
 				p:    p.Clone(),
 				call: call,
 			})
@@ -363,6 +380,7 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			return false
 		}
 		var mergedSignal signal.Signal
+		var prevFailure *callFailure
 		for range minimizeAttempts {
 			result := job.execute(&queue.Request{
 				Prog:            p1,
@@ -374,6 +392,13 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 				stop = true
 				return false
 			}
+			// If the call fails the same way twice without giving any of the new signal,
+			// the failure is most likely deterministic, and further attempts are pointless.
+			failure := minimizeFailure(result.Info, call1, info.newStableSignal)
+			if failure != nil && failure.same(prevFailure) {
+				break
+			}
+			prevFailure = failure
 			if !reexecutionSuccess(result.Info, info.errno, call1) {
 				// The call was not executed or failed.
 				continue
@@ -399,11 +424,44 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 	return p, call
 }
 
+// callFailure describes how a call failed during minimization.
+type callFailure struct {
+	errno  int32
+	signal signal.Signal
+}
+
+// minimizeFailure returns the failure of the call if it failed and did not give any of newSignal,
+// or nil otherwise.
+func minimizeFailure(info *flatrpc.ProgInfo, call int, newSignal signal.Signal) *callFailure {
+	if info == nil || call < 0 || call >= len(info.Calls) {
+		return nil
+	}
+	ci := info.Calls[call]
+	if ci.Error == 0 || len(ci.Signal) == 0 {
+		return nil
+	}
+	failure := &callFailure{
+		errno:  ci.Error,
+		signal: signal.FromRaw(ci.Signal, 0),
+	}
+	if newSignal.IntersectsWith(failure.signal) {
+		return nil
+	}
+	return failure
+}
+
+func (f *callFailure) same(other *callFailure) bool {
+	return other != nil && f.errno == other.errno && maps.Equal(f.signal, other.signal)
+}
+
 func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
 	if info == nil || len(info.Calls) == 0 {
 		return false
 	}
 	if call != -1 {
+		if len(info.Calls) <= call {
+			return false
+		}
 		// Don't minimize calls from successful to unsuccessful.
 		// Successful calls are much more valuable.
 		if oldErrno == 0 && info.Calls[call].Error != 0 {
@@ -458,11 +516,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 	const iters = 25
 	rnd := fuzzer.rand()
 	for range iters {
-		p := job.p.Clone()
-		p.Mutate(rnd, prog.RecommendedCalls,
-			fuzzer.ChoiceTable(),
-			fuzzer.Config.NoMutateCalls,
-			fuzzer.Config.Corpus.Programs())
+		p := fuzzer.mutateProg(job.p, rnd)
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
@@ -529,20 +583,22 @@ func (job *faultInjectionJob) run(fuzzer *Fuzzer) {
 }
 
 type hintsJob struct {
-	exec queue.Executor
-	p    *prog.Prog
-	call int
-	info *JobInfo
+	exec    queue.Executor
+	p       *prog.Prog
+	call    int
+	running *atomic.Int64 // number of running hints jobs in the tier
+	info    *JobInfo
 }
 
 func (job *hintsJob) run(fuzzer *Fuzzer) {
+	defer job.running.Add(-1)
 	// First execute the original program several times to get comparisons from KCOV.
 	// Additional executions lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
 	job.info.Logf("\n%s", p.Serialize())
 
 	var comps prog.CompMap
-	for i := range 3 {
+	for range 3 {
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),
@@ -552,14 +608,17 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			return
 		}
 		job.info.Execs.Add(1)
-		if result.Info == nil || len(result.Info.Calls[job.call].Comps) == 0 {
+		if result.Info == nil || len(result.Info.Calls) <= job.call ||
+			len(result.Info.Calls[job.call].Comps) == 0 {
 			continue
 		}
 		got := make(prog.CompMap)
 		for _, cmp := range result.Info.Calls[job.call].Comps {
 			got.Add(cmp.Pc, cmp.Op1, cmp.Op2, cmp.IsConst)
 		}
-		if i == 0 {
+		// Runs without comparisons are skipped above, so the first run that has
+		// them (not necessarily the first run) defines the initial set.
+		if comps == nil {
 			comps = got
 		} else {
 			comps.InplaceIntersect(got)
