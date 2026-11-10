@@ -26,15 +26,23 @@ import (
 // reproducers and information about managers.
 // It is persisted to and can be restored from a directory.
 type State struct {
-	corpusSeq   uint64
-	reproSeq    uint64
-	dir         string
-	Corpus      *db.DB
-	Repros      *db.DB
-	Managers    map[string]*Manager
-	callIDs     map[string]uint32
-	corpusCalls map[string][]uint32
-	reproCalls  map[string][]uint32
+	corpusSeq  uint64
+	reproSeq   uint64
+	dir        string
+	Corpus     *db.DB
+	Repros     *db.DB
+	Managers   map[string]*Manager
+	callIDs    map[string]uint32
+	corpusMeta map[string]corpusMeta
+	reproCalls map[string][]uint32
+}
+
+type corpusMeta struct {
+	// key holds the canonical signature string from st.Corpus so per-manager Corpus
+	// maps can share the same underlying string bytes instead of duplicating them.
+	key   string
+	calls []uint32
+	refs  int
 }
 
 // Manager represents one syz-manager instance.
@@ -70,9 +78,17 @@ func Make(dir string) (*State, error) {
 
 	osutil.MkdirAll(st.dir)
 	var err error
-	st.Corpus, st.corpusSeq, st.corpusCalls, err = st.loadProgsDB(filepath.Join(st.dir, "corpus.db"), "corpus")
+	var corpusCalls map[string][]uint32
+	st.Corpus, st.corpusSeq, corpusCalls, err = st.loadProgsDB(filepath.Join(st.dir, "corpus.db"), "corpus")
 	if err != nil {
 		return nil, err
+	}
+	st.corpusMeta = make(map[string]corpusMeta, len(corpusCalls))
+	for key, calls := range corpusCalls {
+		st.corpusMeta[key] = corpusMeta{
+			key:   key,
+			calls: calls,
+		}
 	}
 	st.Repros, st.reproSeq, st.reproCalls, err = st.loadProgsDB(filepath.Join(st.dir, "repro.db"), "repro")
 	if err != nil {
@@ -94,12 +110,12 @@ func Make(dir string) (*State, error) {
 			return nil, err
 		}
 	}
-	if err := st.PurgeOldManagers(); err != nil {
-		return nil, err
-	}
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
 	log.Logf(0, "done, %v programs", len(st.Corpus.Records))
+	if err := st.PurgeOldManagers(); err != nil {
+		return nil, err
+	}
 	return st, nil
 }
 
@@ -211,7 +227,19 @@ func (st *State) PurgeOldManagers() error {
 		timeDay     = 24 * time.Hour
 		purgePeriod = 30 * timeDay
 	)
+	corpus := len(st.Corpus.Records)
 	purgedSomething := false
+	deletedFromHub := false
+	defer func() {
+		if deletedFromHub {
+			if err := st.Corpus.Flush(); err != nil {
+				log.Logf(0, "failed to flush corpus database: %v", err)
+			}
+		}
+		if purgedSomething {
+			log.Logf(0, "reduced corpus from %v to %v programs", corpus, len(st.Corpus.Records))
+		}
+	}()
 	for _, mgr := range st.Managers {
 		info, err := os.Stat(mgr.corpusSeqFile)
 		if err != nil {
@@ -228,24 +256,33 @@ func (st *State) PurgeOldManagers() error {
 		}
 		delete(st.Managers, mgr.name)
 		purgedSomething = true
+		for sig := range mgr.Corpus.Records {
+			if st.releaseCorpusKey(sig) {
+				deletedFromHub = true
+			}
+		}
 	}
-	if !purgedSomething {
-		return nil
-	}
-	corpus := len(st.Corpus.Records)
-	st.purgeCorpus()
-	log.Logf(0, "reduced corpus from %v to %v programs", corpus, len(st.Corpus.Records))
 	return nil
 }
 
 func (st *State) Connect(name, http, domain string, fresh bool, calls []string, corpus [][]byte) error {
 	mgr := st.Managers[name]
+	var oldRecords map[string]db.Record
 	if mgr == nil {
 		var err error
 		mgr, err = st.createManager(name)
 		if err != nil {
 			return err
 		}
+	} else {
+		oldRecords = mgr.Corpus.Records
+		os.Remove(mgr.corpusFile)
+		corpusDB, err := db.Open(mgr.corpusFile, true)
+		if err != nil {
+			log.Logf(0, "failed to open corpus database: %v", err)
+			return err
+		}
+		mgr.Corpus = corpusDB
 	}
 	mgr.HTTP = http
 	mgr.Connected = time.Now()
@@ -266,15 +303,21 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 		mgr.calls[st.callIDs[c]] = true
 	}
 
-	os.Remove(mgr.corpusFile)
-	var err error
-	mgr.Corpus, err = db.Open(mgr.corpusFile, true)
-	if err != nil {
-		log.Logf(0, "failed to open corpus database: %v", err)
-		return err
+	if len(corpus) != 0 {
+		st.corpusSeq++
+		for _, input := range corpus {
+			st.addInput(mgr, input)
+		}
 	}
-	st.addInputs(mgr, corpus)
-	st.purgeCorpus()
+	for sig := range oldRecords {
+		st.releaseCorpusKey(sig)
+	}
+	if err := mgr.Corpus.Flush(); err != nil {
+		log.Logf(0, "failed to flush corpus database: %v", err)
+	}
+	if err := st.Corpus.Flush(); err != nil {
+		log.Logf(0, "failed to flush corpus database: %v", err)
+	}
 	return nil
 }
 
@@ -284,13 +327,24 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 		return "", nil, 0, fmt.Errorf("unconnected manager %v", name)
 	}
 	if len(del) != 0 {
+		deletedFromHub := false
 		for _, sig := range del {
+			if _, ok := mgr.Corpus.Records[sig]; !ok {
+				continue
+			}
 			mgr.Corpus.Delete(sig)
+			if st.releaseCorpusKey(sig) {
+				deletedFromHub = true
+			}
 		}
 		if err := mgr.Corpus.Flush(); err != nil {
 			log.Logf(0, "failed to flush corpus database: %v", err)
 		}
-		st.purgeCorpus()
+		if deletedFromHub {
+			if err := st.Corpus.Flush(); err != nil {
+				log.Logf(0, "failed to flush corpus database: %v", err)
+			}
+		}
 	}
 	st.addInputs(mgr, add)
 	progs, more, err := st.pendingInputs(mgr)
@@ -389,7 +443,8 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		if _, ok := mgr.Corpus.Records[key]; ok {
 			continue
 		}
-		if !managerSupportsAllCalls(mgr.calls, st.corpusCalls[key]) {
+		meta := st.corpusMeta[key]
+		if !managerSupportsAllCalls(mgr.calls, meta.calls) {
 			continue
 		}
 		records = append(records, Record{key, rec.Val, rec.Seq})
@@ -468,7 +523,12 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 
 func (st *State) addInput(mgr *Manager, input []byte) {
 	sig := hash.String(input)
-	if _, ok := st.Corpus.Records[sig]; !ok {
+	meta, inHub := st.corpusMeta[sig]
+	if inHub {
+		// Reuse the canonical key string from st.corpusMeta so mgr.Corpus.Records
+		// shares the same backing byte array.
+		sig = meta.key
+	} else {
 		calls, ncalls, err := prog.CallSet(input)
 		if err != nil {
 			log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
@@ -479,23 +539,61 @@ func (st *State) addInput(mgr *Manager, input []byte) {
 			return
 		}
 		st.Corpus.Save(sig, input, st.corpusSeq)
-		st.corpusCalls[sig] = st.internCalls(calls)
+		meta = corpusMeta{
+			key:   sig,
+			calls: st.internCalls(calls),
+		}
 	}
-	mgr.Corpus.Save(sig, nil, 0)
+	if _, hadInMgr := mgr.Corpus.Records[sig]; !hadInMgr {
+		mgr.Corpus.Save(sig, nil, 0)
+		meta.refs++
+		st.corpusMeta[sig] = meta
+	}
+}
+
+func (st *State) releaseCorpusKey(sig string) bool {
+	meta, ok := st.corpusMeta[sig]
+	if !ok {
+		return false
+	}
+	meta.refs--
+	if meta.refs > 0 {
+		st.corpusMeta[sig] = meta
+		return false
+	}
+	delete(st.corpusMeta, sig)
+	st.Corpus.Delete(sig)
+	return true
 }
 
 func (st *State) purgeCorpus() {
-	used := make(map[string]bool)
+	for key, meta := range st.corpusMeta {
+		meta.refs = 0
+		st.corpusMeta[key] = meta
+	}
 	for _, mgr := range st.Managers {
+		mgrModified := false
 		for sig := range mgr.Corpus.Records {
-			used[sig] = true
+			meta, ok := st.corpusMeta[sig]
+			if !ok {
+				mgr.Corpus.Delete(sig)
+				mgrModified = true
+				continue
+			}
+			meta.refs++
+			st.corpusMeta[sig] = meta
+		}
+		if mgrModified {
+			if err := mgr.Corpus.Flush(); err != nil {
+				log.Logf(0, "failed to flush corpus database: %v", err)
+			}
 		}
 	}
 	for key := range st.Corpus.Records {
-		if used[key] {
+		if meta := st.corpusMeta[key]; meta.refs > 0 {
 			continue
 		}
-		delete(st.corpusCalls, key)
+		delete(st.corpusMeta, key)
 		st.Corpus.Delete(key)
 	}
 	if err := st.Corpus.Flush(); err != nil {

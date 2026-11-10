@@ -5,9 +5,12 @@ package state
 
 import (
 	"cmp"
+	"os"
 	"slices"
 	"testing"
+	"time"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -179,6 +182,56 @@ func TestDomain(t *testing.T) {
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
 		}, inputs)
 	}
+}
+
+func TestCorpusPurgeAndRefCount(t *testing.T) {
+	st := MakeTestState(t)
+
+	p0 := []byte("open(0x0)")
+	p1 := []byte("open(0x1)")
+	p2 := []byte("open(0x2)")
+	sig0 := hash.String(p0)
+	sig1 := hash.String(p1)
+	sig2 := hash.String(p2)
+
+	// Connect mgr1 with p0 and p1, and mgr2 with p1 and p2.
+	st.Connect("mgr1", "d1", true, []string{"open"}, [][]byte{p0, p1})
+	st.Connect("mgr2", "d2", true, []string{"open"}, [][]byte{p1, p2})
+	assert.Len(t, st.state.Corpus.Records, 3)
+
+	// Deleting p1 from mgr1 keeps p1 in hub corpus because mgr2 still holds it.
+	st.Sync("mgr1", nil, []string{sig1, sig1, "non-existent-sig"})
+	assert.Len(t, st.state.Corpus.Records, 3)
+	assert.Contains(t, st.state.Corpus.Records, sig1)
+
+	// Deleting p1 from mgr2 drops its ref count to 0 and removes it from hub corpus.
+	st.Sync("mgr2", nil, []string{sig1})
+	assert.Len(t, st.state.Corpus.Records, 2)
+	assert.NotContains(t, st.state.Corpus.Records, sig1)
+
+	// Re-adding p1 via Sync works and makes it visible to mgr1 again.
+	st.Sync("mgr2", [][]byte{p1}, nil)
+	assert.Len(t, st.state.Corpus.Records, 3)
+	_, inputs, _ := st.Sync("mgr1", nil, nil)
+	require.Equal(t, []rpctype.HubInput{
+		{Domain: "d2", Prog: p1},
+	}, inputs)
+
+	// Reconnecting mgr1 with p1 keeps p1 (shared with mgr2) and drops p0 (only held by mgr1).
+	st.Connect("mgr1", "d1", false, []string{"open"}, [][]byte{p1})
+	assert.Len(t, st.state.Corpus.Records, 2)
+	assert.NotContains(t, st.state.Corpus.Records, sig0)
+	assert.Contains(t, st.state.Corpus.Records, sig1)
+	assert.Contains(t, st.state.Corpus.Records, sig2)
+
+	// Age mgr2's seq file past 30 days and reload state from disk:
+	// Make() should purge mgr2 (removing p2) while keeping p1 (still held by active mgr1).
+	oldTime := time.Now().Add(-31 * 24 * time.Hour)
+	require.NoError(t, os.Chtimes(st.state.Managers["mgr2"].corpusSeqFile, oldTime, oldTime))
+	st.Reload()
+	assert.Len(t, st.state.Corpus.Records, 1)
+	assert.Contains(t, st.state.Corpus.Records, sig1)
+	assert.NotContains(t, st.state.Corpus.Records, sig2)
 }
 
 func TestNewCallsAfterConnect(t *testing.T) {
