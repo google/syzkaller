@@ -242,46 +242,102 @@ var fileSystems = []FileSystem{
 		},
 	},
 	{
-		Name:      "ext4",
-		MinSize:   64 << 10,
-		MaxSeeds:  64,
-		MkfsFlags: []string{"-L", "syzkaller", "-U", "clear", "-E", "test_fs"},
+		Name:     "ext4",
+		MinSize:  8 << 20,
+		MaxSeeds: 48,
+		// Mkfs populates the image directly via mkfs.ext4 -d without requiring root/mount.
+		// Note: mkfs.ext4 -d copies file ownership from the template directory, so run the tool
+		// inside syz-env (where the user is mapped to root) or as root to get root-owned files.
+		ReadOnly:  true,
+		MkfsFlags: []string{"-F", "-L", "syzkaller", "-U", "clear", "-N", "256"},
 		MkfsFlagCombinations: [][]string{
-			{"-t ext2", "-t ext3", "-t ext4"},
-			// Total number of combinations is too large and there are lots of dependencies between flags,
-			// so we create just few permutations generated with fair dice rolls.
-			// TODO: We also need to give some combination of -E encoding=utf8/utf8-12.1 and -E encoding_flags=strict,
-			// but mounting such fs on my host fails with "Filesystem with casefold feature cannot be mounted without CONFIG_UNICODE".
-			{"-b 1024", "-b 2048", "-b 4096"},
-			{"-I 128", "-I 256", "-I 512", "-I 1024"},
-			{"-E lazy_itable_init=0", "-E lazy_itable_init=1"},
-			{"-E packed_meta_blocks=0", "-E packed_meta_blocks=1"},
+			{
+				"-O has_journal -O ^orphan_file -O ^fast_commit",
+				"-O has_journal -O orphan_file -O ^fast_commit",
+				"-O has_journal -O orphan_file -O fast_commit",
+				"-O ^has_journal -O ^orphan_file -O ^fast_commit",
+			},
 			// Otherwise we get: invalid blocks '^64bit' on device 'num_backup_sb=0'.
 			// And: "Extents MUST be enabled for a 64-bit filesystem. Pass -O extents to rectify".
-			{"-O ^64bit -E num_backup_sb=0", "-O 64bit -E num_backup_sb=1 -O extents"},
-			// Can't support bigalloc feature without extents feature.
-			{"-O ^bigalloc", "-O bigalloc -O extents"},
-			{"-O ^dir_index", "-O dir_index"},
-			{"-O ^dir_nlink", "-O dir_nlink"},
+			{
+				"-O 64bit -O sparse_super2 -E num_backup_sb=1 -O extents",
+				"-O ^64bit -O ^sparse_super2 -E num_backup_sb=0 -O extents",
+				"-O ^64bit -O ^sparse_super2 -E num_backup_sb=0 -O ^extents",
+			},
+			// Place bigalloc after extents so -O extents re-enables extents when needed.
+			// Small -g values split the 8 MiB images into several block groups.
+			{
+				"-b 1024 -g 2048 -O ^bigalloc",
+				"-b 2048 -g 1024 -O ^bigalloc",
+				"-b 4096 -O ^bigalloc",
+				"-b 4096 -g 512 -O ^bigalloc",
+				"-b 4096 -O bigalloc -O extents",
+				"-b 4096 -C 16384 -O bigalloc -O extents",
+			},
+			{
+				"-O metadata_csum -O ^metadata_csum_seed -O ^uninit_bg",
+				"-O metadata_csum -O metadata_csum_seed -O ^uninit_bg",
+				"-O ^metadata_csum -O ^metadata_csum_seed -O uninit_bg",
+				"-O ^metadata_csum -O ^metadata_csum_seed -O ^uninit_bg",
+			},
+			// The resize_inode and meta_bg features are not compatible, and reserved
+			// online resize blocks are not supported on non-sparse filesystems.
+			{
+				"-O ^meta_bg -O resize_inode -O sparse_super",
+				"-O meta_bg -O ^resize_inode -O sparse_super",
+				"-O meta_bg -O ^resize_inode -O ^sparse_super",
+				"-O ^meta_bg -O ^resize_inode -O ^sparse_super",
+			},
+			{"-O ^quota -O ^project", "-O quota -O ^project", "-O quota -O project"},
+			{
+				"-O ^encrypt -O ^stable_inodes -O ^verity",
+				"-O encrypt -O ^stable_inodes -O ^verity",
+				"-O encrypt -O stable_inodes -O ^verity",
+				"-O ^encrypt -O ^stable_inodes -O verity -O extents",
+				"-O encrypt -O ^stable_inodes -O verity -O extents",
+			},
+			{
+				"-O ^inline_data -O ^mmp",
+				"-O inline_data -O ^mmp",
+				"-O ^inline_data -O mmp",
+			},
+			{"-O extra_isize", "-O ^extra_isize"},
+			// Place -I after inline_data/extra_isize/project so -I 128 disables features
+			// that require >= 256B inodes without overriding -I on other rows.
+			{"-I 256", "-I 512", "-I 1024", "-I 128 -O ^inline_data -O ^extra_isize -O ^project -O ^encrypt -O ^verity"},
+			{"-O ^casefold", "-O casefold -E encoding=utf8"},
+			{"-E lazy_itable_init=0", "-E lazy_itable_init=1"},
+			{"-E packed_meta_blocks=0", "-E packed_meta_blocks=1"},
+			{"-O dir_index", "-O ^dir_index"},
+			{"-O dir_nlink", "-O ^dir_nlink"},
 			{"-O ^ea_inode", "-O ea_inode"},
-			{"-O ^encrypt", "-O encrypt"},
-			{"-O ^ext_attr", "-O ext_attr"},
-			{"-O ^extra_isize", "-O extra_isize"},
-			{"-O ^flex_bg", "-O flex_bg"},
-			{"-O ^huge_file", "-O huge_file"},
-			// 128 byte inodes are too small for inline data; specify larger size.
-			{"-O ^inline_data", "-O inline_data -I 512"},
+			{"-O flex_bg", "-O ^flex_bg"},
+			{"-O huge_file", "-O ^huge_file"},
 			{"-O ^large_dir", "-O large_dir"},
-			{"-O ^metadata_csum", "-O metadata_csum"},
-			{"", "-O ^sparse_super"},
-			// Otherwise we get: The resize_inode and meta_bg features are not compatible.
-			// Another dependency: reserved online resize blocks not supported on non-sparse filesystem.
-			{"-O ^meta_bg -O ^resize_inode", "-O meta_bg -O ^resize_inode", "-O ^meta_bg -O resize_inode -O sparse_super"},
-			{"-O ^mmp", "-O mmp"},
-			{"-O ^quota", "-O quota"},
-			{"-O ^uninit_bg", "-O uninit_bg"},
-			{"-O ^verity", "-O verity -O extents"},
-			{"-O ^has_journal", "-O has_journal  -J size=1024"},
+		},
+		Mkfs: func(img *Image) error {
+			args := append(slices.Clone(img.flags), "-d", img.templateDir, img.disk)
+			output, err := runCmd("mkfs.ext4", args...)
+			if err != nil {
+				return err
+			}
+			// mkfs.ext4 silently drops has_journal (and still exits 0) when the image has
+			// fewer than 2048 blocks. Turn that into an error so that generate() retries
+			// with a doubled image size instead of emitting a journal-less seed. 8 MiB
+			// images with 4K blocks are exactly at that limit.
+			if bytes.Contains(output, []byte("Filesystem too small for a journal")) {
+				return errors.New(string(output))
+			}
+			// mkfs.ext4 -O quota -d leaves quota usage inconsistent with the populated
+			// template directory; reconcile it with e2fsck so every seed passes fsck -n.
+			if _, err := runCmd("e2fsck", "-fy", img.disk); err != nil {
+				var verboseErr *osutil.VerboseError
+				if !errors.As(err, &verboseErr) || verboseErr.ExitCode != 1 {
+					return err
+				}
+			}
+			_, err = runCmd("e2fsck", "-fn", img.disk)
+			return err
 		},
 	},
 	{
