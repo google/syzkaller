@@ -69,10 +69,10 @@ file_dedupe_range_info {
 }
 
 fsxattr {
-	fsx_xflags	int32
+	fsx_xflags	flags[file_attr_flags, int32]
 	fsx_extsize	int32
 	fsx_nextents	int32
-	fsx_projid	int32
+	fsx_projid	uid
 	fsx_cowextsize	int32
 	fsx_pad		array[const[0, int8], 8]
 }

@@ -4,7 +4,7 @@
 include <uapi/linux/quota.h>
 
 quotactl$Q_SYNC(cmd flags[quota_cmd_sync], special const[0], id const[0], addr const[0])
-quotactl$Q_QUOTAON(cmd flags[quota_cmd_quota_on], special ptr[in, blockdev_filename], id uid, addr ptr[in, filename])
+quotactl$Q_QUOTAON(cmd flags[quota_cmd_quota_on], special ptr[in, blockdev_filename], id flags[quota_formats], addr ptr[in, filename])
 quotactl$Q_QUOTAOFF(cmd flags[quota_cmd_quota_off], special ptr[in, blockdev_filename], id uid, addr const[0])
 quotactl$Q_GETFMT(cmd flags[quota_cmd_getfmt], special ptr[in, blockdev_filename], id uid, addr ptr[out, int32])
 quotactl$Q_GETINFO(cmd flags[quota_cmd_getinfo], special ptr[in, blockdev_filename], id uid, addr ptr[out, if_dqinfo])
@@ -14,7 +14,7 @@ quotactl$Q_SETQUOTA(cmd flags[quota_cmd_setquota], special ptr[in, blockdev_file
 quotactl$Q_GETNEXTQUOTA(cmd flags[quota_cmd_getnextquota], special ptr[in, blockdev_filename], id uid, addr ptr[out, if_nextdqblk])
 
 quotactl_fd$Q_SYNC(fd fd, cmd flags[quota_cmd_sync], id const[0], addr const[0])
-quotactl_fd$Q_QUOTAON(fd fd, cmd flags[quota_cmd_quota_on], id uid, addr ptr[in, filename])
+quotactl_fd$Q_QUOTAON(fd fd, cmd flags[quota_cmd_quota_on], id flags[quota_formats], addr ptr[in, filename, opt])
 quotactl_fd$Q_QUOTAOFF(fd fd, cmd flags[quota_cmd_quota_off], id uid, addr const[0])
 quotactl_fd$Q_GETFMT(fd fd, cmd flags[quota_cmd_getfmt], id uid, addr ptr[out, int32])
 quotactl_fd$Q_GETINFO(fd fd, cmd flags[quota_cmd_getinfo], id uid, addr ptr[out, if_dqinfo])
@@ -39,7 +39,7 @@ if_dqblk {
 	dqb_curinodes	int64
 	dqb_btime	int64
 	dqb_itime	int64
-	dqb_valid	int32
+	dqb_valid	flags[quota_dqb_valid, int32]
 }
 
 if_nextdqblk {
@@ -51,10 +51,12 @@ if_nextdqblk {
 	dqb_curinodes	int64
 	dqb_btime	int64
 	dqb_itime	int64
-	dqb_valid	int32
+	dqb_valid	flags[quota_dqb_valid, int32]
 	dqb_id		int32
 }
 
+quota_formats = QFMT_VFS_OLD, QFMT_VFS_V0, QFMT_OCFS2, QFMT_VFS_V1, QFMT_SHMEM
+quota_dqb_valid = QIF_BLIMITS, QIF_SPACE, QIF_ILIMITS, QIF_INODES, QIF_BTIME, QIF_ITIME
 quota_dgqinfo_flags = DQF_ROOT_SQUASH
 quota_dgqinfo_valid = IIF_BGRACE, IIF_IGRACE, IIF_FLAGS
 

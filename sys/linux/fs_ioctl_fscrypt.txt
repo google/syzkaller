@@ -70,18 +70,21 @@ fscrypt_key_descriptor_hex [
 # regular Linux keyrings via the add_key() syscall.  Note that this part of the
 # API is deprecated in favor of FS_IOC_ADD_ENCRYPTION_KEY and fscrypt_policy_v2.
 
+fscrypt_v1_key_prefixes = "fscrypt:", "ext4:", "f2fs:", "ubifs:"
+fscrypt_v1_key_sizes = 0, 16, 32, 64
+
 fscrypt_v1_key_description {
-	prefix		stringnoz["fscrypt:"]
+	prefix		stringnoz[fscrypt_v1_key_prefixes]
 	descriptor	fscrypt_key_descriptor_hex
 	nil		const[0, int8]
-}
+} [packed]
 
 fscrypt_v1_key_payload {
 	mode	const[0, int32]
 # This really should be fscrypt_raw_key, but that has the varlen attribute so it
 # doesn't work in this struct.
 	raw	array[int8, 64]
-	size	int32[16:64]
+	size	flags[fscrypt_v1_key_sizes, int32]
 }
 
 # Structs for the ioctls that get and set encryption policies

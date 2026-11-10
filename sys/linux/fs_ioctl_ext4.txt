@@ -3,6 +3,9 @@
 
 include <uapi/linux/fs.h>
 include <uapi/linux/fsmap.h>
+include <uapi/linux/ext4.h>
+include <linux/fcntl.h>
+include <linux/fs.h>
 include <fs/ext4/ext4.h>
 
 ioctl$EXT4_IOC_GROUP_EXTEND(fd fd, cmd const[EXT4_IOC_GROUP_EXTEND], arg ptr[in, intptr])
@@ -18,19 +21,23 @@ ioctl$EXT4_IOC_GET_ES_CACHE(fd fd, cmd const[EXT4_IOC_GET_ES_CACHE], args ptr[in
 ioctl$EXT4_IOC_CHECKPOINT(fd fd, cmd const[EXT4_IOC_CHECKPOINT], arg ptr[in, flags[ext4_checkpoint_flags, int32]])
 ioctl$EXT4_IOC_GETFSUUID(fd fd, cmd const[EXT4_IOC_GETFSUUID], arg ptr[out, fsuuid])
 ioctl$EXT4_IOC_SETFSUUID(fd fd, cmd const[EXT4_IOC_SETFSUUID], arg ptr[in, fsuuid])
+ioctl$EXT4_IOC_GET_TUNE_SB_PARAM(fd fd, cmd const[EXT4_IOC_GET_TUNE_SB_PARAM], arg ptr[out, ext4_tune_sb_params])
+ioctl$EXT4_IOC_SET_TUNE_SB_PARAM(fd fd_ext4_mnt, cmd const[EXT4_IOC_SET_TUNE_SB_PARAM], arg ptr[in, ext4_tune_sb_params])
 
 ext4_state_flags = EXT4_STATE_FLAG_EXT_PRECACHED, EXT4_STATE_FLAG_NEW, EXT4_STATE_FLAG_NEWENTRY, EXT4_STATE_FLAG_DA_ALLOC_CLOSE
 ext4_checkpoint_flags = EXT4_IOC_CHECKPOINT_FLAG_DISCARD, EXT4_IOC_CHECKPOINT_FLAG_ZEROOUT, EXT4_IOC_CHECKPOINT_FLAG_DRY_RUN
+ext4_going_flags = EXT4_GOING_FLAGS_DEFAULT, EXT4_GOING_FLAGS_LOGFLUSH, EXT4_GOING_FLAGS_NOLOGFLUSH
 
 # EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 # Fortunately, the value does not conflict with any other ioctl commands for now.
-ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN]) (snapshot)
+# Note: fd_ext4_mnt only biases generation towards loop mounts, it is not a guarantee.
+ioctl$EXT4_IOC_SHUTDOWN(fd fd_ext4_mnt, cmd const[EXT4_IOC_SHUTDOWN], arg ptr[in, flags[ext4_going_flags, int32]]) (snapshot)
 
 # EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
 # and then creation of new temp dirs for tests will fail.
 # TODO: not necessary for sandbox=namespace as it tests in a tmpfs
 # and/or if we mount tmpfs for sandbox=none (#971).
-ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS]) (snapshot)
+ioctl$EXT4_IOC_RESIZE_FS(fd fd_ext4_mnt, cmd const[EXT4_IOC_RESIZE_FS], arg ptr[in, int64]) (snapshot)
 
 ext4_new_group_input {
 	group		int32
@@ -58,3 +65,82 @@ fsuuid {
 }
 
 ext4_uuid_len = 0, UUID_SIZE
+
+ext4_tune_sb_params {
+	set_flags			flags[ext4_tune_flags, int32]
+	checkinterval			int32
+	errors_behavior			flags[ext4_errors_behavior, int16]
+	mnt_count			int16
+	max_mnt_count			int16
+	raid_stride			int16
+	last_check_time			int64
+	reserved_blocks			int64[0:1024]
+	blocks_count			int64
+	default_mnt_opts		flags[ext4_defm_opts, int32]
+	reserved_uid			int32
+	reserved_gid			int32
+	raid_stripe_width		int32
+	encoding			flags[ext4_encodings, int16]
+	encoding_flags			flags[ext4_encoding_flags, int16]
+	def_hash_alg			flags[ext4_hash_algs, int8]
+	pad_1				const[0, int8]
+	pad_2				const[0, int16]
+	feature_compat			flags[ext4_tune_compat_features, int32]
+	feature_incompat		flags[ext4_tune_incompat_features, int32]
+	feature_ro_compat		flags[ext4_tune_ro_compat_features, int32]
+	set_feature_compat_mask		flags[ext4_tune_compat_features, int32]
+	set_feature_incompat_mask	flags[ext4_tune_incompat_features, int32]
+	set_feature_ro_compat_mask	flags[ext4_tune_ro_compat_features, int32]
+	clear_feature_compat_mask	const[0, int32]
+	clear_feature_incompat_mask	const[0, int32]
+	clear_feature_ro_compat_mask	const[0, int32]
+	mount_opts			string[ext4_tune_mnt_opt_strs, 64]
+	pad				array[const[0, int8], 68]
+}
+
+ext4_tune_flags = EXT4_TUNE_FL_ERRORS_BEHAVIOR, EXT4_TUNE_FL_MNT_COUNT, EXT4_TUNE_FL_MAX_MNT_COUNT, EXT4_TUNE_FL_CHECKINTRVAL, EXT4_TUNE_FL_LAST_CHECK_TIME, EXT4_TUNE_FL_RESERVED_BLOCKS, EXT4_TUNE_FL_RESERVED_UID, EXT4_TUNE_FL_RESERVED_GID, EXT4_TUNE_FL_DEFAULT_MNT_OPTS, EXT4_TUNE_FL_DEF_HASH_ALG, EXT4_TUNE_FL_RAID_STRIDE, EXT4_TUNE_FL_RAID_STRIPE_WIDTH, EXT4_TUNE_FL_MOUNT_OPTS, EXT4_TUNE_FL_FEATURES, EXT4_TUNE_FL_EDIT_FEATURES, EXT4_TUNE_FL_FORCE_FSCK, EXT4_TUNE_FL_ENCODING, EXT4_TUNE_FL_ENCODING_FLAGS
+ext4_errors_behavior = 0, EXT4_ERRORS_CONTINUE, EXT4_ERRORS_RO
+ext4_defm_opts = EXT4_DEFM_DEBUG, EXT4_DEFM_BSDGROUPS, EXT4_DEFM_XATTR_USER, EXT4_DEFM_ACL, EXT4_DEFM_UID16, EXT4_DEFM_JMODE_DATA, EXT4_DEFM_JMODE_ORDERED, EXT4_DEFM_JMODE_WBACK, EXT4_DEFM_NOBARRIER, EXT4_DEFM_BLOCK_VALIDITY, EXT4_DEFM_DISCARD, EXT4_DEFM_NODELALLOC
+ext4_encodings = 0, EXT4_ENC_UTF8_12_1
+ext4_encoding_flags = SB_ENC_STRICT_MODE_FL, SB_ENC_NO_COMPAT_FALLBACK_FL
+ext4_hash_algs = DX_HASH_LEGACY, DX_HASH_HALF_MD4, DX_HASH_TEA, DX_HASH_LEGACY_UNSIGNED, DX_HASH_HALF_MD4_UNSIGNED, DX_HASH_TEA_UNSIGNED
+ext4_tune_compat_features = EXT4_FEATURE_COMPAT_DIR_INDEX, EXT4_FEATURE_COMPAT_STABLE_INODES
+ext4_tune_incompat_features = EXT4_FEATURE_INCOMPAT_EXTENTS, EXT4_FEATURE_INCOMPAT_EA_INODE, EXT4_FEATURE_INCOMPAT_ENCRYPT, EXT4_FEATURE_INCOMPAT_CSUM_SEED, EXT4_FEATURE_INCOMPAT_LARGEDIR, EXT4_FEATURE_INCOMPAT_CASEFOLD
+ext4_tune_ro_compat_features = EXT4_FEATURE_RO_COMPAT_LARGE_FILE, EXT4_FEATURE_RO_COMPAT_DIR_NLINK, EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE, EXT4_FEATURE_RO_COMPAT_PROJECT, EXT4_FEATURE_RO_COMPAT_VERITY
+ext4_tune_mnt_opt_strs = "", "acl", "user_xattr", "nodelalloc", "discard", "nobarrier", "block_validity"
+
+# fsmount$ext4 returns an O_PATH fd, reopen it to get a descriptor usable for ioctls.
+openat$ext4_mnt(fd fd_ext4_mnt, file ptr[in, string["."]], flags flags[open_flags], mode const[0]) fd_ext4_mnt
+
+# Per-mount /sys/fs/ext4/loop<N>, /proc/fs/ext4/loop<N>, and /proc/fs/jbd2/loop<N>-8 files.
+resource fd_ext4_sysfs[fd]
+
+openat$ext4_sysfs(fd const[AT_FDCWD], file ptr[in, ext4_sysfs_path], flags flags[open_flags], mode const[0]) fd_ext4_sysfs
+read$ext4_sysfs(fd fd_ext4_sysfs, buf buffer[out], count len[buf])
+write$ext4_sysfs(fd fd_ext4_sysfs, buf ptr[in, fmt[hex, int64]], count bytesize[buf])
+
+openat$ext4_procfs(fd const[AT_FDCWD], file ptr[in, ext4_procfs_path], flags const[O_RDONLY], mode const[0]) fd
+openat$jbd2_procfs(fd const[AT_FDCWD], file ptr[in, jbd2_procfs_path], flags const[O_RDONLY], mode const[0]) fd
+
+ext4_sysfs_path {
+	prefix	stringnoz["/sys/fs/ext4/loop"]
+	id	proc['0', 1, int8]
+	sep	const['/', int8]
+	attr	string[ext4_sysfs_attrs]
+} [packed]
+
+ext4_procfs_path {
+	prefix	stringnoz["/proc/fs/ext4/loop"]
+	id	proc['0', 1, int8]
+	sep	const['/', int8]
+	entry	string[ext4_procfs_entries]
+} [packed]
+
+jbd2_procfs_path {
+	prefix	stringnoz["/proc/fs/jbd2/loop"]
+	id	proc['0', 1, int8]
+	suffix	string["-8/info"]
+} [packed]
+
+ext4_sysfs_attrs = "delayed_allocation_blocks", "session_write_kbytes", "lifetime_write_kbytes", "reserved_clusters", "sra_exceeded_retry_limit", "inode_readahead_blks", "inode_goal", "mb_stats", "mb_max_to_scan", "mb_min_to_scan", "mb_order2_req", "mb_stream_req", "mb_group_prealloc", "mb_max_linear_groups", "max_writeback_mb_bump", "extent_max_zeroout_kb", "err_ratelimit_interval_ms", "err_ratelimit_burst", "warning_ratelimit_interval_ms", "warning_ratelimit_burst", "msg_ratelimit_interval_ms", "msg_ratelimit_burst", "mb_best_avail_max_trim_order", "errors_count", "warning_count", "msg_count", "first_error_ino", "last_error_ino", "first_error_block", "last_error_block", "first_error_line", "last_error_line", "first_error_func", "last_error_func", "first_error_errcode", "last_error_errcode", "first_error_time", "last_error_time", "journal_task", "mb_prefetch", "mb_prefetch_limit", "last_trim_minblks", "sb_update_sec", "sb_update_kb", "err_report_sec"
+ext4_procfs_entries = "options", "es_shrinker_info", "fc_info", "mb_groups", "mb_stats", "mb_structs_summary"
