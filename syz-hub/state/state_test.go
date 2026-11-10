@@ -5,6 +5,7 @@ package state
 
 import (
 	"cmp"
+	"fmt"
 	"os"
 	"slices"
 	"testing"
@@ -254,4 +255,48 @@ func TestNewCallsAfterConnect(t *testing.T) {
 	// Same for repros: a repro with "ioctl" is skipped for mgr1.
 	st.AddRepro("mgr2", []byte("ioctl(0x1)"))
 	assert.Empty(t, st.PendingRepro("mgr1"))
+}
+
+func TestBatchSync(t *testing.T) {
+	st := MakeTestState(t)
+
+	const totalProgs = 170
+	progs := make([][]byte, totalProgs)
+	for i := range totalProgs {
+		progs[i] = []byte(fmt.Sprintf("open(0x%x)", i))
+	}
+	drainSync := func(name string) [][]byte {
+		var res [][]byte
+		for {
+			_, inputs, more := st.Sync(name, nil, nil)
+			for _, inp := range inputs {
+				res = append(res, inp.Prog)
+			}
+			if len(inputs)+more == 0 {
+				break
+			}
+		}
+		return res
+	}
+
+	// 1. mgr1 connects (fresh) with 0..150; mgr2 connects (fresh) with an empty corpus
+	// and drains Sync => receives exactly 0..150.
+	st.Connect("mgr1", "d1", true, []string{"open"}, progs[:150])
+	st.Connect("mgr2", "d2", true, []string{"open"}, nil)
+	assert.Len(t, st.state.Corpus.Records, 150)
+	assert.ElementsMatch(t, progs[:150], drainSync("mgr2"))
+
+	// 2. mgr1 reconnects (fresh=false) with 10..170 => hub corpus has 160 programs,
+	// and mgr2 receives only the 20 new ones (150..170).
+	st.Connect("mgr1", "d1", false, []string{"open"}, progs[10:170])
+	assert.Len(t, st.state.Corpus.Records, 160)
+	assert.ElementsMatch(t, progs[150:170], drainSync("mgr2"))
+
+	// 3. mgr2 reconnects with fresh=false => receives nothing;
+	// with fresh=true => receives 10..170 again.
+	st.Connect("mgr2", "d2", false, []string{"open"}, nil)
+	assert.Empty(t, drainSync("mgr2"))
+
+	st.Connect("mgr2", "d2", true, []string{"open"}, nil)
+	assert.ElementsMatch(t, progs[10:170], drainSync("mgr2"))
 }
