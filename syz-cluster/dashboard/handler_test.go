@@ -117,6 +117,7 @@ func TestPatchContentType(t *testing.T) {
 		resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode, url)
 		assert.Equal(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"), url)
+		assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"), url)
 	}
 }
 

@@ -669,6 +669,8 @@ func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {
 
 func errToStatus(f func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Make browsers strictly follow the Content-Type we set.
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		err := f(w, r)
 		if errors.Is(err, errNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
