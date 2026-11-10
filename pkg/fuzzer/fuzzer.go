@@ -314,11 +314,10 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 
 func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
+	stat.Add(1)
+	fuzzer.statJobs.Add(1)
 	go func() {
-		stat.Add(1)
 		defer stat.Add(-1)
-
-		fuzzer.statJobs.Add(1)
 		defer fuzzer.statJobs.Add(-1)
 
 		if obj, ok := newJob.(jobIntrospector); ok {

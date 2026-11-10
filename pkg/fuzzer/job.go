@@ -194,7 +194,8 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 				Calls: []string{p.CallName(call)},
 			},
 		})
-		if job.fuzzer.Config.Comparisons && call >= 0 {
+		if job.fuzzer.Config.Comparisons && call >= 0 &&
+			!job.fuzzer.Config.NoMutateCalls[p.Calls[call].Meta.ID] {
 			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
 				exec: job.fuzzer.smashQueue,
 				p:    p.Clone(),
