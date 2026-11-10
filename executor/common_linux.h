@@ -3394,7 +3394,7 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 // creating and initializing the underlying file backing the loop device and
 // returns the fds to the file and device.
 // Returns 0 on success, -1 otherwise.
-static int setup_loop_device(unsigned char* data, unsigned long size, const char* loopname, int* loopfd_p)
+static int setup_loop_device(unsigned char* data, unsigned long size, unsigned long extra_space, const char* loopname, int* loopfd_p)
 {
 	int err = 0, loopfd = -1;
 	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
@@ -3406,6 +3406,12 @@ static int setup_loop_device(unsigned char* data, unsigned long size, const char
 		err = errno;
 		debug("setup_loop_device: could not decompress data: %d\n", errno);
 		goto error_close_memfd;
+	}
+	if (extra_space) {
+		off_t cur = lseek(memfd, 0, SEEK_END);
+		if (cur >= 0 && ftruncate(memfd, cur + extra_space)) {
+			debug("setup_loop_device: ftruncate failed: %d\n", errno);
+		}
 	}
 
 	loopfd = open(loopname, O_RDWR);
@@ -3468,7 +3474,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile long image
 	char loopname[64];
 
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	if (setup_loop_device(data, size, loopname, &loopfd) == -1)
+	if (setup_loop_device(data, size, 0, loopname, &loopfd) == -1)
 		return -1;
 
 	struct loop_info64 info;
@@ -3543,7 +3549,8 @@ static long syz_mount_image(
 		// filesystem image.
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-		if (setup_loop_device(data, size, loopname, &loopfd) == -1)
+		unsigned long extra_space = strncmp(fs, "ext", 3) == 0 ? (16 << 20) : 0;
+		if (setup_loop_device(data, size, extra_space, loopname, &loopfd) == -1)
 			return -1;
 		// If BLK_DEV_WRITE_MOUNTED is set, we won't be able to mount()
 		// while holding the loop device fd.
