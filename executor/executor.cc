@@ -530,26 +530,23 @@ static void mmap_input();
 class CoverAccessScope final
 {
 public:
-	CoverAccessScope(cover_t* cov)
-	    : cov_(cov)
+	CoverAccessScope()
 	{
-		// CoverAccessScope must not be used recursively b/c on Linux pkeys protection is global,
-		// so cover_protect for one cov overrides previous cover_unprotect for another cov.
+		// CoverAccessScope must not be used recursively b/c on Linux pkeys protection is global.
 		if (used_)
 			fail("recursion in CoverAccessScope");
 		used_ = true;
 		if (flag_coverage)
-			cover_unprotect(cov_);
+			cover_unprotect();
 	}
 	~CoverAccessScope()
 	{
 		if (flag_coverage)
-			cover_protect(cov_);
+			cover_protect();
 		used_ = false;
 	}
 
 private:
-	cover_t* const cov_;
 	static bool used_;
 
 	CoverAccessScope(const CoverAccessScope&) = delete;
@@ -671,7 +668,7 @@ int main(int argc, char** argv)
 		extra_cov.fd = kExtraCoverFd;
 		cover_open(&extra_cov, true);
 		cover_mmap(&extra_cov);
-		cover_protect(&extra_cov);
+		cover_protect();
 		if (flag_extra_coverage) {
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
@@ -1417,7 +1414,7 @@ void copyout_call_results(thread_t* th)
 
 void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bool all_signal)
 {
-	CoverAccessScope scope(cov);
+	CoverAccessScope scope;
 	auto& fbb = *output_builder;
 	const uint32 start_size = output_builder->GetSize();
 	(void)start_size;
@@ -1558,7 +1555,7 @@ void thread_mmap_cover(thread_t* th)
 	if (th->cov.data != NULL)
 		return;
 	cover_mmap(&th->cov);
-	cover_protect(&th->cov);
+	cover_protect();
 }
 
 void* worker_thread(void* arg)

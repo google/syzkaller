@@ -182,13 +182,13 @@ static void cover_close(cover_t* cov)
 	cov->fd = -1;
 }
 
-static void cover_protect(cover_t* cov)
+static void cover_protect()
 {
 	if (pkeys_enabled && pkey_set(RESERVED_PKEY, PKEY_DISABLE_WRITE))
 		debug("pkey_set failed: %d\n", errno);
 }
 
-static void cover_unprotect(cover_t* cov)
+static void cover_unprotect()
 {
 	if (pkeys_enabled && pkey_set(RESERVED_PKEY, 0))
 		debug("pkey_set failed: %d\n", errno);
@@ -272,9 +272,9 @@ static void cover_reset(cover_t* cov)
 		if (ioctl(cov->fd, KCOV_RESET_TRACE, 0))
 			fail("KCOV_RESET_TRACE failed");
 	} else {
-		cover_unprotect(cov);
+		cover_unprotect();
 		*(uint64*)cov->data = 0;
-		cover_protect(cov);
+		cover_protect();
 	}
 	cov->overflow = false;
 }
@@ -283,7 +283,7 @@ template <typename cover_data_t>
 static void cover_collect_impl(cover_t* cov)
 {
 	cov->size = *(cover_data_t*)cov->data;
-	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
+	cov->overflow = cov->size >= (cov->data_end - (cov->data + cov->data_offset)) / sizeof(cover_data_t);
 }
 
 static void cover_collect(cover_t* cov)
