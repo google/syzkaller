@@ -56,11 +56,6 @@ func main() {
 	if len(repros)+len(corpus) == 0 && !*flagDrain {
 		return
 	}
-	log.Printf("connecting to hub at %v...", *flagHubAddress)
-	conn, err := rpctype.NewRPCClient(*flagHubAddress)
-	if err != nil {
-		log.Fatalf("failed to connect to hub: %v", err)
-	}
 	key := *flagHubKey
 	if *flagHubKey == "" {
 		tokenCache, err := auth.MakeCache(http.NewRequest, http.DefaultClient.Do)
@@ -71,6 +66,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get a token %v", err)
 		}
+	}
+	log.Printf("connecting to hub at %v...", *flagHubAddress)
+	conn, err := rpctype.NewRPCClient(*flagHubAddress, *flagHubClient, key, *flagHubManager)
+	if err != nil {
+		log.Fatalf("failed to connect to hub: %v", err)
 	}
 	connectArgs := &rpctype.HubConnectArgs{
 		Client:  *flagHubClient,

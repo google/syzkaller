@@ -151,7 +151,7 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	if err != nil {
 		return nil, err
 	}
-	hub, err := rpctype.NewRPCClient(hc.cfg.HubAddr)
+	hub, err := rpctype.NewRPCClient(hc.cfg.HubAddr, hc.cfg.HubClient, key, hc.cfg.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,11 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	if err != nil {
 		return nil, err
 	}
-	hub, err = rpctype.NewRPCClient(hc.cfg.HubAddr)
+	key, err = hc.keyGet()
+	if err != nil {
+		return nil, err
+	}
+	hub, err = rpctype.NewRPCClient(hc.cfg.HubAddr, hc.cfg.HubClient, key, hc.cfg.Name)
 	if err != nil {
 		return nil, err
 	}
