@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/syz-hub/state"
@@ -43,7 +44,7 @@ type Hub struct {
 }
 
 func main() {
-	flag.Parse()
+	defer tool.Init()()
 	cfg := new(Config)
 	if err := config.LoadFile(*flagConfig, cfg); err != nil {
 		log.Fatal(err)
@@ -64,6 +65,9 @@ func main() {
 	}
 
 	http.HandleFunc("/", hub.httpSummary)
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	tool.ServeHTTP(cfg.HTTP)
 	go hub.purgeOldManagers()
 
@@ -72,7 +76,16 @@ func main() {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
-	s.Serve()
+	go s.Serve()
+
+	shutdown := make(chan struct{})
+	osutil.HandleInterrupts(shutdown)
+	<-shutdown
+	log.Logf(0, "shutting down...")
+	// Keep hub.mu locked until process exit so background RPC or purge goroutines
+	// cannot mutate on-disk state after the final Flush.
+	hub.mu.Lock()
+	hub.st.Flush()
 }
 
 func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
@@ -108,6 +121,7 @@ func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
 	if domain != "" {
 		r.Inputs = inputs
 	} else {
+		r.Progs = make([][]byte, 0, len(inputs))
 		for _, inp := range inputs {
 			r.Progs = append(r.Progs, inp.Prog)
 		}
