@@ -5,6 +5,7 @@ package rpctype
 
 import (
 	"compress/flate"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -26,6 +27,7 @@ func NewRPCServer(addr, name string, receiver any) (*RPCServer, error) {
 	}
 	s := rpc.NewServer()
 	if err := s.RegisterName(name, receiver); err != nil {
+		ln.Close()
 		return nil, err
 	}
 	serv := &RPCServer{
@@ -39,6 +41,9 @@ func (serv *RPCServer) Serve() {
 	for {
 		conn, err := serv.ln.Accept()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
 			log.Logf(0, "failed to accept an rpc connection: %v", err)
 			continue
 		}
@@ -49,6 +54,10 @@ func (serv *RPCServer) Serve() {
 
 func (serv *RPCServer) Addr() net.Addr {
 	return serv.ln.Addr()
+}
+
+func (serv *RPCServer) Close() error {
+	return serv.ln.Close()
 }
 
 type RPCClient struct {
@@ -85,11 +94,36 @@ func setupKeepAlive(conn net.Conn, keepAlive time.Duration) {
 	conn.(*net.TCPConn).SetKeepAlivePeriod(keepAlive)
 }
 
+// Limit the decompression ratio to defend against compressed-data
+// amplification: an unauthenticated peer can otherwise send a few hundred KB
+// that inflate to hundreds of MB, which encoding/gob buffers in full before
+// the RPC method (and thus any authentication check) runs. Legitimate
+// syzkaller traffic (serialized progs) compresses well under this ratio.
+const (
+	maxDecompressRatio = int64(100)
+	minRatioCheckBytes = int64(1 << 20)
+)
+
+type countingReader struct {
+	r io.Reader
+	n int64
+}
+
+func (cr *countingReader) Read(p []byte) (int, error) {
+	n, err := cr.r.Read(p)
+	cr.n += int64(n)
+	return n, err
+}
+
 // flateConn wraps net.Conn in flate.Reader/Writer for compressed traffic.
 type flateConn struct {
-	r io.ReadCloser
-	w *flate.Writer
-	c io.Closer
+	r              io.ReadCloser
+	w              *flate.Writer
+	c              io.Closer
+	compressed     *countingReader
+	lastCompressed int64
+	decompressed   int64
+	excess         int64
 }
 
 func newFlateConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
@@ -97,15 +131,28 @@ func newFlateConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	if err != nil {
 		panic(err)
 	}
+	compressed := &countingReader{r: conn}
 	return &flateConn{
-		r: flate.NewReader(conn),
-		w: w,
-		c: conn,
+		r:          flate.NewReader(compressed),
+		w:          w,
+		c:          conn,
+		compressed: compressed,
 	}
 }
 
 func (fc *flateConn) Read(data []byte) (int, error) {
-	return fc.r.Read(data)
+	n, err := fc.r.Read(data)
+	fc.decompressed += int64(n)
+	deltaIn := fc.compressed.n - fc.lastCompressed
+	fc.lastCompressed = fc.compressed.n
+	// Clamp the credit that incompressible data can bank to minRatioCheckBytes so
+	// an attacker cannot send incompressible data first to bypass the ratio limit.
+	fc.excess = max(-minRatioCheckBytes, fc.excess+int64(n)-deltaIn*maxDecompressRatio)
+	if fc.excess > minRatioCheckBytes {
+		_ = fc.c.Close()
+		return 0, fmt.Errorf("rpctype: decompression ratio too high (%d -> %d bytes)", fc.compressed.n, fc.decompressed)
+	}
+	return n, err
 }
 
 func (fc *flateConn) Write(data []byte) (int, error) {
