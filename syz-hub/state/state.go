@@ -26,15 +26,17 @@ import (
 // reproducers and information about managers.
 // It is persisted to and can be restored from a directory.
 type State struct {
-	corpusSeq  uint64
-	reproSeq   uint64
-	dir        string
-	Corpus     *db.DB
-	Repros     *db.DB
-	Managers   map[string]*Manager
-	callIDs    map[string]uint32
-	corpusMeta map[string]corpusMeta
-	reproCalls map[string][]uint32
+	corpusSeq   uint64
+	reproSeq    uint64
+	dir         string
+	Corpus      *db.DB
+	Repros      *db.DB
+	Managers    map[string]*Manager
+	callIDs     map[string]uint32
+	corpusMeta  map[string]corpusMeta
+	corpusOrder []seqEntry
+	reproCalls  map[string][]uint32
+	reproOrder  []seqEntry
 }
 
 type corpusMeta struct {
@@ -43,6 +45,11 @@ type corpusMeta struct {
 	key   string
 	calls []uint32
 	refs  int
+}
+
+type seqEntry struct {
+	key string
+	seq uint64
 }
 
 // Manager represents one syz-manager instance.
@@ -94,6 +101,7 @@ func Make(dir string) (*State, error) {
 	if err != nil {
 		return nil, err
 	}
+	st.reproOrder = sortedEntries(st.Repros.Records)
 
 	managersDir := filepath.Join(st.dir, "manager")
 	osutil.MkdirAll(managersDir)
@@ -232,6 +240,7 @@ func (st *State) PurgeOldManagers() error {
 	deletedFromHub := false
 	defer func() {
 		if deletedFromHub {
+			st.maybeCompactCorpusOrder()
 			if err := st.Corpus.Flush(); err != nil {
 				log.Logf(0, "failed to flush corpus database: %v", err)
 			}
@@ -303,14 +312,17 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 		mgr.calls[st.callIDs[c]] = true
 	}
 
-	if len(corpus) != 0 {
-		st.corpusSeq++
-		for _, input := range corpus {
-			st.addInput(mgr, input)
+	for _, input := range corpus {
+		st.addInput(mgr, input)
+	}
+	deletedFromHub := false
+	for sig := range oldRecords {
+		if st.releaseCorpusKey(sig) {
+			deletedFromHub = true
 		}
 	}
-	for sig := range oldRecords {
-		st.releaseCorpusKey(sig)
+	if deletedFromHub {
+		st.maybeCompactCorpusOrder()
 	}
 	if err := mgr.Corpus.Flush(); err != nil {
 		log.Logf(0, "failed to flush corpus database: %v", err)
@@ -341,19 +353,20 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 			log.Logf(0, "failed to flush corpus database: %v", err)
 		}
 		if deletedFromHub {
+			st.maybeCompactCorpusOrder()
 			if err := st.Corpus.Flush(); err != nil {
 				log.Logf(0, "failed to flush corpus database: %v", err)
 			}
 		}
 	}
 	st.addInputs(mgr, add)
-	progs, more, err := st.pendingInputs(mgr)
+	progs, more := st.pendingInputs(mgr)
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(progs)
 	// Update seq file b/c PurgeOldManagers looks at it to detect inactive managers.
 	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
-	return mgr.Domain, progs, more, err
+	return mgr.Domain, progs, more, nil
 }
 
 func (st *State) AddRepro(name string, repro []byte) error {
@@ -384,6 +397,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 	st.reproSeq++
 	st.Repros.Save(sig, repro, st.reproSeq)
 	st.reproCalls[sig] = st.internCalls(calls)
+	st.reproOrder = append(st.reproOrder, seqEntry{key: sig, seq: st.reproSeq})
 	if err := st.Repros.Flush(); err != nil {
 		log.Logf(0, "failed to flush repro database: %v", err)
 	}
@@ -398,59 +412,29 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 	if mgr.reproSeq == st.reproSeq {
 		return nil, nil
 	}
-	var repro []byte
-	minSeq := ^uint64(0)
-	for key, rec := range st.Repros.Records {
-		if mgr.reproSeq >= rec.Seq {
+	start := findSeqStart(st.reproOrder, mgr.reproSeq+1)
+	for _, entry := range st.reproOrder[start:] {
+		if mgr.ownRepros[entry.key] {
 			continue
 		}
-		if mgr.ownRepros[key] {
+		if !managerSupportsAllCalls(mgr.calls, st.reproCalls[entry.key]) {
 			continue
 		}
-		if !managerSupportsAllCalls(mgr.calls, st.reproCalls[key]) {
-			continue
-		}
-		if minSeq > rec.Seq {
-			minSeq = rec.Seq
-			repro = rec.Val
-		}
-	}
-	if repro == nil {
-		mgr.reproSeq = st.reproSeq
+		rec := st.Repros.Records[entry.key]
+		mgr.RecvRepros++
+		mgr.reproSeq = rec.Seq
 		saveSeqFile(mgr.reproSeqFile, mgr.reproSeq)
-		return nil, nil
+		return rec.Val, nil
 	}
-	mgr.RecvRepros++
-	mgr.reproSeq = minSeq
+	mgr.reproSeq = st.reproSeq
 	saveSeqFile(mgr.reproSeqFile, mgr.reproSeq)
-	return repro, nil
+	return nil, nil
 }
 
-func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
+func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int) {
 	if mgr.corpusSeq == st.corpusSeq {
-		return nil, 0, nil
+		return nil, 0
 	}
-	type Record struct {
-		Key string
-		Val []byte
-		Seq uint64
-	}
-	var records []Record
-	for key, rec := range st.Corpus.Records {
-		if mgr.corpusSeq >= rec.Seq {
-			continue
-		}
-		if _, ok := mgr.Corpus.Records[key]; ok {
-			continue
-		}
-		meta := st.corpusMeta[key]
-		if !managerSupportsAllCalls(mgr.calls, meta.calls) {
-			continue
-		}
-		records = append(records, Record{key, rec.Val, rec.Seq})
-	}
-	maxSeq := st.corpusSeq
-	more := 0
 	const (
 		// Send at most that many records (rounded up to next seq number).
 		maxRecords = 100
@@ -459,32 +443,58 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		// Otherwise new managers will never chew all this on a busy hub.
 		capRecords = 100000
 	)
-	if len(records) > maxRecords {
-		slices.SortFunc(records, func(a, b Record) int {
-			return cmp.Compare(a.Seq, b.Seq)
-		})
-		if len(records) > capRecords {
-			records = records[len(records)-capRecords:]
+	start := findSeqStart(st.corpusOrder, mgr.corpusSeq+1)
+	if len(st.corpusOrder)-start > capRecords {
+		start = len(st.corpusOrder) - capRecords
+		for start > 0 && st.corpusOrder[start-1].seq == st.corpusOrder[start].seq {
+			start--
 		}
-		pos := maxRecords
-		maxSeq = records[pos].Seq
-		for pos+1 < len(records) && records[pos+1].Seq == maxSeq {
-			pos++
-		}
-		pos++
-		more = len(records) - pos
-		records = records[:pos]
 	}
-	progs := make([]rpctype.HubInput, 0, len(records))
-	for _, rec := range records {
+	progs := make([]rpctype.HubInput, 0, maxRecords)
+	var lastSeq uint64
+	maxSeq := st.corpusSeq
+	more := 0
+	for i := start; i < len(st.corpusOrder); i++ {
+		entry := st.corpusOrder[i]
+		rec, ok := st.matchesManager(mgr, entry)
+		if !ok {
+			continue
+		}
+		if len(progs) >= maxRecords && entry.seq > lastSeq {
+			maxSeq = lastSeq
+			more = len(st.corpusOrder) - i
+			break
+		}
 		progs = append(progs, rpctype.HubInput{
-			Domain: st.inputDomain(rec.Key, mgr.Domain),
+			Domain: st.inputDomain(entry.key, mgr.Domain),
 			Prog:   rec.Val,
 		})
+		lastSeq = rec.Seq
 	}
 	mgr.corpusSeq = maxSeq
-	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
-	return progs, more, nil
+	return progs, more
+}
+
+func (st *State) matchesManager(mgr *Manager, entry seqEntry) (db.Record, bool) {
+	rec, ok := st.Corpus.Records[entry.key]
+	if !ok || rec.Seq != entry.seq {
+		return db.Record{}, false
+	}
+	if _, ok := mgr.Corpus.Records[entry.key]; ok {
+		return db.Record{}, false
+	}
+	meta := st.corpusMeta[entry.key]
+	if !managerSupportsAllCalls(mgr.calls, meta.calls) {
+		return db.Record{}, false
+	}
+	return rec, true
+}
+
+func findSeqStart(entries []seqEntry, minSeq uint64) int {
+	start, _ := slices.BinarySearchFunc(entries, minSeq, func(e seqEntry, target uint64) int {
+		return cmp.Compare(e.seq, target)
+	})
+	return start
 }
 
 func (st *State) inputDomain(key, self string) string {
@@ -509,7 +519,6 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 	if len(inputs) == 0 {
 		return
 	}
-	st.corpusSeq++
 	for _, input := range inputs {
 		st.addInput(mgr, input)
 	}
@@ -538,11 +547,13 @@ func (st *State) addInput(mgr *Manager, input []byte) {
 			log.Logf(0, "manager %v: too long program, ignoring (%v/%v)", mgr.name, ncalls, want)
 			return
 		}
+		st.corpusSeq++
 		st.Corpus.Save(sig, input, st.corpusSeq)
 		meta = corpusMeta{
 			key:   sig,
 			calls: st.internCalls(calls),
 		}
+		st.corpusOrder = append(st.corpusOrder, seqEntry{key: sig, seq: st.corpusSeq})
 	}
 	if _, hadInMgr := mgr.Corpus.Records[sig]; !hadInMgr {
 		mgr.Corpus.Save(sig, nil, 0)
@@ -564,6 +575,19 @@ func (st *State) releaseCorpusKey(sig string) bool {
 	delete(st.corpusMeta, sig)
 	st.Corpus.Delete(sig)
 	return true
+}
+
+func (st *State) maybeCompactCorpusOrder() {
+	if len(st.corpusOrder)-len(st.corpusMeta) > max(1024, len(st.corpusMeta)/10) {
+		st.compactCorpusOrder()
+	}
+}
+
+func (st *State) compactCorpusOrder() {
+	st.corpusOrder = slices.DeleteFunc(st.corpusOrder, func(e seqEntry) bool {
+		rec, ok := st.Corpus.Records[e.key]
+		return !ok || rec.Seq != e.seq
+	})
 }
 
 func (st *State) purgeCorpus() {
@@ -599,6 +623,21 @@ func (st *State) purgeCorpus() {
 	if err := st.Corpus.Flush(); err != nil {
 		log.Logf(0, "failed to flush corpus database: %v", err)
 	}
+	st.corpusOrder = sortedEntries(st.Corpus.Records)
+}
+
+func sortedEntries(records map[string]db.Record) []seqEntry {
+	entries := make([]seqEntry, 0, len(records))
+	for key, rec := range records {
+		entries = append(entries, seqEntry{key: key, seq: rec.Seq})
+	}
+	slices.SortFunc(entries, func(a, b seqEntry) int {
+		if a.seq != b.seq {
+			return cmp.Compare(a.seq, b.seq)
+		}
+		return cmp.Compare(a.key, b.key)
+	})
+	return entries
 }
 
 func managerSupportsAllCalls(mgrCalls []bool, progCalls []uint32) bool {
@@ -617,7 +656,7 @@ func writeFile(name string, data []byte) {
 }
 
 func saveSeqFile(filename string, seq uint64) {
-	writeFile(filename, []byte(fmt.Sprint(seq)))
+	writeFile(filename, strconv.AppendUint(nil, seq, 10))
 }
 
 func loadSeqFile(filename string) uint64 {
