@@ -884,7 +884,11 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 				// Map start of user code to the VM's dedicated code buffer
 				backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
 			} else if (r.gpa == X86_SYZOS_ADDR_STACK_BOTTOM) {
-				// Map stack to the VM's dedicated stack buffer
+				// Map the first stack page to the VM's dedicated stack buffer. L2 runs on a single
+				// vCPU, so it does not need the other pages, and they must not be identity-mapped
+				// to the stacks of L1 vCPUs.
+				if (p != 0)
+					continue;
 				backing = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
 			} else {
 				// Identity map all other regions to prevent L1 OOM exhaustion.
