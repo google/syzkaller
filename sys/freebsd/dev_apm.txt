@@ -13,8 +13,9 @@ resource fd_apm[fd]
 
 openat$apm(fd const[AT_FDCWD], file ptr[in, string["/dev/apm"]], flags flags[open_flags], mode const[0]) fd_apm
 
-ioctl$APMIO_SUSPEND(fd fd_apm, cmd const[APMIO_SUSPEND])
-ioctl$APMIO_STANDBY(fd fd_apm, cmd const[APMIO_STANDBY])
+# Suspend/standby put the whole VM to sleep, which looks like a hang.
+ioctl$APMIO_SUSPEND(fd fd_apm, cmd const[APMIO_SUSPEND]) (disabled)
+ioctl$APMIO_STANDBY(fd fd_apm, cmd const[APMIO_STANDBY]) (disabled)
 ioctl$APMIO_NEXTEVENT(fd fd_apm, cmd const[APMIO_NEXTEVENT], arg ptr[out, apm_event_info])
 ioctl$APMIO_GETINFO_OLD(fd fd_apm, cmd const[APMIO_GETINFO_OLD], arg ptr[out, apm_info_old])
 ioctl$APMIO_GETINFO(fd fd_apm, cmd const[APMIO_GETINFO], arg ptr[out, apm_info])
