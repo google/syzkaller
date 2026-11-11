@@ -5,10 +5,13 @@ package kconfig
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseKConfig(t *testing.T) {
@@ -90,5 +93,29 @@ func TestFuzzParseKConfig(t *testing.T) {
 		``,
 	} {
 		FuzzParseKConfig([]byte(data)[:len(data):len(data)])
+	}
+}
+
+func TestIncludeSourcePathTraversal(t *testing.T) {
+	outerDir := t.TempDir()
+	secretFile := filepath.Join(outerDir, "secret.txt")
+	const secretContent = "SUPER_SECRET_TOKEN_VALUE"
+	require.NoError(t, os.WriteFile(secretFile, []byte(secretContent), 0644))
+
+	repoDir := filepath.Join(outerDir, "repo")
+	require.NoError(t, os.MkdirAll(repoDir, 0755))
+	require.NoError(t, os.Symlink(secretFile, filepath.Join(repoDir, "Kconfig.symlink")))
+
+	target := targets.Get("linux", "amd64")
+	for _, sourcePath := range []string{"../secret.txt", "Kconfig.symlink"} {
+		t.Run(sourcePath, func(t *testing.T) {
+			kconfigPath := filepath.Join(repoDir, "Kconfig")
+			content := fmt.Sprintf("mainmenu \"test\"\nsource %q\n", sourcePath)
+			require.NoError(t, os.WriteFile(kconfigPath, []byte(content), 0644))
+
+			_, err := Parse(target, kconfigPath)
+			require.Error(t, err)
+			assert.NotContains(t, err.Error(), secretContent)
+		})
 	}
 }
