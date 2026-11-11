@@ -418,24 +418,25 @@ func (index *Index) formatSource(lines LineRange) (string, error) {
 	if lines.File == "" {
 		return "", nil
 	}
-	if err := escaping(lines.File); err != nil {
+	relFile, err := cleanRelPath(lines.File)
+	if err != nil {
 		return "", err
 	}
 	for _, dir := range index.srcDirs {
-		file := filepath.Join(dir, lines.File)
-		if !osutil.IsExist(file) {
-			continue
+		data, err := osutil.ReadFileInRoot(dir, relFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return "", err
 		}
-		return formatSourceFile(file, int(lines.StartLine), int(lines.EndLine))
+		fullPath := filepath.Join(dir, relFile)
+		return formatSourceData(data, fullPath, int(lines.StartLine), int(lines.EndLine))
 	}
 	return "", fmt.Errorf("codesearch: can't find %q file in any of %v", lines.File, index.srcDirs)
 }
 
-func formatSourceFile(file string, start, end int) (string, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return "", err
-	}
+func formatSourceData(data []byte, file string, start, end int) (string, error) {
 	lines := splitSourceLines(data)
 	if start < 1 || end < start {
 		return "", fmt.Errorf("codesearch: bad line range [%v-%v] for file %v with %v lines",
@@ -465,17 +466,16 @@ func formatSourceLines(lines [][]byte, start, end int) string {
 	return b.String()
 }
 
-func escaping(path string) error {
-	if strings.Contains(filepath.Clean(path), "..") {
-		return aflow.BadCallError("path is outside of the source tree")
+func cleanRelPath(path string) (string, error) {
+	path = filepath.Clean(strings.TrimLeft(filepath.FromSlash(path), string(filepath.Separator)))
+	if strings.Contains(path, "..") {
+		return "", aflow.BadCallError("path is outside of the source tree")
 	}
-	return nil
+	return path, nil
 }
 
 func dirIndex(root, subdir string) (bool, []string, []string, error) {
-	subdir = filepath.Clean(subdir)
-	dir := filepath.Join(root, subdir)
-	entries, err := os.ReadDir(dir)
+	entries, err := osutil.ReadDirInRoot(root, subdir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = nil
@@ -505,13 +505,14 @@ func isDocumentationFile(file string) bool {
 }
 
 func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {
-	if err := escaping(dir); err != nil {
+	relDir, err := cleanRelPath(dir)
+	if err != nil {
 		return nil, nil, err
 	}
 	exists := false
 	var subdirs, files []string
 	for _, root := range srcDirs {
-		exists1, subdirs1, files1, err := dirIndex(root, dir)
+		exists1, subdirs1, files1, err := dirIndex(root, relDir)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -534,14 +535,14 @@ func DirIndex(srcDirs []string, dir string) ([]string, []string, error) {
 }
 
 func ReadFile(srcDirs []string, file string, firstLine, lineCount int) (string, error) {
-	if err := escaping(file); err != nil {
+	relFile, err := cleanRelPath(file)
+	if err != nil {
 		return "", err
 	}
 	firstLine = max(1, firstLine)
 	lineCount = max(1, min(100, lineCount))
 	for _, dir := range srcDirs {
-		path := filepath.Join(dir, file)
-		data, err := os.ReadFile(path)
+		data, err := osutil.ReadFileInRoot(dir, relFile)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue

@@ -223,3 +223,24 @@ func TestFindFunctionAtLine(t *testing.T) {
 		})
 	}
 }
+
+func TestReadFileSymlinkEscape(t *testing.T) {
+	outerDir := t.TempDir()
+	secretFile := filepath.Join(outerDir, "secret.txt")
+	const secretContent = "SECRET_OUTSIDE_REPO\n"
+	require.NoError(t, os.WriteFile(secretFile, []byte(secretContent), 0644))
+
+	srcDir := filepath.Join(outerDir, "repo")
+	require.NoError(t, os.MkdirAll(srcDir, 0755))
+	require.NoError(t, os.Symlink(secretFile, filepath.Join(srcDir, "escape.c")))
+	require.NoError(t, os.Symlink(outerDir, filepath.Join(srcDir, "escapedir")))
+
+	out, err := ReadFile([]string{srcDir}, "escape.c", 1, 10)
+	require.Error(t, err)
+	require.Empty(t, out)
+
+	subdirs, files, err := DirIndex([]string{srcDir}, "escapedir")
+	require.Error(t, err)
+	require.Empty(t, subdirs)
+	require.Empty(t, files)
+}
