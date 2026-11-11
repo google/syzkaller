@@ -259,7 +259,10 @@ spec:
       container:
         image: alpine:latest
         command: [sh, -c]
-        args: ["echo '{{inputs.parameters.data}}' > /tmp/artifact"]
+        args: ['printf "%s\n" "$DATA" > /tmp/artifact']
+        env:
+          - name: DATA
+            value: "{{inputs.parameters.data}}"
     - name: exit-workflow
       inputs:
         parameters:

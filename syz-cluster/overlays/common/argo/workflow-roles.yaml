@@ -62,9 +62,6 @@ roleRef:
   name: argo-workflow-role
 subjects:
 - kind: ServiceAccount
-  name: argo-executor-ksa
-  namespace: default
-- kind: ServiceAccount
   name: argo-controller-ksa
   namespace: argo
 - kind: ServiceAccount

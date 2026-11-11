@@ -13,7 +13,6 @@ spec:
         backoff:
           duration: "5m"
       securityContext:
-        runAsUser: 10000
         fsGroup: 10000
         fsGroupChangePolicy: "OnRootMismatch"
       inputs:
@@ -36,7 +35,9 @@ spec:
           - sh
           - -c
           - |
-            git clone --shared -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo ./workdir
+            set -e
+            git clone --shared -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo /workdir
+            chown -R syzkaller:syzkaller /workdir
         env:
         - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
           value: "1"
@@ -60,6 +61,11 @@ spec:
           "--test_name", "{{inputs.parameters.test-name}}",
           "-findings={{inputs.parameters.findings}}"
           ]
+        env:
+        - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+          value: "1"
+        - name: HOME
+          value: "/home/syzkaller"
         resources:
           requests:
             cpu: 8
@@ -76,9 +82,8 @@ spec:
         - name: output
           mountPath: /output
         securityContext:
-          privileged: true
           capabilities:
-            add: ["SYS_ADMIN"] # We need to mount a loop device during the kernel build.
+            add: ["SYS_ADMIN"] # Needed for osutil.Sandbox namespaces (CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID).
       volumes:
         - name: base-kernel-repo
           persistentVolumeClaim:

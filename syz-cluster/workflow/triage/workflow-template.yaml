@@ -13,7 +13,6 @@ spec:
         backoff:
           duration: "5m"
       securityContext:
-        runAsUser: 10000
         fsGroup: 10000
         fsGroupChangePolicy: "OnRootMismatch"
       initContainers:
@@ -24,11 +23,15 @@ spec:
             - sh
             - -c
             - |
+              set -e
               git clone --shared -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo /workdir
               git -C /workdir commit-graph write --reachable
+              chown -R syzkaller:syzkaller /workdir
           env:
             - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
               value: "1"
+            - name: HOME
+              value: "/home/syzkaller"
           volumeMounts:
             - name: base-kernel-repo
               mountPath: /kernel-repo
@@ -68,6 +71,9 @@ spec:
               mountPath: /tmp/aflow-cache
             - name: config-volume
               mountPath: /config
+          securityContext:
+            capabilities:
+              add: ["SYS_ADMIN"] # Needed for osutil.Sandbox namespaces (CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID).
       volumes:
         - name: base-kernel-repo
           persistentVolumeClaim:
