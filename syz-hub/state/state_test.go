@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -299,4 +302,146 @@ func TestBatchSync(t *testing.T) {
 
 	st.Connect("mgr2", "d2", true, []string{"open"}, nil)
 	assert.ElementsMatch(t, progs[10:170], drainSync("mgr2"))
+}
+
+func TestBatchSyncSkipsNonMatchingWatermark(t *testing.T) {
+	st := MakeTestState(t)
+
+	// foo adds 100 programs matching bar ("open"), then 100 programs NOT matching bar
+	// ("ioctl"), then 50 more matching programs ("open").
+	st.Connect("foo", "", true, []string{"open", "ioctl"}, nil)
+	st.Connect("bar", "", true, []string{"open"}, nil)
+
+	batch1 := make([][]byte, 100)
+	for i := range batch1 {
+		batch1[i] = []byte(fmt.Sprintf("open(0x%x)", i))
+	}
+	nonMatching := make([][]byte, 100)
+	for i := range nonMatching {
+		nonMatching[i] = []byte(fmt.Sprintf("ioctl(0x%x)", i))
+	}
+	batch2 := make([][]byte, 50)
+	for i := range batch2 {
+		batch2[i] = []byte(fmt.Sprintf("open(0x%x)", 100+i))
+	}
+	st.Sync("foo", batch1, nil)
+	st.Sync("foo", nonMatching, nil)
+	st.Sync("foo", batch2, nil)
+
+	// First Sync returns batch1 (seq 1..100) and advances bar.corpusSeq past the
+	// 100 non-matching "ioctl" programs (seq 101..200) to 200.
+	_, inputs, more := st.Sync("bar", nil, nil)
+	assert.Len(t, inputs, 100)
+	assert.Equal(t, 50, more)
+	assert.Equal(t, uint64(200), st.state.Managers["bar"].corpusSeq)
+
+	// Second Sync jumps directly to seq 201 and returns batch2.
+	_, inputs, more = st.Sync("bar", nil, nil)
+	assert.Len(t, inputs, 50)
+	assert.Equal(t, 0, more)
+	assert.Equal(t, uint64(250), st.state.Managers["bar"].corpusSeq)
+}
+
+func TestCompactCorpusOrder(t *testing.T) {
+	st := MakeTestState(t)
+
+	const total = 1100
+	progs := make([][]byte, total)
+	sigs := make([]string, total)
+	for i := range total {
+		progs[i] = []byte(fmt.Sprintf("open(0x%x)", i))
+		sigs[i] = hash.String(progs[i])
+	}
+	st.Connect("mgr1", "d1", true, []string{"open"}, progs)
+	assert.Len(t, st.state.corpusOrder, total)
+
+	// Delete 1050 programs (> 1024 threshold) to trigger maybeCompactCorpusOrder.
+	st.Sync("mgr1", nil, sigs[:1050])
+	assert.Len(t, st.state.Corpus.Records, 50)
+	assert.Len(t, st.state.corpusOrder, 50)
+
+	// A new manager syncing receives only the remaining 50 programs.
+	st.Connect("mgr2", "d2", true, []string{"open"}, nil)
+	_, inputs, more := st.Sync("mgr2", nil, nil)
+	assert.Equal(t, 0, more)
+	assert.Len(t, inputs, 50)
+}
+
+func TestCorruptedDBEntries(t *testing.T) {
+	st := MakeTestState(t)
+
+	validProg := []byte("open(0x0)")
+	validSig := hash.String(validProg)
+	st.Connect("mgr1", "", true, []string{"open"}, [][]byte{validProg})
+
+	// Inject corrupted records directly into Corpus DB and reload:
+	// 1. Unparseable program call set.
+	badSyntax := []byte("not a valid program")
+	st.state.Corpus.Save(hash.String(badSyntax), badSyntax, 10)
+	// 2. Program with > prog.MaxCalls calls.
+	tooManyCalls := []byte(strings.Repeat("open(0x0)\n", prog.MaxCalls+1))
+	st.state.Corpus.Save(hash.String(tooManyCalls), tooManyCalls, 11)
+	// 3. Record whose key does not match its content hash.
+	st.state.Corpus.Save(hash.String([]byte("other")), []byte("open(0x1)"), 12)
+
+	st.Reload()
+	assert.Len(t, st.state.Corpus.Records, 1)
+	assert.Contains(t, st.state.Corpus.Records, validSig)
+}
+
+func TestCapRecordsCountsMatchingInputs(t *testing.T) {
+	st := MakeTestState(t)
+
+	st.Connect("mgr1", "d1", true, []string{"open", "ioctl"}, nil)
+	st.Connect("mgr2", "d2", true, []string{"open"}, nil)
+
+	openID := st.state.callID("open")
+	ioctlID := st.state.callID("ioctl")
+
+	const (
+		matchingCount = 50
+		capCount      = 100000
+	)
+	var nextIdx int
+	addRecord := func(call string, callID uint32) {
+		idx := nextIdx
+		nextIdx++
+		seq := uint64(idx + 1)
+		progText := []byte(fmt.Sprintf("%s(0x%x)", call, idx))
+		key := fmt.Sprintf("key-%06d", idx)
+		st.state.Corpus.Records[key] = db.Record{Val: progText, Seq: seq}
+		st.state.corpusMeta[key] = corpusMeta{key: key, calls: []uint32{callID}, refs: 1}
+		st.state.corpusOrder = append(st.state.corpusOrder, seqEntry{key: key, seq: seq})
+		st.state.corpusSeq = seq
+	}
+
+	// Populate 50 matching ("open") records followed by 100,000 non-matching ("ioctl")
+	// records so len(corpusOrder) > capRecords (100,000), while only 50 records match mgr2.
+	for range matchingCount {
+		addRecord("open", openID)
+	}
+	for range capCount {
+		addRecord("ioctl", ioctlID)
+	}
+
+	// mgr2 should still receive all 50 matching records despite the 100,000 non-matching tail.
+	_, inputs, more := st.Sync("mgr2", nil, nil)
+	assert.Equal(t, 0, more)
+	assert.Len(t, inputs, matchingCount)
+	assert.Equal(t, st.state.corpusSeq, st.state.Managers["mgr2"].capCheckedSeq)
+
+	// Append 100,000 more matching ("open") records so total matching records is 100,050
+	// (> capRecords = 100,000). A fresh manager should skip the first 50 matching records
+	// and the 100,000 non-matching records, starting at index 100,050 (seq 100,051).
+	base := nextIdx
+	for range capCount {
+		addRecord("open", openID)
+	}
+	st.Connect("mgr3", "d3", true, []string{"open"}, nil)
+	_, inputs, more = st.Sync("mgr3", nil, nil)
+	assert.Equal(t, 99900, more)
+	assert.Len(t, inputs, 100)
+	assert.Equal(t, st.state.corpusSeq, st.state.Managers["mgr3"].capCheckedSeq)
+	assert.Contains(t, inputs, rpctype.HubInput{Prog: []byte(fmt.Sprintf("open(0x%x)", base))})
+	assert.NotContains(t, inputs, rpctype.HubInput{Prog: []byte("open(0x0)")})
 }
