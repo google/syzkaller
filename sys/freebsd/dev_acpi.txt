@@ -19,9 +19,10 @@ ioctl$ACPIIO_BATT_GET_BIF(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BIF], arg ptr[in
 ioctl$ACPIIO_BATT_GET_BIX(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BIX], arg ptr[inout, acpi_battery_ioctl_arg])
 ioctl$ACPIIO_BATT_GET_BST(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BST], arg ptr[inout, acpi_battery_ioctl_arg])
 ioctl$ACPIIO_BATT_GET_BST_V1(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BST_V1], arg ptr[inout, acpi_battery_ioctl_arg])
-ioctl$ACPIIO_REQSLPSTATE(fd fd_acpi, cmd const[ACPIIO_REQSLPSTATE], arg ptr[in, int32[0:5]])
+# Entering sleep states puts the whole VM to sleep, which looks like a hang.
+ioctl$ACPIIO_REQSLPSTATE(fd fd_acpi, cmd const[ACPIIO_REQSLPSTATE], arg ptr[in, int32[0:5]]) (disabled)
 ioctl$ACPIIO_ACKSLPSTATE(fd fd_acpi, cmd const[ACPIIO_ACKSLPSTATE], arg ptr[in, int32])
-ioctl$ACPIIO_SETSLPSTATE(fd fd_acpi, cmd const[ACPIIO_SETSLPSTATE], state ptr[in, int32[0:5]])
+ioctl$ACPIIO_SETSLPSTATE(fd fd_acpi, cmd const[ACPIIO_SETSLPSTATE], state ptr[in, int32[0:5]]) (disabled)
 ioctl$ACPIIO_ACAD_GET_STATUS(fd fd_acpi, cmd const[ACPIIO_ACAD_GET_STATUS], arg ptr[out, int32])
 
 acpi_bix_units = ACPI_BIX_UNITS_MW, ACPI_BIX_UNITS_MA
