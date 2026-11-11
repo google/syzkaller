@@ -104,6 +104,13 @@ func (p *Provider) init(ctx context.Context, cfg Config) error {
 			InputTokenLimit:  1048576,
 			OutputTokenLimit: 65536,
 		},
+		"gemini-4-carbon": {
+			Thinking: true,
+			// Gemini 4 Carbon does not support MINIMAL thinking.
+			MinThinkingLevel: backend.ThinkingLevelLow,
+			InputTokenLimit:  1048576,
+			OutputTokenLimit: 65536,
+		},
 		"gemini-4-argon": {
 			Thinking: true,
 			// Gemini 4 Argon does not support MINIMAL thinking.
@@ -164,7 +171,7 @@ func (p *Provider) ResolveModels(category backend.ModelCategory) []string {
 	}
 	switch category {
 	case backend.DeepReasoningModel:
-		return []string{"gemini-4-argon"}
+		return []string{"gemini-4-carbon", "gemini-4-argon"}
 	case backend.CoreModel:
 		return []string{"gemini-3.8-flash"}
 	case backend.LightweightModel:
