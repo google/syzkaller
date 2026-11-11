@@ -22,7 +22,7 @@ ioctl$EXT4_IOC_CHECKPOINT(fd fd, cmd const[EXT4_IOC_CHECKPOINT], arg ptr[in, fla
 ioctl$EXT4_IOC_GETFSUUID(fd fd, cmd const[EXT4_IOC_GETFSUUID], arg ptr[out, fsuuid])
 ioctl$EXT4_IOC_SETFSUUID(fd fd, cmd const[EXT4_IOC_SETFSUUID], arg ptr[in, fsuuid])
 ioctl$EXT4_IOC_GET_TUNE_SB_PARAM(fd fd, cmd const[EXT4_IOC_GET_TUNE_SB_PARAM], arg ptr[out, ext4_tune_sb_params])
-ioctl$EXT4_IOC_SET_TUNE_SB_PARAM(fd fd_ext4_mnt, cmd const[EXT4_IOC_SET_TUNE_SB_PARAM], arg ptr[in, ext4_tune_sb_params])
+ioctl$EXT4_IOC_SET_TUNE_SB_PARAM(fd fd_ext4_mnt, cmd const[EXT4_IOC_SET_TUNE_SB_PARAM], arg ptr[in, ext4_tune_sb_params]) (no_squash)
 
 ext4_state_flags = EXT4_STATE_FLAG_EXT_PRECACHED, EXT4_STATE_FLAG_NEW, EXT4_STATE_FLAG_NEWENTRY, EXT4_STATE_FLAG_DA_ALLOC_CLOSE
 ext4_checkpoint_flags = EXT4_IOC_CHECKPOINT_FLAG_DISCARD, EXT4_IOC_CHECKPOINT_FLAG_ZEROOUT, EXT4_IOC_CHECKPOINT_FLAG_DRY_RUN
