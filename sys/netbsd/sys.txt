@@ -225,10 +225,13 @@ __wait450(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru 
 
 exit(code intptr)
 ptrace(request intptr, pid pid, addr ptr[out, intptr], data intptr)
-__clone(flags flags[clone_flags], sp buffer[in]) pid
-fork() pid
-__vfork14() pid
-vfork() pid
+# Creating processes is not supported: the child returns into the multithreaded executor code
+# with a single thread, hangs there forever holding executor resources (e.g. tun), and such
+# processes accumulate (Linux does not describe fork either).
+__clone(flags flags[clone_flags], sp buffer[in]) pid (disabled)
+fork() pid (disabled)
+__vfork14() pid (disabled)
+vfork() pid (disabled)
 posix_spawn(pid pid, path ptr[in, string], file_actions ptr[in, posix_spawn_file_actions], attrp ptr[in, posix_spawnattr], argv ptr[in, array[string]], envp ptr[in, array[string]]) pid
 
 outsname {
