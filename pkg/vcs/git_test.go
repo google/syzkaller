@@ -541,6 +541,12 @@ func TestGitFileHashes(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, map2["object.txt"])
 	assert.NotEmpty(t, map2["object2.txt"])
+
+	// Filenames starting with '-' must not be interpreted as git ls-tree flags.
+	map3, err := repo.repo.fileHashes(commit2.Hash, []string{"--invalid-flag-injection", "object.txt"})
+	require.NoError(t, err)
+	assert.NotEmpty(t, map3["object.txt"])
+	assert.Empty(t, map3["--invalid-flag-injection"])
 }
 
 func TestBaseForDiff(t *testing.T) {
