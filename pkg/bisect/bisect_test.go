@@ -6,6 +6,7 @@ package bisect
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"testing"
@@ -52,6 +53,9 @@ func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, b
 	env.config = string(buildCfg.KernelConfig)
 	if env.config == "baseline-fails" {
 		return "", details, fmt.Errorf("failure")
+	}
+	if commit >= env.test.buildInfraErrStart && commit <= env.test.buildInfraErrEnd {
+		return "", details, &build.InfraError{Title: "failed to boot build VM"}
 	}
 	return "", details, nil
 }
@@ -249,7 +253,8 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 		if test.expectErr != (err != nil) {
 			t.Fatalf("expected error %v, got %v", test.expectErr, err)
 		}
-		if test.expectErrType != nil && !errors.As(err, &test.expectErrType) {
+		if test.expectErrType != nil &&
+			!errors.As(err, reflect.New(reflect.TypeOf(test.expectErrType)).Interface()) {
 			t.Fatalf("expected %#v error, got %#v", test.expectErrType, err)
 		}
 		if err != nil {
@@ -317,7 +322,10 @@ type BisectionTest struct {
 	brokenEnd         int
 	infraErrStart     int
 	infraErrEnd       int
-	reportType        crash.Type
+	// Range of commits for which the kernel build fails with build.InfraError.
+	buildInfraErrStart int
+	buildInfraErrEnd   int
+	reportType         crash.Type
 	// Range of commits that result in the same kernel binary signature.
 	sameBinaryStart int
 	sameBinaryEnd   int
@@ -683,6 +691,16 @@ var bisectionTests = []BisectionTest{
 		infraErrStart: 600,
 		infraErrEnd:   800,
 		introduced:    "602",
+	},
+	{
+		name:               "cause-build-infra-problems",
+		startCommit:        905,
+		expectRep:          false,
+		expectErr:          true,
+		expectErrType:      &build.InfraError{},
+		buildInfraErrStart: 600,
+		buildInfraErrEnd:   800,
+		introduced:         "602",
 	},
 	{
 		name:              "fix-cross-tree",
