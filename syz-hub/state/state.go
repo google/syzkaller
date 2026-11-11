@@ -59,6 +59,7 @@ type Manager struct {
 	HTTP          string
 	Domain        string
 	corpusSeq     uint64
+	capCheckedSeq uint64
 	reproSeq      uint64
 	corpusFile    string
 	corpusSeqFile string
@@ -118,6 +119,8 @@ func Make(dir string) (*State, error) {
 			return nil, err
 		}
 	}
+	// purgeCorpus initializes corpusMeta reference counts before PurgeOldManagers
+	// releases keys held by expired managers.
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
 	log.Logf(0, "done, %v programs", len(st.Corpus.Records))
@@ -297,6 +300,7 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 	mgr.Connected = time.Now()
 	mgr.Domain = domain
 	writeFile(mgr.domainFile, []byte(mgr.Domain))
+	mgr.capCheckedSeq = 0
 	if fresh {
 		mgr.corpusSeq = 0
 		mgr.reproSeq = st.reproSeq
@@ -315,15 +319,10 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 	for _, input := range corpus {
 		st.addInput(mgr, input)
 	}
-	deletedFromHub := false
 	for sig := range oldRecords {
-		if st.releaseCorpusKey(sig) {
-			deletedFromHub = true
-		}
+		st.releaseCorpusKey(sig)
 	}
-	if deletedFromHub {
-		st.maybeCompactCorpusOrder()
-	}
+	st.maybeCompactCorpusOrder()
 	if err := mgr.Corpus.Flush(); err != nil {
 		log.Logf(0, "failed to flush corpus database: %v", err)
 	}
@@ -444,24 +443,39 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int) {
 		capRecords = 100000
 	)
 	start := findSeqStart(st.corpusOrder, mgr.corpusSeq+1)
-	if len(st.corpusOrder)-start > capRecords {
-		start = len(st.corpusOrder) - capRecords
-		for start > 0 && st.corpusOrder[start-1].seq == st.corpusOrder[start].seq {
-			start--
+	capStart := findSeqStart(st.corpusOrder, max(mgr.corpusSeq, mgr.capCheckedSeq)+1)
+	if len(st.corpusOrder)-capStart > capRecords {
+		mgr.capCheckedSeq = st.corpusSeq
+		var matched int
+		for i := len(st.corpusOrder) - 1; i >= start; i-- {
+			if _, ok := st.matchesManager(mgr, st.corpusOrder[i]); !ok {
+				continue
+			}
+			if matched++; matched == capRecords {
+				start = i
+				for start > 0 && st.corpusOrder[start-1].seq == st.corpusOrder[start].seq {
+					start--
+				}
+				break
+			}
 		}
 	}
 	progs := make([]rpctype.HubInput, 0, maxRecords)
 	var lastSeq uint64
 	maxSeq := st.corpusSeq
-	more := 0
+	var more int
 	for i := start; i < len(st.corpusOrder); i++ {
 		entry := st.corpusOrder[i]
 		rec, ok := st.matchesManager(mgr, entry)
 		if !ok {
 			continue
 		}
+		// Legacy corpus.db files may have multiple records sharing a sequence number;
+		// wait for entry.seq > lastSeq so a sequence group is never split across batches.
+		// Advance maxSeq to entry.seq - 1 so any non-matching entries between lastSeq and
+		// entry.seq are not re-scanned on the next Sync call.
 		if len(progs) >= maxRecords && entry.seq > lastSeq {
-			maxSeq = lastSeq
+			maxSeq = entry.seq - 1
 			more = len(st.corpusOrder) - i
 			break
 		}
@@ -591,10 +605,6 @@ func (st *State) compactCorpusOrder() {
 }
 
 func (st *State) purgeCorpus() {
-	for key, meta := range st.corpusMeta {
-		meta.refs = 0
-		st.corpusMeta[key] = meta
-	}
 	for _, mgr := range st.Managers {
 		mgrModified := false
 		for sig := range mgr.Corpus.Records {
