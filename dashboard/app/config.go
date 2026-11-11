@@ -144,6 +144,17 @@ type Config struct {
 	Coverage *CoverageConfig
 	// Reproducers export path.
 	ReproExportPath string
+	// If set, user-initiated patch testing requests are rejected for all reporting stages
+	// of the namespace (unless overridden by Reporting.DisableTestCommand).
+	DisableTestCommand *DisableTestCommandConfig
+}
+
+// DisableTestCommandConfig describes how user-initiated patch testing requests
+// (#syz test commands and the external reporting API) are rejected.
+// Internally generated test jobs (e.g. repro retesting) are not affected.
+type DisableTestCommandConfig struct {
+	// The reply sent to the user. If empty, the requests are silently ignored.
+	Message string
 }
 
 type AIConfig struct {
@@ -396,6 +407,12 @@ type Reporting struct {
 	// The value is the string that will be included in the notification message.
 	// Notifications will only be sent for automatically assigned labels.
 	Labels map[string]string
+	// If set, user-initiated patch testing requests for bugs in this reporting stage
+	// are rejected and the #syz test command is not advertised in the reports.
+	// The setting applies to the requests addressed to this stage's reports
+	// (requests to the already closed stages are rejected anyway).
+	// Takes precedence over Config.DisableTestCommand.
+	DisableTestCommand *DisableTestCommandConfig
 	// Set for all but last reporting stages.
 	moderation bool
 }
@@ -498,6 +515,15 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 		}
 	}
 	return nil
+}
+
+// testCommandDisabled returns non-nil if user-initiated patch testing is disabled
+// for bugs in the specified reporting stage.
+func (cfg *Config) testCommandDisabled(reportingName string) *DisableTestCommandConfig {
+	if reporting := cfg.ReportingByName(reportingName); reporting != nil && reporting.DisableTestCommand != nil {
+		return reporting.DisableTestCommand
+	}
+	return cfg.DisableTestCommand
 }
 
 func (reporting *Reporting) EmbargoForBug(bug *Bug) time.Duration {

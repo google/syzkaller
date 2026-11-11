@@ -910,6 +910,17 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 
 func handleTestCommand(ctx context.Context, info *bugInfoResult,
 	msg *email.Email, command *email.SingleCommand) string {
+	if info.bug.sanitizeAccess(ctx, AccessPublic) != AccessPublic {
+		log.Warningf(ctx, "%v: bug is not AccessPublic, patch testing request is denied", info.bug.Title)
+		return ""
+	}
+	// Check it before parsing the arguments so that the user gets the relevant reply.
+	// Blocked users are denied silently in handleTestRequest.
+	if !slices.Contains(getConfig(ctx).EmailBlocklist, msg.Author) {
+		if err := checkTestCommandEnabled(ctx, info.bug, info.bugReporting); err != nil {
+			return testRequestErrorReply(ctx, err)
+		}
+	}
 	args := strings.Fields(command.Args)
 	if len(args) != 0 && len(args) != 2 {
 		return replyMalformedSyzTest
@@ -918,11 +929,6 @@ func handleTestCommand(ctx context.Context, info *bugInfoResult,
 	if len(args) == 2 {
 		repo, branch = args[0], args[1]
 	}
-	if info.bug.sanitizeAccess(ctx, AccessPublic) != AccessPublic {
-		log.Warningf(ctx, "%v: bug is not AccessPublic, patch testing request is denied", info.bug.Title)
-		return ""
-	}
-	reply := ""
 	err := handleTestRequest(ctx, &testReqArgs{
 		bug:          info.bug,
 		bugKey:       info.bugKey,
@@ -936,22 +942,31 @@ func handleTestCommand(ctx context.Context, info *bugInfoResult,
 		jobCC:        msg.Cc,
 	})
 	if err != nil {
-		var testDenied *TestRequestDeniedError
-		var badTest *BadTestRequestError
-		switch {
-		case errors.As(err, &testDenied):
-			// Don't send a reply in this case.
-			log.Errorf(ctx, "patch test request denied: %v", testDenied)
-		case errors.As(err, &badTest):
-			reply = badTest.Error()
-		default:
-			// Don't leak any details to the reply email.
-			reply = "Processing failed due to an internal error"
-			// .. but they are useful for debugging, so we'd like to see it on the Admin page.
-			log.Errorf(ctx, "handleTestRequest error: %v", err)
-		}
+		return testRequestErrorReply(ctx, err)
 	}
-	return reply
+	return ""
+}
+
+// testRequestErrorReply converts a test request processing error into an email reply.
+func testRequestErrorReply(ctx context.Context, err error) string {
+	var testDenied *TestRequestDeniedError
+	var cmdDisabled *TestCommandDisabledError
+	var badTest *BadTestRequestError
+	switch {
+	case errors.As(err, &testDenied):
+		// Don't send a reply in this case.
+		log.Errorf(ctx, "patch test request denied: %v", testDenied)
+	case errors.As(err, &cmdDisabled):
+		// Patch testing is silently disabled, don't send a reply (it's logged in checkTestCommandEnabled).
+	case errors.As(err, &badTest):
+		return badTest.Error()
+	default:
+		// The details are useful for debugging, so we'd like to see them on the Admin page.
+		log.Errorf(ctx, "handleTestRequest error: %v", err)
+		// But don't leak any details to the reply email.
+		return "Processing failed due to an internal error"
+	}
+	return ""
 }
 
 var (

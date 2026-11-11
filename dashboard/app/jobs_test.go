@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -1497,4 +1498,152 @@ func TestReproCJobError(t *testing.T) {
 	c.expectNoEmail()
 	bug, _, _ = c.loadBug(extBugID)
 	c.expectEQ(bug.HasCRepro, false)
+}
+
+// Test that patch testing can be disabled with a message for a specific reporting stage.
+func TestDisableTestCommandWithMessage(t *testing.T) {
+	// Job polling needs Spanner.
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	const disabledMessage = "Patch testing is temporarily disabled."
+	c.transformContext = func(ctx context.Context) context.Context {
+		return contextWithConfig(ctx, replaceReporting(ctx, "access-public-email",
+			"access-public-email-reporting1", func(r Reporting) Reporting {
+				r.DisableTestCommand = &DisableTestCommandConfig{Message: disabledMessage}
+				return r
+			}))
+	}
+
+	client := c.publicClient
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	require.NoError(t, err)
+
+	// The report about the found reproducer must not advertise #syz test.
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproC = []byte("repro C")
+	client.ReportCrash(crash)
+	c.globalClient.pollAndFailBisectJob(build.Manager)
+	body := c.pollEmailBug().Body
+	assert.Contains(t, body, "syzbot has found a reproducer")
+	assert.NotContains(t, body, "#syz test")
+	assert.NotContains(t, body, "---")
+
+	// Both well-formed and malformed commands get the configured reply.
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	for _, cmd := range []string{syzTestGitBranchSamplePatch, "#syz test: repo\n"} {
+		c.incomingEmail(sender, cmd, EmailOptFrom("test@requester.com"),
+			EmailOptCC([]string{mailingList}))
+		reply := c.pollEmailBug()
+		assert.Contains(t, reply.Body, disabledMessage)
+	}
+
+	// Blocked users still get no reply.
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
+		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"), EmailOptCC([]string{mailingList}))
+	c.expectNoEmail()
+
+	// The external API is also affected.
+	ret, err := c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  extBugID,
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "git://git.git/git.git",
+		Patch:  []byte(sampleGitPatch),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, disabledMessage, ret.ErrorText)
+
+	// No test jobs were created.
+	pollResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	assert.Empty(t, pollResp.ID)
+}
+
+// Test that patch testing can be silently disabled for the whole namespace,
+// while the internally generated test jobs keep working.
+func TestDisableTestCommandSilently(t *testing.T) {
+	// Job polling needs Spanner.
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(ctx context.Context) context.Context {
+		return contextWithConfig(ctx, replaceNamespaceConfig(ctx, "access-public-email",
+			func(cfg *Config) *Config {
+				ret := *cfg
+				ret.DisableTestCommand = &DisableTestCommandConfig{}
+				return &ret
+			}))
+	}
+
+	client := c.publicClient
+	build := testBuild(1)
+	// Needed for the repro retesting jobs.
+	build.KernelRepo = "git://mygit.com/git.git"
+	build.KernelBranch = "main"
+	client.UploadBuild(build)
+
+	crash := testCrashWithRepro(build, 1)
+	client.ReportCrash(crash)
+	msg := c.pollEmailBug()
+	assert.Contains(t, msg.Body, "syz repro:")
+	assert.NotContains(t, msg.Body, "#syz test")
+	sender := msg.Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	require.NoError(t, err)
+
+	// The commands are silently ignored.
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	for _, cmd := range []string{syzTestGitBranchSamplePatch, "#syz test: repo\n"} {
+		c.incomingEmail(sender, cmd, EmailOptFrom("test@requester.com"),
+			EmailOptCC([]string{mailingList}))
+		c.expectNoEmail()
+	}
+
+	// The external API still gets an error.
+	ret, err := c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  extBugID,
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "git://git.git/git.git",
+		Patch:  []byte(sampleGitPatch),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "patch testing is disabled", ret.ErrorText)
+
+	// No test jobs were created.
+	pollResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	assert.Empty(t, pollResp.ID)
+
+	// But the reproducer retesting jobs are still generated.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	pollResp = c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	assert.NotEmpty(t, pollResp.ID)
+	assert.Equal(t, dashapi.JobTestPatch, pollResp.Type)
+}
+
+func TestTestCommandDisabledConfig(t *testing.T) {
+	nsDisabled := &DisableTestCommandConfig{}
+	stageDisabled := &DisableTestCommandConfig{Message: "disabled"}
+	cfg := &Config{
+		Reporting: []Reporting{
+			{Name: "stage1"},
+			{Name: "stage2", DisableTestCommand: stageDisabled},
+		},
+	}
+	// The per-stage setting does not leak into other stages.
+	assert.Nil(t, cfg.testCommandDisabled("stage1"))
+	assert.Equal(t, stageDisabled, cfg.testCommandDisabled("stage2"))
+
+	// The namespace setting applies to the stages without own setting.
+	cfg.DisableTestCommand = nsDisabled
+	assert.Equal(t, nsDisabled, cfg.testCommandDisabled("stage1"))
+	assert.Equal(t, stageDisabled, cfg.testCommandDisabled("stage2"))
+	assert.Equal(t, nsDisabled, cfg.testCommandDisabled("unknown"))
 }
