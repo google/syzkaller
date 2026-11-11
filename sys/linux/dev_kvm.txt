@@ -112,7 +112,7 @@ kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTD
 kvm_guest_selector = 0, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16
 kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITIALLY_SET
 kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576
-kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
+kvm_mem_slots = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_guest_addr_offsets = 0, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_x86_cr0 = 1, 2, 4, 8, 16, 32, 65536, 262144, 536870912, 1073741824, 2147483648
@@ -138,7 +138,7 @@ mmap$KVM_DIRTY_RING(addr vma, len flags[kvm_dirty_log_sizes], prot flags[mmap_pr
 munmap$KVM_DIRTY_RING(addr kvm_dirty_ring_ptr, len flags[kvm_dirty_log_sizes])
 
 # Writes to dirty ring entries to test harvesting and reset handshake with kernel.
-syz_memcpy_off$KVM_DIRTY_GFN(dst kvm_dirty_ring_ptr, off intptr, src ptr[in, kvm_dirty_gfn], src_off const[0], nbytes bytesize[src])
+syz_memcpy_off$KVM_DIRTY_GFN(dst kvm_dirty_ring_ptr, off intptr[0:4096, 16], src ptr[in, array[kvm_dirty_gfn]], src_off const[0], nbytes bytesize[src])
 
 # struct kvm_dirty_gfn from include/uapi/linux/kvm.h
 kvm_dirty_gfn {
