@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 
 // GlobalConfig stores multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
 // The exact config is stored in a global config variable and is read-only.
-// Also see config_stub.go.
+// Also see config/stub.go.
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
@@ -508,13 +508,9 @@ func (reporting *Reporting) EmbargoForBug(bug *Bug) time.Duration {
 }
 
 // configDontUse holds the configuration object that is installed either by tests
-// or from mainConfig in main function (a separate file should install mainConfig
-// in an init function).
+// or from Main function.
 // Please access it via the getConfig(context.Context) method.
-var (
-	configDontUse *GlobalConfig
-	mainConfig    *GlobalConfig
-)
+var configDontUse *GlobalConfig
 
 // To ensure config integrity during tests, we marshal config after it's installed
 // and optionally verify it during execution.
@@ -524,7 +520,7 @@ var (
 )
 
 func installConfig(cfg *GlobalConfig) {
-	checkConfig(cfg)
+	CheckConfig(cfg)
 	if configDontUse != nil {
 		panic("another config is already installed")
 	}
@@ -569,7 +565,7 @@ func getNsConfig(ctx context.Context, ns string) *Config {
 	return getConfig(ctx).Namespaces[ns]
 }
 
-func checkConfig(cfg *GlobalConfig) {
+func CheckConfig(cfg *GlobalConfig) {
 	if cfg == nil {
 		panic("installing nil config")
 	}

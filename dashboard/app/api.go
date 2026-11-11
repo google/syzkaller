@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"bytes"
@@ -813,8 +813,8 @@ func apiReportBuildError(ctx context.Context, ns string, req *dashapi.BuildError
 }
 
 const (
-	corruptedReportTitle  = "corrupted report"
-	suppressedReportTitle = "suppressed report"
+	CorruptedReportTitle  = "corrupted report"
+	SuppressedReportTitle = "suppressed report"
 )
 
 func apiReportCrash(ctx context.Context, ns string, req *dashapi.Crash) (any, error) {
@@ -1220,12 +1220,12 @@ func canonicalizeCrashTitle(title string, corrupted, suppressed bool) string {
 		// The report is corrupted and the title is most likely invalid.
 		// Such reports are usually unactionable and are discarded.
 		// Collect them into a single bin.
-		return corruptedReportTitle
+		return CorruptedReportTitle
 	}
 	if suppressed {
 		// Collect all of them into a single bucket so that it's possible to control and assess them,
 		// e.g. if there are some spikes in suppressed reports.
-		return suppressedReportTitle
+		return SuppressedReportTitle
 	}
 	return normalizeCrashTitle(title)
 }
@@ -1596,8 +1596,8 @@ func needReproForBug(ctx context.Context, bug *Bug) bool {
 	if len(bug.Commits) > 0 {
 		return false
 	}
-	if bug.Title == corruptedReportTitle ||
-		bug.Title == suppressedReportTitle {
+	if bug.Title == CorruptedReportTitle ||
+		bug.Title == SuppressedReportTitle {
 		return false
 	}
 	if !getNsConfig(ctx, bug.Namespace).NeedRepro(bug) {
