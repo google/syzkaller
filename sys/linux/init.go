@@ -46,6 +46,8 @@ func InitTarget(target *prog.Target) {
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
+		EXT4_IOC_SET_TUNE_SB_PARAM:  target.GetConst("EXT4_IOC_SET_TUNE_SB_PARAM"),
+		EXT4_IOC_GET_TUNE_SB_PARAM:  target.GetConst("EXT4_IOC_GET_TUNE_SB_PARAM"),
 		O_CREAT:                     target.GetConst("O_CREAT"),
 		// These are not present on all arches.
 		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
@@ -151,6 +153,8 @@ type arch struct {
 	NETLINK_GENERIC             uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
+	EXT4_IOC_SET_TUNE_SB_PARAM  uint64
+	EXT4_IOC_GET_TUNE_SB_PARAM  uint64
 	O_CREAT                     uint64
 }
 
@@ -435,7 +439,49 @@ func (arch *arch) neutralizeIoctl(c *prog.Call) {
 		// and would be nice to test, if/when we can neutralize based on sandbox value
 		// we could prohibit it only under sandbox=none.
 		cmd.Val = arch.TIOCGSERIAL
+	case arch.EXT4_IOC_SET_TUNE_SB_PARAM:
+		arch.neutralizeExt4TuneSb(c)
 	}
+}
+
+// neutralizeExt4TuneSb prevents EXT4_IOC_SET_TUNE_SB_PARAM from setting s_errors to
+// EXT4_ERRORS_PANIC, which triggers false-positive kernel panics if the loop image is
+// later mounted without errors=continue (e.g. via fsopen/fsmount).
+func (arch *arch) neutralizeExt4TuneSb(c *prog.Call) {
+	if !neutralizeExt4TuneSbArg(c) {
+		c.Args[1].(*prog.ConstArg).Val = arch.EXT4_IOC_GET_TUNE_SB_PARAM
+	}
+}
+
+func neutralizeExt4TuneSbArg(c *prog.Call) bool {
+	const (
+		errorsBehaviorField = 2 // index of errors_behavior in ext4_tune_sb_params
+		ext4ErrorsContinue  = 1 // EXT4_ERRORS_CONTINUE in fs/ext4/ext4.h
+		ext4ErrorsPanic     = 3 // EXT4_ERRORS_PANIC in fs/ext4/ext4.h
+	)
+	if len(c.Args) < 3 {
+		return false
+	}
+	ptr, ok := c.Args[2].(*prog.PointerArg)
+	if !ok {
+		return false
+	}
+	if ptr.Res == nil && c.Meta.Name == "ioctl$EXT4_IOC_SET_TUNE_SB_PARAM" {
+		ptr.Address = 0
+		return true
+	}
+	group, ok := ptr.Res.(*prog.GroupArg)
+	if !ok || group.Type().Name() != "ext4_tune_sb_params" || len(group.Inner) <= errorsBehaviorField {
+		return false
+	}
+	behavior, ok := group.Inner[errorsBehaviorField].(*prog.ConstArg)
+	if !ok {
+		return false
+	}
+	if uint16(behavior.Val) == ext4ErrorsPanic {
+		behavior.Val = ext4ErrorsContinue
+	}
+	return true
 }
 
 func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
