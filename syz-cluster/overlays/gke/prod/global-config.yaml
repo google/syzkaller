@@ -36,6 +36,10 @@ emailReporting:
     client: gke-email-reporter
     from: syzbot@syzkaller.appspotmail.com
     contextPrefix: ci
+  disableTestCommand:
+    message: |-
+      Patch testing via #syz test is temporarily disabled.
+      Sorry for the inconvenience.
 
 aiConfig:
   geminiAPIKey: "gcp-secret:syz-cluster-gemini-key"
