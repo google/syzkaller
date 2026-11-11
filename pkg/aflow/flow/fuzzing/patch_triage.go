@@ -7,6 +7,7 @@ package fuzzing
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+var validSymbolRe = regexp.MustCompile(`^[a-zA-Z0-9_.]+$`)
 
 func init() {
 	aflow.Register[ai.PatchTriageArgs, ai.PatchTriageResult](
@@ -36,6 +39,11 @@ func init() {
 							}
 							if !args.WorthFuzzing && len(args.FocusSymbols) > 0 {
 								return args, aflow.BadCallError("FocusSymbols must be empty if WorthFuzzing is false")
+							}
+							for _, sym := range args.FocusSymbols {
+								if !validSymbolRe.MatchString(sym) {
+									return args, aflow.BadCallError("invalid symbol name %q", sym)
+								}
 							}
 
 							args.EnableConfigs = normalizeKernelConfigs(args.EnableConfigs)
