@@ -26,6 +26,7 @@ typedef enum {
 	SYZOS_API_WR_DRN = 104,
 	SYZOS_API_IN_DX = 105,
 	SYZOS_API_OUT_DX = 106,
+	SYZOS_API_MEMWRITE = 110,
 	SYZOS_API_SET_IRQ_HANDLER = 200,
 	SYZOS_API_ENABLE_NESTED = 300,
 	SYZOS_API_NESTED_CREATE_VM = 301,
@@ -87,6 +88,14 @@ struct api_call_cpuid {
 	uint32 ecx;
 };
 
+struct api_call_memwrite {
+	struct api_call_header header;
+	uint64 base_addr;
+	uint64 offset;
+	uint64 value;
+	uint64 len;
+};
+
 // This struct must match the push/pop order in nested_vm_exit_handler_intel_asm().
 struct l2_guest_regs {
 	uint64 rax, rbx, rcx, rdx, rsi, rdi, rbp;
@@ -140,6 +149,7 @@ GUEST_CODE static void guest_handle_wr_crn(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_wr_drn(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_in_dx(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_out_dx(struct api_call_3* cmd);
+GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
@@ -250,6 +260,9 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_OUT_DX) {
 			// Write data to an I/O port.
 			guest_handle_out_dx((struct api_call_3*)cmd);
+		} else if (call == SYZOS_API_MEMWRITE) {
+			// Write data to a guest memory address.
+			guest_handle_memwrite((struct api_call_memwrite*)cmd);
 		} else if (call == SYZOS_API_SET_IRQ_HANDLER) {
 			// Set the handler for a particular IRQ.
 			guest_handle_set_irq_handler((struct api_call_2*)cmd);
@@ -513,6 +526,43 @@ GUEST_CODE static noinline void guest_handle_out_dx(struct api_call_3* cmd)
 	if (size == 4) {
 		// Writes 4 bytes from EAX to the port in DX.
 		asm volatile("outl %k0, %w1" ::"a"(data), "d"(port));
+		return;
+	}
+}
+
+GUEST_CODE static noinline void guest_handle_memwrite(struct api_call_memwrite* cmd)
+{
+	uint64 dest = cmd->base_addr + cmd->offset;
+	uint64 val = cmd->value;
+	volatile uint64 len = cmd->len;
+	if (len == 1) {
+		// Writes 1 byte to dest.
+		asm volatile("movb %b0, (%1)" ::"q"(val), "r"(dest) : "memory");
+		return;
+	}
+	if (len == 2) {
+		// Writes 2 bytes to dest.
+		asm volatile("movw %w0, (%1)" ::"r"(val), "r"(dest) : "memory");
+		return;
+	}
+	if (len == 4) {
+		// Writes 4 bytes to dest.
+		asm volatile("movl %k0, (%1)" ::"r"(val), "r"(dest) : "memory");
+		return;
+	}
+	if (len == 8) {
+		// Writes 8 bytes to dest.
+		asm volatile("movq %0, (%1)" ::"r"(val), "r"(dest) : "memory");
+		return;
+	}
+	if (len == 16) {
+		// Writes 16 bytes (XMM store) to dest.
+		asm volatile(
+		    "movq %0, %%xmm0\n\t"
+		    "punpcklqdq %%xmm0, %%xmm0\n\t"
+		    "movups %%xmm0, (%1)" ::"r"(val),
+		    "r"(dest)
+		    : "xmm0", "memory");
 		return;
 	}
 }

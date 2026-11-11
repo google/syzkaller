@@ -101,6 +101,15 @@ syzos_api_out_dx {
 	arg_val		int64
 }
 
+x86_memwrite_size = 1, 2, 4, 8, 16
+
+syzos_api_memwrite$x86 {
+	base	flags[kvm_guest_addrs, int64]
+	offset	int64
+	value	int64
+	len	flags[x86_memwrite_size, int64]
+}
+
 syzos_api_set_irq_handler {
 	arg_vector		int64[0:255]
 	arg_handler_type	int64[0:2]
@@ -226,6 +235,7 @@ syzos_api_call$x86 [
 	wr_drn				syzos_api$x86[104, syzos_api_wr_drn]
 	in_dx				syzos_api$x86[105, syzos_api_in_dx]
 	out_dx				syzos_api$x86[106, syzos_api_out_dx]
+	memwrite			syzos_api$x86[110, syzos_api_memwrite$x86]
 	set_irq_handler			syzos_api$x86[200, syzos_api_set_irq_handler]
 	enable_nested			syzos_api$x86[300, const[0, intptr]]
 	nested_create_vm		syzos_api$x86[301, syzos_api_vm_id]

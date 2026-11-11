@@ -215,8 +215,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_ADDR_PT_POOL, X86_SYZOS_PT_POOL_SIZE, 0},
     // Global State Page.
     {X86_SYZOS_ADDR_GLOBALS, 1, 0},
-    // SMRAM memory.
-    {X86_SYZOS_ADDR_SMRAM, 10, 0},
+    // SMRAM memory (0x30000 - 0x3ffff).
+    {X86_SYZOS_ADDR_SMRAM, 16, 0},
     // Unmapped region to trigger a page faults for uexits etc.
     {X86_SYZOS_ADDR_EXIT, 1, MEM_REGION_FLAG_NO_HOST_MEM},
     // Writable region with KVM_MEM_LOG_DIRTY_PAGES to fuzz dirty ring.
