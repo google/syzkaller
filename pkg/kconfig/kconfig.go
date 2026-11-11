@@ -8,11 +8,11 @@ package kconfig
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -121,7 +121,7 @@ type kconfigParser struct {
 }
 
 func Parse(target *targets.Target, file string) (*KConfig, error) {
-	data, err := os.ReadFile(file)
+	data, err := osutil.ReadFileInRoot(filepath.Dir(file), filepath.Base(file))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Kconfig file %v: %w", file, err)
 	}
@@ -371,15 +371,15 @@ func (kp *kconfigParser) parseProperty(prop string) {
 
 func (kp *kconfigParser) includeSource(file string) {
 	kp.newCurrent(nil)
-	file = kp.expandString(file)
-	file = filepath.Join(kp.baseDir, file)
-	data, err := os.ReadFile(file)
+	relFile := filepath.FromSlash(kp.expandString(file))
+	fullPath := filepath.Join(kp.baseDir, relFile)
+	data, err := osutil.ReadFileInRoot(kp.baseDir, relFile)
 	if err != nil {
 		kp.failf("%v", err)
 		return
 	}
 	kp.includes = append(kp.includes, kp.parser)
-	kp.parser = newParser(data, file)
+	kp.parser = newParser(data, fullPath)
 	kp.parseFile()
 	err = kp.err
 	kp.parser = kp.includes[len(kp.includes)-1]
