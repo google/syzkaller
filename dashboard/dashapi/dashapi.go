@@ -503,6 +503,8 @@ type BugReport struct {
 	AIRootCause    *AIRootCause      // AI-generated root cause analysis (if any)
 	// Bug labels visible at the reporting's access level.
 	Labels []BugLabel
+	// User-initiated patch testing (the #syz test command) is disabled for the bug.
+	TestCommandDisabled bool
 }
 
 type AIRootCause struct {

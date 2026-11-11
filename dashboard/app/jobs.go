@@ -51,6 +51,7 @@ type testReqArgs struct {
 // Returns nil if job added successfully.
 // If the arguments are invalid, the error is of type *BadTestRequest.
 // If the request was denied, the error is of type *TestRequestDenied.
+// If patch testing is silently disabled, the error is of type *TestCommandDisabledError.
 // All other errors correspond to internal processing problems.
 func handleTestRequest(ctx context.Context, args *testReqArgs) error {
 	log.Infof(ctx, "test request: bug=%s user=%q extID=%q patch=%v, repo=%q branch=%q",
@@ -135,11 +136,8 @@ func saveTestJobPayloads(ctx context.Context, ns string, args *testJobArgs) (
 
 func addTestJob(ctx context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	now := timeNow(ctx)
-	if err := patchTestJobArgs(ctx, args); err != nil {
+	if err := prepareTestJobArgs(ctx, args); err != nil {
 		return nil, nil, err
-	}
-	if reason := checkTestJob(args); reason != "" {
-		return nil, nil, &BadTestRequestError{reason}
 	}
 	targetMgr := args.manager
 	if targetMgr == "" {
@@ -245,6 +243,26 @@ func saveJob(ctx context.Context, job *Job, bugKey *db.Key) (*db.Key, error) {
 	}
 	return jobKey, addCrashReference(ctx, job.CrashID, bugKey,
 		CrashReference{CrashReferenceJob, extJobID(jobKey), timeNow(ctx)})
+}
+
+// prepareTestJobArgs verifies that the test job may be created and fills in the missing arguments.
+func prepareTestJobArgs(ctx context.Context, args *testJobArgs) error {
+	if args.bugReporting != nil {
+		// Only user-initiated requests have a bug reporting.
+		// Internally generated jobs (e.g. repro retesting) must not be affected.
+		// Note: the email handler also checks it earlier to give the relevant reply
+		// to malformed commands, but this place covers all request sources.
+		if err := checkTestCommandEnabled(ctx, args.bug, args.bugReporting); err != nil {
+			return err
+		}
+	}
+	if err := patchTestJobArgs(ctx, args); err != nil {
+		return err
+	}
+	if reason := checkTestJob(args); reason != "" {
+		return &BadTestRequestError{reason}
+	}
+	return nil
 }
 
 func patchTestJobArgs(ctx context.Context, args *testJobArgs) error {
@@ -356,6 +374,29 @@ type TestRequestDeniedError struct {
 
 func (e *TestRequestDeniedError) Error() string {
 	return e.message
+}
+
+// TestCommandDisabledError is returned when user-initiated patch testing is silently disabled.
+type TestCommandDisabledError struct{}
+
+func (e *TestCommandDisabledError) Error() string {
+	return "patch testing is disabled"
+}
+
+// checkTestCommandEnabled returns an error if user-initiated patch testing is disabled for the bug reporting.
+// If the config specifies a message, the error is of type *BadTestRequestError (the message is to be
+// shown to the user), otherwise it's of type *TestCommandDisabledError (the request is to be silently ignored).
+func checkTestCommandEnabled(ctx context.Context, bug *Bug, bugReporting *BugReporting) error {
+	disabled := getNsConfig(ctx, bug.Namespace).testCommandDisabled(bugReporting.Name)
+	if disabled == nil {
+		return nil
+	}
+	log.Infof(ctx, "%v: patch testing is disabled for %v, the request is rejected",
+		bug.displayTitle(), bugReporting.Name)
+	if disabled.Message != "" {
+		return &BadTestRequestError{disabled.Message}
+	}
+	return &TestCommandDisabledError{}
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.

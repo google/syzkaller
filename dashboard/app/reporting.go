@@ -589,6 +589,7 @@ func crashBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.Ke
 		ReportElements:  &dashapi.ReportElements{GuiltyFiles: crash.ReportElements.GuiltyFiles},
 		ReproIsRevoked:  crash.ReproIsRevoked,
 	}
+	rep.TestCommandDisabled = getNsConfig(ctx, bug.Namespace).testCommandDisabled(reporting.Name) != nil
 	rep.ReproCLink = externalLink(ctx, textReproC, crash.ReproC)
 	rep.ReproC, _, err = getText(ctx, textReproC, crash.ReproC)
 	if err != nil {
