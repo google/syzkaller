@@ -1075,7 +1075,7 @@ func getMaintainersImpl(kernelSrc, file string, blame bool) (vcs.Recipients, err
 	}
 	args = append(args, "-f", file)
 	script := filepath.FromSlash("scripts/get_maintainer.pl")
-	output, err := osutil.RunCmd(time.Minute, kernelSrc, script, args...)
+	output, err := osutil.RunSandboxed(time.Minute, kernelSrc, script, args...)
 	if err != nil {
 		return nil, err
 	}
