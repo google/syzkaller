@@ -237,3 +237,31 @@ func TestSandbox(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "hello\nsandbox", content)
 }
+
+func TestReadInRoot(t *testing.T) {
+	outerDir := t.TempDir()
+	secretFile := filepath.Join(outerDir, "secret.txt")
+	require.NoError(t, WriteFile(secretFile, []byte("secret")))
+
+	rootDir := filepath.Join(outerDir, "root")
+	require.NoError(t, MkdirAll(rootDir))
+	require.NoError(t, WriteFile(filepath.Join(rootDir, "ok.txt"), []byte("ok")))
+	require.NoError(t, os.Symlink(secretFile, filepath.Join(rootDir, "escape.txt")))
+	require.NoError(t, os.Symlink(outerDir, filepath.Join(rootDir, "escapedir")))
+
+	data, err := ReadFileInRoot(rootDir, "ok.txt")
+	require.NoError(t, err)
+	assert.Equal(t, []byte("ok"), data)
+
+	for _, p := range []string{"../secret.txt", "escape.txt"} {
+		_, err := ReadFileInRoot(rootDir, p)
+		require.Error(t, err)
+	}
+
+	entries, err := ReadDirInRoot(rootDir, ".")
+	require.NoError(t, err)
+	assert.Len(t, entries, 3)
+
+	_, err = ReadDirInRoot(rootDir, "escapedir")
+	require.Error(t, err)
+}
