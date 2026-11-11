@@ -20,6 +20,7 @@ ioctl$KVM_SET_GUEST_DEBUG_loong64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], 
 ioctl$KVM_SET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
 ioctl$KVM_GET_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
 ioctl$KVM_HAS_DEVICE_ATTR_vcpu_loong64(fd fd_kvmcpu, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu_loong64])
+ioctl$KVM_HAS_DEVICE_ATTR_vm_loong64(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vm_loong64])
 
 syz_kvm_assert_reg$loong64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
 syz_kvm_assert_syzos_kvm_exit$loong64(run kvm_run_ptr, exitcode int64) (no_generate)
@@ -55,8 +56,18 @@ syzos_api_call$loong64 [
 
 syz_kvm_assert_syzos_uexit$loong64(cpufd fd_kvmcpu, run kvm_run_ptr, exitcode int64) (no_generate)
 
+kvm_loong64_vm_feats = KVM_LOONGARCH_VM_FEAT_LSX, KVM_LOONGARCH_VM_FEAT_LASX, KVM_LOONGARCH_VM_FEAT_X86BT, KVM_LOONGARCH_VM_FEAT_ARMBT, KVM_LOONGARCH_VM_FEAT_MIPSBT, KVM_LOONGARCH_VM_FEAT_PMU, KVM_LOONGARCH_VM_FEAT_PV_IPI, KVM_LOONGARCH_VM_FEAT_PV_STEALTIME, KVM_LOONGARCH_VM_FEAT_PTW, KVM_LOONGARCH_VM_FEAT_MSGINT, KVM_LOONGARCH_VM_FEAT_PV_PREEMPT, KVM_LOONGARCH_VM_FEAT_CRASH
+
+kvm_device_attr_vm_loong64 {
+	flags	const[0, int32]
+	group	const[KVM_LOONGARCH_VM_FEAT_CTRL, int32]
+	attr	flags[kvm_loong64_vm_feats, int64]
+	addr	const[0, int64]
+}
+
 kvm_device_attr_vcpu_loong64 [
 	cpucfg_feature	kvm_vcpu_attr_loong64_cpucfg_feature
+	pvtime_gpa	kvm_vcpu_attr_loong64_pvtime_gpa
 ]
 
 kvm_vcpu_attr_loong64_cpucfg_feature {
@@ -68,9 +79,16 @@ kvm_vcpu_attr_loong64_cpucfg_feature {
 	addr	ptr64[inout, flags[kvm_loong64_cpucfg_features, int64]]
 }
 
+kvm_vcpu_attr_loong64_pvtime_gpa {
+	flags	const[0, int32]
+	group	const[KVM_LOONGARCH_VCPU_PVTIME_CTRL, int32]
+	attr	const[KVM_LOONGARCH_VCPU_PVTIME_GPA, int64]
+	addr	ptr64[inout, flags[kvm_guest_addrs, int64]]
+}
+
 # KVM_FEATURE_* values are feature indexes in the UAPI; the device attribute
 # takes the corresponding bitmask.
-kvm_loong64_cpucfg_features = 0x2, 0x4, 0x8, 0x1000000, 0x2000000
+kvm_loong64_cpucfg_features = 0x2, 0x4, 0x8, 0x10, 0x1000000, 0x2000000
 
 kvm_setup_opt_loong64 [
 # Keep a union so that adding future options preserves the argument layout.

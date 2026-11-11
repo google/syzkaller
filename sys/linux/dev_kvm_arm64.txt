@@ -98,6 +98,24 @@ ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET]
 ioctl$KVM_ARM_VCPU_FINALIZE(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_FINALIZE], arg ptr[in, flags[kvm_vcpu_features_arm64, int32]])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
 ioctl$KVM_ARM_SET_COUNTER_OFFSET(fd fd_kvmvm, cmd const[KVM_ARM_SET_COUNTER_OFFSET], arg ptr[in, kvm_arm_counter_offset])
+ioctl$KVM_ARM_MTE_COPY_TAGS(fd fd_kvmvm, cmd const[KVM_ARM_MTE_COPY_TAGS], arg ptr[in, kvm_arm_copy_mte_tags])
+ioctl$KVM_ARM_GET_REG_WRITABLE_MASKS(fd fd_kvmvm, cmd const[KVM_ARM_GET_REG_WRITABLE_MASKS], arg ptr[in, reg_mask_range])
+
+kvm_arm_mte_copy_flags = KVM_ARM_TAGS_TO_GUEST, KVM_ARM_TAGS_FROM_GUEST
+
+kvm_arm_copy_mte_tags {
+	guest_ipa	flags[kvm_guest_addrs, int64]
+	length		flags[kvm_guest_addr_size, int64]
+	addr		vma64
+	flags		flags[kvm_arm_mte_copy_flags, int64]
+	reserved	array[const[0, int64], 2]
+}
+
+reg_mask_range {
+	addr		ptr64[out, array[int64, KVM_ARM_FEATURE_ID_RANGE_SIZE]]
+	range		const[KVM_ARM_FEATURE_ID_RANGE, int32]
+	reserved	array[const[0, int32], 13]
+}
 
 # ARM-specific VM capabilities.
 ioctl$KVM_CAP_ARM_MTE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_MTE, void]])
@@ -105,6 +123,9 @@ ioctl$KVM_CAP_ARM_USER_IRQ(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, k
 ioctl$KVM_CAP_ARM_INJECT_SERROR_ESR(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_INJECT_SERROR_ESR, void]])
 ioctl$KVM_CAP_ARM_SYSTEM_SUSPEND(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_SYSTEM_SUSPEND, void]])
 ioctl$KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE, int64]])
+ioctl$KVM_CAP_ARM_NISV_TO_USER(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_NISV_TO_USER, void]])
+ioctl$KVM_CAP_ARM_WRITABLE_IMP_ID_REGS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_WRITABLE_IMP_ID_REGS, void]])
+ioctl$KVM_CAP_ARM_SEA_TO_USER(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_SEA_TO_USER, void]])
 
 # syz_kvm_setup_cpu$arm64 takes the same feature bitmap as ioctl$KVM_ARM_VCPU_INIT.
 kvm_setup_opt_feature {
@@ -121,8 +142,10 @@ define KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_ADDRESS)
 define KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_GENERIC)
 define KVM_ARM_VCPU_SVE_BIT	(1 << KVM_ARM_VCPU_SVE)
 define KVM_ARM_VCPU_HAS_EL2_BIT	(1 << KVM_ARM_VCPU_HAS_EL2)
-kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_ARM_VCPU_PSCI_0_2, KVM_ARM_VCPU_PMU_V3, KVM_ARM_VCPU_PTRAUTH_ADDRESS, KVM_ARM_VCPU_PTRAUTH_GENERIC, KVM_ARM_VCPU_SVE, KVM_ARM_VCPU_HAS_EL2
-kvm_vcpu_feature_bits_arm64 = KVM_ARM_VCPU_POWER_OFF_BIT, KVM_ARM_VCPU_EL1_32BIT_BIT, KVM_ARM_VCPU_PSCI_0_2_BIT, KVM_ARM_VCPU_PMU_V3_BIT, KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT, KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT, KVM_ARM_VCPU_SVE_BIT, KVM_ARM_VCPU_HAS_EL2_BIT
+define KVM_ARM_VCPU_HAS_EL2_E2H0_BIT	(1 << KVM_ARM_VCPU_HAS_EL2_E2H0)
+define KVM_ARM_VCPU_PMU_V3_STRICT_BIT	(1 << KVM_ARM_VCPU_PMU_V3_STRICT)
+kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_ARM_VCPU_PSCI_0_2, KVM_ARM_VCPU_PMU_V3, KVM_ARM_VCPU_PTRAUTH_ADDRESS, KVM_ARM_VCPU_PTRAUTH_GENERIC, KVM_ARM_VCPU_SVE, KVM_ARM_VCPU_HAS_EL2, KVM_ARM_VCPU_HAS_EL2_E2H0, KVM_ARM_VCPU_PMU_V3_STRICT
+kvm_vcpu_feature_bits_arm64 = KVM_ARM_VCPU_POWER_OFF_BIT, KVM_ARM_VCPU_EL1_32BIT_BIT, KVM_ARM_VCPU_PSCI_0_2_BIT, KVM_ARM_VCPU_PMU_V3_BIT, KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT, KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT, KVM_ARM_VCPU_SVE_BIT, KVM_ARM_VCPU_HAS_EL2_BIT, KVM_ARM_VCPU_HAS_EL2_E2H0_BIT, KVM_ARM_VCPU_PMU_V3_STRICT_BIT
 
 # Unlike on other architectures, ARM64 text is a sequence of commands, each starting with
 # the call number and the command length.
