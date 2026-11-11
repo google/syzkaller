@@ -963,7 +963,7 @@ func (git Git) minimizeBaseCommits(list []*BaseCommit) ([]*BaseCommit, error) {
 
 // fileHashes returns the blob SHA hashes for a particular list of files on a particular commit.
 func (git Git) fileHashes(commit string, files []string) (map[string]string, error) {
-	output, err := git.Run(append([]string{"ls-tree", commit}, files...)...)
+	output, err := git.Run(append([]string{"ls-tree", commit, "--"}, files...)...)
 	if err != nil {
 		return nil, err
 	}

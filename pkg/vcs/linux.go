@@ -239,7 +239,7 @@ func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
 	if blame {
 		args += " --git-blame"
 	}
-	output, err := osutil.RunCmd(time.Minute, ctx.gitRepo.Dir, "bash", "-c", args)
+	output, err := osutil.RunSandboxed(time.Minute, ctx.gitRepo.Dir, "bash", "-c", args)
 	if err != nil {
 		return nil
 	}
