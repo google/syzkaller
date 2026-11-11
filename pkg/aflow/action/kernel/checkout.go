@@ -56,6 +56,16 @@ var kernelBackports = []vcs.BackportCommit{
 		GuiltyHash: `84a0884a373ec7efbb9d1ea0cd6ed85ed94dddb6`,
 		FixHash:    `75bc03df42db6c52399d71a5d7252a12673fdce3`,
 	},
+	{
+		// Required for out-of-tree builds.
+		GuiltyHash: `16f5ae33ccf87f072a05222f97ab93a387db2029`,
+		FixHash:    `208df2208e3424416968a440b3765c5706d27c87`,
+	},
+	{
+		// Required for out-of-tree builds.
+		GuiltyHash: `2fd410ef58452445dc254ddac40976a7b549628a`,
+		FixHash:    `6ce3678511bbd0d8b4fd65274c9371fdcd164928`,
+	},
 }
 
 // checkoutVersion must be bumped whenever we change the way the checkout is created,
