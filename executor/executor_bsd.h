@@ -122,8 +122,11 @@ static void cover_mmap(cover_t* cov)
 
 static void cover_protect(cover_t* cov)
 {
+	// Threads created for requests that don't collect coverage may have no kcov buffer mmapped
+	// (with delayed kcov mmap), but write_output() still protects/unprotects their cover_t.
+	// There is nothing to protect in that case.
 	if (cov->mmap_alloc_ptr == NULL)
-		fail("cover_protect invoked on an unmapped cover_t object");
+		return;
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	long page_size = sysconf(_SC_PAGESIZE);
@@ -146,7 +149,7 @@ static void cover_unprotect(cover_t* cov)
 	if (cov == nullptr)
 		fail("cover_unprotect invoked without cover_t");
 	if (cov->mmap_alloc_ptr == NULL)
-		fail("cover_unprotect invoked on an unmapped cover_t object");
+		return; // See the comment in cover_protect().
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	mprotect(cov->mmap_alloc_ptr, mmap_alloc_size, PROT_READ | PROT_WRITE);
