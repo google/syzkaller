@@ -77,6 +77,13 @@ type EmailConfig struct {
 	LoreArchiveURL string `yaml:"loreArchiveURL"`
 	// The prefix which will be added to all reports' titles.
 	SubjectPrefix string `yaml:"subjectPrefix"`
+	// If set, #syz test commands are rejected and are not advertised in the reports.
+	DisableTestCommand *DisableTestCommandConfig `yaml:"disableTestCommand"`
+}
+
+type DisableTestCommandConfig struct {
+	// The reply sent to the user. If empty, the commands are silently ignored.
+	Message string `yaml:"message"`
 }
 
 func (c *EmailConfig) OwnEmails() []string {

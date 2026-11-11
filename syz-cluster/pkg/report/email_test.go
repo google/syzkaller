@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
@@ -85,4 +86,25 @@ func TestRender(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRenderTestCommandDisabled(t *testing.T) {
+	config := &Config{
+		EmailConfig: &app.EmailConfig{
+			Name:               "syzbot",
+			SupportEmail:       "support@email.com",
+			DisableTestCommand: &app.DisableTestCommandConfig{Message: "disabled"},
+		},
+		DirectList: "direct@email.com",
+	}
+	inputData, err := os.ReadFile(filepath.Join("testdata", "1.in.json"))
+	require.NoError(t, err)
+	var report api.SessionReport
+	require.NoError(t, json.Unmarshal(inputData, &report))
+	require.NotEmpty(t, report.Findings)
+
+	output, err := Render(&report, config)
+	require.NoError(t, err)
+	assert.Contains(t, string(output), "syzbot engineers can be reached at support@email.com.")
+	assert.NotContains(t, string(output), "#syz test")
 }

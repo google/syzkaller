@@ -151,7 +151,12 @@ func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 			email.CmdRegenerate:
 			reply = fmt.Sprintf("syzbot-ci does not support `%s` command", command.Str)
 		case email.CmdTest:
-			if command.Args != "" {
+			if disabled := h.emailConfig.DisableTestCommand; disabled != nil {
+				// Patch testing is temporarily disabled, reply with the message (if any).
+				if disabled.Message != "" {
+					reply = disabled.Message
+				}
+			} else if command.Args != "" {
 				reply = "syzbot-ci does not support `#syz test` with arguments."
 			} else if msg.Patch == "" {
 				reply = "Please attach the patch to act upon."

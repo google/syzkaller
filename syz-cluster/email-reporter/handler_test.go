@@ -318,6 +318,61 @@ func TestSyzTestFlow(t *testing.T) {
 	})
 }
 
+func TestSyzTestCommandDisabled(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	testSeries := controller.DummySeries()
+	handler, _, emailServer, _ := setupHandlerTest(t, ctx, env, testSeries)
+
+	const disabledMessage = "Patch testing is temporarily disabled."
+	handler.emailConfig.DisableTestCommand = &app.DisableTestCommandConfig{Message: disabledMessage}
+
+	report, err := handler.PollAndReport(ctx)
+	require.NoError(t, err)
+	receivedEmail := emailServer.email()
+	require.NotNil(t, receivedEmail, "a moderation email must be sent")
+	assert.NotContains(t, string(receivedEmail.Body), "#syz test")
+
+	testCommand := func(msgID, args string) {
+		err := handler.IncomingEmail(ctx, &email.Email{
+			Author:    "user@email.com",
+			Subject:   "Command",
+			BugIDs:    []string{report.ID},
+			MessageID: msgID,
+			Patch:     "--- a/file\n+++ b/file\n@@ -1,1 +1,1 @@\n-a\n+b\n",
+			Commands: []*email.SingleCommand{
+				{
+					Command: email.CmdTest,
+					Args:    args,
+					Str:     "test",
+				},
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	// Both well-formed and malformed commands get the configured reply.
+	testCommand("user-reply-msg-id-1", "")
+	reply := emailServer.email()
+	require.NotNil(t, reply)
+	assert.Contains(t, string(reply.Body), disabledMessage)
+
+	testCommand("user-reply-msg-id-2", "git://repo.git branch")
+	reply = emailServer.email()
+	require.NotNil(t, reply)
+	assert.Contains(t, string(reply.Body), disabledMessage)
+
+	// Without the message, the commands are silently ignored.
+	handler.emailConfig.DisableTestCommand = &app.DisableTestCommandConfig{}
+	testCommand("user-reply-msg-id-3", "")
+	assert.Nil(t, emailServer.email())
+
+	// No patch testing sessions were created.
+	repo := db.NewSessionRepository(env.Spanner)
+	list, err := repo.ListUnfinished(ctx, 10)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
 func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment,
 	series *api.Series) (*Handler, *api.ReporterClient, *fakeSender, controller.EntityIDs) {
 	client := controller.TestServer(t, env)
