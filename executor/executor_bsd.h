@@ -15,6 +15,11 @@
 #include <sys/sysctl.h>
 #endif
 
+#if GOOS_freebsd
+#include <sys/procctl.h>
+#include <sys/wait.h>
+#endif
+
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 #if GOOS_openbsd
@@ -48,8 +53,52 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	sigaction(SIGCHLD, &act, nullptr);
 }
 
+// Test programs run as root and BSDs don't have pid namespaces, so a single kill(-1, ...)
+// (or one of its equivalents) kills sshd, the executor runner and other system processes,
+// and we lose the connection to the VM. Restrict signals to the program's own process group
+// (which contains only the executor processes of this proc and the processes they created).
+static bool in_own_process_group(int pid)
+{
+	return pid > 0 && getpgid(pid) == getpgrp();
+}
+
+static bool signals_foreign_processes(const call_t* c, intptr_t a[kMaxArgs])
+{
+	if (strcmp(c->name, "kill") == 0) {
+		int pid = (int)a[0];
+		if (pid == 0)
+			return false; // own process group
+		if (pid < 0)
+			return pid == -1 || -pid != getpgrp();
+		return !in_own_process_group(pid);
+	}
+	if (strcmp(c->name, "sigqueue") == 0)
+		return !in_own_process_group((int)a[0]);
+#if GOOS_freebsd
+	if (strcmp(c->name, "procctl$PROC_REAP_KILL") == 0) {
+		// The signal is delivered to descendants of the target process' reaper, which is init
+		// unless the target has acquired the reaper status itself. So only allow this
+		// for the program process itself, and only if it is a reaper.
+		if ((idtype_t)a[0] != P_PID)
+			return false; // rejected by the kernel
+		int pid = (int)a[1];
+		if (pid != 0 && pid != getpid())
+			return true;
+		struct procctl_reaper_status rs = {};
+		if (procctl(P_PID, getpid(), PROC_REAP_STATUS, &rs))
+			return true;
+		return !(rs.rs_flags & REAPER_STATUS_OWNED);
+	}
+#endif
+	return false;
+}
+
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
+	if (signals_foreign_processes(c, a)) {
+		errno = EPERM;
+		return -1;
+	}
 	if (c->call)
 		return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 #if GOOS_openbsd
