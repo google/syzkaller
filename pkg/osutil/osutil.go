@@ -284,6 +284,33 @@ func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
 }
 
+// ReadFileInRoot reads relFile confined to rootDir using os.OpenRoot,
+// rejecting any path traversal or symlink that escapes rootDir.
+func ReadFileInRoot(rootDir, relFile string) ([]byte, error) {
+	root, err := os.OpenRoot(rootDir)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	return root.ReadFile(relFile)
+}
+
+// ReadDirInRoot lists directory entries of relDir confined to rootDir using os.OpenRoot,
+// rejecting any path traversal or symlink that escapes rootDir.
+func ReadDirInRoot(rootDir, relDir string) ([]os.DirEntry, error) {
+	root, err := os.OpenRoot(rootDir)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	f, err := root.Open(relDir)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return f.ReadDir(-1)
+}
+
 // WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
 // This is useful for writing generated source files. Exposing an empty file may break tools
 // that run on  source files in parallel.
