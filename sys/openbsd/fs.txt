@@ -31,7 +31,9 @@ dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
 dup3(oldfd fd, newfd fd, flags flags[pipe_flags]) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
-closefrom(lowfd fd)
+# closefrom closes all fds starting from lowfd, which includes the executor's own fds
+# (kcov, tun, control pipes), so programs that use it break the executor rather than test the kernel.
+closefrom(lowfd fd) (disabled)
 
 pipefd {
 	rfd	fd
