@@ -188,7 +188,7 @@ jobs:
 
   old:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/old-env@sha256:34d6afc37003a4b456de55e70daa76326bf6357d25e44531975e8324e7016493
+    container: gcr.io/syzkaller/old-env@sha256:60fc8bcaf14c3d4163777035d092af96ff09af80f12bbae2927f534e31d3967e
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       GOMODCACHE: /syzkaller/.cache/gomod
