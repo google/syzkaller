@@ -169,9 +169,12 @@ getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
 setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
 exit(code intptr)
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
-fork() pid
-vfork() pid
-rfork(flags flags[rfork_flags])
+# Creating processes is not supported: the child returns into the multithreaded executor code
+# with a single thread, hangs there forever holding executor resources (e.g. tun), and such
+# processes accumulate (Linux does not describe fork either).
+fork() pid (disabled)
+vfork() pid (disabled)
+rfork(flags flags[rfork_flags]) (disabled)
 umask(mode flags[open_mode])
 
 thr_new(param ptr[in, thr_param], param_size bytesize[param])
