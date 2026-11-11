@@ -209,7 +209,8 @@ static int read_tun(char* data, int size)
 
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
-		if (errno == EAGAIN)
+		// EBADF can be returned if the test closes tunfd.
+		if (errno == EAGAIN || errno == EBADF)
 			return -1;
 		fail("tun: read failed");
 	}
