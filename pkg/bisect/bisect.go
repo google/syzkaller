@@ -659,6 +659,13 @@ func (env *env) test() (*testResult, error) {
 		return res, fmt.Errorf("couldn't get repo HEAD: %w", err)
 	}
 	if err != nil {
+		if _, ok := errors.AsType[*build.InfraError](err); ok {
+			// The build failed for reasons unrelated to the kernel tree (e.g. the build VM
+			// did not boot), so we know nothing about this commit. Skipping it could lead
+			// to a wrong bisection result, so abort the bisection with an infra error.
+			env.logf("failed building %v: %v", current.Hash, err)
+			return res, err
+		}
 		errInfo := fmt.Sprintf("failed building %v: ", current.Hash)
 		if verr, ok := errors.AsType[*osutil.VerboseError](err); ok {
 			errInfo += verr.Error()
