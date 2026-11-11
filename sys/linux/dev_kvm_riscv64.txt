@@ -16,6 +16,8 @@ ioctl$KVM_GET_REGS_riscv64(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, k
 ioctl$KVM_SET_REGS_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs$riscv64])
 
 ioctl$KVM_SET_GUEST_DEBUG_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_riscv64]])
+ioctl$KVM_CAP_RISCV_MP_STATE_RESET(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_RISCV_MP_STATE_RESET, void]])
+ioctl$KVM_CAP_VM_GPA_BITS_riscv64(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_VM_GPA_BITS, int64[32:59]]])
 
 kvm_guest_debug_arch_riscv64 {
 	reg	array[int64, 8]

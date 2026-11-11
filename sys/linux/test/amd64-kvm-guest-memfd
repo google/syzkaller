@@ -1,0 +1,9 @@
+# requires: arch=amd64 -threaded
+
+r0 = openat$kvm(AUTO, &AUTO='/dev/kvm\x00', 0x0, AUTO)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x1)
+r2 = ioctl$KVM_CREATE_GUEST_MEMFD(r1, AUTO, &AUTO={0x2000, 0x1, ""/48})
+mmap$KVM_GUEST_MEMFD(&(0x7f0000020000/0x2000)=nil, 0x2000, 0x3, 0x1, r2, 0x0)
+ioctl$KVM_SET_USER_MEMORY_REGION2(r1, AUTO, &AUTO={0x0, 0x4, 0x0, AUTO, &(0x7f0000010000/0x2000)=nil, 0x0, r2, AUTO, ""/112})
+ioctl$KVM_SET_MEMORY_ATTRIBUTES(r1, AUTO, &AUTO={0x0, 0x1000, 0x8, AUTO})
+fallocate$kvm_guest_memfd(r2, 0x3, 0x0, 0x1000)
