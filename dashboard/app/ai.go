@@ -2454,8 +2454,9 @@ func canAutoReproBug(ctx context.Context, bug *Bug) bool {
 		!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 }
 
-func canAutoReproCBugTitle(title string, typ crash.Type) bool {
-	if strings.HasPrefix(title, "INFO:") ||
+func isKernelCrashBugTitle(title string, typ crash.Type) bool {
+	if title == corruptedReportTitle ||
+		title == suppressedReportTitle ||
 		strings.HasPrefix(title, "panic:") ||
 		strings.HasPrefix(title, "go runtime error") ||
 		strings.Contains(title, "build error") ||
@@ -2463,15 +2464,21 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		strings.Contains(title, "test error") {
 		return false
 	}
+	switch typ {
+	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.UnexpectedReboot:
+		return false
+	}
+	return true
+}
+
+func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 	if typ.IsKCSAN() {
 		// Unassessed KCSAN bugs are skipped here; harmful ones are enabled in pendingWorkflowsForBug.
 		return false
 	}
-	switch typ {
-	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.Hang, crash.UnexpectedReboot:
-		return false
-	}
-	return true
+	return isKernelCrashBugTitle(title, typ) &&
+		!strings.HasPrefix(title, "INFO:") &&
+		typ != crash.Hang
 }
 
 // kcsanAssessment returns the parsed outputs of the latest completed assessment-kcsan job
