@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -35,37 +34,10 @@ func fileTimes(file string) (time.Time, time.Time, error) {
 	return creationTime, modTime, nil
 }
 
-// RemoveAll is similar to os.RemoveAll, but can handle more cases.
-func RemoveAll(dir string) error {
-	files, _ := os.ReadDir(dir)
-	for _, f := range files {
-		name := filepath.Join(dir, f.Name())
-		if f.IsDir() {
-			RemoveAll(name)
-		}
-		unix.Unmount(name, unix.MNT_FORCE|unix.UMOUNT_NOFOLLOW)
-	}
-	if err := os.RemoveAll(dir); err != nil {
-		removeImmutable(dir)
-		return os.RemoveAll(dir)
-	}
-	return nil
-}
-
 func SystemMemorySize() uint64 {
 	var info syscall.Sysinfo_t
 	syscall.Sysinfo(&info)
 	return uint64(info.Totalram) // nolint:unconvert
-}
-
-func removeImmutable(fname string) error {
-	// Reset FS_XFLAG_IMMUTABLE/FS_XFLAG_APPEND.
-	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(fd)
-	return unix.IoctlSetPointerInt(fd, unix.FS_IOC_SETFLAGS, 0)
 }
 
 func Sandbox(cmd *exec.Cmd, user, net bool) error {

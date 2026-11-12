@@ -182,10 +182,10 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 }
 
 func (a android) clean(params Params) error {
-	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
+	if err := os.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return fmt.Errorf("failed to clean 'out' directory: %w", err)
 	}
-	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "dist")); err != nil {
+	if err := os.RemoveAll(filepath.Join(params.KernelDir, "dist")); err != nil {
 		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil
