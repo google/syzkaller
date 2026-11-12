@@ -325,6 +325,23 @@ func TestHintsCheckDataArg(t *testing.T) {
 	}
 }
 
+// Neutralization of a candidate may replace the argument's buffer (see DataArg.SetData).
+// That must not affect the remaining candidates.
+func TestHintsCheckDataArgNeutralized(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	typ := target.SyscallMap["test$hint_data"].Args[0].Type.(*PtrType).Elem
+	dataArg := MakeDataArg(typ, DirIn, []byte("AAAAAAAAAA"))
+	comps := CompMap{0x4141414141414141: compSet(0x4242424242424242)}
+	var got []string
+	checkDataArg(dataArg, comps, func() bool {
+		got = append(got, string(dataArg.Data()))
+		dataArg.SetData([]byte("neutralized"))
+		return true
+	})
+	assert.Equal(t, []string{"BBBBBBBBAA", "ABBBBBBBBA", "AABBBBBBBB"}, got)
+	assert.Equal(t, "AAAAAAAAAA", string(dataArg.Data()))
+}
+
 func TestHintsCompressedImage(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	type Test struct {
