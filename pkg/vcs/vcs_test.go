@@ -54,6 +54,29 @@ func TestPatchForbidden(t *testing.T) {
 	require.Error(t, Patch(dir, patch2))
 }
 
+func TestGitIgnoreFsmonitor(t *testing.T) {
+	osutil.RequireSandbox(t)
+	dir := osutil.SandboxTempDir(t)
+	repo := MakeTestRepo(t, dir)
+	repo.CommitChange("init")
+
+	marker := filepath.Join(dir, "fsmonitor-ran")
+	helper := filepath.Join(dir, "fsmonitor.sh")
+	require.NoError(t, osutil.WriteExecFile(helper, []byte("#!/bin/sh\ntouch "+marker+"\n")))
+	require.NoError(t, osutil.SandboxChown(helper))
+	repo.Git("config", "core.fsmonitor", helper)
+	// Git forbids ext:: by default, but the repo config may re-enable it.
+	repo.Git("config", "protocol.ext.allow", "always")
+
+	_, err := SandboxedGit(dir).Run("status")
+	require.NoError(t, err)
+	require.NoFileExists(t, marker)
+
+	_, err = SandboxedGit(dir).Run("fetch", "ext::sh -c touch% "+marker)
+	require.Error(t, err)
+	require.NoFileExists(t, marker)
+}
+
 func TestCanonicalizeCommit(t *testing.T) {
 	tests := map[string]string{
 		"foo bar":                     "foo bar",
