@@ -368,8 +368,12 @@ func TestAdminJobList(t *testing.T) {
 
 	c.advanceTime(24 * time.Hour)
 
-	pollResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{BisectCause: true})
-	c.expectNE(pollResp.ID, "")
+	_, bugKey := c.loadSingleBug()
+	c.saveHistoricalBisectJob(historicalBisectJob{
+		bugKey:  bugKey,
+		jobType: JobBisectCause,
+		build:   testBuild(2),
+	})
 
 	causeJobsLink := "/admin?job_type=1"
 	fixJobsLink := "/admin?job_type=2"
