@@ -2409,8 +2409,9 @@ func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duratio
 	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
 }
 
-func canAutoReproCBugTitle(title string, typ crash.Type) bool {
-	if strings.HasPrefix(title, "INFO:") ||
+func isKernelCrashBugTitle(title string, typ crash.Type) bool {
+	if title == corruptedReportTitle ||
+		title == suppressedReportTitle ||
 		strings.HasPrefix(title, "panic:") ||
 		strings.HasPrefix(title, "go runtime error") ||
 		strings.Contains(title, "build error") ||
@@ -2418,14 +2419,18 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		strings.Contains(title, "test error") {
 		return false
 	}
-	if typ.IsKCSAN() {
-		return false
-	}
 	switch typ {
-	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.Hang, crash.UnexpectedReboot:
+	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.UnexpectedReboot:
 		return false
 	}
 	return true
+}
+
+func canAutoReproCBugTitle(title string, typ crash.Type) bool {
+	return isKernelCrashBugTitle(title, typ) &&
+		!strings.HasPrefix(title, "INFO:") &&
+		!typ.IsKCSAN() &&
+		typ != crash.Hang
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {

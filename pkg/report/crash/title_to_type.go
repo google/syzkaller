@@ -276,6 +276,10 @@ var titleToType = []struct {
 		crashType:       NoOutput,
 	},
 	{
+		includePrefixes: []string{"lost connection to test machine"},
+		crashType:       LostConnection,
+	},
+	{
 		includePrefixes: []string{"unexpected kernel reboot"},
 		crashType:       UnexpectedReboot,
 	},
