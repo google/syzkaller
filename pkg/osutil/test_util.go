@@ -11,7 +11,7 @@ import (
 // It fails the test on error and is intended for test setup only.
 // It does not guard against symlink traversal and must only be used in trusted
 // directories, not directories already modified by sandboxed processes.
-// Production code writing into sandbox-owned trees should use os.Root instead.
+// Production code writing into sandbox-owned trees should use SandboxRoot instead.
 func WriteSandboxFile(t *testing.T, filename string, data []byte) {
 	t.Helper()
 	if err := WriteFile(filename, data); err != nil {

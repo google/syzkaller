@@ -6,38 +6,71 @@ package osutil
 import (
 	"fmt"
 	"io"
+	"io/fs"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
-// CopyFile atomically copies oldFile to newFile preserving permissions and modification time.
+// CopyFile atomically copies a regular file oldFile to newFile preserving permissions and modification time.
 func CopyFile(oldFile, newFile string) error {
-	oldf, err := os.Open(oldFile)
+	oldf, err := os.OpenFile(oldFile, openRegularFlags, 0)
 	if err != nil {
 		return err
 	}
 	defer oldf.Close()
-	stat, err := oldf.Stat()
+	return copyFile(oldf, newFile, true)
+}
+
+func copyFile(oldf *os.File, newFile string, preserveMeta bool) error {
+	stat, err := regularFileStat(oldf)
 	if err != nil {
 		return err
 	}
-	tmpFile := newFile + ".tmp"
-	newf, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode()&os.ModePerm)
+	perm := os.FileMode(DefaultFilePerm)
+	if preserveMeta {
+		perm = stat.Mode() & os.ModePerm
+	}
+	tmpFile := fmt.Sprintf("%v.%x.tmp", newFile, rand.Uint64())
+	newf, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
 	if err != nil {
 		return err
 	}
-	defer newf.Close()
 	_, err = io.Copy(newf, oldf)
+	if closeErr := newf.Close(); err == nil {
+		err = closeErr
+	}
+	if err == nil && preserveMeta {
+		err = os.Chtimes(tmpFile, stat.ModTime(), stat.ModTime())
+	}
+	if err == nil {
+		err = os.Rename(tmpFile, newFile)
+	}
 	if err != nil {
-		return err
+		os.Remove(tmpFile)
 	}
-	if err := newf.Close(); err != nil {
-		return err
+	return err
+}
+
+// openRegularFlags are used to open files that are expected to be regular for reading.
+// O_NONBLOCK prevents hanging on FIFOs, and it has no effect on regular files.
+const openRegularFlags = os.O_RDONLY | syscall.O_NONBLOCK
+
+// regularFileStat returns information about f, or an error if f is not a regular file.
+func regularFileStat(f *os.File) (os.FileInfo, error) {
+	stat, err := f.Stat()
+	switch {
+	case err != nil:
+		return nil, err
+	case stat.Mode().IsRegular():
+		return stat, nil
+	case stat.IsDir():
+		// Return the same error as reading the directory would (some callers check for it).
+		return nil, &fs.PathError{Op: "read", Path: f.Name(), Err: syscall.EISDIR}
+	default:
+		return nil, fmt.Errorf("%v is not a regular file", f.Name())
 	}
-	if err := os.Chtimes(tmpFile, stat.ModTime(), stat.ModTime()); err != nil {
-		return err
-	}
-	return os.Rename(tmpFile, newFile)
 }
 
 // Rename is similar to os.Rename but handles cross-device renaming (by copying).
