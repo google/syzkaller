@@ -1654,6 +1654,7 @@ func aiBisectResult(job *aidb.Job) (BugAIBisect, error) {
 	repo, _ := args["KernelRepo"].(string)
 	res := BugAIBisect{
 		JobID:        job.ID,
+		Finished:     nullTime(job.Finished),
 		KernelRepo:   repo,
 		StillPresent: stillPresent,
 	}
