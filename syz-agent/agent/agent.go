@@ -211,7 +211,7 @@ type Server struct {
 }
 
 func (s *Server) poll(ctx context.Context) (bool, error) {
-	s.resetModelQuota()
+	s.resetModelQuota(time.Now())
 	req := &dashapi.AIJobPollReq{
 		AgentName:    s.name,
 		CodeRevision: prog.GitRevision,
@@ -364,9 +364,9 @@ func (s *Server) modelOverQuota(flow *aflow.Flow) bool {
 	return false
 }
 
-func (s *Server) resetModelQuota() {
+func (s *Server) resetModelQuota(now time.Time) {
 	for model, when := range s.overQuotaModels {
-		if aflow.QuotaResetTime(when).After(time.Now()) {
+		if !now.Before(aflow.QuotaResetTime(when)) {
 			log.Logf(0, "model %v daily quota is replenished", model)
 			delete(s.overQuotaModels, model)
 		}
