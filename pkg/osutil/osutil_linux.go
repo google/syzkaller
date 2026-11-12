@@ -104,6 +104,15 @@ func SandboxChown(files ...string) error {
 	return nil
 }
 
+// sandboxChownFile changes ownership of the opened file f to the sandbox user.
+func sandboxChownFile(f *os.File) error {
+	enabled, uid, gid, err := initSandbox()
+	if err != nil || !enabled {
+		return err
+	}
+	return f.Chown(int(uid), int(gid))
+}
+
 var (
 	sandboxOnce     sync.Once
 	sandboxUsername = "syzkaller"
