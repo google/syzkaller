@@ -16,6 +16,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -27,18 +29,19 @@ func TestElfBinarySignature(t *testing.T) {
 func TestQueryLinuxCompiler(t *testing.T) {
 	const goodDir = "./testdata/linux_compiler_ok"
 	const expectedCompiler = "gcc (Debian 10.2.1-6+build2) 10.2.1 20210110, GNU ld (GNU Binutils for Debian) 2.35.2"
-	ret, err := queryLinuxCompiler(goodDir)
-	if err != nil {
-		t.Fatalf("error: %v", err)
-	}
-	if ret != expectedCompiler {
-		t.Fatalf("got: %T, expected: %T", ret, expectedCompiler)
-	}
-	const badDir = "./testingData/non_existing_folder"
-	_, err = queryLinuxCompiler(badDir)
-	if err == nil {
-		t.Fatalf("expected an error, got none")
-	}
+	root, err := osutil.OpenSandboxRoot(goodDir)
+	require.NoError(t, err)
+	defer root.Close()
+	ret, err := queryLinuxCompiler(root)
+	require.NoError(t, err)
+	assert.Equal(t, expectedCompiler, ret)
+
+	// The testdata dir does not contain include/generated/compile.h.
+	badRoot, err := osutil.OpenSandboxRoot("./testdata")
+	require.NoError(t, err)
+	defer badRoot.Close()
+	_, err = queryLinuxCompiler(badRoot)
+	assert.Error(t, err)
 }
 
 func enumerateFlags(t *testing.T, flags, allFlags []string) {
