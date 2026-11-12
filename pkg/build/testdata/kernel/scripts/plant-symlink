@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Simulates a malicious kernel build that replaces a file with a symlink.
+# If SYZ_TEST_SYMLINK is set to "stage path target" and the make target passed
+# as the first argument matches stage, path is replaced with a symlink to target.
+
+set -eu
+
+[ -n "${SYZ_TEST_SYMLINK:-}" ] || exit 0
+read -r stage path target <<< "$SYZ_TEST_SYMLINK"
+[ "$1" = "$stage" ] || exit 0
+mkdir -p "$(dirname "$path")"
+rm -rf "$path"
+ln -s "$target" "$path"

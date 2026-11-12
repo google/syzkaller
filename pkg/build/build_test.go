@@ -4,7 +4,9 @@
 package build
 
 import (
+	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,25 +28,7 @@ func TestLinuxBuildSandbox(t *testing.T) {
 	require.NoError(t, os.WriteFile(secret, []byte("secret"), 0600))
 	t.Setenv("SYZ_TEST_FORBIDDEN", secret)
 
-	remote, _ := MakeTestKernelRepo(t, filepath.Join(dir, "remote"))
-	kernelDir := filepath.Join(dir, "kernel")
-	repo, err := vcs.NewRepo(targets.Linux, "", kernelDir)
-	require.NoError(t, err)
-	_, err = repo.Poll(remote.Dir, "master")
-	require.NoError(t, err)
-
-	image := filepath.Join(dir, "image")
-	require.NoError(t, osutil.WriteFile(image, nil))
-	params := Params{
-		TargetOS:     targets.Linux,
-		TargetArch:   targets.AMD64,
-		VMType:       "qemu",
-		KernelDir:    kernelDir,
-		OutputDir:    filepath.Join(dir, "out"),
-		UserspaceDir: image,
-		Config:       []byte("CONFIG_FOO=y\n"),
-		Tracer:       &debugtracer.TestTracer{T: t},
-	}
+	params := makeLinuxBuildParams(t, dir)
 	details, err := Image(params)
 	require.NoError(t, err)
 	require.Equal(t, "fake compiler", details.CompilerID)
@@ -52,6 +36,7 @@ func TestLinuxBuildSandbox(t *testing.T) {
 	require.FileExists(t, filepath.Join(params.OutputDir, "kernel"))
 	require.FileExists(t, filepath.Join(params.OutputDir, "image"))
 	require.FileExists(t, filepath.Join(params.OutputDir, "obj", "vmlinux"))
+	assert.False(t, osutil.IsSandboxOwned(t, filepath.Join(params.OutputDir, "obj", "vmlinux")))
 	require.NoError(t, Clean(params))
 
 	t.Run("disabled", func(t *testing.T) {
@@ -69,6 +54,96 @@ func TestLinuxBuildSandbox(t *testing.T) {
 			assert.ErrorContains(t, err, msg)
 		}
 	})
+}
+
+// TestLinuxBuildSymlinks checks that a malicious kernel build can't trick us into
+// leaking or overwriting files that the sandboxed build itself can't access.
+func TestLinuxBuildSymlinks(t *testing.T) {
+	osutil.RequireSandbox(t)
+	// The secret also looks like compile.h, so that it could leak via the compiler ID.
+	const secret = `#define LINUX_COMPILER "secret"`
+	for _, test := range []struct {
+		symlink string // "target file": the build replaces file with a symlink after the make target
+		wantErr bool
+	}{
+		// Files that we write: symlinks must be replaced.
+		{"distclean .config", false},
+		{"oldconfig certs/signing_key.pem", false},
+		{"oldconfig scripts/gcc-plugins/randomize_layout_seed.h", false},
+		// Escaping directory symlinks on the write path must fail.
+		{"oldconfig certs", true},
+		// Files that we read: symlinks must not be followed.
+		{"oldconfig .config", true},
+		{"bzImage include/generated/compile.h", true},
+		{"bzImage arch/x86/boot/bzImage", true},
+		{"bzImage vmlinux", true},
+	} {
+		t.Run(test.symlink, func(t *testing.T) {
+			params := makeLinuxBuildParams(t, osutil.SandboxTempDir(t))
+			secretFile := filepath.Join(t.TempDir(), "secret")
+			require.NoError(t, os.WriteFile(secretFile, []byte(secret), 0600))
+			t.Setenv("SYZ_TEST_SYMLINK", test.symlink+" "+secretFile)
+			// Clean the kernel before the build similarly to bisection.
+			require.NoError(t, Clean(params))
+			details, err := Image(params)
+			require.Equal(t, test.wantErr, err != nil, "error: %v", err)
+			assert.NotContains(t, details.CompilerID, "secret")
+			data, err := os.ReadFile(secretFile)
+			require.NoError(t, err)
+			assert.Equal(t, secret, string(data))
+			// Note: ReadFile follows symlinks, so symlinks to the secret are detected as well.
+			err = filepath.WalkDir(params.OutputDir, func(path string, d fs.DirEntry, err error) error {
+				if err != nil || d.IsDir() {
+					return err
+				}
+				data, err := os.ReadFile(path)
+				assert.NotContains(t, string(data), secret, path)
+				return err
+			})
+			require.NoError(t, err)
+		})
+	}
+}
+
+// TestLinuxBuildVmlinuxImage checks the build on the arches where vmlinux itself is the kernel image.
+func TestLinuxBuildVmlinuxImage(t *testing.T) {
+	osutil.RequireSandbox(t)
+	params := makeLinuxBuildParams(t, osutil.SandboxTempDir(t))
+	params.TargetArch = targets.MIPS64LE
+	require.Equal(t, "vmlinux", LinuxKernelImage(params.TargetArch))
+	details, err := Image(params)
+	require.NoError(t, err)
+	assert.NotEmpty(t, details.Signature)
+	vmlinux, err := os.ReadFile(filepath.Join(params.OutputDir, "obj", "vmlinux"))
+	require.NoError(t, err)
+	kernel, err := os.ReadFile(filepath.Join(params.OutputDir, "kernel"))
+	require.NoError(t, err)
+	assert.NotEmpty(t, kernel)
+	assert.True(t, bytes.Equal(vmlinux, kernel), "kernel image differs from vmlinux")
+	// The original vmlinux must be moved rather than copied to the output dir.
+	assert.NoFileExists(t, filepath.Join(params.KernelDir, "vmlinux"))
+}
+
+// makeLinuxBuildParams checks out the fake test kernel into dir and returns build params for it.
+func makeLinuxBuildParams(t *testing.T, dir string) Params {
+	remote, _ := MakeTestKernelRepo(t, filepath.Join(dir, "remote"))
+	kernelDir := filepath.Join(dir, "kernel")
+	repo, err := vcs.NewRepo(targets.Linux, "", kernelDir)
+	require.NoError(t, err)
+	_, err = repo.Poll(remote.Dir, "master")
+	require.NoError(t, err)
+	image := filepath.Join(dir, "image")
+	require.NoError(t, osutil.WriteFile(image, nil))
+	return Params{
+		TargetOS:     targets.Linux,
+		TargetArch:   targets.AMD64,
+		VMType:       "qemu",
+		KernelDir:    kernelDir,
+		OutputDir:    filepath.Join(dir, "out"),
+		UserspaceDir: image,
+		Config:       []byte("CONFIG_FOO=y\n"),
+		Tracer:       &debugtracer.TestTracer{T: t},
+	}
 }
 
 func TestCompilerIdentity(t *testing.T) {
