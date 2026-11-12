@@ -217,7 +217,12 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 		for _, replacer := range shrinkExpand(val, compMap, 64, false) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
-			if !exec() {
+			doMore := exec()
+			// Neutralization of the candidate may have replaced the argument's buffer
+			// (see DataArg.SetData). Switch back to the one we are mutating, otherwise
+			// the argument remains stuck at the neutralized value.
+			arg.data = data
+			if !doMore {
 				break
 			}
 		}
