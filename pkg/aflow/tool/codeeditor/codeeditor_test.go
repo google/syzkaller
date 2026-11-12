@@ -10,7 +10,10 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/tool/patchdiff"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,6 +69,112 @@ func TestCodeeditorEmptyCurrentCode(t *testing.T) {
 		struct{}{},
 		`CurrentCode snippet is empty`,
 	)
+}
+
+func TestCodeeditorCreateFile(t *testing.T) {
+	for _, filename := range []string{"new.c", "include/new.h", ":new.c"} {
+		t.Run(filename, func(t *testing.T) {
+			dir := osutil.SandboxTempDir(t)
+			t.Setenv("HOME", dir)
+			repo := vcs.MakeTestRepo(t, filepath.Join(dir, "repo"))
+			repo.CommitChangeset("initial commit", vcs.FileContent{
+				File:    "old.c",
+				Content: "/* existing file */\n",
+			})
+			file := filepath.Join(repo.Dir, filename)
+			require.NoError(t, os.MkdirAll(filepath.Dir(file), osutil.DefaultDirPerm))
+			require.NoError(t, osutil.SandboxChown(filepath.Dir(file)))
+			aflow.TestTool(t, Tool, state{repo.Dir}, args{
+				SourceFile: filename,
+				NewCode:    "int value;",
+			}, struct{}{}, "")
+			data, err := os.ReadFile(file)
+			require.NoError(t, err)
+			assert.Equal(t, "int value;\n", string(data))
+			t.Run("ownership", func(t *testing.T) {
+				osutil.RequireSandbox(t)
+				assert.True(t, osutil.IsSandboxOwned(t, file))
+			})
+			// Creation must not silently overwrite a file that already exists.
+			aflow.TestTool(t, Tool, state{repo.Dir}, args{
+				SourceFile: filename,
+				NewCode:    "int replacement;",
+			}, struct{}{}, "CurrentCode snippet is empty")
+			// A new file remains editable using the normal replacement tool.
+			aflow.TestTool(t, Tool, state{repo.Dir}, args{
+				SourceFile:  filename,
+				CurrentCode: "int value;",
+				NewCode:     "int updated;",
+			}, struct{}{}, "")
+			diff, err := patchdiff.Diff(repo.Dir, "HEAD")
+			require.NoError(t, err)
+			assert.Contains(t, diff, "new file mode 100644")
+			assert.Contains(t, diff, "+++ b/"+filename)
+			assert.Contains(t, diff, "+int updated;\n")
+			// The patch must also be consumable by the rest of the patching workflow.
+			other := vcs.MakeTestRepo(t, filepath.Join(dir, "other"))
+			other.CommitChangeset("initial commit", vcs.FileContent{
+				File:    "old.c",
+				Content: "/* existing file */\n",
+			})
+			require.NoError(t, vcs.SandboxedGit(other.Dir).Apply([]byte(diff)))
+			data, err = os.ReadFile(filepath.Join(other.Dir, filename))
+			require.NoError(t, err)
+			assert.Equal(t, "int updated;\n", string(data))
+		})
+	}
+}
+
+func TestCodeeditorCreateFileInvalid(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		args args
+	}{
+		{"empty", args{SourceFile: "new.c"}},
+		{"whitespace", args{SourceFile: "new.c", NewCode: " \n"}},
+		{"missing-current", args{SourceFile: "new.c", CurrentCode: "old", NewCode: "new"}},
+		{"missing-parent", args{SourceFile: "missing/new.c", NewCode: "new"}},
+		{"not-a-repo", args{SourceFile: "new.c", NewCode: "new"}},
+		{"non-source", args{SourceFile: ".git/config", NewCode: "new"}},
+		{"escaping-path", args{SourceFile: "../new.c", NewCode: "new"}},
+		{"absolute-path", args{SourceFile: "/new.c", NewCode: "new"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			_, err := aflow.TestToolRun(Tool, map[string]any{"KernelScratchSrc": dir}, map[string]any{
+				"SourceFile":  test.args.SourceFile,
+				"CurrentCode": test.args.CurrentCode,
+				"NewCode":     test.args.NewCode,
+			})
+			require.Error(t, err)
+			entries, err := os.ReadDir(dir)
+			require.NoError(t, err)
+			assert.Empty(t, entries)
+		})
+	}
+}
+
+func TestCodeeditorCreateFileSymlink(t *testing.T) {
+	dir := t.TempDir()
+	outside := t.TempDir()
+	for _, test := range []struct {
+		name   string
+		target string
+	}{
+		{"outside", filepath.Join(outside, "new.c")},
+		{"dangling", "target.c"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			name := test.name + ".c"
+			require.NoError(t, os.Symlink(test.target, filepath.Join(dir, name)))
+			_, err := aflow.TestToolRun(Tool, map[string]any{"KernelScratchSrc": dir}, map[string]any{
+				"SourceFile": name, "CurrentCode": "", "NewCode": "int value;",
+			})
+			require.Error(t, err)
+			assert.NoFileExists(t, filepath.Join(dir, "target.c"))
+			assert.NoFileExists(t, filepath.Join(outside, "new.c"))
+		})
+	}
 }
 
 func TestCodeeditorNoMatches(t *testing.T) {
