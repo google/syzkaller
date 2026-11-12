@@ -171,7 +171,9 @@ func QuotaResetTime(t time.Time) time.Time {
 	t = t.In(pacificLoc)
 	resetTime := time.Date(t.Year(), t.Month(), t.Day(), 0, 5, 0, 0, pacificLoc)
 	if t.After(resetTime) {
-		resetTime = resetTime.Add(24 * time.Hour)
+		// Days are 23 or 25 hours long when daylight saving time starts or ends,
+		// so we can't just add 24 hours.
+		resetTime = time.Date(t.Year(), t.Month(), t.Day()+1, 0, 5, 0, 0, pacificLoc)
 		if t.After(resetTime) {
 			panic(fmt.Sprintf("%v > %v", t, resetTime))
 		}

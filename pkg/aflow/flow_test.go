@@ -303,6 +303,14 @@ func TestQuotaResetTime(t *testing.T) {
 		{time.Date(2000, 1, 1, 9, 0, 0, 0, testLoc), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
 		{time.Date(2000, 1, 1, 13, 0, 0, 0, time.UTC), time.Date(2000, 1, 2, 8, 5, 0, 0, time.UTC)},
 		{time.Date(2000, 1, 1, 13, 0, 0, 0, testLoc), time.Date(2000, 1, 2, 8, 5, 0, 0, time.UTC)},
+		// Daylight saving time starts on 2026-03-08 (the day is 23 hours long).
+		{time.Date(2026, 3, 8, 0, 0, 0, 0, pacificLoc), time.Date(2026, 3, 8, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2026, 3, 8, 12, 0, 0, 0, pacificLoc), time.Date(2026, 3, 9, 7, 5, 0, 0, time.UTC)},
+		{time.Date(2026, 3, 8, 23, 30, 0, 0, pacificLoc), time.Date(2026, 3, 9, 7, 5, 0, 0, time.UTC)},
+		// Daylight saving time ends on 2026-11-01 (the day is 25 hours long).
+		{time.Date(2026, 11, 1, 0, 0, 0, 0, pacificLoc), time.Date(2026, 11, 1, 7, 5, 0, 0, time.UTC)},
+		{time.Date(2026, 11, 1, 12, 0, 0, 0, pacificLoc), time.Date(2026, 11, 2, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2026, 11, 1, 23, 30, 0, 0, pacificLoc), time.Date(2026, 11, 2, 8, 5, 0, 0, time.UTC)},
 	}
 	for _, test := range tests {
 		got := QuotaResetTime(test.when)
