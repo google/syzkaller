@@ -116,7 +116,8 @@ type Bug struct {
 	HeadHasSyzRepro bool
 	// StructVersion is the version of the Bug entity schema in Datastore.
 	// Used to select batches of bugs during schema migrations.
-	StructVersion  int
+	StructVersion int
+	// BisectCause and BisectFix hold the status of the former syz-ci bisections.
 	BisectCause    BisectStatus
 	BisectFix      BisectStatus
 	HasReport      bool
@@ -129,18 +130,19 @@ type Bug struct {
 	FirstCReproTime time.Time `datastore:",noindex"`
 	// FirstSyzReproTime is the timestamp when the first Syz reproducer was found for the bug.
 	FirstSyzReproTime time.Time `datastore:",noindex"`
-	LastCauseBisect   time.Time
-	FixTime           time.Time // when we become aware of the fixing commit
-	LastActivity      time.Time // last time we observed any activity related to the bug
-	Closed            time.Time
-	SubsystemsTime    time.Time // when we have updated subsystems last time
-	SubsystemsRev     int
-	Reporting         []BugReporting
-	Commits           []string // titles of fixing commmits
-	CommitInfo        []Commit // additional info for commits (for historical reasons parallel array to Commits)
-	HappenedOn        []string // list of managers
-	PatchedOn         []string `datastore:",noindex"` // list of managers
-	UNCC              []string // don't CC these emails on this bug
+	// LastCauseBisect is when the former syz-ci cause bisection was last done.
+	LastCauseBisect time.Time
+	FixTime         time.Time // when we become aware of the fixing commit
+	LastActivity    time.Time // last time we observed any activity related to the bug
+	Closed          time.Time
+	SubsystemsTime  time.Time // when we have updated subsystems last time
+	SubsystemsRev   int
+	Reporting       []BugReporting
+	Commits         []string // titles of fixing commmits
+	CommitInfo      []Commit // additional info for commits (for historical reasons parallel array to Commits)
+	HappenedOn      []string // list of managers
+	PatchedOn       []string `datastore:",noindex"` // list of managers
+	UNCC            []string // don't CC these emails on this bug
 	// Kcidb publishing status bitmask:
 	// bit 0 - the bug is published
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
@@ -149,7 +151,8 @@ type Bug struct {
 	Labels         []BugLabel
 	DiscussionInfo []BugDiscussionInfo
 	TreeTests      BugTreeTestInfo
-	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
+	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job
+	// of the former syz-ci bisection.
 	FixCandidateJob string
 	ReproAttempts   []BugReproAttempt
 	// AIJobCheck holds the date (YYYYMMDD) when AI jobs were last checked for this bug.
@@ -641,7 +644,8 @@ type SubsystemReportStage struct {
 	Moderation bool
 }
 
-// Job represent a single patch testing or bisection job for syz-ci.
+// Job represent a single patch testing job for syz-ci,
+// or a bisection job of the former syz-ci bisection (kept to show its results).
 // Later we may want to extend this to other types of jobs:
 //   - test of a committed fix
 //   - reproduce crash
@@ -678,8 +682,7 @@ type Job struct {
 	MergeBaseRepo   string
 	MergeBaseBranch string
 
-	// By default, bisection starts from the revision of the associated crash.
-	// The BisectFrom field can override this.
+	// The revision a cross-tree fix bisection started from, instead of the revision of the crash.
 	BisectFrom string
 
 	// Result of execution:

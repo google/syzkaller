@@ -61,7 +61,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -123,25 +122,21 @@ type Config struct {
 	// Path to upload bench data from instances (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
 	BenchUploadPath string `json:"bench_upload_path"`
-	// BinDir must point to a dir that contains compilers required to build
-	// older versions of the kernel. For linux, it needs to include several
-	// compiler versions.
-	BisectBinDir string `json:"bisect_bin_dir"`
-	// Keys of BisectIgnore are full commit hashes that should never be reported
-	// in bisection results.
-	// Values of the map are ignored and can e.g. serve as comments.
-	BisectIgnore map[string]string `json:"bisect_ignore"`
-	// Extra commits to cherry-pick to older kernel revisions.
-	// The list is concatenated with the similar parameter from ManagerConfig.
+
+	// The following parameters are ignored. They were used by the removed syz-ci bisection,
+	// and are kept only so that existing configs still parse.
+	BisectBinDir    string               `json:"bisect_bin_dir"`
+	BisectIgnore    map[string]string    `json:"bisect_ignore"`
 	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
 	Ccache          string               `json:"ccache"`
+
 	// BuildCPUs defines the maximum number of parallel kernel build threads.
 	BuildCPUs int              `json:"build_cpus"`
 	Managers  []*ManagerConfig `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`
 	// Set up a second (parallel) job processor to speed up processing.
-	// For now, this second job processor only handles patch testing requests.
+	// The second job processor only handles patch testing requests.
 	ParallelJobs bool `json:"parallel_jobs"`
 	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
 	CommitPollPeriod int `json:"commit_poll_period"`
@@ -193,9 +188,8 @@ type ManagerConfig struct {
 	// Short name of the repo (e.g. "linux-next"), used only for reporting.
 	RepoAlias string `json:"repo_alias"`
 	Branch    string `json:"branch"` // Defaults to "master".
-	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
-	// explicit plumbing for every os/compiler combination.
-	CompilerType string `json:"compiler_type"` // Defaults to "gcc"
+	// Ignored, it was used by the removed syz-ci bisection.
+	CompilerType string `json:"compiler_type"`
 	Compiler     string `json:"compiler"`
 	Make         string `json:"make"`
 	Linker       string `json:"linker"`
@@ -210,16 +204,14 @@ type ManagerConfig struct {
 	// Build-type-specific parameters.
 	// Parameters for concrete types are in Config type in pkg/build/TYPE.go, e.g. pkg/build/android.go.
 	Build json.RawMessage `json:"build"`
-	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
-	// If not specified, syz-ci generates a `-base.config` path counterpart for `kernel_config` and,
-	// if it exists, uses it as default.
+	// Ignored, it was used by the removed syz-ci bisection.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
 	KernelSysctl string      `json:"kernel_sysctl"`
 	Jobs         ManagerJobs `json:"jobs"`
-	// Extra commits to cherry pick to older kernel revisions.
+	// Ignored, it was used by the removed syz-ci bisection.
 	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
 	// Base syz-manager config for the instance.
 	ManagerConfig json.RawMessage `json:"manager_config"`
@@ -241,20 +233,19 @@ type ManagerConfig struct {
 type ManagerJobs struct {
 	TestPatches bool `json:"test_patches"` // enable patch testing jobs
 	PollCommits bool `json:"poll_commits"` // poll info about fix commits
-	BisectCause bool `json:"bisect_cause"` // do cause bisection
-	BisectFix   bool `json:"bisect_fix"`   // do fix bisection
+	// BisectCause and BisectFix are ignored, they were used by the removed syz-ci bisection.
+	BisectCause bool `json:"bisect_cause"`
+	BisectFix   bool `json:"bisect_fix"`
 }
 
 func (m *ManagerJobs) AnyEnabled() bool {
-	return m.TestPatches || m.PollCommits || m.BisectCause || m.BisectFix
+	return m.TestPatches || m.PollCommits
 }
 
 func (m *ManagerJobs) Filter(filter *ManagerJobs) *ManagerJobs {
 	return &ManagerJobs{
 		TestPatches: m.TestPatches && filter.TestPatches,
 		PollCommits: m.PollCommits && filter.PollCommits,
-		BisectCause: m.BisectCause && filter.BisectCause,
-		BisectFix:   m.BisectFix && filter.BisectFix,
 	}
 }
 
@@ -465,8 +456,6 @@ func loadConfig(filename string) (*Config, error) {
 	}
 	cfg.Goroot = osutil.Abs(cfg.Goroot)
 	cfg.SyzkallerDescriptions = osutil.Abs(cfg.SyzkallerDescriptions)
-	cfg.BisectBinDir = osutil.Abs(cfg.BisectBinDir)
-	cfg.Ccache = osutil.Abs(cfg.Ccache)
 	var managers []*ManagerConfig
 	for _, mgr := range cfg.Managers {
 		if mgr.Disabled == "" {
@@ -504,9 +493,6 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	} else {
 		managercfg.Name = cfg.Name + "-" + mgr.Name
 	}
-	if mgr.CompilerType == "" {
-		mgr.CompilerType = "gcc"
-	}
 	if mgr.Branch == "" {
 		mgr.Branch = "master"
 	}
@@ -527,12 +513,8 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	mgr.Userspace = osutil.Abs(mgr.Userspace)
 	mgr.KernelBuilderImage = osutil.Abs(mgr.KernelBuilderImage)
 	mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
-	mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
 	mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
 	mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
-	if mgr.KernelConfig != "" && mgr.KernelBaselineConfig == "" {
-		mgr.KernelBaselineConfig = inferBaselineConfig(mgr.KernelConfig)
-	}
 	if mgr.MaxKernelLagDays == 0 {
 		mgr.MaxKernelLagDays = 30
 	}
@@ -562,16 +544,4 @@ func extractBuildEnv(managercfg *mgrconfig.Config) dashapi.BuildEnv {
 		MachineType: vm.MachineType,
 		QemuArgs:    vm.QemuArgs,
 	}
-}
-
-func inferBaselineConfig(kernelConfig string) string {
-	suffixPos := strings.LastIndex(kernelConfig, ".config")
-	if suffixPos < 0 {
-		return ""
-	}
-	candidate := kernelConfig[:suffixPos] + "-base.config"
-	if !osutil.IsExist(candidate) {
-		return ""
-	}
-	return candidate
 }

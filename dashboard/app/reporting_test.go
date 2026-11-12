@@ -1038,15 +1038,14 @@ func TestFullBugInfo(t *testing.T) {
 	crashRepro.Report = []byte("with repro")
 	c.client.ReportCrash(crashRepro)
 
-	// Ensure we have some bisect jobs done.
-	pollResp := c.globalClient.pollJobs(build.Manager)
-	c.expectNE(pollResp.ID, "")
-	jobID := pollResp.ID
-	done := &dashapi.JobDoneReq{
-		ID:    jobID,
-		Build: *testBuild(3),
-		Log:   []byte("bisect log"),
-		Commits: []dashapi.Commit{
+	// Seed a historical cause bisection job.
+	_, bugKey := c.loadSingleBug()
+	c.saveHistoricalBisectJob(historicalBisectJob{
+		bugKey:  bugKey,
+		jobType: JobBisectCause,
+		build:   testBuild(3),
+		log:     "bisect log",
+		commits: []dashapi.Commit{
 			{
 				Hash:   "111111111111111111111111",
 				Title:  "kernel: break build",
@@ -1055,9 +1054,7 @@ func TestFullBugInfo(t *testing.T) {
 				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
 		},
-	}
-	c.client.expectOK(c.globalClient.JobDone(done))
-	c.globalClient.pollBug()
+	})
 
 	// Yet newer: no repro.
 	c.advanceTime(24 * 7 * time.Hour)
@@ -1352,15 +1349,16 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 	crashRepro.Title = crashTitle
 	client.ReportCrash(crashRepro)
 
-	// Do a bisection.
-	pollResp := c.globalClient.pollJobs(build.Manager)
-	c.expectNE(pollResp.ID, "")
-	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
-	done := &dashapi.JobDoneReq{
-		ID:    pollResp.ID,
-		Build: *testBuild(2),
-		Log:   []byte("bisect log"),
-		Commits: []dashapi.Commit{
+	report := c.globalClient.pollBug()
+
+	// Seed a historical cause bisection on that crash.
+	_, bugKey := c.loadSingleBug()
+	c.saveHistoricalBisectJob(historicalBisectJob{
+		bugKey:  bugKey,
+		jobType: JobBisectCause,
+		build:   testBuild(2),
+		log:     "bisect log",
+		commits: []dashapi.Commit{
 			{
 				Hash:   "111111111111111111111111",
 				Title:  "kernel: break build",
@@ -1368,9 +1366,7 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
 		},
-	}
-	client.expectOK(c.globalClient.JobDone(done))
-	report := c.globalClient.pollBug()
+	})
 
 	// Revoke the reproducer.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)

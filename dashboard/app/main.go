@@ -486,7 +486,6 @@ type uiJob struct {
 	*dashapi.JobInfo
 	Crash             *uiCrash
 	InvalidateJobLink string
-	RestartJobLink    string
 	FixCandidate      bool
 	// AIBisection is set if this is not a syz-ci job, but a result of an AI bisection job.
 	AIBisection bool
@@ -1121,8 +1120,6 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		return handleInvalidateBisection(ctx, w, r)
 	case "updateBugReporting":
 		return updateBugReporting(ctx, w, r)
-	case "restartFailedBisections":
-		return restartFailedBisections(ctx, w, r)
 	case "setMissingBugFields":
 		return setMissingBugFields(ctx, w, r)
 	case "force_commit_info_update":
@@ -1472,15 +1469,11 @@ func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel
 			Value: reproAttempts,
 		})
 	}
-	// bug.BisectFix is set to BisectNot in three cases :
-	// - no fix bisections have been performed on the bug
-	// - fix bisection was performed but resulted in a crash on HEAD
-	// - there have been infrastructure problems during the job execution
+	// Bisection jobs of the former syz-ci bisection that are not shown as the bisection result.
 	if showBisectAttempts(bugDetails.BisectFixJob, bugDetails.BisectFixJobs) {
 		sections = append(sections, makeCollapsibleBugJobs(
 			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
-	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
 	if showBisectAttempts(bugDetails.BisectCauseJob, bugDetails.BisectCauseJobs) {
 		sections = append(sections, makeCollapsibleBugJobs(
 			"Cause bisection attempts", bugDetails.BisectCauseJobs))
@@ -2681,8 +2674,7 @@ func loadTestPatchJobs(ctx context.Context, bug *Bug) ([]*uiJob, error) {
 func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		JobInfo:           makeJobInfo(ctx, job, jobKey, bug, build, crash),
-		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey, false),
-		RestartJobLink:    invalidateJobLink(ctx, job, jobKey, true),
+		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey),
 		FixCandidate:      job.IsCrossTree(),
 	}
 	if crash != nil {
@@ -2726,7 +2718,7 @@ func showBisectAttempts(shown *uiJob, all []*uiJob) bool {
 	return len(all) > 1 || len(all) == 1 && (shown == nil || shown.AIBisection)
 }
 
-func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bool) string {
+func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key) string {
 	if !user.IsAdmin(ctx) {
 		return ""
 	}
@@ -2739,9 +2731,6 @@ func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bo
 	params := url.Values{}
 	params.Add("action", "invalidate_bisection")
 	params.Add("key", jobKey.Encode())
-	if restart {
-		params.Add("restart", "1")
-	}
 	return "/admin?" + params.Encode()
 }
 
