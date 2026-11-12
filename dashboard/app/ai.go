@@ -1888,7 +1888,16 @@ func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs ma
 
 func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug, extraArgs map[string]any) (
 	string, error) {
-	crash, crashKey, err := findCrashForBug(ctx, bug)
+	var crash *Crash
+	var crashKey *db.Key
+	var err error
+	if typ == ai.WorkflowBisectFix {
+		crash, crashKey, err = findFixBisectionCrash(ctx, bug)
+	}
+	if err == nil && crash == nil {
+		// Manual fix bisection jobs may use any crash.
+		crash, crashKey, err = findCrashForBug(ctx, bug)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -1962,6 +1971,22 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		Link:        fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)),
 		Args:        spanner.NullJSON{Valid: true, Value: args},
 	})
+}
+
+// findFixBisectionCrash returns the best crash of the bug with a reproducer from a manager
+// with fix bisection enabled, or nil if there is no such crash.
+func findFixBisectionCrash(ctx context.Context, bug *Bug) (*Crash, *db.Key, error) {
+	crashes, keys, err := queryCrashesForBug(ctx, bug.key(ctx), maxCrashes())
+	if err != nil {
+		return nil, nil, err
+	}
+	cfg := getNsConfig(ctx, bug.Namespace)
+	for i, crash := range crashes {
+		if (crash.ReproC != 0 || crash.ReproSyz != 0) && !cfg.Managers[crash.Manager].FixBisectionDisabled {
+			return crash, keys[i], nil
+		}
+	}
+	return nil, nil, nil
 }
 
 // TODO: We could probably be more smart at avoiding looking into the specific
@@ -2176,6 +2201,11 @@ const (
 	reproCMinAge          = 48 * time.Hour
 	reproCMaxAge          = 30 * 24 * time.Hour
 	reproCPatchAge        = 30 * 24 * time.Hour
+
+	maxAutoBisectAttempts = 2
+	// Fix bisection is done only for bugs that were not seen for this long (there is likely no fix
+	// while the bug still happens), and is repeated this long after it found the bug still present.
+	bisectFixMinAge = 30 * 24 * time.Hour
 )
 
 func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
@@ -2337,6 +2367,12 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	}{}
 	for _, job := range jobs {
 		typ := job.Type
+		if typ == ai.WorkflowBisectFix && bug.AIBisectFix.StillPresent &&
+			!job.Created.After(bug.AIBisectFix.Finished) {
+			// Fix bisection found the bug still present, so it's repeated later (see canAutoBisectFix)
+			// regardless of the jobs up to that point.
+			continue
+		}
 		// Have finished successful job.
 		if job.Finished.Valid && job.Error == "" ||
 			// Or already have a pending or a running job.
@@ -2362,9 +2398,11 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	// or may be fixed over time. So we retry failed/aborted jobs with an exponential
 	// backoff based on attempts count. 1 job is retried in 1 day; 2 jobs - in 2 days;
 	// 3 jobs - in 4 days, and so on up to the cap of 30 days.
-	// For repro-c, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
+	// For repro-c and bisection, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
 	for typ, attempts := range workflowAttempts {
-		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts {
+		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts ||
+			(typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) &&
+				attempts.count >= maxAutoBisectAttempts {
 			delete(workflows, typ)
 			continue
 		}
@@ -2376,8 +2414,7 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	if len(workflows) == 0 {
 		return nil, nil
 	}
-	supported, err := bugHasSupportedAIArch(ctx, bug)
-	if err != nil || !supported {
+	if err := filterWorkflowsByCrashes(ctx, bug, workflows); err != nil || len(workflows) == 0 {
 		return nil, err
 	}
 	var pending []string
@@ -2386,6 +2423,30 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	}
 	slices.Sort(pending)
 	return pending, nil
+}
+
+// filterWorkflowsByCrashes removes the workflows that the crashes of the bug don't allow: all of them
+// if the arch of the bug is not supported by syz-agent, and fix bisection if there is no reproducer
+// from a manager with fix bisection enabled.
+func filterWorkflowsByCrashes(ctx context.Context, bug *Bug, workflows map[ai.WorkflowType]bool) error {
+	supported, err := bugHasSupportedAIArch(ctx, bug)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		clear(workflows)
+		return nil
+	}
+	if workflows[ai.WorkflowBisectFix] {
+		crash, _, err := findFixBisectionCrash(ctx, bug)
+		if err != nil {
+			return err
+		}
+		if crash == nil {
+			delete(workflows, ai.WorkflowBisectFix)
+		}
+	}
+	return nil
 }
 
 // Arches supported by syz-agent (see syz-agent/k8s/overlays/prod-agent/agent-config.json).
@@ -2433,6 +2494,26 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		typ != crash.Hang
 }
 
+// Automatic AI cause bisection heuristics:
+// - Open bugs only, with no fixing commits.
+// - Must have a crash report (a reproducer is not required).
+// - Skip non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
+func canAutoBisectCause(bug *Bug, typ crash.Type) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasReport && isKernelCrashBugTitle(bug.Title, typ)
+}
+
+// Automatic AI fix bisection heuristics (the same as syz-ci used for fix bisection):
+// - Open bugs only, with no fixing commits.
+// - Must have a reproducer.
+// - Fix bisection must be enabled for one of the managers the bug happened on.
+// - Not seen for at least 30 days, neither by fuzzing nor by the previous fix bisection (see lastPresentTime).
+func canAutoBisectFix(ctx context.Context, nsCfg *Config, bug *Bug) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasRepro() && bug.fixBisectionEnabled(nsCfg) &&
+		timeSince(ctx, bug.lastPresentTime()) >= bisectFixMinAge
+}
+
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	workflows := make(map[ai.WorkflowType]bool)
 	typ := crash.TitleToType(bug.Title)
@@ -2477,6 +2558,12 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 		if canAutoReproC {
 			workflows[ai.WorkflowReproC] = true
+		}
+		if canAutoBisectCause(bug, typ) {
+			workflows[ai.WorkflowBisectCause] = true
+		}
+		if canAutoBisectFix(ctx, nsCfg, bug) {
+			workflows[ai.WorkflowBisectFix] = true
 		}
 	}
 	return workflows

@@ -1885,13 +1885,90 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		got := workflowsForBug(c.ctx, b, true)
 		require.True(t, got[ai.WorkflowReproC])
 	})
+}
 
-	t.Run("bisection is manual only", func(t *testing.T) {
-		b := base()
-		for _, typ := range []ai.WorkflowType{ai.WorkflowBisectCause, ai.WorkflowBisectFix} {
-			require.True(t, workflowsForBug(c.ctx, b, true)[typ])
-			require.False(t, workflowsForBug(c.ctx, b, false)[typ])
-		}
+func TestWorkflowsForBugBisectCause(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	for _, tc := range []struct {
+		name string
+		mod  func(*Bug)
+		want bool
+	}{
+		{name: "eligible", want: true},
+		{name: "no report", mod: func(b *Bug) { b.HasReport = false }},
+		{name: "fixed", mod: func(b *Bug) { b.Status = BugStatusFixed }},
+		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
+		// The title filter is shared with repro-c, see TestWorkflowsForBugReproC for the other titles.
+		{name: "SYZFAIL", mod: func(b *Bug) { b.Title = "SYZFAIL: something failed" }},
+		// These are skipped for repro-c only.
+		{name: "KCSAN", mod: func(b *Bug) { b.Title = "KCSAN: data-race in foo / bar" }, want: true},
+		{name: "INFO", mod: func(b *Bug) { b.Title = "INFO: task hung in foo" }, want: true},
+		{name: "hang", mod: func(b *Bug) { b.Title = "BUG: soft lockup in foo" }, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := &Bug{
+				Namespace: "ains",
+				Title:     "KASAN: slab-use-after-free in foo",
+				Status:    BugStatusOpen,
+				HasReport: true,
+			}
+			if tc.mod != nil {
+				tc.mod(b)
+			}
+			assert.Equal(t, tc.want, workflowsForBug(c.ctx, b, false)[ai.WorkflowBisectCause])
+		})
+	}
+	t.Run("manual overrides all", func(t *testing.T) {
+		b := &Bug{Namespace: "test2", Status: BugStatusFixed}
+		assert.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectCause])
+	})
+}
+
+func TestWorkflowsForBugBisectFix(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	const enabledMgr, disabledMgr = "manager1", "manager2"
+	ctx := contextWithConfig(c.ctx, replaceNamespaceConfig(c.ctx, "ains", func(cfg *Config) *Config {
+		ret := *cfg
+		ret.Managers = map[string]ConfigManager{disabledMgr: {FixBisectionDisabled: true}}
+		return &ret
+	}))
+	for _, tc := range []struct {
+		name string
+		mod  func(*Bug)
+		want bool
+	}{
+		{name: "eligible", want: true},
+		{name: "no repro", mod: func(b *Bug) { b.HasSyzRepro = false }},
+		{name: "fixed", mod: func(b *Bug) { b.Status = BugStatusFixed }},
+		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
+		{name: "fix bisection disabled", mod: func(b *Bug) { b.HappenedOn = []string{disabledMgr} }},
+		{
+			name: "fix bisection enabled on one manager",
+			mod:  func(b *Bug) { b.HappenedOn = []string{disabledMgr, enabledMgr} },
+			want: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := &Bug{
+				Namespace:   "ains",
+				Status:      BugStatusOpen,
+				HasSyzRepro: true,
+				HappenedOn:  []string{enabledMgr},
+				LastTime:    timeNow(c.ctx).Add(-31 * 24 * time.Hour),
+			}
+			if tc.mod != nil {
+				tc.mod(b)
+			}
+			assert.Equal(t, tc.want, workflowsForBug(ctx, b, false)[ai.WorkflowBisectFix])
+		})
+	}
+	t.Run("manual overrides all", func(t *testing.T) {
+		b := &Bug{Namespace: "test2", Status: BugStatusFixed}
+		assert.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectFix])
 	})
 }
 
@@ -2276,10 +2353,13 @@ func TestAIRootCausePassedToBisect(t *testing.T) {
 
 	// Register the bisect-cause workflow on a separate agent so that its jobs can be created
 	// manually (polls replace the set of workflows registered for the polling agent).
+	// The poll also creates a bisect-cause job for the new bug, before it has a root cause analysis.
 	const bisectAgent = "bisect-agent"
 	bisectWorkflow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)}
 	resp := c.pollAIJob(t, bisectAgent, bisectWorkflow)
-	require.Empty(t, resp.ID)
+	require.NotEmpty(t, resp.ID)
+	assert.NotContains(t, resp.Args, "RootCauseAnalysis")
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "stopped"}))
 
 	secResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 	require.NotEmpty(t, secResp.ID)
@@ -2815,4 +2895,115 @@ Reported-by: syzbot+abcdef@testapp.appspotmail.com
 the report
 `)
 	assert.NotContains(t, body, "Fixes:")
+}
+
+func TestAIBisectCauseScheduling(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	reportCrash := func(num int) {
+		_, err := c.aiClient.ReportCrash(testCrash(build, num))
+		require.NoError(t, err)
+		c.aiClient.pollEmailExtID()
+	}
+
+	// A new bug is bisected right away. A finished bisection is not repeated,
+	// even if it did not identify any commit.
+	reportCrash(1)
+	resp := c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	assert.Equal(t, "title1", resp.Args["BugTitle"])
+	c.finishAIJob(resp.ID, ai.BisectCauseOutputs{})
+	c.advanceTime(25 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+
+	// A failed job is retried after a day, but there are at most maxAutoBisectAttempts (2) attempts.
+	reportCrash(2)
+	resp = c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "build failed 1"}))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	c.advanceTime(25 * time.Hour)
+	resp = c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "build failed 2"}))
+	// A second retry would come 2 days after the second failure, if not for the cap.
+	c.advanceTime(49 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+}
+
+func TestAIBisectFixScheduling(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	_, err := c.aiClient.ReportCrash(testCrashWithRepro(build, 1))
+	require.NoError(t, err)
+	c.aiClient.pollEmailExtID()
+
+	// There is likely no fix while the bug still happens, so the fix is searched for
+	// once the bug was not seen for 30 days.
+	c.advanceTime(29 * 24 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectFix).ID)
+	c.advanceTime(2 * 24 * time.Hour)
+	resp := c.pollAIWorkflow(t, ai.WorkflowBisectFix)
+	require.NotEmpty(t, resp.ID)
+	assert.Equal(t, "title1", resp.Args["BugTitle"])
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BugStillPresent: true})
+
+	// If the bug is still present, fix bisection is repeated 30 days later.
+	c.advanceTime(29 * 24 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectFix).ID)
+	c.advanceTime(2 * 24 * time.Hour)
+	resp = c.pollAIWorkflow(t, ai.WorkflowBisectFix)
+	require.NotEmpty(t, resp.ID)
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		Commits: []ai.Commit{{Hash: strings.Repeat("f", 40), Title: "kernel: fix the bug"}},
+	}})
+
+	// Once a fix is found, it's not searched for again.
+	c.advanceTime(31 * 24 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectFix).ID)
+}
+
+func TestAIBisectFixCrash(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// Fix bisection uses a crash with a reproducer from a manager that has fix bisection enabled,
+	// even if there is a better crash from another manager.
+	disabledBuild, enabledBuild := testBuild(1), testBuild(2)
+	c.transformContext = func(ctx context.Context) context.Context {
+		return contextWithConfig(ctx, replaceNamespaceConfig(ctx, "ains", func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Managers = map[string]ConfigManager{disabledBuild.Manager: {FixBisectionDisabled: true}}
+			return &ret
+		}))
+	}
+	require.NoError(t, c.aiClient.UploadBuild(disabledBuild))
+	require.NoError(t, c.aiClient.UploadBuild(enabledBuild))
+	_, err := c.aiClient.ReportCrash(testCrashWithRepro(disabledBuild, 1))
+	require.NoError(t, err)
+	crash := testCrash(enabledBuild, 1)
+	crash.ReproSyz = []byte("getpid()")
+	_, err = c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+
+	c.advanceTime(31 * 24 * time.Hour)
+	resp := c.pollAIWorkflow(t, ai.WorkflowBisectFix)
+	require.NotEmpty(t, resp.ID)
+	assert.Equal(t, enabledBuild.KernelCommit, resp.Args["CrashCommit"])
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{})
+
+	// A bug that happened on both managers, but has a reproducer only from the one with fix bisection
+	// disabled, is not fix bisected automatically.
+	_, err = c.aiClient.ReportCrash(testCrashWithRepro(disabledBuild, 2))
+	require.NoError(t, err)
+	_, err = c.aiClient.ReportCrash(testCrash(enabledBuild, 2))
+	require.NoError(t, err)
+	c.advanceTime(31 * 24 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectFix).ID)
 }

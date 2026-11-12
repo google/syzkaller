@@ -888,12 +888,20 @@ func (ctx *Ctx) SetAIConfig(ns string, aiCfg *AIConfig) {
 
 const aiBisectAgent = "bisect-agent"
 
-// startAIBisect creates an AI bisection job for the bug and lets the agent pick it up.
+// startAIBisect returns the AI bisection job for the bug that the agent picks up:
+// the job that is created automatically, if any, or a job created manually on the bug page.
 func (ctx *Ctx) startAIBisect(extID string, typ ai.WorkflowType) *dashapi.AIJobPollResp {
 	ctx.t.Helper()
 	workflow := dashapi.AIWorkflow{Type: typ, Name: string(typ)}
-	// A workflow needs to be registered by an agent before jobs can be created for it.
-	ctx.pollAIJob(ctx.t, aiBisectAgent, workflow)
+	// A workflow needs to be registered by an agent before jobs can be created for it,
+	// and the poll may create a job for the bug automatically.
+	if resp := ctx.pollAIJob(ctx.t, aiBisectAgent, workflow); resp.ID != "" {
+		bug, _, _ := ctx.loadBug(extID)
+		job, err := aidb.LoadJob(ctx.ctx, resp.ID)
+		require.NoError(ctx.t, err)
+		require.Equal(ctx.t, bug.keyHash(ctx.ctx), job.BugID.StringVal)
+		return resp
+	}
 	jobID := ctx.createAIJob(extID, workflow.Name, "")
 	resp := ctx.pollAIJob(ctx.t, aiBisectAgent, workflow)
 	require.Equal(ctx.t, jobID, resp.ID)
