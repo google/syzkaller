@@ -242,7 +242,7 @@ var notificationGenerators = []func(context.Context, *Bug, *Reporting,
 		if len(bug.Commits) == 0 &&
 			bug.canBeObsoleted(ctx) &&
 			timeSince(ctx, bug.LastActivity) > notifyResendPeriod &&
-			timeSince(ctx, bug.LastTime) > bug.obsoletePeriod(ctx) {
+			timeSince(ctx, bug.lastPresentTime()) > bug.obsoletePeriod(ctx) {
 			log.Infof(ctx, "%v: obsoleting: %v", bug.Namespace, bug.Title)
 			why := bugObsoletionReason(bug)
 			return createNotification(ctx, dashapi.BugNotifObsoleted, false, string(why), bug, reporting, bugReporting)
@@ -345,6 +345,15 @@ func (bug *Bug) canBeObsoleted(ctx context.Context) bool {
 		return true
 	}
 	return false
+}
+
+// lastPresentTime returns the last time the bug was observed to still be present:
+// either its last crash, or when AI fix bisection verified that it is not fixed yet.
+func (bug *Bug) lastPresentTime() time.Time {
+	if bug.AIBisectFix.StillPresent && bug.AIBisectFix.Finished.After(bug.LastTime) {
+		return bug.AIBisectFix.Finished
+	}
+	return bug.LastTime
 }
 
 func (bug *Bug) obsoletePeriod(ctx context.Context) time.Duration {

@@ -163,6 +163,7 @@ type Bug struct {
 	// and in bug reports, even if the AI job did not identify any commit.
 	AIBisectCause BugAIBisect
 	// AIBisectFix is the same as AIBisectCause, but for fix bisection.
+	// If StillPresent is set, it also delays auto-obsoletion of the bug.
 	AIBisectFix BugAIBisect
 }
 
@@ -174,6 +175,8 @@ type Bug struct {
 type BugAIBisect struct {
 	// JobID is the AI job that produced the result, empty if there is no result.
 	JobID string `datastore:",noindex"`
+	// Finished is when the AI job finished.
+	Finished time.Time `datastore:",noindex"`
 	// KernelRepo is the repository Commits belong to.
 	KernelRepo string `datastore:",noindex"`
 	// Commits are the candidate commits ordered by relevance, the primary one first.

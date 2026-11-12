@@ -2540,6 +2540,57 @@ func TestAIBisectFix(t *testing.T) {
 	assert.NotContains(t, string(page), "✨ AI fix bisection")
 }
 
+func TestAIBisectFixObsoleting(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	reportCrash := func(num int) string {
+		_, err := c.aiClient.ReportCrash(testCrash(build, num))
+		require.NoError(t, err)
+		return c.aiClient.pollEmailExtID()
+	}
+	extID1 := reportCrash(1)
+	extID2 := reportCrash(2)
+
+	// After 60 days, AI fix bisection verifies that both bugs are still present.
+	c.advanceTime(60 * 24 * time.Hour)
+	runStillPresent := func(extID string) string {
+		resp := c.startAIBisect(extID, ai.WorkflowBisectFix)
+		c.finishAIJob(resp.ID, ai.BisectFixOutputs{
+			BisectOutputs:   ai.BisectOutputs{KernelCommit: build.KernelCommit, BisectReasoning: "Still present."},
+			BugStillPresent: true,
+		})
+		return fmt.Sprintf("/ai_job?id=%v", resp.ID)
+	}
+	jobLink1 := runStillPresent(extID1)
+	runStillPresent(extID2)
+
+	// LastTime itself is not altered, only AIBisectFix records the check.
+	bug1, _, _ := c.loadBug(extID1)
+	assert.Equal(t, bug1.FirstTime, bug1.LastTime)
+	assert.True(t, bug1.AIBisectFix.StillPresent)
+
+	// 120d since LastTime (> MaxPeriod of 100d), but only 60d since AI fix bisection: neither bug is obsoleted.
+	c.advanceTime(60 * 24 * time.Hour)
+	c.expectNoEmail()
+
+	// Marking the first bug's AI job as incorrect removes the result, so it is obsoleted right away.
+	_, err := c.POSTForm(jobLink1, url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
+	require.NoError(t, err)
+	notif := c.pollEmailBug()
+	assert.Equal(t, "[syzbot] title1", notif.Subject)
+	assert.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
+	c.expectNoEmail()
+
+	// Once MaxPeriod elapses after the AI fix bisection (110d > 100d), the second bug is obsoleted too.
+	c.advanceTime(50 * 24 * time.Hour)
+	notif = c.pollEmailBug()
+	assert.Equal(t, "[syzbot] title2", notif.Subject)
+	assert.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
+}
+
 func TestAIBisectResult(t *testing.T) {
 	commit := ai.Commit{
 		Hash:        "9999999999999999999999999999999999999999",
@@ -2622,11 +2673,13 @@ func TestAIBisectResult(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			finished := time.Date(2000, 2, 4, 4, 5, 6, 0, time.UTC)
 			job := &aidb.Job{
-				ID:      "job-id",
-				Type:    test.typ,
-				Args:    spanner.NullJSON{Valid: true, Value: map[string]any{"KernelRepo": "repo1"}},
-				Results: spanner.NullJSON{Valid: true, Value: aiJobResults(test.outputs)},
+				ID:       "job-id",
+				Type:     test.typ,
+				Finished: spanner.NullTime{Time: finished, Valid: true},
+				Args:     spanner.NullJSON{Valid: true, Value: map[string]any{"KernelRepo": "repo1"}},
+				Results:  spanner.NullJSON{Valid: true, Value: aiJobResults(test.outputs)},
 			}
 			got, err := aiBisectResult(job)
 			if test.wantErr != "" {
@@ -2635,6 +2688,7 @@ func TestAIBisectResult(t *testing.T) {
 			}
 			require.NoError(t, err)
 			test.want.JobID = "job-id"
+			test.want.Finished = finished
 			test.want.KernelRepo = "repo1"
 			assert.Equal(t, test.want, got)
 		})
