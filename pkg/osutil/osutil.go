@@ -284,10 +284,10 @@ func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
 }
 
-// ReadFileInRoot reads relFile confined to rootDir using os.OpenRoot,
-// rejecting any path traversal or symlink that escapes rootDir.
+// ReadFileInRoot reads relFile confined to rootDir,
+// rejecting any path traversal or symlink that escapes rootDir (see SandboxRoot.ReadFile).
 func ReadFileInRoot(rootDir, relFile string) ([]byte, error) {
-	root, err := os.OpenRoot(rootDir)
+	root, err := OpenSandboxRoot(rootDir)
 	if err != nil {
 		return nil, err
 	}

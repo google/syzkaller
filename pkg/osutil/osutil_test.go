@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -257,6 +258,9 @@ func TestReadInRoot(t *testing.T) {
 		_, err := ReadFileInRoot(rootDir, p)
 		require.Error(t, err)
 	}
+	// Some callers check for this error.
+	_, err = ReadFileInRoot(rootDir, ".")
+	require.ErrorIs(t, err, syscall.EISDIR)
 
 	entries, err := ReadDirInRoot(rootDir, ".")
 	require.NoError(t, err)
