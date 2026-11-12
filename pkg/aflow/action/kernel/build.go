@@ -7,7 +7,6 @@ package kernel
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -57,15 +56,15 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 	if target == nil {
 		return fmt.Errorf("unsupported target %v/%v", targetOS, targetVMArch)
 	}
-	root, err := os.OpenRoot(buildDir)
+	root, err := osutil.OpenSandboxRoot(buildDir)
 	if err != nil {
 		return err
 	}
 	defer root.Close()
-	if err := root.WriteFile(".config", []byte(cfg), osutil.DefaultFilePerm); err != nil {
+	if err := root.WriteFile(".config", []byte(cfg)); err != nil {
 		return err
 	}
-	if err := osutil.SandboxChown(buildDir, filepath.Join(buildDir, ".config")); err != nil {
+	if err := osutil.SandboxChown(buildDir); err != nil {
 		return err
 	}
 	configScript := filepath.Join(srcDir, "scripts", "config")
@@ -120,7 +119,7 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		target.KernelObject: true,
 		compileCommands:     true,
 	}
-	return fs.WalkDir(root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+	return root.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
