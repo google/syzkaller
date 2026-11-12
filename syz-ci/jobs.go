@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -711,11 +710,8 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 			return fmt.Errorf("failed to chown job repo dir: %w", err)
 		}
 		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
-		cmd := exec.Command("git", "clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
-			return fmt.Errorf("failed to sandbox clone: %w", err)
-		}
-		_, err := osutil.Run(time.Hour, cmd)
+		_, err := vcs.SandboxedGit(repoDir).RunTimeout(time.Hour,
+			"clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, ".")
 		if err == nil {
 			return nil
 		}
