@@ -23,10 +23,6 @@ func fileTimes(file string) (time.Time, time.Time, error) {
 	return modTime, modTime, nil
 }
 
-func RemoveAll(dir string) error {
-	return os.RemoveAll(dir)
-}
-
 func SystemMemorySize() uint64 {
 	return 0
 }

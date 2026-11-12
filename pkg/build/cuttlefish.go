@@ -90,7 +90,7 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	var config string
 	var err error
 	// Clean output directory if it exists.
-	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
+	if err := os.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return details, fmt.Errorf("failed to clean before kernel build: %w", err)
 	}
 	// Default to build.sh if compiler is not specified.
@@ -166,8 +166,8 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 }
 
 func (c cuttlefish) clean(params Params) error {
-	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
+	if err := os.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return err
 	}
-	return osutil.RemoveAll(filepath.Join(params.KernelDir, "dist"))
+	return os.RemoveAll(filepath.Join(params.KernelDir, "dist"))
 }
