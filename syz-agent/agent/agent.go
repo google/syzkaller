@@ -13,6 +13,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -99,7 +100,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 		cache:           cache,
 		workdir:         workdir,
 		syzkallerDir:    syzkallerDir,
-		overQuotaModels: make(map[string]time.Time),
+		overQuotaModels: make(map[modelQuota]time.Time),
 	}
 
 	if cfg.MCP {
@@ -207,7 +208,13 @@ type Server struct {
 	cache           *aflow.Cache
 	workdir         string
 	syzkallerDir    string
-	overQuotaModels map[string]time.Time
+	overQuotaModels map[modelQuota]time.Time // when the quotas were exhausted
+}
+
+// modelQuota identifies the daily request quota of a model category on an LLM backend.
+type modelQuota struct {
+	backend  string
+	category aflow.ModelCategory
 }
 
 func (s *Server) poll(ctx context.Context) (bool, error) {
@@ -250,9 +257,9 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 		// but we want to include it here (otherwise it will be lost, and the error
 		// will just say "command X failed with exit status Y").
 		doneReq.Error = osutil.VerboseMessage(jobErr)
-		if model := aflow.IsModelQuotaError(jobErr); model != "" {
-			// If a model is over quota, we will avoid requesting more jobs
-			// for workflows that use the model.
+		if category := aflow.IsModelQuotaError(jobErr); category != "" {
+			// If a model category is over quota, we will avoid requesting more jobs
+			// for workflows that use the category on the same LLM backend.
 			// There is no easy way to handle the current job, though.
 			// We would either need to tell dashboard to have a special status,
 			// and retry the job the next day. Or, somehow stack the job locally,
@@ -262,9 +269,10 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 			// the server has crashed while executing the job, and it should
 			// eventually retry it on common grounds.
 			now := time.Now()
-			s.overQuotaModels[model] = now
-			log.Logf(0, "model %v is over daily quota until %v",
-				model, aflow.QuotaResetTime(now))
+			quota := modelQuota{backend: s.cfg.workflowBackend(resp.Workflow), category: category}
+			s.overQuotaModels[quota] = now
+			log.Logf(0, "model category %v on %v backend is over daily quota until %v",
+				quota.category, quota.backend, aflow.QuotaResetTime(now))
 			return true, nil
 		}
 		if errors.Is(jobErr, context.Canceled) && s.name != "" {
@@ -320,10 +328,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 			Span:      &sendSpan,
 		})
 	}
-	backend := s.cfg.DefaultBackend
-	if b, ok := s.cfg.WorkflowBackends[req.Workflow]; ok {
-		backend = b
-	}
+	backend := s.cfg.workflowBackend(req.Workflow)
 
 	geminiCfg := gemini.Config{
 		ModelOverride:   s.cfg.Model,
@@ -353,11 +358,13 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 }
 
 func (s *Server) modelOverQuota(flow *aflow.Flow) bool {
-	if s.cfg.Model != "" {
-		return !s.overQuotaModels[s.cfg.Model].IsZero()
-	}
-	for _, model := range flow.Models {
-		if !s.overQuotaModels[model].IsZero() {
+	backend := s.cfg.workflowBackend(flow.Name)
+	for quota := range s.overQuotaModels {
+		if quota.backend != backend {
+			continue
+		}
+		// With a model override, all model categories resolve to the same model.
+		if s.cfg.Model != "" || slices.Contains(flow.Models, quota.category) {
 			return true
 		}
 	}
@@ -365,10 +372,11 @@ func (s *Server) modelOverQuota(flow *aflow.Flow) bool {
 }
 
 func (s *Server) resetModelQuota(now time.Time) {
-	for model, when := range s.overQuotaModels {
+	for quota, when := range s.overQuotaModels {
 		if !now.Before(aflow.QuotaResetTime(when)) {
-			log.Logf(0, "model %v daily quota is replenished", model)
-			delete(s.overQuotaModels, model)
+			log.Logf(0, "daily quota of model category %v on %v backend is replenished",
+				quota.category, quota.backend)
+			delete(s.overQuotaModels, quota)
 		}
 	}
 }

@@ -283,9 +283,7 @@ func parseLLMError(err error, model string) error {
 			return &backend.RetryError{Delay: time.Duration(sec+1) * time.Second, Err: err}
 		}
 		if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-			// We can't return modelQuotaError here directly, so we just return a generic error.
-			// In aflow, we can check for this specific error string if needed.
-			return fmt.Errorf("model %q is over daily quota: %w", model, err)
+			return &backend.ModelQuotaError{Model: model, Err: err}
 		}
 		return &backend.RetryError{Delay: time.Second, IsExponential: true, Err: err}
 	}

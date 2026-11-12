@@ -127,19 +127,27 @@ func (e *flowError) Unwrap() error {
 	return e.error
 }
 
-func IsModelQuotaError(err error) string {
+// IsModelQuotaError returns the model category that ran out of its daily quota,
+// if err was caused by that, or an empty string otherwise.
+func IsModelQuotaError(err error) ModelCategory {
 	if quotaErr, ok := errors.AsType[*modelQuotaError](err); ok {
-		return quotaErr.model
+		return quotaErr.category
 	}
 	return ""
 }
 
+// modelQuotaError means that all models of the category ran out of their daily quota.
 type modelQuotaError struct {
-	model string
+	category ModelCategory
+	err      error
 }
 
 func (err *modelQuotaError) Error() string {
-	return fmt.Sprintf("model %q is over daily quota", err.model)
+	return fmt.Sprintf("model category %q is over daily quota: %v", err.category, err.err)
+}
+
+func (err *modelQuotaError) Unwrap() error {
+	return err.err
 }
 
 func isInputTokenOverflowError(err error) bool {

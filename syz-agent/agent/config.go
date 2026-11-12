@@ -151,6 +151,14 @@ func loadConfig(configFile string) (*Config, error) {
 	return cfg, nil
 }
 
+// workflowBackend returns the LLM backend used to execute the workflow.
+func (cfg *Config) workflowBackend(workflow string) string {
+	if backend, ok := cfg.WorkflowBackends[workflow]; ok {
+		return backend
+	}
+	return cfg.DefaultBackend
+}
+
 func (cfg *Config) targetConfig(args map[string]any) (*TargetConfig, error) {
 	targetOS, _ := args["TargetOS"].(string)
 	targetArch, _ := args["TargetArch"].(string)

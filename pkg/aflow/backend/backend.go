@@ -6,6 +6,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -191,5 +192,19 @@ func (e *BlockedError) Error() string {
 }
 
 func (e *BlockedError) Unwrap() error {
+	return e.Err
+}
+
+// ModelQuotaError indicates that the model ran out of its daily request quota.
+type ModelQuotaError struct {
+	Model string
+	Err   error
+}
+
+func (e *ModelQuotaError) Error() string {
+	return fmt.Sprintf("model %q is over daily quota: %v", e.Model, e.Err)
+}
+
+func (e *ModelQuotaError) Unwrap() error {
 	return e.Err
 }

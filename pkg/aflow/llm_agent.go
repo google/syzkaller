@@ -1112,6 +1112,7 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
 
 	resolvedModels := ctx.provider.ResolveModels(model)
 	var lastErr error
+	overQuota := 0
 	for _, m := range resolvedModels {
 		if span != nil {
 			span.Model = m
@@ -1150,10 +1151,17 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
 			}
 			if err != nil {
 				lastErr = err
+				if _, ok := errors.AsType[*backend.ModelQuotaError](err); ok {
+					overQuota++
+				}
 				break // try next model
 			}
 			return resp, nil
 		}
+	}
+	if overQuota != 0 && overQuota == len(resolvedModels) {
+		// No model of the category can be used until the quota is reset.
+		return nil, &modelQuotaError{category: model, err: lastErr}
 	}
 	return nil, lastErr
 }
@@ -1184,6 +1192,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		// anchor prompt before triggering summarization.
 		a.compressTokens = 120_000
 	}
+	ctx.models[a.Model] = true
+	// Context compression uses LightweightModel.
+	ctx.models[LightweightModel] = true
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	if a.ValidatedReply != nil {
 		if a.Reply != "" {
@@ -1236,6 +1247,7 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if err := a.Judge.verify(); err != nil {
 			ctx.errorf(a.Name, "judge verification failed: %v", err)
 		}
+		ctx.models[a.Judge.Model] = true
 	}
 	if a.Advisor != nil {
 		if a.Candidates > 1 {
@@ -1244,6 +1256,7 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if err := a.Advisor.verify(); err != nil {
 			ctx.errorf(a.Name, "advisor verification failed: %v", err)
 		}
+		ctx.models[a.Advisor.Model] = true
 	}
 }
 

@@ -14,7 +14,7 @@ type verifyContext struct {
 	inputs  bool // verify action inputs
 	outputs bool // provide action outputs
 	state   map[string]*varState
-	models  map[string]bool
+	models  map[ModelCategory]bool
 	err     error
 }
 
@@ -29,7 +29,7 @@ func newVerifyContext() *verifyContext {
 		inputs:  true,
 		outputs: true,
 		state:   make(map[string]*varState),
-		models:  make(map[string]bool),
+		models:  make(map[ModelCategory]bool),
 	}
 }
 

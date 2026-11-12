@@ -478,6 +478,45 @@ func TestFlowRegistrationErrors(t *testing.T) {
 		})
 }
 
+func TestFlowModels(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	flows := make(map[string]*Flow)
+	err := register[struct{}, flowOutputs]("test", "description", flows, []*Flow{{
+		Root: &LLMAgent{
+			Name:        "agent",
+			Model:       "agent-model",
+			Reply:       "Reply",
+			Instruction: "Instruction",
+			Prompt:      "Prompt",
+			Tools: Tools(&LLMTool[struct{}, DefaultLLMArgs]{
+				Name:        "tool",
+				Model:       "tool-model",
+				Description: "Tool description",
+				Instruction: "Tool instruction",
+				Prompt:      "{{.Question}}",
+				Judge: &LLMJudge{
+					Name:               "judge",
+					Model:              "judge-model",
+					MinIterations:      1,
+					EvaluationInterval: 1,
+				},
+			}),
+			Advisor: &LLMAdvisor{
+				Name:               "advisor",
+				Model:              "advisor-model",
+				MinIterations:      1,
+				EvaluationInterval: 1,
+			},
+		},
+	}})
+	require.NoError(t, err)
+	// Agents may use LightweightModel for context compression.
+	require.Equal(t, []ModelCategory{"advisor-model", "agent-model", "judge-model", LightweightModel, "tool-model"},
+		flows["test"].Models)
+}
+
 func TestConsumeTokens(t *testing.T) {
 	t.Run("disabled when zero limit", func(t *testing.T) {
 		ctx := &Context{tokenLimit: 0}

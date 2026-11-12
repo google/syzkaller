@@ -28,7 +28,7 @@ type Flow struct {
 	Consts map[string]any // Additional fixed inputs for the workflow.
 	Root   Action
 
-	Models []string // LLM models used in this workflow.
+	Models []ModelCategory // LLM model categories used in this workflow.
 	*FlowType
 }
 

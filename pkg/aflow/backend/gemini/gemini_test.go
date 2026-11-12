@@ -83,6 +83,11 @@ func TestParseLLMError(t *testing.T) {
 		// nolint:lll
 		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_input_token_count, limit: 1000000, model: gemini-3-flash Please retry in 24s.`,
 	}
+	rpdError := genai.APIError{
+		Code: 429,
+		// nolint:lll
+		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model_per_day, limit: 0`,
+	}
 	tests := []Test{
 		{
 			inputErr:  tpmError1,
@@ -91,6 +96,10 @@ func TestParseLLMError(t *testing.T) {
 		{
 			inputErr:  tpmError2,
 			outputErr: &backend.RetryError{Delay: 25 * time.Second, Err: tpmError2},
+		},
+		{
+			inputErr:  rpdError,
+			outputErr: &backend.ModelQuotaError{Model: "smarty", Err: rpdError},
 		},
 		{
 			inputErr: genai.APIError{

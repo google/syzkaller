@@ -4,13 +4,16 @@
 package aflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -582,6 +585,139 @@ func TestModelFallbackTrajectory(t *testing.T) {
 		},
 		nil,
 	)
+}
+
+// TestModelQuotaError checks that the model category is reported as over quota
+// only if all models of the category ran out of their daily quota.
+func TestModelQuotaError(t *testing.T) {
+	errOther := errors.New("other error")
+	errQuota1 := &backend.ModelQuotaError{Model: "model1", Err: errors.New("quota exceeded")}
+	errQuota2 := &backend.ModelQuotaError{Model: "model2", Err: errors.New("quota exceeded")}
+	tests := []struct {
+		name     string
+		category ModelCategory
+		errs     map[string]error // errors returned for the models of the category
+		err      error            // expected error
+		quota    ModelCategory    // expected IsModelQuotaError result
+	}{
+		{
+			name:     "single model over quota",
+			category: "model1",
+			errs:     map[string]error{"model1": errQuota1},
+			err:      errQuota1,
+			quota:    "model1",
+		},
+		{
+			name:     "all models over quota",
+			category: "fallback-pool",
+			errs:     map[string]error{"model1": errQuota1, "model2": errQuota2},
+			err:      errQuota2,
+			quota:    "fallback-pool",
+		},
+		{
+			name:     "fallback model succeeds",
+			category: "fallback-pool",
+			errs:     map[string]error{"model1": errQuota1},
+		},
+		{
+			name:     "fallback model fails",
+			category: "fallback-pool",
+			errs:     map[string]error{"model1": errQuota1, "model2": errOther},
+			err:      errOther,
+		},
+		{
+			name:     "fallback model is unavailable",
+			category: "fallback-pool",
+			errs:     map[string]error{"model1": errQuota1, "model2": &backend.RetryError{Err: errOther}},
+			err:      errOther,
+		},
+		{
+			name:     "first model fails",
+			category: "fallback-pool",
+			errs:     map[string]error{"model1": errOther, "model2": errQuota2},
+			err:      errQuota2,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := NewTestContext(t)
+			ctx.provider = &dummyProvider{}
+			ctx.stubContext = stubContext{
+				timeNow: time.Now,
+				sleep:   func(time.Duration) {},
+				generateContent: func(model string, cfg *backend.GenerateConfig,
+					req []*backend.Message) (*backend.GenerateResponse, error) {
+					if err := test.errs[model]; err != nil {
+						return nil, err
+					}
+					return &backend.GenerateResponse{Parts: []backend.Part{{Text: "reply"}}}, nil
+				},
+			}
+			agent := &LLMAgent{
+				Name:  "test-agent",
+				Model: test.category,
+			}
+			resp, err := agent.generateContent(ctx, &backend.GenerateConfig{}, nil, 0, test.category, nil)
+			if test.err == nil {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+			} else {
+				require.ErrorIs(t, err, test.err)
+			}
+			require.Equal(t, test.quota, IsModelQuotaError(err))
+		})
+	}
+}
+
+// TestModelQuotaErrorPropagation checks that the over quota model category is reported
+// for the whole workflow even if it's used by a sub-agent.
+func TestModelQuotaErrorPropagation(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	flows := make(map[string]*Flow)
+	err := register[struct{}, flowOutputs]("test", "description", flows, []*Flow{{
+		Root: &LLMAgent{
+			Name:        "agent",
+			Model:       "agent-model",
+			Reply:       "Reply",
+			Instruction: "Instruction",
+			Prompt:      "Prompt",
+			Tools: Tools(&LLMTool[struct{}, DefaultLLMArgs]{
+				Name:        "tool",
+				Model:       "fallback-pool",
+				Description: "Tool description",
+				Instruction: "Tool instruction",
+				Prompt:      "{{.Question}}",
+			}),
+		},
+	}})
+	require.NoError(t, err)
+	stub := &stubContext{
+		timeNow: time.Now,
+		generateContent: func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+			*backend.GenerateResponse, error) {
+			if model == "agent-model" {
+				return &backend.GenerateResponse{Parts: []backend.Part{{FunctionCall: &backend.FunctionCall{
+					ID:   "id",
+					Name: "tool",
+					Args: map[string]any{"Question": "Why?"},
+				}}}}, nil
+			}
+			return nil, &backend.ModelQuotaError{Model: model, Err: errors.New("quota exceeded")}
+		},
+	}
+	workdir := t.TempDir()
+	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, time.Now)
+	require.NoError(t, err)
+	_, err = flows["test"].Execute(context.WithValue(t.Context(), stubContextKey, stub), map[string]any{},
+		ExecuteOptions{
+			Provider: &dummyProvider{},
+			Workdir:  workdir,
+			Cache:    cache,
+			OnEvent:  func(*trajectory.Span) error { return nil },
+		})
+	require.Equal(t, ModelCategory("fallback-pool"), IsModelQuotaError(err), "error: %v", err)
 }
 
 type maxIterationsToolArgs struct {
