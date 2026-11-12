@@ -2226,6 +2226,7 @@ func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 //  2. processStaleBugs: evaluates stale bugs (AIJobCheck < currentDate).
 //
 // Both phases (re-)compute applicable workflows and update AIJobCheck and AIPendingWorkflows.
+// Jobs of some workflows are paced for old bugs (see aiBacklogPacer).
 func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, client APIClient) (bool, error) {
 	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
@@ -2246,12 +2247,16 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 		if len(workflowsForNS) == 0 {
 			continue
 		}
-		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS); err != nil {
+		pacer, err := newAIBacklogPacer(ctx, ns, workflowsForNS)
+		if err != nil {
+			return false, err
+		}
+		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS, pacer); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
 		}
-		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS); err != nil {
+		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS, pacer); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
@@ -2260,22 +2265,26 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 	return false, nil
 }
 
-func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	pacer *aiBacklogPacer) (bool, error) {
 	for _, req := range reqWorkflows {
-		var bugs []*Bug
-		keys, err := db.NewQuery("Bug").
+		query := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
-			Filter("AIPendingWorkflows=", string(req.Type)).
-			Limit(1).
-			GetAll(ctx, &bugs)
+			Filter("AIPendingWorkflows=", string(req.Type))
+		if pacer.paces(req.Type) {
+			// If the newest bug is old and its job has to wait, so do jobs of all other bugs.
+			query = query.Order("-FirstTime")
+		}
+		var bugs []*Bug
+		keys, err := query.Limit(1).GetAll(ctx, &bugs)
 		if err != nil {
 			return false, fmt.Errorf("failed to fetch pending bugs: %w", err)
 		}
-		if len(bugs) == 0 {
+		if len(bugs) == 0 || !pacer.allowed(ctx, bugs[0], req.Type) {
 			continue
 		}
-		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows, pacer)
 		if created || err != nil {
 			return created, err
 		}
@@ -2283,7 +2292,8 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 	return false, nil
 }
 
-func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	pacer *aiBacklogPacer) (bool, error) {
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
@@ -2296,7 +2306,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 	}
 
 	for i, bug := range bugs {
-		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows, pacer)
 		if created || err != nil {
 			return created, err
 		}
@@ -2305,7 +2315,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 }
 
 func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date int64,
-	reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	reqWorkflows []dashapi.AIWorkflow, pacer *aiBacklogPacer) (bool, error) {
 	pending, err := pendingWorkflowsForBug(ctx, bug, bugKey)
 	if err != nil {
 		log.Errorf(ctx, "failed to get pending workflows for bug %v: %v", bugKey.StringID(), err)
@@ -2316,12 +2326,21 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	var matchedReq dashapi.AIWorkflow
 	for _, req := range reqWorkflows {
 		idx := slices.Index(pending, string(req.Type))
-		if idx != -1 {
-			pending = slices.Delete(pending, idx, idx+1)
-			created = true
-			matchedReq = req
-			break
+		if idx == -1 {
+			continue
 		}
+		reserved, err := pacer.reserve(ctx, bug, req.Type)
+		if err != nil {
+			return false, err
+		}
+		if !reserved {
+			// The workflow stays pending until the pacer allows it.
+			continue
+		}
+		pending = slices.Delete(pending, idx, idx+1)
+		created = true
+		matchedReq = req
+		break
 	}
 
 	errConflict := fmt.Errorf("bug already evaluated or modified")
