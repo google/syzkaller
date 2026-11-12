@@ -64,11 +64,15 @@ func filterEnv() []string {
 			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY") ||
 			strings.HasPrefix(e, "GIT_CONFIG_")
 	})
-	// Prevent submodules from overriding core.hooksPath.
+	// Prevent repo/submodule configs from executing hooks or fsmonitor helpers,
+	// and restrict allowed transport protocols (e.g. to forbid ext::).
 	env = append(env,
-		"GIT_CONFIG_COUNT=1",
+		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh:sso",
+		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=core.hooksPath",
 		"GIT_CONFIG_VALUE_0=/dev/null",
+		"GIT_CONFIG_KEY_1=core.fsmonitor",
+		"GIT_CONFIG_VALUE_1=false",
 	)
 	return env
 }
