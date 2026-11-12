@@ -14,7 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -124,8 +124,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 	}
 	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelPath, params.TargetArch)
 	cmd.Dir = tempDir
-	cmd.Env = slices.Clone(os.Environ())
-	cmd.Env = append(cmd.Env,
+	cmd.Env = buildEnv(
 		"SYZ_VM_TYPE="+params.VMType,
 		"SYZ_CMDLINE_FILE="+osutil.Abs(params.CmdlineFile),
 		"SYZ_SYSCTL_FILE="+osutil.Abs(params.SysctlFile),
@@ -165,12 +164,11 @@ func runMake(params Params, extraArgs ...string) error {
 		return err
 	}
 	cmd.Dir = params.KernelDir
-	cmd.Env = slices.Clone(os.Environ())
 	// This makes the build [more] deterministic:
 	// 2 builds from the same sources should result in the same vmlinux binary.
 	// Build on a release commit and on the previous one should result in the same vmlinux too.
 	// We use it for detecting no-op changes during bisection.
-	cmd.Env = append(cmd.Env,
+	cmd.Env = buildEnv(
 		"KBUILD_BUILD_VERSION=0",
 		"KBUILD_BUILD_TIMESTAMP=now",
 		"KBUILD_BUILD_USER=syzkaller",
@@ -179,6 +177,41 @@ func runMake(params Params, extraArgs ...string) error {
 	output, err := osutil.Run(time.Hour, cmd)
 	params.Tracer.Logf("build log:\n%s", output)
 	return err
+}
+
+var buildEnvPrefixes = []string{
+	// keep-sorted start
+	"CARGO_HOME=",
+	"CCACHE_",
+	"HOME=",
+	"LANG",
+	"LC_",
+	"LOGNAME=",
+	"NOT_FOR_",
+	"PATH=",
+	"RUSTUP_HOME=",
+	"SOURCE_DATE_EPOCH",
+	"TEMP",
+	"TERM",
+	"TMP",
+	"USER=",
+	// keep-sorted end
+}
+
+func buildEnv(extra ...string) []string {
+	env := make([]string, 0, len(buildEnvPrefixes)+len(extra))
+	for _, value := range os.Environ() {
+		if _, _, ok := strings.Cut(value, "="); !ok {
+			continue
+		}
+		for _, prefix := range buildEnvPrefixes {
+			if strings.HasPrefix(value, prefix) {
+				env = append(env, value)
+				break
+			}
+		}
+	}
+	return append(env, extra...)
 }
 
 func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string, jobs int) []string {
