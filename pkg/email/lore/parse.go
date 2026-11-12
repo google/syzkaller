@@ -9,11 +9,11 @@ package lore
 import (
 	"cmp"
 	"fmt"
+	"maps"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
-
-	"maps"
 	"strings"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -305,10 +305,10 @@ func (o *Optional[T]) Set(val T) {
 
 // LinkToMessage returns a lore.kernel.org link for the given message ID.
 func LinkToMessage(msgID string) string {
-	return fmt.Sprintf("https://lore.kernel.org/all/%s", strings.Trim(msgID, "<>"))
+	return fmt.Sprintf("https://lore.kernel.org/all/%s", url.PathEscape(strings.Trim(msgID, "<>")))
 }
 
 // LinkToThread returns a lore.kernel.org link for the given message ID thread.
 func LinkToThread(msgID string) string {
-	return fmt.Sprintf("https://lore.kernel.org/all/%s/T/", strings.Trim(msgID, "<>"))
+	return fmt.Sprintf("https://lore.kernel.org/all/%s/T/", url.PathEscape(strings.Trim(msgID, "<>")))
 }

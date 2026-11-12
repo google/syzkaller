@@ -614,6 +614,16 @@ func TestLink(t *testing.T) {
 			thread: true,
 			want:   "https://lore.kernel.org/all/id@domain/T/",
 		},
+		{
+			id:     `<x"><img src=x onerror=alert(1)>@a>`,
+			thread: true,
+			want:   "https://lore.kernel.org/all/x%22%3E%3Cimg%20src=x%20onerror=alert%281%29%3E@a/T/",
+		},
+		{
+			id:     `<x"><img src=x onerror=alert(1)>@a>`,
+			thread: false,
+			want:   "https://lore.kernel.org/all/x%22%3E%3Cimg%20src=x%20onerror=alert%281%29%3E@a",
+		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s/%v", test.id, test.thread), func(t *testing.T) {
