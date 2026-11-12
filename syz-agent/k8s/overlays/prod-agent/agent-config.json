@@ -7,7 +7,9 @@
   "safety_filters": false,
   "workflow_backends": {
     "repro-c": "vertex",
-    "assessment-security": "vertex"
+    "assessment-security": "vertex",
+    "bisect-cause": "vertex",
+    "bisect-fix": "vertex"
   },
   "cache_size": 350000000000,
   "targets": {
