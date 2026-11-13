@@ -1,0 +1,9 @@
+# requires: arch=amd64 -threaded
+
+r0 = openat$kvm(AUTO, &AUTO='/dev/kvm\x00', 0x0, AUTO)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = eventfd2(0x0, 0x0)
+ioctl$KVM_IOEVENTFD(r1, AUTO, &AUTO={0x0, 0x40000, 0x8, r2, 0x1, ""/36})
+r3 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+r4 = syz_kvm_add_vcpu$x86(r3, &AUTO={AUTO, &AUTO=[@memwrite={AUTO, AUTO, {0x40000, 0x0, 0x0, 0x10}}], AUTO})
+ioctl$KVM_RUN(r4, AUTO, AUTO)

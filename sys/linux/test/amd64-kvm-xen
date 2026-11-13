@@ -1,0 +1,13 @@
+# requires: arch=amd64 -threaded
+
+r0 = openat$kvm(AUTO, &AUTO='/dev/kvm\x00', 0x0, AUTO)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+ioctl$KVM_CREATE_IRQCHIP(r1, AUTO)
+ioctl$KVM_XEN_HVM_CONFIG(r1, AUTO, &AUTO={0x22, 0x40000000, 0x0, 0x0, AUTO, AUTO, ""/30})
+ioctl$KVM_XEN_HVM_SET_ATTR(r1, AUTO, &AUTO=@shared_info_hva={AUTO, ""/6, &(0x7f0000010000/0x1000)=nil})
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+ioctl$KVM_XEN_VCPU_SET_ATTR(r2, AUTO, &AUTO=@vcpu_id={AUTO, ""/6, 0x0})
+ioctl$KVM_XEN_VCPU_SET_ATTR(r2, AUTO, &AUTO=@vcpu_info_hva={AUTO, ""/6, &(0x7f0000011000/0x1000)=nil})
+r3 = eventfd2(0x0, 0x0)
+ioctl$KVM_XEN_HVM_SET_ATTR(r1, AUTO, &AUTO=@evtchn={AUTO, ""/6, {0x1, 0x2, 0x0, @eventfd={AUTO, r3}}})
+ioctl$KVM_XEN_HVM_EVTCHN_SEND(r1, AUTO, &AUTO={0x2, 0x0, 0xffffffff})
