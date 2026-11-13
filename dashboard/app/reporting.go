@@ -336,13 +336,17 @@ func (bug *Bug) canBeObsoleted(ctx context.Context) bool {
 		return true
 	}
 	if obsoleteWhatWontBeFixBisected {
-		cfg := getNsConfig(ctx, bug.Namespace)
-		for _, mgr := range bug.HappenedOn {
-			if !cfg.Managers[mgr].FixBisectionDisabled {
-				return false
-			}
+		return !bug.fixBisectionEnabled(getNsConfig(ctx, bug.Namespace))
+	}
+	return false
+}
+
+// fixBisectionEnabled says if fix bisection is enabled for any of the managers the bug happened on.
+func (bug *Bug) fixBisectionEnabled(cfg *Config) bool {
+	for _, mgr := range bug.HappenedOn {
+		if !cfg.Managers[mgr].FixBisectionDisabled {
+			return true
 		}
-		return true
 	}
 	return false
 }

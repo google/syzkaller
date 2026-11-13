@@ -1888,7 +1888,16 @@ func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs ma
 
 func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug, extraArgs map[string]any) (
 	string, error) {
-	crash, crashKey, err := findCrashForBug(ctx, bug)
+	var crash *Crash
+	var crashKey *db.Key
+	var err error
+	if typ == ai.WorkflowBisectFix {
+		crash, crashKey, err = findFixBisectionCrash(ctx, bug)
+	}
+	if err == nil && crash == nil {
+		// Manual fix bisection jobs may use any crash.
+		crash, crashKey, err = findCrashForBug(ctx, bug)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -1964,12 +1973,28 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	})
 }
 
+// findFixBisectionCrash returns the best crash of the bug with a reproducer from a manager
+// with fix bisection enabled, or nil if there is no such crash.
+func findFixBisectionCrash(ctx context.Context, bug *Bug) (*Crash, *db.Key, error) {
+	crashes, keys, err := queryCrashesForBug(ctx, bug.key(ctx), maxCrashes())
+	if err != nil {
+		return nil, nil, err
+	}
+	cfg := getNsConfig(ctx, bug.Namespace)
+	for i, crash := range crashes {
+		if (crash.ReproC != 0 || crash.ReproSyz != 0) && !cfg.Managers[crash.Manager].FixBisectionDisabled {
+			return crash, keys[i], nil
+		}
+	}
+	return nil, nil, nil
+}
+
 // TODO: We could probably be more smart at avoiding looking into the specific
 // reportings each time, e.g. in case of retrials on errors.
 func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, error) {
 	var groups []*aidb.PendingCommentGroup
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if cfg.AI == nil || !client.AllowedNamespace(ns) {
+		if cfg.AI == nil || cfg.Decommissioned || !client.AllowedNamespace(ns) {
 			continue
 		}
 		for _, stage := range cfg.AI.Stages {
@@ -2176,6 +2201,11 @@ const (
 	reproCMinAge          = 48 * time.Hour
 	reproCMaxAge          = 30 * 24 * time.Hour
 	reproCPatchAge        = 30 * 24 * time.Hour
+
+	maxAutoBisectAttempts = 2
+	// Fix bisection is done only for bugs that were not seen for this long (there is likely no fix
+	// while the bug still happens), and is repeated this long after it found the bug still present.
+	bisectFixMinAge = 30 * 24 * time.Hour
 )
 
 func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
@@ -2196,10 +2226,11 @@ func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 //  2. processStaleBugs: evaluates stale bugs (AIJobCheck < currentDate).
 //
 // Both phases (re-)compute applicable workflows and update AIJobCheck and AIPendingWorkflows.
+// Jobs of some workflows are paced for old bugs (see aiBacklogPacer).
 func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, client APIClient) (bool, error) {
 	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if cfg.AI == nil || !client.AllowedNamespace(ns) {
+		if cfg.AI == nil || cfg.Decommissioned || !client.AllowedNamespace(ns) {
 			continue
 		}
 		isReproC := func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowReproC }
@@ -2216,12 +2247,16 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 		if len(workflowsForNS) == 0 {
 			continue
 		}
-		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS); err != nil {
+		pacer, err := newAIBacklogPacer(ctx, ns, workflowsForNS)
+		if err != nil {
+			return false, err
+		}
+		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS, pacer); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
 		}
-		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS); err != nil {
+		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS, pacer); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
@@ -2230,22 +2265,26 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 	return false, nil
 }
 
-func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	pacer *aiBacklogPacer) (bool, error) {
 	for _, req := range reqWorkflows {
-		var bugs []*Bug
-		keys, err := db.NewQuery("Bug").
+		query := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
-			Filter("AIPendingWorkflows=", string(req.Type)).
-			Limit(1).
-			GetAll(ctx, &bugs)
+			Filter("AIPendingWorkflows=", string(req.Type))
+		if pacer.paces(req.Type) {
+			// If the newest bug is old and its job has to wait, so do jobs of all other bugs.
+			query = query.Order("-FirstTime")
+		}
+		var bugs []*Bug
+		keys, err := query.Limit(1).GetAll(ctx, &bugs)
 		if err != nil {
 			return false, fmt.Errorf("failed to fetch pending bugs: %w", err)
 		}
-		if len(bugs) == 0 {
+		if len(bugs) == 0 || !pacer.allowed(ctx, bugs[0], req.Type) {
 			continue
 		}
-		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows, pacer)
 		if created || err != nil {
 			return created, err
 		}
@@ -2253,7 +2292,8 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 	return false, nil
 }
 
-func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	pacer *aiBacklogPacer) (bool, error) {
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
@@ -2266,7 +2306,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 	}
 
 	for i, bug := range bugs {
-		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows, pacer)
 		if created || err != nil {
 			return created, err
 		}
@@ -2275,7 +2315,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 }
 
 func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date int64,
-	reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	reqWorkflows []dashapi.AIWorkflow, pacer *aiBacklogPacer) (bool, error) {
 	pending, err := pendingWorkflowsForBug(ctx, bug, bugKey)
 	if err != nil {
 		log.Errorf(ctx, "failed to get pending workflows for bug %v: %v", bugKey.StringID(), err)
@@ -2286,12 +2326,21 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	var matchedReq dashapi.AIWorkflow
 	for _, req := range reqWorkflows {
 		idx := slices.Index(pending, string(req.Type))
-		if idx != -1 {
-			pending = slices.Delete(pending, idx, idx+1)
-			created = true
-			matchedReq = req
-			break
+		if idx == -1 {
+			continue
 		}
+		reserved, err := pacer.reserve(ctx, bug, req.Type)
+		if err != nil {
+			return false, err
+		}
+		if !reserved {
+			// The workflow stays pending until the pacer allows it.
+			continue
+		}
+		pending = slices.Delete(pending, idx, idx+1)
+		created = true
+		matchedReq = req
+		break
 	}
 
 	errConflict := fmt.Errorf("bug already evaluated or modified")
@@ -2337,6 +2386,12 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	}{}
 	for _, job := range jobs {
 		typ := job.Type
+		if typ == ai.WorkflowBisectFix && bug.AIBisectFix.StillPresent &&
+			!job.Created.After(bug.AIBisectFix.Finished) {
+			// Fix bisection found the bug still present, so it's repeated later (see canAutoBisectFix)
+			// regardless of the jobs up to that point.
+			continue
+		}
 		// Have finished successful job.
 		if job.Finished.Valid && job.Error == "" ||
 			// Or already have a pending or a running job.
@@ -2362,9 +2417,11 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	// or may be fixed over time. So we retry failed/aborted jobs with an exponential
 	// backoff based on attempts count. 1 job is retried in 1 day; 2 jobs - in 2 days;
 	// 3 jobs - in 4 days, and so on up to the cap of 30 days.
-	// For repro-c, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
+	// For repro-c and bisection, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
 	for typ, attempts := range workflowAttempts {
-		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts {
+		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts ||
+			(typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) &&
+				attempts.count >= maxAutoBisectAttempts {
 			delete(workflows, typ)
 			continue
 		}
@@ -2376,8 +2433,7 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	if len(workflows) == 0 {
 		return nil, nil
 	}
-	supported, err := bugHasSupportedAIArch(ctx, bug)
-	if err != nil || !supported {
+	if err := filterWorkflowsByCrashes(ctx, bug, workflows); err != nil || len(workflows) == 0 {
 		return nil, err
 	}
 	var pending []string
@@ -2386,6 +2442,30 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	}
 	slices.Sort(pending)
 	return pending, nil
+}
+
+// filterWorkflowsByCrashes removes the workflows that the crashes of the bug don't allow: all of them
+// if the arch of the bug is not supported by syz-agent, and fix bisection if there is no reproducer
+// from a manager with fix bisection enabled.
+func filterWorkflowsByCrashes(ctx context.Context, bug *Bug, workflows map[ai.WorkflowType]bool) error {
+	supported, err := bugHasSupportedAIArch(ctx, bug)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		clear(workflows)
+		return nil
+	}
+	if workflows[ai.WorkflowBisectFix] {
+		crash, _, err := findFixBisectionCrash(ctx, bug)
+		if err != nil {
+			return err
+		}
+		if crash == nil {
+			delete(workflows, ai.WorkflowBisectFix)
+		}
+	}
+	return nil
 }
 
 // Arches supported by syz-agent (see syz-agent/k8s/overlays/prod-agent/agent-config.json).
@@ -2409,8 +2489,9 @@ func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duratio
 	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
 }
 
-func canAutoReproCBugTitle(title string, typ crash.Type) bool {
-	if strings.HasPrefix(title, "INFO:") ||
+func isKernelCrashBugTitle(title string, typ crash.Type) bool {
+	if title == corruptedReportTitle ||
+		title == suppressedReportTitle ||
 		strings.HasPrefix(title, "panic:") ||
 		strings.HasPrefix(title, "go runtime error") ||
 		strings.Contains(title, "build error") ||
@@ -2418,14 +2499,38 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		strings.Contains(title, "test error") {
 		return false
 	}
-	if typ.IsKCSAN() {
-		return false
-	}
 	switch typ {
-	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.Hang, crash.UnexpectedReboot:
+	case crash.SyzFailure, crash.NoOutput, crash.LostConnection, crash.UnexpectedReboot:
 		return false
 	}
 	return true
+}
+
+func canAutoReproCBugTitle(title string, typ crash.Type) bool {
+	return isKernelCrashBugTitle(title, typ) &&
+		!strings.HasPrefix(title, "INFO:") &&
+		!typ.IsKCSAN() &&
+		typ != crash.Hang
+}
+
+// Automatic AI cause bisection heuristics:
+// - Open bugs only, with no fixing commits.
+// - Must have a crash report (a reproducer is not required).
+// - Skip non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
+func canAutoBisectCause(bug *Bug, typ crash.Type) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasReport && isKernelCrashBugTitle(bug.Title, typ)
+}
+
+// Automatic AI fix bisection heuristics (the same as syz-ci used for fix bisection):
+// - Open bugs only, with no fixing commits.
+// - Must have a reproducer.
+// - Fix bisection must be enabled for one of the managers the bug happened on.
+// - Not seen for at least 30 days, neither by fuzzing nor by the previous fix bisection (see lastPresentTime).
+func canAutoBisectFix(ctx context.Context, nsCfg *Config, bug *Bug) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasRepro() && bug.fixBisectionEnabled(nsCfg) &&
+		timeSince(ctx, bug.lastPresentTime()) >= bisectFixMinAge
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2472,6 +2577,12 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 		if canAutoReproC {
 			workflows[ai.WorkflowReproC] = true
+		}
+		if canAutoBisectCause(bug, typ) {
+			workflows[ai.WorkflowBisectCause] = true
+		}
+		if canAutoBisectFix(ctx, nsCfg, bug) {
+			workflows[ai.WorkflowBisectFix] = true
 		}
 	}
 	return workflows
