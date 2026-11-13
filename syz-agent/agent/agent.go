@@ -18,7 +18,9 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/backend/gemini"
+	"github.com/google/syzkaller/pkg/aflow/backend/orcarouter"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/log"
@@ -325,20 +327,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 		backend = b
 	}
 
-	geminiCfg := gemini.Config{
-		ModelOverride:   s.cfg.Model,
-		NoSafetyFilters: !s.cfg.SafetyFilters,
-	}
-	switch backend {
-	case backendVertex:
-		geminiCfg.VertexProject = s.cfg.CloudProject
-	case backendGemini, "":
-		geminiCfg.APIKeys = gemini.ParseAPIKeys(s.cfg.GeminiAPIKey)
-	default:
-		return nil, fmt.Errorf("unknown LLM backend %q configured for workflow %q", backend, req.Workflow)
-	}
-
-	provider, err := gemini.NewProvider(ctx, geminiCfg)
+	provider, err := newLLMProvider(ctx, s.cfg, backend)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
@@ -350,6 +339,35 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ou
 		OnEvent:    onEvent,
 		TokenLimit: defaultTokenLimit,
 	})
+}
+
+// newLLMProvider builds the provider configured for a workflow backend.
+func newLLMProvider(ctx context.Context, cfg *Config, backend string) (backend.Provider, error) {
+	switch backend {
+	case backendVertex:
+		return gemini.NewProvider(ctx, gemini.Config{
+			ModelOverride:   cfg.Model,
+			NoSafetyFilters: !cfg.SafetyFilters,
+			VertexProject:   cfg.CloudProject,
+		})
+	case backendGemini, "":
+		return gemini.NewProvider(ctx, gemini.Config{
+			ModelOverride:   cfg.Model,
+			NoSafetyFilters: !cfg.SafetyFilters,
+			APIKeys:         gemini.ParseAPIKeys(cfg.GeminiAPIKey),
+		})
+	case backendOrcaRouter:
+		apiKeys := orcarouter.ParseAPIKeys(cfg.OrcaRouterAPIKey)
+		if len(apiKeys) == 0 {
+			return nil, fmt.Errorf("orcarouter backend requires orcarouter_api_key to be set")
+		}
+		return orcarouter.NewProvider(ctx, orcarouter.Config{
+			ModelOverride: cfg.Model,
+			APIKeys:       apiKeys,
+		})
+	default:
+		return nil, fmt.Errorf("unknown LLM backend %q", backend)
+	}
 }
 
 func (s *Server) modelOverQuota(flow *aflow.Flow) bool {

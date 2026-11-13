@@ -36,6 +36,42 @@ To spread the load over several Gemini API keys, put them one per line into `GOO
 (e.g. `GOOGLE_API_KEY="$(cat keys.txt)"`). Each task sticks to one key. Keys only help with rate limits
 if they belong to different projects.
 
+### OrcaRouter Cyber Inference
+
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible gateway that routes many providers
+behind one endpoint, and runs gateway-level, zero-trust security for AI agents on the same endpoint.
+For security engineering work it exposes a named **OrcaRouter Cyber Inference** provider: the cyber
+tier is intended for security teams that have passed business verification and are doing authorised,
+scoped work, while the general routing models remain available to any key.
+
+```bash
+export ORCAROUTER_API_KEY=sk-orca-...
+./tools/syz-env ./syz-aflow -provider orcarouter -list-models
+./tools/syz-env ./syz-aflow -provider orcarouter -workflow <workflow_name> \
+    -input <input.json> -workdir <workdir>
+```
+
+- Inference and model discovery use `https://api.orcarouter.ai/v1`.
+- `ORCAROUTER_API_KEY` may contain several keys, one per line, and is resolved like `GOOGLE_API_KEY`.
+- `ORCA_API_BASE_URL` overrides the inference base URL; `ORCA_BASE_URL` is the shared fallback for
+  self-hosted deployments. Remote overrides must use HTTPS; plain HTTP is accepted only for loopback.
+- `-list-models` prints the text chat models from the live `GET /v1/models` catalog for this key.
+  If discovery fails, the command prints a small verified fallback catalog and a warning instead.
+- `-model` overrides the category-based choice. A model that the live catalog does not advertise as a
+  text model is rejected before a request is sent.
+
+Model selection follows the catalog, not a hardcoded list:
+
+- default: `orcarouter/auto` — automatic routing, works with any key;
+- dedicated cyber tier for verified security teams:
+  [OrcaCyber Ultra](https://www.orcarouter.ai/models?tier=cyber) (`orca/orcacyber-ultra-1.0`,
+  security code scanning and multi-step reasoning over large code bases) and
+  `orca/orcacyber-zero-1.5` (OrcaCyber harness);
+- general fallback: `orcarouter/fusion`.
+
+See [the provider page](https://www.orcarouter.ai/cyber) and the
+[cyber model catalog](https://www.orcarouter.ai/models?tier=cyber).
+
 With `-corpus <path>`, all programs executed during the batch run are also saved into the given `corpus.db`
 (without call properties such as fault injection), e.g. to be used as fuzzing seeds.
 
@@ -74,7 +110,9 @@ Any string field in the input JSON starting with `@` (e.g. `"@/path/to/file"` or
 - `-corpus`: Path to a `corpus.db` to save all executed programs into in batch execution.
 - `-workdir`: Directory where the workflow can perform checkouts, builds, etc.
 - `-html`: Path to an HTML file where the execution trajectory will be rendered in real-time.
+- `-provider`: LLM provider to use (`gemini`, `vertex`, `orcarouter`; default `gemini`).
 - `-model`: Override the default LLM model.
+- `-list-models`: List the models available for `-provider` and exit.
 - `-cache-size`: Set the maximum cache size (default "10GB").
 - `-download-bug`: Download bug details from the dashboard by ID or ExtID.
 - `-auth`: Use gcloud auth token when downloading bugs.
