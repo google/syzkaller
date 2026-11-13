@@ -44,8 +44,7 @@ func (inst *instance) qmpConnCheck() error {
 		return nil
 	}
 
-	addr := fmt.Sprintf("127.0.0.1:%v", inst.monport)
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.Dial("unix", inst.monSock)
 	if err != nil {
 		return err
 	}
@@ -54,11 +53,12 @@ func (inst *instance) qmpConnCheck() error {
 	monEnc := json.NewEncoder(conn)
 
 	// QEMU sends a greeting banner (containing version and capability details)
-	// immediately upon connection. We must decode and discard it from the TCP
+	// immediately upon connection. We must decode and discard it from the QMP
 	// stream first, otherwise subsequent command responses (e.g. to qmp_capabilities)
 	// will be misread as the banner. We decode into an empty struct to avoid allocation.
 	var banner struct{}
 	if err := monDec.Decode(&banner); err != nil {
+		conn.Close()
 		return err
 	}
 
@@ -67,6 +67,7 @@ func (inst *instance) qmpConnCheck() error {
 	if _, err := inst.doQmp(&qmpCommand{Execute: "qmp_capabilities"}); err != nil {
 		inst.monEnc = nil
 		inst.monDec = nil
+		conn.Close()
 		return err
 	}
 	inst.mon = conn
@@ -129,7 +130,10 @@ func (inst *instance) hmp(cmd string, cpu int) (string, error) {
 		log.Logf(0, "qemu: reply: %v\n%v", err, resp)
 	}
 	if err != nil {
-		killErr := syscall.Kill(inst.qemu.Process.Pid, 0)
+		var killErr error
+		if inst.qemu != nil && inst.qemu.Process != nil {
+			killErr = syscall.Kill(inst.qemu.Process.Pid, 0)
+		}
 		return "", fmt.Errorf("qemu hmp command '%s' (qemu kill: %s): %w", cmd, fmt.Sprint(killErr), err)
 	}
 	return resp.(string), nil
