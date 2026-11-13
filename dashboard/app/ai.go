@@ -4,6 +4,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -1551,6 +1552,9 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
+		if job.Type == ai.WorkflowAssessmentKCSAN {
+			bug.AIJobCheck = 0
+		}
 		if rootCause != nil {
 			bug.AIRootCause = *rootCause
 		}
@@ -2311,7 +2315,18 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	}
 
 	if created {
-		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, nil); createErr != nil {
+		var extraArgs map[string]any
+		if matchedReq.Type == ai.WorkflowReproC && crash.TitleToType(bug.Title) == crash.KCSANDataRace {
+			var createErr error
+			extraArgs, createErr = kcsanReproExtraArgs(ctx, bug, bugKey)
+			if createErr != nil {
+				// Don't abort the entire auto-create pass if one bug's build/config lookup fails.
+				log.Errorf(ctx, "failed to prepare kcsan repro-c args for bug %v: %v",
+					bugKey.StringID(), createErr)
+				return false, nil
+			}
+		}
+		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, extraArgs); createErr != nil {
 			return false, fmt.Errorf("failed to create ai job %v for bug %v: %w", matchedReq.Type, bugKey.StringID(), createErr)
 		}
 		return true, nil
@@ -2330,6 +2345,14 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	jobs, err := aidb.LoadBugJobs(ctx, bugKey.StringID())
 	if err != nil {
 		return nil, err
+	}
+	// Schedule repro-c only after assessment-kcsan classifies the race as harmful;
+	// defer the expensive manager/config lookup until after the attempts filter below.
+	var kcsanRes *ai.AssessmentKCSANOutputs
+	if crash.TitleToType(bug.Title) == crash.KCSANDataRace && canAutoReproBug(ctx, bug) {
+		if kcsanRes = kcsanAssessment(bug, jobs); kcsanRes != nil && !kcsanRes.Benign {
+			workflows[ai.WorkflowReproC] = true
+		}
 	}
 	workflowAttempts := map[ai.WorkflowType]struct {
 		count int
@@ -2373,6 +2396,11 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 			delete(workflows, typ)
 		}
 	}
+	// Check target manager availability last to avoid extra Datastore/blob reads for skipped jobs.
+	if workflows[ai.WorkflowReproC] && kcsanRes != nil &&
+		kcsanReproManager(ctx, bug, nil, kcsanRes) == "" {
+		delete(workflows, ai.WorkflowReproC)
+	}
 	if len(workflows) == 0 {
 		return nil, nil
 	}
@@ -2409,6 +2437,23 @@ func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duratio
 	return !lastPatch.IsZero() && timeSince(ctx, lastPatch) < maxAge
 }
 
+// Automatic C reproducer generation heuristics:
+// - Namespace must have AutoReproC enabled.
+// - Open bugs only, with no fixing commits.
+// - Must have a crash report, but no existing C reproducer.
+// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
+// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
+// - Skip bugs that have recent patch candidates being discussed / tested.
+func canAutoReproBug(ctx context.Context, bug *Bug) bool {
+	nsCfg := getNsConfig(ctx, bug.Namespace)
+	return nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
+		bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		!bug.HasCRepro && bug.HasReport &&
+		timeSince(ctx, bug.FirstTime) > reproCMinAge &&
+		timeSince(ctx, bug.LastTime) < reproCMaxAge &&
+		!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
+}
+
 func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 	if strings.HasPrefix(title, "INFO:") ||
 		strings.HasPrefix(title, "panic:") ||
@@ -2419,6 +2464,7 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		return false
 	}
 	if typ.IsKCSAN() {
+		// Unassessed KCSAN bugs are skipped here; harmful ones are enabled in pendingWorkflowsForBug.
 		return false
 	}
 	switch typ {
@@ -2426,6 +2472,160 @@ func canAutoReproCBugTitle(title string, typ crash.Type) bool {
 		return false
 	}
 	return true
+}
+
+// kcsanAssessment returns the parsed outputs of the latest completed assessment-kcsan job
+// (jobs are ordered newest-first by aidb.LoadBugJobs), or nil if none succeeded or a human
+// reviewer marked the race benign or the AI job incorrect.
+func kcsanAssessment(bug *Bug, jobs []*aidb.Job) *ai.AssessmentKCSANOutputs {
+	if bug != nil && slices.ContainsFunc(bug.Labels, func(l BugLabel) bool {
+		return l.Label == RaceLabel && l.Value == BenignRace
+	}) {
+		return nil
+	}
+	for _, job := range jobs {
+		if job.Type != ai.WorkflowAssessmentKCSAN || !job.Finished.Valid || job.Error != "" {
+			continue
+		}
+		if job.Correct.Valid && !job.Correct.Bool {
+			return nil
+		}
+		res, err := castJobResults[ai.AssessmentKCSANOutputs](job)
+		if err != nil {
+			return nil
+		}
+		return &res
+	}
+	return nil
+}
+
+// kcsanReproManager selects a non-KCSAN target manager for reproducing a harmful KCSAN data race,
+// so that only the downstream failure (not the race itself) is reported:
+//   - "kasan" / "kmsan": an active same-arch manager with the required sanitizer enabled.
+//   - "any": any active same-arch non-KCSAN manager.
+//   - "user" / "none": return "" to skip repro-c.
+func kcsanReproManager(ctx context.Context, bug *Bug, crash *Crash, assessment *ai.AssessmentKCSANOutputs) string {
+	var want string
+	switch assessment.FailureDetectableBy {
+	case ai.KCSANFailureDetectableByKASAN:
+		want = "CONFIG_KASAN=y"
+	case ai.KCSANFailureDetectableByKMSAN:
+		want = "CONFIG_KMSAN=y"
+	case ai.KCSANFailureDetectableByAny:
+	default:
+		return ""
+	}
+	var err error
+	if crash == nil {
+		crash, _, err = findCrashForBug(ctx, bug)
+		if err != nil {
+			return ""
+		}
+	}
+	crashBuild, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return ""
+	}
+	return findManagerByConfig(ctx, bug.Namespace, crashBuild, func(cfg string) bool {
+		return strings.Contains(cfg, want) && !strings.Contains(cfg, "CONFIG_KCSAN=y")
+	})
+}
+
+// findManagerByConfig returns the highest-ranked active manager in ns whose latest Linux build
+// matches crashBuild.Arch and satisfies match(kernelConfig), preferring managers on the same
+// KernelRepo before ranking by (ConfigManager.Priority DESC, Repo.ReportingPriority DESC, Name ASC).
+func findManagerByConfig(ctx context.Context, ns string, crashBuild *Build, match func(string) bool) string {
+	if !slices.Contains(aiSupportedArches, crashBuild.Arch) {
+		return ""
+	}
+	managers, _, err := loadAllManagers(ctx, ns)
+	if err != nil {
+		return ""
+	}
+	nsCfg := getNsConfig(ctx, ns)
+	var bestName string
+	var bestSameRepo, bestMgrPrio, bestRepoPrio int
+	for _, mgr := range managers {
+		build, err := lastManagerBuild(ctx, ns, mgr.Name)
+		if err != nil || build.Type == BuildFailed || build.OS != targets.Linux ||
+			build.Arch != crashBuild.Arch {
+			continue
+		}
+		// Prefer managers on the same kernel repo since repro-c applies their .config to crash.Commit.
+		sameRepo := 0
+		if build.KernelRepo == crashBuild.KernelRepo {
+			sameRepo = 1
+		}
+		mgrPrio := nsCfg.Managers[mgr.Name].Priority
+		repoPrio := kernelRepoInfo(ctx, build).ReportingPriority
+		if bestName != "" && cmp.Or(
+			cmp.Compare(sameRepo, bestSameRepo),
+			cmp.Compare(mgrPrio, bestMgrPrio),
+			cmp.Compare(repoPrio, bestRepoPrio),
+			// Tie-break by name ascending (candidate mgr.Name < bestName):
+			cmp.Compare(bestName, mgr.Name),
+		) <= 0 {
+			continue
+		}
+		cfg, _, err := getText(ctx, textKernelConfig, build.KernelConfig)
+		if err != nil || !match(string(cfg)) {
+			continue
+		}
+		bestName, bestSameRepo, bestMgrPrio, bestRepoPrio = mgr.Name, sameRepo, mgrPrio, repoPrio
+	}
+	return bestName
+}
+
+// kcsanReproExtraArgs builds the extra AI job arguments for reproducing a harmful KCSAN bug.
+// Setting KernelConfigManager directs both repro-c's kernel build and the subsequent JobTestPatch
+// verification run to the target manager.
+func kcsanReproExtraArgs(ctx context.Context, bug *Bug, bugKey *db.Key) (map[string]any, error) {
+	jobs, err := aidb.LoadBugJobs(ctx, bugKey.StringID())
+	if err != nil {
+		return nil, err
+	}
+	assessment := kcsanAssessment(bug, jobs)
+	if assessment == nil || assessment.Benign {
+		return nil, fmt.Errorf("bug does not have a harmful KCSAN assessment")
+	}
+	crash, _, err := findCrashForBug(ctx, bug)
+	if err != nil {
+		return nil, err
+	}
+	manager := kcsanReproManager(ctx, bug, crash, assessment)
+	if manager == "" {
+		return nil, fmt.Errorf("no target manager for %q", assessment.FailureDetectableBy)
+	}
+	var crashReport []byte
+	if crash.Report != 0 {
+		crashReport, _, err = getText(ctx, textCrashReport, crash.Report)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return map[string]any{
+		"KernelConfigManager": manager,
+		"BugDescription":      formatKCSANReproDescription(bug.Title, string(crashReport), assessment),
+	}, nil
+}
+
+// formatKCSANReproDescription combines the original KCSAN report with the assessment's downstream
+// failure analysis and instructions for the repro-c generator.
+func formatKCSANReproDescription(bugTitle, crashReport string, assessment *ai.AssessmentKCSANOutputs) string {
+	failure := "kernel crash (BUG, WARNING, general protection fault, etc.)"
+	switch assessment.FailureDetectableBy {
+	case ai.KCSANFailureDetectableByKASAN:
+		failure = "memory corruption (KASAN) report"
+	case ai.KCSANFailureDetectableByKMSAN:
+		failure = "uninitialized memory (KMSAN) report"
+	}
+	guidance := fmt.Sprintf("Note: The target VM runs a kernel without KCSAN, so the data race itself is not "+
+		"reported and there are no KCSAN watchpoint stalls widening the race window. Your reproducer must "+
+		"actively widen the race window (e.g. via setup_delay_bp / kallsyms_lookup in race_toolkit.h with "+
+		"read/write data breakpoints on the racing memory; instruction breakpoints on kernel text may be "+
+		"unavailable) and trigger the downstream %s described in the assessment.", failure)
+	return fmt.Sprintf("%s\n\n%s\n\nKCSAN Assessment:\n%s\n\n%s",
+		bugTitle, crashReport, assessment.Explanation, guidance)
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2453,26 +2653,8 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		workflows[ai.WorkflowReproC] = true
 		workflows[ai.WorkflowBisectCause] = true
 		workflows[ai.WorkflowBisectFix] = true
-	} else {
-		// Automatic C reproducer generation heuristics:
-		// - Namespace must have AutoReproC enabled.
-		// - Open bugs only, with no fixing commits.
-		// - Must have a crash report, but no existing C reproducer.
-		// - Wait at least 48h for human / syzkaller-native reproducers to arrive.
-		// - Last crash must be within 30 days to ensure the bug is still fresh / relevant.
-		// - Skip non-fatal issues (INFO), KCSAN bugs, non-kernel/syzkaller panics, and build/boot/test errors.
-		// - Skip bugs that have recent patch candidates being discussed / tested.
-		nsCfg := getNsConfig(ctx, bug.Namespace)
-		canAutoReproC := nsCfg.AI != nil && nsCfg.AI.AutoReproC &&
-			bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
-			!bug.HasCRepro && bug.HasReport &&
-			timeSince(ctx, bug.FirstTime) > reproCMinAge &&
-			timeSince(ctx, bug.LastTime) < reproCMaxAge &&
-			canAutoReproCBugTitle(bug.Title, typ) &&
-			!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
-		if canAutoReproC {
-			workflows[ai.WorkflowReproC] = true
-		}
+	} else if canAutoReproBug(ctx, bug) && canAutoReproCBugTitle(bug.Title, typ) {
+		workflows[ai.WorkflowReproC] = true
 	}
 	return workflows
 }
