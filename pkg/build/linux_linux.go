@@ -4,7 +4,11 @@
 package build
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -26,8 +30,56 @@ func EmbedLinuxKernel(params Params, kernelPath string) error {
 		if err := copyKernel(mountDir, kernelPath); err != nil {
 			return err
 		}
-		return nil
+		return fixGrubRootDevice(mountDir, params.UserspaceDir)
 	})
+}
+
+func fixGrubRootDevice(mountDir, imageFile string) error {
+	root, err := os.OpenRoot(mountDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	const grubCfg = "boot/grub/grub.cfg"
+	data, err := root.ReadFile(grubCfg)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	oldRoot := []byte("root=/dev/sda1")
+	if !bytes.Contains(data, oldRoot) {
+		return nil
+	}
+	sig, err := mbrDiskSignature(imageFile)
+	if err != nil {
+		return err
+	}
+	// Legacy x86 buildroot MBR images hardcode root=/dev/sda1, which fails to boot
+	// on NVMe-only GCE machine types (e.g. N4D) where the disk is /dev/nvme0n1p1.
+	// PARTUUID=<mbr-sig>-01 works across both SCSI/virtio-scsi and NVMe boot disks.
+	updated := bytes.ReplaceAll(data, oldRoot, fmt.Appendf(nil, "root=PARTUUID=%08x-01", sig))
+	return root.WriteFile(grubCfg, updated, osutil.DefaultFilePerm)
+}
+
+func mbrDiskSignature(imageFile string) (uint32, error) {
+	f, err := os.Open(imageFile)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	var mbr [512]byte
+	if _, err := io.ReadFull(f, mbr[:]); err != nil {
+		return 0, fmt.Errorf("failed to read MBR from %v: %w", imageFile, err)
+	}
+	if mbr[0x1fe] != 0x55 || mbr[0x1ff] != 0xaa {
+		return 0, fmt.Errorf("image %v does not have a valid MBR signature", imageFile)
+	}
+	if mbr[0x1c2] == 0xee {
+		return 0, fmt.Errorf("image %v uses GPT protective MBR, cannot derive MBR PARTUUID", imageFile)
+	}
+	return binary.LittleEndian.Uint32(mbr[0x1b8:0x1bc]), nil
 }
 
 // embedFiles mounts the disk image specified by params.UserspaceDir and then calls the given

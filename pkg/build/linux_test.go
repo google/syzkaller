@@ -8,8 +8,10 @@ package build
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"text/template"
@@ -20,6 +22,65 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
+
+func TestFixGrubRootDevice(t *testing.T) {
+	tests := []struct {
+		name     string
+		origGrub string
+		sig      uint32
+		partType byte
+		wantGrub string
+		wantErr  bool
+	}{
+		{
+			name:     "zero-mbr-sig",
+			origGrub: "linux /boot/bzImage console=ttyS0 root=/dev/sda1 earlyprintk=serial\n",
+			sig:      0,
+			partType: 0x83,
+			wantGrub: "linux /boot/bzImage console=ttyS0 root=PARTUUID=00000000-01 earlyprintk=serial\n",
+		},
+		{
+			name:     "nonzero-mbr-sig",
+			origGrub: "linux /boot/bzImage console=ttyS0 root=/dev/sda1 earlyprintk=serial\n",
+			sig:      0xdeadbeef,
+			partType: 0x83,
+			wantGrub: "linux /boot/bzImage console=ttyS0 root=PARTUUID=deadbeef-01 earlyprintk=serial\n",
+		},
+		{
+			name:     "gpt-partlabel-noop",
+			origGrub: "linux /boot/Image console=ttyS0 root=PARTLABEL=rootfs earlyprintk=serial\n",
+			sig:      0,
+			partType: 0xee,
+			wantGrub: "linux /boot/Image console=ttyS0 root=PARTLABEL=rootfs earlyprintk=serial\n",
+		},
+		{
+			name:     "gpt-protective-mbr-rejected",
+			origGrub: "linux /boot/bzImage console=ttyS0 root=/dev/sda1\n",
+			sig:      0,
+			partType: 0xee,
+			wantErr:  true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mountDir := t.TempDir()
+			grubCfg := filepath.Join(mountDir, "boot", "grub", "grub.cfg")
+			require.NoError(t, os.MkdirAll(filepath.Dir(grubCfg), 0755))
+			require.NoError(t, os.WriteFile(grubCfg, []byte(tc.origGrub), 0644))
+
+			imgPath := writeTestMBRImage(t, tc.sig, tc.partType)
+			err := fixGrubRootDevice(mountDir, imgPath)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			got, err := os.ReadFile(grubCfg)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantGrub, string(got))
+		})
+	}
+}
 
 func TestElfBinarySignature(t *testing.T) {
 	t.Parallel()
@@ -123,3 +184,15 @@ int main() {
 	printf("%d %p\n", x, pthread_create);
 }
 `))
+
+func writeTestMBRImage(t *testing.T, sig uint32, partType byte) string {
+	t.Helper()
+	imgPath := filepath.Join(t.TempDir(), "disk.raw")
+	var mbr [512]byte
+	binary.LittleEndian.PutUint32(mbr[0x1b8:0x1bc], sig)
+	mbr[0x1c2] = partType
+	mbr[0x1fe] = 0x55
+	mbr[0x1ff] = 0xaa
+	require.NoError(t, os.WriteFile(imgPath, mbr[:], 0600))
+	return imgPath
+}
