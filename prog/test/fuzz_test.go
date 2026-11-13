@@ -33,6 +33,9 @@ test$res2()
 		`r=test$res0()
 test$recur2(&(293324893027559)={r})
 `,
+		`r=test$res2()
+test$res3(&(4/2)=r)
+`,
 	} {
 		t.Logf("test #%v: %q", i, data)
 		inp := []byte(data)[:len(data):len(data)]
