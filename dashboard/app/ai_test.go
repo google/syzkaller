@@ -1890,12 +1890,49 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		require.True(t, got[ai.WorkflowReproC])
 	})
 
-	t.Run("bisection is manual only", func(t *testing.T) {
+	t.Run("fix bisection is manual only", func(t *testing.T) {
 		b := base()
-		for _, typ := range []ai.WorkflowType{ai.WorkflowBisectCause, ai.WorkflowBisectFix} {
-			require.True(t, workflowsForBug(c.ctx, b, true)[typ])
-			require.False(t, workflowsForBug(c.ctx, b, false)[typ])
-		}
+		require.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectFix])
+		require.False(t, workflowsForBug(c.ctx, b, false)[ai.WorkflowBisectFix])
+	})
+}
+
+func TestWorkflowsForBugBisectCause(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	for _, tc := range []struct {
+		name string
+		mod  func(*Bug)
+		want bool
+	}{
+		{name: "eligible", want: true},
+		{name: "no report", mod: func(b *Bug) { b.HasReport = false }},
+		{name: "fixed", mod: func(b *Bug) { b.Status = BugStatusFixed }},
+		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
+		// The title filter is shared with repro-c, see TestWorkflowsForBugReproC for the other titles.
+		{name: "SYZFAIL", mod: func(b *Bug) { b.Title = "SYZFAIL: something failed" }},
+		// These are skipped for repro-c only.
+		{name: "KCSAN", mod: func(b *Bug) { b.Title = "KCSAN: data-race in foo / bar" }, want: true},
+		{name: "INFO", mod: func(b *Bug) { b.Title = "INFO: task hung in foo" }, want: true},
+		{name: "hang", mod: func(b *Bug) { b.Title = "BUG: soft lockup in foo" }, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := &Bug{
+				Namespace: "ains",
+				Title:     "KASAN: slab-use-after-free in foo",
+				Status:    BugStatusOpen,
+				HasReport: true,
+			}
+			if tc.mod != nil {
+				tc.mod(b)
+			}
+			assert.Equal(t, tc.want, workflowsForBug(c.ctx, b, false)[ai.WorkflowBisectCause])
+		})
+	}
+	t.Run("manual overrides all", func(t *testing.T) {
+		b := &Bug{Namespace: "test2", Status: BugStatusFixed}
+		assert.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectCause])
 	})
 }
 
@@ -2280,10 +2317,13 @@ func TestAIRootCausePassedToBisect(t *testing.T) {
 
 	// Register the bisect-cause workflow on a separate agent so that its jobs can be created
 	// manually (polls replace the set of workflows registered for the polling agent).
+	// The poll also creates a bisect-cause job for the new bug, before it has a root cause analysis.
 	const bisectAgent = "bisect-agent"
 	bisectWorkflow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)}
 	resp := c.pollAIJob(t, bisectAgent, bisectWorkflow)
-	require.Empty(t, resp.ID)
+	require.NotEmpty(t, resp.ID)
+	assert.NotContains(t, resp.Args, "RootCauseAnalysis")
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "stopped"}))
 
 	secResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
 	require.NotEmpty(t, secResp.ID)
@@ -3039,4 +3079,41 @@ func TestKCSANReproCUnit(t *testing.T) {
 			assert.Contains(t, desc, w)
 		}
 	}
+}
+
+func TestAIBisectCauseScheduling(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	reportCrash := func(num int) {
+		_, err := c.aiClient.ReportCrash(testCrash(build, num))
+		require.NoError(t, err)
+		c.aiClient.pollEmailExtID()
+	}
+
+	// A new bug is bisected right away. A finished bisection is not repeated,
+	// even if it did not identify any commit.
+	reportCrash(1)
+	resp := c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	assert.Equal(t, "title1", resp.Args["BugTitle"])
+	c.finishAIJob(resp.ID, ai.BisectCauseOutputs{})
+	c.advanceTime(25 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+
+	// A failed job is retried after a day, but there are at most maxAutoBisectCauseAttempts (2) attempts.
+	reportCrash(2)
+	resp = c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "build failed 1"}))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+	c.advanceTime(25 * time.Hour)
+	resp = c.pollAIWorkflow(t, ai.WorkflowBisectCause)
+	require.NotEmpty(t, resp.ID)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "build failed 2"}))
+	// A second retry would come 2 days after the second failure, if not for the cap.
+	c.advanceTime(49 * time.Hour)
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
 }
