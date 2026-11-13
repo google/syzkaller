@@ -1379,6 +1379,7 @@ func TestAITestReproC(t *testing.T) {
 	c.aiClient.UploadBuild(build)
 
 	crash := testCrash(build, 1)
+	crash.Maintainers = []string{"maintainer@kernel.org"}
 	c.aiClient.ReportCrash(crash)
 	extID := c.aiClient.pollEmailExtID()
 	bug, _, _ := c.loadBug(extID)
@@ -1436,6 +1437,9 @@ func TestAITestReproC(t *testing.T) {
 	bug, dbCrash, _ := c.loadBug(extID)
 	require.True(t, bug.HasCRepro)
 	require.True(t, bug.HeadHasCRepro)
+	// The new primary crash must inherit the maintainers of the original crash.
+	require.NotZero(t, dbCrash.ReproC)
+	require.Equal(t, crash.Maintainers, dbCrash.Maintainers)
 
 	// Verify that the reproducer link is reported in the email and serves the augmented C reproducer via HTTP.
 	reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
