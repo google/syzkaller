@@ -11,14 +11,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/bisect"
-	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
@@ -58,7 +55,7 @@ func newJobManager(cfg *Config, managers []*Manager, shutdownPending chan struct
 		dash:            dash,
 		managers:        managers,
 		shutdownPending: shutdownPending,
-		// For now let's only parallelize patch testing requests.
+		// The parallel job processor only handles patch testing requests.
 		parallelJobFilter: &ManagerJobs{TestPatches: true},
 	}, nil
 }
@@ -144,8 +141,8 @@ loop:
 			break loop
 		default:
 		}
-		// Similar for commit polling: if we grab 2-3 bisect jobs in a row,
-		// it can delay commit polling by days.
+		// Similar for commit polling: if we grab several jobs in a row,
+		// it can delay commit polling for hours.
 		select {
 		case <-jp.commitTicker:
 			jp.pollCommits()
@@ -285,8 +282,6 @@ func (jp *JobProcessor) pollJobs() {
 		}
 		apiJobs := dashapi.ManagerJobs{
 			TestPatches: jobs.TestPatches,
-			BisectCause: jobs.BisectCause,
-			BisectFix:   jobs.BisectFix,
 		}
 		if apiJobs.Any() {
 			poll.Managers[mgr.name] = apiJobs
@@ -386,10 +381,6 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	case dashapi.JobTestPatch:
 		resp.Build.KernelCommit = "[unknown]"
 		mgrcfg.Name += "-test" + jp.instanceSuffix
-	case dashapi.JobBisectCause, dashapi.JobBisectFix:
-		resp.Build.KernelCommit = req.KernelCommit
-		resp.Build.KernelCommitTitle = req.KernelCommitTitle
-		mgrcfg.Name += "-bisect" + jp.instanceSuffix
 	default:
 		err := fmt.Errorf("bad job type %v", req.Type)
 		job.resp.Error = []byte(err.Error())
@@ -404,8 +395,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		name string
 		ok   bool
 	}{
-		{"kernel repository", req.KernelRepo != "" || req.Type != dashapi.JobTestPatch},
-		{"kernel branch", req.KernelBranch != "" || req.Type != dashapi.JobTestPatch},
+		{"kernel repository", req.KernelRepo != ""},
+		{"kernel branch", req.KernelBranch != ""},
 		{"kernel config", len(req.KernelConfig) != 0},
 		{"syzkaller commit", req.SyzkallerCommit != ""},
 		// We either want a normal repro (with options and syz repro text)
@@ -429,171 +420,10 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		return job.resp
 	}
 
-	var err error
-	switch req.Type {
-	case dashapi.JobTestPatch:
-		err = jp.testPatch(job, mgrcfg)
-	case dashapi.JobBisectCause, dashapi.JobBisectFix:
-		err = jp.bisect(job, mgrcfg)
-	}
-	if err != nil {
+	if err := jp.testPatch(job, mgrcfg); err != nil {
 		job.resp.Error = []byte(err.Error())
 	}
 	return job.resp
-}
-
-func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
-	req, resp, mgr := job.req, job.resp, job.mgr
-
-	// Hack: if the manager has only, say, 5 VMs, but bisect wants 10, try to override number of VMs to 10.
-	// OverrideVMCount is opportunistic and should do it only if it's safe.
-	if err := instance.OverrideVMCount(mgrcfg, bisect.MaxNumTests); err != nil {
-		return err
-	}
-
-	var baseline []byte
-	// Read possible baseline for config minimization.
-	if mgr.mgrcfg.KernelBaselineConfig != "" {
-		var err error
-		baseline, err = os.ReadFile(mgr.mgrcfg.KernelBaselineConfig)
-		if err != nil {
-			return fmt.Errorf("failed to read baseline config: %w", err)
-		}
-	}
-	err := jp.prepareBisectionRepo(mgrcfg, req)
-	if err != nil {
-		return err
-	}
-	trace := new(bytes.Buffer)
-	cfg := &bisect.Config{
-		Trace: &debugtracer.GenericTracer{
-			TraceWriter: io.MultiWriter(trace, log.VerboseWriter(3)),
-			OutDir:      osutil.Abs(filepath.Join("jobs", "debug", strings.ReplaceAll(req.ID, "|", "_"))),
-		},
-		// Out of 1049 cause bisections that we have now:
-		// -  891 finished under  6h (84.9%)
-		// -  957 finished under  8h (91.2%)
-		// -  980 finished under 10h (93.4%)
-		// -  989 finished under 12h (94.3%)
-		// - 1011 finished under 18h (96.3%)
-		// - 1025 finished under 24h (97.7%)
-		// There is also a significant increase in errors/inconclusive bisections after ~8h.
-		// Out of 4075 fix bisections:
-		// - 4015 finished under  6h (98.5%)
-		// - 4020 finished under  8h (98.7%)
-		// - 4026 finished under 10h (98.8%)
-		// - 4032 finished under 12h (98.9%)
-		// Significant increase in errors starts after ~12h.
-		// Bisection jobs are now executed in parallel to patch testing, so it doesn't destroy user experience.
-		// Let's set the timeout to 12h.
-		Timeout:         12 * time.Hour,
-		Fix:             req.Type == dashapi.JobBisectFix,
-		DefaultCompiler: mgr.mgrcfg.Compiler,
-		CompilerType:    mgr.mgrcfg.CompilerType,
-		BinDir:          jp.cfg.BisectBinDir,
-		Linker:          mgr.mgrcfg.Linker,
-		Ccache:          jp.cfg.Ccache,
-		BuildCPUs:       jp.cfg.BuildCPUs,
-		Kernel: bisect.KernelConfig{
-			Repo:           req.KernelRepo,
-			Branch:         req.KernelBranch,
-			Commit:         req.KernelCommit,
-			CommitTitle:    req.KernelCommitTitle,
-			Cmdline:        mgr.mgrcfg.KernelCmdline,
-			Sysctl:         mgr.mgrcfg.KernelSysctl,
-			Config:         req.KernelConfig,
-			BaselineConfig: baseline,
-			Userspace:      mgr.mgrcfg.Userspace,
-			BuilderImage:   mgr.mgrcfg.KernelBuilderImage,
-			Backports:      mgr.backportCommits(),
-		},
-		Syzkaller: bisect.SyzkallerConfig{
-			Repo:   jp.cfg.SyzkallerRepo,
-			Commit: req.SyzkallerCommit,
-		},
-		Repro: bisect.ReproConfig{
-			Opts: req.ReproOpts,
-			Syz:  req.ReproSyz,
-			C:    req.ReproC,
-		},
-		CrossTree:      req.MergeBaseRepo != "",
-		Manager:        mgrcfg,
-		BuildSemaphore: buildSem,
-		TestSemaphore:  testSem,
-	}
-
-	res, err := bisect.Run(cfg)
-	resp.Log = trace.Bytes()
-	if err != nil {
-		if _, ok := errors.AsType[*build.InfraError](err); ok {
-			resp.Flags |= dashapi.BisectResultInfraError
-		}
-		return err
-	}
-	for _, com := range res.Commits {
-		resp.Commits = append(resp.Commits, dashapi.Commit{
-			Hash:       com.Hash,
-			Title:      com.Title,
-			Author:     com.Author,
-			AuthorName: com.AuthorName,
-			Recipients: com.Recipients.ToDash(),
-			Date:       com.Date,
-		})
-	}
-	if len(res.Commits) == 1 {
-		if len(res.Commits[0].Parents) > 1 {
-			resp.Flags |= dashapi.BisectResultMerge
-		}
-		if res.NoopChange {
-			resp.Flags |= dashapi.BisectResultNoop
-		}
-		if res.IsRelease {
-			resp.Flags |= dashapi.BisectResultRelease
-		}
-		const confidenceCutOff = 0.66
-		if res.Confidence < confidenceCutOff {
-			resp.Flags |= dashapi.BisectResultIgnore
-		}
-		if jp.ignoreBisectCommit(res.Commits[0]) {
-			resp.Flags |= dashapi.BisectResultIgnore
-		}
-	}
-	if res.Report != nil {
-		resp.CrashTitle = res.Report.Title
-		resp.CrashAltTitles = res.Report.AltTitles
-		resp.CrashReport = res.Report.Report
-		resp.CrashLog = res.Report.Output
-		if len(resp.Commits) != 0 {
-			resp.Commits[0].Recipients = append(resp.Commits[0].Recipients, res.Report.Recipients.ToDash()...)
-		} else {
-			// If there is a report and there is no commit, it means a crash
-			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
-			resp.Build.KernelCommit = res.Commit.Hash
-			resp.Build.KernelCommitDate = res.Commit.CommitDate
-			resp.Build.KernelCommitTitle = res.Commit.Title
-		}
-	}
-	return nil
-}
-
-var ignoredCommits = []string{
-	// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
-	// triggering USB bugs, which ends up being the guilty commit during bisection
-	// for USB bugs introduced before it.
-	"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
-	// Commit "devlink: bump the instance index directly when iterating" has likely
-	// fixed some frequent task hung, which skews fix bisection results.
-	// TODO: consider backporting it during bisection itself.
-	"d772781964415c63759572b917e21c4f7ec08d9f",
-}
-
-func (jp *JobProcessor) ignoreBisectCommit(commit *vcs.Commit) bool {
-	// First look at the always ignored values.
-	if slices.Contains(ignoredCommits, commit.Hash) {
-		return true
-	}
-	_, ok := jp.cfg.BisectIgnore[commit.Hash]
-	return ok
 }
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
@@ -722,23 +552,6 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 		os.RemoveAll(repoDir)
 	}
 	jp.Logf(0, "job repo will be fetched from scratch")
-	return nil
-}
-
-func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dashapi.JobPollResp) error {
-	if req.MergeBaseRepo == "" {
-		// No need to.
-		return nil
-	}
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
-	if err != nil {
-		return fmt.Errorf("failed to create kernel repo: %w", err)
-	}
-	_, err = checkoutKernelOrCommit(repo, req.MergeBaseRepo, req.MergeBaseBranch)
-	if err != nil {
-		return fmt.Errorf("failed to checkout the merge base repo %v on %v: %w",
-			req.MergeBaseRepo, req.MergeBaseBranch, err)
-	}
 	return nil
 }
 

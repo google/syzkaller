@@ -180,52 +180,37 @@ type JobPollReq struct {
 
 type ManagerJobs struct {
 	TestPatches bool
-	BisectCause bool
-	BisectFix   bool
 }
 
 func (m ManagerJobs) Any() bool {
-	return m.TestPatches || m.BisectCause || m.BisectFix
+	return m.TestPatches
 }
 
 type JobPollResp struct {
-	ID         string
-	Type       JobType
-	Manager    string
-	KernelRepo string
-	// KernelBranch is used for patch testing and serves as the current HEAD
-	// for bisections.
+	ID              string
+	Type            JobType
+	Manager         string
+	KernelRepo      string
 	KernelBranch    string
 	MergeBaseRepo   string
 	MergeBaseBranch string
-	// Bisection starts from KernelCommit.
-	KernelCommit      string
-	KernelCommitTitle string
-	KernelConfig      []byte
-	SyzkallerCommit   string
-	Patch             []byte
-	ReproOpts         []byte
-	ReproSyz          []byte
-	ReproC            []byte
+	KernelConfig    []byte
+	SyzkallerCommit string
+	Patch           []byte
+	ReproOpts       []byte
+	ReproSyz        []byte
+	ReproC          []byte
 }
 
 type JobDoneReq struct {
 	ID             string
 	Build          Build
 	Error          []byte
-	Log            []byte // bisection log
+	Log            []byte
 	CrashTitle     string
 	CrashAltTitles []string
 	CrashLog       []byte
 	CrashReport    []byte
-	// Bisection results:
-	// If there is 0 commits:
-	//  - still happens on HEAD for fix bisection
-	//  - already happened on the oldest release
-	// If there is 1 commits: bisection result (cause or fix).
-	// If there are more than 1: suspected commits due to skips (broken build/boot).
-	Commits []Commit
-	Flags   JobDoneFlags
 }
 
 type JobType int
@@ -236,13 +221,14 @@ const (
 	JobBisectFix
 )
 
+// JobDoneFlags are flags of results of the former syz-ci bisection jobs.
 type JobDoneFlags int64
 
 const (
 	BisectResultMerge      JobDoneFlags = 1 << iota // bisected to a merge commit
 	BisectResultNoop                                // commit does not affect resulting kernel binary
 	BisectResultRelease                             // commit is a kernel release
-	BisectResultIgnore                              // this particular commit should be ignored, see syz-ci/jobs.go
+	BisectResultIgnore                              // this particular commit should be ignored
 	BisectResultInfraError                          // the bisect failed due to an infrastructure problem
 )
 

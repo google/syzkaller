@@ -304,10 +304,6 @@ func (ctx *Ctx) setKernelRepos(ns string, list []KernelRepo) {
 	}
 }
 
-func (ctx *Ctx) setNoObsoletions() {
-	ctx.transformContext = contextWithNoObsoletions
-}
-
 func (ctx *Ctx) updateReporting(ns, name string, f func(Reporting) Reporting) {
 	ctx.transformContext = func(ctx context.Context) context.Context {
 		return contextWithConfig(ctx, replaceReporting(ctx, ns, name, f))
@@ -661,20 +657,7 @@ func (client *apiClient) pollSpecificJobs(manager string, jobs dashapi.ManagerJo
 func (client *apiClient) pollJobs(manager string) *dashapi.JobPollResp {
 	return client.pollSpecificJobs(manager, dashapi.ManagerJobs{
 		TestPatches: true,
-		BisectCause: true,
-		BisectFix:   true,
 	})
-}
-
-func (client *apiClient) pollAndFailBisectJob(manager string) {
-	resp := client.pollJobs(manager)
-	client.expectNE(resp.ID, "")
-	client.expectEQ(resp.Type, dashapi.JobBisectCause)
-	done := &dashapi.JobDoneReq{
-		ID:    resp.ID,
-		Error: []byte("pollAndFailBisectJob"),
-	}
-	client.expectOK(client.JobDone(done))
 }
 
 type (
@@ -922,10 +905,144 @@ func aiJobResults(outputs any) map[string]any {
 	return res
 }
 
-// The commit found by the syz-ci cause bisection in reportBugWithCIBisect.
+type historicalBisectJob struct {
+	bugKey          *db.Key
+	jobType         JobType
+	build           *dashapi.Build
+	kernelRepo      string
+	kernelBranch    string
+	mergeBaseRepo   string
+	mergeBaseBranch string
+	crashTitle      string
+	crashLog        string
+	crashReport     string
+	log             string
+	errText         string
+	commits         []dashapi.Commit
+}
+
+// saveJobCommits stores the commits on the job the way the former syz-ci bisection results were stored.
+func saveJobCommits(ctx context.Context, job *Job, commits []dashapi.Commit) {
+	for _, com := range commits {
+		cc := email.MergeEmailLists(com.CC,
+			GetEmails(com.Recipients, dashapi.To),
+			GetEmails(com.Recipients, dashapi.Cc))
+		job.Commits = append(job.Commits, Commit{
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.Author,
+			AuthorName: com.AuthorName,
+			CC:         strings.Join(sanitizeCC(ctx, cc), "|"),
+			Date:       com.Date,
+		})
+	}
+}
+
+// saveHistoricalBisectJob seeds a finished historical syz-ci bisection job in Datastore.
+func (ctx *Ctx) saveHistoricalBisectJob(args historicalBisectJob) *db.Key {
+	ctx.t.Helper()
+	now := timeNow(ctx.ctx)
+	bug := new(Bug)
+	require.NoError(ctx.t, db.Get(ctx.ctx, args.bugKey, bug))
+	crash, crashKey, err := findCrashForBug(ctx.ctx, bug)
+	require.NoError(ctx.t, err)
+	crashBuild, err := loadBuild(ctx.ctx, bug.Namespace, crash.BuildID)
+	require.NoError(ctx.t, err)
+
+	var buildID string
+	if args.build != nil && args.build.ID != "" {
+		buildID = args.build.ID
+		if _, err := loadBuild(ctx.ctx, bug.Namespace, buildID); err != nil {
+			_, _, err := uploadBuild(ctx.ctx, now, bug.Namespace, args.build, BuildJob)
+			require.NoError(ctx.t, err)
+		}
+	}
+	repo, branch := args.kernelRepo, args.kernelBranch
+	if repo == "" && args.mergeBaseRepo == "" {
+		repo = crashBuild.KernelRepo
+		branch = crashBuild.KernelBranch
+	}
+	var reportingName string
+	if _, bugReporting, _, _, _ := currentReporting(ctx.ctx, bug); bugReporting != nil &&
+		!bugReporting.Reported.IsZero() && args.errText == "" {
+		reportingName = bugReporting.Name
+	}
+	job := &Job{
+		Type:            args.jobType,
+		Created:         now,
+		Finished:        now,
+		Reported:        true,
+		Reporting:       reportingName,
+		Namespace:       bug.Namespace,
+		Manager:         crash.Manager,
+		BugTitle:        bug.displayTitle(),
+		CrashID:         crashKey.IntID(),
+		BuildID:         buildID,
+		KernelRepo:      repo,
+		KernelBranch:    branch,
+		MergeBaseRepo:   args.mergeBaseRepo,
+		MergeBaseBranch: args.mergeBaseBranch,
+		CrashTitle:      args.crashTitle,
+	}
+	require.NoError(ctx.t, saveJobTexts(ctx.ctx, bug.Namespace, job, &dashapi.JobDoneReq{
+		Log:         []byte(args.log),
+		Error:       []byte(args.errText),
+		CrashLog:    []byte(args.crashLog),
+		CrashReport: []byte(args.crashReport),
+	}))
+	saveJobCommits(ctx.ctx, job, args.commits)
+
+	var jobKey *db.Key
+	require.NoError(ctx.t, runInTransaction(ctx.ctx, func(txCtx context.Context) error {
+		txBug := new(Bug)
+		if err := db.Get(txCtx, args.bugKey, txBug); err != nil {
+			return err
+		}
+		result := BisectYes
+		switch {
+		case args.errText != "":
+			result = BisectError
+		case len(args.commits) > 1:
+			result = BisectInconclusive
+		case len(args.commits) == 0:
+			result = BisectHorizont
+		}
+		switch {
+		case job.IsCrossTree():
+			if result == BisectYes {
+				jobKey2, err := saveJob(txCtx, job, args.bugKey)
+				if err != nil {
+					return err
+				}
+				jobKey = jobKey2
+				txBug.FixCandidateJob = jobKey.Encode()
+				_, err = db.Put(txCtx, args.bugKey, txBug)
+				return err
+			}
+		case args.jobType == JobBisectCause:
+			txBug.BisectCause = result
+			txBug.LastCauseBisect = now
+		default:
+			if result != BisectError && len(args.commits) == 0 && args.crashLog != "" {
+				txBug.BisectFix = BisectNot
+			} else {
+				txBug.BisectFix = result
+			}
+		}
+		var err error
+		if jobKey, err = saveJob(txCtx, job, args.bugKey); err != nil {
+			return err
+		}
+		_, err = db.Put(txCtx, args.bugKey, txBug)
+		return err
+	}, &db.TransactionOptions{XG: true}))
+	return jobKey
+}
+
+// The commit found by the historical syz-ci cause bisection in reportBugWithCIBisect.
 const ciBisectCommitHash = "36e65cb4a0448942ec316b2deb56fd04eadbbd55"
 
-// reportBugWithCIBisect reports a bug with a reproducer and completes a syz-ci cause bisection for it.
+// reportBugWithCIBisect reports a bug with a reproducer and seeds a historical syz-ci cause bisection for it.
 // Returns the build the bug was found on and the external ID of the bug.
 func (ctx *Ctx) reportBugWithCIBisect() (*dashapi.Build, string) {
 	ctx.t.Helper()
@@ -938,21 +1055,20 @@ func (ctx *Ctx) reportBugWithCIBisect() (*dashapi.Build, string) {
 	extID := ctx.aiClient.pollEmailExtID()
 
 	ctx.advanceTime(24 * time.Hour)
-	pollResp := ctx.globalClient.pollJobs(build.Manager)
-	require.Equal(ctx.t, dashapi.JobBisectCause, pollResp.Type)
-	require.NoError(ctx.t, ctx.globalClient.JobDone(&dashapi.JobDoneReq{
-		ID:    pollResp.ID,
-		Build: *testBuild(2),
-		Log:   []byte("ci bisect log"),
-		Commits: []dashapi.Commit{{
+	bug, _, _ := ctx.loadBug(extID)
+	ctx.saveHistoricalBisectJob(historicalBisectJob{
+		bugKey:  bug.key(ctx.ctx),
+		jobType: JobBisectCause,
+		build:   testBuild(2),
+		log:     "ci bisect log",
+		commits: []dashapi.Commit{{
 			Hash:       ciBisectCommitHash,
 			Title:      "kernel: ci bisected commit",
 			Author:     "ci-author@kernel.org",
 			AuthorName: "CI Author",
 			Date:       time.Date(2000, 2, 1, 4, 5, 6, 0, time.UTC),
 		}},
-	}))
-	ctx.pollEmailBug() // consume the email about the syz-ci bisection
+	})
 	return build, extID
 }
 

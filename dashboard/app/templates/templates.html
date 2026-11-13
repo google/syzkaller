@@ -462,7 +462,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 
 	{{if not .Reported}}[report pending]<br>{{end}}
-	{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;
 	{{optlink .InvalidateJobLink "❌ mark as invalid"}}
 {{end}}
 {{end}}
@@ -581,7 +580,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{ if $job.InvalidatedBy }}
 						<br>marked invalid by {{$job.InvalidatedBy}}
 					{{end}}
-					{{if and $.PerBug (or .InvalidateJobLink .RestartJobLink)}}<br>{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
+					{{if and $.PerBug .InvalidateJobLink}}<br>{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
 				</td>
 			</tr>
 		{{end}}
