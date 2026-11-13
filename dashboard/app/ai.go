@@ -2180,7 +2180,16 @@ const (
 	reproCMinAge          = 48 * time.Hour
 	reproCMaxAge          = 30 * 24 * time.Hour
 	reproCPatchAge        = 30 * 24 * time.Hour
+
+	maxAutoBisectCauseAttempts = 2
 )
+
+// Automatic retries of failed or aborted jobs of these workflows are capped
+// to avoid repeatedly creating doomed or costly jobs.
+var maxAutoAttempts = map[ai.WorkflowType]int{
+	ai.WorkflowReproC:      maxAutoReproCAttempts,
+	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
+}
 
 func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 	if !getNsConfig(ctx, ns).AI.AutoReproC {
@@ -2385,9 +2394,9 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	// or may be fixed over time. So we retry failed/aborted jobs with an exponential
 	// backoff based on attempts count. 1 job is retried in 1 day; 2 jobs - in 2 days;
 	// 3 jobs - in 4 days, and so on up to the cap of 30 days.
-	// For repro-c, cap automatic retries to avoid repeatedly creating doomed or costly jobs.
+	// Automatic retries of some workflows are capped, see maxAutoAttempts.
 	for typ, attempts := range workflowAttempts {
-		if typ == ai.WorkflowReproC && attempts.count >= maxAutoReproCAttempts {
+		if limit, ok := maxAutoAttempts[typ]; ok && attempts.count >= limit {
 			delete(workflows, typ)
 			continue
 		}
@@ -2635,6 +2644,15 @@ func formatKCSANReproDescription(bugTitle, crashReport string, assessment *ai.As
 		bugTitle, crashReport, assessment.Explanation, guidance)
 }
 
+// Automatic AI cause bisection heuristics:
+// - Open bugs only, with no fixing commits.
+// - Must have a crash report (a reproducer is not required).
+// - Skip non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
+func canAutoBisectCause(bug *Bug, typ crash.Type) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasReport && isKernelCrashBugTitle(bug.Title, typ)
+}
+
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	workflows := make(map[ai.WorkflowType]bool)
 	typ := crash.TitleToType(bug.Title)
@@ -2660,8 +2678,13 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		workflows[ai.WorkflowReproC] = true
 		workflows[ai.WorkflowBisectCause] = true
 		workflows[ai.WorkflowBisectFix] = true
-	} else if canAutoReproBug(ctx, bug) && canAutoReproCBugTitle(bug.Title, typ) {
-		workflows[ai.WorkflowReproC] = true
+	} else {
+		if canAutoReproBug(ctx, bug) && canAutoReproCBugTitle(bug.Title, typ) {
+			workflows[ai.WorkflowReproC] = true
+		}
+		if canAutoBisectCause(bug, typ) {
+			workflows[ai.WorkflowBisectCause] = true
+		}
 	}
 	return workflows
 }
