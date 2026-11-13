@@ -168,7 +168,7 @@ execprog: descriptions
 ci: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
 
-hub: descriptions
+hub:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 agent: descriptions

@@ -1,0 +1,72 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: syz-hub
+namePrefix: local-
+
+resources:
+  - ../../common
+  - namespace.yaml
+  - serviceaccount.yaml
+
+images:
+  - name: gcr.io/syzkaller/syz-hub
+    newName: ${HUB_IMAGE_NAME}
+    newTag: ${HUB_IMAGE_TAG}
+
+configMapGenerator:
+  - name: syz-hub-config
+    files:
+      - config.json=hub-config.json
+
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+      name: syz-hub-pvc
+    patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: standard
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 10Gi
+  - target:
+      kind: Deployment
+      name: syz-hub
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/0
+        value: -config=/config/config.json
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: config-volume
+          mountPath: /config
+          readOnly: true
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: config-volume
+          configMap:
+            name: syz-hub-config
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "1800MiB"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 2Gi
