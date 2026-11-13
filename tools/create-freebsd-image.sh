@@ -30,7 +30,7 @@ Usage: $0 [options]
   -k          Configure keyless/passwordless root SSH (e.g. for QEMU builder_image).
               WARNING: such an image has an empty root password; only use it as a
               local QEMU kernel_builder_image, never as a network-reachable fuzzing image.
-  -S          Skip downloading/extracting the userspace sysroot
+  -S          Skip extracting the userspace sysroot
   -h          Show this help
 EOF
 }
@@ -53,7 +53,7 @@ case "${VERSION}" in
 esac
 
 QEMU_BIN="qemu-system-x86_64"
-REQ_TOOLS=(curl sha512sum sha256sum xz tar expect realpath "${QEMU_BIN}")
+REQ_TOOLS=(curl sha512sum xz tar expect realpath truncate "${QEMU_BIN}")
 (( KEYLESS )) || REQ_TOOLS+=(ssh-keygen)
 for tool in "${REQ_TOOLS[@]}"; do
 	command -v "${tool}" >/dev/null 2>&1 || { echo "Required tool '${tool}' is missing" >&2; exit 1; }
@@ -89,7 +89,6 @@ fetch_verified() {
 }
 
 VM_URL_BASE="${MIRROR}/${TREE}/VM-IMAGES/${VERSION}/${ARCH}/Latest"
-DIST_URL_BASE="${MIRROR}/${TREE}/${ARCH}/${VERSION}"
 RAW_XZ_NAME="FreeBSD-${VERSION}-${ARCH}-ufs.raw.xz"
 
 echo "==> Downloading and verifying FreeBSD ${VERSION} (${ARCH})..."
@@ -102,27 +101,21 @@ EXPECTED_VM_SHA512="$(awk -v ver="${VERSION}" -v arch="${ARCH}" '
 [[ -n "${EXPECTED_VM_SHA512}" ]] || { echo "Missing SHA512 for ${RAW_XZ_NAME}" >&2; exit 1; }
 fetch_verified "${VM_URL_BASE}/${RAW_XZ_NAME}" "${CACHE_DIR}/${RAW_XZ_NAME}" sha512sum "${EXPECTED_VM_SHA512}"
 
-if (( !SKIP_SYSROOT )); then
-	curl --proto '=https' --tlsv1.2 -fsSL "${DIST_URL_BASE}/MANIFEST" -o "${WORK_DIR}/MANIFEST"
-	fetch_dist() {
-		local sum
-		sum="$(awk -v f="$1" '$1 == f { print $2; exit }' "${WORK_DIR}/MANIFEST")"
-		[[ -n "${sum}" ]] || { echo "Missing SHA256 for $1 in MANIFEST" >&2; exit 1; }
-		fetch_verified "${DIST_URL_BASE}/$1" "${CACHE_DIR}/$1" sha256sum "${sum}"
-	}
-	fetch_dist "base.txz"
-
+# FreeBSD no longer publishes base.txz/lib32.txz distribution sets for -CURRENT
+# (the system is distributed via pkgbase), so the sysroot is copied out of the
+# booted VM image instead: setup.sh writes a tar of the needed directories to a
+# dedicated raw disk, which is unpacked here. This also guarantees that the
+# sysroot exactly matches the userspace image.
+extract_sysroot() {
+	local sysroot_tar="$1"
 	echo "==> Extracting sysroot into ${SYSROOT_DIR}..."
 	# Extract into a temporary dir first, so that an interrupted extraction never leaves
 	# behind an incomplete sysroot that looks valid.
 	SYSROOT_TMP="${WORK_DIR}/sysroot"
 	mkdir -p "${SYSROOT_TMP}"
-	tar -C "${SYSROOT_TMP}" --no-same-owner --no-same-permissions -xf "${CACHE_DIR}/base.txz" \
-		./lib ./usr/lib ./usr/libdata ./usr/include
-	if awk '$1 == "lib32.txz" { found=1 } END { exit !found }' "${WORK_DIR}/MANIFEST"; then
-		fetch_dist "lib32.txz"
-		tar -C "${SYSROOT_TMP}" --no-same-owner --no-same-permissions -xf "${CACHE_DIR}/lib32.txz" ./usr/lib32
-	fi
+	tar -C "${SYSROOT_TMP}" --no-same-owner --no-same-permissions \
+		--warning=no-unknown-keyword -xf "${sysroot_tar}"
+	[[ -f "${SYSROOT_TMP}/usr/lib/crt1.o" ]] || { echo "Sysroot is missing usr/lib/crt1.o" >&2; exit 1; }
 	chmod -R u+rwX "${SYSROOT_TMP}"
 
 	SYSROOT_REAL="$(realpath "${SYSROOT_TMP}")"
@@ -141,7 +134,7 @@ if (( !SKIP_SYSROOT )); then
 	[[ -d "${SYSROOT_DIR}" ]] && chmod -R u+rwX "${SYSROOT_DIR}" 2>/dev/null || true
 	rm -rf "${SYSROOT_DIR}"
 	mv "${SYSROOT_TMP}" "${SYSROOT_DIR}"
-fi
+}
 
 echo "==> Preparing and customizing VM image (${DISK_SIZE})..."
 RAW_TMP="${WORK_DIR}/image.raw"
@@ -165,6 +158,14 @@ cat > "${WORK_DIR}/setup.sh" <<'EOF'
 set -eux
 KEYLESS="$1"
 IMG_ID="$2"
+SYSROOT="$3"
+
+if [ "$SYSROOT" = "1" ]; then
+	# Dump the sysroot onto the raw vtbd2 disk before anything in the image is changed.
+	dirs="lib usr/lib usr/libdata usr/include"
+	[ -d /usr/lib32 ] && dirs="$dirs usr/lib32"
+	tar -C / --exclude usr/lib/debug -cf /dev/vtbd2 $dirs
+fi
 
 if [ "$KEYLESS" = "1" ]; then
 	pw mod user root -w none
@@ -222,12 +223,19 @@ chmod 0755 "${WORK_DIR}/setup.sh"
 tar -C "${WORK_DIR}" -cf "${WORK_DIR}/seed.tar" "${SEED_FILES[@]}"
 truncate -s +1M "${WORK_DIR}/seed.tar"
 
+SYSROOT_TAR=""
+if (( !SKIP_SYSROOT )); then
+	# Sparse raw disk that receives the sysroot tar from inside the VM.
+	SYSROOT_TAR="${WORK_DIR}/sysroot.tar"
+	truncate -s 4G "${SYSROOT_TAR}"
+fi
+
 USE_KVM=0
 [[ -r /dev/kvm && -w /dev/kvm ]] && USE_KVM=1
 IMG_ID="$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')"
 
 QEMU_BIN="${QEMU_BIN}" USE_KVM="${USE_KVM}" RAW_TMP="${RAW_TMP}" SEED_TAR="${WORK_DIR}/seed.tar" \
-	QEMU_PID_FILE="${QEMU_PID_FILE}" KEYLESS="${KEYLESS}" IMG_ID="${IMG_ID}" expect <<'EOF'
+	SYSROOT_TAR="${SYSROOT_TAR}" QEMU_PID_FILE="${QEMU_PID_FILE}" KEYLESS="${KEYLESS}" IMG_ID="${IMG_ID}" expect <<'EOF'
 set timeout 600
 set send_slow {1 0.02}
 
@@ -245,6 +253,11 @@ lappend cmd -nographic -no-reboot -smp 4 -m 4096 -pidfile $env(QEMU_PID_FILE) \
 	-drive "if=virtio,file=[string map {, ,,} $env(RAW_TMP)],format=raw" \
 	-drive "if=virtio,file=[string map {, ,,} $env(SEED_TAR)],format=raw,readonly=on" \
 	-net nic,model=virtio -net user,restrict=on
+set want_sysroot 0
+if {$env(SYSROOT_TAR) ne ""} {
+	lappend cmd -drive "if=virtio,file=[string map {, ,,} $env(SYSROOT_TAR)],format=raw"
+	set want_sysroot 1
+}
 spawn {*}$cmd
 
 expect {
@@ -259,7 +272,7 @@ send -s "boot\r"
 wait_for "login:"
 send -s "root\r"
 wait_for "# "
-send -s "mkdir -p /tmp/seed && tar -C /tmp/seed -xf /dev/vtbd1 && sh /tmp/seed/setup.sh $env(KEYLESS) $env(IMG_ID) && echo SYZ_SETUP_''OK || echo SYZ_SETUP_''FAIL\r"
+send -s "mkdir -p /tmp/seed && tar -C /tmp/seed -xf /dev/vtbd1 && sh /tmp/seed/setup.sh $env(KEYLESS) $env(IMG_ID) $want_sysroot && echo SYZ_SETUP_''OK || echo SYZ_SETUP_''FAIL\r"
 expect {
 	timeout { puts stderr "Timed out running setup.sh"; exit 1 }
 	eof { puts stderr "QEMU exited while running setup.sh"; exit 1 }
@@ -271,6 +284,7 @@ send -s "poweroff\r"
 wait_for eof
 EOF
 
+[[ -z "${SYSROOT_TAR}" ]] || extract_sysroot "${SYSROOT_TAR}"
 mv -f "${RAW_TMP}" "${USERSPACE_DIR}/image"
 echo "==> Done: userspace=${USERSPACE_DIR}"
 (( SKIP_SYSROOT )) || echo "    sysroot=${SYSROOT_DIR} (export SOURCEDIR_FREEBSD=${SYSROOT_DIR})"
