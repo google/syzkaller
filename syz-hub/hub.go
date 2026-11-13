@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"flag"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gcpsecret"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -45,31 +47,23 @@ type Hub struct {
 
 func main() {
 	defer tool.Init()()
-	cfg := new(Config)
-	if err := config.LoadFile(*flagConfig, cfg); err != nil {
-		log.Fatal(err)
-	}
 	log.EnableLogCaching(1000, 1<<20)
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	cfg, keys, err := loadConfig(ctx, *flagConfig)
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 	st, err := state.Make(cfg.Workdir)
 	if err != nil {
 		log.Fatalf("failed to load state: %v", err)
 	}
 	hub := &Hub{
 		st:   st,
-		keys: make(map[string]string),
+		keys: keys,
 		auth: auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint),
 	}
-	for _, mgr := range cfg.Clients {
-		hub.keys[mgr.Name] = mgr.Key
-	}
-
-	http.HandleFunc("/", hub.httpSummary)
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	tool.ServeHTTP(cfg.HTTP)
-	go hub.purgeOldManagers()
 
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub)
 	if err != nil {
@@ -77,6 +71,13 @@ func main() {
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	go s.Serve()
+
+	http.HandleFunc("/", hub.httpSummary)
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	tool.ServeHTTP(cfg.HTTP)
+	go hub.purgeOldManagers()
 
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
@@ -201,4 +202,49 @@ func (hub *Hub) checkManager(client, key, manager string) (string, error) {
 		return "", fmt.Errorf("unauthorized manager")
 	}
 	return manager, nil
+}
+
+func loadConfig(ctx context.Context, filename string) (*Config, map[string]string, error) {
+	cfg := new(Config)
+	if strings.HasPrefix(filename, "gcp-secret:") || strings.HasPrefix(filename, "env:") {
+		data, err := gcpsecret.Resolve(ctx, filename)
+		if err != nil {
+			return nil, nil, err
+		}
+		if strings.TrimSpace(data) == "" {
+			return nil, nil, fmt.Errorf("config %v is empty", filename)
+		}
+		if err := config.LoadData([]byte(data), cfg); err != nil {
+			return nil, nil, err
+		}
+	} else if err := config.LoadFile(filename, cfg); err != nil {
+		return nil, nil, err
+	}
+	keys, err := resolveClientKeys(ctx, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cfg, keys, nil
+}
+
+func resolveClientKeys(ctx context.Context, cfg *Config) (map[string]string, error) {
+	keys := make(map[string]string, len(cfg.Clients))
+	for _, mgr := range cfg.Clients {
+		if !state.IsValidManagerName(mgr.Name) {
+			return nil, fmt.Errorf("invalid client name %q", mgr.Name)
+		}
+		if _, ok := keys[mgr.Name]; ok {
+			return nil, fmt.Errorf("duplicate client %v", mgr.Name)
+		}
+		key, err := gcpsecret.Resolve(ctx, mgr.Key)
+		if err != nil {
+			return nil, fmt.Errorf("client %v: %w", mgr.Name, err)
+		}
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return nil, fmt.Errorf("client %v: empty key", mgr.Name)
+		}
+		keys[mgr.Name] = key
+	}
+	return keys, nil
 }
