@@ -1,0 +1,90 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syz-hub
+  labels:
+    app: syz-hub
+  annotations:
+    ignore-check.kube-linter.io/non-existent-service-account: "Service account is defined in Terraform"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: syz-hub
+  template:
+    metadata:
+      labels:
+        app: syz-hub
+    spec:
+      serviceAccountName: syz-hub-ksa
+      terminationGracePeriodSeconds: 120
+      containers:
+      - name: syz-hub
+        image: gcr.io/syzkaller/syz-hub:latest
+        args: ["-config=gcp-secret:syz-hub-config"]
+        env:
+        - name: GOMEMLIMIT
+          value: "28GiB"
+        ports:
+        - name: http
+          containerPort: 50000
+          protocol: TCP
+        - name: rpc
+          containerPort: 50001
+          protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: workdir-volume
+          mountPath: /workdir
+        resources:
+          requests:
+            cpu: 4
+            memory: 16Gi
+          limits:
+            cpu: 8
+            memory: 32Gi
+      volumes:
+      - name: workdir-volume
+        persistentVolumeClaim:
+          claimName: syz-hub-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: syz-hub
+  labels:
+    app: syz-hub
+spec:
+  type: LoadBalancer
+  selector:
+    app: syz-hub
+  ports:
+  # Only expose the authenticated RPC port externally; the HTTP port (50000)
+  # remains internal to the pod for kubelet health probes and port-forwarding.
+  - name: rpc
+    port: 50001
+    targetPort: rpc
+    protocol: TCP

@@ -11,6 +11,7 @@ KUBELINTER="go run golang.stackrox.io/kube-linter/cmd/kube-linter@v0.8.3 lint --
 # Mock env vars
 export IMAGE_NAME="local/syz-agent" IMAGE_TAG="latest" GOOGLE_API_KEY="mock" DASHBOARD_KEY="mock" \
        GIT_COOKIE_DAEMON="mock" LORE_RELAY_IMAGE_NAME="mock" LORE_RELAY_IMAGE_TAG="mock" \
+       HUB_IMAGE_NAME="mock" HUB_IMAGE_TAG="mock" HUB_LOAD_BALANCER_IP="127.0.0.1" \
        SPANNER_DATABASE_URI="mock" BLOB_STORAGE_GCS_BUCKET="mock" WORKFLOW_ARTIFACTS_BUCKET="mock" \
        IMAGE_PREFIX="local/"
 
@@ -46,6 +47,10 @@ run_checks() {
 
 for target in k8s-minikube k8s-prod-agent k8s-prod-lore; do
 	run_checks "syz-agent" "$target" "syz-agent"
+done
+
+for target in k8s-minikube k8s-prod; do
+	run_checks "syz-hub" "$target" "syz-hub"
 done
 
 for target in k8s-config-argo k8s-config-dev k8s-config-test k8s-config-gke-prod k8s-config-gke-staging \

@@ -4,9 +4,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -203,4 +206,89 @@ func TestHubConnectSyncAndHTTP(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "client1-mgr")
 	assert.Contains(t, rec.Body.String(), "client2-mgr")
+}
+
+func TestLoadConfigAndResolveClientKeys(t *testing.T) {
+	t.Setenv("SYZ_HUB_TEST_SECRET", "  resolved-from-env\n")
+	rawCfg := `{
+		"http": ":50000",
+		"rpc": ":50001",
+		"workdir": "/workdir",
+		"clients": [
+			{"name": "plain", "key": "plain-secret"},
+			{"name": "oauth", "key": "OauthSubject:12345"},
+			{"name": "envclient", "key": "env:SYZ_HUB_TEST_SECRET"}
+		]
+	}`
+	t.Setenv("SYZ_HUB_TEST_CONFIG", rawCfg)
+
+	wantKeys := map[string]string{
+		"plain":     "plain-secret",
+		"oauth":     "OauthSubject:12345",
+		"envclient": "resolved-from-env",
+	}
+
+	cfg, keys, err := loadConfig(context.Background(), "env:SYZ_HUB_TEST_CONFIG")
+	require.NoError(t, err)
+	assert.Equal(t, ":50000", cfg.HTTP)
+	assert.Equal(t, ":50001", cfg.RPC)
+	assert.Equal(t, "/workdir", cfg.Workdir)
+	assert.Equal(t, wantKeys, keys)
+
+	cfgFile := filepath.Join(t.TempDir(), "hub-config.json")
+	require.NoError(t, os.WriteFile(cfgFile, []byte(rawCfg), 0600))
+	cfgFromFile, keysFromFile, err := loadConfig(context.Background(), cfgFile)
+	require.NoError(t, err)
+	assert.Equal(t, cfg, cfgFromFile)
+	assert.Equal(t, wantKeys, keysFromFile)
+
+	_, _, err = loadConfig(context.Background(), filepath.Join(t.TempDir(), "missing.json"))
+	assert.Error(t, err)
+
+	t.Setenv("SYZ_HUB_EMPTY_CONFIG", "   \n")
+	_, _, err = loadConfig(context.Background(), "env:SYZ_HUB_EMPTY_CONFIG")
+	assert.ErrorContains(t, err, "config env:SYZ_HUB_EMPTY_CONFIG is empty")
+
+	t.Setenv("SYZ_HUB_INVALID_JSON", "{invalid")
+	_, _, err = loadConfig(context.Background(), "env:SYZ_HUB_INVALID_JSON")
+	assert.Error(t, err)
+
+	t.Setenv("SYZ_HUB_EMPTY_SECRET", "   \n")
+	for _, tc := range []struct {
+		name    string
+		clients string
+		wantErr string
+	}{
+		{
+			name:    "empty_name",
+			clients: `[{"name": "", "key": "secret1"}]`,
+			wantErr: "invalid client name",
+		},
+		{
+			name:    "whitespace_name",
+			clients: `[{"name": "   ", "key": "secret1"}]`,
+			wantErr: "invalid client name",
+		},
+		{
+			name:    "empty_key",
+			clients: `[{"name": "emptyclient", "key": "env:SYZ_HUB_EMPTY_SECRET"}]`,
+			wantErr: "client emptyclient: empty key",
+		},
+		{
+			name:    "duplicate_client",
+			clients: `[{"name": "dup", "key": "secret1"}, {"name": "dup", "key": "secret2"}]`,
+			wantErr: "duplicate client dup",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("SYZ_HUB_BAD_CLIENT_CFG", `{
+				"http": ":50000",
+				"rpc": ":50001",
+				"workdir": "/workdir",
+				"clients": `+tc.clients+`
+			}`)
+			_, _, err := loadConfig(context.Background(), "env:SYZ_HUB_BAD_CLIENT_CFG")
+			assert.ErrorContains(t, err, tc.wantErr)
+		})
+	}
 }
