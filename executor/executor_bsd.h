@@ -11,10 +11,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if GOOS_openbsd
-#include <sys/sysctl.h>
-#endif
-
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 #if GOOS_openbsd
@@ -108,52 +104,32 @@ static void cover_mmap(cover_t* cov)
 {
 	if (cov->mmap_alloc_ptr != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
+	if (cov->data_size == 0)
+		fail("cover_t structure is corrupted");
 	cov->mmap_alloc_size = cov->data_size;
 	void* mmap_ptr = mmap(NULL, cov->mmap_alloc_size, PROT_READ | PROT_WRITE,
 			      MAP_SHARED, cov->fd, 0);
 	if (mmap_ptr == MAP_FAILED)
 		fail("cover mmap failed");
 	cov->mmap_alloc_ptr = (char*)mmap_ptr;
+#if GOOS_freebsd || GOOS_openbsd
+	// Only the first page needs to be writable to reset the coverage count in cover_reset().
+	if (cov->mmap_alloc_size > SYZ_PAGE_SIZE &&
+	    mprotect(cov->mmap_alloc_ptr + SYZ_PAGE_SIZE, cov->mmap_alloc_size - SYZ_PAGE_SIZE, PROT_READ))
+		exitf("failed to mprotect kcov buffer");
+#endif
 	cov->data = (char*)mmap_ptr;
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
 }
 
-static void cover_protect(cover_t* cov)
+static void cover_protect()
 {
-	if (cov->mmap_alloc_ptr == NULL)
-		fail("cover_protect invoked on an unmapped cover_t object");
-#if GOOS_freebsd
-	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	long page_size = sysconf(_SC_PAGESIZE);
-	if (page_size > 0)
-		mprotect(cov->mmap_alloc_ptr + page_size, mmap_alloc_size - page_size,
-			 PROT_READ);
-#elif GOOS_openbsd
-	int mib[2], page_size;
-	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
-	mib[0] = CTL_HW;
-	mib[1] = HW_PAGESIZE;
-	size_t len = sizeof(page_size);
-	if (sysctl(mib, ARRAY_SIZE(mib), &page_size, &len, NULL, 0) != -1)
-		mprotect(cov->mmap_alloc_ptr + page_size, mmap_alloc_size - page_size, PROT_READ);
-#endif
 }
 
-static void cover_unprotect(cover_t* cov)
+static void cover_unprotect()
 {
-	if (cov == nullptr)
-		fail("cover_unprotect invoked without cover_t");
-	if (cov->mmap_alloc_ptr == NULL)
-		fail("cover_unprotect invoked on an unmapped cover_t object");
-#if GOOS_freebsd
-	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	mprotect(cov->mmap_alloc_ptr, mmap_alloc_size, PROT_READ | PROT_WRITE);
-#elif GOOS_openbsd
-	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
-	mprotect(cov->mmap_alloc_ptr, mmap_alloc_size, PROT_READ | PROT_WRITE);
-#endif
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)

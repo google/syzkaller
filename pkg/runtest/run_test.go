@@ -232,6 +232,21 @@ func testCover(t *testing.T, target *prog.Target) {
 			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
 			Cover: []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
 		},
+		{
+			Is64Bit: true,
+			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
+				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
+			Flags:  flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover:  []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
+			Signal: []uint64{0xc0dec0dec0000022, 0xc0dec0dec0000000, 0xc0dec0dec0000011, 0xc0dec0dec0000033},
+		},
+		{
+			Is64Bit: false,
+			Input:   makeCover32(0xc0000033, 0xc0000022, 0xc0000011, 0xc0000011, 0xc0000022, 0xc0000033),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover:   []uint64{0xc0000011, 0xc0000022, 0xc0000033},
+			Signal:  []uint64{0xc0000000, 0xc0000011, 0xc0000033},
+		},
 		// Signal hashing.
 		{
 			Is64Bit: true,
