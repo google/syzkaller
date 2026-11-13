@@ -25,8 +25,24 @@ func TestZoneToRegion(t *testing.T) {
 }
 
 func TestDiskSizeGB(t *testing.T) {
-	assert.Equal(t, 10, diskSizeGB("c4a-standard-2"))
-	assert.Equal(t, 0, diskSizeGB("e2-standard-2"))
+	tests := []struct {
+		machineType string
+		want        int
+	}{
+		{"c4-standard-2", 10},
+		{"c4a-standard-2", 10},
+		{"c4d-standard-2", 10},
+		{"n4-standard-2", 10},
+		{"n4a-standard-2", 10},
+		{"n4d-standard-2", 10},
+		{"c3-standard-4", 0},
+		{"e2-standard-2", 0},
+		{"n2-standard-2", 0},
+		{"n2d-standard-2", 0},
+	}
+	for _, tc := range tests {
+		assert.Equal(t, tc.want, diskSizeGB(tc.machineType), tc.machineType)
+	}
 }
 
 func TestLastActiveLabelValue(t *testing.T) {

@@ -162,6 +162,7 @@ fi
 
 case "$IMG_ARCH" in
 386|amd64)
+	PARTUUID=$(sudo blkid -s PARTUUID -o value $PARTDEV)
 	cat << EOF | sudo tee disk.mnt/boot/grub/grub.cfg
 terminal_input console
 terminal_output console
@@ -179,7 +180,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 $CMDLINE
+	linux /vmlinuz root=PARTUUID=$PARTUUID console=ttyS0 earlyprintk=serial vsyscall=native net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 $CMDLINE
 }
 EOF
 	sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
