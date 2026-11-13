@@ -2182,6 +2182,11 @@ const (
 	reproCPatchAge        = 30 * 24 * time.Hour
 
 	maxAutoBisectCauseAttempts = 2
+	// Cause bisection of bugs older than bisectCauseNewBugAge is rate limited, so that the backlog
+	// of old bugs does not take over the agents. New bugs are bisected right away.
+	bisectCauseNewBugAge      = 24 * time.Hour
+	maxBacklogBisectCauseJobs = 1
+	backlogBisectCauseWindow  = time.Hour
 )
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
@@ -2200,6 +2205,30 @@ func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 		return false, fmt.Errorf("failed to check repro-c rate limit for %v: %w", ns, err)
 	}
 	return count < maxAutoReproCJobs, nil
+}
+
+// canCreateAIJobFunc says whether an automatic job of the workflow can be created for the bug now.
+type canCreateAIJobFunc func(bug *Bug, typ ai.WorkflowType) bool
+
+// bisectCauseRateLimit returns a function that applies the rate limit on cause bisection of old bugs:
+// it rejects a cause bisection job for an old bug if the namespace has reached the limit.
+// All cause bisection jobs count towards the limit, including the jobs for new bugs.
+func bisectCauseRateLimit(ctx context.Context, ns string, reqWorkflows []dashapi.AIWorkflow) (
+	canCreateAIJobFunc, error) {
+	backlog := false
+	isBisectCause := func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowBisectCause }
+	if slices.ContainsFunc(reqWorkflows, isBisectCause) {
+		since := timeNow(ctx).Add(-backlogBisectCauseWindow)
+		count, err := aidb.CountJobsSince(ctx, ns, ai.WorkflowBisectCause, since)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check bisect-cause rate limit for %v: %w", ns, err)
+		}
+		backlog = count < maxBacklogBisectCauseJobs
+	}
+	return func(bug *Bug, typ ai.WorkflowType) bool {
+		return typ != ai.WorkflowBisectCause || backlog ||
+			timeSince(ctx, bug.FirstTime) < bisectCauseNewBugAge
+	}, nil
 }
 
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
@@ -2229,12 +2258,16 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 		if len(workflowsForNS) == 0 {
 			continue
 		}
-		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS); err != nil {
+		canCreate, err := bisectCauseRateLimit(ctx, ns, workflowsForNS)
+		if err != nil {
+			return false, err
+		}
+		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS, canCreate); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
 		}
-		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS); err != nil {
+		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS, canCreate); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
@@ -2243,22 +2276,26 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 	return false, nil
 }
 
-func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	canCreate canCreateAIJobFunc) (bool, error) {
 	for _, req := range reqWorkflows {
-		var bugs []*Bug
-		keys, err := db.NewQuery("Bug").
+		query := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
-			Filter("AIPendingWorkflows=", string(req.Type)).
-			Limit(1).
-			GetAll(ctx, &bugs)
+			Filter("AIPendingWorkflows=", string(req.Type))
+		if req.Type == ai.WorkflowBisectCause {
+			// New bugs go first. If the newest bug is rate limited, so are all others.
+			query = query.Order("-FirstTime")
+		}
+		var bugs []*Bug
+		keys, err := query.Limit(1).GetAll(ctx, &bugs)
 		if err != nil {
 			return false, fmt.Errorf("failed to fetch pending bugs: %w", err)
 		}
-		if len(bugs) == 0 {
+		if len(bugs) == 0 || !canCreate(bugs[0], req.Type) {
 			continue
 		}
-		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows, canCreate)
 		if created || err != nil {
 			return created, err
 		}
@@ -2266,7 +2303,8 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 	return false, nil
 }
 
-func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
+	canCreate canCreateAIJobFunc) (bool, error) {
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
@@ -2279,7 +2317,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 	}
 
 	for i, bug := range bugs {
-		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows)
+		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows, canCreate)
 		if created || err != nil {
 			return created, err
 		}
@@ -2288,7 +2326,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 }
 
 func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date int64,
-	reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	reqWorkflows []dashapi.AIWorkflow, canCreate canCreateAIJobFunc) (bool, error) {
 	pending, err := pendingWorkflowsForBug(ctx, bug, bugKey)
 	if err != nil {
 		log.Errorf(ctx, "failed to get pending workflows for bug %v: %v", bugKey.StringID(), err)
@@ -2299,12 +2337,14 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	var matchedReq dashapi.AIWorkflow
 	for _, req := range reqWorkflows {
 		idx := slices.Index(pending, string(req.Type))
-		if idx != -1 {
-			pending = slices.Delete(pending, idx, idx+1)
-			created = true
-			matchedReq = req
-			break
+		if idx == -1 || !canCreate(bug, req.Type) {
+			// A workflow that can't get a job now stays pending.
+			continue
 		}
+		pending = slices.Delete(pending, idx, idx+1)
+		created = true
+		matchedReq = req
+		break
 	}
 
 	errConflict := fmt.Errorf("bug already evaluated or modified")
