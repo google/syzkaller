@@ -1209,11 +1209,11 @@ func doneJob(ctx context.Context, req *dashapi.JobDoneReq) error {
 	if err = runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
-	reportCandidateReproCrash(ctx, job, req)
+	reportCandidateReproCrash(ctx, job, jobKey, req)
 	return postJob(ctx, jobKey, job)
 }
 
-func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDoneReq) {
+func reportCandidateReproCrash(ctx context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq) {
 	if job.Type != JobTestPatch || job.CandidateReproC == 0 || req.CrashTitle == "" ||
 		len(req.Error) > 0 || req.Build.ID == "" {
 		return
@@ -1233,6 +1233,18 @@ func reportCandidateReproCrash(ctx context.Context, job *Job, req *dashapi.JobDo
 		Log:       req.CrashLog,
 		Report:    req.CrashReport,
 		ReproC:    reproC,
+	}
+	// syz-ci does not determine recipients for job crashes, so inherit them from the target bug's
+	// crash. Otherwise the new crash, which becomes the bug's primary crash due to the C repro,
+	// would have no maintainers.
+	if bugTitle, _, _ := splitDisplayTitle(job.BugTitle); req.CrashTitle == bugTitle {
+		parent := new(Crash)
+		if err := db.Get(ctx, db.NewKey(ctx, "Crash", "", job.CrashID, jobKey.Parent()), parent); err != nil {
+			log.Errorf(ctx, "job %v: failed to get crash: %v", req.ID, err)
+			return
+		}
+		crashReq.Maintainers = parent.Maintainers
+		crashReq.GuiltyFiles = parent.ReportElements.GuiltyFiles
 	}
 	if _, err := reportCrash(ctx, build, crashReq); err != nil {
 		log.Errorf(ctx, "job %v: failed to report candidate repro crash: %v", req.ID, err)
