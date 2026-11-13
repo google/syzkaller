@@ -239,11 +239,14 @@ else
 fi
 
 # Override default grub config with timeout 0.
+# Buildroot's genimage (board/pc/genimage-bios.cfg) creates an MBR disk with
+# signature 0x00000000, so partition 1 has PARTUUID=00000000-01 (which boots
+# on both SCSI /dev/sda1 and NVMe /dev/nvme0n1p1).
 cat >$1/boot/grub/grub.cfg <<EOF
 set default="0"
 set timeout="0"
 menuentry "syzkaller" {
-	linux /boot/bzImage root=/dev/sda1 console=ttyS0
+	linux /boot/bzImage root=PARTUUID=00000000-01 console=ttyS0
 }
 EOF
 EOFEOF

@@ -327,9 +327,12 @@ retry:
 }
 
 func diskSizeGB(machineType string) int {
-	if strings.HasPrefix(machineType, "c4a-") {
-		// For C4A machines, the only available disk type is "Hyperdisk Balanced",
-		// which must be >= 10GB.
+	prefixes := []string{"c4-", "c4a-", "c4d-", "n4-", "n4a-", "n4d-"}
+	if slices.ContainsFunc(prefixes, func(prefix string) bool {
+		return strings.HasPrefix(machineType, prefix)
+	}) {
+		// For 4th-gen GCE machine series, the only available boot disk type is
+		// "Hyperdisk Balanced", which must be >= 10GB.
 		return 10
 	}
 	// Use the default value.
