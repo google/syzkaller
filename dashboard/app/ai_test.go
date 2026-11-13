@@ -744,6 +744,21 @@ func TestAIJobAutoCreate(t *testing.T) {
 	require.Equal(t, pollResp7.ID, "")
 }
 
+func TestAIDecommissionedNamespace(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	_, err := c.aiClient.ReportCrash(testCrash(build, 1))
+	require.NoError(t, err)
+	c.aiClient.pollEmailExtID()
+
+	// AI jobs are not created automatically in decommissioned namespaces.
+	c.decommission("ains")
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity).ID)
+}
+
 func TestAIPendingJobs(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()

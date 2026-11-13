@@ -1969,7 +1969,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, error) {
 	var groups []*aidb.PendingCommentGroup
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if cfg.AI == nil || !client.AllowedNamespace(ns) {
+		if cfg.AI == nil || cfg.Decommissioned || !client.AllowedNamespace(ns) {
 			continue
 		}
 		for _, stage := range cfg.AI.Stages {
@@ -2199,7 +2199,7 @@ func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, client APIClient) (bool, error) {
 	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if cfg.AI == nil || !client.AllowedNamespace(ns) {
+		if cfg.AI == nil || cfg.Decommissioned || !client.AllowedNamespace(ns) {
 			continue
 		}
 		isReproC := func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowReproC }

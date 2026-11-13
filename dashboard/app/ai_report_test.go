@@ -656,6 +656,20 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	// 4. Advance time to pass debounce (30 mins).
 	c.advanceTime(31 * time.Minute)
 
+	// Comments are not addressed automatically in decommissioned namespaces.
+	transformContext := c.transformContext
+	c.transformContext = func(ctx context.Context) context.Context {
+		ctx = transformContext(ctx)
+		return contextWithConfig(ctx, replaceNamespaceConfig(ctx, "ains", func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Decommissioned = true
+			return &ret
+		}))
+	}
+	resp = c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
+	require.Empty(t, resp.ID)
+	c.transformContext = transformContext
+
 	// 5. Poll again should return the job.
 	resp = c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
 	require.NotEmpty(t, resp.ID)
