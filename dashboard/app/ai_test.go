@@ -2695,6 +2695,147 @@ func TestAIBisectResult(t *testing.T) {
 	}
 }
 
+func TestAutoCreateKCSANReproC(t *testing.T) {
+	tests := []struct {
+		name         string
+		benign       bool
+		detectableBy string
+		explanation  string
+		extraMgr     string
+		extraConfig  string
+		wantMgr      string
+		wantConfig   string
+		wantContains []string
+	}{
+		{
+			name:        "benign skipped",
+			benign:      true,
+			explanation: "safe plain counter update",
+			extraMgr:    "kasan-mgr",
+			extraConfig: "CONFIG_KASAN=y",
+		},
+		{
+			name:         "harmful kasan",
+			detectableBy: ai.KCSANFailureDetectableByKASAN,
+			explanation:  "race leads to use-after-free in net_rx",
+			extraMgr:     "kasan-mgr",
+			extraConfig:  "CONFIG_KASAN=y",
+			wantMgr:      "kasan-mgr",
+			wantConfig:   "CONFIG_KASAN=y",
+			wantContains: []string{"kernel without KCSAN", "memory corruption (KASAN) report"},
+		},
+		{
+			name:         "harmful kmsan",
+			detectableBy: ai.KCSANFailureDetectableByKMSAN,
+			explanation:  "missing release/acquire publishes uninitialized struct",
+			extraMgr:     "kmsan-mgr",
+			extraConfig:  "CONFIG_KMSAN=y",
+			wantMgr:      "kmsan-mgr",
+			wantConfig:   "CONFIG_KMSAN=y",
+			wantContains: []string{"kernel without KCSAN", "uninitialized memory (KMSAN) report"},
+		},
+		{
+			name:         "harmful any",
+			detectableBy: ai.KCSANFailureDetectableByAny,
+			explanation:  "race hits BUG_ON in state_check",
+			extraMgr:     "kasan-mgr",
+			extraConfig:  "CONFIG_KASAN=y",
+			wantMgr:      "kasan-mgr",
+			wantConfig:   "CONFIG_KASAN=y",
+			wantContains: []string{"kernel without KCSAN", "kernel crash (BUG, WARNING"},
+		},
+		{
+			// The KCSAN manager must never be selected.
+			name:         "harmful any without non-KCSAN manager",
+			detectableBy: ai.KCSANFailureDetectableByAny,
+			explanation:  "race hits BUG_ON in state_check",
+		},
+		{
+			name:         "harmful user skipped",
+			detectableBy: ai.KCSANFailureDetectableByUser,
+			explanation:  "corrupts CLD_TRAPPED si_status to 0",
+			extraMgr:     "kasan-mgr",
+			extraConfig:  "CONFIG_KASAN=y",
+		},
+		{
+			name:         "harmful none",
+			detectableBy: ai.KCSANFailureDetectableByNone,
+			explanation:  "internal counter drift not observable via crash or ABI",
+			extraMgr:     "kasan-mgr",
+			extraConfig:  "CONFIG_KASAN=y",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := NewSpannerCtx(t)
+			defer c.Close()
+
+			kcsanBuild := testBuild(1)
+			kcsanBuild.Manager = "kcsan-mgr"
+			kcsanBuild.KernelRepo = "git://syzkaller.org"
+			kcsanBuild.KernelConfig = []byte("CONFIG_KCSAN=y")
+			require.NoError(t, c.aiClient.UploadBuild(kcsanBuild))
+
+			// Cross-arch managers must never match even if alphabetically first.
+			armKasanBuild := testBuild(2)
+			armKasanBuild.Manager = "aarch-kasan-mgr"
+			armKasanBuild.Arch = targets.ARM64
+			armKasanBuild.VMArch = targets.ARM64
+			armKasanBuild.KernelRepo = "git://syzkaller.org"
+			armKasanBuild.KernelConfig = []byte("CONFIG_KASAN=y")
+			require.NoError(t, c.aiClient.UploadBuild(armKasanBuild))
+
+			if tc.extraMgr != "" {
+				extraBuild := testBuild(3)
+				extraBuild.Manager = tc.extraMgr
+				extraBuild.KernelRepo = "git://syzkaller.org"
+				extraBuild.KernelConfig = []byte(tc.extraConfig)
+				require.NoError(t, c.aiClient.UploadBuild(extraBuild))
+			}
+
+			crash := testCrash(kcsanBuild, 1)
+			crash.Title = "KCSAN: data-race in foo / bar"
+			_, err := c.aiClient.ReportCrash(crash)
+			require.NoError(t, err)
+			c.aiClient.pollEmailBug()
+
+			c.advanceTime(49 * time.Hour)
+
+			// Unassessed KCSAN bug must never auto-create repro-c.
+			require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowReproC).ID)
+
+			assessResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentKCSAN)
+			require.NotEmpty(t, assessResp.ID)
+			require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+				ID: assessResp.ID,
+				Results: map[string]any{
+					"Benign":              tc.benign,
+					"FailureDetectableBy": tc.detectableBy,
+					"Explanation":         tc.explanation,
+				},
+			}))
+
+			reproResp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+			if tc.wantMgr == "" {
+				assert.Empty(t, reproResp.ID)
+				return
+			}
+			require.NotEmpty(t, reproResp.ID)
+			assert.Equal(t, tc.wantMgr, reproResp.Args["KernelConfigManager"])
+			assert.Equal(t, tc.wantConfig, reproResp.Args["KernelConfig"])
+			desc, ok := reproResp.Args["BugDescription"].(string)
+			require.True(t, ok)
+			assert.Contains(t, desc, crash.Title)
+			assert.Contains(t, desc, "report1")
+			assert.Contains(t, desc, tc.explanation)
+			for _, want := range tc.wantContains {
+				assert.Contains(t, desc, want)
+			}
+		})
+	}
+}
+
 func TestUpdateAIBisect(t *testing.T) {
 	commits := []Commit{{Hash: "9999999999999999999999999999999999999999"}}
 	result := func(jobID string, commits []Commit) *BugAIBisect {
@@ -2797,4 +2938,83 @@ Reported-by: syzbot+abcdef@testapp.appspotmail.com
 the report
 `)
 	assert.NotContains(t, body, "Fixes:")
+}
+
+func TestKCSANReproCUnit(t *testing.T) {
+	finished := spanner.NullTime{Time: time.Now(), Valid: true}
+
+	assert.Nil(t, kcsanAssessment(nil, nil))
+	assert.Nil(t, kcsanAssessment(nil, []*aidb.Job{{
+		Type:     ai.WorkflowAssessmentKCSAN,
+		Finished: finished,
+		Error:    "failed",
+	}}))
+	assert.Nil(t, kcsanAssessment(nil, []*aidb.Job{{
+		Type:     ai.WorkflowAssessmentKCSAN,
+		Finished: finished,
+		Correct:  spanner.NullBool{Bool: false, Valid: true},
+		Results:  spanner.NullJSON{Valid: true, Value: map[string]any{"Benign": false}},
+	}}))
+	benignRes := kcsanAssessment(nil, []*aidb.Job{{
+		Type:     ai.WorkflowAssessmentKCSAN,
+		Finished: finished,
+		Results:  spanner.NullJSON{Valid: true, Value: map[string]any{"Benign": true, "Explanation": "benign"}},
+	}})
+	require.NotNil(t, benignRes)
+	assert.True(t, benignRes.Benign)
+
+	harmfulJob := []*aidb.Job{{
+		Type:     ai.WorkflowAssessmentKCSAN,
+		Finished: finished,
+		Results: spanner.NullJSON{
+			Valid: true,
+			Value: map[string]any{
+				"Benign":              false,
+				"FailureDetectableBy": ai.KCSANFailureDetectableByKASAN,
+				"Explanation":         "use-after-free in foo",
+			},
+		},
+	}}
+	harmfulRes := kcsanAssessment(nil, harmfulJob)
+	require.NotNil(t, harmfulRes)
+	assert.False(t, harmfulRes.Benign)
+	assert.Equal(t, ai.KCSANFailureDetectableByKASAN, harmfulRes.FailureDetectableBy)
+	assert.Nil(t, kcsanAssessment(&Bug{
+		Labels: []BugLabel{{Label: RaceLabel, Value: BenignRace}},
+	}, harmfulJob))
+
+	descTests := []struct {
+		detectableBy string
+		explanation  string
+		want         []string
+	}{
+		{
+			detectableBy: ai.KCSANFailureDetectableByKASAN,
+			explanation:  "use-after-free in foo",
+			want:         []string{"kernel without KCSAN", "setup_delay_bp", "memory corruption (KASAN) report"},
+		},
+		{
+			detectableBy: ai.KCSANFailureDetectableByKMSAN,
+			explanation:  "uninit read in bar",
+			want:         []string{"kernel without KCSAN", "setup_delay_bp", "uninitialized memory (KMSAN) report"},
+		},
+		{
+			detectableBy: ai.KCSANFailureDetectableByAny,
+			explanation:  "BUG_ON in baz",
+			want:         []string{"kernel without KCSAN", "setup_delay_bp", "kernel crash (BUG, WARNING"},
+		},
+	}
+	const title = "KCSAN: data-race in foo / bar"
+	for _, tc := range descTests {
+		desc := formatKCSANReproDescription(title, "crash report", &ai.AssessmentKCSANOutputs{
+			FailureDetectableBy: tc.detectableBy,
+			Explanation:         tc.explanation,
+		})
+		assert.Contains(t, desc, title)
+		assert.Contains(t, desc, "crash report")
+		assert.Contains(t, desc, tc.explanation)
+		for _, w := range tc.want {
+			assert.Contains(t, desc, w)
+		}
+	}
 }
