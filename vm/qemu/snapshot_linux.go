@@ -7,8 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -101,15 +99,7 @@ func (inst *instance) snapshotEnable() ([]string, error) {
 	}
 	inst.eventFD = eventFD
 
-	// UNIX domain socket paths are limited to ~108 characters.
-	// Prefer a relative path if it is shorter than the absolute path to avoid exceeding the limit.
-	sockPath := filepath.Join(inst.workdir, "ivs.sock")
-	if wd, err := os.Getwd(); err == nil {
-		if rel, err := filepath.Rel(wd, sockPath); err == nil && len(rel) < len(sockPath) {
-			sockPath = rel
-		}
-	}
-
+	sockPath := unixSockPath(inst.workdir, "ivs.sock")
 	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
 	if err != nil {
 		return nil, fmt.Errorf("qemu: unix listen on %v failed: %w", sockPath, err)
@@ -121,7 +111,7 @@ func (inst *instance) snapshotEnable() ([]string, error) {
 		// tsc=off disables RDTSC timestamp counter, it's not virtualized/restored as part of snapshots,
 		// so the target kernel sees a large jump in time and always declares TSC as unstable after restore.
 		"-cpu", "host,migratable=on,tsc=off",
-		"-chardev", fmt.Sprintf("socket,path=%v,id=snapshot-doorbell", sockPath),
+		"-chardev", fmt.Sprintf("socket,path=%v,id=snapshot-doorbell", escapeQemuOpt(sockPath)),
 		"-device", "ivshmem-doorbell,master=on,vectors=1,chardev=snapshot-doorbell",
 		"-device", "ivshmem-plain,master=on,memdev=snapshot-shmem",
 		"-object", fmt.Sprintf("memory-backend-file,size=%v,share=on,discard-data=on,id=snapshot-shmem,mem-path=%v",
