@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -197,7 +198,16 @@ func (st *State) internCalls(calls map[string]struct{}) []uint32 {
 	return ids
 }
 
+var managerNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-_.]{0,100}$`)
+
+func IsValidManagerName(name string) bool {
+	return managerNameRe.MatchString(name)
+}
+
 func (st *State) createManager(name string) (*Manager, error) {
+	if !IsValidManagerName(name) {
+		return nil, fmt.Errorf("invalid manager name %q", name)
+	}
 	dir := filepath.Join(st.dir, "manager", name)
 	osutil.MkdirAll(dir)
 	mgr := &Manager{

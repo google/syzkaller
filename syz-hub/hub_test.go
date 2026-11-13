@@ -92,6 +92,34 @@ func TestAuth(t *testing.T) {
 			result:  "",
 			ok:      false,
 		},
+		{
+			client:  "foo",
+			key:     "1234",
+			manager: "foo/bar",
+			result:  "",
+			ok:      false,
+		},
+		{
+			client:  "foo",
+			key:     "1234",
+			manager: `foo\bar`,
+			result:  "",
+			ok:      false,
+		},
+		{
+			client:  "foo",
+			key:     "1234",
+			manager: "foo/../../tmp/pwn",
+			result:  "",
+			ok:      false,
+		},
+		{
+			client:  "foo",
+			key:     "1234",
+			manager: "foo-5.15_kasan",
+			result:  "foo-5.15_kasan",
+			ok:      true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%q/%q/%q", test.client, test.key, test.manager), func(t *testing.T) {

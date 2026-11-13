@@ -94,6 +94,24 @@ func TestBasic(t *testing.T) {
 	st.Sync("foo", nil, nil)
 }
 
+func TestInvalidManagerName(t *testing.T) {
+	st := MakeTestState(t)
+	for _, name := range []string{
+		"",
+		".",
+		"..",
+		".hidden",
+		"-dash",
+		"foo/bar",
+		`foo\bar`,
+		"foo/../../escape",
+		"../escape",
+		strings.Repeat("a", 102),
+	} {
+		assert.Error(t, st.state.Connect(name, "", "domain", true, []string{"open"}, nil), "name=%q", name)
+	}
+}
+
 func TestRepro(t *testing.T) {
 	st := MakeTestState(t)
 
