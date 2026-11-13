@@ -196,5 +196,9 @@ func (hub *Hub) checkManager(client, key, manager string) (string, error) {
 		log.Logf(0, "manager %v does not have client prefix %v", manager, client)
 		return "", fmt.Errorf("unauthorized manager")
 	}
+	if !state.IsValidManagerName(manager) {
+		log.Logf(0, "manager %v has bad name", manager)
+		return "", fmt.Errorf("unauthorized manager")
+	}
 	return manager, nil
 }
