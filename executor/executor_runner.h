@@ -48,11 +48,8 @@ class ProcIDPool
 public:
 	ProcIDPool(int num_procs)
 	{
-		// Theoretically we have 32 procs (prog.MaxPids), but there are some limitations in descriptions
-		// that make them work well only for up to 10 procs. For example, we form /dev/loopN
-		// device name using proc['0', 1, int8]. When these limitations are fixed,
-		// we can use all 32 here (prog.MaxPids)
-		constexpr int kNumGoodProcs = 10;
+		// Make all executor process IDs available to per-process resource descriptions.
+		constexpr int kNumGoodProcs = 32;
 		for (int i = 0; i < std::max(num_procs, kNumGoodProcs); i++)
 			ids_.push_back(i);
 		mask_ = 0;

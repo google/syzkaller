@@ -819,12 +819,14 @@ var typeArgStringFlags = &typeArg{
 var typeFmt = &typeDesc{
 	Names:        []string{"fmt"},
 	CanBeTypedef: true,
+	OptArgs:      1,
 	CantBeOpt:    true,
 	CantBeOut:    true,
 	CantHaveOut:  true,
 	Args: []namedArg{
 		{Name: "format", Type: typeFmtFormat},
 		{Name: "value", Type: typeArgType, IsArg: true},
+		{Name: "size", Type: typeArgFmtSize},
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		desc, _, _ := comp.getArgsBase(args[1], true)
@@ -835,6 +837,17 @@ var typeFmt = &typeDesc{
 			return
 		}
 	},
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		if len(args) > 2 {
+			if args[0].Ident != "dec" && args[0].Ident != "dec0" {
+				comp.error(args[2].Pos, "size is only supported for decimal fmt")
+			}
+			desc, _, _ := comp.getArgsBase(args[1], true)
+			if desc == typeResource {
+				comp.error(args[2].Pos, "custom fmt size can't be used with a resource")
+			}
+		}
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		var format prog.BinaryFormat
 		var size uint64
@@ -842,6 +855,16 @@ var typeFmt = &typeDesc{
 		case "dec":
 			format = prog.FormatStrDec
 			size = 20
+			if len(args) > 2 {
+				format = prog.FormatStrDecNoPad
+				size = args[2].Value
+			}
+		case "dec0":
+			format = prog.FormatStrDec
+			size = 20
+			if len(args) > 2 {
+				size = args[2].Value
+			}
 		case "hex":
 			format = prog.FormatStrHex
 			size = 18
@@ -850,6 +873,11 @@ var typeFmt = &typeDesc{
 			size = 23
 		}
 		typ := comp.genType(args[1], comp.ptrSize)
+		if len(args) > 2 {
+			if max, ok := fmtMaxValue(typ); ok && len(strconv.FormatUint(max, 10)) > int(size) {
+				comp.error(args[2].Pos, "fmt size %v is too small for values up to %v", size, max)
+			}
+		}
 		switch t := typ.(type) {
 		case *prog.ResourceType:
 			t.ArgFormat = format
@@ -884,9 +912,50 @@ var typeFmt = &typeDesc{
 	},
 }
 
+func fmtMaxValue(typ prog.Type) (uint64, bool) {
+	switch t := typ.(type) {
+	case *prog.ConstType:
+		return t.Val, true
+	case *prog.IntType:
+		if t.Kind == prog.IntRange {
+			return t.RangeEnd, true
+		}
+		if t.Size() >= 8 {
+			return ^uint64(0), true
+		}
+		return uint64(1)<<(t.Size()*8) - 1, true
+	case *prog.LenType:
+		// Formatted lengths can be mutated across the full uint64 range.
+		return ^uint64(0), true
+	case *prog.FlagsType:
+		var max uint64
+		for _, value := range t.Vals {
+			if t.BitMask {
+				max |= value
+			} else if value > max {
+				max = value
+			}
+		}
+		return max, true
+	case *prog.ProcType:
+		return t.ValuesStart + (prog.MaxPids-1)*t.ValuesPerProc, true
+	default:
+		return 0, false
+	}
+}
+
 var typeFmtFormat = &typeArg{
-	Names: []string{"dec", "hex", "oct"},
+	Names: []string{"dec", "dec0", "hex", "oct"},
 	Kind:  kindIdent,
+}
+
+var typeArgFmtSize = &typeArg{
+	Kind: kindInt,
+	CheckConsts: func(comp *compiler, t *ast.Type) {
+		if t.Value < 1 || t.Value > 20 {
+			comp.error(t.Pos, "bad fmt size %v, expect 1-20", t.Value)
+		}
+	},
 }
 
 // typeCompressedImage is used for compressed disk images.

@@ -50,9 +50,14 @@ rest of the type-options are type-specific:
 	a pattern string in quotes (syntax: https://golang.org/pkg/path/filepath/#Match)
 	(e.g. "/sys/" or "/sys/**/*"),
 	or include exclude glob too (e.g. "/sys/**/*:-/sys/power/state")
-"fmt": a string representation of an integer (not zero-terminated), type-options:
-	format (one of "dec", "hex", "oct") and the value (a resource, int, flags or proc)
-	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
+"fmt": a formatted integer, type-options:
+	format (one of "dec", "dec0", "hex", "oct"), the value (a resource, int, flags or proc),
+	and an optional decimal field size from 1 to 20
+	custom sizes are supported for non-resource values only
+	without a size, the existing fixed-width formats are used
+	"fmt[dec, value, size]" writes decimal digits without leading zeros and NUL-pads the field
+	"fmt[dec0, value, size]" writes decimal digits padded with leading zeros
+	the defaults are "%020llu", "0x%016llx" and "%023llo" for dec, hex and oct
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
 "bytesize": similar to "len", but always denotes the size in bytes, type-options:
