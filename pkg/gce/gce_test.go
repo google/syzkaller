@@ -25,8 +25,16 @@ func TestZoneToRegion(t *testing.T) {
 }
 
 func TestDiskSizeGB(t *testing.T) {
+	assert.Equal(t, 10, diskSizeGB("c4-standard-2"))
 	assert.Equal(t, 10, diskSizeGB("c4a-standard-2"))
+	assert.Equal(t, 10, diskSizeGB("c4d-standard-2"))
+	assert.Equal(t, 10, diskSizeGB("n4-standard-2"))
+	assert.Equal(t, 10, diskSizeGB("n4a-standard-2"))
+	assert.Equal(t, 10, diskSizeGB("n4d-standard-2"))
+	assert.Equal(t, 0, diskSizeGB("c3-standard-4"))
 	assert.Equal(t, 0, diskSizeGB("e2-standard-2"))
+	assert.Equal(t, 0, diskSizeGB("n2-standard-2"))
+	assert.Equal(t, 0, diskSizeGB("n2d-standard-2"))
 }
 
 func TestLastActiveLabelValue(t *testing.T) {
