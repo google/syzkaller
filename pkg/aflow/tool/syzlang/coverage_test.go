@@ -173,6 +173,32 @@ void foo(void) {
 	require.Contains(t, res.Snippets[1], "nonexistent_function: [No coverage found or function does not exist]")
 }
 
+func TestFileCoverageSymlinkEscape(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+
+	outerDir := t.TempDir()
+	secretFile := filepath.Join(outerDir, "secret.c")
+	require.NoError(t, os.WriteFile(secretFile, []byte("SECRET_OUTSIDE_REPO\n"), 0644))
+	kernelSrc := filepath.Join(outerDir, "linux")
+	require.NoError(t, osutil.MkdirAll(kernelSrc))
+	require.NoError(t, os.Symlink(secretFile, filepath.Join(kernelSrc, "escape.c")))
+	require.NoError(t, os.Symlink(outerDir, filepath.Join(kernelSrc, "escapedir")))
+
+	for i, file := range []string{"escape.c", "escapedir/secret.c"} {
+		_, cachedID, err := aflow.CacheObject(ctx, "repro", fmt.Sprintf("symlink-escape-%v", i),
+			func() (map[string]any, error) {
+				return map[string]any{"Coverage": [][]symbolizer.Frame{{{File: file, Func: "foo", Line: 1}}}}, nil
+			})
+		require.NoError(t, err)
+		res, err := getFileCoverage(ctx, reproduceState{KernelSrc: kernelSrc}, FileCoverageArgs{
+			ExecutionCachedID: cachedID,
+			Filename:          file,
+		})
+		require.IsType(t, aflow.BadCallError(""), err, "file %v", file)
+		require.Empty(t, res.Snippets, "file %v", file)
+	}
+}
+
 func TestExecutionTrace(t *testing.T) {
 	ctx := aflow.NewTestContext(t)
 

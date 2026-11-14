@@ -6,7 +6,6 @@ package syzlang
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
@@ -200,7 +200,9 @@ func getFileCoverage(ctx *aflow.Context, state reproduceState, args FileCoverage
 		return FileCoverageResult{}, aflow.BadCallError("no coverage found for file: %v", args.Filename)
 	}
 
-	srcBytes, err := os.ReadFile(filepath.Join(state.KernelSrc, args.Filename))
+	// The kernel dir is shared with the sandboxed kernel build, so it may contain
+	// symlinks pointing outside of it or FIFOs.
+	srcBytes, err := osutil.ReadFileInRoot(state.KernelSrc, args.Filename)
 	if err != nil {
 		return FileCoverageResult{}, aflow.BadCallError("failed to read source file: %v", err)
 	}
