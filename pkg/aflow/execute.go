@@ -253,6 +253,11 @@ func (ctx *Context) ReplaceBlobs(content string) string {
 	return ctx.blobs.ReplaceBlobs(content)
 }
 
+// RegisterBlob registers an arbitrary data blob and returns its placeholder.
+func (ctx *Context) RegisterBlob(blob string) string {
+	return ctx.blobs.RegisterBlob(blob)
+}
+
 // RestoreBlobs restores all placeholders in content back to their original blobs.
 func (ctx *Context) RestoreBlobs(content string) string {
 	return ctx.blobs.RestoreBlobs(content)
