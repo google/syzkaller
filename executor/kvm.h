@@ -60,8 +60,11 @@
 // Location of the SYZOS guest code. Name shared with ARM64 SYZOS.
 #define SYZOS_ADDR_EXECUTOR_CODE 0x54000
 #define X86_SYZOS_ADDR_SCRATCH_CODE 0x58000
+// L1 stacks, one page per vCPU (KVM_MAX_VCPU pages). Each vCPU starts with RSP 0x80 bytes below
+// the top of its page.
 #define X86_SYZOS_ADDR_STACK_BOTTOM 0x60000
-#define X86_SYZOS_ADDR_STACK0 0x60f80
+#define X86_SYZOS_ADDR_STACK0 (X86_SYZOS_ADDR_STACK_BOTTOM + 0xf80)
+#define X86_SYZOS_ADDR_VCPU_STACK(cpu) (X86_SYZOS_ADDR_STACK0 + (cpu) * KVM_PAGE_SIZE)
 
 // Base address for all per-L1-VCPU regions.
 #define X86_SYZOS_PER_VCPU_REGIONS_BASE 0x400000

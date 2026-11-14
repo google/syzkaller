@@ -227,8 +227,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {SYZOS_ADDR_EXECUTOR_CODE, 4, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_EXECUTOR_CODE},
     // Scratch memory for code generated at runtime.
     {X86_SYZOS_ADDR_SCRATCH_CODE, 1, 0},
-    // CPU stack.
-    {X86_SYZOS_ADDR_STACK_BOTTOM, 1, 0},
+    // CPU stacks, one page per vCPU.
+    {X86_SYZOS_ADDR_STACK_BOTTOM, KVM_MAX_VCPU, 0},
     // Per-VCPU regions for L2 VMs.
     {X86_SYZOS_PER_VCPU_REGIONS_BASE, (KVM_MAX_VCPU * X86_SYZOS_L1_VCPU_REGION_SIZE) / KVM_PAGE_SIZE, 0},
     // IOAPIC memory.
@@ -515,6 +515,8 @@ static int setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool h
 
 	// Set the critical RSP0 field to the L1 guest's main stack.
 	// RSP0 is at offset +4 bytes in a 64-bit TSS.
+	// The TSS is shared by all vCPUs, so this is vCPU 0's stack. RSP0 is only used on a privilege
+	// level change, and SYZOS always runs at CPL0, so other vCPUs never switch to it.
 	*(volatile uint64*)(l1_tss + 4) = X86_SYZOS_ADDR_STACK0;
 
 	setup_pg_table(vm);
@@ -1146,7 +1148,9 @@ static int reset_cpu_regs(int cpufd, uint64 rip, uint64 cpu_id)
 	// RFLAGS.1 must be 1, RFLAGS.IF enables interrupts.
 	regs.rflags |= RFLAGS_1_BIT | RFLAGS_IF_BIT;
 	regs.rip = rip;
-	regs.rsp = X86_SYZOS_ADDR_STACK0;
+	// Every vCPU needs its own stack: a vCPU that exits to the host stays suspended in the middle of
+	// guest_main(), and another vCPU running in the meantime must not overwrite its stack frames.
+	regs.rsp = X86_SYZOS_ADDR_VCPU_STACK(cpu_id);
 	regs.rdi = cpu_id;
 	return ioctl(cpufd, KVM_SET_REGS, &regs) ? -1 : 0;
 }
