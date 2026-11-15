@@ -47,9 +47,10 @@ function onShowFileContent(url) {
     $("#file-content-prev").html($("#file-content-curr").html());
     $("#file-content-curr").html(response);
 
-    $("#file-details-prev").html($("#file-details-curr").html());
+    $("#file-details-prev").text($("#file-details-curr").text());
     // It looks hacky but costs nothing. Let's show all the url parameters as a source description.
+    // The parameters come from the page url, so they must not be interpreted as html.
     details = url.split("?")[1].split("&");
-    $("#file-details-curr").html("Source information:\n" + details.join("\n"));
+    $("#file-details-curr").text("Source information:\n" + details.join("\n"));
   });
 }
