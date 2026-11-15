@@ -41,19 +41,30 @@ func registerMCPTool[State, Args, Results any](t *funcTool[State, Args, Results]
 		OutputSchema: mustSchemaFor[Results](),
 	}
 	handler := func(ctx *Context, args map[string]any) (*mcp.CallToolResult, error) {
-		res, err := t.execute(ctx, args)
-		reply := &mcp.CallToolResult{
-			StructuredContent: res,
-		}
-		if err != nil {
-			if callErr := new(badCallError); !errors.As(err, &callErr) {
-				return nil, err
-			}
-			reply.SetError(err)
-		}
-		return reply, nil
+		return mcpToolReply(t.execute(ctx, args))
 	}
 	registerMCP(tool, handler)
+}
+
+// mcpToolReply builds the MCP reply for a tool handler. StructuredContent is set
+// only on a successful call. On a badCallError the structured result carries
+// nothing useful: a nil result map boxed in the interface field would marshal as
+// "structuredContent": null (which clients validating the result reject, e.g.
+// Claude Code, dropping the error text with it), and the zero-valued map that
+// execute returns when the tool Func fails is no better. The model should see
+// only the error, as the native agentSession.callTools path already does. A
+// non-badCallError is returned to the caller unchanged, with no reply.
+func mcpToolReply(res map[string]any, err error) (*mcp.CallToolResult, error) {
+	reply := &mcp.CallToolResult{}
+	if err != nil {
+		if _, ok := errors.AsType[*badCallError](err); !ok {
+			return nil, err
+		}
+		reply.SetError(err)
+	} else {
+		reply.StructuredContent = res
+	}
+	return reply, nil
 }
 
 func registerMCPAction[Args, Results any](a *funcAction[Args, Results]) {
