@@ -84,7 +84,9 @@ jobs:
 
   dashboard:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+    container:
+      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+      options: --cap-add=SYS_ADMIN
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -166,7 +168,9 @@ jobs:
 
   race_dashboard:
     runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+    container:
+      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+      options: --cap-add=SYS_ADMIN
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
