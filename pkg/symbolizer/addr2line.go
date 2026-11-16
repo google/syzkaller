@@ -57,6 +57,9 @@ func (s *addr2Line) getSubprocess(bin string) (*subprocess, error) {
 		return nil, err
 	}
 	cmd := osutil.Command(addr2line, "-afi", "-e", bin)
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
+		return nil, err
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
