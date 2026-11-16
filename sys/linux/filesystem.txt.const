@@ -93,4 +93,5 @@ __NR_mount = 21, amd64:165, arm64:loong64:riscv64:40, mips64le:5160
 __NR_mount_setattr = 442, mips64le:5442
 __NR_move_mount = 429, mips64le:5429
 __NR_open_tree = 428, mips64le:5428
+__NR_open_tree_attr = 467, mips64le:5467
 __NR_umount2 = 52, amd64:166, arm64:loong64:riscv64:39, mips64le:5161
