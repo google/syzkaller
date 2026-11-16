@@ -1,0 +1,25 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: syz-hub
+namePrefix: prod-
+
+resources:
+  - ../../common
+
+images:
+  - name: gcr.io/syzkaller/syz-hub
+    newName: ${HUB_IMAGE_NAME}
+    newTag: ${HUB_IMAGE_TAG}
+
+patches:
+  - target:
+      kind: Service
+      name: syz-hub
+    patch: |-
+      - op: add
+        path: /spec/loadBalancerIP
+        value: "${HUB_LOAD_BALANCER_IP}"
