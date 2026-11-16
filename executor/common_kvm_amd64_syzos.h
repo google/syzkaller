@@ -2143,8 +2143,8 @@ guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
 		event_inj |= (1ULL << 31); // V bit
 	event_inj |= (error_code << 32);
 
-	// Write to VMCB Offset 0x60 (EVENTINJ)
-	vmcb_write64(vmcb_addr, 0x60, event_inj);
+	// EVENTINJ is at VMCB offset 0xa8, the error code (EVENTINJ_ERR) is in the upper 32 bits.
+	vmcb_write64(vmcb_addr, VMCB_CTRL_EVENT_INJ, event_inj);
 }
 
 GUEST_CODE static noinline void

@@ -459,6 +459,7 @@
 #define VMCB_CTRL_NP_ENABLE 0x090
 #define VMCB_CTRL_NPT_ENABLE_BIT 0
 
+#define VMCB_CTRL_EVENT_INJ 0x0a8
 #define VMCB_CTRL_N_CR3 0x0b0
 
 // Guest State Area (starts at 0x400)
