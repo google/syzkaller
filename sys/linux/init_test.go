@@ -215,9 +215,9 @@ openat(r0, &(0x7f0000000080)='./fi\x00', 0x1, 0x0)
 			Out: `open_tree(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1)`,
 		},
 		{
-			In: `open_tree_attr$auto(0xffffffffffffff9c, ` +
+			In: `open_tree_attr(0xffffffffffffff9c, ` +
 				`&(0x7f0000000040)='./sys/bus/pci/drivers/e1000/bind\x00', 0x1, 0x0, 0x0)`,
-			Out: `open_tree_attr$auto(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1, 0x0, 0x0)`,
+			Out: `open_tree_attr(0xffffffffffffff9c, &(0x7f0000000040)='./file0\x00', 0x1, 0x0, 0x0)`,
 		},
 		{
 			In: `name_to_handle_at(0xffffffffffffff9c, ` +
