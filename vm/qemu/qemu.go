@@ -104,7 +104,7 @@ type instance struct {
 	workdir    string
 	vmimpl.SSHOptions
 	timeouts    targets.Timeouts
-	monport     int
+	monSock     string
 	forwardPort int
 	mon         net.Conn
 	monEnc      *json.Encoder
@@ -465,7 +465,10 @@ func (inst *instance) Close() error {
 }
 
 func (inst *instance) boot() error {
-	inst.monport = vmimpl.UnusedTCPPort()
+	inst.monSock = unixSockPath(inst.workdir, "qmp.sock")
+	if err := os.Remove(inst.monSock); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	args, err := inst.buildQemuArgs()
 	if err != nil {
 		return err
@@ -530,7 +533,7 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
-		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server=on,wait=off,host=localhost,port=%v", inst.monport),
+		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server=on,wait=off,path=%v", escapeQemuOpt(inst.monSock)),
 		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
@@ -620,6 +623,27 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 		args = append(args, snapshotArgs...)
 	}
 	return args, nil
+}
+
+// UNIX domain socket paths are limited to ~104-108 characters.
+// Only fall back to a relative path when the absolute path approaches the limit.
+const maxUnixSockPath = 100
+
+func unixSockPath(workdir, name string) string {
+	sockPath := filepath.Join(workdir, name)
+	if len(sockPath) <= maxUnixSockPath {
+		return sockPath
+	}
+	if wd, err := os.Getwd(); err == nil {
+		if rel, err := filepath.Rel(wd, sockPath); err == nil && len(rel) < len(sockPath) {
+			return rel
+		}
+	}
+	return sockPath
+}
+
+func escapeQemuOpt(val string) string {
+	return strings.ReplaceAll(val, ",", ",,")
 }
 
 // "vfio-pci,host=BN:DN.{{FN%8}},addr=0x11".
