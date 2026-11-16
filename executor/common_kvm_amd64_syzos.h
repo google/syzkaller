@@ -181,9 +181,51 @@ typedef enum {
 	CPU_VENDOR_AMD,
 } cpu_vendor_id;
 
+// Exit code reported for a CPU exception that SYZOS cannot recover from, with the vector in the
+// low byte.
+#define UEXIT_EXCEPTION(vector) (0xe2ec0000ull | (vector))
+
 __attribute__((naked)) GUEST_CODE static void dummy_null_handler()
 {
 	asm("iretq");
+}
+
+// Size of each entry point in exception_stubs.
+#define EXCEPTION_STUB_SIZE 16
+
+// Entry points for CPU exceptions (vectors 0-31) that cannot be resumed with a plain iretq: for
+// faults iretq would re-execute the faulting instruction forever, and for exceptions that push an
+// error code it would return with a corrupted stack frame. Each EXCEPTION_STUB_SIZE-byte entry
+// pushes its vector, so the IDT entry for vector N points to exception_stubs + N *
+// EXCEPTION_STUB_SIZE. The common part reports UEXIT_EXCEPTION(vector) to the host every time the
+// vCPU is resumed, like guest_fatal() does, and never returns. The error code, if any, is ignored.
+__attribute__((naked, aligned(EXCEPTION_STUB_SIZE))) GUEST_CODE static void exception_stubs()
+{
+	asm volatile(R"(
+	    .irp vector, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+	    .p2align 4
+	    pushq $\vector
+	    jmp 1f
+	    .endr
+	1:
+	    popq %rbx
+	    movl $0xe2ec0000, %eax
+	    orq %rax, %rbx
+	2:
+	    movq %rbx, %rdi
+	    call guest_uexit
+	    jmp 2b
+	)");
+}
+
+// Default IDT handler for a vector. #DB, NMI, #BP, #OF and external interrupts can be resumed with
+// iretq, all other CPU exceptions are fatal.
+static always_inline uint64 syzos_default_idt_handler(uint64 vector)
+{
+	volatile uint64 v = vector;
+	if (v >= 32 || v == 1 || v == 2 || v == 3 || v == 4)
+		return executor_fn_guest_addr(dummy_null_handler);
+	return executor_fn_guest_addr(exception_stubs) + v * EXCEPTION_STUB_SIZE;
 }
 
 __attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
@@ -345,6 +387,15 @@ guest_uexit(uint64 exit_code)
 	// This allows the L1 hypervisor to reliably read RAX during an EPT violation.
 	volatile uint64* ptr = (volatile uint64*)X86_SYZOS_ADDR_UEXIT;
 	asm volatile("movq %0, (%1)" ::"a"(exit_code), "r"(ptr) : "memory");
+}
+
+// Report an unrecoverable error to the host and never return. The host may resume the vCPU after
+// guest_uexit(), so report the same exit code again every time instead of continuing with broken
+// state.
+GUEST_CODE static noinline __attribute__((noreturn)) void guest_fatal(uint64 exit_code)
+{
+	for (;;)
+		guest_uexit(exit_code);
 }
 
 GUEST_CODE static noinline void guest_handle_cpuid(uint32 eax, uint32 ecx)
@@ -599,7 +650,7 @@ GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* 
 {
 	uint8 vector = (uint8)cmd->args[0];
 	uint64 type = cmd->args[1];
-	volatile uint64 handler_addr = 0;
+	volatile uint64 handler_addr = syzos_default_idt_handler(vector);
 	if (type == 1)
 		handler_addr = executor_fn_guest_addr(dummy_null_handler);
 	else if (type == 2)
@@ -846,7 +897,7 @@ GUEST_CODE static uint64 guest_alloc_page()
 	uint64 offset = __sync_fetch_and_add(&globals->alloc_offset, KVM_PAGE_SIZE);
 
 	if (offset >= globals->total_size)
-		guest_uexit(UEXIT_ASSERT);
+		guest_fatal(UEXIT_ASSERT);
 
 	uint64 ptr = X86_SYZOS_ADDR_UNUSED + offset;
 	guest_memset((void*)ptr, 0, KVM_PAGE_SIZE);

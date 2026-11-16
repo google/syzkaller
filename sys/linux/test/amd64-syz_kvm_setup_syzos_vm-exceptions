@@ -1,0 +1,45 @@
+#
+# requires: arch=amd64 -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Four vCPUs execute code that raises a CPU exception:
+# - vCPU 0: ud2 -> #UD (vector 6, no error code).
+# - vCPU 1: movabs $0x8000000000000000, %rax; mov (%rax), %rax -> #GP (vector 13, error code).
+# - vCPU 2: movabs $0x10000000000, %rax; mov (%rax), %rax -> #PF (vector 14, error code), the
+#   address is not mapped.
+# - vCPU 3: int3 -> #BP (vector 3), which is resumable, followed by uexit(0xbbbb).
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@code={AUTO, AUTO, {"0f0b", 0xc3}}, @uexit={AUTO, AUTO, 0xaaaa}], AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+r6 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@code={AUTO, AUTO, {"48b80000000000000080488b00", 0xc3}}, @uexit={AUTO, AUTO, 0xaaaa}], AUTO})
+r7 = mmap$KVM_VCPU(&(0x7f000000a000/0x1000)=nil, r4, 0x3, 0x1, r6, 0x0)
+r8 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@code={AUTO, AUTO, {"48b80000000000010000488b00", 0xc3}}, @uexit={AUTO, AUTO, 0xaaaa}], AUTO})
+r9 = mmap$KVM_VCPU(&(0x7f000000b000/0x1000)=nil, r4, 0x3, 0x1, r8, 0x0)
+r10 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@code={AUTO, AUTO, {"cc", 0xc3}}, @uexit={AUTO, AUTO, 0xbbbb}], AUTO})
+r11 = mmap$KVM_VCPU(&(0x7f000000c000/0x1000)=nil, r4, 0x3, 0x1, r10, 0x0)
+
+# Unrecoverable exceptions are reported as UEXIT_EXCEPTION(vector) = 0xe2ec0000 | vector.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2ec0006)
+ioctl$KVM_RUN(r6, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r6, r7, 0xe2ec000d)
+ioctl$KVM_RUN(r8, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r8, r9, 0xe2ec000e)
+
+# A vCPU that hit such an exception never returns to the faulting code: resuming it reports the
+# same exception again instead of reaching uexit(0xaaaa).
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2ec0006)
+
+# #BP is still resumed with iretq, so vCPU 3 continues with the next command.
+#
+ioctl$KVM_RUN(r10, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r10, r11, 0xbbbb)
+ioctl$KVM_RUN(r10, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r10, r11, 0xffffffffffffffff)
