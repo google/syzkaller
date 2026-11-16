@@ -1,0 +1,8 @@
+{
+	"http": ":50000",
+	"rpc": ":50001",
+	"workdir": "/workdir",
+	"clients": [
+		{"name": "local", "key": "local-dev-key"}
+	]
+}
