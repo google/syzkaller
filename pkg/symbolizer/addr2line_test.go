@@ -7,9 +7,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -215,4 +220,19 @@ fs/devpts/inode.c:588 (discriminator 3)
 	if want := len(lots) * len(addresses[0].frames); want != len(frames) {
 		t.Fatalf("want %v frames, got %v", want, len(frames))
 	}
+}
+
+func TestSymbolizeSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	symb := Make(targets.Get(targets.Linux, targets.AMD64))
+	t.Cleanup(symb.Close)
+
+	_, err := symb.Symbolize("testdata/nm.test.out", 0x400507)
+	require.NoError(t, err)
+
+	secretBin := filepath.Join(osutil.SandboxTempDir(t), "secret.bin")
+	require.NoError(t, osutil.CopyFile("testdata/nm.test.out", secretBin))
+	require.NoError(t, os.Chmod(secretBin, 0600))
+	_, err = symb.Symbolize(secretBin, 0x400507)
+	require.Error(t, err)
 }

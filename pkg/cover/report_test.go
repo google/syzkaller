@@ -308,7 +308,7 @@ type reports struct {
 }
 
 func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports, error) {
-	dir := t.TempDir()
+	dir := osutil.SandboxTempDir(t)
 	bin := buildTestBinary(t, target, test, dir)
 	cfg := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
@@ -543,7 +543,7 @@ int main() {
 		Source:    testSource,
 	}
 
-	dir := t.TempDir()
+	dir := osutil.SandboxTempDir(t)
 	bin := buildTestBinary(t, target, test, dir)
 	cfg := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
