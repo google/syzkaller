@@ -285,8 +285,8 @@ static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
 	sregs->idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
 	volatile struct idt_entry_64* idt =
 	    (volatile struct idt_entry_64*)(uint64)gpa_to_hva(vm, sregs->idt.base);
-	uint64 handler_addr = executor_fn_guest_addr(dummy_null_handler);
 	for (int i = 0; i < X86_NUM_IDT_ENTRIES; i++) {
+		uint64 handler_addr = syzos_default_idt_handler(i);
 		idt[i].offset_low = (uint16)(handler_addr & 0xFFFF);
 		idt[i].selector = X86_SYZOS_SEL_CODE;
 		idt[i].ist = 0;
