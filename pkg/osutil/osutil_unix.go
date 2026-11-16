@@ -32,7 +32,7 @@ func ProcessTempDir(where string) (string, error) {
 	for i := 0; i < 1000; {
 		path := filepath.Join(where, fmt.Sprintf("instance-%v", i))
 		pidfile := filepath.Join(path, ".pid")
-		err := os.Mkdir(path, DefaultDirPerm)
+		err := os.Mkdir(path, 0700)
 		if os.IsExist(err) {
 			// Try to clean up.
 			if cleanupTempDir(path, pidfile) {

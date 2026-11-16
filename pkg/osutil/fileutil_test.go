@@ -5,10 +5,14 @@ package osutil
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProcessTempDir(t *testing.T) {
@@ -20,9 +24,10 @@ func TestProcessTempDir(t *testing.T) {
 			var dirs []string
 			for range P / 2 {
 				dir, err := ProcessTempDir(tmp)
-				if err != nil {
-					t.Fatalf("failed to create process temp dir")
-				}
+				require.NoError(t, err)
+				info, err := os.Stat(dir)
+				require.NoError(t, err)
+				assert.Equal(t, os.FileMode(0700), info.Mode().Perm())
 				dirs = append(dirs, dir)
 			}
 			for _, dir := range dirs {
