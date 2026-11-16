@@ -95,7 +95,7 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	if output, err := git.Run("fetch", "--force"); err != nil {
+	if output, err := git.runWithNet("fetch", "--force"); err != nil {
 		if git.isNetworkError(output) {
 			// The clone operation will fail as well, so no sense to re-clone.
 			return nil, err
@@ -107,7 +107,7 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 	if _, err := git.Run("checkout", "origin/"+branch); err != nil {
 		return nil, err
 	}
-	if _, err := git.Run("submodule", "update", "--init"); err != nil {
+	if _, err := git.runWithNet("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.Commit(HEAD)
@@ -138,14 +138,14 @@ func (git *gitRepo) CheckoutBranch(repo, branch string) (*Commit, error) {
 	git.Run("remote", "rm", "origin")
 	git.Run("remote", "add", "origin", repo)
 	git.Run("remote", "add", repoHash, repo)
-	_, err := git.Run("fetch", "--force", repoHash, branch)
+	_, err := git.runWithNet("fetch", "--force", repoHash, branch)
 	if err != nil {
 		return nil, err
 	}
 	if _, err := git.Run("checkout", "FETCH_HEAD", "--force"); err != nil {
 		return nil, err
 	}
-	if _, err := git.Run("submodule", "update", "--init"); err != nil {
+	if _, err := git.runWithNet("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	// If the branch checkout had to be "forced" the directory may
@@ -174,7 +174,7 @@ func (git *gitRepo) FetchTags(repo string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	git.Run("remote", "add", repoHash, repo)
-	_, err := git.Run("fetch", "--force", "--tags", repoHash)
+	_, err := git.runWithNet("fetch", "--force", "--tags", repoHash)
 	return err
 }
 
@@ -195,7 +195,7 @@ func (git *gitRepo) fetchRemote(repo, commit string) error {
 		// This trick only works with full commit hashes.
 		fetchArgs = append(fetchArgs, commit)
 	}
-	_, err := git.Run(fetchArgs...)
+	_, err := git.runWithNet(fetchArgs...)
 	if err != nil {
 		var verbose *osutil.VerboseError
 		if errors.As(err, &verbose) &&
@@ -205,7 +205,7 @@ func (git *gitRepo) fetchRemote(repo, commit string) error {
 			// Try to fetch more, but this time prune tags, it should help.
 			// The --prune-tags option will remove all tags that are not present
 			// in this remote repo, so don't do it always. Only when necessary.
-			_, err = git.Run("fetch", "--force", "--tags", "--prune", "--prune-tags", repoHash)
+			_, err = git.runWithNet("fetch", "--force", "--tags", "--prune", "--prune-tags", repoHash)
 		}
 	}
 	return err
@@ -219,7 +219,7 @@ func (git *gitRepo) SwitchCommit(commit string) (*Commit, error) {
 	if _, err := git.Run("checkout", commit); err != nil {
 		return nil, err
 	}
-	if _, err := git.Run("submodule", "update", "--init"); err != nil {
+	if _, err := git.runWithNet("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.Commit(HEAD)
@@ -235,7 +235,7 @@ func (git *gitRepo) clone(repo, branch string) error {
 	if _, err := git.Run("remote", "add", "origin", repo); err != nil {
 		return err
 	}
-	if _, err := git.Run("fetch", "origin", branch); err != nil {
+	if _, err := git.runWithNet("fetch", "origin", branch); err != nil {
 		return err
 	}
 	return nil
@@ -606,7 +606,7 @@ func (git *gitRepo) cherryPick(commit string) error {
 func (git *gitRepo) PushCommit(repo, commit string) error {
 	tagName := "tag-" + commit // assign tag to guarantee remote persistence
 	git.Run("tag", tagName)    // ignore errors on re-tagging
-	if _, err := git.Run("push", repo, "tag", tagName); err != nil {
+	if _, err := git.runWithNet("push", repo, "tag", tagName); err != nil {
 		return fmt.Errorf("git push %s tag %s: %w", repo, tagName, err)
 	}
 	return nil
@@ -657,25 +657,37 @@ func SandboxedGit(dir string) Git {
 	}
 }
 
+func (git Git) runWithNet(args ...string) ([]byte, error) {
+	return git.runTimeout(3*time.Hour, false, args...)
+}
+
 func (git Git) Run(args ...string) ([]byte, error) {
 	return git.RunTimeout(3*time.Hour, args...)
 }
 
 func (git Git) RunTimeout(timeout time.Duration, args ...string) ([]byte, error) {
-	cmd, err := git.command(args...)
+	return git.runTimeout(timeout, true, args...)
+}
+
+func (git Git) runTimeout(timeout time.Duration, isolateNet bool, args ...string) ([]byte, error) {
+	cmd, err := git.buildCommand(osutil.Command, isolateNet, args...)
 	if err != nil {
 		return nil, err
 	}
 	return osutil.Run(timeout, cmd)
 }
 
-func (git Git) command(args ...string) (*exec.Cmd, error) {
-	args = slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
-	cmd := osutil.Command("git", args...)
+func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNet bool,
+	args ...string) (*exec.Cmd, error) {
+	fullArgs := slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
+	cmd := makeCmd("git", fullArgs...)
 	cmd.Dir = git.Dir
 	cmd.Env = git.Env
+	if cmd.Env == nil {
+		cmd.Env = filterEnv()
+	}
 	if git.Sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
+		if err := osutil.Sandbox(cmd, true, isolateNet); err != nil {
 			return nil, err
 		}
 	}
@@ -685,7 +697,7 @@ func (git Git) command(args ...string) (*exec.Cmd, error) {
 // Apply invokes git apply for a series of git patches.
 // It is different from Patch() in that it normally handles raw patch emails.
 func (git Git) Apply(patch []byte) error {
-	cmd, err := git.command("apply", "-")
+	cmd, err := git.buildCommand(osutil.Command, true, "apply", "-")
 	if err != nil {
 		return err
 	}
@@ -749,13 +761,11 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 	args = append(args, base)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	cmd := osutil.CommandContext(ctx, "git", args...)
-	cmd.Dir = git.Dir
-	cmd.Env = filterEnv()
-	if git.Sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
-			return nil, err
-		}
+	cmd, err := git.buildCommand(func(bin string, a ...string) *exec.Cmd {
+		return osutil.CommandContext(ctx, bin, a...)
+	}, true, args...)
+	if err != nil {
+		return nil, err
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

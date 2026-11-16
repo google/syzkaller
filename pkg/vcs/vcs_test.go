@@ -5,12 +5,15 @@ package vcs
 
 import (
 	"fmt"
+	"net"
 	"net/mail"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,6 +78,52 @@ func TestGitIgnoreFsmonitor(t *testing.T) {
 	_, err = SandboxedGit(dir).Run("fetch", "ext::sh -c touch% "+marker)
 	require.Error(t, err)
 	require.NoFileExists(t, marker)
+}
+
+func TestGitLocalNetworkIsolated(t *testing.T) {
+	osutil.RequireSandbox(t)
+	dir := osutil.SandboxTempDir(t)
+	repo := MakeTestRepo(t, dir)
+	c1 := repo.CommitChangeset("first", FileContent{File: "a.txt", Content: "1\n"})
+	c2 := repo.CommitChangeset("second", FileContent{File: "a.txt", Content: "2\n"})
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	var connected atomic.Bool
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if conn, err := ln.Accept(); err == nil {
+			connected.Store(true)
+			assert.NoError(t, conn.Close())
+		}
+	}()
+	t.Cleanup(func() {
+		require.NoError(t, ln.Close())
+		<-done
+	})
+
+	port := ln.Addr().(*net.TCPAddr).Port
+	extDiff := filepath.Join(dir, "extdiff.sh")
+	require.NoError(t, osutil.WriteExecFile(extDiff, []byte(
+		fmt.Sprintf("#!/usr/bin/env bash\nexec 3<>/dev/tcp/127.0.0.1/%d\n", port),
+	)))
+	require.NoError(t, osutil.SandboxChown(extDiff))
+
+	git := SandboxedGit(dir)
+	git.Env = append(git.Env, "GIT_EXTERNAL_DIFF="+extDiff)
+	_, err = git.Run("diff", c1.Hash, c2.Hash)
+	require.Error(t, err)
+	assert.False(t, connected.Load())
+
+	remoteURL := fmt.Sprintf("git://127.0.0.1:%d/repo", port)
+	_, err = SandboxedGit(dir).Run("fetch", remoteURL)
+	require.Error(t, err)
+	assert.False(t, connected.Load())
+
+	_, err = SandboxedGit(dir).runWithNet("fetch", remoteURL)
+	require.Error(t, err)
+	assert.True(t, connected.Load())
 }
 
 func TestCanonicalizeCommit(t *testing.T) {
