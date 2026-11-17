@@ -8,7 +8,12 @@ Date:   {{formatKernelTime $bisect.Commit.Date}}
     {{$bisect.Commit.Title}}
 {{else if $bisect.Commits}}Bisection is inconclusive: the {{if $bisect.Fix}}fix{{else}}first bad{{end}} commit could be any of:
 {{range $com := $bisect.Commits}}
-{{formatTagHash $com.Hash}} {{$com.Title}}{{end}}
+commit {{$com.Hash}}
+Author: {{$com.AuthorName}} <{{$com.Author}}>
+Date:   {{formatKernelTime $com.Date}}
+
+    {{$com.Title}}
+{{end -}}
 {{else}}Bisection is inconclusive: the issue happens on the {{if $bisect.Fix}}latest{{else}}oldest{{end}} tested release.
 {{end}}
 bisection log:  {{$bisect.LogLink}}

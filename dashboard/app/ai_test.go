@@ -2503,7 +2503,11 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 	page, err = c.GET(bugPageURL)
 	require.NoError(t, err)
 	assert.Contains(t, string(page), candidates)
-	assert.Regexp(t, `(?s)kernel: first candidate.*kernel: second candidate`, string(page))
+	assert.Regexp(t,
+		`(?s)commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.*`+
+			`candidate@kernel\.org.*kernel: first candidate.*`+
+			`commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.*kernel: second candidate`,
+		string(page))
 	assert.Contains(t, string(page), jobLink2)
 	c.checkBisectStatus(bug.Namespace, "inconclusive", "")
 	rep, err = c.aiClient.LoadBug(bugID)
@@ -2989,8 +2993,17 @@ the report
 	assert.Contains(t, body, `
 The issue was bisected by AI to candidate commits (most relevant first):
 
-aaaaaaaaaaaa kernel: first candidate
-bbbbbbbbbbbb kernel: second candidate
+commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Author: AI Author <ai-author@kernel.org>
+Date:   Wed Feb 2 04:05:06 2000 +0000
+
+    kernel: first candidate
+
+commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+Author: AI Author <ai-author@kernel.org>
+Date:   Wed Feb 2 04:05:06 2000 +0000
+
+    kernel: second candidate
 
 AI reasoning:   https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
 

@@ -387,6 +387,15 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{end}}
 {{end}}
 
+{{/* Single bisection commit, invoked with *dashapi.Commit */}}
+{{define "bisect_commit"}}
+		commit {{.Hash}}<br>
+		Author: {{.Author}}<br>
+		Date: {{formatKernelTime .Date}}<br>
+		<br>
+		&nbsp;&nbsp;{{link .Link .Title}}<br>
+{{end}}
+
 {{/* Bisection result, invoked with *uiJob */}}
 {{/* Show bisection results */}}
 {{define "bisect_results"}}
@@ -420,11 +429,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<b>({{link .LogLink $log}})</b> <span class="bad">{{print .Flags}}</span>:<br>
 		<span class="mono">
 		{{if .FixCandidate}}tree: {{link .KernelLink .KernelAlias}}<br>{{end}}
-		commit {{.Commit.Hash}}<br>
-		Author: {{.Commit.Author}}<br>
-		Date:   {{formatKernelTime .Commit.Date}}<br>
-		<br>
-		&nbsp;&nbsp;{{link .Commit.Link .Commit.Title}}<br>
+		{{template "bisect_commit" .Commit}}
 		</span><br>
 	{{else if .Commits}}
 		{{if .AIBisection}}
@@ -437,8 +442,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 		<b>({{link .LogLink $log}}):</b><br>
 		<span class="mono">
-		{{range $com := .Commits}}
-			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{link $com.Link $com.Title}}<br>
+		{{if .FixCandidate}}tree: {{link .KernelLink .KernelAlias}}<br>{{end}}
+		{{range $i, $com := .Commits}}
+			{{if $i}}<br>{{end}}
+			{{template "bisect_commit" $com}}
 		{{end}}
 		</span>
 	{{else}}
