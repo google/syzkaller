@@ -33,7 +33,12 @@ Date:   {{formatKernelTime .BisectCause.Commit.Date}}
 {{else if .BisectCause.Commits}}{{if .BisectCause.AI}}The issue was bisected by AI to candidate commits (most relevant first):
 {{- else}}Bisection is inconclusive: the first bad commit could be any of:{{end}}
 {{range $com := .BisectCause.Commits}}
-{{formatTagHash $com.Hash}} {{$com.Title}}{{end}}
+commit {{$com.Hash}}
+Author: {{$com.AuthorName}} <{{$com.Author}}>
+Date:   {{formatKernelTime $com.Date}}
+
+    {{$com.Title}}
+{{end -}}
 {{else}}Bisection is inconclusive: the issue happens on the oldest tested release.
 {{end}}
 {{if .BisectCause.AI}}AI reasoning:   {{else}}bisection log:  {{end}}{{.BisectCause.LogLink}}

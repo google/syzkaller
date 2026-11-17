@@ -502,8 +502,17 @@ func TestBisectCauseInconclusive(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Bisection is inconclusive: the first bad commit could be any of:
 
-111111111111 kernel: break build
-222222222222 kernel: now add a bug to the broken build
+commit 111111111111111111111111
+Author: Hacker Kernelov <hacker@kernel.org>
+Date:   Wed Feb 9 04:05:06 2000 +0000
+
+    kernel: break build
+
+commit 222222222222222222222222
+Author: Author Kernelov <author@kernel.org>
+Date:   Fri Feb 9 04:05:06 2001 +0000
+
+    kernel: now add a bug to the broken build
 
 bisection log:  %[2]v
 start commit:   111111111111 kernel_commit_title1
@@ -542,8 +551,17 @@ C reproducer:   %[5]v
 
 Bisection is inconclusive: the first bad commit could be any of:
 
-111111111111 kernel: break build
-222222222222 kernel: now add a bug to the broken build
+commit 111111111111111111111111
+Author: Hacker Kernelov <hacker@kernel.org>
+Date:   Wed Feb 9 04:05:06 2000 +0000
+
+    kernel: break build
+
+commit 222222222222222222222222
+Author: Author Kernelov <author@kernel.org>
+Date:   Fri Feb 9 04:05:06 2001 +0000
+
+    kernel: now add a bug to the broken build
 
 bisection log:  %[6]v
 
