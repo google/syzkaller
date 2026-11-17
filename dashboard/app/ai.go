@@ -2687,10 +2687,10 @@ func formatKCSANReproDescription(bugTitle, crashReport string, assessment *ai.As
 // Automatic AI cause bisection heuristics:
 // - Open bugs only, with no fixing commits.
 // - Must have a crash report (a reproducer is not required).
-// - Skip non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
+// - Skip KCSAN bugs, non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
 func canAutoBisectCause(bug *Bug, typ crash.Type) bool {
 	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
-		bug.HasReport && isKernelCrashBugTitle(bug.Title, typ)
+		bug.HasReport && !typ.IsKCSAN() && isKernelCrashBugTitle(bug.Title, typ)
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {

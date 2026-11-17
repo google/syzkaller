@@ -1912,8 +1912,11 @@ func TestWorkflowsForBugBisectCause(t *testing.T) {
 		{name: "commits", mod: func(b *Bug) { b.Commits = []string{"fix"} }},
 		// The title filter is shared with repro-c, see TestWorkflowsForBugReproC for the other titles.
 		{name: "SYZFAIL", mod: func(b *Bug) { b.Title = "SYZFAIL: something failed" }},
+		// KCSAN bugs are skipped for bisect-cause as well.
+		{name: "KCSAN data race", mod: func(b *Bug) { b.Title = "KCSAN: data-race in foo / bar" }},
+		{name: "KCSAN assert", mod: func(b *Bug) { b.Title = "KCSAN: assert: race in foo" }},
+		{name: "KCSAN unknown", mod: func(b *Bug) { b.Title = "KCSAN: unknown race in foo" }},
 		// These are skipped for repro-c only.
-		{name: "KCSAN", mod: func(b *Bug) { b.Title = "KCSAN: data-race in foo / bar" }, want: true},
 		{name: "INFO", mod: func(b *Bug) { b.Title = "INFO: task hung in foo" }, want: true},
 		{name: "hang", mod: func(b *Bug) { b.Title = "BUG: soft lockup in foo" }, want: true},
 	} {
@@ -1933,6 +1936,13 @@ func TestWorkflowsForBugBisectCause(t *testing.T) {
 	t.Run("manual overrides all", func(t *testing.T) {
 		b := &Bug{Namespace: "test2", Status: BugStatusFixed}
 		assert.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectCause])
+		kcsanBug := &Bug{
+			Namespace: "ains",
+			Title:     "KCSAN: data-race in foo / bar",
+			Status:    BugStatusOpen,
+			HasReport: true,
+		}
+		assert.True(t, workflowsForBug(c.ctx, kcsanBug, true)[ai.WorkflowBisectCause])
 	})
 }
 
@@ -3129,6 +3139,26 @@ func TestAIBisectCauseScheduling(t *testing.T) {
 	// A second retry would come 2 days after the second failure, if not for the cap.
 	c.advanceTime(49 * time.Hour)
 	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+
+	// KCSAN bugs are not automatically cause-bisected, even if assessed as harmful.
+	kcsanCrash := testCrash(build, 3)
+	kcsanCrash.Title = "KCSAN: data-race in foo / bar"
+	_, err := c.aiClient.ReportCrash(kcsanCrash)
+	require.NoError(t, err)
+	c.aiClient.pollEmailExtID()
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
+
+	assessResp := c.pollAIWorkflow(t, ai.WorkflowAssessmentKCSAN)
+	require.NotEmpty(t, assessResp.ID)
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: assessResp.ID,
+		Results: map[string]any{
+			"Benign":              false,
+			"FailureDetectableBy": ai.KCSANFailureDetectableByAny,
+			"Explanation":         "harmful race",
+		},
+	}))
+	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
 }
 
 func TestAIBisectCauseRateLimit(t *testing.T) {
@@ -3188,12 +3218,18 @@ func TestAIBisectCauseRateLimit(t *testing.T) {
 	c.advanceTime(30 * time.Minute)
 	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
 
+	// Create the assessment-security jobs of all the bugs above (the old ones and the new one),
+	// so that they don't get in the way below.
+	for range oldBugs + 1 {
+		require.Contains(t, poll(ai.WorkflowAssessmentSecurity), "assessment-security: KASAN")
+	}
+
 	// A pending job of a new bug is created even if the jobs of the remaining old bugs have to wait:
-	// here assessment-kcsan is created first, and bisect-cause stays pending.
-	reportCrash(oldBugs+1, "KCSAN: data-race in foo / bar")
-	require.Equal(t, "assessment-kcsan: KCSAN: data-race in foo / bar",
-		poll(ai.WorkflowAssessmentKCSAN, ai.WorkflowBisectCause))
-	require.Equal(t, "bisect-cause: KCSAN: data-race in foo / bar",
-		poll(ai.WorkflowAssessmentKCSAN, ai.WorkflowBisectCause))
-	require.Empty(t, poll(ai.WorkflowAssessmentKCSAN, ai.WorkflowBisectCause))
+	// here assessment-security is created first, and bisect-cause stays pending.
+	reportCrash(oldBugs+1, "KASAN: slab-use-after-free in new2")
+	require.Equal(t, "assessment-security: KASAN: slab-use-after-free in new2",
+		poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
+	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in new2",
+		poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
+	require.Empty(t, poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
 }
