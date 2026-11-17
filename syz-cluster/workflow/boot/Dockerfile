@@ -10,7 +10,7 @@ FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 # Regular setup (SMOKE_TEST=0)
 FROM debian:bookworm-slim AS setup-0
 RUN apt-get update && \
-    apt-get install -y qemu-system openssh-client
+    apt-get install -y qemu-system openssh-client bubblewrap socat
 
 # Smoke test setup (SMOKE_TEST=1)
 FROM debian:bookworm-slim AS setup-1
