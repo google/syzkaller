@@ -235,80 +235,40 @@ using `#syz fix: commit-title` commands.
 
 ## Bisection
 
-`syzbot` bisects bugs with reproducers to find commit that introduced the bug.
-`syzbot` starts with the commit on which the bug was discovered, ensures that it
-can reproduce the bug and then goes back release-by-release to find the first
-release where kernel does not crash. Once such release is found, `syzbot` starts
-bisection on that range. `syzbot` has limitation of how far back in time it can
-go (currently `v4.19`), going back in time is [very hard](/pkg/vcs/linux.go)
-because of incompatible compiler/linker/asm/perl/make/libc/etc, kernel
-build/boot breakages and large amounts of bugs.
-
-The predicate for bisection is binary (crash/doesn't crash), `syzbot` does not
-look at the exact crash and does not try to differentiate them. This is
-intentional because lots of bugs can manifest in different ways (sometimes 50+
-different ways). For each revision `syzbot` repeats testing 10 times and
-a single crash marks revision as bad (lots of bugs are due to races and are
-hard to trigger).
-
-During bisection `syzbot` uses different compilers depending on kernel revision
-(a single compiler can't build all revisions). These compilers are available
-[here](https://storage.googleapis.com/syzkaller/bisect_bin.tar.gz).
-Exact compiler used to test a particular revision is specified in the bisection
-log.
-
-Bisection is best-effort and may not find the right commit for multiple reasons,
-including:
-
-- hard to reproduce bugs that trigger with very low probability
-- bug being introduced before the tool that reliably detects it (LOCKDEP, KASAN,
-  FAULT_INJECTION, WARNING, etc);\
-  such bugs may be bisection to the addition/improvement of the tool
-- kernel build/boot errors that force skipping revisions
-- some kernel configs are [disabled](/pkg/vcs/linux.go) as bisection goes back
-  in time because they build/boot break release tags;\
-  bugs in these subsystems may be bisected to release tags
-- reproducers triggering multiple kernel bugs at once
-- unrelated kernel bugs that break even simple programs
-
-A single incorrect decision during bisection leads to an incorrect result,
-so please treat the results with understanding. You may consult the provided
-`bisection log` to see how/why `syzbot` has arrived to a particular commit.
-Suggestions and patches that improve bisection quality for common cases are
-[welcome](https://github.com/google/syzkaller/issues/1051).
-
-`syzbot` supports cause bisection (find the commit that introduces a bug) and
-fix bisection (find the commit that fixes a bug).
-
-The web UI for a specific kernel
+`syzbot` looks for the commit that introduced a bug (cause bisection) and for
+the commit that fixed a bug (fix bisection). The web UI for a specific kernel
 (say [upstream linux](https://syzkaller.appspot.com/upstream)) shows the
-`Bisected` status for all bugs.
-
-<div id="fix-bisection"/>
-
-### Fix bisection
-`syzbot` will perform fix bisection on bugs that meet the following criterion:
-- The kernel tree corresponding to the bug has fix bisection enabled (for
-instance, fix bisection might be disabled on kernel trees that have commits
-which are force pushed).
-- The bug must have a reproducer.
-- The bug must not have occurred for at least 30 days. If the bug still occurs
-on HEAD upon fix bisection, it will be retried in another 30 days.
-
-If you receive an email with fix bisection results you think is correct, please
-reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
+`Cause bisect` and `Fix bisect` statuses for all bugs.
 
 <div id="ai-bisection"/>
 
 ### AI bisection
 
-`syzbot` also uses LLM-based agents to look for the commit that introduced or
-fixed a bug (`bisected by AI`). Unlike the regular bisection described above,
-AI bisection does not test kernel revisions: it analyzes the crash report, the
-kernel sources and the git history. The result is therefore a hypothesis rather
-than a test result, and it may be wrong. You can check the `AI reasoning` link
-in the report for the full analysis, and please add a suggested `Fixes:` tag
-only if you agree with it.
+`syzbot` uses LLM-based agents for bisection (`bisected by AI`). AI bisection
+does not run reproducers or test kernel revisions: it analyzes the crash report,
+the reproducer (if available), the kernel sources and the git history. The
+result is therefore a hypothesis rather than a test result, and it may be wrong.
+You can check the `AI reasoning` link in the bug report (or `AI job` on the
+dashboard bug page) for the full analysis, and please add a suggested `Fixes:`
+tag only if you agree with it.
+
+<div id="fix-bisection"/>
+
+### Fix bisection
+
+If a fixing commit is identified and you think that it is correct, please reply
+to the bug report with `#syz fix: commit-title` so that `syzbot` can close the
+bug report.
+
+### Bisection by testing
+
+Before AI bisection, `syzbot` bisected bugs with reproducers by testing kernel
+revisions. Those older results (not marked as `bisected by AI`) are still shown
+with their `bisection log`, unless superseded by AI bisection (in which case
+they remain listed under the bisection attempts section on the bug page).
+Testing-based bisection was best-effort and could produce incorrect results due
+to flaky reproducers, build/boot breakages, or unrelated crashes. The same
+bisection can still be run locally with [syz-bisect](/docs/bisect.md).
 
 <div id="syzkaller-reproducers"/>
 
