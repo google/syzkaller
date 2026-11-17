@@ -102,9 +102,10 @@ func TestValidateCauseFinderOutputs(t *testing.T) {
 	})
 
 	t.Run("too many commits", func(t *testing.T) {
-		_, err := validate(r.c1.Hash, r.c1.Hash, r.c1.Hash, r.c1.Hash, r.c1.Hash, r.c1.Hash)
+		_, err := validate(r.c1.Hash, r.c1.Hash, r.c1.Hash, r.c1.Hash)
 		require.EqualError(t, err,
-			fmt.Sprintf("too many candidate commits (6); provide at most %d commits or an empty list", maxCandidateCommits))
+			fmt.Sprintf("too many candidate commits (4); provide at most %d commits or an empty list", maxCandidateCommits))
+		require.Contains(t, candidateOutputRules, fmt.Sprintf("at most %d", maxCandidateCommits))
 	})
 
 	t.Run("empty hash string", func(t *testing.T) {
