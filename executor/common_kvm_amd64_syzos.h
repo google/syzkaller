@@ -211,6 +211,10 @@ __attribute__((naked, aligned(EXCEPTION_STUB_SIZE))) GUEST_CODE static void exce
 	    popq %rbx
 	    movl $0xe2ec0000, %eax
 	    orq %rax, %rbx
+	    // The CPU aligns RSP to 16 bytes before pushing the exception frame, so RSP is only
+	    // 16-byte aligned here if an error code was pushed. Align it for the call below, this code
+	    // never returns to the interrupted context anyway.
+	    andq $-16, %rsp
 	2:
 	    movq %rbx, %rdi
 	    call guest_uexit
