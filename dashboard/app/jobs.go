@@ -22,7 +22,6 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
-	"google.golang.org/appengine/v2/user"
 )
 
 type bugItem struct {
@@ -316,7 +315,7 @@ func checkTestJob(args *testJobArgs) string {
 
 // Mark bisection job as invalid and, if restart=true, reset bisection state of the related bug.
 func invalidateBisection(ctx context.Context, jobKey *db.Key, restart bool) error {
-	u := user.Current(ctx)
+	u := currentUser(ctx)
 	tx := func(ctx context.Context) error {
 		job := new(Job)
 		if err := db.Get(ctx, jobKey, job); err != nil {

@@ -40,7 +40,6 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
-	"google.golang.org/appengine/v2/user"
 )
 
 func initAPIHandlers() {
@@ -1805,7 +1804,7 @@ func recordEmergencyStop(ctx context.Context) error {
 	key := db.NewKey(ctx, "EmergencyStop", "all", 0, nil)
 	_, err := db.Put(ctx, key, &EmergencyStop{
 		Time: timeNow(ctx),
-		User: user.Current(ctx).Email,
+		User: currentUser(ctx).Email,
 	})
 	return err
 }

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -158,7 +159,7 @@ func TestEmergentlyStoppedEmail(t *testing.T) {
 	client.ReportCrash(crash)
 
 	c.advanceTime(time.Hour)
-	_, err := c.AuthGET(AccessAdmin, "/admin?action=emergency_stop")
+	_, err := c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{"action": {"emergency_stop"}})
 	c.expectOK(err)
 
 	// There should be no email.
@@ -184,7 +185,7 @@ func TestEmergentlyStoppedReproEmail(t *testing.T) {
 	client.ReportCrash(crash2)
 
 	c.advanceTime(time.Hour)
-	_, err := c.AuthGET(AccessAdmin, "/admin?action=emergency_stop")
+	_, err := c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{"action": {"emergency_stop"}})
 	c.expectOK(err)
 
 	// There should be no email.
@@ -204,7 +205,7 @@ func TestEmergentlyStoppedExternalReport(t *testing.T) {
 	client.ReportCrash(crash)
 
 	c.advanceTime(time.Hour)
-	_, err := c.AuthGET(AccessAdmin, "/admin?action=emergency_stop")
+	_, err := c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{"action": {"emergency_stop"}})
 	c.expectOK(err)
 
 	// There should be no email.
@@ -251,7 +252,7 @@ func TestEmergentlyStoppedEmailJob(t *testing.T) {
 
 	// Now we emergently stop syzbot.
 	c.advanceTime(time.Hour)
-	_, err := c.AuthGET(AccessAdmin, "/admin?action=emergency_stop")
+	_, err := c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{"action": {"emergency_stop"}})
 	c.expectOK(err)
 
 	// There should be no email.
@@ -269,7 +270,7 @@ func TestEmergentlyStoppedCrashReport(t *testing.T) {
 
 	// Now we emergently stop syzbot.
 	c.advanceTime(time.Hour)
-	_, err := c.AuthGET(AccessAdmin, "/admin?action=emergency_stop")
+	_, err := c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{"action": {"emergency_stop"}})
 	c.expectOK(err)
 
 	crash := testCrash(build, 1)

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -1129,7 +1130,10 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	c.expectEQ(job.InvalidatedBy, "")
 
 	// Mark bisection as invalid, but do not restart it.
-	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
+	_, err = c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{
+		"action": {"invalidate_bisection"},
+		"key":    {jobKey.Encode()},
+	})
 	var httpErr *HTTPError
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
@@ -1151,7 +1155,11 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	c.expectEQ(resp.ID, "")
 
 	// Invalidate the bisection once more (why not), but this time ask dashboard to redo it.
-	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode()+"&restart=1")
+	_, err = c.AuthPOSTForm(AccessAdmin, "/admin", url.Values{
+		"action":  {"invalidate_bisection"},
+		"key":     {jobKey.Encode()},
+		"restart": {"1"},
+	})
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
 	c.expectEQ(httpErr.Headers.Get("Location"), bugURL)
