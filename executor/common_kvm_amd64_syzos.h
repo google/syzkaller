@@ -1847,9 +1847,8 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 		push %%rcx
 		push %%rbx
 
-		// Save L2 RAX from VMCB (Index 0).
-		// Since we pushed 16 regs (L2 RAX + 14 GPRs + exit_code), vmcb_addr is at 48 + 16 * 8 = 176(%%rsp).
-		mov 176(%%rsp), %%rax
+		// Save L2 RAX from VMCB (Index 0). VMRUN does not save the guest RAX in a register, it
+		// is only stored in the VMCB. RAX still holds vmcb_addr loaded after VMRUN.
 		pushq 0x5f8(%%rax)
 
 		// 7. Call the C handler.
