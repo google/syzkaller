@@ -2488,9 +2488,20 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 	rep, err := c.aiClient.LoadBug(bugID)
 	require.NoError(t, err)
 	assert.Nil(t, rep.BisectCause)
+}
 
-	// Several candidate commits are all shown, the most relevant one first.
-	jobLink2 := c.runAIBisectCause(extID,
+func TestAIBisectCauseMultipleCommits(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	_, extID := c.reportBugWithCIBisect()
+	bug, _, _ := c.loadBug(extID)
+	bugID := bug.keyHash(c.ctx)
+	bugPageURL := fmt.Sprintf("/bug?extid=%v", extID)
+
+	// Several candidate commits are marked as conclusive ("done") on the bug list and all shown on the
+	// bug page, the most relevant one first. Authors/CCs of candidate commits are not CC'd.
+	jobLink := c.runAIBisectCause(extID,
 		ai.Commit{
 			Hash:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			Title:       "kernel: first candidate",
@@ -2500,7 +2511,7 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 		ai.Commit{Hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Title: "kernel: second candidate"},
 	)
 	const candidates = "<b>✨ AI cause bisection: candidate commits (most relevant first)</b>"
-	page, err = c.GET(bugPageURL)
+	page, err := c.GET(bugPageURL)
 	require.NoError(t, err)
 	assert.Contains(t, string(page), candidates)
 	assert.Regexp(t,
@@ -2508,9 +2519,9 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 			`candidate@kernel\.org.*kernel: first candidate.*`+
 			`commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.*kernel: second candidate`,
 		string(page))
-	assert.Contains(t, string(page), jobLink2)
-	c.checkBisectStatus(bug.Namespace, "inconclusive", "")
-	rep, err = c.aiClient.LoadBug(bugID)
+	assert.Contains(t, string(page), jobLink)
+	c.checkBisectStatus(bug.Namespace, "done", "")
+	rep, err := c.aiClient.LoadBug(bugID)
 	require.NoError(t, err)
 	require.NotNil(t, rep.BisectCause)
 	assert.True(t, rep.BisectCause.AI)
@@ -2527,7 +2538,8 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 	page, err = c.GET(bugPageURL)
 	require.NoError(t, err)
 	assert.Contains(t, string(page), candidates)
-	assert.Contains(t, string(page), jobLink2)
+	assert.Contains(t, string(page), jobLink)
+	c.checkBisectStatus(bug.Namespace, "done", "")
 }
 
 func TestAIBisectFix(t *testing.T) {
@@ -2579,6 +2591,24 @@ func TestAIBisectFix(t *testing.T) {
 	assert.Contains(t, string(page), fixHash)
 	assert.Contains(t, string(page), fixTitle)
 	assert.Contains(t, string(page), jobLink)
+	c.checkBisectStatus(bug.Namespace, "", "done")
+
+	// Several candidate fix commits are also shown and marked as conclusive ("done") on the bug list.
+	respMulti := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	c.finishAIJob(respMulti.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build2.KernelCommit,
+		Commits: []ai.Commit{
+			{Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Title: "kernel: first fix candidate"},
+			{Hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Title: "kernel: second fix candidate"},
+		},
+		BisectReasoning: "Fixed by candidate commits.",
+	}})
+	jobLinkMulti := fmt.Sprintf("/ai_job?id=%v", respMulti.ID)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI fix bisection: candidate commits (most relevant first)</b>")
+	assert.Regexp(t, `(?s)kernel: first fix candidate.*kernel: second fix candidate`, string(page))
+	assert.Contains(t, string(page), jobLinkMulti)
 	c.checkBisectStatus(bug.Namespace, "", "done")
 
 	// A later job has verified that the bug is still present, this replaces the result.
@@ -2712,6 +2742,12 @@ func TestAIBisectResult(t *testing.T) {
 			typ:     ai.WorkflowBisectFix,
 			outputs: fix(false, commit),
 			want:    BugAIBisect{Commits: []Commit{stored}},
+		},
+		{
+			name:    "fix: several commits",
+			typ:     ai.WorkflowBisectFix,
+			outputs: fix(false, commit, commit),
+			want:    BugAIBisect{Commits: []Commit{stored, stored}},
 		},
 		{
 			name:    "fix: bug is still present",
@@ -2935,6 +2971,52 @@ func TestUpdateAIBisect(t *testing.T) {
 	bug.updateAIBisect(fixJob, &BugAIBisect{JobID: "job4", KernelRepo: "repo1", StillPresent: true})
 	assert.Equal(t, BugAIBisect{}, bug.AIBisectCause)
 	assert.Equal(t, BugAIBisect{JobID: "job4", KernelRepo: "repo1", StillPresent: true}, bug.AIBisectFix)
+}
+
+func TestBugAIBisectStatus(t *testing.T) {
+	commit := Commit{Hash: "9999999999999999999999999999999999999999"}
+	tests := []struct {
+		name  string
+		res   BugAIBisect
+		syzCI BisectStatus
+		want  BisectStatus
+	}{
+		{
+			name:  "not present uses syz-ci status",
+			res:   BugAIBisect{},
+			syzCI: BisectInconclusive,
+			want:  BisectInconclusive,
+		},
+		{
+			name:  "one commit is conclusive",
+			res:   BugAIBisect{JobID: "job1", Commits: []Commit{commit}},
+			syzCI: BisectInconclusive,
+			want:  BisectYes,
+		},
+		{
+			name:  "multiple commits are conclusive",
+			res:   BugAIBisect{JobID: "job1", Commits: []Commit{commit, commit}},
+			syzCI: BisectInconclusive,
+			want:  BisectYes,
+		},
+		{
+			name:  "still present hides status",
+			res:   BugAIBisect{JobID: "job1", StillPresent: true},
+			syzCI: BisectYes,
+			want:  BisectNot,
+		},
+		{
+			name:  "nothing determined is inconclusive",
+			res:   BugAIBisect{JobID: "job1"},
+			syzCI: BisectYes,
+			want:  BisectInconclusive,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, test.res.status(test.syzCI))
+		})
+	}
 }
 
 func TestAIBisectMail(t *testing.T) {

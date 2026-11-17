@@ -553,8 +553,8 @@ const (
 )
 
 type BisectResult struct {
-	Commit          *Commit   // for conclusive bisection
-	Commits         []*Commit // for inconclusive bisection
+	Commit          *Commit   // for conclusive single-commit bisection
+	Commits         []*Commit // for inconclusive syz-ci or multi-commit AI bisection
 	LogLink         string
 	CrashLogLink    string
 	CrashReportLink string
@@ -1050,8 +1050,8 @@ type JobInfo struct {
 	ErrorLink        string
 	ReproCLink       string
 	ReproSyzLink     string
-	Commit           *Commit   // for conclusive bisection
-	Commits          []*Commit // for inconclusive bisection
+	Commit           *Commit   // for conclusive single-commit bisection
+	Commits          []*Commit // for inconclusive syz-ci or multi-commit AI bisection
 	Reported         bool
 	InvalidatedBy    string
 	TreeOrigin       bool
