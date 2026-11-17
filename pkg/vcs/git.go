@@ -13,6 +13,7 @@ import (
 	"net/mail"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -31,23 +32,20 @@ type gitRepo struct {
 }
 
 func newGitRepo(dir string, ignoreCC map[string]bool, opts []RepoOpt) *gitRepo {
-	git := &gitRepo{
+	var cfg repoConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return &gitRepo{
 		Git: &Git{
-			Dir:      dir,
-			Sandbox:  true,
-			Env:      filterEnv(),
-			ignoreCC: ignoreCC,
+			Dir:          dir,
+			Sandbox:      !cfg.dontSandbox,
+			Env:          filterEnv(),
+			ReadOnlyDirs: cfg.readOnlyDirs,
+			precious:     cfg.precious,
+			ignoreCC:     ignoreCC,
 		},
 	}
-	for _, opt := range opts {
-		switch opt {
-		case OptPrecious:
-			git.precious = true
-		case OptDontSandbox:
-			git.Sandbox = false
-		}
-	}
-	return git
 }
 
 func filterEnv() []string {
@@ -77,7 +75,26 @@ func filterEnv() []string {
 	return env
 }
 
+// addLocalRepo makes a local repository that is used as a remote readable inside the sandbox.
+// The address may come from external users (e.g. from patch testing requests),
+// so only mount what looks like a git repository.
+func (git *gitRepo) addLocalRepo(repo string) {
+	p := filepath.Clean(strings.TrimPrefix(strings.TrimSpace(repo), "file://"))
+	if !filepath.IsAbs(p) || p == "/" || p == filepath.Clean(git.Dir) ||
+		slices.Contains(git.ReadOnlyDirs, p) || !isGitRepo(p) {
+		return
+	}
+	git.ReadOnlyDirs = append(git.ReadOnlyDirs, p)
+}
+
+// isGitRepo does an approximate check that dir is a (possibly bare) git repository.
+func isGitRepo(dir string) bool {
+	return osutil.IsExist(filepath.Join(dir, ".git")) ||
+		osutil.IsExist(filepath.Join(dir, "HEAD")) && osutil.IsExist(filepath.Join(dir, "objects"))
+}
+
 func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
+	git.addLocalRepo(repo)
 	git.Reset()
 	origin, err := git.getURL("origin")
 	if err != nil || strings.TrimSpace(origin) != repo {
@@ -127,6 +144,7 @@ func (git *gitRepo) isNetworkError(output []byte) bool {
 }
 
 func (git *gitRepo) CheckoutBranch(repo, branch string) (*Commit, error) {
+	git.addLocalRepo(repo)
 	if err := git.repair(); err != nil {
 		return nil, err
 	}
@@ -168,6 +186,7 @@ func (git *gitRepo) CheckoutCommit(repo, commit string) (*Commit, error) {
 }
 
 func (git *gitRepo) FetchTags(repo string) error {
+	git.addLocalRepo(repo)
 	if err := git.repair(); err != nil {
 		return err
 	}
@@ -179,6 +198,7 @@ func (git *gitRepo) FetchTags(repo string) error {
 }
 
 func (git *gitRepo) fetchRemote(repo, commit string) error {
+	git.addLocalRepo(repo)
 	if commit != "" && gitFullHashRe.MatchString(commit) {
 		// If the commit is already present locally, we don't need to fetch it.
 		// This also makes us resilient to cases where the remote has force-pushed
@@ -226,6 +246,7 @@ func (git *gitRepo) SwitchCommit(commit string) (*Commit, error) {
 }
 
 func (git *gitRepo) clone(repo, branch string) error {
+	git.addLocalRepo(repo)
 	if git.precious {
 		return fmt.Errorf("won't reinit precious repo")
 	}
@@ -642,18 +663,20 @@ func ParseGitDiff(patch []byte) []ModifiedFile {
 }
 
 type Git struct {
-	Dir      string
-	Sandbox  bool
-	Env      []string
-	precious bool
-	ignoreCC map[string]bool
+	Dir          string
+	Sandbox      bool
+	Env          []string
+	ReadOnlyDirs []string
+	precious     bool
+	ignoreCC     map[string]bool
 }
 
-func SandboxedGit(dir string) Git {
+func SandboxedGit(dir string, readOnlyDirs ...string) Git {
 	return Git{
-		Dir:     dir,
-		Sandbox: true,
-		Env:     filterEnv(),
+		Dir:          dir,
+		Sandbox:      true,
+		Env:          filterEnv(),
+		ReadOnlyDirs: readOnlyDirs,
 	}
 }
 
@@ -670,16 +693,33 @@ func (git Git) RunTimeout(timeout time.Duration, args ...string) ([]byte, error)
 }
 
 func (git Git) command(args ...string) (*exec.Cmd, error) {
-	args = slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
-	cmd := osutil.Command("git", args...)
+	isolateNet := !gitArgsNeedNetwork(args)
+	fullArgs := slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
+	cmd := osutil.Command("git", fullArgs...)
 	cmd.Dir = git.Dir
 	cmd.Env = git.Env
 	if git.Sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
+		var opts []osutil.SandboxOption
+		if len(git.ReadOnlyDirs) > 0 {
+			opts = append(opts, osutil.SandboxMountRO(git.ReadOnlyDirs...))
+		}
+		if err := osutil.Sandbox(cmd, true, isolateNet, opts...); err != nil {
 			return nil, err
 		}
 	}
 	return cmd, nil
+}
+
+func gitArgsNeedNetwork(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	switch args[0] {
+	case "fetch", "clone", "pull", "push", "submodule":
+		return true
+	default:
+		return false
+	}
 }
 
 // Apply invokes git apply for a series of git patches.
@@ -753,7 +793,11 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 	cmd.Dir = git.Dir
 	cmd.Env = filterEnv()
 	if git.Sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
+		var opts []osutil.SandboxOption
+		if len(git.ReadOnlyDirs) > 0 {
+			opts = append(opts, osutil.SandboxMountRO(git.ReadOnlyDirs...))
+		}
+		if err := osutil.Sandbox(cmd, true, true, opts...); err != nil {
 			return nil, err
 		}
 	}

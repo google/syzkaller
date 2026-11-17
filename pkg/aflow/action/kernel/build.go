@@ -88,7 +88,13 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		}
 		configArgs = append(configArgs, "--set-str", "CMDLINE", cmdline)
 	}
-	if _, err := osutil.RunSandboxed(time.Hour, buildDir, configScript, configArgs...); err != nil {
+	cmd := osutil.Command(configScript, configArgs...)
+	cmd.Dir = buildDir
+	if err := osutil.Sandbox(cmd, true, true,
+		osutil.SandboxMountRO(append(target.ToolchainDirs(), srcDir)...)); err != nil {
+		return err
+	}
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return err
 	}
 	image := filepath.FromSlash(build.LinuxKernelImage(targetVMArch))
@@ -102,7 +108,14 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 	makeArgs = append(makeArgs, "KCFLAGS=-fno-builtin-wcslen")
 	const compileCommands = "compile_commands.json"
 	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
-	if _, err := osutil.RunSandboxed(time.Hour, srcDir, "make", makeArgs...); err != nil {
+	makeCmd := osutil.Command("make", makeArgs...)
+	makeCmd.Dir = srcDir
+	if err := osutil.Sandbox(makeCmd, true, true,
+		osutil.SandboxMountRO(target.ToolchainDirs()...),
+		osutil.SandboxMountRW(buildDir)); err != nil {
+		return err
+	}
+	if _, err := osutil.Run(time.Hour, makeCmd); err != nil {
 		buildErr := build.ExtractRootCause(err, targets.Linux, srcDir)
 		if buildErr == err {
 			return aflow.FlowError(err)

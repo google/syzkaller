@@ -44,7 +44,7 @@ func Fsck(r io.Reader, fsckCmd string) ([]byte, bool, error) {
 	// And run the provided fsck command on it.
 	fsck := append(strings.Fields(fsckCmd), tempFile.Name())
 	cmd := osutil.Command(fsck[0], fsck[1:]...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
+	if err := osutil.Sandbox(cmd, true, true, osutil.SandboxMountRW(tempFile.Name())); err != nil {
 		return nil, false, err
 	}
 

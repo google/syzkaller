@@ -219,6 +219,7 @@ func TestSandbox(t *testing.T) {
 
 	run := func(name string, args ...string) (string, error) {
 		cmd := Command(name, args...)
+		cmd.Dir = dir
 		require.NoError(t, Sandbox(cmd, true, true))
 		out, err := Run(time.Minute, cmd)
 		return strings.TrimSpace(string(out)), err
@@ -228,15 +229,83 @@ func TestSandbox(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "syzkaller", user)
 
+	home, err := run("sh", "-c", "echo $HOME")
+	require.NoError(t, err)
+	require.Equal(t, "/home/syzkaller", home)
+
 	// Before SandboxChown, the root-owned file is not writable by the sandbox user.
 	_, err = run("sh", "-c", fmt.Sprintf("echo sandbox >> %q", file))
 	require.Error(t, err)
 	require.Contains(t, VerboseMessage(err), "Permission denied")
+	// Errors must refer to the original command rather than to the bwrap invocation.
+	require.ErrorContains(t, err, fmt.Sprintf(`failed to run ["sh" "-c" "echo sandbox >> \"%v\""]: exit status`, file))
 
 	require.NoError(t, SandboxChown(file))
 	content, err := run("sh", "-c", fmt.Sprintf("echo sandbox >> %q && cat %q", file, file))
 	require.NoError(t, err)
 	require.Equal(t, "hello\nsandbox", content)
+
+	// Even with net=false, a PID namespace must be enabled so background processes
+	// spawned inside the sandbox are terminated when the command exits.
+	lockFile := filepath.Join(dir, "bg.lock")
+	readyFile := filepath.Join(dir, "bg.ready")
+	require.NoError(t, SandboxChown(dir))
+	cmd := Command("sh", "-c", fmt.Sprintf(
+		`flock -x %q -c 'touch %q; exec sleep 60' </dev/null >/dev/null 2>&1 &
+		while [ ! -e %q ]; do sleep 0.01; done`, lockFile, readyFile, readyFile))
+	cmd.Dir = dir
+	require.NoError(t, Sandbox(cmd, true, false))
+	_, err = Run(time.Minute, cmd)
+	require.NoError(t, err)
+
+	lf, err := os.Open(lockFile)
+	require.NoError(t, err)
+	defer lf.Close()
+	require.Eventually(t, func() bool {
+		return syscall.Flock(int(lf.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil
+	}, 5*time.Second, 10*time.Millisecond)
+	_ = syscall.Flock(int(lf.Fd()), syscall.LOCK_UN)
+
+	if runtime.GOOS == "linux" {
+		otherDir := SandboxTempDir(t)
+		secretFile := filepath.Join(otherDir, "secret")
+		require.NoError(t, WriteFile(secretFile, []byte("top-secret\n")))
+		require.NoError(t, SandboxChown(otherDir))
+
+		// Without SandboxMountRO/SandboxMountRW, otherDir is not mounted in bwrap.
+		_, err = run("cat", secretFile)
+		require.Error(t, err)
+
+		// With SandboxMountRO, reading succeeds but writing into otherDir fails.
+		roCmd := Command("cat", secretFile)
+		roCmd.Dir = dir
+		require.NoError(t, Sandbox(roCmd, true, true, SandboxMountRO(otherDir)))
+		out, err := Run(time.Minute, roCmd)
+		require.NoError(t, err)
+		require.Equal(t, "top-secret", strings.TrimSpace(string(out)))
+
+		roWriteCmd := Command("touch", filepath.Join(otherDir, "created"))
+		roWriteCmd.Dir = dir
+		require.NoError(t, Sandbox(roWriteCmd, true, true, SandboxMountRO(otherDir)))
+		_, err = Run(time.Minute, roWriteCmd)
+		require.Error(t, err)
+
+		// With SandboxMountRW, writing into otherDir succeeds.
+		rwWriteCmd := Command("touch", filepath.Join(otherDir, "created"))
+		rwWriteCmd.Dir = dir
+		require.NoError(t, Sandbox(rwWriteCmd, true, true, SandboxMountRW(otherDir)))
+		_, err = Run(time.Minute, rwWriteCmd)
+		require.NoError(t, err)
+		require.FileExists(t, filepath.Join(otherDir, "created"))
+
+		// When net=false, the sandbox proxy blocks loopback/private destinations.
+		proxyCmd := Command("curl", "-sS", "http://127.0.0.1:80")
+		proxyCmd.Dir = dir
+		require.NoError(t, Sandbox(proxyCmd, true, false))
+		out, err = Run(time.Minute, proxyCmd)
+		require.Error(t, err)
+		require.Contains(t, string(out), "cannot complete SOCKS5 connection")
+	}
 }
 
 func TestReadInRoot(t *testing.T) {

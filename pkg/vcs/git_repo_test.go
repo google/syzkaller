@@ -409,3 +409,48 @@ func TestBisect(t *testing.T) {
 		}
 	}
 }
+
+func TestAddLocalRepo(t *testing.T) {
+	baseDir := t.TempDir()
+	self := filepath.Join(baseDir, "self")
+	local := filepath.Join(baseDir, "local")
+	bare := filepath.Join(baseDir, "bare.git")
+	notRepo := filepath.Join(baseDir, "dir")
+	for _, dir := range []string{
+		filepath.Join(self, ".git"),
+		filepath.Join(local, ".git"),
+		filepath.Join(bare, "objects"),
+		notRepo,
+	} {
+		require.NoError(t, osutil.MkdirAll(dir))
+	}
+	require.NoError(t, osutil.WriteFile(filepath.Join(bare, "HEAD"), []byte("ref: refs/heads/master\n")))
+
+	git := newGitRepo(self, nil, nil)
+	for _, repo := range []string{
+		"https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+		"git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+		"relative/path",
+		"/",
+		"file:///",
+		"file:///.",
+		"file://" + baseDir + "/..",
+		notRepo,
+		"file://" + notRepo,
+		filepath.Join(baseDir, "missing"),
+		self,
+		"file://" + self + "/",
+	} {
+		git.addLocalRepo(repo)
+		assert.Empty(t, git.ReadOnlyDirs, "repo %q", repo)
+	}
+	for _, repo := range []string{
+		local,
+		"file://" + local + "/",
+		" " + bare + "\n",
+		bare,
+	} {
+		git.addLocalRepo(repo)
+	}
+	assert.Equal(t, []string{local, bare}, git.ReadOnlyDirs)
+}

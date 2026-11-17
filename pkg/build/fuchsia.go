@@ -102,7 +102,14 @@ func (fu fuchsia) clean(params Params) error {
 func runSandboxed(timeout time.Duration, dir, command string, arg ...string) ([]byte, error) {
 	cmd := osutil.Command(command, arg...)
 	cmd.Dir = dir
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	var roPaths []string
+	if syzDir, err := syzRoot(); err == nil {
+		roPaths = append(roPaths, syzDir)
+	}
+	if target := targets.Get(targets.Fuchsia, targets.AMD64); target != nil {
+		roPaths = append(roPaths, target.ToolchainDirs()...)
+	}
+	if err := osutil.Sandbox(cmd, true, false, osutil.SandboxMountRO(roPaths...)); err != nil {
 		return nil, err
 	}
 	return osutil.Run(timeout, cmd)
