@@ -183,7 +183,7 @@ the access address and size.
 const candidateOutputRules = `- If you can confidently determine the single commit, return its hash in CandidateCommits
   (as a single-element list).
 - If multiple commits contributed or you can narrow it down to a small set of candidate
-  commits (at most 5), return their hashes in CandidateCommits ordered by relevance: the
+  commits (at most 3), return their hashes in CandidateCommits ordered by relevance: the
   FIRST commit must be the primary commit, followed by the remaining commits in descending
   order of importance/likelihood.
 - If you cannot determine the commit with confidence, return an empty CandidateCommits list
@@ -223,7 +223,7 @@ A previous root cause analysis of this bug{{if .RootCauseCommit}} (at commit {{.
 {{end}}
 `
 
-const maxCandidateCommits = 5
+const maxCandidateCommits = 3
 
 type causeFinderState struct {
 	KernelSrc    string
