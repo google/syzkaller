@@ -201,7 +201,7 @@ func (res *BugAIBisect) status(syzCI BisectStatus) BisectStatus {
 	switch {
 	case !res.present():
 		return syzCI
-	case len(res.Commits) == 1:
+	case len(res.Commits) != 0:
 		return BisectYes
 	case res.StillPresent:
 		// As with syz-ci fix bisections, there is nothing to show if the bug is not fixed yet.
@@ -794,7 +794,7 @@ const (
 	BisectNot BisectStatus = iota
 	BisectPending
 	BisectError
-	BisectYes          // have 1 commit
+	BisectYes          // have 1 commit (or >=1 for AI)
 	BisectUnreliable   // have 1 commit, but suspect it's wrong
 	BisectInconclusive // multiple commits due to skips
 	BisectHorizont     // happens on the oldest commit we can test (or HEAD for fix bisection)
