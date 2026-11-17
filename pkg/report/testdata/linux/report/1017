@@ -1,0 +1,64 @@
+TITLE: BUG: unable to handle kernel execute from non-executable memory in smc_fback_forward_wakeup
+ALT: bad-access in smc_fback_forward_wakeup
+
+netdevsim netdevsim0 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+netdevsim netdevsim0 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+netdevsim netdevsim0 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+Unable to handle kernel execute from non-executable memory at virtual address ffff0000d1080b80
+KASAN: maybe wild-memory-access in range [0xfffc000688405c00-0xfffc000688405c07]
+Mem abort info:
+  ESR = 0x000000008600000f
+  EC = 0x21: IABT (current EL), IL = 32 bits
+  SET = 0, FnV = 0
+  EA = 0, S1PTW = 0
+  FSC = 0x0f: level 3 permission fault
+swapper pgtable: 4k pages, 48-bit VAs, pgdp=00000001bd31d000
+[ffff0000d1080b80] pgd=0000000000000000, p4d=180000023ffff403, pud=180000023f41b403, pmd=180000023f392403, pte=0068000111080707
+Internal error: Oops: 000000008600000f [#1] PREEMPT SMP
+Modules linked in:
+CPU: 1 UID: 0 PID: 6416 Comm: syz-executor278 Not tainted 6.12.0-rc6-syzkaller-g8936d33c1f69 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+pstate: 00400005 (nzcv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+pc : 0xffff0000d1080b80
+lr : smc_fback_forward_wakeup+0x1dc/0x514 net/smc/af_smc.c:822
+sp : ffff8000a3b97140
+x29: ffff8000a3b97210 x28: 1fffe00019a901c8 x27: ffff8000a3b97160
+x26: dfff800000000000 x25: ffff700014772e2c x24: ffff8000a3b97190
+x23: ffff0000cd480e40 x22: ffff0000cd480cc0 x21: ffff0000d1080b80
+x20: ffff8000a3b97180 x19: ffff0000dde73040 x18: ffff8000a3b96da0
+x17: 000000000000fc8e x16: ffff8000802ae4a0 x15: 0000000000000001
+x14: 1fffe0001bbce608 x13: ffff8000a3b98000 x12: 0000000000000003
+x11: 0000000000000202 x10: 0000000000000000 x9 : 1fffe000185b0001
+x8 : 0000000100000201 x7 : 0000000000000000 x6 : 0000000000000000
+x5 : 0000000000000020 x4 : 0000000000000000 x3 : 0000000000000000
+x2 : 0000000000000003 x1 : ffff80008b626000 x0 : ffff0000cd480cc0
+Call trace:
+ 0xffff0000d1080b80 (P)
+ smc_fback_forward_wakeup+0x1dc/0x514 net/smc/af_smc.c:822 (L)
+ smc_fback_data_ready+0x88/0xac net/smc/af_smc.c:850
+ tcp_data_ready+0x22c/0x44c net/ipv4/tcp_input.c:5220
+ tcp_data_queue+0x18a4/0x4eb8 net/ipv4/tcp_input.c:5310
+ tcp_rcv_established+0xe10/0x2018 net/ipv4/tcp_input.c:6264
+ tcp_v4_do_rcv+0x3b8/0xc44 net/ipv4/tcp_ipv4.c:1915
+ sk_backlog_rcv include/net/sock.h:1115 [inline]
+ __release_sock+0x1a8/0x3d8 net/core/sock.c:3072
+ __sk_flush_backlog+0x38/0xa4 net/core/sock.c:3092
+ sk_flush_backlog include/net/sock.h:1178 [inline]
+ tcp_sendmsg_locked+0x3118/0x3eb8 net/ipv4/tcp.c:1163
+ tcp_sendmsg+0x40/0x64 net/ipv4/tcp.c:1357
+ inet_sendmsg+0x15c/0x290 net/ipv4/af_inet.c:853
+ sock_sendmsg_nosec net/socket.c:729 [inline]
+ __sock_sendmsg net/socket.c:744 [inline]
+ __sys_sendto+0x374/0x4f4 net/socket.c:2214
+ __do_sys_sendto net/socket.c:2226 [inline]
+ __se_sys_sendto net/socket.c:2222 [inline]
+ __arm64_sys_sendto+0xd8/0xf8 net/socket.c:2222
+ __invoke_syscall arch/arm64/kernel/syscall.c:35 [inline]
+ invoke_syscall+0x98/0x2b8 arch/arm64/kernel/syscall.c:49
+ el0_svc_common+0x130/0x23c arch/arm64/kernel/syscall.c:132
+ do_el0_svc+0x48/0x58 arch/arm64/kernel/syscall.c:151
+ el0_svc+0x54/0x168 arch/arm64/kernel/entry-common.c:744
+ el0t_64_sync_handler+0x84/0x108 arch/arm64/kernel/entry-common.c:762
+ el0t_64_sync+0x198/0x19c arch/arm64/kernel/entry.S:600
+Code: 00000000 00000000 00000000 00000000 (00000000)
+---[ end trace 0000000000000000 ]---

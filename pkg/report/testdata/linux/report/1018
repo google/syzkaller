@@ -1,0 +1,62 @@
+TITLE: BUG: unable to handle kernel write to read-only memory in kvfree_call_rcu
+ALT: bad-access in kvfree_call_rcu
+EXECUTOR: proc=0, id=69
+
+Unable to handle kernel write to read-only memory at virtual address ffff8000891ac9a8
+KASAN: probably user-memory-access in range [0x0000000448d64d40-0x0000000448d64d47]
+Mem abort info:
+  ESR = 0x000000009600004e
+  EC = 0x25: DABT (current EL), IL = 32 bits
+  SET = 0, FnV = 0
+  EA = 0, S1PTW = 0
+  FSC = 0x0e: level 2 permission fault
+Data abort info:
+  ISV = 0, ISS = 0x0000004e, ISS2 = 0x00000000
+  CM = 0, WnR = 1, TnD = 0, TagAccess = 0
+  GCS = 0, Overlay = 0, DirtyBit = 0, Xs = 0
+swapper pgtable: 4k pages, 48-bit VAs, pgdp=0000000207144000
+[ffff8000891ac9a8] pgd=0000000000000000, p4d=100000020f950003, pud=100000020f951003, pmd=0040000201000781
+Internal error: Oops: 000000009600004e [#1]  SMP
+Modules linked in:
+CPU: 0 UID: 0 PID: 6946 Comm: syz.0.69 Not tainted 6.16.0-rc4-syzkaller-g7482bb149b9f #0 PREEMPT
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+pstate: 604000c5 (nZCv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+pc : kvfree_call_rcu+0x31c/0x3f0 mm/slab_common.c:1971
+lr : add_ptr_to_bulk_krc_lock mm/slab_common.c:1838 [inline]
+lr : kvfree_call_rcu+0xfc/0x3f0 mm/slab_common.c:1963
+sp : ffff8000a28a7730
+x29: ffff8000a28a7730 x28: 00000000fffffff5 x27: 1fffe00018b09bb3
+x26: 0000000000000001 x25: ffff80008f66e000 x24: ffff00019beaf498
+x23: ffff00019beaf4c0 x22: 0000000000000000 x21: ffff8000891ac9a0
+x20: ffff8000891ac9a0 x19: 0000000000000000 x18: 00000000ffffffff
+x17: ffff800093363000 x16: ffff80008052c6e4 x15: ffff700014514ecc
+x14: 1ffff00014514ecc x13: 0000000000000004 x12: ffffffffffffffff
+x11: ffff700014514ecc x10: 0000000000000001 x9 : 0000000000000001
+x8 : ffff00019beaf7b4 x7 : ffff800080a94154 x6 : 0000000000000000
+x5 : ffff8000935efa60 x4 : 0000000000000008 x3 : ffff80008052c7fc
+x2 : 0000000000000001 x1 : ffff8000891ac9a0 x0 : 0000000000000001
+Call trace:
+ kvfree_call_rcu+0x31c/0x3f0 mm/slab_common.c:1967 (P)
+ cipso_v4_sock_setattr+0x2f0/0x3f4 net/ipv4/cipso_ipv4.c:1914
+ netlbl_sock_setattr+0x240/0x334 net/netlabel/netlabel_kapi.c:1000
+ smack_netlbl_add+0xa8/0x158 security/smack/smack_lsm.c:2581
+ smack_inode_setsecurity+0x378/0x430 security/smack/smack_lsm.c:2912
+ security_inode_setsecurity+0x118/0x3c0 security/security.c:2706
+ __vfs_setxattr_noperm+0x174/0x5c4 fs/xattr.c:251
+ __vfs_setxattr_locked+0x1ec/0x218 fs/xattr.c:295
+ vfs_setxattr+0x158/0x2ac fs/xattr.c:321
+ do_setxattr fs/xattr.c:636 [inline]
+ file_setxattr+0x1b8/0x294 fs/xattr.c:646
+ path_setxattrat+0x2ac/0x320 fs/xattr.c:711
+ __do_sys_fsetxattr fs/xattr.c:761 [inline]
+ __se_sys_fsetxattr fs/xattr.c:758 [inline]
+ __arm64_sys_fsetxattr+0xc0/0xdc fs/xattr.c:758
+ __invoke_syscall arch/arm64/kernel/syscall.c:35 [inline]
+ invoke_syscall+0x98/0x2b8 arch/arm64/kernel/syscall.c:49
+ el0_svc_common+0x130/0x23c arch/arm64/kernel/syscall.c:132
+ do_el0_svc+0x48/0x58 arch/arm64/kernel/syscall.c:151
+ el0_svc+0x58/0x180 arch/arm64/kernel/entry-common.c:879
+ el0t_64_sync_handler+0x84/0x12c arch/arm64/kernel/entry-common.c:898
+ el0t_64_sync+0x198/0x19c arch/arm64/kernel/entry.S:600
+Code: aa1f03e2 52800023 97ee1e8d b4000195 (f90006b4)
+---[ end trace 0000000000000000 ]---
