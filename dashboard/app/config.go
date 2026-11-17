@@ -74,6 +74,8 @@ type GlobalConfig struct {
 	// This bucket is used by the dashboard API handlers.
 	// Configure bucket items auto deletion. Uploaded data will not be deleted by dashboard.
 	UploadBucket string
+	// HMAC signing key for CSRF tokens in web UI forms.
+	CSRFSecret string
 }
 
 type PerInboxConfig struct {
@@ -624,6 +626,9 @@ func checkConfig(cfg *GlobalConfig) {
 	}
 	if cfg.Namespaces[cfg.DungeonNamespace] == nil {
 		panic(fmt.Sprintf("dungeon namespace %q is not found", cfg.DungeonNamespace))
+	}
+	if len(cfg.CSRFSecret) < csrfMinSecretLen {
+		panic(fmt.Sprintf("CSRFSecret must be at least %d bytes", csrfMinSecretLen))
 	}
 	var allNamespaces []string
 	for ns, nsCfg := range cfg.Namespaces {

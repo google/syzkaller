@@ -21,6 +21,7 @@ Detailed info on a single AI job execution.
 
 	{{if .CanRestart}}
 	<form method="POST" class="restart-form">
+		{{template "csrf_field" .Header.CSRFToken}}
 		<input type="hidden" name="action" value="restart">
 		<button type="submit">Restart Workflow</button>
 	</form>
@@ -63,6 +64,7 @@ Detailed info on a single AI job execution.
 	{{if .Header.AIActions}}
 		{{if and .CanSetCorrectness (ne .Job.Correct "⏳") (ne .Job.Correct "💥") (ne .Job.Correct "🏃")}}
 			<form method="POST">
+				{{template "csrf_field" .Header.CSRFToken}}
 				<input type="hidden" name="action" value="set_correctness">
 				<fieldset>
 					<legend>Result correct:</legend>
@@ -79,6 +81,7 @@ Detailed info on a single AI job execution.
 		{{end}}
 		{{if .CanPushToReporting}}
 			<form method="POST">
+				{{template "csrf_field" .Header.CSRFToken}}
 				<input type="hidden" name="action" value="push_to_reporting">
 				<button type="submit">Push to {{.NextStage}}</button>
 			</form>
@@ -86,6 +89,7 @@ Detailed info on a single AI job execution.
 		{{end}}
 		{{if .Job.CanTestOnManager}}
 			<form method="POST">
+				{{template "csrf_field" .Header.CSRFToken}}
 				<input type="hidden" name="action" value="test_repro_c">
 				<button type="submit">Test C Reproducer</button>
 			</form>

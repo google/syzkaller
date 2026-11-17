@@ -248,6 +248,7 @@ func init() {
 }
 var prodConfig = &GlobalConfig{
         AccessLevel:         AccessPublic,
+        CSRFSecret:          "$CSRF_SECRET",
         AuthDomains:         []string{"@google.com"},
         CoverPath:           "https://storage.googleapis.com/syzkaller/cover/",
         Clients: map[string]string{

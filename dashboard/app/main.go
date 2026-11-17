@@ -485,8 +485,10 @@ type uiCrashTable struct {
 type uiJob struct {
 	*dashapi.JobInfo
 	Crash *uiCrash
-	// InvalidateJobKey is set only for bisection jobs that the admin can invalidate on the bug page.
+	// InvalidateJobKey and CSRFToken are set only for bisection jobs
+	// that the admin can invalidate on the bug page.
 	InvalidateJobKey string `json:"-"`
+	CSRFToken        string `json:"-"`
 	FixCandidate     bool
 	// AIBisection is set if this is not a syz-ci job, but a result of an AI bisection job.
 	AIBisection bool
@@ -1246,7 +1248,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	cfg := getNsConfig(ctx, hdr.Namespace)
-	bugDetails, err := loadBugDetails(ctx, bug, accessLevel)
+	bugDetails, err := loadBugDetails(ctx, bug, accessLevel, hdr.CSRFToken)
 	if err != nil {
 		return err
 	}
@@ -1506,7 +1508,7 @@ func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel
 	return sections, nil
 }
 
-func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*uiBugDetails, error) {
+func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel, csrfToken string) (*uiBugDetails, error) {
 	managers, err := CachedManagerList(ctx, bug.Namespace)
 	if err != nil {
 		return nil, err
@@ -1545,7 +1547,7 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	}
 	// Admins can invalidate bisections on the bug page.
 	canInvalidate := accessLevel == AccessAdmin
-	ret.BisectCauseJobs, err = causeBisections.uiAll(ctx, canInvalidate)
+	ret.BisectCauseJobs, err = causeBisections.uiAll(ctx, canInvalidate, csrfToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
@@ -1553,7 +1555,7 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if bug.AIBisectCause.present() {
 		ret.BisectCauseJob = makeUIAIBisectJob(dashapi.JobBisectCause, &bug.AIBisectCause)
 	} else if bug.BisectCause > BisectPending {
-		ret.BisectCauseJob, err = causeBisections.uiBestBisection(ctx, canInvalidate)
+		ret.BisectCauseJob, err = causeBisections.uiBestBisection(ctx, canInvalidate, csrfToken)
 		if err != nil {
 			return nil, err
 		}
@@ -1562,20 +1564,20 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if err != nil {
 		return nil, fmt.Errorf("failed to load fix bisections: %w", err)
 	}
-	ret.BisectFixJobs, err = fixBisections.uiAll(ctx, canInvalidate)
+	ret.BisectFixJobs, err = fixBisections.uiAll(ctx, canInvalidate, csrfToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
 	if bug.AIBisectFix.present() {
 		ret.BisectFixJob = makeUIAIBisectJob(dashapi.JobBisectFix, &bug.AIBisectFix)
 	} else if bug.BisectFix > BisectPending {
-		ret.BisectFixJob, err = fixBisections.uiBestBisection(ctx, canInvalidate)
+		ret.BisectFixJob, err = fixBisections.uiBestBisection(ctx, canInvalidate, csrfToken)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if bug.FixCandidateJob != "" {
-		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(ctx, canInvalidate)
+		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(ctx, canInvalidate, csrfToken)
 		if err != nil {
 			return nil, err
 		}
@@ -2656,7 +2658,7 @@ func loadJobsOfType(ctx context.Context, t JobType) ([]*uiJob, error) {
 func getUIJobs(ctx context.Context, keys []*db.Key, jobs []*Job) []*uiJob {
 	var results []*uiJob
 	for i, job := range jobs {
-		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, nil, false))
+		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, nil))
 	}
 	return results
 }
@@ -2693,19 +2695,15 @@ func loadTestPatchJobs(ctx context.Context, bug *Bug) ([]*uiJob, error) {
 				return nil, err
 			}
 		}
-		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, build, false))
+		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, build))
 	}
 	return results, nil
 }
 
-func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build,
-	canInvalidate bool) *uiJob {
+func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		JobInfo:      makeJobInfo(ctx, job, jobKey, bug, build, crash),
 		FixCandidate: job.IsCrossTree(),
-	}
-	if canInvalidate && canInvalidateBisection(job) {
-		ui.InvalidateJobKey = jobKey.Encode()
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(ctx, crash, build)
@@ -2843,18 +2841,23 @@ func fetchErrorLogs(ctx context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (j *bugJob) ui(ctx context.Context, canInvalidate bool) (*uiJob, error) {
+func (j *bugJob) ui(ctx context.Context, canInvalidate bool, csrfToken string) (*uiJob, error) {
 	err := j.load(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build, canInvalidate), nil
+	ui := makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build)
+	if canInvalidate && csrfToken != "" && canInvalidateBisection(j.job) {
+		ui.InvalidateJobKey = j.key.Encode()
+		ui.CSRFToken = csrfToken
+	}
+	return ui, nil
 }
 
-func (b *bugJobs) uiAll(ctx context.Context, canInvalidate bool) ([]*uiJob, error) {
+func (b *bugJobs) uiAll(ctx context.Context, canInvalidate bool, csrfToken string) ([]*uiJob, error) {
 	var ret []*uiJob
 	for _, j := range b.all() {
-		obj, err := j.ui(ctx, canInvalidate)
+		obj, err := j.ui(ctx, canInvalidate, csrfToken)
 		if err != nil {
 			return nil, err
 		}
@@ -2863,20 +2866,20 @@ func (b *bugJobs) uiAll(ctx context.Context, canInvalidate bool) ([]*uiJob, erro
 	return ret, nil
 }
 
-func (b *bugJobs) uiBestBisection(ctx context.Context, canInvalidate bool) (*uiJob, error) {
+func (b *bugJobs) uiBestBisection(ctx context.Context, canInvalidate bool, csrfToken string) (*uiJob, error) {
 	j := b.bestBisection()
 	if j == nil {
 		return nil, nil
 	}
-	return j.ui(ctx, canInvalidate)
+	return j.ui(ctx, canInvalidate, csrfToken)
 }
 
-func (b *bugJobs) uiBestFixCandidate(ctx context.Context, canInvalidate bool) (*uiJob, error) {
+func (b *bugJobs) uiBestFixCandidate(ctx context.Context, canInvalidate bool, csrfToken string) (*uiJob, error) {
 	j := b.bestFixCandidate()
 	if j == nil {
 		return nil, nil
 	}
-	return j.ui(ctx, canInvalidate)
+	return j.ui(ctx, canInvalidate, csrfToken)
 }
 
 // bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with
