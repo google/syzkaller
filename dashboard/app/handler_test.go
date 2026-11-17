@@ -64,3 +64,19 @@ func TestGzipResponseWriterCloser_status(t *testing.T) {
 func httpRequestWithAcceptedEncoding(encoding string) *http.Request {
 	return &http.Request{Header: http.Header{"Accept-Encoding": []string{encoding}}}
 }
+
+func TestIsCrossSiteRequest(t *testing.T) {
+	for site, want := range map[string]bool{
+		"":            false,
+		"none":        false,
+		"same-origin": false,
+		"same-site":   true,
+		"cross-site":  true,
+	} {
+		r := httptest.NewRequest(http.MethodGet, "/admin?action=emergency_stop", nil)
+		if site != "" {
+			r.Header.Set("Sec-Fetch-Site", site)
+		}
+		assert.Equal(t, want, isCrossSiteRequest(r), "Sec-Fetch-Site: %q", site)
+	}
+}

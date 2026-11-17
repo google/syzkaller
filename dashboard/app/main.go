@@ -1111,7 +1111,12 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 	if accessLevel != AccessAdmin {
 		return ErrAccess
 	}
-	switch action := r.FormValue("action"); action {
+	action := r.FormValue("action")
+	if action != "" && isCrossSiteRequest(r) {
+		// Admin actions are plain GET links, so check where they come from.
+		return fmt.Errorf("%w: cross-site admin action", ErrClientBadRequest)
+	}
+	switch action {
 	case "":
 	case "memcache_flush":
 		if err := memcache.Flush(ctx); err != nil {
