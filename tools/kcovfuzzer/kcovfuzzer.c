@@ -1,23 +1,19 @@
 // KCOV glue for libfuzzer. Build as:
-// clang tools/kcovfuzzer/kcovfuzzer.c -fsanitize=fuzzer -static -Wall -o fuzzer
+// clang tools/kcovfuzzer/kcovfuzzer.c -fsanitize=fuzzer -Wall -o fuzzer
 // Run as:
-//
-// KCOVFUZZER=bpf ./fuzzer -max_len=129 corpus_bpf
+// KCOVFUZZER=bpf ./fuzzer -min_len=8 -max_len=129 corpus_bpf
+// KCOVFUZZER=bpf KCOV_CMP=1 ./fuzzer -min_len=8 -max_len=129 corpus_bpf
 // KCOVFUZZER=trace_filter ./fuzzer -max_len=100 -only_ascii=1 corpus_trace_filter
 // KCOVFUZZER=binfmt ./fuzzer -max_len=30 -only_ascii=1 corpus_binfmt
-//
-// If you build with -static, then the following env needs to be exported:
-// UBSAN_OPTIONS="handle_segv=0 handle_sigbus=0 handle_abort=0 handle_sigill=0 handle_sigtrap=0 handle_sigfpe=0"
-// and the following flags added to fuzzer invocation:
-// -timeout=0 -rss_limit_mb=0 -handle_segv=0 -handle_bus=0 -handle_abrt=0 -handle_ill=0 \
-// -handle_fpe=0 -handle_int=0 -handle_term=0 -handle_xfsz=0 -handle_usr1=0 -handle_usr2=0
 
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/bpf.h>
+#include <linux/kcov.h>
 #include <memory.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,21 +24,43 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void init(const char*, long);
-void dump_input(const char*, long);
-void (*fuzz_func)(const char*, long) = init;
-void fail(const char* msg, ...);
-void cover_start();
-void cover_stop();
+struct kcov_comparison_t {
+	uint64_t type;
+	uint64_t arg1;
+	uint64_t arg2;
+	uint64_t pc;
+};
 
-int LLVMFuzzerTestOneInput(const char* data, long size)
+__attribute__((weak)) void __sanitizer_cov_trace_cmp1(uint8_t, uint8_t);
+__attribute__((weak)) void __sanitizer_cov_trace_cmp2(uint16_t, uint16_t);
+__attribute__((weak)) void __sanitizer_cov_trace_cmp4(uint32_t, uint32_t);
+__attribute__((weak)) void __sanitizer_cov_trace_cmp8(uint64_t, uint64_t);
+__attribute__((weak)) void __sanitizer_cov_trace_const_cmp1(uint8_t, uint8_t);
+__attribute__((weak)) void __sanitizer_cov_trace_const_cmp2(uint16_t, uint16_t);
+__attribute__((weak)) void __sanitizer_cov_trace_const_cmp4(uint32_t, uint32_t);
+__attribute__((weak)) void __sanitizer_cov_trace_const_cmp8(uint64_t, uint64_t);
+__attribute__((section("__libfuzzer_extra_counters"))) unsigned char libfuzzer_coverage[64 << 10];
+
+static uint64_t* kcov_data;
+static int kcov_mode = KCOV_TRACE_PC;
+
+int LLVMFuzzerInitialize(__attribute__((unused)) int* argc, __attribute__((unused)) char*** argv);
+int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
+
+static void dump_input(const uint8_t* data, size_t size);
+static void (*fuzz_func)(const uint8_t*, size_t);
+static void fail(const char* msg, ...);
+static void cover_start(void);
+static void cover_stop(void);
+
+int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
 	dump_input(data, size);
 	fuzz_func(data, size);
 	return 0;
 }
 
-void bpf(const char* data, long size)
+void bpf(const uint8_t* data, size_t size)
 {
 	union bpf_attr attr;
 	memset(&attr, 0, sizeof(attr));
@@ -66,21 +84,28 @@ void bpf(const char* data, long size)
 		syscall(SYS_bpf, BPF_PROG_TEST_RUN, &attr, sizeof(attr));
 	}
 	cover_stop();
-	close(pfd);
-	close(mfd);
+
+	if (pfd != -1)
+		close(pfd);
+	if (mfd != -1)
+		close(mfd);
 }
 
-void trace_filter(const char* data, long size)
+void trace_filter(const uint8_t* data, size_t size)
 {
-	int fd0 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/enable", O_RDWR);
-	if (fd0 == -1)
-		fail("open enable failed");
-	int fd1 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/filter", O_RDWR);
-	if (fd1 == -1)
-		fail("open filter failed");
-	int fd2 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/trigger", O_RDWR);
-	if (fd2 == -1)
-		fail("open trigger failed");
+	static int fd0 = -1, fd1 = -1, fd2 = -1;
+	if (fd0 == -1) {
+		fd0 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/enable", O_RDWR);
+		if (fd0 == -1)
+			fail("open enable failed");
+		fd1 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/filter", O_RDWR);
+		if (fd1 == -1)
+			fail("open filter failed");
+		fd2 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/trigger", O_RDWR);
+		if (fd2 == -1)
+			fail("open trigger failed");
+	}
+
 	cover_start();
 	char buf[256];
 	buf[0] = '1';
@@ -94,34 +119,38 @@ void trace_filter(const char* data, long size)
 	buf[0] = '0';
 	write(fd0, buf, 1);
 	cover_stop();
-	close(fd0);
-	close(fd1);
-	close(fd2);
 }
 
-void binfmt(const char* data, long size)
+void binfmt(const uint8_t* data, size_t size)
 {
 	static int fd = -1;
-	if (fd == -1)
+	static int status_fd = -1;
+	if (fd == -1) {
 		fd = open("/proc/sys/fs/binfmt_misc/register", O_WRONLY);
-	if (fd == -1)
-		fail("open(/proc/sys/fs/binfmt_misc/register) failed");
+		if (fd == -1)
+			fail("open(/proc/sys/fs/binfmt_misc/register) failed");
+		status_fd = open("/proc/sys/fs/binfmt_misc/status", O_WRONLY);
+	}
+
+	// Reset previously registered entries so BINFMT_MISC_INTERP_MAX isn't exhausted
+	if (status_fd != -1)
+		(void)write(status_fd, "-1", 2);
+
 	cover_start();
 	write(fd, data, size);
 	cover_stop();
 }
 
 #define KCOV_COVER_SIZE (256 << 10)
-#define KCOV_TRACE_PC 0
-#define KCOV_INIT_TRACE64 _IOR('c', 1, uint64_t)
-#define KCOV_ENABLE _IO('c', 100)
 
-__attribute__((section("__libfuzzer_extra_counters"))) unsigned char libfuzzer_coverage[32 << 10];
-uint64_t* kcov_data;
-
-void init(const char* data, long size)
+int LLVMFuzzerInitialize(__attribute__((unused)) int* argc, __attribute__((unused)) char*** argv)
 {
 	const char* name = getenv("KCOVFUZZER");
+	if (!name) {
+		fail("KCOVFUZZER environment variable is not set.\n"
+		     "Usage: KCOVFUZZER={bpf|trace_filter|binfmt} ./fuzzer [flags] [corpus]");
+	}
+
 	if (strcmp(name, "bpf") == 0)
 		fuzz_func = bpf;
 	else if (strcmp(name, "trace_filter") == 0)
@@ -129,41 +158,125 @@ void init(const char* data, long size)
 	else if (strcmp(name, "binfmt") == 0)
 		fuzz_func = binfmt;
 	else
-		fail("unknown fuzz function '%s'", name);
+		fail("unknown fuzz function '%s' (expected bpf, trace_filter, or binfmt)", name);
 
 	int kcov = open("/sys/kernel/debug/kcov", O_RDWR);
 	if (kcov == -1)
-		fail("open of /sys/kernel/debug/kcov failed");
-	if (ioctl(kcov, KCOV_INIT_TRACE64, KCOV_COVER_SIZE))
+		fail("open of /sys/kernel/debug/kcov failed (check CONFIG_KCOV=y and debugfs mount)");
+	if (ioctl(kcov, KCOV_INIT_TRACE, KCOV_COVER_SIZE))
 		fail("cover init trace write failed");
 	kcov_data = (uint64_t*)mmap(NULL, KCOV_COVER_SIZE * sizeof(kcov_data[0]),
 				    PROT_READ | PROT_WRITE, MAP_SHARED, kcov, 0);
 	if (kcov_data == MAP_FAILED)
 		fail("cover mmap failed");
-	if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_PC))
-		fail("cover enable write trace failed");
-	close(kcov);
 
-	fuzz_func(data, size);
+	const char* cmp_env = getenv("KCOV_CMP");
+	if (cmp_env && (strcmp(cmp_env, "1") == 0 || strcmp(cmp_env, "true") == 0)) {
+		if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_CMP) == 0) {
+			kcov_mode = KCOV_TRACE_CMP;
+			fprintf(stderr, "INFO: KCOV enabled in TRACE_CMP mode\n");
+		} else {
+			fprintf(stderr, "WARN: KCOV_ENABLE(KCOV_TRACE_CMP) failed, falling back to TRACE_PC\n");
+			if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_PC))
+				fail("cover enable write trace failed");
+			kcov_mode = KCOV_TRACE_PC;
+		}
+	} else {
+		if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_PC))
+			fail("cover enable write trace failed");
+		kcov_mode = KCOV_TRACE_PC;
+	}
+	close(kcov);
+	return 0;
 }
 
-void cover_start()
+static inline void record_coverage(uint64_t pc, uint64_t* prev_pc)
+{
+	uint64_t sig = pc;
+	if (*prev_pc) {
+		// Directed edge hash (prev_pc -> pc)
+		sig ^= ((*prev_pc >> 4) | (*prev_pc << 60));
+	}
+	*prev_pc = pc;
+
+	// SplitMix64 mixing to prevent instruction alignment / power-of-2 clustering
+	sig ^= sig >> 30;
+	sig *= 0xbf58476d1ce4e5b9ULL;
+	sig ^= sig >> 27;
+	sig *= 0x94d049bb133111ebULL;
+	sig ^= sig >> 31;
+
+	size_t idx = sig % sizeof(libfuzzer_coverage);
+	// Saturating increment to prevent 256 -> 0 counter wrap-around
+	if (libfuzzer_coverage[idx] < 255)
+		libfuzzer_coverage[idx]++;
+}
+
+static inline void forward_comparison(uint64_t type, uint64_t arg1, uint64_t arg2)
+{
+	bool is_const = (type & KCOV_CMP_CONST);
+	uint64_t size_code = (type & KCOV_CMP_MASK);
+
+	switch (size_code) {
+	case KCOV_CMP_SIZE(0): // 1 byte (log2(1) = 0)
+		if (is_const && __sanitizer_cov_trace_const_cmp1)
+			__sanitizer_cov_trace_const_cmp1((uint8_t)arg1, (uint8_t)arg2);
+		else if (__sanitizer_cov_trace_cmp1)
+			__sanitizer_cov_trace_cmp1((uint8_t)arg1, (uint8_t)arg2);
+		break;
+	case KCOV_CMP_SIZE(1): // 2 bytes (log2(2) = 1)
+		if (is_const && __sanitizer_cov_trace_const_cmp2)
+			__sanitizer_cov_trace_const_cmp2((uint16_t)arg1, (uint16_t)arg2);
+		else if (__sanitizer_cov_trace_cmp2)
+			__sanitizer_cov_trace_cmp2((uint16_t)arg1, (uint16_t)arg2);
+		break;
+	case KCOV_CMP_SIZE(2): // 4 bytes (log2(4) = 2)
+		if (is_const && __sanitizer_cov_trace_const_cmp4)
+			__sanitizer_cov_trace_const_cmp4((uint32_t)arg1, (uint32_t)arg2);
+		else if (__sanitizer_cov_trace_cmp4)
+			__sanitizer_cov_trace_cmp4((uint32_t)arg1, (uint32_t)arg2);
+		break;
+	case KCOV_CMP_SIZE(3): // 8 bytes (log2(8) = 3)
+		if (is_const && __sanitizer_cov_trace_const_cmp8)
+			__sanitizer_cov_trace_const_cmp8(arg1, arg2);
+		else if (__sanitizer_cov_trace_cmp8)
+			__sanitizer_cov_trace_cmp8(arg1, arg2);
+		break;
+	}
+}
+
+void cover_start(void)
 {
 	__atomic_store_n(&kcov_data[0], 0, __ATOMIC_RELAXED);
 }
 
-void cover_stop()
+void cover_stop(void)
 {
-	uint64_t ncov = __atomic_load_n(&kcov_data[0], __ATOMIC_RELAXED);
-	if (ncov >= KCOV_COVER_SIZE)
-		fail("too much cover: %llu", ncov);
-	for (uint64_t i = 0; i < ncov; i++) {
-		uint64_t pc = __atomic_load_n(&kcov_data[i + 1], __ATOMIC_RELAXED);
-		libfuzzer_coverage[pc % sizeof(libfuzzer_coverage)]++;
+	uint64_t nrecords = __atomic_load_n(&kcov_data[0], __ATOMIC_RELAXED);
+	uint64_t prev_pc = 0;
+
+	if (kcov_mode == KCOV_TRACE_CMP) {
+		uint64_t max_comps = (KCOV_COVER_SIZE - 1) / 4;
+		if (nrecords > max_comps)
+			nrecords = max_comps;
+
+		struct kcov_comparison_t* cmps = (struct kcov_comparison_t*)&kcov_data[1];
+		for (uint64_t i = 0; i < nrecords; i++) {
+			record_coverage(cmps[i].pc, &prev_pc);
+			forward_comparison(cmps[i].type, cmps[i].arg1, cmps[i].arg2);
+		}
+	} else {
+		if (nrecords >= KCOV_COVER_SIZE)
+			nrecords = KCOV_COVER_SIZE - 1;
+
+		for (uint64_t i = 0; i < nrecords; i++) {
+			uint64_t pc = __atomic_load_n(&kcov_data[i + 1], __ATOMIC_RELAXED);
+			record_coverage(pc, &prev_pc);
+		}
 	}
 }
 
-void dump_input(const char* data, long size)
+void dump_input(const uint8_t* data, size_t size)
 {
 	static int kmsg = -1;
 	if (kmsg == -1) {
@@ -177,32 +290,31 @@ void dump_input(const char* data, long size)
 			fail("write(/proc/sys/kernel/printk_devkmsg) failed");
 		close(printk_devkmsg);
 	}
+
 	char buf[1024];
-	char* pos = buf + sprintf(buf, "INPUT[%ld]: ", size);
-	for (long i = 0; i < size; i++) {
+	int prefix_len = snprintf(buf, sizeof(buf), "INPUT[%zu]: ", size);
+	if (prefix_len < 0 || prefix_len >= (int)sizeof(buf) - 10)
+		return;
+
+	char* pos = buf + prefix_len;
+	for (size_t i = 0; i < size; i++) {
 		if (pos > buf + sizeof(buf) - 10) {
 			*pos++ = '.';
 			*pos++ = '.';
 			*pos++ = '.';
 			break;
 		}
-		char ch = data[i];
+		unsigned char ch = data[i];
 		if (ch >= 0x20 && ch < 0x7f && ch != '\\') {
 			*pos++ = ch;
 			continue;
 		}
 		*pos++ = '\\';
 		*pos++ = 'x';
-		char hi = ch >> 4;
-		if (hi <= 9)
-			*pos++ = '0' + hi;
-		else
-			*pos++ = 'a' + hi - 9;
-		char lo = ch & 0xf;
-		if (lo <= 9)
-			*pos++ = '0' + lo;
-		else
-			*pos++ = 'a' + lo - 9;
+		unsigned char hi = ch >> 4;
+		*pos++ = (hi <= 9) ? ('0' + hi) : ('a' + hi - 10);
+		unsigned char lo = ch & 0xf;
+		*pos++ = (lo <= 9) ? ('0' + lo) : ('a' + lo - 10);
 	}
 	*pos++ = '\n';
 	if (write(kmsg, buf, pos - buf) != pos - buf)
