@@ -38,6 +38,33 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
+// ErrSandboxDisabled is returned by CheckSandbox if sandboxing is turned off rather than broken:
+// the process is not running as root or SYZ_DISABLE_SANDBOXING=yes is set.
+// In this case Sandbox leaves the commands unmodified.
+var ErrSandboxDisabled = errors.New("sandboxing is disabled")
+
+// SandboxOption configures additional behavior for Sandbox.
+type SandboxOption func(*sandboxConfig)
+
+type sandboxConfig struct {
+	readOnly  []string
+	readWrite []string
+}
+
+// SandboxMountRO mounts additional paths read-only inside the sandbox.
+func SandboxMountRO(paths ...string) SandboxOption {
+	return func(c *sandboxConfig) {
+		c.readOnly = append(c.readOnly, paths...)
+	}
+}
+
+// SandboxMountRW mounts additional paths read-write inside the sandbox.
+func SandboxMountRW(paths ...string) SandboxOption {
+	return func(c *sandboxConfig) {
+		c.readWrite = append(c.readWrite, paths...)
+	}
+}
+
 // RunSandboxed runs "bin args..." in dir under Sandbox(cmd, true, true) with timeout.
 func RunSandboxed(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
 	cmd := Command(bin, args...)
@@ -62,7 +89,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	}
 	setPdeathsig(cmd, true)
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start %v %+v: %w", cmd.Path, cmd.Args, err)
+		return nil, fmt.Errorf("failed to start %v %+v: %w", cmd.Path, cmdArgs(cmd), err)
 	}
 	done := make(chan bool)
 	timedout := make(chan bool, 1)
@@ -81,9 +108,9 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	err := cmd.Wait()
 	close(done)
 	if err != nil {
-		retErr := fmt.Errorf("failed to run %q: %w", cmd.Args, err)
+		retErr := fmt.Errorf("failed to run %q: %w", cmdArgs(cmd), err)
 		if <-timedout {
-			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmd.Args)
+			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmdArgs(cmd))
 		}
 		exitCode := cmd.ProcessState.ExitCode()
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {

@@ -51,8 +51,9 @@ type Target struct {
 	init      *sync.Once
 	initOther *sync.Once
 	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
-	other    *Target
-	timeouts Timeouts
+	other         *Target
+	timeouts      Timeouts
+	usesSourceDir bool
 }
 
 // KernelAddresses contain approximate rounded up kernel text/data ranges
@@ -937,6 +938,7 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 	if !strings.Contains(*param, sourceDirVar) {
 		return
 	}
+	target.usesSourceDir = true
 	if sourceDir == "" {
 		target.BrokenCompiler = "SOURCEDIR is not set"
 		return
@@ -1191,6 +1193,19 @@ func getSourceDir(target *Target) string {
 		return ret
 	}
 	return os.Getenv("SOURCEDIR")
+}
+
+// ToolchainDirs returns external toolchain/source directories configured for
+// this target via SOURCEDIR_* environment variables.
+func (target *Target) ToolchainDirs() []string {
+	if !target.usesSourceDir {
+		return nil
+	}
+	dir := strings.TrimRight(getSourceDir(target), "/")
+	if dir == "" {
+		return nil
+	}
+	return []string{dir}
 }
 
 func needSyscallDefine(nr uint64) bool     { return true }

@@ -35,8 +35,16 @@ func AvailableMemorySize() (uint64, error) {
 func prolongPipe(r, w *os.File) {
 }
 
-func Sandbox(cmd *exec.Cmd, user, net bool) error {
+func Sandbox(cmd *exec.Cmd, user, net bool, opts ...SandboxOption) error {
 	return nil
+}
+
+func CheckSandbox() error {
+	return nil
+}
+
+func cmdArgs(cmd *exec.Cmd) []string {
+	return cmd.Args
 }
 
 func SandboxChown(files ...string) error {

@@ -9,13 +9,16 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
+	"weak"
 
+	"github.com/google/syzkaller/pkg/osutil/bwrap"
 	"golang.org/x/sys/unix"
 )
 
@@ -68,23 +71,67 @@ func parseMemAvailable(meminfo string) (uint64, error) {
 	return 0, fmt.Errorf("MemAvailable not found in /proc/meminfo")
 }
 
-func Sandbox(cmd *exec.Cmd, user, net bool) error {
+// Sandbox wraps cmd in an isolated bwrap sandbox.
+// If user is true, the command runs as the unprivileged sandbox user.
+// If net is true, network access is completely disabled; otherwise outbound
+// HTTP/HTTPS/git access is routed through the filtered network proxy.
+// cmd.Dir must be set before calling Sandbox.
+func Sandbox(cmd *exec.Cmd, user, net bool, opts ...SandboxOption) error {
 	enabled, uid, gid, err := initSandbox()
 	if err != nil || !enabled {
 		return err
 	}
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = new(syscall.SysProcAttr)
+	var cfg sandboxConfig
+	for _, opt := range opts {
+		opt(&cfg)
 	}
-	if net {
-		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNET | syscall.CLONE_NEWIPC |
-			syscall.CLONE_NEWNS | syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID
-	}
+	var bwrapOpts []bwrap.Option
 	if user {
-		cmd.SysProcAttr.Credential = &syscall.Credential{
-			Uid: uid,
-			Gid: gid,
-		}
+		bwrapOpts = append(bwrapOpts, bwrap.WithUser(uid, gid))
+	}
+	if !net {
+		bwrapOpts = append(bwrapOpts, bwrap.WithNetworkProxy())
+	}
+	if len(cfg.readOnly) > 0 {
+		bwrapOpts = append(bwrapOpts, bwrap.WithReadOnly(cfg.readOnly...))
+	}
+	if len(cfg.readWrite) > 0 {
+		bwrapOpts = append(bwrapOpts, bwrap.WithReadWrite(cfg.readWrite...))
+	}
+	origArgs := cmd.Args
+	if err := bwrap.Wrap(cmd, bwrapOpts...); err != nil {
+		return err
+	}
+	key := weak.Make(cmd)
+	sandboxedArgs.Store(key, origArgs)
+	runtime.AddCleanup(cmd, func(key weak.Pointer[exec.Cmd]) {
+		sandboxedArgs.Delete(key)
+	}, key)
+	return nil
+}
+
+// sandboxedArgs maps the commands wrapped by Sandbox (weak.Pointer[exec.Cmd])
+// to their original arguments ([]string).
+var sandboxedArgs sync.Map
+
+// cmdArgs returns the arguments cmd had before Sandbox replaced them with a bwrap invocation.
+// Error messages must refer to the actual command rather than to dozens of bwrap flags.
+func cmdArgs(cmd *exec.Cmd) []string {
+	if args, ok := sandboxedArgs.Load(weak.Make(cmd)); ok {
+		return args.([]string)
+	}
+	return cmd.Args
+}
+
+// CheckSandbox verifies that sandboxing and bwrap are available and functional.
+// It returns ErrSandboxDisabled if sandboxing is turned off.
+func CheckSandbox() error {
+	enabled, _, _, err := initSandbox()
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return fmt.Errorf("%w (not running as root or SYZ_DISABLE_SANDBOXING=yes)", ErrSandboxDisabled)
 	}
 	return nil
 }
@@ -118,6 +165,7 @@ var (
 	sandboxUsername = "syzkaller"
 	sandboxUID      = ^uint32(0)
 	sandboxGID      = ^uint32(0)
+	sandboxBwrapErr error
 )
 
 func initSandbox() (bool, uint32, uint32, error) {
@@ -131,11 +179,15 @@ func initSandbox() (bool, uint32, uint32, error) {
 			if err1 == nil && err2 == nil {
 				sandboxUID = uint32(uid)
 				sandboxGID = uint32(gid)
+				sandboxBwrapErr = bwrap.Available(sandboxUID, sandboxGID)
 			}
 		}
 	})
 	if sandboxUID == ^uint32(0) {
 		return false, 0, 0, fmt.Errorf("user %q is not found, can't sandbox command", sandboxUsername)
+	}
+	if sandboxBwrapErr != nil {
+		return false, 0, 0, sandboxBwrapErr
 	}
 	return true, sandboxUID, sandboxGID, nil
 }
@@ -159,14 +211,12 @@ func RequireSandbox(t *testing.T) {
 	if os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
 		skip("SYZ_DISABLE_SANDBOXING is set")
 	}
-	u, err := user.Lookup(sandboxUsername)
-	if err != nil {
+	if _, err := user.Lookup(sandboxUsername); err != nil {
 		skip(err.Error())
 	}
-	// Dropping privileges via SysProcAttr.Credential does not update HOME.
-	// TODO: set HOME in cmd.Env inside Sandbox when dropping privileges once
-	// existing callers and container setups are refactored.
-	t.Setenv("HOME", u.HomeDir)
+	if err := CheckSandbox(); err != nil {
+		skip(err.Error())
+	}
 }
 
 // IsSandboxOwned reports whether path is owned by the sandbox user (as opposed to root).

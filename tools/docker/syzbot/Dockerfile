@@ -22,7 +22,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Build essentials:
 	gcc g++ binutils make ccache \
 	# Some common utilities:
-	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf fdisk \
+	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf fdisk bubblewrap socat \
 	# These are needed to build Linux kernel:
 	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 lz4 \
 	zlib1g-dev libncurses-dev libmpc-dev libssl-dev \

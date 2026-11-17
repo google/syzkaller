@@ -50,3 +50,8 @@ func TestParseMemAvailable(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckSandboxDisabled(t *testing.T) {
+	t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+	assert.ErrorIs(t, CheckSandbox(), ErrSandboxDisabled)
+}

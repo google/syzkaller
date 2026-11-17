@@ -77,10 +77,15 @@ func doDisassembleContext(pcs []uint64, kernelObj, kernelSrc string) (string, er
 	vmlinux := filepath.Join(kernelObj, "vmlinux")
 	startAddr, stopAddr := computeAddressBounds(pc)
 
-	out, err := osutil.RunSandboxed(time.Minute, kernelSrc, "llvm-objdump", "-d", "-S",
+	cmd := osutil.Command("llvm-objdump", "-d", "-S",
 		fmt.Sprintf("--start-address=0x%x", startAddr),
 		fmt.Sprintf("--stop-address=0x%x", stopAddr),
 		vmlinux)
+	cmd.Dir = kernelSrc
+	if err := osutil.Sandbox(cmd, true, true, osutil.SandboxMountRO(kernelObj)); err != nil {
+		return "", err
+	}
+	out, err := osutil.Run(time.Minute, cmd)
 	if err != nil {
 		return "", fmt.Errorf("llvm-objdump failed: %w\nOutput: %s", err, string(out))
 	}

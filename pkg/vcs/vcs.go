@@ -207,16 +207,30 @@ type BisectEnv struct {
 	KernelConfig []byte
 }
 
-type RepoOpt int
+type repoConfig struct {
+	precious     bool
+	dontSandbox  bool
+	readOnlyDirs []string
+}
 
-const (
-	// RepoPrecious is intended for command-line tools that work with a user-provided repo.
+type RepoOpt func(*repoConfig)
+
+var (
+	// OptPrecious is intended for command-line tools that work with a user-provided repo.
 	// Such repo won't be re-created to recover from errors, but rather return errors.
 	// If this option is not specified, the repo can be re-created from scratch to recover from any errors.
-	OptPrecious RepoOpt = iota
-	// Don't use sandboxing suitable for pkg/build.
-	OptDontSandbox
+	OptPrecious = RepoOpt(func(c *repoConfig) { c.precious = true })
+	// OptDontSandbox disables sandboxing suitable for pkg/build.
+	OptDontSandbox = RepoOpt(func(c *repoConfig) { c.dontSandbox = true })
 )
+
+// OptReadOnlyDirs mounts additional host directories read-only inside the git sandbox
+// (e.g. a reference repository directory used via git clone --reference).
+func OptReadOnlyDirs(dirs ...string) RepoOpt {
+	return func(c *repoConfig) {
+		c.readOnlyDirs = append(c.readOnlyDirs, dirs...)
+	}
+}
 
 func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
@@ -249,36 +263,28 @@ func NewLKMLRepo(dir string) Repo {
 }
 
 func Patch(dir string, patch []byte) error {
-	// Do --check first to not mess with partially consistent state.
-	args := []string{"apply", "-p1", "--ignore-whitespace", "--check", "-"}
-	cmd := osutil.Command("git", args...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
-	cmd.Stdin = bytes.NewReader(patch)
-	cmd.Dir = dir
-	if output, err := cmd.CombinedOutput(); err != nil {
-		// If it reverses clean, then it's already applied.
-		cmd = osutil.Command("git", "apply", "-p1", "--ignore-whitespace", "--reverse", "--check", "-")
-		if err := osutil.Sandbox(cmd, true, true); err != nil {
-			return err
-		}
-		cmd.Stdin = bytes.NewReader(patch)
+	runApply := func(extraArgs ...string) ([]byte, error) {
+		args := append([]string{"-c", "core.hooksPath=/dev/null", "apply", "-p1", "--ignore-whitespace"}, extraArgs...)
+		args = append(args, "-")
+		cmd := osutil.Command("git", args...)
 		cmd.Dir = dir
-		if _, err := cmd.CombinedOutput(); err == nil {
+		cmd.Env = filterEnv()
+		cmd.Stdin = bytes.NewReader(patch)
+		if err := osutil.Sandbox(cmd, true, true); err != nil {
+			return nil, err
+		}
+		return cmd.CombinedOutput()
+	}
+	// Do --check first to not mess with partially consistent state.
+	if output, err := runApply("--check"); err != nil {
+		// If it reverses clean, then it's already applied.
+		if _, err := runApply("--reverse", "--check"); err == nil {
 			return fmt.Errorf("patch is already applied")
 		}
 		return fmt.Errorf("failed to apply patch:\n%s", output)
 	}
 	// Now apply for real.
-	args = []string{"apply", "-p1", "--ignore-whitespace", "-"}
-	cmd = osutil.Command("git", args...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
-	cmd.Stdin = bytes.NewReader(patch)
-	cmd.Dir = dir
-	if output, err := cmd.CombinedOutput(); err != nil {
+	if output, err := runApply(); err != nil {
 		return fmt.Errorf("failed to apply patch after dry run:\n%s", output)
 	}
 	return nil

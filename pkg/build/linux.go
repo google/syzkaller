@@ -171,9 +171,6 @@ func runMake(params Params, extraArgs ...string) error {
 		makeBin = "make"
 	}
 	cmd := osutil.Command(makeBin, args...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
 	cmd.Dir = params.KernelDir
 	cmd.Env = slices.Clone(os.Environ())
 	// This makes the build [more] deterministic:
@@ -186,6 +183,9 @@ func runMake(params Params, extraArgs ...string) error {
 		"KBUILD_BUILD_USER=syzkaller",
 		"KBUILD_BUILD_HOST=syzkaller",
 	)
+	if err := osutil.Sandbox(cmd, true, true, osutil.SandboxMountRO(target.ToolchainDirs()...)); err != nil {
+		return err
+	}
 	output, err := osutil.Run(time.Hour, cmd)
 	params.Tracer.Logf("build log:\n%s", output)
 	return err

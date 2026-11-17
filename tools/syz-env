@@ -71,7 +71,7 @@ fi
 # the syzkaller sandbox user (uid 2000) in a user namespace so created/modified
 # files in the workspace keep the host user's ownership while sandbox tests can
 # switch between root and the unprivileged syzkaller user.
-DOCKERARGS+=" --cap-add=SYS_ADMIN"
+DOCKERARGS+=" --cap-add=SYS_ADMIN --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt systempaths=unconfined"
 if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; then
 	DOCKERARGS+=" --env SYZ_HOST_UID=$(id -u ${USER}) --env SYZ_HOST_GID=$(id -g ${USER})"
 fi

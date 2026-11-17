@@ -85,6 +85,13 @@ func TestBSDCrossTargetScoping(t *testing.T) {
 	}
 }
 
+func TestToolchainDirs(t *testing.T) {
+	t.Setenv("SOURCEDIR", "")
+	t.Setenv("SOURCEDIR_NETBSD", "/syzkaller/shared/netbsd/")
+	assert.Empty(t, Get(Linux, AMD64).ToolchainDirs())
+	assert.Equal(t, []string{"/syzkaller/shared/netbsd"}, Get(NetBSD, AMD64).ToolchainDirs())
+}
+
 func writeMinimalELF(t *testing.T, path string, osabi elf.OSABI, machine elf.Machine, class elf.Class) {
 	t.Helper()
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))
