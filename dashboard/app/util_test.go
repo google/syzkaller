@@ -403,17 +403,11 @@ func (ctx *Ctx) ContentType(url string) (string, error) {
 	return values[0], nil
 }
 
-func (ctx *Ctx) httpRequest(method, url, body, contentType string,
-	access AccessLevel) (*httptest.ResponseRecorder, error) {
-	ctx.t.Logf("%v: %v", method, url)
-	r, err := ctx.inst.NewRequest(method, url, strings.NewReader(body))
-	if err != nil {
-		ctx.t.Fatal(err)
-	}
+func (ctx *Ctx) newTestRequest(method, targetURL, body string, access AccessLevel) *http.Request {
+	ctx.t.Helper()
+	r, err := ctx.inst.NewRequest(method, targetURL, strings.NewReader(body))
+	require.NoError(ctx.t, err)
 	r.Header.Add("X-Appengine-User-IP", "127.0.0.1")
-	if contentType != "" {
-		r.Header.Add("Content-Type", contentType)
-	}
 	r = registerRequest(r, ctx)
 	r = r.WithContext(ctx.transformContext(r.Context()))
 	switch access {
@@ -421,6 +415,16 @@ func (ctx *Ctx) httpRequest(method, url, body, contentType string,
 		aetest.Login(makeUser(AuthorizedAdmin), r)
 	case AccessUser:
 		aetest.Login(makeUser(AuthorizedUser), r)
+	}
+	return r
+}
+
+func (ctx *Ctx) httpRequest(method, url, body, contentType string,
+	access AccessLevel) (*httptest.ResponseRecorder, error) {
+	ctx.t.Logf("%v: %v", method, url)
+	r := ctx.newTestRequest(method, url, body, access)
+	if contentType != "" {
+		r.Header.Add("Content-Type", contentType)
 	}
 	w := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(w, r)

@@ -538,10 +538,15 @@ func populateBuildEnv(ctx context.Context, w http.ResponseWriter, r *http.Reques
 }
 
 func init() {
-	// Prevent warnings about dead code.
+	// Prevent warnings about dead code for manual maintenance helpers not wired to HTTP routes.
 	runtime.KeepAlive(dropNamespace)
 	runtime.KeepAlive(dropEntities)
 	runtime.KeepAlive(adminSendEmail)
 	runtime.KeepAlive(updateHeadReproLevel)
 	runtime.KeepAlive(updateCrashPriorities)
+	runtime.KeepAlive(restartFailedBisections)
+	runtime.KeepAlive(updateBugReporting)
+	runtime.KeepAlive(setMissingBugFields)
+	runtime.KeepAlive(forceCommitInfoUpdate)
+	runtime.KeepAlive(populateBuildEnv)
 }

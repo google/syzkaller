@@ -4,6 +4,8 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,8 +33,8 @@ func TestPopulateBuildEnv(t *testing.T) {
 	c.client2.UploadBuild(unknownBuild)
 	c.client2.ReportCrash(testCrash(unknownBuild, 2))
 
-	_, err := c.GET("/admin?action=populate_build_env")
-	require.NoError(t, err)
+	req := c.newTestRequest(http.MethodPost, "/admin", "", AccessAdmin)
+	require.NoError(t, populateBuildEnv(req.Context(), httptest.NewRecorder(), req))
 
 	dbOldBuild, err := loadBuild(c.ctx, "test2", oldBuild.ID)
 	require.NoError(t, err)
