@@ -115,8 +115,6 @@ type Bisecter interface {
 	// If the commit itself has a release tag, this tag is not included.
 	PreviousReleaseTags(commit, compilerType string) ([]string, error)
 
-	IsRelease(commit string) (bool, error)
-
 	EnvForCommit(defaultCompiler, compilerType, binDir, commit string,
 		kernelConfig []byte, backports []BackportCommit) (*BisectEnv, error)
 }

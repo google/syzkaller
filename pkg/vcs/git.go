@@ -546,18 +546,6 @@ func (git *gitRepo) previousReleaseTags(commit string, self, onlyTop, includeRC 
 	return tags, nil
 }
 
-func (git *gitRepo) IsRelease(commit string) (bool, error) {
-	tags1, err := git.previousReleaseTags(commit, true, false, false)
-	if err != nil {
-		return false, err
-	}
-	tags2, err := git.previousReleaseTags(commit, false, false, false)
-	if err != nil {
-		return false, err
-	}
-	return len(tags1) != len(tags2), nil
-}
-
 func (git *gitRepo) Object(name, commit string) ([]byte, error) {
 	return git.Run("show", fmt.Sprintf("%s:%s", commit, name))
 }
