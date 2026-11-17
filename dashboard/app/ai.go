@@ -291,7 +291,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		if err := handleAIJobCreate(ctx, r, hdr); err != nil {
 			hdr.Message = err.Error()
 		} else {
-			hdr.Message = fmt.Sprintf("AI workflow %v is created", r.FormValue("ai-job-create"))
+			hdr.Message = fmt.Sprintf("AI workflow %v is created", r.PostFormValue("ai-job-create"))
 		}
 	}
 	currentWorkflow := r.FormValue("workflow")
@@ -417,7 +417,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 	if !hdr.AIActions {
 		return ErrAccess
 	}
-	workflow := r.FormValue("ai-job-create")
+	workflow := r.PostFormValue("ai-job-create")
 
 	if workflow == "" {
 		return fmt.Errorf("%w: workflow is required", ErrClientBadRequest)
@@ -431,9 +431,9 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 
 	args := map[string]any{}
 
-	if config := r.FormValue("KernelConfig"); config != "" {
+	if config := r.PostFormValue("KernelConfig"); config != "" {
 		args["KernelConfig"] = config
-	} else if manager := r.FormValue("KernelConfigManager"); manager != "" {
+	} else if manager := r.PostFormValue("KernelConfigManager"); manager != "" {
 		build, err := lastManagerBuild(ctx, hdr.Namespace, manager)
 		if err != nil {
 			return fmt.Errorf("%w: failed to get manager build config: %w", ErrClientBadRequest, err)
@@ -450,7 +450,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 			args[field.ID] = field.DefaultValue
 			continue
 		}
-		val := r.FormValue(field.ID)
+		val := r.PostFormValue(field.ID)
 		if field.Required && val == "" {
 			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
 		}
@@ -460,7 +460,7 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 		args[field.ID] = val
 	}
 
-	externalBugID := strings.TrimSpace(r.FormValue("ExternalBugID"))
+	externalBugID := strings.TrimSpace(r.PostFormValue("ExternalBugID"))
 	_, err := aidb.CreateJob(ctx, &aidb.Job{
 		Type:          spec.Type,
 		Workflow:      workflow,
@@ -503,11 +503,7 @@ func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *A
 }
 
 func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hdr *uiHeader) (string, error) {
-	if r.Method != http.MethodPost {
-		return "", nil
-	}
-
-	action := r.FormValue("action")
+	action := r.PostFormValue("action")
 	if action == "" {
 		return "", nil
 	}
@@ -541,7 +537,7 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 		if !job.Finished.Valid || job.Error != "" {
 			return "", fmt.Errorf("job is in wrong state to be modified")
 		}
-		correct := r.FormValue("correct")
+		correct := r.PostFormValue("correct")
 		return "", handleAIJobPageCorrectness(ctx, job, correct, "", user.Email)
 
 	case "test_repro_c":
@@ -762,18 +758,9 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	currentReporting, nextStageCfg, err := getJobStageInfo(ctx, job)
+	currentStageStr, nextStageStr, err := getJobStageNames(ctx, job)
 	if err != nil {
 		return err
-	}
-
-	currentStageStr := ""
-	if currentReporting != nil {
-		currentStageStr = currentReporting.Stage
-	}
-	nextStageStr := ""
-	if nextStageCfg != nil {
-		nextStageStr = nextStageCfg.Name
 	}
 
 	var args map[string]any
@@ -798,17 +785,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	}
 
 	if !hdr.Admin {
-		sanitizeUIJobs(uiJobs...)
-		for _, h := range uiHistory {
-			if h.Error != "" {
-				h.Error = aiErrorPlaceholder
-			}
-		}
-		for _, span := range uiTrajectory {
-			if span.Error != "" {
-				span.Error = aiErrorPlaceholder
-			}
-		}
+		sanitizeAIJobPage(uiJobs, uiHistory, uiTrajectory)
 	}
 
 	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
@@ -837,6 +814,36 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 	return serveTemplate(w, "ai_job.html", page)
+}
+
+func getJobStageNames(ctx context.Context, job *aidb.Job) (string, string, error) {
+	currentReporting, nextStageCfg, err := getJobStageInfo(ctx, job)
+	if err != nil {
+		return "", "", err
+	}
+	var currentStage, nextStage string
+	if currentReporting != nil {
+		currentStage = currentReporting.Stage
+	}
+	if nextStageCfg != nil {
+		nextStage = nextStageCfg.Name
+	}
+	return currentStage, nextStage, nil
+}
+
+func sanitizeAIJobPage(uiJobs []*uiAIJob, uiHistory []*uiJobReviewHistory,
+	uiTrajectory []*aflowhtml.UIAITrajectorySpan) {
+	sanitizeUIJobs(uiJobs...)
+	for _, h := range uiHistory {
+		if h.Error != "" {
+			h.Error = aiErrorPlaceholder
+		}
+	}
+	for _, span := range uiTrajectory {
+		if span.Error != "" {
+			span.Error = aiErrorPlaceholder
+		}
+	}
 }
 
 func handleAIJobPageJSON(ctx context.Context, w http.ResponseWriter, r *http.Request,

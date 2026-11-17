@@ -16,7 +16,16 @@ Main page.
 	{{if $.Stopped}}
 		<div class="emergency-stopped">Syzbot is in the emergency stop state</div>
 	{{else}}
-		<div class="emergency-stop">Syzbot is reporting too many bugs? {{link $.StopLink "Emergency stop"}} [click {{$.MoreStopClicks}} more times]<br />
+		<div class="emergency-stop">Syzbot is reporting too many bugs?
+		{{if $.ConfirmStop}}
+			<form action="/admin" method="POST" class="inline-form">
+				<input type="hidden" name="action" value="emergency_stop">
+				<button type="submit" class="link-button">Emergency stop</button>
+			</form>
+		{{else}}
+			{{link $.StopLink "Emergency stop"}}
+		{{end}}
+		[click {{$.MoreStopClicks}} more times]<br />
 		In this mode, syzbot will stop all reporting and won't record any new findings.</div>
 	{{end}}
 
@@ -46,7 +55,12 @@ Main page.
 			<td class="stat">{{.Items}}</td>
 			<td class="stat">{{.Bytes}}</td>
 			<td class="stat">{{.Oldest}}</td>
-			<td><a href="?action=memcache_flush">flush</a></td>
+			<td>
+				<form action="/admin" method="POST" class="inline-form">
+					<input type="hidden" name="action" value="memcache_flush">
+					<button type="submit" class="link-button">flush</button>
+				</form>
+			</td>
 		</tr>
 	</table>
 	{{end}}

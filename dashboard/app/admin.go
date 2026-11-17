@@ -19,7 +19,7 @@ import (
 )
 
 func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	encodedKey := r.FormValue("key")
+	encodedKey := r.PostFormValue("key")
 	if encodedKey == "" {
 		return fmt.Errorf("mandatory parameter key is missing")
 	}
@@ -33,7 +33,7 @@ func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *ht
 		return fmt.Errorf("%w: %v is not a job key", ErrClientBadRequest, jobKey)
 	}
 
-	err = invalidateBisection(ctx, jobKey, r.FormValue("restart") == "1")
+	err = invalidateBisection(ctx, jobKey, r.PostFormValue("restart") == "1")
 	if err != nil {
 		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
 	}

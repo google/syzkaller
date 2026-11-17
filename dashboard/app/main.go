@@ -13,7 +13,6 @@ import (
 	"html/template"
 	"net/http"
 	_ "net/http/pprof" // app.yaml restricts this to admins
-	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -38,7 +37,6 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/memcache"
-	"google.golang.org/appengine/v2/user"
 	proto "google.golang.org/genproto/googleapis/appengine/logging/v1"
 	ltype "google.golang.org/genproto/googleapis/logging/type"
 )
@@ -227,6 +225,7 @@ type uiAdminPage struct {
 	JobOverviewLink     string
 	MemcacheStats       *memcache.Statistics
 	Stopped             bool
+	ConfirmStop         bool
 	StopLink            string
 	MoreStopClicks      int
 }
@@ -485,10 +484,10 @@ type uiCrashTable struct {
 
 type uiJob struct {
 	*dashapi.JobInfo
-	Crash             *uiCrash
-	InvalidateJobLink string
-	RestartJobLink    string
-	FixCandidate      bool
+	Crash *uiCrash
+	// InvalidateJobKey is set only for bisection jobs that the admin can invalidate on the bug page.
+	InvalidateJobKey string `json:"-"`
+	FixCandidate     bool
 	// AIBisection is set if this is not a syz-ci job, but a result of an AI bisection job.
 	AIBisection bool
 	// StillPresent is set if AI fix bisection determined that the bug is not fixed yet.
@@ -719,6 +718,9 @@ func handleInvalid(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 }
 
 func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost && r.FormValue("send-repro") != "" {
+		return ErrClientMethodNotAllowed
+	}
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
@@ -742,12 +744,14 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 	accessLevel := accessLevel(ctx, r)
 	if accessLevel >= AccessUser {
 		managerPage.ShowReproForm = true
-		if repro := r.FormValue("send-repro"); repro != "" {
-			err := saveReproTask(ctx, hdr.Namespace, manager.Name, []byte(repro))
-			if err != nil {
-				return fmt.Errorf("failed to request reproduction: %w", err)
+		if r.Method == http.MethodPost {
+			if repro := r.PostFormValue("send-repro"); repro != "" {
+				err := saveReproTask(ctx, hdr.Namespace, manager.Name, []byte(repro))
+				if err != nil {
+					return fmt.Errorf("failed to request reproduction: %w", err)
+				}
+				managerPage.Message = "Repro request was saved!"
 			}
-			managerPage.Message = "Repro request was saved!"
 		}
 		tasks, err := loadReproTasks(ctx, hdr.Namespace, manager.Name, 5)
 		if err != nil {
@@ -1112,20 +1116,24 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 	if accessLevel != AccessAdmin {
 		return ErrAccess
 	}
-	switch action := r.FormValue("action"); action {
-	case "":
-	case "memcache_flush":
-		if err := memcache.Flush(ctx); err != nil {
-			return fmt.Errorf("failed to flush memcache: %w", err)
+	if r.Method != http.MethodPost && r.FormValue("action") != "" {
+		return ErrClientMethodNotAllowed
+	}
+	if r.Method == http.MethodPost {
+		switch action := r.PostFormValue("action"); action {
+		case "memcache_flush":
+			if err := memcache.Flush(ctx); err != nil {
+				return fmt.Errorf("failed to flush memcache: %w", err)
+			}
+		case "invalidate_bisection":
+			return handleInvalidateBisection(ctx, w, r)
+		case "emergency_stop":
+			if err := recordEmergencyStop(ctx); err != nil {
+				return fmt.Errorf("failed to record an emergency stop: %w", err)
+			}
+		default:
+			return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 		}
-	case "invalidate_bisection":
-		return handleInvalidateBisection(ctx, w, r)
-	case "emergency_stop":
-		if err := recordEmergencyStop(ctx); err != nil {
-			return fmt.Errorf("failed to record an emergency stop: %w", err)
-		}
-	default:
-		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
@@ -1204,7 +1212,8 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 	}
 	if r.FormValue("stop_clicked") != "" {
 		data.MoreStopClicks = 1
-		data.StopLink = urlutil.SetParam("/admin", "action", "emergency_stop")
+		data.ConfirmStop = true
+		data.StopLink = ""
 	}
 	if r.FormValue("job_type") != "" {
 		data.TypeJobs = &uiJobList{Title: "Last jobs:", Jobs: typeJobs}
@@ -1249,32 +1258,9 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	var aiWorkflows []*uiWorkflow
-	var aiJobs []*uiAIJob
-	var patchVersions []*uiPatchVersion
-	if hdr.AI {
-		if hdr.AIActions {
-			aiWorkflows, err = aiBugWorkflows(ctx, bug)
-			if err != nil {
-				return err
-			}
-		}
-		jobs, err := aidb.LoadBugJobs(ctx, bug.keyHash(ctx))
-		if err != nil {
-			return err
-		}
-		jobs = compactAIJobs(jobs)
-		for _, job := range jobs {
-			aiJobs = append(aiJobs, makeUIAIJob(job))
-		}
-		if !hdr.Admin {
-			sanitizeUIJobs(aiJobs...)
-		}
-
-		patchVersions, err = getPatchVersions(ctx, bug, jobs, hdr.AIActions)
-		if err != nil {
-			return err
-		}
+	aiWorkflows, aiJobs, patchVersions, err := loadBugAI(ctx, bug, hdr)
+	if err != nil {
+		return err
 	}
 	managers, err := CachedManagerList(ctx, bug.Namespace)
 	if err != nil {
@@ -1299,13 +1285,8 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
-	if workflow := r.FormValue("ai-job-create"); workflow != "" {
-		if err := handleBugJobCreate(ctx, r, hdr, bug, aiWorkflows, workflow); err != nil {
-			return err
-		}
-	}
-	if reportingID := r.FormValue("ai-job-iteration"); reportingID != "" {
-		if err := handleManualIterationJob(ctx, r, hdr, reportingID); err != nil {
+	if r.Method == http.MethodPost {
+		if err := handleBugPost(ctx, r, hdr, bug, aiWorkflows); err != nil {
 			return err
 		}
 	}
@@ -1315,6 +1296,53 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func loadBugAI(ctx context.Context, bug *Bug, hdr *uiHeader) (
+	[]*uiWorkflow, []*uiAIJob, []*uiPatchVersion, error) {
+	if !hdr.AI {
+		return nil, nil, nil, nil
+	}
+	var aiWorkflows []*uiWorkflow
+	var err error
+	if hdr.AIActions {
+		aiWorkflows, err = aiBugWorkflows(ctx, bug)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	jobs, err := aidb.LoadBugJobs(ctx, bug.keyHash(ctx))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	jobs = compactAIJobs(jobs)
+	var aiJobs []*uiAIJob
+	for _, job := range jobs {
+		aiJobs = append(aiJobs, makeUIAIJob(job))
+	}
+	if !hdr.Admin {
+		sanitizeUIJobs(aiJobs...)
+	}
+	patchVersions, err := getPatchVersions(ctx, bug, jobs, hdr.AIActions)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return aiWorkflows, aiJobs, patchVersions, nil
+}
+
+func handleBugPost(ctx context.Context, r *http.Request, hdr *uiHeader,
+	bug *Bug, aiWorkflows []*uiWorkflow) error {
+	if workflow := r.PostFormValue("ai-job-create"); workflow != "" {
+		if err := handleBugJobCreate(ctx, r, hdr, bug, aiWorkflows, workflow); err != nil {
+			return err
+		}
+	}
+	if reportingID := r.PostFormValue("ai-job-iteration"); reportingID != "" {
+		if err := handleManualIterationJob(ctx, hdr, reportingID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func bugDefaultManager(ctx context.Context, bug *Bug, bugDetails *uiBugDetails) string {
@@ -1331,9 +1359,6 @@ func bugDefaultManager(ctx context.Context, bug *Bug, bugDetails *uiBugDetails) 
 func handleBugJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader,
 	bug *Bug, aiWorkflows []*uiWorkflow, workflow string) error {
 	if !hdr.AIActions {
-		return ErrAccess
-	}
-	if r.Method != http.MethodPost {
 		return ErrAccess
 	}
 	args, err := parseAIJobArgs(r, workflow, aiWorkflows)
@@ -1354,12 +1379,8 @@ func handleBugJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader,
 	return nil
 }
 
-func handleManualIterationJob(ctx context.Context, r *http.Request,
-	hdr *uiHeader, reportingID string) error {
+func handleManualIterationJob(ctx context.Context, hdr *uiHeader, reportingID string) error {
 	if !hdr.AIActions {
-		return ErrAccess
-	}
-	if r.Method != http.MethodPost {
 		return ErrAccess
 	}
 	job, err := aidb.CreatePatchIterationJob(ctx, reportingID, true)
@@ -1382,14 +1403,14 @@ func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow)
 			break
 		}
 	}
-	if selected != nil && selected.CustomBaseCommit && r.FormValue("base_commit_type") == "custom" {
-		if r.FormValue("base_commit") == "" {
+	if selected != nil && selected.CustomBaseCommit && r.PostFormValue("base_commit_type") == "custom" {
+		if r.PostFormValue("base_commit") == "" {
 			return nil, fmt.Errorf("custom base commit is empty")
 		}
-		args["BaseCommit"] = r.FormValue("base_commit")
+		args["BaseCommit"] = r.PostFormValue("base_commit")
 	}
-	if selected != nil && selected.SelectManager && r.FormValue("KernelConfigManager") != "" {
-		args["KernelConfigManager"] = r.FormValue("KernelConfigManager")
+	if selected != nil && selected.SelectManager && r.PostFormValue("KernelConfigManager") != "" {
+		args["KernelConfigManager"] = r.PostFormValue("KernelConfigManager")
 	}
 	return args, nil
 }
@@ -1522,7 +1543,9 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if err != nil {
 		return nil, fmt.Errorf("failed to load cause bisections: %w", err)
 	}
-	ret.BisectCauseJobs, err = causeBisections.uiAll(ctx)
+	// Admins can invalidate bisections on the bug page.
+	canInvalidate := accessLevel == AccessAdmin
+	ret.BisectCauseJobs, err = causeBisections.uiAll(ctx, canInvalidate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
@@ -1530,7 +1553,7 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if bug.AIBisectCause.present() {
 		ret.BisectCauseJob = makeUIAIBisectJob(dashapi.JobBisectCause, &bug.AIBisectCause)
 	} else if bug.BisectCause > BisectPending {
-		ret.BisectCauseJob, err = causeBisections.uiBestBisection(ctx)
+		ret.BisectCauseJob, err = causeBisections.uiBestBisection(ctx, canInvalidate)
 		if err != nil {
 			return nil, err
 		}
@@ -1539,20 +1562,20 @@ func loadBugDetails(ctx context.Context, bug *Bug, accessLevel AccessLevel) (*ui
 	if err != nil {
 		return nil, fmt.Errorf("failed to load fix bisections: %w", err)
 	}
-	ret.BisectFixJobs, err = fixBisections.uiAll(ctx)
+	ret.BisectFixJobs, err = fixBisections.uiAll(ctx, canInvalidate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
 	}
 	if bug.AIBisectFix.present() {
 		ret.BisectFixJob = makeUIAIBisectJob(dashapi.JobBisectFix, &bug.AIBisectFix)
 	} else if bug.BisectFix > BisectPending {
-		ret.BisectFixJob, err = fixBisections.uiBestBisection(ctx)
+		ret.BisectFixJob, err = fixBisections.uiBestBisection(ctx, canInvalidate)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if bug.FixCandidateJob != "" {
-		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(ctx)
+		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(ctx, canInvalidate)
 		if err != nil {
 			return nil, err
 		}
@@ -2633,7 +2656,7 @@ func loadJobsOfType(ctx context.Context, t JobType) ([]*uiJob, error) {
 func getUIJobs(ctx context.Context, keys []*db.Key, jobs []*Job) []*uiJob {
 	var results []*uiJob
 	for i, job := range jobs {
-		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, nil))
+		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, nil, false))
 	}
 	return results
 }
@@ -2670,17 +2693,19 @@ func loadTestPatchJobs(ctx context.Context, bug *Bug) ([]*uiJob, error) {
 				return nil, err
 			}
 		}
-		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, build))
+		results = append(results, makeUIJob(ctx, job, keys[i], nil, nil, build, false))
 	}
 	return results, nil
 }
 
-func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
+func makeUIJob(ctx context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build,
+	canInvalidate bool) *uiJob {
 	ui := &uiJob{
-		JobInfo:           makeJobInfo(ctx, job, jobKey, bug, build, crash),
-		InvalidateJobLink: invalidateJobLink(ctx, job, jobKey, false),
-		RestartJobLink:    invalidateJobLink(ctx, job, jobKey, true),
-		FixCandidate:      job.IsCrossTree(),
+		JobInfo:      makeJobInfo(ctx, job, jobKey, bug, build, crash),
+		FixCandidate: job.IsCrossTree(),
+	}
+	if canInvalidate && canInvalidateBisection(job) {
+		ui.InvalidateJobKey = jobKey.Encode()
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(ctx, crash, build)
@@ -2723,23 +2748,9 @@ func showBisectAttempts(shown *uiJob, all []*uiJob) bool {
 	return len(all) > 1 || len(all) == 1 && (shown == nil || shown.AIBisection)
 }
 
-func invalidateJobLink(ctx context.Context, job *Job, jobKey *db.Key, restart bool) string {
-	if !user.IsAdmin(ctx) {
-		return ""
-	}
-	if job.InvalidatedBy != "" || job.Finished.IsZero() {
-		return ""
-	}
-	if job.Type != JobBisectCause && job.Type != JobBisectFix {
-		return ""
-	}
-	params := url.Values{}
-	params.Add("action", "invalidate_bisection")
-	params.Add("key", jobKey.Encode())
-	if restart {
-		params.Add("restart", "1")
-	}
-	return "/admin?" + params.Encode()
+func canInvalidateBisection(job *Job) bool {
+	return job.InvalidatedBy == "" && !job.Finished.IsZero() &&
+		(job.Type == JobBisectCause || job.Type == JobBisectFix)
 }
 
 func formatLogLine(line string) string {
@@ -2832,18 +2843,18 @@ func fetchErrorLogs(ctx context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (j *bugJob) ui(ctx context.Context) (*uiJob, error) {
+func (j *bugJob) ui(ctx context.Context, canInvalidate bool) (*uiJob, error) {
 	err := j.load(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build), nil
+	return makeUIJob(ctx, j.job, j.key, j.bug, j.crash, j.build, canInvalidate), nil
 }
 
-func (b *bugJobs) uiAll(ctx context.Context) ([]*uiJob, error) {
+func (b *bugJobs) uiAll(ctx context.Context, canInvalidate bool) ([]*uiJob, error) {
 	var ret []*uiJob
 	for _, j := range b.all() {
-		obj, err := j.ui(ctx)
+		obj, err := j.ui(ctx, canInvalidate)
 		if err != nil {
 			return nil, err
 		}
@@ -2852,20 +2863,20 @@ func (b *bugJobs) uiAll(ctx context.Context) ([]*uiJob, error) {
 	return ret, nil
 }
 
-func (b *bugJobs) uiBestBisection(ctx context.Context) (*uiJob, error) {
+func (b *bugJobs) uiBestBisection(ctx context.Context, canInvalidate bool) (*uiJob, error) {
 	j := b.bestBisection()
 	if j == nil {
 		return nil, nil
 	}
-	return j.ui(ctx)
+	return j.ui(ctx, canInvalidate)
 }
 
-func (b *bugJobs) uiBestFixCandidate(ctx context.Context) (*uiJob, error) {
+func (b *bugJobs) uiBestFixCandidate(ctx context.Context, canInvalidate bool) (*uiJob, error) {
 	j := b.bestFixCandidate()
 	if j == nil {
 		return nil, nil
 	}
-	return j.ui(ctx)
+	return j.ui(ctx, canInvalidate)
 }
 
 // bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with

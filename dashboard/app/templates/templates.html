@@ -469,8 +469,23 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 
 	{{if not .Reported}}[report pending]<br>{{end}}
-	{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;
-	{{optlink .InvalidateJobLink "❌ mark as invalid"}}
+	{{template "bisect_invalidate_buttons" .}}
+{{end}}
+{{end}}
+
+{{define "bisect_invalidate_buttons"}}
+{{if .InvalidateJobKey}}
+	<form action="/admin" method="POST" class="inline-form">
+		<input type="hidden" name="action" value="invalidate_bisection">
+		<input type="hidden" name="key" value="{{.InvalidateJobKey}}">
+		<input type="hidden" name="restart" value="1">
+		<button type="submit" class="link-button">🔄 retry this bisection</button>
+	</form>&nbsp;&nbsp;
+	<form action="/admin" method="POST" class="inline-form">
+		<input type="hidden" name="action" value="invalidate_bisection">
+		<input type="hidden" name="key" value="{{.InvalidateJobKey}}">
+		<button type="submit" class="link-button">❌ mark as invalid</button>
+	</form>
 {{end}}
 {{end}}
 
@@ -588,7 +603,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{ if $job.InvalidatedBy }}
 						<br>marked invalid by {{$job.InvalidatedBy}}
 					{{end}}
-					{{if and $.PerBug (or .InvalidateJobLink .RestartJobLink)}}<br>{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
+					{{if $job.InvalidateJobKey}}<br>{{template "bisect_invalidate_buttons" $job}}{{end}}
 				</td>
 			</tr>
 		{{end}}

@@ -180,8 +180,11 @@ type (
 	ErrRedirect struct{ error }
 )
 
-var ErrClientNotFound = &ErrClient{errors.New("resource not found")}
-var ErrClientBadRequest = &ErrClient{errors.New("bad request")}
+var (
+	ErrClientNotFound         = &ErrClient{errors.New("resource not found")}
+	ErrClientBadRequest       = &ErrClient{errors.New("bad request")}
+	ErrClientMethodNotAllowed = &ErrClient{errors.New("method not allowed")}
+)
 
 func (ce *ErrClient) HTTPStatus() int {
 	switch ce {
@@ -189,6 +192,8 @@ func (ce *ErrClient) HTTPStatus() int {
 		return http.StatusNotFound
 	case ErrClientBadRequest:
 		return http.StatusBadRequest
+	case ErrClientMethodNotAllowed:
+		return http.StatusMethodNotAllowed
 	}
 	return http.StatusInternalServerError
 }
