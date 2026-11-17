@@ -20,7 +20,7 @@ env:
 jobs:
   aux:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+    container: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -54,8 +54,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
-      options: --cap-add=SYS_ADMIN
+      image: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
+      options: --cap-add=SYS_ADMIN --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt systempaths=unconfined
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -85,8 +85,8 @@ jobs:
   dashboard:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
-      options: --cap-add=SYS_ADMIN
+      image: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
+      options: --cap-add=SYS_ADMIN --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt systempaths=unconfined
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -115,7 +115,7 @@ jobs:
 
   arch:
     runs-on: ubuntu-latest
-    container: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
+    container: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -141,8 +141,8 @@ jobs:
   race:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
-      options: --cap-add=SYS_ADMIN
+      image: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
+      options: --cap-add=SYS_ADMIN --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt systempaths=unconfined
     timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
@@ -169,8 +169,8 @@ jobs:
   race_dashboard:
     runs-on: ubuntu-22.04-16core
     container:
-      image: gcr.io/syzkaller/env@sha256:ed983a68e39384a4d73dc2cc2ac7289e0a1c4ece6b749822cb6b6fb65f007bc2
-      options: --cap-add=SYS_ADMIN
+      image: gcr.io/syzkaller/env@sha256:9b30f0a771980bb75689e310febc65b91e8245bf6739c8b8cbd6d853b43c7fe0
+      options: --cap-add=SYS_ADMIN --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt systempaths=unconfined
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
@@ -215,7 +215,7 @@ jobs:
   gvisor:
     runs-on: ubuntu-latest
     container:
-      image: gcr.io/syzkaller/syzbot@sha256:eae4ac6b6abef26ed481606c0413c9b65a83de9e8823d25aefeab09587140ce0
+      image: gcr.io/syzkaller/syzbot@sha256:8210591b4a98049c91a0bc0fd97376584918cbc75f08becb5a3fa500309cf93b
       options: --privileged
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
