@@ -8,6 +8,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 <a href="{{.}}" title="help" target="_blank" class="info_link">🛈</a>
 {{end}}
 
+{{/* Hidden input that every POST form must include, invoked with the CSRF token string */}}
+{{define "csrf_field"}}<input type="hidden" name="csrf-token" value="{{.}}">{{end}}
+
 {{/* Common page head part, invoked with *uiHeader */}}
 {{define "head"}}
 	{{/* Required meta tags for responsive design on mobile devices */}}
@@ -476,12 +479,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "bisect_invalidate_buttons"}}
 {{if .InvalidateJobKey}}
 	<form action="/admin" method="POST" class="inline-form">
+		{{template "csrf_field" .CSRFToken}}
 		<input type="hidden" name="action" value="invalidate_bisection">
 		<input type="hidden" name="key" value="{{.InvalidateJobKey}}">
 		<input type="hidden" name="restart" value="1">
 		<button type="submit" class="link-button">🔄 retry this bisection</button>
 	</form>&nbsp;&nbsp;
 	<form action="/admin" method="POST" class="inline-form">
+		{{template "csrf_field" .CSRFToken}}
 		<input type="hidden" name="action" value="invalidate_bisection">
 		<input type="hidden" name="key" value="{{.InvalidateJobKey}}">
 		<button type="submit" class="link-button">❌ mark as invalid</button>
@@ -765,6 +770,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td>
 				{{if $v.CanIterate}}
 					<form method="POST" style="display:inline;">
+						{{template "csrf_field" $.Header.CSRFToken}}
 						<input type="hidden" name="ai-job-iteration" value="{{$v.ReportingID}}">
 						<button class="button" type="submit">Process Comments</button>
 					</form>
@@ -807,6 +813,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 			{{if and $.ShowTestOnManager $job.CanTestOnManager}}
 				<form action="/ai_job" method="POST" style="display:inline-block; margin-left: 5px;">
+					{{template "csrf_field" $.Header.CSRFToken}}
 					<input type="hidden" name="id" value="{{$job.ID}}">
 					<input type="hidden" name="action" value="test_repro_c">
 					<input type="submit" value="Test on Manager" class="btn">

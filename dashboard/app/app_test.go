@@ -52,6 +52,7 @@ func init() {
 // Config used in tests.
 var testConfig = &GlobalConfig{
 	AccessLevel: AccessPublic,
+	CSRFSecret:  "test-csrf-secret-0123456789abcdef",
 	ACL: []*ACLItem{
 		{
 			Domain: "syzkaller.com",

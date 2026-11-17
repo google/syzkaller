@@ -23,6 +23,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<div class="content">
 			<div class="input-values">
 				<form method="POST">
+					{{template "csrf_field" .Header.CSRFToken}}
 					<span class="input-group">
 					<textarea name="send-repro"></textarea>
 					</span>

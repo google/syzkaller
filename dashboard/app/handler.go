@@ -28,7 +28,7 @@ import (
 type contextHandler func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handlerWrapper(fn contextHandler) http.Handler {
-	return handleContext(handleAuth(fn))
+	return handleContext(handleAuth(handleCSRF(fn)))
 }
 
 func handleContext(fn contextHandler) http.Handler {
@@ -183,6 +183,7 @@ type (
 var (
 	ErrClientNotFound         = &ErrClient{errors.New("resource not found")}
 	ErrClientBadRequest       = &ErrClient{errors.New("bad request")}
+	ErrClientForbidden        = &ErrClient{errors.New("forbidden")}
 	ErrClientMethodNotAllowed = &ErrClient{errors.New("method not allowed")}
 )
 
@@ -192,6 +193,8 @@ func (ce *ErrClient) HTTPStatus() int {
 		return http.StatusNotFound
 	case ErrClientBadRequest:
 		return http.StatusBadRequest
+	case ErrClientForbidden:
+		return http.StatusForbidden
 	case ErrClientMethodNotAllowed:
 		return http.StatusMethodNotAllowed
 	}
@@ -218,8 +221,9 @@ func serveTemplate(w http.ResponseWriter, name string, data any) error {
 
 type uiHeader struct {
 	Admin               bool
-	AI                  bool // Enable UI elements related to AI
-	AIActions           bool // Allow actions related to AI (create/assess jobs)
+	AI                  bool   // Enable UI elements related to AI
+	AIActions           bool   // Allow actions related to AI (create/assess jobs)
+	CSRFToken           string `json:"-"`
 	URLPath             string
 	LoginLink           string
 	AnalyticsTrackingID string
@@ -319,6 +323,9 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 		h.BugCounts = &cached.Total
 		h.MissingBackports = cached.MissingBackports
 		h.ShowCoverageMenu = cfg.Coverage != nil
+	}
+	if accessLevel >= AccessUser {
+		h.CSRFToken = generateCSRFToken(ctx)
 	}
 	return h, nil
 }

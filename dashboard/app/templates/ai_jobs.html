@@ -23,6 +23,7 @@ List of AI jobs page.
 		</div>
 		<div class="content">
 			<form method="POST" class="ai-jobs-form">
+				{{template "csrf_field" .Header.CSRFToken}}
 				<label for="ai-job-create">Workflow:</label>
 				<select name="ai-job-create" id="ai-job-create" onchange="showManualWorkflowFields(this)">
 					{{range .ManualWorkflows}}

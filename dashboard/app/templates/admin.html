@@ -19,6 +19,7 @@ Main page.
 		<div class="emergency-stop">Syzbot is reporting too many bugs?
 		{{if $.ConfirmStop}}
 			<form action="/admin" method="POST" class="inline-form">
+				{{template "csrf_field" $.Header.CSRFToken}}
 				<input type="hidden" name="action" value="emergency_stop">
 				<button type="submit" class="link-button">Emergency stop</button>
 			</form>
@@ -57,6 +58,7 @@ Main page.
 			<td class="stat">{{.Oldest}}</td>
 			<td>
 				<form action="/admin" method="POST" class="inline-form">
+					{{template "csrf_field" $.Header.CSRFToken}}
 					<input type="hidden" name="action" value="memcache_flush">
 					<button type="submit" class="link-button">flush</button>
 				</form>

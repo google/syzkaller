@@ -72,6 +72,7 @@ func TestLocalUI(t *testing.T) {
 		t.Logf("request: %v", url)
 		req, err := c.inst.NewRequest(r.Method, url, r.Body)
 		require.NoError(t, err)
+		req.Host = r.Host
 		req.Header = r.Header
 		req.Header.Add("X-Appengine-User-IP", "127.0.0.1")
 		req = req.WithContext(c.transformContext(req.Context()))
@@ -88,6 +89,7 @@ func TestLocalUI(t *testing.T) {
 
 var localUIConfig = &GlobalConfig{
 	AccessLevel:         AccessPublic,
+	CSRFSecret:          "local-ui-csrf-secret-0123456789ab",
 	DefaultNamespace:    "upstream",
 	DungeonNamespace:    "upstream",
 	AnalyticsTrackingID: "UA-TEST-12345",

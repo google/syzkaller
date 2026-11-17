@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -370,19 +371,19 @@ func (ctx *Ctx) POST(url, body string) ([]byte, error) {
 	return w.Body.Bytes(), nil
 }
 
-// POST sends an admin-authorized HTTP POST form to the app.
+// POSTForm sends an admin-authorized HTTP POST form to the app.
 func (ctx *Ctx) POSTForm(url string, form url.Values) ([]byte, error) {
-	w, err := ctx.httpRequest("POST", url, form.Encode(),
-		"application/x-www-form-urlencoded", AccessAdmin)
-	if err != nil {
-		return nil, err
-	}
-	return w.Body.Bytes(), nil
+	return ctx.AuthPOSTForm(AccessAdmin, url, form)
 }
 
 // AuthPOSTForm sends HTTP POST form to the app with the specified authorization.
-func (ctx *Ctx) AuthPOSTForm(access AccessLevel, url string, form url.Values) ([]byte, error) {
-	w, err := ctx.httpRequest("POST", url, form.Encode(),
+func (ctx *Ctx) AuthPOSTForm(access AccessLevel, targetURL string, form url.Values) ([]byte, error) {
+	cloned := make(url.Values, len(form)+1)
+	maps.Copy(cloned, form)
+	if !cloned.Has(csrfFormField) && access >= AccessUser {
+		cloned.Set(csrfFormField, ctx.csrfToken(access))
+	}
+	w, err := ctx.httpRequest("POST", targetURL, cloned.Encode(),
 		"application/x-www-form-urlencoded", access)
 	if err != nil {
 		return nil, err
@@ -390,17 +391,10 @@ func (ctx *Ctx) AuthPOSTForm(access AccessLevel, url string, form url.Values) ([
 	return w.Body.Bytes(), nil
 }
 
-// ContentType returns the response Content-Type header value.
-func (ctx *Ctx) ContentType(url string) (string, error) {
-	w, err := ctx.httpRequest("HEAD", url, "", "", AccessAdmin)
-	if err != nil {
-		return "", err
-	}
-	values := w.Header()["Content-Type"]
-	if len(values) == 0 {
-		return "", fmt.Errorf("no Content-Type")
-	}
-	return values[0], nil
+func (ctx *Ctx) csrfToken(access AccessLevel) string {
+	ctx.t.Helper()
+	r := ctx.newTestRequest(http.MethodGet, "/", "", access)
+	return generateCSRFToken(r.Context())
 }
 
 func (ctx *Ctx) newTestRequest(method, targetURL, body string, access AccessLevel) *http.Request {
@@ -419,12 +413,33 @@ func (ctx *Ctx) newTestRequest(method, targetURL, body string, access AccessLeve
 	return r
 }
 
+// ContentType returns the response Content-Type header value.
+func (ctx *Ctx) ContentType(url string) (string, error) {
+	w, err := ctx.httpRequest("HEAD", url, "", "", AccessAdmin)
+	if err != nil {
+		return "", err
+	}
+	values := w.Header()["Content-Type"]
+	if len(values) == 0 {
+		return "", fmt.Errorf("no Content-Type")
+	}
+	return values[0], nil
+}
+
 func (ctx *Ctx) httpRequest(method, url, body, contentType string,
 	access AccessLevel) (*httptest.ResponseRecorder, error) {
+	return ctx.httpRequestWithHeaders(method, url, body, contentType, access, nil)
+}
+
+func (ctx *Ctx) httpRequestWithHeaders(method, url, body, contentType string,
+	access AccessLevel, headers map[string]string) (*httptest.ResponseRecorder, error) {
 	ctx.t.Logf("%v: %v", method, url)
 	r := ctx.newTestRequest(method, url, body, access)
 	if contentType != "" {
 		r.Header.Add("Content-Type", contentType)
+	}
+	for k, v := range headers {
+		r.Header.Set(k, v)
 	}
 	w := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(w, r)

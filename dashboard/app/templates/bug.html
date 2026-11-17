@@ -73,6 +73,7 @@ Page with details about a single bug.
 	{{end}}
 	{{if .AIWorkflows}}
 		<form method="POST">
+			{{template "csrf_field" .Header.CSRFToken}}
 			<select name="ai-job-create" onchange="displayAICreateJobArgs(this)">
 				{{range $flow := .AIWorkflows}}
 					<option value="{{$flow.Name}}"
