@@ -70,10 +70,6 @@ RUN sudo update-alternatives --install /usr/bin/llvm-readelf llvm-readelf /usr/b
 RUN sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-${CLANG_VERSION} 100
 RUN sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-${CLANG_VERSION} 100
 
-# Also install clang-15 to keep bisections alive.
-RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main" | sudo tee /etc/apt/sources.list.d/llvm-bookworm-15.list
-RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends -t llvm-toolchain-bookworm-15 clang-15
 RUN apt-get install libelf-dev libdwarf-dev
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
