@@ -171,6 +171,7 @@ const (
 	FormatStrDec
 	FormatStrHex
 	FormatStrOct
+	FormatStrDecNoPad
 )
 
 type Type interface {

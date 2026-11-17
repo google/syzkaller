@@ -12,7 +12,34 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestFormatDecimal(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	tests := []struct {
+		call  string
+		value uint64
+		want  string
+	}{
+		{"foo$fmt6", 5, "5\x00"},
+		{"foo$fmt6", 10, "10"},
+		{"foo$fmt7", 5, "0005"},
+		{"foo$fmt8", 31, "41"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%d", test.call, test.value), func(t *testing.T) {
+			typ := target.SyscallMap[test.call].Args[0].Type.(*PtrType).Elem
+			arg := MakeConstArg(typ, DirIn, test.value)
+			var elems []Arg
+			target.squashConst(arg, &elems)
+			require.Len(t, elems, 1)
+			got := string(elems[0].(*UnionArg).Option.(*DataArg).Data())
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
 
 func TestIsComplexPtr(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {

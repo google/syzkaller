@@ -45,14 +45,13 @@ md_array_name {
 } [packed]
 
 md_unit [
-# NEED: this does not support formatting numbers larger than 9.
-	num	proc['0', 1, int8]
+	num	fmt[dec, proc[10, 1], 2]
 	named	md_unit_named
 ] [varlen]
 
 md_unit_named {
 	prefix	stringnoz["_syz"]
-	id	proc['a', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	slot	stringnoz[md_unit_slots]
 } [packed]
 
@@ -219,10 +218,9 @@ md_sysfs_rdev_dir [
 	rd	stringnoz[md_sysfs_rd_dirs]
 ] [varlen]
 
-# NEED: this does not support formatting numbers larger than 9.
 md_sysfs_rdev_dir_ram {
 	prefix	stringnoz["dev-ram"]
-	id	proc['0', 2, int8]
+	id	fmt[dec, proc[0, 2], 2]
 	slash	const['/', int8]
 } [packed]
 

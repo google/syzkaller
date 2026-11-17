@@ -81,13 +81,13 @@ define DM_ID_LEN	(8 + DM_NAME_LEN + DM_UUID_PAD_LEN)
 # __find_device_hash_cell() requires lookup ioctls to set only one of name, uuid, or dev.
 dm_dev_name {
 	prefix	stringnoz["syz"]
-	proc	proc['a', 1, int8]
+	proc	fmt[dec, proc[10, 1], 2]
 	slot	string[dm_dev_slots]
 } [packed, size[DM_NAME_LEN]]
 
 dm_dev_uuid {
 	prefix	stringnoz[dm_uuid_prefixes]
-	proc	proc['a', 1, int8]
+	proc	fmt[dec, proc[10, 1], 2]
 	slot	string[dm_dev_slots]
 } [packed, size[DM_UUID_PAD_LEN]]
 
@@ -301,16 +301,15 @@ dm_lengths = 8, 16, 64, 128, 1024, 2048, 4096, 8192
 # Per-proc backing block devices (2 ramdisks and 1 rnull device per proc).
 # Loop devices are not used: /dev/loop<proc> belongs to the executor (syz_mount_image),
 # and DM would claim it even when it is unbound.
-# NEED: dm_dev_proc_t does not support formatting numbers larger than 9.
 dm_dev [
-	ram	dm_dev_proc_t["/dev/ram", 2]
+	ram	dm_dev_proc_t["/dev/ram", 0, 2]
 	ram_num	dm_ram_num
-	rnull	dm_dev_proc_t["/dev/syzrnull", 1]
+	rnull	dm_dev_proc_t["/dev/syzrnull", 10, 1]
 ] [varlen]
 
-type dm_dev_proc_t[PREFIX, PER_PROC] {
+type dm_dev_proc_t[PREFIX, START, PER_PROC] {
 	prefix	stringnoz[PREFIX]
-	id	proc['0', PER_PROC, int8]
+	id	fmt[dec, proc[START, PER_PROC], 2]
 } [packed]
 
 # "major:minor" form accepted by dm_devt_from_path(); 1 is RAMDISK_MAJOR.

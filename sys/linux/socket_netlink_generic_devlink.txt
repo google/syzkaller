@@ -42,8 +42,7 @@ sendmsg$DEVLINK_CMD_RATE_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[D
 
 devlink_devname {
 	prefix	stringnoz["netdevsim"]
-# NEED: this does not support formatting numbers larger than 9.
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	z	const[0, int8]
 } [packed]
 
@@ -237,7 +236,7 @@ openat$nsim_port_qreset(fd const[AT_FDCWD], file ptr[in, nsim_port_path[string["
 write$nsim_port_qreset(fd fd_nsim_qreset, buf ptr[in, nsim_qreset], count bytesize[buf])
 
 nsim_new_device {
-	id		proc['0', 1, int8]
+	id		fmt[dec, proc[10, 1], 2]
 	space1		const[' ', int8]
 	port_count	int8['0':'4']
 	space2		const[' ', int8]
@@ -245,18 +244,18 @@ nsim_new_device {
 } [packed]
 
 nsim_del_device {
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 } [packed]
 
 type nsim_dev_path[SUFFIX] {
 	prefix	stringnoz["/sys/kernel/debug/netdevsim/netdevsim"]
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	suffix	SUFFIX
 } [packed]
 
 type nsim_port_path[SUFFIX] {
 	prefix	stringnoz["/sys/kernel/debug/netdevsim/netdevsim"]
-	id	proc['0', 1, int8]
+	id	fmt[dec, proc[10, 1], 2]
 	ports	stringnoz["/ports/"]
 	port	int8['0':'3']
 	suffix	SUFFIX

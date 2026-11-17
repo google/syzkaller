@@ -21,3 +21,9 @@ bad_size_attr_union [
 ] [size[2]]
 
 bad_size_call(a ptr[in, bad_size_attr_struct], b ptr[in, bad_size_attr_union])
+
+fmt_len_too_small {
+    count fmt[dec0, len[items], 4] ### fmt size 4 is too small for values up to 18446744073709551615
+    items array[int8]
+}
+bad_fmt_len(a ptr[in, fmt_len_too_small])

@@ -71,7 +71,7 @@ ifreq {
 
 ifreq_name {
 	ifr_name	stringnoz["tap"]
-	tapindex	proc['0', 1, int8]
+	tapindex	fmt[dec, proc[0, 1], 2]
 	z		const[0, int8]
 } [size[IFREQ_SIZE]]
 
