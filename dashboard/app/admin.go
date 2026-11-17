@@ -27,6 +27,11 @@ func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *ht
 	if err != nil {
 		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
 	}
+	// The key comes from the request, so don't assume it points to a Job.
+	bugKey := jobKey.Parent()
+	if jobKey.Kind() != "Job" || bugKey == nil {
+		return fmt.Errorf("%w: %v is not a job key", ErrClientBadRequest, jobKey)
+	}
 
 	err = invalidateBisection(ctx, jobKey, r.FormValue("restart") == "1")
 	if err != nil {
@@ -34,7 +39,7 @@ func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 
 	// Sending back to bug page after successful invalidation.
-	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
+	http.Redirect(w, r, bugLink(bugKey.StringID()), http.StatusFound)
 	return nil
 }
 

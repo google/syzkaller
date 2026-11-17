@@ -2916,10 +2916,5 @@ func handleAITestReproCJob(ctx context.Context, aiJob *aidb.Job, r *http.Request
 	if err != nil {
 		return "", err
 	}
-	if redirect := r.FormValue("redirect"); redirect != "" {
-		if strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") {
-			return redirect, nil
-		}
-	}
-	return fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)), nil
+	return bugLink(bug.keyHash(ctx)), nil
 }

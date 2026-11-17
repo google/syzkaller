@@ -1133,6 +1133,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	var httpErr *HTTPError
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
+	c.expectEQ(httpErr.Headers.Get("Location"), bugURL)
 
 	// The invalidated bisection should have vanished from the web UI
 	job, _ = c.loadSingleJob()
@@ -1153,6 +1154,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode()+"&restart=1")
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
+	c.expectEQ(httpErr.Headers.Get("Location"), bugURL)
 	bug, _ = c.loadSingleBug()
 	c.expectEQ(bug.BisectCause, BisectNot)
 
