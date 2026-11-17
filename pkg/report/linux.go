@@ -2342,9 +2342,12 @@ var linuxOopses = append([]*oops{
 		[]byte("Unable to handle kernel"),
 		[]oopsFormat{
 			{
-				title: compile("Unable to handle kernel (paging request|NULL pointer dereference|access to user memory)"),
-				fmt:   "BUG: unable to handle kernel %[1]v in %[2]v",
-				alt:   []string{"bad-access in %[2]v"},
+				// Messages printed by arch/arm64/mm/fault.c (die_kernel_fault) and arm/riscv equivalents.
+				title: compile("Unable to handle kernel (paging request|NULL pointer dereference|access to user memory|" +
+					"write to read-only memory|execute from non-executable memory|read from unreadable memory|" +
+					"execution of user memory|access to hypervisor-protected memory)"),
+				fmt: "BUG: unable to handle kernel %[1]v in %[2]v",
+				alt: []string{"bad-access in %[2]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
