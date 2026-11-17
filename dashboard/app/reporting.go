@@ -550,23 +550,24 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 }
 
 // aiBisectReport converts an AI bisection result that has commits to the form used in bug reports,
-// and returns the email addresses to CC when the result identifies a single commit.
+// and returns the email addresses to CC (the author and commit CCs for a single commit, or the
+// commit authors when multiple candidate commits are present).
 func aiBisectReport(ctx context.Context, res *BugAIBisect) (*dashapi.BisectResult, []string) {
 	bisect := &dashapi.BisectResult{
 		LogLink: fmt.Sprintf("%v/ai_job?id=%v", appURL(ctx), res.JobID),
 		AI:      true,
 	}
+	var emails []string
 	for _, com := range res.Commits {
 		bisect.Commits = append(bisect.Commits, com.toDashapi())
+		emails = append(emails, com.Author)
 	}
-	var emails []string
 	if len(bisect.Commits) == 1 {
 		bisect.Commit = bisect.Commits[0]
 		bisect.Commits = nil
-		com := res.Commits[0]
-		emails = sanitizeCC(ctx, email.MergeEmailLists([]string{com.Author}, strings.Split(com.CC, "|")))
+		emails = append(emails, strings.Split(res.Commits[0].CC, "|")...)
 	}
-	return bisect, emails
+	return bisect, sanitizeCC(ctx, email.MergeEmailLists(emails))
 }
 
 // crashBugReport fills in crash and build related fields into *dashapi.BugReport.
