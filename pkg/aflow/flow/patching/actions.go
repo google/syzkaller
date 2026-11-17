@@ -6,10 +6,8 @@ package patching
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
@@ -89,18 +87,12 @@ type maintainersResult struct {
 func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, error) {
 	res := maintainersResult{}
 	// See #1441 re --git-min-percent.
-	script := filepath.Join(args.KernelSrc, "scripts/get_maintainer.pl")
-	cmd := osutil.Command(script, "--git-min-percent=15")
-	cmd.Dir = args.KernelSrc
-	cmd.Stdin = strings.NewReader(args.PatchDiff)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return res, err
-	}
-	output, err := osutil.Run(time.Minute, cmd)
+	recipients, err := vcs.RunGetMaintainer(args.KernelSrc, strings.NewReader(args.PatchDiff), nil,
+		"--git-min-percent=15")
 	if err != nil {
 		return res, err
 	}
-	for _, recipient := range vcs.ParseMaintainersLinux(output) {
+	for _, recipient := range recipients {
 		res.Recipients = append(res.Recipients, ai.Recipient{
 			Name:  recipient.Address.Name,
 			Email: recipient.Address.Address,

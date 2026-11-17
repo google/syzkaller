@@ -8,14 +8,16 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"os/user"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
+	"weak"
 
+	"github.com/google/syzkaller/pkg/osutil/bwrap"
 	"golang.org/x/sys/unix"
 )
 
@@ -68,23 +70,77 @@ func parseMemAvailable(meminfo string) (uint64, error) {
 	return 0, fmt.Errorf("MemAvailable not found in /proc/meminfo")
 }
 
-func Sandbox(cmd *exec.Cmd, user, net bool) error {
-	enabled, uid, gid, err := initSandbox()
-	if err != nil || !enabled {
+// Sandbox wraps cmd in an isolated bwrap sandbox running as the unprivileged
+// syzkaller user. cmd.Env must be empty; pass extra environment variables via
+// SandboxEnv. Network access is disabled unless SandboxAllowNet is specified.
+// If cmd.Dir is set, it is mounted read-only as the working directory (pass SandboxMountRW(cmd.Dir)
+// if it must be writable); if empty, the command runs in the sandbox's private /tmp tmpfs.
+func Sandbox(cmd *exec.Cmd, opts ...SandboxOption) error {
+	cfg, err := parseSandboxOptions(cmd, opts)
+	if err != nil {
 		return err
 	}
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = new(syscall.SysProcAttr)
-	}
-	if net {
-		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNET | syscall.CLONE_NEWIPC |
-			syscall.CLONE_NEWNS | syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID
-	}
-	if user {
-		cmd.SysProcAttr.Credential = &syscall.Credential{
-			Uid: uid,
-			Gid: gid,
+	enabled, _, _, err := initSandbox()
+	if err != nil || !enabled {
+		if err == nil && len(cfg.env) > 0 {
+			cmd.Env = append(os.Environ(), cfg.env...)
 		}
+		return err
+	}
+	var bwrapOpts []bwrap.Option
+	if cfg.allowNet {
+		bwrapOpts = append(bwrapOpts, bwrap.WithNetworkProxy())
+	}
+	if len(cfg.readOnly) > 0 {
+		bwrapOpts = append(bwrapOpts, bwrap.WithReadOnly(cfg.readOnly...))
+	}
+	if len(cfg.readWrite) > 0 {
+		bwrapOpts = append(bwrapOpts, bwrap.WithReadWrite(cfg.readWrite...))
+	}
+	if testing.Testing() {
+		for _, kv := range os.Environ() {
+			if strings.HasPrefix(kv, "SYZ_TEST_") {
+				bwrapOpts = append(bwrapOpts, bwrap.WithEnv(kv))
+			}
+		}
+	}
+	if len(cfg.env) > 0 {
+		bwrapOpts = append(bwrapOpts, bwrap.WithEnv(cfg.env...))
+	}
+	origArgs := cmd.Args
+	if err := bwrap.Wrap(cmd, bwrapOpts...); err != nil {
+		return err
+	}
+	key := weak.Make(cmd)
+	sandboxedArgs.Store(key, origArgs)
+	runtime.AddCleanup(cmd, func(key weak.Pointer[exec.Cmd]) {
+		sandboxedArgs.Delete(key)
+	}, key)
+	return nil
+}
+
+// sandboxedArgs maps the commands wrapped by Sandbox (weak.Pointer[exec.Cmd])
+// to their original arguments ([]string).
+var sandboxedArgs sync.Map
+
+// cmdArgs returns the arguments cmd had before Sandbox replaced them with a bwrap invocation.
+// Error messages must refer to the actual command rather than to dozens of bwrap flags.
+func cmdArgs(cmd *exec.Cmd) []string {
+	if args, ok := sandboxedArgs.Load(weak.Make(cmd)); ok {
+		return args.([]string)
+	}
+	return cmd.Args
+}
+
+// CheckSandbox verifies that sandboxing and bwrap are available and functional.
+// It returns ErrSandboxDisabled if sandboxing is turned off.
+func CheckSandbox() error {
+	enabled, _, _, err := initSandbox()
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return fmt.Errorf("%w (not running as root or SYZ_DISABLE_SANDBOXING=yes)", ErrSandboxDisabled)
 	}
 	return nil
 }
@@ -113,31 +169,15 @@ func sandboxChownFile(f *os.File) error {
 	return f.Chown(int(uid), int(gid))
 }
 
-var (
-	sandboxOnce     sync.Once
-	sandboxUsername = "syzkaller"
-	sandboxUID      = ^uint32(0)
-	sandboxGID      = ^uint32(0)
-)
-
 func initSandbox() (bool, uint32, uint32, error) {
 	if syscall.Getuid() != 0 || os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
 		return false, 0, 0, nil
 	}
-	sandboxOnce.Do(func() {
-		if u, err := user.Lookup(sandboxUsername); err == nil {
-			uid, err1 := strconv.ParseUint(u.Uid, 10, 32)
-			gid, err2 := strconv.ParseUint(u.Gid, 10, 32)
-			if err1 == nil && err2 == nil {
-				sandboxUID = uint32(uid)
-				sandboxGID = uint32(gid)
-			}
-		}
-	})
-	if sandboxUID == ^uint32(0) {
-		return false, 0, 0, fmt.Errorf("user %q is not found, can't sandbox command", sandboxUsername)
+	if err := bwrap.Available(); err != nil {
+		return false, 0, 0, err
 	}
-	return true, sandboxUID, sandboxGID, nil
+	uid, gid, err := bwrap.SandboxUser()
+	return true, uid, gid, err
 }
 
 // RequireSandbox verifies that osutil.Sandbox is available for the test.
@@ -146,27 +186,12 @@ func initSandbox() (bool, uint32, uint32, error) {
 // sandboxing must be available, so the test fails instead.
 func RequireSandbox(t *testing.T) {
 	t.Helper()
-	skip := func(msg string) {
-		t.Helper()
+	if err := CheckSandbox(); err != nil {
 		if os.Getenv("CI") != "" {
-			t.Fatalf("sandbox tests must run on CI: %v", msg)
+			t.Fatalf("sandbox tests must run on CI: %v", err)
 		}
-		t.Skipf("skipping sandbox test: %v", msg)
+		t.Skipf("skipping sandbox test: %v", err)
 	}
-	if syscall.Getuid() != 0 {
-		skip("requires root")
-	}
-	if os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
-		skip("SYZ_DISABLE_SANDBOXING is set")
-	}
-	u, err := user.Lookup(sandboxUsername)
-	if err != nil {
-		skip(err.Error())
-	}
-	// Dropping privileges via SysProcAttr.Credential does not update HOME.
-	// TODO: set HOME in cmd.Env inside Sandbox when dropping privileges once
-	// existing callers and container setups are refactored.
-	t.Setenv("HOME", u.HomeDir)
 }
 
 // IsSandboxOwned reports whether path is owned by the sandbox user (as opposed to root).

@@ -5,6 +5,7 @@ package osutil
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,4 +50,19 @@ func TestParseMemAvailable(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestCheckSandboxDisabled(t *testing.T) {
+	t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+	assert.ErrorIs(t, CheckSandbox(), ErrSandboxDisabled)
+
+	cmd := Command("sh", "-c", "echo $FOO")
+	require.NoError(t, Sandbox(cmd, SandboxEnv("FOO=bar")))
+	out, err := Run(time.Minute, cmd)
+	require.NoError(t, err)
+	assert.Equal(t, "bar\n", string(out))
+
+	directEnvCmd := Command("true")
+	directEnvCmd.Env = []string{"FOO=bar"}
+	assert.Error(t, Sandbox(directEnvCmd))
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -171,21 +172,26 @@ func runMake(params Params, extraArgs ...string) error {
 		makeBin = "make"
 	}
 	cmd := osutil.Command(makeBin, args...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
 	cmd.Dir = params.KernelDir
-	cmd.Env = slices.Clone(os.Environ())
 	// This makes the build [more] deterministic:
 	// 2 builds from the same sources should result in the same vmlinux binary.
 	// Build on a release commit and on the previous one should result in the same vmlinux too.
 	// We use it for detecting no-op changes during bisection.
-	cmd.Env = append(cmd.Env,
+	kbuildEnv := []string{
 		"KBUILD_BUILD_VERSION=0",
 		"KBUILD_BUILD_TIMESTAMP=now",
 		"KBUILD_BUILD_USER=syzkaller",
 		"KBUILD_BUILD_HOST=syzkaller",
-	)
+	}
+	// Mount .git read-only so untrusted Makefiles cannot tamper with repository config or alternates.
+	roDirs := slices.Concat(target.ToolchainDirs(), vcs.GitReadOnlyDirs(params.KernelDir))
+	if err := osutil.Sandbox(cmd,
+		osutil.SandboxMountRW(params.KernelDir),
+		osutil.SandboxMountRO(roDirs...),
+		osutil.SandboxEnv(kbuildEnv...),
+	); err != nil {
+		return err
+	}
 	output, err := osutil.Run(time.Hour, cmd)
 	params.Tracer.Logf("build log:\n%s", output)
 	return err

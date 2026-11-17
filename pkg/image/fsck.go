@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,7 +23,12 @@ import (
 // not be run.
 func Fsck(r io.Reader, fsckCmd string) ([]byte, bool, error) {
 	// Write the image to a temporary file.
-	tempFile, err := os.CreateTemp("", "*.img")
+	tempBase := ""
+	if runtime.GOOS == "linux" {
+		// Avoid $TMPDIR values that bwrap forbids (e.g. /var/tmp) or cannot traverse as syzkaller.
+		tempBase = "/tmp"
+	}
+	tempFile, err := os.CreateTemp(tempBase, "*.img")
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to create temporary file: %w", err)
 	}
@@ -44,7 +50,7 @@ func Fsck(r io.Reader, fsckCmd string) ([]byte, bool, error) {
 	// And run the provided fsck command on it.
 	fsck := append(strings.Fields(fsckCmd), tempFile.Name())
 	cmd := osutil.Command(fsck[0], fsck[1:]...)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
+	if err := osutil.Sandbox(cmd, osutil.SandboxMountRW(tempFile.Name())); err != nil {
 		return nil, false, err
 	}
 

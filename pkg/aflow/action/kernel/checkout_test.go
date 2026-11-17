@@ -75,6 +75,11 @@ func TestKernelSandbox(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, hasIssues)
 
+	// In-place build of the scratch checkout (as done for patch testing):
+	// the tree is writable, but .git must not be (checked by the fake Makefile).
+	require.NoError(t, BuildKernel(scratch.KernelScratchSrc, scratch.KernelScratchSrc,
+		"CONFIG_FOO=y\n", targets.Linux, targets.AMD64, "", false))
+
 	t.Run("disabled", func(t *testing.T) {
 		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 		err := BuildKernel(osutil.SandboxTempDir(t), src.KernelSrc,

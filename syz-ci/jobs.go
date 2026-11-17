@@ -460,7 +460,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			return fmt.Errorf("failed to read baseline config: %w", err)
 		}
 	}
-	err := jp.prepareBisectionRepo(mgrcfg, req)
+	err := jp.prepareBisectionRepo(mgrcfg, req, mgr.kernelBuildDir)
 	if err != nil {
 		return err
 	}
@@ -495,17 +495,18 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Ccache:          jp.cfg.Ccache,
 		BuildCPUs:       jp.cfg.BuildCPUs,
 		Kernel: bisect.KernelConfig{
-			Repo:           req.KernelRepo,
-			Branch:         req.KernelBranch,
-			Commit:         req.KernelCommit,
-			CommitTitle:    req.KernelCommitTitle,
-			Cmdline:        mgr.mgrcfg.KernelCmdline,
-			Sysctl:         mgr.mgrcfg.KernelSysctl,
-			Config:         req.KernelConfig,
-			BaselineConfig: baseline,
-			Userspace:      mgr.mgrcfg.Userspace,
-			BuilderImage:   mgr.mgrcfg.KernelBuilderImage,
-			Backports:      mgr.backportCommits(),
+			Repo:             req.KernelRepo,
+			Branch:           req.KernelBranch,
+			Commit:           req.KernelCommit,
+			CommitTitle:      req.KernelCommitTitle,
+			Cmdline:          mgr.mgrcfg.KernelCmdline,
+			Sysctl:           mgr.mgrcfg.KernelSysctl,
+			Config:           req.KernelConfig,
+			BaselineConfig:   baseline,
+			Userspace:        mgr.mgrcfg.Userspace,
+			BuilderImage:     mgr.mgrcfg.KernelBuilderImage,
+			Backports:        mgr.backportCommits(),
+			RepoReadOnlyDirs: []string{mgr.kernelBuildDir},
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   jp.cfg.SyzkallerRepo,
@@ -622,6 +623,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		return syzBuildErr
 	}
 	dt.Logf("fetching kernel...")
+	// If the repo was cloned with --reference, git mounts the referenced objects via alternates.
 	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
 	if err != nil {
 		dt.Logf("failed to create kernel repo: %v", osutil.VerboseMessage(err))
@@ -723,7 +725,7 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 			return fmt.Errorf("failed to chown job repo dir: %w", err)
 		}
 		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
-		_, err := vcs.SandboxedGit(repoDir).RunTimeout(time.Hour,
+		_, err := vcs.SandboxedGit(repoDir, mgr.kernelBuildDir).RunTimeout(time.Hour,
 			"clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, ".")
 		if err == nil {
 			return nil
@@ -735,12 +737,13 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 	return nil
 }
 
-func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dashapi.JobPollResp) error {
+func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dashapi.JobPollResp, refDir string) error {
 	if req.MergeBaseRepo == "" {
 		// No need to.
 		return nil
 	}
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc,
+		vcs.OptReadOnlyDirs(refDir))
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %w", err)
 	}

@@ -71,9 +71,10 @@ spec:
               mountPath: /tmp/aflow-cache
             - name: config-volume
               mountPath: /config
+          # Needed for bwrap sandboxing inside the container (unmasked /proc and
+          # unconfined seccomp/AppArmor; bwrap drops all capabilities for commands inside).
           securityContext:
-            capabilities:
-              add: ["SYS_ADMIN"] # Needed for osutil.Sandbox namespaces (CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID).
+            privileged: true
       volumes:
         - name: base-kernel-repo
           persistentVolumeClaim:

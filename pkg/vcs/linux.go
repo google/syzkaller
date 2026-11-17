@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"io"
 	"net/mail"
 	"path/filepath"
 	"regexp"
@@ -231,19 +232,62 @@ func (ctx *linux) addMaintainers(com *Commit) {
 	sort.Sort(com.Recipients)
 }
 
-func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
-	// See #1441 re --git-min-percent.
-	args := "git show " + hash + " | " +
-		filepath.FromSlash("scripts/get_maintainer.pl") +
-		" --git-min-percent=20"
-	if blame {
-		args += " --git-blame"
+// RunGetMaintainer executes scripts/get_maintainer.pl inside a read-only sandboxed kernelSrc
+// (also mounting the enclosing .git and any shared git object alternates read-only) and parses its output.
+func RunGetMaintainer(kernelSrc string, stdin io.Reader, extraRODirs []string, args ...string) (Recipients, error) {
+	kernelSrc, err := filepath.Abs(kernelSrc)
+	if err != nil {
+		return nil, err
 	}
-	output, err := osutil.RunSandboxed(time.Minute, ctx.gitRepo.Dir, "bash", "-c", args)
+	script := filepath.Join(kernelSrc, filepath.FromSlash("scripts/get_maintainer.pl"))
+	cmd := osutil.Command(script, args...)
+	cmd.Dir = kernelSrc
+	cmd.Stdin = stdin
+	gitRoot, gitRODirs := enclosingGitReadOnlyDirs(kernelSrc)
+	roDirs := slices.Concat(extraRODirs, gitRODirs)
+	opts := []osutil.SandboxOption{osutil.SandboxMountRO(roDirs...)}
+	if gitRoot != "" && gitRoot != kernelSrc {
+		// In bwrap, synthetic parent directories between kernelSrc and gitRoot/.git live on
+		// a different mount (tmpfs), so git stops walking upward without this env var.
+		opts = append(opts, osutil.SandboxEnv("GIT_DISCOVERY_ACROSS_FILESYSTEM=1"))
+	}
+	if err := osutil.Sandbox(cmd, opts...); err != nil {
+		return nil, err
+	}
+	output, err := osutil.Run(time.Minute, cmd)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMaintainersLinux(output), nil
+}
+
+func enclosingGitReadOnlyDirs(dir string) (string, []string) {
+	for cur := filepath.Clean(dir); ; cur = filepath.Dir(cur) {
+		if dirs := GitReadOnlyDirs(cur); len(dirs) > 0 {
+			return cur, dirs
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			return "", nil
+		}
+	}
+}
+
+func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
+	diff, err := ctx.gitRepo.Run("show", hash)
 	if err != nil {
 		return nil
 	}
-	return ParseMaintainersLinux(output)
+	// See #1441 re --git-min-percent.
+	args := []string{"--git-min-percent=20"}
+	if blame {
+		args = append(args, "--git-blame")
+	}
+	mtrs, err := RunGetMaintainer(ctx.gitRepo.Dir, bytes.NewReader(diff), ctx.gitRepo.ReadOnlyDirs, args...)
+	if err != nil {
+		return nil
+	}
+	return mtrs
 }
 
 // maintainersLineRe splits a get_maintainer.pl output line into its email address

@@ -78,6 +78,13 @@ func TestGitIgnoreFsmonitor(t *testing.T) {
 	_, err = SandboxedGit(dir).Run("fetch", "ext::sh -c touch% "+marker)
 	require.Error(t, err)
 	require.NoFileExists(t, marker)
+
+	// ssh/sso can't work inside the sandbox, so they are not allowed either.
+	for _, remote := range []string{"ssh://example.com/repo", "sso://example/repo"} {
+		_, err = SandboxedGit(dir).runWithNet("ls-remote", remote)
+		require.Error(t, err, remote)
+		require.Contains(t, osutil.VerboseMessage(err), "not allowed", remote)
+	}
 }
 
 func TestGitLocalNetworkIsolated(t *testing.T) {
@@ -121,9 +128,10 @@ func TestGitLocalNetworkIsolated(t *testing.T) {
 	require.Error(t, err)
 	assert.False(t, connected.Load())
 
+	// Even with network enabled, the bwrap proxy blocks loopback destinations.
 	_, err = SandboxedGit(dir).runWithNet("fetch", remoteURL)
 	require.Error(t, err)
-	assert.True(t, connected.Load())
+	assert.False(t, connected.Load())
 }
 
 func TestCanonicalizeCommit(t *testing.T) {
