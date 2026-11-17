@@ -2364,9 +2364,7 @@ func TestAIRootCausePassedToBisect(t *testing.T) {
 	assert.NotContains(t, resp2.Args, "RootCauseCommit")
 }
 
-func TestAIBisectCause(t *testing.T) {
-	c := NewSpannerCtx(t)
-	defer c.Close()
+func enableAIMailMaintainers(c *Ctx) {
 	c.transformContext = func(ctx context.Context) context.Context {
 		return contextWithConfig(ctx, replaceReporting(ctx, "ains", "ai-email-reporting",
 			func(r Reporting) Reporting {
@@ -2377,6 +2375,12 @@ func TestAIBisectCause(t *testing.T) {
 				return r
 			}))
 	}
+}
+
+func TestAIBisectCause(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+	enableAIMailMaintainers(c)
 
 	build, extID := c.reportBugWithCIBisect()
 	bug, _, _ := c.loadBug(extID)
@@ -2493,22 +2497,27 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 func TestAIBisectCauseMultipleCommits(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
+	enableAIMailMaintainers(c)
 
-	_, extID := c.reportBugWithCIBisect()
+	build, extID := c.reportBugWithCIBisect()
 	bug, _, _ := c.loadBug(extID)
 	bugID := bug.keyHash(c.ctx)
 	bugPageURL := fmt.Sprintf("/bug?extid=%v", extID)
 
 	// Several candidate commits are marked as conclusive ("done") on the bug list and all shown on the
-	// bug page, the most relevant one first. Authors/CCs of candidate commits are not CC'd.
+	// bug page, the most relevant one first. Authors of candidate commits are CC'd, while commit CCs are not.
 	jobLink := c.runAIBisectCause(extID,
 		ai.Commit{
 			Hash:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			Title:       "kernel: first candidate",
-			AuthorEmail: "candidate@kernel.org",
+			AuthorEmail: "candidate1@kernel.org",
 			Recipients:  []ai.Recipient{{Email: "candidate-cc@kernel.org"}},
 		},
-		ai.Commit{Hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Title: "kernel: second candidate"},
+		ai.Commit{
+			Hash:        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			Title:       "kernel: second candidate",
+			AuthorEmail: "candidate2@kernel.org",
+		},
 	)
 	const candidates = "<b>✨ AI cause bisection: candidate commits (most relevant first)</b>"
 	page, err := c.GET(bugPageURL)
@@ -2516,8 +2525,9 @@ func TestAIBisectCauseMultipleCommits(t *testing.T) {
 	assert.Contains(t, string(page), candidates)
 	assert.Regexp(t,
 		`(?s)commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.*`+
-			`candidate@kernel\.org.*kernel: first candidate.*`+
-			`commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.*kernel: second candidate`,
+			`candidate1@kernel\.org.*kernel: first candidate.*`+
+			`commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.*`+
+			`candidate2@kernel\.org.*kernel: second candidate`,
 		string(page))
 	assert.Contains(t, string(page), jobLink)
 	c.checkBisectStatus(bug.Namespace, "done", "")
@@ -2529,9 +2539,20 @@ func TestAIBisectCauseMultipleCommits(t *testing.T) {
 	require.Len(t, rep.BisectCause.Commits, 2)
 	assert.Equal(t, "kernel: first candidate", rep.BisectCause.Commits[0].Title)
 	assert.Equal(t, "kernel: second candidate", rep.BisectCause.Commits[1].Title)
-	assert.NotContains(t, rep.Maintainers, "candidate@kernel.org")
+	assert.Contains(t, rep.Maintainers, "candidate1@kernel.org")
+	assert.Contains(t, rep.Maintainers, "candidate2@kernel.org")
 	assert.NotContains(t, rep.Maintainers, "candidate-cc@kernel.org")
 	assert.NotContains(t, rep.Maintainers, "ci-author@kernel.org")
+
+	// Reporting a C reproducer sends a bug report email CCing the candidate commit authors.
+	_, err = c.aiClient.ReportCrash(testCrashWithRepro(build, 1))
+	require.NoError(t, err)
+	msg := c.pollEmailBug()
+	assert.Contains(t, msg.Body, "The issue was bisected by AI to candidate commits (most relevant first):")
+	assert.Contains(t, msg.To, "candidate1@kernel.org")
+	assert.Contains(t, msg.To, "candidate2@kernel.org")
+	assert.NotContains(t, msg.To, "candidate-cc@kernel.org")
+	assert.NotContains(t, msg.To, "ci-author@kernel.org")
 
 	// A later job that did not determine anything does not replace that result.
 	c.runAIBisectCause(extID)
@@ -3017,6 +3038,49 @@ func TestBugAIBisectStatus(t *testing.T) {
 			assert.Equal(t, test.want, test.res.status(test.syzCI))
 		})
 	}
+}
+
+func TestAIBisectReport(t *testing.T) {
+	ctx := contextWithConfig(context.Background(), &GlobalConfig{
+		AppURL:          "https://testapp.appspot.com",
+		OwnEmailAddress: "syzbot@testapp.appspotmail.com",
+	})
+	commit1 := Commit{
+		Hash:   strings.Repeat("a", 40),
+		Title:  "kernel: first candidate",
+		Author: "author1@kernel.org",
+		CC:     "cc1@kernel.org|syzbot@testapp.appspotmail.com",
+	}
+	commit2 := Commit{
+		Hash:   strings.Repeat("b", 40),
+		Title:  "kernel: second candidate",
+		Author: "author2@kernel.org",
+		CC:     "cc2@kernel.org",
+	}
+	commit3 := Commit{
+		Hash:   strings.Repeat("c", 40),
+		Title:  "kernel: third candidate",
+		Author: "author1@kernel.org",
+	}
+
+	bisect, emails := aiBisectReport(ctx, &BugAIBisect{JobID: "job1", Commits: []Commit{commit1}})
+	assert.Equal(t, "https://testapp.appspot.com/ai_job?id=job1", bisect.LogLink)
+	require.NotNil(t, bisect.Commit)
+	assert.Nil(t, bisect.Commits)
+	assert.Equal(t, commit1.Hash, bisect.Commit.Hash)
+	assert.Equal(t, []string{"author1@kernel.org", "cc1@kernel.org"}, emails)
+
+	bisect, emails = aiBisectReport(ctx, &BugAIBisect{
+		JobID:   "job2",
+		Commits: []Commit{commit1, commit2, commit3},
+	})
+	assert.Equal(t, "https://testapp.appspot.com/ai_job?id=job2", bisect.LogLink)
+	assert.Nil(t, bisect.Commit)
+	require.Len(t, bisect.Commits, 3)
+	assert.Equal(t, commit1.Hash, bisect.Commits[0].Hash)
+	assert.Equal(t, commit2.Hash, bisect.Commits[1].Hash)
+	assert.Equal(t, commit3.Hash, bisect.Commits[2].Hash)
+	assert.Equal(t, []string{"author1@kernel.org", "author2@kernel.org"}, emails)
 }
 
 func TestAIBisectMail(t *testing.T) {
