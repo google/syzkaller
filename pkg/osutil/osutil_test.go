@@ -268,6 +268,9 @@ func TestReadInRoot(t *testing.T) {
 
 	_, err = ReadDirInRoot(rootDir, "escapedir")
 	require.Error(t, err)
+	// Some callers check for this error.
+	_, err = ReadDirInRoot(rootDir, "ok.txt")
+	require.ErrorIs(t, err, syscall.ENOTDIR)
 }
 
 func TestAvailableMemorySize(t *testing.T) {

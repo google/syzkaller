@@ -308,7 +308,16 @@ func ReadDirInRoot(rootDir, relDir string) ([]os.DirEntry, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return f.ReadDir(-1)
+	entries, err := f.ReadDir(-1)
+	if err != nil {
+		// Reading a non-directory fails with different errors on different OSes
+		// (ENOTDIR on Linux, EINVAL on OpenBSD), so return a consistent one (some callers check for it).
+		if stat, statErr := f.Stat(); statErr == nil && !stat.IsDir() {
+			return nil, &fs.PathError{Op: "readdir", Path: relDir, Err: syscall.ENOTDIR}
+		}
+		return nil, err
+	}
+	return entries, nil
 }
 
 // WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
