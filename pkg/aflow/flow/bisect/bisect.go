@@ -132,7 +132,7 @@ Your investigation strategy:
    KASAN/KMSAN/LOCKDEP annotations) that exposed an older bug, unless the check itself is
    incorrect and is the bug.
 5. Do NOT return a merge commit unless the bug was introduced by the merge conflict
-   resolution itself; otherwise identify the underlying non-merge commit(s).
+   resolution itself; otherwise identify the underlying non-merge commit.
 6. Verify your hypothesis by inspecting the full commit diff with {{.toolGitShow}} and
    confirming how the change introduced the exact condition described in the root cause.
 ` + kasanNullDerefNote + `
@@ -180,30 +180,42 @@ Don't be confused by that. Look for the line at the top of the report that tells
 the access address and size.
 {{end}}`
 
-const candidateOutputRules = `- If you can confidently determine the single commit, return its hash in CandidateCommits
-  (as a single-element list).
-- If multiple commits contributed or you can narrow it down to a small set of candidate
-  commits (at most 3), return their hashes in CandidateCommits ordered by relevance: the
-  FIRST commit must be the primary commit, followed by the remaining commits in descending
-  order of importance/likelihood.
+const candidateOutputRules = `- Returning a SINGLE commit in CandidateCommits (a 1-element list) is the expected norm
+  and is strongly preferred. A single commit gives maintainers a clear, directly actionable
+  result, whereas returning extra commits dilutes the report and notifies additional commit
+  authors unnecessarily.
+- Once you identify the primary commit that introduced (or fixed) the bug, return ONLY that
+  commit in CandidateCommits. Do NOT include secondary or "contributing" commits such as
+  earlier background/foundation commits, preparatory or follow-up commits in the same
+  series, later refactorings, incomplete fix attempts, or commits that merely exposed or
+  enabled the code path (e.g. new callers, default config changes, or sanitizer/debug checks).
+  Mention those related commits in your text reply for context instead.
+- Returning more than one commit (at most 3) is the rare exception, not the norm. Only return
+  multiple commits when:
+  1. There is genuine, unresolvable ambiguity between 2-3 equally plausible candidates after
+     thorough investigation, OR
+  2. The bug was strictly and inseparably introduced (or fixed) by 2-3 commits together, with
+     no single primary commit.
+  In those rare cases, order CandidateCommits by relevance with the most important/likely
+  commit FIRST.
 - If you cannot determine the commit with confidence, return an empty CandidateCommits list
   rather than guessing.
 - Your text reply must provide a clear bisection log explaining the root cause of the bug,
-  the git history you traced, the candidate commits you examined (with their hashes and
-  titles), why you ruled out other commits, and how you reached your conclusion.
+  the git history you traced, the commits you examined (with their hashes and titles), why
+  you ruled out other commits, and how you reached your conclusion.
 `
 
 const causeFinderPrompt = `
 The crash is:
 ` + crashDetailsPrompt + `
-Search for the commit(s) that introduced this bug.
+Search for the commit that introduced this bug.
 `
 
 const fixFinderPrompt = `
 The crash, observed on commit {{.CrashCommit}}, is:
 ` + crashDetailsPrompt + `
 Determine whether this bug is still present at {{.KernelCommit}} and, if it was fixed,
-search for the commit(s) after {{.CrashCommit}} that fixed it.
+search for the commit after {{.CrashCommit}} that fixed it.
 `
 
 const crashDetailsPrompt = `
@@ -231,7 +243,7 @@ type causeFinderState struct {
 }
 
 type causeFinderOutputs struct {
-	CandidateCommits []string `jsonschema:"Candidate commit hashes ordered by relevance (primary commit first, or empty)."`
+	CandidateCommits []string `jsonschema:"Single commit hash (or empty); multiple (primary first) only in rare cases."`
 }
 
 func validateCauseFinderOutputs(ctx *aflow.Context, state causeFinderState, args causeFinderOutputs) (
@@ -249,7 +261,7 @@ type fixFinderState struct {
 
 type fixFinderOutputs struct {
 	BugStillPresent  bool     `jsonschema:"Set if the bug is verified to still be present at the current commit."`
-	CandidateCommits []string `jsonschema:"Candidate commit hashes ordered by relevance (primary commit first, or empty)."`
+	CandidateCommits []string `jsonschema:"Single commit hash (or empty); multiple (primary first) only in rare cases."`
 }
 
 func validateFixFinderOutputs(ctx *aflow.Context, state fixFinderState, args fixFinderOutputs) (
