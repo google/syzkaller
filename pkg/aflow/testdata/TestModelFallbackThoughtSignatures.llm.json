@@ -1,0 +1,225 @@
+[
+	{
+		"Model": "model1",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"type": "object",
+								"additionalProperties": false
+							},
+							"responseJsonSchema": {
+								"type": "object",
+								"properties": {
+									"Res": {
+										"type": "integer",
+										"description": "res"
+									}
+								},
+								"required": [
+									"Res"
+								],
+								"additionalProperties": false
+							}
+						}
+					]
+				}
+			],
+			"thinkingLevel": 3,
+			"includeThoughts": true
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"thought": true,
+						"thoughtSignature": "c2lnMQ=="
+					},
+					{
+						"thoughtSignature": "c2lnMQ=="
+					},
+					{
+						"text": "thinking about id1",
+						"thought": true
+					},
+					{
+						"thoughtSignature": "c2lnMQ==",
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model2",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "thinking about id1",
+						"thought": true
+					},
+					{
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"thought": true,
+						"thoughtSignature": "c2lnMQ=="
+					},
+					{
+						"thoughtSignature": "c2lnMQ=="
+					},
+					{
+						"text": "thinking about id1",
+						"thought": true
+					},
+					{
+						"thoughtSignature": "c2lnMQ==",
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "thinking about id2",
+						"thought": true
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "model"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"response": {
+								"Res": 42
+							},
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
