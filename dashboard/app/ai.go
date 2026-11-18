@@ -525,7 +525,8 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 			return "", err
 		}
 		newJobID, err := aidb.RestartJob(ctx, job.ID)
-		if err != nil {
+		// If the same job is already queued, redirect to the queued job.
+		if err != nil && !errors.Is(err, aidb.ErrDuplicateJob) {
 			return "", err
 		}
 		return newJobID, nil
@@ -2380,7 +2381,12 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 				return false, nil
 			}
 		}
-		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, extraArgs); createErr != nil {
+		_, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, extraArgs)
+		if errors.Is(createErr, aidb.ErrDuplicateJob) {
+			// The same job was queued manually in the meantime, it will be started as any other queued job.
+			return false, nil
+		}
+		if createErr != nil {
 			return false, fmt.Errorf("failed to create ai job %v for bug %v: %w", matchedReq.Type, bugKey.StringID(), createErr)
 		}
 		return true, nil

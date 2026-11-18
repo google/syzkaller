@@ -1338,6 +1338,15 @@ func TestAIJobRestart(t *testing.T) {
 	require.NotEmpty(t, newJobID)
 	require.NotEqual(t, jobID2, newJobID)
 
+	// Restarting the job again while the new job is still queued does not queue one more job.
+	_, err = c.AuthPOSTForm(AccessUser, jobURL2, values)
+	require.ErrorAs(t, err, &httpErr)
+	require.Equal(t, http.StatusFound, httpErr.Code)
+	require.Equal(t, loc, httpErr.Headers.Get("Location"))
+	queuedJobID, err := aidb.RestartJob(c.ctx, jobID2)
+	require.ErrorIs(t, err, aidb.ErrDuplicateJob)
+	require.Equal(t, newJobID, queuedJobID)
+
 	// Verify the new job is polled and has same arguments.
 	pollResp := c.pollAIWorkflow(t, ai.WorkflowPatching)
 	require.Equal(t, newJobID, pollResp.ID)
@@ -1378,6 +1387,70 @@ func TestAIJobRestart(t *testing.T) {
 	require.Error(t, err)
 	c.expectBadReqest(err)
 	require.Contains(t, err.Error(), "cannot restart a patch iteration workflow")
+}
+
+// Test that the same workflow is not queued several times for the same bug.
+func TestAIJobQueueDedup(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	extID, jobID := c.setupAIPatchJob(t)
+	bug, _, _ := c.loadBug(extID)
+	bugID := bug.keyHash(c.ctx)
+	countJobs := func(workflow ai.WorkflowType) int {
+		jobs, err := aidb.LoadBugJobs(c.ctx, bugID)
+		require.NoError(t, err)
+		count := 0
+		for _, job := range jobs {
+			if job.Workflow == string(workflow) {
+				count++
+			}
+		}
+		return count
+	}
+	bugURL := fmt.Sprintf("/bug?extid=%v", extID)
+	createPatching := url.Values{"ai-job-create": {string(ai.WorkflowPatching)}}
+
+	// The patching job is still queued, so one more is not created, and the page links to the queued job.
+	body, err := c.AuthPOSTForm(AccessUser, bugURL, createPatching)
+	require.NoError(t, err)
+	require.Contains(t, string(body), "AI workflow patching is already queued for this bug"+
+		fmt.Sprintf(` (<a href="/ai_job?id=%v">details</a>)`, jobID))
+	require.Equal(t, 1, countJobs(ai.WorkflowPatching))
+
+	// A job of another workflow can be queued for the bug.
+	// The workflow is registered by a separate agent, since polls replace the set of workflows of the agent.
+	reproWorkflow := dashapi.AIWorkflow{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)}
+	require.Empty(t, c.pollAIJob(t, "repro-agent", reproWorkflow).ID)
+	c.createAIJob(extID, reproWorkflow.Name, "")
+	require.Equal(t, 1, countJobs(ai.WorkflowRepro))
+
+	// Once the job is started, the same workflow can be queued again.
+	require.Equal(t, jobID, c.pollAIWorkflow(t, ai.WorkflowPatching).ID)
+	body, err = c.AuthPOSTForm(AccessUser, bugURL, createPatching)
+	require.NoError(t, err)
+	require.Contains(t, string(body), "AI workflow patching is created")
+	require.Equal(t, 2, countJobs(ai.WorkflowPatching))
+
+	// Jobs without a bug are never duplicates, and jobs for different bugs are not duplicates of each other.
+	createJob := func(otherBug string) (string, error) {
+		return aidb.CreateJob(c.ctx, &aidb.Job{
+			Type:      ai.WorkflowPatching,
+			Workflow:  string(ai.WorkflowPatching),
+			Namespace: "ains",
+			BugID:     spanner.NullString{StringVal: otherBug, Valid: otherBug != ""},
+		})
+	}
+	for range 2 {
+		_, err := createJob("")
+		require.NoError(t, err)
+	}
+	otherJobID, err := createJob("other-bug")
+	require.NoError(t, err)
+	// ID of the queued job is returned along with the error.
+	dupJobID, err := createJob("other-bug")
+	require.ErrorIs(t, err, aidb.ErrDuplicateJob)
+	require.Equal(t, otherJobID, dupJobID)
 }
 
 func TestManualAIWorkflows(t *testing.T) {

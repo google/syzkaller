@@ -227,6 +227,7 @@ type uiHeader struct {
 	ShowSubsystems      bool
 	ShowCoverageMenu    bool
 	Message             string // Show message box with this message when the page loads.
+	MessageLink         string // If set, the message box also has a link to this URL.
 }
 
 type uiNamespace struct {

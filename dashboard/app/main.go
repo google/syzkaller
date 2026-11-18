@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -1350,7 +1351,13 @@ func handleBugJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader,
 		hdr.Message = err.Error()
 		return nil
 	}
-	if _, err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
+	jobID, err := aiBugJobCreate(ctx, workflow, bug, args)
+	if errors.Is(err, aidb.ErrDuplicateJob) {
+		hdr.Message = fmt.Sprintf("AI workflow %v is already queued for this bug", workflow)
+		hdr.MessageLink = fmt.Sprintf("/ai_job?id=%v", jobID)
+		return nil
+	}
+	if err != nil {
 		return fmt.Errorf("failed to create AI job %q: %w", workflow, err)
 	}
 	hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
