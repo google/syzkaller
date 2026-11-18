@@ -148,7 +148,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 </nav>
 	{{if .Message}}
-		<div class="flash-message">{{.Message}}</div>
+		<div class="flash-message">{{.Message}}{{if .MessageLink}} ({{link .MessageLink "details"}}){{end}}</div>
 	{{end}}
 {{end}}
 

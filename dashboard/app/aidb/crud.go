@@ -34,6 +34,7 @@ const (
 
 var ErrNotFound = errors.New("entity not found")
 var ErrDuplicateComment = errors.New("duplicate job comment")
+var ErrDuplicateJob = errors.New("the same job is already queued")
 
 type ErrCannotUpstream struct {
 	Reason string
@@ -137,6 +138,8 @@ func LoadAgent(ctx context.Context, agentName string) (*Agent, error) {
 	})
 }
 
+// CreateJob adds the job to the queue and returns its ID.
+// If the same job is already queued (see queuedJobID), it returns ID of the queued job and ErrDuplicateJob.
 func CreateJob(ctx context.Context, job *Job) (string, error) {
 	job.ID = uuid.NewString()
 	job.Created = TimeNow(ctx)
@@ -144,12 +147,48 @@ func CreateJob(ctx context.Context, job *Job) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mut, err := spanner.InsertStruct("Jobs", job)
-	if err != nil {
+	id := job.ID
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		queued, err := queuedJobID(ctx, txn, job)
+		if err != nil {
+			return err
+		}
+		if queued != "" {
+			id = queued
+			return ErrDuplicateJob
+		}
+		mut, err := spanner.InsertStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return id, err
+}
+
+// queuedJobID returns ID of a not yet started job of the same workflow for the same bug (if any).
+// Such a job would do the same work again, so there is no point in queueing one more.
+// Job arguments are not compared. Jobs that are not associated with a bug are never duplicates.
+func queuedJobID(ctx context.Context, txn dbQuerier, job *Job) (string, error) {
+	if job.BugID.StringVal == "" {
+		return "", nil
+	}
+	row, err := readRow[struct{ ID string }](ctx, txn, spanner.Statement{
+		// The query runs in read-write transactions, so force the index that reads (and locks)
+		// only jobs of the bug. Otherwise it may lock all unfinished jobs of the workflow.
+		SQL: `SELECT ID FROM Jobs@{FORCE_INDEX=JobsBugIDCreated}
+			WHERE BugID = @bugID AND Workflow = @workflow
+			AND Started IS NULL AND Finished IS NULL
+			LIMIT 1`,
+		Params: map[string]any{
+			"bugID":    job.BugID.StringVal,
+			"workflow": job.Workflow,
+		},
+	})
+	if err != nil || row == nil {
 		return "", err
 	}
-	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
-	return job.ID, err
+	return row.ID, nil
 }
 
 func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
@@ -174,6 +213,8 @@ func cloneJob(ctx context.Context, orig *Job) *Job {
 	}
 }
 
+// RestartJob queues a copy of the job and returns ID of the copy.
+// If the same job is already queued (see queuedJobID), it returns ID of the queued job and ErrDuplicateJob.
 func RestartJob(ctx context.Context, jobID string) (string, error) {
 	client, err := dbClient(ctx)
 	if err != nil {
@@ -181,6 +222,8 @@ func RestartJob(ctx context.Context, jobID string) (string, error) {
 	}
 	var newJobID string
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Don't return the ID from previous transaction commit attempts.
+		newJobID = ""
 		iter := txn.Query(ctx, spanner.Statement{
 			SQL:    selectJobs() + `WHERE ID = @id`,
 			Params: map[string]any{"id": jobID},
@@ -194,6 +237,14 @@ func RestartJob(ctx context.Context, jobID string) (string, error) {
 			return ErrNotFound
 		}
 		orig := jobs[0]
+		queued, err := queuedJobID(ctx, txn, orig)
+		if err != nil {
+			return err
+		}
+		if queued != "" {
+			newJobID = queued
+			return ErrDuplicateJob
+		}
 		newJob := cloneJob(ctx, orig)
 		newJobID = newJob.ID
 		mut, err := spanner.InsertStruct("Jobs", newJob)

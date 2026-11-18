@@ -357,6 +357,8 @@ func TestAINoParallelReports(t *testing.T) {
 	c.SetAIConfig("ains", aiCfg)
 
 	extID, jobID1 := c.setupAIPatchJob(t)
+	// The second job can be queued only after the first one is started.
+	require.Equal(t, jobID1, c.pollAIWorkflow(t, ai.WorkflowPatching).ID)
 	jobID2 := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 
 	c.finishAIPatchJob(t, jobID1, map[string]any{
