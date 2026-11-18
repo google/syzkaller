@@ -4,6 +4,7 @@
 package osutil
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -61,6 +62,23 @@ func (r *SandboxRoot) CopyFileTo(name, dst string) error {
 	}
 	defer f.Close()
 	return copyFile(f, dst, false)
+}
+
+// CreateFile creates a sandbox-owned regular file and fails if name already exists.
+func (r *SandboxRoot) CreateFile(name string, data []byte) error {
+	f, err := r.root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, DefaultFilePerm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err == nil {
+		err = sandboxChownFile(f)
+	}
+	err = errors.Join(err, f.Close())
+	if err != nil {
+		return errors.Join(err, r.Remove(name))
+	}
+	return nil
 }
 
 // WriteFile atomically replaces name with a regular file owned by the sandbox user
