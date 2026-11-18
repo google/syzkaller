@@ -1104,7 +1104,9 @@ GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason
 	} else if (vendor == CPU_VENDOR_INTEL) {
 		guest_uexit(0xe2110000 | exit_reason);
 	} else {
-		guest_uexit(0xe2aa0000 | exit_reason);
+		// AMD exit codes are 64-bit, and the error ones (e.g. VMEXIT_INVALID) are negative.
+		// Only report the low 16 bits, so that they do not turn into UEXIT_END and friends.
+		guest_uexit(0xe2aa0000 | (exit_reason & 0xffff));
 	}
 }
 
@@ -1775,8 +1777,9 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
 	globals->active_vm_id[cpu_id] = vm_id;
 	struct l2_guest_regs* l2_regs = (struct l2_guest_regs*)&globals->l2_ctx[cpu_id][vm_id];
-	uint8 fail_flag = 0;
 
+	// Note: unlike VMLAUNCH/VMRESUME, VMRUN does not report failures in RFLAGS. If the VMCB is
+	// invalid, VMRUN exits with VMEXIT_INVALID, which is handled by nested_vm_exit_handler_amd().
 	asm volatile(R"(
 		// 1. Red Zone protection.
 		sub $128, %%rsp
@@ -1829,7 +1832,6 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 	1:	// Host resumes here.
 		// Restore RAX as VMRUN clobbers it.
 		mov 48(%%rsp), %%rax
-		setc %[fail_flag]
 
 		// 6. Save L2's GPRs.
 		// exit_code (it will be at Index 15)
@@ -1883,16 +1885,10 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 		stgi
 		after_vmentry_label_amd:
 	)"
-		     : [fail_flag] "=m"(fail_flag)
+		     :
 		     : [cpu_id] "r"(cpu_id), [vmcb_addr] "r"(vmcb_addr), [l2_regs] "r"(l2_regs),
 		       [l2_regs_size] "i"(sizeof(struct l2_guest_regs))
 		     : "cc", "memory", "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
-
-	if (fail_flag) {
-		// VMRUN failed.
-		guest_uexit(0xE2E10000 | 0xFFFF);
-		return;
-	}
 }
 
 GUEST_CODE static noinline void
