@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/backend"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -582,6 +583,82 @@ func TestModelFallbackTrajectory(t *testing.T) {
 		},
 		nil,
 	)
+}
+
+// TestModelFallbackThoughtSignatures verifies that when a model pool falls back to another model in the middle
+// of a conversation, each model only receives the thought signatures it has produced itself.
+func TestModelFallbackThoughtSignatures(t *testing.T) {
+	type flowOutputs struct {
+		Reply string
+	}
+	type toolResults struct {
+		Res int `jsonschema:"res"`
+	}
+	toolCall := func(id, signature string) *backend.GenerateResponse {
+		return &backend.GenerateResponse{Parts: []backend.Part{
+			{Thought: true, ThoughtSignature: []byte(signature)},
+			{ThoughtSignature: []byte(signature)},
+			{Thought: true, Text: "thinking about " + id},
+			{
+				FunctionCall:     &backend.FunctionCall{ID: id, Name: "tick"},
+				ThoughtSignature: []byte(signature),
+			},
+		}}
+	}
+	signatures := func(req []*backend.Message) []string {
+		var res []string
+		for _, msg := range req {
+			for _, part := range msg.Parts {
+				if len(part.ThoughtSignature) != 0 {
+					res = append(res, string(part.ThoughtSignature))
+				}
+			}
+		}
+		return res
+	}
+	var models []string
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done"},
+		&LLMAgent{
+			Model: "fallback-pool",
+			Reply: "Reply",
+			Tools: Tools(NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+				return toolResults{42}, nil
+			}, "ticker")),
+		},
+		[]any{
+			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+				*backend.GenerateResponse, error) {
+				models = append(models, model)
+				switch len(models) {
+				case 1:
+					// The primary model starts the conversation.
+					return toolCall("id1", "sig1"), nil
+				case 2:
+					// The primary model gets its own signatures back, but blocks the request.
+					assert.Equal(t, []string{"sig1", "sig1", "sig1"}, signatures(req))
+					return nil, &backend.BlockedError{Err: errors.New("request blocked: SAFETY")}
+				case 3:
+					// The fallback model must not get signatures of the primary model,
+					// the parts that only carried the signature are dropped.
+					assert.Empty(t, signatures(req))
+					require.GreaterOrEqual(t, len(req), 2)
+					assert.Len(t, req[1].Parts, 2)
+					return toolCall("id2", "sig2"), nil
+				case 4:
+					// The primary model is tried first again: it gets its own signatures,
+					// but not the ones of the fallback model.
+					assert.Equal(t, []string{"sig1", "sig1", "sig1"}, signatures(req))
+					return &backend.GenerateResponse{
+						Parts: []backend.Part{{Text: "Done"}},
+					}, nil
+				}
+				return nil, fmt.Errorf("unexpected request to model %q", model)
+			},
+		},
+		nil,
+	)
+	require.Equal(t, []string{"model1", "model1", "model2", "model1"}, models)
 }
 
 type maxIterationsToolArgs struct {
