@@ -65,14 +65,20 @@ func filterEnv() []string {
 			strings.HasPrefix(e, "GIT_CONFIG_")
 	})
 	// Prevent repo/submodule configs from executing hooks or fsmonitor helpers,
-	// and restrict allowed transport protocols (e.g. to forbid ext::).
+	// prevent git from detaching background maintenance processes (which can be
+	// killed on PID-namespace/container exit and leave stale locks), and
+	// restrict allowed transport protocols (e.g. to forbid ext::).
 	env = append(env,
 		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh:sso",
-		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_COUNT=4",
 		"GIT_CONFIG_KEY_0=core.hooksPath",
 		"GIT_CONFIG_VALUE_0=/dev/null",
 		"GIT_CONFIG_KEY_1=core.fsmonitor",
 		"GIT_CONFIG_VALUE_1=false",
+		"GIT_CONFIG_KEY_2=gc.autoDetach",
+		"GIT_CONFIG_VALUE_2=false",
+		"GIT_CONFIG_KEY_3=maintenance.autoDetach",
+		"GIT_CONFIG_VALUE_3=false",
 	)
 	return env
 }
@@ -679,7 +685,12 @@ func (git Git) runTimeout(timeout time.Duration, isolateNet bool, args ...string
 
 func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNet bool,
 	args ...string) (*exec.Cmd, error) {
-	fullArgs := slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
+	fullArgs := slices.Concat([]string{
+		"-c", "core.hooksPath=/dev/null",
+		"-c", "core.fsmonitor=false",
+		"-c", "gc.autoDetach=false",
+		"-c", "maintenance.autoDetach=false",
+	}, args)
 	cmd := makeCmd("git", fullArgs...)
 	cmd.Dir = git.Dir
 	cmd.Env = git.Env

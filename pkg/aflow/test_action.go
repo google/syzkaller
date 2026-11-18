@@ -30,15 +30,11 @@ func TestAction(t *testing.T, a Action, workdir string, initArgs, wantResults an
 	}
 	defer ctx.Close()
 	err := a.execute(ctx)
-	gotResults := map[string]any{}
-	gotError := ""
-	if err != nil {
-		gotError = err.Error()
-	} else {
-		gotResults = extractOutputs(ctx.state)
+	if wantError != "" {
+		require.ErrorContains(t, err, wantError)
+		return
 	}
-	require.Equal(t, wantError, gotError)
-	if wantError == "" {
-		require.Equal(t, results, gotResults)
-	}
+	require.NoError(t, err)
+	gotResults := extractOutputs(ctx.state)
+	require.Equal(t, results, gotResults)
 }

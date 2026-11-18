@@ -87,6 +87,5 @@ func TestPrepareFindingOverview(t *testing.T) {
 			Patches:   patches,
 		},
 		prepareFindingOverviewResult{},
-		`git show --stat failed: failed to run `+
-			`["git" "-c" "core.hooksPath=/dev/null" "show" "--stat" "--format=" "HEAD"]: exit status 128`)
+		"git show --stat failed:")
 }
