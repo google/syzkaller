@@ -559,9 +559,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 	if res.Report != nil {
-		resp.CrashTitle = res.Report.Title
-		resp.CrashAltTitles = res.Report.AltTitles
-		resp.CrashReport = res.Report.Report
+		setJobDoneCrash(resp, res.Report)
 		resp.CrashLog = res.Report.Output
 		if len(resp.Commits) != 0 {
 			resp.Commits[0].Recipients = append(resp.Commits[0].Recipients, res.Report.Recipients.ToDash()...)
@@ -691,14 +689,22 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	rep := ret.report
 	if rep != nil {
 		dt.Logf("reproduced crash: %v", rep.Title)
-		resp.CrashTitle = rep.Title
-		resp.CrashAltTitles = rep.AltTitles
-		resp.CrashReport = rep.Report
+		setJobDoneCrash(resp, rep)
 	} else {
 		dt.Logf("testing succeeded, no crash reproduced")
 	}
 	resp.CrashLog = ret.rawOutput
 	return nil
+}
+
+func setJobDoneCrash(resp *dashapi.JobDoneReq, rep *report.Report) {
+	resp.CrashTitle = rep.Title
+	resp.CrashAltTitles = rep.AltTitles
+	resp.CrashReport = rep.Report
+	resp.CrashRecipients = rep.Recipients.ToDash()
+	if rep.GuiltyFile != "" {
+		resp.CrashGuiltyFiles = []string{rep.GuiltyFile}
+	}
 }
 
 func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {

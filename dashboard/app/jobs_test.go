@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/mail"
 	"slices"
 	"strings"
 	"testing"
@@ -1446,6 +1447,136 @@ func TestReproCJob(t *testing.T) {
 	bug, _, _ = c.loadBug(rep.ID)
 	c.expectEQ(bug.HasCRepro, true)
 	c.expectTrue(slices.Contains(bug.AltTitles, "different crash title"))
+}
+
+func TestReproCJobRecipients(t *testing.T) {
+	origMaintainers := []string{"orig@kernel.org"}
+	origGuiltyFiles := []string{"fs/orig.c"}
+	newRecipients := dashapi.Recipients{
+		{Address: mail.Address{Name: "New Maintainer", Address: "new-to@kernel.org"}, Type: dashapi.To},
+		{Address: mail.Address{Address: "new-cc@kernel.org"}, Type: dashapi.Cc},
+	}
+	newGuiltyFiles := []string{"net/wireguard/ratelimiter.c"}
+
+	tests := []struct {
+		name            string
+		crashTitle      string // empty uses the original bug title
+		useAltTitle     bool   // set CrashAltTitles to include the original bug title
+		crashRecipients dashapi.Recipients
+		crashGuilty     []string
+		wantNewBug      bool
+		wantMaintainers []string
+		wantGuiltyFiles []string
+	}{
+		{
+			name:            "different_crash_uses_job_recipients",
+			crashTitle:      "unrelated crash",
+			crashRecipients: newRecipients,
+			crashGuilty:     newGuiltyFiles,
+			wantNewBug:      true,
+			wantMaintainers: []string{"new-cc@kernel.org", "new-to@kernel.org"},
+			wantGuiltyFiles: newGuiltyFiles,
+		},
+		{
+			name:            "same_crash_prefers_job_recipients",
+			crashRecipients: newRecipients,
+			crashGuilty:     newGuiltyFiles,
+			wantMaintainers: []string{"new-cc@kernel.org", "new-to@kernel.org"},
+			wantGuiltyFiles: newGuiltyFiles,
+		},
+		{
+			name:            "alttitle_fallback_inherits_parent",
+			crashTitle:      "alt crash title",
+			useAltTitle:     true,
+			wantMaintainers: origMaintainers,
+			wantGuiltyFiles: origGuiltyFiles,
+		},
+		{
+			name:            "partial_fallback_inherits_missing_recipients",
+			crashGuilty:     newGuiltyFiles,
+			wantMaintainers: origMaintainers,
+			wantGuiltyFiles: newGuiltyFiles,
+		},
+		{
+			name:            "different_crash_without_recipients_does_not_inherit",
+			crashTitle:      "unrelated crash without recipients",
+			wantNewBug:      true,
+			wantMaintainers: nil,
+			wantGuiltyFiles: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			c := NewCtx(t)
+			defer c.Close()
+
+			client := c.client
+			build := testBuild(1)
+			build.KernelRepo = "git://syzkaller.org"
+			client.UploadBuild(build)
+
+			crash := testCrash(build, 1)
+			crash.Maintainers = origMaintainers
+			crash.GuiltyFiles = origGuiltyFiles
+			client.ReportCrash(crash)
+			rep := c.globalClient.pollBug()
+
+			bug, _, _ := c.loadBug(rep.ID)
+			reproC := []byte("void main() { *(int*)0 = 0; }")
+			_, _, err := handleTestReproCRequest(c.ctx, &testReproCReqArgs{
+				bug:     bug,
+				bugKey:  bug.key(c.ctx),
+				user:    "test@user.com",
+				manager: build.Manager,
+				reproC:  reproC,
+			})
+			require.NoError(t, err)
+
+			pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+				Managers: map[string]dashapi.ManagerJobs{
+					build.Manager: {TestPatches: true},
+				},
+			})
+			require.NoError(t, err)
+
+			crashTitle := test.crashTitle
+			if crashTitle == "" {
+				crashTitle = rep.Title
+			}
+			var altTitles []string
+			if test.useAltTitle {
+				altTitles = []string{rep.Title}
+			}
+			jobBuild := *testBuild(2)
+			jobBuild.Manager = build.Manager
+			err = c.globalClient.JobDone(&dashapi.JobDoneReq{
+				ID:               pollResp.ID,
+				Build:            jobBuild,
+				CrashTitle:       crashTitle,
+				CrashAltTitles:   altTitles,
+				CrashReport:      []byte("crash report"),
+				CrashRecipients:  test.crashRecipients,
+				CrashGuiltyFiles: test.crashGuilty,
+			})
+			require.NoError(t, err)
+
+			rep2 := c.globalClient.pollBug()
+			if test.wantNewBug {
+				assert.Equal(t, dashapi.ReportNew, rep2.Type)
+				assert.Equal(t, crashTitle, rep2.Title)
+			} else {
+				assert.Equal(t, dashapi.ReportRepro, rep2.Type)
+				assert.Equal(t, rep.ID, rep2.ID)
+			}
+			assert.Equal(t, test.wantMaintainers, rep2.Maintainers)
+
+			_, dbCrash, _ := c.loadBug(rep2.ID)
+			require.NotZero(t, dbCrash.ReproC)
+			assert.Equal(t, test.wantMaintainers, dbCrash.Maintainers)
+			assert.Equal(t, test.wantGuiltyFiles, dbCrash.ReportElements.GuiltyFiles)
+		})
+	}
 }
 
 func TestReproCJobError(t *testing.T) {

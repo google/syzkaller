@@ -7,10 +7,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/mail"
 	"testing"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAggregateTestResults(t *testing.T) {
@@ -134,5 +138,56 @@ func TestAggregateTestResults(t *testing.T) {
 		if !bytes.Equal(test.rawOut, gotOutput) {
 			t.Errorf("test #%v: got raw out: %q, want: %q", i, gotOutput, test.rawOut)
 		}
+	}
+}
+
+func TestSetJobDoneCrash(t *testing.T) {
+	tests := []struct {
+		name string
+		rep  *report.Report
+		want dashapi.JobDoneReq
+	}{
+		{
+			name: "with_recipients_and_guilty_file",
+			rep: &report.Report{
+				Title:     "KASAN: slab-out-of-bounds in foo",
+				AltTitles: []string{"KASAN: slab-out-of-bounds in bar"},
+				Report:    []byte("crash report"),
+				Recipients: vcs.Recipients{
+					{Address: mail.Address{Name: "Maintainer", Address: "m@kernel.org"}, Type: vcs.To},
+					{Address: mail.Address{Address: "list@vger.kernel.org"}, Type: vcs.Cc},
+				},
+				GuiltyFile: "net/wireguard/ratelimiter.c",
+			},
+			want: dashapi.JobDoneReq{
+				CrashTitle:     "KASAN: slab-out-of-bounds in foo",
+				CrashAltTitles: []string{"KASAN: slab-out-of-bounds in bar"},
+				CrashReport:    []byte("crash report"),
+				CrashRecipients: dashapi.Recipients{
+					{Address: mail.Address{Name: "Maintainer", Address: "m@kernel.org"}, Type: dashapi.To},
+					{Address: mail.Address{Address: "list@vger.kernel.org"}, Type: dashapi.Cc},
+				},
+				CrashGuiltyFiles: []string{"net/wireguard/ratelimiter.c"},
+			},
+		},
+		{
+			name: "without_recipients_or_guilty_file",
+			rep: &report.Report{
+				Title:  "WARNING in foo",
+				Report: []byte("crash report"),
+			},
+			want: dashapi.JobDoneReq{
+				CrashTitle:      "WARNING in foo",
+				CrashReport:     []byte("crash report"),
+				CrashRecipients: dashapi.Recipients{},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var got dashapi.JobDoneReq
+			setJobDoneCrash(&got, test.rep)
+			assert.Equal(t, test.want, got)
+		})
 	}
 }

@@ -1227,24 +1227,32 @@ func reportCandidateReproCrash(ctx context.Context, job *Job, jobKey *db.Key, re
 		return
 	}
 	crashReq := &dashapi.Crash{
-		BuildID:   req.Build.ID,
-		Title:     req.CrashTitle,
-		AltTitles: req.CrashAltTitles,
-		Log:       req.CrashLog,
-		Report:    req.CrashReport,
-		ReproC:    reproC,
+		BuildID:     req.Build.ID,
+		Title:       req.CrashTitle,
+		AltTitles:   req.CrashAltTitles,
+		Log:         req.CrashLog,
+		Report:      req.CrashReport,
+		ReproC:      reproC,
+		Recipients:  req.CrashRecipients,
+		GuiltyFiles: req.CrashGuiltyFiles,
 	}
-	// syz-ci does not determine recipients for job crashes, so inherit them from the target bug's
-	// crash. Otherwise the new crash, which becomes the bug's primary crash due to the C repro,
-	// would have no maintainers.
-	if bugTitle, _, _ := splitDisplayTitle(job.BugTitle); req.CrashTitle == bugTitle {
-		parent := new(Crash)
-		if err := db.Get(ctx, db.NewKey(ctx, "Crash", "", job.CrashID, jobKey.Parent()), parent); err != nil {
-			log.Errorf(ctx, "job %v: failed to get crash: %v", req.ID, err)
-			return
+	// If syz-ci didn't provide recipients or guilty files (e.g. older syz-ci binary or
+	// get_maintainer.pl failure) and the crash matches the target bug, fall back to
+	// inheriting them from the target bug's crash.
+	if len(crashReq.Recipients) == 0 || len(crashReq.GuiltyFiles) == 0 {
+		if bugTitle, _, _ := splitDisplayTitle(job.BugTitle); slices.Contains(gatherCrashTitles(req), bugTitle) {
+			parent := new(Crash)
+			if err := db.Get(ctx, db.NewKey(ctx, "Crash", "", job.CrashID, jobKey.Parent()), parent); err != nil {
+				log.Errorf(ctx, "job %v: failed to get crash: %v", req.ID, err)
+				return
+			}
+			if len(crashReq.Recipients) == 0 {
+				crashReq.Maintainers = parent.Maintainers
+			}
+			if len(crashReq.GuiltyFiles) == 0 {
+				crashReq.GuiltyFiles = parent.ReportElements.GuiltyFiles
+			}
 		}
-		crashReq.Maintainers = parent.Maintainers
-		crashReq.GuiltyFiles = parent.ReportElements.GuiltyFiles
 	}
 	if _, err := reportCrash(ctx, build, crashReq); err != nil {
 		log.Errorf(ctx, "job %v: failed to report candidate repro crash: %v", req.ID, err)
