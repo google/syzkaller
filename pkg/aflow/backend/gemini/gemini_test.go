@@ -30,7 +30,7 @@ func TestProviderResolveModels(t *testing.T) {
 		{
 			name:     "resolves lightweight model pool",
 			category: backend.LightweightModel,
-			want:     []string{"gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"},
+			want:     []string{"gemini-3.8-flash", "gemini-3.7-flash"},
 		},
 		{
 			name:     "resolves deep reasoning model pool",
