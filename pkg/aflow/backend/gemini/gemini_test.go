@@ -25,7 +25,7 @@ func TestProviderResolveModels(t *testing.T) {
 		{
 			name:     "resolves core model pool",
 			category: backend.CoreModel,
-			want:     []string{"gemini-3.8-flash"},
+			want:     []string{"gemini-4-hydrogen", "gemini-3.8-flash"},
 		},
 		{
 			name:     "resolves lightweight model pool",
