@@ -246,16 +246,24 @@ func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
 	return ParseMaintainersLinux(output)
 }
 
+// maintainersLineRe splits a get_maintainer.pl output line into its email address
+// and optional trailing " (role)" suffix. Long MAINTAINERS section names are
+// truncated at 50 characters by get_maintainer.pl, which can leave unbalanced
+// parentheses inside the role suffix (e.g. "(maintainer:... (SHMEM/TMPFS/...)").
+var maintainersLineRe = regexp.MustCompile(`^(.*?<[^<>\s]+@[^<>\s]+>|[^\s<>]+@[^\s<>]+)(?:\s+\((.+)\))?$`)
+
 func ParseMaintainersLinux(text []byte) Recipients {
 	lines := strings.Split(string(text), "\n")
-	reRole := regexp.MustCompile(` \([^()]*(?:\([^()]*\)[^()]*)*\)$`)
 	var mtrs Recipients
 	// LMKL is To by default, but it changes to Cc if there's also a subsystem list.
 	lkmlType := To
 	foundLkml := false
 	for _, line := range lines {
-		role := reRole.FindString(line)
-		address := strings.Replace(line, role, "", 1)
+		match := maintainersLineRe.FindStringSubmatch(strings.TrimSpace(line))
+		if match == nil {
+			continue
+		}
+		address, role := match[1], match[2]
 		addr, err := mail.ParseAddress(address)
 		if err != nil {
 			continue
