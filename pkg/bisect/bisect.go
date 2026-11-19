@@ -8,7 +8,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"slices"
 	"time"
@@ -33,14 +32,10 @@ type Config struct {
 	Linker          string
 	BinDir          string
 	Ccache          string
-	Timeout         time.Duration
 	Kernel          KernelConfig
 	Syzkaller       SyzkallerConfig
 	Repro           ReproConfig
 	Manager         *mgrconfig.Config
-	BuildSemaphore  *osutil.Semaphore
-	TestSemaphore   *osutil.Semaphore
-	BuildCPUs       int
 	// CrossTree specifies whether a cross tree bisection is to take place, i.e.
 	// Kernel.Commit is not reachable from Kernel.Branch.
 	// In this case, bisection starts from their merge base.
@@ -70,9 +65,8 @@ type KernelConfig struct {
 }
 
 type SyzkallerConfig struct {
-	Repo         string
-	Commit       string
-	Descriptions string
+	Repo   string
+	Commit string
 }
 
 type ReproConfig struct {
@@ -91,14 +85,11 @@ type env struct {
 	kernelConfig []byte
 	inst         instance.Env
 	numTests     int
-	startTime    time.Time
 	buildTime    time.Duration
 	testTime     time.Duration
 	reportTypes  []crash.Type
 	// The current estimate of the reproducer's kernel crashing probability.
 	reproChance float64
-	// The product of our confidence in every bisection step result.
-	confidence float64
 	// Whether we should do 2x more execution runs for every test step.
 	// We could have inferred this data from reproChance, but we want to be
 	// able to react faster to sudden drops of reproducibility than an estimate
@@ -109,15 +100,13 @@ type env struct {
 	buildCfg instance.BuildKernelConfig
 }
 
-const MaxNumTests = 20 // number of tests we do per commit
+const maxNumTests = 20 // number of tests we do per commit
 
 // Result describes bisection result:
 // 1. if bisection is conclusive, the single cause/fix commit in Commits
 //   - for cause bisection report is the crash on the cause commit
 //   - for fix bisection report is nil
 //   - Commit is nil
-//   - NoopChange is set if the commit did not cause any change in the kernel binary
-//     (bisection result it most likely wrong)
 //
 // 2. Bisected to a release commit
 //   - if bisection is inconclusive, range of potential cause/fix commits in Commits
@@ -131,13 +120,10 @@ const MaxNumTests = 20 // number of tests we do per commit
 //
 // 4. Config contains kernel config used for bisection.
 type Result struct {
-	Commits    []*vcs.Commit
-	Report     *report.Report
-	Commit     *vcs.Commit
-	Config     []byte
-	NoopChange bool
-	IsRelease  bool
-	Confidence float64
+	Commits []*vcs.Commit
+	Report  *report.Report
+	Commit  *vcs.Commit
+	Config  []byte
 }
 
 // Run does the bisection and returns either the Result,
@@ -151,7 +137,7 @@ func Run(cfg *Config) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	inst, err := instance.NewEnv(cfg.Manager, cfg.BuildSemaphore, cfg.TestSemaphore)
+	inst, err := instance.NewEnv(cfg.Manager, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -171,13 +157,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
 	}
 	env := &env{
-		cfg:        cfg,
-		repo:       repo,
-		bisecter:   bisecter,
-		minimizer:  minimizer,
-		inst:       inst,
-		startTime:  time.Now(),
-		confidence: 1.0,
+		cfg:       cfg,
+		repo:      repo,
+		bisecter:  bisecter,
+		minimizer: minimizer,
+		inst:      inst,
 		buildCfg: instance.BuildKernelConfig{
 			CompilerBin:  cfg.DefaultCompiler,
 			MakeBin:      cfg.Make,
@@ -188,7 +172,6 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 			CmdlineFile:  cfg.Kernel.Cmdline,
 			SysctlFile:   cfg.Kernel.Sysctl,
 			KernelConfig: cfg.Kernel.Config,
-			BuildCPUs:    cfg.BuildCPUs,
 		},
 	}
 	head, err := repo.Commit(vcs.HEAD)
@@ -201,13 +184,13 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if err != nil {
 		hostname = "unnamed host"
 	}
-	env.logf("%s starts bisection %s", hostname, env.startTime.String())
+	start := time.Now()
+	env.logf("%s starts bisection %s", hostname, start.String())
 	if cfg.Fix {
 		env.logf("bisecting fixing commit since %v", cfg.Kernel.Commit)
 	} else {
 		env.logf("bisecting cause commit starting from %v", cfg.Kernel.Commit)
 	}
-	start := time.Now()
 	res, err := env.bisect()
 	if env.flaky {
 		env.logf("reproducer is flaky (%.2f repro chance estimate)", env.reproChance)
@@ -317,11 +300,9 @@ func (env *env) bisect() (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	env.logf("accumulated error probability: %0.2f", 1.0-env.confidence)
 	res := &Result{
-		Commits:    commits,
-		Config:     env.kernelConfig,
-		Confidence: env.confidence,
+		Commits: commits,
+		Config:  env.kernelConfig,
 	}
 	if len(commits) == 1 {
 		com := commits[0]
@@ -330,16 +311,6 @@ func (env *env) bisect() (*Result, error) {
 			return nil, fmt.Errorf("no result for culprit commit")
 		}
 		res.Report = testRes.rep
-		isRelease, err := env.bisecter.IsRelease(com.Hash)
-		if err != nil {
-			env.logf("failed to detect release: %v", err)
-		}
-		res.IsRelease = isRelease
-		noopChange, err := env.detectNoopChange(com)
-		if err != nil {
-			env.logf("failed to detect noop change: %v", err)
-		}
-		res.NoopChange = noopChange
 	}
 	return res, nil
 }
@@ -434,35 +405,6 @@ func (env *env) minimizeConfig() (*testResult, error) {
 	}
 	env.kernelConfig = minConfig
 	return testResults[hash.Hash(minConfig)], nil
-}
-
-func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
-	testRes := env.results[com.Hash]
-	if testRes.kernelSign == "" || len(com.Parents) != 1 {
-		return false, nil
-	}
-	parent := com.Parents[0]
-	parentRes := env.results[parent]
-	if parentRes == nil {
-		env.logf("parent commit %v wasn't tested", parent)
-		// We could not test the parent commit if it is not based on the previous release
-		// (instead based on an older release, i.e. a very old non-rebased commit
-		// merged into the current release).
-		// TODO: we can use a differnet compiler for this old commit
-		// since effectively it's in the older release, in that case we may not
-		// detect noop change anyway.
-		if _, err := env.repo.SwitchCommit(parent); err != nil {
-			return false, err
-		}
-		_, kernelSign, err := env.build()
-		if err != nil {
-			return false, err
-		}
-		parentRes = &testResult{kernelSign: kernelSign}
-	}
-	env.logf("culprit signature: %v", testRes.kernelSign)
-	env.logf("parent  signature: %v", parentRes.kernelSign)
-	return testRes.kernelSign == parentRes.kernelSign, nil
 }
 
 func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result, error) {
@@ -595,21 +537,18 @@ func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult
 }
 
 type testResult struct {
-	verdict    vcs.BisectResult
-	com        *vcs.Commit
-	rep        *report.Report
-	types      []crash.Type
-	kernelSign string
+	verdict vcs.BisectResult
+	com     *vcs.Commit
+	rep     *report.Report
+	types   []crash.Type
 	// The ratio of bad/(good+bad) results.
 	badRatio float64
-	// An estimate how much we can trust the result.
-	confidence float64
 }
 
-func (env *env) build() (*vcs.Commit, string, error) {
+func (env *env) build() (*vcs.Commit, error) {
 	current, err := env.repo.Commit(vcs.HEAD)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	bisectEnv, err := env.bisecter.EnvForCommit(
@@ -618,7 +557,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		env.cfg.Kernel.Backports,
 	)
 	if err != nil {
-		return current, "", err
+		return current, err
 	}
 	env.logf("testing commit %v %v", current.Hash, env.cfg.CompilerType)
 	buildStart := time.Now()
@@ -626,7 +565,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	buildCfg.CompilerBin = bisectEnv.Compiler
 	buildCfg.KernelConfig = bisectEnv.KernelConfig
 	if err := env.inst.CleanKernel(&buildCfg); err != nil {
-		return current, "", fmt.Errorf("kernel clean failed: %w", err)
+		return current, fmt.Errorf("kernel clean failed: %w", err)
 	}
 	_, imageDetails, err := env.inst.BuildKernel(&buildCfg)
 	if imageDetails.CompilerID != "" {
@@ -636,7 +575,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		env.logf("kernel signature: %v", imageDetails.Signature)
 	}
 	env.buildTime += time.Since(buildStart)
-	return current, imageDetails.Signature, err
+	return current, err
 }
 
 // Note: When this function returns an error, the bisection it was called from is aborted.
@@ -644,15 +583,10 @@ func (env *env) build() (*vcs.Commit, string, error) {
 // e.g. testResult.verdict will be vcs.BisectSkip for a broken build, but err will be nil.
 func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
-	if cfg.Timeout != 0 && time.Since(env.startTime) > cfg.Timeout {
-		return nil, fmt.Errorf("bisection is taking too long (>%v), aborting", cfg.Timeout)
-	}
-	current, kernelSign, err := env.build()
+	current, err := env.build()
 	res := &testResult{
-		verdict:    vcs.BisectSkip,
-		com:        current,
-		kernelSign: kernelSign,
-		confidence: 1.0,
+		verdict: vcs.BisectSkip,
+		com:     current,
 	}
 	if current == nil {
 		// This is not recoverable, as the caller must know which commit to skip.
@@ -683,7 +617,7 @@ func (env *env) test() (*testResult, error) {
 		return res, nil
 	}
 
-	numTests := MaxNumTests / 2
+	numTests := maxNumTests / 2
 	if env.flaky || env.numTests == 0 {
 		// Use twice as many instances if the bug is flaky and during initial testing
 		// (as we don't know yet if it's flaky or not).
@@ -707,11 +641,6 @@ func (env *env) test() (*testResult, error) {
 	}
 	if bad+good > 0 {
 		res.badRatio = float64(bad) / float64(bad+good)
-	}
-	if res.verdict == vcs.BisectGood {
-		// The result could be a false negative.
-		res.confidence = 1.0 - math.Pow(1.0-env.reproChance, float64(good))
-		env.logf("false negative chance: %.3f", 1.0-res.confidence)
 	}
 	if res.verdict == vcs.BisectSkip {
 		res.rep = &report.Report{
@@ -932,9 +861,8 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 }
 
 // postTestResult() is to be run after we have got the results of a test() call for a revision.
-// It updates the estimates of reproducibility and the overall result confidence.
+// It updates the estimate of reproducibility.
 func (env *env) postTestResult(res *testResult) {
-	env.confidence *= res.confidence
 	if res.verdict == vcs.BisectBad {
 		// Let's be conservative and only decrease our reproduction likelihood estimate.
 		// As the estimate of each test() can also be flaky, only partially update the result.

@@ -47,9 +47,6 @@ func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, b
 	configHash := hash.String(buildCfg.KernelConfig)
 	details := build.ImageDetails{}
 	details.Signature = fmt.Sprintf("%v-%v", commit, configHash)
-	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
-		details.Signature = "same-sign-" + configHash
-	}
 	env.config = string(buildCfg.KernelConfig)
 	if env.config == "baseline-fails" {
 		return "", details, fmt.Errorf("failure")
@@ -264,9 +261,6 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 		} else {
 			checkBisectionResult(t, test, res)
 		}
-		if test.extraTest != nil {
-			test.extraTest(t, res)
-		}
 	}
 
 	res, err := runImpl(cfg, r, inst)
@@ -294,12 +288,6 @@ func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
 	if test.expectRep != (res.Report != nil) {
 		t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
 	}
-	if res.NoopChange != test.noopChange {
-		t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
-	}
-	if res.IsRelease != test.isRelease {
-		t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
-	}
 	if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
 		test.oldestLatest == 0 && res.Commit != nil {
 		t.Fatalf("expected latest/oldest: %v got '%v'",
@@ -326,16 +314,11 @@ type BisectionTest struct {
 	buildInfraErrStart int
 	buildInfraErrEnd   int
 	reportType         crash.Type
-	// Range of commits that result in the same kernel binary signature.
-	sameBinaryStart int
-	sameBinaryEnd   int
 	// expected output
 	expectErr     bool
 	expectErrType any
 	// Expect res.Report != nil.
 	expectRep            bool
-	noopChange           bool
-	isRelease            bool
 	flaky                bool
 	injectSyzFailure     bool
 	injectLostConnection bool
@@ -355,8 +338,6 @@ type BisectionTest struct {
 	resultingConfig string
 	crossTree       bool
 	noFakeHashTest  bool
-
-	extraTest func(t *testing.T, res *Result)
 }
 
 var bisectionTests = []BisectionTest{
@@ -367,9 +348,6 @@ var bisectionTests = []BisectionTest{
 		commitLen:   1,
 		expectRep:   true,
 		introduced:  "602",
-		extraTest: func(t *testing.T, res *Result) {
-			assert.Greater(t, res.Confidence, 0.99)
-		},
 	},
 	{
 		name:        "cause-finds-cause-flaky",
@@ -378,12 +356,6 @@ var bisectionTests = []BisectionTest{
 		expectRep:   true,
 		flaky:       true,
 		introduced:  "605",
-		extraTest: func(t *testing.T, res *Result) {
-			// False negative probability of each run is ~4%.
-			// We get three "good" results, so our accumulated confidence is ~85%.
-			assert.Less(t, res.Confidence, 0.9)
-			assert.Greater(t, res.Confidence, 0.8)
-		},
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
 	{
@@ -437,18 +409,6 @@ var bisectionTests = []BisectionTest{
 		baselineConfig: "minimize-fails",
 		expectErr:      true,
 	},
-	{
-		name:            "config-minimize-same-hash",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "905",
-		sameBinaryStart: 904,
-		sameBinaryEnd:   905,
-		noopChange:      true,
-		baselineConfig:  "minimize-succeeds",
-		resultingConfig: "new-minimized-config",
-	},
 	// Tests that cause bisection returns error when crash does not reproduce
 	// on the original commit.
 	{
@@ -493,7 +453,6 @@ var bisectionTests = []BisectionTest{
 		startCommit: 400,
 		commitLen:   1,
 		fixCommit:   "500",
-		isRelease:   true,
 	},
 	// Tests that we do not confuse revisions where the bug was not yet introduced and where it's fixed.
 	// In this case, we have a 700-790-791-792-804 branch, which will be visited during bisection.
@@ -516,7 +475,6 @@ var bisectionTests = []BisectionTest{
 		injectSyzFailure: true,
 		commitLen:        1,
 		fixCommit:        "500",
-		isRelease:        true,
 	},
 	// Tests that bisection returns the correct fix commit despite `lost connection to test machine`.
 	{
@@ -526,7 +484,6 @@ var bisectionTests = []BisectionTest{
 		injectLostConnection: true,
 		commitLen:            1,
 		fixCommit:            "500",
-		isRelease:            true,
 	},
 	// Tests that bisection returns the correct fix commit in case of SYZFATAL.
 	{
@@ -536,7 +493,6 @@ var bisectionTests = []BisectionTest{
 		reportType:  crash.SyzFailure,
 		commitLen:   1,
 		fixCommit:   "500",
-		isRelease:   true,
 	},
 	// Tests that fix bisection returns error when crash does not reproduce
 	// on the original commit.
@@ -586,101 +542,18 @@ var bisectionTests = []BisectionTest{
 		fixCommit:   "601",
 	},
 	{
-		name:            "cause-same-binary",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "503",
-		sameBinaryStart: 502,
-		sameBinaryEnd:   503,
-		noopChange:      true,
-	},
-	{
-		name:            "cause-same-binary-off-by-one",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "503",
-		sameBinaryStart: 400,
-		sameBinaryEnd:   502,
-	},
-	{
-		name:            "cause-same-binary-off-by-one-2",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "503",
-		sameBinaryStart: 503,
-		sameBinaryEnd:   905,
-	},
-	{
-		name:            "fix-same-binary",
-		fix:             true,
-		startCommit:     400,
-		commitLen:       1,
-		fixCommit:       "503",
-		sameBinaryStart: 502,
-		sameBinaryEnd:   504,
-		noopChange:      true,
-	},
-	{
-		name:            "cause-same-binary-release1",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "500",
-		sameBinaryStart: 405,
-		sameBinaryEnd:   500,
-		noopChange:      true,
-		isRelease:       true,
-	},
-	{
-		name:            "cause-same-binary-release2",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "501",
-		sameBinaryStart: 500,
-		sameBinaryEnd:   501,
-		noopChange:      true,
-	},
-	{
-		name:            "cause-same-binary-release3",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		introduced:      "405",
-		sameBinaryStart: 404,
-		sameBinaryEnd:   405,
-		noopChange:      true,
-	},
-	{
-		name:            "fix-same-binary-last",
-		fix:             true,
-		startCommit:     400,
-		commitLen:       1,
-		fixCommit:       "905",
-		sameBinaryStart: 904,
-		sameBinaryEnd:   905,
-		noopChange:      true,
-	},
-	{
 		name:        "fix-release",
 		fix:         true,
 		startCommit: 400,
 		commitLen:   1,
 		fixCommit:   "900",
-		isRelease:   true,
 	},
 	{
-		name:            "cause-not-in-previous-release-issue-1527",
-		startCommit:     905,
-		introduced:      "650",
-		commitLen:       1,
-		expectRep:       true,
-		sameBinaryStart: 500,
-		sameBinaryEnd:   650,
-		noopChange:      true,
+		name:        "cause-not-in-previous-release-issue-1527",
+		startCommit: 905,
+		introduced:  "650",
+		commitLen:   1,
+		expectRep:   true,
 	},
 	{
 		name:          "cause-infra-problems",
@@ -786,10 +659,6 @@ func checkTest(t *testing.T, test BisectionTest) {
 	if test.brokenStart > test.brokenEnd {
 		t.Fatalf("bad broken start/end: %v/%v",
 			test.brokenStart, test.brokenEnd)
-	}
-	if test.sameBinaryStart > test.sameBinaryEnd {
-		t.Fatalf("bad same binary start/end: %v/%v",
-			test.sameBinaryStart, test.sameBinaryEnd)
 	}
 }
 
