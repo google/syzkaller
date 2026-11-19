@@ -522,14 +522,22 @@ func (git *gitRepo) ReleaseTag(commit string) (string, error) {
 	return tags[0], nil
 }
 
+func (git *gitRepo) commitReleaseTags(commit string, includeRC bool) ([]string, error) {
+	output, err := git.Run("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
+	if err != nil {
+		return nil, err
+	}
+	return gitParseReleaseTags(output, includeRC), nil
+}
+
 func (git *gitRepo) previousReleaseTags(commit string, self, onlyTop, includeRC bool) ([]string, error) {
 	var tags []string
 	if self {
-		output, err := git.Run("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
+		var err error
+		tags, err = git.commitReleaseTags(commit, includeRC)
 		if err != nil {
 			return nil, err
 		}
-		tags = gitParseReleaseTags(output, includeRC)
 		if onlyTop && len(tags) != 0 {
 			return tags, nil
 		}
@@ -547,15 +555,13 @@ func (git *gitRepo) previousReleaseTags(commit string, self, onlyTop, includeRC 
 }
 
 func (git *gitRepo) IsRelease(commit string) (bool, error) {
-	tags1, err := git.previousReleaseTags(commit, true, false, false)
-	if err != nil {
-		return false, err
-	}
-	tags2, err := git.previousReleaseTags(commit, false, false, false)
-	if err != nil {
-		return false, err
-	}
-	return len(tags1) != len(tags2), nil
+	tags, err := git.commitReleaseTags(commit, false)
+	return len(tags) != 0, err
+}
+
+func (git *gitRepo) IsReleaseOrRC(commit string) (bool, error) {
+	tags, err := git.commitReleaseTags(commit, true)
+	return len(tags) != 0, err
 }
 
 func (git *gitRepo) Object(name, commit string) ([]byte, error) {

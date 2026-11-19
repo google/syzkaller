@@ -208,8 +208,8 @@ func TestFormatBisect(t *testing.T) {
 	t.Parallel()
 	repoDir := filepath.Join(osutil.SandboxTempDir(t), "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
-	repo.CommitChange("Linux 6.11")
-	repo.SetTag("v6.11")
+	rc := repo.CommitChange("Linux 2.6.12-rc2")
+	repo.SetTag("v2.6.12-rc2")
 	c1 := repo.CommitChangeset("net: fix refcount\n\nReviewed-by: Reviewer <rev@example.com>", vcs.FileContent{
 		File:    "net.c",
 		Content: "int x = 1;\n",
@@ -217,6 +217,14 @@ func TestFormatBisect(t *testing.T) {
 	release := repo.CommitChange("Linux 6.12")
 	repo.SetTag("v6.12")
 
+	rcOut := ai.Commit{
+		Hash:        rc.Hash,
+		Title:       "Linux 2.6.12-rc2",
+		AuthorName:  rc.AuthorName,
+		AuthorEmail: rc.Author,
+		Date:        rc.Date,
+		Recipients:  []ai.Recipient{{Email: rc.Author, To: true}},
+	}
 	c1Out := ai.Commit{
 		Hash:        c1.Hash,
 		Title:       "net: fix refcount",
@@ -251,6 +259,10 @@ func TestFormatBisect(t *testing.T) {
 		{
 			candidates: []string{release.Hash, c1.Hash},
 			want:       formatBisectResult{Commits: []ai.Commit{releaseOut, c1Out}, IsRelease: true},
+		},
+		{
+			candidates: []string{rc.Hash},
+			want:       formatBisectResult{Commits: []ai.Commit{rcOut}, IsRelease: true},
 		},
 		{
 			candidates: []string{c1.Hash, release.Hash},

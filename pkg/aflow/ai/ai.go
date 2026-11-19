@@ -167,8 +167,8 @@ type BisectOutputs struct {
 	// Candidate commits that introduced (bisect-cause) or fixed (bisect-fix) the bug,
 	// ordered by relevance with the primary commit first; empty if not identified.
 	Commits []Commit `json:",omitempty"`
-	// IsRelease is set if the primary commit (Commits[0]) is a release commit,
-	// in which case the bisection is treated as inconclusive.
+	// IsRelease is set if the primary commit (Commits[0]) is a release commit
+	// (including release candidates), in which case the bisection is treated as inconclusive.
 	IsRelease       bool   `json:",omitempty"`
 	BisectReasoning string `json:",omitempty"`
 }
