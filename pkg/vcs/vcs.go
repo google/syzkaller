@@ -116,6 +116,7 @@ type Bisecter interface {
 	PreviousReleaseTags(commit, compilerType string) ([]string, error)
 
 	IsRelease(commit string) (bool, error)
+	IsReleaseOrRC(commit string) (bool, error)
 
 	EnvForCommit(defaultCompiler, compilerType, binDir, commit string,
 		kernelConfig []byte, backports []BackportCommit) (*BisectEnv, error)

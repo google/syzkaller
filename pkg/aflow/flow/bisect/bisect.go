@@ -362,7 +362,7 @@ var formatBisect = aflow.NewFuncAction("format-bisect",
 			})
 		}
 		if bisecter, ok := repo.(vcs.Bisecter); ok {
-			isRelease, err := bisecter.IsRelease(res.Commits[0].Hash)
+			isRelease, err := bisecter.IsReleaseOrRC(res.Commits[0].Hash)
 			if err != nil {
 				ctx.Logf(0, "failed to check if commit %q is a release: %v", res.Commits[0].Hash, err)
 			}
