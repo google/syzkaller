@@ -97,7 +97,7 @@ func init() {
 // bisectPipeline fills in the agent settings that are common for cause and fix bisection
 // and wraps the agent into the shared pipeline.
 func bisectPipeline(agent *aflow.LLMAgent) aflow.Action {
-	agent.Model = aflow.DeepReasoningModel
+	agent.Model = aflow.CoreModel
 	agent.Reply = "BisectReasoning"
 	agent.Tools = codeAccessTools
 	agent.MaxIterations = 80
