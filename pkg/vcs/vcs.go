@@ -310,7 +310,7 @@ func ParseReleaseTag(tag string) (v1, v2, rc, v3 int) {
 		return
 	}
 	for ptr, idx := range map[*int]int{
-		&v1: 1, &v2: 2, &rc: 3, &v3: 4,
+		&v1: 1, &v2: 2, &v3: 3, &rc: 4,
 	} {
 		if matches[idx] == "" {
 			continue
@@ -346,7 +346,7 @@ var (
 	// also disallows ref names starting with '-', so no valid branch is rejected.
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9_/.][a-zA-Z0-9-_/.]{1,199}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
-	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
+	releaseTagRe = regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:-rc([0-9]+))?$`)
 	// CC: is intentionally not on this list, see #1441.
 	ccRes = []*regexp.Regexp{
 		regexp.MustCompile(`^Reviewed\-.*: (.*)$`),
