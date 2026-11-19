@@ -325,7 +325,8 @@ type formatBisectArgs struct {
 }
 
 type formatBisectResult struct {
-	Commits []ai.Commit
+	Commits   []ai.Commit
+	IsRelease bool
 }
 
 var formatBisect = aflow.NewFuncAction("format-bisect",
@@ -359,6 +360,13 @@ var formatBisect = aflow.NewFuncAction("format-bisect",
 				Date:        com.Date,
 				Recipients:  recipients,
 			})
+		}
+		if bisecter, ok := repo.(vcs.Bisecter); ok {
+			isRelease, err := bisecter.IsRelease(res.Commits[0].Hash)
+			if err != nil {
+				ctx.Logf(0, "failed to check if commit %q is a release: %v", res.Commits[0].Hash, err)
+			}
+			res.IsRelease = isRelease
 		}
 		return res, nil
 	})

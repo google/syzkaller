@@ -208,31 +208,59 @@ func TestFormatBisect(t *testing.T) {
 	t.Parallel()
 	repoDir := filepath.Join(osutil.SandboxTempDir(t), "linux")
 	repo := vcs.MakeTestRepo(t, repoDir)
+	repo.CommitChange("Linux 6.11")
+	repo.SetTag("v6.11")
 	c1 := repo.CommitChangeset("net: fix refcount\n\nReviewed-by: Reviewer <rev@example.com>", vcs.FileContent{
 		File:    "net.c",
 		Content: "int x = 1;\n",
 	})
+	release := repo.CommitChange("Linux 6.12")
+	repo.SetTag("v6.12")
 
-	aflow.TestAction(t, formatBisect, "", formatBisectArgs{
-		KernelSrc:        repoDir,
-		CandidateCommits: []string{c1.Hash},
-	}, formatBisectResult{
-		Commits: []ai.Commit{
-			{
-				Hash:        c1.Hash,
-				Title:       "net: fix refcount",
-				AuthorName:  c1.AuthorName,
-				AuthorEmail: c1.Author,
-				Date:        c1.Date,
-				Recipients: []ai.Recipient{
-					{Email: "rev@example.com", To: true},
-					{Email: c1.Author, To: true},
-				},
-			},
+	c1Out := ai.Commit{
+		Hash:        c1.Hash,
+		Title:       "net: fix refcount",
+		AuthorName:  c1.AuthorName,
+		AuthorEmail: c1.Author,
+		Date:        c1.Date,
+		Recipients: []ai.Recipient{
+			{Email: "rev@example.com", To: true},
+			{Email: c1.Author, To: true},
 		},
-	}, "")
+	}
+	releaseOut := ai.Commit{
+		Hash:        release.Hash,
+		Title:       "Linux 6.12",
+		AuthorName:  release.AuthorName,
+		AuthorEmail: release.Author,
+		Date:        release.Date,
+		Recipients:  []ai.Recipient{{Email: release.Author, To: true}},
+	}
 
-	aflow.TestAction(t, formatBisect, "", formatBisectArgs{
-		KernelSrc: repoDir,
-	}, formatBisectResult{}, "")
+	tests := []struct {
+		candidates []string
+		want       formatBisectResult
+	}{
+		{
+			candidates: []string{c1.Hash},
+			want:       formatBisectResult{Commits: []ai.Commit{c1Out}},
+		},
+		{
+			want: formatBisectResult{},
+		},
+		{
+			candidates: []string{release.Hash, c1.Hash},
+			want:       formatBisectResult{Commits: []ai.Commit{releaseOut, c1Out}, IsRelease: true},
+		},
+		{
+			candidates: []string{c1.Hash, release.Hash},
+			want:       formatBisectResult{Commits: []ai.Commit{c1Out, releaseOut}},
+		},
+	}
+	for _, tc := range tests {
+		aflow.TestAction(t, formatBisect, "", formatBisectArgs{
+			KernelSrc:        repoDir,
+			CandidateCommits: tc.candidates,
+		}, tc.want, "")
+	}
 }
