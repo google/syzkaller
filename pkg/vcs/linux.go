@@ -122,7 +122,7 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	} else {
 		rc = 999
 	}
-	return uint64(v1)*1e9 + uint64(v2)*1e6 + uint64(rc)*1e3 + uint64(v3)
+	return uint64(v1)*1e9 + uint64(v2)*1e6 + uint64(v3)*1e3 + uint64(rc)
 }
 
 func (ctx *linux) EnvForCommit(
