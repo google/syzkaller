@@ -91,6 +91,12 @@ type agentSession struct {
 	answerNowLeft int
 	// Resolved max iterations.
 	maxIterations int
+	// skipModels[category] is the number of models at the start of the category's pool that blocked
+	// a request of this session (see generateContent). If it is x, the models at indices 0..x-1
+	// of ResolveModels(category) are not tried again, and requests go to the model at index x.
+	// It's per category since a model can be in several pools, and a blocked context compression
+	// request must not take the model away from the conversation.
+	skipModels map[backend.ModelCategory]int
 }
 
 type llmMessage struct {
@@ -1100,60 +1106,76 @@ const (
 	maxLLMBackoff    = 3 * time.Minute
 )
 
-func (a *LLMAgent) generateContent(ctx *Context, cfg *backend.GenerateConfig,
-	history []llmMessage, candidate int, model backend.ModelCategory,
+// generateContent sends the request to a model of the category, and stores the model in span.Model.
+// It falls back to the next model of the category only if the current one blocks the request
+// (e.g. due to safety guardrails): waiting does not help in this case. Other errors are returned as is,
+// since switching models in the middle of a conversation loses the reasoning state and token caches
+// of the model. For the same reason the fallback is sticky: the session does not go back to the model
+// that blocked its request.
+func (a *agentSession) generateContent(ctx *Context, cfg *backend.GenerateConfig,
+	history []llmMessage, candidate int, category backend.ModelCategory,
 	span *trajectory.Span) (*backend.GenerateResponse, error) {
-	// Don't alter the original object (that may affect request caching).
+	models := ctx.provider.ResolveModels(category)
+	for i := a.skipModels[category]; i < len(models); i++ {
+		model := models[i]
+		if span != nil {
+			span.Model = model
+		}
+		resp, err := a.generateContentModel(ctx, cfg, messagesForModel(history, model), candidate, model)
+		// The last model is not skipped, so that the session keeps getting its error.
+		if !isBlockedError(err) || i+1 == len(models) {
+			return resp, err
+		}
+		ctx.Logf(0, "%v: model %v blocked the request, falling back to %v: %v", a.Name, model, models[i+1], err)
+		if a.skipModels == nil {
+			a.skipModels = make(map[backend.ModelCategory]int)
+		}
+		a.skipModels[category] = i + 1
+	}
+	return nil, fmt.Errorf("no models to serve %q requests", category)
+}
+
+// generateContentModel sends the request to the given model, retrying on transient errors.
+// It may reduce the thinking level if the model overflows the output token limit.
+func (a *agentSession) generateContentModel(ctx *Context, cfg *backend.GenerateConfig,
+	req []*backend.Message, candidate int, model string) (*backend.GenerateResponse, error) {
+	// Don't alter the original object: that may affect request caching,
+	// and the next model must start with the original thinking level.
 	cfgCopy := *cfg
 	cfg = &cfgCopy
-
-	resolvedModels := ctx.provider.ResolveModels(model)
-	var lastErr error
-	for _, m := range resolvedModels {
-		if span != nil {
-			span.Model = m
+	for try := 0; ; try++ {
+		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try, model)
+		if retryErr := new(backend.RetryError); errors.As(err, &retryErr) {
+			if try >= maxLLMRetryIters {
+				return nil, retryErr.Err
+			}
+			delay := max(time.Second, retryErr.Delay)
+			if retryErr.IsExponential {
+				delay = backend.BackoffDuration(try, delay)
+			}
+			ctx.sleep(delay)
+			continue
 		}
-		req := messagesForModel(history, m)
-		for try := 0; ; try++ {
-			resp, err := a.generateContentCached(ctx, cfg, req, candidate, try, m)
-			if retryErr := new(backend.RetryError); errors.As(err, &retryErr) {
-				if try >= maxLLMRetryIters {
-					lastErr = retryErr.Err
-					break // stop retrying this model
-				}
-				delay := max(time.Second, retryErr.Delay)
-				if retryErr.IsExponential {
-					delay = backend.BackoffDuration(try, delay)
-				}
-				ctx.sleep(delay)
-				continue
+		if isOutputTokenOverflowError(err) &&
+			cfg.ThinkingLevel != backend.ThinkingLevelMinimal {
+			// Reduce amount of thinking and try again (thinking tokens are counted against output).
+			// For non-thinking models this is effectively just a retry,
+			// but that's fine, there is some chance that retry will succeed due to randomness,
+			// or it will just fail after few retries.
+			switch cfg.ThinkingLevel {
+			case backend.ThinkingLevelHigh:
+				cfg.ThinkingLevel = backend.ThinkingLevelMedium
+			case backend.ThinkingLevelMedium:
+				cfg.ThinkingLevel = backend.ThinkingLevelLow
+			case backend.ThinkingLevelLow:
+				cfg.ThinkingLevel = backend.ThinkingLevelMinimal
+			default:
+				return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingLevel)
 			}
-			if isOutputTokenOverflowError(err) &&
-				cfg.ThinkingLevel != backend.ThinkingLevelMinimal {
-				// Reduce amount of thinking and try again (thinking tokens are counted against output).
-				// For non-thinking models this is effectively just a retry,
-				// but that's fine, there is some chance that retry will succeed due to randomness,
-				// or it will just fail after few retries.
-				switch cfg.ThinkingLevel {
-				case backend.ThinkingLevelHigh:
-					cfg.ThinkingLevel = backend.ThinkingLevelMedium
-				case backend.ThinkingLevelMedium:
-					cfg.ThinkingLevel = backend.ThinkingLevelLow
-				case backend.ThinkingLevelLow:
-					cfg.ThinkingLevel = backend.ThinkingLevelMinimal
-				default:
-					return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingLevel)
-				}
-				continue
-			}
-			if err != nil {
-				lastErr = err
-				break // try next model
-			}
-			return resp, nil
+			continue
 		}
+		return resp, err
 	}
-	return nil, lastErr
 }
 
 // messagesForModel returns the history in the form it should be sent to the given model.

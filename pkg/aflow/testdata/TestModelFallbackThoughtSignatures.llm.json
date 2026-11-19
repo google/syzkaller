@@ -144,7 +144,7 @@
 		]
 	},
 	{
-		"Model": "model1",
+		"Model": "model2",
 		"Request": [
 			{
 				"parts": [
@@ -157,18 +157,10 @@
 			{
 				"parts": [
 					{
-						"thought": true,
-						"thoughtSignature": "c2lnMQ=="
-					},
-					{
-						"thoughtSignature": "c2lnMQ=="
-					},
-					{
 						"text": "thinking about id1",
 						"thought": true
 					},
 					{
-						"thoughtSignature": "c2lnMQ==",
 						"functionCall": {
 							"id": "id1",
 							"name": "tick"
@@ -194,10 +186,18 @@
 			{
 				"parts": [
 					{
+						"thought": true,
+						"thoughtSignature": "c2lnMg=="
+					},
+					{
+						"thoughtSignature": "c2lnMg=="
+					},
+					{
 						"text": "thinking about id2",
 						"thought": true
 					},
 					{
+						"thoughtSignature": "c2lnMg==",
 						"functionCall": {
 							"id": "id2",
 							"name": "tick"

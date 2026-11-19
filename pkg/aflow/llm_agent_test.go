@@ -36,10 +36,10 @@ func TestLLMRetryLimit(t *testing.T) {
 	}
 	ctx.provider = &dummyProvider{}
 
-	agent := &LLMAgent{
+	agent := &agentSession{LLMAgent: &LLMAgent{
 		Name:  "test-agent",
 		Model: "model1",
-	}
+	}}
 
 	cfg := &backend.GenerateConfig{}
 	_, err := agent.generateContent(ctx, cfg, nil, 0, "model1", nil)
@@ -553,7 +553,7 @@ func TestValidatedLLMReply(t *testing.T) {
 }
 
 // TestModelFallbackTrajectory verifies that when a workflow is configured with a model pool (fallback list),
-// and the primary model fails (e.g. returns quota limit error), the workflow engine successfully falls back
+// and the primary model blocks the request, the workflow engine successfully falls back
 // to the backup model and executes. It also verifies that only the successful fallback model is recorded
 // in the finished LLM span of the execution trajectory.
 func TestModelFallbackTrajectory(t *testing.T) {
@@ -571,7 +571,7 @@ func TestModelFallbackTrajectory(t *testing.T) {
 			func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
 				*backend.GenerateResponse, error) {
 				if model == "model1" {
-					return nil, errors.New("model1 failed (quota limit)")
+					return nil, &backend.BlockedError{Err: errors.New("request blocked: SAFETY")}
 				}
 				if model == "model2" {
 					return &backend.GenerateResponse{
@@ -586,7 +586,8 @@ func TestModelFallbackTrajectory(t *testing.T) {
 }
 
 // TestModelFallbackThoughtSignatures verifies that when a model pool falls back to another model in the middle
-// of a conversation, each model only receives the thought signatures it has produced itself.
+// of a conversation, the new model does not receive the thought signatures of the previous one,
+// and that the fallback is sticky: the model that blocked the request is not tried again.
 func TestModelFallbackThoughtSignatures(t *testing.T) {
 	type flowOutputs struct {
 		Reply string
@@ -646,9 +647,9 @@ func TestModelFallbackThoughtSignatures(t *testing.T) {
 					assert.Len(t, req[1].Parts, 2)
 					return toolCall("id2", "sig2"), nil
 				case 4:
-					// The primary model is tried first again: it gets its own signatures,
-					// but not the ones of the fallback model.
-					assert.Equal(t, []string{"sig1", "sig1", "sig1"}, signatures(req))
+					// The conversation stays on the fallback model: it gets its own signatures,
+					// but not the ones of the primary model.
+					assert.Equal(t, []string{"sig2", "sig2", "sig2"}, signatures(req))
 					return &backend.GenerateResponse{
 						Parts: []backend.Part{{Text: "Done"}},
 					}, nil
@@ -658,7 +659,72 @@ func TestModelFallbackThoughtSignatures(t *testing.T) {
 		},
 		nil,
 	)
-	require.Equal(t, []string{"model1", "model1", "model2", "model1"}, models)
+	require.Equal(t, []string{"model1", "model1", "model2", "model2"}, models)
+}
+
+// TestModelFallbackErrors verifies that a model pool falls back to the next model only
+// on blocked requests, and that the fallback is sticky.
+func TestModelFallbackErrors(t *testing.T) {
+	blocked := &backend.BlockedError{Err: errors.New("blocked")}
+	other := errors.New("other")
+	tests := []struct {
+		name       string
+		err1, err2 error    // errors returned by model1 and model2
+		models     []string // models queried by two consecutive requests
+		err        error    // result of both requests
+	}{
+		{"blocked", blocked, nil, []string{"model1", "model2", "model2"}, nil},
+		{"other", other, nil, []string{"model1", "model1"}, other},
+		// The last model is not skipped, so the session keeps getting its error.
+		{"all", blocked, blocked, []string{"model1", "model2", "model2"}, blocked},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var models []string
+			ctx := NewTestContext(t)
+			ctx.provider = &dummyProvider{}
+			ctx.generateContent = func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+				*backend.GenerateResponse, error) {
+				models = append(models, model)
+				return &backend.GenerateResponse{}, map[string]error{"model1": test.err1, "model2": test.err2}[model]
+			}
+			session := &agentSession{LLMAgent: &LLMAgent{Name: "smarty"}}
+			cfg := &backend.GenerateConfig{}
+			// Different candidates don't share cached replies.
+			for candidate := range 2 {
+				_, err := session.generateContent(ctx, cfg, nil, candidate, "fallback-pool", nil)
+				require.ErrorIs(t, err, test.err)
+			}
+			require.Equal(t, test.models, models)
+		})
+	}
+}
+
+// TestModelFallbackThinkingLevel verifies that the fallback model starts with the original thinking level,
+// not with the one that was reduced for the previous model on an output token overflow.
+func TestModelFallbackThinkingLevel(t *testing.T) {
+	var levels []backend.ThinkingLevel
+	ctx := NewTestContext(t)
+	ctx.provider = &dummyProvider{}
+	ctx.generateContent = func(model string, cfg *backend.GenerateConfig, req []*backend.Message) (
+		*backend.GenerateResponse, error) {
+		levels = append(levels, cfg.ThinkingLevel)
+		switch len(levels) {
+		case 1:
+			return nil, &backend.OutputTokenOverflowError{Err: errors.New("MAX_TOKENS")}
+		case 2:
+			return nil, &backend.BlockedError{Err: errors.New("blocked")}
+		}
+		return &backend.GenerateResponse{}, nil
+	}
+	session := &agentSession{LLMAgent: &LLMAgent{Name: "smarty"}}
+	cfg := &backend.GenerateConfig{ThinkingLevel: backend.ThinkingLevelHigh}
+	_, err := session.generateContent(ctx, cfg, nil, 0, "fallback-pool", nil)
+	require.NoError(t, err)
+	// model1 overflows with high and blocks with medium, model2 starts with high again.
+	require.Equal(t, []backend.ThinkingLevel{
+		backend.ThinkingLevelHigh, backend.ThinkingLevelMedium, backend.ThinkingLevelHigh,
+	}, levels)
 }
 
 type maxIterationsToolArgs struct {

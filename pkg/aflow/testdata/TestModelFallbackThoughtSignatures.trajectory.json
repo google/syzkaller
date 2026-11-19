@@ -101,7 +101,7 @@
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
-		"Model": "model1",
+		"Model": "model2",
 		"Started": "0001-01-01T00:00:11Z",
 		"Finished": "0001-01-01T00:00:12Z"
 	},
