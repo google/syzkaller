@@ -3464,7 +3464,7 @@ func TestAIBisectCauseRateLimit(t *testing.T) {
 	}
 	c.advanceTime(25 * time.Hour)
 
-	// Old bugs get at most one job per hour.
+	// Old bugs get at most one job per backlogBisectCauseWindow.
 	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
 	require.Empty(t, poll(ai.WorkflowBisectCause))
 	c.advanceTime(backlogBisectCauseWindow + time.Second)
@@ -3472,14 +3472,15 @@ func TestAIBisectCauseRateLimit(t *testing.T) {
 	require.Empty(t, poll(ai.WorkflowBisectCause))
 
 	// A job for a new bug is created right away.
-	c.advanceTime(30 * time.Minute)
+	halfWindow := backlogBisectCauseWindow / 2
+	c.advanceTime(halfWindow)
 	reportCrash(oldBugs, "KASAN: slab-use-after-free in new")
 	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in new", poll(ai.WorkflowBisectCause))
 	require.Empty(t, poll(ai.WorkflowBisectCause))
-	// It counts towards the limit: the next old bug has to wait for an hour after it.
-	c.advanceTime(31 * time.Minute)
+	// It counts towards the limit: the next old bug has to wait for backlogBisectCauseWindow after it.
+	c.advanceTime(halfWindow + time.Minute)
 	require.Empty(t, poll(ai.WorkflowBisectCause))
-	c.advanceTime(30 * time.Minute)
+	c.advanceTime(halfWindow)
 	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
 
 	// Create the assessment-security jobs of all the bugs above (the old ones and the new one),

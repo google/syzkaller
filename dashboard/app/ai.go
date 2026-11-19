@@ -2192,7 +2192,7 @@ const (
 	// of old bugs does not take over the agents. New bugs are bisected right away.
 	bisectCauseNewBugAge      = 24 * time.Hour
 	maxBacklogBisectCauseJobs = 1
-	backlogBisectCauseWindow  = time.Hour
+	backlogBisectCauseWindow  = 30 * time.Minute
 )
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
