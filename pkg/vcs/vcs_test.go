@@ -408,6 +408,31 @@ linux-kernel@vger.kernel.org (open list)
 				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To},
 			},
 		},
+		{
+			`
+scripts/get_maintainer.pl: file 'mm/shmem.c' not found in version control
+Hugh Dickins <hughd@google.com> (maintainer:MEMORY MANAGEMENT - SHARED MEMORY (SHMEM/TMPFS/...)
+David Hildenbrand <david@kernel.org> (maintainer:MEMORY MANAGEMENT - SHARED MEMORY (SHMEM/TMPFS/...,commits:1/2=50%)
+Baolin Wang <baolin.wang@linux.alibaba.com> (reviewer:MEMORY MANAGEMENT - SHARED MEMORY (SHMEM/TMPFS/...)
+Andrew Morton <akpm@linux-foundation.org> (maintainer:MEMORY MANAGEMENT)
+"Supporter Foo (Company)" <c@email.com> (supporter:SOME LONG SUBSYSTEM (WITH UNCLOSED...)
+linux-mm@kvack.org (open list:MEMORY MANAGEMENT - SHARED MEMORY (SHMEM/TMPFS/...)
+linux-kernel@vger.kernel.org (open list)
+No Role <d@email.com>
+bare@email.com
+			`,
+			Recipients{
+				{mail.Address{Name: "Andrew Morton", Address: "akpm@linux-foundation.org"}, To},
+				{mail.Address{Name: "Baolin Wang", Address: "baolin.wang@linux.alibaba.com"}, Cc},
+				{mail.Address{Name: "", Address: "bare@email.com"}, Cc},
+				{mail.Address{Name: "Supporter Foo (Company)", Address: "c@email.com"}, To},
+				{mail.Address{Name: "No Role", Address: "d@email.com"}, Cc},
+				{mail.Address{Name: "David Hildenbrand", Address: "david@kernel.org"}, To},
+				{mail.Address{Name: "Hugh Dickins", Address: "hughd@google.com"}, To},
+				{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
+				{mail.Address{Name: "", Address: "linux-mm@kvack.org"}, To},
+			},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
