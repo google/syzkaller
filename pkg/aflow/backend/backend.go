@@ -118,7 +118,9 @@ type Provider interface {
 	Client(ctx context.Context) (Client, error)
 	// Models returns a list of model names supported by this provider.
 	Models(ctx context.Context) ([]string, error)
-	// DefaultModel returns the provider-specific model name for a given category.
+	// ResolveModels returns the provider-specific models for the category in the order of preference.
+	// An agent uses the first one, and falls back to the next one only if a model
+	// blocks its request (see BlockedError).
 	ResolveModels(category ModelCategory) []string
 	// Close cleans up the provider's resources.
 	Close() error
