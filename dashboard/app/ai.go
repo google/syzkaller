@@ -1662,6 +1662,11 @@ func aiBisectResult(job *aidb.Job) (BugAIBisect, error) {
 		KernelRepo:   repo,
 		StillPresent: stillPresent,
 	}
+	if outputs.IsRelease {
+		// If the primary commit is a release, treat the bisection as inconclusive
+		// (the commits remain visible on the AI job page).
+		return res, nil
+	}
 	for _, com := range outputs.Commits {
 		var cc []string
 		for _, r := range com.Recipients {

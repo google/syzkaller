@@ -2502,6 +2502,35 @@ func TestAIBisectCauseInconclusive(t *testing.T) {
 	rep, err := c.aiClient.LoadBug(bugID)
 	require.NoError(t, err)
 	assert.Nil(t, rep.BisectCause)
+
+	// A job whose primary commit is a release is also inconclusive (and not reported/CC'd),
+	// while keeping the commit visible on the AI job page.
+	releaseCommit := ai.Commit{
+		Hash:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Title:       "Linux 6.12",
+		AuthorEmail: "release-author@kernel.org",
+	}
+	resp := c.startAIBisect(extID, ai.WorkflowBisectCause)
+	c.finishAIJob(resp.ID, ai.BisectCauseOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: resp.Args["KernelCommit"].(string),
+		Commits:      []ai.Commit{releaseCommit},
+		IsRelease:    true,
+	}})
+	releaseJobLink := fmt.Sprintf("/ai_job?id=%v", resp.ID)
+	jobPage, err := c.AuthGET(AccessAdmin, releaseJobLink)
+	require.NoError(t, err)
+	assert.Contains(t, string(jobPage), "IsRelease")
+	assert.Contains(t, string(jobPage), releaseCommit.Hash)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI cause bisection: inconclusive</b>")
+	assert.Contains(t, string(page), releaseJobLink)
+	assert.NotContains(t, string(page), releaseCommit.Title)
+	c.checkBisectStatus(bug.Namespace, "inconclusive", "")
+	rep, err = c.aiClient.LoadBug(bugID)
+	require.NoError(t, err)
+	assert.Nil(t, rep.BisectCause)
+	assert.NotContains(t, rep.Maintainers, releaseCommit.AuthorEmail)
 }
 
 func TestAIBisectCauseMultipleCommits(t *testing.T) {
@@ -2769,6 +2798,14 @@ func TestAIBisectResult(t *testing.T) {
 			outputs: cause(),
 		},
 		{
+			name: "cause: release primary commit",
+			typ:  ai.WorkflowBisectCause,
+			outputs: ai.BisectCauseOutputs{BisectOutputs: ai.BisectOutputs{
+				Commits:   []ai.Commit{commit, commit},
+				IsRelease: true,
+			}},
+		},
+		{
 			name:    "fix: one commit",
 			typ:     ai.WorkflowBisectFix,
 			outputs: fix(false, commit),
@@ -2790,6 +2827,14 @@ func TestAIBisectResult(t *testing.T) {
 			name:    "fix: nothing determined",
 			typ:     ai.WorkflowBisectFix,
 			outputs: fix(false),
+		},
+		{
+			name: "fix: release primary commit",
+			typ:  ai.WorkflowBisectFix,
+			outputs: ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+				Commits:   []ai.Commit{commit},
+				IsRelease: true,
+			}},
 		},
 		{
 			name:    "outputs of another workflow",
