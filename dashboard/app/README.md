@@ -15,7 +15,7 @@ Here is "big" picture of a possible setup:
 **Note**: the vector source is [here](https://docs.google.com/drawings/d/16EdqYrWD4PWD2nV_PoDPvC5VPry2H40Sm8Min-RtDdA);
 to update: make a copy of the source, edit, download a png, update the png and include a link to your vector copy into the PR.
 
-To deploy the app you need to add a `.go` file with production config. The config specifies kernel namespaces,
+To deploy the app you need to supply a production config in [`dashboard/app/config`](config/stub.go). The config specifies kernel namespaces,
 bug reporting details, API keys, etc. Tests contain a [config example](app_test.go), but it's not ready for
 production use.
 

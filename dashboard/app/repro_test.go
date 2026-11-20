@@ -1,7 +1,7 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"fmt"
@@ -222,14 +222,14 @@ func TestNeedReproIsolated(t *testing.T) {
 		{
 			// Corrupted bug.
 			bug: &Bug{
-				Title: corruptedReportTitle,
+				Title: CorruptedReportTitle,
 			},
 			needRepro: false,
 		},
 		{
 			// Suppressed bug.
 			bug: &Bug{
-				Title: suppressedReportTitle,
+				Title: SuppressedReportTitle,
 			},
 			needRepro: false,
 		},

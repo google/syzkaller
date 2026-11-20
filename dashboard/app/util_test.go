@@ -4,7 +4,7 @@
 // The test uses aetest package that starts local dev_appserver and handles all requests locally:
 // https://cloud.google.com/appengine/docs/standard/go/tools/localunittesting/reference
 
-package main
+package app
 
 import (
 	"bytes"
