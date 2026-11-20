@@ -444,6 +444,8 @@
 #define VMCB_CTRL_INTERCEPT_VEC4 0x10
 // Bits 0-9: intercept VMRUN, VMMCALL, VMLOAD, VMSAVE, STGI, CLGI, SKINIT, RDTSCP, ICEBP, WBINVD.
 #define VMCB_CTRL_INTERCEPT_VEC4_ALL (0x3ff)
+// The last of the 32-bit intercept vectors, which start at offset 0.
+#define VMCB_CTRL_INTERCEPT_VEC5 0x14
 
 // Intercept bits in VMCB_CTRL_INTERCEPT_VEC3 (offset 0x0c)
 #define VMCB_INTERCEPT_IOIO_PROT (1U << 27)
