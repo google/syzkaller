@@ -618,12 +618,9 @@ func createBugLifetimes(ctx context.Context, bugs []*Bug, causeBisects map[strin
 			}
 		}
 		ui := uiBugLifetime{}
-		fixed := bug.FixTime
-		if fixed.IsZero() || bug.Status == BugStatusFixed && bug.Closed.Before(fixed) {
-			fixed = bug.Closed
-		}
-		fixedDaysAgo := max(0, float32(fixed.Sub(reported))/float32(24*time.Hour))
+		fixed := bugLifetimeFixedDate(bug)
 		if !fixed.IsZero() {
+			fixedDaysAgo := max(0, float32(fixed.Sub(reported).Hours()/24))
 			// We use fixed date as the X coordiate (date) for fixed bugs to show
 			// how lifetime of bugs fixed at the given date (e.g. lately).
 			ui.Reported = fixed
@@ -644,8 +641,8 @@ func createBugLifetimes(ctx context.Context, bugs []*Bug, causeBisects map[strin
 		ui = uiBugLifetime{
 			Reported: reported,
 		}
-		if job := causeBisects[bug.keyHash(ctx)]; job != nil {
-			days := float32(job.Commits[0].Date.Sub(ui.Reported)) / float32(24*time.Hour)
+		if introduced := bugLifetimeCauseDate(bug, causeBisects[bug.keyHash(ctx)]); !introduced.IsZero() {
+			days := float32(introduced.Sub(ui.Reported).Hours() / 24)
 			if days < -365 {
 				ui.Introduced1y = -365 - float32(i%7)
 			} else {
@@ -655,6 +652,30 @@ func createBugLifetimes(ctx context.Context, bugs []*Bug, causeBisects map[strin
 		res = append(res, ui)
 	}
 	return res
+}
+
+func bugLifetimeFixedDate(bug *Bug) time.Time {
+	fixed := bug.FixTime
+	if fixed.IsZero() || bug.Status == BugStatusFixed && bug.Closed.Before(fixed) {
+		fixed = bug.Closed
+	}
+	if fixed.IsZero() && bug.AIBisectFix.present() && len(bug.AIBisectFix.Commits) != 0 {
+		fixed = bug.AIBisectFix.Commits[0].Date
+	}
+	return fixed
+}
+
+func bugLifetimeCauseDate(bug *Bug, causeBisect *Job) time.Time {
+	if bug.AIBisectCause.present() {
+		if len(bug.AIBisectCause.Commits) != 0 {
+			return bug.AIBisectCause.Commits[0].Date
+		}
+		return time.Time{}
+	}
+	if causeBisect != nil && len(causeBisect.Commits) == 1 {
+		return causeBisect.Commits[0].Date
+	}
+	return time.Time{}
 }
 
 func handleGraphFuzzing(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
