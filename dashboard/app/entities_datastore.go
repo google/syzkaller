@@ -288,6 +288,10 @@ type BugReproAttempt struct {
 func (bug *Bug) SetAutoSubsystems(ctx context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
 	bug.SubsystemsRev = rev
 	bug.SubsystemsTime = now
+	if len(list) == 0 {
+		bug.UnsetLabels(SubsystemLabel)
+		return
+	}
 	var objects []BugLabel
 	for _, item := range list {
 		objects = append(objects, BugLabel{Label: SubsystemLabel, Value: item.Name})
