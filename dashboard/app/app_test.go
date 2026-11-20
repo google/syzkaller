@@ -32,7 +32,6 @@ func init() {
 
 	trustedAuthDomain = "" // Devappserver environment value is "", prod value is "gmail.com".
 	obsoleteWhatWontBeFixBisected = true
-	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
 	initMocks()
 	// Insert namespaces from localUIConfig into testConfig.
@@ -95,10 +94,9 @@ var testConfig = &GlobalConfig{
 	DungeonNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
-			AccessLevel:           AccessAdmin,
-			Key:                   "test1keytest1keytest1key",
-			FixBisectionAutoClose: true,
-			SimilarityDomain:      testDomain,
+			AccessLevel:      AccessAdmin,
+			Key:              "test1keytest1keytest1key",
+			SimilarityDomain: testDomain,
 			Clients: map[string]APIClient{
 				client1: {Key: password1},
 				"oauth": {Key: auth.OauthMagic + "111111122222222"},
@@ -561,9 +559,8 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"tree-tests": {
-			AccessLevel:           AccessPublic,
-			FixBisectionAutoClose: true,
-			Key:                   "treeteststreeteststreeteststreeteststreeteststreetests",
+			AccessLevel: AccessPublic,
+			Key:         "treeteststreeteststreeteststreeteststreeteststreetests",
 			Clients: map[string]APIClient{
 				clientTreeTests: {Key: keyTreeTests},
 			},

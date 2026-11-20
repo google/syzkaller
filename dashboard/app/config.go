@@ -109,8 +109,6 @@ type Config struct {
 	ReportingDelay time.Duration
 	// How long should we wait for a C repro before reporting a bug.
 	WaitForRepro time.Duration
-	// If set, successful fix bisections will auto-close the bug.
-	FixBisectionAutoClose bool
 	// If set, dashboard will periodically request repros and revoke no longer working ones.
 	RetestRepros bool
 	// If set, dashboard will periodically verify the presence of the missing backports in the
@@ -456,8 +454,6 @@ type KernelRepoLink struct {
 	Alias string
 	// Whether commits from the other repository merged or cherry-picked.
 	Merge bool
-	// Whether syzbot should try to fix bisect the bug in the Alias tree.
-	BisectFixes bool
 }
 
 type CCConfig struct {

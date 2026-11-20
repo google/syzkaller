@@ -312,16 +312,6 @@ func bugObsoletionReason(bug *Bug) dashapi.BugStatusReason {
 	return dashapi.InvalidatedByNoActivity
 }
 
-var noObsoletionsKey = "Temporarily disable bug obsoletions"
-
-func contextWithNoObsoletions(ctx context.Context) context.Context {
-	return context.WithValue(ctx, &noObsoletionsKey, struct{}{})
-}
-
-func getNoObsoletions(ctx context.Context) bool {
-	return ctx.Value(&noObsoletionsKey) != nil
-}
-
 // TODO: this is what we would like to do, but we need to figure out
 // KMSAN story: we don't do fix bisection on it (rebased),
 // do we want to close all old KMSAN bugs with repros?
@@ -329,9 +319,6 @@ func getNoObsoletions(ctx context.Context) bool {
 var obsoleteWhatWontBeFixBisected = false
 
 func (bug *Bug) canBeObsoleted(ctx context.Context) bool {
-	if getNoObsoletions(ctx) {
-		return false
-	}
 	if !bug.HasHeadRepro() {
 		return true
 	}

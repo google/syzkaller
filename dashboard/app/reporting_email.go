@@ -479,17 +479,12 @@ func emailReport(ctx context.Context, rep *dashapi.BugReport) error {
 	case dashapi.ReportTestPatch:
 		templ = "mail_test_result.txt"
 		cfg.MailMaintainers = false
-	case dashapi.ReportBisectCause:
-		templ = "mail_bisect_result.txt"
 	case dashapi.ReportBisectFix:
-		if rep.BisectFix.CrossTree {
-			templ = "mail_fix_candidate.txt"
-			if rep.BisectFix.Commit == nil {
-				return fmt.Errorf("reporting failed fix candidate bisection for %s", rep.ID)
-			}
-		} else {
-			templ = "mail_bisect_result.txt"
+		// Backport of a fix candidate found by the former syz-ci bisection (see pollCompletedJobs).
+		if rep.BisectFix == nil || rep.BisectFix.Commit == nil || rep.BisectFix.Backported == nil {
+			return fmt.Errorf("unexpected fix bisection report for %s", rep.ID)
 		}
+		templ = "mail_fix_candidate.txt"
 	default:
 		return fmt.Errorf("unknown report type %v", rep.Type)
 	}

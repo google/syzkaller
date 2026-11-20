@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"strings"
 	"time"
 
@@ -367,7 +366,7 @@ func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string)
 
 // isBuildInfraError returns true if the kernel build failed because of the infrastructure
 // (host tooling, build VMs, etc.) rather than because of the kernel itself.
-// pkg/build and pkg/bisect return both build.InfraError values and pointers.
+// Both build.InfraError values and pointers are recognized.
 func isBuildInfraError(err error) bool {
 	if _, ok := errors.AsType[build.InfraError](err); ok {
 		return true
@@ -794,13 +793,6 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	return present, fixCommits, nil
 }
 
-func (mgr *Manager) backportCommits() []vcs.BackportCommit {
-	return append(
-		slices.Clone(mgr.cfg.BisectBackports),
-		mgr.mgrcfg.BisectBackports...,
-	)
-}
-
 func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
 	if mgr.storage == nil {
 		// No reason to continue anyway.
@@ -1205,9 +1197,6 @@ func (mgr *ManagerConfig) validate(cfg *Config) error {
 	}
 	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
 		return fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
-	}
-	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
-		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
 	}
 	if mgr.KernelBuilderImage != "" && !osutil.IsExist(mgr.KernelBuilderImage) {
 		return fmt.Errorf("manager %v: kernel_builder_image %v does not exist", mgr.Name, mgr.KernelBuilderImage)

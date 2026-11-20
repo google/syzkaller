@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"slices"
 	"strconv"
-	"time"
 
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -28,7 +27,7 @@ func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *ht
 		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
 	}
 
-	err = invalidateBisection(ctx, jobKey, r.FormValue("restart") == "1")
+	err = invalidateBisection(ctx, jobKey)
 	if err != nil {
 		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
 	}
@@ -141,55 +140,6 @@ func dropEntities(ctx context.Context, keys []*db.Key, dryRun bool) error {
 		}
 		keys = keys[batch:]
 	}
-	return nil
-}
-
-func restartFailedBisections(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(ctx, r) != AccessAdmin {
-		return fmt.Errorf("admin only")
-	}
-	ns := r.FormValue("ns")
-	if ns == "" {
-		return fmt.Errorf("no ns parameter")
-	}
-	var jobs []*Job
-	var jobKeys []*db.Key
-	jobKeys, err := db.NewQuery("Job").
-		Filter("Finished>", time.Time{}).
-		GetAll(ctx, &jobs)
-	if err != nil {
-		return fmt.Errorf("failed to query jobs: %w", err)
-	}
-	toReset := []*db.Key{}
-	for i, job := range jobs {
-		if job.Namespace != ns {
-			continue
-		}
-		if job.Type != JobBisectCause && job.Type != JobBisectFix {
-			continue
-		}
-		if job.Error == 0 {
-			continue
-		}
-		errorTextBytes, _, err := getText(ctx, textError, job.Error)
-		if err != nil {
-			return fmt.Errorf("failed to query error text: %w", err)
-		}
-		fmt.Fprintf(w, "job type %v, ns %s, finished at %s, error:%s\n========\n",
-			job.Type, job.Namespace, job.Finished, string(errorTextBytes))
-		toReset = append(toReset, jobKeys[i])
-	}
-	if r.FormValue("apply") != "yes" {
-		return nil
-	}
-	for idx, jobKey := range toReset {
-		err = invalidateBisection(ctx, jobKey, true)
-		if err != nil {
-			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
-		}
-	}
-
-	fmt.Fprintf(w, "Done!\n")
 	return nil
 }
 

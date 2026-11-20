@@ -20,7 +20,8 @@ bug reporting details, API keys, etc. Tests contain a [config example](app_test.
 production use.
 
 The app also needs one or more [syz-ci](/syz-ci/syz-ci.go) instances running elsewhere. The `syz-ci` instances
-do the actual fuzzing, bisection, patch testing, etc.
+do the actual fuzzing, patch testing, etc. AI jobs (e.g. bisection) are done by [syz-agent](/syz-agent/README.md)
+instances.
 
 The app can be deployed by `gcloud app deploy ./dashboard/app/app.yaml`.
 
