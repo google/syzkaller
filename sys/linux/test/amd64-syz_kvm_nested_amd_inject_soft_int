@@ -1,0 +1,30 @@
+#
+# requires: arch=amd64 vendor=amd nested -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Test the injection of a software interrupt into L2.
+#
+# L1 installs an interrupt handler that performs a uexit(-2) for the vector 0x80 (L2 shares the
+# IDT with L1), sets the next RIP of the VM (VMCB offset 0xc8) to the first instruction of L2
+# (0x50000), and injects a software interrupt (vector=0x80, type=4 (software interrupt),
+# flags=1 (valid)) into an L2 VM that executes HLT. The next RIP is the return address of the
+# injected interrupt.
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@set_irq_handler={AUTO, AUTO, {0x80, 0x2}}, @enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_load_code={AUTO, AUTO, {0x0, "f4"}}, @nested_amd_vmcb_write_mask={AUTO, AUTO, {0x0, @control_area=0xc8, 0x50000, 0xffffffffffffffff, 0x0}}, @nested_amd_inject_event={AUTO, AUTO, {0x0, 0x80, 0x4, 0x0, 0x1}}, @nested_vmlaunch={AUTO, AUTO, 0x0}, @nested_vmresume={AUTO, AUTO, 0x0}], AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# The interrupt is delivered to L2 before it executes HLT. The handler reports UEXIT_IRQ (-2) from
+# L2, and L1 forwards it with the nesting level added to the top byte of the exit code. The top
+# byte of UEXIT_IRQ is 0xff, so it wraps around to 0.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xfffffffffffffe)
+
+# L1 resumes L2: the handler returns with IRETQ, which L1 intercepts (SVM_EXIT_IRET = 0x74).
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2aa0074)
