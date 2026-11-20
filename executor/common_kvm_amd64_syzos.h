@@ -752,7 +752,8 @@ GUEST_CODE static inline void write_cr4(uint64 val)
 	asm volatile("mov %0, %%cr4" : : "r"(val));
 }
 
-GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
+// Write a VMCS field, return false if VMWRITE fails (e.g. the field does not exist or is read-only).
+GUEST_CODE static noinline bool vmwrite_noassert(uint64 field, uint64 value)
 {
 	uint8 error = 0; // nolint
 	// 'setna' sets the byte to 1 if CF=1 or ZF=1 (VMfail)
@@ -760,7 +761,13 @@ GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
 		     : "=q"(error)
 		     : "a"(value), "b"(field)
 		     : "cc", "memory");
-	if (error)
+	return !error;
+}
+
+// Write a VMCS field that is known to exist and to be writable, report UEXIT_ASSERT otherwise.
+GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
+{
+	if (!vmwrite_noassert(field, value))
 		guest_uexit(UEXIT_ASSERT);
 }
 
@@ -2073,10 +2080,14 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 	uint64 unset_mask = cmd->args[3];
 	uint64 flip_mask = cmd->args[4];
 
+	// The field is chosen by the fuzzer: it may not exist on this CPU, or be read-only.
+	// This is not an error in SYZOS, so do not report it as UEXIT_ASSERT.
+	if (!vmcs_field_exists(field))
+		return;
 	uint64 current_value = vmread(field);
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
-	vmwrite(field, new_value);
+	(void)vmwrite_noassert(field, new_value);
 }
 
 // VMX MSR load/store lists, see Intel SDM vol. 3C, "VM-Entry Controls for MSRs"
