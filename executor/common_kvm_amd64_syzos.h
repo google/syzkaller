@@ -1996,8 +1996,7 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 		after_vmentry_label_amd:
 	)"
 		     :
-		     : [cpu_id] "r"(cpu_id), [vmcb_addr] "r"(vmcb_addr), [l2_regs] "r"(l2_regs),
-		       [l2_regs_size] "i"(sizeof(struct l2_guest_regs))
+		     : [cpu_id] "r"(cpu_id), [vmcb_addr] "r"(vmcb_addr), [l2_regs] "r"(l2_regs)
 		     : "cc", "memory", "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
 }
 
