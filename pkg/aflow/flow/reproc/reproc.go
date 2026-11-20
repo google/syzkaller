@@ -568,6 +568,9 @@ you MUST include detailed logging and error checking in the generated C program:
     include a sufficient delay (using sleep or similar) after deleting
     or unregistering the device to allow the kernel's asynchronous
     timeout to trigger before program exit.
+11. Never print the bug title or kernel crash markers (such as 'kernel BUG', 'BUG:', 'WARNING',
+    'KASAN', 'general protection fault', 'possible deadlock', 'INFO:') in the program output:
+    the console output is scanned for these strings, so printing them is reported as a kernel crash.
 
 {{if not .CapabilitiesVerified}}
 === PHASE 1: CAPABILITY PROBING (GENERATION) ===
