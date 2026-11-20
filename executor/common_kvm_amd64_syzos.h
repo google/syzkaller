@@ -141,6 +141,8 @@ GUEST_CODE void nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_r
 #ifdef __cplusplus
 }
 #endif
+GUEST_CODE static void guest_fatal(uint64 exit_code) __attribute__((noreturn));
+GUEST_CODE static uint64 api_call_min_size(uint64 call_id);
 GUEST_CODE static void guest_execute_code(uint8* insns, uint64 size);
 GUEST_CODE static void guest_handle_cpuid(uint32 eax, uint32 ecx);
 GUEST_CODE static void guest_handle_wrmsr(uint64 reg, uint64 val);
@@ -165,7 +167,7 @@ GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, u
 GUEST_CODE static void guest_handle_nested_amd_stgi();
 GUEST_CODE static void guest_handle_nested_amd_clgi();
 GUEST_CODE static void guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id);
-GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_4* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmload(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmsave(struct api_call_1* cmd, uint64 cpu_id);
 
@@ -270,10 +272,13 @@ guest_main(uint64 cpu)
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
 		volatile uint64 call = cmd->call;
-		if ((call >= SYZOS_API_STOP) || (cmd->size > size)) {
-			guest_uexit(UEXIT_INVALID_MAIN);
-			return;
-		}
+		// A command must at least hold its header and the fixed arguments of the call: a
+		// zero-sized command would be executed forever, and the handlers would read the arguments
+		// of a truncated one from past its end.
+		// Do not return: the host may resume the vCPU, and there is nowhere to return to.
+		if ((call >= SYZOS_API_STOP) || (cmd->size > size) ||
+		    (cmd->size < api_call_min_size(call)))
+			guest_fatal(UEXIT_INVALID_MAIN);
 		if (call == SYZOS_API_UEXIT) {
 			// Issue a user exit.
 			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
@@ -356,7 +361,7 @@ guest_main(uint64 cpu)
 			guest_handle_nested_amd_inject_event((struct api_call_5*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT) {
 			// Set/Clear specific intercept bits in the VMCB.
-			guest_handle_nested_amd_set_intercept((struct api_call_5*)cmd, cpu);
+			guest_handle_nested_amd_set_intercept((struct api_call_4*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_VMLOAD) {
 			// Execute VMLOAD to load state from VMCB.
 			guest_handle_nested_amd_vmload((struct api_call_1*)cmd, cpu);
@@ -368,6 +373,44 @@ guest_main(uint64 cpu)
 		size -= cmd->size;
 	};
 	guest_uexit(UEXIT_END);
+}
+
+// Return the minimum size of a command: the header plus the fixed-size arguments of the call.
+// This must match the descriptions of the calls in sys/linux/dev_kvm_amd64.txt.
+GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
+{
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 call = call_id;
+	if (call == SYZOS_API_UEXIT)
+		return sizeof(struct api_call_uexit);
+	if (call == SYZOS_API_CPUID)
+		return sizeof(struct api_call_cpuid);
+	if (call == SYZOS_API_MEMWRITE)
+		return sizeof(struct api_call_memwrite);
+	if (call == SYZOS_API_NESTED_LOAD_CODE)
+		return __builtin_offsetof(struct api_call_nested_load_code, insns);
+	if (call == SYZOS_API_NESTED_LOAD_SYZOS)
+		return __builtin_offsetof(struct api_call_nested_load_syzos, program);
+	if ((call == SYZOS_API_RDMSR) || (call == SYZOS_API_ENABLE_NESTED) ||
+	    (call == SYZOS_API_NESTED_CREATE_VM) || (call == SYZOS_API_NESTED_VMLAUNCH) ||
+	    (call == SYZOS_API_NESTED_VMRESUME) || (call == SYZOS_API_NESTED_AMD_VMLOAD) ||
+	    (call == SYZOS_API_NESTED_AMD_VMSAVE))
+		return sizeof(struct api_call_1);
+	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
+	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
+	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
+		return sizeof(struct api_call_2);
+	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES))
+		return sizeof(struct api_call_3);
+	if ((call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) || (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT))
+		return sizeof(struct api_call_4);
+	if ((call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) ||
+	    (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) ||
+	    (call == SYZOS_API_NESTED_AMD_INJECT_EVENT))
+		return sizeof(struct api_call_5);
+	// SYZOS_API_CODE, SYZOS_API_NESTED_AMD_STGI and SYZOS_API_NESTED_AMD_CLGI have no fixed
+	// arguments.
+	return sizeof(struct api_call_header);
 }
 
 GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
@@ -2147,7 +2190,7 @@ guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
 }
 
 GUEST_CODE static noinline void
-guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id)
+guest_handle_nested_amd_set_intercept(struct api_call_4* cmd, uint64 cpu_id)
 {
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
