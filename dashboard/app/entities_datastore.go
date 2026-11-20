@@ -214,6 +214,8 @@ func (res *BugAIBisect) status(syzCI BisectStatus) BisectStatus {
 // BugAIRootCause holds the AI-generated root cause analysis of a bug.
 type BugAIRootCause struct {
 	Summary string `datastore:",noindex"`
+	// Files lists kernel source file paths where the underlying defect resides.
+	Files []string `datastore:",noindex"`
 	// The analysis refers to source files/lines of this kernel revision.
 	KernelRepo   string `datastore:",noindex"`
 	KernelCommit string `datastore:",noindex"`
@@ -276,6 +278,10 @@ type BugReproAttempt struct {
 func (bug *Bug) SetAutoSubsystems(ctx context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
 	bug.SubsystemsRev = rev
 	bug.SubsystemsTime = now
+	if len(list) == 0 {
+		bug.UnsetLabels(SubsystemLabel)
+		return
+	}
 	var objects []BugLabel
 	for _, item := range list {
 		objects = append(objects, BugLabel{Label: SubsystemLabel, Value: item.Name})
