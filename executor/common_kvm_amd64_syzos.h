@@ -1010,6 +1010,18 @@ GUEST_CODE static void l2_map_page(uint64 cpu_id, uint64 vm_id, uint64 gpa, uint
 		pt[pt_idx] = (host_pa & ~0xFFF) | flags;
 }
 
+// Allocate the globals page of an L2 VM, see setup_l2_page_tables().
+GUEST_CODE static uint64 l2_alloc_globals_page()
+{
+	uint64 page = guest_alloc_page();
+	volatile struct syzos_globals* l2_globals = (volatile struct syzos_globals*)page;
+	// L2 sees the same heap pages as L1, which already uses them (e.g. for the page tables of
+	// this very VM), so L2 must not allocate from the heap. Mark its heap as exhausted.
+	l2_globals->total_size = KVM_PAGE_SIZE;
+	l2_globals->alloc_offset = KVM_PAGE_SIZE;
+	return page;
+}
+
 GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id, uint64 unused_pages)
 {
 	// Note: PML4 and MSR Bitmap must be zeroed by the caller (nested_create_vm)
@@ -1048,9 +1060,15 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 			uint64 gpa = r.gpa + (p * KVM_PAGE_SIZE);
 			uint64 backing;
 
-			if (r.gpa == X86_SYZOS_ADDR_USER_CODE && p == 0) {
-				// Map start of user code to the VM's dedicated code buffer
+			if (r.gpa == X86_SYZOS_ADDR_USER_CODE && (uint64)p == cpu_id) {
+				// Map the user code page of this vCPU to the VM's dedicated code buffer.
+				// L2 SYZOS runs with the same vCPU index as L1 (see nested_load_syzos),
+				// so this is where it looks for its program.
 				backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+			} else if (r.gpa == X86_SYZOS_ADDR_GLOBALS) {
+				// L2 gets its own globals page: an L2 SYZOS has its own program size,
+				// and must not overwrite the globals of L1.
+				backing = l2_alloc_globals_page();
 			} else if (r.gpa == X86_SYZOS_ADDR_STACK_BOTTOM) {
 				// Map the first stack page to the VM's dedicated stack buffer. L2 runs on a single
 				// vCPU, so it does not need the other pages, and they must not be identity-mapped
@@ -1668,8 +1686,10 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 	uint64 vm_id = cmd->vm_id;
 	if (!nested_vm_id_valid(vm_id))
 		return;
-	// Backing address in L1 for the L2 User Code (mapped at X86_SYZOS_ADDR_USER_CODE)
-	uint64 l2_code_backing = l2_gpa_to_pa(cpu_id, vm_id, X86_SYZOS_ADDR_USER_CODE);
+	// The L2 code is mapped at the user code page of this vCPU, see setup_l2_page_tables().
+	uint64 l2_code_gpa = X86_SYZOS_ADDR_USER_CODE + cpu_id * KVM_PAGE_SIZE;
+	// Backing address in L1 for the L2 User Code.
+	uint64 l2_code_backing = l2_gpa_to_pa(cpu_id, vm_id, l2_code_gpa);
 	if (!l2_code_backing) {
 		guest_uexit(0xE2BAD4);
 		return;
@@ -1685,12 +1705,12 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		if (!nested_vmptrld(cpu_id, vm_id))
 			return;
-		// Start execution at standard User Code address
-		vmwrite(VMCS_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		// Start execution at the User Code address.
+		vmwrite(VMCS_GUEST_RIP, l2_code_gpa);
 		// Stack is mapped at X86_SYZOS_ADDR_STACK_BOTTOM
 		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
-		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_gpa);
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	}
 }
@@ -1718,14 +1738,15 @@ guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cp
 		return;
 	}
 	volatile struct syzos_globals* l2_globals = (volatile struct syzos_globals*)globals_pa;
-	// Set initial state for ALL possible L2 VCPUs of this VM.
-	for (int i = 0; i < KVM_MAX_VCPU; i++) {
-		l2_globals->text_sizes[i] = prog_size;
-		globals->l2_ctx[i][vm_id].rdi = i;
-		globals->l2_ctx[i][vm_id].rax = 0; // Default RAX
-		// Note: RSP and RIP are set in the VMCB/VMCS, but they could also be in l2_ctx
-		// since the shims load them if we wanted. But currently they are in VMCB/VMCS.
-	}
+	// L2 SYZOS runs guest_main(cpu_id), i.e. with the vCPU index of L1: this is the only user
+	// code page of L2 that is backed by the VM's code buffer, and the per-vCPU memory regions
+	// it may touch are those of this L1 vCPU. Note that l2_ctx[] is indexed by the L1 vCPU, so
+	// only the entry of this vCPU belongs to the VM.
+	l2_globals->text_sizes[cpu_id] = prog_size;
+	globals->l2_ctx[cpu_id][vm_id].rdi = cpu_id;
+	globals->l2_ctx[cpu_id][vm_id].rax = 0; // Default RAX
+	// Note: RSP and RIP are set in the VMCB/VMCS, but they could also be in l2_ctx
+	// since the shims load them if we wanted. But currently they are in VMCB/VMCS.
 
 	// Set RIP to guest_main.
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
