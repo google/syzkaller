@@ -1055,12 +1055,12 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 	// so that this function can be called additively by nested_load_syzos.
 	// Intel EPT: set Read, Write, Execute.
 	// AMD NPT: set Present, Write, User.
+	// The accessed and dirty bits are deliberately left clear, so that L0 has to set them when
+	// L2 touches the page: always for NPT, and for EPT if the fuzzer enables the A/D bits in the
+	// EPT pointer (which is also what makes L0 log the dirty pages to the PML buffer of L1).
 	uint64 flags = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
-	if (vendor == CPU_VENDOR_INTEL) {
-		flags |= EPT_MEMTYPE_WB | EPT_ACCESSED | EPT_DIRTY;
-	} else {
-		flags |= X86_PDE64_ACCESSED | X86_PDE64_DIRTY;
-	}
+	if (vendor == CPU_VENDOR_INTEL)
+		flags |= EPT_MEMTYPE_WB;
 
 	// Replicate L1 memory layout from boot args.
 	volatile struct syzos_boot_args* args = (volatile struct syzos_boot_args*)X86_SYZOS_ADDR_BOOT_ARGS;
