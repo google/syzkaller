@@ -218,9 +218,10 @@ syzos_api_nested_amd_inject_event {
 	flags		int64[0:3]
 }
 
+# The intercept vectors are 32-bit words at VMCB offsets 0x0-0x14.
 syzos_api_nested_amd_set_intercept {
 	vm_id		syzos_api_vm_id
-	offset		int64
+	offset		int64[0x0:0x14, 4]
 	bit_mask	int64
 	action		int64[0:1]
 }

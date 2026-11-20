@@ -2156,6 +2156,10 @@ guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id)
 	uint64 unset_mask = cmd->args[3];
 	uint64 flip_mask = cmd->args[4];
 
+	// Do not let the fuzzer write past the VMCB page.
+	if (offset > KVM_PAGE_SIZE - sizeof(uint64))
+		return;
+
 	uint64 current_value = vmcb_read64((volatile uint8*)vmcb_addr, offset);
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
@@ -2234,6 +2238,11 @@ guest_handle_nested_amd_set_intercept(struct api_call_4* cmd, uint64 cpu_id)
 	uint64 offset = cmd->args[1];
 	uint64 bit_mask = cmd->args[2];
 	uint64 action = cmd->args[3]; // 1 = Set, 0 = Clear
+
+	// Only the intercept vectors can be changed: do not let the fuzzer write to the rest of the
+	// VMCB or past it.
+	if (offset > VMCB_CTRL_INTERCEPT_VEC5)
+		return;
 
 	// Read 32-bit intercept field (Offsets 0x00 - 0x14 are all 32-bit vectors).
 	uint32 current = vmcb_read32(vmcb_addr, (uint16)offset);
