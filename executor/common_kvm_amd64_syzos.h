@@ -37,6 +37,8 @@ typedef enum {
 	SYZOS_API_NESTED_SET_STATE_PAGES = 320,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_INTEL_MSR_LIST_ADD = 341,
+	SYZOS_API_NESTED_INTEL_INVEPT = 342,
+	SYZOS_API_NESTED_INTEL_INVVPID = 343,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
@@ -162,6 +164,8 @@ GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_intel_invept(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_nested_intel_invvpid(struct api_call_3* cmd);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
@@ -344,6 +348,12 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) {
 			// Append an entry to one of the VMX MSR load/store lists.
 			guest_handle_nested_intel_msr_list_add((struct api_call_4*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_INTEL_INVEPT) {
+			// Invalidate the mappings derived from EPT.
+			guest_handle_nested_intel_invept((struct api_call_2*)cmd);
+		} else if (call == SYZOS_API_NESTED_INTEL_INVVPID) {
+			// Invalidate the mappings tagged with a VPID.
+			guest_handle_nested_intel_invvpid((struct api_call_3*)cmd);
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
@@ -398,9 +408,10 @@ GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
 		return sizeof(struct api_call_1);
 	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
 	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
-	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
+	    (call == SYZOS_API_NESTED_INTEL_INVEPT) || (call == SYZOS_API_NESTED_AMD_INVLPGA))
 		return sizeof(struct api_call_2);
-	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES))
+	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES) ||
+	    (call == SYZOS_API_NESTED_INTEL_INVVPID))
 		return sizeof(struct api_call_3);
 	if ((call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) || (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT))
 		return sizeof(struct api_call_4);
@@ -2187,6 +2198,38 @@ guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
 	entry->value = value;
 	vmwrite(addr_field, list_addr);
 	vmwrite(count_field, count + 1);
+}
+
+// The 128-bit descriptor of INVEPT (EPTP, reserved) and INVVPID (VPID, linear address).
+struct vmx_invalidate_desc {
+	uint64 arg;
+	uint64 addr;
+};
+
+// Execute INVEPT in L1, see Intel SDM vol. 3C, "INVEPT - Invalidate Translations Derived from EPT".
+// L0 handles it by dropping the shadow EPT roots that match the EPTP. The type and the EPTP are
+// chosen by the fuzzer, so the instruction is allowed to fail.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_invept(struct api_call_2* cmd)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 type = cmd->args[0];
+	volatile struct vmx_invalidate_desc desc = {.arg = cmd->args[1], .addr = 0};
+	asm volatile("invept %0, %1" ::"m"(desc), "r"(type) : "cc", "memory");
+}
+
+// Execute INVVPID in L1, see Intel SDM vol. 3C, "INVVPID - Invalidate Translations Based on VPID".
+// The type, the VPID and the address are chosen by the fuzzer, so the instruction is allowed to
+// fail.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_invvpid(struct api_call_3* cmd)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 type = cmd->args[0];
+	volatile struct vmx_invalidate_desc desc = {.arg = cmd->args[1], .addr = cmd->args[2]};
+	asm volatile("invvpid %0, %1" ::"m"(desc), "r"(type) : "cc", "memory");
 }
 
 GUEST_CODE static noinline void

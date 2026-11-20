@@ -178,6 +178,24 @@ syzos_api_nested_intel_msr_list_add {
 	value	int64
 }
 
+# EPT pointers of the L2 VMs 0-3 of vCPU 0 (see X86_SYZOS_ADDR_VM_PGTABLE in executor/kvm.h and
+# init_vmcs_control_fields() in executor/common_kvm_amd64_syzos.h), with and without the A/D bit.
+nested_eptp_values = 0x40401e, 0x40405e, 0x40d01e, 0x41601e, 0x41f01e, 0x0
+
+# INVEPT types: 1 - single-context, 2 - all-contexts.
+syzos_api_nested_intel_invept {
+	type	int64[0:3]
+	eptp	flags[nested_eptp_values, int64]
+}
+
+# INVVPID types: 0 - individual-address, 1 - single-context, 2 - all-contexts,
+# 3 - single-context retaining globals.
+syzos_api_nested_intel_invvpid {
+	type	int64[0:4]
+	vpid	int64[0:65535]
+	addr	flags[kvm_guest_addrs, int64]
+}
+
 syzos_api_nested_amd_vmcb_write_mask {
 	vm_id		syzos_api_vm_id
 	offset		vmcb_offset
@@ -248,6 +266,8 @@ syzos_api_call$x86 [
 	nested_set_state_pages		syzos_api$x86[320, syzos_api_nested_set_state_pages]
 	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
 	nested_intel_msr_list_add	syzos_api$x86[341, syzos_api_nested_intel_msr_list_add]
+	nested_intel_invept		syzos_api$x86[342, syzos_api_nested_intel_invept]
+	nested_intel_invvpid		syzos_api$x86[343, syzos_api_nested_intel_invvpid]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
 	nested_amd_stgi			syzos_api$x86[382, void]
