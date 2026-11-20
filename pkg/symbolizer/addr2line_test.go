@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -128,6 +129,127 @@ fs/devpts/inode.c:588 (discriminator 3)
 				},
 			},
 		},
+		{
+			0xffffffff81001200,
+			`0xffffffff81001200
+do_ipv6_setsockopt.isra.7.part.3
+net/ipv6/ipv6_sockglue.c:396
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001200,
+					Func:   "do_ipv6_setsockopt",
+					File:   "net/ipv6/ipv6_sockglue.c",
+					Line:   396,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001234,
+			`0xffffffff81001234
+do_ip_setsockopt.isra.12
+net/ipv4/ip_sockglue.c:901
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001234,
+					Func:   "do_ip_setsockopt",
+					File:   "net/ipv4/ip_sockglue.c",
+					Line:   901,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001235,
+			`0xffffffff81001235
+___slab_alloc.constprop.78
+mm/slub.c:3066
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001235,
+					Func:   "___slab_alloc",
+					File:   "mm/slub.c",
+					Line:   3066,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001236,
+			`0xffffffff81001236
+kasan_report.part.2
+mm/kasan/report.c:552
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001236,
+					Func:   "kasan_report",
+					File:   "mm/kasan/report.c",
+					Line:   552,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001237,
+			`0xffffffff81001237
+print_circular_bug.isra.36.cold.53
+kernel/locking/lockdep.c:2034
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001237,
+					Func:   "print_circular_bug",
+					File:   "kernel/locking/lockdep.c",
+					Line:   2034,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001238,
+			`0xffffffff81001238
+__list_add_valid.cold
+lib/list_debug.c:23
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001238,
+					Func:   "__list_add_valid",
+					File:   "lib/list_debug.c",
+					Line:   23,
+					Inline: false,
+				},
+			},
+		},
+		{
+			0xffffffff81001239,
+			`0xffffffff81001239
+kasan_report.part.2
+mm/kasan/report.c:552
+___slab_alloc.constprop.78
+mm/slub.c:3066
+`,
+			[]Frame{
+				{
+					PC:     0xffffffff81001239,
+					Func:   "kasan_report",
+					File:   "mm/kasan/report.c",
+					Line:   552,
+					Inline: true,
+				},
+				{
+					PC:     0xffffffff81001239,
+					Func:   "___slab_alloc",
+					File:   "mm/slub.c",
+					Line:   3066,
+					Inline: false,
+				},
+			},
+		},
 	}
 
 	// Stub addr2line.
@@ -219,6 +341,24 @@ fs/devpts/inode.c:588 (discriminator 3)
 	}
 	if want := len(lots) * len(addresses[0].frames); want != len(frames) {
 		t.Fatalf("want %v frames, got %v", want, len(frames))
+	}
+}
+
+func TestCleanFuncName(t *testing.T) {
+	for _, test := range []struct {
+		name, want string
+	}{
+		{"do_ip_setsockopt.isra.12", "do_ip_setsockopt"},
+		{"print_circular_bug.isra.36.cold.53", "print_circular_bug"},
+		{"___slab_alloc.constprop.78", "___slab_alloc"},
+		{"foo.cold.12345", "foo"},
+		{"foo.part.0", "foo"},
+		// A name that consists of a suffix only is left as is.
+		{".cold", ".cold"},
+		{"LZ4_decompress_safe_partial", "LZ4_decompress_safe_partial"},
+		{"__sta_info_destroy_part1", "__sta_info_destroy_part1"},
+	} {
+		assert.Equal(t, test.want, cleanFuncName(test.name), "cleanFuncName(%q)", test.name)
 	}
 }
 
