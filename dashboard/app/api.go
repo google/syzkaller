@@ -912,7 +912,7 @@ func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, e
 		(bug.NumCrashes == 0 ||
 			!bug.HasRepro() && crashHasRepro)
 	if calculateSubsystems {
-		newSubsystems, err = inferSubsystems(ctx, bug, bugKey, &debugtracer.NullTracer{})
+		newSubsystems, err = inferSubsystems(ctx, bug.Namespace, bugKey, bug.AIRootCause.Files, &debugtracer.NullTracer{})
 		if err != nil {
 			log.Errorf(ctx, "%q: failed to extract subsystems: %s", bug.Title, err)
 			return nil, err
