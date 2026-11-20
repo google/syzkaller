@@ -1,8 +1,6 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// TODO: strip " (discriminator N)", "constprop", "isra" from function names.
-
 package symbolizer
 
 import (
@@ -10,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -171,7 +170,7 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 		}
 		frames = append(frames, Frame{
 			PC:     pc,
-			Func:   interner.Do(fn),
+			Func:   interner.Do(cleanFuncName(fn)),
 			File:   interner.Do(file),
 			Line:   line,
 			Inline: true,
@@ -184,4 +183,21 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 		frames[len(frames)-1].Inline = false
 	}
 	return frames, nil
+}
+
+var funcSuffixes = []string{"isra", "constprop", "part", "cold"}
+
+var funcSuffixRe = regexp.MustCompile(`(?:\.(?:` + strings.Join(funcSuffixes, "|") + `)(?:\.[0-9]+)*)+$`)
+
+// cleanFuncName strips compiler-generated suffixes like .isra.12, .constprop.78,
+// .part.2 and .cold.53 so that all clones of a function share the same interned name.
+func cleanFuncName(fn string) string {
+	if !strings.Contains(fn, ".") {
+		return fn
+	}
+	name := funcSuffixRe.ReplaceAllString(fn, "")
+	if name == "" {
+		return fn
+	}
+	return name
 }
