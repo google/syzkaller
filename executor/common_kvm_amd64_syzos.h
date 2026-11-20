@@ -141,6 +141,8 @@ GUEST_CODE void nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_r
 #ifdef __cplusplus
 }
 #endif
+GUEST_CODE static void guest_fatal(uint64 exit_code) __attribute__((noreturn));
+GUEST_CODE static uint64 api_call_min_size(uint64 call_id);
 GUEST_CODE static void guest_execute_code(uint8* insns, uint64 size);
 GUEST_CODE static void guest_handle_cpuid(uint32 eax, uint32 ecx);
 GUEST_CODE static void guest_handle_wrmsr(uint64 reg, uint64 val);
@@ -165,7 +167,7 @@ GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, u
 GUEST_CODE static void guest_handle_nested_amd_stgi();
 GUEST_CODE static void guest_handle_nested_amd_clgi();
 GUEST_CODE static void guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id);
-GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_4* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmload(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmsave(struct api_call_1* cmd, uint64 cpu_id);
 
@@ -270,10 +272,13 @@ guest_main(uint64 cpu)
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
 		volatile uint64 call = cmd->call;
-		if ((call >= SYZOS_API_STOP) || (cmd->size > size)) {
-			guest_uexit(UEXIT_INVALID_MAIN);
-			return;
-		}
+		// A command must at least hold its header and the fixed arguments of the call: a
+		// zero-sized command would be executed forever, and the handlers would read the arguments
+		// of a truncated one from past its end.
+		// Do not return: the host may resume the vCPU, and there is nowhere to return to.
+		if ((call >= SYZOS_API_STOP) || (cmd->size > size) ||
+		    (cmd->size < api_call_min_size(call)))
+			guest_fatal(UEXIT_INVALID_MAIN);
 		if (call == SYZOS_API_UEXIT) {
 			// Issue a user exit.
 			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
@@ -356,7 +361,7 @@ guest_main(uint64 cpu)
 			guest_handle_nested_amd_inject_event((struct api_call_5*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT) {
 			// Set/Clear specific intercept bits in the VMCB.
-			guest_handle_nested_amd_set_intercept((struct api_call_5*)cmd, cpu);
+			guest_handle_nested_amd_set_intercept((struct api_call_4*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_VMLOAD) {
 			// Execute VMLOAD to load state from VMCB.
 			guest_handle_nested_amd_vmload((struct api_call_1*)cmd, cpu);
@@ -368,6 +373,44 @@ guest_main(uint64 cpu)
 		size -= cmd->size;
 	};
 	guest_uexit(UEXIT_END);
+}
+
+// Return the minimum size of a command: the header plus the fixed-size arguments of the call.
+// This must match the descriptions of the calls in sys/linux/dev_kvm_amd64.txt.
+GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
+{
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 call = call_id;
+	if (call == SYZOS_API_UEXIT)
+		return sizeof(struct api_call_uexit);
+	if (call == SYZOS_API_CPUID)
+		return sizeof(struct api_call_cpuid);
+	if (call == SYZOS_API_MEMWRITE)
+		return sizeof(struct api_call_memwrite);
+	if (call == SYZOS_API_NESTED_LOAD_CODE)
+		return __builtin_offsetof(struct api_call_nested_load_code, insns);
+	if (call == SYZOS_API_NESTED_LOAD_SYZOS)
+		return __builtin_offsetof(struct api_call_nested_load_syzos, program);
+	if ((call == SYZOS_API_RDMSR) || (call == SYZOS_API_ENABLE_NESTED) ||
+	    (call == SYZOS_API_NESTED_CREATE_VM) || (call == SYZOS_API_NESTED_VMLAUNCH) ||
+	    (call == SYZOS_API_NESTED_VMRESUME) || (call == SYZOS_API_NESTED_AMD_VMLOAD) ||
+	    (call == SYZOS_API_NESTED_AMD_VMSAVE))
+		return sizeof(struct api_call_1);
+	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
+	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
+	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
+		return sizeof(struct api_call_2);
+	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES))
+		return sizeof(struct api_call_3);
+	if ((call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) || (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT))
+		return sizeof(struct api_call_4);
+	if ((call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) ||
+	    (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) ||
+	    (call == SYZOS_API_NESTED_AMD_INJECT_EVENT))
+		return sizeof(struct api_call_5);
+	// SYZOS_API_CODE, SYZOS_API_NESTED_AMD_STGI and SYZOS_API_NESTED_AMD_CLGI have no fixed
+	// arguments.
+	return sizeof(struct api_call_header);
 }
 
 GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
@@ -709,7 +752,8 @@ GUEST_CODE static inline void write_cr4(uint64 val)
 	asm volatile("mov %0, %%cr4" : : "r"(val));
 }
 
-GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
+// Write a VMCS field, return false if VMWRITE fails (e.g. the field does not exist or is read-only).
+GUEST_CODE static noinline bool vmwrite_noassert(uint64 field, uint64 value)
 {
 	uint8 error = 0; // nolint
 	// 'setna' sets the byte to 1 if CF=1 or ZF=1 (VMfail)
@@ -717,7 +761,13 @@ GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
 		     : "=q"(error)
 		     : "a"(value), "b"(field)
 		     : "cc", "memory");
-	if (error)
+	return !error;
+}
+
+// Write a VMCS field that is known to exist and to be writable, report UEXIT_ASSERT otherwise.
+GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
+{
+	if (!vmwrite_noassert(field, value))
 		guest_uexit(UEXIT_ASSERT);
 }
 
@@ -764,7 +814,17 @@ GUEST_CODE static noinline void vmcs_set_bits(uint64 field, uint64 bits)
 	vmwrite(field, vmread(field) | bits);
 }
 
-GUEST_CODE static inline void nested_vmptrld(uint64 cpu_id, uint64 vm_id)
+// Check the index of an L2 VM passed by the fuzzer. Out-of-range indices must be rejected, because
+// the per-VM memory regions and l2_ctx[] are sized for KVM_MAX_L2_VMS VMs per vCPU, so the handlers
+// would otherwise corrupt the state of other VMs and vCPUs.
+GUEST_CODE static inline bool nested_vm_id_valid(uint64 vm_id)
+{
+	return vm_id < KVM_MAX_L2_VMS;
+}
+
+// Make the VMCS of the given VM current. Returns false (after reporting the error to the host) on
+// failure, e.g. if the VM has not been created. The caller must not touch the VMCS in that case.
+GUEST_CODE static inline bool nested_vmptrld(uint64 cpu_id, uint64 vm_id)
 {
 	uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint8 error = 0; // nolint
@@ -772,8 +832,11 @@ GUEST_CODE static inline void nested_vmptrld(uint64 cpu_id, uint64 vm_id)
 		     : "=q"(error)
 		     : "m"(vmcs_addr)
 		     : "memory", "cc");
-	if (error)
+	if (error) {
 		guest_uexit(0xE2BAD2);
+		return false;
+	}
+	return true;
 }
 
 GUEST_CODE static noinline void vmcb_write16(uint64 vmcb, uint16 offset, uint16 val)
@@ -816,9 +879,21 @@ GUEST_CODE static void guest_memcpy(void* dst, void* src, int size)
 		d[i] = s[i];
 }
 
+// Return ECX of the given CPUID leaf (subleaf 0).
+GUEST_CODE static noinline uint32 cpuid_ecx(uint32 leaf)
+{
+	uint32 eax = leaf, ecx = 0;
+	asm volatile("cpuid" : "+a"(eax), "+c"(ecx) : : "ebx", "edx");
+	return ecx;
+}
+
 GUEST_CODE static noinline void
 nested_enable_vmx_intel(uint64 cpu_id)
 {
+	// Without VMX (CPUID.1:ECX[5]) setting CR4.VMXE causes a #GP.
+	if (!(cpuid_ecx(1) & (1 << 5)))
+		return;
+
 	uint64 vmxon_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
 	uint64 cr4 = read_cr4();
 	cr4 |= X86_CR4_VMXE;
@@ -849,6 +924,10 @@ nested_enable_vmx_intel(uint64 cpu_id)
 GUEST_CODE static noinline void
 nested_enable_svm_amd(uint64 cpu_id)
 {
+	// Without SVM (CPUID.80000001h:ECX[2]) setting EFER.SVME causes a #GP.
+	if (!(cpuid_ecx(0x80000001) & (1 << 2)))
+		return;
+
 	// Get the Host Save Area (HSAVE) physical address for this CPU.
 	// The HSAVE area stores the host processor's state on VMRUN and is restored on VMEXIT.
 	uint64 hsave_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
@@ -947,6 +1026,18 @@ GUEST_CODE static void l2_map_page(uint64 cpu_id, uint64 vm_id, uint64 gpa, uint
 		pt[pt_idx] = (host_pa & ~0xFFF) | flags;
 }
 
+// Allocate the globals page of an L2 VM, see setup_l2_page_tables().
+GUEST_CODE static uint64 l2_alloc_globals_page()
+{
+	uint64 page = guest_alloc_page();
+	volatile struct syzos_globals* l2_globals = (volatile struct syzos_globals*)page;
+	// L2 sees the same heap pages as L1, which already uses them (e.g. for the page tables of
+	// this very VM), so L2 must not allocate from the heap. Mark its heap as exhausted.
+	l2_globals->total_size = KVM_PAGE_SIZE;
+	l2_globals->alloc_offset = KVM_PAGE_SIZE;
+	return page;
+}
+
 GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id, uint64 unused_pages)
 {
 	// Note: PML4 and MSR Bitmap must be zeroed by the caller (nested_create_vm)
@@ -985,9 +1076,15 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 			uint64 gpa = r.gpa + (p * KVM_PAGE_SIZE);
 			uint64 backing;
 
-			if (r.gpa == X86_SYZOS_ADDR_USER_CODE && p == 0) {
-				// Map start of user code to the VM's dedicated code buffer
+			if (r.gpa == X86_SYZOS_ADDR_USER_CODE && (uint64)p == cpu_id) {
+				// Map the user code page of this vCPU to the VM's dedicated code buffer.
+				// L2 SYZOS runs with the same vCPU index as L1 (see nested_load_syzos),
+				// so this is where it looks for its program.
 				backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+			} else if (r.gpa == X86_SYZOS_ADDR_GLOBALS) {
+				// L2 gets its own globals page: an L2 SYZOS has its own program size,
+				// and must not overwrite the globals of L1.
+				backing = l2_alloc_globals_page();
 			} else if (r.gpa == X86_SYZOS_ADDR_STACK_BOTTOM) {
 				// Map the first stack page to the VM's dedicated stack buffer. L2 runs on a single
 				// vCPU, so it does not need the other pages, and they must not be identity-mapped
@@ -1455,7 +1552,8 @@ nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 		guest_uexit(0xE2BAD1);
 		return;
 	}
-	nested_vmptrld(cpu_id, vm_id);
+	if (!nested_vmptrld(cpu_id, vm_id))
+		return;
 
 	// Zero out critical structures.
 	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
@@ -1563,6 +1661,8 @@ nested_create_vm_amd(struct api_call_1* cmd, uint64 cpu_id)
 GUEST_CODE static noinline void
 guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id)
 {
+	if (!nested_vm_id_valid(cmd->arg))
+		return;
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		nested_create_vm_intel(cmd, cpu_id);
 	} else {
@@ -1600,8 +1700,12 @@ GUEST_CODE static noinline void
 guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->vm_id;
-	// Backing address in L1 for the L2 User Code (mapped at X86_SYZOS_ADDR_USER_CODE)
-	uint64 l2_code_backing = l2_gpa_to_pa(cpu_id, vm_id, X86_SYZOS_ADDR_USER_CODE);
+	if (!nested_vm_id_valid(vm_id))
+		return;
+	// The L2 code is mapped at the user code page of this vCPU, see setup_l2_page_tables().
+	uint64 l2_code_gpa = X86_SYZOS_ADDR_USER_CODE + cpu_id * KVM_PAGE_SIZE;
+	// Backing address in L1 for the L2 User Code.
+	uint64 l2_code_backing = l2_gpa_to_pa(cpu_id, vm_id, l2_code_gpa);
 	if (!l2_code_backing) {
 		guest_uexit(0xE2BAD4);
 		return;
@@ -1615,13 +1719,14 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 		     l2_code_size);
 
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
-		nested_vmptrld(cpu_id, vm_id);
-		// Start execution at standard User Code address
-		vmwrite(VMCS_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		if (!nested_vmptrld(cpu_id, vm_id))
+			return;
+		// Start execution at the User Code address.
+		vmwrite(VMCS_GUEST_RIP, l2_code_gpa);
 		// Stack is mapped at X86_SYZOS_ADDR_STACK_BOTTOM
 		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
-		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_gpa);
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	}
 }
@@ -1630,6 +1735,8 @@ GUEST_CODE static noinline void
 guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->vm_id;
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 prog_size = cmd->header.size - __builtin_offsetof(struct api_call_nested_load_syzos, program);
 	uint64 l2_code_backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
@@ -1647,19 +1754,21 @@ guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cp
 		return;
 	}
 	volatile struct syzos_globals* l2_globals = (volatile struct syzos_globals*)globals_pa;
-	// Set initial state for ALL possible L2 VCPUs of this VM.
-	for (int i = 0; i < KVM_MAX_VCPU; i++) {
-		l2_globals->text_sizes[i] = prog_size;
-		globals->l2_ctx[i][vm_id].rdi = i;
-		globals->l2_ctx[i][vm_id].rax = 0; // Default RAX
-		// Note: RSP and RIP are set in the VMCB/VMCS, but they could also be in l2_ctx
-		// since the shims load them if we wanted. But currently they are in VMCB/VMCS.
-	}
+	// L2 SYZOS runs guest_main(cpu_id), i.e. with the vCPU index of L1: this is the only user
+	// code page of L2 that is backed by the VM's code buffer, and the per-vCPU memory regions
+	// it may touch are those of this L1 vCPU. Note that l2_ctx[] is indexed by the L1 vCPU, so
+	// only the entry of this vCPU belongs to the VM.
+	l2_globals->text_sizes[cpu_id] = prog_size;
+	globals->l2_ctx[cpu_id][vm_id].rdi = cpu_id;
+	globals->l2_ctx[cpu_id][vm_id].rax = 0; // Default RAX
+	// Note: RSP and RIP are set in the VMCB/VMCS, but they could also be in l2_ctx
+	// since the shims load them if we wanted. But currently they are in VMCB/VMCS.
 
 	// Set RIP to guest_main.
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
-		nested_vmptrld(cpu_id, vm_id);
+		if (!nested_vmptrld(cpu_id, vm_id))
+			return;
 		vmwrite(VMCS_GUEST_RIP, entry_rip);
 		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
@@ -1676,7 +1785,8 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 	struct l2_guest_regs* l2_regs = (struct l2_guest_regs*)&globals->l2_ctx[cpu_id][vm_id];
 	uint64 vmx_error_code = 0;
 	uint64 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
-	nested_vmptrld(cpu_id, vm_id);
+	if (!nested_vmptrld(cpu_id, vm_id))
+		return;
 
 	// Mark the VM as active on this CPU.
 	globals->active_vm_id[cpu_id] = vm_id;
@@ -1886,8 +1996,7 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 		after_vmentry_label_amd:
 	)"
 		     :
-		     : [cpu_id] "r"(cpu_id), [vmcb_addr] "r"(vmcb_addr), [l2_regs] "r"(l2_regs),
-		       [l2_regs_size] "i"(sizeof(struct l2_guest_regs))
+		     : [cpu_id] "r"(cpu_id), [vmcb_addr] "r"(vmcb_addr), [l2_regs] "r"(l2_regs)
 		     : "cc", "memory", "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
 }
 
@@ -1895,6 +2004,8 @@ GUEST_CODE static noinline void
 guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->arg;
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		guest_handle_nested_vmentry_intel(vm_id, cpu_id, true);
 	} else {
@@ -1906,6 +2017,8 @@ GUEST_CODE static noinline void
 guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->arg;
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		guest_handle_nested_vmentry_intel(vm_id, cpu_id, false);
 	} else {
@@ -1916,9 +2029,8 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 GUEST_CODE static noinline void
 nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
 {
-	if (vm_id >= KVM_MAX_L2_VMS)
+	if (!nested_vmptrld(cpu_id, vm_id))
 		return;
-	nested_vmptrld(cpu_id, vm_id);
 
 	// Prevent the compiler from generating a switch table.
 	volatile uint64 type = page_type;
@@ -1957,8 +2069,6 @@ nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint
 GUEST_CODE static noinline void
 nested_set_state_pages_amd(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
 {
-	if (vm_id >= KVM_MAX_L2_VMS)
-		return;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 
 	// Only the MSR and I/O permission maps exist on AMD, other page types are ignored.
@@ -1984,6 +2094,8 @@ guest_handle_nested_set_state_pages(struct api_call_3* cmd, uint64 cpu_id)
 	uint64 page_type = cmd->args[1];
 	uint64 addr = cmd->args[2];
 
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		nested_set_state_pages_intel(cpu_id, vm_id, page_type, addr);
 	} else {
@@ -1997,16 +2109,21 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
 		return;
 	uint64 vm_id = cmd->args[0];
-	nested_vmptrld(cpu_id, vm_id);
+	if (!nested_vm_id_valid(vm_id) || !nested_vmptrld(cpu_id, vm_id))
+		return;
 	uint64 field = cmd->args[1];
 	uint64 set_mask = cmd->args[2];
 	uint64 unset_mask = cmd->args[3];
 	uint64 flip_mask = cmd->args[4];
 
+	// The field is chosen by the fuzzer: it may not exist on this CPU, or be read-only.
+	// This is not an error in SYZOS, so do not report it as UEXIT_ASSERT.
+	if (!vmcs_field_exists(field))
+		return;
 	uint64 current_value = vmread(field);
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
-	vmwrite(field, new_value);
+	(void)vmwrite_noassert(field, new_value);
 }
 
 // VMX MSR load/store lists, see Intel SDM vol. 3C, "VM-Entry Controls for MSRs"
@@ -2036,7 +2153,7 @@ guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
 	uint64 vm_id = cmd->args[0];
 	uint64 msr = cmd->args[2];
 	uint64 value = cmd->args[3];
-	if (vm_id >= KVM_MAX_L2_VMS)
+	if (!nested_vm_id_valid(vm_id))
 		return;
 
 	uint64 offset = 0, addr_field = 0, count_field = 0;
@@ -2058,7 +2175,8 @@ guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
 		return;
 	}
 
-	nested_vmptrld(cpu_id, vm_id);
+	if (!nested_vmptrld(cpu_id, vm_id))
+		return;
 	uint64 count = vmread(count_field);
 	if (count >= X86_SYZOS_MSR_LIST_MAX_ENTRIES)
 		return;
@@ -2077,11 +2195,17 @@ guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id)
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
 	uint64 vm_id = cmd->args[0];
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint64 offset = cmd->args[1];
 	uint64 set_mask = cmd->args[2];
 	uint64 unset_mask = cmd->args[3];
 	uint64 flip_mask = cmd->args[4];
+
+	// Do not let the fuzzer write past the VMCB page.
+	if (offset > KVM_PAGE_SIZE - sizeof(uint64))
+		return;
 
 	uint64 current_value = vmcb_read64((volatile uint8*)vmcb_addr, offset);
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
@@ -2125,6 +2249,8 @@ guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
 		return;
 
 	uint64 vm_id = cmd->args[0];
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 
 	uint64 vector = cmd->args[1] & 0xFF;
@@ -2147,16 +2273,23 @@ guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
 }
 
 GUEST_CODE static noinline void
-guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id)
+guest_handle_nested_amd_set_intercept(struct api_call_4* cmd, uint64 cpu_id)
 {
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
 
 	uint64 vm_id = cmd->args[0];
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint64 offset = cmd->args[1];
 	uint64 bit_mask = cmd->args[2];
 	uint64 action = cmd->args[3]; // 1 = Set, 0 = Clear
+
+	// Only the intercept vectors can be changed: do not let the fuzzer write to the rest of the
+	// VMCB or past it.
+	if (offset > VMCB_CTRL_INTERCEPT_VEC5)
+		return;
 
 	// Read 32-bit intercept field (Offsets 0x00 - 0x14 are all 32-bit vectors).
 	uint32 current = vmcb_read32(vmcb_addr, (uint16)offset);
@@ -2175,6 +2308,8 @@ guest_handle_nested_amd_vmload(struct api_call_1* cmd, uint64 cpu_id)
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
 	uint64 vm_id = cmd->arg;
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 vmcb_pa = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 
 	asm volatile("vmload %%rax" ::"a"(vmcb_pa) : "memory");
@@ -2186,6 +2321,8 @@ guest_handle_nested_amd_vmsave(struct api_call_1* cmd, uint64 cpu_id)
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
 	uint64 vm_id = cmd->arg;
+	if (!nested_vm_id_valid(vm_id))
+		return;
 	uint64 vmcb_pa = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 
 	asm volatile("vmsave %%rax" ::"a"(vmcb_pa) : "memory");

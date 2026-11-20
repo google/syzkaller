@@ -276,15 +276,27 @@ static inline void* gpa_to_hva(struct kvm_syz_vm* vm, uint64 gpa)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
-
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu
 #define X86_NUM_IDT_ENTRIES 256
-static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
+
+// A 64-bit GDT entry for a code or data segment.
+// System segments (like TSS) are different and use a 128-bit format.
+struct gdt_entry {
+	uint16 limit_low;
+	uint16 base_low;
+	uint8 base_mid;
+	uint8 access;
+	uint8 limit_high_and_flags;
+	uint8 base_high;
+} __attribute__((packed));
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
+// Fill the IDT in the guest memory with the default handlers.
+static void syzos_setup_idt(struct kvm_syz_vm* vm)
 {
-	sregs->idt.base = X86_SYZOS_ADDR_VAR_IDT;
-	sregs->idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
 	volatile struct idt_entry_64* idt =
-	    (volatile struct idt_entry_64*)(uint64)gpa_to_hva(vm, sregs->idt.base);
+	    (volatile struct idt_entry_64*)(uint64)gpa_to_hva(vm, X86_SYZOS_ADDR_VAR_IDT);
 	for (int i = 0; i < X86_NUM_IDT_ENTRIES; i++) {
 		uint64 handler_addr = syzos_default_idt_handler(i);
 		idt[i].offset_low = (uint16)(handler_addr & 0xFFFF);
@@ -299,7 +311,7 @@ static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
 #define PAGE_MASK GENMASK_ULL(51, 12)
 
 typedef struct {
@@ -397,17 +409,6 @@ static void setup_pg_table(struct kvm_syz_vm* vm)
 	}
 }
 
-// A 64-bit GDT entry for a code or data segment.
-// System segments (like TSS) are different and use a 128-bit format.
-struct gdt_entry {
-	uint16 limit_low;
-	uint16 base_low;
-	uint8 base_mid;
-	uint8 access;
-	uint8 limit_high_and_flags;
-	uint8 base_high;
-} __attribute__((packed));
-
 static void setup_gdt_64(struct gdt_entry* gdt)
 {
 	// Entry 0: Null
@@ -450,12 +451,40 @@ static void setup_gdt_64(struct gdt_entry* gdt)
 	    .base_high = 0};
 }
 
+// Set up the guest memory structures shared by all vCPUs of the VM: the page tables, the GDT, the
+// IDT and the TSS. This must be done once per VM, not once per vCPU: rebuilding them would pull the
+// page tables from under the vCPUs that are already running, and would drop the interrupt handlers
+// they have installed.
+static void setup_shared_tables(struct kvm_syz_vm* vm)
+{
+	// The L1 TSS memory is at (vm->host_mem + X86_SYZOS_ADDR_VAR_TSS)
+	volatile uint8* l1_tss =
+	    (volatile uint8*)(uint64)gpa_to_hva(vm, X86_SYZOS_ADDR_VAR_TSS);
+
+	// Zero out the TSS (104 bytes for 64-bit)
+	memset((void*)l1_tss, 0, 104);
+
+	// Set the critical RSP0 field to the L1 guest's main stack.
+	// RSP0 is at offset +4 bytes in a 64-bit TSS.
+	// The TSS is shared by all vCPUs, so this is vCPU 0's stack. RSP0 is only used on a privilege
+	// level change, and SYZOS always runs at CPL0, so other vCPUs never switch to it.
+	*(volatile uint64*)(l1_tss + 4) = X86_SYZOS_ADDR_STACK0;
+
+	setup_pg_table(vm);
+	setup_gdt_64((struct gdt_entry*)(uint64)gpa_to_hva(vm, X86_SYZOS_ADDR_GDT));
+	syzos_setup_idt(vm);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+// Set up the system registers of a vCPU. The structures they point to are shared by all vCPUs and
+// are created by setup_shared_tables().
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
 // Guest CPUID must already be set (see setup_cpuid()): KVM validates the EFER/CR4 bits passed
 // to KVM_SET_SREGS against guest CPUID, so e.g. EFER.LME is rejected until CPUID advertises LM.
 // Returns 0 on success, -1 (with errno set) on failure.
-static int setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool has_svm)
+static int setup_vcpu_sregs(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool has_svm)
 {
 	struct kvm_sregs sregs;
 	if (ioctl(cpufd, KVM_GET_SREGS, &sregs))
@@ -463,7 +492,8 @@ static int setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool h
 
 	sregs.gdt.base = X86_SYZOS_ADDR_GDT;
 	sregs.gdt.limit = 5 * sizeof(struct gdt_entry) - 1;
-	struct gdt_entry* gdt = (struct gdt_entry*)(uint64)gpa_to_hva(vm, sregs.gdt.base);
+	sregs.idt.base = X86_SYZOS_ADDR_VAR_IDT;
+	sregs.idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
 
 	struct kvm_segment seg_cs64;
 	memset(&seg_cs64, 0, sizeof(seg_cs64));
@@ -505,23 +535,6 @@ static int setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool h
 	seg_tr.present = 1;
 	seg_tr.s = 0; // System segment
 	sregs.tr = seg_tr;
-
-	// The L1 TSS memory is at (vm->host_mem + X86_SYZOS_ADDR_VAR_TSS)
-	volatile uint8* l1_tss =
-	    (volatile uint8*)(uint64)gpa_to_hva(vm, X86_SYZOS_ADDR_VAR_TSS);
-
-	// Zero out the TSS (104 bytes for 64-bit)
-	memset((void*)l1_tss, 0, 104);
-
-	// Set the critical RSP0 field to the L1 guest's main stack.
-	// RSP0 is at offset +4 bytes in a 64-bit TSS.
-	// The TSS is shared by all vCPUs, so this is vCPU 0's stack. RSP0 is only used on a privilege
-	// level change, and SYZOS always runs at CPL0, so other vCPUs never switch to it.
-	*(volatile uint64*)(l1_tss + 4) = X86_SYZOS_ADDR_STACK0;
-
-	setup_pg_table(vm);
-	setup_gdt_64(gdt);
-	syzos_setup_idt(vm, &sregs);
 
 	sregs.cr0 = X86_CR0_PE | X86_CR0_NE | X86_CR0_PG;
 	sregs.cr4 |= X86_CR4_PAE | X86_CR4_OSFXSR;
@@ -1171,7 +1184,7 @@ static int install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, const
 	bool has_svm = false;
 	if (setup_cpuid(cpufd, &has_svm))
 		return -1;
-	if (setup_gdt_ldt_pg(vm, cpufd, cpu_id, has_svm))
+	if (setup_vcpu_sregs(vm, cpufd, cpu_id, has_svm))
 		return -1;
 
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
@@ -1219,8 +1232,12 @@ static int setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			vm->gpa0_mem = next.addr;
 		if (r->gpa == X86_SYZOS_ADDR_PT_POOL)
 			vm->pt_pool_mem = next.addr;
-		if (r->gpa == X86_SYZOS_ADDR_GLOBALS)
+		if (r->gpa == X86_SYZOS_ADDR_GLOBALS) {
 			vm->globals_mem = next.addr;
+			// The memory is provided by the fuzzer and may have been used before, e.g. by another
+			// SYZOS VM. Stale globals would break the guest memory allocator.
+			memset(next.addr, 0, next.size);
+		}
 
 		if (r->gpa == X86_SYZOS_ADDR_BOOT_ARGS) {
 			boot_args = (struct syzos_boot_args*)next.addr;
@@ -1241,6 +1258,7 @@ static int setup_vm(int vmfd, struct kvm_syz_vm* vm)
 		if (r->flags & MEM_REGION_FLAG_REMAINING)
 			break;
 	}
+	setup_shared_tables(vm);
 	return 0;
 }
 #endif
