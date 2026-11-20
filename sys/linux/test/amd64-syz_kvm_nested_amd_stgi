@@ -26,7 +26,7 @@ syz_kvm_assert_syzos_uexit$x86(r3, r5, 0x1337)
 # Inject NMI into the vCPU.
 # Since GIF=0 in the guest, this NMI should be queued by L0.
 #
-ioctl$KVM_NMI(r3, 0x0)
+ioctl$KVM_NMI(r3, AUTO)
 
 # Run 2: Resume -> STGI -> NMI Delivery -> UEXIT(0xface)
 # We verify that the guest survives the NMI delivery and reaches the final exit.
