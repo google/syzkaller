@@ -88,6 +88,30 @@ func (r *Runner) Close() {
 	}
 }
 
+// listModels prints the text chat models available for the selected provider.
+// For OrcaRouter the list comes from the live model catalog; if discovery
+// fails, the verified fallback catalog is printed with a warning.
+func listModels(ctx context.Context, providerName string) error {
+	factory, ok := providers[providerName]
+	if !ok {
+		supported := slices.Sorted(maps.Keys(providers))
+		return fmt.Errorf("unknown provider %q (supported: %v)", providerName, supported)
+	}
+	provider, err := factory(ctx, "")
+	if err != nil {
+		return err
+	}
+	defer provider.Close()
+	models, err := provider.Models(ctx)
+	for _, model := range models {
+		fmt.Println(model)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: using the verified fallback catalog: %v\n", err)
+	}
+	return nil
+}
+
 func loadTaskInputs(path string) (map[string]any, error) {
 	inputs, err := osutil.ReadJSON[map[string]any](path)
 	if err != nil {

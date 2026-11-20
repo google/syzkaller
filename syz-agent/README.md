@@ -53,6 +53,35 @@ approach for testing and development.
   `-syzkaller=/syzkaller` flag is passed via `run.sh` which serves as the Dockerfile's
   ENTRYPOINT. `syz-agent` will use the pre-built binaries inside the container.*
 
+## LLM Backends
+
+`default_backend` and the per-workflow `workflow_backends` map accept:
+
+- `gemini` — Gemini API (`gemini_api_key`, defaults to `env:GOOGLE_API_KEY`);
+- `vertex` — Vertex AI (`cloud_project` is resolved from the environment);
+- `orcarouter` — OrcaRouter (`orcarouter_api_key`, defaults to `env:ORCAROUTER_API_KEY`).
+
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible gateway that routes many providers
+behind one endpoint, and runs gateway-level, zero-trust security for AI agents on the same endpoint.
+The **OrcaRouter Cyber Inference** backend targets authorised security engineering work: the cyber
+tier (`orca/orcacyber-ultra-1.0`, `orca/orcacyber-zero-1.5`) is available to security teams that have
+passed business verification, while `orcarouter/auto` is the default model and works with any key.
+The model catalog is read from `https://api.orcarouter.ai/v1/models` and filtered to text chat models;
+if discovery fails, a small verified fallback catalog is used.
+
+```json
+{
+    "default_backend": "orcarouter",
+    "workflow_backends": {
+        "patching": "orcarouter"
+    },
+    "orcarouter_api_key": "env:ORCAROUTER_API_KEY"
+}
+```
+
+See the [provider page](https://www.orcarouter.ai/cyber) and the
+[cyber model catalog](https://www.orcarouter.ai/models?tier=cyber).
+
 ## Running on Kubernetes
 
 `syz-agent` can be deployed as a `StatefulSet` on Kubernetes (Minikube or GKE) for persistent identity.
