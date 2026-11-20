@@ -345,3 +345,83 @@ func TestCreateBugsGraphWithRepros(t *testing.T) {
 		{Val: 3}, // open bugs with C repro
 	}, graph.Columns[2].Vals)
 }
+
+func TestBugLifetimeDates(t *testing.T) {
+	t0 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	t1 := t0.AddDate(0, 0, 10)
+	t2 := t0.AddDate(0, 0, 20)
+	commits := func(dates ...time.Time) []Commit {
+		var res []Commit
+		for _, d := range dates {
+			res = append(res, Commit{Date: d})
+		}
+		return res
+	}
+
+	t.Run("cause", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			ai     BugAIBisect
+			syzCI  *Job
+			expect time.Time
+		}{
+			{
+				name:   "ai single commit",
+				ai:     BugAIBisect{JobID: "j1", Commits: commits(t1)},
+				expect: t1,
+			},
+			{
+				name:   "ai multi-commit overrides syz-ci",
+				ai:     BugAIBisect{JobID: "j1", Commits: commits(t1, t2)},
+				syzCI:  &Job{Commits: commits(t2)},
+				expect: t1,
+			},
+			{
+				name:   "ai inconclusive overrides syz-ci",
+				ai:     BugAIBisect{JobID: "j1"},
+				syzCI:  &Job{Commits: commits(t2)},
+				expect: time.Time{},
+			},
+			{
+				name:   "syz-ci fallback",
+				syzCI:  &Job{Commits: commits(t2)},
+				expect: t2,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				bug := &Bug{AIBisectCause: tt.ai}
+				assert.Equal(t, tt.expect, bugLifetimeCauseDate(bug, tt.syzCI))
+			})
+		}
+	})
+
+	t.Run("fixed", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			bug    Bug
+			expect time.Time
+		}{
+			{
+				name:   "ai fix commit",
+				bug:    Bug{AIBisectFix: BugAIBisect{JobID: "j1", Commits: commits(t1, t2)}},
+				expect: t1,
+			},
+			{
+				name:   "confirmed fix overrides ai",
+				bug:    Bug{FixTime: t0, AIBisectFix: BugAIBisect{JobID: "j1", Commits: commits(t1)}},
+				expect: t0,
+			},
+			{
+				name:   "ai still present",
+				bug:    Bug{AIBisectFix: BugAIBisect{JobID: "j1", StillPresent: true}},
+				expect: time.Time{},
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				assert.Equal(t, tt.expect, bugLifetimeFixedDate(&tt.bug))
+			})
+		}
+	})
+}
