@@ -82,6 +82,16 @@ func build(target *prog.Target, src []byte, dir, file string, cflags ...string) 
 	cmd.Dir = dir
 	if file == "" {
 		cmd.Stdin = bytes.NewReader(src)
+		// The source may come from untrusted places (e.g. C reproducers written by LLM agents),
+		// and #include/.incbin let it read any host file, which then shows up in compiler errors.
+		if err := osutil.SandboxChown(bin); err != nil {
+			os.Remove(bin)
+			return "", err
+		}
+		if err := osutil.Sandbox(cmd, true, true); err != nil {
+			os.Remove(bin)
+			return "", err
+		}
 	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
