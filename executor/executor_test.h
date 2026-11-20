@@ -34,9 +34,15 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 #define notrace __attribute__((no_sanitize_coverage))
 #endif
 
+// Set while the current thread executes a call. Coverage is recorded only by such threads:
+// cover_collect() makes the buffer read-only, so a write from any other thread (e.g. the main thread,
+// whose current_thread also points to threads[0]) could fault outside of NONFAILING.
+static __thread bool in_execute_syscall;
+
 extern "C" notrace void __sanitizer_cov_trace_pc(void)
 {
-	if (current_thread == nullptr || current_thread->cov.data == nullptr || current_thread->cov.collect_comps)
+	if (!in_execute_syscall || current_thread == nullptr || current_thread->cov.data == nullptr ||
+	    current_thread->cov.collect_comps || !current_thread->cov.enabled)
 		return;
 	uint64 pc = (uint64)__builtin_return_address(0);
 	// Convert to what is_kernel_pc will accept as valid coverage;
@@ -69,8 +75,11 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	// This allows to pass machine check with coverage enabled.
 	// pkg/fuzzer tests with coverage instrumentation shouldn't be distracted by the additional PC,
 	// and syz_inject_cover overwrites the whole array so will remote it.
+	in_execute_syscall = true;
 	__sanitizer_cov_trace_pc();
-	return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	intptr_t res = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	in_execute_syscall = false;
+	return res;
 }
 
 static void cover_open(cover_t* cov, bool extra)
@@ -85,18 +94,32 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
+	if (mprotect(cov->data, cov->data_size, PROT_READ | PROT_WRITE))
+		fail("mprotect failed");
 	*(uint64*)(cov->data) = 0;
+	cov->enabled = true;
 }
 
 static void cover_collect(cover_t* cov)
 {
+	// The call may have left execute_syscall() via NONFAILING.
+	in_execute_syscall = false;
+	cov->enabled = false;
 	if (is_kernel_64_bit)
 		cov->size = *(uint64*)cov->data;
 	else
 		cov->size = *(uint32*)cov->data;
+	// write_extra_output() only calls cover_reset(&extra_cov) when extra_cov.size > 0,
+	// so keep extra_cov enabled and writable if no extra coverage was recorded.
+	if (cov == &extra_cov && !cov->size) {
+		cov->enabled = true;
+		return;
+	}
+	if (mprotect(cov->data, cov->data_size, PROT_READ))
+		fail("mprotect failed");
 }
 
-static void cover_protect(cover_t* cov)
+static void cover_protect()
 {
 }
 
@@ -108,7 +131,7 @@ static void cover_mmap(cover_t* cov)
 		fail("cover_t structure is corrupted");
 	cov->mmap_alloc_size = cov->data_size;
 	cov->mmap_alloc_ptr = (char*)mmap(NULL, cov->mmap_alloc_size,
-					  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+					  PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (cov->mmap_alloc_ptr == MAP_FAILED)
 		exitf("cover mmap failed");
 	cov->data = cov->mmap_alloc_ptr;
@@ -119,13 +142,13 @@ static void cover_mmap(cover_t* cov)
 	cov->pc_offset = 0;
 }
 
-static void cover_unprotect(cover_t* cov)
+static void cover_unprotect()
 {
 }
 
 static long inject_cover(cover_t* cov, long a, long b)
 {
-	if (cov->data == nullptr)
+	if (cov->data == nullptr || !cov->enabled)
 		return ENOENT;
 	uint32 size = std::min((uint32)b, cov->data_size);
 	memcpy(cov->data, (void*)a, size);

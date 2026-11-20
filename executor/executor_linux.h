@@ -182,13 +182,13 @@ static void cover_close(cover_t* cov)
 	cov->fd = -1;
 }
 
-static void cover_protect(cover_t* cov)
+static void cover_protect()
 {
 	if (pkeys_enabled && pkey_set(RESERVED_PKEY, PKEY_DISABLE_WRITE))
 		debug("pkey_set failed: %d\n", errno);
 }
 
-static void cover_unprotect(cover_t* cov)
+static void cover_unprotect()
 {
 	if (pkeys_enabled && pkey_set(RESERVED_PKEY, 0))
 		debug("pkey_set failed: %d\n", errno);
@@ -207,13 +207,17 @@ static void cover_mmap(cover_t* cov)
 	if (cov->mmap_alloc_ptr == MAP_FAILED)
 		exitf("failed to preallocate kcov buffer");
 	// Now map the kcov buffer to the file, overwriting the existing mapping above.
-	int prot = flag_read_only_coverage ? PROT_READ : (PROT_READ | PROT_WRITE);
-	void* data_buf = (char*)mmap(cov->mmap_alloc_ptr + SYZ_PAGE_SIZE, cov->data_size,
-				     prot, MAP_SHARED | MAP_FIXED, cov->fd, 0);
+	void* data_buf = mmap(cov->mmap_alloc_ptr + SYZ_PAGE_SIZE, cov->data_size,
+			      PROT_READ, MAP_SHARED | MAP_FIXED, cov->fd, 0);
 	if (data_buf == MAP_FAILED)
 		exitf("cover mmap failed");
-	if (pkeys_enabled && pkey_mprotect(data_buf, cov->data_size, prot, RESERVED_PKEY))
-		exitf("failed to pkey_mprotect kcov buffer");
+	if (!flag_read_only_coverage) {
+		// Only the first page needs to be writable to reset the coverage count in cover_reset().
+		if (pkeys_enabled && pkey_mprotect(data_buf, SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+			exitf("failed to pkey_mprotect kcov buffer");
+		if (!pkeys_enabled && mprotect(data_buf, SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE))
+			exitf("failed to mprotect kcov buffer");
+	}
 	cov->data = (char*)data_buf;
 	cov->data_end = cov->data + cov->data_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
@@ -268,9 +272,9 @@ static void cover_reset(cover_t* cov)
 		if (ioctl(cov->fd, KCOV_RESET_TRACE, 0))
 			fail("KCOV_RESET_TRACE failed");
 	} else {
-		cover_unprotect(cov);
+		cover_unprotect();
 		*(uint64*)cov->data = 0;
-		cover_protect(cov);
+		cover_protect();
 	}
 	cov->overflow = false;
 }
@@ -279,7 +283,7 @@ template <typename cover_data_t>
 static void cover_collect_impl(cover_t* cov)
 {
 	cov->size = *(cover_data_t*)cov->data;
-	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
+	cov->overflow = cov->size >= (cov->data_end - (cov->data + cov->data_offset)) / sizeof(cover_data_t);
 }
 
 static void cover_collect(cover_t* cov)
