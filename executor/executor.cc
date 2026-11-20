@@ -1084,6 +1084,14 @@ void execute_one()
 		if (call_num >= ARRAY_SIZE(syscalls))
 			failmsg("invalid syscall number", "call_num=%llu", call_num);
 		const call_t* call = &syscalls[call_num];
+#if GOOS_linux && SYZ_HAVE_RESET_LOOP
+		if (syz_reset_flags) {
+			if (!strncmp(call->name, "ioctl$DM_", 9))
+				syz_reset_flags[RESET_FLAG_DM] = 1;
+			else if (!strncmp(call->name, "openat$md", 9) || !strncmp(call->name, "write$md_", 9))
+				syz_reset_flags[RESET_FLAG_MD] = 1;
+		}
+#endif
 		if (prog_extra_timeout < call->attrs.prog_timeout)
 			prog_extra_timeout = call->attrs.prog_timeout * slowdown_scale;
 		if (call->attrs.remote_cover)
