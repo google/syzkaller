@@ -1219,8 +1219,12 @@ static int setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			vm->gpa0_mem = next.addr;
 		if (r->gpa == X86_SYZOS_ADDR_PT_POOL)
 			vm->pt_pool_mem = next.addr;
-		if (r->gpa == X86_SYZOS_ADDR_GLOBALS)
+		if (r->gpa == X86_SYZOS_ADDR_GLOBALS) {
 			vm->globals_mem = next.addr;
+			// The memory is provided by the fuzzer and may have been used before, e.g. by another
+			// SYZOS VM. Stale globals would break the guest memory allocator.
+			memset(next.addr, 0, next.size);
+		}
 
 		if (r->gpa == X86_SYZOS_ADDR_BOOT_ARGS) {
 			boot_args = (struct syzos_boot_args*)next.addr;
