@@ -385,6 +385,12 @@ func TestDeserialize(t *testing.T) {
 			In:  "  test$opt2(0x0)",
 			Out: "test$opt2(0x0)",
 		},
+		{
+			In: `r=test$res2()
+test$res3(&(0x7f0000000000)=r)
+`,
+			Err: `is DirOut, but references`,
+		},
 	})
 }
 
