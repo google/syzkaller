@@ -39,7 +39,7 @@ func reassignBugSubsystems(ctx context.Context, ns string, count int) error {
 			err = updateBugSubsystems(ctx, bugKey, nil, updateRevision(rev))
 		} else {
 			var list []*subsystem.Subsystem
-			list, err = inferSubsystems(ctx, bugs[i], bugKey, &debugtracer.NullTracer{})
+			list, err = inferSubsystems(ctx, bugs[i].Namespace, bugKey, bugs[i].AIRootCause.Files, &debugtracer.NullTracer{})
 			if err != nil {
 				return fmt.Errorf("failed to infer subsystems: %w", err)
 			}
@@ -147,12 +147,19 @@ const (
 )
 
 // inferSubsystems determines the best yet possible estimate of the bug's subsystems.
-func inferSubsystems(ctx context.Context, bug *Bug, bugKey *db.Key,
+func inferSubsystems(ctx context.Context, ns string, bugKey *db.Key, rootCauseFiles []string,
 	tracer debugtracer.DebugTracer) ([]*subsystem.Subsystem, error) {
-	service := getSubsystemService(ctx, bug.Namespace)
+	service := getSubsystemService(ctx, ns)
 	if service == nil {
 		// There's nothing we can do.
 		return nil, nil
+	}
+	if len(rootCauseFiles) > 0 {
+		tracer.Logf("using AI root cause files: %v", rootCauseFiles)
+		if res := service.TracedExtractFromPaths(rootCauseFiles, tracer); len(res) > 0 {
+			return res, nil
+		}
+		tracer.Logf("no subsystems matched AI root cause files, falling back to crashes")
 	}
 	dbCrashes, dbCrashKeys, err := queryCrashesForBug(ctx, bugKey, crashesForInference)
 	if err != nil {

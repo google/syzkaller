@@ -24,12 +24,14 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/gerrit"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	db "google.golang.org/appengine/v2/datastore"
@@ -1558,6 +1560,8 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	if len(labels) == 0 && rootCause == nil && !updateBisect {
 		return nil
 	}
+	newSubsystems, subsystemsRev, updateSubsystems := aiJobSubsystemsUpdate(ctx, bug, rootCause)
+	now := timeNow(ctx)
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
 		if job.Type == ai.WorkflowAssessmentKCSAN {
@@ -1565,6 +1569,10 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 		}
 		if rootCause != nil {
 			bug.AIRootCause = *rootCause
+		}
+		if updateSubsystems && !bug.hasUserSubsystems() {
+			logSubsystemChange(ctx, bug, newSubsystems)
+			bug.SetAutoSubsystems(ctx, newSubsystems, now, subsystemsRev)
 		}
 		if updateBisect {
 			bug.applyAIBisect(ctx, job, bisect)
@@ -1590,6 +1598,23 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	})
 }
 
+// aiJobSubsystemsUpdate recomputes automatic bug subsystems when AI root cause files change.
+func aiJobSubsystemsUpdate(ctx context.Context, bug *Bug, rootCause *BugAIRootCause) (
+	[]*subsystem.Subsystem, int, bool) {
+	service := getSubsystemService(ctx, bug.Namespace)
+	if rootCause == nil || service == nil || bug.hasUserSubsystems() ||
+		slices.Equal(bug.AIRootCause.Files, rootCause.Files) {
+		return nil, 0, false
+	}
+	list, err := inferSubsystems(ctx, bug.Namespace, bug.key(ctx), rootCause.Files, &debugtracer.NullTracer{})
+	if err != nil {
+		// Subsystem inference is best-effort, don't fail the whole update.
+		log.Errorf(ctx, "failed to infer subsystems for %v: %v", bug.keyHash(ctx), err)
+		return nil, 0, false
+	}
+	return list, service.Revision, true
+}
+
 // aiBugRootCause extracts the root cause and the full analysis from an assessment-security job result.
 // Both are empty if there is no analysis, or if the job result was marked as incorrect.
 // Text in the returned root cause is not set.
@@ -1613,6 +1638,7 @@ func aiBugRootCause(job *aidb.Job) (BugAIRootCause, string, error) {
 	}
 	rootCause := BugAIRootCause{
 		Summary:      res.RootCauseSummary,
+		Files:        res.RootCauseFiles,
 		KernelRepo:   repo,
 		KernelCommit: commit,
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -2435,6 +2436,105 @@ If you attach or paste a git patch, syzbot will apply it before testing.
 	// The text entity is never deleted.
 	_, _, err = getText(c.ctx, textAIRootCause, bug.AIRootCause.Text)
 	require.NoError(t, err)
+}
+
+func TestAIRootCauseSubsystems(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.setSubsystems("ains", []*subsystem.Subsystem{
+		{
+			Name:      "mm",
+			PathRules: []subsystem.PathRule{{IncludeRegexp: `^mm/`}},
+			Lists:     []string{"mm@list.com"},
+		},
+		{
+			Name:      "foo",
+			PathRules: []subsystem.PathRule{{IncludeRegexp: `^drivers/foo/`}},
+			Lists:     []string{"foo@list.com"},
+		},
+		{
+			Name:      "bar",
+			PathRules: []subsystem.PathRule{{IncludeRegexp: `^drivers/bar/`}},
+			Lists:     []string{"bar@list.com"},
+		},
+	}, 1)
+
+	build := testBuild(1)
+	build.KernelRepo = "https://github.com/google/syzkaller"
+	c.aiClient.UploadBuild(build)
+
+	reportBug := func(id int, guiltyFile string) (sender, extID string) {
+		crash := testCrash(build, id)
+		crash.Title = fmt.Sprintf("KASAN: slab-use-after-free Write in dev_config%d", id)
+		crash.GuiltyFiles = []string{guiltyFile}
+		c.aiClient.ReportCrash(crash)
+		msg := c.aiClient.pollEmailBug()
+		_, extID, err := email.RemoveAddrContext(msg.Sender)
+		require.NoError(t, err)
+		return msg.Sender, extID
+	}
+
+	finishAssessment := func(files ...string) string {
+		resp := c.pollAIWorkflow(t, ai.WorkflowAssessmentSecurity)
+		require.NotEmpty(t, resp.ID)
+		require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+			ID: resp.ID,
+			Results: map[string]any{
+				"Exploitable":       true,
+				"RootCauseSummary":  "UAF summary.",
+				"RootCauseAnalysis": "Detailed analysis.",
+				"RootCauseFiles":    files,
+			},
+		}))
+		return resp.ID
+	}
+
+	// Crash manifests in mm/slub.c, but AI root cause identifies drivers/foo/dev.c.
+	_, extID := reportBug(1, "mm/slub.c")
+	expectLabels(t, c.aiClient, extID, "subsystems:mm")
+
+	jobID := finishAssessment("drivers/foo/dev.c")
+	expectLabels(t, c.aiClient, extID, "subsystems:foo")
+
+	bug, _, dbBuild := c.loadBug(extID)
+	assert.Equal(t, []string{"drivers/foo/dev.c"}, bug.AIRootCause.Files)
+	rep := new(dashapi.BugReport)
+	require.NoError(t, fillBugReport(c.transformContext(c.ctx), rep, bug, &bug.Reporting[0], dbBuild))
+	assert.Contains(t, rep.Maintainers, "foo@list.com")
+	assert.NotContains(t, rep.Maintainers, "mm@list.com")
+
+	// Subsequent reproducers and periodic refreshes preserve the AI-inferred subsystem.
+	crashWithRepro := testCrashWithRepro(build, 1)
+	crashWithRepro.Title = bug.Title
+	crashWithRepro.GuiltyFiles = []string{"mm/slub.c"}
+	c.aiClient.ReportCrash(crashWithRepro)
+	c.aiClient.pollEmailBug()
+	expectLabels(t, c.aiClient, extID, "subsystems:foo")
+
+	c.advanceTime(openBugsUpdateTime + time.Hour)
+	_, err := c.AuthGET(AccessAdmin, "/cron/refresh_subsystems")
+	require.NoError(t, err)
+	expectLabels(t, c.aiClient, extID, "subsystems:foo")
+
+	// Marking the job as incorrect reverts to crash-inferred subsystems.
+	_, err = c.POSTForm("/ai_job?id="+jobID, url.Values{
+		"action":  {"set_correctness"},
+		"correct": {aiCorrectnessIncorrect},
+	})
+	require.NoError(t, err)
+	expectLabels(t, c.aiClient, extID, "subsystems:mm")
+
+	// Manually set subsystems are not overwritten by AI root cause files.
+	sender2, extID2 := reportBug(2, "mm/slub.c")
+	c.incomingEmail(sender2, "#syz set subsystems: bar", EmailOptFrom("user@kernel.org"))
+	finishAssessment("drivers/foo/dev.c")
+	expectLabels(t, c.aiClient, extID2, "subsystems:bar")
+
+	// Unmatched RootCauseFiles fall back to crash-inferred subsystems.
+	_, extID3 := reportBug(3, "mm/slub.c")
+	finishAssessment("unknown/file.c")
+	expectLabels(t, c.aiClient, extID3, "subsystems:mm")
 }
 
 func TestAIRootCausePassedToBisect(t *testing.T) {

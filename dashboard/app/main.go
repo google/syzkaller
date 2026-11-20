@@ -1647,7 +1647,7 @@ func debugBugSubsystems(ctx context.Context, w http.ResponseWriter, bug *Bug) er
 		w.Write([]byte("Subsystem service was not found."))
 		return nil
 	}
-	_, err := inferSubsystems(ctx, bug, bug.key(ctx), &debugtracer.GenericTracer{
+	_, err := inferSubsystems(ctx, bug.Namespace, bug.key(ctx), bug.AIRootCause.Files, &debugtracer.GenericTracer{
 		TraceWriter: w,
 	})
 	if err != nil {
