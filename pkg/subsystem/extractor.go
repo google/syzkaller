@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/debugtracer"
 )
 
-// Extractor deduces the subsystems from the list of crashes.
+// Extractor deduces subsystems from crashes or source file paths.
 type Extractor struct {
 	raw rawExtractorInterface
 }
@@ -38,6 +38,31 @@ func MakeExtractor(list []*Subsystem) *Extractor {
 
 func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	return e.TracedExtract(crashes, &debugtracer.NullTracer{})
+}
+
+func (e *Extractor) ExtractFromPaths(paths []string) []*Subsystem {
+	return e.TracedExtractFromPaths(paths, &debugtracer.NullTracer{})
+}
+
+func (e *Extractor) TracedExtractFromPaths(paths []string, tracer debugtracer.DebugTracer) []*Subsystem {
+	var subsystems []*Subsystem
+	seen := make(map[*Subsystem]struct{})
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		extracted := e.raw.FromPath(path)
+		tracer.Logf("path=%s subsystems=%s", path, e.readableSubsystems(extracted))
+		for _, s := range extracted {
+			if _, ok := seen[s]; !ok {
+				seen[s] = struct{}{}
+				subsystems = append(subsystems, s)
+			}
+		}
+	}
+	res := removeParents(subsystems)
+	tracer.Logf("extracted %s from paths", e.readableSubsystems(res))
+	return res
 }
 
 func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTracer) []*Subsystem {

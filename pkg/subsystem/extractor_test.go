@@ -122,6 +122,63 @@ func TestExtractor(t *testing.T) {
 	}
 }
 
+func TestExtractFromPaths(t *testing.T) {
+	all := &Subsystem{Name: "all"}
+	fs := &Subsystem{Name: "fs", Parents: []*Subsystem{all}}
+	ext := &Subsystem{Name: "ext", Parents: []*Subsystem{fs}}
+	mm := &Subsystem{Name: "mm", Parents: []*Subsystem{all}}
+
+	extractor := &Extractor{
+		raw: &testRawExtractor{
+			perPath: map[string][]*Subsystem{
+				"":                {all},
+				"fs/open.c":       {fs, all},
+				"fs/ext4/inode.c": {ext, fs},
+				"fs/ext4/super.c": {ext, fs},
+				"mm/slub.c":       {mm, all},
+			},
+		},
+	}
+
+	tests := []struct {
+		name  string
+		paths []string
+		want  []*Subsystem
+	}{
+		{
+			name:  "single path collapses parents",
+			paths: []string{"fs/ext4/inode.c"},
+			want:  []*Subsystem{ext},
+		},
+		{
+			name:  "duplicate subsystems deduplicated",
+			paths: []string{"fs/ext4/inode.c", "fs/ext4/super.c"},
+			want:  []*Subsystem{ext},
+		},
+		{
+			name:  "child shadows parent across paths",
+			paths: []string{"fs/open.c", "fs/ext4/inode.c"},
+			want:  []*Subsystem{ext},
+		},
+		{
+			name:  "multiple unrelated subsystems preserved",
+			paths: []string{"fs/ext4/inode.c", "mm/slub.c"},
+			want:  []*Subsystem{ext, mm},
+		},
+		{
+			name:  "unmatched or empty paths return empty",
+			paths: []string{"", "unknown/file.c"},
+			want:  nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ret := extractor.ExtractFromPaths(test.paths)
+			assert.ElementsMatch(t, test.want, ret)
+		})
+	}
+}
+
 type testRawExtractor struct {
 	perPath map[string][]*Subsystem
 	perProg []progSubsystems
