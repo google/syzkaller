@@ -879,9 +879,21 @@ GUEST_CODE static void guest_memcpy(void* dst, void* src, int size)
 		d[i] = s[i];
 }
 
+// Return ECX of the given CPUID leaf (subleaf 0).
+GUEST_CODE static noinline uint32 cpuid_ecx(uint32 leaf)
+{
+	uint32 eax = leaf, ecx = 0;
+	asm volatile("cpuid" : "+a"(eax), "+c"(ecx) : : "ebx", "edx");
+	return ecx;
+}
+
 GUEST_CODE static noinline void
 nested_enable_vmx_intel(uint64 cpu_id)
 {
+	// Without VMX (CPUID.1:ECX[5]) setting CR4.VMXE causes a #GP.
+	if (!(cpuid_ecx(1) & (1 << 5)))
+		return;
+
 	uint64 vmxon_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
 	uint64 cr4 = read_cr4();
 	cr4 |= X86_CR4_VMXE;
@@ -912,6 +924,10 @@ nested_enable_vmx_intel(uint64 cpu_id)
 GUEST_CODE static noinline void
 nested_enable_svm_amd(uint64 cpu_id)
 {
+	// Without SVM (CPUID.80000001h:ECX[2]) setting EFER.SVME causes a #GP.
+	if (!(cpuid_ecx(0x80000001) & (1 << 2)))
+		return;
+
 	// Get the Host Save Area (HSAVE) physical address for this CPU.
 	// The HSAVE area stores the host processor's state on VMRUN and is restored on VMEXIT.
 	uint64 hsave_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
