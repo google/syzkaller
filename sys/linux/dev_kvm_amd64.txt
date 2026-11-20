@@ -163,7 +163,7 @@ syzos_api_nested_intel_vmwrite_mask {
 # See AMD Secure Virtual Machine Architecture Reference Manual,
 # Appendix C: Layout of VMCB.
 vmcb_offset [
-	control_area	int64[0x0:0xc0]
+	control_area	int64[0x0:0x108]
 	save_area	int64[0x400:0x698]
 ]
 
