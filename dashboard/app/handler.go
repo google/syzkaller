@@ -34,6 +34,10 @@ func handlerWrapper(fn contextHandler) http.Handler {
 func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), &currentURLKey, r.URL.RequestURI())
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && isCrossSiteRequest(r) {
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
 		authorizedUser, _ := userAccessLevel(currentUser(ctx), "", getConfig(ctx))
 		if !authorizedUser {
 			if !throttleRequest(ctx, w, r) {
@@ -94,6 +98,17 @@ func logErrorPrepareStatus(ctx context.Context, err error) int {
 	}
 	logf(ctx, "appengine error: %v", err)
 	return status
+}
+
+// isCrossSiteRequest returns true if the browser says the request was initiated by another site
+// (e.g. a link in an email, or a form on another page). UI requests are authenticated with
+// the user's cookies, so such requests must not change any state.
+func isCrossSiteRequest(r *http.Request) bool {
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "cross-site", "same-site":
+		return true
+	}
+	return false
 }
 
 func isRobot(r *http.Request) bool {
