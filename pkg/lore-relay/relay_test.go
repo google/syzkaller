@@ -28,7 +28,14 @@ func TestMatchDKIMDomain(t *testing.T) {
 		{"example.com", "EXAMPLE.COM", true},
 		{"example-com.20251104.gappssmtp.com", "example.com", true},
 		{"other.com", "example.com", false},
-		{"example-com.20251104.gappssmtp.com", "other.com", true},
+		{"EXAMPLE-COM.20251104.gappssmtp.com", "example.com", true},
+		{"example-com.20251104.gappssmtp.com", "other.com", false},
+		{"attacker-com.20251104.gappssmtp.com", "example.com", false},
+		{"example-com.gappssmtp.com", "example.com", false},
+		{"example-com.x.20251104.gappssmtp.com", "example.com", false},
+		{"example-com.20251104.gappssmtp.com.evil.com", "example.com", false},
+		{"foo-example-com.20251104.gappssmtp.com", "foo.example.com", false},
+		{"my-site-com.20251104.gappssmtp.com", "my-site.com", false},
 	}
 
 	for _, test := range tests {
