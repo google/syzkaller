@@ -5,6 +5,8 @@
 package clangformat
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -35,9 +37,22 @@ func clangFormat(ctx *aflow.Context, state state, args args) (result, error) {
 	if args.File == "" {
 		return result{}, aflow.BadCallError("File is required")
 	}
-
+	if !filepath.IsLocal(args.File) {
+		return result{}, aflow.BadCallError("File %q is outside of the source tree", args.File)
+	}
+	root, err := os.OpenRoot(state.KernelScratchSrc)
+	if err != nil {
+		return result{}, err
+	}
+	defer root.Close()
+	// os.Root also rejects a symlink that leads out of the tree.
+	stat, err := root.Stat(args.File)
+	if err != nil || !stat.Mode().IsRegular() {
+		return result{}, aflow.BadCallError("File %q does not exist", args.File)
+	}
 	output, err := osutil.RunSandboxed(10*time.Minute, state.KernelScratchSrc,
-		"clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}", "-i", args.File)
+		"clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}",
+		"-i", "--", "./"+args.File)
 	if err != nil {
 		return result{}, err
 	}

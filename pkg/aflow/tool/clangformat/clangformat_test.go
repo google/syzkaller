@@ -66,3 +66,29 @@ int long_function_name(int first_argument_name, int second_argument_name, int th
 		},
 		"", aflow.TestWorkdir(tmpDir))
 }
+
+func TestClangFormatBadFile(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "tree", "sub"), 0755))
+	require.NoError(t, osutil.WriteFile(filepath.Join(dir, "outside.c"), []byte("int  x;\n")))
+	require.NoError(t, os.Symlink(filepath.Join(dir, "outside.c"), filepath.Join(dir, "tree", "link.c")))
+	require.NoError(t, os.Symlink(dir, filepath.Join(dir, "tree", "updir")))
+	tree := filepath.Join(dir, "tree")
+	for _, test := range []struct {
+		file string
+		err  string
+	}{
+		{"../outside.c", `File "../outside.c" is outside of the source tree`},
+		{"/etc/passwd", `File "/etc/passwd" is outside of the source tree`},
+		{"link.c", `File "link.c" does not exist`},
+		{"updir/outside.c", `File "updir/outside.c" does not exist`},
+		{"sub", `File "sub" does not exist`},
+	} {
+		t.Run(test.file, func(t *testing.T) {
+			aflow.TestTool(t, Tool, state{KernelScratchSrc: tree}, args{File: test.file}, result{}, test.err)
+		})
+	}
+	content, err := os.ReadFile(filepath.Join(dir, "outside.c"))
+	require.NoError(t, err)
+	require.Equal(t, "int  x;\n", string(content))
+}
