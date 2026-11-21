@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func LoadFile(filename string, cfg any) error {
@@ -41,5 +39,7 @@ func SaveFile(filename string, cfg any) error {
 	if err != nil {
 		return err
 	}
-	return osutil.WriteFile(filename, data)
+	// Configs may contain secrets (e.g. dashboard_key/hub_key in manager configs),
+	// so don't make them readable by other users (incl. the sandbox user).
+	return os.WriteFile(filename, data, 0600)
 }
