@@ -7,6 +7,7 @@ package proggen
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParse(t *testing.T) {
@@ -264,6 +266,16 @@ ioctl(3, 0x4028700f, {enabled=0, pending=0, time={tm_sec=0, tm_min=0, tm_hour=0,
 			`
 r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
 ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
+		}, {
+			// https://github.com/google/syzkaller/issues/6451: structured
+			// strace groups (nested NLMSG/attribute groups) are passed to a
+			// varlen array[int8] argument, which is a prog.BufferType.
+			input: `
+sendmsg(3, {msg_name={sa_family=16, nl_pid=0, nl_groups=0}, msg_namelen=12, msg_iov=[{iov_base=[{nlmsg_len=56, nlmsg_type=36, nlmsg_flags=1541, nlmsg_seq=1, nlmsg_pid=0}, {nla_len=5, nla_type=1}, "hfsc"], iov_len=31}], msg_iovlen=1, msg_controllen=0, msg_flags=0}, 0) = 31
+`,
+			output: `
+sendmsg(0x3, &(0x7f0000000100)={&(0x7f0000000000)=@nl, 0x80, &(0x7f00000000c0)=[{&(0x7f0000000080)="380000000000000024000000000000000506000000000000010000000000000000000000000000000500000000000000010000000000000068667363", 0x3c}], 0x1}, 0x0)
+`,
 		},
 	}
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
@@ -289,5 +301,53 @@ ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0,
 		if want != got {
 			t.Errorf("input:\n%v\n\nwant:\n%v\n\ngot:\n%v", input, want, got)
 		}
+	}
+}
+
+func TestTraceGroupBytes(t *testing.T) {
+	constants := &parser.GroupType{Elems: []parser.IrType{
+		parser.Constant(1),
+		parser.Constant(2),
+	}}
+	wantConstants := make([]byte, 16)
+	binary.LittleEndian.PutUint64(wantConstants[:8], 1)
+	binary.LittleEndian.PutUint64(wantConstants[8:], 2)
+
+	nested := &parser.GroupType{Elems: []parser.IrType{
+		constants,
+		&parser.BufferType{Val: "hfsc"},
+	}}
+	wantNested := append(append([]byte{}, wantConstants...), []byte("hfsc")...)
+
+	tests := []struct {
+		name  string
+		group *parser.GroupType
+		want  []byte
+	}{
+		{
+			name:  "nil",
+			group: nil,
+			want:  nil,
+		},
+		{
+			name:  "empty",
+			group: &parser.GroupType{},
+			want:  []byte{},
+		},
+		{
+			name:  "constants",
+			group: constants,
+			want:  wantConstants,
+		},
+		{
+			name:  "nested group with buffer",
+			group: nested,
+			want:  wantNested,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, traceGroupBytes(test.group))
+		})
 	}
 }
