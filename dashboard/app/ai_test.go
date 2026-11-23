@@ -1704,7 +1704,7 @@ func TestAIJobsErrorVisibility(t *testing.T) {
 
 	// Log a command error to create a history entry with an error.
 	historyErrText := "Some sensitive history error: password=456"
-	require.NoError(t, aidb.LogCommandError(c.ctx, aidb.LogCommandErrorArgs{
+	require.NoError(t, aidb.LogCommand(c.ctx, aidb.LogCommandArgs{
 		JobID:         jobID,
 		CommandSource: "email",
 		CommandExtID:  "msg-id",

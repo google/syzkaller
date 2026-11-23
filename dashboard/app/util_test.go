@@ -1029,6 +1029,25 @@ func (ctx *Ctx) commentOnAIPatch(patchExtID, commentExtID string, ownEmail bool)
 	require.Empty(ctx.t, resp.Error)
 }
 
+// holdAIPatch sends #syz hold (or #syz unhold) in reply to the patch.
+func (ctx *Ctx) holdAIPatch(patchExtID, commandExtID string, hold bool) {
+	ctx.t.Helper()
+	req := &dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    patchExtID,
+		MessageExtID: commandExtID,
+		Author:       "someone@test.com",
+	}
+	if hold {
+		req.Hold = &dashapi.HoldCommand{}
+	} else {
+		req.Unhold = &dashapi.UnholdCommand{}
+	}
+	resp, err := ctx.globalClient.AIReportCommand(req)
+	require.NoError(ctx.t, err)
+	require.Empty(ctx.t, resp.Error)
+}
+
 func (ctx *Ctx) rejectAIPatch(patchExtID string) {
 	ctx.t.Helper()
 	resp, err := ctx.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{

@@ -182,6 +182,9 @@ type BugAIPatch struct {
 	Posted time.Time `datastore:",noindex"`
 	// The time of the last comment on the patch, not counting our own emails.
 	LastComment time.Time `datastore:",noindex"`
+	// A reviewer asked (#syz hold) not to report the bug further while the patch is under review.
+	// It is up to the namespace config to respect it, e.g. in reporting filters.
+	Held bool `datastore:",noindex"`
 	// Link to the latest version of the patch that was reported to a public AI reporting stage.
 	Link string `datastore:",noindex"`
 }
@@ -201,7 +204,8 @@ const (
 
 func (patch BugAIPatch) equal(other BugAIPatch) bool {
 	return patch.JobID == other.JobID && patch.State == other.State && patch.Link == other.Link &&
-		patch.Posted.Equal(other.Posted) && patch.LastComment.Equal(other.LastComment)
+		patch.Posted.Equal(other.Posted) && patch.LastComment.Equal(other.LastComment) &&
+		patch.Held == other.Held
 }
 
 // BugAIBisect holds the result of an AI cause or fix bisection job of a bug.

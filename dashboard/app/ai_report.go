@@ -46,6 +46,8 @@ func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq
 		resp, err = handleRejectCommand(ctx, req)
 	} else if req.Unreject != nil {
 		resp, err = handleUnrejectCommand(ctx, req)
+	} else if req.Hold != nil || req.Unhold != nil {
+		resp, err = handleHoldCommand(ctx, req)
 	} else if req.Comment != nil {
 		resp, err = handleCommentCommand(ctx, req)
 	} else {
@@ -554,7 +556,7 @@ func handleCommandError(ctx context.Context, job *aidb.Job, reporting *aidb.JobR
 		errors.As(err, &notAuthorizedErr):
 		errReason := err.Error()
 		if req.Source != "" && req.MessageExtID != "" {
-			_ = aidb.LogCommandError(ctx, aidb.LogCommandErrorArgs{
+			_ = aidb.LogCommand(ctx, aidb.LogCommandArgs{
 				JobID:         job.ID,
 				ReportingID:   reporting.ID,
 				CommandSource: string(req.Source),
@@ -616,6 +618,35 @@ func handleUnrejectCommand(ctx context.Context,
 		return handleCommandError(ctx, job, reporting, req, aidb.ActionUnreject, err)
 	}
 
+	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+// handleHoldCommand remembers the request not to report the bug of the patch further while the patch
+// is under review (or to stop doing so). The request ends up in Bug.AIPatch.Held.
+func handleHoldCommand(ctx context.Context,
+	req *dashapi.SendExternalCommandReq) (*dashapi.SendExternalCommandResp, error) {
+	reporting, job, err := lookupJobByExtReq(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	action := aidb.ActionHold
+	if req.Unhold != nil {
+		action = aidb.ActionUnhold
+	}
+	if err := checkActionAuthorized(ctx, job, req); err != nil {
+		return handleCommandError(ctx, job, reporting, req, action, err)
+	}
+	err = aidb.LogCommand(ctx, aidb.LogCommandArgs{
+		JobID:         job.ID,
+		ReportingID:   reporting.ID,
+		CommandSource: string(req.Source),
+		CommandExtID:  req.MessageExtID,
+		User:          req.Author,
+		Action:        action,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &dashapi.SendExternalCommandResp{}, nil
 }
 

@@ -48,6 +48,10 @@ func TestAIPatchSync(t *testing.T) {
 	want.LastComment = c.mockedTime
 	require.Equal(t, want, c.syncAIPatch(extID))
 
+	c.holdAIPatch("<v1>", "<hold>", true)
+	want.Held = true
+	require.Equal(t, want, c.syncAIPatch(extID))
+
 	// A new version continues the review of the same patch.
 	c.advanceTime(time.Hour)
 	iteration := c.pollAIWorkflow(t, ai.WorkflowPatchIteration)
@@ -56,6 +60,11 @@ func TestAIPatchSync(t *testing.T) {
 	c.pollAndConfirmReport(t, "lore", "<v2>")
 	want.JobID = iteration.ID
 	want.Link = lore.LinkToThread("<v2>")
+	require.Equal(t, want, c.syncAIPatch(extID))
+
+	// The bug is held for the whole patch, so any version can be used to release it.
+	c.holdAIPatch("<v2>", "<unhold>", false)
+	want.Held = false
 	require.Equal(t, want, c.syncAIPatch(extID))
 
 	c.rejectAIPatch("<v2>")
@@ -103,4 +112,32 @@ func TestAIPatchSyncFailedJob(t *testing.T) {
 		Results: map[string]any{"PatchDiff": "diff"},
 	}))
 	require.Equal(t, BugAIPatch{JobID: jobID, State: AIPatchFailed}, c.syncAIPatch(extID))
+}
+
+func TestAIPatchSyncUnauthorizedHold(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+		},
+		AllowedCommandAuthors: []string{"reviewer@test.com"},
+	})
+
+	extID, jobID := c.setupAIPatchJob(t)
+	c.finishAIPatchJob(t, jobID, nil)
+	c.pollAndConfirmReport(t, "lore", "<patch>")
+
+	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<patch>",
+		MessageExtID: "<hold>",
+		Author:       "someone@test.com",
+		DKIM:         true,
+		Hold:         &dashapi.HoldCommand{},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.Error)
+	require.False(t, c.syncAIPatch(extID).Held)
 }

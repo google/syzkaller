@@ -19,6 +19,8 @@ const (
 	ActionApprove   = "Approve"
 	ActionReject    = "Reject"
 	ActionUnreject  = "Unreject"
+	ActionHold      = "Hold"
+	ActionUnhold    = "Unhold"
 )
 
 const (
