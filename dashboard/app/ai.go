@@ -1471,8 +1471,11 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, nil
 	}
 	if nsCfg.AI.UploadPatchesToGerrit {
-		if err := createGerritChange(ctx, job); err != nil {
-			log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+		// Gerrit changes are public.
+		if bug, public := bugForAIReport(ctx, job, AccessPublic); public {
+			if err := createGerritChange(ctx, job, bug); err != nil {
+				log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+			}
 		}
 	}
 	stageCfg, err := determineNextStage(ctx, nsCfg.AI, job, "")
@@ -2723,7 +2726,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	return workflows
 }
 
-func createGerritChange(ctx context.Context, job *aidb.Job) error {
+func createGerritChange(ctx context.Context, job *aidb.Job, bug *Bug) error {
 	res, err := castJobResults[ai.PatchingOutputs](job)
 	if err != nil {
 		return err
@@ -2743,8 +2746,8 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	var links []string
 	var closes []string
 	var reportedBy []string
-	if job.BugID.Valid {
-		link, reporter := jobBugInfo(ctx, job.BugID)
+	if bug != nil {
+		link, reporter := bugInfoForPatch(ctx, bug)
 		closes = append(closes, link)
 		if reporter != "" {
 			reportedBy = append(reportedBy, reporter)
@@ -2831,23 +2834,16 @@ func compactAIJobs(jobs []*aidb.Job) []*aidb.Job {
 	return filtered
 }
 
-func jobBugInfo(ctx context.Context, bugID spanner.NullString) (string, string) {
-	if !bugID.Valid {
-		return "", ""
-	}
-	bugKey := db.NewKey(ctx, "Bug", bugID.StringVal, 0, nil)
-	bug := new(Bug)
-	if err := db.Get(ctx, bugKey, bug); err == nil {
-		_, bugReporting, _, _, _ := currentReporting(ctx, bug)
-		reportedBy := ""
-		if bugReporting != nil && bugReporting.ID != "" {
-			if creditEmail, err := email.AddAddrContext(ownEmail(ctx), bugReporting.ID); err == nil {
-				reportedBy = creditEmail
-			}
+// bugInfoForPatch returns the link to the bug and the Reported-by address for patches that fix it.
+func bugInfoForPatch(ctx context.Context, bug *Bug) (string, string) {
+	_, bugReporting, _, _, _ := currentReporting(ctx, bug)
+	reportedBy := ""
+	if bugReporting != nil && bugReporting.ID != "" {
+		if creditEmail, err := email.AddAddrContext(ownEmail(ctx), bugReporting.ID); err == nil {
+			reportedBy = creditEmail
 		}
-		return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 	}
-	return appURL(ctx) + bugLink(bugID.StringVal), ""
+	return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 }
 
 func extractExecutedModels(trajectory []*aidb.TrajectorySpan) []string {

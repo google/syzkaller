@@ -15,10 +15,12 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/appengine/v2"
+	aemail "google.golang.org/appengine/v2/mail"
 
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/memcache"
@@ -1986,4 +1988,91 @@ func TestAIPatchIterationCcChanges(t *testing.T) {
 	assert.Equal(t, []string{
 		"added@email.com", "m2+linux@kernel.org", "m2@kernel.org", "new@email.com", "joined+b@email.com",
 	}, reply.Result.Cc)
+}
+
+func TestAIReportNonPublicBug(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	privateReport := c.setupPrivateAIPatch(t)
+	// The audience of the first AI stage can see the bug, but the next AI stage is public.
+	c.pollAndConfirmReport(t, "lore", "<moderation>")
+	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:    dashapi.AIJobSourceLore,
+		RootExtID: "<moderation>",
+		Author:    "someone@test.com",
+		Upstream:  &dashapi.UpstreamCommand{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Error)
+	c.assertNoPendingReport(t, "lore")
+
+	// Once the bug is public, the patch is reported.
+	c.incomingEmail(privateReport.Sender, "#syz upstream\n", EmailOptCC(privateReport.To))
+	publicReport := c.pollEmailBug()
+	require.Equal(t, []string{"test@syzkaller.com"}, publicReport.To)
+	c.pollAndConfirmReport(t, "lore", "")
+
+	// But not if the bug gets a fix in the meantime.
+	c.incomingEmail(publicReport.Sender, "#syz fix: some fix\n", EmailOptCC(publicReport.To))
+	c.assertNoPendingReport(t, "lore")
+}
+
+func TestAIReportOutdated(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.setupPrivateAIPatch(t)
+	c.pollAndConfirmReport(t, "lore", "")
+	// The report was not sent in time, now the patch is likely outdated.
+	c.advanceTime(maxPendingAIReportAge + time.Hour)
+	c.assertNoPendingReport(t, "lore")
+}
+
+// setupPrivateAIPatch generates an AI patch for a bug that is reported only to a non-public reporting
+// stage so far (the stage is added in front of the public one). The first of the two AI stages
+// is not public either. It returns the report of the bug.
+func (ctx *Ctx) setupPrivateAIPatch(t *testing.T) *aemail.Message {
+	t.Helper()
+	const ns = "ains"
+	aiCfg := &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{
+				Name:               "moderation",
+				ServingIntegration: "lore",
+				MailingList:        "moderation@test.com",
+				AccessLevel:        AccessUser,
+			},
+			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
+		},
+	}
+	checkAIConfig(ns, aiCfg)
+	ctx.transformContext = func(c context.Context) context.Context {
+		return contextWithConfig(c, replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.AI = aiCfg
+			ret.Reporting = append([]Reporting{{
+				AccessLevel: AccessUser,
+				Name:        "ai-private-reporting",
+				DailyLimit:  1000,
+				Config:      &EmailConfig{Email: "private@syzkaller.com"},
+			}}, cfg.Reporting...)
+			checkNamespaceReporting(ns, &ret)
+			return &ret
+		}))
+	}
+
+	build := testBuild(1)
+	require.NoError(t, ctx.aiClient.UploadBuild(build))
+	_, err := ctx.aiClient.ReportCrash(testCrashWithRepro(build, 1))
+	require.NoError(t, err)
+	report := ctx.pollEmailBug()
+	require.Equal(t, []string{"private@syzkaller.com"}, report.To)
+	_, extID, err := email.RemoveAddrContext(report.Sender)
+	require.NoError(t, err)
+
+	ctx.pollAIWorkflow(t, ai.WorkflowPatching)
+	jobID := ctx.createAIJob(extID, string(ai.WorkflowPatching), "")
+	ctx.finishAIPatchJob(t, jobID, nil)
+	return report
 }

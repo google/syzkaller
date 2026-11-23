@@ -980,10 +980,12 @@ func LogCommandError(ctx context.Context, args LogCommandErrorArgs) error {
 	return nil
 }
 
-func LoadPendingJobReportingBySource(ctx context.Context, source string) ([]*JobReporting, error) {
+// LoadPendingJobReportingBySource returns the reports that were created since the given time
+// and have not been sent yet.
+func LoadPendingJobReportingBySource(ctx context.Context, source string, since time.Time) ([]*JobReporting, error) {
 	return selectAll[JobReporting](ctx, spanner.Statement{
-		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL`,
-		Params: map[string]any{"source": source},
+		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL AND CreatedAt >= @since`,
+		Params: map[string]any{"source": source, "since": since},
 	})
 }
 
