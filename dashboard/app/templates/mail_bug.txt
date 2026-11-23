@@ -41,7 +41,7 @@ Date:   {{formatKernelTime $com.Date}}
 {{end -}}
 {{else}}Bisection is inconclusive: the issue happens on the oldest tested release.
 {{end}}
-{{if .BisectCause.AI}}AI reasoning:   {{else}}bisection log:  {{end}}{{.BisectCause.LogLink}}
+{{if .BisectCause.AI}}reasoning:      {{else}}bisection log:  {{end}}{{.BisectCause.LogLink}}
 {{if .BisectCause.CrashReportLink}}final oops:     {{.BisectCause.CrashReportLink}}
 {{end}}{{if .BisectCause.CrashLogLink}}console output: {{.BisectCause.CrashLogLink}}
 {{end}}
@@ -53,7 +53,7 @@ full analysis:  {{.Link}}
 {{end}}IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}{{if .BisectCause.AI}}
-The cause commit was identified by AI and may be wrong.
+The bisection result may be wrong.
 If you agree with it, please also add:
 {{end}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
 {{end}}{{end}}
@@ -74,8 +74,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.{{if .BisectCause}}
-{{if .BisectCause.AI}}For information about AI bisection see: https://goo.gl/tpsmEJ#ai-bisection
-{{- else}}For information about bisection process see: https://goo.gl/tpsmEJ#bisection{{end}}{{end}}
+For information about bisection process see: https://goo.gl/tpsmEJ#{{if .BisectCause.AI}}ai-{{end}}bisection{{end}}
 
 If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title

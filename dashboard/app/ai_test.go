@@ -2522,8 +2522,8 @@ func TestAIBisectCause(t *testing.T) {
 	require.NoError(t, err)
 	msg := c.pollEmailBug()
 	assert.Contains(t, msg.Body, "The issue was bisected by AI to:\n\ncommit "+commitHash)
-	assert.Contains(t, msg.Body, "AI reasoning:   "+appURL(c.ctx)+jobLink)
-	assert.Contains(t, msg.Body, "The cause commit was identified by AI and may be wrong.\n")
+	assert.Contains(t, msg.Body, "reasoning:      "+appURL(c.ctx)+jobLink)
+	assert.Contains(t, msg.Body, "The bisection result may be wrong.\n")
 	assert.Contains(t, msg.Body, fmt.Sprintf("\nFixes: %v (%q)\n", commitHash[:12], commitTitle))
 	assert.Contains(t, msg.To, "ai-author@kernel.org")
 	assert.Contains(t, msg.To, "ai-reviewer@kernel.org")
@@ -3244,18 +3244,18 @@ Date:   Wed Feb 2 04:05:06 2000 +0000
 
     kernel: break everything
 
-AI reasoning:   https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
+reasoning:      https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+abcdef@testapp.appspotmail.com
 
-The cause commit was identified by AI and may be wrong.
+The bisection result may be wrong.
 If you agree with it, please also add:
 Fixes: 999999999999 ("kernel: break everything")
 
 the report
 `)
-	assert.Contains(t, body, "\nFor information about AI bisection see: https://goo.gl/tpsmEJ#ai-bisection\n")
+	assert.Contains(t, body, "\nFor information about bisection process see: https://goo.gl/tpsmEJ#ai-bisection\n")
 	assert.NotContains(t, body, "bisection log:")
 	assert.NotContains(t, body, "#bisection")
 
@@ -3279,7 +3279,7 @@ Date:   Wed Feb 2 04:05:06 2000 +0000
 
     kernel: second candidate
 
-AI reasoning:   https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
+reasoning:      https://testapp.appspot.com/ai_job?id=11111111-2222-3333-4444-555555555555
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+abcdef@testapp.appspotmail.com
