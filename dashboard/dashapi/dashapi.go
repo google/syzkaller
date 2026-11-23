@@ -501,6 +501,7 @@ type BugReport struct {
 	ReportElements *ReportElements
 	LabelMessages  map[string]string // notification messages for bug labels
 	AIRootCause    *AIRootCause      // AI-generated root cause analysis (if any)
+	AIPatch        *AIPatch          // AI-generated patch that waits for a review (if any)
 	// Bug labels visible at the reporting's access level.
 	Labels []BugLabel
 	// User-initiated patch testing (the #syz test command) is disabled for the bug.
@@ -514,6 +515,11 @@ type AIRootCause struct {
 	// The analysis refers to source files/lines of this kernel revision.
 	KernelRepo   string
 	KernelCommit string
+}
+
+type AIPatch struct {
+	Title string
+	Link  string // link to the patch posted for review
 }
 
 type BugLabel struct {

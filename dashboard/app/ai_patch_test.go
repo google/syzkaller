@@ -92,6 +92,10 @@ func TestAIPatchSyncPrivateStage(t *testing.T) {
 	require.Equal(t, AIPatchCandidate, patch.State)
 	require.NotZero(t, patch.Posted)
 	require.Empty(t, patch.Link)
+
+	// So bug reports don't mention the patch.
+	c.incomingEmail(report.Sender, "#syz upstream\n", EmailOptCC(report.To))
+	require.NotContains(t, c.pollEmailBug().Body, "AI patch candidate")
 }
 
 func TestAIPatchSyncFailedJob(t *testing.T) {
@@ -140,4 +144,48 @@ func TestAIPatchSyncUnauthorizedHold(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Error)
 	require.False(t, c.syncAIPatch(extID).Held)
+}
+
+func TestAIPatchMention(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+		},
+	})
+	const mention = `
+AI patch candidate, your feedback is welcome:
+Test Subject
+https://lore.kernel.org/all/patch/T/
+
+`
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	crash := testCrash(build, 1)
+	_, err := c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+	extID := c.aiClient.pollEmailExtID()
+
+	c.pollAIWorkflow(t, ai.WorkflowPatching)
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+	c.finishAIPatchJob(t, jobID, nil)
+	c.pollAndConfirmReport(t, "lore", "<patch>")
+	c.syncAIPatch(extID)
+
+	// The patch is mentioned while it's waiting for a review.
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("syz repro")
+	_, err = c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+	require.Contains(t, c.pollEmailBug().Body, mention)
+
+	// A rejected patch is not mentioned, even if the rejection is not synced yet.
+	c.rejectAIPatch("<patch>")
+	crash.ReproC = []byte("c repro")
+	_, err = c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+	require.NotContains(t, c.pollEmailBug().Body, "AI patch candidate")
 }

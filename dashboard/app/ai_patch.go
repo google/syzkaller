@@ -8,9 +8,11 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/app/aidb"
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
@@ -71,6 +73,32 @@ func syncAIPatches(ctx context.Context, ns string, cfg *AIConfig) error {
 		}
 	}
 	return nil
+}
+
+// aiPatchCandidate returns the AI-generated patch for the bug that waits for a review,
+// or nil if there is no such patch.
+func (bug *Bug) aiPatchCandidate(ctx context.Context) *dashapi.AIPatch {
+	patch := &bug.AIPatch
+	// Bug.AIPatch is not updated for old patches, and they are not worth advertising anyway.
+	if patch.State != AIPatchCandidate || patch.Link == "" || len(bug.Commits) != 0 ||
+		timeSince(ctx, patch.Posted) > aiPatchSyncWindow {
+		return nil
+	}
+	// Bug.AIPatch may lag, make sure that the patch has not been approved or rejected in the meantime.
+	job, err := aidb.LoadJob(ctx, patch.JobID)
+	if err != nil {
+		log.Errorf(ctx, "failed to load AI job %v: %v", patch.JobID, err)
+		return nil
+	}
+	if job.Correct.Valid {
+		return nil
+	}
+	_, desc := extractPatch(job)
+	title, _, _ := strings.Cut(desc, "\n")
+	return &dashapi.AIPatch{
+		Title: strings.TrimSpace(title),
+		Link:  patch.Link,
+	}
 }
 
 // bugAIPatches calculates Bug.AIPatch for the bugs (the map keys are bug IDs) that have the jobs.

@@ -50,6 +50,10 @@ Date:   {{formatKernelTime $com.Date}}
 
 full analysis:  {{.Link}}
 
+{{end}}{{with .AIPatch}}AI patch candidate, your feedback is welcome:
+{{if .Title}}{{.Title}}
+{{end}}{{.Link}}
+
 {{end}}IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}{{if .BisectCause.AI}}

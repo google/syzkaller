@@ -546,6 +546,7 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 		emails = email.RemoveFromEmailList(emails, addr)
 	}
 	rep.Maintainers = append(rep.Maintainers, emails...)
+	rep.AIPatch = bug.aiPatchCandidate(ctx)
 	return rep, nil
 }
 
