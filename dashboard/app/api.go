@@ -931,6 +931,10 @@ func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, e
 			bug.NumRepro++
 			bug.LastReproTime = now
 		}
+		if crashHasRepro && !bug.HasHeadRepro() {
+			// A reproducer makes the bug eligible for more AI workflows, don't wait for the daily check.
+			bug.AIJobCheck = 0
+		}
 		bug.UpdateReproLevel(hasC, hasSyz, now)
 		bug.UpdateHeadReproLevel(hasC, hasSyz)
 		if len(req.Report) != 0 {

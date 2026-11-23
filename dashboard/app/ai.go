@@ -2198,6 +2198,13 @@ const (
 
 	maxAutoBisectCauseAttempts = 2
 	maxAutoBisectCauseJobs     = 2
+
+	maxAutoPatchingAttempts = 1
+	// Automatic patching jobs are created only while there are fewer than maxPatchJobsInProgress
+	// unfinished patching and patch iteration jobs (including the manually created ones).
+	maxPatchJobsInProgress = 2
+	// Don't compete with the patches that people discuss.
+	autoPatchHumanPatchAge = 30 * 24 * time.Hour
 )
 
 // Automatic creation of these workflows starts only while there are fewer than the configured
@@ -2206,6 +2213,7 @@ const (
 var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
 	ai.WorkflowReproC:      maxAutoReproCJobs,
 	ai.WorkflowBisectCause: maxAutoBisectCauseJobs,
+	ai.WorkflowPatching:    maxPatchJobsInProgress,
 }
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
@@ -2213,6 +2221,7 @@ var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
 var maxAutoAttempts = map[ai.WorkflowType]int{
 	ai.WorkflowReproC:      maxAutoReproCAttempts,
 	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
+	ai.WorkflowPatching:    maxAutoPatchingAttempts,
 }
 
 func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkflows []dashapi.AIWorkflow) (
@@ -2226,7 +2235,14 @@ func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkfl
 		if w.Type == ai.WorkflowReproC && !cfg.AI.AutoReproC {
 			continue
 		}
-		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && counts[w.Type] >= limit {
+		if w.Type == ai.WorkflowPatching && cfg.AI.AutoPatch == nil {
+			continue
+		}
+		inProgress := counts[w.Type]
+		if w.Type == ai.WorkflowPatching {
+			inProgress += counts[ai.WorkflowPatchIteration]
+		}
+		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && inProgress >= limit {
 			continue
 		}
 		workflows = append(workflows, w)
@@ -2274,8 +2290,8 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("AIPendingWorkflows=", string(req.Type))
-		if req.Type == ai.WorkflowBisectCause {
-			// Newer bugs go first within the cause bisection quota.
+		if req.Type == ai.WorkflowBisectCause || req.Type == ai.WorkflowPatching {
+			// Newer bugs go first within the quota.
 			query = query.Order("-FirstTime")
 		}
 		var bugs []*Bug
@@ -2500,6 +2516,20 @@ func canAutoReproBug(ctx context.Context, bug *Bug) bool {
 		!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 }
 
+// Automatic patching heuristics:
+// - Namespace must enable it with AIConfig.AutoPatch, which also selects the bugs.
+// - Open bugs only, with no fixing commits.
+// - Must have a reproducer that still works: the patching workflow starts with reproducing the bug.
+// - Skip bugs that have recent patch candidates being discussed / tested.
+func canAutoPatchBug(ctx context.Context, bug *Bug) bool {
+	cfg := getNsConfig(ctx, bug.Namespace).AI
+	return cfg != nil && cfg.AutoPatch != nil &&
+		bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasHeadRepro() &&
+		!bug.hasRecentPatchCandidate(ctx, autoPatchHumanPatchAge) &&
+		cfg.AutoPatch(bug)
+}
+
 func isKernelCrashBugTitle(title string, typ crash.Type) bool {
 	if title == corruptedReportTitle ||
 		title == suppressedReportTitle ||
@@ -2721,6 +2751,9 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		if canAutoBisectCause(bug, typ) {
 			workflows[ai.WorkflowBisectCause] = true
+		}
+		if canAutoPatchBug(ctx, bug) {
+			workflows[ai.WorkflowPatching] = true
 		}
 	}
 	return workflows

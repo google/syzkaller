@@ -165,6 +165,9 @@ type AIConfig struct {
 	// Whether to automatically create C reproducer generation jobs for eligible bugs.
 	AutoReproC bool
 	Stages     []AIPatchStageConfig
+	// If set, patching jobs are created automatically for the bugs it returns true for.
+	// Only open bugs that still reproduce and don't have a fix are considered (see canAutoPatchBug).
+	AutoPatch func(*Bug) bool `json:"-"`
 	// SecurityAssessment maps the results of the security assessment workflow to bug labels.
 	SecurityAssessment func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels `json:"-"`
 
