@@ -101,6 +101,13 @@ func bisectPipeline(agent *aflow.LLMAgent) aflow.Action {
 	agent.Reply = "BisectReasoning"
 	agent.Tools = codeAccessTools
 	agent.MaxIterations = 80
+	agent.Advisor = &aflow.LLMAdvisor{
+		Name:               agent.Name + "-advisor",
+		Model:              aflow.DeepReasoningModel,
+		MinIterations:      20,
+		EvaluationInterval: 20,
+		Instruction:        bisectAdvisorInstruction,
+	}
 	return aflow.Pipeline(
 		actionsyzlang.CreateSimplifiedCRepro,
 		kernel.Checkout,
@@ -110,6 +117,24 @@ func bisectPipeline(agent *aflow.LLMAgent) aflow.Action {
 		formatBisect,
 	)
 }
+
+const bisectAdvisorInstruction = `
+You are a senior Linux kernel developer supervising a kernel bisection agent.
+Help the agent converge within its iteration budget:
+- If the agent has already verified the root cause and confirmed the primary commit with
+  git-show (or confirmed the bug is still present), tell it to stop searching and call
+  set-results immediately.
+- If the agent is looping on similar queries, re-reading files/commits, inspecting commits
+  serially instead of batching git-show calls, or re-analyzing an already-verified root cause
+  analysis, redirect it to the most direct remaining git check. Note that git-blame and
+  git-log only run from HEAD (no commit range/revision arg); trace past refactorings with
+  git-log (SymbolName/CodeRegexp) and git-show.
+- Point out any missed evidence or wrong commit choice already visible in the history. Do NOT
+  state unverified guesses about unseen code or commits as facts; frame them as a brief check
+  (1-2 tool calls) with a clear stop condition.
+- If multiple rounds (or prior supervisor_advice turns) remain inconclusive, instruct the agent
+  to stop speculative exploration and call set-results with an empty CandidateCommits list.
+`
 
 const causeFinderInstruction = `
 You are an experienced Linux kernel developer tasked with identifying the commit
