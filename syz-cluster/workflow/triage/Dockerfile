@@ -9,7 +9,7 @@ FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 FROM ubuntu:latest
 
 RUN apt-get update && \
-    apt-get install -y git
+    apt-get install -y git bubblewrap socat
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd -u 10000 --create-home syzkaller
