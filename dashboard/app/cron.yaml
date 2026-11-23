@@ -18,6 +18,9 @@ cron:
   schedule: every 5 minutes
 - url: /cron/subsystem_reports
   schedule: every 8 hours
+# Copy the state of AI-generated patches from the AI database to bugs.
+- url: /cron/ai_patch_sync
+  schedule: every 15 minutes
 # Update quarter coverage numbers every week.
 - url: /cron/batch_coverage?quarters=true&steps=2
   schedule: every sunday 00:00

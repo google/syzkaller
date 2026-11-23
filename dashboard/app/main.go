@@ -92,6 +92,7 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
 	http.HandleFunc("/cron/update_coverdb_subsystems", handleUpdateCoverDBSubsystems)
+	http.HandleFunc("/cron/ai_patch_sync", handleAIPatchSync)
 }
 
 type uiMainPage struct {

@@ -534,6 +534,51 @@ func LoadBugIDsWithPendingPatch(ctx context.Context, ns string, workflows []ai.W
 	return ret, nil
 }
 
+// PatchJob is a brief summary of a patching or a patch iteration job, see LoadPatchJobs.
+type PatchJob struct {
+	ID       string
+	BugID    string
+	Type     ai.WorkflowType
+	Finished spanner.NullTime
+	Correct  spanner.NullBool
+	// Whether the job has succeeded and produced a patch.
+	HasPatch bool
+	// The time of the last comment on the reports of the job, not counting our own emails.
+	LastComment spanner.NullTime
+}
+
+// LoadPatchJobs returns the patching and patch iteration jobs that were created for bugs of the namespace
+// since the given time (sorted from the newest to the oldest one), and the reports of their patches.
+func LoadPatchJobs(ctx context.Context, ns string, since time.Time) ([]*PatchJob, []*JobReporting, error) {
+	const jobsFilter = `Namespace = @ns AND Type IN UNNEST(@types) AND BugID IS NOT NULL AND Created >= @since`
+	params := map[string]any{
+		"ns":    ns,
+		"types": []string{string(ai.WorkflowPatching), string(ai.WorkflowPatchIteration)},
+		"since": since,
+	}
+	jobs, err := selectAll[PatchJob](ctx, spanner.Statement{
+		SQL: `SELECT ID, BugID, Type, Finished, Correct,
+				Error = '' AND IFNULL(JSON_VALUE(Results, '$.PatchDiff'), '') != '' AS HasPatch,
+				(SELECT MAX(JobComments.Date) FROM JobComments
+					JOIN JobReporting ON JobComments.ReportingID = JobReporting.ID
+					WHERE JobReporting.JobID = Jobs.ID AND JobComments.OwnEmail IS NOT TRUE) AS LastComment
+			FROM Jobs WHERE ` + jobsFilter + ` ORDER BY Created DESC`,
+		Params: params,
+	})
+	if err != nil || len(jobs) == 0 {
+		return nil, nil, err
+	}
+	reports, err := selectAll[JobReporting](ctx, spanner.Statement{
+		SQL: selectJobReporting() + `WHERE InReplyTo = '' AND ReportedAt IS NOT NULL
+			AND JobID IN (SELECT ID FROM Jobs WHERE ` + jobsFilter + `)`,
+		Params: params,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return jobs, reports, nil
+}
+
 func LoadBugJobReportings(ctx context.Context, bugID string) ([]*JobReporting, error) {
 	return selectAll[JobReporting](ctx, spanner.Statement{
 		SQL: selectJobReporting() + ` WHERE JobID IN (SELECT ID FROM Jobs WHERE BugID = @bugID) ORDER BY CreatedAt DESC`,
