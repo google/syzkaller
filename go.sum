@@ -12,8 +12,8 @@ cloud.google.com/go/auth v0.24.1-0.20261001053825-dbc26066f70a h1:jW1ZLFy9oa5ai8
 cloud.google.com/go/auth v0.24.1-0.20261001053825-dbc26066f70a/go.mod h1:1dmBXa9xfBvBr39ZnDUDkaaA91ccq9CcqENDgJA4d7c=
 cloud.google.com/go/auth/oauth2adapt v0.3.0 h1:FY8oSZpCYoUNv6QxVODuMjQz4IlSOVeiQtZ08vLPz88=
 cloud.google.com/go/auth/oauth2adapt v0.3.0/go.mod h1:7+2uCm7++XFO+/lN06c2HXpDXb/NMNn2/UwyBPbTnkk=
-cloud.google.com/go/batch v1.23.0 h1:nhYkxVPkzJ/L7B7Pt4IlKGZU7rj3PLQixZmb8GLU6nk=
-cloud.google.com/go/batch v1.23.0/go.mod h1:QhZxrA1n4ivEeB5sfSZz9jWwrh7OhhmVPItNXonHIsg=
+cloud.google.com/go/batch v1.24.1 h1:GP1fSB77EVbxa6r3nDubRvASqYkFzsvn8iq2PJ3yNDQ=
+cloud.google.com/go/batch v1.24.1/go.mod h1:YR1Im5HR58fI+AbPPNcYLxnItFgqf4G5xuzjkjNWiLs=
 cloud.google.com/go/bigquery v1.85.0 h1:zsFsa8jOVkU4c7CWE1cbrfsemtNbM3YRUmtFRYXYN58=
 cloud.google.com/go/bigquery v1.85.0/go.mod h1:oBma1P5/b1Jtd8xRLKoyTeNIMlACGHbSMLudzxHGHgc=
 cloud.google.com/go/compute/metadata v0.10.0 h1:pyKMUQSwchgkIBBJGdILqQbs/BNJXqwSA7Ej6LAvvtY=

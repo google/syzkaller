@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go v0.123.0
-	cloud.google.com/go/batch v1.23.0
+	cloud.google.com/go/batch v1.24.1
 	cloud.google.com/go/bigquery v1.85.0
 	cloud.google.com/go/compute/metadata v0.10.0
 	cloud.google.com/go/logging v1.20.0
