@@ -371,3 +371,35 @@ csource1(r0)
 	require.NoError(t, err)
 	defer os.Remove(bin)
 }
+
+func TestWriteLLM_PreservesInjectionCalls(t *testing.T) {
+	t.Parallel()
+	sysTarget := targets.Get(targets.Linux, targets.AMD64)
+	if runtime.GOOS != sysTarget.BuildOS || sysTarget.BrokenCompiler != "" {
+		t.Skipf("cannot preprocess linux/amd64 on %v (broken compiler: %v)", runtime.GOOS, sysTarget.BrokenCompiler)
+	}
+	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
+	require.NoError(t, err)
+
+	p, err := target.Deserialize([]byte(`
+syz_emit_ethernet(0x10, &(0x7f0000000100)=ANY=[@ANYBLOB="ffffffffffffaabbccddeeff88ca5b50"], 0x0)
+syz_extract_tcp_res(&(0x7f0000000200), 0x1, 0x1)
+syz_emit_vhci(&(0x7f0000000300)=ANY=[@ANYBLOB="040100"], 0x3)
+`), prog.NonStrict)
+	require.NoError(t, err)
+
+	llmSrc, err := WriteLLM(p)
+	require.NoError(t, err)
+	assert.Contains(t, string(llmSrc), "syz_emit_ethernet(")
+	assert.Contains(t, string(llmSrc), "syz_extract_tcp_res(")
+	assert.Contains(t, string(llmSrc), "syz_emit_vhci(")
+	assert.NotContains(t, string(llmSrc), "initialize_tun")
+	assert.NotContains(t, string(llmSrc), "do_sandbox_")
+
+	// Regular Write still filters these calls when NetInjection/VhciInjection are disabled.
+	plainSrc, err := Write(p, Options{Sandbox: "", Procs: 1, Slowdown: 1})
+	require.NoError(t, err)
+	assert.NotContains(t, string(plainSrc), "syz_emit_ethernet(")
+	assert.NotContains(t, string(plainSrc), "syz_extract_tcp_res(")
+	assert.NotContains(t, string(plainSrc), "syz_emit_vhci(")
+}
