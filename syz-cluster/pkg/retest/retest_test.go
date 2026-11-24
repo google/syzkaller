@@ -31,7 +31,7 @@ func (m *mockEnv) BuildKernel(cfg *instance.BuildKernelConfig) (string, build.Im
 
 func (m *mockEnv) CleanKernel(cfg *instance.BuildKernelConfig) error { return nil }
 
-func (m *mockEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) (
+func (m *mockEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, opts instance.TestOpts) (
 	[]instance.EnvTestResult, error) {
 	return m.results, m.err
 }

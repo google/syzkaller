@@ -678,7 +678,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 	dt.Logf("testing patch...")
-	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC, false)
+	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC, instance.TestOpts{})
 	if err != nil {
 		dt.Logf("testing failed: %v", osutil.VerboseMessage(err))
 		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)

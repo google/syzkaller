@@ -164,7 +164,7 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 		return
 	}
 	log.Printf("build OK")
-	results, err := env.Test(numTests, nil, nil, nil, false)
+	results, err := env.Test(numTests, nil, nil, nil, instance.TestOpts{})
 	if err != nil {
 		tool.Fail(err)
 	}

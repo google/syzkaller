@@ -261,9 +261,10 @@ type RunOptions struct {
 	// afterContext is how many bytes AFTER the crash description to keep in the report.
 	afterContext int
 	// An early notification that the command has finished / VM crashed.
-	earlyFinishCb   func()
-	injectExecuting <-chan bool
-	tickerPeriod    time.Duration
+	earlyFinishCb    func()
+	injectExecuting  <-chan bool
+	tickerPeriod     time.Duration
+	consoleOnlyCrash bool
 }
 
 func WithExitCondition(exitCondition ExitCondition) func(*RunOptions) {
@@ -287,6 +288,15 @@ func WithInjectExecuting(injectExecuting <-chan bool) func(*RunOptions) {
 func WithEarlyFinishCb(cb func()) func(*RunOptions) {
 	return func(opts *RunOptions) {
 		opts.earlyFinishCb = cb
+	}
+}
+
+// WithConsoleOnlyCrash restricts crash detection to kernel console output
+// (vmimpl.OutputConsole), ignoring stdout/stderr printed by the guest command.
+// The combined command and console output is still returned by Instance.Run.
+func WithConsoleOnlyCrash() func(*RunOptions) {
+	return func(opts *RunOptions) {
+		opts.consoleOnlyCrash = true
 	}
 }
 
@@ -367,7 +377,10 @@ type monitor struct {
 	// output is at most mon.beforeContext + len(report) + afterContext bytes.
 	output []byte
 	// curPos in the output to scan for the matches.
-	curPos          int
+	curPos int
+	// consoleOutput and consoleCurPos track vmimpl.OutputConsole chunks when consoleOnlyCrash is set.
+	consoleOutput   []byte
+	consoleCurPos   int
 	lastExecuteTime time.Time
 	// extractCalled is used to prevent multiple extractError calls.
 	extractCalled bool
@@ -416,7 +429,7 @@ func (mon *monitor) monitorExecution() ([]*report.Report, error) {
 			}
 			output := cleanOutputForRun(chunk.Data)
 			mon.inst.pool.statOutputReceived.Add(len(output))
-			if rep, done, appendErr := mon.appendOutput(output); done {
+			if rep, done, appendErr := mon.appendOutput(chunk.Type, output); done {
 				return rep, appendErr
 			}
 		case <-mon.injectExecuting:
@@ -433,19 +446,39 @@ func (mon *monitor) monitorExecution() ([]*report.Report, error) {
 	}
 }
 
-func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool, error) {
+func (mon *monitor) appendOutput(typ vmimpl.OutputType, out []byte) ([]*report.Report, bool, error) {
 	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
 	if bytes.Contains(mon.output[lastPos:], []byte(executedProgramsStart)) {
 		mon.lastExecuteTime = time.Now()
 	}
+	if mon.consoleOnlyCrash {
+		if typ == vmimpl.OutputConsole {
+			mon.consoleOutput = append(mon.consoleOutput, out...)
+			if mon.reporter.ContainsCrash(mon.consoleOutput[mon.consoleCurPos:]) {
+				reps, err := mon.extractErrors("unknown error")
+				return reps, true, err
+			}
+			mon.consoleOutput, mon.consoleCurPos = trimAndAdvance(mon.consoleOutput, mon.beforeContext)
+		}
+		if len(mon.output) > 2*mon.beforeContext {
+			copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
+			mon.output = mon.output[:mon.beforeContext]
+		}
+		return nil, false, nil
+	}
 	if mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
 		reps, err := mon.extractErrors("unknown error")
 		return reps, true, err
 	}
-	if len(mon.output) > 2*mon.beforeContext {
-		copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
-		mon.output = mon.output[:mon.beforeContext]
+	mon.output, mon.curPos = trimAndAdvance(mon.output, mon.beforeContext)
+	return nil, false, nil
+}
+
+func trimAndAdvance(buf []byte, beforeContext int) ([]byte, int) {
+	if len(buf) > 2*beforeContext {
+		copy(buf, buf[len(buf)-beforeContext:])
+		buf = buf[:beforeContext]
 	}
 	// Find the starting position for crash matching on the next iteration.
 	// We step back from the end of output by maxErrorLength to handle the case
@@ -453,15 +486,21 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool, error) {
 	// the preceding '\n' to have a full line. This is required to handle
 	// the case when a particular pattern is ignored as crash, but a suffix
 	// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
-	mon.curPos = len(mon.output) - maxErrorLength
+	curPos := len(buf) - maxErrorLength
 	for range maxErrorLength {
-		if mon.curPos <= 0 || mon.output[mon.curPos-1] == '\n' {
+		if curPos <= 0 || buf[curPos-1] == '\n' {
 			break
 		}
-		mon.curPos--
+		curPos--
 	}
-	mon.curPos = max(mon.curPos, 0)
-	return nil, false, nil
+	return buf, max(curPos, 0)
+}
+
+func (mon *monitor) scanBuffer() ([]byte, int) {
+	if mon.consoleOnlyCrash {
+		return mon.consoleOutput, mon.consoleCurPos
+	}
+	return mon.output, mon.curPos
 }
 
 func cleanOutputForRun(out []byte) []byte {
@@ -494,7 +533,8 @@ func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error)
 	if mon.inst.pool.typ.Preemptible && bytes.Contains(mon.output, []byte(executorPreemptedStr)) {
 		return nil, vmimpl.ErrPreempted
 	}
-	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
+	scanOut, scanPos := mon.scanBuffer()
+	if defaultError == "" && mon.reporter.ContainsCrash(scanOut[scanPos:]) {
 		// We did not call Diagnose above because we thought there is no error, so call it now.
 		diagOutput, diagWait = mon.inst.diagnose(mon.createReports(defaultError))
 		if diagWait {
@@ -513,10 +553,10 @@ func (mon *monitor) extractErrors(defaultError string) ([]*report.Report, error)
 }
 
 func (mon *monitor) createReports(defaultError string) []*report.Report {
-	curPos := mon.curPos
+	scanOut, curPos := mon.scanBuffer()
 	var res []*report.Report
 	for {
-		rep := mon.reporter.ParseFrom(mon.output, curPos)
+		rep := mon.reporter.ParseFrom(scanOut, curPos)
 		if rep == nil {
 			if defaultError == "" || len(res) > 0 {
 				return res
@@ -528,7 +568,7 @@ func (mon *monitor) createReports(defaultError string) []*report.Report {
 			return []*report.Report{{
 				Title:      defaultError,
 				Output:     mon.output,
-				Suppressed: report.IsSuppressed(mon.reporter, mon.output),
+				Suppressed: report.IsSuppressed(mon.reporter, scanOut),
 				Type:       typ,
 			}}
 		}
@@ -556,7 +596,11 @@ func (mon *monitor) waitForOutput() {
 			if !ok {
 				return
 			}
-			mon.output = append(mon.output, cleanOutputForRun(chunk.Data)...)
+			data := cleanOutputForRun(chunk.Data)
+			mon.output = append(mon.output, data...)
+			if mon.consoleOnlyCrash && chunk.Type == vmimpl.OutputConsole {
+				mon.consoleOutput = append(mon.consoleOutput, data...)
+			}
 		case <-timer.C:
 			return
 		case <-Shutdown:
