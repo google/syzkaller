@@ -5,9 +5,12 @@ package actionsyzlang
 
 import (
 	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +25,11 @@ func TestSyzlangToC(t *testing.T) {
 			validProg := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 `
-			res, err := createCRepro(nil, createCReproArgs{TargetOS: "linux", TargetArch: arch, ReproSyz: validProg})
+			res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+				TargetOS:   "linux",
+				TargetArch: arch,
+				ReproSyz:   validProg,
+			})
 			require.NoError(t, err)
 			require.NotEmpty(t, res.SimplifiedCRepro)
 			require.Contains(t, res.SimplifiedCRepro, "int main")
@@ -30,35 +37,88 @@ write(r0, &AUTO="01010101", 0x4)
 	}
 }
 
-func TestSyzlangToC_DisabledCall(t *testing.T) {
-	if runtime.GOOS != targets.Get("linux", "amd64").BuildOS {
-		t.Skip("cannot build linux/amd64 on this host")
+func TestSyzlangToC_NetInjection(t *testing.T) {
+	sysTarget := targets.Get("linux", "amd64")
+	if runtime.GOOS != sysTarget.BuildOS || sysTarget.BrokenCompiler != "" {
+		t.Skipf("cannot build linux/amd64 on this host (broken compiler: %v)", sysTarget.BrokenCompiler)
 	}
-	// The clone call is disabled in the descriptions, but old reproducers may still use it.
+	progWithEth := `r0 = socket$nl_generic(0x10, 0x3, 0x10)
+syz_emit_ethernet(0x10, &(0x7f0000000100)=ANY=[@ANYBLOB="ffffffffffffaabbccddeeff88ca5b50"], 0x0)
+`
+	res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+		TargetOS:   "linux",
+		TargetArch: "amd64",
+		ReproSyz:   progWithEth,
+	})
+	require.NoError(t, err)
+	assert.Contains(t, res.SimplifiedCRepro, "int main")
+	assert.Contains(t, res.SimplifiedCRepro, "syz_emit_ethernet(")
+}
+
+func TestSyzlangToC_Fallback(t *testing.T) {
+	// The clone call is disabled in the descriptions, and unknown_syscall does not exist;
+	// both fail NonStrict deserialization and should fall back instead of failing the job.
 	progWithDisabled := `r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 clone(0x0, 0x0, 0x0, 0x0, 0x0)
 write(r0, &AUTO="01010101", 0x4)
 `
-	res, err := createCRepro(nil, createCReproArgs{
-		TargetOS:   "linux",
-		TargetArch: "amd64",
-		ReproSyz:   progWithDisabled,
+	t.Run("fallback to ReproC", func(t *testing.T) {
+		origC := `int main(void) { memcpy((void*)0x20000, "` + strings.Repeat(`\x41`, 50) + `", 50); return 0; }`
+		res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+			TargetOS:   "linux",
+			TargetArch: "amd64",
+			ReproSyz:   progWithDisabled,
+			ReproC:     origC,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, `int main(void) { memcpy((void*)0x20000, "... [truncated large byte array] ...", 50); return 0; }`,
+			res.SimplifiedCRepro)
 	})
-	require.NoError(t, err)
-	require.Contains(t, res.SimplifiedCRepro, "int main")
-	require.Contains(t, res.SimplifiedCRepro, "__NR_clone")
-}
 
-func TestSyzlangToC_Invalid(t *testing.T) {
-	invalidProg := `r0 = unknown_syscall(0x123)`
-	res, err := createCRepro(nil, createCReproArgs{TargetOS: "linux", TargetArch: "amd64", ReproSyz: invalidProg})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to deserialize syz repro")
-	require.Empty(t, res.SimplifiedCRepro)
+	t.Run("fallback to ReproSyz when ReproC is empty", func(t *testing.T) {
+		invalidProg := `r0 = unknown_syscall(0x123, &AUTO="` + strings.Repeat("aa", 100) + `")`
+		res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+			TargetOS:   "linux",
+			TargetArch: "amd64",
+			ReproSyz:   invalidProg,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, `r0 = unknown_syscall(0x123, &AUTO="... [truncated large byte array] ...")`,
+			res.SimplifiedCRepro)
+	})
+
+	t.Run("fallback to ReproSyz head when exceeding size limit", func(t *testing.T) {
+		head := "r0 = unknown_syscall(0x123)\n"
+		hugeSyz := head + strings.Repeat("getpid()\n", maxFallbackReproSize/5)
+		res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+			TargetOS:   "linux",
+			TargetArch: "amd64",
+			ReproSyz:   hugeSyz,
+		})
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(res.SimplifiedCRepro, head))
+		assert.Contains(t, res.SimplifiedCRepro, "<<cut ")
+		assert.Less(t, len(res.SimplifiedCRepro), len(hugeSyz))
+	})
+
+	t.Run("fallback to ReproC tail when exceeding size limit", func(t *testing.T) {
+		boilerplate := strings.Repeat("static void helper(void) {}\n", maxFallbackReproSize/10)
+		tail := "int main(void) { syscall(__NR_getpid); return 0; }\n"
+		res, err := createCRepro(&aflow.Context{}, createCReproArgs{
+			TargetOS:   "linux",
+			TargetArch: "amd64",
+			ReproSyz:   progWithDisabled,
+			ReproC:     boilerplate + tail,
+		})
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(res.SimplifiedCRepro, "<<cut "))
+		assert.True(t, strings.HasSuffix(res.SimplifiedCRepro, tail))
+		assert.Less(t, len(res.SimplifiedCRepro), len(boilerplate+tail))
+	})
 }
 
 func TestSyzlangToC_Empty(t *testing.T) {
-	res, err := createCRepro(nil, createCReproArgs{ReproSyz: ""})
+	res, err := createCRepro(&aflow.Context{}, createCReproArgs{ReproSyz: ""})
 	require.NoError(t, err)
 	require.Empty(t, res.SimplifiedCRepro)
 }
