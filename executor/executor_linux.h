@@ -261,13 +261,15 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 static void cover_reset(cover_t* cov)
 {
 	// Callers in common_linux.h don't check this flag.
-	if (!flag_coverage)
+	if (!cover_collection_required())
 		return;
 	if (cov == 0) {
 		if (current_thread == 0)
 			fail("cover_reset: current_thread == 0");
 		cov = &current_thread->cov;
 	}
+	if (cov->data == NULL)
+		fail("cover_reset: cov->data == NULL");
 	if (flag_read_only_coverage) {
 		if (ioctl(cov->fd, KCOV_RESET_TRACE, 0))
 			fail("KCOV_RESET_TRACE failed");
