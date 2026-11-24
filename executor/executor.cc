@@ -349,7 +349,7 @@ struct call_t {
 
 struct cover_t {
 	int fd;
-	uint32 size;
+	uint64 size;
 	// mmap_alloc_ptr is the internal pointer to KCOV mapping, possibly with guard pages.
 	// It is only used to allocate/deallocate the buffer of mmap_alloc_size.
 	char* mmap_alloc_ptr;
@@ -1227,11 +1227,11 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 	fbb.StartVector<uint64_t>(0);
 	const cover_data_t* cover_data = (const cover_data_t*)(cov->data + cov->data_offset);
 	if (cov->size > (cov->data_end - (const char*)cover_data) / sizeof(cover_data_t))
-		failmsg("too much cover", "cov=%u", cov->size);
+		failmsg("too much cover", "cov=%llu", cov->size);
 	uint32 nsig = 0;
 	cover_data_t prev_pc = 0;
 	bool prev_filter = true;
-	for (uint32 i = 0; i < cov->size; i++) {
+	for (uint64 i = 0; i < cov->size; i++) {
 		cover_data_t pc = cover_data[i] + cov->pc_offset;
 		uint64 sig = pc;
 		if (use_cover_edges) {
@@ -1283,20 +1283,20 @@ uint32 dedup_vector(flatbuffers::FlatBufferBuilder& fbb, uint32 count, Less less
 template <typename cover_data_t>
 uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 {
-	uint32 cover_size = cov->size;
 	const cover_data_t* cover_data = (const cover_data_t*)(cov->data + cov->data_offset);
-	if (cover_size > (cov->data_end - (const char*)cover_data) / sizeof(cover_data_t))
-		failmsg("too much cover", "cov=%u", cover_size);
+	if (cov->size > (cov->data_end - (const char*)cover_data) / sizeof(cover_data_t))
+		failmsg("too much cover", "cov=%llu", cov->size);
+	size_t cover_size = static_cast<size_t>(cov->size);
 	fbb.StartVector<uint64_t>(cover_size);
 	if (!flag_dedup_cover) {
 		// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
-		for (uint32 i = 0; i < cover_size; i++)
+		for (size_t i = 0; i < cover_size; i++)
 			fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
 		return fbb.EndVector(cover_size);
 	}
 	uint32 count = 0;
 	const uint32 chunk = kDedupChunk<uint64>;
-	for (uint32 i = 0; i < cover_size; i++) {
+	for (size_t i = 0; i < cover_size; i++) {
 		fbb.PushElement(uint64(cover_data[i] + cov->pc_offset));
 		count++;
 		// PushElement() stores the PCs as little-endian, compare them as native integers.
@@ -1630,7 +1630,7 @@ void execute_call(thread_t* th)
 	if (th->res == (intptr_t)-1)
 		debug(" errno=%d", th->reserrno);
 	if (cover_collection_required())
-		debug(" cover=%u", th->cov.size);
+		debug(" cover=%llu", th->cov.size);
 	if (th->call_props.fail_nth > 0)
 		debug(" fault=%d", th->fault_injected);
 	if (th->call_props.rerun > 0)
