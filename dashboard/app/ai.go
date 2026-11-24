@@ -2187,8 +2187,7 @@ func collectChangelog(ctx context.Context, jobID, currentStage string) []dashapi
 }
 
 const (
-	maxAutoReproCJobs     = 5
-	autoReproCRateWindow  = 6 * time.Hour
+	maxAutoReproCJobs     = 2
 	maxAutoReproCAttempts = 2
 	reproCMinAge          = 48 * time.Hour
 	reproCMaxAge          = 30 * 24 * time.Hour
@@ -2202,6 +2201,7 @@ const (
 // number of unfinished jobs of that workflow type in the namespace, so they do not take over
 // the agents.
 var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
+	ai.WorkflowReproC:      maxAutoReproCJobs,
 	ai.WorkflowBisectCause: maxAutoBisectCauseJobs,
 }
 
@@ -2212,17 +2212,6 @@ var maxAutoAttempts = map[ai.WorkflowType]int{
 	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
 }
 
-func canAutoCreateReproC(ctx context.Context, ns string, cfg *Config) (bool, error) {
-	if !cfg.AI.AutoReproC {
-		return false, nil
-	}
-	count, err := aidb.CountJobsSince(ctx, ns, ai.WorkflowReproC, timeNow(ctx).Add(-autoReproCRateWindow))
-	if err != nil {
-		return false, fmt.Errorf("failed to check repro-c rate limit for %v: %w", ns, err)
-	}
-	return count < maxAutoReproCJobs, nil
-}
-
 func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkflows []dashapi.AIWorkflow) (
 	[]dashapi.AIWorkflow, error) {
 	counts, err := aidb.CountUnfinishedJobs(ctx, ns)
@@ -2231,14 +2220,8 @@ func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkfl
 	}
 	var workflows []dashapi.AIWorkflow
 	for _, w := range reqWorkflows {
-		if w.Type == ai.WorkflowReproC {
-			canReproC, err := canAutoCreateReproC(ctx, ns, cfg)
-			if err != nil {
-				return nil, err
-			}
-			if !canReproC {
-				continue
-			}
+		if w.Type == ai.WorkflowReproC && !cfg.AI.AutoReproC {
+			continue
 		}
 		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && counts[w.Type] >= limit {
 			continue

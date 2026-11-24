@@ -473,30 +473,6 @@ func LoadFinishedReproCJobs(ctx context.Context, since time.Time) ([]*Job, error
 	})
 }
 
-// CountJobsSince returns the number of jobs of the specified workflow type
-// created on or after since in the given namespace.
-func CountJobsSince(ctx context.Context, ns string, typ ai.WorkflowType, since time.Time) (int64, error) {
-	type countResult struct {
-		Count int64
-	}
-	res, err := selectOne[countResult](ctx, spanner.Statement{
-		SQL: `SELECT COUNT(1) AS Count
-		FROM Jobs
-		WHERE Namespace = @ns
-		  AND Type = @type
-		  AND Created >= @since`,
-		Params: map[string]any{
-			"ns":    ns,
-			"type":  string(typ),
-			"since": since,
-		},
-	})
-	if err != nil {
-		return 0, err
-	}
-	return res.Count, nil
-}
-
 // CountUnfinishedJobs returns the number of queued and running jobs per workflow type.
 // The age of jobs does not matter: a job that is never finished is counted forever.
 func CountUnfinishedJobs(ctx context.Context, ns string) (map[ai.WorkflowType]int64, error) {
