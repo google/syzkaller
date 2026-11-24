@@ -1244,19 +1244,26 @@ GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reas
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
+// Basic exit reasons 0-63 of the VM exits caused by the execution of an instruction that L1 is
+// expected to emulate and skip: CPUID (10), INVD (13), INVLPG (14), RDPMC (15), RDTSC (16),
+// VMCALL (18), VMX instructions (19-27), CR access (28), DR access (29), I/O (30), RDMSR (31),
+// WRMSR (32), MWAIT (36), MONITOR (39), PAUSE (40), GDTR/IDTR access (46), LDTR/TR access (47),
+// INVEPT (50), RDTSCP (51), INVVPID (53), WBINVD (54), XSETBV (55), RDRAND (57), INVPCID (58),
+// VMFUNC (59), ENCLS (60), RDSEED (61), XSAVES (63).
+// HLT (12) is deliberately missing: an L2 program ends with HLT, and skipping it would make L2
+// run into the memory past its code when resumed.
+#define EXIT_REASONS_TO_SKIP_INTEL 0xbeecc191fffde400ULL
+#define EXIT_REASON_XRSTORS 64
+
+// After reporting an exit caused by an instruction, move the L2 RIP past it, so that resuming L2
+// executes the next instruction instead of exiting for the same reason again.
 GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
 {
-	// Disable optimizations.
-	volatile uint64 reason = basic_reason;
-	uint64 rip = vmread(VMCS_GUEST_RIP);
-	if ((reason == EXIT_REASON_INVD) || (reason == EXIT_REASON_CPUID) ||
-	    (reason == EXIT_REASON_RDTSC)) {
-		rip += 2;
-	} else if (reason == EXIT_REASON_RDTSCP) {
-		// We insist on a single-line compound statement for else-if.
-		rip += 3;
-	}
-	vmwrite(VMCS_GUEST_RIP, rip);
+	if ((basic_reason != EXIT_REASON_XRSTORS) &&
+	    ((basic_reason >= 64) || !((EXIT_REASONS_TO_SKIP_INTEL >> basic_reason) & 1)))
+		return;
+	// The CPU reports the length of the instruction for all these exits.
+	vmwrite(VMCS_GUEST_RIP, vmread(VMCS_GUEST_RIP) + vmread(VMCS_VM_EXIT_INSTRUCTION_LEN));
 }
 
 // Called from inline asm; see the forward declaration above for why this is non-static.
@@ -1387,14 +1394,45 @@ GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
+// Exit codes of the #VMEXITs caused by the execution of an instruction that L1 is expected to
+// emulate and skip. CR and DR accesses (0x00-0x3f) are checked separately.
+// Codes 0x40-0x7f: IDTR/GDTR/LDTR/TR access (0x66-0x6d), RDTSC (0x6e), RDPMC (0x6f), CPUID (0x72),
+// INVD (0x76), PAUSE (0x77), INVLPG (0x79), INVLPGA (0x7a), I/O (0x7b), MSR access (0x7c).
+// HLT (0x78) is deliberately missing: an L2 program ends with HLT, and skipping it would make L2
+// run into the memory past its code when resumed. IRET (0x74) is intercepted before it executes
+// and cannot be skipped either.
+#define EXIT_CODES_TO_SKIP_AMD_40 0x1ec4ffc000000000ULL
+// Codes 0x80-0xbf: VMRUN, VMMCALL, VMLOAD, VMSAVE, STGI, CLGI, SKINIT, RDTSCP (0x80-0x87),
+// WBINVD (0x89), MONITOR (0x8a), MWAIT (0x8b), XSETBV (0x8d), RDPRU (0x8e), INVPCID (0xa2).
+#define EXIT_CODES_TO_SKIP_AMD_80 0x400006effULL
+
+GUEST_CODE static bool amd_exit_is_skippable(uint64 code)
+{
+	if (code < 0x40)
+		return true;
+	if (code < 0x80)
+		return (EXIT_CODES_TO_SKIP_AMD_40 >> (code - 0x40)) & 1;
+	if (code < 0xc0)
+		return (EXIT_CODES_TO_SKIP_AMD_80 >> (code - 0x80)) & 1;
+	return false;
+}
+
+// After reporting an exit caused by an instruction, move the L2 RIP past it, so that resuming L2
+// executes the next instruction instead of exiting for the same reason again.
 GUEST_CODE static void advance_l2_rip_amd(uint64 basic_reason, uint64 cpu_id, uint64 vm_id)
 {
 	// Disable optimizations.
 	volatile uint64 reason = basic_reason;
+	if (!amd_exit_is_skippable(reason))
+		return;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint64 rip = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_GUEST_RIP);
-	if ((reason == VMEXIT_INVD) || (reason == VMEXIT_CPUID) ||
-	    (reason == VMEXIT_RDTSC)) {
+	// With the NRIPS feature the CPU reports the address of the next instruction.
+	uint64 next_rip = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_CTRL_NEXT_RIP);
+	if (next_rip) {
+		rip = next_rip;
+	} else if ((reason == VMEXIT_INVD) || (reason == VMEXIT_CPUID) || (reason == VMEXIT_RDTSC)) {
+		// Without NRIPS only skip the instructions with a fixed length.
 		rip += 2;
 	} else if (reason == VMEXIT_RDTSCP) {
 		// We insist on a single-line compound statement for else-if.
