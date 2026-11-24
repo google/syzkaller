@@ -497,6 +497,33 @@ func CountJobsSince(ctx context.Context, ns string, typ ai.WorkflowType, since t
 	return res.Count, nil
 }
 
+// CountUnfinishedJobs returns the number of queued and running jobs per workflow type.
+// The age of jobs does not matter: a job that is never finished is counted forever.
+func CountUnfinishedJobs(ctx context.Context, ns string) (map[ai.WorkflowType]int64, error) {
+	type countResult struct {
+		Type  ai.WorkflowType
+		Count int64
+	}
+	rows, err := selectAll[countResult](ctx, spanner.Statement{
+		SQL: `SELECT Type, COUNT(1) AS Count
+		FROM Jobs
+		WHERE Namespace = @ns
+		  AND Finished IS NULL
+		GROUP BY Type`,
+		Params: map[string]any{
+			"ns": ns,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[ai.WorkflowType]int64, len(rows))
+	for _, row := range rows {
+		counts[row.Type] = row.Count
+	}
+	return counts, nil
+}
+
 func LoadBugIDsWithPendingPatch(ctx context.Context, ns string, workflows []ai.WorkflowType) ([]string, error) {
 	if len(workflows) == 0 {
 		return nil, nil

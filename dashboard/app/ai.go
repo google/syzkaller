@@ -2195,12 +2195,15 @@ const (
 	reproCPatchAge        = 30 * 24 * time.Hour
 
 	maxAutoBisectCauseAttempts = 2
-	// Cause bisection of bugs older than bisectCauseNewBugAge is rate limited, so that the backlog
-	// of old bugs does not take over the agents. New bugs are bisected right away.
-	bisectCauseNewBugAge      = 24 * time.Hour
-	maxBacklogBisectCauseJobs = 1
-	backlogBisectCauseWindow  = 30 * time.Minute
+	maxAutoBisectCauseJobs     = 2
 )
+
+// Automatic creation of these workflows starts only while there are fewer than the configured
+// number of unfinished jobs of that workflow type in the namespace, so they do not take over
+// the agents.
+var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
+	ai.WorkflowBisectCause: maxAutoBisectCauseJobs,
+}
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
 // to avoid repeatedly creating doomed or costly jobs.
@@ -2209,8 +2212,8 @@ var maxAutoAttempts = map[ai.WorkflowType]int{
 	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
 }
 
-func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
-	if !getNsConfig(ctx, ns).AI.AutoReproC {
+func canAutoCreateReproC(ctx context.Context, ns string, cfg *Config) (bool, error) {
+	if !cfg.AI.AutoReproC {
 		return false, nil
 	}
 	count, err := aidb.CountJobsSince(ctx, ns, ai.WorkflowReproC, timeNow(ctx).Add(-autoReproCRateWindow))
@@ -2220,28 +2223,29 @@ func canAutoCreateReproC(ctx context.Context, ns string) (bool, error) {
 	return count < maxAutoReproCJobs, nil
 }
 
-// canCreateAIJobFunc says whether an automatic job of the workflow can be created for the bug now.
-type canCreateAIJobFunc func(bug *Bug, typ ai.WorkflowType) bool
-
-// bisectCauseRateLimit returns a function that applies the rate limit on cause bisection of old bugs:
-// it rejects a cause bisection job for an old bug if the namespace has reached the limit.
-// All cause bisection jobs count towards the limit, including the jobs for new bugs.
-func bisectCauseRateLimit(ctx context.Context, ns string, reqWorkflows []dashapi.AIWorkflow) (
-	canCreateAIJobFunc, error) {
-	backlog := false
-	isBisectCause := func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowBisectCause }
-	if slices.ContainsFunc(reqWorkflows, isBisectCause) {
-		since := timeNow(ctx).Add(-backlogBisectCauseWindow)
-		count, err := aidb.CountJobsSince(ctx, ns, ai.WorkflowBisectCause, since)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check bisect-cause rate limit for %v: %w", ns, err)
-		}
-		backlog = count < maxBacklogBisectCauseJobs
+func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkflows []dashapi.AIWorkflow) (
+	[]dashapi.AIWorkflow, error) {
+	counts, err := aidb.CountUnfinishedJobs(ctx, ns)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count AI jobs in progress for %v: %w", ns, err)
 	}
-	return func(bug *Bug, typ ai.WorkflowType) bool {
-		return typ != ai.WorkflowBisectCause || backlog ||
-			timeSince(ctx, bug.FirstTime) < bisectCauseNewBugAge
-	}, nil
+	var workflows []dashapi.AIWorkflow
+	for _, w := range reqWorkflows {
+		if w.Type == ai.WorkflowReproC {
+			canReproC, err := canAutoCreateReproC(ctx, ns, cfg)
+			if err != nil {
+				return nil, err
+			}
+			if !canReproC {
+				continue
+			}
+		}
+		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && counts[w.Type] >= limit {
+			continue
+		}
+		workflows = append(workflows, w)
+	}
+	return workflows, nil
 }
 
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
@@ -2257,30 +2261,19 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 		if cfg.AI == nil || cfg.Decommissioned || !client.AllowedNamespace(ns) {
 			continue
 		}
-		isReproC := func(w dashapi.AIWorkflow) bool { return w.Type == ai.WorkflowReproC }
-		workflowsForNS := reqWorkflows
-		if slices.ContainsFunc(reqWorkflows, isReproC) {
-			canReproC, err := canAutoCreateReproC(ctx, ns)
-			if err != nil {
-				return false, err
-			}
-			if !canReproC {
-				workflowsForNS = slices.DeleteFunc(slices.Clone(reqWorkflows), isReproC)
-			}
+		workflowsForNS, err := filterWorkflowsForNS(ctx, ns, cfg, reqWorkflows)
+		if err != nil {
+			return false, err
 		}
 		if len(workflowsForNS) == 0 {
 			continue
 		}
-		canCreate, err := bisectCauseRateLimit(ctx, ns, workflowsForNS)
-		if err != nil {
-			return false, err
-		}
-		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS, canCreate); err != nil {
+		if created, err := findPendingJobs(ctx, ns, date, workflowsForNS); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
 		}
-		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS, canCreate); err != nil {
+		if created, err := processStaleBugs(ctx, ns, date, workflowsForNS); err != nil {
 			return false, err
 		} else if created {
 			return true, nil
@@ -2289,15 +2282,14 @@ func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, cl
 	return false, nil
 }
 
-func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
-	canCreate canCreateAIJobFunc) (bool, error) {
+func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
 	for _, req := range reqWorkflows {
 		query := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("AIPendingWorkflows=", string(req.Type))
 		if req.Type == ai.WorkflowBisectCause {
-			// New bugs go first. If the newest bug is rate limited, so are all others.
+			// Newer bugs go first within the cause bisection quota.
 			query = query.Order("-FirstTime")
 		}
 		var bugs []*Bug
@@ -2305,10 +2297,10 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 		if err != nil {
 			return false, fmt.Errorf("failed to fetch pending bugs: %w", err)
 		}
-		if len(bugs) == 0 || !canCreate(bugs[0], req.Type) {
+		if len(bugs) == 0 {
 			continue
 		}
-		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows, canCreate)
+		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows)
 		if created || err != nil {
 			return created, err
 		}
@@ -2316,10 +2308,9 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 	return false, nil
 }
 
-func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow,
-	canCreate canCreateAIJobFunc) (bool, error) {
+func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
 	var bugs []*Bug
-	keys, err := db.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Status=", BugStatusOpen).
 		Filter("AIJobCheck<", date).
@@ -2328,9 +2319,12 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 	if err != nil {
 		return false, fmt.Errorf("failed to fetch stale bugs: %w", err)
 	}
-
-	for i, bug := range bugs {
-		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows, canCreate)
+	// Prefer newer bugs when evaluating a stale batch so they get priority for limited workflows.
+	slices.SortStableFunc(bugs, func(a, b *Bug) int {
+		return b.FirstTime.Compare(a.FirstTime)
+	})
+	for _, bug := range bugs {
+		created, err := tryCreateAIJobForBug(ctx, bug, bug.key(ctx), date, reqWorkflows)
 		if created || err != nil {
 			return created, err
 		}
@@ -2339,7 +2333,7 @@ func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows [
 }
 
 func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date int64,
-	reqWorkflows []dashapi.AIWorkflow, canCreate canCreateAIJobFunc) (bool, error) {
+	reqWorkflows []dashapi.AIWorkflow) (bool, error) {
 	pending, err := pendingWorkflowsForBug(ctx, bug, bugKey)
 	if err != nil {
 		log.Errorf(ctx, "failed to get pending workflows for bug %v: %v", bugKey.StringID(), err)
@@ -2350,8 +2344,7 @@ func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date in
 	var matchedReq dashapi.AIWorkflow
 	for _, req := range reqWorkflows {
 		idx := slices.Index(pending, string(req.Type))
-		if idx == -1 || !canCreate(bug, req.Type) {
-			// A workflow that can't get a job now stays pending.
+		if idx == -1 {
 			continue
 		}
 		pending = slices.Delete(pending, idx, idx+1)

@@ -3425,7 +3425,7 @@ func TestAIBisectCauseScheduling(t *testing.T) {
 	require.Empty(t, c.pollAIWorkflow(t, ai.WorkflowBisectCause).ID)
 }
 
-func TestAIBisectCauseRateLimit(t *testing.T) {
+func TestAIBisectCauseLimit(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
@@ -3442,6 +3442,7 @@ func TestAIBisectCauseRateLimit(t *testing.T) {
 	// Each poll comes from a new agent: an agent that polls again while it has an unfinished job
 	// is considered restarted, and gets its job again.
 	agents := 0
+	var jobs []string // IDs of the returned jobs
 	poll := func(workflows ...ai.WorkflowType) string {
 		t.Helper()
 		var req []dashapi.AIWorkflow
@@ -3453,48 +3454,42 @@ func TestAIBisectCauseRateLimit(t *testing.T) {
 		if resp.ID == "" {
 			return ""
 		}
+		jobs = append(jobs, resp.ID)
 		return fmt.Sprintf("%v: %v", resp.Workflow, resp.Args["BugTitle"])
 	}
-	const (
-		oldBugs = 6
-		oldJob  = "bisect-cause: KASAN: slab-use-after-free in old"
-	)
+	const oldBugs = 4
 	for i := range oldBugs {
+		c.advanceTime(time.Minute)
 		reportCrash(i, fmt.Sprintf("KASAN: slab-use-after-free in old%v", i))
 	}
-	c.advanceTime(25 * time.Hour)
 
-	// Old bugs get at most one job per backlogBisectCauseWindow.
-	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
-	require.Empty(t, poll(ai.WorkflowBisectCause))
-	c.advanceTime(backlogBisectCauseWindow + time.Second)
-	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
+	// At most maxAutoBisectCauseJobs (2) unfinished cause bisection jobs are allowed,
+	// prioritizing the newest bugs first.
+	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old3", poll(ai.WorkflowBisectCause))
+	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old2", poll(ai.WorkflowBisectCause))
 	require.Empty(t, poll(ai.WorkflowBisectCause))
 
-	// A job for a new bug is created right away.
-	halfWindow := backlogBisectCauseWindow / 2
-	c.advanceTime(halfWindow)
+	// A new bug is also subject to the same cap while 2 cause bisection jobs are unfinished.
+	c.advanceTime(time.Minute)
 	reportCrash(oldBugs, "KASAN: slab-use-after-free in new")
-	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in new", poll(ai.WorkflowBisectCause))
 	require.Empty(t, poll(ai.WorkflowBisectCause))
-	// It counts towards the limit: the next old bug has to wait for backlogBisectCauseWindow after it.
-	c.advanceTime(halfWindow + time.Minute)
-	require.Empty(t, poll(ai.WorkflowBisectCause))
-	c.advanceTime(halfWindow)
-	require.Contains(t, poll(ai.WorkflowBisectCause), oldJob)
 
-	// Create the assessment-security jobs of all the bugs above (the old ones and the new one),
-	// so that they don't get in the way below.
+	// Other workflows (like assessment-security) are unaffected by the bisect-cause limit,
+	// and evaluating the new bug keeps bisect-cause pending on it.
 	for range oldBugs + 1 {
-		require.Contains(t, poll(ai.WorkflowAssessmentSecurity), "assessment-security: KASAN")
+		require.Contains(t, poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause),
+			"assessment-security: KASAN")
 	}
-
-	// A pending job of a new bug is created even if the jobs of the remaining old bugs have to wait:
-	// here assessment-security is created first, and bisect-cause stays pending.
-	reportCrash(oldBugs+1, "KASAN: slab-use-after-free in new2")
-	require.Equal(t, "assessment-security: KASAN: slab-use-after-free in new2",
-		poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
-	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in new2",
-		poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
 	require.Empty(t, poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
+
+	// Once a cause bisection job finishes, the freed slot goes to the newest pending bug first.
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobs[0], Error: "failed"}))
+	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in new",
+		poll(ai.WorkflowAssessmentSecurity, ai.WorkflowBisectCause))
+	require.Empty(t, poll(ai.WorkflowBisectCause))
+
+	// Finishing another job frees a slot for the newest remaining old bug.
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobs[1], Error: "failed"}))
+	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old1", poll(ai.WorkflowBisectCause))
+	require.Empty(t, poll(ai.WorkflowBisectCause))
 }
