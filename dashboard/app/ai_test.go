@@ -2148,18 +2148,19 @@ func TestPendingWorkflowsForBugAbortedJob(t *testing.T) {
 	require.Contains(t, pending, string(ai.WorkflowReproC))
 }
 
-func TestAutoCreateReproCRateLimit(t *testing.T) {
+func TestAutoCreateReproCLimit(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	build := testBuild(1)
-	c.aiClient.UploadBuild(build)
+	require.NoError(t, c.aiClient.UploadBuild(build))
 
-	const totalBugs = maxAutoReproCJobs + 1
+	const totalBugs = maxAutoReproCJobs + 2
 	for i := range totalBugs {
 		crash := testCrash(build, 1)
 		crash.Title = fmt.Sprintf("kernel BUG at mm/page_alloc_%d.c", i)
-		c.aiClient.ReportCrash(crash)
+		_, err := c.aiClient.ReportCrash(crash)
+		require.NoError(t, err)
 		c.aiClient.pollEmailBug()
 	}
 
@@ -2169,28 +2170,41 @@ func TestAutoCreateReproCRateLimit(t *testing.T) {
 	reproCFlow := dashapi.AIWorkflow{Type: ai.WorkflowReproC, Name: string(ai.WorkflowReproC)}
 
 	// Poll maxAutoReproCJobs with distinct agent names. All should be auto-created and assigned.
+	var jobIDs []string
 	for i := range maxAutoReproCJobs {
 		resp := c.pollAIJob(t, fmt.Sprintf("agent-%d", i), reproCFlow)
 		require.NotEmpty(t, resp.ID)
 		require.Equal(t, string(ai.WorkflowReproC), resp.Workflow)
+		jobIDs = append(jobIDs, resp.ID)
 	}
 
-	count, err := aidb.CountJobsSince(c.ctx, "ains", ai.WorkflowReproC, timeNow(c.ctx).Add(-autoReproCRateWindow))
+	counts, err := aidb.CountUnfinishedJobs(c.ctx, "ains")
 	require.NoError(t, err)
-	require.Equal(t, int64(maxAutoReproCJobs), count)
+	require.Equal(t, int64(maxAutoReproCJobs), counts[ai.WorkflowReproC])
 
-	// With all existing jobs running and maxAutoReproCJobs created in the window,
-	// auto-creation of the next bug must be rate-limited (no job created).
+	// With maxAutoReproCJobs unfinished jobs in progress, no new repro-c job should be auto-created,
+	// while other limited workflows (like bisect-cause) still have independent quota.
+	bisectFlow := dashapi.AIWorkflow{Type: ai.WorkflowBisectCause, Name: string(ai.WorkflowBisectCause)}
 	resp := c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs), reproCFlow)
 	require.Empty(t, resp.ID)
+	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d-bisect", maxAutoReproCJobs), reproCFlow, bisectFlow)
+	require.NotEmpty(t, resp.ID)
+	require.Equal(t, string(ai.WorkflowBisectCause), resp.Workflow)
 
-	// Advance time past the rate window so previous jobs fall outside the window.
-	c.advanceTime(autoReproCRateWindow + time.Second)
+	counts, err = aidb.CountUnfinishedJobs(c.ctx, "ains")
+	require.NoError(t, err)
+	require.Equal(t, int64(maxAutoReproCJobs), counts[ai.WorkflowReproC])
+	require.Equal(t, int64(1), counts[ai.WorkflowBisectCause])
 
-	// Now the rate limit window has cleared, and the next bug should be picked up.
-	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs), reproCFlow)
+	// Finishing one job frees a slot for the next eligible bug.
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobIDs[0], Error: "failed"}))
+	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs+1), reproCFlow)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, string(ai.WorkflowReproC), resp.Workflow)
+
+	// Back at the limit again.
+	resp = c.pollAIJob(t, fmt.Sprintf("agent-%d", maxAutoReproCJobs+2), reproCFlow)
+	require.Empty(t, resp.ID)
 }
 
 func TestAutoCreateAIJobUnsupportedArch(t *testing.T) {
