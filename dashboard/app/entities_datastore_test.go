@@ -143,3 +143,49 @@ func TestBuildEnv(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, BuildEnv(env1), dbBuild1.BuildEnv)
 }
+
+func TestLoadIgnoresUnknownProperties(t *testing.T) {
+	t.Run("Bug", func(t *testing.T) {
+		props := []db.Property{
+			{Name: "Namespace", Value: "test-ns"},
+			{Name: "Title", Value: "KASAN: slab-out-of-bounds"},
+			{Name: "FutureIntField", Value: int64(2)},
+			{Name: "FutureNested.Sub", Value: "val"},
+		}
+		bug := &Bug{}
+		require.NoError(t, bug.Load(props))
+		assert.Equal(t, "test-ns", bug.Namespace)
+		assert.Equal(t, "KASAN: slab-out-of-bounds", bug.Title)
+
+		badProps := []db.Property{
+			{Name: "Title", Value: int64(42)},
+		}
+		var mismatch *db.ErrFieldMismatch
+		require.ErrorAs(t, (&Bug{}).Load(badProps), &mismatch)
+	})
+
+	t.Run("Job", func(t *testing.T) {
+		orig := &Job{
+			Type:      JobTestPatch,
+			Namespace: "test-ns",
+			Manager:   "ci-kasan",
+			BugTitle:  "BUG: test",
+		}
+		props, err := orig.Save()
+		require.NoError(t, err)
+		props = append(props,
+			db.Property{Name: "FutureAIJobID", Value: "job-123"},
+			db.Property{Name: "FutureFlag", Value: true},
+		)
+
+		loaded := &Job{}
+		require.NoError(t, loaded.Load(props))
+		assert.Equal(t, orig, loaded)
+
+		badProps := []db.Property{
+			{Name: "Manager", Value: int64(42)},
+		}
+		var mismatch *db.ErrFieldMismatch
+		require.ErrorAs(t, (&Job{}).Load(badProps), &mismatch)
+	})
+}

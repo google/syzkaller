@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -325,8 +326,17 @@ type BugTag202304 struct {
 	SetBy string
 }
 
+func loadStructIgnoreUnknown(dst any, ps []db.Property) error {
+	err := db.LoadStruct(dst, ps)
+	var mismatch *db.ErrFieldMismatch
+	if errors.As(err, &mismatch) && mismatch.Reason == "no such struct field" {
+		return nil
+	}
+	return err
+}
+
 func (bug *Bug) Load(origProps []db.Property) error {
-	// First filer out Tag properties.
+	// First filter out Tag properties.
 	var tags, ps []db.Property
 	for _, p := range origProps {
 		if strings.HasPrefix(p.Name, "Tags.") {
@@ -338,7 +348,7 @@ func (bug *Bug) Load(origProps []db.Property) error {
 			ps = append(ps, p)
 		}
 	}
-	if err := db.LoadStruct(bug, ps); err != nil {
+	if err := loadStructIgnoreUnknown(bug, ps); err != nil {
 		return err
 	}
 	if len(tags) > 0 {
@@ -695,6 +705,14 @@ type Job struct {
 	Reported         bool   // have we reported result back to user?
 	InvalidatedBy    string // user who marked this bug as invalid, empty by default
 	BackportedCommit Commit
+}
+
+func (job *Job) Load(ps []db.Property) error {
+	return loadStructIgnoreUnknown(job, ps)
+}
+
+func (job *Job) Save() ([]db.Property, error) {
+	return db.SaveStruct(job)
 }
 
 func (job *Job) IsBisection() bool {
