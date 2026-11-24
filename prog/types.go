@@ -495,7 +495,7 @@ func (t *IntType) isDefaultArg(arg Arg) bool {
 }
 
 func (t *IntType) calcUselessHints() []uint64 {
-	res := specialInts[:len(specialInts):len(specialInts)]
+	res := slices.Clip(specialInts)
 	align := max(1, t.Align)
 	rangeVals := (t.RangeEnd - t.RangeBegin) / align
 	if rangeVals != 0 && rangeVals <= 100 {
