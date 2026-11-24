@@ -4,12 +4,16 @@
 package reproc
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatCFunc(t *testing.T) {
@@ -215,4 +219,85 @@ func TestValidateOracleOutputs(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "reproduction failed")
 	assert.Contains(t, err.Error(), "you must provide Feedback")
+}
+
+func TestDescribeFuncBug(t *testing.T) {
+	ctx := aflow.NewTestContext(t)
+
+	res, err := DescribeFuncBugFunc(ctx, DescribeFuncBugArgs{
+		FunctionName: "netlink_sendmsg",
+	})
+	require.NoError(t, err)
+	assert.Equal(t,
+		"I know that the function netlink_sendmsg contains a kernel bug. "+
+			"Please inspect it and provide a C reproducer that will trigger a bug in that function.",
+		res.BugDescription)
+
+	res, err = DescribeFuncBugFunc(ctx, DescribeFuncBugArgs{
+		FunctionName: "netlink_sendmsg.constprop.0",
+		Sanitizers:   "KASAN",
+	})
+	require.NoError(t, err)
+	assert.Equal(t,
+		"I know that the function netlink_sendmsg.constprop.0 contains a kernel bug. "+
+			"Please inspect it and provide a C reproducer that will trigger a bug in that function. "+
+			"The target kernel is built with KASAN. Aim for a failure this kernel can detect.",
+		res.BugDescription)
+
+	for _, bad := range []string{"", "bad name", "123func", "foo\nbar"} {
+		_, err := DescribeFuncBugFunc(ctx, DescribeFuncBugArgs{FunctionName: bad})
+		require.Error(t, err)
+		assert.True(t, aflow.IsFlowError(err), "expected FlowError for %q, got %v", bad, err)
+	}
+}
+
+func TestOracleInstruction(t *testing.T) {
+	render := func(data map[string]any) string {
+		t.Helper()
+		tmpl, err := template.New("test").Option("missingkey=error").Parse(oracleInstruction)
+		require.NoError(t, err)
+		var buf bytes.Buffer
+		require.NoError(t, tmpl.Execute(&buf, data))
+		return buf.String()
+	}
+
+	// repro-c (FunctionDirected == false) keeps exact-title wrap-up and expected-bug matching.
+	for _, isProbe := range []bool{true, false} {
+		got := render(map[string]any{
+			"IsProbe":          isProbe,
+			"FunctionDirected": false,
+		})
+		assert.Contains(t, got, "if the crash titles\n  match exactly")
+		assert.NotContains(t, got, "rooted in or reached through the target function")
+		if !isProbe {
+			assert.Contains(t, got, "Determine if the triggered crash matches the expected bug.")
+			assert.NotContains(t, got, "manifesting in a caller or callee")
+		}
+	}
+
+	// repro-func-c (FunctionDirected == true) uses target-function matching rules.
+	got := render(map[string]any{
+		"IsProbe":          false,
+		"FunctionDirected": true,
+	})
+	assert.Contains(t, got, "manifesting in a caller or callee")
+	assert.Contains(t, got, "rooted in or reached through the target function")
+	assert.NotContains(t, got, "Determine if the triggered crash matches the expected bug.")
+	assert.NotContains(t, got, "if the crash titles\n  match exactly")
+}
+
+func TestWorkflowRegistration(t *testing.T) {
+	reproC := aflow.Flows[string(ai.WorkflowReproC)]
+	require.NotNil(t, reproC)
+	assert.Equal(t, true, reproC.Consts["NeedStrace"])
+	assert.Equal(t, false, reproC.Consts["FunctionDirected"])
+
+	reproFuncC := aflow.Flows[string(ai.WorkflowReproFuncC)]
+	require.NotNil(t, reproFuncC)
+	assert.Equal(t, true, reproFuncC.Consts["NeedStrace"])
+	assert.Equal(t, true, reproFuncC.Consts["FunctionDirected"])
+}
+
+func TestOnMaxAttemptsNotReproduced(t *testing.T) {
+	aflow.TestAction(t, onMaxAttemptsNotReproduced, "", struct{}{}, notReproducedResult{Reproduced: false}, "")
 }
