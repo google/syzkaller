@@ -1999,7 +1999,7 @@ func TestWorkflowsForBugReproC(t *testing.T) {
 		require.True(t, got[ai.WorkflowReproC])
 	})
 
-	t.Run("fix bisection is manual only", func(t *testing.T) {
+	t.Run("fix bisection requires 30 days unless manual", func(t *testing.T) {
 		b := base()
 		require.True(t, workflowsForBug(c.ctx, b, true)[ai.WorkflowBisectFix])
 		require.False(t, workflowsForBug(c.ctx, b, false)[ai.WorkflowBisectFix])
@@ -3781,19 +3781,21 @@ func TestAIBisectCauseLimit(t *testing.T) {
 		jobs = append(jobs, resp.ID)
 		return fmt.Sprintf("%v: %v", resp.Workflow, resp.Args["BugTitle"])
 	}
-	const oldBugs = 4
+	const oldBugs = maxAutoBisectJobs + 2
 	for i := range oldBugs {
 		c.advanceTime(time.Minute)
 		reportCrash(i, fmt.Sprintf("KASAN: slab-use-after-free in old%v", i))
 	}
 
-	// At most maxAutoBisectCauseJobs (2) unfinished cause bisection jobs are allowed,
+	// At most maxAutoBisectJobs unfinished cause bisection jobs are allowed,
 	// prioritizing the newest bugs first.
-	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old3", poll(ai.WorkflowBisectCause))
-	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old2", poll(ai.WorkflowBisectCause))
+	for i := range maxAutoBisectJobs {
+		require.Equal(t, fmt.Sprintf("bisect-cause: KASAN: slab-use-after-free in old%v", oldBugs-1-i),
+			poll(ai.WorkflowBisectCause))
+	}
 	require.Empty(t, poll(ai.WorkflowBisectCause))
 
-	// A new bug is also subject to the same cap while 2 cause bisection jobs are unfinished.
+	// A new bug is also subject to the same cap while the cause bisection jobs are unfinished.
 	c.advanceTime(time.Minute)
 	reportCrash(oldBugs, "KASAN: slab-use-after-free in new")
 	require.Empty(t, poll(ai.WorkflowBisectCause))
@@ -3816,4 +3818,107 @@ func TestAIBisectCauseLimit(t *testing.T) {
 	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobs[1], Error: "failed"}))
 	require.Equal(t, "bisect-cause: KASAN: slab-use-after-free in old1", poll(ai.WorkflowBisectCause))
 	require.Empty(t, poll(ai.WorkflowBisectCause))
+}
+
+func TestAIBisectFixScheduling(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	const bugs = maxAutoBisectJobs
+	for i := 1; i <= bugs; i++ {
+		_, err := c.aiClient.ReportCrash(testCrash(build, i))
+		require.NoError(t, err)
+		c.aiClient.pollEmailExtID()
+		c.advanceTime(time.Hour)
+	}
+	// Each poll comes from a new agent, see TestAIBisectCauseLimit.
+	agents := 0
+	poll := func(typ ai.WorkflowType) *dashapi.AIJobPollResp {
+		t.Helper()
+		agents++
+		return c.pollAIJob(t, fmt.Sprintf("agent%v", agents), dashapi.AIWorkflow{Type: typ, Name: string(typ)})
+	}
+	// uploadBuild uploads a newer build of the manager the crashes happened on.
+	uploadBuild := func(id int, repo string) *dashapi.Build {
+		newBuild := testBuild(id)
+		newBuild.Manager, newBuild.KernelRepo, newBuild.KernelBranch = build.Manager, repo, build.KernelBranch
+		require.NoError(t, c.aiClient.UploadBuild(newBuild))
+		return newBuild
+	}
+	// bisect expects a fix bisection job for the bug with the title (no job, if the title is empty),
+	// and finishes the job with the outputs (fails it, if the outputs are nil).
+	bisect := func(title string, outputs *ai.BisectFixOutputs) {
+		t.Helper()
+		resp := poll(ai.WorkflowBisectFix)
+		if title == "" {
+			require.Empty(t, resp.ID)
+			return
+		}
+		require.Equal(t, title, resp.Args["BugTitle"])
+		if outputs == nil {
+			require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: resp.ID, Error: "failed"}))
+			return
+		}
+		c.finishAIJob(resp.ID, *outputs)
+	}
+	const day = 24 * time.Hour
+	stillPresent := &ai.BisectFixOutputs{BugStillPresent: true}
+	inconclusive := &ai.BisectFixOutputs{}
+	fixed := &ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		Commits: []ai.Commit{{Hash: "8888888888888888888888888888888888888888", Title: "fix"}},
+	}}
+
+	// No jobs until 30 days after the last crash.
+	c.advanceTime(29 * day)
+	bisect("", nil)
+	c.advanceTime(2 * day)
+	// No jobs until the manager builds a newer kernel from the same tree.
+	bisect("", nil)
+	uploadBuild(2, "other-repo")
+	c.advanceTime(day)
+	bisect("", nil)
+	head := uploadBuild(3, build.KernelRepo)
+	c.advanceTime(day)
+	// Make fix bisection pending for all bugs, so that they are ordered by the last crash time.
+	for range bugs {
+		require.NotEmpty(t, poll(ai.WorkflowAssessmentSecurity).ID)
+	}
+	// The oldest bugs go first, and at most maxAutoBisectJobs cause and fix bisection jobs
+	// are in progress in total.
+	require.NotEmpty(t, poll(ai.WorkflowBisectCause).ID)
+	var jobs []string
+	for i := 1; i < bugs; i++ {
+		resp := poll(ai.WorkflowBisectFix)
+		require.Equal(t, fmt.Sprintf("title%v", i), resp.Args["BugTitle"])
+		require.Equal(t, build.KernelCommit, resp.Args["CrashCommit"])
+		require.Equal(t, head.KernelCommit, resp.Args["KernelCommit"])
+		jobs = append(jobs, resp.ID)
+	}
+	bisect("", nil)
+	c.finishAIJob(jobs[0], *inconclusive)
+	for _, job := range jobs[1:] {
+		c.finishAIJob(job, *fixed)
+	}
+	bisect(fmt.Sprintf("title%v", bugs), fixed)
+
+	// A bug without a found fix is checked again in 30 days, the fixed ones are not.
+	c.advanceTime(29 * day)
+	bisect("", nil)
+	c.advanceTime(2 * day)
+	// A failed job is retried in a day.
+	bisect("title1", nil)
+	c.advanceTime(25 * time.Hour)
+	bisect("title1", stillPresent)
+	// The next job comes 30 days after the last successful one.
+	c.advanceTime(29 * day)
+	bisect("", nil)
+	c.advanceTime(2 * day)
+	// Failed jobs before the last successful one don't count towards maxAutoBisectFixAttempts.
+	bisect("title1", nil)
+	c.advanceTime(25 * time.Hour)
+	bisect("title1", nil)
+	c.advanceTime(49 * time.Hour)
+	bisect("", nil)
 }

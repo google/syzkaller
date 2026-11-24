@@ -1992,12 +1992,11 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		}
 	}
 	if typ == ai.WorkflowBisectFix {
-		manager, _ := activeManager(ctx, crash.Manager, bug.Namespace)
-		mgrBuild, err := lastManagerBuild(ctx, bug.Namespace, manager)
+		headBuild, err := fixBisectHeadBuild(ctx, bug.Namespace, crash)
 		if err != nil {
 			return "", fmt.Errorf("failed to get manager build for fix bisection: %w", err)
 		}
-		args["KernelCommit"] = mgrBuild.KernelCommit
+		args["KernelCommit"] = headBuild.KernelCommit
 		// On rebased trees the crash commit is not in the history of the latest commit.
 		if kernelRepoInfo(ctx, build).Rebased {
 			args["KernelRebased"] = true
@@ -2240,22 +2239,30 @@ const (
 	reproCPatchAge        = 30 * 24 * time.Hour
 
 	maxAutoBisectCauseAttempts = 2
-	maxAutoBisectCauseJobs     = 2
+	maxAutoBisectFixAttempts   = 2
+	// Cause and fix bisection share this limit of unfinished jobs.
+	maxAutoBisectJobs = 4
+	// Fix bisection waits 30 days after the last crash, and is repeated 30 days after
+	// the last successful job unless a fixing commit was found.
+	fixBisectRepeat = 24 * 30 * time.Hour
 )
 
 // Automatic creation of these workflows starts only while there are fewer than the configured
 // number of unfinished jobs of that workflow type in the namespace, so they do not take over
-// the agents.
+// the agents. Cause and fix bisection share one limit: their unfinished jobs are counted together.
 var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
 	ai.WorkflowReproC:      maxAutoReproCJobs,
-	ai.WorkflowBisectCause: maxAutoBisectCauseJobs,
+	ai.WorkflowBisectCause: maxAutoBisectJobs,
+	ai.WorkflowBisectFix:   maxAutoBisectJobs,
 }
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
 // to avoid repeatedly creating doomed or costly jobs.
+// Only the jobs after the last successful job of the workflow are counted.
 var maxAutoAttempts = map[ai.WorkflowType]int{
 	ai.WorkflowReproC:      maxAutoReproCAttempts,
 	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
+	ai.WorkflowBisectFix:   maxAutoBisectFixAttempts,
 }
 
 func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkflows []dashapi.AIWorkflow) (
@@ -2264,6 +2271,8 @@ func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkfl
 	if err != nil {
 		return nil, fmt.Errorf("failed to count AI jobs in progress for %v: %w", ns, err)
 	}
+	bisects := counts[ai.WorkflowBisectCause] + counts[ai.WorkflowBisectFix]
+	counts[ai.WorkflowBisectCause], counts[ai.WorkflowBisectFix] = bisects, bisects
 	var workflows []dashapi.AIWorkflow
 	for _, w := range reqWorkflows {
 		if w.Type == ai.WorkflowReproC && !cfg.AI.AutoReproC {
@@ -2317,9 +2326,13 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("AIPendingWorkflows=", string(req.Type))
-		if req.Type == ai.WorkflowBisectCause {
+		switch req.Type {
+		case ai.WorkflowBisectCause:
 			// Newer bugs go first within the cause bisection quota.
 			query = query.Order("-FirstTime")
+		case ai.WorkflowBisectFix:
+			// Bugs that have not crashed for the longest time go first.
+			query = query.Order("LastTime")
 		}
 		var bugs []*Bug
 		keys, err := query.Limit(1).GetAll(ctx, &bugs)
@@ -2447,24 +2460,30 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 		count int
 		last  time.Time
 	}{}
+	// The jobs are ordered from the newest to the oldest one.
+	succeeded := map[ai.WorkflowType]bool{}
 	for _, job := range jobs {
 		typ := job.Type
-		// Have finished successful job.
-		if job.Finished.Valid && job.Error == "" ||
-			// Or already have a pending or a running job.
-			!job.Finished.Valid {
-			// Don't create new jobs for these types.
+		if !job.Finished.Valid {
+			// Already have a pending or a running job.
 			delete(workflows, typ)
 			continue
 		}
-		// Have a failed, or aborted job.
+		if job.Error == "" {
+			// Have a finished successful job.
+			if !canRepeatAIJob(ctx, bug, job) {
+				delete(workflows, typ)
+			}
+			succeeded[typ] = true
+			continue
+		}
+		// Have a failed, or aborted job. Those before the last successful job don't count.
+		if succeeded[typ] {
+			continue
+		}
 		attempts := workflowAttempts[typ]
 		attempts.count++
-		jobTime := job.Created
-		if job.Started.Valid {
-			jobTime = job.Started.Time
-		}
-		if jobTime.After(attempts.last) {
+		if jobTime := aiJobAttemptTime(job); jobTime.After(attempts.last) {
 			attempts.last = jobTime
 		}
 		workflowAttempts[typ] = attempts
@@ -2493,8 +2512,7 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	if len(workflows) == 0 {
 		return nil, nil
 	}
-	supported, err := bugHasSupportedAIArch(ctx, bug)
-	if err != nil || !supported {
+	if err := dropUnsupportedWorkflows(ctx, bug, workflows); err != nil {
 		return nil, err
 	}
 	var pending []string
@@ -2505,8 +2523,48 @@ func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]st
 	return pending, nil
 }
 
+// canRepeatAIJob says if a new job of the same workflow can be created after the successful job.
+// Successful jobs are final, except for fix bisection that has not found a fixing commit
+// (the bug is still present, or nothing was determined): it is repeated once fixBisectRepeat
+// has passed since the last successful job.
+func canRepeatAIJob(ctx context.Context, bug *Bug, job *aidb.Job) bool {
+	return job.Type == ai.WorkflowBisectFix && len(bug.AIBisectFix.Commits) == 0 &&
+		timeSince(ctx, job.Finished.Time) >= fixBisectRepeat
+}
+
+// aiJobAttemptTime returns when the job was started, or created if it was not started.
+func aiJobAttemptTime(job *aidb.Job) time.Time {
+	if job.Started.Valid {
+		return job.Started.Time
+	}
+	return job.Created
+}
+
 // Arches supported by syz-agent (see syz-agent/k8s/overlays/prod-agent/agent-config.json).
 var aiSupportedArches = []string{targets.AMD64, targets.ARM64, targets.ARM, targets.I386, targets.RiscV64}
+
+// dropUnsupportedWorkflows removes the workflows that can't run for the bug now.
+func dropUnsupportedWorkflows(ctx context.Context, bug *Bug, workflows map[ai.WorkflowType]bool) error {
+	supported, err := bugHasSupportedAIArch(ctx, bug)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		clear(workflows)
+		return nil
+	}
+	if !workflows[ai.WorkflowBisectFix] {
+		return nil
+	}
+	hasNewer, err := bugHasNewerKernelBuild(ctx, bug)
+	if err != nil {
+		return err
+	}
+	if !hasNewer {
+		delete(workflows, ai.WorkflowBisectFix)
+	}
+	return nil
+}
 
 func bugHasSupportedAIArch(ctx context.Context, bug *Bug) (bool, error) {
 	crash, _, err := findCrashForBug(ctx, bug)
@@ -2519,6 +2577,35 @@ func bugHasSupportedAIArch(ctx context.Context, bug *Bug) (bool, error) {
 	}
 	return build.Type != BuildFailed && build.OS == targets.Linux &&
 		slices.Contains(aiSupportedArches, build.Arch), nil
+}
+
+// bugHasNewerKernelBuild says if automatic fix bisection of the bug has something to search through:
+// the manager has built a newer kernel from the same tree since the crash. Otherwise:
+//   - if the manager has switched to another kernel tree, the crash commit and the latest commit
+//     are unrelated,
+//   - if the manager can't build the latest kernel, the agent would most likely fail to build it as well.
+func bugHasNewerKernelBuild(ctx context.Context, bug *Bug) (bool, error) {
+	crash, _, err := findCrashForBug(ctx, bug)
+	if err != nil {
+		return false, err
+	}
+	build, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return false, err
+	}
+	head, err := fixBisectHeadBuild(ctx, bug.Namespace, crash)
+	if err != nil {
+		return false, err
+	}
+	return head.KernelRepo == build.KernelRepo && head.KernelBranch == build.KernelBranch &&
+		head.KernelCommit != build.KernelCommit, nil
+}
+
+// fixBisectHeadBuild returns the build that fix bisection of the crash searches for the fix up to:
+// the latest build of the manager the crash happened on.
+func fixBisectHeadBuild(ctx context.Context, ns string, crash *Crash) (*Build, error) {
+	manager, _ := activeManager(ctx, crash.Manager, ns)
+	return lastManagerBuild(ctx, ns, manager)
 }
 
 func (bug *Bug) hasRecentPatchCandidate(ctx context.Context, maxAge time.Duration) bool {
@@ -2724,13 +2811,28 @@ func formatKCSANReproDescription(bugTitle, crashReport string, assessment *ai.As
 		bugTitle, crashReport, assessment.Explanation, guidance)
 }
 
+func canAutoBisectBug(bug *Bug, typ crash.Type) bool {
+	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasReport && !typ.IsKCSAN() && isKernelCrashBugTitle(bug.Title, typ)
+}
+
 // Automatic AI cause bisection heuristics:
 // - Open bugs only, with no fixing commits.
 // - Must have a crash report (a reproducer is not required).
 // - Skip KCSAN bugs, non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
 func canAutoBisectCause(bug *Bug, typ crash.Type) bool {
-	return bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
-		bug.HasReport && !typ.IsKCSAN() && isKernelCrashBugTitle(bug.Title, typ)
+	return canAutoBisectBug(bug, typ)
+}
+
+// Automatic AI fix bisection heuristics:
+//   - Open bugs only, with no fixing commits.
+//   - Must have a crash report (a reproducer is not required).
+//   - Skip KCSAN bugs, non-kernel/syzkaller crashes, and build/boot/test errors (see isKernelCrashBugTitle).
+//   - At least 30 days since the last crash or the last StillPresent AI fix bisection
+//     (see also canRepeatAIJob for when fix bisection is repeated).
+func canAutoBisectFix(ctx context.Context, bug *Bug, typ crash.Type) bool {
+	return canAutoBisectBug(bug, typ) &&
+		timeSince(ctx, bug.lastPresentTime()) >= fixBisectRepeat
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
@@ -2764,6 +2866,9 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		}
 		if canAutoBisectCause(bug, typ) {
 			workflows[ai.WorkflowBisectCause] = true
+		}
+		if canAutoBisectFix(ctx, bug, typ) {
+			workflows[ai.WorkflowBisectFix] = true
 		}
 	}
 	return workflows
