@@ -11,6 +11,7 @@ import (
 	"html"
 	"maps"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"strings"
 	"sync/atomic"
@@ -1458,49 +1459,46 @@ func TestManualAIWorkflows(t *testing.T) {
 	assert.Nil(t, manualAIWorkflows(&Config{}))
 }
 
-func TestAITestReproC(t *testing.T) {
-	c := NewSpannerCtx(t)
-	defer c.Close()
+func (ctx *Ctx) setupAITestReproC(t *testing.T, maintainers ...string) (string, *Bug, *dashapi.JobPollResp) {
+	t.Helper()
 
 	build := testBuild(1)
 	build.KernelRepo = "git://syzkaller.org"
-	c.aiClient.UploadBuild(build)
+	ctx.aiClient.UploadBuild(build)
 
 	crash := testCrash(build, 1)
-	crash.Maintainers = []string{"maintainer@kernel.org"}
-	c.aiClient.ReportCrash(crash)
-	extID := c.aiClient.pollEmailExtID()
-	bug, _, _ := c.loadBug(extID)
+	crash.Maintainers = maintainers
+	ctx.aiClient.ReportCrash(crash)
+	extID := ctx.aiClient.pollEmailExtID()
+	bug, _, _ := ctx.loadBug(extID)
 
-	c.pollAIWorkflow(t, ai.WorkflowReproC)
+	ctx.pollAIWorkflow(t, ai.WorkflowReproC)
 
-	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx))
-	values := url.Values{}
-	values.Set("ai-job-create", string(ai.WorkflowReproC))
-	_, err := c.AuthPOSTForm(AccessUser, jobCreateURL, values)
+	jobCreateURL := fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx.ctx))
+	values := url.Values{"ai-job-create": {string(ai.WorkflowReproC)}}
+	_, err := ctx.AuthPOSTForm(AccessUser, jobCreateURL, values)
 	require.NoError(t, err)
 
-	aiJobResp := c.pollAIWorkflow(t, ai.WorkflowReproC)
+	aiJobResp := ctx.pollAIWorkflow(t, ai.WorkflowReproC)
 	require.NotEmpty(t, aiJobResp.ID)
-
-	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+	require.NoError(t, ctx.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: aiJobResp.ID,
 		Results: map[string]any{
 			"ReproC": "int main() { return 0; }",
 		},
-	})
-	require.NoError(t, err)
+	}))
 
-	testValues := url.Values{}
-	testValues.Set("id", aiJobResp.ID)
-	testValues.Set("action", "test_repro_c")
-	_, err = c.AuthPOSTForm(AccessUser, "/ai_job", testValues)
+	testValues := url.Values{
+		"id":     {aiJobResp.ID},
+		"action": {"test_repro_c"},
+	}
+	_, err = ctx.AuthPOSTForm(AccessUser, "/ai_job", testValues)
 	var httpErr *HTTPError
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, http.StatusFound, httpErr.Code)
-	require.Equal(t, fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)), httpErr.Headers.Get("Location"))
+	require.Equal(t, fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx.ctx)), httpErr.Headers.Get("Location"))
 
-	pollResp, err := c.globalClient.JobPoll(&dashapi.JobPollReq{
+	pollResp, err := ctx.globalClient.JobPoll(&dashapi.JobPollReq{
 		Managers: map[string]dashapi.ManagerJobs{
 			build.Manager: {TestPatches: true},
 		},
@@ -1509,6 +1507,15 @@ func TestAITestReproC(t *testing.T) {
 	require.Equal(t, dashapi.JobTestPatch, pollResp.Type)
 	require.Equal(t, build.KernelCommit, pollResp.KernelBranch)
 	require.Equal(t, "int main() { return 0; }", string(pollResp.ReproC))
+	return extID, bug, pollResp
+}
+
+func TestAITestReproC(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	maintainers := []string{"maintainer@kernel.org"}
+	extID, bug, pollResp := c.setupAITestReproC(t, maintainers...)
 
 	// Complete the test job with a crash matching the bug title.
 	jobDoneReq := &dashapi.JobDoneReq{
@@ -1527,7 +1534,7 @@ func TestAITestReproC(t *testing.T) {
 	require.True(t, bug.HeadHasCRepro)
 	// The new primary crash must inherit the maintainers of the original crash.
 	require.NotZero(t, dbCrash.ReproC)
-	require.Equal(t, crash.Maintainers, dbCrash.Maintainers)
+	require.Equal(t, maintainers, dbCrash.Maintainers)
 
 	// Verify that the reproducer link is reported in the email and serves the augmented C reproducer via HTTP.
 	reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
@@ -1535,6 +1542,35 @@ func TestAITestReproC(t *testing.T) {
 	wantReproC := []byte(fmt.Sprintf("// %v/bug?id=%v\nint main() { return 0; }",
 		appURL(c.ctx), bug.keyHash(c.ctx)))
 	c.checkURLContents(reproCLink, wantReproC)
+}
+
+func TestAITestReproCCrashMetadata(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	_, bug, pollResp := c.setupAITestReproC(t, "orig-maintainer@kernel.org")
+
+	// Complete the test job with a different crash title carrying syz-ci recipients and guilty files.
+	const newTitle = "KASAN: slab-use-after-free in downstream_fn"
+	require.NoError(t, c.globalClient.JobDone(&dashapi.JobDoneReq{
+		ID:          pollResp.ID,
+		Build:       *testBuild(2),
+		CrashTitle:  newTitle,
+		CrashReport: []byte("downstream crash report"),
+		CrashRecipients: dashapi.Recipients{
+			{Address: mail.Address{Address: "downstream@kernel.org"}, Type: dashapi.To},
+			{Address: mail.Address{Address: "downstream-cc@vger.kernel.org"}, Type: dashapi.Cc},
+		},
+		CrashGuiltyFiles: []string{"mm/slub.c"},
+	}))
+
+	newBug, err := findExistingBugForCrash(c.ctx, bug.Namespace, []string{newTitle})
+	require.NoError(t, err)
+	require.NotNil(t, newBug)
+	newCrash, _, err := findCrashForBug(c.ctx, newBug)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"downstream-cc@vger.kernel.org", "downstream@kernel.org"}, newCrash.Maintainers)
+	assert.Equal(t, []string{"mm/slub.c"}, newCrash.ReportElements.GuiltyFiles)
 }
 
 func TestAutoTestReproC(t *testing.T) {

@@ -7,10 +7,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/mail"
 	"testing"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAggregateTestResults(t *testing.T) {
@@ -135,4 +139,35 @@ func TestAggregateTestResults(t *testing.T) {
 			t.Errorf("test #%v: got raw out: %q, want: %q", i, gotOutput, test.rawOut)
 		}
 	}
+}
+
+func TestFillJobDoneCrash(t *testing.T) {
+	rep := &report.Report{
+		Title:      "KASAN: slab-use-after-free in foo",
+		AltTitles:  []string{"alt1"},
+		Report:     []byte("report body"),
+		GuiltyFile: "net/core/dev.c",
+		Recipients: vcs.Recipients{
+			{Address: mail.Address{Address: "dev@kernel.org"}, Type: vcs.To},
+			{Address: mail.Address{Address: "list@vger.kernel.org"}, Type: vcs.Cc},
+		},
+		Corrupted:  true,
+		Suppressed: true,
+	}
+	resp := &dashapi.JobDoneReq{}
+	fillJobDoneCrash(resp, rep)
+
+	assert.Equal(t, rep.Title, resp.CrashTitle)
+	assert.Equal(t, rep.AltTitles, resp.CrashAltTitles)
+	assert.Equal(t, rep.Report, resp.CrashReport)
+	assert.Equal(t, rep.Recipients.ToDash(), resp.CrashRecipients)
+	assert.Equal(t, []string{"net/core/dev.c"}, resp.CrashGuiltyFiles)
+	assert.True(t, resp.CrashCorrupted)
+	assert.True(t, resp.CrashSuppressed)
+
+	emptyResp := &dashapi.JobDoneReq{}
+	fillJobDoneCrash(emptyResp, &report.Report{Title: "BUG: test"})
+	assert.Nil(t, emptyResp.CrashGuiltyFiles)
+	assert.False(t, emptyResp.CrashCorrupted)
+	assert.False(t, emptyResp.CrashSuppressed)
 }
