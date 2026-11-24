@@ -1422,19 +1422,27 @@ func loadFullBugInfo(ctx context.Context, bug *Bug, bugKey *db.Key,
 		return nil, fmt.Errorf("failed to find the reporting object")
 	}
 	ret := &dashapi.FullBugInfo{}
-	// Query bisections.
-	var err error
-	if bug.BisectCause > BisectPending {
-		ret.BisectCause, err = prepareBisectionReport(ctx, bug, JobBisectCause, reporting)
-		if err != nil {
-			return nil, err
+	// Query bisections. AI bisection results take priority over syz-ci ones (see Bug.AIBisectCause).
+	bisection := func(res *BugAIBisect, syzCI BisectStatus, jobType JobType) (*dashapi.BugReport, error) {
+		if !res.present() {
+			if syzCI <= BisectPending {
+				return nil, nil
+			}
+			return prepareBisectionReport(ctx, bug, jobType, reporting)
 		}
+		if len(res.Commits) == 0 {
+			return nil, nil
+		}
+		return prepareAIBisectionReport(ctx, bug, res, jobType, bugReporting, reporting)
 	}
-	if bug.BisectFix > BisectPending {
-		ret.BisectFix, err = prepareBisectionReport(ctx, bug, JobBisectFix, reporting)
-		if err != nil {
-			return nil, err
-		}
+	var err error
+	ret.BisectCause, err = bisection(&bug.AIBisectCause, bug.BisectCause, JobBisectCause)
+	if err != nil {
+		return nil, err
+	}
+	ret.BisectFix, err = bisection(&bug.AIBisectFix, bug.BisectFix, JobBisectFix)
+	if err != nil {
+		return nil, err
 	}
 	// Query the fix candidate.
 	if bug.FixCandidateJob != "" {
@@ -1514,6 +1522,52 @@ func prepareBisectionReport(ctx context.Context, bug *Bug, jobType JobType,
 		return ret, nil
 	}
 	return nil, nil
+}
+
+func prepareAIBisectionReport(ctx context.Context, bug *Bug, res *BugAIBisect, jobType JobType,
+	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
+	crash, crashKey, err := aiBisectCrash(ctx, bug, res)
+	if err != nil {
+		return nil, err
+	}
+	rep, err := crashBugReport(ctx, bug, crash, crashKey, bugReporting, reporting)
+	if err != nil {
+		return nil, err
+	}
+	rep.Type = jobType.toDashapiReportType()
+	bisect, emails := aiBisectReport(ctx, res)
+	bisect.Fix = jobType == JobBisectFix
+	if jobType == JobBisectCause {
+		rep.BisectCause = bisect
+	} else {
+		rep.BisectFix = bisect
+	}
+	for _, addr := range bug.UNCC {
+		emails = email.RemoveFromEmailList(emails, addr)
+	}
+	rep.Maintainers = append(rep.Maintainers, emails...)
+	if res.KernelRepo != "" {
+		rep.KernelRepo = res.KernelRepo
+	}
+	return rep, nil
+}
+
+// aiBisectCrash returns the crash the AI bisection job ran on. If the crash is not known
+// (see BugAIBisect.CrashID) or does not exist anymore, it returns the crash that would be reported
+// for the bug now, which may have happened on a different kernel.
+func aiBisectCrash(ctx context.Context, bug *Bug, res *BugAIBisect) (*Crash, *db.Key, error) {
+	if res.CrashID != 0 {
+		crashKey := db.NewKey(ctx, "Crash", "", res.CrashID, bug.key(ctx))
+		crash := new(Crash)
+		err := db.Get(ctx, crashKey, crash)
+		if err == nil {
+			return crash, crashKey, nil
+		}
+		if err != db.ErrNoSuchEntity {
+			return nil, nil, fmt.Errorf("failed to get crash %v: %w", res.CrashID, err)
+		}
+	}
+	return findCrashForBug(ctx, bug)
 }
 
 type crashWithKey struct {

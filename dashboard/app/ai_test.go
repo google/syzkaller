@@ -2834,6 +2834,138 @@ func TestAIBisectFixObsoleting(t *testing.T) {
 	assert.Contains(t, notif.Body, "Auto-closing this bug as obsolete")
 }
 
+func TestFullBugInfoAIBisect(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.KernelRepo = "https://github.com/torvalds/linux"
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	_, err := c.aiClient.ReportCrash(testCrashWithRepro(build, 1))
+	require.NoError(t, err)
+	extID := c.aiClient.pollEmailExtID()
+
+	// Complete a legacy syz-ci cause bisection first to verify AI takes priority over it.
+	pollResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{BisectCause: true})
+	require.Equal(t, dashapi.JobBisectCause, pollResp.Type)
+	require.NoError(t, c.globalClient.JobDone(&dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *build,
+		Commits: []dashapi.Commit{{
+			Hash:  "1111111111111111111111111111111111111111",
+			Title: "legacy cause commit",
+		}},
+	}))
+	c.pollEmailBug()
+
+	info, err := c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: extID})
+	require.NoError(t, err)
+	require.NotNil(t, info.BisectCause)
+	require.NotNil(t, info.BisectCause.BisectCause)
+	assert.False(t, info.BisectCause.BisectCause.AI)
+	assert.Equal(t, "legacy cause commit", info.BisectCause.BisectCause.Commit.Title)
+	assert.Nil(t, info.BisectFix)
+
+	// Inconclusive AI cause bisection overrides the legacy cause bisection.
+	causeResp := c.startAIBisect(extID, ai.WorkflowBisectCause)
+	c.finishAIJob(causeResp.ID, ai.BisectCauseOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build.KernelCommit,
+	}})
+	info, err = c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: extID})
+	require.NoError(t, err)
+	assert.Nil(t, info.BisectCause)
+
+	// Conclusive AI cause and fix bisections appear in FullBugInfo.
+	causeJobLink := c.runAIBisectCause(extID, ai.Commit{
+		Hash:        "2222222222222222222222222222222222222222",
+		Title:       "ai cause commit",
+		AuthorName:  "Cause Author",
+		AuthorEmail: "cause@kernel.org",
+	})
+	fixResp := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	c.finishAIJob(fixResp.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build.KernelCommit,
+		Commits: []ai.Commit{{
+			Hash:        "3333333333333333333333333333333333333333",
+			Title:       "ai fix commit",
+			AuthorName:  "Fix Author",
+			AuthorEmail: "fix@kernel.org",
+		}},
+	}})
+
+	info, err = c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: extID})
+	require.NoError(t, err)
+	require.NotNil(t, info.BisectCause)
+	assert.Equal(t, dashapi.ReportBisectCause, info.BisectCause.Type)
+	assert.Equal(t, build.KernelRepo, info.BisectCause.KernelRepo)
+	require.NotNil(t, info.BisectCause.BisectCause)
+	assert.True(t, info.BisectCause.BisectCause.AI)
+	assert.False(t, info.BisectCause.BisectCause.Fix)
+	assert.Equal(t, appURL(c.ctx)+causeJobLink, info.BisectCause.BisectCause.LogLink)
+	require.NotNil(t, info.BisectCause.BisectCause.Commit)
+	assert.Equal(t, "ai cause commit", info.BisectCause.BisectCause.Commit.Title)
+
+	require.NotNil(t, info.BisectFix)
+	assert.Equal(t, dashapi.ReportBisectFix, info.BisectFix.Type)
+	assert.Equal(t, build.KernelRepo, info.BisectFix.KernelRepo)
+	require.NotNil(t, info.BisectFix.BisectFix)
+	assert.True(t, info.BisectFix.BisectFix.AI)
+	assert.True(t, info.BisectFix.BisectFix.Fix)
+	assert.Equal(t, fmt.Sprintf("%v/ai_job?id=%v", appURL(c.ctx), fixResp.ID), info.BisectFix.BisectFix.LogLink)
+	require.NotNil(t, info.BisectFix.BisectFix.Commit)
+	assert.Equal(t, "ai fix commit", info.BisectFix.BisectFix.Commit.Title)
+
+	// StillPresent clears the fix commit from FullBugInfo.BisectFix.
+	fixResp2 := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	c.finishAIJob(fixResp2.ID, ai.BisectFixOutputs{
+		BisectOutputs:   ai.BisectOutputs{KernelCommit: build.KernelCommit},
+		BugStillPresent: true,
+	})
+	info, err = c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: extID})
+	require.NoError(t, err)
+	assert.Nil(t, info.BisectFix)
+}
+
+func TestFullBugInfoAIBisectCrash(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	build1.KernelRepo = "https://github.com/torvalds/linux"
+	require.NoError(t, c.aiClient.UploadBuild(build1))
+	build2 := testBuild(2)
+	build2.KernelRepo = "https://github.com/other/linux"
+	require.NoError(t, c.aiClient.UploadBuild(build2))
+
+	// Fix bisection runs on the only crash of the bug.
+	_, err := c.aiClient.ReportCrash(testCrashWithRepro(build1, 1))
+	require.NoError(t, err)
+	extID := c.aiClient.pollEmailExtID()
+	resp := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	require.Equal(t, build1.KernelRepo, resp.Args["KernelRepo"])
+
+	// Then the bug happens in another repo, and that crash is the one reported for the bug now.
+	c.advanceTime(time.Hour)
+	_, err = c.aiClient.ReportCrash(testCrashWithRepro(build2, 1))
+	require.NoError(t, err)
+	_, crash, _ := c.loadBug(extID)
+	require.Equal(t, build2.ID, crash.BuildID)
+	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build1.KernelCommit,
+		Commits:      []ai.Commit{{Hash: "8888888888888888888888888888888888888888", Title: "kernel: fix"}},
+	}})
+
+	// FullBugInfo still describes the crash the job ran on.
+	info, err := c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: extID})
+	require.NoError(t, err)
+	require.NotNil(t, info.BisectFix)
+	assert.Equal(t, build1.ID, info.BisectFix.BuildID)
+	assert.Equal(t, build1.KernelRepo, info.BisectFix.KernelRepo)
+	assert.Equal(t, build1.KernelBranch, info.BisectFix.KernelBranch)
+	assert.Equal(t, build1.KernelCommit, info.BisectFix.KernelCommit)
+	assert.Equal(t, build1.CompilerID, info.BisectFix.CompilerID)
+}
+
 func TestAIBisectResult(t *testing.T) {
 	commit := ai.Commit{
 		Hash:        "9999999999999999999999999999999999999999",

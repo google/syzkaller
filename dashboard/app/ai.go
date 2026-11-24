@@ -1664,10 +1664,23 @@ func aiBisectResult(job *aidb.Job) (BugAIBisect, error) {
 	}
 	args, _ := job.Args.Value.(map[string]any)
 	repo, _ := args["KernelRepo"].(string)
+	// Jobs that were created before the crash was recorded in the arguments don't have CrashID.
+	var crashID int64
+	if arg, ok := args["CrashID"]; ok {
+		num, ok := arg.(json.Number)
+		if !ok {
+			return BugAIBisect{}, fmt.Errorf("unexpected CrashID argument type %T", arg)
+		}
+		var err error
+		if crashID, err = num.Int64(); err != nil {
+			return BugAIBisect{}, fmt.Errorf("bad CrashID argument: %w", err)
+		}
+	}
 	res := BugAIBisect{
 		JobID:        job.ID,
 		Finished:     nullTime(job.Finished),
 		KernelRepo:   repo,
+		CrashID:      crashID,
 		StillPresent: stillPresent,
 	}
 	if outputs.IsRelease {
@@ -1945,9 +1958,13 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"BaseBranch":      cfg.AI.BaseBranch,
 		"BaseCommit":      cfg.AI.BaseCommit,
 	}
-	if (typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix) && bug.AIRootCause.Text != 0 {
-		args["RootCauseAnalysisID"] = bug.AIRootCause.Text
-		args["RootCauseCommit"] = bug.AIRootCause.KernelCommit
+	if typ == ai.WorkflowBisectCause || typ == ai.WorkflowBisectFix {
+		// The crash is remembered in the bisection result of the bug (see BugAIBisect.CrashID).
+		args["CrashID"] = crashKey.IntID()
+		if bug.AIRootCause.Text != 0 {
+			args["RootCauseAnalysisID"] = bug.AIRootCause.Text
+			args["RootCauseCommit"] = bug.AIRootCause.KernelCommit
+		}
 	}
 	if typ == ai.WorkflowBisectFix {
 		manager, _ := activeManager(ctx, crash.Manager, bug.Namespace)
