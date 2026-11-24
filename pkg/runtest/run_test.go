@@ -28,6 +28,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -521,6 +522,65 @@ func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test Cov
 	assert.Equal(t, test.Signal, call.Signal)
 	// Comparisons are reordered and order does not matter, so compare without order.
 	assert.ElementsMatch(t, test.Comps, call.Comps)
+}
+
+func TestCoverCountOverflow(t *testing.T) {
+	t.Parallel()
+	sysTarget := targets.Get(targets.TestOS, targets.TestArch64Fork)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping due to broken compiler:\n%v", sysTarget.BrokenCompiler)
+	}
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fork)
+	require.NoError(t, err)
+	executor := csource.BuildExecutor(t, target, "../../")
+	for _, tc := range []struct {
+		name     string
+		callName string
+		flags    flatrpc.ExecFlag
+	}{
+		{
+			name:     "signal",
+			callName: "syz_inject_cover",
+			flags:    flatrpc.ExecFlagCollectSignal,
+		},
+		{
+			name:     "cover",
+			callName: "syz_inject_cover",
+			flags:    flatrpc.ExecFlagCollectCover,
+		},
+		{
+			name:     "extra_cover",
+			callName: "syz_inject_remote_cover",
+			flags:    flatrpc.ExecFlagCollectCover,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			source := queue.Plain()
+			ctx := startRPCServer(t, target, executor, source, rpcParams{
+				vmArch: targets.TestArch64,
+			})
+			// A 64-bit count whose lower 32 bits are 0 used to truncate into uint32 cov->size.
+			input := binary.NativeEndian.AppendUint64(nil, 1<<32)
+			text := fmt.Sprintf(`%s(&AUTO="%s", AUTO)`, tc.callName, hex.EncodeToString(input))
+			p, err := target.Deserialize([]byte(text), prog.Strict)
+			require.NoError(t, err)
+			req := &queue.Request{
+				Prog:         p,
+				ReturnError:  true,
+				ReturnOutput: true,
+				ExecOpts: flatrpc.ExecOpts{
+					EnvFlags:  flatrpc.ExecEnvSignal | flatrpc.ExecEnvExtraCover | flatrpc.ExecEnvSandboxNone,
+					ExecFlags: tc.flags,
+				},
+			}
+			source.Submit(req)
+			res := req.Wait(ctx)
+			require.Equal(t, queue.ExecFailure, res.Status)
+			require.Error(t, res.Err)
+			require.Contains(t, string(res.Output), "too much cover")
+		})
+	}
 }
 
 func makeCover64(pcs ...uint64) []byte {
