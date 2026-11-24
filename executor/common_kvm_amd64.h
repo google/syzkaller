@@ -1163,7 +1163,10 @@ static int reset_cpu_regs(int cpufd, uint64 rip, uint64 cpu_id)
 	regs.rip = rip;
 	// Every vCPU needs its own stack: a vCPU that exits to the host stays suspended in the middle of
 	// guest_main(), and another vCPU running in the meantime must not overwrite its stack frames.
-	regs.rsp = X86_SYZOS_ADDR_VCPU_STACK(cpu_id);
+	// The vCPU starts in guest_main() as if it had been called: the x86-64 ABI expects RSP + 8 to
+	// be 16-byte aligned at function entry. Otherwise the stack of every SYZOS function is
+	// misaligned, and the aligned SSE moves the compiler emits for locals cause a #GP.
+	regs.rsp = X86_SYZOS_ADDR_VCPU_STACK(cpu_id) - 8;
 	regs.rdi = cpu_id;
 	return ioctl(cpufd, KVM_SET_REGS, &regs) ? -1 : 0;
 }
