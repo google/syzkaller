@@ -203,16 +203,19 @@ static void SnapshotPrepareParent()
 static void SnapshotStart()
 {
 	debug("SnapshotStart\n");
+	// Pre-create worker threads before entering CoverAccessScope so they inherit
+	// write protection for RESERVED_PKEY and thread_mmap_cover() -> cover_protect()
+	// cannot drop protection inside CoverAccessScope.
+	flag_threaded = true;
+	for (size_t i = 0; i < kThreadsPopulate; i++)
+		thread_create(&threads[i], i, flag_coverage);
 	CoverAccessScope scope;
 	// Prefault as much memory as we can before the snapshot is taken.
-	// Also pre-create some threads and let them block.
 	// This is intended to make execution after each snapshot restore faster,
 	// as we won't need to do that duplicate work again and again.
-	flag_threaded = true;
-	for (size_t i = 0; i < kThreadsPopulate; i++) {
-		thread_t* th = &threads[i];
-		thread_create(th, i, flag_coverage);
-		if (flag_coverage) {
+	if (flag_coverage) {
+		for (size_t i = 0; i < kThreadsPopulate; i++) {
+			thread_t* th = &threads[i];
 			TouchMemory(th->cov.data, kCoveragePopulate);
 			// Also fault the writable first page with a write for cover_reset().
 			if (!flag_read_only_coverage)
