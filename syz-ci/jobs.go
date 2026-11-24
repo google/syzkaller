@@ -691,14 +691,24 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	rep := ret.report
 	if rep != nil {
 		dt.Logf("reproduced crash: %v", rep.Title)
-		resp.CrashTitle = rep.Title
-		resp.CrashAltTitles = rep.AltTitles
-		resp.CrashReport = rep.Report
+		fillJobDoneCrash(resp, rep)
 	} else {
 		dt.Logf("testing succeeded, no crash reproduced")
 	}
 	resp.CrashLog = ret.rawOutput
 	return nil
+}
+
+func fillJobDoneCrash(resp *dashapi.JobDoneReq, rep *report.Report) {
+	resp.CrashTitle = rep.Title
+	resp.CrashAltTitles = rep.AltTitles
+	resp.CrashReport = rep.Report
+	resp.CrashRecipients = rep.Recipients.ToDash()
+	if rep.GuiltyFile != "" {
+		resp.CrashGuiltyFiles = []string{rep.GuiltyFile}
+	}
+	resp.CrashCorrupted = rep.Corrupted
+	resp.CrashSuppressed = rep.Suppressed
 }
 
 func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
