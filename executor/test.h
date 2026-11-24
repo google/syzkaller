@@ -418,6 +418,40 @@ static int test_get_last_opt()
 	return 0;
 }
 
+#if GOOS_linux
+static int test_cover_reset()
+{
+	bool old_coverage = flag_coverage;
+	bool old_collect_cover = flag_collect_cover;
+	bool old_collect_signal = flag_collect_signal;
+	bool old_comparisons = flag_comparisons;
+	bool old_read_only = flag_read_only_coverage;
+	thread_t* old_thread = current_thread;
+
+	thread_t th = {};
+	th.cov.fd = -1;
+	th.cov.overflow = true;
+	current_thread = &th;
+	flag_coverage = true;
+	flag_collect_cover = false;
+	flag_collect_signal = false;
+	flag_comparisons = false;
+
+	flag_read_only_coverage = false;
+	cover_reset(0);
+	flag_read_only_coverage = true;
+	cover_reset(0);
+
+	current_thread = old_thread;
+	flag_read_only_coverage = old_read_only;
+	flag_comparisons = old_comparisons;
+	flag_collect_signal = old_collect_signal;
+	flag_collect_cover = old_collect_cover;
+	flag_coverage = old_coverage;
+	return th.cov.overflow ? 0 : 1;
+}
+#endif
+
 static struct {
 	const char* name;
 	int (*f)();
@@ -425,6 +459,9 @@ static struct {
     {"test_copyin", test_copyin},
     {"test_csum_inet", test_csum_inet},
     {"test_csum_inet_acc", test_csum_inet_acc},
+#if GOOS_linux
+    {"test_cover_reset", test_cover_reset},
+#endif
 #if GOOS_linux && (GOARCH_amd64 || GOARCH_ppc64 || GOARCH_ppc64le || GOARCH_arm64 || GOARCH_loong64)
     {"test_kvm", test_kvm},
 #endif
