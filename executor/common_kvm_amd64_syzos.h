@@ -39,6 +39,8 @@ typedef enum {
 	SYZOS_API_NESTED_INTEL_MSR_LIST_ADD = 341,
 	SYZOS_API_NESTED_INTEL_INVEPT = 342,
 	SYZOS_API_NESTED_INTEL_INVVPID = 343,
+	SYZOS_API_NESTED_INTEL_EPTP_LIST_SET = 344,
+	SYZOS_API_NESTED_INTEL_VMFUNC = 345,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
@@ -59,6 +61,7 @@ typedef enum {
 	NESTED_PAGE_IOPM = 30, // Intel: I/O bitmaps A and B; AMD: I/O permission map.
 	NESTED_PAGE_POSTED_INTR = 40, // Intel: posted-interrupt descriptor.
 	NESTED_PAGE_PML = 50, // Intel: page-modification log.
+	NESTED_PAGE_EPTP_LIST = 60, // Intel: VMFUNC EPTP list page.
 } nested_page_type;
 
 struct api_call_uexit {
@@ -167,6 +170,8 @@ GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5*
 GUEST_CODE static void guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_invept(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_nested_intel_invvpid(struct api_call_3* cmd);
+GUEST_CODE static void guest_handle_nested_intel_eptp_list_set(struct api_call_3* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_intel_vmfunc(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
@@ -356,6 +361,12 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_INVVPID) {
 			// Invalidate the mappings tagged with a VPID.
 			guest_handle_nested_intel_invvpid((struct api_call_3*)cmd);
+		} else if (call == SYZOS_API_NESTED_INTEL_EPTP_LIST_SET) {
+			// Set a VMFUNC EPTP list entry and enable EPTP switching.
+			guest_handle_nested_intel_eptp_list_set((struct api_call_3*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_INTEL_VMFUNC) {
+			// Execute VMFUNC.
+			guest_handle_nested_intel_vmfunc((struct api_call_2*)cmd);
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
@@ -410,10 +421,11 @@ GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
 		return sizeof(struct api_call_1);
 	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
 	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
-	    (call == SYZOS_API_NESTED_INTEL_INVEPT) || (call == SYZOS_API_NESTED_AMD_INVLPGA))
+	    (call == SYZOS_API_NESTED_INTEL_INVEPT) || (call == SYZOS_API_NESTED_INTEL_VMFUNC) ||
+	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
 		return sizeof(struct api_call_2);
 	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES) ||
-	    (call == SYZOS_API_NESTED_INTEL_INVVPID))
+	    (call == SYZOS_API_NESTED_INTEL_INVVPID) || (call == SYZOS_API_NESTED_INTEL_EPTP_LIST_SET))
 		return sizeof(struct api_call_3);
 	if ((call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) || (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT))
 		return sizeof(struct api_call_4);
@@ -1180,6 +1192,10 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 		vmwrite(VMCS_VIRTUAL_PROCESSOR_ID, 0);
 	if (vmcs_field_exists(VMCS_POSTED_INTR_NV))
 		vmwrite(VMCS_POSTED_INTR_NV, 0);
+	if (vmcs_field_exists(VMCS_VM_FUNCTION_CONTROL))
+		vmwrite(VMCS_VM_FUNCTION_CONTROL, 0);
+	if (vmcs_field_exists(VMCS_EPTP_LIST_ADDRESS))
+		vmwrite(VMCS_EPTP_LIST_ADDRESS, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MASK, 0);
 	vmwrite(VMCS_PAGE_FAULT_ERROR_CODE_MATCH, -1);
 	vmwrite(VMCS_CR3_TARGET_COUNT, 0);
@@ -1600,6 +1616,7 @@ nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 	uint8 error = 0; // nolint
 	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
 	uint64 l2_msr_bitmap = X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id);
+	uint64 l2_eptp_list = X86_SYZOS_ADDR_EPTP_LIST(cpu_id, vm_id);
 
 	*(uint32*)vmcs_addr = rdmsr(X86_MSR_IA32_VMX_BASIC);
 	asm volatile("vmclear %1; setna %0"
@@ -1616,6 +1633,7 @@ nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 	// Zero out critical structures.
 	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
 	guest_memset((void*)l2_msr_bitmap, 0, KVM_PAGE_SIZE);
+	guest_memset((void*)l2_eptp_list, 0, KVM_PAGE_SIZE);
 
 	setup_l2_page_tables(CPU_VENDOR_INTEL, cpu_id, vm_id, 0);
 	init_vmcs_control_fields(cpu_id, vm_id);
@@ -2087,6 +2105,16 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 	}
 }
 
+// Point VMCS_EPTP_LIST_ADDRESS at addr and enable VMFUNC[EPTP_SWITCHING] if supported by the CPU.
+GUEST_CODE static inline void enable_eptp_switching(uint64 addr)
+{
+	if (vmwrite_if_exists(VMCS_EPTP_LIST_ADDRESS, addr) &&
+	    vmcs_field_exists(VMCS_VM_FUNCTION_CONTROL)) {
+		vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_ENABLE_VMFUNC);
+		vmcs_set_bits(VMCS_VM_FUNCTION_CONTROL, VMX_VMFUNC_EPTP_SWITCHING);
+	}
+}
+
 GUEST_CODE static noinline void
 nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
 {
@@ -2124,6 +2152,10 @@ nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint
 	} else if (type == NESTED_PAGE_PML) {
 		if (vmwrite_if_exists(VMCS_PML_ADDRESS, addr))
 			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_PAGE_MOD_LOGGING);
+	} else if (type == NESTED_PAGE_EPTP_LIST) {
+		// EPTP switching requires VMFUNC in secondary controls and bit 0 in
+		// VM_FUNCTION_CONTROL. Skip on CPUs that do not expose VMFUNC.
+		enable_eptp_switching(addr);
 	}
 }
 
@@ -2280,6 +2312,38 @@ guest_handle_nested_intel_invvpid(struct api_call_3* cmd)
 	uint64 type = cmd->args[0];
 	volatile struct vmx_invalidate_desc desc = {.arg = cmd->args[1], .addr = cmd->args[2]};
 	asm volatile("invvpid %0, %1" ::"m"(desc), "r"(type) : "cc", "memory");
+}
+
+// Populate an entry of an L2 VM's VMFUNC EPTP list, point VMCS_EPTP_LIST_ADDRESS at the list,
+// and enable VMFUNC[EPTP_SWITCHING] if supported by the CPU.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_eptp_list_set(struct api_call_3* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 vm_id = cmd->args[0];
+	uint64 index = cmd->args[1];
+	uint64 eptp = cmd->args[2];
+	if (!nested_vm_id_valid(vm_id) || index >= VMX_VMFUNC_EPTP_ENTRIES ||
+	    !nested_vmptrld(cpu_id, vm_id))
+		return;
+
+	uint64 list_addr = X86_SYZOS_ADDR_EPTP_LIST(cpu_id, vm_id);
+	((volatile uint64*)list_addr)[index] = eptp;
+	enable_eptp_switching(list_addr);
+}
+
+// Execute VMFUNC in L1 or L2, see Intel SDM vol. 3C, "VMFUNC - Invoke VM Function".
+// Leaf (RAX) >= 64 raises #UD; disabled leaves, invalid EPTP list entries, or execution in L1 fail
+// with #UD or a VM exit, which is expected during fuzzing.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_vmfunc(struct api_call_2* cmd)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 func = cmd->args[0];
+	uint64 index = cmd->args[1];
+	asm volatile("vmfunc" : : "a"(func), "c"(index) : "memory");
 }
 
 GUEST_CODE static noinline void
