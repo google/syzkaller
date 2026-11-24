@@ -204,6 +204,7 @@ func TestHubConnectSyncAndHTTP(t *testing.T) {
 	rec := httptest.NewRecorder()
 	hub.httpSummary(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "syz-hub")
 	assert.Contains(t, rec.Body.String(), "client1-mgr")
 	assert.Contains(t, rec.Body.String(), "client2-mgr")
 }

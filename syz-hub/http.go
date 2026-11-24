@@ -19,7 +19,9 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	defer hub.mu.Unlock()
 
 	data := &UISummaryData{
-		Log: log.CachedLogOutput(),
+		GitRevision:     gitRev,
+		GitRevisionLink: gitRevLink,
+		Log:             log.CachedLogOutput(),
 	}
 	total := UIManager{
 		Name:   "total",
@@ -60,8 +62,10 @@ func compileTemplate(html string) *template.Template {
 }
 
 type UISummaryData struct {
-	Managers []UIManager
-	Log      string
+	GitRevision     string
+	GitRevisionLink string
+	Managers        []UIManager
+	Log             string
 }
 
 type UIManager struct {
@@ -86,6 +90,11 @@ var summaryTemplate = compileTemplate(`
 </head>
 <body>
 <b>syz-hub</b>
+{{- if .GitRevisionLink}}
+(<a href="{{.GitRevisionLink}}" target="_blank" rel="noopener noreferrer">{{.GitRevision}}</a>)
+{{- else if .GitRevision}}
+({{.GitRevision}})
+{{- end}}
 <br><br>
 
 <table>

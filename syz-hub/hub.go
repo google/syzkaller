@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-hub/state"
 )
 
@@ -48,6 +50,9 @@ type Hub struct {
 func main() {
 	defer tool.Init()()
 	log.EnableLogCaching(1000, 1<<20)
+	if gitRev != "" {
+		log.Logf(0, "syz-hub revision %v", gitRev)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -207,6 +212,28 @@ func (hub *Hub) checkManager(client, key, manager string) (string, error) {
 		return "", fmt.Errorf("unauthorized manager")
 	}
 	return manager, nil
+}
+
+// gitRev and gitRevLink are static for the lifetime of the binary.
+var gitRev, gitRevLink = gitRevision()
+
+func gitRevision() (rev, link string) {
+	rev = prog.GitRevisionBase
+	if !prog.GitRevisionKnown() {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			for _, s := range info.Settings {
+				if s.Key == "vcs.revision" && s.Value != "" {
+					rev = s.Value
+					break
+				}
+			}
+		}
+	}
+	if len(rev) > 8 && rev != "unknown" {
+		link = "https://github.com/google/syzkaller/commit/" + rev
+		rev = rev[:8]
+	}
+	return rev, link
 }
 
 func loadConfig(ctx context.Context, filename string) (*Config, map[string]string, error) {
