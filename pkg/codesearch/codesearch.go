@@ -256,6 +256,12 @@ func (index *Index) DefinitionSource(contextFile, name string) (*EntityInfo, err
 	return index.definitionSource(contextFile, name, false)
 }
 
+func (index *Index) HasFunction(name string) bool {
+	return slices.ContainsFunc(index.db.Definitions, func(def *Definition) bool {
+		return def.Kind == EntityKindFunction && def.Name == name
+	})
+}
+
 func (index *Index) FindFunctionAtLine(file string, line int) (*EntityInfo, error) {
 	for _, def := range index.db.Definitions {
 		if def.Body.File != file || def.Kind != EntityKindFunction {
