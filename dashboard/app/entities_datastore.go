@@ -179,6 +179,9 @@ type BugAIBisect struct {
 	Finished time.Time `datastore:",noindex"`
 	// KernelRepo is the repository Commits belong to.
 	KernelRepo string `datastore:",noindex"`
+	// CrashID is the crash of the bug the AI job ran on, 0 if it is not known
+	// (the job was created before crashes were recorded in the job arguments).
+	CrashID int64 `datastore:",noindex"`
 	// Commits are the candidate commits ordered by relevance, the primary one first.
 	Commits []Commit `datastore:",noindex"`
 	// StillPresent is set if fix bisection determined that the bug is not fixed yet.
