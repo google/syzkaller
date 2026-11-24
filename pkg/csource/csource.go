@@ -37,30 +37,45 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Write generates C source for program p based on the provided options opt.
-func Write(p *prog.Prog, opts Options) ([]byte, error) {
+func newContext(p *prog.Prog, opts Options) (*context, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
 		return nil, fmt.Errorf("csource: invalid opts: %w", err)
 	}
-	ctx := &context{
+	return &context{
 		p:         p,
 		opts:      opts,
 		target:    p.Target,
 		sysTarget: targets.Get(p.Target.OS, p.Target.Arch),
 		calls:     make(map[string]uint64),
+	}, nil
+}
+
+// Write generates C source for program p based on the provided options opt.
+func Write(p *prog.Prog, opts Options) ([]byte, error) {
+	ctx, err := newContext(p, opts)
+	if err != nil {
+		return nil, err
 	}
+	ctx.filterCalls()
 	return ctx.generateSource()
 }
 
-// WriteLLM generates a minimal, single-threaded C reproducer for LLMs.
+// WriteLLM generates a minimal, single-threaded C reproducer draft for LLMs.
+// Unlike Write, it does not filter out syz_emit_ethernet, syz_extract_tcp_res,
+// or syz_emit_vhci, so the output preserves all calls without pulling in
+// sandbox/tun/vhci setup boilerplate (and is not guaranteed to compile when
+// those pseudo-syscalls are present).
 func WriteLLM(p *prog.Prog) ([]byte, error) {
-	opts := Options{
+	ctx, err := newContext(p, Options{
 		Sandbox:      "",
 		CallComments: true,
 		Procs:        1,
 		Slowdown:     1,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return Write(p, opts)
+	return ctx.generateSource()
 }
 
 type context struct {
@@ -84,7 +99,6 @@ func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string
 }
 
 func (ctx *context) generateSource() ([]byte, error) {
-	ctx.filterCalls()
 	calls, vars, err := ctx.generateProgCalls(ctx.p, ctx.opts.Trace, ctx.opts.CallComments)
 	if err != nil {
 		return nil, err
