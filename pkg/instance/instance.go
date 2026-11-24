@@ -31,11 +31,19 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+type TestOpts struct {
+	CollectCoverage bool
+	// ConsoleOnlyCrash restricts crash detection in raw C runs to kernel console
+	// output (vmimpl.OutputConsole), ignoring command stdout/stderr.
+	// Do not set this for runs that rely on userspace-printed reports such as kmemleak.
+	ConsoleOnlyCrash bool
+}
+
 type Env interface {
 	BuildSyzkaller(string, string) (string, error)
 	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
-	Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) ([]EnvTestResult, error)
+	Test(numVMs int, reproSyz, reproOpts, reproC []byte, opts TestOpts) ([]EnvTestResult, error)
 }
 
 type env struct {
@@ -265,7 +273,7 @@ func (err *CrashError) Error() string {
 // Test boots numVMs VMs, tests basic kernel operation, and optionally tests the provided reproducer.
 // *TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
 // *CrashError is returned if the reproducer crashes kernel.
-func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) ([]EnvTestResult, error) {
+func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, opts TestOpts) ([]EnvTestResult, error) {
 	if env.testSem != nil {
 		env.testSem.Wait()
 		defer env.testSem.Signal()
@@ -300,15 +308,15 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 	res := make(chan EnvTestResult, numVMs)
 	for i := range numVMs {
 		inst := &inst{
-			cfg:             env.cfg,
-			optionalFlags:   env.optionalFlags,
-			reporter:        reporter,
-			vmPool:          vmPool,
-			vmIndex:         i,
-			reproSyz:        reproSyz,
-			reproOpts:       reproOpts,
-			reproC:          reproC,
-			collectCoverage: collectCoverage,
+			cfg:           env.cfg,
+			optionalFlags: env.optionalFlags,
+			reporter:      reporter,
+			vmPool:        vmPool,
+			vmIndex:       i,
+			reproSyz:      reproSyz,
+			reproOpts:     reproOpts,
+			reproC:        reproC,
+			opts:          opts,
 		}
 		go func() { res <- inst.test() }()
 	}
@@ -320,16 +328,16 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 }
 
 type inst struct {
-	cfg             *mgrconfig.Config
-	optionalFlags   bool
-	reporter        *report.Reporter
-	vmPool          *vm.Pool
-	vm              *vm.Instance
-	vmIndex         int
-	reproSyz        []byte
-	reproOpts       []byte
-	reproC          []byte
-	collectCoverage bool
+	cfg           *mgrconfig.Config
+	optionalFlags bool
+	reporter      *report.Reporter
+	vmPool        *vm.Pool
+	vm            *vm.Instance
+	vmIndex       int
+	reproSyz      []byte
+	reproOpts     []byte
+	reproC        []byte
+	opts          TestOpts
 }
 
 type EnvTestResult struct {
@@ -451,7 +459,7 @@ func (inst *inst) testRepro() ([]byte, [][]uint64, error) {
 		out, coverage, err = transformError(execProg.RunSyzProg(inst.reproSyz, RunOptions{
 			Opts:            opts,
 			Duration:        inst.cfg.Timeouts.NoOutputRunningTime,
-			CollectCoverage: inst.collectCoverage,
+			CollectCoverage: inst.opts.CollectCoverage,
 		}))
 		if err != nil {
 			return out, coverage, err
@@ -461,7 +469,8 @@ func (inst *inst) testRepro() ([]byte, [][]uint64, error) {
 		// We should test for more than full "no output" timeout, but the problem is that C reproducers
 		// don't print anything, so we will get a false "no output" crash.
 		out, _, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target, RunOptions{
-			Duration: inst.cfg.Timeouts.NoOutput / 2,
+			Duration:         inst.cfg.Timeouts.NoOutput / 2,
+			ConsoleOnlyCrash: inst.opts.ConsoleOnlyCrash,
 		}))
 	}
 	return out, coverage, err
@@ -481,7 +490,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	// Combine repro options and default options in a way that increases chances to reproduce the crash.
 	// We always enable threaded/collide as it should be [almost] strictly better.
 	opts.Repeat, opts.Threaded = true, true
-	if inst.collectCoverage {
+	if inst.opts.CollectCoverage {
 		opts.Repeat = false
 		opts.Procs = 1
 		opts.NetReset = false

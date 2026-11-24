@@ -60,7 +60,7 @@ func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, b
 	return "", details, nil
 }
 
-func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) (
+func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, opts instance.TestOpts) (
 	[]instance.EnvTestResult, error) {
 	commit := env.headCommit()
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||

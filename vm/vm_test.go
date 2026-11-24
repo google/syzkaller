@@ -506,6 +506,130 @@ func TestExtractMultipleErrors(t *testing.T) {
 	assert.False(t, reps[1].Corrupted)
 }
 
+func TestConsoleOnlyCrash(t *testing.T) {
+	t.Run("ignore-stdout-stderr-fake-crash", func(t *testing.T) {
+		inst, reporter := makeLinuxAMD64Futex(t, "test")
+		testInst := inst.impl.(*testInstance)
+		go func() {
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputStdout,
+				Data: []byte("BUG: KASAN: slab-use-after-free in fake_stdout\n"),
+			}
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputStderr,
+				Data: []byte("BUG: KASAN: slab-use-after-free in fake_stderr\n"),
+			}
+			testInst.errc <- nil
+			// Also send a fake crash during waitForOutput.
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputStdout,
+				Data: []byte("BUG: unable to handle kernel NULL pointer dereference\n"),
+			}
+			close(testInst.outc)
+		}()
+		output, reps, err := inst.Run(context.Background(), reporter, "",
+			withTestRunOptionsDefaults(),
+			WithExitCondition(ExitNormal),
+			WithConsoleOnlyCrash(),
+		)
+		require.NoError(t, err)
+		assert.Empty(t, reps)
+		assert.Contains(t, string(output), "fake_stdout")
+		assert.Contains(t, string(output), "fake_stderr")
+	})
+
+	t.Run("detect-real-console-crash", func(t *testing.T) {
+		inst, reporter := makeLinuxAMD64Futex(t, "test")
+		testInst := inst.impl.(*testInstance)
+		testInst.diagnoseNoWait = true
+		go func() {
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputStdout,
+				Data: []byte("BUG: KASAN: slab-use-after-free in fake_stdout\n"),
+			}
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputConsole,
+				Data: []byte(validKASANReport),
+			}
+			close(testInst.outc)
+		}()
+		output, reps, err := inst.Run(context.Background(), reporter, "",
+			withTestRunOptionsDefaults(),
+			WithExitCondition(ExitNormal),
+			WithConsoleOnlyCrash(),
+		)
+		require.NoError(t, err)
+		require.Len(t, reps, 1)
+		assert.Equal(t, "KASAN: invalid-free in selinux_tun_dev_free_security", reps[0].Title)
+		assert.NotContains(t, string(reps[0].Output), "fake_stdout")
+		assert.Contains(t, string(output), "fake_stdout")
+	})
+
+	t.Run("detect-delayed-console-crash", func(t *testing.T) {
+		inst, reporter := makeLinuxAMD64Futex(t, "test")
+		testInst := inst.impl.(*testInstance)
+		testInst.diagnoseNoWait = true
+		go func() {
+			testInst.errc <- nil
+			testInst.outc <- vmimpl.Chunk{
+				Type: vmimpl.OutputConsole,
+				Data: []byte(validKASANReport),
+			}
+			close(testInst.outc)
+		}()
+		_, reps, err := inst.Run(context.Background(), reporter, "",
+			withTestRunOptionsDefaults(),
+			WithExitCondition(ExitNormal),
+			WithConsoleOnlyCrash(),
+		)
+		require.NoError(t, err)
+		require.Len(t, reps, 1)
+		assert.Equal(t, "KASAN: invalid-free in selinux_tun_dev_free_security", reps[0].Title)
+	})
+
+	t.Run("kmemleak-on-stderr", func(t *testing.T) {
+		for _, consoleOnly := range []bool{false, true} {
+			inst, reporter := makeLinuxAMD64Futex(t, "test")
+			testInst := inst.impl.(*testInstance)
+			testInst.diagnoseNoWait = true
+			go func() {
+				testInst.outc <- vmimpl.Chunk{
+					Type: vmimpl.OutputStderr,
+					Data: []byte(validKmemleakReport),
+				}
+				testInst.errc <- nil
+				close(testInst.outc)
+			}()
+			opts := []func(*RunOptions){
+				withTestRunOptionsDefaults(),
+				WithExitCondition(ExitNormal),
+			}
+			if consoleOnly {
+				opts = append(opts, WithConsoleOnlyCrash())
+			}
+			output, reps, err := inst.Run(context.Background(), reporter, "", opts...)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "BUG: memory leak")
+			if consoleOnly {
+				assert.Empty(t, reps)
+			} else {
+				require.Len(t, reps, 1)
+				assert.Equal(t, "memory leak in sget", reps[0].Title)
+			}
+		}
+	})
+}
+
+const validKmemleakReport = `
+BUG: memory leak
+unreferenced object 0xffff88006b006340 (size 32):
+  comm "swapper/0", pid 1, jiffies 4294937368 (age 128.520s)
+  backtrace:
+    [<000000005cb5aa0e>] kmem_cache_alloc_node_trace+0x1d3/0x3f0
+    [<0000000074d33dbd>] __kmalloc_node+0x33/0x70
+    [<00000000494d4fe2>] sget+0xd2/0x120
+`
+
 const someLine = "[   96.999999] some message \n"
 
 const validKASANReport = `

@@ -132,16 +132,18 @@ func (inst *ExecProgInstance) runCommand(command string, opts RunOptions) (*RunR
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	optionalBeforeContext := func(*vm.RunOptions) {}
+	vmOpts := []func(*vm.RunOptions){
+		vm.WithExitCondition(opts.ExitConditions),
+	}
 	if inst.BeforeContextLen != 0 {
-		optionalBeforeContext = vm.WithBeforeContext(inst.BeforeContextLen)
+		vmOpts = append(vmOpts, vm.WithBeforeContext(inst.BeforeContextLen))
+	}
+	if opts.ConsoleOnlyCrash {
+		vmOpts = append(vmOpts, vm.WithConsoleOnlyCrash())
 	}
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), opts.Duration)
 	defer cancel()
-	output, reps, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command,
-		vm.WithExitCondition(opts.ExitConditions),
-		optionalBeforeContext,
-	)
+	output, reps, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command, vmOpts...)
 	var rep *report.Report
 	if len(reps) > 0 {
 		rep = reps[0]
@@ -214,6 +216,9 @@ type RunOptions struct {
 	// If not empty, the memory dump file will be created in the given location.
 	// If empty, the system default temporary directory will be used.
 	MemoryDumpDir string
+	// If ConsoleOnlyCrash is set, only kernel console output (not command stdout/stderr)
+	// is scanned for crash reports.
+	ConsoleOnlyCrash bool
 }
 
 func (inst *ExecProgInstance) RunCProg(p *prog.Prog, opts RunOptions) (*RunResult, error) {

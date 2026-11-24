@@ -130,7 +130,7 @@ type reproRunner struct {
 
 func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
 	results, err := r.env.Test(numVMs, []byte(r.args.ReproSyz), []byte(r.args.ReproOpts),
-		[]byte(r.args.ReproC), r.collectCoverage)
+		[]byte(r.args.ReproC), instance.TestOpts{CollectCoverage: r.collectCoverage})
 	if err != nil {
 		return nil, err
 	}
