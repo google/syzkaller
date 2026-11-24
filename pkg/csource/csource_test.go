@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/executor"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -370,4 +372,23 @@ csource1(r0)
 	bin, err := Build(p.Target, src)
 	require.NoError(t, err)
 	defer os.Remove(bin)
+}
+
+func TestBuildSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	if broken := targets.Get(target.OS, target.Arch).BrokenCompiler; broken != "" {
+		t.Skipf("target compiler is broken: %v", broken)
+	}
+
+	bin, err := Build(target, []byte("int main() { return 0; }\n"))
+	require.NoError(t, err)
+	os.Remove(bin)
+
+	// The compiler must not be able to read files that are not accessible to the sandbox user.
+	secret := filepath.Join(osutil.SandboxTempDir(t), "secret.h")
+	require.NoError(t, os.WriteFile(secret, []byte("int secret;\n"), 0600))
+	_, err = Build(target, []byte(fmt.Sprintf("#include %q\nint main() { return secret; }\n", secret)))
+	require.Error(t, err)
 }
