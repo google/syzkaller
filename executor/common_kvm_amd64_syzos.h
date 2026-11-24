@@ -120,6 +120,7 @@ struct syzos_globals {
 	uint64 text_sizes[KVM_MAX_VCPU];
 	struct l2_guest_regs l2_ctx[KVM_MAX_VCPU][KVM_MAX_L2_VMS];
 	uint64 active_vm_id[KVM_MAX_VCPU];
+	uint64 vendor;
 };
 
 #ifdef __cplusplus
@@ -183,6 +184,7 @@ typedef enum {
 } uexit_code;
 
 typedef enum {
+	CPU_VENDOR_UNKNOWN = 0,
 	CPU_VENDOR_INTEL,
 	CPU_VENDOR_AMD,
 } cpu_vendor_id;
@@ -718,6 +720,11 @@ GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* 
 
 GUEST_CODE static cpu_vendor_id get_cpu_vendor(void)
 {
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	uint64 cached = __atomic_load_n(&globals->vendor, __ATOMIC_RELAXED);
+	if (cached == CPU_VENDOR_INTEL || cached == CPU_VENDOR_AMD)
+		return (cpu_vendor_id)cached;
+
 	uint32 ebx, eax = 0;
 
 	asm volatile(
@@ -727,8 +734,10 @@ GUEST_CODE static cpu_vendor_id get_cpu_vendor(void)
 	    : "ecx", "edx");
 
 	if (ebx == 0x756e6547) { // "Genu[ineIntel]".
+		__atomic_store_n(&globals->vendor, CPU_VENDOR_INTEL, __ATOMIC_RELAXED);
 		return CPU_VENDOR_INTEL;
 	} else if (ebx == 0x68747541) { // "Auth[enticAMD]".
+		__atomic_store_n(&globals->vendor, CPU_VENDOR_AMD, __ATOMIC_RELAXED);
 		return CPU_VENDOR_AMD;
 	} else {
 		// Should not happen on AMD64, but for completeness.
@@ -1807,7 +1816,10 @@ guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cp
 	// code page of L2 that is backed by the VM's code buffer, and the per-vCPU memory regions
 	// it may touch are those of this L1 vCPU. Note that l2_ctx[] is indexed by the L1 vCPU, so
 	// only the entry of this vCPU belongs to the VM.
+	uint64 vendor = get_cpu_vendor();
 	l2_globals->text_sizes[cpu_id] = prog_size;
+	// Pass the cached CPU vendor so L2 SYZOS handlers do not trigger CPUID VM exits.
+	l2_globals->vendor = vendor;
 	globals->l2_ctx[cpu_id][vm_id].rdi = cpu_id;
 	globals->l2_ctx[cpu_id][vm_id].rax = 0; // Default RAX
 	// Note: RSP and RIP are set in the VMCB/VMCS, but they could also be in l2_ctx
@@ -1815,7 +1827,7 @@ guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cp
 
 	// Set RIP to guest_main.
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
-	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+	if (vendor == CPU_VENDOR_INTEL) {
 		if (!nested_vmptrld(cpu_id, vm_id))
 			return;
 		vmwrite(VMCS_GUEST_RIP, entry_rip);
