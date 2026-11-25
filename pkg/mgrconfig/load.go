@@ -214,20 +214,8 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	cfg.ReproduceOnlyRe = nil
-	if len(cfg.ReproduceOnly) != 0 {
-		// Join the regexps into one alternation so a title matches if any of them does.
-		parts := make([]string, len(cfg.ReproduceOnly))
-		for i, str := range cfg.ReproduceOnly {
-			if _, err := regexp.Compile(str); err != nil {
-				return fmt.Errorf("failed to compile reproduce_only regexp %q: %w", str, err)
-			}
-			parts[i] = "(?:" + str + ")"
-		}
-		cfg.ReproduceOnlyRe, err = regexp.Compile(strings.Join(parts, "|"))
-		if err != nil {
-			return err
-		}
+	if err := cfg.completeReproduceOnly(); err != nil {
+		return err
 	}
 	if err := cfg.completeFocusAreas(); err != nil {
 		return err
@@ -240,6 +228,24 @@ func Complete(cfg *Config) error {
 	}
 
 	return nil
+}
+
+func (cfg *Config) completeReproduceOnly() error {
+	cfg.ReproduceOnlyRe = nil
+	if len(cfg.ReproduceOnly) == 0 {
+		return nil
+	}
+	// Join the regexps into one alternation so a title matches if any of them does.
+	parts := make([]string, len(cfg.ReproduceOnly))
+	for i, str := range cfg.ReproduceOnly {
+		if _, err := regexp.Compile(str); err != nil {
+			return fmt.Errorf("failed to compile reproduce_only regexp %q: %w", str, err)
+		}
+		parts[i] = "(?:" + str + ")"
+	}
+	var err error
+	cfg.ReproduceOnlyRe, err = regexp.Compile(strings.Join(parts, "|"))
+	return err
 }
 
 func (cfg *Config) completeServices() error {
