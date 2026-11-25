@@ -198,6 +198,15 @@ func (res *BugAIBisect) determined() bool {
 	return len(res.Commits) != 0 || res.StillPresent
 }
 
+// fixCommits returns the single fixing commit title from this bisection result,
+// or nil if the result does not unambiguously identify one commit.
+func (res *BugAIBisect) fixCommits() []string {
+	if len(res.Commits) != 1 {
+		return nil
+	}
+	return []string{res.Commits[0].Title}
+}
+
 // status returns the bisection status to show for the bug:
 // the status of the AI result if it is present, otherwise the syz-ci bisection status.
 func (res *BugAIBisect) status(syzCI BisectStatus) BisectStatus {
@@ -1061,8 +1070,12 @@ func looksLikeReportingHash(id string) bool {
 func (bug *Bug) updateCommits(commits []string, now time.Time) {
 	bug.Commits = commits
 	bug.CommitInfo = nil
-	bug.NeedCommitInfo = true
-	bug.FixTime = now
+	bug.NeedCommitInfo = len(commits) > 0
+	if len(commits) > 0 {
+		bug.FixTime = now
+	} else {
+		bug.FixTime = time.Time{}
+	}
 	bug.PatchedOn = nil
 }
 
