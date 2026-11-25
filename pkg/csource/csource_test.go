@@ -389,6 +389,10 @@ func TestBuildSandbox(t *testing.T) {
 	// The compiler must not be able to read files that are not accessible to the sandbox user.
 	secret := filepath.Join(osutil.SandboxTempDir(t), "secret.h")
 	require.NoError(t, os.WriteFile(secret, []byte("int secret;\n"), 0600))
-	_, err = Build(target, []byte(fmt.Sprintf("#include %q\nint main() { return secret; }\n", secret)))
+	bin, err = Build(target, []byte(fmt.Sprintf("#include %q\nint main() { return secret; }\n", secret)))
+	if err == nil {
+		// The sandbox failed to restrict the compiler, don't leave the binary behind.
+		os.Remove(bin)
+	}
 	require.Error(t, err)
 }
