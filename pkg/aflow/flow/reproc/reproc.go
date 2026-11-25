@@ -543,6 +543,7 @@ func init() {
 		&aflow.Flow{
 			Consts: map[string]any{
 				"NeedStrace":       true,
+				"ConsoleOnlyCrash": false,
 				"FunctionDirected": false,
 			},
 			Root: reproCPipeline(reproCPipelineOpts{
@@ -556,6 +557,7 @@ func init() {
 		&aflow.Flow{
 			Consts: map[string]any{
 				"NeedStrace":       true,
+				"ConsoleOnlyCrash": true,
 				"FunctionDirected": true,
 			},
 			Root: reproCPipeline(reproCPipelineOpts{

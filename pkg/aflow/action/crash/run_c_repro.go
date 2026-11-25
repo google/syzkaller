@@ -16,18 +16,19 @@ import (
 
 type RunCReproArgs struct {
 	Target
-	AgentName       string
-	Syzkaller       string
-	Image           string
-	Type            string
-	VM              json.RawMessage
-	KernelSrc       string
-	KernelObj       string
-	KernelCommit    string
-	KernelConfig    string
-	FormattedReproC string
-	StraceBin       string
-	NeedStrace      bool
+	AgentName        string
+	Syzkaller        string
+	Image            string
+	Type             string
+	VM               json.RawMessage
+	KernelSrc        string
+	KernelObj        string
+	KernelCommit     string
+	KernelConfig     string
+	FormattedReproC  string
+	StraceBin        string
+	NeedStrace       bool
+	ConsoleOnlyCrash bool
 }
 
 type RunCReproResult struct {
@@ -76,7 +77,9 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 	}
 
 	// Run 1: without strace.
-	res1, err1 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{})
+	res1, err1 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{
+		ConsoleOnlyCrash: args.ConsoleOnlyCrash,
+	})
 	if err1 != nil {
 		return RunCReproResult{}, err1
 	}
@@ -104,7 +107,10 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 		reproduceArgs.NeedStrace = true
 		// Strace output is only used for diagnostics, one run is enough.
 		// It's also optional, so don't spend time retrying infra errors.
-		res2, err2 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{MaxTotalRuns: 1})
+		res2, err2 := runTest(ctx, reproduceArgs, workdir, RunTestOpts{
+			MaxTotalRuns:     1,
+			ConsoleOnlyCrash: args.ConsoleOnlyCrash,
+		})
 		if isInfraError(err2) {
 			// We failed to get a VM. Don't fail the action, Run 1 results are still valid.
 			log.Logf(0, "failed to collect strace output: %v", err2)

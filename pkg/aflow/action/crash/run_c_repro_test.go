@@ -168,3 +168,29 @@ func TestRunCReproPassesTargetVMArch(t *testing.T) {
 	require.Equal(t, "386", got.TargetArch)
 	require.Equal(t, "amd64", got.VMArch())
 }
+
+func TestRunCReproForwardsConsoleOnlyCrash(t *testing.T) {
+	oldRunTest := runTest
+	defer func() { runTest = oldRunTest }()
+
+	var gotOpts []RunTestOpts
+	runTest = func(ctx *aflow.Context, args ReproduceArgs, workdir string,
+		opts RunTestOpts) (RunTestResult, error) {
+		gotOpts = append(gotOpts, opts)
+		return RunTestResult{ConsoleOutput: "ok"}, nil
+	}
+
+	ctx := aflow.NewTestContext(t)
+	_, err := RunCReproFunc(ctx, RunCReproArgs{
+		Target:           Target{TargetArch: "amd64"},
+		FormattedReproC:  "int main() { return 0; }",
+		StraceBin:        "/bin/strace",
+		NeedStrace:       true,
+		ConsoleOnlyCrash: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []RunTestOpts{
+		{ConsoleOnlyCrash: true},
+		{MaxTotalRuns: 1, ConsoleOnlyCrash: true},
+	}, gotOpts)
+}

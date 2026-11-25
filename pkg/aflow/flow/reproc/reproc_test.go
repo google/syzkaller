@@ -290,11 +290,13 @@ func TestWorkflowRegistration(t *testing.T) {
 	reproC := aflow.Flows[string(ai.WorkflowReproC)]
 	require.NotNil(t, reproC)
 	assert.Equal(t, true, reproC.Consts["NeedStrace"])
+	assert.Equal(t, false, reproC.Consts["ConsoleOnlyCrash"])
 	assert.Equal(t, false, reproC.Consts["FunctionDirected"])
 
 	reproFuncC := aflow.Flows[string(ai.WorkflowReproFuncC)]
 	require.NotNil(t, reproFuncC)
 	assert.Equal(t, true, reproFuncC.Consts["NeedStrace"])
+	assert.Equal(t, true, reproFuncC.Consts["ConsoleOnlyCrash"])
 	assert.Equal(t, true, reproFuncC.Consts["FunctionDirected"])
 }
 
