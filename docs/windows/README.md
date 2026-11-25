@@ -23,9 +23,10 @@ syz-sysgen
 
 To build binaries:
 ```
-make fuzzer execprog stress TARGETOS=windows
-REV=git rev-parse HEAD
-cl executor\executor_windows.cc /EHsc -o bin\windows_amd64\syz-executor.exe \
+make execprog TARGETOS=windows
+REV=`git rev-parse HEAD`
+cl executor\executor.cc /EHsc -o bin\windows_amd64\syz-executor.exe \
+	-DGOOS_windows=1 -DGOARCH_amd64=1 -DHOSTGOOS_windows=1 \
 	-DGIT_REVISION=\"$REV\" \
 	kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib \
 	shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib \
