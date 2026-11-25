@@ -210,6 +210,11 @@ syzos_api_nested_intel_vmfunc {
 	index	int64[0:512]
 }
 
+syzos_api_nested_intel_vmwrite {
+	field	vmcs_field_encoding
+	value	int64
+}
+
 syzos_api_nested_amd_vmcb_write_mask {
 	vm_id		syzos_api_vm_id
 	offset		vmcb_offset
@@ -220,8 +225,9 @@ syzos_api_nested_amd_vmcb_write_mask {
 
 # Values of nested_page_type in executor/common_kvm_amd64_syzos.h: 0 - APIC-access page,
 # 10 - virtual-APIC page, 20 - MSR bitmap, 30 - I/O bitmaps, 40 - posted-interrupt descriptor,
-# 50 - PML buffer, 60 - VMFUNC EPTP list. Only 20 and 30 are supported on AMD.
-nested_page_types = 0, 10, 20, 30, 40, 50, 60
+# 50 - PML buffer, 60 - VMFUNC EPTP list, 70 - VMREAD bitmap, 80 - VMWRITE bitmap,
+# 90 - shadow VMCS. Only 20 and 30 are supported on AMD.
+nested_page_types = 0, 10, 20, 30, 40, 50, 60, 70, 80, 90
 # GPAs not backed by any memslot. Unaligned and >MAXPHYADDR values exercise the consistency checks.
 kvm_unmapped_state_page_addrs = 0xf0000000, 0xf0000008, 0xdddd0000, 0xdddd0001, 0x100000000, 0xfffffffffffff000
 
@@ -284,6 +290,8 @@ syzos_api_call$x86 [
 	nested_intel_invvpid		syzos_api$x86[343, syzos_api_nested_intel_invvpid]
 	nested_intel_eptp_list_set	syzos_api$x86[344, syzos_api_nested_intel_eptp_list_set]
 	nested_intel_vmfunc		syzos_api$x86[345, syzos_api_nested_intel_vmfunc]
+	nested_intel_vmread		syzos_api$x86[346, vmcs_field_encoding]
+	nested_intel_vmwrite		syzos_api$x86[347, syzos_api_nested_intel_vmwrite]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
 	nested_amd_stgi			syzos_api$x86[382, void]

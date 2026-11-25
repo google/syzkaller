@@ -41,6 +41,8 @@ typedef enum {
 	SYZOS_API_NESTED_INTEL_INVVPID = 343,
 	SYZOS_API_NESTED_INTEL_EPTP_LIST_SET = 344,
 	SYZOS_API_NESTED_INTEL_VMFUNC = 345,
+	SYZOS_API_NESTED_INTEL_VMREAD = 346,
+	SYZOS_API_NESTED_INTEL_VMWRITE = 347,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
@@ -62,6 +64,9 @@ typedef enum {
 	NESTED_PAGE_POSTED_INTR = 40, // Intel: posted-interrupt descriptor.
 	NESTED_PAGE_PML = 50, // Intel: page-modification log.
 	NESTED_PAGE_EPTP_LIST = 60, // Intel: VMFUNC EPTP list page.
+	NESTED_PAGE_VMREAD_BITMAP = 70, // Intel: VMREAD bitmap.
+	NESTED_PAGE_VMWRITE_BITMAP = 80, // Intel: VMWRITE bitmap.
+	NESTED_PAGE_SHADOW_VMCS = 90, // Intel: shadow VMCS (VMCS link pointer).
 } nested_page_type;
 
 struct api_call_uexit {
@@ -172,6 +177,8 @@ GUEST_CODE static void guest_handle_nested_intel_invept(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_nested_intel_invvpid(struct api_call_3* cmd);
 GUEST_CODE static void guest_handle_nested_intel_eptp_list_set(struct api_call_3* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmfunc(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_nested_intel_vmread(struct api_call_1* cmd);
+GUEST_CODE static void guest_handle_nested_intel_vmwrite(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
@@ -367,6 +374,12 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_VMFUNC) {
 			// Execute VMFUNC.
 			guest_handle_nested_intel_vmfunc((struct api_call_2*)cmd);
+		} else if (call == SYZOS_API_NESTED_INTEL_VMREAD) {
+			// Execute VMREAD.
+			guest_handle_nested_intel_vmread((struct api_call_1*)cmd);
+		} else if (call == SYZOS_API_NESTED_INTEL_VMWRITE) {
+			// Execute VMWRITE.
+			guest_handle_nested_intel_vmwrite((struct api_call_2*)cmd);
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
@@ -416,13 +429,13 @@ GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
 		return __builtin_offsetof(struct api_call_nested_load_syzos, program);
 	if ((call == SYZOS_API_RDMSR) || (call == SYZOS_API_ENABLE_NESTED) ||
 	    (call == SYZOS_API_NESTED_CREATE_VM) || (call == SYZOS_API_NESTED_VMLAUNCH) ||
-	    (call == SYZOS_API_NESTED_VMRESUME) || (call == SYZOS_API_NESTED_AMD_VMLOAD) ||
-	    (call == SYZOS_API_NESTED_AMD_VMSAVE))
+	    (call == SYZOS_API_NESTED_VMRESUME) || (call == SYZOS_API_NESTED_INTEL_VMREAD) ||
+	    (call == SYZOS_API_NESTED_AMD_VMLOAD) || (call == SYZOS_API_NESTED_AMD_VMSAVE))
 		return sizeof(struct api_call_1);
 	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
 	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
 	    (call == SYZOS_API_NESTED_INTEL_INVEPT) || (call == SYZOS_API_NESTED_INTEL_VMFUNC) ||
-	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
+	    (call == SYZOS_API_NESTED_INTEL_VMWRITE) || (call == SYZOS_API_NESTED_AMD_INVLPGA))
 		return sizeof(struct api_call_2);
 	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES) ||
 	    (call == SYZOS_API_NESTED_INTEL_INVVPID) || (call == SYZOS_API_NESTED_INTEL_EPTP_LIST_SET))
@@ -2105,6 +2118,14 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 	}
 }
 
+// Enable VMCS shadowing if advertised in IA32_VMX_PROCBASED_CTLS2 (KVM always exposes it to
+// L1 and emulates shadow VMCS when hardware lacks it).
+GUEST_CODE static inline void enable_shadow_vmcs(void)
+{
+	if ((rdmsr(X86_MSR_IA32_VMX_PROCBASED_CTLS2) >> 32) & SECONDARY_EXEC_SHADOW_VMCS)
+		vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_SHADOW_VMCS);
+}
+
 // Point VMCS_EPTP_LIST_ADDRESS at addr and enable VMFUNC[EPTP_SWITCHING] if supported by the CPU.
 GUEST_CODE static inline void enable_eptp_switching(uint64 addr)
 {
@@ -2156,6 +2177,18 @@ nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint
 		// EPTP switching requires VMFUNC in secondary controls and bit 0 in
 		// VM_FUNCTION_CONTROL. Skip on CPUs that do not expose VMFUNC.
 		enable_eptp_switching(addr);
+	} else if (type == NESTED_PAGE_VMREAD_BITMAP) {
+		if (vmwrite_if_exists(VMCS_VMREAD_BITMAP, addr))
+			enable_shadow_vmcs();
+	} else if (type == NESTED_PAGE_VMWRITE_BITMAP) {
+		if (vmwrite_if_exists(VMCS_VMWRITE_BITMAP, addr))
+			enable_shadow_vmcs();
+	} else if (type == NESTED_PAGE_SHADOW_VMCS) {
+		if (vmcs_field_exists(VMCS_VMREAD_BITMAP) &&
+		    vmcs_field_exists(VMCS_VMWRITE_BITMAP)) {
+			vmwrite(VMCS_LINK_POINTER, addr);
+			enable_shadow_vmcs();
+		}
 	}
 }
 
@@ -2344,6 +2377,31 @@ guest_handle_nested_intel_vmfunc(struct api_call_2* cmd)
 	uint64 func = cmd->args[0];
 	uint64 index = cmd->args[1];
 	asm volatile("vmfunc" : : "a"(func), "c"(index) : "memory");
+}
+
+// Execute VMREAD on the current VMCS (or L2 shadow VMCS) without switching VMPTRLD.
+// Fails (CF/ZF) or causes #UD / VM exit when no VMCS is active or when trapped by the bitmap.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_vmread(struct api_call_1* cmd)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 field = cmd->arg;
+	uint64 value = 0;
+	asm volatile("vmread %%rbx, %%rax" : "=a"(value) : "b"(field) : "cc");
+	(void)value;
+}
+
+// Execute VMWRITE on the current VMCS (or L2 shadow VMCS) without switching VMPTRLD.
+// Fails (CF/ZF) or causes #UD / VM exit when no VMCS is active or when trapped by the bitmap.
+GUEST_CODE static noinline void
+guest_handle_nested_intel_vmwrite(struct api_call_2* cmd)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 field = cmd->args[0];
+	uint64 value = cmd->args[1];
+	asm volatile("vmwrite %%rax, %%rbx" : : "a"(value), "b"(field) : "cc", "memory");
 }
 
 GUEST_CODE static noinline void
