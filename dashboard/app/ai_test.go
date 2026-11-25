@@ -2753,32 +2753,8 @@ func TestAIBisectFix(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(jobPage), build1.KernelRepo+"/blob/"+build1.KernelCommit+"/fs/foo.c#L123")
 
-	const (
-		fixHash  = "8888888888888888888888888888888888888888"
-		fixTitle = "kernel: fix everything"
-	)
+	// Several candidate fix commits are shown and marked as conclusive ("done") on the bug list.
 	c.finishAIJob(resp.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
-		KernelCommit: build2.KernelCommit,
-		Commits: []ai.Commit{{
-			Hash:        fixHash,
-			Title:       fixTitle,
-			AuthorEmail: "fix-author@kernel.org",
-			AuthorName:  "Fix Author",
-			Date:        time.Date(2000, 2, 3, 4, 5, 6, 0, time.UTC),
-		}},
-		BisectReasoning: "Fixed by commit 888888888888.",
-	}})
-	page, err := c.GET(bugPageURL)
-	require.NoError(t, err)
-	assert.Contains(t, string(page), "<b>✨ AI fix bisection: fixed by</b>")
-	assert.Contains(t, string(page), fixHash)
-	assert.Contains(t, string(page), fixTitle)
-	assert.Contains(t, string(page), jobLink)
-	c.checkBisectStatus(bug.Namespace, "", "done")
-
-	// Several candidate fix commits are also shown and marked as conclusive ("done") on the bug list.
-	respMulti := c.startAIBisect(extID, ai.WorkflowBisectFix)
-	c.finishAIJob(respMulti.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
 		KernelCommit: build2.KernelCommit,
 		Commits: []ai.Commit{
 			{Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Title: "kernel: first fix candidate"},
@@ -2786,12 +2762,11 @@ func TestAIBisectFix(t *testing.T) {
 		},
 		BisectReasoning: "Fixed by candidate commits.",
 	}})
-	jobLinkMulti := fmt.Sprintf("/ai_job?id=%v", respMulti.ID)
-	page, err = c.GET(bugPageURL)
+	page, err := c.GET(bugPageURL)
 	require.NoError(t, err)
 	assert.Contains(t, string(page), "<b>✨ AI fix bisection: candidate commits (most relevant first)</b>")
 	assert.Regexp(t, `(?s)kernel: first fix candidate.*kernel: second fix candidate`, string(page))
-	assert.Contains(t, string(page), jobLinkMulti)
+	assert.Contains(t, string(page), jobLink)
 	c.checkBisectStatus(bug.Namespace, "", "done")
 
 	// A later job has verified that the bug is still present, this replaces the result.
@@ -2808,11 +2783,36 @@ func TestAIBisectFix(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(page), "<b>✨ AI fix bisection: the issue is still present on the analyzed commit</b>")
 	assert.Contains(t, string(page), jobLink2)
-	assert.NotContains(t, string(page), fixTitle)
+	assert.NotContains(t, string(page), "kernel: first fix candidate")
 	c.checkBisectStatus(bug.Namespace, "", "")
 
+	// A single fixing commit is shown (it also marks the bug as fixed, see TestAIBisectFixAutoClose).
+	const (
+		fixHash  = "8888888888888888888888888888888888888888"
+		fixTitle = "kernel: fix everything"
+	)
+	resp3 := c.startAIBisect(extID, ai.WorkflowBisectFix)
+	c.finishAIJob(resp3.ID, ai.BisectFixOutputs{BisectOutputs: ai.BisectOutputs{
+		KernelCommit: build2.KernelCommit,
+		Commits: []ai.Commit{{
+			Hash:        fixHash,
+			Title:       fixTitle,
+			AuthorEmail: "fix-author@kernel.org",
+			AuthorName:  "Fix Author",
+			Date:        time.Date(2000, 2, 3, 4, 5, 6, 0, time.UTC),
+		}},
+		BisectReasoning: "Fixed by commit 888888888888.",
+	}})
+	jobLink3 := fmt.Sprintf("/ai_job?id=%v", resp3.ID)
+	page, err = c.GET(bugPageURL)
+	require.NoError(t, err)
+	assert.Contains(t, string(page), "<b>✨ AI fix bisection: fixed by</b>")
+	assert.Contains(t, string(page), fixHash)
+	assert.Contains(t, string(page), fixTitle)
+	assert.Contains(t, string(page), jobLink3)
+
 	// Marking the job as incorrect clears the AI fix bisection.
-	_, err = c.POSTForm(jobLink2, url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
+	_, err = c.POSTForm(jobLink3, url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
 	require.NoError(t, err)
 	page, err = c.GET(bugPageURL)
 	require.NoError(t, err)
@@ -3000,6 +3000,134 @@ func TestFullBugInfoAIBisectCrash(t *testing.T) {
 	assert.Equal(t, build1.KernelBranch, info.BisectFix.KernelBranch)
 	assert.Equal(t, build1.KernelCommit, info.BisectFix.KernelCommit)
 	assert.Equal(t, build1.CompilerID, info.BisectFix.CompilerID)
+}
+
+func TestAIBisectFixAutoClose(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	reportCrash := func(num int) string {
+		_, err := c.aiClient.ReportCrash(testCrash(build, num))
+		require.NoError(t, err)
+		return c.aiClient.pollEmailExtID()
+	}
+	runFixBisect := func(extID string, commits ...ai.Commit) string {
+		resp := c.startAIBisect(extID, ai.WorkflowBisectFix)
+		c.finishAIJob(resp.ID, ai.BisectFixOutputs{
+			BisectOutputs:   ai.BisectOutputs{KernelCommit: resp.Args["KernelCommit"].(string), Commits: commits},
+			BugStillPresent: len(commits) == 0,
+		})
+		return resp.ID
+	}
+	setIncorrect := func(jobID string) {
+		_, err := c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID),
+			url.Values{"action": {"set_correctness"}, "correct": {aiCorrectnessIncorrect}})
+		require.NoError(t, err)
+	}
+
+	// Single fixing commit marks the open public bug as fixed.
+	extID1 := reportCrash(1)
+	runFixBisect(extID1, ai.Commit{Hash: "8888888888888888888888888888888888888888", Title: "kernel: fix bug 1"})
+	bug1, _, _ := c.loadBug(extID1)
+	assert.Equal(t, []string{"kernel: fix bug 1"}, bug1.Commits)
+	assert.True(t, bug1.NeedCommitInfo)
+	assert.False(t, bug1.FixTime.IsZero())
+
+	// A newer AI fix bisection with a different single commit updates the bug's fix commit.
+	jobID := runFixBisect(extID1, ai.Commit{
+		Hash:  "9999999999999999999999999999999999999999",
+		Title: "kernel: fix bug 1 v2",
+	})
+	bug1, _, _ = c.loadBug(extID1)
+	assert.Equal(t, []string{"kernel: fix bug 1 v2"}, bug1.Commits)
+	assert.True(t, bug1.NeedCommitInfo)
+
+	// Marking the job as incorrect removes the commit and resets NeedCommitInfo and FixTime.
+	setIncorrect(jobID)
+	bug1, _, _ = c.loadBug(extID1)
+	assert.Empty(t, bug1.Commits)
+	assert.False(t, bug1.NeedCommitInfo)
+	assert.True(t, bug1.FixTime.IsZero())
+
+	// A newer AI fix bisection finding StillPresent clears the previous AI-set fix commit.
+	runFixBisect(extID1, ai.Commit{Hash: "7777777777777777777777777777777777777777", Title: "kernel: fix bug 1 v3"})
+	runFixBisect(extID1)
+	bug1, _, _ = c.loadBug(extID1)
+	assert.Empty(t, bug1.Commits)
+	assert.False(t, bug1.NeedCommitInfo)
+	assert.True(t, bug1.FixTime.IsZero())
+
+	// Multiple candidate commits do not auto-close the bug.
+	extID2 := reportCrash(2)
+	runFixBisect(extID2,
+		ai.Commit{Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Title: "kernel: candidate 1"},
+		ai.Commit{Hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Title: "kernel: candidate 2"},
+	)
+	bug2, _, _ := c.loadBug(extID2)
+	assert.Empty(t, bug2.Commits)
+
+	// StillPresent does not auto-close the bug.
+	extID3 := reportCrash(3)
+	runFixBisect(extID3)
+	bug3, _, _ := c.loadBug(extID3)
+	assert.Empty(t, bug3.Commits)
+
+	// Invalid (already closed) bugs are not auto-closed.
+	extID4 := reportCrash(4)
+	c.globalClient.updateBug(extID4, dashapi.BugStatusInvalid, "")
+	runFixBisect(extID4, ai.Commit{Hash: "cccccccccccccccccccccccccccccccccccccccc", Title: "kernel: fix bug 4"})
+	bug4, _, _ := c.loadBug(extID4)
+	assert.Empty(t, bug4.Commits)
+
+	// If the fix commits of the bug were changed externally after the auto-close,
+	// neither a newer AI fix bisection nor marking the job as incorrect changes them.
+	extID5 := reportCrash(5)
+	runFixBisect(extID5, ai.Commit{Hash: "dddddddddddddddddddddddddddddddddddddddd", Title: "kernel: fix bug 5"})
+	reply, err := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         extID5,
+		Status:     dashapi.BugStatusOpen,
+		FixCommits: []string{"kernel: another fix"},
+	})
+	require.NoError(t, err)
+	require.True(t, reply.OK)
+	jobID = runFixBisect(extID5, ai.Commit{
+		Hash:  "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+		Title: "kernel: fix bug 5 v2",
+	})
+	bug5, _, _ := c.loadBug(extID5)
+	assert.Equal(t, []string{"kernel: another fix"}, bug5.Commits)
+	setIncorrect(jobID)
+	bug5, _, _ = c.loadBug(extID5)
+	assert.Equal(t, []string{"kernel: another fix"}, bug5.Commits)
+
+	// Non-public bugs (at an earlier non-public reporting stage) are not auto-closed,
+	// because setting fix commits would make them publicly visible.
+	pubClient := c.makeClient(clientPublic, keyPublic, true)
+	pubBuild := testBuild(1)
+	require.NoError(t, pubClient.UploadBuild(pubBuild))
+	_, err = pubClient.ReportCrash(testCrash(pubBuild, 1))
+	require.NoError(t, err)
+	repPriv := c.globalClient.pollBug()
+	runFixBisect(repPriv.ID, ai.Commit{
+		Hash:  "1111111111111111111111111111111111111111",
+		Title: "kernel: fix private bug",
+	})
+	bugPriv, _, _ := c.loadBug(repPriv.ID)
+	assert.Empty(t, bugPriv.Commits)
+	assert.Equal(t, AccessUser, bugPriv.reportingAccessLevel(c.ctx))
+
+	// Once that same bug reaches a public reporting stage, a subsequent fix bisection auto-closes it
+	// even though an earlier fix bisection already populated AIBisectFix while the bug was private.
+	c.globalClient.updateBug(repPriv.ID, dashapi.BugStatusUpstream, "")
+	repPub := c.globalClient.pollBug()
+	runFixBisect(repPub.ID, ai.Commit{
+		Hash:  "2222222222222222222222222222222222222222",
+		Title: "kernel: fix public bug",
+	})
+	bugPub, _, _ := c.loadBug(repPub.ID)
+	assert.Equal(t, []string{"kernel: fix public bug"}, bugPub.Commits)
 }
 
 func TestAIBisectResult(t *testing.T) {

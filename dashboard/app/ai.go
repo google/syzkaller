@@ -1567,7 +1567,7 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 			bug.AIRootCause = *rootCause
 		}
 		if updateBisect {
-			bug.updateAIBisect(job, bisect)
+			bug.applyAIBisect(ctx, job, bisect)
 		}
 		for _, label := range labels {
 			if bug.HasUserLabel(label.Label) {
@@ -1729,6 +1729,31 @@ func (bug *Bug) updateAIBisect(job *aidb.Job, res *BugAIBisect) {
 	if res.determined() || !cur.determined() || cur.JobID == job.ID {
 		*cur = *res
 	}
+}
+
+// applyAIBisect applies the result of a bisection job to the bug: the AI bisection result itself
+// (see updateAIBisect) and, for fix bisections of open public bugs, the fix commits of the bug.
+// If the bug's fix commits have not been changed externally, they are kept in sync with the
+// single fixing commit identified by the AI fix bisection (set when one commit is found, and
+// updated or cleared if the result is replaced or marked as incorrect).
+// Only bugs that are already public are auto-closed, because setting fixing commits makes a bug
+// publicly visible.
+// The res argument is the result of the job, or nil if the job was marked as incorrect.
+//
+// This must be called in the transaction that updates the bug.
+func (bug *Bug) applyAIBisect(ctx context.Context, job *aidb.Job, res *BugAIBisect) {
+	prevCommits := bug.AIBisectFix.fixCommits()
+	bug.updateAIBisect(job, res)
+	if job.Type != ai.WorkflowBisectFix || bug.Status != BugStatusOpen ||
+		bug.reportingAccessLevel(ctx) != AccessPublic {
+		return
+	}
+	newCommits := bug.AIBisectFix.fixCommits()
+	if slices.Equal(bug.Commits, newCommits) ||
+		len(bug.Commits) != 0 && !slices.Equal(bug.Commits, prevCommits) {
+		return
+	}
+	bug.updateCommits(newCommits, timeNow(ctx))
 }
 
 // loadAIRootCauseAnalysis returns the full AI root cause analysis for the bug (if any).
