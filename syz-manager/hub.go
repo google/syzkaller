@@ -43,6 +43,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Sysc
 	hc := &HubConnector{
 		mgr:           mgr,
 		cfg:           mgr.cfg,
+		webAddr:       publicWebAddr(mgr.cfg),
 		target:        mgr.target,
 		domain:        mgr.cfg.TargetOS + "/" + mgr.cfg.HubDomain,
 		enabledCalls:  enabledSyscalls,
@@ -67,6 +68,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Sysc
 type HubConnector struct {
 	mgr            HubManagerView
 	cfg            *mgrconfig.Config
+	webAddr        string
 	target         *prog.Target
 	domain         string
 	enabledCalls   map[*prog.Syscall]bool
@@ -155,12 +157,11 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	if err != nil {
 		return nil, err
 	}
-	http := publicWebAddr(hc.cfg)
 	a := &rpctype.HubConnectArgs{
 		Client:  hc.cfg.HubClient,
 		Key:     key,
 		Manager: hc.cfg.Name,
-		HTTP:    http,
+		HTTP:    hc.webAddr,
 		Domain:  hc.domain,
 		Fresh:   hc.fresh,
 	}
