@@ -186,7 +186,7 @@ func Complete(cfg *Config) error {
 	cfg.CompleteKernelDirs()
 
 	if err := cfg.completeServices(); err != nil {
-		return nil
+		return err
 	}
 
 	if cfg.FuzzingVMs < 0 {
