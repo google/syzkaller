@@ -1234,6 +1234,12 @@ func normalizeCrashTitle(title string) string {
 }
 
 func apiManagerStats(ctx context.Context, ns string, req *dashapi.ManagerStatsReq) (any, error) {
+	if req.Addr != "" {
+		u, err := url.Parse(req.Addr)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return nil, fmt.Errorf("invalid manager addr: %q", req.Addr)
+		}
+	}
 	now := timeNow(ctx)
 	err := updateManager(ctx, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
 		mgr.Link = req.Addr
