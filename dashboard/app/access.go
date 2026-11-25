@@ -215,29 +215,35 @@ func checkJobTextAccess(ctx context.Context, r *http.Request, field string, id i
 	return bug, checkAccessLevel(ctx, r, bugLevel)
 }
 
-func (bug *Bug) sanitizeAccess(ctx context.Context, currentLevel AccessLevel) AccessLevel {
-	config := getConfig(ctx)
+// reportingAccessLevel returns the access level of the bug based on its current reporting stage,
+// ignoring visibility overrides for fixed/invalid bugs and without mutating the bug.
+func (bug *Bug) reportingAccessLevel(ctx context.Context) AccessLevel {
+	ns := getNsConfig(ctx, bug.Namespace)
 	for ri := len(bug.Reporting) - 1; ri >= 0; ri-- {
 		bugReporting := &bug.Reporting[ri]
 		if ri == 0 || !bugReporting.Reported.IsZero() {
-			ns := config.Namespaces[bug.Namespace]
-			bugLevel := ns.ReportingByName(bugReporting.Name).AccessLevel
-			if currentLevel < bugLevel {
-				if bug.Status == BugStatusInvalid ||
-					bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
-					// Invalid and fixed bugs are visible in all reportings,
-					// however, without previous reporting private information.
-					lastLevel := ns.Reporting[len(ns.Reporting)-1].AccessLevel
-					if currentLevel >= lastLevel {
-						bugLevel = lastLevel
-						sanitizeReporting(bug)
-					}
-				}
-			}
-			return bugLevel
+			return ns.ReportingByName(bugReporting.Name).AccessLevel
 		}
 	}
 	panic("unreachable")
+}
+
+func (bug *Bug) sanitizeAccess(ctx context.Context, currentLevel AccessLevel) AccessLevel {
+	bugLevel := bug.reportingAccessLevel(ctx)
+	if currentLevel < bugLevel {
+		if bug.Status == BugStatusInvalid ||
+			bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
+			// Invalid and fixed bugs are visible in all reportings,
+			// however, without previous reporting private information.
+			ns := getNsConfig(ctx, bug.Namespace)
+			lastLevel := ns.Reporting[len(ns.Reporting)-1].AccessLevel
+			if currentLevel >= lastLevel {
+				bugLevel = lastLevel
+				sanitizeReporting(bug)
+			}
+		}
+	}
+	return bugLevel
 }
 
 func sanitizeReporting(bug *Bug) {
