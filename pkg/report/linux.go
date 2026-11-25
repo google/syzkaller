@@ -1539,6 +1539,8 @@ var linuxStackParams = &stackParams{
 		"^complete$",
 		"wait_for_completion",
 		"^kv?free$",
+		"^vfree$",
+		"^free_percpu$",
 		"kfree_skb",
 		"readb$",
 		"readw$",

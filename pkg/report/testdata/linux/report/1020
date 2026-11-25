@@ -1,0 +1,22 @@
+TITLE: WARNING in scsi_device_dev_release
+TYPE: WARNING
+FRAME: scsi_device_dev_release
+EXECUTOR: proc=9, id=1840
+
+[   10.000000][T15973] ------------[ cut here ]------------
+[   10.000000][T15973] 1
+[   10.000000][T15973] WARNING: mm/percpu.c:2262 at free_percpu mm/percpu.c:2262 [inline], CPU#1: syz.9.1840/15973
+[   10.000000][T15973] WARNING: mm/percpu.c:2262 at free_percpu+0x7cd/0x1510 mm/percpu.c:2239, CPU#1: syz.9.1840/15973
+[   10.000000][T15973] Modules linked in:
+[   10.000000][T15973] CPU: 1 UID: 0 PID: 15973 Comm: syz.9.1840 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+[   10.000000][T15973] Tainted: [L]=SOFTLOCKUP
+[   10.000000][T15973] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 11/06/2026
+[   10.000000][T15973] RIP: 0010:free_percpu mm/percpu.c:2262 [inline]
+[   10.000000][T15973] RIP: 0010:free_percpu+0x7cd/0x1510 mm/percpu.c:2239
+[   10.000000][T15973] RSP: 0018:ffffc9000543f548 EFLAGS: 00010286
+[   10.000000][T15973] Call Trace:
+[   10.000000][T15973]  <TASK>
+[   10.000000][T15973]  sbitmap_free include/linux/sbitmap.h:187 [inline]
+[   10.000000][T15973]  scsi_device_dev_release+0x5fc/0x12b0 drivers/scsi/scsi_sysfs.c:482
+[   10.000000][T15973]  device_release+0xd2/0x270 drivers/base/core.c:2640
+[   10.000000][T15973]  </TASK>

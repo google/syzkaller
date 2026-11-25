@@ -1,0 +1,19 @@
+TITLE: WARNING in persistent_dtr
+TYPE: WARNING
+FRAME: persistent_dtr
+
+[   10.000000][ T5665] ------------[ cut here ]------------
+[   10.000000][ T5665] Trying to vfree() nonexistent vm area (ffffc90024410000)
+[   10.000000][ T5665] WARNING: mm/vmalloc.c:3540 at vfree+0x463/0x490 mm/vmalloc.c:3539, CPU#0: syz-executor415/5665
+[   10.000000][ T5665] Modules linked in:
+[   10.000000][ T5665] CPU: 0 UID: 0 PID: 5665 Comm: syz-executor415 Not tainted syzkaller #0 PREEMPT(full) 
+[   10.000000][ T5665] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[   10.000000][ T5665] RIP: 0010:vfree+0x466/0x490 mm/vmalloc.c:3539
+[   10.000000][ T5665] RSP: 0018:ffffc9000364f868 EFLAGS: 00010293
+[   10.000000][ T5665] Call Trace:
+[   10.000000][ T5665]  <TASK>
+[   10.000000][ T5665]  free_area drivers/md/dm-snap-persistent.c:207 [inline]
+[   10.000000][ T5665]  persistent_dtr+0xb2/0x170 drivers/md/dm-snap-persistent.c:604
+[   10.000000][ T5665]  dm_exception_store_destroy+0x5c/0xc0 drivers/md/dm-exception-store.c:257
+[   10.000000][ T5665]  snapshot_ctr+0x10a0/0x1380 drivers/md/dm-snap.c:1421
+[   10.000000][ T5665]  </TASK>
