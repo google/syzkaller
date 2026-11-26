@@ -27,10 +27,19 @@ struct api_call_code {
 };
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void guest_fatal(uint64 exit_code) __attribute__((noreturn));
+GUEST_CODE static uint64 api_call_min_size(uint64 call_id);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
 GUEST_CODE static void guest_handle_csrr(uint32 csr);
 GUEST_CODE static void guest_handle_csrw(uint32 csr, uint64 val);
 GUEST_CODE static void guest_handle_memop(struct api_call_5* cmd);
+
+typedef enum {
+	UEXIT_END = (uint64)-1,
+	UEXIT_IRQ = (uint64)-2,
+	UEXIT_ASSERT = (uint64)-3,
+	UEXIT_INVALID_MAIN = (uint64)-4,
+} uexit_code;
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
@@ -45,11 +54,14 @@ guest_main(uint64 size, uint64 cpu)
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
-		if (cmd->call >= SYZOS_API_STOP)
-			return;
-		if (cmd->size > size)
-			return;
 		volatile uint64 call = cmd->call;
+		// A command must at least hold its header and the fixed arguments of the call: a
+		// zero-sized command would be executed forever, and the handlers would read the
+		// arguments of a truncated one from past its end.
+		// Do not return: the host may resume the vCPU, and there is nowhere to return to.
+		if ((call >= SYZOS_API_STOP) || (cmd->size > size) ||
+		    (cmd->size < api_call_min_size(call)))
+			guest_fatal(UEXIT_INVALID_MAIN);
 		if (call == SYZOS_API_UEXIT) {
 			// Issue a user exit.
 			struct api_call_1* ccmd = (struct api_call_1*)cmd;
@@ -77,6 +89,22 @@ guest_main(uint64 size, uint64 cpu)
 	guest_uexit((uint64)-1);
 }
 
+// Return the minimum size of a command: the header plus the fixed-size arguments of the call.
+// This must match the descriptions of the calls in sys/linux/dev_kvm_riscv64.txt.
+GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
+{
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 call = call_id;
+	if ((call == SYZOS_API_UEXIT) || (call == SYZOS_API_CSRR))
+		return sizeof(struct api_call_1);
+	if (call == SYZOS_API_CSRW)
+		return sizeof(struct api_call_2);
+	if (call == SYZOS_API_MEMOP)
+		return sizeof(struct api_call_5);
+	// SYZOS_API_CODE has no fixed arguments.
+	return sizeof(struct api_call_header);
+}
+
 // Perform a userspace exit that can be handled by the host.
 // The host returns from ioctl(KVM_RUN) with kvm_run.exit_reason=KVM_EXIT_MMIO,
 // and can handle the call depending on the data passed as exit code.
@@ -84,6 +112,15 @@ GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)RISCV64_ADDR_UEXIT;
 	*ptr = exit_code;
+}
+
+// Report an unrecoverable error to the host and never return. The host may resume the vCPU after
+// guest_uexit(), so report the same exit code again every time instead of continuing with broken
+// state.
+GUEST_CODE static noinline __attribute__((noreturn)) void guest_fatal(uint64 exit_code)
+{
+	for (;;)
+		guest_uexit(exit_code);
 }
 
 GUEST_CODE static noinline void guest_execute_code(uint32* insns, uint64 size)
