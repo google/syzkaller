@@ -75,6 +75,8 @@ struct api_call_its_send_cmd {
 } __attribute__((packed));
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void guest_fatal(uint64 exit_code) __attribute__((noreturn));
+GUEST_CODE static uint64 api_call_min_size(uint64 call_id);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
 GUEST_CODE static void guest_handle_mrs(uint64 reg);
 GUEST_CODE static void guest_handle_msr(uint64 reg, uint64 val);
@@ -91,6 +93,7 @@ typedef enum {
 	UEXIT_END = (uint64)-1,
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
+	UEXIT_INVALID_MAIN = (uint64)-4,
 } uexit_code;
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
@@ -103,11 +106,15 @@ guest_main(uint64 size, uint64 cpu)
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
-		if (cmd->call >= SYZOS_API_STOP)
-			return;
-		if (cmd->size > size)
-			return;
-		switch (cmd->call) {
+		volatile uint64 call = cmd->call;
+		// A command must at least hold its header and the fixed arguments of the call: a
+		// zero-sized command would be executed forever, and the handlers would read the
+		// arguments of a truncated one from past its end.
+		// Do not return: the host may resume the vCPU, and there is nowhere to return to.
+		if ((call >= SYZOS_API_STOP) || (cmd->size > size) ||
+		    (cmd->size < api_call_min_size(call)))
+			guest_fatal(UEXIT_INVALID_MAIN);
+		switch (call) {
 		case SYZOS_API_UEXIT: {
 			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
 			guest_uexit(ucmd->exit_code);
@@ -168,6 +175,32 @@ guest_main(uint64 size, uint64 cpu)
 	guest_uexit((uint64)-1);
 }
 
+// Return the minimum size of a command: the header plus the fixed-size arguments of the call.
+// This must match the descriptions of the calls in sys/linux/dev_kvm_arm64.txt.
+GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
+{
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 call = call_id;
+	if (call == SYZOS_API_UEXIT)
+		return sizeof(struct api_call_uexit);
+	if (call == SYZOS_API_MSR)
+		return sizeof(struct api_call_2);
+	if ((call == SYZOS_API_SMC) || (call == SYZOS_API_HVC) || (call == SYZOS_API_SVC))
+		return sizeof(struct api_call_smccc);
+	if (call == SYZOS_API_IRQ_SETUP)
+		return sizeof(struct api_call_irq_setup);
+	if (call == SYZOS_API_MEMWRITE)
+		return sizeof(struct api_call_memwrite);
+	if (call == SYZOS_API_ITS_SETUP)
+		return sizeof(struct api_call_3);
+	if (call == SYZOS_API_ITS_SEND_CMD)
+		return sizeof(struct api_call_its_send_cmd);
+	if ((call == SYZOS_API_MRS) || (call == SYZOS_API_ERET))
+		return sizeof(struct api_call_1);
+	// SYZOS_API_CODE has no fixed arguments.
+	return sizeof(struct api_call_header);
+}
+
 // Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
 #define MAX_CACHE_LINE_SIZE 256
 
@@ -211,6 +244,15 @@ GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)ARM64_ADDR_UEXIT;
 	*ptr = exit_code;
+}
+
+// Report an unrecoverable error to the host and never return. The host may resume the vCPU after
+// guest_uexit(), so report the same exit code again every time instead of continuing with broken
+// state.
+GUEST_CODE static noinline __attribute__((noreturn)) void guest_fatal(uint64 exit_code)
+{
+	for (;;)
+		guest_uexit(exit_code);
 }
 
 #define MSR_REG_OPCODE 0xd5100000
