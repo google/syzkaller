@@ -51,6 +51,31 @@ r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
 write(r0, &AUTO="01010101", 0x4)
 ```
 
+### Resources
+
+Syscall return values can be saved into variables (`r0 = openat(...)`) and
+passed to subsequent calls (`write(r0, ...)`).
+
+To capture a resource returned through an output or in-out memory argument
+instead of a syscall return value, prefix the argument with `<rN=>`:
+
+```
+pipe2(&AUTO={<r0=>0x0, <r1=>0x0}, 0x0)
+```
+
+After the syscall succeeds, `syz-executor` copies the value out of that memory
+location into the variable (`r0`, `r1`).
+
+Variable usage must match the argument's direction in the syscall description:
+* `in` arguments may reference an existing variable (`r0`), but cannot bind a
+  variable (`<rN=>`) for use by later calls.
+* `out` arguments (including `out_overlay` struct fields) may bind a new
+  variable using a zero or default placeholder (e.g. `<r2=>0x0`), but cannot
+  reference an existing variable (`r0`) because `out` arguments are not copied
+  in before the syscall.
+* `inout` arguments may both reference an existing variable and bind a new one
+  (e.g. `<r2=>r1`).
+
 ### Memory management
 
 Memory management is performed by syzkaller itself. It will allocate
