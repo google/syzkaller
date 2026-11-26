@@ -7,8 +7,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"strings"
@@ -18,9 +20,9 @@ import (
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gcpsecret"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-hub/state"
@@ -70,12 +72,23 @@ func main() {
 		auth: auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint),
 	}
 
-	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub)
+	ln, err := net.Listen("tcp", cfg.RPC)
 	if err != nil {
-		log.Fatalf("failed to create rpc server: %v", err)
+		log.Fatalf("failed to listen on %v: %v", cfg.RPC, err)
 	}
-	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
-	go s.Serve()
+	log.Logf(0, "serving api on http://%v", ln.Addr())
+	apiSrv := &http.Server{
+		Handler:           hub.apiHandler(),
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       10 * time.Minute,
+		WriteTimeout:      10 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+	}
+	go func() {
+		if err := apiSrv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("failed to serve api: %v", err)
+		}
+	}()
 
 	http.HandleFunc("/", hub.httpSummary)
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -88,73 +101,60 @@ func main() {
 	osutil.HandleInterrupts(shutdown)
 	<-shutdown
 	log.Logf(0, "shutting down...")
-	// Keep hub.mu locked until process exit so background RPC or purge goroutines
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := apiSrv.Shutdown(shutdownCtx); err != nil {
+		log.Logf(0, "api server shutdown error: %v", err)
+	}
+	// Keep hub.mu locked until process exit so background purge goroutines
 	// cannot mutate on-disk state after the final Flush.
 	hub.mu.Lock()
 	hub.st.Flush()
 }
 
-func (hub *Hub) CheckAuth(client, key, manager string) error {
-	_, err := hub.checkManager(client, key, manager)
-	return err
-}
-
-func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
-	name, err := hub.checkManager(a.Client, a.Key, a.Manager)
-	if err != nil {
-		return err
-	}
+func (hub *Hub) connect(name string, req *hubapi.ConnectReq) error {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
 	log.Logf(0, "connect from %v (%v): domain=%v fresh=%v calls=%v corpus=%v",
-		name, a.HTTP, a.Domain, a.Fresh, len(a.Calls), len(a.Corpus))
-	if err := hub.st.Connect(name, a.HTTP, a.Domain, a.Fresh, a.Calls, a.Corpus); err != nil {
+		name, req.HTTP, req.Domain, req.Fresh, len(req.Calls), len(req.Corpus))
+	if err := hub.st.Connect(name, req.HTTP, req.Domain, req.Fresh, req.Calls, req.Corpus); err != nil {
 		log.Logf(0, "connect error: %v", err)
 		return err
 	}
 	return nil
 }
 
-func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
-	name, err := hub.checkManager(a.Client, a.Key, a.Manager)
-	if err != nil {
-		return err
-	}
+func (hub *Hub) sync(name string, req *hubapi.SyncReq) (*hubapi.SyncResp, error) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	domain, inputs, more, err := hub.st.Sync(name, a.Add, a.Del)
+	_, inputs, more, err := hub.st.Sync(name, nil, nil)
 	if err != nil {
 		log.Logf(0, "sync error: %v", err)
-		return err
+		return nil, err
 	}
-	if domain != "" {
-		r.Inputs = inputs
-	} else {
-		r.Progs = make([][]byte, 0, len(inputs))
-		for _, inp := range inputs {
-			r.Progs = append(r.Progs, inp.Prog)
-		}
+	resp := &hubapi.SyncResp{
+		Inputs: inputs,
+		More:   more,
 	}
-	r.More = more
-	for _, repro := range a.Repros {
+	for _, repro := range req.Repros {
 		if err := hub.st.AddRepro(name, repro); err != nil {
 			log.Logf(0, "add repro error: %v", err)
 		}
 	}
-	if a.NeedRepros {
+	if req.NeedRepros {
 		repro, err := hub.st.PendingRepro(name)
 		if err != nil {
 			log.Logf(0, "sync error: %v", err)
 		}
 		if repro != nil {
-			r.Repros = [][]byte{repro}
+			resp.Repros = [][]byte{repro}
 		}
 	}
-	log.Logf(0, "sync from %v: recv: add=%v del=%v repros=%v; send: progs=%v repros=%v pending=%v",
-		name, len(a.Add), len(a.Del), len(a.Repros), len(inputs), len(r.Repros), more)
-	return nil
+	log.Logf(0, "sync from %v: recv: repros=%v; send: progs=%v repros=%v pending=%v",
+		name, len(req.Repros), len(inputs), len(resp.Repros), more)
+	return resp, nil
 }
 
 func (hub *Hub) purgeOldManagers() {
@@ -167,9 +167,9 @@ func (hub *Hub) purgeOldManagers() {
 	}
 }
 
-func (hub *Hub) verifyKey(key, expectedKey string) error {
+func (hub *Hub) verifyKey(token, expectedKey string) error {
 	if strings.HasPrefix(expectedKey, auth.OauthMagic) {
-		subj, err := hub.auth.DetermineAuthSubj(time.Now(), []string{key})
+		subj, err := hub.auth.DetermineAuthSubj(time.Now(), []string{"Bearer " + token})
 		if err != nil {
 			return err
 		}
@@ -181,7 +181,7 @@ func (hub *Hub) verifyKey(key, expectedKey string) error {
 		// Success due to correct token.
 		return nil
 	}
-	keyHash := sha256.Sum256([]byte(key))
+	keyHash := sha256.Sum256([]byte(token))
 	expectedHash := sha256.Sum256([]byte(expectedKey))
 	if subtle.ConstantTimeCompare(keyHash[:], expectedHash[:]) != 1 {
 		return fmt.Errorf("bad password")
@@ -191,13 +191,13 @@ func (hub *Hub) verifyKey(key, expectedKey string) error {
 }
 
 // Returns the verified manager identity or error.
-func (hub *Hub) checkManager(client, key, manager string) (string, error) {
+func (hub *Hub) checkManager(client, token, manager string) (string, error) {
 	expectedKey, ok := hub.keys[client]
 	if !ok {
 		log.Logf(0, "connect from unauthorized client %v", client)
 		return "", fmt.Errorf("unauthorized manager")
 	}
-	if err := hub.verifyKey(key, expectedKey); err != nil {
+	if err := hub.verifyKey(token, expectedKey); err != nil {
 		log.Logf(0, "connect from unauthorized client %v", client)
 		return "", fmt.Errorf("unauthorized manager")
 	}

@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,13 +52,13 @@ func (ts *TestState) Connect(name, domain string, fresh bool, calls []string, co
 	}
 }
 
-func (ts *TestState) Sync(name string, add [][]byte, del []string) (string, []rpctype.HubInput, int) {
+func (ts *TestState) Sync(name string, add [][]byte, del []string) (string, []hubapi.Input, int) {
 	ts.t.Helper()
 	domain, inputs, pending, err := ts.state.Sync(name, add, del)
 	if err != nil {
 		ts.t.Fatalf("Sync failed: %v", err)
 	}
-	slices.SortFunc(inputs, func(a, b rpctype.HubInput) int {
+	slices.SortFunc(inputs, func(a, b hubapi.Input) int {
 		if a.Domain != b.Domain {
 			return cmp.Compare(a.Domain, b.Domain)
 		}
@@ -174,13 +174,13 @@ func TestDomain(t *testing.T) {
 		if domain != "domain1" || pending != 0 {
 			t.Fatalf("bad sync result: %v, %v, %v", domain, inputs, pending)
 		}
-		require.Equal(t, []rpctype.HubInput{
+		require.Equal(t, []hubapi.Input{
 			{Domain: "", Prog: []byte("open(0x0)")},
 		}, inputs)
 	}
 	{
 		_, inputs, _ := st.Sync("client2", [][]byte{[]byte("open(0x3)")}, nil)
-		require.Equal(t, []rpctype.HubInput{
+		require.Equal(t, []hubapi.Input{
 			{Domain: "", Prog: []byte("open(0x0)")},
 			{Domain: "domain1", Prog: []byte("open(0x1)")},
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
@@ -188,7 +188,7 @@ func TestDomain(t *testing.T) {
 	}
 	{
 		_, inputs, _ := st.Sync("client0", nil, nil)
-		require.Equal(t, []rpctype.HubInput{
+		require.Equal(t, []hubapi.Input{
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
 		}, inputs)
@@ -197,7 +197,7 @@ func TestDomain(t *testing.T) {
 	st.Connect("client3", "domain3", false, []string{"open"}, nil)
 	{
 		_, inputs, _ := st.Sync("client3", nil, nil)
-		require.Equal(t, []rpctype.HubInput{
+		require.Equal(t, []hubapi.Input{
 			{Domain: "", Prog: []byte("open(0x0)")},
 			{Domain: "domain1", Prog: []byte("open(0x1)")},
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
@@ -235,7 +235,7 @@ func TestCorpusPurgeAndRefCount(t *testing.T) {
 	st.Sync("mgr2", [][]byte{p1}, nil)
 	assert.Len(t, st.state.Corpus.Records, 3)
 	_, inputs, _ := st.Sync("mgr1", nil, nil)
-	require.Equal(t, []rpctype.HubInput{
+	require.Equal(t, []hubapi.Input{
 		{Domain: "d2", Prog: p1},
 	}, inputs)
 
@@ -269,7 +269,7 @@ func TestNewCallsAfterConnect(t *testing.T) {
 
 	// mgr1 should only receive the program that uses "open", not "ioctl".
 	_, inputs, _ := st.Sync("mgr1", nil, nil)
-	require.Equal(t, []rpctype.HubInput{
+	require.Equal(t, []hubapi.Input{
 		{Domain: "d2", Prog: []byte("open(0x2)")},
 	}, inputs)
 
@@ -460,6 +460,6 @@ func TestCapRecordsCountsMatchingInputs(t *testing.T) {
 	assert.Equal(t, 99900, more)
 	assert.Len(t, inputs, 100)
 	assert.Equal(t, st.state.corpusSeq, st.state.Managers["mgr3"].capCheckedSeq)
-	assert.Contains(t, inputs, rpctype.HubInput{Prog: []byte(fmt.Sprintf("open(0x%x)", base))})
-	assert.NotContains(t, inputs, rpctype.HubInput{Prog: []byte("open(0x0)")})
+	assert.Contains(t, inputs, hubapi.Input{Prog: []byte(fmt.Sprintf("open(0x%x)", base))})
+	assert.NotContains(t, inputs, hubapi.Input{Prog: []byte("open(0x0)")})
 }
