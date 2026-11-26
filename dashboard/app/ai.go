@@ -1998,6 +1998,10 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 			return "", fmt.Errorf("failed to get manager build for fix bisection: %w", err)
 		}
 		args["KernelCommit"] = mgrBuild.KernelCommit
+		// On rebased trees the crash commit is not in the history of the latest commit.
+		if kernelRepoInfo(ctx, build).Rebased {
+			args["KernelRebased"] = true
+		}
 	}
 	if manager, ok := extraArgs["KernelConfigManager"].(string); ok && manager != "" {
 		manager, _ = activeManager(ctx, manager, bug.Namespace)

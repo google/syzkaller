@@ -650,6 +650,12 @@ var testConfig = &GlobalConfig{
 					Branch: "main",
 					Alias:  "main",
 				},
+				{
+					URL:     "git://syzkaller.org/linux-next.git",
+					Branch:  "master",
+					Alias:   "linux-next",
+					Rebased: true,
+				},
 			},
 			Reporting: []Reporting{
 				{

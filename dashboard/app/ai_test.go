@@ -2748,6 +2748,7 @@ func TestAIBisectFix(t *testing.T) {
 	jobLink := fmt.Sprintf("/ai_job?id=%v", resp.ID)
 	assert.Equal(t, build1.KernelCommit, resp.Args["CrashCommit"])
 	assert.Equal(t, build2.KernelCommit, resp.Args["KernelCommit"])
+	assert.NotContains(t, resp.Args, "KernelRebased")
 	// The crash report on the job page links to the sources of the crashed kernel, not of the newer one.
 	jobPage, err := c.AuthGET(AccessAdmin, jobLink)
 	require.NoError(t, err)
@@ -2817,6 +2818,19 @@ func TestAIBisectFix(t *testing.T) {
 	page, err = c.GET(bugPageURL)
 	require.NoError(t, err)
 	assert.NotContains(t, string(page), "✨ AI fix bisection")
+}
+
+func TestAIBisectFixRebasedTree(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.KernelRepo, build.KernelBranch = "git://syzkaller.org/linux-next.git", "master"
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	_, err := c.aiClient.ReportCrash(testCrash(build, 1))
+	require.NoError(t, err)
+	resp := c.startAIBisect(c.aiClient.pollEmailExtID(), ai.WorkflowBisectFix)
+	assert.Equal(t, true, resp.Args["KernelRebased"])
 }
 
 func TestAIBisectFixObsoleting(t *testing.T) {

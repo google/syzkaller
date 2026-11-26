@@ -451,6 +451,9 @@ type KernelRepo struct {
 	DetectMissingBackports bool
 	// Append this string to the config file before running reproducers on this tree.
 	AppendConfig string
+	// The tree is regularly rebased rather than accumulates commits (e.g. linux-next),
+	// so the commits that crashes happened on do not stay in its history.
+	Rebased bool
 }
 
 type KernelRepoLink struct {
