@@ -1,0 +1,29 @@
+#
+# requires: arch=amd64 vendor=intel nested -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Test KVM's Hyper-V L2 direct TLB flush hypercall support
+# (nested_evmcs_l2_tlb_flush_enabled() and vmx_hv_inject_synthetic_vmexit_post_tlb_flush()):
+# - Enabling eVMCS with flags=3 sets HV_X64_MSR_GUEST_OS_ID, partition_assist_page, hv_vm_id,
+#   hv_vp_id, nested_flush_hypercall=1, and vp_assist.nested_control.features.directhypercall=1.
+# - L2 executes a fast HVCALL_FLUSH_VIRTUAL_ADDRESS_SPACE (mov r8d, 1; mov ecx, 0x10002; vmcall)
+#   followed by HLT. With partition_assist_page->tlb_lock_count == 0, L0 handles the hypercall
+#   without exiting to L1, so L2 reaches HLT (0xe2e20001).
+# - After setting tlb_lock_count = 1 (field 11) and resuming the same hypercall, L0 injects
+#   HV_VMX_SYNTHETIC_EXIT_REASON_TRAP_AFTER_FLUSH (0x10000031 -> 0xf2110031), then L2 resumes at
+#   HLT without skipping RIP (0xe2e20001).
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_intel_evmcs_enable={AUTO, AUTO, {0x0, 0x3}}, @nested_load_code={AUTO, AUTO, {0x0, "41b801000000b9020001000f01c1f4"}}, @nested_vmlaunch={AUTO, AUTO, 0x0}, @nested_intel_evmcs_write_mask={AUTO, AUTO, {0x0, 0xb, 0x1, 0x0, 0x0}}, @nested_load_code={AUTO, AUTO, {0x0, "41b801000000b9020001000f01c1f4"}}, @nested_vmresume={AUTO, AUTO, 0x0}, @nested_vmresume={AUTO, AUTO, 0x0}], AUTO})
+ioctl$KVM_CAP_HYPERV_ENLIGHTENED_VMCS(r3, AUTO, &AUTO={AUTO, AUTO, &AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e20001)
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xf2110031)
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e20001)
