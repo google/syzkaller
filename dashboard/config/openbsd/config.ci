@@ -4,7 +4,7 @@
 	"manager_port_start": 50010,
 	"dashboard_addr": "https://syzkaller.appspot.com",
 	"dashboard_client": "ci-openbsd-ci",
-	"hub_addr": "ci-hub.c.syzkaller.internal:50001",
+	"hub_addr": "http://ci-hub.c.syzkaller.internal:50001",
 	"syzkaller_repo": "https://github.com/google/syzkaller.git",
 	"managers": [
 		{
