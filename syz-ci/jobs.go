@@ -356,6 +356,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	mgrcfg := mgr.jobConfig()
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
 	repoDir := filepath.Join(dir, "kernel")
+	mgrcfg.KernelBuildSrc = repoDir
 	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
@@ -624,7 +625,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	dt.Logf("fetching kernel...")
 	// If the repo was cloned with --reference, git mounts the referenced objects via alternates.
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelBuildSrc)
 	if err != nil {
 		dt.Logf("failed to create kernel repo: %v", osutil.VerboseMessage(err))
 		return fmt.Errorf("failed to create kernel repo: %w", err)
@@ -659,7 +660,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	if len(req.Patch) != 0 {
 		dt.Logf("applying patch (%d bytes)...", len(req.Patch))
-		if err := vcs.Patch(mgrcfg.KernelSrc, req.Patch); err != nil {
+		if err := vcs.Patch(mgrcfg.KernelBuildSrc, req.Patch); err != nil {
 			dt.Logf("failed to apply patch: %v", osutil.VerboseMessage(err))
 			return err
 		}
@@ -743,7 +744,7 @@ func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dash
 		// No need to.
 		return nil
 	}
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc,
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelBuildSrc,
 		vcs.OptReadOnlyDirs(refDir))
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %w", err)

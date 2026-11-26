@@ -6,6 +6,7 @@
 package instance
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -156,7 +157,7 @@ func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
 		TargetOS:     env.cfg.TargetOS,
 		TargetArch:   env.cfg.TargetVMArch,
 		VMType:       env.cfg.Type,
-		KernelDir:    env.cfg.KernelSrc,
+		KernelDir:    cmp.Or(env.cfg.KernelBuildSrc, env.cfg.KernelSrc),
 		OutputDir:    filepath.Join(env.cfg.Workdir, "image"),
 		Make:         buildCfg.MakeBin,
 		Compiler:     buildCfg.CompilerBin,
