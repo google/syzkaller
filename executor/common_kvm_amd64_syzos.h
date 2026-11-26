@@ -43,6 +43,8 @@ typedef enum {
 	SYZOS_API_NESTED_INTEL_VMFUNC = 345,
 	SYZOS_API_NESTED_INTEL_VMREAD = 346,
 	SYZOS_API_NESTED_INTEL_VMWRITE = 347,
+	SYZOS_API_NESTED_INTEL_EVMCS_ENABLE = 348,
+	SYZOS_API_NESTED_INTEL_EVMCS_WRITE_MASK = 349,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
@@ -68,6 +70,28 @@ typedef enum {
 	NESTED_PAGE_VMWRITE_BITMAP = 80, // Intel: VMWRITE bitmap.
 	NESTED_PAGE_SHADOW_VMCS = 90, // Intel: shadow VMCS (VMCS link pointer).
 } nested_page_type;
+
+typedef enum {
+	NESTED_EVMCS_FLAG_NONE = 0,
+	NESTED_EVMCS_FLAG_ENABLE = 1 << 0,
+	NESTED_EVMCS_FLAG_NESTED_FLUSH = 1 << 1,
+} nested_evmcs_flags;
+
+// Non-VMCS Hyper-V fields mutated by SYZOS_API_NESTED_INTEL_EVMCS_WRITE_MASK.
+typedef enum {
+	NESTED_EVMCS_FIELD_REVISION_ID = 0,
+	NESTED_EVMCS_FIELD_ABORT = 1,
+	NESTED_EVMCS_FIELD_HV_CLEAN_FIELDS = 2,
+	NESTED_EVMCS_FIELD_HV_SYNTHETIC_CONTROLS = 3,
+	NESTED_EVMCS_FIELD_HV_ENLIGHTENMENTS_CONTROL = 4,
+	NESTED_EVMCS_FIELD_HV_VP_ID = 5,
+	NESTED_EVMCS_FIELD_HV_VM_ID = 6,
+	NESTED_EVMCS_FIELD_PARTITION_ASSIST_PAGE = 7,
+	NESTED_EVMCS_FIELD_VP_ASSIST_ENLIGHTEN_VMENTRY = 8,
+	NESTED_EVMCS_FIELD_VP_ASSIST_CURRENT_NESTED_VMCS = 9,
+	NESTED_EVMCS_FIELD_VP_ASSIST_NESTED_CONTROL = 10,
+	NESTED_EVMCS_FIELD_PA_TLB_LOCK_COUNT = 11,
+} nested_evmcs_field;
 
 struct api_call_uexit {
 	struct api_call_header header;
@@ -112,6 +136,210 @@ struct l2_guest_regs {
 	uint64 r8, r9, r10, r11, r12, r13, r14, r15;
 };
 
+struct hv_nested_enlightenments_control {
+	union {
+		uint32 as_uint32;
+		struct {
+			uint32 directhypercall : 1;
+			uint32 reserved : 31;
+		};
+	} features;
+	union {
+		uint32 as_uint32;
+		struct {
+			uint32 inter_partition_comm : 1;
+			uint32 reserved : 31;
+		};
+	} hypercall_controls;
+};
+
+struct hv_vp_assist_page {
+	uint32 apic_assist;
+	uint32 reserved1;
+	uint32 vtl_entry_reason;
+	uint32 vtl_reserved;
+	uint64 vtl_ret_x64rax;
+	uint64 vtl_ret_x64rcx;
+	struct hv_nested_enlightenments_control nested_control;
+	uint8 enlighten_vmentry;
+	uint8 reserved2[7];
+	uint64 current_nested_vmcs;
+	uint8 synthetic_time_unhalted_timer_expired;
+	uint8 reserved3[7];
+	uint8 virtualization_fault_information[40];
+	uint8 reserved4[8];
+	uint8 intercept_message[256];
+	uint8 vtl_ret_actions[256];
+} __attribute__((packed));
+
+struct hv_enlightened_vmcs {
+	uint32 revision_id;
+	uint32 abort;
+	uint16 host_es_selector;
+	uint16 host_cs_selector;
+	uint16 host_ss_selector;
+	uint16 host_ds_selector;
+	uint16 host_fs_selector;
+	uint16 host_gs_selector;
+	uint16 host_tr_selector;
+	uint16 padding16_1;
+	uint64 host_ia32_pat;
+	uint64 host_ia32_efer;
+	uint64 host_cr0;
+	uint64 host_cr3;
+	uint64 host_cr4;
+	uint64 host_ia32_sysenter_esp;
+	uint64 host_ia32_sysenter_eip;
+	uint64 host_rip;
+	uint32 host_ia32_sysenter_cs;
+	uint32 pin_based_vm_exec_control;
+	uint32 vm_exit_controls;
+	uint32 secondary_vm_exec_control;
+	uint64 io_bitmap_a;
+	uint64 io_bitmap_b;
+	uint64 msr_bitmap;
+	uint16 guest_es_selector;
+	uint16 guest_cs_selector;
+	uint16 guest_ss_selector;
+	uint16 guest_ds_selector;
+	uint16 guest_fs_selector;
+	uint16 guest_gs_selector;
+	uint16 guest_ldtr_selector;
+	uint16 guest_tr_selector;
+	uint32 guest_es_limit;
+	uint32 guest_cs_limit;
+	uint32 guest_ss_limit;
+	uint32 guest_ds_limit;
+	uint32 guest_fs_limit;
+	uint32 guest_gs_limit;
+	uint32 guest_ldtr_limit;
+	uint32 guest_tr_limit;
+	uint32 guest_gdtr_limit;
+	uint32 guest_idtr_limit;
+	uint32 guest_es_ar_bytes;
+	uint32 guest_cs_ar_bytes;
+	uint32 guest_ss_ar_bytes;
+	uint32 guest_ds_ar_bytes;
+	uint32 guest_fs_ar_bytes;
+	uint32 guest_gs_ar_bytes;
+	uint32 guest_ldtr_ar_bytes;
+	uint32 guest_tr_ar_bytes;
+	uint64 guest_es_base;
+	uint64 guest_cs_base;
+	uint64 guest_ss_base;
+	uint64 guest_ds_base;
+	uint64 guest_fs_base;
+	uint64 guest_gs_base;
+	uint64 guest_ldtr_base;
+	uint64 guest_tr_base;
+	uint64 guest_gdtr_base;
+	uint64 guest_idtr_base;
+	uint64 padding64_1[3];
+	uint64 vm_exit_msr_store_addr;
+	uint64 vm_exit_msr_load_addr;
+	uint64 vm_entry_msr_load_addr;
+	uint64 cr3_target_value0;
+	uint64 cr3_target_value1;
+	uint64 cr3_target_value2;
+	uint64 cr3_target_value3;
+	uint32 page_fault_error_code_mask;
+	uint32 page_fault_error_code_match;
+	uint32 cr3_target_count;
+	uint32 vm_exit_msr_store_count;
+	uint32 vm_exit_msr_load_count;
+	uint32 vm_entry_msr_load_count;
+	uint64 tsc_offset;
+	uint64 virtual_apic_page_addr;
+	uint64 vmcs_link_pointer;
+	uint64 guest_ia32_debugctl;
+	uint64 guest_ia32_pat;
+	uint64 guest_ia32_efer;
+	uint64 guest_pdptr0;
+	uint64 guest_pdptr1;
+	uint64 guest_pdptr2;
+	uint64 guest_pdptr3;
+	uint64 guest_pending_dbg_exceptions;
+	uint64 guest_sysenter_esp;
+	uint64 guest_sysenter_eip;
+	uint32 guest_activity_state;
+	uint32 guest_sysenter_cs;
+	uint64 cr0_guest_host_mask;
+	uint64 cr4_guest_host_mask;
+	uint64 cr0_read_shadow;
+	uint64 cr4_read_shadow;
+	uint64 guest_cr0;
+	uint64 guest_cr3;
+	uint64 guest_cr4;
+	uint64 guest_dr7;
+	uint64 host_fs_base;
+	uint64 host_gs_base;
+	uint64 host_tr_base;
+	uint64 host_gdtr_base;
+	uint64 host_idtr_base;
+	uint64 host_rsp;
+	uint64 ept_pointer;
+	uint16 virtual_processor_id;
+	uint16 padding16_2[3];
+	uint64 padding64_2[5];
+	uint64 guest_physical_address;
+	uint32 vm_instruction_error;
+	uint32 vm_exit_reason;
+	uint32 vm_exit_intr_info;
+	uint32 vm_exit_intr_error_code;
+	uint32 idt_vectoring_info_field;
+	uint32 idt_vectoring_error_code;
+	uint32 vm_exit_instruction_len;
+	uint32 vmx_instruction_info;
+	uint64 exit_qualification;
+	uint64 exit_io_instruction_ecx;
+	uint64 exit_io_instruction_esi;
+	uint64 exit_io_instruction_edi;
+	uint64 exit_io_instruction_eip;
+	uint64 guest_linear_address;
+	uint64 guest_rsp;
+	uint64 guest_rflags;
+	uint32 guest_interruptibility_info;
+	uint32 cpu_based_vm_exec_control;
+	uint32 exception_bitmap;
+	uint32 vm_entry_controls;
+	uint32 vm_entry_intr_info_field;
+	uint32 vm_entry_exception_error_code;
+	uint32 vm_entry_instruction_len;
+	uint32 tpr_threshold;
+	uint64 guest_rip;
+	uint32 hv_clean_fields;
+	uint32 padding32_1;
+	uint32 hv_synthetic_controls;
+	union {
+		uint32 as_uint32;
+		struct {
+			uint32 nested_flush_hypercall : 1;
+			uint32 msr_bitmap : 1;
+			uint32 reserved : 30;
+		};
+	} hv_enlightenments_control;
+	uint32 hv_vp_id;
+	uint32 padding32_2;
+	uint64 hv_vm_id;
+	uint64 partition_assist_page;
+	uint64 padding64_4[4];
+	uint64 guest_bndcfgs;
+	uint64 guest_ia32_perf_global_ctrl;
+	uint64 guest_ia32_s_cet;
+	uint64 guest_ssp;
+	uint64 guest_ia32_int_ssp_table_addr;
+	uint64 guest_ia32_lbr_ctl;
+	uint64 padding64_5[2];
+	uint64 xss_exit_bitmap;
+	uint64 encls_exiting_bitmap;
+	uint64 host_ia32_perf_global_ctrl;
+	uint64 tsc_multiplier;
+	uint64 host_ia32_s_cet;
+	uint64 host_ssp;
+	uint64 host_ia32_int_ssp_table_addr;
+	uint64 padding64_6;
+} __attribute__((packed));
+
 // AMD64-specific flags for mem_region.
 #define MEM_REGION_FLAG_GPA0 (1 << 5)
 #define MEM_REGION_FLAG_REMAINING (1 << 7)
@@ -129,6 +357,10 @@ struct syzos_globals {
 	struct l2_guest_regs l2_ctx[KVM_MAX_VCPU][KVM_MAX_L2_VMS];
 	uint64 active_vm_id[KVM_MAX_VCPU];
 	uint64 vendor;
+	uint8 evmcs_enabled[KVM_MAX_VCPU][KVM_MAX_L2_VMS];
+	uint8 hv_vp_assist_enabled[KVM_MAX_VCPU];
+	// 1-based VM index (vm_id + 1) currently active in hv_vp_assist_page, or 0 if none.
+	uint8 active_evmcs_vm[KVM_MAX_VCPU];
 };
 
 #ifdef __cplusplus
@@ -147,7 +379,7 @@ extern "C" {
 // translation unit, so there's no ODR risk from the external linkage. clang-tidy's
 // misc-definitions-in-headers is silenced explicitly on each definition below.
 GUEST_CODE void guest_uexit(uint64 exit_code);
-GUEST_CODE void nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs);
+GUEST_CODE void nested_vm_exit_handler_intel(struct l2_guest_regs* regs);
 GUEST_CODE void nested_vm_exit_handler_amd(uint64 exit_reason, struct l2_guest_regs* regs);
 #ifdef __cplusplus
 }
@@ -179,6 +411,8 @@ GUEST_CODE static void guest_handle_nested_intel_eptp_list_set(struct api_call_3
 GUEST_CODE static void guest_handle_nested_intel_vmfunc(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_nested_intel_vmread(struct api_call_1* cmd);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_nested_intel_evmcs_enable(struct api_call_2* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_intel_evmcs_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
@@ -410,6 +644,12 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_VMWRITE) {
 			// Execute VMWRITE.
 			guest_handle_nested_intel_vmwrite((struct api_call_2*)cmd);
+		} else if (call == SYZOS_API_NESTED_INTEL_EVMCS_ENABLE) {
+			// Enable Hyper-V eVMCS (and optionally L2 direct TLB flush) for a nested VM.
+			guest_handle_nested_intel_evmcs_enable((struct api_call_2*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_INTEL_EVMCS_WRITE_MASK) {
+			// Write to a Hyper-V eVMCS or VP assist field using masks.
+			guest_handle_nested_intel_evmcs_write_mask((struct api_call_5*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
@@ -465,7 +705,9 @@ GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
 	if ((call == SYZOS_API_WRMSR) || (call == SYZOS_API_WR_CRN) || (call == SYZOS_API_WR_DRN) ||
 	    (call == SYZOS_API_IN_DX) || (call == SYZOS_API_SET_IRQ_HANDLER) ||
 	    (call == SYZOS_API_NESTED_INTEL_INVEPT) || (call == SYZOS_API_NESTED_INTEL_VMFUNC) ||
-	    (call == SYZOS_API_NESTED_INTEL_VMWRITE) || (call == SYZOS_API_NESTED_AMD_INVLPGA))
+	    (call == SYZOS_API_NESTED_INTEL_VMWRITE) ||
+	    (call == SYZOS_API_NESTED_INTEL_EVMCS_ENABLE) ||
+	    (call == SYZOS_API_NESTED_AMD_INVLPGA))
 		return sizeof(struct api_call_2);
 	if ((call == SYZOS_API_OUT_DX) || (call == SYZOS_API_NESTED_SET_STATE_PAGES) ||
 	    (call == SYZOS_API_NESTED_INTEL_INVVPID) || (call == SYZOS_API_NESTED_INTEL_EPTP_LIST_SET))
@@ -473,6 +715,7 @@ GUEST_CODE static noinline uint64 api_call_min_size(uint64 call_id)
 	if ((call == SYZOS_API_NESTED_INTEL_MSR_LIST_ADD) || (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT))
 		return sizeof(struct api_call_4);
 	if ((call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) ||
+	    (call == SYZOS_API_NESTED_INTEL_EVMCS_WRITE_MASK) ||
 	    (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) ||
 	    (call == SYZOS_API_NESTED_AMD_INJECT_EVENT))
 		return sizeof(struct api_call_5);
@@ -874,23 +1117,6 @@ GUEST_CODE static noinline bool vmcs_field_exists(uint64 field)
 	return !error;
 }
 
-// Write a field if it exists in the current VMCS, return whether it exists.
-// Used for optional fields, e.g. the APIC-access or posted-interrupt descriptor address.
-GUEST_CODE static noinline bool vmwrite_if_exists(uint64 field, uint64 value)
-{
-	if (!vmcs_field_exists(field))
-		return false;
-	vmwrite(field, value);
-	return true;
-}
-
-// Set bits in a VMCS control field. Only used for control fields that
-// init_vmcs_control_fields() always writes, so vmwrite() cannot fail.
-GUEST_CODE static noinline void vmcs_set_bits(uint64 field, uint64 bits)
-{
-	vmwrite(field, vmread(field) | bits);
-}
-
 // Check the index of an L2 VM passed by the fuzzer. Out-of-range indices must be rejected, because
 // the per-VM memory regions and l2_ctx[] are sized for KVM_MAX_L2_VMS VMs per vCPU, so the handlers
 // would otherwise corrupt the state of other VMs and vCPUs.
@@ -901,7 +1127,7 @@ GUEST_CODE static inline bool nested_vm_id_valid(uint64 vm_id)
 
 // Make the VMCS of the given VM current. Returns false (after reporting the error to the host) on
 // failure, e.g. if the VM has not been created. The caller must not touch the VMCS in that case.
-GUEST_CODE static inline bool nested_vmptrld(uint64 cpu_id, uint64 vm_id)
+GUEST_CODE static noinline bool nested_vmptrld(uint64 cpu_id, uint64 vm_id)
 {
 	uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint8 error = 0; // nolint
@@ -914,6 +1140,203 @@ GUEST_CODE static inline bool nested_vmptrld(uint64 cpu_id, uint64 vm_id)
 		return false;
 	}
 	return true;
+}
+
+#define EVMCS_DESC(fld, mask) \
+	(((uint32)(mask) << 16) | (uint32) __builtin_offsetof(struct hv_enlightened_vmcs, fld))
+#define EVMCS_RANGE(lo, hi, first, mask) \
+	if ((f >= (lo)) && (f <= (hi)))  \
+	return EVMCS_DESC(first, mask) + (((f - (lo)) >> 1) * (uint32)sizeof(((struct hv_enlightened_vmcs*)0)->first))
+#define EVMCS_ONE(enc, fld, mask) \
+	if (f == (enc))           \
+	return EVMCS_DESC(fld, mask)
+
+// Map a VMCS field encoding to ((hv_clean_fields_mask << 16) | offset) in hv_enlightened_vmcs,
+// matching KVM's vmcs_field_to_evmcs_1[], or 0 if unsupported.
+GUEST_CODE static noinline uint32 evmcs_field_desc(uint64 field)
+{
+	if (field & ~0x7FFEULL)
+		return 0;
+	// Prevent the compiler from generating a switch table.
+	volatile uint32 f = (uint32)field;
+	// 16-bit fields
+	EVMCS_RANGE(VMCS_HOST_ES_SELECTOR, VMCS_HOST_TR_SELECTOR, host_es_selector, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	EVMCS_RANGE(VMCS_GUEST_ES_SELECTOR, VMCS_GUEST_TR_SELECTOR, guest_es_selector, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2);
+	EVMCS_ONE(VMCS_VIRTUAL_PROCESSOR_ID, virtual_processor_id, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_XLAT);
+	// 32-bit fields
+	EVMCS_RANGE(VMCS_GUEST_ES_LIMIT, VMCS_GUEST_IDTR_LIMIT, guest_es_limit, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2);
+	EVMCS_RANGE(VMCS_GUEST_ES_ACCESS_RIGHTS, VMCS_GUEST_TR_ACCESS_RIGHTS, guest_es_ar_bytes, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2);
+	EVMCS_RANGE(VMCS_VM_INSTRUCTION_ERROR, VMCS_VMX_INSTRUCTION_INFO, vm_instruction_error, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_RANGE(VMCS_PAGE_FAULT_ERROR_CODE_MASK, VMCS_CR3_TARGET_COUNT, page_fault_error_code_mask, HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL);
+	EVMCS_RANGE(VMCS_VM_EXIT_MSR_STORE_COUNT, VMCS_VM_EXIT_MSR_LOAD_COUNT, vm_exit_msr_store_count, HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL);
+	EVMCS_RANGE(VMCS_VM_ENTRY_INTR_INFO_FIELD, VMCS_VM_ENTRY_INSTRUCTION_LEN, vm_entry_intr_info_field, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT);
+	EVMCS_ONE(VMCS_VM_ENTRY_MSR_LOAD_COUNT, vm_entry_msr_load_count, HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL);
+	EVMCS_ONE(VMCS_PIN_BASED_VM_EXEC_CONTROL, pin_based_vm_exec_control, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1);
+	EVMCS_ONE(VMCS_CPU_BASED_VM_EXEC_CONTROL, cpu_based_vm_exec_control, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_PROC);
+	EVMCS_ONE(VMCS_EXCEPTION_BITMAP, exception_bitmap, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EXCPN);
+	EVMCS_ONE(VMCS_VM_EXIT_CONTROLS, vm_exit_controls, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1);
+	EVMCS_ONE(VMCS_VM_ENTRY_CONTROLS, vm_entry_controls, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_ENTRY);
+	EVMCS_ONE(VMCS_TPR_THRESHOLD, tpr_threshold, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_ONE(VMCS_SECONDARY_VM_EXEC_CONTROL, secondary_vm_exec_control, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1);
+	EVMCS_ONE(VMCS_GUEST_INTERRUPTIBILITY_INFO, guest_interruptibility_info, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_BASIC);
+	EVMCS_ONE(VMCS_GUEST_ACTIVITY_STATE, guest_activity_state, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_GUEST_SYSENTER_CS, guest_sysenter_cs, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_HOST_IA32_SYSENTER_CS, host_ia32_sysenter_cs, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	// 64-bit and natural-width fields
+	EVMCS_RANGE(VMCS_GUEST_ES_BASE, VMCS_GUEST_IDTR_BASE, guest_es_base, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2);
+	EVMCS_RANGE(VMCS_CR0_GUEST_HOST_MASK, VMCS_CR4_READ_SHADOW, cr0_guest_host_mask, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CRDR);
+	EVMCS_RANGE(VMCS_GUEST_CR0, VMCS_GUEST_CR4, guest_cr0, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CRDR);
+	EVMCS_RANGE(VMCS_HOST_CR0, VMCS_HOST_CR4, host_cr0, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	EVMCS_RANGE(VMCS_HOST_FS_BASE, VMCS_HOST_IDTR_BASE, host_fs_base, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER);
+	EVMCS_RANGE(VMCS_GUEST_IA32_DEBUGCTL, VMCS_GUEST_IA32_EFER, guest_ia32_debugctl, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_RANGE(VMCS_GUEST_PDPTR0, VMCS_GUEST_PDPTR3, guest_pdptr0, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_RANGE(VMCS_HOST_IA32_PAT, VMCS_HOST_IA32_EFER, host_ia32_pat, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	EVMCS_RANGE(VMCS_IO_BITMAP_A, VMCS_IO_BITMAP_B, io_bitmap_a, HV_VMX_ENLIGHTENED_CLEAN_FIELD_IO_BITMAP);
+	EVMCS_RANGE(VMCS_VM_EXIT_MSR_STORE_ADDR, VMCS_VM_ENTRY_MSR_LOAD_ADDR, vm_exit_msr_store_addr, HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL);
+	EVMCS_RANGE(VMCS_GUEST_SYSENTER_ESP, VMCS_GUEST_SYSENTER_EIP, guest_sysenter_esp, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_RANGE(VMCS_HOST_IA32_SYSENTER_ESP, VMCS_HOST_IA32_SYSENTER_EIP, host_ia32_sysenter_esp, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	EVMCS_ONE(VMCS_MSR_BITMAP, msr_bitmap, HV_VMX_ENLIGHTENED_CLEAN_FIELD_MSR_BITMAP);
+	EVMCS_ONE(VMCS_TSC_OFFSET, tsc_offset, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2);
+	EVMCS_ONE(VMCS_VIRTUAL_APIC_PAGE_ADDR, virtual_apic_page_addr, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2);
+	EVMCS_ONE(VMCS_EPT_POINTER, ept_pointer, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_XLAT);
+	EVMCS_ONE(VMCS_XSS_EXIT_BITMAP, xss_exit_bitmap, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2);
+	EVMCS_ONE(VMCS_ENCLS_EXITING_BITMAP, encls_exiting_bitmap, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2);
+	EVMCS_ONE(VMCS_TSC_MULTIPLIER, tsc_multiplier, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2);
+	EVMCS_ONE(VMCS_GUEST_PHYSICAL_ADDRESS, guest_physical_address, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_ONE(VMCS_LINK_POINTER, vmcs_link_pointer, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_GUEST_IA32_PERF_GLOBAL_CTRL, guest_ia32_perf_global_ctrl, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_GUEST_BNDCFGS, guest_bndcfgs, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_HOST_IA32_PERF_GLOBAL_CTRL, host_ia32_perf_global_ctrl, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	EVMCS_ONE(VMCS_EXIT_QUALIFICATION, exit_qualification, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_ONE(VMCS_GUEST_LINEAR_ADDRESS, guest_linear_address, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_ONE(VMCS_GUEST_DR7, guest_dr7, HV_VMX_ENLIGHTENED_CLEAN_FIELD_CRDR);
+	EVMCS_ONE(VMCS_GUEST_RSP, guest_rsp, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_BASIC);
+	EVMCS_ONE(VMCS_GUEST_RIP, guest_rip, HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE);
+	EVMCS_ONE(VMCS_GUEST_RFLAGS, guest_rflags, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_BASIC);
+	EVMCS_ONE(VMCS_GUEST_PENDING_DBG_EXCEPTIONS, guest_pending_dbg_exceptions, HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1);
+	EVMCS_ONE(VMCS_HOST_RSP, host_rsp, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER);
+	EVMCS_ONE(VMCS_HOST_RIP, host_rip, HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1);
+	return 0;
+}
+
+#undef EVMCS_DESC
+#undef EVMCS_RANGE
+#undef EVMCS_ONE
+
+GUEST_CODE static noinline void evmcs_write(uint64 evmcs_gpa, uint64 field, uint32 desc, uint64 value)
+{
+	uint64 addr = evmcs_gpa + (desc & 0xFFFF);
+	uint64 width = (field >> 13) & 3;
+	if (width == 0)
+		*(volatile uint16*)addr = (uint16)value;
+	else if (width == 2)
+		*(volatile uint32*)addr = (uint32)value;
+	else
+		*(volatile uint64*)addr = value;
+	((volatile struct hv_enlightened_vmcs*)evmcs_gpa)->hv_clean_fields &= ~(desc >> 16);
+}
+
+GUEST_CODE static noinline void nested_deactivate_evmcs_intel(uint64 cpu_id)
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	uint8 active = globals->active_evmcs_vm[cpu_id];
+	if (!active)
+		return;
+	uint64 evmcs_gpa = X86_SYZOS_ADDR_EVMCS(cpu_id, active - 1);
+	volatile struct hv_vp_assist_page* vp_assist =
+	    (volatile struct hv_vp_assist_page*)X86_SYZOS_ADDR_HV_VP_ASSIST(cpu_id);
+	// Restore VP assist fields before vmclear so KVM's nested_evmcs_handle_vmclear() runs.
+	// Preserve host_es_selector/host_cs_selector (at offset 8) in case the eVMCS cap is disabled
+	// in L0, where vmclear treats the page as VMCS12 and zeroes launch_state at offset 8.
+	vp_assist->current_nested_vmcs = evmcs_gpa;
+	vp_assist->enlighten_vmentry = 1;
+	uint64 host_sel_off = __builtin_offsetof(struct hv_enlightened_vmcs, host_es_selector);
+	uint32 saved_host_sel = *(volatile uint32*)(evmcs_gpa + host_sel_off);
+	asm volatile("vmclear %0" : : "m"(evmcs_gpa) : "memory", "cc");
+	*(volatile uint32*)(evmcs_gpa + host_sel_off) = saved_host_sel;
+	vp_assist->enlighten_vmentry = 0;
+	vp_assist->current_nested_vmcs = ~0ULL;
+	globals->active_evmcs_vm[cpu_id] = 0;
+}
+
+// Select either eVMCS or regular VMCS for the given L2 VM before accessing its state or entering L2.
+GUEST_CODE static noinline bool nested_select_vm_intel(uint64 cpu_id, uint64 vm_id)
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	if (globals->evmcs_enabled[cpu_id][vm_id]) {
+		if (globals->active_evmcs_vm[cpu_id] != vm_id + 1) {
+			nested_deactivate_evmcs_intel(cpu_id);
+			volatile struct hv_vp_assist_page* vp_assist =
+			    (volatile struct hv_vp_assist_page*)X86_SYZOS_ADDR_HV_VP_ASSIST(cpu_id);
+			vp_assist->current_nested_vmcs = X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id);
+			vp_assist->enlighten_vmentry = 1;
+			globals->active_evmcs_vm[cpu_id] = vm_id + 1;
+		}
+		return true;
+	}
+	nested_deactivate_evmcs_intel(cpu_id);
+	return nested_vmptrld(cpu_id, vm_id);
+}
+
+GUEST_CODE static noinline bool nested_vmcs_field_exists(uint64 cpu_id, uint64 vm_id, uint64 field)
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	if (globals->evmcs_enabled[cpu_id][vm_id])
+		return evmcs_field_desc(field) != 0;
+	return vmcs_field_exists(field);
+}
+
+GUEST_CODE static noinline uint64 nested_vmread(uint64 cpu_id, uint64 vm_id, uint64 field)
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	if (globals->evmcs_enabled[cpu_id][vm_id]) {
+		uint32 desc = evmcs_field_desc(field);
+		if (!desc)
+			return 0;
+		uint64 addr = X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id) + (desc & 0xFFFF);
+		uint64 width = (field >> 13) & 3;
+		if (width == 0)
+			return *(volatile uint16*)addr;
+		if (width == 2)
+			return *(volatile uint32*)addr;
+		return *(volatile uint64*)addr;
+	}
+	return vmread(field);
+}
+
+GUEST_CODE static noinline bool nested_vmwrite_noassert(uint64 cpu_id, uint64 vm_id,
+							uint64 field, uint64 value)
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	if (globals->evmcs_enabled[cpu_id][vm_id]) {
+		uint32 desc = evmcs_field_desc(field);
+		if (!desc)
+			return false;
+		evmcs_write(X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id), field, desc, value);
+		return true;
+	}
+	return vmwrite_noassert(field, value);
+}
+
+GUEST_CODE static noinline void nested_vmwrite(uint64 cpu_id, uint64 vm_id, uint64 field, uint64 value)
+{
+	if (!nested_vmwrite_noassert(cpu_id, vm_id, field, value))
+		guest_uexit(UEXIT_ASSERT);
+}
+
+GUEST_CODE static noinline bool nested_vmwrite_if_exists(uint64 cpu_id, uint64 vm_id,
+							 uint64 field, uint64 value)
+{
+	if (!nested_vmcs_field_exists(cpu_id, vm_id, field))
+		return false;
+	nested_vmwrite(cpu_id, vm_id, field, value);
+	return true;
+}
+
+GUEST_CODE static noinline void nested_vmcs_set_bits(uint64 cpu_id, uint64 vm_id,
+						     uint64 field, uint64 bits)
+{
+	nested_vmwrite(cpu_id, vm_id, field, nested_vmread(cpu_id, vm_id, field) | bits);
 }
 
 GUEST_CODE static noinline void vmcb_write16(uint64 vmcb, uint16 offset, uint16 val)
@@ -954,6 +1377,14 @@ GUEST_CODE static void guest_memcpy(void* dst, void* src, int size)
 	volatile uint8* s = (volatile uint8*)src;
 	for (int i = 0; i < size; i++)
 		d[i] = s[i];
+}
+
+// Return EAX of the given CPUID leaf (subleaf 0).
+GUEST_CODE static noinline uint32 cpuid_eax(uint32 leaf)
+{
+	uint32 eax = leaf, ecx = 0;
+	asm volatile("cpuid" : "+a"(eax), "+c"(ecx) : : "ebx", "edx");
+	return eax;
 }
 
 // Return ECX of the given CPUID leaf (subleaf 0).
@@ -1327,20 +1758,25 @@ GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reas
 
 // After reporting an exit caused by an instruction, move the L2 RIP past it, so that resuming L2
 // executes the next instruction instead of exiting for the same reason again.
-GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
+GUEST_CODE static void advance_l2_rip_intel(uint64 exit_reason, uint64 cpu_id, uint64 vm_id)
 {
+	if (exit_reason >> 16)
+		return;
+	uint64 basic_reason = exit_reason & 0xFFFF;
 	if ((basic_reason != EXIT_REASON_XRSTORS) &&
 	    ((basic_reason >= 64) || !((EXIT_REASONS_TO_SKIP_INTEL >> basic_reason) & 1)))
 		return;
 	// The CPU reports the length of the instruction for all these exits.
-	vmwrite(VMCS_GUEST_RIP, vmread(VMCS_GUEST_RIP) + vmread(VMCS_VM_EXIT_INSTRUCTION_LEN));
+	nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RIP,
+		       nested_vmread(cpu_id, vm_id, VMCS_GUEST_RIP) +
+			   nested_vmread(cpu_id, vm_id, VMCS_VM_EXIT_INSTRUCTION_LEN));
 }
 
 // Called from inline asm; see the forward declaration above for why this is non-static.
 __attribute__((used))
 GUEST_CODE void
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
+nested_vm_exit_handler_intel(struct l2_guest_regs* regs)
 {
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
 	// Recover cpu_id from the stack. It was pushed before L1 registers.
@@ -1353,11 +1789,12 @@ nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
 	// Persist L2 registers.
 	guest_memcpy((void*)&globals->l2_ctx[cpu_id][vm_id], regs, sizeof(struct l2_guest_regs));
 
+	uint64 exit_reason = nested_vmread(cpu_id, vm_id, VMCS_VM_EXIT_REASON);
 	uint64 basic_reason = exit_reason & 0xFFFF;
 
 	// Handle EPT Violation (Nested UEXIT).
-	if (basic_reason == EXIT_REASON_EPT_VIOLATION) {
-		uint64 gpa = vmread(VMCS_GUEST_PHYSICAL_ADDRESS);
+	if ((exit_reason >> 16) == 0 && basic_reason == EXIT_REASON_EPT_VIOLATION) {
+		uint64 gpa = nested_vmread(cpu_id, vm_id, VMCS_GUEST_PHYSICAL_ADDRESS);
 		// Only handle violations on the specific UEXIT page.
 		if ((gpa & ~0xFFF) == X86_SYZOS_ADDR_EXIT) {
 			// This is a uexit from L2.
@@ -1367,14 +1804,17 @@ nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
 			// They are saved to 'regs' by our asm wrapper.
 			handle_nested_uexit(regs->rax);
 			// Advance L2 RIP by 3 bytes (movq %rax, (%rdx) is 3 bytes).
-			vmwrite(VMCS_GUEST_RIP, vmread(VMCS_GUEST_RIP) + 3);
+			nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RIP,
+				       nested_vmread(cpu_id, vm_id, VMCS_GUEST_RIP) + 3);
 			return;
 		}
 	}
 
-	syz_nested_exit_reason mapped_reason = map_intel_exit_reason(basic_reason);
+	syz_nested_exit_reason mapped_reason = (exit_reason >> 16)
+						   ? SYZOS_NESTED_EXIT_REASON_UNKNOWN
+						   : map_intel_exit_reason(basic_reason);
 	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_INTEL);
-	advance_l2_rip_intel(basic_reason);
+	advance_l2_rip_intel(exit_reason, cpu_id, vm_id);
 }
 
 extern char after_vmentry_label;
@@ -1400,11 +1840,8 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
       push %%rax
 
       // Prepare arguments for the C handler:
-      //    arg1 (RDI) = exit_reason
-      //    arg2 (RSI) = pointer to the saved registers
-      mov %%rsp, %%rsi
-      mov %[vm_exit_reason], %%rbx
-      vmread %%rbx, %%rdi
+      //    arg1 (RDI) = pointer to the saved registers
+      mov %%rsp, %%rdi
 
       // Align RSP to 16 bytes for the C call, since VMCS_HOST_RSP depends on
       // the compiler's stack frame around the vmentry inline asm.
@@ -1442,8 +1879,7 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
       jmp after_vmentry_label
 	)"
 
-		     : : [l2_regs_size] "i"(sizeof(struct l2_guest_regs)),
-			 [vm_exit_reason] "i"(VMCS_VM_EXIT_REASON) : "memory", "cc", "rbx", "rdi", "rsi");
+		     : : [l2_regs_size] "i"(sizeof(struct l2_guest_regs)) : "memory", "cc", "rdi");
 }
 
 #define VMEXIT_RDTSC 0x6e
@@ -1665,11 +2101,15 @@ GUEST_CODE static noinline void
 nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->arg;
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
 	uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint8 error = 0; // nolint
 	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
 	uint64 l2_msr_bitmap = X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id);
 	uint64 l2_eptp_list = X86_SYZOS_ADDR_EPTP_LIST(cpu_id, vm_id);
+
+	globals->evmcs_enabled[cpu_id][vm_id] = 0;
+	nested_deactivate_evmcs_intel(cpu_id);
 
 	*(uint32*)vmcs_addr = rdmsr(X86_MSR_IA32_VMX_BASIC);
 	asm volatile("vmclear %1; setna %0"
@@ -1848,12 +2288,13 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 		     l2_code_size);
 
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
-		if (!nested_vmptrld(cpu_id, vm_id))
+		if (!nested_select_vm_intel(cpu_id, vm_id))
 			return;
 		// Start execution at the User Code address.
-		vmwrite(VMCS_GUEST_RIP, l2_code_gpa);
+		nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RIP, l2_code_gpa);
 		// Stack is mapped at X86_SYZOS_ADDR_STACK_BOTTOM
-		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
+		nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RSP,
+			       X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_gpa);
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
@@ -1899,10 +2340,11 @@ guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cp
 	// Set RIP to guest_main.
 	uint64 entry_rip = executor_fn_guest_addr(guest_main);
 	if (vendor == CPU_VENDOR_INTEL) {
-		if (!nested_vmptrld(cpu_id, vm_id))
+		if (!nested_select_vm_intel(cpu_id, vm_id))
 			return;
-		vmwrite(VMCS_GUEST_RIP, entry_rip);
-		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
+		nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RIP, entry_rip);
+		nested_vmwrite(cpu_id, vm_id, VMCS_GUEST_RSP,
+			       X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
 		uint64 vmcb = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 		vmcb_write64(vmcb, VMCB_GUEST_RIP, entry_rip);
@@ -1916,9 +2358,14 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
 	struct l2_guest_regs* l2_regs = (struct l2_guest_regs*)&globals->l2_ctx[cpu_id][vm_id];
 	uint64 vmx_error_code = 0;
-	uint64 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
-	if (!nested_vmptrld(cpu_id, vm_id))
+	// 0 = success, 1 = VMfailValid (ZF=1), 2 = VMfailInvalid (CF=1).
+	uint64 fail_flag = 0;
+	if (!nested_select_vm_intel(cpu_id, vm_id))
 		return;
+
+	volatile struct hv_enlightened_vmcs* evmcs = NULL;
+	if (globals->evmcs_enabled[cpu_id][vm_id])
+		evmcs = (volatile struct hv_enlightened_vmcs*)X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id);
 
 	// Mark the VM as active on this CPU.
 	globals->active_vm_id[cpu_id] = vm_id;
@@ -1939,11 +2386,20 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 		push %%r14
 		push %%r15
 
-		// 4. Update VMCS_HOST_RSP with the current stack pointer.
-		// This stack contains [RedZone] [cpu_id] [launch] [L1 regs].
+		// 4. Update VMCS_HOST_RSP or evmcs->host_rsp with the current stack pointer.
+		// Only mark HOST_POINTER dirty in eVMCS if host_rsp actually changed.
+		test %[evmcs], %[evmcs]
+		jz 4f
+		cmp %%rsp, %c[host_rsp_off](%[evmcs])
+		je 5f
+		mov %%rsp, %c[host_rsp_off](%[evmcs])
+		andl $%c[dirty_host_pointer], %c[clean_fields_off](%[evmcs])
+		jmp 5f
+	4:
 		mov %[host_rsp_field], %%r10
 		mov %%rsp, %%r11
 		vmwrite %%r11, %%r10
+	5:
 
 		// 5. Load L2 GPRs from storage.
 		// We use RAX as a temporary base pointer.
@@ -1975,7 +2431,11 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 
 	1:	vmresume
 
-	2:	// 7. Failure path.
+	2:	// 7. Failure path: preserve CF before stack cleanup clobbers flags.
+		mov $2, %[ret]
+		jc 6f
+		mov $1, %[ret]
+	6:
 		// Restore L1 registers to return to C.
 		pop %%r15
 		pop %%r14
@@ -1987,7 +2447,6 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 		add $16, %%rsp
 		// restore Red Zone
 		add $128, %%rsp
-		mov $1, %[ret]
 		jmp 3f
 
 		// 8. Success path (L2 Exit).
@@ -1997,16 +2456,21 @@ guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 
 	3:	// Final return to C.
 	)"
-		     : [ret] "=&r"(fail_flag)
+		     : [ret] "=&a"(fail_flag)
 		     : [launch] "r"((uint64)is_launch),
 		       [host_rsp_field] "i"(VMCS_HOST_RSP),
 		       [cpu_id] "r"(cpu_id),
-		       [l2_regs] "r"(l2_regs)
-		     : "cc", "memory", "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
+		       [l2_regs] "r"(l2_regs),
+		       [evmcs] "r"(evmcs),
+		       [host_rsp_off] "i"(__builtin_offsetof(struct hv_enlightened_vmcs, host_rsp)),
+		       [clean_fields_off] "i"(__builtin_offsetof(struct hv_enlightened_vmcs, hv_clean_fields)),
+		       [dirty_host_pointer] "i"((int)~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER)
+		     : "cc", "memory", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
 
 	if (fail_flag) {
-		// VMLAUNCH/VMRESUME failed, so VMCS is still valid and can be read.
-		vmx_error_code = vmread(VMCS_VM_INSTRUCTION_ERROR);
+		// Only VMfailValid (fail_flag == 1, ZF=1) stores an instruction error field.
+		if (fail_flag == 1)
+			vmx_error_code = nested_vmread(cpu_id, vm_id, VMCS_VM_INSTRUCTION_ERROR);
 		guest_uexit(0xE2E10000 | (uint32)vmx_error_code);
 		return;
 	}
@@ -2165,74 +2629,74 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 
 // Enable VMCS shadowing if advertised in IA32_VMX_PROCBASED_CTLS2 (KVM always exposes it to
 // L1 and emulates shadow VMCS when hardware lacks it).
-GUEST_CODE static inline void enable_shadow_vmcs(void)
+GUEST_CODE static noinline void enable_shadow_vmcs(uint64 cpu_id, uint64 vm_id)
 {
 	if ((rdmsr(X86_MSR_IA32_VMX_PROCBASED_CTLS2) >> 32) & SECONDARY_EXEC_SHADOW_VMCS)
-		vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_SHADOW_VMCS);
+		nested_vmcs_set_bits(cpu_id, vm_id, VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_SHADOW_VMCS);
 }
 
 // Point VMCS_EPTP_LIST_ADDRESS at addr and enable VMFUNC[EPTP_SWITCHING] if supported by the CPU.
-GUEST_CODE static inline void enable_eptp_switching(uint64 addr)
+GUEST_CODE static noinline void enable_eptp_switching(uint64 cpu_id, uint64 vm_id, uint64 addr)
 {
-	if (vmwrite_if_exists(VMCS_EPTP_LIST_ADDRESS, addr) &&
-	    vmcs_field_exists(VMCS_VM_FUNCTION_CONTROL)) {
-		vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_ENABLE_VMFUNC);
-		vmcs_set_bits(VMCS_VM_FUNCTION_CONTROL, VMX_VMFUNC_EPTP_SWITCHING);
+	if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_EPTP_LIST_ADDRESS, addr) &&
+	    nested_vmcs_field_exists(cpu_id, vm_id, VMCS_VM_FUNCTION_CONTROL)) {
+		nested_vmcs_set_bits(cpu_id, vm_id, VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_ENABLE_VMFUNC);
+		nested_vmcs_set_bits(cpu_id, vm_id, VMCS_VM_FUNCTION_CONTROL, VMX_VMFUNC_EPTP_SWITCHING);
 	}
 }
 
 GUEST_CODE static noinline void
 nested_set_state_pages_intel(uint64 cpu_id, uint64 vm_id, uint64 page_type, uint64 addr)
 {
-	if (!nested_vmptrld(cpu_id, vm_id))
+	if (!nested_select_vm_intel(cpu_id, vm_id))
 		return;
 
 	// Prevent the compiler from generating a switch table.
 	volatile uint64 type = page_type;
 	if (type == NESTED_PAGE_APIC_ACCESS) {
-		if (vmwrite_if_exists(VMCS_APIC_ACCESS_ADDR, addr))
-			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_APIC_ACCESS_ADDR, addr))
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES);
 	} else if (type == NESTED_PAGE_VAPIC) {
-		if (vmwrite_if_exists(VMCS_VIRTUAL_APIC_PAGE_ADDR, addr))
-			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_VIRTUAL_APIC_PAGE_ADDR, addr))
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
 	} else if (type == NESTED_PAGE_MSRPM) {
-		if (vmwrite_if_exists(VMCS_MSR_BITMAP, addr))
-			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_MSR_BITMAPS);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_MSR_BITMAP, addr))
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_MSR_BITMAPS);
 	} else if (type == NESTED_PAGE_IOPM) {
 		// I/O bitmap B (ports 0x8000-0xffff) is placed right after bitmap A.
-		if (vmwrite_if_exists(VMCS_IO_BITMAP_A, addr) &&
-		    vmwrite_if_exists(VMCS_IO_BITMAP_B, addr + KVM_PAGE_SIZE))
-			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_IO_BITMAPS);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_IO_BITMAP_A, addr) &&
+		    nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_IO_BITMAP_B, addr + KVM_PAGE_SIZE))
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_USE_IO_BITMAPS);
 	} else if (type == NESTED_PAGE_POSTED_INTR) {
 		// Posted-interrupt processing requires virtual-interrupt delivery (which
 		// requires the TPR shadow), external-interrupt exiting and acknowledging
 		// interrupts on exit. Without these VM entry fails its control checks
 		// before the descriptor is ever looked at. The notification vector is
 		// left at 0, which passes the checks.
-		if (vmwrite_if_exists(VMCS_POSTED_INTR_DESC_ADDR, addr)) {
-			vmcs_set_bits(VMCS_PIN_BASED_VM_EXEC_CONTROL, PIN_BASED_POSTED_INTR | PIN_BASED_EXT_INTR_MASK);
-			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
-			vmcs_set_bits(VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
-			vmcs_set_bits(VMCS_VM_EXIT_CONTROLS, VM_EXIT_ACK_INTR_ON_EXIT);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_POSTED_INTR_DESC_ADDR, addr)) {
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_PIN_BASED_VM_EXEC_CONTROL, PIN_BASED_POSTED_INTR | PIN_BASED_EXT_INTR_MASK);
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_CPU_BASED_VM_EXEC_CONTROL, CPU_BASED_TPR_SHADOW);
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_VM_EXIT_CONTROLS, VM_EXIT_ACK_INTR_ON_EXIT);
 		}
 	} else if (type == NESTED_PAGE_PML) {
-		if (vmwrite_if_exists(VMCS_PML_ADDRESS, addr))
-			vmcs_set_bits(VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_PAGE_MOD_LOGGING);
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_PML_ADDRESS, addr))
+			nested_vmcs_set_bits(cpu_id, vm_id, VMCS_SECONDARY_VM_EXEC_CONTROL, SECONDARY_EXEC_PAGE_MOD_LOGGING);
 	} else if (type == NESTED_PAGE_EPTP_LIST) {
 		// EPTP switching requires VMFUNC in secondary controls and bit 0 in
 		// VM_FUNCTION_CONTROL. Skip on CPUs that do not expose VMFUNC.
-		enable_eptp_switching(addr);
+		enable_eptp_switching(cpu_id, vm_id, addr);
 	} else if (type == NESTED_PAGE_VMREAD_BITMAP) {
-		if (vmwrite_if_exists(VMCS_VMREAD_BITMAP, addr))
-			enable_shadow_vmcs();
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_VMREAD_BITMAP, addr))
+			enable_shadow_vmcs(cpu_id, vm_id);
 	} else if (type == NESTED_PAGE_VMWRITE_BITMAP) {
-		if (vmwrite_if_exists(VMCS_VMWRITE_BITMAP, addr))
-			enable_shadow_vmcs();
+		if (nested_vmwrite_if_exists(cpu_id, vm_id, VMCS_VMWRITE_BITMAP, addr))
+			enable_shadow_vmcs(cpu_id, vm_id);
 	} else if (type == NESTED_PAGE_SHADOW_VMCS) {
-		if (vmcs_field_exists(VMCS_VMREAD_BITMAP) &&
-		    vmcs_field_exists(VMCS_VMWRITE_BITMAP)) {
-			vmwrite(VMCS_LINK_POINTER, addr);
-			enable_shadow_vmcs();
+		if (nested_vmcs_field_exists(cpu_id, vm_id, VMCS_VMREAD_BITMAP) &&
+		    nested_vmcs_field_exists(cpu_id, vm_id, VMCS_VMWRITE_BITMAP)) {
+			nested_vmwrite(cpu_id, vm_id, VMCS_LINK_POINTER, addr);
+			enable_shadow_vmcs(cpu_id, vm_id);
 		}
 	}
 }
@@ -2280,7 +2744,7 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
 		return;
 	uint64 vm_id = cmd->args[0];
-	if (!nested_vm_id_valid(vm_id) || !nested_vmptrld(cpu_id, vm_id))
+	if (!nested_vm_id_valid(vm_id) || !nested_select_vm_intel(cpu_id, vm_id))
 		return;
 	uint64 field = cmd->args[1];
 	uint64 set_mask = cmd->args[2];
@@ -2289,12 +2753,12 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 
 	// The field is chosen by the fuzzer: it may not exist on this CPU, or be read-only.
 	// This is not an error in SYZOS, so do not report it as UEXIT_ASSERT.
-	if (!vmcs_field_exists(field))
+	if (!nested_vmcs_field_exists(cpu_id, vm_id, field))
 		return;
-	uint64 current_value = vmread(field);
+	uint64 current_value = nested_vmread(cpu_id, vm_id, field);
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
-	(void)vmwrite_noassert(field, new_value);
+	(void)nested_vmwrite_noassert(cpu_id, vm_id, field, new_value);
 }
 
 // VMX MSR load/store lists, see Intel SDM vol. 3C, "VM-Entry Controls for MSRs"
@@ -2346,9 +2810,9 @@ guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
 		return;
 	}
 
-	if (!nested_vmptrld(cpu_id, vm_id))
+	if (!nested_select_vm_intel(cpu_id, vm_id))
 		return;
-	uint64 count = vmread(count_field);
+	uint64 count = nested_vmread(cpu_id, vm_id, count_field);
 	if (count >= X86_SYZOS_MSR_LIST_MAX_ENTRIES)
 		return;
 	uint64 list_addr = X86_SYZOS_ADDR_MSR_LISTS(cpu_id, vm_id) + offset;
@@ -2356,8 +2820,8 @@ guest_handle_nested_intel_msr_list_add(struct api_call_4* cmd, uint64 cpu_id)
 	entry->index = (uint32)msr;
 	entry->reserved = (uint32)(msr >> 32);
 	entry->value = value;
-	vmwrite(addr_field, list_addr);
-	vmwrite(count_field, count + 1);
+	nested_vmwrite(cpu_id, vm_id, addr_field, list_addr);
+	nested_vmwrite(cpu_id, vm_id, count_field, count + 1);
 }
 
 // The 128-bit descriptor of INVEPT (EPTP, reserved) and INVVPID (VPID, linear address).
@@ -2403,12 +2867,12 @@ guest_handle_nested_intel_eptp_list_set(struct api_call_3* cmd, uint64 cpu_id)
 	uint64 index = cmd->args[1];
 	uint64 eptp = cmd->args[2];
 	if (!nested_vm_id_valid(vm_id) || index >= VMX_VMFUNC_EPTP_ENTRIES ||
-	    !nested_vmptrld(cpu_id, vm_id))
+	    !nested_select_vm_intel(cpu_id, vm_id))
 		return;
 
 	uint64 list_addr = X86_SYZOS_ADDR_EPTP_LIST(cpu_id, vm_id);
 	((volatile uint64*)list_addr)[index] = eptp;
-	enable_eptp_switching(list_addr);
+	enable_eptp_switching(cpu_id, vm_id, list_addr);
 }
 
 // Execute VMFUNC in L1 or L2, see Intel SDM vol. 3C, "VMFUNC - Invoke VM Function".
@@ -2447,6 +2911,147 @@ guest_handle_nested_intel_vmwrite(struct api_call_2* cmd)
 	uint64 field = cmd->args[0];
 	uint64 value = cmd->args[1];
 	asm volatile("vmwrite %%rax, %%rbx" : : "a"(value), "b"(field) : "cc", "memory");
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_intel_evmcs_enable(struct api_call_2* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 vm_id = cmd->args[0];
+	uint64 flags = cmd->args[1];
+	if (!nested_vm_id_valid(vm_id) ||
+	    !(flags & (NESTED_EVMCS_FLAG_ENABLE | NESTED_EVMCS_FLAG_NESTED_FLUSH)))
+		return;
+
+	// Writing Hyper-V MSRs causes a #GP if Hyper-V leaves are absent in CPUID.
+	if ((cpuid_eax(HV_CPUID_VENDOR_AND_MAX_FUNCTIONS) < HV_CPUID_FEATURES) ||
+	    (cpuid_eax(HV_CPUID_INTERFACE) != HV_CPUID_INTERFACE_SIGNATURE) ||
+	    !(cpuid_eax(HV_CPUID_FEATURES) & HV_MSR_APIC_ACCESS_AVAILABLE))
+		return;
+
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	uint64 vp_assist_gpa = X86_SYZOS_ADDR_HV_VP_ASSIST(cpu_id);
+	volatile struct hv_vp_assist_page* vp_assist =
+	    (volatile struct hv_vp_assist_page*)vp_assist_gpa;
+
+	if (!globals->hv_vp_assist_enabled[cpu_id]) {
+		guest_memset((void*)vp_assist_gpa, 0, KVM_PAGE_SIZE);
+		vp_assist->current_nested_vmcs = ~0ULL;
+		wrmsr(HV_X64_MSR_VP_ASSIST_PAGE, vp_assist_gpa | HV_X64_MSR_VP_ASSIST_PAGE_ENABLE);
+		globals->hv_vp_assist_enabled[cpu_id] = 1;
+	}
+
+	uint64 evmcs_gpa = X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id);
+	volatile struct hv_enlightened_vmcs* evmcs =
+	    (volatile struct hv_enlightened_vmcs*)evmcs_gpa;
+
+	if (!globals->evmcs_enabled[cpu_id][vm_id]) {
+		// Mirror all configured VMCS fields from this VM's regular VMCS12.
+		nested_deactivate_evmcs_intel(cpu_id);
+		if (!nested_vmptrld(cpu_id, vm_id))
+			return;
+		guest_memset((void*)evmcs_gpa, 0, KVM_PAGE_SIZE);
+		evmcs->revision_id = KVM_EVMCS_VERSION;
+		for (uint32 width = 0; width < 4; width++) {
+			for (uint32 type = 0; type < 4; type++) {
+				for (uint32 idx = 0; idx < 32; idx++) {
+					uint64 field = ((uint64)width << 13) | ((uint64)type << 10) | ((uint64)idx << 1);
+					uint32 desc = evmcs_field_desc(field);
+					if (desc && vmcs_field_exists(field))
+						evmcs_write(evmcs_gpa, field, desc, vmread(field));
+				}
+			}
+		}
+		uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+		asm volatile("vmclear %0" : : "m"(vmcs_addr) : "memory", "cc");
+		globals->evmcs_enabled[cpu_id][vm_id] = 1;
+	}
+
+	if (flags & NESTED_EVMCS_FLAG_NESTED_FLUSH) {
+		// Direct L2 TLB flush hypercalls require KVM's hypercall MSR interface to be enabled.
+		if (rdmsr(HV_X64_MSR_GUEST_OS_ID) == 0)
+			wrmsr(HV_X64_MSR_GUEST_OS_ID, HV_LINUX_VENDOR_ID << 48);
+		uint64 pa_gpa = X86_SYZOS_ADDR_HV_PARTITION_ASSIST(cpu_id);
+		if (evmcs->partition_assist_page != pa_gpa)
+			guest_memset((void*)pa_gpa, 0, KVM_PAGE_SIZE);
+		evmcs->partition_assist_page = pa_gpa;
+		evmcs->hv_vm_id = 1;
+		evmcs->hv_vp_id = (uint32)cpu_id;
+		evmcs->hv_enlightenments_control.nested_flush_hypercall = 1;
+		evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_ENLIGHTENMENTSCONTROL;
+		vp_assist->nested_control.features.directhypercall = 1;
+	}
+
+	(void)nested_select_vm_intel(cpu_id, vm_id);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_intel_evmcs_write_mask(struct api_call_5* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 vm_id = cmd->args[0];
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	if (!nested_vm_id_valid(vm_id) || !globals->evmcs_enabled[cpu_id][vm_id] ||
+	    !nested_select_vm_intel(cpu_id, vm_id))
+		return;
+
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 field = cmd->args[1];
+	volatile struct hv_enlightened_vmcs* evmcs =
+	    (volatile struct hv_enlightened_vmcs*)X86_SYZOS_ADDR_EVMCS(cpu_id, vm_id);
+	volatile struct hv_vp_assist_page* vp_assist =
+	    (volatile struct hv_vp_assist_page*)X86_SYZOS_ADDR_HV_VP_ASSIST(cpu_id);
+
+	uint64 addr = 0;
+	uint64 width = 4;
+	bool clear_enlightenments = false;
+	if (field == NESTED_EVMCS_FIELD_REVISION_ID)
+		addr = (uint64)&evmcs->revision_id;
+	else if (field == NESTED_EVMCS_FIELD_ABORT)
+		addr = (uint64)&evmcs->abort;
+	else if (field == NESTED_EVMCS_FIELD_HV_CLEAN_FIELDS)
+		addr = (uint64)&evmcs->hv_clean_fields;
+	else if (field == NESTED_EVMCS_FIELD_HV_SYNTHETIC_CONTROLS)
+		addr = (uint64)&evmcs->hv_synthetic_controls;
+	else if (field == NESTED_EVMCS_FIELD_HV_ENLIGHTENMENTS_CONTROL)
+		addr = (uint64)&evmcs->hv_enlightenments_control.as_uint32;
+	else if (field == NESTED_EVMCS_FIELD_HV_VP_ID) {
+		addr = (uint64)&evmcs->hv_vp_id;
+		clear_enlightenments = true;
+	} else if (field == NESTED_EVMCS_FIELD_HV_VM_ID) {
+		addr = (uint64)&evmcs->hv_vm_id;
+		width = 8;
+		clear_enlightenments = true;
+	} else if (field == NESTED_EVMCS_FIELD_PARTITION_ASSIST_PAGE) {
+		addr = (uint64)&evmcs->partition_assist_page;
+		width = 8;
+		clear_enlightenments = true;
+	} else if (field == NESTED_EVMCS_FIELD_VP_ASSIST_ENLIGHTEN_VMENTRY) {
+		addr = (uint64)&vp_assist->enlighten_vmentry;
+		width = 1;
+	} else if (field == NESTED_EVMCS_FIELD_VP_ASSIST_CURRENT_NESTED_VMCS) {
+		addr = (uint64)&vp_assist->current_nested_vmcs;
+		width = 8;
+	} else if (field == NESTED_EVMCS_FIELD_VP_ASSIST_NESTED_CONTROL)
+		addr = (uint64)&vp_assist->nested_control.features.as_uint32;
+	else if (field == NESTED_EVMCS_FIELD_PA_TLB_LOCK_COUNT)
+		addr = X86_SYZOS_ADDR_HV_PARTITION_ASSIST(cpu_id);
+	if (!addr)
+		return;
+
+	uint64 cur = (width == 1) ? *(volatile uint8*)addr : (width == 8) ? *(volatile uint64*)addr
+									  : *(volatile uint32*)addr;
+	uint64 val = ((cur & ~cmd->args[3]) | cmd->args[2]) ^ cmd->args[4];
+	if (width == 1)
+		*(volatile uint8*)addr = (uint8)val;
+	else if (width == 8)
+		*(volatile uint64*)addr = val;
+	else
+		*(volatile uint32*)addr = (uint32)val;
+	if (clear_enlightenments)
+		evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_ENLIGHTENMENTSCONTROL;
 }
 
 GUEST_CODE static noinline void

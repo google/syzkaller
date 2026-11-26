@@ -215,6 +215,26 @@ syzos_api_nested_intel_vmwrite {
 	value	int64
 }
 
+nested_evmcs_enable_flags = 1, 2
+
+syzos_api_nested_intel_evmcs_enable {
+	vm_id	syzos_api_vm_id
+	flags	flags[nested_evmcs_enable_flags, int64]
+}
+
+# Non-VMCS Hyper-V fields mutated by SYZOS_API_NESTED_INTEL_EVMCS_WRITE_MASK:
+# 0: hv_enlightened_vmcs.revision_id, 1: abort, 2: hv_clean_fields,
+# 3: hv_synthetic_controls, 4: hv_enlightenments_control, 5: hv_vp_id, 6: hv_vm_id,
+# 7: partition_assist_page, 8: hv_vp_assist_page.enlighten_vmentry,
+# 9: current_nested_vmcs, 10: nested_control, 11: hv_partition_assist_pg.tlb_lock_count.
+syzos_api_nested_intel_evmcs_write_mask {
+	vm_id		syzos_api_vm_id
+	field		int64[0:11]
+	set_mask	int64
+	unset_mask	int64
+	flip_mask	int64
+}
+
 syzos_api_nested_amd_vmcb_write_mask {
 	vm_id		syzos_api_vm_id
 	offset		vmcb_offset
@@ -292,6 +312,8 @@ syzos_api_call$x86 [
 	nested_intel_vmfunc		syzos_api$x86[345, syzos_api_nested_intel_vmfunc]
 	nested_intel_vmread		syzos_api$x86[346, vmcs_field_encoding]
 	nested_intel_vmwrite		syzos_api$x86[347, syzos_api_nested_intel_vmwrite]
+	nested_intel_evmcs_enable	syzos_api$x86[348, syzos_api_nested_intel_evmcs_enable]
+	nested_intel_evmcs_write_mask	syzos_api$x86[349, syzos_api_nested_intel_evmcs_write_mask]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
 	nested_amd_stgi			syzos_api$x86[382, void]
