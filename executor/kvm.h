@@ -58,7 +58,7 @@
 #define X86_SYZOS_ADDR_DIRTY_PAGES 0x41000
 #define X86_SYZOS_ADDR_USER_CODE 0x50000
 // Location of the SYZOS guest code. Name shared with ARM64 SYZOS.
-#define SYZOS_ADDR_EXECUTOR_CODE 0x54000
+#define SYZOS_ADDR_EXECUTOR_CODE 0x70000
 #define X86_SYZOS_ADDR_SCRATCH_CODE 0x58000
 // L1 stacks, one page per vCPU (KVM_MAX_VCPU pages). Each vCPU starts with RSP 0x80 bytes below
 // the top of its page.
