@@ -1,0 +1,53 @@
+#
+# requires: arch=amd64 -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Install uexit_irq_handler for vector 0x80 and verify that caller-saved GPRs
+# and RBP survive an interrupt handled by it.
+#
+# The code snippet executes:
+#       pushq   %rbx
+#       pushq   %rbp
+#       movabsq $0x1111111111111111, %rax
+#       movabsq $0x2222222222222222, %rcx
+#       movabsq $0x3333333333333333, %rdx
+#       movabsq $0x4444444444444444, %rsi
+#       movabsq $0x5555555555555555, %rdi
+#       movabsq $0xaaaaaaaaaaaaaaaa, %rbp
+#       movabsq $0x6666666666666666, %r8
+#       movabsq $0x7777777777777777, %r9
+#       movabsq $0x8888888888888888, %r10
+#       movabsq $0x9999999999999999, %r11
+#       int     $0x80
+#       ; Compare all 10 registers against their pre-interrupt values via %rbx,
+#       ; jumping to ud2 on mismatch and returning otherwise.
+#       ...
+#       popq    %rbp
+#       popq    %rbx
+#       ret
+#   fail:
+#       popq    %rbp
+#       popq    %rbx
+#       ud2
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@set_irq_handler={AUTO, AUTO, {0x80, 0x2}}, @code={AUTO, AUTO, {"535548b8111111111111111148b9222222222222222248ba333333333333333348be444444444444444448bf555555555555555548bdaaaaaaaaaaaaaaaa49b8666666666666666649b9777777777777777749ba888888888888888849bb9999999999999999cd8048bb11111111111111114839d80f858a00000048bb22222222222222224839d9757b48bb33333333333333334839da756c48bb44444444444444444839de755d48bb55555555555555554839df754e48bbaaaaaaaaaaaaaaaa4839dd753f48bb66666666666666664939d8753048bb77777777777777774939d9752148bb88888888888888884939da751248bb99999999999999994939db75035d5bc35d5b0f0b", 0xc3}}, @uexit={AUTO, AUTO, 0xaaaa}], AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# int $0x80 enters uexit_irq_handler() and exits with UEXIT_IRQ.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xfffffffffffffffe)
+
+# Resuming returns from iretq, verifies the registers, and runs uexit(0xaaaa).
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xaaaa)
+
+# Run till the end.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffffffffffff)

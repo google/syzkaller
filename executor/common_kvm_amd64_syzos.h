@@ -255,10 +255,40 @@ static always_inline uint64 syzos_default_idt_handler(uint64 vector)
 __attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
 {
 	asm volatile(R"(
+	    // Save RBP (used to preserve RSP across alignment) and all caller-saved GPRs, since
+	    // guest_uexit() follows the System V AMD64 ABI and iretq returns to interrupted code.
+	    pushq %rbp
+	    pushq %rax
+	    pushq %rcx
+	    pushq %rdx
+	    pushq %rsi
+	    pushq %rdi
+	    pushq %r8
+	    pushq %r9
+	    pushq %r10
+	    pushq %r11
+
+	    // Ensure 16-byte stack alignment before calling guest_uexit(): the CPU aligns RSP
+	    // before pushing the 5-qword interrupt frame (leaving 16n+8 on entry), and the 10 pushes
+	    // above keep it misaligned by 8 bytes.
+	    movq %rsp, %rbp
+	    andq $-16, %rsp
+
 	    // Call guest_uexit(UEXIT_IRQ).
 	    movq $-2, %rdi
 	    call guest_uexit
 
+	    movq %rbp, %rsp
+	    popq %r11
+	    popq %r10
+	    popq %r9
+	    popq %r8
+	    popq %rdi
+	    popq %rsi
+	    popq %rdx
+	    popq %rcx
+	    popq %rax
+	    popq %rbp
 	    iretq
 	)");
 }
