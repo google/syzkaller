@@ -62,6 +62,7 @@ struct api_call_memwrite {
 	uint64 len;
 };
 
+// Must match syzos_api_its_send_cmd [packed] in sys/linux/dev_kvm_arm64.txt.
 struct api_call_its_send_cmd {
 	struct api_call_header header;
 	uint8 type;
@@ -71,7 +72,7 @@ struct api_call_its_send_cmd {
 	uint32 eventid;
 	uint32 intid;
 	uint32 cpuid2;
-};
+} __attribute__((packed));
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
