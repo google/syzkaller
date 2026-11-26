@@ -4,42 +4,29 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/report/crash"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
 
-type keyGetter func() (string, error)
-
-func pickGetter(key string) keyGetter {
-	if key != "" {
-		return func() (string, error) { return key, nil }
-	}
-	// Attempts oauth when the configured hub_key is empty.
-	tokenCache, err := auth.MakeCache(http.NewRequest, http.DefaultClient.Do)
+func (mgr *Manager) hubSyncLoop(ctx context.Context, enabledSyscalls map[*prog.Syscall]bool) {
+	client, err := hubapi.NewClient(mgr.cfg.HubClient, mgr.cfg.HubAddr, mgr.cfg.HubKey)
 	if err != nil {
-		log.Fatalf("failed to make auth cache %v", err)
+		log.Fatalf("failed to create hubapi connection: %v", err)
 	}
-	return func() (string, error) {
-		return tokenCache.Get(time.Now())
-	}
-}
-
-func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Syscall]bool) {
 	hc := &HubConnector{
 		mgr:           mgr,
 		cfg:           mgr.cfg,
@@ -50,7 +37,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Sysc
 		leak:          mgr.enabledFeatures&flatrpc.FeatureLeak != 0,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.externalReproQueue,
-		keyGet:        keyGet,
+		client:        client,
 
 		statRecvProg:      stat.New("hub recv prog", "", stat.Graph("hub progs")),
 		statRecvProgDrop:  stat.New("hub recv prog drop", "", stat.NoGraph),
@@ -64,7 +51,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Sysc
 		// filtered out — don't request them.
 		hc.needMoreRepros = mgr.reproLoop.Empty
 	}
-	hc.loop()
+	hc.loop(ctx)
 }
 
 type HubConnector struct {
@@ -79,7 +66,7 @@ type HubConnector struct {
 	newRepros      [][]byte
 	hubReproQueue  chan *manager.Crash
 	needMoreRepros func() bool
-	keyGet         keyGetter
+	client         *hubapi.Client
 
 	statRecvProg      *stat.Val
 	statRecvProgDrop  *stat.Val
@@ -97,12 +84,14 @@ type HubManagerView interface {
 	hubIsUnreachable()
 }
 
-func (hc *HubConnector) loop() {
-	var hub *rpctype.RPCClient
+func (hc *HubConnector) loop(ctx context.Context) {
+	var connected bool
 	var doneOnce bool
 	var connectTime time.Time
-	for query := 0; ; time.Sleep(10 * time.Minute) {
-		if hub == nil {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+	for query := 0; ; {
+		if !connected {
 			var corpus []*corpus.Item
 			// If we are using fake coverage, don't send our corpus to the hub.
 			// It should be lower quality than coverage-guided corpus.
@@ -110,28 +99,27 @@ func (hc *HubConnector) loop() {
 			if hc.cfg.Cover {
 				corpus = hc.mgr.getMinimizedCorpus()
 			}
-			var err error
-			if hub, err = hc.connect(corpus); err != nil {
+			if err := hc.connect(ctx, corpus); err != nil {
 				log.Logf(0, "failed to connect to hub at %v: %v", hc.cfg.HubAddr, err)
 			} else {
+				connected = true
 				log.Logf(0, "connected to hub at %v, corpus %v", hc.cfg.HubAddr, len(corpus))
 				connectTime = time.Now()
 			}
 		}
-		if hub != nil && hc.mgr.needMoreCandidates() {
+		if connected && hc.mgr.needMoreCandidates() {
 			repros := hc.mgr.getNewRepros()
 			hc.newRepros = append(hc.newRepros, repros...)
-			if err := hc.sync(hub); err != nil {
+			if err := hc.sync(ctx); err != nil {
 				log.Logf(0, "hub sync failed: %v", err)
-				hub.Close()
-				hub = nil
+				connected = false
 			} else {
 				doneOnce = true
 			}
 		}
 		query++
 		const maxAttempts = 3
-		if hub == nil && query >= maxAttempts && !doneOnce {
+		if !connected && query >= maxAttempts && !doneOnce {
 			hc.mgr.hubIsUnreachable()
 		}
 		// We used to send corpus updates (added/removed elements) to the hub in each sync.
@@ -142,105 +130,79 @@ func (hc *HubConnector) loop() {
 		// the problem with non-reproducible/removed inputs. Typical instance life-time on syzbot is <24h,
 		// for such instances we send the corpus once. If an instance somehow lives for longer, then we
 		// re-connect and re-send once in a while (e.g. a local long-running instance).
-		if hub != nil && time.Since(connectTime) > 30*time.Hour {
+		if connected && time.Since(connectTime) > 30*time.Hour {
 			log.Logf(0, "re-syncing with hub")
-			hub.Close()
-			hub = nil
+			connected = false
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
 		}
 	}
 }
 
-func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, error) {
-	key, err := hc.keyGet()
-	if err != nil {
-		return nil, err
-	}
-	hub, err := rpctype.NewRPCClient(hc.cfg.HubAddr, hc.cfg.HubClient, key, hc.cfg.Name)
-	if err != nil {
-		return nil, err
-	}
-	a := &rpctype.HubConnectArgs{
-		Client:  hc.cfg.HubClient,
-		Key:     key,
+func (hc *HubConnector) connect(ctx context.Context, corpus []*corpus.Item) error {
+	req := &hubapi.ConnectReq{
 		Manager: hc.cfg.Name,
 		HTTP:    hc.webAddr,
 		Domain:  hc.domain,
 		Fresh:   hc.fresh,
 	}
 	for call := range hc.enabledCalls {
-		a.Calls = append(a.Calls, call.Name)
+		req.Calls = append(req.Calls, call.Name)
 	}
 	for _, inp := range corpus {
-		a.Corpus = append(a.Corpus, inp.Prog.Serialize())
+		req.Corpus = append(req.Corpus, inp.Prog.Serialize())
 	}
 	// Never send more than this, this is never healthy but happens episodically
 	// due to various reasons: problems with fallback coverage, bugs in kcov,
 	// fuzzer exploiting our infrastructure, etc.
 	const max = 100 * 1000
-	if len(a.Corpus) > max {
-		a.Corpus = a.Corpus[:max]
+	if len(req.Corpus) > max {
+		req.Corpus = req.Corpus[:max]
 	}
-	err = hub.Call("Hub.Connect", a, nil)
-	// Hub.Connect request can be very large, so do it on a transient connection
-	// (rpc connection buffers never shrink).
-	hub.Close()
-	if err != nil {
-		return nil, err
-	}
-	key, err = hc.keyGet()
-	if err != nil {
-		return nil, err
-	}
-	hub, err = rpctype.NewRPCClient(hc.cfg.HubAddr, hc.cfg.HubClient, key, hc.cfg.Name)
-	if err != nil {
-		return nil, err
-	}
-	hc.fresh = false
-	return hub, nil
-}
-
-func (hc *HubConnector) sync(hub *rpctype.RPCClient) error {
-	key, err := hc.keyGet()
-	if err != nil {
+	if err := hc.client.Connect(ctx, req); err != nil {
 		return err
 	}
-	a := &rpctype.HubSyncArgs{
-		Client:  hc.cfg.HubClient,
-		Key:     key,
+	hc.fresh = false
+	return nil
+}
+
+func (hc *HubConnector) sync(ctx context.Context) error {
+	req := &hubapi.SyncReq{
 		Manager: hc.cfg.Name,
 	}
 	if hc.needMoreRepros != nil {
-		a.NeedRepros = hc.needMoreRepros()
+		req.NeedRepros = hc.needMoreRepros()
 	}
-	a.Repros = hc.newRepros
+	req.Repros = hc.newRepros
 	for {
-		r := new(rpctype.HubSyncRes)
-		if err := hub.Call("Hub.Sync", a, r); err != nil {
+		resp, err := hc.client.Sync(ctx, req)
+		if err != nil {
 			return err
 		}
-		minimized, smashed, progDropped := hc.processProgs(r.Inputs)
-		reproDropped := hc.processRepros(r.Repros)
-		hc.statSendRepro.Add(len(a.Repros))
-		hc.statRecvProg.Add(len(r.Inputs) - progDropped)
+		minimized, smashed, progDropped := hc.processProgs(resp.Inputs)
+		reproDropped := hc.processRepros(resp.Repros)
+		hc.statSendRepro.Add(len(req.Repros))
+		hc.statRecvProg.Add(len(resp.Inputs) - progDropped)
 		hc.statRecvProgDrop.Add(progDropped)
-		hc.statRecvRepro.Add(len(r.Repros) - reproDropped)
+		hc.statRecvRepro.Add(len(resp.Repros) - reproDropped)
 		hc.statRecvReproDrop.Add(reproDropped)
 		log.Logf(0, "hub sync: repros %v;"+
 			" recv: progs %v (min %v, smash %v), repros %v; more %v",
-			len(a.Repros), len(r.Inputs)-progDropped, minimized, smashed,
-			len(r.Repros)-reproDropped, r.More)
-		a.Add = nil
-		a.Del = nil
-		a.Repros = nil
-		a.NeedRepros = false
+			len(req.Repros), len(resp.Inputs)-progDropped, minimized, smashed,
+			len(resp.Repros)-reproDropped, resp.More)
+		req.Repros = nil
+		req.NeedRepros = false
 		hc.newRepros = nil
-		if len(r.Inputs)+r.More == 0 {
+		if len(resp.Inputs)+resp.More == 0 {
 			return nil
 		}
 	}
 }
 
-func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
+func (hc *HubConnector) processProgs(inputs []hubapi.Input) (minimized, smashed, dropped int) {
 	candidates := make([]fuzzer.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
 		p, err := hc.parseProgram(inp.Prog)

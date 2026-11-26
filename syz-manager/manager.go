@@ -1371,8 +1371,7 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 				}
 				if mgr.cfg.HubClient != "" {
 					mgr.setPhaseLocked(phaseTriagedCorpus)
-					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey),
-						fuzzer.Config.EnabledCalls)
+					go mgr.hubSyncLoop(vm.ShutdownCtx(), fuzzer.Config.EnabledCalls)
 				} else {
 					mgr.setPhaseLocked(phaseTriagedHub)
 				}
