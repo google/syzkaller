@@ -501,7 +501,9 @@ guest_uexit(uint64 exit_code)
 	// We write to X86_SYZOS_ADDR_UEXIT (0x40100).
 	// This allows the L1 hypervisor to reliably read RAX during an EPT violation.
 	volatile uint64* ptr = (volatile uint64*)X86_SYZOS_ADDR_UEXIT;
-	asm volatile("movq %0, (%1)" ::"a"(exit_code), "r"(ptr) : "memory");
+	// Pin ptr to RDX so the store uses the 3-byte `movq %rax, (%rdx)` encoding
+	// assumed when advancing L2 RIP in nested_vm_exit_handler_{intel,amd}().
+	asm volatile("movq %0, (%1)" ::"a"(exit_code), "d"(ptr) : "memory");
 }
 
 // Report an unrecoverable error to the host and never return. The host may resume the vCPU after
