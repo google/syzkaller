@@ -1374,8 +1374,16 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
       mov %[vm_exit_reason], %%rbx
       vmread %%rbx, %%rdi
 
+      // Align RSP to 16 bytes for the C call, since VMCS_HOST_RSP depends on
+      // the compiler's stack frame around the vmentry inline asm.
+      mov %%rsp, %%rbp
+      andq $-16, %%rsp
+
       // Call the C handler.
       call nested_vm_exit_handler_intel
+
+      // Restore pre-alignment RSP pointing at struct l2_guest_regs.
+      mov %%rbp, %%rsp
 
       // The C handler has processed the exit. Now, return to the L1 command
       // processing loop. VMX remains enabled.
@@ -2064,7 +2072,12 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 		mov 120(%%rsp), %%rdi
 		// arg2 (RSI) = pointer to the saved registers
 		mov %%rsp, %%rsi
+		// Align RSP to 16 bytes for the C call, since RSP depends on the
+		// compiler's stack frame around this inline asm.
+		mov %%rsp, %%rbp
+		andq $-16, %%rsp
 		call nested_vm_exit_handler_amd
+		mov %%rbp, %%rsp
 
 		// 8. Restore L1 state.
 		// Discard L2 GPRs (15 regs) + exit_code = 16 regs in total.
