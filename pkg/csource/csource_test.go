@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/executor"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -402,4 +405,57 @@ syz_emit_vhci(&(0x7f0000000300)=ANY=[@ANYBLOB="040100"], 0x3)
 	assert.NotContains(t, string(plainSrc), "syz_emit_ethernet(")
 	assert.NotContains(t, string(plainSrc), "syz_extract_tcp_res(")
 	assert.NotContains(t, string(plainSrc), "syz_emit_vhci(")
+}
+
+func TestBuildSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	if broken := targets.Get(target.OS, target.Arch).BrokenCompiler; broken != "" {
+		t.Skipf("target compiler is broken: %v", broken)
+	}
+
+	bin, err := Build(target, []byte("int main(void) { return 0; }\n"))
+	require.NoError(t, err)
+	assert.False(t, osutil.IsSandboxOwned(t, bin))
+	out, err := osutil.RunCmd(time.Minute, "", bin)
+	require.NoError(t, err, "output: %s", out)
+	require.NoError(t, os.Remove(bin))
+
+	// The compiler must not be able to read host files outside the sandbox via #include or .incbin.
+	// Use 0644 in a world-traversable dir so DAC alone would permit uid=2000 to read it without bwrap.
+	secret := filepath.Join(osutil.SandboxTempDir(t), "secret.h")
+	const secretContent = "TOP_SECRET_MARKER_VALUE"
+	require.NoError(t, os.WriteFile(secret, []byte(secretContent+"\n"), 0644))
+	includeSrc := fmt.Sprintf("#include %q\nint main(void) { return 0; }\n", secret)
+	incbinSrc := fmt.Sprintf("__asm__(%q);\nint main(void) { return 0; }\n", fmt.Sprintf(".incbin %q", secret))
+	for _, src := range []string{includeSrc, incbinSrc} {
+		leakedBin, err := Build(target, []byte(src))
+		if err == nil {
+			require.NoError(t, os.Remove(leakedBin))
+		}
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), secretContent)
+	}
+
+	// A forbidden $TMPDIR (e.g. /var/tmp) must not break sandboxed compilation.
+	t.Run("tmpdir_var_tmp", func(t *testing.T) {
+		t.Setenv("TMPDIR", "/var/tmp")
+		varTmpBin, err := Build(target, []byte("int main(void) { return 0; }\n"))
+		require.NoError(t, err)
+		defer os.Remove(varTmpBin)
+		out, err := osutil.RunCmd(time.Minute, "", varTmpBin)
+		require.NoError(t, err, "output: %s", out)
+	})
+
+	// Sanity-check that incbinSrc is valid C/asm that embeds secretContent when unsandboxed.
+	t.Run("disabled", func(t *testing.T) {
+		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+		leakedBin, err := Build(target, []byte(incbinSrc))
+		require.NoError(t, err)
+		defer os.Remove(leakedBin)
+		binData, err := os.ReadFile(leakedBin)
+		require.NoError(t, err)
+		assert.Contains(t, string(binData), secretContent)
+	})
 }
