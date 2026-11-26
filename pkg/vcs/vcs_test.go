@@ -166,6 +166,8 @@ func TestCheckRepoAddress(t *testing.T) {
 		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       false,
 		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                    false,
 	})
+	assert.False(t, CheckRemoteRepoAddress("file:///repo/linux.git"))
+	assert.True(t, CheckRemoteRepoAddress("https://github.com/torvalds/linux.git"))
 }
 
 func TestCheckBranch(t *testing.T) {

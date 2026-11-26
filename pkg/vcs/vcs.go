@@ -287,9 +287,12 @@ func Patch(dir string, patch []byte) error {
 
 // CheckRepoAddress does a best-effort approximate check of a git repo address.
 func CheckRepoAddress(repo string) bool {
-	return gitLocalRepoRe.MatchString(repo) ||
-		gitRemoteRepoRe.MatchString(repo) ||
-		gitSSHRepoRe.MatchString(repo)
+	return gitLocalRepoRe.MatchString(repo) || CheckRemoteRepoAddress(repo)
+}
+
+// CheckRemoteRepoAddress checks that repo looks like a remote (non-local) git repo address.
+func CheckRemoteRepoAddress(repo string) bool {
+	return gitRemoteRepoRe.MatchString(repo) || gitSSHRepoRe.MatchString(repo)
 }
 
 // CheckBranch does a best-effort approximate check of a git branch name.
