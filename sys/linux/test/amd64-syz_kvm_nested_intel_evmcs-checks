@@ -1,0 +1,26 @@
+#
+# requires: arch=amd64 vendor=intel nested -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Test Hyper-V eVMCS validation and error paths:
+# 1. Invalid revision_id (-1, field 0) -> EVMPTRLD_VMFAIL -> VMfailInvalid (CF=1 -> 0xe2e10000).
+# 2. Restore revision_id=1 and set SECONDARY_EXEC_SHADOW_VMCS (0x4000 in 0x401e, rejected by
+#    nested_evmcs_check_controls()) -> VMfailValid with VMXERR_ENTRY_INVALID_CONTROL_FIELD
+#    (7 -> 0xe2e10007).
+# 3. Unmapped vp_assist.current_nested_vmcs (0xf0000000, field 9) -> EVMPTRLD_ERROR injects #UD in
+#    L1 (0xe2ec0006).
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_intel_evmcs_enable={AUTO, AUTO, {0x0, 0x1}}, @nested_load_code={AUTO, AUTO, {0x0, "f4"}}, @nested_intel_evmcs_write_mask={AUTO, AUTO, {0x0, 0x0, 0xffffffff, 0x0, 0x0}}, @nested_vmlaunch={AUTO, AUTO, 0x0}, @nested_intel_evmcs_write_mask={AUTO, AUTO, {0x0, 0x0, 0x1, 0xffffffffffffffff, 0x0}}, @nested_intel_vmwrite_mask={AUTO, AUTO, {0x0, @control32=0x401e, 0x4000, 0x0, 0x0}}, @nested_vmlaunch={AUTO, AUTO, 0x0}, @nested_intel_evmcs_write_mask={AUTO, AUTO, {0x0, 0x9, 0xf0000000, 0xffffffffffffffff, 0x0}}, @nested_vmlaunch={AUTO, AUTO, 0x0}], AUTO})
+ioctl$KVM_CAP_HYPERV_ENLIGHTENED_VMCS(r3, AUTO, &AUTO={AUTO, AUTO, &AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e10000)
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e10007)
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2ec0006)
