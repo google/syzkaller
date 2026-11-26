@@ -567,6 +567,9 @@ static int setup_vcpu_sregs(struct kvm_syz_vm* vm, int cpufd, int cpu_id, bool h
 #endif
 #define X86_CPUID_EXT_FEATURES 0x80000001
 #define X86_CPUID_EXT_ECX_SVM (1u << 2)
+#define X86_CPUID_HYPERVISOR_BASE 0x40000000
+#define X86_CPUID_HYPERVISOR_NEXT 0x40000100
+#define X86_CPUID_HYPERVISOR_OFFSET (X86_CPUID_HYPERVISOR_NEXT - X86_CPUID_HYPERVISOR_BASE)
 
 // Sets guest CPUID to the one supported by KVM.
 // Must be called before KVM_SET_SREGS, as KVM validates SREGS against guest CPUID.
@@ -583,6 +586,32 @@ static int setup_cpuid(int cpufd, bool* has_svm)
 	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
 	cpuid->nent = KVM_MAX_CPUID_ENTRIES;
 	int ret = ioctl(kvmfd, KVM_GET_SUPPORTED_CPUID, cpuid);
+	if (ret == 0) {
+		// Mirror QEMU's hypervisor CPUID layout: Hyper-V at 0x40000000..0x400000ff and
+		// KVM leaves relocated to 0x40000100..0x400001ff.
+		char hv_buf[sizeof(struct kvm_cpuid2) + 64 * sizeof(struct kvm_cpuid_entry2)]
+		    __attribute__((aligned(__alignof__(struct kvm_cpuid2))));
+		memset(hv_buf, 0, sizeof(hv_buf));
+		struct kvm_cpuid2* hv_cpuid = (struct kvm_cpuid2*)hv_buf;
+		hv_cpuid->nent = 64;
+		if (ioctl(kvmfd, KVM_GET_SUPPORTED_HV_CPUID, hv_cpuid) == 0 &&
+		    hv_cpuid->nent > 0 &&
+		    cpuid->nent + hv_cpuid->nent <= KVM_MAX_CPUID_ENTRIES) {
+			for (uint32 i = 0; i < cpuid->nent; i++) {
+				if (cpuid->entries[i].function >= X86_CPUID_HYPERVISOR_BASE &&
+				    cpuid->entries[i].function < X86_CPUID_HYPERVISOR_NEXT) {
+					if (cpuid->entries[i].function == X86_CPUID_HYPERVISOR_BASE &&
+					    cpuid->entries[i].eax >= X86_CPUID_HYPERVISOR_BASE &&
+					    cpuid->entries[i].eax < X86_CPUID_HYPERVISOR_NEXT)
+						cpuid->entries[i].eax += X86_CPUID_HYPERVISOR_OFFSET;
+					cpuid->entries[i].function += X86_CPUID_HYPERVISOR_OFFSET;
+				}
+			}
+			memcpy(&cpuid->entries[cpuid->nent], hv_cpuid->entries,
+			       hv_cpuid->nent * sizeof(struct kvm_cpuid_entry2));
+			cpuid->nent += hv_cpuid->nent;
+		}
+	}
 	if (ret == 0)
 		ret = ioctl(cpufd, KVM_SET_CPUID2, cpuid);
 	int err = errno;
