@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var Tool = aflow.NewFuncTool("clang-format", clangFormat, `
@@ -50,9 +51,16 @@ func clangFormat(ctx *aflow.Context, state state, args args) (result, error) {
 	if err != nil || !stat.Mode().IsRegular() {
 		return result{}, aflow.BadCallError("File %q does not exist", args.File)
 	}
-	output, err := osutil.RunSandboxed(10*time.Minute, state.KernelScratchSrc,
-		"clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}",
+	// clang-format -i edits the file in place, so the checkout must stay writable, but .git must not.
+	cmd := osutil.Command("clang-format", "-style={BasedOnStyle: InheritParentConfig, ColumnLimit: 100}",
 		"-i", "--", "./"+args.File)
+	cmd.Dir = state.KernelScratchSrc
+	if err := osutil.Sandbox(cmd,
+		osutil.SandboxMountRW(state.KernelScratchSrc),
+		osutil.SandboxMountRO(vcs.GitReadOnlyDirs(state.KernelScratchSrc)...)); err != nil {
+		return result{}, err
+	}
+	output, err := osutil.Run(10*time.Minute, cmd)
 	if err != nil {
 		return result{}, err
 	}

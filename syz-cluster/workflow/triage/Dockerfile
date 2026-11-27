@@ -11,11 +11,13 @@ FROM ubuntu:latest
 RUN apt-get update && \
     apt-get install -y git bubblewrap socat
 
-# pkg/osutil uses syzkaller user for sandboxing.
+# pkg/osutil runs commands as the syzkaller user in a bubblewrap sandbox,
+# socat is needed to proxy git:// connections out of it.
 RUN useradd -u 10000 --create-home syzkaller
 # Prevent "fatal: detected dubious ownership in repository" errors.
 RUN git config --system --add safe.directory /workdir
 RUN git config --system --add safe.directory /kernel-repo
+RUN git config --system gc.autoDetach false
 
 COPY --from=builder /build/syz-cluster/bin/triage-action /bin/triage-action
 

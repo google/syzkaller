@@ -298,7 +298,7 @@ func checkTestJob(args *testJobArgs) string {
 		return "cannot test both patch and C reproducer"
 	case len(args.reproC) == 0 && needRepro && crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it."
-	case !vcs.CheckRepoAddress(args.repo):
+	case !vcs.CheckRemoteRepoAddress(args.repo):
 		return fmt.Sprintf("%q does not look like a valid git repo address.", args.repo)
 	case !vcs.CheckBranch(args.branch) && !vcs.CheckCommitHash(args.branch):
 		return fmt.Sprintf("%q does not look like a valid git branch or commit.", args.branch)

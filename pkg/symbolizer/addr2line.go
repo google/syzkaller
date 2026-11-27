@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -56,8 +57,17 @@ func (s *addr2Line) getSubprocess(bin string) (*subprocess, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmd := osutil.Command(addr2line, "-afi", "-e", bin)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
+	// The sandbox does not preserve the working directory and binds symlink-resolved paths.
+	absBin, err := filepath.Abs(bin)
+	if err != nil {
+		return nil, err
+	}
+	if resolved, err := filepath.EvalSymlinks(absBin); err == nil {
+		absBin = resolved
+	}
+	cmd := osutil.Command(addr2line, "-afi", "-e", absBin)
+	if err := osutil.Sandbox(cmd,
+		osutil.SandboxMountRO(append(s.target.ToolchainDirs(), absBin)...)); err != nil {
 		return nil, err
 	}
 	stdin, err := cmd.StdinPipe()

@@ -6,7 +6,6 @@ package triage
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -22,7 +21,6 @@ func NewGitTreeOps(dir string, sandbox bool) (*GitTreeOps, error) {
 		Git: &vcs.Git{
 			Dir:     dir,
 			Sandbox: sandbox,
-			Env:     os.Environ(),
 		},
 	}
 	err := ops.Reset()

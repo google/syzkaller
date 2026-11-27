@@ -9,6 +9,7 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -78,6 +79,13 @@ func TestGitIgnoreFsmonitor(t *testing.T) {
 	_, err = SandboxedGit(dir).Run("fetch", "ext::sh -c touch% "+marker)
 	require.Error(t, err)
 	require.NoFileExists(t, marker)
+
+	// ssh/sso can't work inside the sandbox, so they are not allowed either.
+	for _, remote := range []string{"ssh://example.com/repo", "sso://example/repo"} {
+		_, err = SandboxedGit(dir).runWithNet("ls-remote", remote)
+		require.Error(t, err, remote)
+		require.Contains(t, osutil.VerboseMessage(err), "not allowed", remote)
+	}
 }
 
 func TestGitLocalNetworkIsolated(t *testing.T) {
@@ -121,9 +129,81 @@ func TestGitLocalNetworkIsolated(t *testing.T) {
 	require.Error(t, err)
 	assert.False(t, connected.Load())
 
+	// Even with network enabled, the bwrap proxy blocks loopback destinations.
 	_, err = SandboxedGit(dir).runWithNet("fetch", remoteURL)
 	require.Error(t, err)
-	assert.True(t, connected.Load())
+	assert.False(t, connected.Load())
+}
+
+func TestGitCookieSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	repoDir := osutil.SandboxTempDir(t)
+	repo := MakeTestRepo(t, repoDir)
+
+	homeDir := osutil.SandboxTempDir(t)
+	cacheDir := filepath.Join(homeDir, ".git-credential-cache")
+	require.NoError(t, osutil.MkdirAll(cacheDir))
+	const cookieData = ".example.com\tTRUE\t/\tTRUE\t0\to\ttoken1\n"
+	cacheCookie := filepath.Join(cacheDir, "cookie")
+	require.NoError(t, osutil.WriteFile(cacheCookie, []byte(cookieData)))
+	resolvedCacheDir, err := filepath.EvalSymlinks(cacheDir)
+	require.NoError(t, err)
+	resolvedCacheCookie := filepath.Join(resolvedCacheDir, "cookie")
+
+	globalCfg := filepath.Join(homeDir, ".gitconfig")
+	t.Setenv("GIT_CONFIG_GLOBAL", globalCfg)
+	setGlobalCookie := func(path string) {
+		var cfg string
+		if path != "" {
+			cfg = fmt.Sprintf("[http]\n\tcookiefile = %s\n", path)
+		}
+		require.NoError(t, osutil.WriteFile(globalCfg, []byte(cfg)))
+	}
+	setGlobalCookie(cacheCookie)
+
+	// .git-credential-cache mounts the directory RO for networked git, but not offline git.
+	mountPath, cookieFile := gitCookieMount()
+	assert.Equal(t, resolvedCacheDir, mountPath)
+	assert.Equal(t, resolvedCacheCookie, cookieFile)
+
+	out, err := SandboxedGit(repoDir).runWithNet("config", "--get", "http.cookiefile")
+	require.NoError(t, err)
+	assert.Equal(t, resolvedCacheCookie, strings.TrimSpace(string(out)))
+	_, err = SandboxedGit(repoDir).runWithNet("hash-object", resolvedCacheCookie)
+	require.NoError(t, err)
+	_, err = SandboxedGit(repoDir).Run("hash-object", resolvedCacheCookie)
+	require.Error(t, err)
+
+	// Custom cookie file (via symlink) binds only the resolved file, not $HOME.
+	customCookie := filepath.Join(homeDir, ".gitcookies")
+	siblingSecret := filepath.Join(homeDir, "sibling-secret")
+	cookieLink := filepath.Join(homeDir, "cookies-link")
+	require.NoError(t, osutil.WriteFile(customCookie, []byte(cookieData)))
+	require.NoError(t, osutil.WriteFile(siblingSecret, []byte("secret\n")))
+	require.NoError(t, os.Symlink(customCookie, cookieLink))
+	resolvedCustom, err := filepath.EvalSymlinks(customCookie)
+	require.NoError(t, err)
+	setGlobalCookie(cookieLink)
+
+	mountPath, cookieFile = gitCookieMount()
+	assert.Equal(t, resolvedCustom, mountPath)
+	assert.Equal(t, resolvedCustom, cookieFile)
+	_, err = SandboxedGit(repoDir).runWithNet("hash-object", resolvedCustom)
+	require.NoError(t, err)
+	_, err = SandboxedGit(repoDir).runWithNet("hash-object", siblingSecret)
+	require.Error(t, err)
+
+	// Missing cookie file and repo-local .git/config entries are ignored.
+	require.NoError(t, os.Remove(customCookie))
+	m, c := gitCookieMount()
+	assert.Empty(t, m)
+	assert.Empty(t, c)
+
+	setGlobalCookie("")
+	repo.Git("config", "http.cookiefile", cacheCookie)
+	m, c = gitCookieMount()
+	assert.Empty(t, m)
+	assert.Empty(t, c)
 }
 
 func TestCanonicalizeCommit(t *testing.T) {
@@ -166,6 +246,8 @@ func TestCheckRepoAddress(t *testing.T) {
 		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       false,
 		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                    false,
 	})
+	assert.False(t, CheckRemoteRepoAddress("file:///repo/linux.git"))
+	assert.True(t, CheckRemoteRepoAddress("https://github.com/torvalds/linux.git"))
 }
 
 func TestCheckBranch(t *testing.T) {

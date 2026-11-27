@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -88,7 +90,14 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 		}
 		configArgs = append(configArgs, "--set-str", "CMDLINE", cmdline)
 	}
-	if _, err := osutil.RunSandboxed(time.Hour, buildDir, configScript, configArgs...); err != nil {
+	// srcDir is read-only unless it's also the build dir (in-place patched builds), but .git always is.
+	roDirs := slices.Concat(target.ToolchainDirs(), []string{srcDir}, vcs.GitReadOnlyDirs(srcDir))
+	cmd := osutil.Command(configScript, configArgs...)
+	cmd.Dir = buildDir
+	if err := osutil.Sandbox(cmd, osutil.SandboxMountRW(buildDir), osutil.SandboxMountRO(roDirs...)); err != nil {
+		return err
+	}
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return err
 	}
 	image := filepath.FromSlash(build.LinuxKernelImage(targetVMArch))
@@ -99,10 +108,15 @@ func BuildKernel(buildDir, srcDir, cfg, targetOS, targetArch, targetVMArch strin
 	// ld.lld: error: undefined symbol: wcslen
 	// The fix does not cherry-pick cleanly, so pass the flag explicitly.
 	// For newer kernels this is a no-op.
-	makeArgs = append(makeArgs, "KCFLAGS=-fno-builtin-wcslen")
+	makeArgs = append(makeArgs, "-C", srcDir, "KCFLAGS=-fno-builtin-wcslen")
 	const compileCommands = "compile_commands.json"
 	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
-	if _, err := osutil.RunSandboxed(time.Hour, srcDir, "make", makeArgs...); err != nil {
+	makeCmd := osutil.Command("make", makeArgs...)
+	makeCmd.Dir = buildDir
+	if err := osutil.Sandbox(makeCmd, osutil.SandboxMountRW(buildDir), osutil.SandboxMountRO(roDirs...)); err != nil {
+		return err
+	}
+	if _, err := osutil.Run(time.Hour, makeCmd); err != nil {
 		buildErr := build.ExtractRootCause(err, targets.Linux, srcDir)
 		if buildErr == err {
 			return aflow.FlowError(err)

@@ -217,26 +217,99 @@ func TestSandbox(t *testing.T) {
 	file := filepath.Join(dir, "file")
 	require.NoError(t, WriteFile(file, []byte("hello\n")))
 
-	run := func(name string, args ...string) (string, error) {
+	run := func(opts []SandboxOption, name string, args ...string) (string, error) {
 		cmd := Command(name, args...)
-		require.NoError(t, Sandbox(cmd, true, true))
+		cmd.Dir = dir
+		require.NoError(t, Sandbox(cmd, opts...))
 		out, err := Run(time.Minute, cmd)
 		return strings.TrimSpace(string(out)), err
 	}
 
-	user, err := run("id", "-un")
+	user, err := run(nil, "id", "-un")
 	require.NoError(t, err)
 	require.Equal(t, "syzkaller", user)
 
-	// Before SandboxChown, the root-owned file is not writable by the sandbox user.
-	_, err = run("sh", "-c", fmt.Sprintf("echo sandbox >> %q", file))
+	home, err := run(nil, "sh", "-c", "echo $HOME")
+	require.NoError(t, err)
+	require.Equal(t, "/home/syzkaller", home)
+
+	// Before SandboxChown, the root-owned file is not writable even with SandboxMountRW.
+	_, err = run([]SandboxOption{SandboxMountRW(dir)}, "sh", "-c", fmt.Sprintf("echo sandbox >> %q", file))
 	require.Error(t, err)
 	require.Contains(t, VerboseMessage(err), "Permission denied")
+	// Errors must refer to the original command rather than to the bwrap invocation.
+	require.ErrorContains(t, err, fmt.Sprintf(`failed to run ["sh" "-c" "echo sandbox >> \"%v\""]: exit status`, file))
 
 	require.NoError(t, SandboxChown(file))
-	content, err := run("sh", "-c", fmt.Sprintf("echo sandbox >> %q && cat %q", file, file))
+	// Without SandboxMountRW, cmd.Dir is mounted read-only even after SandboxChown.
+	if runtime.GOOS == "linux" {
+		_, err = run(nil, "sh", "-c", fmt.Sprintf("echo sandbox >> %q", file))
+		require.Error(t, err)
+	}
+	content, err := run([]SandboxOption{SandboxMountRW(dir)},
+		"sh", "-c", fmt.Sprintf("echo sandbox >> %q && cat %q", file, file))
 	require.NoError(t, err)
 	require.Equal(t, "hello\nsandbox", content)
+
+	// Even with SandboxAllowNet, a PID namespace must be enabled so background processes
+	// spawned inside the sandbox are terminated when the command exits.
+	lockFile := filepath.Join(dir, "bg.lock")
+	readyFile := filepath.Join(dir, "bg.ready")
+	require.NoError(t, SandboxChown(dir))
+	cmd := Command("sh", "-c", fmt.Sprintf(
+		`flock -x %q -c 'touch %q; exec sleep 60' </dev/null >/dev/null 2>&1 &
+		while [ ! -e %q ]; do sleep 0.01; done`, lockFile, readyFile, readyFile))
+	cmd.Dir = dir
+	require.NoError(t, Sandbox(cmd, SandboxAllowNet(), SandboxMountRW(dir)))
+	_, err = Run(time.Minute, cmd)
+	require.NoError(t, err)
+
+	lf, err := os.Open(lockFile)
+	require.NoError(t, err)
+	defer lf.Close()
+	require.Eventually(t, func() bool {
+		return syscall.Flock(int(lf.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil
+	}, 5*time.Second, 10*time.Millisecond)
+	_ = syscall.Flock(int(lf.Fd()), syscall.LOCK_UN)
+
+	if runtime.GOOS == "linux" {
+		otherDir := SandboxTempDir(t)
+		secretFile := filepath.Join(otherDir, "secret")
+		require.NoError(t, WriteFile(secretFile, []byte("top-secret\n")))
+		require.NoError(t, SandboxChown(otherDir))
+
+		// Without SandboxMountRO/SandboxMountRW, otherDir is not mounted in bwrap.
+		_, err = run(nil, "cat", secretFile)
+		require.Error(t, err)
+
+		// With SandboxMountRO, reading succeeds but writing into otherDir fails.
+		roOut, err := run([]SandboxOption{SandboxMountRO(otherDir)}, "cat", secretFile)
+		require.NoError(t, err)
+		require.Equal(t, "top-secret", roOut)
+
+		_, err = run([]SandboxOption{SandboxMountRO(otherDir)}, "touch", filepath.Join(otherDir, "created"))
+		require.Error(t, err)
+
+		// With SandboxMountRW, writing into otherDir succeeds.
+		_, err = run([]SandboxOption{SandboxMountRW(otherDir)}, "touch", filepath.Join(otherDir, "created"))
+		require.NoError(t, err)
+		require.FileExists(t, filepath.Join(otherDir, "created"))
+
+		// With SandboxAllowNet, the sandbox proxy blocks loopback/private destinations.
+		out, err := run([]SandboxOption{SandboxAllowNet()}, "curl", "-sS", "http://127.0.0.1:80")
+		require.Error(t, err)
+		require.Contains(t, out, "cannot complete SOCKS5 connection")
+
+		// SandboxEnv forwards explicit variables while host secrets are scrubbed.
+		t.Setenv("GEMINI_API_KEY", "secret-key")
+		out, err = run([]SandboxOption{SandboxEnv("FOO=bar")}, "sh", "-c", "echo $FOO:${GEMINI_API_KEY:-empty}")
+		require.NoError(t, err)
+		assert.Equal(t, "bar:empty", out)
+
+		directEnvCmd := Command("true")
+		directEnvCmd.Env = []string{"FOO=bar"}
+		assert.Error(t, Sandbox(directEnvCmd))
+	}
 }
 
 func TestReadInRoot(t *testing.T) {

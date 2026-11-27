@@ -35,8 +35,24 @@ func AvailableMemorySize() (uint64, error) {
 func prolongPipe(r, w *os.File) {
 }
 
-func Sandbox(cmd *exec.Cmd, user, net bool) error {
+func Sandbox(cmd *exec.Cmd, opts ...SandboxOption) error {
+	cfg, err := parseSandboxOptions(cmd, opts)
+	if err != nil {
+		return err
+	}
+	if len(cfg.env) > 0 {
+		cmd.Env = append(os.Environ(), cfg.env...)
+	}
 	return nil
+}
+
+// CheckSandbox returns nil: sandboxing is not implemented on non-Linux hosts.
+func CheckSandbox() error {
+	return nil
+}
+
+func cmdArgs(cmd *exec.Cmd) []string {
+	return cmd.Args
 }
 
 func SandboxChown(files ...string) error {

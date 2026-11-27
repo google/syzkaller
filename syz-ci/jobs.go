@@ -356,6 +356,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	mgrcfg := mgr.jobConfig()
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
 	repoDir := filepath.Join(dir, "kernel")
+	mgrcfg.KernelBuildSrc = repoDir
 	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
@@ -460,7 +461,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			return fmt.Errorf("failed to read baseline config: %w", err)
 		}
 	}
-	err := jp.prepareBisectionRepo(mgrcfg, req)
+	err := jp.prepareBisectionRepo(mgrcfg, req, mgr.kernelBuildDir)
 	if err != nil {
 		return err
 	}
@@ -495,17 +496,18 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Ccache:          jp.cfg.Ccache,
 		BuildCPUs:       jp.cfg.BuildCPUs,
 		Kernel: bisect.KernelConfig{
-			Repo:           req.KernelRepo,
-			Branch:         req.KernelBranch,
-			Commit:         req.KernelCommit,
-			CommitTitle:    req.KernelCommitTitle,
-			Cmdline:        mgr.mgrcfg.KernelCmdline,
-			Sysctl:         mgr.mgrcfg.KernelSysctl,
-			Config:         req.KernelConfig,
-			BaselineConfig: baseline,
-			Userspace:      mgr.mgrcfg.Userspace,
-			BuilderImage:   mgr.mgrcfg.KernelBuilderImage,
-			Backports:      mgr.backportCommits(),
+			Repo:             req.KernelRepo,
+			Branch:           req.KernelBranch,
+			Commit:           req.KernelCommit,
+			CommitTitle:      req.KernelCommitTitle,
+			Cmdline:          mgr.mgrcfg.KernelCmdline,
+			Sysctl:           mgr.mgrcfg.KernelSysctl,
+			Config:           req.KernelConfig,
+			BaselineConfig:   baseline,
+			Userspace:        mgr.mgrcfg.Userspace,
+			BuilderImage:     mgr.mgrcfg.KernelBuilderImage,
+			Backports:        mgr.backportCommits(),
+			RepoReadOnlyDirs: []string{mgr.kernelBuildDir},
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   jp.cfg.SyzkallerRepo,
@@ -622,7 +624,8 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		return syzBuildErr
 	}
 	dt.Logf("fetching kernel...")
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
+	// If the repo was cloned with --reference, git mounts the referenced objects via alternates.
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelBuildSrc)
 	if err != nil {
 		dt.Logf("failed to create kernel repo: %v", osutil.VerboseMessage(err))
 		return fmt.Errorf("failed to create kernel repo: %w", err)
@@ -648,6 +651,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		KernelConfig: req.KernelConfig,
 		BuildCPUs:    jp.cfg.BuildCPUs,
+		Env:          mgr.mgrcfg.KernelBuildEnv,
 	}
 	dt.Logf("cleaning kernel...")
 	if err := env.CleanKernel(buildCfg); err != nil {
@@ -656,7 +660,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	if len(req.Patch) != 0 {
 		dt.Logf("applying patch (%d bytes)...", len(req.Patch))
-		if err := vcs.Patch(mgrcfg.KernelSrc, req.Patch); err != nil {
+		if err := vcs.Patch(mgrcfg.KernelBuildSrc, req.Patch); err != nil {
 			dt.Logf("failed to apply patch: %v", osutil.VerboseMessage(err))
 			return err
 		}
@@ -723,7 +727,7 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 			return fmt.Errorf("failed to chown job repo dir: %w", err)
 		}
 		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
-		_, err := vcs.SandboxedGit(repoDir).RunTimeout(time.Hour,
+		_, err := vcs.SandboxedGit(repoDir, mgr.kernelBuildDir).RunTimeout(time.Hour,
 			"clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, ".")
 		if err == nil {
 			return nil
@@ -735,12 +739,13 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 	return nil
 }
 
-func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dashapi.JobPollResp) error {
+func (jp *JobProcessor) prepareBisectionRepo(mgrcfg *mgrconfig.Config, req *dashapi.JobPollResp, refDir string) error {
 	if req.MergeBaseRepo == "" {
 		// No need to.
 		return nil
 	}
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelBuildSrc,
+		vcs.OptReadOnlyDirs(refDir))
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %w", err)
 	}

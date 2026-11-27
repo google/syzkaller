@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -1050,16 +1049,26 @@ func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
 	if ctx.kernelDirs.Src == "" {
 		return nil, nil
 	}
-	return GetLinuxMaintainers(ctx.kernelDirs.Src, file)
+	var extraRO []string
+	if ctx.kernelDirs.BuildSrc != "" && ctx.kernelDirs.BuildSrc != ctx.kernelDirs.Src &&
+		osutil.IsExist(ctx.kernelDirs.BuildSrc) {
+		extraRO = append(extraRO, ctx.kernelDirs.BuildSrc)
+		extraRO = append(extraRO, vcs.GitAlternateDirs(ctx.kernelDirs.BuildSrc)...)
+	}
+	return getLinuxMaintainers(ctx.kernelDirs.Src, file, extraRO)
 }
 
 func GetLinuxMaintainers(kernelSrc, file string) (vcs.Recipients, error) {
-	mtrs, err := getMaintainersImpl(kernelSrc, file, false)
+	return getLinuxMaintainers(kernelSrc, file, nil)
+}
+
+func getLinuxMaintainers(kernelSrc, file string, extraRO []string) (vcs.Recipients, error) {
+	mtrs, err := getMaintainersImpl(kernelSrc, file, false, extraRO)
 	if err != nil {
 		return nil, err
 	}
 	if len(mtrs) <= 1 {
-		mtrs, err = getMaintainersImpl(kernelSrc, file, true)
+		mtrs, err = getMaintainersImpl(kernelSrc, file, true, extraRO)
 		if err != nil {
 			return nil, err
 		}
@@ -1067,19 +1076,14 @@ func GetLinuxMaintainers(kernelSrc, file string) (vcs.Recipients, error) {
 	return mtrs, nil
 }
 
-func getMaintainersImpl(kernelSrc, file string, blame bool) (vcs.Recipients, error) {
+func getMaintainersImpl(kernelSrc, file string, blame bool, extraRO []string) (vcs.Recipients, error) {
 	// See #1441 re --git-min-percent.
 	args := []string{"--git-min-percent=15"}
 	if blame {
 		args = append(args, "--git-blame")
 	}
 	args = append(args, "-f", file)
-	script := filepath.FromSlash("scripts/get_maintainer.pl")
-	output, err := osutil.RunSandboxed(time.Minute, kernelSrc, script, args...)
-	if err != nil {
-		return nil, err
-	}
-	return vcs.ParseMaintainersLinux(output), nil
+	return vcs.RunGetMaintainer(kernelSrc, nil, extraRO, args...)
 }
 
 func isCorrupted(title string, report []byte, format oopsFormat) (bool, string) {

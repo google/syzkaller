@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -49,15 +50,80 @@ func BuildExecutor(t *testing.T, target *prog.Target, rootDir string, cflags ...
 }
 
 func build(target *prog.Target, src []byte, dir, file string, cflags ...string) (string, error) {
+	tempBase := ""
+	if file == "" && runtime.GOOS == "linux" {
+		// Avoid $TMPDIR values that bwrap forbids (e.g. /var/tmp) or cannot traverse as syzkaller.
+		tempBase = "/tmp"
+	}
+	tempDir, err := os.MkdirTemp(tempBase, "syz-build-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(tempDir)
+	// Compile into a temporary directory rather than bind-mounting the output file directly:
+	// linkers unlink or rename over the -o path, which fails with EBUSY on a file mount.
+	const outName = "syz-executor"
+	outBin := filepath.Join(tempDir, outName)
+	if file == "" {
+		// Relative to cmd.Dir (tempDir) so symlinked temp paths still match inside bwrap.
+		outBin = outName
+	}
+
+	sysTarget := targets.Get(target.OS, target.Arch)
+	compiler, flags := compilerArgs(target, sysTarget, outBin, file, cflags)
+	cmd := osutil.Command(compiler, flags...)
+	cmd.Dir = dir
+	if file == "" {
+		if err := osutil.SandboxChown(tempDir); err != nil {
+			return "", err
+		}
+		cmd.Dir = tempDir
+		cmd.Stdin = bytes.NewReader(src)
+		// C sources can come from untrusted places (e.g. LLM-generated C reproducers),
+		// where #include or .incbin would otherwise read arbitrary host files into diagnostics.
+		if err := osutil.Sandbox(cmd,
+			osutil.SandboxMountRW(tempDir),
+			osutil.SandboxMountRO(sysTarget.ToolchainDirs()...)); err != nil {
+			return "", err
+		}
+	}
+	out, err := osutil.Run(5*time.Minute, cmd)
+	if err != nil {
+		if file != "" {
+			src, _ = os.ReadFile(file)
+		}
+		return "", fmt.Errorf("failed to build program: %w\n%s\n%s\ncompiler invocation: %v %v",
+			err, src, out, compiler, flags)
+	}
 	// We call the binary syz-executor because it sometimes shows in bug titles,
 	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
 	bin, err := osutil.TempFile("syz-executor")
 	if err != nil {
 		return "", err
 	}
+	// Copy via SandboxRoot so a compromised sandboxed compiler cannot replace syz-executor
+	// with a symlink to a host file and have the privileged parent copy it out.
+	root, err := osutil.OpenSandboxRoot(tempDir)
+	if err != nil {
+		os.Remove(bin)
+		return "", err
+	}
+	defer root.Close()
+	if err := root.CopyFileTo(outName, bin); err != nil {
+		os.Remove(bin)
+		return "", err
+	}
+	if err := os.Chmod(bin, osutil.DefaultExecPerm); err != nil {
+		os.Remove(bin)
+		return "", err
+	}
+	return bin, nil
+}
 
+func compilerArgs(target *prog.Target, sysTarget *targets.Target, outBin, file string,
+	cflags []string) (string, []string) {
 	flags := []string{
-		"-o", bin,
+		"-o", outBin,
 		"-DGOOS_" + target.OS + "=1",
 		"-DGOARCH_" + target.Arch + "=1",
 		"-DHOSTGOOS_" + runtime.GOOS + "=1",
@@ -67,7 +133,6 @@ func build(target *prog.Target, src []byte, dir, file string, cflags ...string) 
 	} else {
 		flags = append(flags, file)
 	}
-	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler, targetCFlags := sysTarget.CCompiler, sysTarget.CFlags
 	if file != "" && !strings.HasSuffix(file, ".c") {
 		compiler, targetCFlags = sysTarget.CxxCompiler, sysTarget.CxxFlags
@@ -78,21 +143,7 @@ func build(target *prog.Target, src []byte, dir, file string, cflags ...string) 
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
 	}
-	cmd := osutil.Command(compiler, flags...)
-	cmd.Dir = dir
-	if file == "" {
-		cmd.Stdin = bytes.NewReader(src)
-	}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		os.Remove(bin)
-		if file != "" {
-			src, _ = os.ReadFile(file)
-		}
-		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v",
-			src, out, compiler, flags)
-	}
-	return bin, nil
+	return compiler, flags
 }
 
 // Format reformats C source using clang-format.

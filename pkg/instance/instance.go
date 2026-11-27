@@ -6,6 +6,7 @@
 package instance
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -65,6 +66,8 @@ type BuildKernelConfig struct {
 	SysctlFile   string
 	KernelConfig []byte
 	BuildCPUs    int
+	// Extra KEY=VALUE environment variables for the kernel build.
+	Env []string
 }
 
 func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *osutil.Semaphore) (Env, error) {
@@ -154,7 +157,7 @@ func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
 		TargetOS:     env.cfg.TargetOS,
 		TargetArch:   env.cfg.TargetVMArch,
 		VMType:       env.cfg.Type,
-		KernelDir:    env.cfg.KernelSrc,
+		KernelDir:    cmp.Or(env.cfg.KernelBuildSrc, env.cfg.KernelSrc),
 		OutputDir:    filepath.Join(env.cfg.Workdir, "image"),
 		Make:         buildCfg.MakeBin,
 		Compiler:     buildCfg.CompilerBin,
@@ -166,6 +169,7 @@ func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
 		SysctlFile:   buildCfg.SysctlFile,
 		Config:       buildCfg.KernelConfig,
 		BuildCPUs:    buildCfg.BuildCPUs,
+		Env:          buildCfg.Env,
 	}
 }
 

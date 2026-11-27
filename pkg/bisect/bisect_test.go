@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -748,6 +749,9 @@ var bisectionTests = []BisectionTest{
 }
 
 func TestBisectionResults(t *testing.T) {
+	if testutil.RaceEnabled {
+		t.Skip("too slow under race detector")
+	}
 	t.Parallel()
 	// Creating new repos takes majority of the test time,
 	// so we reuse them across tests.

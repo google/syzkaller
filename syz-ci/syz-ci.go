@@ -83,7 +83,9 @@ var (
 	flagManagers   = flag.Bool("managers", true, "start managers (for testing)")
 	flagDebug      = flag.Bool("debug", false, "debug mode (for testing)")
 	// nolint: lll
-	flagExitOnUpgrade = flag.Bool("exit-on-upgrade", false, "exit after a syz-ci upgrade is applied; otherwise syz-ci restarts")
+	flagExitOnUpgrade   = flag.Bool("exit-on-upgrade", false, "exit after a syz-ci upgrade is applied; otherwise syz-ci restarts")
+	flagUnsafeNoSandbox = flag.Bool("unsafe-no-sandbox", false,
+		"allow running with command sandboxing disabled (not root or SYZ_DISABLE_SANDBOXING=yes)")
 )
 
 type Config struct {
@@ -203,7 +205,11 @@ type ManagerConfig struct {
 	Userspace    string `json:"userspace"`
 	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
 	KernelBuilderImage string `json:"kernel_builder_image"`
-	KernelConfig       string `json:"kernel_config"`
+	// Extra KEY=VALUE environment variables passed to the kernel build (optional).
+	// Kernel builds run in a sandbox with a cleared environment, so variables
+	// from the syz-ci environment are not passed to them otherwise.
+	KernelBuildEnv []string `json:"kernel_build_env"`
+	KernelConfig   string   `json:"kernel_config"`
 	// KernelSrcSuffix adds a suffix to the kernel_src manager config. This is needed for cases where
 	// the kernel source root as reported in the coverage UI is a subdirectory of the VCS root.
 	KernelSrcSuffix string `json:"kernel_src_suffix"`
@@ -260,6 +266,15 @@ func (m *ManagerJobs) Filter(filter *ManagerJobs) *ManagerJobs {
 
 func main() {
 	flag.Parse()
+	// A broken sandbox is always fatal: all sandboxed commands would fail later anyway.
+	if err := osutil.CheckSandbox(); errors.Is(err, osutil.ErrSandboxDisabled) {
+		if !*flagUnsafeNoSandbox {
+			log.Fatalf("%v, pass -unsafe-no-sandbox to run without it", err)
+		}
+		log.Logf(0, "running builds and git commands without sandboxing: %v", err)
+	} else if err != nil {
+		log.Fatalf("sandbox check failed: %v", err)
+	}
 	log.EnableLogCaching(1000, 1<<20)
 	cfg, err := loadConfig(*flagConfig)
 	if err != nil {

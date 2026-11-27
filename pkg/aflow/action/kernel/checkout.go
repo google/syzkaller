@@ -167,7 +167,7 @@ func fullGitClone(dir, remoteDir, commit string) error {
 	if err := osutil.SandboxChown(dir); err != nil {
 		return err
 	}
-	git := vcs.SandboxedGit(dir)
+	git := vcs.SandboxedGit(dir, remoteDir)
 	// Clone without a checkout, otherwise git materializes the remote HEAD first.
 	if _, err := git.RunTimeout(time.Hour, "clone", "--no-checkout", remoteDir, "."); err != nil {
 		return err
@@ -179,7 +179,7 @@ func fullGitClone(dir, remoteDir, commit string) error {
 // shallowGitClone creates a checkout with a single commit.
 // It's only suitable for checkouts that are used for code edits and builds.
 func shallowGitClone(dir, remoteDir string) error {
-	git := vcs.SandboxedGit(dir)
+	git := vcs.SandboxedGit(dir, remoteDir)
 	if _, err := git.RunTimeout(time.Hour, "init"); err != nil {
 		return err
 	}

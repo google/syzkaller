@@ -5,6 +5,7 @@ package kernel
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -20,10 +21,11 @@ func Checkpatch(repo string) (string, bool, error) {
 		return "", false, err
 	}
 
-	cmd := osutil.Command("scripts/checkpatch.pl", "--no-tree", "-")
-	cmd.Dir = repo
+	// checkpatch.pl only reads the diff from stdin and its own data files next to it,
+	// so run it in the sandbox's private /tmp with the (LLM-modified) repo mounted read-only.
+	cmd := osutil.Command(filepath.Join(repo, "scripts", "checkpatch.pl"), "--no-tree", "-")
 	cmd.Stdin = strings.NewReader(diff)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
+	if err := osutil.Sandbox(cmd, osutil.SandboxMountRO(repo)); err != nil {
 		return "", false, err
 	}
 

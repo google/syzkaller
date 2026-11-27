@@ -53,6 +53,10 @@ type Target struct {
 	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
 	other    *Target
 	timeouts Timeouts
+	// Directory resolved from SOURCEDIR_* environment variables when the target's
+	// compiler, objdump, or cflags reference ${SOURCEDIR} (e.g. prebuilt toolchains
+	// or sysroots for Fuchsia, NetBSD, OpenBSD, FreeBSD, and Darwin).
+	sourceDir string
 }
 
 // KernelAddresses contain approximate rounded up kernel text/data ranges
@@ -681,6 +685,7 @@ func init() {
 		target.CCompiler = host.CCompiler
 		target.CxxCompiler = host.CxxCompiler
 		target.CPP = host.CPP
+		target.sourceDir = host.sourceDir
 		target.CFlags = append(slices.Clone(host.CFlags), target.CFlags...)
 		target.CFlags = processMergedFlags(target.CFlags)
 		// At least FreeBSD/386 requires a non-default DataOffset value.
@@ -941,6 +946,7 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 		target.BrokenCompiler = "SOURCEDIR is not set"
 		return
 	}
+	target.sourceDir = sourceDir
 	*param = strings.ReplaceAll(*param, sourceDirVar, sourceDir)
 }
 
@@ -1191,6 +1197,15 @@ func getSourceDir(target *Target) string {
 		return ret
 	}
 	return os.Getenv("SOURCEDIR")
+}
+
+// ToolchainDirs returns external toolchain/source directories configured for
+// this target via SOURCEDIR_* environment variables.
+func (target *Target) ToolchainDirs() []string {
+	if target.sourceDir == "" {
+		return nil
+	}
+	return []string{target.sourceDir}
 }
 
 func needSyscallDefine(nr uint64) bool     { return true }

@@ -38,14 +38,61 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return Run(timeout, cmd)
 }
 
-// RunSandboxed runs "bin args..." in dir under Sandbox(cmd, true, true) with timeout.
-func RunSandboxed(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
-	cmd := Command(bin, args...)
-	cmd.Dir = dir
-	if err := Sandbox(cmd, true, true); err != nil {
-		return nil, err
+// ErrSandboxDisabled is returned by CheckSandbox on Linux if sandboxing is turned off rather
+// than broken: the process is not running as root or SYZ_DISABLE_SANDBOXING=yes is set.
+// In this case Sandbox leaves the commands unmodified.
+// Sandboxing is not implemented on other OSes: there CheckSandbox returns nil and
+// Sandbox leaves the commands unmodified as well.
+var ErrSandboxDisabled = errors.New("sandboxing is disabled")
+
+// SandboxOption configures additional behavior for Sandbox.
+type SandboxOption func(*sandboxConfig)
+
+type sandboxConfig struct {
+	allowNet  bool
+	readOnly  []string
+	readWrite []string
+	env       []string
+}
+
+// SandboxAllowNet enables outbound HTTP/HTTPS/git access via the filtered network proxy.
+func SandboxAllowNet() SandboxOption {
+	return func(c *sandboxConfig) {
+		c.allowNet = true
 	}
-	return Run(timeout, cmd)
+}
+
+// SandboxMountRO mounts additional paths read-only inside the sandbox.
+func SandboxMountRO(paths ...string) SandboxOption {
+	return func(c *sandboxConfig) {
+		c.readOnly = append(c.readOnly, paths...)
+	}
+}
+
+// SandboxMountRW mounts additional paths read-write inside the sandbox.
+func SandboxMountRW(paths ...string) SandboxOption {
+	return func(c *sandboxConfig) {
+		c.readWrite = append(c.readWrite, paths...)
+	}
+}
+
+// SandboxEnv sets additional KEY=VALUE environment variables for the command
+// (cmd.Env must not be set directly on commands passed to Sandbox).
+func SandboxEnv(env ...string) SandboxOption {
+	return func(c *sandboxConfig) {
+		c.env = append(c.env, env...)
+	}
+}
+
+func parseSandboxOptions(cmd *exec.Cmd, opts []SandboxOption) (sandboxConfig, error) {
+	var cfg sandboxConfig
+	if len(cmd.Env) > 0 {
+		return cfg, errors.New("osutil.Sandbox: cmd.Env must not be set; use SandboxEnv")
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return cfg, nil
 }
 
 var ErrTimeout = errors.New("timedout")
@@ -62,7 +109,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	}
 	setPdeathsig(cmd, true)
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start %v %+v: %w", cmd.Path, cmd.Args, err)
+		return nil, fmt.Errorf("failed to start %v %+v: %w", cmd.Path, cmdArgs(cmd), err)
 	}
 	done := make(chan bool)
 	timedout := make(chan bool, 1)
@@ -81,9 +128,9 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	err := cmd.Wait()
 	close(done)
 	if err != nil {
-		retErr := fmt.Errorf("failed to run %q: %w", cmd.Args, err)
+		retErr := fmt.Errorf("failed to run %q: %w", cmdArgs(cmd), err)
 		if <-timedout {
-			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmd.Args)
+			retErr = fmt.Errorf("%w after %v %q", ErrTimeout, timeout, cmdArgs(cmd))
 		}
 		exitCode := cmd.ProcessState.ExitCode()
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {

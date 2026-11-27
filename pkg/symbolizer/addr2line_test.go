@@ -230,6 +230,13 @@ func TestSymbolizeSandbox(t *testing.T) {
 	_, err := symb.Symbolize("testdata/nm.test.out", 0x400507)
 	require.NoError(t, err)
 
+	absTarget, err := filepath.Abs("testdata/nm.test.out")
+	require.NoError(t, err)
+	linkBin := filepath.Join(osutil.SandboxTempDir(t), "vmlinux-link")
+	require.NoError(t, os.Symlink(absTarget, linkBin))
+	_, err = symb.Symbolize(linkBin, 0x400507)
+	require.NoError(t, err)
+
 	secretBin := filepath.Join(osutil.SandboxTempDir(t), "secret.bin")
 	require.NoError(t, osutil.CopyFile("testdata/nm.test.out", secretBin))
 	require.NoError(t, os.Chmod(secretBin, 0600))

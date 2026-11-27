@@ -35,10 +35,12 @@ func (c cuttlefish) runBuild(kernelDir, buildConfig string) error {
 
 func (c cuttlefish) runBazel(kernelDir string) error {
 	cmd := osutil.Command("tools/bazel", "run", "--kasan", bazelTarget, "--", "--dist_dir=dist")
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
+	cmd.Dir = kernelDir
+	// Cuttlefish GKI Bazel checkouts vendor dependencies offline, and JVM/Bazel does not
+	// support libcurl's socks5h:// Unix-socket proxy URL set by SandboxAllowNet anyway.
+	if err := osutil.Sandbox(cmd, osutil.SandboxMountRW(kernelDir)); err != nil {
 		return fmt.Errorf("failed to sandbox build command: %w", err)
 	}
-	cmd.Dir = kernelDir
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
 }

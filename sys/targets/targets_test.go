@@ -85,6 +85,34 @@ func TestBSDCrossTargetScoping(t *testing.T) {
 	}
 }
 
+func TestToolchainDirs(t *testing.T) {
+	t.Setenv("SOURCEDIR", "/unused/default")
+	t.Setenv("SOURCEDIR_NETBSD", "/custom/netbsd///")
+
+	noSourceDir := &Target{PageSize: 4 << 10}
+	initTarget(noSourceDir, Linux, AMD64)
+	assert.Empty(t, noSourceDir.ToolchainDirs())
+
+	withSourceDir := &Target{
+		PageSize:  4 << 10,
+		CCompiler: sourceDirVar + "/tools/bin/x86_64--netbsd-g++",
+	}
+	initTarget(withSourceDir, NetBSD, AMD64)
+	assert.Equal(t, []string{"/custom/netbsd"}, withSourceDir.ToolchainDirs())
+	// Verify the directory is cached on Target rather than re-read from env.
+	t.Setenv("SOURCEDIR_NETBSD", "/changed")
+	assert.Equal(t, []string{"/custom/netbsd"}, withSourceDir.ToolchainDirs())
+
+	t.Setenv("SOURCEDIR", "")
+	t.Setenv("SOURCEDIR_NETBSD", "")
+	missingSourceDir := &Target{
+		PageSize:  4 << 10,
+		CCompiler: sourceDirVar + "/tools/bin/x86_64--netbsd-g++",
+	}
+	initTarget(missingSourceDir, NetBSD, AMD64)
+	assert.Empty(t, missingSourceDir.ToolchainDirs())
+}
+
 func writeMinimalELF(t *testing.T, path string, osabi elf.OSABI, machine elf.Machine, class elf.Class) {
 	t.Helper()
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))

@@ -402,6 +402,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		Config:       mgr.configData,
 		Build:        mgr.mgrcfg.Build,
 		BuildCPUs:    mgr.cfg.BuildCPUs,
+		Env:          mgr.mgrcfg.KernelBuildEnv,
 	}
 	details, err := build.Image(params)
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
@@ -1211,6 +1212,11 @@ func (mgr *ManagerConfig) validate(cfg *Config) error {
 	}
 	if mgr.KernelBuilderImage != "" && !osutil.IsExist(mgr.KernelBuilderImage) {
 		return fmt.Errorf("manager %v: kernel_builder_image %v does not exist", mgr.Name, mgr.KernelBuilderImage)
+	}
+	for _, kv := range mgr.KernelBuildEnv {
+		if key, _, ok := strings.Cut(kv, "="); !ok || key == "" {
+			return fmt.Errorf("manager %v: kernel_build_env entry %q is not KEY=VALUE", mgr.Name, kv)
+		}
 	}
 	// Linux hosts cross-compile syz-executor for BSD targets against a sysroot (SOURCEDIR_*),
 	// so fail early if it's not usable instead of failing every syzkaller build later.

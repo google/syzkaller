@@ -13,10 +13,12 @@ import (
 	"net/mail"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -31,26 +33,38 @@ type gitRepo struct {
 }
 
 func newGitRepo(dir string, ignoreCC map[string]bool, opts []RepoOpt) *gitRepo {
-	git := &gitRepo{
+	var cfg repoConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return &gitRepo{
 		Git: &Git{
-			Dir:      dir,
-			Sandbox:  true,
-			Env:      filterEnv(),
-			ignoreCC: ignoreCC,
+			Dir:          dir,
+			Sandbox:      !cfg.dontSandbox,
+			ReadOnlyDirs: cfg.readOnlyDirs,
+			precious:     cfg.precious,
+			ignoreCC:     ignoreCC,
 		},
 	}
-	for _, opt := range opts {
-		switch opt {
-		case OptPrecious:
-			git.precious = true
-		case OptDontSandbox:
-			git.Sandbox = false
-		}
-	}
-	return git
 }
 
-func filterEnv() []string {
+// Prevent repo/submodule configs from executing hooks or fsmonitor helpers.
+var gitHardeningEnv = []string{
+	"GIT_CONFIG_COUNT=2",
+	"GIT_CONFIG_KEY_0=core.hooksPath",
+	"GIT_CONFIG_VALUE_0=/dev/null",
+	"GIT_CONFIG_KEY_1=core.fsmonitor",
+	"GIT_CONFIG_VALUE_1=false",
+}
+
+// sandboxedGitEnv restricts allowed transport protocols (e.g. to forbid ext::).
+// ssh and sso can't work inside the sandbox (there is no direct network access),
+// so they are only allowed for unsandboxed git.
+func sandboxedGitEnv(extra ...string) []string {
+	return slices.Concat([]string{"GIT_ALLOW_PROTOCOL=file:git:http:https"}, gitHardeningEnv, extra)
+}
+
+func unsandboxedGitEnv(extra ...string) []string {
 	// We have to filter various git environment variables - if
 	// these variables are set (e.g. if a test is being run as
 	// part of a rebase) we're going to be acting on some other
@@ -64,20 +78,70 @@ func filterEnv() []string {
 			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY") ||
 			strings.HasPrefix(e, "GIT_CONFIG_")
 	})
-	// Prevent repo/submodule configs from executing hooks or fsmonitor helpers,
-	// and restrict allowed transport protocols (e.g. to forbid ext::).
-	env = append(env,
-		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh:sso",
-		"GIT_CONFIG_COUNT=2",
-		"GIT_CONFIG_KEY_0=core.hooksPath",
-		"GIT_CONFIG_VALUE_0=/dev/null",
-		"GIT_CONFIG_KEY_1=core.fsmonitor",
-		"GIT_CONFIG_VALUE_1=false",
-	)
-	return env
+	return slices.Concat(env, []string{"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh:sso"}, gitHardeningEnv, extra)
+}
+
+// addLocalRepo makes a local repository used as a remote (in tests and local/self-hosted
+// setups) readable inside the sandbox; only directories that look like git repositories
+// are mounted.
+func (git *gitRepo) addLocalRepo(repo string) {
+	p := filepath.Clean(strings.TrimPrefix(strings.TrimSpace(repo), "file://"))
+	if !filepath.IsAbs(p) || p == "/" || p == filepath.Clean(git.Dir) ||
+		slices.Contains(git.ReadOnlyDirs, p) || !isGitRepo(p) {
+		return
+	}
+	git.ReadOnlyDirs = append(git.ReadOnlyDirs, p)
+}
+
+// isGitRepo does an approximate check that dir is a (possibly bare) git repository.
+func isGitRepo(dir string) bool {
+	return osutil.IsExist(filepath.Join(dir, ".git")) ||
+		osutil.IsExist(filepath.Join(dir, "HEAD")) && osutil.IsExist(filepath.Join(dir, "objects"))
+}
+
+// GitAlternateDirs returns valid git object directories listed in repoDir's
+// .git/objects/info/alternates (created by git clone --shared / --reference) so
+// sandboxed commands can read shared objects without callers passing them manually.
+func GitAlternateDirs(repoDir string) []string {
+	if repoDir == "" {
+		return nil
+	}
+	data, err := osutil.ReadFileInRoot(repoDir, filepath.FromSlash(".git/objects/info/alternates"))
+	if err != nil {
+		return nil
+	}
+	var dirs []string
+	for line := range strings.SplitSeq(string(data), "\n") {
+		alt := strings.TrimRight(line, "\r")
+		if alt == "" || strings.HasPrefix(alt, "#") {
+			continue
+		}
+		if !filepath.IsAbs(alt) {
+			alt = filepath.Join(repoDir, ".git", "objects", alt)
+		}
+		alt = filepath.Clean(alt)
+		if alt != "/" && osutil.IsExist(filepath.Join(alt, "pack")) &&
+			osutil.IsExist(filepath.Join(alt, "info")) {
+			dirs = append(dirs, alt)
+		}
+	}
+	return dirs
+}
+
+// GitReadOnlyDirs returns repoDir's .git (if present) and its shared object directories.
+// Sandboxed non-git commands that get repoDir mounted read-write (builds, kernel scripts)
+// should mount these read-only, so that they can't tamper with the repository config
+// or alternates, which are later trusted by git commands.
+func GitReadOnlyDirs(repoDir string) []string {
+	dirs := GitAlternateDirs(repoDir)
+	if gitDir := filepath.Join(repoDir, ".git"); osutil.IsExist(gitDir) {
+		dirs = append(dirs, gitDir)
+	}
+	return dirs
 }
 
 func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
+	git.addLocalRepo(repo)
 	git.Reset()
 	origin, err := git.getURL("origin")
 	if err != nil || strings.TrimSpace(origin) != repo {
@@ -127,6 +191,7 @@ func (git *gitRepo) isNetworkError(output []byte) bool {
 }
 
 func (git *gitRepo) CheckoutBranch(repo, branch string) (*Commit, error) {
+	git.addLocalRepo(repo)
 	if err := git.repair(); err != nil {
 		return nil, err
 	}
@@ -168,6 +233,7 @@ func (git *gitRepo) CheckoutCommit(repo, commit string) (*Commit, error) {
 }
 
 func (git *gitRepo) FetchTags(repo string) error {
+	git.addLocalRepo(repo)
 	if err := git.repair(); err != nil {
 		return err
 	}
@@ -179,6 +245,7 @@ func (git *gitRepo) FetchTags(repo string) error {
 }
 
 func (git *gitRepo) fetchRemote(repo, commit string) error {
+	git.addLocalRepo(repo)
 	if commit != "" && gitFullHashRe.MatchString(commit) {
 		// If the commit is already present locally, we don't need to fetch it.
 		// This also makes us resilient to cases where the remote has force-pushed
@@ -226,6 +293,7 @@ func (git *gitRepo) SwitchCommit(commit string) (*Commit, error) {
 }
 
 func (git *gitRepo) clone(repo, branch string) error {
+	git.addLocalRepo(repo)
 	if git.precious {
 		return fmt.Errorf("won't reinit precious repo")
 	}
@@ -648,18 +716,19 @@ func ParseGitDiff(patch []byte) []ModifiedFile {
 }
 
 type Git struct {
-	Dir      string
-	Sandbox  bool
-	Env      []string
-	precious bool
-	ignoreCC map[string]bool
+	Dir          string
+	Sandbox      bool
+	Env          []string // additional KEY=VALUE environment variables passed to git
+	ReadOnlyDirs []string
+	precious     bool
+	ignoreCC     map[string]bool
 }
 
-func SandboxedGit(dir string) Git {
+func SandboxedGit(dir string, readOnlyDirs ...string) Git {
 	return Git{
-		Dir:     dir,
-		Sandbox: true,
-		Env:     filterEnv(),
+		Dir:          dir,
+		Sandbox:      true,
+		ReadOnlyDirs: readOnlyDirs,
 	}
 }
 
@@ -685,19 +754,102 @@ func (git Git) runTimeout(timeout time.Duration, isolateNet bool, args ...string
 
 func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNet bool,
 	args ...string) (*exec.Cmd, error) {
-	fullArgs := slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
-	cmd := makeCmd("git", fullArgs...)
-	cmd.Dir = git.Dir
-	cmd.Env = git.Env
-	if cmd.Env == nil {
-		cmd.Env = filterEnv()
-	}
-	if git.Sandbox {
-		if err := osutil.Sandbox(cmd, true, isolateNet); err != nil {
-			return nil, err
+	prefix := []string{"-c", "core.hooksPath=/dev/null"}
+	var extraRO []string
+	if git.Sandbox && !isolateNet {
+		if mountPath, cookieFile := gitCookieMount(); cookieFile != "" {
+			prefix = append(prefix, "-c", "http.cookiefile="+cookieFile)
+			extraRO = append(extraRO, mountPath)
 		}
 	}
+	cmd := makeCmd("git", slices.Concat(prefix, args)...)
+	cmd.Dir = git.Dir
+	if !git.Sandbox {
+		cmd.Env = unsandboxedGitEnv(git.Env...)
+		return cmd, nil
+	}
+	opts := []osutil.SandboxOption{
+		osutil.SandboxMountRW(git.Dir),
+		osutil.SandboxEnv(sandboxedGitEnv(git.Env...)...),
+	}
+	if !isolateNet {
+		opts = append(opts, osutil.SandboxAllowNet())
+	}
+	roDirs := slices.Concat(git.ReadOnlyDirs, GitAlternateDirs(git.Dir), extraRO)
+	if len(roDirs) > 0 {
+		opts = append(opts, osutil.SandboxMountRO(roDirs...))
+	}
+	if err := osutil.Sandbox(cmd, opts...); err != nil {
+		return nil, err
+	}
+	if len(cmd.Env) > 0 {
+		// Sandboxing is disabled; strip outer git variables from the host fallback env.
+		cmd.Env = unsandboxedGitEnv(git.Env...)
+	}
 	return cmd, nil
+}
+
+// gitCookieMount reads the host's http.cookiefile from global or system git config
+// (never from repo-local .git/config) and returns the read-only mount path and resolved
+// cookie file path. libcurl restricts cookies to matching domains and secure=TRUE.
+func gitCookieMount() (string, string) {
+	cookieFile := hostGitCookieFile()
+	if cookieFile == "" {
+		return "", ""
+	}
+	// Mount the dedicated .git-credential-cache directory so long fetches observe atomic
+	// os.rename() token refreshes (e.g. from git-cookie-authdaemon). For any other path
+	// (e.g. ~/.gitcookies), bind only the file itself so we never mount $HOME.
+	mountPath := cookieFile
+	if dir := filepath.Dir(cookieFile); filepath.Base(dir) == ".git-credential-cache" {
+		mountPath = dir
+	}
+	return mountPath, cookieFile
+}
+
+func hostGitCookieFile() string {
+	// Avoid pulling a developer's personal ~/.gitconfig cookies into unit tests
+	// unless a test explicitly points GIT_CONFIG_GLOBAL at a test config file.
+	if testing.Testing() && os.Getenv("GIT_CONFIG_GLOBAL") == "" {
+		return ""
+	}
+	scopes := []string{"--global", "--system"}
+	if testing.Testing() {
+		scopes = []string{"--global"}
+	}
+	env := slices.DeleteFunc(os.Environ(), func(e string) bool {
+		return strings.HasPrefix(e, "GIT_DIR=") ||
+			strings.HasPrefix(e, "GIT_WORK_TREE=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_PARAMETERS=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_COUNT=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_KEY_") ||
+			strings.HasPrefix(e, "GIT_CONFIG_VALUE_")
+	})
+	for _, scope := range scopes {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		cmd := osutil.CommandContext(ctx, "git", "config", scope, "--path", "--get", "http.cookiefile")
+		cmd.Dir = "/"
+		cmd.Env = env
+		out, err := cmd.Output()
+		cancel()
+		if err != nil {
+			continue
+		}
+		p := strings.TrimRight(string(out), "\r\n")
+		if !filepath.IsAbs(p) {
+			return ""
+		}
+		resolved, err := filepath.EvalSymlinks(p)
+		if err != nil {
+			return ""
+		}
+		fi, err := os.Stat(resolved)
+		if err != nil || !fi.Mode().IsRegular() {
+			return ""
+		}
+		return resolved
+	}
+	return ""
 }
 
 // Apply invokes git apply for a series of git patches.

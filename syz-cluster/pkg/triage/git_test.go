@@ -4,8 +4,10 @@
 package triage
 
 import (
+	"io/fs"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -53,6 +55,40 @@ func TestGitTreeOpsApply(t *testing.T) {
 	assert.Error(t, err)
 	assert.NotErrorIs(t, err, ErrSeriesNotApplicable)
 	assert.NoError(t, ops.ApplySeries(base.Hash, [][]byte{goodPatch}))
+}
+
+func TestGitTreeOpsSharedCloneSandbox(t *testing.T) {
+	osutil.RequireSandbox(t)
+	// Emulate syz-cluster's setup-repo init container: "git clone --shared /kernel-repo /workdir".
+	kernelRepoDir := osutil.SandboxTempDir(t)
+	baseRepo := vcs.MakeTestRepo(t, kernelRepoDir)
+	osutil.WriteSandboxFile(t, filepath.Join(kernelRepoDir, "file.txt"), []byte("First\nSecond\nThird\n"))
+	baseRepo.Git("add", "file.txt")
+	base := baseRepo.CommitChange("base")
+	baseRepo.SetTag("mainline/main")
+
+	workDir := osutil.SandboxTempDir(t)
+	_, err := osutil.RunCmd(time.Minute, "", "git", "clone", "--shared",
+		"-c", "remote.origin.fetch=+refs/heads/*:refs/heads/*", kernelRepoDir, workDir)
+	require.NoError(t, err)
+	require.NoError(t, filepath.WalkDir(workDir, func(p string, _ fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		return osutil.SandboxChown(p)
+	}))
+
+	ops, err := NewGitTreeOps(workDir, true)
+	require.NoError(t, err)
+	head, err := ops.HeadCommit(&api.Tree{Name: "mainline", Branch: "main"})
+	require.NoError(t, err)
+	assert.Equal(t, base.Hash, head.Hash)
+	require.NoError(t, ops.ApplySeries(base.Hash, [][]byte{goodPatch}))
+
+	// Verify standalone vcs.SandboxedGit (used by aflow triage tools) also reads shared objects.
+	out, err := vcs.SandboxedGit(workDir).Run("diff")
+	require.NoError(t, err)
+	assert.Contains(t, string(out), "+First1")
 }
 
 var wontApply = []byte(`From dc2cf7bc4a9dbe170d47338d0fe6d2351c88c9d1 Mon Sep 17 00:00:00 2001

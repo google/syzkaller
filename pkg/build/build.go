@@ -42,7 +42,10 @@ type Params struct {
 	Config       []byte
 	Tracer       debugtracer.DebugTracer
 	BuildCPUs    int // If 0, all CPUs will be used.
-	Build        json.RawMessage
+	// Extra KEY=VALUE environment variables for the kernel build (only used for Linux builds).
+	// The build runs in a sandbox with a cleared environment, so this is the only way to pass them.
+	Env   []string
+	Build json.RawMessage
 }
 
 // ImageDetails contains information that is returned from the Image function.

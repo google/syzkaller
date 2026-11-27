@@ -104,10 +104,10 @@ func (repo *TestRepo) CommitChangeAt(description string, date time.Time) {
 	git := Git{
 		Dir:     repo.Dir,
 		Sandbox: true,
-		Env: append(filterEnv(),
-			"GIT_AUTHOR_DATE="+dateStr,
-			"GIT_COMMITTER_DATE="+dateStr,
-		),
+		Env: []string{
+			"GIT_AUTHOR_DATE=" + dateStr,
+			"GIT_COMMITTER_DATE=" + dateStr,
+		},
 	}
 	if _, err := git.Run("commit", "--allow-empty", "-m", description); err != nil {
 		repo.t.Fatal(err)

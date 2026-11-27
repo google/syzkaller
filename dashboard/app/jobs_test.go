@@ -84,6 +84,11 @@ func TestJob(t *testing.T) {
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "does not look like a valid git repo"), true)
 
+	c.incomingEmail(sender, "#syz test: file:///repo/linux.git branch",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	body = c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "does not look like a valid git repo"), true)
+
 	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
