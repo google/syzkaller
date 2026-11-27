@@ -540,7 +540,7 @@ func patchGenerationLoop(cfg patchGenerationConfig) aflow.Action {
 			Reply:       "PatchExplanation",
 			Instruction: cfg.Instruction,
 			Prompt:      cfg.Prompt,
-			Tools:       aflow.Tools(codeAccessTools, codeeditor.Tool, patchdiff.Tool, cfg.ExtraTools),
+			Tools:       aflow.Tools(codeAccessTools, codeeditor.Tool, codeeditor.CreateTool, patchdiff.Tool, cfg.ExtraTools),
 		},
 		crash.TestPatch,
 	)
