@@ -1112,15 +1112,16 @@ GUEST_CODE static void its_encode_valid(struct its_cmd_block* cmd, int valid)
 	its_mask_encode(&cmd->raw_cmd[2], !!valid, 63, 63);
 }
 
-GUEST_CODE static void its_encode_target(struct its_cmd_block* cmd, uint64 target_addr)
+// KVM advertises GITS_TYPER.PTA == 0, so RDbase in bits [51:16] is the linear vCPU ID.
+GUEST_CODE static void its_encode_target(struct its_cmd_block* cmd, uint32 vcpu_id)
 {
-	its_mask_encode(&cmd->raw_cmd[2], target_addr >> 16, 51, 16);
+	its_mask_encode(&cmd->raw_cmd[2], vcpu_id, 51, 16);
 }
 
 // RDbase2 encoded in the fourth double word of the command.
-GUEST_CODE static void its_encode_target2(struct its_cmd_block* cmd, uint64 target_addr)
+GUEST_CODE static void its_encode_target2(struct its_cmd_block* cmd, uint32 vcpu_id)
 {
-	its_mask_encode(&cmd->raw_cmd[3], target_addr >> 16, 51, 16);
+	its_mask_encode(&cmd->raw_cmd[3], vcpu_id, 51, 16);
 }
 
 GUEST_CODE static void its_encode_collection(struct its_cmd_block* cmd, uint16 col)
@@ -1176,14 +1177,14 @@ GUEST_CODE static void its_send_mapti_cmd(uint64 cmdq_base, uint32 device_id,
 }
 
 GUEST_CODE static void its_send_devid_eventid_icid_cmd(uint64 cmdq_base, uint8 cmd_nr, uint32 device_id,
-						       uint32 event_id, uint32 intid)
+						       uint32 event_id, uint32 coll_id)
 {
 	struct its_cmd_block cmd;
 	guest_memzero(&cmd, sizeof(cmd));
 	its_encode_cmd(&cmd, cmd_nr);
 	its_encode_devid(&cmd, device_id);
 	its_encode_event_id(&cmd, event_id);
-	its_encode_phys_id(&cmd, intid);
+	its_encode_collection(&cmd, coll_id);
 	its_send_cmd(cmdq_base, &cmd);
 }
 
@@ -1260,7 +1261,7 @@ GUEST_CODE static noinline void guest_handle_its_send_cmd(struct api_call_its_se
 	}
 	if (type == GITS_CMD_MAPI || type == GITS_CMD_MOVI) {
 		its_send_devid_eventid_icid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type,
-						cmd->devid, cmd->eventid, cmd->intid);
+						cmd->devid, cmd->eventid, cmd->cpuid);
 		return;
 	}
 	if (type == GITS_CMD_MOVALL) {
