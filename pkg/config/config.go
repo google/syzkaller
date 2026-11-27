@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func LoadFile(filename string, cfg any) error {
@@ -41,5 +39,18 @@ func SaveFile(filename string, cfg any) error {
 	if err != nil {
 		return err
 	}
-	return osutil.WriteFile(filename, data)
+	// Configs may contain secrets (e.g. dashboard_key/hub_key in manager configs),
+	// so don't make them readable by other users (incl. the sandbox user).
+	// Write to a temp file and rename it, so that a crash can't leave a truncated config behind,
+	// and so that an already existing 0644 config is replaced instead of truncated in place.
+	// We can't use os.CreateTemp b/c it may be on a different mount, and Rename can't move across mounts.
+	tmpFile := filename + ".tmp"
+	if err := os.WriteFile(tmpFile, data, 0600); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpFile, filename); err != nil {
+		os.Remove(tmpFile)
+		return err
+	}
+	return nil
 }
