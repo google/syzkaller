@@ -140,7 +140,7 @@ dm_ioctl_flags = DM_READONLY_FLAG, DM_STATUS_TABLE_FLAG, DM_SKIP_BDGET_FLAG, DM_
 
 dm_dev_slots = "0", "1", "2", "3"
 dm_uuid_prefixes = "CRP-syz", "LVM-syz"
-dm_block_dev_nodes = "./dm0", "./dm1"
+dm_block_dev_nodes = "./dm0", "./dm1", "./dm2"
 
 # DM_DEV_RENAME: new name, or new uuid if DM_UUID_FLAG is set.
 dm_rename_data [
@@ -306,6 +306,7 @@ dm_dev [
 	ram	dm_dev_proc_t["/dev/ram", 2]
 	ram_num	dm_ram_num
 	rnull	dm_dev_proc_t["/dev/syzrnull", 1]
+	dm	stringnoz[dm_block_dev_nodes]
 ] [varlen]
 
 type dm_dev_proc_t[PREFIX, PER_PROC] {
@@ -588,7 +589,7 @@ dm_multipath_params {
 	sp1	dm_sp
 	ngrp	fmt[dec, len[groups]]
 	sp2	dm_sp
-	init	fmt[dec, int8[0:2]]
+	init	fmt[dec, int8[1:2]]
 	groups	array[dm_mpath_group, 1:4]
 } [packed]
 

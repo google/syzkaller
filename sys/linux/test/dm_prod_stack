@@ -1,0 +1,26 @@
+# requires: -threaded
+# Prodkernel-style DM stack: multipath (ram0 + ram1) -> verity -> crypt,
+# read I/O through the stack, fail/reinstate a multipath path, and tear down.
+
+r0 = openat$dm_control(AUTO, &AUTO='/dev/mapper/control\x00', 0x2, AUTO)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {<r1=>0x0, {'syz', 0x0, '0\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, [@multipath={AUTO, 0x2000, AUTO, AUTO, 'multipath\x00', {'2 queue_mode bio', AUTO, '0', AUTO, 0x1, AUTO, 0x1, [{AUTO, 'round-robin 0', AUTO, 0x2, AUTO, '0', [{AUTO, @ram={'/dev/ram', 0x0}, ''}, {AUTO, @ram={'/dev/ram', 0x1}, ''}]}]}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, ""})
+mknodat$dm(AUTO, &AUTO='./dm0\x00', AUTO, r1)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {<r2=>0x0, {'syz', 0x0, '1\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x1, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, [@verity={AUTO, 0x1000, AUTO, AUTO, 'verity\x00', {'1', AUTO, @dm='./dm0', AUTO, @dm='./dm0', AUTO, '4096', AUTO, '4096', AUTO, 0x200, AUTO, 0x200, AUTO, 'sha256', AUTO, @fixed='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', AUTO, @none='-', ' 1 ignore_corruption'}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, ""})
+mknodat$dm(AUTO, &AUTO='./dm1\x00', AUTO, r2)
+ioctl$DM_DEV_CREATE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, {<r3=>0x0, {'syz', 0x0, '2\x00'}, @none=AUTO}, ""})
+ioctl$DM_TABLE_LOAD(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x1, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, [@crypt={AUTO, 0x1000, AUTO, AUTO, 'crypt\x00', {'aes-xts-plain64', AUTO, @fixed='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', AUTO, '0', AUTO, {@dm='./dm1', AUTO, '0'}, ''}, AUTO}]})
+ioctl$DM_DEV_SUSPEND(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, ""})
+mknodat$dm(AUTO, &AUTO='./dm2\x00', AUTO, r3)
+r4 = openat$dm_dev(AUTO, &AUTO='./dm2\x00', 0x0, AUTO)
+pread64(r4, &AUTO=""/512, AUTO, 0x0)
+ioctl$DM_TARGET_MSG(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, {0x0, @mpath_path={'fail_path ', @ram={'/dev/ram', 0x0}}, AUTO}})
+pread64(r4, &AUTO=""/512, AUTO, 0x1000)
+ioctl$DM_TARGET_MSG(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, {0x0, @mpath_path={'reinstate_path ', @ram={'/dev/ram', 0x0}}, AUTO}})
+close(r4)
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '2\x00'}}, ""})
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '1\x00'}}, ""})
+ioctl$DM_DEV_REMOVE(r0, AUTO, &AUTO={AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x20000, AUTO, AUTO, @by_name={0x0, {'syz', 0x0, '0\x00'}}, ""})

@@ -5365,6 +5365,18 @@ static void setup_loop()
 #endif
 
 #if (SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)) && SYZ_EXECUTOR_USES_FORK_SERVER
+#if SYZ_EXECUTOR
+#include <linux/dm-ioctl.h>
+#include <linux/major.h>
+#include <linux/raid/md_u.h>
+
+static volatile uint8* syz_reset_flags;
+enum {
+	RESET_FLAG_DM = 0,
+	RESET_FLAG_MD = 1,
+};
+#endif
+
 #define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
@@ -5375,6 +5387,57 @@ static void reset_loop()
 	if (loopfd != -1) {
 		ioctl(loopfd, LOOP_CLR_FD, 0);
 		close(loopfd);
+	}
+#endif
+#if SYZ_EXECUTOR
+	// Tear down leftover per-proc DM devices and MD arrays so they do not
+	// keep the proc's ramdisks claimed across test programs.
+	// Gated via syz_reset_flags so programs without DM/MD syscalls pay zero syscalls.
+	if (!syz_reset_flags) {
+		void* p = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+		if (p != MAP_FAILED)
+			syz_reset_flags = (volatile uint8*)p;
+	}
+	if (!syz_reset_flags || syz_reset_flags[RESET_FLAG_DM]) {
+		if (syz_reset_flags)
+			syz_reset_flags[RESET_FLAG_DM] = 0;
+		static int dmfd = -2;
+		if (dmfd == -2)
+			dmfd = open("/dev/mapper/control", O_RDWR | O_CLOEXEC);
+		if (dmfd >= 0) {
+			// Up to 4 passes handle arbitrarily ordered 4-layer DM stacks: removing
+			// an upper device synchronously drops its reference on the lower one.
+			for (int pass = 0; pass < 4; pass++) {
+				bool retry = false;
+				for (int i = 0; i < 4; i++) {
+					struct dm_ioctl dmi = {};
+					dmi.version[0] = DM_VERSION_MAJOR;
+					dmi.data_size = sizeof(dmi);
+					dmi.data_start = sizeof(dmi);
+					snprintf(dmi.name, sizeof(dmi.name), "syz%c%d", (char)('a' + procid), i);
+					if (ioctl(dmfd, DM_DEV_REMOVE, &dmi) == -1 && errno == EBUSY)
+						retry = true;
+				}
+				if (!retry)
+					break;
+			}
+		}
+	}
+	if (!syz_reset_flags || syz_reset_flags[RESET_FLAG_MD]) {
+		if (syz_reset_flags)
+			syz_reset_flags[RESET_FLAG_MD] = 0;
+		for (int i = -1; i < 3; i++) {
+			char mdbuf[64];
+			if (i < 0)
+				snprintf(mdbuf, sizeof(mdbuf), "/dev/md%llu", procid);
+			else
+				snprintf(mdbuf, sizeof(mdbuf), "/dev/md_syz%c%d", (char)('a' + procid), i);
+			int mdfd = open(mdbuf, O_RDONLY | O_NONBLOCK);
+			if (mdfd != -1) {
+				ioctl(mdfd, STOP_ARRAY, 0);
+				close(mdfd);
+			}
+		}
 	}
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_RESET
