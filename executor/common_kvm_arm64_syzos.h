@@ -76,6 +76,7 @@ struct api_call_its_send_cmd {
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
 GUEST_CODE static void guest_fatal(uint64 exit_code) __attribute__((noreturn));
+GUEST_CODE static void guest_memcpy(void* dst, const void* src, size_t size);
 GUEST_CODE static uint64 api_call_min_size(uint64 call_id);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
 GUEST_CODE static void guest_handle_mrs(uint64 reg);
@@ -118,72 +119,86 @@ guest_main(uint64 size, uint64 cpu)
 	    : "x1");
 
 	while (size >= sizeof(struct api_call_header)) {
-		struct api_call_header* cmd = (struct api_call_header*)addr;
-		volatile uint64 call = cmd->call;
+		struct api_call_header hdr;
+		// Previous commands like @code or packed @its_send_cmd may leave addr non-8-byte aligned,
+		// which would trap on Device memory while the MMU is off.
+		guest_memcpy(&hdr, (const void*)addr, sizeof(hdr));
+		volatile uint64 call = hdr.call;
 		// A command must at least hold its header and the fixed arguments of the call: a
 		// zero-sized command would be executed forever, and the handlers would read the
 		// arguments of a truncated one from past its end.
 		// Do not return: the host may resume the vCPU, and there is nowhere to return to.
-		if ((call >= SYZOS_API_STOP) || (cmd->size > size) ||
-		    (cmd->size < api_call_min_size(call)))
+		if ((call >= SYZOS_API_STOP) || (hdr.size > size) ||
+		    (hdr.size < api_call_min_size(call)))
 			guest_fatal(UEXIT_INVALID_MAIN);
+		if (call == SYZOS_API_CODE) {
+			struct api_call_code* ccmd = (struct api_call_code*)addr;
+			guest_execute_code(ccmd->insns, hdr.size - sizeof(struct api_call_header));
+			addr += hdr.size;
+			size -= hdr.size;
+			continue;
+		}
+		union {
+			struct api_call_header header;
+			struct api_call_uexit uexit;
+			struct api_call_1 c1;
+			struct api_call_2 c2;
+			struct api_call_3 c3;
+			struct api_call_smccc smccc;
+			struct api_call_irq_setup irq_setup;
+			struct api_call_memwrite memwrite;
+			struct api_call_its_send_cmd its_send_cmd;
+		} cmd_copy;
+		size_t copy_size = hdr.size < sizeof(cmd_copy) ? hdr.size : sizeof(cmd_copy);
+		guest_memcpy(&cmd_copy, (const void*)addr, copy_size);
 		switch (call) {
 		case SYZOS_API_UEXIT: {
-			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
-			guest_uexit(ucmd->exit_code);
-			break;
-		}
-		case SYZOS_API_CODE: {
-			struct api_call_code* ccmd = (struct api_call_code*)cmd;
-			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
+			guest_uexit(cmd_copy.uexit.exit_code);
 			break;
 		}
 		case SYZOS_API_MRS: {
-			struct api_call_1* ccmd = (struct api_call_1*)cmd;
-			guest_handle_mrs(ccmd->arg);
+			guest_handle_mrs(cmd_copy.c1.arg);
 			break;
 		}
 		case SYZOS_API_MSR: {
-			struct api_call_2* ccmd = (struct api_call_2*)cmd;
-			guest_handle_msr(ccmd->args[0], ccmd->args[1]);
+			guest_handle_msr(cmd_copy.c2.args[0], cmd_copy.c2.args[1]);
 			break;
 		}
 		case SYZOS_API_ERET: {
-			struct api_call_1* ccmd = (struct api_call_1*)cmd;
-			guest_handle_eret(ccmd->arg);
+			guest_handle_eret(cmd_copy.c1.arg);
 			break;
 		}
 		case SYZOS_API_SMC: {
-			guest_handle_smc((struct api_call_smccc*)cmd);
+			guest_handle_smc(&cmd_copy.smccc);
 			break;
 		}
 		case SYZOS_API_HVC: {
-			guest_handle_hvc((struct api_call_smccc*)cmd);
+			guest_handle_hvc(&cmd_copy.smccc);
 			break;
 		}
 		case SYZOS_API_SVC: {
-			guest_handle_svc((struct api_call_smccc*)cmd);
+			guest_handle_svc(&cmd_copy.smccc);
 			break;
 		}
 		case SYZOS_API_IRQ_SETUP: {
-			guest_handle_irq_setup((struct api_call_irq_setup*)cmd);
+			guest_handle_irq_setup(&cmd_copy.irq_setup);
 			break;
 		}
 		case SYZOS_API_MEMWRITE: {
-			guest_handle_memwrite((struct api_call_memwrite*)cmd);
+			guest_handle_memwrite(&cmd_copy.memwrite);
 			break;
 		}
 		case SYZOS_API_ITS_SETUP: {
-			guest_handle_its_setup((struct api_call_3*)cmd);
+			guest_handle_its_setup(&cmd_copy.c3);
 			break;
 		}
 		case SYZOS_API_ITS_SEND_CMD: {
-			guest_handle_its_send_cmd((struct api_call_its_send_cmd*)cmd);
+			guest_handle_its_send_cmd(&cmd_copy.its_send_cmd);
 			break;
 		}
 		}
-		addr += cmd->size;
-		size -= cmd->size;
+		addr += hdr.size;
+		size -= hdr.size;
 	};
 	guest_uexit((uint64)-1);
 }
@@ -1050,12 +1065,20 @@ struct its_cmd_block {
 
 // Guest memcpy implementation is using volatile accesses to prevent the compiler from optimizing it
 // into a memcpy() call.
-GUEST_CODE static noinline void guest_memcpy(void* dst, void* src, size_t size)
+GUEST_CODE static noinline void guest_memcpy(void* dst, const void* src, size_t size)
 {
 	volatile char* pdst = (char*)dst;
-	volatile char* psrc = (char*)src;
+	const volatile char* psrc = (const volatile char*)src;
 	for (size_t i = 0; i < size; i++)
 		pdst[i] = psrc[i];
+}
+
+// Read a little-endian uint32 byte-by-byte so packed fields do not emit unaligned loads that
+// trap on Device memory when the MMU is off.
+GUEST_CODE static uint32 guest_read_u32_unaligned(const volatile void* ptr)
+{
+	const volatile uint8* p = (const volatile uint8*)ptr;
+	return (uint32)p[0] | ((uint32)p[1] << 8) | ((uint32)p[2] << 16) | ((uint32)p[3] << 24);
 }
 
 // Send an ITS command by copying it to the command queue at the offset defined by GITS_CWRITER.
@@ -1316,44 +1339,48 @@ GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
 GUEST_CODE static noinline void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd)
 {
 	volatile uint8 type = cmd->type;
+	uint8 valid = cmd->valid;
+	uint32 cpuid = guest_read_u32_unaligned(&cmd->cpuid);
+	uint32 devid = guest_read_u32_unaligned(&cmd->devid);
+	uint32 eventid = guest_read_u32_unaligned(&cmd->eventid);
+	uint32 intid = guest_read_u32_unaligned(&cmd->intid);
+	uint32 cpuid2 = guest_read_u32_unaligned(&cmd->cpuid2);
+
 	if (type == GITS_CMD_MAPD) {
-		if (cmd->devid >= ITS_MAX_DEVICES)
+		if (devid >= ITS_MAX_DEVICES)
 			return;
-		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + (uint64)cmd->devid * SZ_64K;
-		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, itt_base,
-				  SYZOS_NUM_IDBITS, cmd->valid);
+		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + (uint64)devid * SZ_64K;
+		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, devid, itt_base,
+				  SYZOS_NUM_IDBITS, valid);
 		return;
 	}
 	if (type == GITS_CMD_MAPC) {
-		its_send_mapc_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid,
-				  cmd->valid);
+		its_send_mapc_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cpuid, cpuid, valid);
 		return;
 	}
 	if (type == GITS_CMD_MAPTI) {
-		its_send_mapti_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, cmd->eventid,
-				   cmd->cpuid, cmd->intid);
+		its_send_mapti_cmd(ARM64_ADDR_ITS_CMDQ_BASE, devid, eventid, cpuid, intid);
 		return;
 	}
 	if (type == GITS_CMD_MAPI || type == GITS_CMD_MOVI) {
 		its_send_devid_eventid_icid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type,
-						cmd->devid, cmd->eventid, cmd->cpuid);
+						devid, eventid, cpuid);
 		return;
 	}
 	if (type == GITS_CMD_MOVALL) {
-		its_send_movall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid2);
+		its_send_movall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cpuid, cpuid2);
 		return;
 	}
 	if (type == GITS_CMD_INVALL) {
-		its_send_invall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
+		its_send_invall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cpuid);
 		return;
 	}
 	if (type == GITS_CMD_INT || type == GITS_CMD_INV || type == GITS_CMD_DISCARD || type == GITS_CMD_CLEAR) {
-		its_send_devid_eventid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type, cmd->devid,
-					   cmd->eventid);
+		its_send_devid_eventid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type, devid, eventid);
 		return;
 	}
 	if (type == GITS_CMD_SYNC) {
-		its_send_sync_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
+		its_send_sync_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cpuid);
 		return;
 	}
 }
