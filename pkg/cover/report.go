@@ -183,16 +183,24 @@ func (rg *ReportGenerator) frame2line(files fileMap, pcToProgs map[uint64]map[in
 }
 
 func coverageCallbackMismatch(debug bool, numPCs int, unmatchedPCs map[uint64]bool) error {
-	var debugStr strings.Builder
-	if debug {
-		debugStr.WriteString("\n\nUnmatched PCs:\n")
-		for pc := range unmatchedPCs {
-			debugStr.WriteString(fmt.Sprintf("%x\n", pc))
-		}
+	const shownLimit = 8
+	pcs := slices.Collect(maps.Keys(unmatchedPCs))
+	slices.Sort(pcs)
+	shown := len(pcs)
+	if !debug && shown > shownLimit {
+		shown = shownLimit
+	}
+	var b strings.Builder
+	b.WriteString("\n\nUnmatched PCs:\n")
+	for _, pc := range pcs[:shown] {
+		fmt.Fprintf(&b, "%x\n", pc)
+	}
+	if omitted := len(pcs) - shown; omitted > 0 {
+		fmt.Fprintf(&b, "%d unmatched PCs omitted. Use ?debug=1 to list them.\n", omitted)
 	}
 	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks."+
 		" Check the discoverModules() code. Use ?force=1 to disable this message.%s",
-		len(unmatchedPCs), numPCs, debugStr.String())
+		len(unmatchedPCs), numPCs, b.String())
 }
 
 func uniquePCs(progs ...Prog) []uint64 {
