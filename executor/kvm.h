@@ -660,7 +660,10 @@
 // Location of the SYZOS guest code. Name shared with x86 SYZOS.
 #define SYZOS_ADDR_EXECUTOR_CODE 0xeeee8000
 #define ARM64_ADDR_SCRATCH_CODE 0xeeef0000
+// EL1 stacks, one page per vCPU (KVM_MAX_VCPU pages). Each vCPU starts with SP_EL1 128 bytes
+// below the top of its page.
 #define ARM64_ADDR_EL1_STACK_BOTTOM 0xffff1000
+#define ARM64_ADDR_EL1_STACK(cpu) (ARM64_ADDR_EL1_STACK_BOTTOM + ((cpu) + 1) * KVM_PAGE_SIZE - 128)
 
 // GICv3 ITS tables.
 #define ITS_MAX_DEVICES 16
