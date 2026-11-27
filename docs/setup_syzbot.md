@@ -170,7 +170,7 @@ ExecStart=/usr/bin/docker run --rm --name syz-ci \
         --workdir /syzkaller \
         --env HOME=/syzkaller \
         gcr.io/syzkaller/syzbot \
-        /syzkaller/syz-ci -config config.ci
+        /syzkaller/syz-ci -config config.ci -exit-on-upgrade
 ExecStop=/usr/bin/docker stop -t 600 syz-ci
 Restart=always
 RestartSec=10
