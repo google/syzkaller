@@ -96,6 +96,10 @@ typedef enum {
 	UEXIT_INVALID_MAIN = (uint64)-4,
 } uexit_code;
 
+// Exit code reported for a CPU exception that SYZOS cannot recover from, with the vector index
+// (0-15) in the low byte.
+#define UEXIT_EXCEPTION(vector) (0xe2ec0000ULL | (vector))
+
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
 __attribute__((used))
@@ -103,6 +107,15 @@ GUEST_CODE static void
 guest_main(uint64 size, uint64 cpu)
 {
 	uint64 addr = ARM64_ADDR_USER_CODE + cpu * 0x1000;
+
+	// Install the vector table early so synchronous faults and @svc work without @irq_setup.
+	// Interrupts stay masked in DAIF until guest_handle_irq_setup() configures the GIC.
+	asm volatile(
+	    "adr x1, guest_vector_table\n"
+	    "msr vbar_el1, x1\n"
+	    :
+	    :
+	    : "x1");
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
@@ -838,19 +851,71 @@ guest_irq_handler(struct ex_regs* regs)
 		     :
 		     : "r"(irq_num));
 }
+
+__attribute__((used, noreturn))
+GUEST_CODE static void
+guest_exception_handler(uint64 vector)
+{
+	guest_fatal(UEXIT_EXCEPTION(vector));
+}
 #ifdef __cplusplus
 }
 #endif
+
+// Placeholder function to declare one_exception_handler() inside the assembly blob.
+__attribute__((used))
+GUEST_CODE static void
+one_exception_handler_fn()
+{
+#if ARM64_ADDR_EL1_STACK_BOTTOM != 0xffff1000 || KVM_PAGE_SIZE != 0x1000 || KVM_MAX_VCPU != 4
+#error "one_exception_handler assumes ARM64_ADDR_EL1_STACK_BOTTOM == 0xffff1000, 4KB pages, KVM_MAX_VCPU == 4"
+#endif
+	asm volatile(
+	    R"(.global one_exception_handler
+	       one_exception_handler:
+	       # Reinitialize SP_EL1 to this vCPU's stack top in case the faulting code corrupted
+	       # or misaligned SP (this handler never returns).
+	       mrs x1, tpidr_el1
+	       cmp x1, #4
+	       csel x1, x1, xzr, lo
+	       add x1, x1, #1
+	       lsl x1, x1, #12
+	       movz x2, #0x0f80
+	       movk x2, #0xffff, lsl #16
+	       add x1, x2, x1
+	       mov sp, x1
+
+	       bl guest_exception_handler)"
+	    :
+	    :
+	    : "memory");
+}
 
 // Default IRQ handler.
 #define IRQ_ENTRY        \
 	".balign 0x80\n" \
 	"b one_irq_handler\n"
 
-// Unused IRQ entry.
-#define IRQ_ENTRY_DUMMY  \
-	".balign 0x80\n" \
-	"eret\n"
+// Catch-all entry for exceptions that cannot be resumed with a plain eret.
+#define EXCEPTION_ENTRY(vector)  \
+	".balign 0x80\n"         \
+	"mov x0, #" #vector "\n" \
+	"b one_exception_handler\n"
+
+// Current EL with SPx synchronous handler: resume SVC64 (SYZOS_API_SVC) via eret, and treat all
+// other synchronous faults (UDF, BRK, aborts, etc.) as fatal.
+#define SYNC_EL1H_ENTRY         \
+	".balign 0x80\n"        \
+	"msr tpidrro_el0, x0\n" \
+	"mrs x0, esr_el1\n"     \
+	"lsr x0, x0, #26\n"     \
+	"cmp x0, #0x15\n"       \
+	"mrs x0, tpidrro_el0\n" \
+	"b.ne 1f\n"             \
+	"eret\n"                \
+	"1:\n"                  \
+	"mov x0, #4\n"          \
+	"b one_exception_handler\n"
 
 // clang-format off
 // guest_vector_table_fn() is never used, it is just needed to declare guest_vector_table()
@@ -865,29 +930,28 @@ GUEST_CODE static void guest_vector_table_fn()
 	    ".balign 2048\n"
 	    "guest_vector_table:\n"
 		// Exception handlers for current EL with SP0.
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
+		EXCEPTION_ENTRY(0)
+		EXCEPTION_ENTRY(1)
+		EXCEPTION_ENTRY(2)
+		EXCEPTION_ENTRY(3)
 
 		// Exception handlers for current EL with SPx.
-		IRQ_ENTRY_DUMMY
-		// Only handle IRQ/vIRQ for now.
+		SYNC_EL1H_ENTRY
 		IRQ_ENTRY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
+		EXCEPTION_ENTRY(6)
+		EXCEPTION_ENTRY(7)
 
 		// Exception handlers for lower EL using AArch64.
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
+		EXCEPTION_ENTRY(8)
+		EXCEPTION_ENTRY(9)
+		EXCEPTION_ENTRY(10)
+		EXCEPTION_ENTRY(11)
 
 		// Exception handlers for lower EL using AArch32.
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY
-		IRQ_ENTRY_DUMMY);
+		EXCEPTION_ENTRY(12)
+		EXCEPTION_ENTRY(13)
+		EXCEPTION_ENTRY(14)
+		EXCEPTION_ENTRY(15));
 }
 // clang-format on
 
