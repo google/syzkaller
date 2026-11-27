@@ -107,12 +107,17 @@ func matchDKIMDomain(dkimDomain, authorDomain string) bool {
 	if dkimDomain == authorDomain {
 		return true
 	}
-	// Google Workspace default DKIM signature.
-	// We trust Google Workspace's internal sender verification.
-	if strings.HasSuffix(dkimDomain, ".gappssmtp.com") {
-		return true
+	// Google Workspace default DKIM signature: <domain-with-hyphens>.<date>.gappssmtp.com.
+	// Any Workspace tenant can get such a signature (and the SMTP relay can be configured
+	// to send with any From address), so it only vouches for the domain in its first label.
+	// The dots-to-hyphens mapping is lossy, so accept it only for unambiguous domains.
+	if strings.Count(authorDomain, ".") != 1 || strings.Contains(authorDomain, "-") {
+		return false
 	}
-	return false
+	tenant, rest, _ := strings.Cut(dkimDomain, ".")
+	date, ok := strings.CutSuffix(rest, ".gappssmtp.com")
+	return ok && tenant == strings.ReplaceAll(authorDomain, ".", "-") &&
+		date != "" && !strings.Contains(date, ".")
 }
 
 // Run starts the relay loop.
