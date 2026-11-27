@@ -103,7 +103,7 @@ func validateChangelogOutputs(ctx *aflow.Context, state struct{}, args changelog
 	}
 	return changelogGeneratorOutputs{
 		PatchDescription: desc,
-		NewChangeLog:     args.NewChangeLog,
+		NewChangeLog:     email.WordWrap(args.NewChangeLog, patchDescriptionLineLength),
 	}, nil
 }
 
