@@ -648,15 +648,21 @@ You MUST keep the patch description exactly as it was.
 In the changelog, you MUST explicitly state that this is a resend and briefly mention the reason.
 {{else if .DescriptionItems}}
 CRITICAL: Reviewers have explicitly requested changes to the commit description.
-You MUST update the previous description to apply their feedback.
+You MUST update the previous description to apply their feedback, and update the parts
+that no longer accurately match the newly generated patch diff.
+Explicit reviewer requests take precedence over the style and content guidelines below.
 Do not completely rewrite the description unless explicitly requested.
 {{else}}
-CRITICAL: Do NOT rewrite or rephrase the existing patch description. You may only modify it
-if the previous description is now fundamentally incorrect due to the new changes. Otherwise,
-keep it exactly as it was, and document all new changes exclusively in the change log.
+CRITICAL: Do NOT rewrite or rephrase the existing patch description. However, check its claims
+against the newly generated patch diff and update the parts that no longer accurately match
+the patch. Otherwise, keep it exactly as it was, and document all new changes exclusively
+in the change log.
 {{end}}
+The style and content guidelines below (conciseness, structure, crash report quoting) apply only
+to the text you write or change. Do not restructure, shorten, or strip the parts of the previous
+description that you are otherwise keeping, unless reviewers asked for it.
 Even when preserving the previous description, replace any non-ASCII characters with plain
-ASCII equivalents.
+ASCII equivalents and remove any Markdown backticks.
 
 ` + commonPatchDescriptionInstruction
 

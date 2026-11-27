@@ -187,4 +187,17 @@ func TestValidatePatchDescription(t *testing.T) {
 			`found: '—' (U+2014), '\r' (U+000D), '’' (U+2019), '\u00a0' (U+00A0), '\a' (U+0007). `+
 			`Replace all non-ASCII or control characters with plain ASCII equivalents.`,
 		err.Error())
+
+	_, err = validatePatchDescription("net: fix bug in `foo()`\n\nCall `bar()` instead.")
+	require.Error(t, err)
+	require.IsType(t, aflow.BadCallError(""), err)
+	assert.Equal(t,
+		"PatchDescription must not contain backticks (`); use plain text without Markdown formatting.",
+		err.Error())
+
+	_, err = validatePatchDescription("net: fix — bug in `foo()`")
+	require.Error(t, err)
+	require.IsType(t, aflow.BadCallError(""), err)
+	assert.Contains(t, err.Error(), "printable ASCII")
+	assert.Contains(t, err.Error(), "backticks")
 }
