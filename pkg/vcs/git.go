@@ -18,6 +18,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -753,8 +754,15 @@ func (git Git) runTimeout(timeout time.Duration, isolateNet bool, args ...string
 
 func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNet bool,
 	args ...string) (*exec.Cmd, error) {
-	fullArgs := slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
-	cmd := makeCmd("git", fullArgs...)
+	prefix := []string{"-c", "core.hooksPath=/dev/null"}
+	var extraRO []string
+	if git.Sandbox && !isolateNet {
+		if mountPath, cookieFile := gitCookieMount(); cookieFile != "" {
+			prefix = append(prefix, "-c", "http.cookiefile="+cookieFile)
+			extraRO = append(extraRO, mountPath)
+		}
+	}
+	cmd := makeCmd("git", slices.Concat(prefix, args)...)
 	cmd.Dir = git.Dir
 	if !git.Sandbox {
 		cmd.Env = unsandboxedGitEnv(git.Env...)
@@ -767,7 +775,7 @@ func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNe
 	if !isolateNet {
 		opts = append(opts, osutil.SandboxAllowNet())
 	}
-	roDirs := slices.Concat(git.ReadOnlyDirs, GitAlternateDirs(git.Dir))
+	roDirs := slices.Concat(git.ReadOnlyDirs, GitAlternateDirs(git.Dir), extraRO)
 	if len(roDirs) > 0 {
 		opts = append(opts, osutil.SandboxMountRO(roDirs...))
 	}
@@ -779,6 +787,69 @@ func (git Git) buildCommand(makeCmd func(string, ...string) *exec.Cmd, isolateNe
 		cmd.Env = unsandboxedGitEnv(git.Env...)
 	}
 	return cmd, nil
+}
+
+// gitCookieMount reads the host's http.cookiefile from global or system git config
+// (never from repo-local .git/config) and returns the read-only mount path and resolved
+// cookie file path. libcurl restricts cookies to matching domains and secure=TRUE.
+func gitCookieMount() (string, string) {
+	cookieFile := hostGitCookieFile()
+	if cookieFile == "" {
+		return "", ""
+	}
+	// Mount the dedicated .git-credential-cache directory so long fetches observe atomic
+	// os.rename() token refreshes (e.g. from git-cookie-authdaemon). For any other path
+	// (e.g. ~/.gitcookies), bind only the file itself so we never mount $HOME.
+	mountPath := cookieFile
+	if dir := filepath.Dir(cookieFile); filepath.Base(dir) == ".git-credential-cache" {
+		mountPath = dir
+	}
+	return mountPath, cookieFile
+}
+
+func hostGitCookieFile() string {
+	// Avoid pulling a developer's personal ~/.gitconfig cookies into unit tests
+	// unless a test explicitly points GIT_CONFIG_GLOBAL at a test config file.
+	if testing.Testing() && os.Getenv("GIT_CONFIG_GLOBAL") == "" {
+		return ""
+	}
+	scopes := []string{"--global", "--system"}
+	if testing.Testing() {
+		scopes = []string{"--global"}
+	}
+	env := slices.DeleteFunc(os.Environ(), func(e string) bool {
+		return strings.HasPrefix(e, "GIT_DIR=") ||
+			strings.HasPrefix(e, "GIT_WORK_TREE=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_PARAMETERS=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_COUNT=") ||
+			strings.HasPrefix(e, "GIT_CONFIG_KEY_") ||
+			strings.HasPrefix(e, "GIT_CONFIG_VALUE_")
+	})
+	for _, scope := range scopes {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		cmd := osutil.CommandContext(ctx, "git", "config", scope, "--path", "--get", "http.cookiefile")
+		cmd.Dir = "/"
+		cmd.Env = env
+		out, err := cmd.Output()
+		cancel()
+		if err != nil {
+			continue
+		}
+		p := strings.TrimRight(string(out), "\r\n")
+		if !filepath.IsAbs(p) {
+			return ""
+		}
+		resolved, err := filepath.EvalSymlinks(p)
+		if err != nil {
+			return ""
+		}
+		fi, err := os.Stat(resolved)
+		if err != nil || !fi.Mode().IsRegular() {
+			return ""
+		}
+		return resolved
+	}
+	return ""
 }
 
 // Apply invokes git apply for a series of git patches.
