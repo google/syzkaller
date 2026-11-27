@@ -53,7 +53,7 @@
     - track: KASAN
       kernel_config: upstream-apparmor-kasan.config
 - path_regexps:
-    - "^fs/(nfs|nfsd|nfs_common|lockd|smb|cifs|afs|ceph|9p|netfs|dlm|ocfs2)/"
+    - "^fs/(nfs|nfsd|nfs_common|lockd|smb|cifs|afs|ceph|9p|netfs|dlm|ocfs2/(cluster|dlm))/"
   focus: net
   corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
   campaigns:

@@ -248,6 +248,16 @@ func TestDefaultFuzzTargetsSelection(t *testing.T) {
 			wantFocus: []string{api.FocusFS},
 		},
 		{
+			name:      "ocfs2-local-fs",
+			files:     []string{"fs/ocfs2/file.c"},
+			wantFocus: []string{api.FocusFS},
+		},
+		{
+			name:      "ocfs2-cluster-net-and-fs",
+			files:     []string{"fs/ocfs2/cluster/tcp.c", "fs/ocfs2/dlm/dlmdomain.c"},
+			wantFocus: []string{api.FocusFS, api.FocusNet},
+		},
+		{
 			name:      "usb",
 			files:     []string{"drivers/usb/core/hub.c"},
 			wantFocus: []string{api.FocusUSB},
