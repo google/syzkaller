@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"slices"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/app/aidb"
@@ -21,6 +22,10 @@ import (
 )
 
 const SourceWebUI = "web ui"
+
+// A report may wait until its bug becomes visible to the audience of the stage (see bugForAIReport).
+// If that takes longer than this, the report is outdated and is never sent.
+const maxPendingAIReportAge = 30 * 24 * time.Hour
 
 func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq) (any, error) {
 	if req.Source != "" && req.MessageExtID != "" {
@@ -184,6 +189,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			RemovedCcList: removedCcList,
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
+		PendingSince:  timeNow(ctx).Add(-maxPendingAIReportAge),
 		CommandSource: string(req.Source),
 		CommandExtID:  req.MessageExtID,
 		User:          req.Author,
@@ -280,7 +286,8 @@ func handleRejectCommand(ctx context.Context,
 }
 
 func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (any, error) {
-	reportings, err := aidb.LoadPendingJobReportingBySource(ctx, string(req.Source))
+	reportings, err := aidb.LoadPendingJobReportingBySource(ctx, string(req.Source),
+		timeNow(ctx).Add(-maxPendingAIReportAge))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load pending reportings: %w", err)
 	}
@@ -302,6 +309,11 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			continue
 		}
 		stageCfg := &nsCfg.AI.Stages[idx]
+		bug, canReport := bugForAIReport(ctx, job, stageCfg.AccessLevel)
+		if !canReport {
+			// The report will be sent once (and if) the bug becomes visible to the stage audience.
+			continue
+		}
 		if job.Type != ai.WorkflowPatching && job.Type != ai.WorkflowPatchIteration {
 			log.Errorf(ctx, "unsupported job type for external reporting: %s (job %v)", job.Type, job.ID)
 			return nil, fmt.Errorf("unsupported job type: %s", job.Type)
@@ -341,8 +353,8 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		if result.Patch != nil {
 			var links []string
 			var closes []string
-			if job.BugID.Valid {
-				link, reporter := jobBugInfo(ctx, job.BugID)
+			if bug != nil {
+				link, reporter := bugInfoForPatch(ctx, bug)
 				closes = append(closes, link)
 				if reporter != "" && !email.ContainsEmail(result.Patch.ReportedBy, reporter) {
 					result.Patch.ReportedBy = append([]string{reporter}, result.Patch.ReportedBy...)
@@ -379,6 +391,26 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 		}, nil
 	}
 	return &dashapi.PollExternalReportResp{}, nil
+}
+
+// bugForAIReport returns the bug of the job (nil if the job is not associated with a bug) and says
+// whether the results of the job may be disclosed to the audience with the given access level.
+// For that the bug must have already been reported to the same or a broader audience.
+func bugForAIReport(ctx context.Context, job *aidb.Job, level AccessLevel) (*Bug, bool) {
+	if !job.BugID.Valid {
+		return nil, true
+	}
+	bug, err := loadBug(ctx, job.BugID.StringVal)
+	if err != nil {
+		log.Errorf(ctx, "failed to load the bug of AI job %v: %v", job.ID, err)
+		return nil, false
+	}
+	reported := lastReportedReporting(bug)
+	if reported == nil {
+		return bug, false
+	}
+	repCfg := getNsConfig(ctx, bug.Namespace).ReportingByName(reported.Name)
+	return bug, repCfg != nil && repCfg.AccessLevel <= level
 }
 
 func makeNewReportResult(ctx context.Context, job *aidb.Job, reporting *aidb.JobReporting,

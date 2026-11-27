@@ -686,19 +686,22 @@ func selectJobReporting() string {
 	return selectAllFrom[JobReporting]("JobReporting")
 }
 
-func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction, job *Job, stage string) error {
+func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction,
+	job *Job, stage string, pendingSince time.Time) error {
 	iterConflict := txn.Query(ctx, spanner.Statement{
 		SQL: `SELECT Jobs.ID
 				FROM Jobs
 				JOIN JobReporting ON Jobs.ID = JobReporting.JobID
 				WHERE Jobs.BugID = @bugID
 				  AND JobReporting.Stage = @stage
+				  AND (JobReporting.ReportedAt IS NOT NULL OR JobReporting.CreatedAt >= @pendingSince)
 				  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
 				  AND Jobs.ID != @currentJobID
 				LIMIT 1`,
 		Params: map[string]any{
 			"bugID":        job.BugID.StringVal,
 			"stage":        stage,
+			"pendingSince": pendingSince,
 			"currentJobID": job.ID,
 		},
 	})
@@ -715,7 +718,8 @@ func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransact
 	return nil
 }
 
-func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobReporting, noParallel bool) error {
+func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobReporting,
+	noParallel bool, pendingSince time.Time) error {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return err
@@ -726,7 +730,7 @@ func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobRepor
 
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		if noParallel && job.BugID.Valid {
-			if err := checkNoParallelConflict(ctx, txn, job, entry.Stage); err != nil {
+			if err := checkNoParallelConflict(ctx, txn, job, entry.Stage, pendingSince); err != nil {
 				return err
 			}
 		}
@@ -777,7 +781,7 @@ func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
 		}
 
 		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
-			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage); err != nil {
+			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage, args.PendingSince); err != nil {
 				return err
 			}
 		}
@@ -980,10 +984,12 @@ func LogCommandError(ctx context.Context, args LogCommandErrorArgs) error {
 	return nil
 }
 
-func LoadPendingJobReportingBySource(ctx context.Context, source string) ([]*JobReporting, error) {
+// LoadPendingJobReportingBySource returns the reports that were created since the given time
+// and have not been sent yet.
+func LoadPendingJobReportingBySource(ctx context.Context, source string, since time.Time) ([]*JobReporting, error) {
 	return selectAll[JobReporting](ctx, spanner.Statement{
-		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL`,
-		Params: map[string]any{"source": source},
+		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL AND CreatedAt >= @since`,
+		Params: map[string]any{"source": source, "since": since},
 	})
 }
 
@@ -1478,6 +1484,7 @@ type UpstreamReportArgs struct {
 	Job           *Job
 	Reporting     *JobReporting
 	NoParallel    bool
+	PendingSince  time.Time
 	CommandSource string
 	CommandExtID  string
 	Reason        string
