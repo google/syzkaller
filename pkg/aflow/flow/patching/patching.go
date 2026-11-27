@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
@@ -128,7 +129,7 @@ func init() {
 					Model: aflow.CoreModel,
 					ValidatedReply: aflow.LLMReply("PatchDescription",
 						func(ctx *aflow.Context, state struct{}, reply string) (string, error) {
-							return email.WordWrap(reply, patchDescriptionLineLength), nil
+							return validatePatchDescription(reply)
 						}),
 					Instruction: descriptionInstruction,
 					Prompt:      descriptionPrompt,
@@ -367,6 +368,9 @@ const commonPatchDescriptionInstruction = `
 
 The one-line summary must be not longer than 72 characters.
 
+Use plain ASCII characters only (no Unicode punctuation or symbols such as em-dashes,
+curly quotes, arrows, or non-breaking spaces).
+
 IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
 automatically, so keep paragraphs as single lines without newlines.
 
@@ -424,6 +428,34 @@ are specified, letter capitalization, style, etc.
 // Recommended description length according to
 // https://docs.kernel.org/process/submitting-patches.html
 const patchDescriptionLineLength = 75
+
+func validatePatchDescription(desc string) (string, error) {
+	if err := validateASCII("PatchDescription", desc); err != nil {
+		return "", err
+	}
+	return email.WordWrap(desc, patchDescriptionLineLength), nil
+}
+
+func validateASCII(field, text string) error {
+	var seen []rune
+	var offending []string
+	for _, r := range text {
+		if r <= unicode.MaxASCII && (unicode.IsPrint(r) || r == '\n' || r == '\t') {
+			continue
+		}
+		if !slices.Contains(seen, r) {
+			seen = append(seen, r)
+			offending = append(offending, fmt.Sprintf("%q (%U)", r, r))
+		}
+	}
+	if len(offending) == 0 {
+		return nil
+	}
+	return aflow.BadCallError(
+		"%s must contain only printable ASCII characters (plus tabs and newlines); found: %s. "+
+			"Replace all non-ASCII or control characters with plain ASCII equivalents.",
+		field, strings.Join(offending, ", "))
+}
 
 var reviewerInstruction = `
 Review a proposed Linux kernel patch that compiles and passes reproducer tests.
