@@ -650,6 +650,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		KernelConfig: req.KernelConfig,
 		BuildCPUs:    jp.cfg.BuildCPUs,
+		Env:          mgr.mgrcfg.KernelBuildEnv,
 	}
 	dt.Logf("cleaning kernel...")
 	if err := env.CleanKernel(buildCfg); err != nil {

@@ -39,6 +39,18 @@ func TestLinuxBuildSandbox(t *testing.T) {
 	assert.False(t, osutil.IsSandboxOwned(t, filepath.Join(params.OutputDir, "obj", "vmlinux")))
 	require.NoError(t, Clean(params))
 
+	t.Run("env", func(t *testing.T) {
+		// The sandbox clears the environment: only params.Env must reach the build
+		// (SYZ_TEST_* variables are forwarded in tests and tell the Makefile what to expect).
+		t.Setenv("SYZ_BUILD_ENV_CHECK", "from-host")
+		t.Setenv("SYZ_TEST_EXPECT_BUILD_ENV", "from-params")
+		envParams := params
+		envParams.Env = []string{"SYZ_BUILD_ENV_CHECK=from-params"}
+		_, err := Image(envParams)
+		require.NoError(t, err)
+		require.NoError(t, Clean(envParams))
+	})
+
 	t.Run("disabled", func(t *testing.T) {
 		t.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 		params.Tracer = &debugtracer.TestTracer{T: t}

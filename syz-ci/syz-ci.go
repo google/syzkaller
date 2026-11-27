@@ -203,7 +203,11 @@ type ManagerConfig struct {
 	Userspace    string `json:"userspace"`
 	// Optional VM image used to build the kernel, needed for some cross-compilation targets.
 	KernelBuilderImage string `json:"kernel_builder_image"`
-	KernelConfig       string `json:"kernel_config"`
+	// Extra KEY=VALUE environment variables passed to the kernel build (optional).
+	// Kernel builds run in a sandbox with a cleared environment, so variables
+	// from the syz-ci environment are not passed to them otherwise.
+	KernelBuildEnv []string `json:"kernel_build_env"`
+	KernelConfig   string   `json:"kernel_config"`
 	// KernelSrcSuffix adds a suffix to the kernel_src manager config. This is needed for cases where
 	// the kernel source root as reported in the coverage UI is a subdirectory of the VCS root.
 	KernelSrcSuffix string `json:"kernel_src_suffix"`

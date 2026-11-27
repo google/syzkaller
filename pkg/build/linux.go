@@ -188,7 +188,7 @@ func runMake(params Params, extraArgs ...string) error {
 	if err := osutil.Sandbox(cmd,
 		osutil.SandboxMountRW(params.KernelDir),
 		osutil.SandboxMountRO(roDirs...),
-		osutil.SandboxEnv(kbuildEnv...),
+		osutil.SandboxEnv(slices.Concat(kbuildEnv, params.Env)...),
 	); err != nil {
 		return err
 	}

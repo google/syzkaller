@@ -17,6 +17,8 @@ oldconfig distclean:
 # The vmlinux target is used on the arches where vmlinux itself is the kernel image.
 bzImage vmlinux compile_commands.json &:
 	@./scripts/check-sandbox
+	@[ "$${SYZ_BUILD_ENV_CHECK:-}" = "$${SYZ_TEST_EXPECT_BUILD_ENV:-}" ] || \
+		{ echo "SYZ_BUILD_ENV_CHECK='$${SYZ_BUILD_ENV_CHECK:-}', want '$${SYZ_TEST_EXPECT_BUILD_ENV:-}'"; exit 1; }
 	@git --no-optional-locks status --porcelain >/dev/null
 	@if [ "$(abspath $(O))" = "$(CURDIR)" ]; then \
 		{ [ ! -e .git ] || ! touch .git/escape 2>/dev/null; } && \
