@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type symbolizeLineTest struct {
@@ -79,4 +81,37 @@ func testSymbolizeLine(t *testing.T, ctor fn, tests []symbolizeLineTest) {
 			}
 		})
 	}
+}
+
+func TestBSDSymbolizeReport(t *testing.T) {
+	reporter, _, err := ctorOpenbsd(&config{})
+	require.NoError(t, err)
+
+	orig := "panic: test\nclosef(ffffffff,ffffffff) at closef+0xaf\n"
+	rep := &Report{Report: []byte(orig)}
+	require.NoError(t, reporter.Symbolize(rep))
+	assert.Equal(t, orig, string(rep.Report))
+
+	bsd := reporter.(*bsd)
+	bsd.kernelObject = "bsd.gdb"
+	bsd.symbols = map[string][]symbolizer.Symbol{
+		"closef": {{Addr: 0x815088a0, Size: 0x12f}},
+	}
+	symb := func(bin string, pcs ...uint64) ([]symbolizer.Frame, error) {
+		return []symbolizer.Frame{{
+			Func: "closef",
+			File: "/bsd/src/kern_descrip.c",
+			Line: 1241,
+		}}, nil
+	}
+	prefix := "closef(ffffffff,ffffffff) at closef+0xaf\n"
+	body := "panic: test\n"
+	rep = &Report{
+		Report:          []byte(prefix + body),
+		reportPrefixLen: len(prefix),
+	}
+	symbolizeReportLines(rep, symb, bsd.symbolizeLine)
+	wantPrefix := "closef(ffffffff,ffffffff) at closef+0xaf bsd/src/kern_descrip.c:1241\n"
+	assert.Equal(t, wantPrefix+body, string(rep.Report))
+	assert.Equal(t, len(wantPrefix), rep.reportPrefixLen)
 }

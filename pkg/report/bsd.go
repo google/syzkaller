@@ -13,26 +13,22 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type bsd struct {
 	*config
-	oopses       []*oops
-	symbolizeRes []*regexp.Regexp
-	kernelObject string
-	symbols      map[string][]symbolizer.Symbol
+	oopses          []*oops
+	symbolizeRes    []*regexp.Regexp
+	kernelObject    string
+	symbols         map[string][]symbolizer.Symbol
+	symbolizerCache symbolizer.Cache
 }
 
 func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (reporterImpl, error) {
-	var symbols map[string][]symbolizer.Symbol
-	kernelObject := ""
-	if cfg.kernelDirs.Obj != "" {
-		kernelObject = filepath.Join(cfg.kernelDirs.Obj, cfg.target.KernelObject)
-		var err error
-		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
-		if err != nil {
-			return nil, err
-		}
+	kernelObject, symbols, err := loadKernelSymbols(cfg)
+	if err != nil {
+		return nil, err
 	}
 	ctx := &bsd{
 		config:       cfg,
@@ -44,6 +40,18 @@ func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (report
 	return ctx, nil
 }
 
+func loadKernelSymbols(cfg *config) (string, map[string][]symbolizer.Symbol, error) {
+	if cfg.kernelDirs.Obj == "" {
+		return "", nil, nil
+	}
+	kernelObject := filepath.Join(cfg.kernelDirs.Obj, cfg.target.KernelObject)
+	symbols, err := symbolizer.ReadTextSymbols(kernelObject)
+	if err != nil {
+		return "", nil, err
+	}
+	return kernelObject, symbols, nil
+}
+
 func (ctx *bsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, ctx.oopses, ctx.ignores)
 }
@@ -53,13 +61,36 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb := symbolizer.Make(ctx.config.target)
+	return runSymbolizer(rep, ctx.target, ctx.kernelObject, &ctx.symbolizerCache, ctx.symbolizeLine)
+}
+
+type bsdSymbFunc = func(string, ...uint64) ([]symbolizer.Frame, error)
+
+func runSymbolizer(rep *Report, target *targets.Target, kernelObject string, cache *symbolizer.Cache,
+	symbLine func(bsdSymbFunc, []byte) []byte) error {
+	if kernelObject == "" {
+		return nil
+	}
+	symb := symbolizer.Make(target)
 	defer symb.Close()
+	symbFunc := symb.Symbolize
+	if cache != nil {
+		symbFunc = func(bin string, pcs ...uint64) ([]symbolizer.Frame, error) {
+			if len(pcs) == 1 {
+				return cache.Symbolize(symb.Symbolize, bin, pcs[0])
+			}
+			return symb.Symbolize(bin, pcs...)
+		}
+	}
+	symbolizeReportLines(rep, symbFunc, symbLine)
+	return nil
+}
+
+func symbolizeReportLines(rep *Report, symbFunc bsdSymbFunc, symbLine func(bsdSymbFunc, []byte) []byte) {
 	var symbolized []byte
 	prefix := rep.reportPrefixLen
-	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
-		line := bytes.Clone(line)
-		newLine := ctx.symbolizeLine(symb.Symbolize, line)
+	for line := range bytes.SplitAfterSeq(rep.Report, []byte("\n")) {
+		newLine := symbLine(symbFunc, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
@@ -67,7 +98,6 @@ func (ctx *bsd) Symbolize(rep *Report) error {
 	}
 	rep.Report = symbolized
 	rep.reportPrefixLen = prefix
-	return nil
 }
 
 func (ctx *bsd) symbolizeLine(symbFunc func(string, ...uint64) ([]symbolizer.Frame, error),
