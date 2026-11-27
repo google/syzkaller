@@ -54,6 +54,10 @@ type FixInputs struct {
 	// of the latest kernel build), where the crash has not been observed recently;
 	// the bug may or may not be fixed there. Fix candidates must be in CrashCommit..KernelCommit.
 	KernelCommit string
+	// KernelRebased is set if the kernel tree is regularly rebased (e.g. linux-next).
+	// Then CrashCommit is not in the history of KernelCommit, so fix candidates are not checked
+	// against it, and the bug may also be gone because its cause was amended or dropped.
+	KernelRebased bool `json:",omitempty"`
 }
 
 // useCrashCommit makes cause bisection check out the commit where the crash was observed.
@@ -191,7 +195,7 @@ Your investigation strategy:
    affected code path so the buggy state can no longer be reached.
 5. Verify your hypothesis by inspecting the full commit diff with {{.toolGitShow}} and
    confirming how the change prevents the exact crash condition.
-` + kasanNullDerefNote + `
+` + kasanNullDerefNote + rebasedTreeNote + `
 Output rules:
 - If you have verified that the bug is still present at {{.KernelCommit}}, set BugStillPresent
   and return an empty CandidateCommits list. Do NOT set BugStillPresent merely because you
@@ -203,6 +207,14 @@ Note: under KASAN NULL-derefs on the source level don't happen around the actual
 they happen on the KASAN shadow memory around address dfff800000000000 or dffffc0000000000.
 Don't be confused by that. Look for the line at the top of the report that tells
 the access address and size.
+{{end}}`
+
+const rebasedTreeNote = `{{if .KernelRebased}}
+Note: this kernel tree is regularly rebased (like linux-next), so {{.CrashCommit}} is not in
+the history of {{.KernelCommit}} and may be missing from the repository altogether. Besides
+being fixed by a separate commit, the bug may be gone because the commit that introduced it
+was amended or dropped from the tree. In that case there is no fixing commit: return an empty
+CandidateCommits list and explain what happened in your text reply.
 {{end}}`
 
 const candidateOutputRules = `- Returning a SINGLE commit in CandidateCommits (a 1-element list) is the expected norm
@@ -279,9 +291,10 @@ func validateCauseFinderOutputs(ctx *aflow.Context, state causeFinderState, args
 }
 
 type fixFinderState struct {
-	KernelSrc    string
-	KernelCommit string
-	CrashCommit  string
+	KernelSrc     string
+	KernelCommit  string
+	CrashCommit   string
+	KernelRebased bool
 }
 
 type fixFinderOutputs struct {
@@ -300,7 +313,12 @@ func validateFixFinderOutputs(ctx *aflow.Context, state fixFinderState, args fix
 		}
 		return args, nil
 	}
-	commits, err := validateCandidateCommits(state.KernelSrc, state.KernelCommit, state.CrashCommit,
+	crashCommit := state.CrashCommit
+	if state.KernelRebased {
+		// CrashCommit is not in the history of KernelCommit, nothing to check candidates against.
+		crashCommit = ""
+	}
+	commits, err := validateCandidateCommits(state.KernelSrc, state.KernelCommit, crashCommit,
 		args.CandidateCommits)
 	args.CandidateCommits = commits
 	return args, err

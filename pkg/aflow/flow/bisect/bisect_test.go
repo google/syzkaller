@@ -186,6 +186,16 @@ func TestValidateFixFinderOutputs(t *testing.T) {
 		}
 	})
 
+	t.Run("rebased tree does not check the crash commit", func(t *testing.T) {
+		rebased := state
+		rebased.KernelRebased = true
+		got, err := validateFixFinderOutputs(nil, rebased, fixFinderOutputs{
+			CandidateCommits: []string{r.c1.Hash},
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{r.c1.Hash}, got.CandidateCommits)
+	})
+
 	t.Run("accepts commits after the crash commit", func(t *testing.T) {
 		// The side branch commit is not in c2, it's merged after it, so it's a valid candidate.
 		got, err := validateFixFinderOutputs(nil, state, fixFinderOutputs{

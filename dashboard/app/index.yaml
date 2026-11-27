@@ -271,6 +271,13 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: Namespace
+  - name: Status
+  - name: AIPendingWorkflows
+  - name: LastTime
+
+- kind: Bug
+  properties:
   - name: Status
   - name: HasCRepro
   - name: HasSyzRepro
