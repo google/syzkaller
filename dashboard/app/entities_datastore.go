@@ -165,6 +165,47 @@ type Bug struct {
 	// AIBisectFix is the same as AIBisectCause, but for fix bisection.
 	// If StillPresent is set, it also delays auto-obsoletion of the bug.
 	AIBisectFix BugAIBisect
+	// AIPatch is the state of the latest AI-generated patch for the bug (if any).
+	// It's a periodically updated copy of what is stored in the AI database (see handleAIPatchSync),
+	// so it may be slightly outdated.
+	AIPatch BugAIPatch
+}
+
+// BugAIPatch is the state of the latest AI-generated patch for a bug.
+// The zero value means that there were no patching jobs for the bug.
+type BugAIPatch struct {
+	// The job that generated the latest version of the patch,
+	// or the patching job if there is no patch (yet).
+	JobID string `datastore:",noindex"`
+	State AIPatchState
+	// When the first version of the patch was reported for review (zero if not reported yet).
+	Posted time.Time `datastore:",noindex"`
+	// The time of the last comment on the patch, not counting our own emails.
+	LastComment time.Time `datastore:",noindex"`
+	// A reviewer asked (#syz hold) not to report the bug further while the patch is under review.
+	// It is up to the namespace config to respect it, e.g. in reporting filters.
+	Held bool `datastore:",noindex"`
+	// Link to the latest version of the patch that was reported to a public AI reporting stage.
+	Link string `datastore:",noindex"`
+}
+
+type AIPatchState string
+
+const (
+	// The patching job has not finished yet.
+	AIPatchPending AIPatchState = "pending"
+	// The patching job has failed.
+	AIPatchFailed AIPatchState = "failed"
+	// There is a patch, and no version of it has been approved or rejected yet.
+	AIPatchCandidate AIPatchState = "candidate"
+	// The patch has been approved or rejected.
+	AIPatchDecided AIPatchState = "decided"
+)
+
+func (patch BugAIPatch) equal(other BugAIPatch) bool {
+	return patch.JobID == other.JobID && patch.State == other.State && patch.Link == other.Link &&
+		patch.Posted.Equal(other.Posted) && patch.LastComment.Equal(other.LastComment) &&
+		patch.Held == other.Held
 }
 
 // BugAIBisect holds the result of an AI cause or fix bisection job of a bug.

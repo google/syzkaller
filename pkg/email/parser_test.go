@@ -377,6 +377,22 @@ baz
 			Args:    "",
 		},
 	},
+	{
+		body: `#syz hold`,
+		cmd: &SingleCommand{
+			Command: CmdHold,
+			Str:     "hold",
+			Args:    "",
+		},
+	},
+	{
+		body: `#syz unhold`,
+		cmd: &SingleCommand{
+			Command: CmdUnhold,
+			Str:     "unhold",
+			Args:    "",
+		},
+	},
 }
 
 type ParseTest struct {

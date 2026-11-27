@@ -236,7 +236,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		})
 	}
 
-	var lastBugExtID, kasanBugExtID string
+	var kasanBugExtID string
 	for i := range 4 {
 		t.Logf("polling bugs iteration %v", i)
 		respBugs, err := globalClient.ReportingPollBugs("email")
@@ -248,7 +248,6 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		}
 		var fixCommits []dashapi.Commit
 		for _, rep := range respBugs.Reports {
-			lastBugExtID = rep.ID
 			if rep.Title == localUIKASANBugTitle {
 				kasanBugExtID = rep.ID
 			}
@@ -329,7 +328,8 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		},
 	})
 	jobID1 := resp.ID
-	jobID2 := c.createAIJob(lastBugExtID, string(ai.WorkflowPatching), "")
+	// Patches are reported only for open bugs without a fix.
+	jobID2 := c.createAIJob(kasanBugExtID, string(ai.WorkflowPatching), "")
 
 	seq := 1
 	ts := c.mockedTime

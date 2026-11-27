@@ -94,6 +94,38 @@ func TestMapCommands(t *testing.T) {
 			},
 		},
 		{
+			name: "hold and unhold",
+			polled: &lore.PolledEmail{
+				RootMessageID: "<root@id>",
+				Email: &lore.Email{
+					Email: &email.Email{
+						MessageID: "<msg@id>",
+						Author:    "user@example.com",
+						Commands: []*email.SingleCommand{
+							{Command: email.CmdHold},
+							{Command: email.CmdUnhold},
+						},
+					},
+				},
+			},
+			want: []*dashapi.SendExternalCommandReq{
+				{
+					Source:       dashapi.AIJobSourceLore,
+					RootExtID:    "<root@id>",
+					MessageExtID: "<msg@id>",
+					Author:       "user@example.com",
+					Hold:         &dashapi.HoldCommand{},
+				},
+				{
+					Source:       dashapi.AIJobSourceLore,
+					RootExtID:    "<root@id>",
+					MessageExtID: "<msg@id>",
+					Author:       "user@example.com",
+					Unhold:       &dashapi.UnholdCommand{},
+				},
+			},
+		},
+		{
 			name: "unsupported command",
 			polled: &lore.PolledEmail{
 				RootMessageID: "<root@id>",

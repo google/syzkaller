@@ -546,6 +546,7 @@ func createBugReport(ctx context.Context, bug *Bug, crash *Crash, crashKey *db.K
 		emails = email.RemoveFromEmailList(emails, addr)
 	}
 	rep.Maintainers = append(rep.Maintainers, emails...)
+	rep.AIPatch = bug.aiPatchCandidate(ctx)
 	return rep, nil
 }
 
@@ -1137,6 +1138,8 @@ func incomingCommandCmd(ctx context.Context, now time.Time, cmd *dashapi.BugUpda
 		stateEnt.Sent++
 		if bugReporting.Reported.IsZero() {
 			bugReporting.Reported = now
+			// The new stage may make the bug eligible for more AI workflows, don't wait for the daily check.
+			bug.AIJobCheck = 0
 		}
 		if bugReporting.OnHold.IsZero() && cmd.OnHold {
 			bugReporting.OnHold = now

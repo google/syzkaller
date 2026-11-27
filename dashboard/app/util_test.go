@@ -1005,3 +1005,57 @@ func (ctx *Ctx) checkBisectStatus(ns, cause, fix string) {
 	assert.Regexp(ctx.t, `<td class="bisect_status">`+cause+`</td>\s*<td class="bisect_status">`+fix+`</td>`,
 		string(page))
 }
+
+// syncAIPatch syncs AI patches with the AI database and returns the resulting state for the bug.
+func (ctx *Ctx) syncAIPatch(extID string) BugAIPatch {
+	ctx.t.Helper()
+	_, err := ctx.GET("/cron/ai_patch_sync")
+	require.NoError(ctx.t, err)
+	bug, _, _ := ctx.loadBug(extID)
+	return bug.AIPatch
+}
+
+func (ctx *Ctx) commentOnAIPatch(patchExtID, commentExtID string, ownEmail bool) {
+	ctx.t.Helper()
+	resp, err := ctx.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    patchExtID,
+		MessageExtID: commentExtID,
+		Author:       "someone@test.com",
+		OwnEmail:     ownEmail,
+		Comment:      &dashapi.CommentCommand{Body: "A comment"},
+	})
+	require.NoError(ctx.t, err)
+	require.Empty(ctx.t, resp.Error)
+}
+
+// holdAIPatch sends #syz hold (or #syz unhold) in reply to the patch.
+func (ctx *Ctx) holdAIPatch(patchExtID, commandExtID string, hold bool) {
+	ctx.t.Helper()
+	req := &dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    patchExtID,
+		MessageExtID: commandExtID,
+		Author:       "someone@test.com",
+	}
+	if hold {
+		req.Hold = &dashapi.HoldCommand{}
+	} else {
+		req.Unhold = &dashapi.UnholdCommand{}
+	}
+	resp, err := ctx.globalClient.AIReportCommand(req)
+	require.NoError(ctx.t, err)
+	require.Empty(ctx.t, resp.Error)
+}
+
+func (ctx *Ctx) rejectAIPatch(patchExtID string) {
+	ctx.t.Helper()
+	resp, err := ctx.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:    dashapi.AIJobSourceLore,
+		RootExtID: patchExtID,
+		Author:    "someone@test.com",
+		Reject:    &dashapi.RejectCommand{},
+	})
+	require.NoError(ctx.t, err)
+	require.Empty(ctx.t, resp.Error)
+}

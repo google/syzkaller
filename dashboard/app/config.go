@@ -165,6 +165,9 @@ type AIConfig struct {
 	// Whether to automatically create C reproducer generation jobs for eligible bugs.
 	AutoReproC bool
 	Stages     []AIPatchStageConfig
+	// If set, patching jobs are created automatically for the bugs it returns true for.
+	// Only open bugs that still reproduce and don't have a fix are considered (see canAutoPatchBug).
+	AutoPatch func(*Bug) bool `json:"-"`
 	// SecurityAssessment maps the results of the security assessment workflow to bug labels.
 	SecurityAssessment func(*Bug, ai.AssessmentSecurityOutputs) SecurityAssessmentLabels `json:"-"`
 
@@ -197,6 +200,9 @@ type AIPatchStageConfig struct {
 	AddressComments    bool          // If true, automatically trigger a patch iteration on new comments.
 	ReplyToComments    bool          // If true, allow AI to generate and post conversational text replies to comments.
 	IterationDebounce  time.Duration // Wait time before creating a new iteration. Defaults to 30m.
+	// The broadest audience that can read the reports of this stage (AccessPublic by default).
+	// A patch is reported to the stage only once its bug is visible to this audience.
+	AccessLevel AccessLevel
 }
 
 func (cfg *AIConfig) StageIndexByName(name string) int {
@@ -793,6 +799,13 @@ func checkAIConfig(ns string, cfg *AIConfig) {
 		stageNames[stage.Name] = true
 		if stage.IterationDebounce == 0 {
 			cfg.Stages[i].IterationDebounce = 30 * time.Minute
+		}
+		if stage.AccessLevel == 0 {
+			cfg.Stages[i].AccessLevel = AccessPublic
+		}
+		verifyAccessLevel(cfg.Stages[i].AccessLevel)
+		if stage.MergePatchCc && cfg.Stages[i].AccessLevel != AccessPublic {
+			panic(fmt.Sprintf("%v: non-public AI stage %q must not CC people mentioned in patches", ns, stage.Name))
 		}
 	}
 	if cfg.SecurityAssessment == nil {

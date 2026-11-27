@@ -1473,8 +1473,11 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, nil
 	}
 	if nsCfg.AI.UploadPatchesToGerrit {
-		if err := createGerritChange(ctx, job); err != nil {
-			log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+		// Gerrit changes are public.
+		if bug, public := bugForAIReport(ctx, job, AccessPublic); public {
+			if err := createGerritChange(ctx, job, bug); err != nil {
+				log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+			}
 		}
 	}
 	stageCfg, err := determineNextStage(ctx, nsCfg.AI, job, "")
@@ -2263,6 +2266,13 @@ const (
 
 	maxAutoBisectCauseAttempts = 2
 	maxAutoBisectCauseJobs     = 2
+
+	maxAutoPatchingAttempts = 1
+	// Automatic patching jobs are created only while there are fewer than maxPatchJobsInProgress
+	// unfinished patching and patch iteration jobs (including the manually created ones).
+	maxPatchJobsInProgress = 2
+	// Don't compete with the patches that people discuss.
+	autoPatchHumanPatchAge = 30 * 24 * time.Hour
 )
 
 // Automatic creation of these workflows starts only while there are fewer than the configured
@@ -2271,6 +2281,7 @@ const (
 var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
 	ai.WorkflowReproC:      maxAutoReproCJobs,
 	ai.WorkflowBisectCause: maxAutoBisectCauseJobs,
+	ai.WorkflowPatching:    maxPatchJobsInProgress,
 }
 
 // Automatic retries of failed or aborted jobs of these workflows are capped
@@ -2278,6 +2289,7 @@ var maxAutoJobsInProgress = map[ai.WorkflowType]int64{
 var maxAutoAttempts = map[ai.WorkflowType]int{
 	ai.WorkflowReproC:      maxAutoReproCAttempts,
 	ai.WorkflowBisectCause: maxAutoBisectCauseAttempts,
+	ai.WorkflowPatching:    maxAutoPatchingAttempts,
 }
 
 func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkflows []dashapi.AIWorkflow) (
@@ -2291,7 +2303,14 @@ func filterWorkflowsForNS(ctx context.Context, ns string, cfg *Config, reqWorkfl
 		if w.Type == ai.WorkflowReproC && !cfg.AI.AutoReproC {
 			continue
 		}
-		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && counts[w.Type] >= limit {
+		if w.Type == ai.WorkflowPatching && cfg.AI.AutoPatch == nil {
+			continue
+		}
+		inProgress := counts[w.Type]
+		if w.Type == ai.WorkflowPatching {
+			inProgress += counts[ai.WorkflowPatchIteration]
+		}
+		if limit, ok := maxAutoJobsInProgress[w.Type]; ok && inProgress >= limit {
 			continue
 		}
 		workflows = append(workflows, w)
@@ -2339,8 +2358,8 @@ func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("AIPendingWorkflows=", string(req.Type))
-		if req.Type == ai.WorkflowBisectCause {
-			// Newer bugs go first within the cause bisection quota.
+		if req.Type == ai.WorkflowBisectCause || req.Type == ai.WorkflowPatching {
+			// Newer bugs go first within the quota.
 			query = query.Order("-FirstTime")
 		}
 		var bugs []*Bug
@@ -2565,6 +2584,20 @@ func canAutoReproBug(ctx context.Context, bug *Bug) bool {
 		!bug.hasRecentPatchCandidate(ctx, reproCPatchAge)
 }
 
+// Automatic patching heuristics:
+// - Namespace must enable it with AIConfig.AutoPatch, which also selects the bugs.
+// - Open bugs only, with no fixing commits.
+// - Must have a reproducer that still works: the patching workflow starts with reproducing the bug.
+// - Skip bugs that have recent patch candidates being discussed / tested.
+func canAutoPatchBug(ctx context.Context, bug *Bug) bool {
+	cfg := getNsConfig(ctx, bug.Namespace).AI
+	return cfg != nil && cfg.AutoPatch != nil &&
+		bug.Status == BugStatusOpen && len(bug.Commits) == 0 &&
+		bug.HasHeadRepro() &&
+		!bug.hasRecentPatchCandidate(ctx, autoPatchHumanPatchAge) &&
+		cfg.AutoPatch(bug)
+}
+
 func isKernelCrashBugTitle(title string, typ crash.Type) bool {
 	if title == corruptedReportTitle ||
 		title == suppressedReportTitle ||
@@ -2787,11 +2820,14 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 		if canAutoBisectCause(bug, typ) {
 			workflows[ai.WorkflowBisectCause] = true
 		}
+		if canAutoPatchBug(ctx, bug) {
+			workflows[ai.WorkflowPatching] = true
+		}
 	}
 	return workflows
 }
 
-func createGerritChange(ctx context.Context, job *aidb.Job) error {
+func createGerritChange(ctx context.Context, job *aidb.Job, bug *Bug) error {
 	res, err := castJobResults[ai.PatchingOutputs](job)
 	if err != nil {
 		return err
@@ -2811,8 +2847,8 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	var links []string
 	var closes []string
 	var reportedBy []string
-	if job.BugID.Valid {
-		link, reporter := jobBugInfo(ctx, job.BugID)
+	if bug != nil {
+		link, reporter := bugInfoForPatch(ctx, bug)
 		closes = append(closes, link)
 		if reporter != "" {
 			reportedBy = append(reportedBy, reporter)
@@ -2899,23 +2935,16 @@ func compactAIJobs(jobs []*aidb.Job) []*aidb.Job {
 	return filtered
 }
 
-func jobBugInfo(ctx context.Context, bugID spanner.NullString) (string, string) {
-	if !bugID.Valid {
-		return "", ""
-	}
-	bugKey := db.NewKey(ctx, "Bug", bugID.StringVal, 0, nil)
-	bug := new(Bug)
-	if err := db.Get(ctx, bugKey, bug); err == nil {
-		_, bugReporting, _, _, _ := currentReporting(ctx, bug)
-		reportedBy := ""
-		if bugReporting != nil && bugReporting.ID != "" {
-			if creditEmail, err := email.AddAddrContext(ownEmail(ctx), bugReporting.ID); err == nil {
-				reportedBy = creditEmail
-			}
+// bugInfoForPatch returns the link to the bug and the Reported-by address for patches that fix it.
+func bugInfoForPatch(ctx context.Context, bug *Bug) (string, string) {
+	_, bugReporting, _, _, _ := currentReporting(ctx, bug)
+	reportedBy := ""
+	if bugReporting != nil && bugReporting.ID != "" {
+		if creditEmail, err := email.AddAddrContext(ownEmail(ctx), bugReporting.ID); err == nil {
+			reportedBy = creditEmail
 		}
-		return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 	}
-	return appURL(ctx) + bugLink(bugID.StringVal), ""
+	return appURL(ctx) + bugExtLink(ctx, bug), reportedBy
 }
 
 func extractExecutedModels(trajectory []*aidb.TrajectorySpan) []string {

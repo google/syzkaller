@@ -44,6 +44,16 @@ Once a patch is rejected, the AI will stop reacting to further comments on this 
 #syz unreject
 ```
 
+* Ask `syzbot` to keep the bug report in moderation while the patch is under review:
+```
+#syz hold
+```
+The request covers all versions of the patch, and is no longer in force once the patch is
+approved or rejected. To cancel it earlier:
+```
+#syz unhold
+```
+
 * Approve a patch and send it to the public mailing lists:
 ```
 #syz upstream

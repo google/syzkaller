@@ -73,6 +73,8 @@ type SendExternalCommandReq struct {
 	Upstream *UpstreamCommand `json:",omitempty"`
 	Reject   *RejectCommand   `json:",omitempty"`
 	Unreject *UnrejectCommand `json:",omitempty"`
+	Hold     *HoldCommand     `json:",omitempty"`
+	Unhold   *UnholdCommand   `json:",omitempty"`
 	Comment  *CommentCommand  `json:",omitempty"`
 }
 
@@ -84,6 +86,13 @@ type RejectCommand struct {
 }
 
 type UnrejectCommand struct {
+}
+
+// HoldCommand asks not to report the bug of the patch further while the patch is under review.
+type HoldCommand struct {
+}
+
+type UnholdCommand struct {
 }
 
 type CommentCommand struct {

@@ -746,6 +746,86 @@ func TestAIJobAutoCreate(t *testing.T) {
 	require.Equal(t, pollResp7.ID, "")
 }
 
+func TestAIAutoPatch(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// The title of the bug that must not be patched automatically.
+	excluded := ""
+	c.SetAIConfig("ains", &AIConfig{
+		AutoPatch: func(bug *Bug) bool { return bug.Title != excluded },
+	})
+	patching := dashapi.AIWorkflow{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)}
+
+	// Bug 0 does not have a reproducer, bugs 1-4 have it and go from the oldest to the newest one.
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	crashes := []*dashapi.Crash{testCrash(build, 0)}
+	for i := 1; i <= 4; i++ {
+		crashes = append(crashes, testCrashWithRepro(build, i))
+	}
+	for _, crash := range crashes {
+		_, err := c.aiClient.ReportCrash(crash)
+		require.NoError(t, err)
+		c.advanceTime(time.Minute)
+	}
+
+	// Newer bugs go first. Each job goes to a new agent: an agent that polls again
+	// while it has an unfinished job is considered restarted, and gets its job again.
+	job4 := c.pollAIJob(t, "agent1", patching)
+	require.Equal(t, crashes[4].Title, job4.Args["BugTitle"])
+	job3 := c.pollAIJob(t, "agent2", patching)
+	require.Equal(t, crashes[3].Title, job3.Args["BugTitle"])
+
+	// No new jobs while maxPatchJobsInProgress jobs are in progress.
+	require.Empty(t, c.pollAIJob(t, "agent0", patching).ID)
+
+	// Polling another workflow evaluates remaining stale bugs and marks patching pending on them.
+	kcsan := dashapi.AIWorkflow{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)}
+	require.Empty(t, c.pollAIJob(t, "agent0", kcsan).ID)
+
+	// A pending bug that is not eligible anymore when its turn comes is skipped.
+	excluded = crashes[2].Title
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: job4.ID, Error: "failed"}))
+	require.Empty(t, c.pollAIJob(t, "agent0", patching).ID)
+	job1 := c.pollAIJob(t, "agent3", patching)
+	require.Equal(t, crashes[1].Title, job1.Args["BugTitle"])
+
+	// Failed jobs are not retried.
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: job3.ID, Error: "failed"}))
+	require.NoError(t, c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{ID: job1.ID, Error: "failed"}))
+	c.advanceTime(3 * 24 * time.Hour)
+	require.Empty(t, c.pollAIJob(t, "agent0", patching).ID)
+	require.Empty(t, c.pollAIJob(t, "agent0", patching).ID)
+
+	// A bug becomes eligible once it gets a reproducer.
+	_, err := c.aiClient.ReportCrash(testCrashWithRepro(build, 0))
+	require.NoError(t, err)
+	job0 := c.pollAIJob(t, "agent4", patching)
+	require.Equal(t, crashes[0].Title, job0.Args["BugTitle"])
+}
+
+func TestAIAutoPatchReportedBug(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig("ains", &AIConfig{
+		AutoPatch: func(bug *Bug) bool { return !bug.Reporting[0].Reported.IsZero() },
+	})
+	patching := dashapi.AIWorkflow{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)}
+
+	build := testBuild(1)
+	require.NoError(t, c.aiClient.UploadBuild(build))
+	crash := testCrashWithRepro(build, 1)
+	_, err := c.aiClient.ReportCrash(crash)
+	require.NoError(t, err)
+	require.Empty(t, c.pollAIJob(t, "agent0", patching).ID)
+
+	// The bug is considered again once it is reported, without waiting for the next day.
+	c.aiClient.pollEmailBug()
+	require.Equal(t, crash.Title, c.pollAIJob(t, "agent1", patching).Args["BugTitle"])
+}
+
 func TestAIDecommissionedNamespace(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
@@ -1741,7 +1821,7 @@ func TestAIJobsErrorVisibility(t *testing.T) {
 
 	// Log a command error to create a history entry with an error.
 	historyErrText := "Some sensitive history error: password=456"
-	require.NoError(t, aidb.LogCommandError(c.ctx, aidb.LogCommandErrorArgs{
+	require.NoError(t, aidb.LogCommand(c.ctx, aidb.LogCommandArgs{
 		JobID:         jobID,
 		CommandSource: "email",
 		CommandExtID:  "msg-id",
