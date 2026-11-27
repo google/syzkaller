@@ -56,7 +56,6 @@ if [ "$TARGETARCH" = "amd64" ]; then
     fi
 elif [ "$TARGETARCH" = "arm64" ]; then
     ARCH="aarch64"
-    PATTERNS_TO_FIND='adrp'
     if command -v aarch64-linux-gnu-objdump > /dev/null; then
         OBJDUMP_CMD="aarch64-linux-gnu-objdump"
     fi
@@ -134,7 +133,7 @@ if [ "$DISASSEMBLY_STATUS" -ne 0 ]; then
 fi
 
 case "$TARGETARCH" in
-amd64|loong64)
+amd64|arm64|loong64)
     echoerr "--> Getting guest section boundaries..."
     GUEST_VMA=$(printf '%s\n' "$SECTION_INFO" | $AWK_CMD '{print "0x"$4}')
     GUEST_SIZE=$(printf '%s\n' "$SECTION_INFO" | $AWK_CMD '{print "0x"$3}')
@@ -180,6 +179,49 @@ amd64|loong64)
         target = hex2dec(target_hex)
         if (target < 0 || target < guest_start || target >= guest_end)
             report(0)
+        next
+    }
+    # Match the address and mnemonic fields, not symbol names in comments.
+    arch == "arm64" && $1 ~ /^[[:xdigit:]]+:$/ &&
+        ($3 ~ /^(adrp|adr|b|bl|b\..+|cbn?z|tbn?z)$/ ||
+         ($3 ~ /^(ldr|ldrsw|prfm)$/ && index($0, "[") == 0)) {
+        insn_addr_hex = $1
+        sub(/:$/, "", insn_addr_hex)
+        insn_addr = hex2dec(insn_addr_hex)
+        insn = hex2dec($2)
+        if ($3 == "adrp" || length($2) != 8 || insn_addr < 0 || insn < 0) {
+            report(1)
+            next
+        }
+        if ($3 == "adr") {
+            # ADR encodes a signed 21-bit byte offset across bits [23:5] (immhi) and [30:29] (immlo).
+            immhi = int(insn / 32) % 524288
+            immlo = int(insn / 536870912) % 4
+            imm = immhi * 4 + immlo
+            if (imm >= 1048576)
+                imm -= 2097152
+            target = insn_addr + imm
+        } else if ($3 ~ /^(b|bl)$/) {
+            # B/BL encode a signed 26-bit word offset in bits [25:0].
+            imm = insn % 67108864
+            if (imm >= 33554432)
+                imm -= 67108864
+            target = insn_addr + imm * 4
+        } else if ($3 ~ /^tbn?z$/) {
+            # TBZ/TBNZ encode a signed 14-bit word offset in bits [18:5].
+            imm = int(insn / 32) % 16384
+            if (imm >= 8192)
+                imm -= 16384
+            target = insn_addr + imm * 4
+        } else {
+            # B.cond, CBZ/CBNZ, and PC-relative literal loads encode a signed 19-bit word offset in bits [23:5].
+            imm = int(insn / 32) % 524288
+            if (imm >= 262144)
+                imm -= 524288
+            target = insn_addr + imm * 4
+        }
+        if (target < guest_start || target >= guest_end)
+            report(1)
         next
     }
     # Match the address and mnemonic fields, not symbol names in comments.
