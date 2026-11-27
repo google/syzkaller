@@ -6,6 +6,7 @@ package state
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,11 +18,14 @@ import (
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
+
+// ErrUnconnected indicates a sync or repro operation for a manager that has not connected.
+var ErrUnconnected = errors.New("unconnected manager")
 
 // State holds all internal syz-hub state including corpus,
 // reproducers and information about managers.
@@ -342,10 +346,10 @@ func (st *State) Connect(name, http, domain string, fresh bool, calls []string, 
 	return nil
 }
 
-func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctype.HubInput, int, error) {
+func (st *State) Sync(name string, add [][]byte, del []string) (string, []hubapi.Input, int, error) {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return "", nil, 0, fmt.Errorf("unconnected manager %v", name)
+		return "", nil, 0, fmt.Errorf("%w %v", ErrUnconnected, name)
 	}
 	if len(del) != 0 {
 		deletedFromHub := false
@@ -381,7 +385,7 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 func (st *State) AddRepro(name string, repro []byte) error {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return fmt.Errorf("unconnected manager %v", name)
+		return fmt.Errorf("%w %v", ErrUnconnected, name)
 	}
 	sig := hash.String(repro)
 	if _, ok := st.Repros.Records[sig]; ok {
@@ -416,7 +420,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 func (st *State) PendingRepro(name string) ([]byte, error) {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return nil, fmt.Errorf("unconnected manager %v", name)
+		return nil, fmt.Errorf("%w %v", ErrUnconnected, name)
 	}
 	if mgr.reproSeq == st.reproSeq {
 		return nil, nil
@@ -440,7 +444,7 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 	return nil, nil
 }
 
-func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int) {
+func (st *State) pendingInputs(mgr *Manager) ([]hubapi.Input, int) {
 	if mgr.corpusSeq == st.corpusSeq {
 		return nil, 0
 	}
@@ -470,7 +474,7 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int) {
 			}
 		}
 	}
-	progs := make([]rpctype.HubInput, 0, maxRecords)
+	progs := make([]hubapi.Input, 0, maxRecords)
 	var lastSeq uint64
 	maxSeq := st.corpusSeq
 	var more int
@@ -489,7 +493,7 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int) {
 			more = len(st.corpusOrder) - i
 			break
 		}
-		progs = append(progs, rpctype.HubInput{
+		progs = append(progs, hubapi.Input{
 			Domain: st.inputDomain(entry.key, mgr.Domain),
 			Prog:   rec.Val,
 		})

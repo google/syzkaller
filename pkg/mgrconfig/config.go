@@ -74,9 +74,14 @@ type Config struct {
 	// SSH user ("root" by default).
 	SSHUser string `json:"ssh_user,omitempty"`
 
+	// Hub client name for exchanging corpus programs and reproducers with syz-hub (optional).
 	HubClient string `json:"hub_client,omitempty"`
-	HubAddr   string `json:"hub_addr,omitempty"`
-	HubKey    string `json:"hub_key,omitempty"`
+	// Base HTTP/HTTPS URL of syz-hub (required when hub_client is set),
+	// e.g. "https://hub.example.com". Use https:// over untrusted networks.
+	HubAddr string `json:"hub_addr,omitempty"`
+	// Secret key for authenticating with syz-hub.
+	// Leave empty to use ambient GCE OAuth bearer token authentication.
+	HubKey string `json:"hub_key,omitempty"`
 	// Hub input domain identifier (optional).
 	// The domain is used to avoid duplicate work (input minimization, smashing)
 	// across multiple managers testing similar kernels and connected to the same hub.
