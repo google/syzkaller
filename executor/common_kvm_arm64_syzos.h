@@ -289,6 +289,8 @@ guest_handle_mrs(uint64 reg)
 {
 	uint32 mrs = reg_to_mrs(reg);
 	uint32 cpu_id = get_cpu_id();
+	if (cpu_id >= KVM_MAX_VCPU)
+		return;
 	// Make sure CPUs use different cache lines for scratch code.
 	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = mrs;
@@ -314,6 +316,8 @@ guest_handle_msr(uint64 reg, uint64 val)
 {
 	uint32 msr = reg_to_msr(reg);
 	uint32 cpu_id = get_cpu_id();
+	if (cpu_id >= KVM_MAX_VCPU)
+		return;
 	// Make sure CPUs use different cache lines for scratch code.
 	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = msr;
@@ -544,21 +548,21 @@ GUEST_CODE static void gicr_wait_for_rwp(uint32 cpu)
 }
 
 // Set up the distributor part.
-GUEST_CODE static void gicv3_dist_init(int nr_spis)
+GUEST_CODE static void gicv3_dist_init(uint32 nr_spis)
 {
 	// Disable the distributor.
 	writel(0, ARM64_ADDR_GICD_BASE + GICD_CTLR);
 	gicd_wait_for_rwp();
 
 	// Mark all the SPI interrupts as non-secure Group-1. Also, deactivate and disable them.
-	for (int i = 32; i < nr_spis + 32; i += 32) {
+	for (uint32 i = 32; i < nr_spis + 32; i += 32) {
 		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_IGROUPR + i / 8);
 		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_ICACTIVER + i / 8);
 		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_ICENABLER + i / 8);
 	}
 
 	// Set a default priority for all the SPIs.
-	for (int i = 32; i < nr_spis + 32; i += 4) {
+	for (uint32 i = 32; i < nr_spis + 32; i += 4) {
 		writel(GICD_INT_DEF_PRI_X4,
 		       ARM64_ADDR_GICD_BASE + GICD_IPRIORITYR + i);
 	}
@@ -635,6 +639,8 @@ GUEST_CODE static void gicv3_irq_enable(uint32 intid)
 {
 	if (intid < VGICV3_MIN_SPI) {
 		uint32 cpu = get_cpu_id();
+		if (cpu >= KVM_MAX_VCPU)
+			return;
 		writel(1U << intid, sgi_base_cpu(cpu) + GICR_ISENABLER0);
 		gicr_wait_for_rwp(cpu);
 	} else if (intid <= VGICV3_MAX_SPI) {
@@ -645,15 +651,17 @@ GUEST_CODE static void gicv3_irq_enable(uint32 intid)
 
 GUEST_CODE static noinline void guest_handle_irq_setup(struct api_call_irq_setup* cmd)
 {
-	int nr_spis = cmd->nr_spis;
-	if ((nr_spis > VGICV3_MAX_SPI - VGICV3_MIN_SPI) || (nr_spis < 0))
+	uint32 nr_spis = cmd->nr_spis;
+	if (nr_spis > VGICV3_MAX_SPI - VGICV3_MIN_SPI + 1)
 		nr_spis = 32;
-	int nr_cpus = cmd->nr_cpus;
+	uint32 nr_cpus = cmd->nr_cpus;
+	if (nr_cpus > KVM_MAX_VCPU)
+		nr_cpus = KVM_MAX_VCPU;
 
 	gicv3_dist_init(nr_spis);
-	for (int i = 0; i < nr_cpus; i++)
+	for (uint32 i = 0; i < nr_cpus; i++)
 		gicv3_cpu_init(i);
-	for (int i = 0; i < nr_spis; i++)
+	for (uint32 i = 0; i < nr_spis; i++)
 		gicv3_irq_enable(VGICV3_MIN_SPI + i);
 	// Set up the vector table.
 	asm(R"(
@@ -695,7 +703,7 @@ GUEST_CODE static noinline void guest_handle_memwrite(struct api_call_memwrite* 
 	}
 }
 
-GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_events);
+GUEST_CODE static void guest_prepare_its(uint64 nr_cpus, uint64 nr_devices, uint64 nr_events);
 
 GUEST_CODE static noinline void guest_handle_its_setup(struct api_call_3* cmd)
 {
@@ -1013,8 +1021,7 @@ GUEST_CODE static unsigned long its_find_baser(unsigned int type)
 			return offset;
 	}
 
-	GUEST_ASSERT(0);
-	return -1;
+	guest_fatal(UEXIT_ASSERT);
 }
 
 GUEST_CODE static void its_install_table(unsigned int type, uint64 base, size_t size)
@@ -1224,6 +1231,8 @@ its_send_invall_cmd(uint64 cmdq_base, uint32 collection_id)
 // table itself is 64K.
 // TODO(glider): it may be interesting to use a different size here.
 #define SYZOS_NUM_IDBITS 16
+// Each device gets one SZ_64K ITT table with 8-byte ITTEs.
+#define ITS_MAX_EVENTS (SZ_64K / 8)
 
 GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
 {
@@ -1244,7 +1253,9 @@ GUEST_CODE static noinline void guest_handle_its_send_cmd(struct api_call_its_se
 {
 	volatile uint8 type = cmd->type;
 	if (type == GITS_CMD_MAPD) {
-		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + cmd->devid * SZ_64K;
+		if (cmd->devid >= ITS_MAX_DEVICES)
+			return;
+		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + (uint64)cmd->devid * SZ_64K;
 		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, itt_base,
 				  SYZOS_NUM_IDBITS, cmd->valid);
 		return;
@@ -1310,9 +1321,9 @@ GUEST_CODE static noinline void guest_setup_its_mappings(uint64 cmdq_base,
 	}
 }
 
-GUEST_CODE static void guest_invalidate_all_rdists(uint64 cmdq_base, int nr_cpus)
+GUEST_CODE static void guest_invalidate_all_rdists(uint64 cmdq_base, uint32 nr_cpus)
 {
-	for (int i = 0; i < nr_cpus; i++)
+	for (uint32 i = 0; i < nr_cpus; i++)
 		its_send_invall_cmd(cmdq_base, i);
 }
 
@@ -1348,21 +1359,32 @@ GUEST_CODE static void gic_rdist_enable_lpis(uint32 cpu, uint64 cfg_table,
 //   452158:       3d800000        str     q0, [x0]
 //   45215c:       d65f03c0        ret
 // , which for some reason hangs.
-GUEST_CODE static noinline void configure_lpis(uint64 prop_table, int nr_devices, int nr_events)
+GUEST_CODE static noinline void configure_lpis(uint64 prop_table, uint32 nr_devices, uint32 nr_events)
 {
-	int nr_lpis = nr_devices * nr_events;
+	uint32 nr_lpis = nr_devices * nr_events;
 	volatile uint8* tbl = (uint8*)prop_table;
-	for (int i = 0; i < nr_lpis; i++) {
+	for (uint32 i = 0; i < nr_lpis; i++) {
 		tbl[i] = LPI_PROP_DEFAULT_PRIO |
 			 LPI_PROP_GROUP1 |
 			 LPI_PROP_ENABLED;
 	}
 }
 
-GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_events)
+GUEST_CODE static void guest_prepare_its(uint64 nr_cpus, uint64 nr_devices, uint64 nr_events)
 {
+	if (nr_cpus > KVM_MAX_VCPU)
+		nr_cpus = KVM_MAX_VCPU;
+	if (nr_devices > ITS_MAX_DEVICES)
+		nr_devices = ITS_MAX_DEVICES;
+	if (nr_events > ITS_MAX_EVENTS)
+		nr_events = ITS_MAX_EVENTS;
+	// LPI IDs start at GIC_LPI_OFFSET, so the 64K property table holds at most SZ_64K - GIC_LPI_OFFSET IDs.
+	uint64 max_lpis = SZ_64K - GIC_LPI_OFFSET;
+	if ((nr_devices > 0) && (nr_events > max_lpis / nr_devices))
+		nr_events = max_lpis / nr_devices;
+
 	configure_lpis(ARM64_ADDR_ITS_PROP_TABLE, nr_devices, nr_events);
-	for (int i = 0; i < nr_cpus; i++)
+	for (uint32 i = 0; i < nr_cpus; i++)
 		gic_rdist_enable_lpis(i, ARM64_ADDR_ITS_PROP_TABLE,
 				      ARM64_ADDR_ITS_PEND_TABLES + (uint64)i * SZ_64K);
 	its_init(ARM64_ADDR_ITS_COLL_TABLE, ARM64_ADDR_ITS_DEVICE_TABLE, ARM64_ADDR_ITS_CMDQ_BASE);
