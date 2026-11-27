@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,4 +172,19 @@ func TestValidateFixesHashes(t *testing.T) {
 	_, err = validateFixesHashes(nil, badState, fixesFinderArgs{FixesHash: commitA.Hash})
 	require.Error(t, err)
 	require.NotContains(t, err.Error(), "is not reachable from the current commit")
+}
+
+func TestValidatePatchDescription(t *testing.T) {
+	got, err := validatePatchDescription("net: fix bug\n\n\tindented line\n")
+	require.NoError(t, err)
+	assert.Equal(t, "net: fix bug\n\n\tindented line\n", got)
+
+	_, err = validatePatchDescription("net: fix — bug\r\n\nIt’s a\u00a0path — crash\x07!")
+	require.Error(t, err)
+	require.IsType(t, aflow.BadCallError(""), err)
+	assert.Equal(t,
+		`PatchDescription must contain only printable ASCII characters (plus tabs and newlines); `+
+			`found: '—' (U+2014), '\r' (U+000D), '’' (U+2019), '\u00a0' (U+00A0), '\a' (U+0007). `+
+			`Replace all non-ASCII or control characters with plain ASCII equivalents.`,
+		err.Error())
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/backend"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,4 +108,25 @@ Reviewer asked to fix style.
 	res, err = viewPatchHistoryFunc(ctx, state, viewPatchHistoryArgs{Version: 99})
 	require.NoError(t, err)
 	require.Equal(t, "Note: the specified version (v99) is not found.\n\n"+wantSummary, res.Result)
+}
+
+func TestValidateChangelogOutputs(t *testing.T) {
+	got, err := validateChangelogOutputs(nil, struct{}{}, changelogGeneratorOutputs{
+		PatchDescription: "net: fix bug\n\nBody.",
+		NewChangeLog:     "- Fixed review comment\n",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, changelogGeneratorOutputs{
+		PatchDescription: "net: fix bug\n\nBody.",
+		NewChangeLog:     "- Fixed review comment\n",
+	}, got)
+
+	_, err = validateChangelogOutputs(nil, struct{}{}, changelogGeneratorOutputs{
+		PatchDescription: "net: fix bug — details",
+		NewChangeLog:     "- Replaced foo → bar",
+	})
+	require.Error(t, err)
+	require.IsType(t, aflow.BadCallError(""), err)
+	assert.Contains(t, err.Error(), "PatchDescription")
+	assert.Contains(t, err.Error(), "NewChangeLog")
 }

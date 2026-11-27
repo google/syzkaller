@@ -90,8 +90,19 @@ type changelogGeneratorOutputs struct {
 
 func validateChangelogOutputs(ctx *aflow.Context, state struct{}, args changelogGeneratorOutputs) (
 	changelogGeneratorOutputs, error) {
+	var errs []string
+	desc, err := validatePatchDescription(args.PatchDescription)
+	if err != nil {
+		errs = append(errs, err.Error())
+	}
+	if err := validateASCII("NewChangeLog", args.NewChangeLog); err != nil {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		return args, aflow.BadCallError("%s", strings.Join(errs, "\n"))
+	}
 	return changelogGeneratorOutputs{
-		PatchDescription: email.WordWrap(args.PatchDescription, patchDescriptionLineLength),
+		PatchDescription: desc,
 		NewChangeLog:     args.NewChangeLog,
 	}, nil
 }
@@ -644,6 +655,8 @@ CRITICAL: Do NOT rewrite or rephrase the existing patch description. You may onl
 if the previous description is now fundamentally incorrect due to the new changes. Otherwise,
 keep it exactly as it was, and document all new changes exclusively in the change log.
 {{end}}
+Even when preserving the previous description, replace any non-ASCII characters with plain
+ASCII equivalents.
 
 ` + commonPatchDescriptionInstruction
 
