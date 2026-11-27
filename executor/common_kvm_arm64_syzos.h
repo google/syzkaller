@@ -424,6 +424,7 @@ GUEST_CODE static noinline void guest_handle_svc(struct api_call_smccc* cmd)
 #define GICR_CTLR_RWP (1UL << 3)
 
 #define GICR_IGROUPR0 GICD_IGROUPR
+#define GICR_ISENABLER0 GICD_ISENABLER
 #define GICR_ICENABLER0 GICD_ICENABLER
 #define GICR_ICACTIVER0 GICD_ICACTIVER
 #define GICR_IPRIORITYR0 GICD_IPRIORITYR
@@ -551,9 +552,9 @@ GUEST_CODE static void gicv3_dist_init(int nr_spis)
 
 	// Mark all the SPI interrupts as non-secure Group-1. Also, deactivate and disable them.
 	for (int i = 32; i < nr_spis + 32; i += 32) {
-		writel(~0, ARM64_ADDR_GICD_BASE + GICD_IGROUPR + i / 8);
-		writel(~0, ARM64_ADDR_GICD_BASE + GICD_ICACTIVER + i / 8);
-		writel(~0, ARM64_ADDR_GICD_BASE + GICD_ICENABLER + i / 8);
+		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_IGROUPR + i / 8);
+		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_ICACTIVER + i / 8);
+		writel(~0U, ARM64_ADDR_GICD_BASE + GICD_ICENABLER + i / 8);
 	}
 
 	// Set a default priority for all the SPIs.
@@ -577,9 +578,9 @@ GUEST_CODE static void gicv3_enable_redist(uint32 cpu)
 	uint32 val = readl(redist_base_cpu + GICR_WAKER);
 
 	val &= ~GICR_WAKER_ProcessorSleep;
-	writel(val, ARM64_ADDR_GICR_BASE + GICR_WAKER);
+	writel(val, redist_base_cpu + GICR_WAKER);
 	// Wait until the processor is 'active'.
-	spin_while_readl(ARM64_ADDR_GICR_BASE + GICR_WAKER, GICR_WAKER_ChildrenAsleep);
+	spin_while_readl(redist_base_cpu + GICR_WAKER, GICR_WAKER_ChildrenAsleep);
 }
 
 GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
@@ -591,9 +592,9 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 	gicv3_enable_redist(cpu);
 
 	// Mark all the SGI and PPI interrupts as non-secure Group-1. Also, deactivate and disable them.
-	writel(~0, sgi_base + GICR_IGROUPR0);
-	writel(~0, sgi_base + GICR_ICACTIVER0);
-	writel(~0, sgi_base + GICR_ICENABLER0);
+	writel(~0U, sgi_base + GICR_IGROUPR0);
+	writel(~0U, sgi_base + GICR_ICACTIVER0);
+	writel(~0U, sgi_base + GICR_ICENABLER0);
 
 	// Set a default priority for all the SGIs and PPIs.
 	for (int i = 0; i < 32; i += 4) {
@@ -632,13 +633,14 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 // https://developer.arm.com/documentation/ihi0048/b/Programmers--Model/Distributor-register-descriptions/Interrupt-Set-Enable-Registers--GICD-ISENABLERn
 GUEST_CODE static void gicv3_irq_enable(uint32 intid)
 {
-	uint32 cpu = get_cpu_id();
-
-	writel(1 << (intid % 32), ARM64_ADDR_GICD_BASE + GICD_ISENABLER + (intid / 32) * 4);
-	if ((intid >= VGICV3_MIN_SPI) && (intid <= VGICV3_MAX_SPI))
-		gicd_wait_for_rwp();
-	else
+	if (intid < VGICV3_MIN_SPI) {
+		uint32 cpu = get_cpu_id();
+		writel(1U << intid, sgi_base_cpu(cpu) + GICR_ISENABLER0);
 		gicr_wait_for_rwp(cpu);
+	} else if (intid <= VGICV3_MAX_SPI) {
+		writel(1U << (intid % 32), ARM64_ADDR_GICD_BASE + GICD_ISENABLER + (intid / 32) * 4);
+		gicd_wait_for_rwp();
+	}
 }
 
 GUEST_CODE static noinline void guest_handle_irq_setup(struct api_call_irq_setup* cmd)
@@ -1313,11 +1315,11 @@ GUEST_CODE static void guest_invalidate_all_rdists(uint64 cmdq_base, int nr_cpus
 		its_send_invall_cmd(cmdq_base, i);
 }
 
-// Set up GIRC_PROPBASER and GICR_PENDBASER.
-void gic_rdist_enable_lpis(uint64 cfg_table, size_t cfg_table_size,
-			   uint64 pend_table)
+// Set up GICR_PROPBASER and GICR_PENDBASER for a redistributor.
+GUEST_CODE static void gic_rdist_enable_lpis(uint32 cpu, uint64 cfg_table,
+					     uint64 pend_table)
 {
-	uint64 rdist_base = gicr_base_cpu(get_cpu_id());
+	uint64 rdist_base = gicr_base_cpu(cpu);
 	uint64 val = (cfg_table |
 		      GICR_PROPBASER_InnerShareable |
 		      GICR_PROPBASER_RaWaWb |
@@ -1330,7 +1332,7 @@ void gic_rdist_enable_lpis(uint64 cfg_table, size_t cfg_table_size,
 	       GICR_PENDBASER_RaWaWb);
 	writeq(val, rdist_base + GICR_PENDBASER);
 
-	uint64 ctlr = readl(rdist_base + GICR_CTLR);
+	uint32 ctlr = readl(rdist_base + GICR_CTLR);
 	ctlr |= GICR_CTLR_ENABLE_LPIS;
 	writel(ctlr, rdist_base + GICR_CTLR);
 }
@@ -1359,7 +1361,9 @@ GUEST_CODE static noinline void configure_lpis(uint64 prop_table, int nr_devices
 GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_events)
 {
 	configure_lpis(ARM64_ADDR_ITS_PROP_TABLE, nr_devices, nr_events);
-	gic_rdist_enable_lpis(ARM64_ADDR_ITS_PROP_TABLE, SZ_64K, ARM64_ADDR_ITS_PEND_TABLES);
+	for (int i = 0; i < nr_cpus; i++)
+		gic_rdist_enable_lpis(i, ARM64_ADDR_ITS_PROP_TABLE,
+				      ARM64_ADDR_ITS_PEND_TABLES + (uint64)i * SZ_64K);
 	its_init(ARM64_ADDR_ITS_COLL_TABLE, ARM64_ADDR_ITS_DEVICE_TABLE, ARM64_ADDR_ITS_CMDQ_BASE);
 	guest_setup_its_mappings(ARM64_ADDR_ITS_CMDQ_BASE, ARM64_ADDR_ITS_ITT_TABLES, nr_events, nr_devices, nr_cpus);
 	guest_invalidate_all_rdists(ARM64_ADDR_ITS_CMDQ_BASE, nr_cpus);
