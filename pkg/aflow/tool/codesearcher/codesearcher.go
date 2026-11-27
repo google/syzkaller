@@ -7,6 +7,7 @@ package codesearcher
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/clangtool"
@@ -299,3 +300,20 @@ func extractFunction(ctx *aflow.Context, args extractFunctionArgs) (extractFunct
 }
 
 var ActionExtractFunction = aflow.NewFuncAction("codesearch-extract-function", extractFunction)
+
+type checkFuncExistsArgs struct {
+	Index        index
+	FunctionName string
+}
+
+func checkFuncExists(ctx *aflow.Context, args checkFuncExistsArgs) (struct{}, error) {
+	baseName, _, _ := strings.Cut(args.FunctionName, ".")
+	if baseName == "" || !args.Index.HasFunction(baseName) {
+		return struct{}{}, aflow.FlowError(fmt.Errorf("function %q not found in kernel index", args.FunctionName))
+	}
+	return struct{}{}, nil
+}
+
+// CheckFuncExists verifies that FunctionName (after stripping compiler clone suffixes
+// such as .constprop.0 or .isra.0) exists as a function in the indexed kernel.
+var CheckFuncExists = aflow.NewFuncAction("codesearch-check-func", checkFuncExists)

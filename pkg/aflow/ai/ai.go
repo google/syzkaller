@@ -4,7 +4,10 @@
 // Package ai contains common workflow definitions.
 package ai
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
 
 type WorkflowType string
 
@@ -18,6 +21,7 @@ const (
 	WorkflowAssessmentSecurity = WorkflowType("assessment-security")
 	WorkflowRepro              = WorkflowType("repro")
 	WorkflowReproC             = WorkflowType("repro-c")
+	WorkflowReproFuncC         = WorkflowType("repro-func-c")
 	WorkflowPatchTriage        = WorkflowType("patch-triage")
 	WorkflowSeedGen            = WorkflowType("seed-gen")
 	WorkflowSeedGenFileLine    = WorkflowType("seed-gen-file-line")
@@ -25,6 +29,17 @@ const (
 	WorkflowBisectCause        = WorkflowType("bisect-cause")
 	WorkflowBisectFix          = WorkflowType("bisect-fix")
 )
+
+const maxKernelFuncNameLen = 128
+
+// validKernelFuncNameRe matches a C identifier optionally followed by compiler
+// optimization suffixes such as .constprop.0 or .isra.0.
+var validKernelFuncNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)*$`)
+
+// ValidKernelFuncName reports whether name is a valid kernel function identifier.
+func ValidKernelFuncName(name string) bool {
+	return len(name) <= maxKernelFuncNameLen && validKernelFuncNameRe.MatchString(name)
+}
 
 // Outputs of various workflow types.
 // Should be changed carefully since old outputs are stored in the dashboard database.

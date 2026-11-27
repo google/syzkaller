@@ -65,6 +65,8 @@ type RunTestResult struct {
 type RunTestOpts struct {
 	// Collect per-call coverage (requires a syzkaller program).
 	CollectCoverage bool
+	// Restrict crash detection in raw C runs to kernel console output only.
+	ConsoleOnlyCrash bool
 	// If non-zero, limits the total number of VM runs, including retries after infra errors.
 	MaxTotalRuns int
 }
@@ -99,9 +101,10 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTes
 	}
 
 	runner := &reproRunner{
-		env:             env,
-		args:            args,
-		collectCoverage: opts.CollectCoverage,
+		env:              env,
+		args:             args,
+		collectCoverage:  opts.CollectCoverage,
+		consoleOnlyCrash: opts.ConsoleOnlyCrash,
 	}
 
 	runs, maxTotal := defaultTestRuns, 3*defaultTestRuns
@@ -123,14 +126,18 @@ func RunTest(ctx *aflow.Context, args ReproduceArgs, workdir string, opts RunTes
 }
 
 type reproRunner struct {
-	env             instance.Env
-	args            ReproduceArgs
-	collectCoverage bool
+	env              instance.Env
+	args             ReproduceArgs
+	collectCoverage  bool
+	consoleOnlyCrash bool
 }
 
 func (r *reproRunner) Test(numVMs int) ([]instance.EnvTestResult, error) {
 	results, err := r.env.Test(numVMs, []byte(r.args.ReproSyz), []byte(r.args.ReproOpts),
-		[]byte(r.args.ReproC), instance.TestOpts{CollectCoverage: r.collectCoverage})
+		[]byte(r.args.ReproC), instance.TestOpts{
+			CollectCoverage:  r.collectCoverage,
+			ConsoleOnlyCrash: r.consoleOnlyCrash,
+		})
 	if err != nil {
 		return nil, err
 	}

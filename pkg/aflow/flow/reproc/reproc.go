@@ -42,6 +42,59 @@ type ReproCInputs struct {
 	StraceBin string
 }
 
+type ReproFuncCInputs struct {
+	AgentName    string
+	TargetOS     string
+	TargetArch   string
+	TargetVMArch string `json:",omitempty"`
+	FunctionName string
+	Sanitizers   string `json:",omitempty"`
+
+	KernelRepo   string
+	KernelCommit string
+	KernelConfig string
+
+	Image     string
+	Type      string
+	VM        json.RawMessage
+	Syzkaller string
+	StraceBin string
+}
+
+type DescribeFuncBugArgs struct {
+	FunctionName string
+	Sanitizers   string `json:",omitempty"`
+}
+
+type DescribeFuncBugResult struct {
+	BugDescription string
+}
+
+func DescribeFuncBugFunc(ctx *aflow.Context, args DescribeFuncBugArgs) (DescribeFuncBugResult, error) {
+	if !ai.ValidKernelFuncName(args.FunctionName) {
+		return DescribeFuncBugResult{}, aflow.FlowError(fmt.Errorf("invalid kernel function name %q", args.FunctionName))
+	}
+	desc := fmt.Sprintf("I know that the function %s contains a kernel bug. "+
+		"Please inspect it and provide a C reproducer that will trigger a bug in that function.",
+		args.FunctionName)
+	if args.Sanitizers != "" {
+		desc += fmt.Sprintf(" The target kernel is built with %s. Aim for a failure this kernel can detect.",
+			args.Sanitizers)
+	}
+	return DescribeFuncBugResult{BugDescription: desc}, nil
+}
+
+var DescribeFuncBug = aflow.NewFuncAction("describe-func-bug", DescribeFuncBugFunc)
+
+type notReproducedResult struct {
+	Reproduced bool
+}
+
+var onMaxAttemptsNotReproduced = aflow.NewFuncAction("not-reproduced-max-attempts",
+	func(ctx *aflow.Context, args struct{}) (notReproducedResult, error) {
+		return notReproducedResult{Reproduced: false}, nil
+	})
+
 type FormatCArgs struct {
 	CandidateReproC string
 }
@@ -382,99 +435,137 @@ func SaveReproCFunc(ctx *aflow.Context, args SaveReproCArgs) (SaveReproCResult, 
 
 var SaveReproC = aflow.NewFuncAction("save-repro-c", SaveReproCFunc)
 
-func init() {
+type reproCPipelineOpts struct {
+	prefix          []aflow.Action
+	afterIndex      []aflow.Action
+	maxIterations   int
+	onMaxIterations aflow.Action
+}
+
+func reproCPipeline(opts reproCPipelineOpts) aflow.Action {
 	codeTools := common.CodeAccessToolsWithGit(false)
 	tools := aflow.Tools(codeTools, toolkit.ToolGetToolkit)
+	steps := slices.Clone(opts.prefix)
+	steps = append(steps,
+		kernel.Checkout,
+		kernel.Build,
+		codesearcher.PrepareIndex,
+	)
+	steps = append(steps, opts.afterIndex...)
+	steps = append(steps,
+		&aflow.LLMAgent{
+			Name:                "initial-researcher",
+			Model:               aflow.CoreModel,
+			Reply:               "InitialReproStrategy",
+			MaxIterations:       100,
+			AllowPartialResults: true,
+			Instruction:         initialResearcherInstruction,
+			Prompt:              initialResearcherPrompt,
+			Tools:               tools,
+		},
+		&aflow.DoWhile{
+			MaxIterations:   opts.maxIterations,
+			While:           "ContinueSignal",
+			OnMaxIterations: opts.onMaxIterations,
+			Do: aflow.Pipeline(
+				&aflow.If{
+					Condition: "OracleFeedback",
+					Do: &aflow.LLMAgent{
+						Name:                "strategy-refiner",
+						Model:               aflow.CoreModel,
+						Reply:               "RefinedReproStrategy",
+						MaxIterations:       100,
+						AllowPartialResults: true,
+						Instruction:         refinerInstruction,
+						Prompt:              refinerPrompt,
+						Tools:               tools,
+					},
+				},
+				MergeStrategy,
+				&aflow.LLMAgent{
+					Name:  "repro-generator",
+					Model: aflow.CoreModel,
+					Outputs: aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](
+						validateGeneratorOutputs),
+					MaxIterations:       100,
+					AllowPartialResults: true,
+					Instruction:         generatorInstruction,
+					Prompt:              generatorPrompt,
+					Tools:               tools,
+				},
+				&aflow.DoWhile{
+					MaxIterations: 3,
+					While:         "CompilerError",
+					Do: aflow.Pipeline(
+						MergeReproC,
+						CompileCProg,
+						&aflow.If{
+							Condition: "CompilerError",
+							Do: &aflow.LLMAgent{
+								Name:          "repro-repairer",
+								Model:         aflow.CoreModel,
+								Reply:         "RepairedCandidateReproC",
+								MaxIterations: 50,
+								Instruction:   repairerInstruction,
+								Prompt:        repairerPrompt,
+								Tools:         tools,
+							},
+						},
+					),
+				},
+				crash.RunCRepro,
+				TruncateLog,
+				&aflow.LLMAgent{
+					Name:        "repro-oracle",
+					Model:       aflow.CoreModel,
+					Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
+					Instruction: oracleInstruction,
+					Prompt:      oraclePrompt,
+					// The oracle only diagnoses an execution: it needs code access tools, but not the toolkit.
+					// Its verdict only steers the next attempt, so it reports a best-effort verdict
+					// instead of failing the whole workflow if it runs out of iterations.
+					Tools:               aflow.Tools(codeTools),
+					MaxIterations:       30,
+					AllowPartialResults: true,
+				},
+				LoopController,
+			),
+		},
+		SaveReproC,
+	)
+	return aflow.Pipeline(steps...)
+}
+
+func init() {
 	aflow.Register[ReproCInputs, ai.ReproCOutputs](
 		ai.WorkflowReproC,
 		"reproduce a kernel crash and generate a C reproducer",
 		&aflow.Flow{
 			Consts: map[string]any{
-				"NeedStrace": true,
+				"NeedStrace":       true,
+				"ConsoleOnlyCrash": false,
+				"FunctionDirected": false,
 			},
-			Root: aflow.Pipeline(
-				kernel.Checkout,
-				kernel.Build,
-				codesearcher.PrepareIndex,
-				&aflow.LLMAgent{
-					Name:                "initial-researcher",
-					Model:               aflow.CoreModel,
-					Reply:               "InitialReproStrategy",
-					MaxIterations:       100,
-					AllowPartialResults: true,
-					Instruction:         initialResearcherInstruction,
-					Prompt:              initialResearcherPrompt,
-					Tools:               tools,
-				},
-				&aflow.DoWhile{
-					MaxIterations: 10,
-					While:         "ContinueSignal",
-					Do: aflow.Pipeline(
-						&aflow.If{
-							Condition: "OracleFeedback",
-							Do: &aflow.LLMAgent{
-								Name:                "strategy-refiner",
-								Model:               aflow.CoreModel,
-								Reply:               "RefinedReproStrategy",
-								MaxIterations:       100,
-								AllowPartialResults: true,
-								Instruction:         refinerInstruction,
-								Prompt:              refinerPrompt,
-								Tools:               tools,
-							},
-						},
-						MergeStrategy,
-						&aflow.LLMAgent{
-							Name:  "repro-generator",
-							Model: aflow.CoreModel,
-							Outputs: aflow.ValidatedLLMOutputs[GeneratorResult, GeneratorValidationState](
-								validateGeneratorOutputs),
-							MaxIterations:       100,
-							AllowPartialResults: true,
-							Instruction:         generatorInstruction,
-							Prompt:              generatorPrompt,
-							Tools:               tools,
-						},
-						&aflow.DoWhile{
-							MaxIterations: 3,
-							While:         "CompilerError",
-							Do: aflow.Pipeline(
-								MergeReproC,
-								CompileCProg,
-								&aflow.If{
-									Condition: "CompilerError",
-									Do: &aflow.LLMAgent{
-										Name:          "repro-repairer",
-										Model:         aflow.CoreModel,
-										Reply:         "RepairedCandidateReproC",
-										MaxIterations: 50,
-										Instruction:   repairerInstruction,
-										Prompt:        repairerPrompt,
-										Tools:         tools,
-									},
-								},
-							),
-						},
-						crash.RunCRepro,
-						TruncateLog,
-						&aflow.LLMAgent{
-							Name:        "repro-oracle",
-							Model:       aflow.CoreModel,
-							Outputs:     aflow.ValidatedLLMOutputs[OracleResult, OracleValidationState](validateOracleOutputs),
-							Instruction: oracleInstruction,
-							Prompt:      oraclePrompt,
-							// The oracle only diagnoses an execution: it needs code access tools, but not the toolkit.
-							// Its verdict only steers the next attempt, so it reports a best-effort verdict
-							// instead of failing the whole workflow if it runs out of iterations.
-							Tools:               aflow.Tools(codeTools),
-							MaxIterations:       30,
-							AllowPartialResults: true,
-						},
-						LoopController,
-					),
-				},
-				SaveReproC,
-			),
+			Root: reproCPipeline(reproCPipelineOpts{
+				maxIterations: 10,
+			}),
+		},
+	)
+	aflow.Register[ReproFuncCInputs, ai.ReproCOutputs](
+		ai.WorkflowReproFuncC,
+		"generate a C reproducer for a target kernel function",
+		&aflow.Flow{
+			Consts: map[string]any{
+				"NeedStrace":       true,
+				"ConsoleOnlyCrash": true,
+				"FunctionDirected": true,
+			},
+			Root: reproCPipeline(reproCPipelineOpts{
+				prefix:          []aflow.Action{DescribeFuncBug},
+				afterIndex:      []aflow.Action{codesearcher.CheckFuncExists},
+				maxIterations:   5,
+				onMaxIterations: onMaxAttemptsNotReproduced,
+			}),
 		},
 	)
 }
@@ -641,8 +732,14 @@ Set 'TerminalError' to a descriptive error message ONLY if:
 - Use the code access tools to verify kernel behavior, ioctl numbers, struct layouts and constants before
   recommending them. Never quote such values from memory. Keep tool use focused: you only need to diagnose
   this execution, not to re-research the whole bug.
+{{- if .FunctionDirected}}
+- If you are asked to wrap up before finishing your analysis, set 'TitleMatches' only if you have confirmed
+  the crash is a genuine bug rooted in or reached through the target function, never set 'TerminalError',
+  and describe the unverified parts in 'Feedback'.
+{{- else}}
 - If you are asked to wrap up before finishing your analysis, set 'TitleMatches' only if the crash titles
   match exactly, never set 'TerminalError', and describe the unverified parts in 'Feedback'.
+{{- end}}
 
 {{if .IsProbe}}
 === PHASE 1: CAPABILITY PROBING (EVALUATION) ===
@@ -659,6 +756,14 @@ Use this to guide your classification and feedback:
 The executed program was a full reproducer candidate attempting to trigger the target bug/crash.
 Use this to guide your classification and feedback:
 1. If a crash was triggered (Reproduced is true):
+{{- if .FunctionDirected}}
+   - Determine if the triggered crash is a genuine kernel bug whose root cause is in the target
+     function or is reached through it (for example, manifesting in a caller or callee).
+   - If so, set TitleMatches to true and provide a clear technical explanation connecting the
+     crash to the target function in the 'Feedback' field.
+   - If the crash is completely unrelated to the target function (an unrelated collision),
+     set TitleMatches to false and explain why it is unrelated in 'Feedback'.
+{{- else}}
    - Determine if the triggered crash matches the expected bug.
    - If you conclude they represent the same underlying bug (the same root cause)
      despite different titles, crash signatures, or call traces, set TitleMatches
@@ -667,6 +772,7 @@ Use this to guide your classification and feedback:
    - If they do not represent the same bug (a completely unrelated crash/collision),
      set TitleMatches to false and explain the collision in 'Feedback'.
    - If they match exactly, set TitleMatches to true and provide a brief confirmation in 'Feedback'.
+{{- end}}
 2. If the execution was successful (exit 0) WITHOUT a crash (Reproduced is false):
    - The reproduction attempt failed to trigger the bug. Analyze the executed C program and the
      console/strace output to understand why the bug did not trigger (e.g., timing, input arguments,

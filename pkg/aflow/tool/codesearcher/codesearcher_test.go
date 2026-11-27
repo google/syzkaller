@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/codesearch"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStructLayout(t *testing.T) {
@@ -154,6 +155,24 @@ func TestExtractFunctionNotFound(t *testing.T) {
 		extractFunctionResult{},
 		"no function found at line 1 in file source0.c",
 	)
+}
+
+func TestCheckFuncExists(t *testing.T) {
+	idx := createIndex(t).Index
+	for _, name := range []string{"open", "open.constprop.0", "open.isra.0"} {
+		aflow.TestAction(t, CheckFuncExists, "",
+			checkFuncExistsArgs{Index: idx, FunctionName: name},
+			struct{}{}, "",
+		)
+	}
+	for _, name := range []string{"no_such_func", "struct_in_c_file", ""} {
+		aflow.TestAction(t, CheckFuncExists, "",
+			checkFuncExistsArgs{Index: idx, FunctionName: name},
+			struct{}{}, `function "`+name+`" not found in kernel index`,
+		)
+		_, err := checkFuncExists(aflow.NewTestContext(t), checkFuncExistsArgs{Index: idx, FunctionName: name})
+		require.True(t, aflow.IsFlowError(err), "expected FlowError for %q, got %v", name, err)
+	}
 }
 
 func createIndex(t *testing.T) prepareResult {
