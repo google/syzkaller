@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,9 +67,10 @@ func runTest(t *testing.T, cfg *api.FuzzConfig, baseName string) {
 
 func compareOrSave(t *testing.T, fileName string, mgrCfg *mgrconfig.Config) {
 	syscalls, err := mgrconfig.ParseEnabledSyscalls(mgrCfg.Target,
-		mgrCfg.EnabledSyscalls, mgrCfg.DisabledSyscalls, mgrconfig.AnyDescriptions)
+		mgrCfg.EnabledSyscalls, mgrCfg.DisabledSyscalls, mgrconfig.ManualDescriptions)
 	require.NoError(t, err)
 	require.NotEmpty(t, syscalls)
+	checkTransitivelyEnabled(t, mgrCfg, syscalls)
 	_, err = mgrconfig.ParseNoMutateSyscalls(mgrCfg.Target, mgrCfg.NoMutateSyscalls)
 	require.NoError(t, err)
 
@@ -91,4 +93,29 @@ func compareOrSave(t *testing.T, fileName string, mgrCfg *mgrconfig.Config) {
 	resultJSON, err := json.MarshalIndent(cfg, "", "\t")
 	require.NoError(t, err)
 	assert.Equal(t, targetJSON, resultJSON)
+}
+
+func checkTransitivelyEnabled(t *testing.T, mgrCfg *mgrconfig.Config, syscalls []int) {
+	if len(mgrCfg.EnabledSyscalls) == 0 {
+		return
+	}
+	enabled := make(map[*prog.Syscall]bool, len(syscalls))
+	for _, id := range syscalls {
+		enabled[mgrCfg.Target.Syscalls[id]] = true
+	}
+	trans, disabled := mgrCfg.Target.TransitivelyEnabledCalls(enabled)
+	for _, pattern := range mgrCfg.EnabledSyscalls {
+		if sc := mgrCfg.Target.SyscallMap[pattern]; sc != nil {
+			assert.True(t, trans[sc], "syscall %q is disabled: %s", pattern, disabled[sc])
+			continue
+		}
+		matched := false
+		for sc := range trans {
+			if mgrconfig.MatchSyscall(sc.Name, pattern) {
+				matched = true
+				break
+			}
+		}
+		assert.True(t, matched, "pattern %q has 0 transitively enabled syscalls", pattern)
+	}
 }

@@ -98,9 +98,11 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
 			"openat$kvm",
 			"openat$sev",
+			"openat$sgx_provision",
 			"close",
 			"ioctl$KVM*",
 			"syz_kvm*",
+			"syz_create_resource$kvm_nested_state",
 			"mmap",
 			"mmap$KVM_VCPU",
 			"mmap$KVM_DIRTY_RING",
@@ -117,6 +119,8 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"memfd_create",
 			"userfaultfd",
 			"ioctl$UFFDIO*",
+			"getpid",
+			"gettid",
 			"sched_setattr",
 			"sched_setscheduler",
 			"syz_memcpy_off$KVM_DIRTY_GFN",
@@ -165,6 +169,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"setsockopt$bt*", "getsockopt$bt*", "ioctl$sock_bt*", "ioctl$HCI*", "write$bt*",
 			"openat$6lowpan*", "write$6lowpan*",
 			"openat$rfkill", "write$rfkill", "read$rfkill", "ioctl$RFKILL*",
+			"openat$nci", "ioctl$IOCTL_GET_NCIDEV_IDX",
 			"accept", "accept4", "bind", "close", "connect", "epoll_create",
 			"epoll_create1", "epoll_ctl", "epoll_pwait", "epoll_wait",
 			"getpeername", "getsockname", "getsockopt", "ioctl$sock_*", "listen",
@@ -181,7 +186,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"pread64", "readv", "preadv", "preadv2", "write", "pwrite64",
 			"writev", "pwritev", "pwritev2", "lseek", "copy_file_range", "dup",
 			"dup2", "dup3", "pipe", "pipe2", "tee", "splice", "vmsplice", "sendfile", "stat",
-			"lstat", "fstat", "newfstatat", "statx", "poll", "clock_gettime",
+			"lstat", "fstat", "newfstatat", "statx", "poll", "clock_gettime", "gettimeofday",
 			"ppoll", "select", "pselect6", "epoll_create", "epoll_create1",
 			"epoll_ctl", "epoll_wait", "epoll_pwait", "epoll_pwait2", "mmap",
 			"munmap", "mremap", "remap_file_pages", "mprotect", "msync", "madvise",
@@ -208,6 +213,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"syz_mount_image$ext4",
 			"syz_mount_image$f2fs",
 			"syz_mount_image$ntfs",
+			"syz_mount_image$ntfs3",
 			"syz_mount_image$ocfs2",
 			"syz_mount_image$xfs",
 		)
@@ -217,7 +223,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 		mgrCfg.EnabledSyscalls = append(mgrCfg.EnabledSyscalls,
 			"io_uring_*", "syz_io_uring_*", "mmap", "madvise",
 			"mprotect", "eventfd", "socket", "setsockopt", "accept", "open", "close",
-			"clock_gettime", "ioctl$sock_SIOCGIFINDEX", "ioctl$IOCTL_GET_NCIDEV_IDX",
+			"getpid", "clock_gettime", "ioctl$sock_SIOCGIFINDEX", "ioctl$IOCTL_GET_NCIDEV_IDX",
 			"openat", "epoll_create",
 		)
 		return nil
@@ -229,8 +235,8 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"socketpair", "sendmsg", "recvmsg", "setsockopt$sock_attach_bpf",
 			"socket", "ioctl$sock_kcm*", "syz_clone",
 			"mkdirat$cgroup*", "openat$cgroup*", "write$cgroup*",
-			"openat$tun", "write$tun", "ioctl$TUN*", "ioctl$SIOCSIFHWADDR",
-			"openat$ppp", "syz_open_procfs$namespace", "openat$pidfd", "fstat",
+			"openat$tun", "write$tun", "ioctl$TUN*", "ioctl$SIOCSIFHWADDR", "syz_extract_tcp_res",
+			"openat$ppp", "syz_open_procfs$namespace", "openat$pidfd", "fstat", "clock_gettime",
 		)
 		return nil
 	},
@@ -246,7 +252,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"syz_open_dev$usbmon", "read$usbmon", "mmap$usbmon", "ioctl$MON_IOC*",
 			"syz_usbip_server_init", "write$usbip_server",
 			"ioctl$TC*", "ioctl$TIOC*",
-			"openat", "close", "clock_gettime",
+			"openat", "close", "clock_gettime", "gettimeofday",
 		)
 		return nil
 	},
@@ -268,7 +274,7 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"mbind", "set_mempolicy", "set_mempolicy_home_node", "get_mempolicy",
 			"move_pages", "migrate_pages",
 			"swapon", "swapoff", "syz_open_dev$loop", "ioctl$LOOP*", "ioctl$BLK*",
-			"mkdirat$cgroup*", "clock_gettime", "clone", "clone3", "unshare", "setns",
+			"mkdirat$cgroup*", "clock_gettime", "syz_clone", "syz_clone3", "unshare", "setns",
 			"exit", "exit_group", "wait4", "waitid",
 		)
 		return nil
