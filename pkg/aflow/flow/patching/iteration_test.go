@@ -129,4 +129,16 @@ func TestValidateChangelogOutputs(t *testing.T) {
 	require.IsType(t, aflow.BadCallError(""), err)
 	assert.Contains(t, err.Error(), "PatchDescription")
 	assert.Contains(t, err.Error(), "NewChangeLog")
+
+	// Backticks are rejected only in the description, the changelog is not a part of the commit.
+	// Both the description and the changelog are word-wrapped.
+	got, err = validateChangelogOutputs(nil, struct{}{}, changelogGeneratorOutputs{
+		PatchDescription: "net: fix foo()",
+		NewChangeLog: "- Renamed `foo` to `bar`\n" +
+			"- Shortened the commit message by removing the quoted lockdep report and the lock chain walkthrough.",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "- Renamed `foo` to `bar`\n"+
+		"- Shortened the commit message by removing the quoted lockdep report and\n"+
+		"the lock chain walkthrough.", got.NewChangeLog)
 }

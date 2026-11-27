@@ -356,9 +356,9 @@ and then include description of the bug being fixed, and how it's fixed by the p
 The one-line summary should describe the change being made, rather than mention the tool that
 detected the bug.
 
-The description must not contain lines starting with '#' because they will dropped by git as comments.
-The description must not contain lines starting with '--' or '---' (including inline code diffs)
-because they may confuse git/patch utilities.
+Note: the code access tools show the source tree without the patch applied, so the patch diff
+is the only source for what the patch changes. Use the tools to verify claims about the
+existing code (callers, locks, return values, etc) that are not evident from the diff itself.
 
 Your final reply should contain only the text of the commit description.
 ` + commonPatchDescriptionInstruction
@@ -371,18 +371,40 @@ The one-line summary must be not longer than 72 characters.
 Use plain ASCII characters only (no Unicode punctuation or symbols such as em-dashes,
 curly quotes, arrows, or non-breaking spaces).
 
+Use plain text only: do not use Markdown formatting (no backticks around identifiers or code,
+no bold, no headings, no fenced code blocks).
+
+The description must not contain lines starting with '#' because they will be dropped by git as comments.
+The description must not contain lines starting with '--' or '---' (including inline code diffs)
+because they may confuse git/patch utilities.
+
 IMPORTANT: Do not wrap lines manually (e.g., at 80 characters); we will reformat the text
 automatically, so keep paragraphs as single lines without newlines.
+
+Keep the description concise and easy to read. Aim for 2-4 short paragraphs:
+1. Problem: what goes wrong, under what conditions, and the observable kernel failure.
+2. Fix: what the patch changes (in imperative mood) and why it fixes the bug. Summarize it
+   at a high level rather than narrating the diff line by line.
+3. Risks or side effects (optional): briefly note non-obvious trade-offs, locking or behavior
+   implications, or why callers remain safe, only if relevant. Do not invent risks.
+Use simple, direct language. Avoid filler, academic jargon, and exhaustive call-chain
+walkthroughs that list every intermediate helper function; name only the key functions,
+structs, and locks needed to understand the bug and the fix.
+
+Be strictly factual. Treat the provided patch diff as the source of truth for what the patch
+changes, even if other provided texts (explanations, a previous description) say otherwise.
+Never describe changes that are not present in the diff, and do not speculate about unverified
+consequences or security impact.
 
 Generally try to phrase the description without mentioning syzkaller
 (avoid phrases like "the bug was triggered by syzkaller" or "the bug was triggered by fuzzer", etc).
 How the bug was triggered is generally an irrelevant detail.
 Any bug triggered by a fuzzer can also be triggered by a malicious user, or a buggy program.
 
-If the crash is reported by a sanitizer (e.g., KASAN, KMSAN, lockdep), include the relevant
-parts of the sanitizer output to illustrate the problem. Exclude less relevant sections,
-as the stack trace can be very long. Describe the execution path that leads to the manifestation
-of the kernel bug.
+Do not paste raw crash logs or full call stacks: they bloat the description.
+Explain the bug and the triggering flow in prose. If the crash report helps to recognize the bug,
+you may quote its most relevant part: the report title line and the key stack frames
+(about 10 lines at most), without timestamps, register dumps, hex offsets, and file paths.
 
 {{if titleIsWarning .ReproducedBugTitle}}
 If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
@@ -430,8 +452,17 @@ are specified, letter capitalization, style, etc.
 const patchDescriptionLineLength = 75
 
 func validatePatchDescription(desc string) (string, error) {
+	var errs []string
 	if err := validateASCII("PatchDescription", desc); err != nil {
-		return "", err
+		errs = append(errs, err.Error())
+	}
+	// Kernel commit descriptions are plain text, backticks are a sign of Markdown formatting.
+	if strings.ContainsRune(desc, '`') {
+		errs = append(errs, "PatchDescription must not contain backticks (`); "+
+			"use plain text without Markdown formatting.")
+	}
+	if len(errs) > 0 {
+		return "", aflow.BadCallError("%s", strings.Join(errs, "\n"))
 	}
 	return email.WordWrap(desc, patchDescriptionLineLength), nil
 }
