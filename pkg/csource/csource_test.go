@@ -304,6 +304,50 @@ syscall(SYS_csource8, /*num=*/(intptr_t)-1);
 	}
 }
 
+func TestPostProcessCallRewriteWordAnchored(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+	ctx := &context{
+		opts:      Options{HandleSegv: true},
+		target:    target,
+		sysTarget: targets.Get(target.OS, target.Arch),
+	}
+	// The call-rewrite replacements (fail/exitf/debug/doexit/PRINTF/NONFAILING)
+	// are word-anchored, so a helper whose name ends in one of those tokens (e.g.
+	// a *_mp_fail() or *_doexit() function) is left intact while the real
+	// fail()/exitf()/debug()/doexit() calls are rewritten or stripped.
+	const in = `static long test_mp_fail(long a)
+{
+	return a;
+}
+
+void repro(void)
+{
+	fail("boom");
+	exitf("bye");
+	debug("dbg");
+	doexit(2);
+	test_mp_fail(1);
+	my_doexit(0);
+}
+`
+	got := string(ctx.postProcess([]byte(in)))
+	// The helper whose name ends in "fail" must survive intact.
+	assert.Contains(t, got, "test_mp_fail(long a)")
+	assert.Contains(t, got, "test_mp_fail(1)")
+	// Real fail()/exitf() calls are still rewritten to exit(1).
+	assert.NotContains(t, got, `fail("boom")`)
+	assert.NotContains(t, got, `exitf("bye")`)
+	assert.Equal(t, 2, strings.Count(got, "exit(1);"))
+	// debug() calls are still stripped.
+	assert.NotContains(t, got, `debug("dbg")`)
+	// A helper ending in "doexit" survives; a real doexit() is rewritten to exit().
+	assert.Contains(t, got, "my_doexit(0)")
+	assert.NotContains(t, got, "my_exit(0)")
+	assert.Contains(t, got, "exit(2);")
+}
+
 func generateSandboxFunctionSignatureTestCase(t *testing.T, sandbox string, sandboxArg int, expected, message string) {
 	actual := generateSandboxFunctionSignature(sandbox, sandboxArg)
 	assert.Equal(t, actual, expected, message)
