@@ -4,15 +4,22 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/syz-hub/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -142,62 +149,56 @@ func TestAuth(t *testing.T) {
 
 func TestHubConnectSyncAndHTTP(t *testing.T) {
 	t.Parallel()
-	st, err := state.Make(t.TempDir())
-	require.NoError(t, err)
-	hub := &Hub{
-		st: st,
-		keys: map[string]string{
-			"client1": "secret1",
-			"client2": "secret2",
-		},
-	}
+	hub, srv := newTestHubServer(t, map[string]string{
+		"client1": "secret1",
+		"client2": "secret2",
+	})
 
-	// Connect client1 (with domain) and client2 (without domain).
-	require.NoError(t, hub.Connect(&rpctype.HubConnectArgs{
-		Client:  "client1",
-		Key:     "secret1",
+	c1, err := hubapi.NewClient("client1", srv.URL, "secret1", hubapi.WithHTTPClient(srv.Client()))
+	require.NoError(t, err)
+	c2, err := hubapi.NewClient("client2", srv.URL, "secret2", hubapi.WithHTTPClient(srv.Client()))
+	require.NoError(t, err)
+
+	require.NoError(t, c1.Connect(t.Context(), &hubapi.ConnectReq{
 		Manager: "client1-mgr",
 		HTTP:    "http://127.0.0.1:10001",
 		Domain:  "dom1",
 		Fresh:   true,
 		Calls:   []string{"open", "read"},
 		Corpus:  [][]byte{[]byte("open(0x0)")},
-	}, new(int)))
-
-	require.NoError(t, hub.Connect(&rpctype.HubConnectArgs{
-		Client:  "client2",
-		Key:     "secret2",
+	}))
+	require.NoError(t, c2.Connect(t.Context(), &hubapi.ConnectReq{
 		Manager: "client2-mgr",
 		HTTP:    "http://127.0.0.1:10002",
 		Fresh:   true,
 		Calls:   []string{"open", "read"},
-	}, new(int)))
+		Corpus:  [][]byte{[]byte("read(0x1)")},
+	}))
 
-	// client2 has an empty domain, so Sync populates r.Progs instead of r.Inputs.
-	syncRes2 := new(rpctype.HubSyncRes)
-	require.NoError(t, hub.Sync(&rpctype.HubSyncArgs{
-		Client:  "client2",
-		Key:     "secret2",
+	syncResp2, err := c2.Sync(t.Context(), &hubapi.SyncReq{
 		Manager: "client2-mgr",
-		Add:     [][]byte{[]byte("read(0x1)")},
 		Repros:  [][]byte{[]byte("open(0x0)\nread(0x1)")},
-	}, syncRes2))
-	assert.Equal(t, [][]byte{[]byte("open(0x0)")}, syncRes2.Progs)
-	assert.Empty(t, syncRes2.Inputs)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []hubapi.Input{
+		{Domain: "dom1", Prog: []byte("open(0x0)")},
+	}, syncResp2.Inputs)
 
-	// client1 has a domain and requests repros, so Sync populates r.Inputs and r.Repros.
-	syncRes1 := new(rpctype.HubSyncRes)
-	require.NoError(t, hub.Sync(&rpctype.HubSyncArgs{
-		Client:     "client1",
-		Key:        "secret1",
+	syncResp1, err := c1.Sync(t.Context(), &hubapi.SyncReq{
 		Manager:    "client1-mgr",
 		NeedRepros: true,
-	}, syncRes1))
-	assert.Equal(t, []rpctype.HubInput{
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []hubapi.Input{
 		{Domain: "", Prog: []byte("read(0x1)")},
-	}, syncRes1.Inputs)
-	assert.Empty(t, syncRes1.Progs)
-	assert.Equal(t, [][]byte{[]byte("open(0x0)\nread(0x1)")}, syncRes1.Repros)
+	}, syncResp1.Inputs)
+	assert.Equal(t, [][]byte{[]byte("open(0x0)\nread(0x1)")}, syncResp1.Repros)
+
+	// Verify the external API handler does not expose the unauthenticated summary UI.
+	rootResp, err := srv.Client().Get(srv.URL + "/")
+	require.NoError(t, err)
+	rootResp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, rootResp.StatusCode)
 
 	// Verify HTTP summary renders manager stats.
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -290,4 +291,188 @@ func TestLoadConfig(t *testing.T) {
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
+}
+
+func TestHTTPOAuthAuth(t *testing.T) {
+	t.Parallel()
+	claimsJSON, err := json.Marshal(struct {
+		Exp int64 `json:"exp"`
+	}{
+		Exp: time.Now().Add(time.Hour).Unix(),
+	})
+	require.NoError(t, err)
+	fakeJWT := "hdr." + base64.RawURLEncoding.EncodeToString(claimsJSON) + ".sig"
+
+	tokenInfoSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+			return
+		}
+		assert.Equal(t, fakeJWT, r.FormValue("id_token"))
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{
+			"sub": "123456",
+			"aud": auth.DashboardAudience,
+			"exp": fmt.Sprint(time.Now().Add(time.Hour).Unix()),
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(tokenInfoSrv.Close)
+
+	_, srv := newTestHubServer(t, map[string]string{
+		"oauth-client": auth.OauthMagic + "123456",
+	}, auth.MakeEndpoint(tokenInfoSrv.URL))
+
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Host == "metadata.google.internal" {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(fakeJWT)),
+			}, nil
+		}
+		return http.DefaultTransport.RoundTrip(req)
+	})
+	client, err := hubapi.NewClient("oauth-client", srv.URL, "",
+		hubapi.WithHTTPClient(&http.Client{Transport: transport}))
+	require.NoError(t, err)
+
+	require.NoError(t, client.Connect(t.Context(), &hubapi.ConnectReq{
+		Manager: "oauth-client-mgr",
+		Calls:   []string{"open"},
+	}))
+	resp, err := client.Sync(t.Context(), &hubapi.SyncReq{Manager: "oauth-client-mgr"})
+	require.NoError(t, err)
+	assert.Empty(t, resp.Inputs)
+}
+
+func TestHTTPProtocolErrors(t *testing.T) {
+	t.Parallel()
+	_, srv := newTestHubServer(t, map[string]string{"client1": "secret1"})
+
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		client     string
+		manager    string
+		authHeader string
+		encoding   string
+		body       []byte
+		wantStatus int
+	}{
+		{
+			name:       "get_not_allowed",
+			method:     http.MethodGet,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			authHeader: "Bearer secret1",
+			wantStatus: http.StatusMethodNotAllowed,
+		},
+		{
+			name:       "missing_auth",
+			method:     http.MethodPost,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			body:       []byte(`{}`),
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "wrong_secret_before_body_decode",
+			method:     http.MethodPost,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			manager:    "client1",
+			authHeader: "Bearer wrong",
+			encoding:   "br",
+			body:       []byte("not-valid-body"),
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "unsupported_encoding",
+			method:     http.MethodPost,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			authHeader: "Bearer secret1",
+			encoding:   "br",
+			body:       []byte(`{}`),
+			wantStatus: http.StatusUnsupportedMediaType,
+		},
+		{
+			name:       "invalid_gzip",
+			method:     http.MethodPost,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			authHeader: "Bearer secret1",
+			encoding:   "gzip",
+			body:       []byte("not-gzip"),
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "invalid_json",
+			method:     http.MethodPost,
+			path:       hubapi.PathConnect,
+			client:     "client1",
+			authHeader: "Bearer secret1",
+			body:       []byte("{invalid"),
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "sync_before_connect",
+			method:     http.MethodPost,
+			path:       hubapi.PathSync,
+			client:     "client1",
+			manager:    "client1",
+			authHeader: "Bearer secret1",
+			body:       []byte(`{}`),
+			wantStatus: http.StatusConflict,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			req, err := http.NewRequestWithContext(t.Context(), tc.method, srv.URL+tc.path,
+				bytes.NewReader(tc.body))
+			require.NoError(t, err)
+			if tc.client != "" {
+				req.Header.Set(hubapi.HeaderClient, tc.client)
+			}
+			if tc.manager != "" {
+				req.Header.Set(hubapi.HeaderManager, tc.manager)
+			}
+			if tc.authHeader != "" {
+				req.Header.Set("Authorization", tc.authHeader)
+			}
+			if tc.encoding != "" {
+				req.Header.Set("Content-Encoding", tc.encoding)
+			}
+			resp, err := srv.Client().Do(req)
+			require.NoError(t, err)
+			resp.Body.Close()
+			assert.Equal(t, tc.wantStatus, resp.StatusCode)
+		})
+	}
+}
+
+func newTestHubServer(t *testing.T, keys map[string]string, endpoint ...auth.Endpoint) (*Hub, *httptest.Server) {
+	t.Helper()
+	st, err := state.Make(t.TempDir())
+	require.NoError(t, err)
+	hub := &Hub{
+		st:   st,
+		keys: keys,
+	}
+	if len(endpoint) > 0 {
+		hub.auth = endpoint[0]
+	}
+	srv := httptest.NewServer(hub.apiHandler())
+	t.Cleanup(srv.Close)
+	return hub, srv
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
 }

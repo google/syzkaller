@@ -5,17 +5,16 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
 
-	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/db"
-	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/hubapi"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -56,62 +55,50 @@ func main() {
 	if len(repros)+len(corpus) == 0 && !*flagDrain {
 		return
 	}
-	key := *flagHubKey
-	if *flagHubKey == "" {
-		tokenCache, err := auth.MakeCache(http.NewRequest, http.DefaultClient.Do)
-		if err != nil {
-			log.Fatalf("failed to make auth cache %v", err)
-		}
-		key, err = tokenCache.Get(time.Now())
-		if err != nil {
-			log.Fatalf("failed to get a token %v", err)
-		}
-	}
 	log.Printf("connecting to hub at %v...", *flagHubAddress)
-	conn, err := rpctype.NewRPCClient(*flagHubAddress, *flagHubClient, key, *flagHubManager)
+	client, err := hubapi.NewClient(*flagHubClient, *flagHubAddress, *flagHubKey)
 	if err != nil {
 		log.Fatalf("failed to connect to hub: %v", err)
 	}
-	connectArgs := &rpctype.HubConnectArgs{
-		Client:  *flagHubClient,
-		Key:     key,
-		Manager: *flagHubManager,
-		Fresh:   false,
-		Calls:   nil,
-		Corpus:  corpus,
+	if err := syncHub(context.Background(), client, *flagHubManager, corpus, repros, *flagDrain); err != nil {
+		log.Fatal(err)
 	}
-	if err := conn.Call("Hub.Connect", connectArgs, nil); err != nil {
-		log.Fatalf("Hub.Connect failed: %v", err)
+}
+
+func syncHub(ctx context.Context, client *hubapi.Client, manager string, corpus, repros [][]byte, drain bool) error {
+	if len(repros)+len(corpus) == 0 && !drain {
+		return nil
+	}
+	if err := client.Connect(ctx, &hubapi.ConnectReq{
+		Manager: manager,
+		Corpus:  corpus,
+	}); err != nil {
+		return fmt.Errorf("connect failed: %w", err)
 	}
 	log.Printf("uploaded %v corpus programs", len(corpus))
 	if len(repros) != 0 {
-		syncArgs := &rpctype.HubSyncArgs{
-			Client:  *flagHubClient,
-			Key:     key,
-			Manager: *flagHubManager,
+		if _, err := client.Sync(ctx, &hubapi.SyncReq{
+			Manager: manager,
 			Repros:  repros,
-		}
-		if err := conn.Call("Hub.Sync", syncArgs, new(rpctype.HubSyncRes)); err != nil {
-			log.Fatalf("Hub.Sync failed: %v", err)
+		}); err != nil {
+			return fmt.Errorf("sync repros failed: %w", err)
 		}
 		log.Printf("uploaded %v reproducers", len(repros))
 	}
-	for *flagDrain {
-		syncArgs := &rpctype.HubSyncArgs{
-			Client:     *flagHubClient,
-			Key:        key,
-			Manager:    *flagHubManager,
+	for drain {
+		resp, err := client.Sync(ctx, &hubapi.SyncReq{
+			Manager:    manager,
 			NeedRepros: true,
+		})
+		if err != nil {
+			return fmt.Errorf("drain sync failed: %w", err)
 		}
-		resp := new(rpctype.HubSyncRes)
-		if err := conn.Call("Hub.Sync", syncArgs, resp); err != nil {
-			log.Fatalf("Hub.Sync failed: %v", err)
-		}
-		log.Printf("received %v progs, %v repros, %v more", len(resp.Progs), len(resp.Repros), resp.More)
-		if len(resp.Progs)+len(resp.Repros) == 0 {
+		log.Printf("received %v progs, %v repros, %v more", len(resp.Inputs), len(resp.Repros), resp.More)
+		if len(resp.Inputs)+len(resp.Repros) == 0 {
 			break
 		}
 	}
+	return nil
 }
 
 func loadProgs(target *prog.Target, reproGlob string) [][]byte {
