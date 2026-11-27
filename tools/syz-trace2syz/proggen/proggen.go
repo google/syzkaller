@@ -339,6 +339,13 @@ func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType 
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
+	case *parser.GroupType:
+		// Structured payloads such as netlink messages are decoded by strace
+		// as nested groups rather than as a raw string.
+		bufVal = traceGroupBytes(a)
+		if len(bufVal) == 0 {
+			return syzType.DefaultArg(dir)
+		}
 	default:
 		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}
@@ -355,6 +362,32 @@ func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType 
 		bufVal = bufVal[:size]
 	}
 	return prog.MakeDataArg(syzType, dir, bufVal)
+}
+
+// traceGroupBytes flattens a strace group that describes the contents of a
+// byte buffer into the raw byte sequence it represents. Numeric values are
+// encoded as little-endian 64-bit values, consistent with the conversion of
+// scalar constants in genBuffer.
+func traceGroupBytes(group *parser.GroupType) []byte {
+	if group == nil {
+		return nil
+	}
+	res := []byte{}
+	for _, ir := range group.Elems {
+		switch a := ir.(type) {
+		case *parser.GroupType:
+			res = append(res, traceGroupBytes(a)...)
+		case *parser.BufferType:
+			res = append(res, []byte(a.Val)...)
+		case parser.Constant:
+			var bArr [8]byte
+			binary.LittleEndian.PutUint64(bArr[:], a.Val())
+			res = append(res, bArr[:]...)
+		default:
+			log.Fatalf("unsupported type in buffer group: %#v", ir)
+		}
+	}
+	return res
 }
 
 func (ctx *context) genPtr(syzType *prog.PtrType, dir prog.Dir, traceType parser.IrType) prog.Arg {
