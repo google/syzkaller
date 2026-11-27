@@ -44,7 +44,7 @@ static void validate_guest_code(void* mem, size_t size)
 	}
 }
 
-static int setup_vm(int vmfd, void* host_mem, void** text_slot)
+static int setup_vm(int vmfd, void* host_mem, size_t mem_size, void** text_slot)
 {
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
@@ -55,11 +55,19 @@ static int setup_vm(int vmfd, void* host_mem, void** text_slot)
 	// 0xeeee0000 - user code (4 pages)
 	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xeeef0000 - scratch memory for code generated at runtime (1 page)
-	// 0xffff1000 - EL1 stack (1 page)
-	struct addr_size allocator = {.addr = host_mem, .size = KVM_GUEST_MEM_SIZE};
+	// 0xffff1000 - EL1 stacks, one page per vCPU (4 pages)
+	if (!host_mem) {
+		errno = EINVAL;
+		return -1;
+	}
+	struct addr_size allocator = {.addr = host_mem, .size = mem_size};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
+	if (!host_text.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	size_t syzos_size = install_syzos_code(host_text.addr, host_text.size);
 	validate_guest_code(host_text.addr, syzos_size);
 	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE,
@@ -67,39 +75,61 @@ static int setup_vm(int vmfd, void* host_mem, void** text_slot)
 		return -1;
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
+	if (!next.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES,
 				      next.size, (uintptr_t)next.addr))
 		return -1;
 
 	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
+	if (!next.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	if (vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE,
 				      next.size, (uintptr_t)next.addr))
 		return -1;
 	if (text_slot)
 		*text_slot = next.addr;
 
-	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
+	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
+	if (!next.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM,
 				      next.size, (uintptr_t)next.addr))
 		return -1;
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
+	if (!next.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE,
 				      next.size, (uintptr_t)next.addr))
 		return -1;
 
 	// Allocate memory for the ITS tables: 64K for the device table, collection table, command queue, property table,
 	// plus 64K * 4 CPUs for the pending tables, and 64K * 16 devices for the ITT tables.
-	int its_size = SZ_64K * (4 + 4 + 16);
+	size_t its_size = (size_t)SZ_64K * (4 + KVM_MAX_VCPU + ITS_MAX_DEVICES);
 	next = alloc_guest_mem(&allocator, its_size);
+	if (!next.addr) {
+		errno = ENOMEM;
+		return -1;
+	}
 	if (vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES,
 				      next.size, (uintptr_t)next.addr))
 		return -1;
 
 	// Map the remaining pages at address 0.
-	next = alloc_guest_mem(&allocator, allocator.size);
-	if (vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr))
-		return -1;
+	if (allocator.size > 0) {
+		next = alloc_guest_mem(&allocator, allocator.size);
+		if (vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr))
+			return -1;
+	}
 	return 0;
 }
 #endif
@@ -117,7 +147,9 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	// PC points to the relative offset of guest_main() within the guest code.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, executor_fn_guest_addr(guest_main));
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + KVM_PAGE_SIZE - 128);
+	// Every vCPU needs its own stack: a vCPU that exits to the host stays suspended in the middle
+	// of guest_main(), and another vCPU running in the meantime must not overwrite its frames.
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK(cpu_id));
 	// Store the CPU ID in TPIDR_EL1.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);
 	// Pass parameters to guest_main().
@@ -164,7 +196,7 @@ static void setup_cpu_with_opts(int vmfd, int cpufd, const struct kvm_opt* opt, 
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
-// syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
+// syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[1024], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
 static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
@@ -180,13 +212,17 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	(void)opt_count;
 
 	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
+	if (!host_mem || !text_array_ptr) {
+		errno = EINVAL;
+		return -1;
+	}
 	int text_type = text_array_ptr[0].typ;
 	const void* text = text_array_ptr[0].text;
 	size_t text_size = text_array_ptr[0].size;
 	(void)text_type;
 
 	void* user_text_slot = NULL;
-	if (setup_vm(vmfd, host_mem, &user_text_slot))
+	if (setup_vm(vmfd, host_mem, KVM_GUEST_MEM_SIZE, &user_text_slot))
 		return -1;
 	setup_cpu_with_opts(vmfd, cpufd, opt_array_ptr, opt_count);
 
@@ -211,10 +247,14 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	const int vmfd = a0;
 	void* host_mem = (void*)a1;
 
+	if (!host_mem) {
+		errno = EINVAL;
+		return -1;
+	}
 	void* user_text_slot = NULL;
 	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
 	host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
-	if (setup_vm(vmfd, host_mem, &user_text_slot))
+	if (setup_vm(vmfd, host_mem, KVM_GUEST_MEM_SIZE - KVM_PAGE_SIZE, &user_text_slot))
 		return -1;
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;
@@ -228,15 +268,15 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 {
 	struct kvm_syz_vm* vm = (struct kvm_syz_vm*)a0;
 	struct kvm_text* utext = (struct kvm_text*)a1;
-	const void* text = utext->text;
-	size_t text_size = utext->size;
 	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a2;
 	uintptr_t opt_count = a3;
 
-	if (!vm) {
+	if (!vm || !utext) {
 		errno = EINVAL;
 		return -1;
 	}
+	const void* text = utext->text;
+	size_t text_size = utext->size;
 	if (vm->next_cpu_id == KVM_MAX_VCPU) {
 		errno = ENOMEM;
 		return -1;
