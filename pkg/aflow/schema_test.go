@@ -26,6 +26,11 @@ func TestSchema(t *testing.T) {
 		A int    `jsonschema:"aaa"`
 		B string `jsonschema:"bbb"`
 	}
+	type structWithUnexported struct {
+		A int `jsonschema:"aaa"`
+		b string
+	}
+	_ = (structWithUnexported{}).b
 	tests := []Test{
 		{
 			fn:  schemaFor[int],
@@ -37,6 +42,9 @@ func TestSchema(t *testing.T) {
 		},
 		{
 			fn: schemaFor[structWithTags],
+		},
+		{
+			fn: schemaFor[structWithUnexported],
 		},
 	}
 	for i, test := range tests {
@@ -261,6 +269,15 @@ func TestConvertFromMap(t *testing.T) {
 	}{
 		Embedded: Embedded{B: "foo"},
 		A:        1,
+	}, "", "")
+
+	testConvertFromMap(t, true, map[string]any{
+		"A": 1.0,
+	}, struct {
+		A int
+		b string
+	}{
+		A: 1,
 	}, "", "")
 }
 
