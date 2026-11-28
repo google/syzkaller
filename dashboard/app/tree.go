@@ -1,7 +1,7 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package app
 
 // Given information on how commits flow from one kernel source tree to another, assign
 // bugs labels of two kinds:
